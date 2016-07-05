@@ -26,38 +26,45 @@ trait Design { self =>
   //def checkIds = _checkIds && !Config.quick
 
   //val nodeBounds = Map[CombNode, Double]()
-  private val allNodes = Stack[ListBuffer[Node]]()
+  private val allNodes = Stack[(Node => Boolean, ListBuffer[Node])]()
 
   def reset() {
-    allNodes.foreach {i => i.clear()}
+    allNodes.foreach { case (f,i) => i.clear() }
     allNodes.clear()
     nextSym = 0
   }
 
   def addNode(n: Node) { 
-    allNodes.foreach {i => i+= n}
+    allNodes.foreach { case (f,i) => if (f(n)) i+= n }
   }
 
-  def addBlock(block: => Any):ListBuffer[Node] = {
-    val list = ListBuffer[Node]()
-    allNodes.push(list)
+  def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
+    allNodes.push((f1, ListBuffer[Node]()))
+    filters.foreach { f => 
+      allNodes.push( (f, ListBuffer[Node]()) )
+    }
     block
-    allNodes.pop()
+    val lists = ListBuffer[List[Node]]()
+    for (i <- 0 to filters.size ) {i:Int =>
+      lists += allNodes.pop()._2.toList
+    }
+    lists.toList
+  }
+
+  def addBlock(block: => Any, filter: Node => Boolean):List[Node] = {
+    allNodes.push((filter, ListBuffer[Node]()))
+    block
+    allNodes.pop()._2.toList
   }
 
   def msg(x: String) = if (Config.dse) () else System.out.println(x)
 
-  def processTop(top: Node): Node = {
-
-    top
-  }
-
   def main(args: String*): Any 
   def main(args: Array[String]): Unit = {
-    msg(args.mkString(", "))
-    main(args:_*)
 
-    val cuList = allNodes.pop
+    msg(args.mkString(", "))
+    def mainBlock = main(args:_*)
+    val cuList = addBlock(mainBlock, (n:Node) => true)
 
     cuList.foreach {i => println(i)}
     //if (Config.genDot) {

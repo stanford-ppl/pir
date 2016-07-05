@@ -12,43 +12,42 @@ import dhdl.Design
   */
 abstract class Node(nameStr:Option[String], typeStr:String) (implicit design: Design) extends Product {
 	design.addNode(this)
-  //val name: String
-  val name = nameStr.getOrElse("")
+  val name: String = nameStr.getOrElse("")
   val id : Int = design.nextId
 
   val DefaultPrecision = 32
 
-  override def toString = name + typeStr
+  override def toString = s"${typeStr}${id}${if(nameStr.isDefined) "_" else ""}${name}"
   override def equals(that: Any) = that match {
     case n: Node => super.equals(that) && name == n.name
     case _ => super.equals(that)
   }
 }
 
+class Range (s:Wire, e:Wire) {
+  val start:Wire = s
+  val end:Wire = e
+  def by(step:Wire) = (start, end, step)
+}
 /**
  * An unassigned wire used to represent scalar outputs prior to assignment
  * @param tp: The type of value represented by this wire
  */
-case class Wire(nameStr: Option[String], v:Option[Long], prec:Option[Int])(implicit design: Design) extends Node(nameStr, "wire") {
+case class Wire(nameStr: Option[String], v:Option[Long], prec:Option[Int])(implicit design: Design) extends Node(nameStr, "Wire") {
   val precision:Int = prec.getOrElse(DefaultPrecision)
   val value:Option[Long] = v 
 
   def by(step:Wire) = (Const(0l, step.precision), this, step)
-  def until(max:Wire) = Range(this, max)
+  def until(max:Wire) = new Range(this, max)
   def isConst = value.isDefined
 }
 object Wire {
   def apply(name:String, v:Long, prec:Int):Wire = Wire(name, v, prec)
 }
-class Range (s:Wire, e:Wire) {
-  val start:Wire = s
-  val end:Wire = e
-  def by(step:Const) = (start, end, step)
-}
 object Const {
-  def apply(v:Long, prec:Int):Wire = Wire(None, Some(v), Some(prec))
-  def apply(v:Long):Wire = Wire(None, Some(v), None)
-  def apply(name:String, v:Long):Wire = Some(Some(name), Some(v), None)
+  def apply(v:Long, prec:Int) (implicit design:Design):Wire = Wire(None, Some(v), Some(prec))
+  def apply(v:Long) (implicit design:Design):Wire = Wire(None, Some(v), None)
+  def apply(name:String, v:Long) (implicit design:Design):Wire = Wire(Some(name), Some(v), None)
 }
 
 
@@ -85,15 +84,12 @@ case class ArgOut(nameStr:Option[String], value: Wire)(implicit design: Design) 
  *  Each tuple represents the (max, stride) for one level in the loop.
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
-case class CounterChain(nameStr:Option[String], ctrs: (Wire, Wire, Wire)*)(implicit design: Design) extends Node(nameStr, "cc") {
-  val ctrs: List[Wire] = Nil //TODO
-  val max:Wire = null //TODO
+case class CounterChain(nameStr:Option[String], counters: (Wire, Wire, Wire)*)(implicit design: Design) extends Node(nameStr, "CC") {
+  val ctrs = counters
   def apply(x: Int) = ctrs(x)
 }
 object CounterChain {
-  //def apply(maxNStride: (Node, Int)*)(implicit design: Design) = {
-  //  new CounterChain()(maxNStride:_*)
-  //}
+  def apply(counters: (Wire, Wire, Wire)*)(implicit design: Design):CounterChain = CounterChain(None, counters:_*)
 }
 
 /** SRAM 
@@ -131,12 +127,20 @@ object Pipeline {
   //  = val s = design.getStages(stages); Pipeline(Some(name), List(s))
 }
 
-case class ComputeUnit(nameStr: Option[String], n:List[Node])(implicit design: Design) extends Node(nameStr, "cu"){
-  val nodes = n
+case class ComputeUnit(nameStr: Option[String], cchains: List[Node])(implicit design: Design) extends Node(nameStr, "CU"){
+  override def toString = {
+    s"""${super.toString} { 
+        ${cchains.map{cc => cc.toString}.reduce{_ + "\n" + _}} 
+    }"""
+  }
 }
 object ComputeUnit {
-  //val apply (block: => Any):ComputeUnit = ComputeUnit(None, design.addBlock(block))
-  //val apply (name:String) (block: => Any) = ComputeUnit(Some(name), design.addBlock(block))
+  def apply (name:Option[String], block: => Any) (implicit design: Design):ComputeUnit = {
+    val cchains = design.addBlock(block, (n:Node) => n.isInstanceOf[CounterChain]) 
+    ComputeUnit(name, cchains)
+  } 
+  def apply (block: => Any) (implicit design: Design):ComputeUnit = ComputeUnit.apply(None, block)
+  def apply (name:String) (block: => Any) (implicit design: Design):ComputeUnit = ComputeUnit.apply(Some(name), block)
 }
 
 case class Stage(nameStr: Option[String]) (implicit design: Design) extends Node(nameStr, "stage") {

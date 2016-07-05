@@ -6,11 +6,11 @@ object DotProduct extends Design {
 
   def main(args: String*) = {
   
-    ComputeUnit() {
-      //val tileSize = Const(4l)
+    ComputeUnit {
+      val tileSize = Const(4l)
 
       // StateMachines / CounterChain
-      // val c1 = CounterChain(tileSize by Const(1l)) //Local
+      val c1 = CounterChain(tileSize by Const(1l)) //Local
       //val c2 = CounterChain.copy(MemCtrl("A"), "cc")
       //val c3 = CounterChain.copy(MemCtrl("B"), "cc")
 
