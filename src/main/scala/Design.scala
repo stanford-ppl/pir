@@ -25,10 +25,13 @@ trait Design { self =>
 
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
   private val nameMap = HashMap[String, Node]()
+  private val toUpdate = HashMap[String, Node => Unit]()
 
   def reset() {
     nodeStack.foreach { case (f,i) => i.clear() }
     nodeStack.clear()
+    nameMap.clear()
+    toUpdate.clear()
     nextSym = 0
   }
 
@@ -59,6 +62,8 @@ trait Design { self =>
     nameMap(s)
   }
 
+  def addUpdate(s:String, f:Node => Unit) = toUpdate += (s -> f)
+
   def msg(x: String) = if (Config.dse) () else System.out.println(x)
 
   def main(args: String*): Any 
@@ -66,14 +71,23 @@ trait Design { self =>
 
     msg(args.mkString(", "))
     def mainBlock = main(args:_*)
-    val allNodes::cuList::mcList::_ = addBlock(mainBlock, 
+    val allNodes::ctrlList::cuList::mcList::_ = addBlock(mainBlock, 
                                        (n:Node) => true,
+                                       (n:Node) => n.isInstanceOf[Controller],
                                        (n:Node) => n.isInstanceOf[ComputeUnit],
-                                       (n:Node) => n.isInstanceOf[MemoryController])
+                                       (n:Node) => n.isInstanceOf[MemoryController]
+                                       )
 
+    toUpdate.foreach { case (k,f) =>
+      val n:Node = getByName(k)
+      f(n)
+    }
+    toUpdate.clear()
+     
     //allNodes.foreach {i => println(i)}
-    cuList.foreach {i => println(i)}
-    mcList.foreach {i => println(i)}
+    //cuList.foreach {i => println(i)}
+    //mcList.foreach {i => println(i)}
+    ctrlList.foreach {i => println(i)}
     //if (Config.genDot) {
     //  val origGraph = new GraphvizCodegen(s"orig")
     //  origGraph.run(top)
