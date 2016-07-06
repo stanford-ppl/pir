@@ -43,6 +43,5 @@ max
 *.tags
 area.txt
 cycles.txt
-/bin/
 /csv/
 /idealmb/

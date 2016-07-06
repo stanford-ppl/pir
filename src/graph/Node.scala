@@ -29,53 +29,49 @@ class Range (s:Wire, e:Wire) {
   val end:Wire = e
   def by(step:Wire) = (start, end, step)
 }
+
 /**
  * An unassigned wire used to represent scalar outputs prior to assignment
  * @param tp: The type of value represented by this wire
  */
-case class Wire(nameStr: Option[String], v:Option[Long], prec:Option[Int])(implicit design: Design) extends Node(nameStr, "Wire") {
-  val precision:Int = prec.getOrElse(DefaultPrecision)
-  val value:Option[Long] = v 
+abstract class Wire(nameStr: Option[String], w:Option[Int], typeStr:String)(implicit design: Design) extends Node(nameStr, typeStr) {
+  val width:Int = w.getOrElse(DefaultPrecision)
 
-  def by(step:Wire) = (Const(0l, step.precision), this, step)
+  def by(step:Wire) = (Const(0l, step.width), this, step)
   def until(max:Wire) = new Range(this, max)
-  def isConst = value.isDefined
+  def isConst = this.isInstanceOf[Const] 
 }
-object Wire {
-  def apply(name:String, v:Long, prec:Int):Wire = Wire(name, v, prec)
+
+case class Const(nameStr:Option[String], v:Option[Long], w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "Const"){
+  val value:Option[Long] = v 
+  override def toString = s"Const(${value.get})"
 }
 object Const {
-  def apply(v:Long, prec:Int) (implicit design:Design):Wire = Wire(None, Some(v), Some(prec))
-  def apply(v:Long) (implicit design:Design):Wire = Wire(None, Some(v), None)
-  def apply(name:String, v:Long) (implicit design:Design):Wire = Wire(Some(name), Some(v), None)
+  def apply(v:Long, w:Int) (implicit design:Design):Const = Const(None, Some(v), Some(w))
+  def apply(v:Long) (implicit design:Design):Const = Const(None, Some(v), None)
+  def apply(name:String, v:Long) (implicit design:Design):Const = Const(Some(name), Some(v), None)
 }
 
-
-/** Argument passed from host CPU code to accelerator using a memory-mapped register.
- *  Represents scalar input to accelerator, and are read-only from accelerator.
- *  @param id: String identifier used by user to identify argument
- *  @param tp: Optional type of argument, defaults to 32-bit signed integer
- */
-case class ArgIn(nameStr:Option[String])(implicit design: Design) extends Node(nameStr, "argin"){
-  val arg = design.nextId
-
+case class ArgIn(nameStr:Option[String], w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "ArgIn"){
 }
-
 object ArgIn {
-  /** Companion object's apply method which takes in a type parameter for the argument */
-  //def apply(tp: Type)(id: String)(implicit design: Design) = new { override val t = tp } with ArgIn(id)
+  def apply() (implicit design:Design):ArgIn = ArgIn(None, None)
+  def apply(w:Int) (implicit design:Design):ArgIn = ArgIn(None, Some(w))
+  def apply(name:String, w:Int) (implicit design:Design):ArgIn = ArgIn(Some(name), Some(w))
 }
+
 
 /** Scalar values passed from accelerator to host CPU code via memory-mapped registers.
  *  Represent scalar outputs from the accelerator, and are write-only from accelerator.
  *  @param value: Combinational node whose value is to be output to CPU
  */
-case class ArgOut(nameStr:Option[String], value: Wire)(implicit design: Design) extends Node(nameStr, "argout") {
-  val arg = design.nextId
-
+case class ArgOut(nameStr:Option[String], value:Wire, w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "ArgOut"){
 }
-
-
+object ArgOut {
+  def apply(value:Wire) (implicit design:Design):ArgOut = ArgOut(None, value, None)
+  def apply(value:Wire, w:Int) (implicit design:Design):ArgOut = ArgOut(None, value, Some(w))
+  def apply(name:String, value:Wire, w:Int) (implicit design:Design):ArgOut = ArgOut(Some(name), value, Some(w))
+}
 
 /** Counter node. Represents a chain of counters where each counter counts upto a certain max value. When
  *  the topmost counter reaches its maximum value, the entire counter chain ''saturates'' and does not
@@ -87,6 +83,14 @@ case class ArgOut(nameStr:Option[String], value: Wire)(implicit design: Design) 
 case class CounterChain(nameStr:Option[String], counters: (Wire, Wire, Wire)*)(implicit design: Design) extends Node(nameStr, "CC") {
   val ctrs = counters
   def apply(x: Int) = ctrs(x)
+  override def toString = {
+    super.toString + { 
+    if (counters.size > 0)
+      counters.map{ case (min, max, step) => s"(${min}, ${max}, ${step})" }.reduce(_+_)
+    else
+      "()"
+    }
+  }
 }
 object CounterChain {
   def apply(counters: (Wire, Wire, Wire)*)(implicit design: Design):CounterChain = CounterChain(None, counters:_*)
@@ -127,12 +131,23 @@ object Pipeline {
   //  = val s = design.getStages(stages); Pipeline(Some(name), List(s))
 }
 
-case class ComputeUnit(nameStr: Option[String], cchains: List[Node])(implicit design: Design) extends Node(nameStr, "CU"){
+
+abstract class Controller(nameStr: Option[String], cchains: List[Node], typeStr:String)(implicit design: Design) extends Node(nameStr, typeStr){
+  def content = List(s"""  cchains: [
+  ${if (cchains.size > 0) cchains.map{cc => cc.toString}.reduce{_ + ",\n" + _}} 
+  ]""")
+
   override def toString = {
     s"""${super.toString} { 
-        ${cchains.map{cc => cc.toString}.reduce{_ + "\n" + _}} 
-    }"""
+  ${content.reduce(_+"\n"+_)}
+}"""
   }
+}
+
+case class ComputeUnit(nameStr: Option[String], cchains: List[Node])(implicit design: Design) extends Controller(nameStr, cchains, "CU"){
+  override def content = super.content :+
+  s"""  stages:{
+  }"""
 }
 object ComputeUnit {
   def apply (name:Option[String], block: => Any) (implicit design: Design):ComputeUnit = {
@@ -141,6 +156,18 @@ object ComputeUnit {
   } 
   def apply (block: => Any) (implicit design: Design):ComputeUnit = ComputeUnit.apply(None, block)
   def apply (name:String) (block: => Any) (implicit design: Design):ComputeUnit = ComputeUnit.apply(Some(name), block)
+}
+
+case class MemoryController(nameStr: Option[String], cchains: List[Node])(implicit design: Design) extends Controller(nameStr, cchains, "MemCtrl"){
+}
+
+object MemoryController {
+  def apply (name:Option[String], block: => Any) (implicit design: Design):MemoryController = {
+    val cchains = design.addBlock(block, (n:Node) => n.isInstanceOf[CounterChain]) 
+    MemoryController(name, cchains)
+  } 
+  def apply (block: => Any) (implicit design: Design):MemoryController = MemoryController.apply(None, block)
+  def apply (name:String) (block: => Any) (implicit design: Design):MemoryController = MemoryController.apply(Some(name), block)
 }
 
 case class Stage(nameStr: Option[String]) (implicit design: Design) extends Node(nameStr, "stage") {

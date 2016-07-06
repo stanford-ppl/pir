@@ -9,6 +9,7 @@ import codegen.dot._
 
 import scala.collection.mutable.Queue
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
 import java.nio.file.{Paths, Files}
 import scala.io.Source
@@ -22,39 +23,40 @@ trait Design { self =>
   private var nextSym = 0
   def nextId = {nextSym += 1; nextSym }
 
-  //private var _checkIds = true
-  //def checkIds = _checkIds && !Config.quick
-
-  //val nodeBounds = Map[CombNode, Double]()
-  private val allNodes = Stack[(Node => Boolean, ListBuffer[Node])]()
+  private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
+  private val nameMap = HashMap[String, Node]()
 
   def reset() {
-    allNodes.foreach { case (f,i) => i.clear() }
-    allNodes.clear()
+    nodeStack.foreach { case (f,i) => i.clear() }
+    nodeStack.clear()
     nextSym = 0
   }
 
   def addNode(n: Node) { 
-    allNodes.foreach { case (f,i) => if (f(n)) i+= n }
+    nodeStack.foreach { case (f,i) => if (f(n)) i+= n }
   }
 
   def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
-    allNodes.push((f1, ListBuffer[Node]()))
+    nodeStack.push((f1, ListBuffer[Node]()))
     filters.foreach { f => 
-      allNodes.push( (f, ListBuffer[Node]()) )
+      nodeStack.push( (f, ListBuffer[Node]()) )
     }
     block
-    val lists = ListBuffer[List[Node]]()
-    for (i <- 0 to filters.size ) {i:Int =>
-      lists += allNodes.pop()._2.toList
+    (0 to filters.size).foldLeft(List[List[Node]]()) { case (a, i) =>
+      nodeStack.pop()._2.toList :: a 
     }
-    lists.toList
   }
 
   def addBlock(block: => Any, filter: Node => Boolean):List[Node] = {
-    allNodes.push((filter, ListBuffer[Node]()))
+    nodeStack.push((filter, ListBuffer[Node]()))
     block
-    allNodes.pop()._2.toList
+    nodeStack.pop()._2.toList
+  }
+
+  def addName(n:Node, s:String):Unit = nameMap += (s -> n)
+  def getByName(s:String):Node = {
+    assert(nameMap.contains(s), s"No node defined with name:${s}")
+    nameMap(s)
   }
 
   def msg(x: String) = if (Config.dse) () else System.out.println(x)
@@ -64,9 +66,14 @@ trait Design { self =>
 
     msg(args.mkString(", "))
     def mainBlock = main(args:_*)
-    val cuList = addBlock(mainBlock, (n:Node) => true)
+    val allNodes::cuList::mcList::_ = addBlock(mainBlock, 
+                                       (n:Node) => true,
+                                       (n:Node) => n.isInstanceOf[ComputeUnit],
+                                       (n:Node) => n.isInstanceOf[MemoryController])
 
+    //allNodes.foreach {i => println(i)}
     cuList.foreach {i => println(i)}
+    mcList.foreach {i => println(i)}
     //if (Config.genDot) {
     //  val origGraph = new GraphvizCodegen(s"orig")
     //  origGraph.run(top)

@@ -1,13 +1,25 @@
 import dhdl.graph._
+import dhdl.graph.{MemoryController => MemCtrl}
 import dhdl.codegen._
 import dhdl.Design
 
 object DotProduct extends Design {
 
   def main(args: String*) = {
-  
-    ComputeUnit {
-      val tileSize = Const(4l)
+
+    val tileSize = Const(4l)
+    val dataSize = ArgIn()
+    ComputeUnit (name="outer") {
+      CounterChain(dataSize by tileSize)
+    }
+
+    MemCtrl (name="A"){
+      CounterChain()
+    }
+    MemCtrl (name="B"){
+      CounterChain()
+    }
+    ComputeUnit (name="inner") {
 
       // StateMachines / CounterChain
       val c1 = CounterChain(tileSize by Const(1l)) //Local
