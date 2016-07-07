@@ -37,6 +37,7 @@ trait Design { self =>
 
   def addNode(n: Node) { 
     nodeStack.foreach { case (f,i) => if (f(n)) i+= n }
+    //println(s"addNode:${n.typeStr}_${n.name}")
   }
 
   def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
@@ -56,38 +57,45 @@ trait Design { self =>
     nodeStack.pop()._2.toList
   }
 
-  def addName(n:Node, s:String):Unit = nameMap += (s -> n)
+  def addName(n:Node, s:String):Unit = n match {
+    case c:Controller => 
+      assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n}")
+      nameMap += (s -> c)
+    case p:Primitive =>
+      //val ctrler = p.controller
+      //val nameStr = s"ctrler${ctrler.id}_${s}"
+      //assert(!nameMap(ctrler).contains(p), s"Already create primitive with name ${s} for controller ${ctrler}")
+    case w:Wire =>
+      assert(false, "No support for adding name for wire yet!")
+  }
+
   def getByName(s:String):Node = {
     assert(nameMap.contains(s), s"No node defined with name:${s}")
     nameMap(s)
   }
 
-  def addUpdate(s:String, f:Node => Unit) = toUpdate += (s -> f)
+  def updateLater(s:String, f:Node => Unit) = toUpdate += (s -> f)
 
   def msg(x: String) = if (Config.dse) () else System.out.println(x)
 
-  def main(args: String*): Any 
+  def main(args: String*): Top
   def main(args: Array[String]): Unit = {
 
     msg(args.mkString(", "))
-    def mainBlock = main(args:_*)
-    val allNodes::ctrlList::cuList::mcList::_ = addBlock(mainBlock, 
-                                       (n:Node) => true,
-                                       (n:Node) => n.isInstanceOf[Controller],
-                                       (n:Node) => n.isInstanceOf[ComputeUnit],
-                                       (n:Node) => n.isInstanceOf[MemoryController]
-                                       )
+    val top:Top = main(args:_*)
 
+    println("-------- Finishing graph construction ----------")
     toUpdate.foreach { case (k,f) =>
       val n:Node = getByName(k)
       f(n)
     }
     toUpdate.clear()
+    println("-------- Finishing updating nodes ----------")
      
-    //allNodes.foreach {i => println(i)}
+    //nodes.foreach {i => println(i)}
     //cuList.foreach {i => println(i)}
     //mcList.foreach {i => println(i)}
-    ctrlList.foreach {i => println(i)}
+    top.ctrlList.foreach {i => println(i)}
     //if (Config.genDot) {
     //  val origGraph = new GraphvizCodegen(s"orig")
     //  origGraph.run(top)

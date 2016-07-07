@@ -5,29 +5,28 @@ import dhdl.Design
 
 object DotProduct extends Design {
 
-  def main(args: String*) = {
-
+  def dotproduct(args: String*) = {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = Sequential (name="outer") {
+    val outer = Sequential (parent="Top"){
       CounterChain(name="i", dataSize by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    MemCtrl (name="A"){
-      val icp = CounterChain.copy("i")
+    val A = MemCtrl (name="A", parent=outer){
+      //TODO:val icp = CounterChain.copy(outer, "i")
       //CounterChain(icp until "" by Const(1))
     }
     // b2 := v2(i::i+tileSize)
-    MemCtrl (name="B"){
+    val B = MemCtrl (name="B", parent=outer){
       CounterChain()
     }
     ComputeUnit (name="inner", parent=outer) {
       // StateMachines / CounterChain
       val c1 = CounterChain(tileSize by Const(1l)) //Local
-      //val c2 = CounterChain.copy(MemCtrl("A"), "cc")
-      //val c3 = CounterChain.copy(MemCtrl("B"), "cc")
+      //val c2 = CounterChain.copy("A", "cc")
+      //val c3 = CounterChain.copy("B", "cc")
 
       // SRAMs
       //val A = SRAM(write=remote, readAddr=c1(0), writeAddr=c2(0))
@@ -41,8 +40,11 @@ object DotProduct extends Design {
       }
       //Last stage can be removed if PR.reduce and PR.scalarOut map to the same register
     }
+  } 
+
+  def main(args: String*):Top = {
+    def block = dotproduct(args:_*)
+    Top(block)
   }
 
 }
-
-

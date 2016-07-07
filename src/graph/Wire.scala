@@ -30,32 +30,36 @@ object Wire {
   def apply(name:String, w:Int) (implicit design:Design):Wire = new Wire(Some(name), Some(w), "Wire")
 }
 
-class Const(nameStr:Option[String], v:Option[Long], w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "Const"){
-  val value:Option[Long] = v 
+trait Const extends Wire {
+  val value:Option[Long]
   override def toString = s"Const(${value.get})"
 }
 object Const {
-  def apply(v:Long, w:Int) (implicit design:Design):Const = new Const(None, Some(v), Some(w))
-  def apply(v:Long) (implicit design:Design):Const = new Const(None, Some(v), None)
-  def apply(name:String, v:Long) (implicit design:Design):Const = new Const(Some(name), Some(v), None)
+  def apply(nameStr:Option[String], v:Option[Long], w:Option[Int])(implicit design: Design) =
+   new {override val value = v} with Wire(nameStr, w, "Const") with Const
+  def apply(v:Long, w:Int) (implicit design:Design):Const = Const(None, Some(v), Some(w))
+  def apply(v:Long) (implicit design:Design):Const = Const(None, Some(v), None)
+  def apply(name:String, v:Long) (implicit design:Design):Const = Const(Some(name), Some(v), None)
 }
 
-class ArgIn(nameStr:Option[String], w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "ArgIn"){
-}
+trait ArgIn extends Wire
 object ArgIn {
-  def apply() (implicit design:Design):ArgIn = new ArgIn(None, None)
-  def apply(w:Int) (implicit design:Design):ArgIn = new ArgIn(None, Some(w))
-  def apply(name:String, w:Int) (implicit design:Design):ArgIn = new ArgIn(Some(name), Some(w))
+  def apply(nameStr:Option[String], w:Option[Int])(implicit design: Design) =
+    new Wire(nameStr, w, "ArgIn") with ArgIn
+  def apply() (implicit design:Design):ArgIn = ArgIn(None, None)
+  def apply(w:Int) (implicit design:Design):ArgIn = ArgIn(None, Some(w))
+  def apply(name:String, w:Int) (implicit design:Design):ArgIn = ArgIn(Some(name), Some(w))
 }
 
 /** Scalar values passed from accelerator to host CPU code via memory-mapped registers.
  *  Represent scalar outputs from the accelerator, and are write-only from accelerator.
  *  @param value: Combinational node whose value is to be output to CPU
  */
-class ArgOut(nameStr:Option[String], value:Wire, w:Option[Int])(implicit design: Design) extends Wire(nameStr, w, "ArgOut"){
-}
+trait ArgOut extends Wire
 object ArgOut {
-  def apply(value:Wire) (implicit design:Design):ArgOut = new ArgOut(None, value, None)
-  def apply(value:Wire, w:Int) (implicit design:Design):ArgOut = new ArgOut(None, value, Some(w))
-  def apply(name:String, value:Wire, w:Int) (implicit design:Design):ArgOut = new ArgOut(Some(name), value, Some(w))
+  def apply(nameStr:Option[String], value:Wire, w:Option[Int])(implicit design: Design) =
+    new Wire(nameStr, w, "ArgOut") with ArgOut
+  def apply(value:Wire) (implicit design:Design):ArgOut = ArgOut(None, value, None)
+  def apply(value:Wire, w:Int) (implicit design:Design):ArgOut = ArgOut(None, value, Some(w))
+  def apply(name:String, value:Wire, w:Int) (implicit design:Design):ArgOut = ArgOut(Some(name), value, Some(w))
 }
