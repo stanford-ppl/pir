@@ -5,7 +5,7 @@ import dhdl.Design
 
 object DotProduct extends Design {
 
-  def dotproduct(args: String*) = {
+  def main(args: String*) = {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
 
@@ -15,11 +15,12 @@ object DotProduct extends Design {
     }
     // b1 := v1(i::i+tileSize)
     val A = MemCtrl (name="A", parent=outer){
-      //TODO:val icp = CounterChain.copy(outer, "i")
+      val ic = CounterChain.copy(outer, "i")
       //CounterChain(icp until "" by Const(1))
     }
     // b2 := v2(i::i+tileSize)
     val B = MemCtrl (name="B", parent=outer){
+      val ic = CounterChain.copy(outer, "i")
       CounterChain()
     }
     ComputeUnit (name="inner", parent=outer) {
@@ -40,11 +41,6 @@ object DotProduct extends Design {
       }
       //Last stage can be removed if PR.reduce and PR.scalarOut map to the same register
     }
-  } 
-
-  def main(args: String*):Top = {
-    def block = dotproduct(args:_*)
-    Top(block)
   }
 
 }
