@@ -37,7 +37,7 @@ trait Design { self =>
 
   def addNode(n: Node) { 
     nodeStack.foreach { case (f,i) => if (f(n)) i+= n }
-    //println(s"addNode:${n.typeStr}_${n.name}")
+    //println(s"addNode:${title}")
   }
 
   def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
@@ -57,16 +57,21 @@ trait Design { self =>
     nodeStack.pop()._2.toList
   }
 
-  def addName(n:Node, s:String):Unit = n match {
-    case c:Controller => 
-      assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n}")
-      nameMap += (s -> c)
-    case p:Primitive =>
-      //val ctrler = p.controller
-      //val nameStr = s"ctrler${ctrler.id}_${s}"
-      //assert(!nameMap(ctrler).contains(p), s"Already create primitive with name ${s} for controller ${ctrler}")
-    case w:Wire =>
-      assert(false, "No support for adding name for wire yet!")
+  def addName(n:Node):Unit = if (n.name.isDefined) {
+    n match {
+      case c:Controller => 
+        val s = n.name.get  
+        assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n.title}")
+        nameMap += (s -> c)
+      case p:Primitive =>
+        assert(p.ctrler!=null, "")
+        val s = s"${p.ctrler.title}_${n.name.get}"
+        assert(!nameMap.contains(s),
+          s"Already create primitive with name ${s} for controller ${p.ctrler}")
+        nameMap += (s -> p)
+      case w:Wire =>
+        //assert(false, "No support for adding name for wire yet!")
+    }
   }
 
   def getByName(s:String):Node = {
@@ -76,15 +81,17 @@ trait Design { self =>
 
   def updateLater(s:String, f:Node => Unit) = toUpdate += (s -> f)
 
-  def msg(x: String) = if (Config.dse) () else System.out.println(x)
+  def msg(x: String) = if (Config.dse) () else println(x)
 
-  def main(args: String*): Top
+  def main(args: String*): Any 
   def main(args: Array[String]): Unit = {
 
     msg(args.mkString(", "))
-    val top:Top = main(args:_*)
+    val top:Top = Top(main(args:_*))
 
     println("-------- Finishing graph construction ----------")
+    addName(top)
+    top.nodes.foreach(n => addName(n))
     toUpdate.foreach { case (k,f) =>
       val n:Node = getByName(k)
       f(n)

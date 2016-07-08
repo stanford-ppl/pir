@@ -8,7 +8,9 @@ import dhdl.Design
 import dhdl.graph._
 
 
-class Primitive(nameStr:Option[String], typeStr:String)(implicit design: Design) extends Node(nameStr, typeStr) 
+class Primitive(nameStr:Option[String], typeStr:String)(implicit design: Design) extends Node(nameStr, typeStr){
+  var ctrler:Controller = _
+} 
 /** Counter node. Represents a chain of counters where each counter counts upto a certain max value. When
  *  the topmost counter reaches its maximum value, the entire counter chain ''saturates'' and does not
  *  wrap around.
@@ -50,7 +52,7 @@ object CounterChain {
       cc.bounds = cpCC.bounds ++ Nil
       cc.dep = Some(cpCC)
     }
-    design.updateLater(s"ctrler${ctrler.id}_${name}", updateFunc)
+    design.updateLater(s"${ctrler.title}_${name}", updateFunc)
     cc
   }
 }
@@ -98,8 +100,7 @@ object Pipeline {
     Pipeline(Some(name))(block)
 }
 
-class Stage(nameStr: Option[String]) (implicit design: Design) extends Primitive(nameStr, "stage") {
-}
-object Stage {
-}
+trait Stage extends Primitive {
+  val operands:List[Op]
+} 
 

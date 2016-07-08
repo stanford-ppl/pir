@@ -11,13 +11,14 @@ import dhdl.graph._
   * implementations of common methods that every DHDL node
   * can use and override
   */
-class Node(nameStr:Option[String], val typeStr:String) (implicit design: Design) { 
+class Node(val name:Option[String], val typeStr:String) (implicit design: Design) { 
 	design.addNode(this)
-  val name: String = nameStr.getOrElse("")
   val id : Int = design.nextId
+  val title: String = s"${typeStr}${id}${if(name.isDefined) "_" else ""}${name.getOrElse("")}"
 
-  override def toString = s"${typeStr}${id}${if(nameStr.isDefined) "_" else ""}${name}"
+  override def toString = title 
 
   val DefaultPrecision = 32
+
 }
 
