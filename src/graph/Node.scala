@@ -14,11 +14,10 @@ import dhdl.graph._
 class Node(val name:Option[String], val typeStr:String) (implicit design: Design) { 
 	design.addNode(this)
   val id : Int = design.nextId
-  val title: String = s"${typeStr}${id}${if(name.isDefined) "_" else ""}${name.getOrElse("")}"
+  var toUpdate:Boolean = false 
 
-  override def toString = title 
-
-  val DefaultPrecision = 32
-
+  override def toString = s"${typeStr}${id}${if(name.isDefined) "_" else ""}${name.getOrElse("")}" 
 }
-
+object Node {
+  val DefaultPrecision = 32
+}

@@ -1,6 +1,7 @@
 import sbt._
 import Keys._
 import java.io.File
+import CommandExample._
 
 object DHDLBuild extends Build {
 	if (System.getProperty("showSuppressedErrors") == null) System.setProperty("showSuppressedErrors", "false")
@@ -22,9 +23,13 @@ object DHDLBuild extends Build {
 
     parallelExecution in Test := false,
     concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
+
   )
 
-	lazy val dhdl = Project("dhdl", file("."), settings = bldSettings)
-	lazy val apps = Project("apps", file("apps"), settings = bldSettings) dependsOn dhdl
+  val cmds = Seq(hello, helloAll, failIfTrue, changeColor, printState)
+	lazy val dhdl = Project("dhdl", file("."), settings = bldSettings) settings(commands ++= cmds)
+
+	lazy val apps = Project("apps", file("apps"), settings = bldSettings) dependsOn dhdl settings(commands ++= cmds)
+
 }
 

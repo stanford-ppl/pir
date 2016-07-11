@@ -30,6 +30,22 @@ abstract class Traversal(implicit val design: Design) {
 
   def visitNode(node: Node) : Unit = {
     node match {
+      case n:Controller => n match {
+        case c:Top => 
+          c.ctrlList.foreach(n => visitNode(n))
+        case c:ComputeUnit => {
+          c.cchains.foreach { cc => visitNode(cc) }
+          c.srams.foreach { s => visitNode(s) }
+          visitNode(c.pipeline)
+        }
+      } 
+      case n:Primitive => n match {
+        case p:CounterChain => p.counters.foreach(c => visitNode(c))
+        case p:Pipeline => p.stages.foreach(s => visitNode(s))
+        case p:SRAM =>
+        case p:Stage =>
+      }
+      case n:Wire =>
       case _ =>
         throw new Exception(s"Don't know how to visit $node")
     }

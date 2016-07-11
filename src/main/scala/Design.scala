@@ -1,6 +1,7 @@
 package dhdl
 
 import graph._
+import graph.traversal._
 
 //import analysis._
 
@@ -16,7 +17,7 @@ import scala.io.Source
 
 import scala.collection.mutable.{Set,Map}
 
-trait Design { self =>
+trait Design extends Misc { self =>
 
   implicit val design: Design = self
 
@@ -25,7 +26,7 @@ trait Design { self =>
 
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
   private val nameMap = HashMap[String, Node]()
-  private val toUpdate = HashMap[String, Node => Unit]()
+  private val toUpdate = ListBuffer[(String, Node => Unit)]()
 
   def reset() {
     nodeStack.foreach { case (f,i) => i.clear() }
@@ -37,7 +38,6 @@ trait Design { self =>
 
   def addNode(n: Node) { 
     nodeStack.foreach { case (f,i) => if (f(n)) i+= n }
-    //println(s"addNode:${title}")
   }
 
   def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
@@ -61,11 +61,11 @@ trait Design { self =>
     n match {
       case c:Controller => 
         val s = n.name.get  
-        assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n.title}")
+        assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n}")
         nameMap += (s -> c)
       case p:Primitive =>
-        assert(p.ctrler!=null, "")
-        val s = s"${p.ctrler.title}_${n.name.get}"
+        assert(p.ctrler!=null, s"Primitive ${p} doesn't have ctriler!")
+        val s = s"${p.ctrler}_${n.name.get}"
         assert(!nameMap.contains(s),
           s"Already create primitive with name ${s} for controller ${p.ctrler}")
         nameMap += (s -> p)
@@ -79,7 +79,7 @@ trait Design { self =>
     nameMap(s)
   }
 
-  def updateLater(s:String, f:Node => Unit) = toUpdate += (s -> f)
+  def updateLater(s:String, f:Node => Unit) = { val u = (s,f); toUpdate += u }
 
   def msg(x: String) = if (Config.dse) () else println(x)
 
@@ -102,7 +102,9 @@ trait Design { self =>
     //nodes.foreach {i => println(i)}
     //cuList.foreach {i => println(i)}
     //mcList.foreach {i => println(i)}
-    top.ctrlList.foreach {i => println(i)}
+    //top.ctrlList.foreach {i => println(i)}
+    val printer = new IRPrinter()
+    printer.run(top)
     //if (Config.genDot) {
     //  val origGraph = new GraphvizCodegen(s"orig")
     //  origGraph.run(top)
@@ -120,4 +122,10 @@ trait Design { self =>
     
   }
 
+}
+
+trait Misc {
+  //implicit def reg_to_wire(reg:Reg):Wire = {
+  //  reg.read
+  //}
 }
