@@ -17,12 +17,20 @@ object DotProduct extends Design {
     // b1 := v1(i::i+tileSize)
     val tileLoadA = MemCtrl (name="A", parent=outer, dram="A"){ implicit PR =>
       val ic = CounterChain.copy(outer, "i")
-      CounterChain(name="it", ic(0) until Const(-1) by Const(1))
+      val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
+      val s0::_ = Stages(1)
+      Pipeline {
+        Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PR.networkOut(s0))
+      }
     }
     // b2 := v2(i::i+tileSize)
     val tileLoadB = MemCtrl (name="B", parent=outer, dram="B"){ implicit PR =>
       val ic = CounterChain.copy(outer, "i")
-      CounterChain(name="it", ic(0) until Const(-1) by Const(1))
+      val it = CounterChain(name="it", ic(0) until Const(-1) by Const(1))
+      val s0::_ = Stages(1)
+      Pipeline {
+        Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PR.networkOut(s0))
+      }
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit PR =>

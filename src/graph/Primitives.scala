@@ -213,19 +213,20 @@ trait PipeRegMapping extends Primitive {
 
   /* Register Mapping */
   val reduceReg = newTemp
-  val loadRegs = HashMap[SRAM, Int]()
-  val ctrRegs = HashMap[Counter, Int]()
-  val tempRegs = ListBuffer[Int]()
+  val networkOut = newTemp
+  val networkIns = ListBuffer[Int]() 
+  val loadRegs  = HashMap[SRAM, Int]()
+  val ctrRegs   = HashMap[Counter, Int]()
+  val tempRegs  = ListBuffer[Int]()
 
   val stageUses = HashMap[Stage, PipeReg]()
   val stageDefs = HashMap[Stage, PipeReg]()
-  val stagePRs = HashMap[Stage, HashMap[Int,PipeReg]]()
-  def reset = { regId = 0; loadRegs.clear; ctrRegs.clear; stageUses.clear; stageDefs.clear }
+  val stagePRs  = HashMap[Stage, HashMap[Int,PipeReg]]()
+  def reset     = { regId = 0; loadRegs.clear; ctrRegs.clear; stageUses.clear; stageDefs.clear }
 
   def addUse(p:PipeReg) = stageUses += (p.stage -> p) 
   def addDef(p:PipeReg) = stageDefs += (p.stage -> p) 
 
-  //
   def load(stage:Stage, s:SRAM)(implicit design: Design):PipeReg = {
     if (!loadRegs.contains(s))
       loadRegs += (s -> newTemp)
@@ -238,6 +239,9 @@ trait PipeRegMapping extends Primitive {
   }
   def reduce(stage:Stage)(implicit design: Design):PipeReg = {
     getPR(stage, reduceReg)
+  }
+  def networkOut(stage:Stage)(implicit design: Design):PipeReg = {
+    getPR(stage, networkOut)
   }
   def temp = newTemp
   def temp(stage:Stage, regId:Int)(implicit design: Design):PipeReg = {
