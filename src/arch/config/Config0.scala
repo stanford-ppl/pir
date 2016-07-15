@@ -18,6 +18,8 @@ object Config0 extends Spade {
   val numSRAM = 2
   val numInPort = numLane * 2
   val numOutPort = numLane
+
+  val WordWidth = 32
   
   val cus = List.tabulate(numCU) { i =>
     val regs = List.tabulate(numReg) { ir =>
