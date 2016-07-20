@@ -29,9 +29,9 @@ object DHDLBuild extends Build {
   )
 
   val cmds = Seq(hello, helloAll, failIfTrue, changeColor, printState)
-	lazy val dhdl = Project("dhdl", file("."), settings = bldSettings) settings(commands ++= cmds)
+	lazy val pir = Project("pir", file("."), settings = bldSettings) settings(commands ++= cmds)
 
-	lazy val apps = Project("apps", file("apps"), settings = bldSettings) dependsOn dhdl settings(commands ++= cmds)
+	lazy val apps = Project("apps", file("apps"), settings = bldSettings) dependsOn pir settings(commands ++= cmds)
 
 }
 

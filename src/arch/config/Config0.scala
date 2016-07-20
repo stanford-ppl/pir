@@ -1,6 +1,6 @@
-package dhdl.plasticine.config
+package pir.plasticine.config
 
-import dhdl.plasticine.graph._
+import pir.plasticine.graph._
 
 object Config0 extends Spade {
   override def toString = "Plasticine_Config0"

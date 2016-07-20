@@ -1,8 +1,8 @@
-package dhdl.codegen
+package pir.codegen
 
-import dhdl.graph._
-import dhdl.graph.traversal.DFSTraversal
-import dhdl.Design
+import pir.graph._
+import pir.graph.traversal.DFSTraversal
+import pir.Design
 
 import scala.collection.mutable.Set
 import java.io.PrintWriter

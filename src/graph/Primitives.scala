@@ -1,12 +1,12 @@
-package dhdl.graph
+package pir.graph
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
-import dhdl.Design
-import dhdl.graph._
+import pir.Design
+import pir.graph._
 
 
 class Primitive(nameStr:Option[String], typeStr:String)(implicit design: Design) 

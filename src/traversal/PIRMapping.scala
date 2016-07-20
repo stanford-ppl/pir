@@ -1,8 +1,8 @@
-package dhdl.graph.traversal
-import dhdl.graph._
-import dhdl._
-import dhdl.PIRMisc._
-import dhdl.graph.mapping._
+package pir.graph.traversal
+import pir.graph._
+import pir._
+import pir.PIRMisc._
+import pir.graph.mapping._
 
 class PIRMapping(implicit val design: Design) extends Traversal{
   import PIRMapping._

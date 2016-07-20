@@ -1,9 +1,9 @@
-package dhdl.codegen.dot
+package pir.codegen.dot
 
-import dhdl.codegen.Codegen
-import dhdl.graph._
+import pir.codegen.Codegen
+import pir.graph._
 import java.io.PrintWriter
-import dhdl.Design
+import pir.Design
 
 class GraphvizCodegen(file: String = "outfile")(implicit design: Design) extends Codegen {
   override val ext = "dot"

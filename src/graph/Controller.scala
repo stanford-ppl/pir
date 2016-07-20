@@ -1,11 +1,11 @@
-package dhdl.graph
+package pir.graph
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.math.max
-import dhdl.Design
-import dhdl.graph._
+import pir.Design
+import pir.graph._
 
 trait Controller extends Node
 

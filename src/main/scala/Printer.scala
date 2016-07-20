@@ -1,4 +1,4 @@
-package dhdl
+package pir
 
 import java.io.PrintWriter
 import java.io.File

@@ -1,4 +1,4 @@
-package dhdl
+package pir
 
 object Config {
   private def getProperty(prop: String, default: String) = {
@@ -12,14 +12,14 @@ object Config {
   }
 
   // Properties go here
-  var test = getProperty("dhdl.test", "false") == "true"
-  var newMemAPI = getProperty("dhdl.newMemAPI", "false") == "true"
-  var genScala = getProperty("dhdl.scala", "true") == "true"
-  var genDot = getProperty("dhdl.dot", "true") == "true"
-  var genMaxJ = getProperty("dhdl.maxj", "true") == "true"
-  var quick = getProperty("dhdl.quick", "false") == "true"
-  var outDir = getProperty("dhdl.outDir", "out")
-  var debug = getProperty("dhdl.debug", "true") == "true"
+  var test = getProperty("pir.test", "false") == "true"
+  var newMemAPI = getProperty("pir.newMemAPI", "false") == "true"
+  var genScala = getProperty("pir.scala", "true") == "true"
+  var genDot = getProperty("pir.dot", "true") == "true"
+  var genMaxJ = getProperty("pir.maxj", "true") == "true"
+  var quick = getProperty("pir.quick", "false") == "true"
+  var outDir = getProperty("pir.outDir", "out")
+  var debug = getProperty("pir.debug", "true") == "true"
 
   var dse = false
 

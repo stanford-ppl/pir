@@ -1,11 +1,11 @@
-package dhdl.graph
+package pir.graph
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.math.max
-import dhdl.Design
-import dhdl.graph._
+import pir.Design
+import pir.graph._
 
 /** Base class for all PIR nodes. 
   * @param name: optional user name for a node 

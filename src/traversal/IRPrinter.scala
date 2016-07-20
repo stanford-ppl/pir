@@ -1,8 +1,8 @@
-package dhdl.graph.traversal
+package pir.graph.traversal
 
-import dhdl.graph._
-import dhdl._
-import dhdl.PIRMisc._
+import pir.graph._
+import pir._
+import pir.PIRMisc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

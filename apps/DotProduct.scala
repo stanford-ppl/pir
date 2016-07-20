@@ -1,10 +1,10 @@
-import dhdl.graph._
-import dhdl.graph.{MemoryController => MemCtrl, MetaPipeline => MetaPipe}
-import dhdl.graph
-import dhdl.codegen._
-import dhdl.Design
-import dhdl.PIRApp
-import dhdl.PIRMisc._
+import pir.graph._
+import pir.graph.{MemoryController => MemCtrl, MetaPipeline => MetaPipe}
+import pir.graph
+import pir.codegen._
+import pir.Design
+import pir.PIRApp
+import pir.PIRMisc._
 
 /* Example PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {

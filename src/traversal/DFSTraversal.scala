@@ -1,7 +1,7 @@
-package dhdl.graph.traversal
-import dhdl.graph._
-import dhdl.Design
-import dhdl.Config
+package pir.graph.traversal
+import pir.graph._
+import pir.Design
+import pir.Config
 
 import scala.collection.mutable.Set
 

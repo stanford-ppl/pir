@@ -1,6 +1,6 @@
-package dhdl
+package pir
 
-import dhdl.PIRMisc._
+import pir.PIRMisc._
 import graph._
 import graph.traversal._
 import graph.mapping._

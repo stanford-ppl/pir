@@ -1,12 +1,12 @@
-package dhdl.graph.mapping
-import dhdl.Design
-import dhdl.Config
-import dhdl.graph.{ComputeUnit => CU, MemoryController => MC}
-import dhdl.graph.{Counter => Ctr, _}
-import dhdl.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
-import dhdl.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}
-import dhdl.graph.mapping.CUMapping.PrimMapping
-import dhdl.graph.traversal.PIRMapping
+package pir.graph.mapping
+import pir.Design
+import pir.Config
+import pir.graph.{ComputeUnit => CU, MemoryController => MC}
+import pir.graph.{Counter => Ctr, _}
+import pir.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
+import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}
+import pir.graph.mapping.CUMapping.PrimMapping
+import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

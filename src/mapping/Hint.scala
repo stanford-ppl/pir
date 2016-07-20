@@ -1,9 +1,9 @@
-package dhdl.graph.mapping
-import dhdl.graph.{ComputeUnit => CU, MemoryController => MC, _}
-import dhdl.Design
-import dhdl.Config
-import dhdl.plasticine.config._
-import dhdl.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
+package pir.graph.mapping
+import pir.graph.{ComputeUnit => CU, MemoryController => MC, _}
+import pir.Design
+import pir.Config
+import pir.plasticine.config._
+import pir.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

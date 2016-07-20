@@ -1,6 +1,6 @@
-package dhdl.plasticine.graph
+package pir.plasticine.graph
 
-import dhdl.graph._
+import pir.graph._
 
 import scala.collection.mutable.ListBuffer
 

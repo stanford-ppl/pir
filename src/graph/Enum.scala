@@ -1,4 +1,4 @@
-package dhdl.graph
+package pir.graph
 
 sealed trait Op 
 object Op

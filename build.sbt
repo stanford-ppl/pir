@@ -9,7 +9,7 @@
 
   //  "edu.berkeley.cs" %% "chisel" % "latest.release"
   //
-  //addCommandAlias("make", ";project dhdl;compile")
+  //addCommandAlias("make", ";project pir;compile")
   //
-    addCommandAlias("make", ";project dhdl; compile")
+    addCommandAlias("make", ";project pir; compile")
     addCommandAlias("pir", "; project apps; run-main")
