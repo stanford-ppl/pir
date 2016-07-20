@@ -1,16 +1,19 @@
 package dhdl
 
+import dhdl.PIRMisc._
 import graph._
 import graph.traversal._
+import graph.mapping._
 import plasticine._
 import plasticine.config._
-import plasticine.graph._
+//import plasticine.graph._
 
 //import analysis._
 
 import codegen._
 import codegen.dot._
 
+import scala.language.implicitConversions
 import scala.collection.mutable.Queue
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
@@ -28,15 +31,18 @@ trait Design { self =>
   def nextId = {nextSym += 1; nextSym }
 
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
-  private val nameMap = HashMap[String, Node]()
-  private val toUpdate = ListBuffer[(String, Node => Unit)]()
+  val toUpdate = ListBuffer[(String, Node => Unit)]()
+  val allNodes = ListBuffer[Node]()
 
   def reset() {
     nodeStack.foreach { case (f,i) => i.clear() }
     nodeStack.clear()
-    nameMap.clear()
+    allNodes.clear()
+    nodeStack.push(((n:Node) => true), allNodes)
     toUpdate.clear()
     nextSym = 0
+    top = null
+    traversals.foreach(_.reset)
   }
 
   def addNode(n: Node) { 
@@ -105,81 +111,49 @@ trait Design { self =>
     (l1, l2, l3, l4)
   }
 
-  def addName(n:Node):Unit = if (n.name.isDefined) {
-    n match {
-      case c:Controller => 
-        val s = n.name.get  
-        assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n}")
-        nameMap += (s -> c)
-      case p:Primitive =>
-        assert(p.ctrler!=null, s"Primitive ${p} doesn't have ctriler!")
-        val s = s"${p.ctrler}_${n.name.get}"
-        assert(!nameMap.contains(s),
-          s"Already create primitive with name ${s} for controller ${p.ctrler}")
-        nameMap += (s -> p)
-      case w:Wire =>
-        //assert(false, "No support for adding name for wire yet!")
-    }
-  }
-
-  def getByName(s:String):Node = {
-    assert(nameMap.contains(s), s"No node defined with name:${s}")
-    nameMap(s)
-  }
 
   def updateLater(s:String, f:Node => Unit) = { val u = (s,f); toUpdate += u }
 
-  def msg(x: String) = if (Config.dse) () else println(x)
-
   val arch:Spade
+  var top:Top = _
 
-  def run(top:Top) {
-    addName(top)
-    top.nodes.foreach(n => addName(n))
-    toUpdate.foreach { case (k,f) =>
-      val n:Node = getByName(k)
-      f(n)
-    }
-    toUpdate.clear()
-    println("-------- Finishing updating nodes ----------")
-     
-    //nodes.foreach {i => println(i)}
-    //cuList.foreach {i => println(i)}
-    //mcList.foreach {i => println(i)}
-    //top.ctrlList.foreach {i => println(i)}
-    val printer = new IRPrinter()
-    printer.run(top)
-    //if (Config.genDot) {
-    //  val origGraph = new GraphvizCodegen(s"orig")
-    //  origGraph.run(top)
-    //}
+  val traversals = ListBuffer[Traversal]()
+  traversals += new ForwardRef()
+  traversals += new IRPrinter()
+  val dfmapping = new PIRMapping()
+  traversals += dfmapping 
 
-    //val transformedTop = processTop(top)
+  reset()
 
-    //if (Config.genMaxJ) {
-    //  if (Config.genDot) {
-    //    msg("Generating dot graph")
-    //    val dot = new GraphvizCodegen()
-    //    dot.run(transformedTop)
-    //  }
-    //}
-  }
+  def run = traversals.foreach(_.run)
+
 }
 
-trait PIRApp extends Design with PIRMisc{
+trait PIRApp extends Design{
   override val arch = Config0 
 
   def main(args: String*): Any 
   def main(args: Array[String]): Unit = {
-    msg(args.mkString(", "))
-    val top:Top = Top(main(args:_*))
-    println("-------- Finishing graph construction ----------")
-    run(top)
+    println(args.mkString(", "))
+    val ctrlNodes = addBlock(main(args:_*), (n:Node) => n.isInstanceOf[Controller])
+    top = Top(ctrlNodes)
+    info("Finishing graph construction")
+    run
   }
 }
 
-trait PIRMisc {
-  //implicit def reg_to_wire(reg:Reg):Wire = {
-  //  reg.read
-  //}
+object PIRMisc {
+  implicit def reg_to_port(reg:Reg):Port = {
+    reg.out
+  }
+  implicit def ctr_to_port(ctr:Counter):Port = {
+    ctr.out
+  }
+  implicit def hint_to_string(hint:Hint):String = {
+    hint.toString
+  }
+  def dprintln(s:String) = if (Config.debug) println(s)
+  def dprint(s:String) = if (Config.debug) print(s)
+  def info(s:String) = println(s"[pir] ${s}")
 }
+

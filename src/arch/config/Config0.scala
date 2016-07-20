@@ -3,66 +3,48 @@ package dhdl.plasticine.config
 import dhdl.plasticine.graph._
 
 object Config0 extends Spade {
+  override def toString = "Plasticine_Config0"
 
   // Assume all CUs are homogenous for now
-  
-  // Intra CU specs
-  val numCU = 2
-  val numMemCtrls = 2
 
-  // Inner CU Specs
-  val numLane = 4
-  val numReg = 10
-  val numStage = 5
-  val numCtr = 6
-  val numSRAM = 2
-  val numInPort = numLane * 2
-  val numOutPort = numLane
-
-  val WordWidth = 32
+   // Inner CU Specs
+  override val wordWidth = 32
+  override val numLanes = 4
   
-  val cus = List.tabulate(numCU) { i =>
-    val regs = List.tabulate(numReg) { ir =>
-      PReg()
-    }
-    val ctrs = List.tabulate(numCtr) { ic =>
-      val c = PCounter()
-      c.mapTo(regs(ic))
-      c
-    }
-    val srams = List.tabulate(numSRAM) {is =>
-      val s = PSRAM(numLane)
-      s.mapTo(regs(is + numCtr))
-      s
-    } 
-    val inports = List.tabulate(numInPort) {ip =>
-      InPort()
-    }
-    val outports = List.tabulate(numOutPort) {ip =>
-      InPort()
-    }
-    PComputeUnit(regs, srams, ctrs, inports, outports)
+  private val cus = List.tabulate(5) { i =>
+    val numPRs = 40
+    val numCtrs = 10
+    val numSRAMs = 2
+    val numInPorts = numLanes * numSRAMs
+    val numOutPorts = numLanes 
+    // Create Pipeline Regs (entire row of physicall register for all stages)
+    // No overlapping between mappings
+    val regs = List.tabulate(numPRs) { ir => Reg() }
+    val ctrs = List.tabulate(numCtrs) { ic => Counter(regs(ic)) }
+    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(is + numCtrs), regs(is + numCtrs)) } 
+    val inRegs = List.tabulate(numInPorts) { ip => regs(ip + numCtrs + numSRAMs) }
+    val outRegs = List.tabulate(numOutPorts) { ip => regs(ip + numCtrs + numSRAMs + numInPorts) }
+    val reduceReg = regs(numCtrs + numSRAMs + numInPorts + numOutPorts)
+    ComputeUnit(regs, srams, ctrs, inRegs, outRegs, reduceReg)
   } 
 
-  val memCtrls = List.tabulate(numMemCtrls) { i =>
-      PReg()
-    }
-    val ctrs = List.tabulate(numCtr) { ic =>
-      val c = PCounter()
-      c.mapTo(regs(ic))
-      c
-    }
-    val srams = List.tabulate(numSRAM) {is =>
-      val s = PSRAM(numLane)
-      s.mapTo(regs(is + numCtr))
-      s
-    } 
-    val inports = List.tabulate(numInPort) {ip =>
-      InPort()
-    }
-    val outports = List.tabulate(numOutPort) {ip =>
-      InPort()
-    }
-    PMemoryController(regs, srams, ctrs, inports, outports)
+  private val memCtrls = List.tabulate(4) { i =>
+    val numPRs = 40
+    val numCtrs = 10
+    val numSRAMs = 2
+    val numInPorts = numLanes * numSRAMs
+    val numOutPorts = numLanes 
+    // Create Pipeline Regs (entire row of physicall register for all stages)
+    // No overlapping between mappings
+    val regs = List.tabulate(numPRs) { ir => Reg() }
+    val ctrs = List.tabulate(numCtrs) { ic => Counter(regs(ic)) }
+    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(is + numCtrs), regs(is + numCtrs)) } 
+    val inRegs = List.tabulate(numInPorts) { ip => regs(ip + numCtrs + numSRAMs) }
+    val outRegs = List.tabulate(numOutPorts) { ip => regs(ip + numCtrs + numSRAMs + numInPorts) }
+    val reduceReg = regs(numCtrs + numSRAMs + numInPorts + numOutPorts)
+    MemoryController(regs, srams, ctrs, inRegs, outRegs, reduceReg)
   }
+
+  override val computeUnits = cus ++ memCtrls 
+
 }

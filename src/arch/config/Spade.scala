@@ -2,14 +2,10 @@ package dhdl.plasticine.config
 
 import dhdl.plasticine.graph._
 
-trait Spade {
-  val numCU:Int
+abstract class Spade {
+  val wordWidth:Int
+  val numLanes:Int
 
-  val numLane:Int
-  val numReg:Int
-  val numStage:Int
-
-  val cus:List[PComputeUnit]
-
-  val memCtrls:List[PMemoryController]
+  val computeUnits:List[ComputeUnit]
+  def numCUs = computeUnits.size
 }

@@ -4,27 +4,29 @@ import dhdl.graph
 import dhdl.codegen._
 import dhdl.Design
 import dhdl.PIRApp
+import dhdl.PIRMisc._
 
+/* Example PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {
   def main(args: String*) = {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = ComputeUnit(parent="Top", tpe=MetaPipeline){ implicit PL =>
+    val outer = ComputeUnit(name="outer", parent="Top", tpe=MetaPipeline){ implicit PL =>
       CounterChain(name="i", dataSize by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = MemCtrl (name="A", parent=outer, dram="A"){ implicit PL =>
+    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, dram="A"){ implicit PL =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PL.vecOut(s0))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = MemCtrl (name="B", parent=outer, dram="B"){ implicit PL =>
+    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, dram="B"){ implicit PL =>
       val ic = CounterChain.copy(outer, "i")
-      val it = CounterChain(name="it", ic(0) until Const(-1) by Const(1))
+      val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PL.vecOut(s0))
     }
@@ -44,7 +46,7 @@ object DotProduct extends PIRApp {
       // Pipeline Stages 
       Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=PL.reduce(s0))
       Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.vecOut(s0)) 
+      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.vecOut(s2)) 
       //Last stage can be removed if PL.reduce and PL.scalarOut map to the same register
     }
   }
