@@ -8,10 +8,11 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
+import java.io.File
 
 class IRPrinter(implicit design: Design) extends DFSTraversal with Printer{
 
-  override val stream = Printer.newStream("PIR.txt") 
+  override val stream = newStream("PIR.txt") 
 
   override def initPass() = {
     super.initPass
@@ -103,7 +104,7 @@ class IRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   }
 
   override def finPass() = {
-    info("Finishing IR Printing")
+    info(s"Finishing IR Printing in ${getPath}")
     close
   }
 }

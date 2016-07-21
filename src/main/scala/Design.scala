@@ -116,6 +116,7 @@ trait Design { self =>
 
   val arch:Spade
   var top:Top = _
+  val mapExceps = ListBuffer[MappingException]()
 
   val traversals = ListBuffer[Traversal]()
   traversals += new ForwardRef()
@@ -149,8 +150,8 @@ object PIRMisc {
   implicit def ctr_to_port(ctr:Counter):Port = {
     ctr.out
   }
-  implicit def hint_to_string(hint:Hint):String = {
-    hint.toString
+  implicit def mExcep_to_string(e:MappingException):String = {
+    e.toString
   }
   def dprintln(s:String) = if (Config.debug) println(s)
   def dprint(s:String) = if (Config.debug) print(s)

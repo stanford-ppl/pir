@@ -13,11 +13,12 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
 object CUMapping {
-  type PrimMapping = (PCU, SRAMMapping, CtrMapping)
+  type PrimMapping = (PCU, SRAMMapping, CtrMapping, ScalarMapping)
 }
-class CUMapping(implicit val design: Design) extends Mapping[CU, PCU, PrimMapping]{
-
-  override var mapping:Map[CU, PrimMapping] = null
+class CUMapping(implicit val design: Design) extends Mapping{
+  override type R = PCU
+  override type N = CU
+  override type V = PrimMapping
 
   private val pcus = ListBuffer[PCU]()
   private val pmcs = ListBuffer[PMC]()
@@ -38,7 +39,7 @@ class CUMapping(implicit val design: Design) extends Mapping[CU, PCU, PrimMappin
 
   /* Saperate Compute Unit and Memory controller to map saperately later on
    * Check whether design would fit the architecture using a rough count */
-  private def setResource: (Boolean, List[Hint]) = {
+  private def setResource = {
     arch.computeUnits.foreach { c => c match {
         case n:PMC => pmcs += n
         case n:PCU => pcus += n
@@ -51,59 +52,39 @@ class CUMapping(implicit val design: Design) extends Mapping[CU, PCU, PrimMappin
         case n => new Exception(s"TODO: unknown PIR controller type: ${n}") 
       }
     }
-    val (s1, h1) = if(cus.size > pcus.size) (false, List(OutOfPCU(arch)) )
-                   else (true, Nil)
-    val (s2, h2) = if(mcs.size > pmcs.size) (false, List(OutOfPMC(arch)) )
-                   else (true, Nil)
-    (s1 && s2, h1 ++ h2)
+   if(cus.size > pcus.size) throw OutOfPCU(arch)
+   if(mcs.size > pmcs.size) throw OutOfPMC(arch)
   }
 
-  def checkIntConnct(cu:CU, pcu:PCU, cuMap:Map[CU, PrimMapping]):
-    (Boolean, List[Hint], Map[CU, PrimMapping]) = {
+  def checkIntConnct(cu:N, pcu:R, cuMap:Map[N, V]):Map[N, V] = {
     val suc = true
-    (suc, if (suc) Nil else List(IntConnct(cu, pcu)), cuMap)
+    if (!suc) throw IntConnct(cu, pcu)
+    cuMap
   }
 
-  def primMapping(cu:CU, pcu:PCU, cuMap:Map[CU, PrimMapping]):
-    (Boolean, List[Hint], Map[CU, PrimMapping]) = {
-  //TODO
+  def primMapping(cu:N, pcu:R, cuMap:Map[N, V]):Map[N, V] = {
     val sm = SRAMMapping(cu, pcu, cuMap)
-    val (smSuc, smHints) = sm.map
     val cm = CtrMapping(cu, pcu, cuMap)
-    val (cmSuc, cmHints) = cm.map
-    (smSuc && cmSuc, smHints ++ cmHints, cuMap + (cu -> (pcu, sm, cm)))
+    val slm = ScalarMapping(cu, pcu, cuMap)
+    cuMap + (cu -> (pcu, sm, cm, slm))
   }
 
-  override def map:(Boolean, List[Hint]) = {
-    val (suc, hts) = setResource
-    var hints = hts 
-    if (!suc)
-      return (false, hints)
-
-    val cons = List(checkIntConnct _, primMapping _)
-
-    val (cuSuc, cuHints, cm) = 
-      simAneal(pcus.toList, cus.toList, Map[CU, PrimMapping](), cons)
-    hints ++= cuHints
-    if (!cuSuc) {
-      this.mapping = cm
-      return (false, hints)
-    }
-    val (mcSuc, mcHints, mm) = 
-      simAneal(pmcs.toList, mcs.toList, cm, cons)
-    hints ++= mcHints
-    this.mapping = mm 
-    //println("-------- Finish CU Mapping ----------")
-    (mcSuc, hints)
-  }
+  /* Constructor */
+  setResource
+  val cons = List(checkIntConnct _, primMapping _)
+  private val (cuSuc, cm) = simAneal(pcus.toList, cus.toList, Map[N, V](), cons)
+  private val (mcSuc, mm) = simAneal(pmcs.toList, mcs.toList, cm, cons)
+  override val mapping = mm
+  //println("-------- Finish CU Mapping ----------")
 
   import PIRMapping._
   override def printMap = {
     emitBS("cuMap")
-    mapping.foreach{ case (cu, (pcu, sm, cm)) =>
+    mapping.foreach{ case (cu, (pcu, sm, cm, slm)) =>
       emitln(s"[$cu -> $pcu]")
       sm.printMap
       cm.printMap
+      slm.printMap
     }
     emitBE 
   }

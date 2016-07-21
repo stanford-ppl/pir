@@ -6,7 +6,14 @@ import java.io.FileOutputStream
 import java.io.OutputStream
 
 trait Printer {
+  var fileName:String = "System.out"
   val stream:OutputStream = System.out
+
+  def getPath = {
+    if (stream==System.out) "console"
+    else s"${Config.outDir}${File.separator}${fileName}"
+  }
+
   lazy val pw = new PrintWriter(stream)
   val tab = "  "
   var level = 0
@@ -21,14 +28,14 @@ trait Printer {
     if (stream != System.out)
       pw.close()
   }
-}
-object Printer {
-  def newStream(fileName:String) = { 
+
+  def newStream(fname:String) = { 
+    fileName = fname
     val dir = new File(Config.outDir);
     if (!dir.exists()) {
       println(s"creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
       dir.mkdir();
     }
-    new FileOutputStream(new File(s"${Config.outDir}${File.separator}${fileName}"))
+    new FileOutputStream(new File(s"${getPath}"))
   }
 }

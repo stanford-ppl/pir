@@ -15,34 +15,48 @@ object Config0 extends Spade {
     val numPRs = 40
     val numCtrs = 10
     val numSRAMs = 2
-    val numInPorts = numLanes * numSRAMs
-    val numOutPorts = numLanes 
+    val numScalarIn = numLanes * numSRAMs
+    val numScalarOut = numLanes 
     // Create Pipeline Regs (entire row of physicall register for all stages)
     // No overlapping between mappings
     val regs = List.tabulate(numPRs) { ir => Reg() }
+    var ptr = 0
     val ctrs = List.tabulate(numCtrs) { ic => Counter(regs(ic)) }
-    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(is + numCtrs), regs(is + numCtrs)) } 
-    val inRegs = List.tabulate(numInPorts) { ip => regs(ip + numCtrs + numSRAMs) }
-    val outRegs = List.tabulate(numOutPorts) { ip => regs(ip + numCtrs + numSRAMs + numInPorts) }
-    val reduceReg = regs(numCtrs + numSRAMs + numInPorts + numOutPorts)
-    ComputeUnit(regs, srams, ctrs, inRegs, outRegs, reduceReg)
+    ptr += numCtrs
+    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(ptr + is), regs(ptr + is)) } 
+    ptr += numSRAMs
+    val sinRegs = List.tabulate(numScalarIn) { ip => regs(ptr + ip) }
+    val soutRegs = List.tabulate(numScalarOut) { ip => regs(ptr + ip) }
+    ptr += Math.max(numScalarIn, numScalarOut)
+    val vinReg = regs(ptr)
+    val voutReg = regs(ptr)
+    ptr += 1
+    val reduceReg = regs(ptr)
+    ComputeUnit(regs, srams, ctrs, sinRegs, soutRegs, vinReg, voutReg, reduceReg)
   } 
 
   private val memCtrls = List.tabulate(4) { i =>
     val numPRs = 40
     val numCtrs = 10
     val numSRAMs = 2
-    val numInPorts = numLanes * numSRAMs
-    val numOutPorts = numLanes 
+    val numScalarIn = numLanes * numSRAMs
+    val numScalarOut = numLanes 
     // Create Pipeline Regs (entire row of physicall register for all stages)
     // No overlapping between mappings
     val regs = List.tabulate(numPRs) { ir => Reg() }
+    var ptr = 0
     val ctrs = List.tabulate(numCtrs) { ic => Counter(regs(ic)) }
-    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(is + numCtrs), regs(is + numCtrs)) } 
-    val inRegs = List.tabulate(numInPorts) { ip => regs(ip + numCtrs + numSRAMs) }
-    val outRegs = List.tabulate(numOutPorts) { ip => regs(ip + numCtrs + numSRAMs + numInPorts) }
-    val reduceReg = regs(numCtrs + numSRAMs + numInPorts + numOutPorts)
-    MemoryController(regs, srams, ctrs, inRegs, outRegs, reduceReg)
+    ptr += numCtrs
+    val srams = List.tabulate(numSRAMs) { is => SRAM(numLanes, regs(ptr + is), regs(ptr + is)) } 
+    ptr += numSRAMs
+    val sinRegs = List.tabulate(numScalarIn) { ip => regs(ptr + ip) }
+    val soutRegs = List.tabulate(numScalarOut) { ip => regs(ptr + ip) }
+    ptr += Math.max(numScalarIn, numScalarOut)
+    val vinReg = regs(ptr)
+    val voutReg = regs(ptr)
+    ptr += 1
+    val reduceReg = regs(ptr)
+    MemoryController(regs, srams, ctrs, sinRegs, soutRegs, vinReg, voutReg, reduceReg)
   }
 
   override val computeUnits = cus ++ memCtrls 

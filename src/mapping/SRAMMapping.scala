@@ -12,26 +12,25 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-case class SRAMMapping(cu:CU, pcu:PCU, cuMap:Map[CU, PrimMapping])(implicit val design: Design) extends Mapping[SRAM, PSRAM, PSRAM]{
+case class SRAMMapping(cu:CU, pcu:PCU, cuMap:Map[CU, PrimMapping])(implicit val design: Design) extends Mapping {
 
-  override var mapping:Map[SRAM, PSRAM] = _
+  type N = SRAM 
+  type R = PSRAM 
+  type V = PSRAM 
 
   lazy private val arch = design.arch
   lazy private val top = design.top
   lazy private val allNodes = design.allNodes
 
-  def mapSRAM(s:SRAM, p:PSRAM, map:Map[SRAM, PSRAM]) = {
-    (true, Nil, map + (s -> p))
+  def mapSRAM(s:N, p:R, map:Map[N, V]) = {
+    map + (s -> p)
   }
 
-  override def map:(Boolean, List[Hint]) = {
-    if (cu.srams.size > pcu.srams.size) {
-      (false, List(OutOfSram(pcu)))
-    } else {
-      val (ssuc, shints, smap) = simAneal(pcu.srams, cu.srams, HashMap[SRAM, PSRAM](), List(mapSRAM _))
-      mapping = smap
-      (ssuc, shints)
-    }
+  override val mapping = if (cu.srams.size > pcu.srams.size) {
+    throw OutOfSram(pcu)
+  } else {
+    val (ssuc, smap) = simAneal(pcu.srams, cu.srams, HashMap[N, R](), List(mapSRAM _))
+    smap
   }
 
   import PIRMapping._

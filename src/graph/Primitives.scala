@@ -169,8 +169,8 @@ object Stages {
   def apply(n:Int) (implicit prm:Pipeline, design: Design):List[Stage] = {
     List.tabulate(n) {i => 
       val s = Stage(None, prm)
-      prm.stageUses += (s -> Set[Int]())
-      prm.stageDefs += (s -> Set[Int]())
+      prm.stageUses += (s -> Set[PipeReg]())
+      prm.stageDefs += (s -> Set[PipeReg]())
       prm.stagePRs += (s -> HashMap[Int, PipeReg]())
       s
     }
@@ -196,8 +196,8 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   val ctrRegs   = HashMap[Counter, Int]()
   val tempRegs  = ListBuffer[Int]()
 
-  val stageUses = HashMap[Stage, Set[Int]]()
-  val stageDefs = HashMap[Stage, Set[Int]]()
+  val stageUses = HashMap[Stage, Set[PipeReg]]()
+  val stageDefs = HashMap[Stage, Set[PipeReg]]()
   val stagePRs  = HashMap[Stage, HashMap[Int,PipeReg]]()
   def reset     = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear; stageUses.clear; stageDefs.clear }
 
@@ -213,8 +213,8 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
       case _ =>
     }
   }
-  private def addUse(p:PipeReg) = stageUses(p.stage) += p.regId 
-  private def addDef(p:PipeReg) = stageDefs(p.stage) += p.regId 
+  private def addUse(p:PipeReg) = stageUses(p.stage) += p
+  private def addDef(p:PipeReg) = stageDefs(p.stage) += p
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram

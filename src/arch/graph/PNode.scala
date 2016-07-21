@@ -66,25 +66,28 @@ object Counter {
  *  @param outports: one set of output ports availabe in the CU
  *  */
 case class ComputeUnit(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter], 
-  inRegs:List[Reg], outRegs:List[Reg], reduceReg:Reg) extends Node{
+  sinRegs:List[Reg], soutRegs:List[Reg], vinReg:Reg, voutReg:Reg, reduceReg:Reg) extends Node{
   override val typeStr = "CU"
   val reducePort = RMPort(this, reduceReg)
-  val inPorts = inRegs.map{r => RMPort(this, r)} 
-  val outPorts = outRegs.map{r => RMPort(this, r)} 
+  val vinPort = RMPort(this, vinReg)
+  val voutPort = RMPort(this, voutReg)
+  val sinPorts = sinRegs.map{r => RMPort(this, r)} 
+  val soutPorts = soutRegs.map{r => RMPort(this, r)} 
   def numPRs = regs.size 
   def numCtrs = ctrs.size
   def numSRAMs = srams.size
-  def numInPorts = inPorts.size
-  def numPorts = outPorts.size 
+  def numScalarIn = sinPorts.size
+  def numScalarOut = soutPorts.size 
 }
 
 trait MemoryController extends ComputeUnit{
 }
 object MemoryController {
   def apply(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter], 
-    inRegs:List[Reg], outRegs:List[Reg], reduceReg:Reg) = {
+    sinRegs:List[Reg], soutRegs:List[Reg], vinReg:Reg, voutReg:Reg, reduceReg:Reg) = {
     new {override val typeStr = "MemCtrl"} 
-    with ComputeUnit(regs, srams, ctrs, inRegs, outRegs, reduceReg) with MemoryController 
+    with ComputeUnit(regs, srams, ctrs, sinRegs, soutRegs, vinReg, voutReg, reduceReg) 
+    with MemoryController 
   }
 }
 
