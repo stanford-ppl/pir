@@ -20,10 +20,9 @@ trait Port{
   val src:Node
 
   def width(implicit design:Design) = design.arch.wordWidth
-  def by(step:Port) (implicit design:Design) = (Const(0l).out, this, step)
+  def by(step:Port) (implicit design:Design) = (Const(0l), this, step)
   def until(max:Port) = new Range(this, max)
   def isConst = this.isInstanceOf[Const] 
-  def copy(implicit design: Design) = this 
 }
 object Port {
   def apply(s:Node) = {
@@ -32,10 +31,14 @@ object Port {
   def apply(s:Node, toStr: => String) = {
     new {override val src = s} with Port { override def toString = toStr }
   }
-  def apply(s:Node, toStr: => String, copyF: => Port) = {
-    new {override val src = s} with Port { 
-      override def toString = toStr 
-      override def copy(implicit design:Design) = copyF
-    }
-  }
 }
+
+case class Const(n:Option[String], value:Long) extends Port {
+  override val src = null
+  override def toString = s"Const(${value})"
+}
+object Const {
+  def apply(v:Long):Const = Const(None, v)
+  def apply(name:String, v:Long):Const = Const(Some(name), v)
+}
+

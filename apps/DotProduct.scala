@@ -14,6 +14,7 @@ object DotProduct extends PIRApp {
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent="Top", tpe=MetaPipeline){ implicit PL =>
+      //val val ds = ScalarIn(dataSize)
       CounterChain(name="i", dataSize by tileSize)
     }
     // b1 := v1(i::i+tileSize)
@@ -46,7 +47,7 @@ object DotProduct extends PIRApp {
       // Pipeline Stages 
       Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=PL.reduce(s0))
       Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.vecOut(s2)) 
+      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2)) 
       //Last stage can be removed if PL.reduce and PL.scalarOut map to the same register
     }
   }

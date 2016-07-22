@@ -120,7 +120,8 @@ trait Design { self =>
 
   val traversals = ListBuffer[Traversal]()
   traversals += new ForwardRef()
-  traversals += new IRPrinter()
+  traversals += new PIRPrinter()
+  traversals += new SpadePrinter()
   val dfmapping = new PIRMapping()
   traversals += dfmapping 
 

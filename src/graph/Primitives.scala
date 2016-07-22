@@ -95,7 +95,16 @@ case class Counter(n:Option[String])(implicit design: Design) extends Primitive(
       s"Overriding existing counter ${this} with min ${max}")
     assert(step==null, 
       s"Overriding existing counter ${this} with min ${step}")
-    update(c.min.copy, c.max.copy, c.step.copy)
+    def copyPort(p:Port):Port = {
+      if (p.isConst) {
+        p
+      //} if (p.src.isInstanceOf[ScalarIn]) else { //TODO
+      } else if (p.src.isInstanceOf[ArgIn]){ p //TODO
+      } else {
+        throw new Exception(s"Cannot make a copy of a port unless it's constant! src:${p.src}")
+      }
+    }
+    update(copyPort(c.min), copyPort(c.max), copyPort(c.step))
   } 
 }
 object Counter{
@@ -364,15 +373,6 @@ trait VecOutPR    extends PipeReg {override val typeStr = "PRvo"}
 trait ScalarInPR  extends PipeReg {override val typeStr = "PRsi"}
 trait ScalarOutPR extends PipeReg {override val typeStr = "PRso"}
 trait TempPR      extends PipeReg {override val typeStr = "PRtp"}
-
-case class Const(n:Option[String], value:Long)(implicit design: Design) 
-  extends Primitive(n, "Const") with Reg{
-  override val out:Port = Port(this, {s"Const(${value})"}, {Const(name, value).out})
-}
-object Const {
-  def apply(v:Long) (implicit design:Design):Const = Const(None, v)
-  def apply(name:String, v:Long) (implicit design:Design):Const = Const(Some(name), v)
-}
 
 trait ArgIn extends Reg 
 object ArgIn {

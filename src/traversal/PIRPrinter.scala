@@ -10,7 +10,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class IRPrinter(implicit design: Design) extends DFSTraversal with Printer{
+class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
 
   override val stream = newStream("PIR.txt") 
 
