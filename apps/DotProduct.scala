@@ -11,11 +11,12 @@ object DotProduct extends PIRApp {
   def main(args: String*) = {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
+    val output = ArgOut()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent="Top", tpe=MetaPipeline){ implicit PL =>
-      //val val ds = ScalarIn(dataSize)
-      CounterChain(name="i", dataSize by tileSize)
+      val ds = ScalarIn(dataSize)
+      CounterChain(name="i", ds.out by tileSize)
     }
     // b1 := v1(i::i+tileSize)
     val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, dram="A"){ implicit PL =>
@@ -43,11 +44,13 @@ object DotProduct extends PIRApp {
       // SRAMs
       val A = SRAM(size=32, write=tileLoadA, readAddr=ii(0), writeAddr=itA(0))
       val B = SRAM(size=32, write=tileLoadB, readAddr=ii(0), writeAddr=itB(0))
+      // ScalarBuffers
+      val out = ScalarOut(output)
 
       // Pipeline Stages 
       Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=PL.reduce(s0))
       Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2)) 
+      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2, output)) 
       //Last stage can be removed if PL.reduce and PL.scalarOut map to the same register
     }
   }

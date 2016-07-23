@@ -146,6 +146,7 @@ object Const extends OutPort {
 trait InBus extends Input with OutPort {
   type O = OutBus
   override val typeStr = "ib"
+  override def toString = if (src.isDefined) s"${src.get}.vi${id}" else super.toString
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
   val outports:List[OutPort]
   outports.foreach(_.src = Some(this))
@@ -158,6 +159,7 @@ object InBus {
 trait OutBus extends Output with InPort {
   type I = InBus
   override val typeStr = "ob"
+  override def toString = if (src.isDefined) s"${src.get}.vo" else super.toString
   val inports:List[InPort]
   inports.foreach(_.src = Some(this))
 }

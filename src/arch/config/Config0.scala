@@ -12,7 +12,7 @@ object Config0 extends Spade {
   override val wordWidth = 32
   override val numLanes = 4
   
-  private val numRCUs = 2
+  private val numRCUs = 4
   private val numMCs = 2 
 
   def genFields(numPRs:Int, numCtrs:Int, numSRAMs:Int) = {
@@ -62,7 +62,7 @@ object Config0 extends Spade {
     } 
     ptr += numSRAMs
     srams.zipWithIndex.foreach { case (s,is) =>
-      s.writePort <= regs(ptr + is)
+      s.writePort <= List[OutPort](vecIns(is).outports(0),regs(ptr + is))
       regs(ptr + is) <= s.readPort
     }
     ptr += numSRAMs
@@ -70,7 +70,7 @@ object Config0 extends Spade {
     (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOuts, ptr)
   }
 
-  private val cus = List.tabulate(numRCUs) { i =>
+  private val rcus = List.tabulate(numRCUs) { i =>
     val numPRs = 20
     val numCtrs = 10
     val numSRAMs = 2
@@ -81,7 +81,7 @@ object Config0 extends Spade {
     c
   } 
 
-  private val memCtrls = List.tabulate(numMCs) { i =>
+  private val mcs = List.tabulate(numMCs) { i =>
     val numPRs = 15
     val numCtrs = 10
     val numSRAMs = 0
@@ -92,6 +92,16 @@ object Config0 extends Spade {
     c
   }
 
-  override val computeUnits = cus ++ memCtrls 
+  /* Network Constrain */ 
+  rcus(0).vins(0) <= mcs(0).vout 
+  rcus(0).vins(1) <= mcs(1).vout
+  rcus(1).vins(0) <= mcs(0).vout 
+  rcus(1).vins(1) <= mcs(1).vout
+  rcus(2).vins(0) <= rcus(0).vout 
+  rcus(2).vins(1) <= rcus(1).vout
+  rcus(3).vins(0) <= rcus(0).vout 
+  rcus(3).vins(1) <= rcus(1).vout
+  
+  override val computeUnits = rcus ++ mcs 
 
 }

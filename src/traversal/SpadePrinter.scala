@@ -44,7 +44,8 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
         emitBE // }
         emitBS(s"scalarins") // {
           cu.sins.foreach { si =>
-            emitln(s"(${si.in.ms}, ${si.out.mt})")
+            emitln(s"${si.in.ms}")
+            emitln(s"${si.out.mt}")
           }
         emitBE // }
         emitBS(s"scalarouts") // {

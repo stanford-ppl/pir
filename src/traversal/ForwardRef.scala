@@ -18,6 +18,22 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear()
+    design.top.ctrlNodes.foreach { cu => cu match {
+        case n:Top =>
+          n.argIns.foreach { r => r.writer = n }
+          n.argOuts.foreach { r => r.reader += n }
+        case n:ComputeUnit =>
+          n.pipeline.scalarIns.foreach { case (s, rid) => 
+            if (!s.reader.contains(n)) s.reader += n 
+          }
+          n.pipeline.scalarOuts.foreach { case (s, rid) =>
+            assert(s.writer==null, 
+              s"Scalar has more than 1 writer! s: ${s}, writer:${s.writer}, current:${n}")
+            s.writer = n 
+            s.toUpdate = false
+          }
+      }
+    }
     design.allNodes.foreach(n => assert(!n.toUpdate, s"Node ${n} contains unupdated field/fields!"))
   } 
 

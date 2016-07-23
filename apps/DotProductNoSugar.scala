@@ -14,11 +14,16 @@ object DotProductNoSugar extends Design {
   val dataSize = ArgIn()
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-  val outer = ComputeUnit(name=None, parent="Top", tpe=MetaPipeline,
-    cchains=List(CounterChain(name="i", dataSize by tileSize)),
-    srams=Nil,
-    pipeline=Pipeline(None)
-  )
+  val outer = {
+    val ds = ScalarIn(dataSize)
+    ComputeUnit(name=None, parent="Top", tpe=MetaPipeline,
+      cchains=List(CounterChain(name="i", ds.out by tileSize)),
+      srams=Nil,
+      sins=List(ds),
+      souts=Nil,
+      pipeline=Pipeline(None)
+    )
+  }
   // b1 := v1(i::i+tileSize)
   val tileLoadA =  {
     val ic = CounterChain.copy(outer, "i")
@@ -29,6 +34,8 @@ object DotProductNoSugar extends Design {
     MemCtrl (name=Some("tileLoadA"), parent=outer, dram="A",
       cchains=List(ic, it),
       srams=Nil,
+      sins=Nil,
+      souts=Nil,
       pipeline = PL 
     )
   }
@@ -42,6 +49,8 @@ object DotProductNoSugar extends Design {
     MemCtrl (name=Some("tileLoadB"), parent=outer, dram="B",
       cchains=List(ic, it),
       srams=Nil,
+      sins=Nil,
+      souts=Nil,
       pipeline = PL 
     )
   }
@@ -64,8 +73,10 @@ object DotProductNoSugar extends Design {
     ComputeUnit(name=Some("inner"), parent=outer, tpe=Pipe,
       cchains=List(ii, itA, itB),
       srams=Nil,
+      sins=Nil,
+      souts=Nil,
       pipeline=Pipeline(None)
-      )
+    )
   }
 
   top = Top(List(outer, tileLoadA, tileLoadB, inner))

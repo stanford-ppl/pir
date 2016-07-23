@@ -1,6 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU}
+import pir.graph.{ComputeUnit => CU, Scalar => SL}
 import pir.plasticine.graph.{ComputeUnit => PCU}
 import pir.plasticine.graph.{ScalarBuffer => PSB}
 import pir.graph.traversal.PIRMapping
@@ -10,7 +10,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
 object ScalarMapper extends Mapper {
-  type N = Int 
+  type N = SL 
   type R = PSB 
   type V = PSB 
   def printMap(m:M)(implicit p:Printer) = {
@@ -29,9 +29,9 @@ object ScalarMapper extends Mapper {
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
-    val sin = cu.pipeline.scalarIns.toList
+    val sin = cu.pipeline.scalarIns.map(_._1).toList
     val psin = pcu.sins
-    val sout = cu.pipeline.scalarOuts.toList
+    val sout = cu.pipeline.scalarOuts.map(_._1).toList
     val psout = pcu.souts
     if (sin.size > psin.size) {
       throw OutOfScalarIns(pcu)

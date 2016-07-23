@@ -10,7 +10,8 @@ import pir.graph._
 trait Controller extends Node
 
 case class ComputeUnit(n: Option[String], tpe:CtrlType, cchains:List[CounterChain], srams:List[SRAM], 
-  pipeline:Pipeline) (implicit design: Design) extends Node(n, "CU") with Controller {
+  sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) 
+(implicit design: Design) extends Node(n, "CU") with Controller {
   var parent:Controller = _
   toUpdate = true
   cchains.foreach(_.updateCtrler(this))
@@ -21,21 +22,24 @@ case class ComputeUnit(n: Option[String], tpe:CtrlType, cchains:List[CounterChai
 }
 object ComputeUnit {
   def apply (name:Option[String], parent: String, tpe:CtrlType) (block:Pipeline => Any) (implicit design: Design):ComputeUnit = {
-    val (cchains, srams, pipeline) = unwrapBlock(block)
-    ComputeUnit(name, parent, tpe, cchains, srams, pipeline)
+    val (cchains, srams, sins, souts, pipeline) = unwrapBlock(block)
+    ComputeUnit(name, parent, tpe, cchains, srams, sins, souts, pipeline)
   }
   def apply(name:Option[String], parent: Controller, tpe:CtrlType) (block:Pipeline => Any) (implicit design: Design):ComputeUnit = {
-    val (cchains, srams, pipeline) = unwrapBlock(block)
-    ComputeUnit(name, parent, tpe, cchains, srams, pipeline)
+    val (cchains, srams, sins, souts, pipeline) = unwrapBlock(block)
+    ComputeUnit(name, parent, tpe, cchains, srams, sins, souts, pipeline)
   }
   def unwrapBlock(block: Pipeline => Any)(implicit design: Design):
-    (List[CounterChain], List[SRAM], Pipeline) = {
+    (List[CounterChain], List[SRAM], List[ScalarIn], List[ScalarOut], Pipeline) = {
     val pipeline = Pipeline(None)
-    val (cchains, srams) = 
-      design.addBlock[CounterChain, SRAM](block(pipeline), 
+    val (cchains, srams, sins, souts) = 
+      design.addBlock[CounterChain, SRAM, ScalarIn, ScalarOut](block(pipeline), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM]) 
-    (cchains, srams, pipeline)
+                            (n:Node) => n.isInstanceOf[SRAM],
+                            (n:Node) => n.isInstanceOf[ScalarIn],
+                            (n:Node) => n.isInstanceOf[ScalarOut]
+                            ) 
+    (cchains, srams, sins, souts, pipeline)
   }
   /* Sugar API */
   def apply (parent:String, tpe:CtrlType) (block: Pipeline => Any) (implicit design: Design):ComputeUnit =
@@ -48,12 +52,12 @@ object ComputeUnit {
     ComputeUnit(Some(name), parent, tpe) (block)
   /* No Sugar API */
   def apply(name:Option[String], parent: Controller, tpe:CtrlType, cchains:List[CounterChain], 
-  srams:List[SRAM], pipeline:Pipeline) (implicit design: Design):ComputeUnit = {
-    val c = ComputeUnit(name, tpe, cchains, srams, pipeline); c.update(parent); c
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) (implicit design: Design):ComputeUnit = {
+    val c = ComputeUnit(name, tpe, cchains, srams, sins, souts, pipeline); c.update(parent); c
   }
   def apply(name:Option[String], parent:String, tpe:CtrlType, cchains:List[CounterChain], 
-  srams:List[SRAM], pipeline:Pipeline) (implicit design: Design):ComputeUnit = {
-    val c = ComputeUnit(name, tpe, cchains, srams, pipeline)
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) (implicit design: Design):ComputeUnit = {
+    val c = ComputeUnit(name, tpe, cchains, srams, sins, souts, pipeline)
     design.updateLater(parent, (n:Node) => c.update(n.asInstanceOf[Controller]))
     c
   }
@@ -65,16 +69,16 @@ trait MemoryController extends ComputeUnit {
 } 
 object MemoryController extends {
   def apply(name:Option[String], d:String, cchains:List[CounterChain], srams:List[SRAM], 
-    pipeline:Pipeline) (implicit design: Design):MemoryController = {
-    new {override val dram = d} with ComputeUnit(name, Pipe, cchains, srams, pipeline) with MemoryController
+    sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) (implicit design: Design):MemoryController = {
+    new {override val dram = d} with ComputeUnit(name, Pipe, cchains, srams, sins, souts, pipeline) with MemoryController
   }
   def apply (name:Option[String], parent: String, dram:String) (block:Pipeline => Any) (implicit design: Design):MemoryController = {
-    val (cchains, srams, pipeline) = ComputeUnit.unwrapBlock(block)
-    MemoryController(name, parent, dram, cchains, srams, pipeline) 
+    val (cchains, srams, sins, souts, pipeline) = ComputeUnit.unwrapBlock(block)
+    MemoryController(name, parent, dram, cchains, srams, sins, souts, pipeline) 
   }
   def apply (name:Option[String], parent: Controller, dram:String)(block:Pipeline => Any) (implicit design: Design):MemoryController = {
-    val (cchains, srams, pipeline) = ComputeUnit.unwrapBlock(block)
-    MemoryController(name, parent, dram, cchains, srams, pipeline)
+    val (cchains, srams, sins, souts, pipeline) = ComputeUnit.unwrapBlock(block)
+    MemoryController(name, parent, dram, cchains, srams, sins, souts, pipeline)
   }
   /* Sugar API */
   def apply (parent:String, dram:String) (block: Pipeline => Any) (implicit design: Design):MemoryController =
@@ -87,16 +91,19 @@ object MemoryController extends {
     MemoryController(Some(name), parent, dram) (block)
   /* No Sugar API */
   def apply(name:Option[String], parent: Controller, dram:String, cchains:List[CounterChain], 
-  srams:List[SRAM], pipeline:Pipeline) (implicit design: Design):MemoryController = {
-    val c = MemoryController(name, dram, cchains, srams, pipeline); c.update(parent); c
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) (implicit design: Design):MemoryController = {
+    val c = MemoryController(name, dram, cchains, srams, sins, souts, pipeline); c.update(parent); c
   }
   def apply(name:Option[String], parent:String, dram:String, cchains:List[CounterChain], 
-  srams:List[SRAM], pipeline:Pipeline) (implicit design: Design):MemoryController = {
-    val c = MemoryController(name, dram, cchains, srams, pipeline)
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], pipeline:Pipeline) (implicit design: Design):MemoryController = {
+    val c = MemoryController(name, dram, cchains, srams, sins, souts, pipeline)
     design.updateLater(parent, (n:Node) => c.update(n.asInstanceOf[Controller]))
     c
   }
 }
 
 case class Top(ctrlNodes:List[Controller])(implicit design: Design) 
-  extends Node(Some("Top"), "Top") with Controller
+  extends Node(Some("Top"), "Top") with Controller {
+    val argIns = ListBuffer[ArgIn]()
+    val argOuts = ListBuffer[ArgOut]()
+}
