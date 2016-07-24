@@ -28,7 +28,6 @@ object SRAMMapper extends Mapper {
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
-    if (cu.srams.size > pcu.srams.size) throw OutOfSram(pcu)
-    else simAneal(pcu.srams, cu.srams, HashMap[N, R](), List(mapSRAM _))
+    simAneal(pcu.srams, cu.srams, HashMap[N, R](), List(mapSRAM _), OutOfSram(this, pcu, _, _))
   }
 }

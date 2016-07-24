@@ -13,6 +13,7 @@ object ScalarMapper extends Mapper {
   type N = SL 
   type R = PSB 
   type V = PSB 
+
   def printMap(m:M)(implicit p:Printer) = {
     p.emitBS("scalarMap")
     m.foreach{ case (k,v) =>
@@ -33,14 +34,8 @@ object ScalarMapper extends Mapper {
     val psin = pcu.sins
     val sout = cu.pipeline.scalarOuts.map(_._1).toList
     val psout = pcu.souts
-    if (sin.size > psin.size) {
-      throw OutOfScalarIns(pcu)
-    } else if (sout.size > psout.size) {
-      throw OutOfScalarOuts(pcu)
-    } else {
-      val imap = simAneal(psin, sin, HashMap[N, V](), List(mapScalarIns _))
-      simAneal(psout, sout, imap, List(mapScalarOuts _))
-    }
+    val imap = simAneal(psin, sin, HashMap[N, V](), List(mapScalarIns _), OutOfScalarIn(this, pcu, _, _))
+    simAneal(psout, sout, imap, List(mapScalarOuts _), OutOfScalarOut(this, pcu, _, _))
   }
 
 }

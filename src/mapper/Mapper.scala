@@ -6,6 +6,7 @@ import pir.plasticine.graph.{Node => PNode, ComputeUnit => PCU, MemoryController
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
+import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 trait Mapper {
@@ -17,40 +18,54 @@ trait Mapper {
   def printMap(m:M)(implicit p:Printer):Unit
 
   def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M])(implicit design:Design):M = {
+    constrains:List[(N, R, M) => M], 
+    oor:(Int, Int) => OutOfResource)(implicit design:Design):M = {
 
-    def recMap(usedRes:Set[R], remainNodes:List[N], recmap:M):M = {
-      if (remainNodes.size==0) return recmap
-      val n::restNodes = remainNodes 
-
-      // Try map n on all unused resource
-      val (rsuc, rmap) = allRes.foldLeft((false, recmap)) { case ((preSuc, preMap), res) =>
-        if (preSuc) {// Already find a mapping for cu
-          (true, preMap)
-        } else {
-          if (usedRes.contains(res)) {
-            (preSuc, preMap)
-          } else {
-            // Checking whether mapping n on res satisfies all constrains 
-            Try { // Check current constrain, if success, update mapping, else throw an exception
-              constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
-            } match {
-              case Success(cmap) => // If all constrains pass, recursively map next node 
-                Try(recMap(usedRes + res, restNodes, cmap)) match {
-                  case Success(m) => (true, m) 
-                  case Failure(e) => (false, preMap)
-                }
-              case Failure(e) => (false, preMap)
-            }
+    /* Recursively try a node on a list of resource */
+    def recRes(remainRes:List[R], n:N, preMap:M):(M, List[R]) = {
+      val exceps = ListBuffer[MappingException]()
+      for (ir <- 0 until remainRes.size) {
+        val (h, t) = remainRes.splitAt(ir)
+        val res::rt = t
+        Try {
+          constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
+        } match {
+          case Success(m) => return (m, h ++ rt)
+          case Failure(e) => e match {
+            case me:MappingException => exceps += me // constrains failed
+            case _ => throw e // Unknown exception
           }
         }
       }
-
-      if (!rsuc) throw NoSolFound(n)
-      else rmap
+      throw FailToMapNode(this, n, exceps.toList)
     }
 
-    recMap(Set[R](), allNodes, initMap)
+    /* Recursively map a list of nodes to a list of resource */
+    def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
+      if (remainNodes.size==0) return recmap
+      //assert(remainRes.size>0)
+      val exceps = ListBuffer[MappingException]()
+      for (in <- 0 until remainNodes.size) { 
+        val (h,t) = remainNodes.splitAt(in)
+        val n::rt = t
+        Try{
+          val (cm, rr) = recRes(remainRes, n, recmap)
+          recMap(rr, h ++ rt, cm)
+        } match {
+          case Success(m) => return m 
+          case Failure(e) => e match {
+            case fe:FailToMapNode => exceps += fe // recRes failed
+            case fe:NoSolFound => exceps += fe // recMap failed
+            case _ => throw e // Unknown exception
+          }
+        }
+      }
+      throw NoSolFound(this, exceps.toList) 
+    }
+
+    if (allRes.size < allNodes.size)
+      throw oor(allRes.size, allNodes.size)
+    recMap(allRes, allNodes, initMap)
   }
 }
 

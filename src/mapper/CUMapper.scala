@@ -25,12 +25,10 @@ object CUMapper extends Mapper{
     p.emitBE 
   }
 
-  /* Saperate Compute Unit and Memory controller to map saperately later on
-   * Check whether design would fit the architecture using a rough count */
+  /* Saperate Compute Unit and Memory controller to map saperately */
   private def setResource(implicit design: Design):(List[PCU], List[CU], List[PMC], List[MC]) = {
     val ctrlNodes = design.top.ctrlNodes
     val arch = design.arch
-
     val pcus = ListBuffer[PCU]()
     val pmcs = ListBuffer[PMC]()
     val cus = ListBuffer[CU]()
@@ -38,23 +36,21 @@ object CUMapper extends Mapper{
     arch.computeUnits.foreach { c => c match {
         case n:PMC => pmcs += n
         case n:PCU => pcus += n
-        case n => throw new TODOException(s"unknown Spade ComputeUnit type: ${n}") 
+        case n => throw new TODOException(this, s"unknown Spade ComputeUnit type: ${n}") 
       }
     }
     ctrlNodes.foreach { c => c match {
         case n:MC => mcs += n
         case n:CU => cus += n
-        case n => throw new TODOException(s"unknown PIR controller type: ${n}") 
+        case n => throw new TODOException(this, s"unknown PIR controller type: ${n}") 
       }
     }
-   if(cus.size > pcus.size) throw OutOfPCU(arch)
-   else if(mcs.size > pmcs.size) throw OutOfPMC(arch)
-   else (pcus.toList, cus.toList, pmcs.toList, mcs.toList)
+    (pcus.toList, cus.toList, pmcs.toList, mcs.toList)
   }
 
   private def checkIntConnct(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
     val suc = true
-    if (!suc) throw IntConnct(cu, pcu)
+    if (!suc) throw IntConnct(this, cu, pcu)
     else
       cuMap
   }
@@ -69,9 +65,7 @@ object CUMapper extends Mapper{
   def map(implicit design: Design):M = {
     val (pcus, cus, pmcs, mcs) = setResource
     val cons = List(checkIntConnct _, primMapping _)
-    val m = simAneal(pcus, cus, Map[N, V](), cons)
-    simAneal(pmcs.toList, mcs.toList, m, cons)
+    val m = simAneal(pcus, cus, Map[N, V](), cons, OutOfPCU(this, _, _))
+    simAneal(pmcs.toList, mcs.toList, m, cons, OutOfPMC(this, _, _))
   }
-  //println("-------- Finish CU Mapping ----------")
-
 }

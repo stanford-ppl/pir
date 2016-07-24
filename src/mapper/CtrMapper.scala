@@ -25,8 +25,7 @@ object CtrMapper extends Mapper {
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
-    if (ctrs.size > pcu.ctrs.size) throw OutOfCtr(pcu)
-    else simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _))
+    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), OutOfCtr(this, pcu, _, _))
   }
 
   def mapCtr(c:N, p:R, map:Map[N, V]):M = {
