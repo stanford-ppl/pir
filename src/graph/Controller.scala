@@ -11,8 +11,8 @@ trait Controller extends Node {
   var sins:List[ScalarIn] = _
   var souts:List[ScalarOut] = _
   def updateFields(sins:List[ScalarIn], souts:List[ScalarOut]) = {
-    this.sins = sins 
-    this.souts = souts 
+    this.sins = sins.toSet.toList 
+    this.souts = souts.toSet.toList 
   }
 }
 
@@ -139,16 +139,20 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ReducePR)
     prs(rid)
   }
- /** Create a pipeline register for a stage corresponding to 
-  *  the register that connects to 1 scalarIn buffer 
-  * @param stage: Stage for the pipeline register 
+ /** Create a ScalarIn object 
+  * @param s: scalar value 
+  * @param w: writer controller of the scalar value 
   */
-  //def scalarIn(stage:Stage):PipeReg = {
-  //  val rid = newTemp; scalarIns += rid 
-  //  val prs = stagePRs(stage)
-  //  if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ScalarInPR)
-  //  prs(rid)
-  //}
+  def scalarIn(s:Scalar, w:Controller):ScalarIn = ScalarIn(s, w)
+ /** Create a ScalarIn object 
+  * @param s: scalar value 
+  * @param w: name of writer controller of the scalar value 
+  */
+  def scalarIn(s:Scalar, w:String):ScalarIn = ScalarIn(s, w)
+ /** Create a ScalarIn object 
+  * @param ai: ArgIn scalar 
+  */
+  def scalarIn(ai:ArgIn):ScalarIn = ScalarIn(ai)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage for the pipeline register 
@@ -161,16 +165,11 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
       prs += (rid -> new { override val scalarIn = s} with PipeReg(stage, rid) with ScalarInPR)
     prs(rid)
   }
- /** Create a pipeline register for a stage corresponding to 
-  *  the register that connects to 1 scalarOut buffer 
-  * @param stage: Stage for the pipeline register 
+  /** Create a ScalarOut object 
+  * @param s: scalar value 
   */
-  //def scalarOut(stage:Stage):PipeReg = {
-  //  val rid = newTemp; scalarOuts += rid 
-  //  val prs = stagePRs(stage)
-  //  if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ScalarOutPR)
-  //  prs(rid)
-  //}
+  //No use case
+  //def scalarOut(s:Scalar):ScalarOut = ScalarOut(s)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarOut buffer with register rid
   * @param stage: Stage for the pipeline register 

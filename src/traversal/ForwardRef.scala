@@ -37,6 +37,8 @@ class ForwardRef(implicit val design: Design) extends Traversal{
         assert(!nameMap.contains(s),
           s"Already create primitive with name ${s} for controller ${p.ctrler}")
         nameMap += (s -> p)
+      case w:Scalar =>
+      case w:OffChip =>
       case w:Port =>
         //assert(false, "No support for adding name for wire yet!")
     }

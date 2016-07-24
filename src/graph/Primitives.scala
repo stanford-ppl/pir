@@ -148,6 +148,10 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
   var writer:Either[String,Controller] = _
   toUpdate = true
   val out:Port = Port(this, {s"${this}.out"}) 
+  override def equals(that: Any) = that match {
+    case n: ScalarIn => n.scalar==scalar && n.writer == writer && n.ctrler == ctrler 
+    case _ => super.equals(that)
+  }
 
   def this(n: Option[String], scalar:Scalar, w:Controller)(implicit ctrler:Controller, design: Design) = {
     this(n, scalar)
@@ -187,7 +191,7 @@ object ScalarOut {
 }
 
 case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
-  override val typeStr = "ScalarOut"
+  override val typeStr = "Stage"
   var operands:List[Port] = _
   var op:Op = _
   var result:Port = _
@@ -224,11 +228,6 @@ object Stages {
     }
   }
 }
-
-//case class Pipeline(name:Option[String])(implicit design: Design) extends Primitive {
-//  override val typeStr = "Pipeline"
-//
-//}
 
 trait Reg extends Primitive {
   var in:Option[Port] = None
