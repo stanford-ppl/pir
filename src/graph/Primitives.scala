@@ -9,8 +9,7 @@ import pir.Design
 import pir.graph._
 
 
-class Primitive(nameStr:Option[String], typeStr:String)(implicit design: Design) 
-  extends Node(nameStr, typeStr) { 
+trait Primitive extends Node {
   var ctrler:Controller = _
   def updateCtrler(c:Controller) = ctrler = c
 } 
@@ -21,12 +20,14 @@ class Primitive(nameStr:Option[String], typeStr:String)(implicit design: Design)
  *  Each tuple represents the (max, stride) for one level in the loop.
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
-trait CounterChain extends Primitive {
+case class CounterChain(name:Option[String])(implicit design: Design) extends Primitive {
+  override val typeStr = "CC"
   /* Fields */
   var counters:List[Counter] = Nil 
   /* Pointers */
   var dep:Option[CounterChain] = None
   var copy:Option[CounterChain] = None
+  toUpdate = true
 
   override def updateCtrler(c:Controller) = {super.updateCtrler(c); counters.foreach(_.updateCtrler(c))} 
   def apply(i: Int)(implicit design: Design):Counter = {
@@ -36,7 +37,7 @@ trait CounterChain extends Primitive {
     }
     counters(i)
   }
-  def copy(cp:CounterChain)(implicit design: Design):Unit = {
+  def copy(cp:CounterChain):Unit = {
     // Check whether speculative wire allocation was correct
     assert(counters.size <= cp.counters.size, 
       s"Accessed counter ${counters.size-1} of ${this} is out of bound")
@@ -49,16 +50,13 @@ trait CounterChain extends Primitive {
     this.copy = Some(cp)
     toUpdate = false
   }
-  def update(bds: Seq[(Port, Port, Port)])(implicit design: Design):Unit = {
+  def update(bds: Seq[(Port, Port, Port)]):Unit = {
     counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(mi, ma, s)}.toList
     this.copy = None 
     toUpdate = false
   }
 }
 object CounterChain {
-  val typeStr = "CC"
-  def apply(name:Option[String])(implicit design: Design):CounterChain =
-    new Primitive(name, typeStr) with CounterChain { toUpdate = true }
   def apply(bds: (Port, Port, Port)*)(implicit design: Design):CounterChain =
     {val c = CounterChain(None); c.update(bds); c}
   def apply(name:String, bds: (Port, Port, Port)*)(implicit design: Design):CounterChain =
@@ -74,7 +72,8 @@ object CounterChain {
   }
 }
 
-case class Counter(n:Option[String])(implicit design: Design) extends Primitive(n, "Ctr"){
+case class Counter(val name:Option[String])(implicit design: Design) extends Primitive {
+  override val typeStr = "Ctr"
   /* Fields */
   var min:Port = _
   var max:Port = _
@@ -82,13 +81,13 @@ case class Counter(n:Option[String])(implicit design: Design) extends Primitive(
   val out:Port = Port(this, {s"${this}.out"}) 
   toUpdate = true
 
-  def update(mi:Port, ma:Port, s:Port)(implicit design: Design):Unit = {
+  def update(mi:Port, ma:Port, s:Port):Unit = {
     min = mi
     max  = ma
     step = s
     toUpdate = false
   }
-  def copy(c:Counter)(implicit design: Design) = {
+  def copy(c:Counter) = {
     assert(min==null, 
       s"Overriding existing counter ${this} with min ${min}")
     assert(max==null, 
@@ -121,8 +120,10 @@ object Counter{
  *  @param nameStr: user defined name of SRAM 
  *  @param Size: size of SRAM in all dimensions 
  */
-case class SRAM(n: Option[String], size: Int, writer:Controller)(implicit design: Design) 
-  extends Primitive(n, "SRAM") {
+case class SRAM(name: Option[String], size: Int, writer:Controller)(implicit design: Design) 
+  extends Primitive {
+  override val typeStr = "SRAM"
+
   var readAddr: Port = _
   var writeAddr: Port = _
   val readPort: Port = Port(this, s"${this}.rp") 
@@ -146,8 +147,9 @@ object SRAM {
     = { val s = SRAM(Some(name), size, write); s.update(readAddr, writeAddr); s } 
 }
 
-case class ScalarIn(n: Option[String], scalar:Scalar)(implicit design: Design) 
-  extends Primitive(n, "ScalarIn") {
+case class ScalarIn(name: Option[String], scalar:Scalar)(implicit design: Design) 
+  extends Primitive  {
+  override val typeStr = "ScalarIn"
   var writer:Either[String,Controller] = _
   toUpdate = true
   val out:Port = Port(this, {s"${this}.out"}) 
@@ -177,8 +179,8 @@ object ScalarIn {
     new ScalarIn(Some(name), scalar, writer)
 }
 
-case class ScalarOut(n: Option[String], scalar:Scalar)(implicit design: Design) 
-  extends Primitive(n, "ScalarOut") {
+case class ScalarOut(name: Option[String], scalar:Scalar)(implicit design: Design) extends Primitive {
+  override val typeStr = "ScalarOut"
 }
 object ScalarOut {
   //TODO check argout
@@ -188,9 +190,8 @@ object ScalarOut {
     ScalarOut(Some(name), scalar)
 }
 
-
-
-case class Stage(n:Option[String], pipeline:Pipeline)(implicit design: Design) extends Primitive(n, "Stage") {
+case class Stage(name:Option[String], pipeline:Pipeline)(implicit design: Design) extends Primitive {
+  override val typeStr = "ScalarOut"
   var operands:List[Port] = _
   var op:Op = _
   var result:Port = _
@@ -232,13 +233,14 @@ object Stages {
   }
 }
 
-case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive(n, "Pipeline"){
+case class Pipeline(name:Option[String])(implicit design: Design) extends Primitive {
+  override val typeStr = "Pipeline"
   var regId = 0
   private def newTemp = {val temp = regId; regId +=1; temp}
 
   /* Fields */
   val stages = ListBuffer[Stage]()
-  override def updateCtrler(c:Controller) = {super.updateCtrler(c); stages.foreach(_.updateCtrler(c))} 
+  override def updateCtrler(c:Controller) ={super.updateCtrler(c);stages.foreach(_.updateCtrler(c))} 
 
   /* Register Mapping */
   val reduceReg = newTemp
@@ -276,7 +278,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   * @param stage: Stage for the pipeline register 
   * @param s: sram to load from 
   */
- def load(stage:Stage, s:SRAM)(implicit design: Design):PipeReg = {
+ def load(stage:Stage, s:SRAM):PipeReg = {
     if (!loadRegs.contains(s)) loadRegs += (s -> newTemp)
     val prs = stagePRs(stage); val rid = loadRegs(s)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with LoadPR)
@@ -287,7 +289,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   * @param stage: Stage for the pipeline register 
   * @param s: sram to load from 
   */
-  def stores(stage:Stage, s:SRAM)(implicit design: Design):PipeReg = {
+  def stores(stage:Stage, s:SRAM):PipeReg = {
     if (!storeRegs.contains(s)) storeRegs += (s -> newTemp)
     val prs = stagePRs(stage); val rid = storeRegs(s)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with StorePR)
@@ -298,7 +300,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   * @param stage: Stage for the pipeline register 
   * @param c: counter 
   */
-  def ctr(stage:Stage, c:Counter)(implicit design: Design):PipeReg = {
+  def ctr(stage:Stage, c:Counter):PipeReg = {
     if (!ctrRegs.contains(c)) ctrRegs += (c -> newTemp)
     val prs = stagePRs(stage); val rid = ctrRegs(c)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with CtrPR)
@@ -308,7 +310,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   *  the register that connects to the reduction network 
   * @param stage: Stage for the pipeline register 
   */
-  def reduce(stage:Stage)(implicit design: Design):PipeReg = {
+  def reduce(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = reduceReg
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ReducePR)
     prs(rid)
@@ -317,7 +319,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   *  the register that connects to 1 scalarIn buffer 
   * @param stage: Stage for the pipeline register 
   */
-  //def scalarIn(stage:Stage)(implicit design: Design):PipeReg = {
+  //def scalarIn(stage:Stage):PipeReg = {
   //  val rid = newTemp; scalarIns += rid 
   //  val prs = stagePRs(stage)
   //  if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ScalarInPR)
@@ -328,7 +330,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   * @param stage: Stage for the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarIn(stage:Stage, s:Scalar)(implicit design: Design):PipeReg = {
+  def scalarIn(stage:Stage, s:Scalar):PipeReg = {
     val rid = if (!scalarIns.contains(s)) { val i = newTemp; scalarIns += (s -> i); i }
               else scalarIns(s)
     val prs = stagePRs(stage)
@@ -340,7 +342,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   *  the register that connects to 1 scalarOut buffer 
   * @param stage: Stage for the pipeline register 
   */
-  //def scalarOut(stage:Stage)(implicit design: Design):PipeReg = {
+  //def scalarOut(stage:Stage):PipeReg = {
   //  val rid = newTemp; scalarOuts += rid 
   //  val prs = stagePRs(stage)
   //  if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ScalarOutPR)
@@ -351,7 +353,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   * @param stage: Stage for the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarOut(stage:Stage, s:Scalar)(implicit design: Design):PipeReg = {
+  def scalarOut(stage:Stage, s:Scalar):PipeReg = {
     val rid = if (!scalarOuts.contains(s)) { val i = newTemp; scalarOuts += (s -> i); i} 
               else scalarOuts(s)
     val prs = stagePRs(stage)
@@ -363,7 +365,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage for the pipeline register 
   */
-  def vecIn(stage:Stage)(implicit design: Design):PipeReg = {
+  def vecIn(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = vecIn
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with VecInPR)
     prs(rid)
@@ -372,7 +374,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
   *  the register that directly connects to CU output ports 
   * @param stage: Stage for the pipeline register 
   */
-  def vecOut(stage:Stage)(implicit design: Design):PipeReg = {
+  def vecOut(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = vecOut 
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with VecOutPR)
     prs(rid)
@@ -381,7 +383,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
  /** Get the pipeline register for stage with rid 
   * @param stage: Stage for the pipeline register 
   */
-  def temp(stage:Stage, rid:Int)(implicit design: Design):PipeReg = {
+  def temp(stage:Stage, rid:Int):PipeReg = {
     val prs = stagePRs(stage)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with TempPR)
     prs(rid)
@@ -389,7 +391,7 @@ case class Pipeline(n:Option[String])(implicit design: Design) extends Primitive
  /** Allocate a new pipeline register in the stage 
   * @param stage: Stage for the pipeline register 
   */
-  def temp(stage:Stage)(implicit design: Design):PipeReg = {
+  def temp(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = newTemp
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with TempPR)
     prs(rid)
@@ -409,8 +411,8 @@ trait Reg extends Primitive {
  * @param n Optional user defined name
  * @param regId Register ID the PipeReg mapped to
  **/
-case class PipeReg(n:Option[String], stage:Stage, regId:Int)(implicit design: Design) 
-  extends Primitive(n, "PR") with Reg {
+case class PipeReg(name:Option[String], stage:Stage, regId:Int)(implicit design: Design) extends Reg{
+  override val typeStr = "PR"
   override def toString = s"${super.toString}_${stage.name.getOrElse("")}${regId}"
   def this (stage:Stage, regId:Int)(implicit design:Design) = this(None, stage, regId)
 }
@@ -426,23 +428,23 @@ trait TempPR      extends PipeReg {override val typeStr = "PRtp"}
 
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-trait Scalar extends Node {
+case class Scalar(val name:Option[String])(implicit design: Design) extends Node {
+  override val typeStr = "Scalar"
   var writer:Controller = _ //TODO: need to keep track of these
   val reader:Set[Controller] = Set[Controller]() 
   toUpdate = false //TODO 
 }
 object Scalar {
-  def apply(name:Option[String])(implicit design: Design):Scalar = new Node(name, "Scalar") with Scalar
   def apply(name:String)(implicit design: Design):Scalar = Scalar(Some(name)) 
   def apply()(implicit design: Design):Scalar = Scalar(None) 
 }
 
 trait ArgIn extends Scalar {
+  override val typeStr = "ArgIn"
   toUpdate = false
 }
 object ArgIn {
-  def apply(nameStr:Option[String])(implicit design: Design):ArgIn = new {
-  } with Primitive(nameStr, "ArgIn") with ArgIn
+  def apply(n:Option[String])(implicit design: Design):ArgIn = new Scalar(n) with ArgIn
   def apply() (implicit design: Design):ArgIn = ArgIn(None)
   def apply(name:String) (implicit design: Design):ArgIn = ArgIn(Some(name))
 }
@@ -451,11 +453,11 @@ object ArgIn {
  *  Represent scalar outputs from the accelerator, and are write-only from accelerator.
  */
 trait ArgOut extends Scalar {
+  override val typeStr = "ArgOut"
   toUpdate = false
 } 
 object ArgOut {
-  def apply(nameStr:Option[String])(implicit design: Design) = new {
-  } with Primitive(nameStr, "ArgOut") with ArgOut
+  def apply(n:Option[String])(implicit design: Design) = new Scalar(n) with ArgOut
   def apply() (implicit design: Design):ArgOut = ArgOut(None)
   def apply(name:String) (implicit design: Design):ArgOut = ArgOut(Some(name))
 }

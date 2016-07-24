@@ -11,7 +11,9 @@ import pir.graph._
   * @param name: optional user name for a node 
   * @param typeStr: Consice name for a type of node for printing purpose 
   */
-class Node(val name:Option[String], val typeStr:String) (implicit design: Design) { 
+abstract class Node (implicit design: Design) { 
+  val name:Option[String]
+  val typeStr:String
 	design.addNode(this)
   val id : Int = design.nextId // Unique id for each node
   var toUpdate:Boolean = false // Whether fields of the node is not yet defined, 
