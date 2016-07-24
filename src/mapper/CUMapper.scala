@@ -12,15 +12,16 @@ import scala.collection.mutable.ListBuffer
 object CUMapper extends Mapper{
   type R = PCU
   type N = CU
-  type V = (PCU, SRAMMapper.M, CtrMapper.M, ScalarMapper.M)
+  type V = (PCU, SRAMMapper.M, CtrMapper.M, ScalarInMapper.M, ScalarOutMapper.M)
 
   def printMap(m:M)(implicit p:Printer) = {
     p.emitBS("cuMap")
-    m.foreach{ case (cu, (pcu, sm, cm, slm)) =>
+    m.foreach{ case (cu, (pcu, sm, cm, sim, som)) =>
       p.emitln(s"[$cu -> $pcu]")
       SRAMMapper.printMap(sm)
       CtrMapper.printMap(cm)
-      ScalarMapper.printMap(slm)
+      ScalarInMapper.printMap(sim)
+      ScalarOutMapper.printMap(som)
     }
     p.emitBE 
   }
@@ -51,15 +52,15 @@ object CUMapper extends Mapper{
   private def checkIntConnct(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
     val suc = true
     if (!suc) throw IntConnct(this, cu, pcu)
-    else
-      cuMap
+    else cuMap
   }
 
   private def primMapping(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
     val sm = SRAMMapper.map(cu, pcu, cuMap)
     val cm = CtrMapper.map(cu, pcu, cuMap)
-    val slm = ScalarMapper.map(cu, pcu, cuMap)
-    cuMap + (cu -> (pcu, sm, cm, slm))
+    val som = ScalarOutMapper.map(cu, pcu, cuMap)
+    val sim = ScalarInMapper.map(cu, pcu, cuMap)
+    cuMap + (cu -> (pcu, sm, cm, sim, som))
   }
 
   def map(implicit design: Design):M = {

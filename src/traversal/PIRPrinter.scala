@@ -62,20 +62,20 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
       }
       mp += (s -> s"[${mstrs.mkString(",")}]")
     }
-  def regMapToStrs(p:Pipeline):Map[String, String] = {
+  def regMapToStrs(c:ComputeUnit):Map[String, String] = {
     var m = HashMap[String, String]()
-    toStr(m, "reduceReg" , p.reduceReg  )
-    toStr(m, "vecIn"     , p.vecIn      )
-    toStr(m, "vecOut"    , p.vecOut     )
-    toStr(m, "scalarIns" , p.scalarIns  )
-    toStr(m, "scalarOuts", p.scalarOuts )
-    toStr(m, "loadRegs"  , p.loadRegs   )
-    toStr(m, "storeRegs" , p.storeRegs  )
-    toStr(m, "ctrRegs"   , p.ctrRegs    )
-    toStr(m, "tempRegs"  , p.tempRegs   )
-    toStr(m, "stageUses" , p.stageUses  )
-    toStr(m, "stageDefs" , p.stageDefs  )
-    toStr(m, "stagePRs"  , p.stagePRs   )
+    toStr(m, "reduceReg" , c.reduceReg  )
+    toStr(m, "vecIn"     , c.vecIn      )
+    toStr(m, "vecOut"    , c.vecOut     )
+    toStr(m, "scalarIns" , c.scalarIns  )
+    toStr(m, "scalarOuts", c.scalarOuts )
+    toStr(m, "loadRegs"  , c.loadRegs   )
+    toStr(m, "storeRegs" , c.storeRegs  )
+    toStr(m, "ctrRegs"   , c.ctrRegs    )
+    toStr(m, "tempRegs"  , c.tempRegs   )
+    toStr(m, "stageUses" , c.stageUses  )
+    toStr(m, "stageDefs" , c.stageDefs  )
+    toStr(m, "stagePRs"  , c.stagePRs   )
     m
   }
 
@@ -84,7 +84,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     node match {
       case n:ComputeUnit =>
         emitBS(s"mapping=")
-        regMapToStrs(n.pipeline).foreach { case (k, v) =>
+        regMapToStrs(n).foreach { case (k, v) =>
           emitln(s"${k}:${v}")
         }
         emitBE
@@ -98,7 +98,6 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     node match {
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
-      case n:Pipeline => emitBlock(s"${node}${genFields(node)}", node)
       case _ => emitln(s"${node}${genFields(node)}")
     }
   }

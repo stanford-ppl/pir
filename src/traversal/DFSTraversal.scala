@@ -21,8 +21,10 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
           c.ctrlNodes.foreach(n => visitNode(n))
         case c:ComputeUnit => {
           c.cchains.foreach { cc => visitNode(cc) }
+          c.sins.foreach { si => visitNode(si) }
+          c.souts.foreach { so => visitNode(so) }
           c.srams.foreach { s => visitNode(s) }
-          visitNode(c.pipeline)
+          c.stages.foreach {s => visitNode(s) }
           c match {
             case cu:MemoryController =>
             case _ =>
@@ -32,10 +34,11 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
         case p:SRAM => 
+        case p:ScalarIn =>
+        case p:ScalarOut =>
         case p:Stage =>
           p.operands.foreach(op => visitNode(op.src))
           visitNode(p.result.src)
-        case p:Pipeline => p.stages.foreach(s => visitNode(s))
         case p:Reg => p match {
           case r:PipeReg =>
           case r:Const =>

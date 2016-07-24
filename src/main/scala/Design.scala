@@ -134,17 +134,19 @@ trait Design { self =>
 trait PIRApp extends Design{
   override val arch = Config0 
 
-  def main(args: String*): Any 
+  def main(args: String*)(top:Top): Any 
   def main(args: Array[String]): Unit = {
     println(args.mkString(", "))
-    val ctrlNodes = addBlock(main(args:_*), (n:Node) => n.isInstanceOf[Controller])
-    top = Top(ctrlNodes)
+    top = Top().updateBlock(main(args:_*)) 
     info("Finishing graph construction")
     run
   }
 }
 
 object PIRMisc {
+  implicit def scalarBuf_to_port(sb:ScalarIn):Port = {
+    sb.out
+  }
   implicit def reg_to_port(reg:Reg):Port = {
     reg.out
   }

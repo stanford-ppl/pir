@@ -8,13 +8,13 @@ import pir.PIRMisc._
 
 /* Example PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {
-  def main(args: String*) = {
+  def main(args: String*)(top:Top) = {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
     val output = ArgOut()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = ComputeUnit(name="outer", parent="Top", tpe=MetaPipeline){ implicit PL =>
+    val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit PL =>
       val ds = ScalarIn(dataSize)
       CounterChain(name="i", ds.out by tileSize)
     }
@@ -50,7 +50,7 @@ object DotProduct extends PIRApp {
       // Pipeline Stages 
       Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=PL.reduce(s0))
       Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2, output)) 
+      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2, out)) 
       //Last stage can be removed if PL.reduce and PL.scalarOut map to the same register
     }
   }
