@@ -14,26 +14,26 @@ object DotProduct extends PIRApp {
     val output = ArgOut()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit PL =>
+    val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit CU =>
       val ds = ScalarIn(dataSize)
       CounterChain(name="i", ds.out by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, dram="A"){ implicit PL =>
+    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, dram="A"){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PL.vecOut(s0))
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.vecOut(s0))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, dram="B"){ implicit PL =>
+    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, dram="B"){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=PL.vecOut(s0))
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.vecOut(s0))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
-    ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit PL =>
+    ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit CU =>
       
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const(1l)) //Local
@@ -48,10 +48,10 @@ object DotProduct extends PIRApp {
       val out = ScalarOut(output)
 
       // Pipeline Stages 
-      Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=PL.reduce(s0))
+      Stage(s0, op1=A.load, op2=B.load, op=FixMul, result=CU.reduce(s0))
       Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=PL.reduce(s1), op=Bypass, result=PL.scalarOut(s2, out)) 
-      //Last stage can be removed if PL.reduce and PL.scalarOut map to the same register
+      Stage(s2, op1=CU.reduce(s1), op=Bypass, result=CU.scalarOut(s2, out)) 
+      //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
   }
 
