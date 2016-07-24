@@ -27,6 +27,7 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
   var srams:List[SRAM] = _ 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
+  //val vins = ListBuffer[]()
   val stages = ListBuffer[Stage]()
   toUpdate = true
 
@@ -242,7 +243,8 @@ object ComputeUnit {
 }
 
 trait MemoryController extends ComputeUnit {
-  val dram:String
+  val mctpe:MCType
+  val offchip:OffChip
   override val typeStr = "MemCtrl"
   override def updateParent(parent:String):MemoryController = 
     super.updateParent(parent).asInstanceOf[MemoryController]
@@ -255,25 +257,28 @@ trait MemoryController extends ComputeUnit {
     super.updateBlock(block).asInstanceOf[MemoryController]
 } 
 object MemoryController extends {
-  def apply(name:Option[String], d:String) (implicit design: Design):MemoryController = 
-    new {override val dram = d} with ComputeUnit(name, Pipe) with MemoryController
+  def apply(name:Option[String], oc:OffChip, mt:MCType) (implicit design: Design):MemoryController = 
+    new {
+      override val offchip = oc 
+      override val mctpe = mt
+    } with ComputeUnit(name, Pipe) with MemoryController
   /* Sugar API */
-  def apply (parent:String, dram:String) (block: ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(None, dram).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: String, dram:String) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(Some(name), dram).updateBlock(block).updateParent(parent)
-  def apply (parent:Controller, dram:String) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(None, dram).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: Controller, dram:String) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(Some(name), dram).updateBlock(block).updateParent(parent)
+  def apply (parent:String, offchip:OffChip, mctpe:MCType) (block: ComputeUnit => Any) (implicit design: Design):MemoryController =
+    MemoryController(None, offchip, mctpe).updateBlock(block).updateParent(parent)
+  def apply (name:String, parent: String, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
+    MemoryController(Some(name), offchip, mctpe).updateBlock(block).updateParent(parent)
+  def apply (parent:Controller, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
+    MemoryController(None, offchip, mctpe).updateBlock(block).updateParent(parent)
+  def apply (name:String, parent: Controller, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
+    MemoryController(Some(name), offchip, mctpe).updateBlock(block).updateParent(parent)
   /* No Sugar API */
-  def apply(name:Option[String], parent: Controller, dram:String, cchains:List[CounterChain], 
+  def apply(name:Option[String], parent: Controller, offchip:OffChip, mctpe:MCType, cchains:List[CounterChain], 
   srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut]) (implicit design: Design):MemoryController = {
-    MemoryController(name, dram).updateFields(cchains, srams, sins, souts).updateParent(parent)
+    MemoryController(name, offchip, mctpe).updateFields(cchains, srams, sins, souts).updateParent(parent)
   }
-  def apply(name:Option[String], parent:String, dram:String, cchains:List[CounterChain], 
+  def apply(name:Option[String], parent:String, offchip:OffChip, mctpe:MCType, cchains:List[CounterChain], 
   srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut]) (implicit design: Design):MemoryController = {
-    MemoryController(name, dram).updateFields(cchains, srams, sins, souts).updateParent(parent)
+    MemoryController(name, offchip, mctpe).updateFields(cchains, srams, sins, souts).updateParent(parent)
   }
 }
 

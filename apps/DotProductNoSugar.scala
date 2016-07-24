@@ -13,6 +13,8 @@ object DotProductNoSugar extends Design {
   val tileSize = Const(4l)
   val dataSize = ArgIn()
   val output = ArgOut()
+  val A = OffChip()
+  val B = OffChip()
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
   val outer = {
@@ -27,7 +29,7 @@ object DotProductNoSugar extends Design {
   }
   // b1 := v1(i::i+tileSize)
   val tileLoadA =  {
-    implicit val CU = MemCtrl (name=None, d="A").updateParent(outer)
+    implicit val CU = MemCtrl (name=None, oc=A, mt=Load).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)
@@ -41,7 +43,7 @@ object DotProductNoSugar extends Design {
   }
   // b2 := v2(i::i+tileSize)
   val tileLoadB =  {
-    implicit val CU = MemCtrl (name=None, d="B").updateParent(outer)
+    implicit val CU = MemCtrl (name=None, oc=A, mt=Load).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)

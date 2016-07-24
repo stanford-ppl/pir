@@ -12,6 +12,8 @@ object DotProduct extends PIRApp {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
     val output = ArgOut()
+    val A = OffChip()
+    val B = OffChip()
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit CU =>
@@ -19,14 +21,14 @@ object DotProduct extends PIRApp {
       CounterChain(name="i", ds.out by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, dram="A"){ implicit CU =>
+    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, offchip=A, mctpe=Load){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.vecOut(s0))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, dram="B"){ implicit CU =>
+    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, offchip=B, mctpe=Load){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)

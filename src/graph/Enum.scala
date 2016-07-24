@@ -24,3 +24,8 @@ object CtrlType
 case object Pipe extends CtrlType
 case object Sequential extends CtrlType
 case object MetaPipeline extends CtrlType
+
+sealed trait MCType 
+object MCType
+case object Load extends MCType 
+case object Store extends MCType 

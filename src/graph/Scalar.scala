@@ -38,3 +38,15 @@ object ArgOut {
   def apply() (implicit design: Design):ArgOut = ArgOut(None)
   def apply(name:String) (implicit design: Design):ArgOut = ArgOut(Some(name))
 }
+
+case class OffChip(name: Option[String])(implicit design: Design)
+  extends Node {
+  val typeStr = "OffChip"
+}
+object OffChip {
+  def apply()(implicit design: Design): OffChip 
+    = OffChip(None)
+  def apply(name:String)(implicit design: Design): OffChip 
+    = OffChip(Some(name))
+}
+
