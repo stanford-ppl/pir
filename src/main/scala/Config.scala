@@ -19,6 +19,9 @@ object Config {
   var genMaxJ = getProperty("pir.maxj", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
+  var pirFile = getProperty("pir.pirfile", "PIR.txt")
+  var spadeFile = getProperty("pir.spadefile", "Spade.txt")
+  var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var debug = getProperty("pir.debug", "true") == "true"
 
   var dse = false

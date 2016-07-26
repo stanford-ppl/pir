@@ -24,7 +24,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
 
   override def finPass = {
     if (Config.debug) {
-      val p:Printer = new Printer { override val stream = newStream("Mapping.txt") }
+      val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
       if (mapping!=null) CUMapper.printMap(mapping)(p)
       p.emitln(s"MappingExceptions:")
       design.mapExceps.foreach { h =>

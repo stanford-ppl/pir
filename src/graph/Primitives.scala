@@ -93,10 +93,7 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
       if (p.isConst) {
         p
       } else p.src match {
-        case s@ScalarIn(n, scalar) => s.writer match {
-          case Right(w) => new ScalarIn(n, scalar, w).out 
-          case Left(w) => new ScalarIn(n, scalar, w).out
-        }
+        case s@ScalarIn(n, scalar) => ScalarIn(n, scalar).out
         case _ => throw new Exception(s"Don't know how to copy port")
       }
     }
@@ -115,79 +112,108 @@ object Counter{
  *  @param nameStr: user defined name of SRAM 
  *  @param Size: size of SRAM in all dimensions 
  */
-case class SRAM(name: Option[String], size: Int, writer:Controller)(implicit ctrler:Controller, design: Design) 
+case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
   var readAddr: Port = _
   var writeAddr: Port = _
   val readPort: Port = Port(this, s"${this}.rp") 
+  var writePort: Port = _
 
-  toUpdate = true
-  def update (ra:Port, wa:Port) = {
-    this.readAddr = ra
-    this.writeAddr = wa
-    toUpdate = false
-  }
+  def updateRA(ra:Port):SRAM = { readAddr = ra; this } 
+  def updateWA(wa:Port):SRAM = { writeAddr = wa; this } 
+  def updateWP(wp:Port):SRAM = { writePort = wp; this } 
+  def updateWP(vec:Vector):SRAM = updateWP(VecIn(vec).out)
+
   def load = readPort
 }
 object SRAM {
-  def apply(size:Int, write:Controller)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, write)
-  def apply(name:String, size:Int, write:Controller)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, write)
-  def apply(size:Int, write:Controller, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
-    = { val s = SRAM(None, size, write); s.update(readAddr, writeAddr); s } 
-  def apply(name:String, size:Int, write:Controller, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
-    = { val s = SRAM(Some(name), size, write); s.update(readAddr, writeAddr); s } 
+  /* Remote Write */
+  def apply(size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size).updateWP(vec)
+  def apply(name:String, size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size).updateWP(vec)
+  def apply(size:Int, vec:Vector, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size).updateRA(readAddr).updateWA(writeAddr).updateWP(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size).updateRA(readAddr).updateWA(writeAddr).updateWP(vec)
+
+  /* Local Write */
+  def apply(size:Int)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size)
+  def apply(name:String, size:Int)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size)
+  def apply(size:Int, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size).updateRA(readAddr).updateWA(writeAddr)
+  def apply(name:String, size:Int, readAddr:Port, writeAddr:Port)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size).updateRA(readAddr).updateWA(writeAddr)
 }
 
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
   extends Primitive  {
+  scalar.readers += ctrler
   override val typeStr = "ScalarIn"
-  var writer:Either[String,Controller] = _
-  toUpdate = true
   val out:Port = Port(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
-    case n: ScalarIn => n.scalar==scalar && n.writer == writer && n.ctrler == ctrler 
+    case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
-
-  def this(n: Option[String], scalar:Scalar, w:Controller)(implicit ctrler:Controller, design: Design) = {
-    this(n, scalar)
-    update(w)
-  }
-  def this(n: Option[String], scalar:Scalar, w:String)(implicit ctrler:Controller, design: Design) = {
-    this(n, scalar)
-    writer = Left(w)
-    design.updateLater(s"${w}", update _)
-  }
-
-  def update(n:Node) = {writer = Right(n.asInstanceOf[Controller]); toUpdate = false}
 }
 
 object ScalarIn {
-  def apply(scalar:Scalar, writer:String)(implicit ctrler:Controller, design: Design):ScalarIn = { 
-    new ScalarIn(None, scalar, writer)
-  }
-  def apply(scalar:ArgIn)(implicit ctrler:Controller, design: Design):ScalarIn = { 
-    ScalarIn(scalar, "Top")
-  }
-  def apply(scalar:Scalar, writer:Controller)(implicit ctrler:Controller, design: Design):ScalarIn = 
-    new ScalarIn(None, scalar, writer)
-  def apply(name:String, scalar:Scalar, writer:Controller)(implicit ctrler:Controller, design: Design):ScalarIn = 
-    new ScalarIn(Some(name), scalar, writer)
+  def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarIn = 
+    ScalarIn(None, scalar)
+  def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarIn =
+    ScalarIn(Some(name), scalar)
 }
 
 case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Primitive {
+  scalar.writers += ctrler
   override val typeStr = "ScalarOut"
+  override def equals(that: Any) = that match {
+    case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
+    case _ => super.equals(that)
+  }
 }
 object ScalarOut {
-  //TODO check argout
   def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
     ScalarOut(None, scalar)
   def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
     ScalarOut(Some(name), scalar)
+}
+
+case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) 
+  extends Primitive  {
+  vector.readers += ctrler
+  override val typeStr = "VecIn"
+  val out:Port = Port(this, {s"${this}.out"}) 
+  override def equals(that: Any) = that match {
+    case n: VecIn => n.vector==vector && n.ctrler == ctrler 
+    case _ => super.equals(that)
+  }
+}
+
+object VecIn {
+  def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecIn = 
+    VecIn(None, vector)
+  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: Design):VecIn = 
+    VecIn(Some(name), vector)
+}
+
+case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Primitive {
+  vector.writers += ctrler
+  override val typeStr = "VecOut"
+  override def equals(that: Any) = that match {
+    case n: VecOut => n.vector==vector && n.ctrler == ctrler 
+    case _ => super.equals(that)
+  }
+}
+object VecOut {
+  def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
+    VecOut(None, vector)
+  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
+    VecOut(Some(name), vector)
 }
 
 case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {

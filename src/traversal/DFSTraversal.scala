@@ -16,12 +16,16 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
     node match {
-      case n:Controller => n match {
+      case n:Controller => 
+        n.sins.foreach { si => visitNode(si) }
+        n.souts.foreach { so => visitNode(so) }
+        n.vins.foreach { vi => visitNode(vi) }
+        n.vouts.foreach { vo => visitNode(vo) }
+        n match {
         case c:Top => 
+          c.offchips.foreach(n => visitNode(n))
           c.ctrlNodes.foreach(n => visitNode(n))
         case c:ComputeUnit => {
-          c.sins.foreach { si => visitNode(si) }
-          c.souts.foreach { so => visitNode(so) }
           c.cchains.foreach { cc => visitNode(cc) }
           c.srams.foreach { s => visitNode(s) }
           c.stages.foreach {s => visitNode(s) }
@@ -30,12 +34,15 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
             case _ =>
           }
         }
+        case c:OffChip =>
       } 
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
         case p:SRAM => 
         case p:ScalarIn =>
         case p:ScalarOut =>
+        case p:VecIn =>
+        case p:VecOut =>
         case p:Stage =>
           p.operands.foreach(op => visitNode(op.src))
           visitNode(p.result.src)

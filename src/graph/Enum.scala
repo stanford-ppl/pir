@@ -27,5 +27,5 @@ case object MetaPipeline extends CtrlType
 
 sealed trait MCType 
 object MCType
-case object Load extends MCType 
-case object Store extends MCType 
+case object TileLoad extends MCType 
+case object TileStore extends MCType 

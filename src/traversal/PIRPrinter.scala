@@ -12,7 +12,7 @@ import java.io.File
 
 class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
 
-  override val stream = newStream("PIR.txt") 
+  override val stream = newStream(Config.pirFile) 
 
   override def initPass() = {
     super.initPass
@@ -24,8 +24,11 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"type=${n.tpe}"
+      case p:OffChip =>
+        fields += s"RA=[${p.readAddrs.mkString(",")}], WA=[${p.writeAddrs.mkString(",")}]"
+        fields += s"RC=[${p.readChannels.mkString(",")}], WC=[${p.writeChannels.mkString(",")}]"
       case n:Primitive => {
-        fields += s"ctrler=${n.ctrler}"
+        //fields += s"ctrler=${n.ctrler}"
         n match {
           case p:CounterChain =>
             fields += s"copy=${p.copy.getOrElse("None")}"
@@ -34,9 +37,13 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:Stage =>
             fields += s"operands=[${p.operands.mkString(",")}], op=${p.op}, result=${p.result}"
           case p:ScalarIn =>
-            fields += s"scalar=${p.scalar}, writer=${p.writer}"
+            fields += s"scalar=${p.scalar}, writer=${p.scalar.writers.mkString(",")}"
           case p:ScalarOut =>
-            fields += s"scalar=${p.scalar}"
+            fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
+          case p:VecIn =>
+            fields += s"vector=${p.vector}, writer=${p.vector.writers.mkString(",")}"
+          case p:VecOut =>
+            fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 
             fields += s"min=${p.min}, max=${p.max}, step=${p.step}"
           case p:Reg => p match {
@@ -69,7 +76,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   def regMapToStrs(c:ComputeUnit):Map[String, String] = {
     var m = HashMap[String, String]()
     toStr(m, "reduceReg" , c.reduceReg  )
-    toStr(m, "vecIn"     , c.vecIn      )
+    toStr(m, "vecIns"    , c.vecIns      )
     toStr(m, "vecOut"    , c.vecOut     )
     toStr(m, "scalarIns" , c.scalarIns  )
     toStr(m, "scalarOuts", c.scalarOuts )
@@ -107,7 +114,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   }
 
   override def finPass() = {
-    info(s"Finishing IR Printing in ${getPath}")
+    info(s"Finishing PIR Printing in ${getPath}")
     close
   }
 }

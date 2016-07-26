@@ -13,8 +13,10 @@ object DotProductNoSugar extends Design {
   val tileSize = Const(4l)
   val dataSize = ArgIn()
   val output = ArgOut()
-  val A = OffChip()
-  val B = OffChip()
+  val A = OffChip("A")
+  val B = OffChip("B")
+  val tileA = Vector("tileA")
+  val tileB = Vector("tileB")
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
   val outer = {
@@ -24,35 +26,43 @@ object DotProductNoSugar extends Design {
       cchains=List(CounterChain(name="i", ds.out by tileSize)),
       srams=Nil,
       sins=List(ds),
-      souts=Nil
+      souts=Nil,
+      vins=Nil,
+      vouts=Nil
     )
   }
   // b1 := v1(i::i+tileSize)
   val tileLoadA =  {
-    implicit val CU = MemCtrl (name=None, oc=A, mt=Load).updateParent(outer)
+    implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-    val s0::_ = Stages(1)
-    Stage(s0, opds=List(it(0), ic(0)), o=FixAdd, r=CU.vecOut(s0))
+    val s0::s1::_ = Stages(2)
+    Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.readAddr))
+    Stage(s1, op1=CU.vecIn(A.read), op=Bypass, result=CU.vecOut(s1, tileA))
     CU.updateFields(
       cchains=List(ic, it),
       srams=Nil,
       sins=Nil,
-      souts=Nil
+      souts=Nil,
+      vins=List(VecIn(CU.name, tileA)), 
+      vouts=Nil
     )
   }
   // b2 := v2(i::i+tileSize)
   val tileLoadB =  {
-    implicit val CU = MemCtrl (name=None, oc=A, mt=Load).updateParent(outer)
+    implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-    val s0::_ = Stages(1)
-    Stage(s0, opds=List(it(0), ic(0)), o=FixAdd, r=CU.vecOut(s0))
+    val s0::s1::_ = Stages(2)
+    Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.readAddr))
+    Stage(s1, op1=CU.vecIn(B.read), op=Bypass, result=CU.vecOut(s1, tileB))
     CU.updateFields(
       cchains=List(ic, it),
       srams=Nil,
       sins=Nil,
-      souts=Nil
+      souts=Nil,
+      vins=List(VecIn(CU.name, tileB)),
+      vouts=Nil
     )
   }
   //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
@@ -64,8 +74,8 @@ object DotProductNoSugar extends Design {
     val itB = CounterChain.copy(tileLoadB, "it")
     val s0::s1::s2::_ = Stages(3)
     // SRAMs
-    val A = SRAM(size=32, write=tileLoadA, readAddr=ii(0), writeAddr=itA(0))
-    val B = SRAM(size=32, write=tileLoadB, readAddr=ii(0), writeAddr=itB(0))
+    val A = SRAM(size=32, vec=tileA, readAddr=ii(0), writeAddr=itA(0))
+    val B = SRAM(size=32, vec=tileB, readAddr=ii(0), writeAddr=itB(0))
     //Scalar buffer
     val out = ScalarOut(output)
     // Pipeline Stages 
@@ -77,11 +87,15 @@ object DotProductNoSugar extends Design {
       cchains=List(ii, itA, itB),
       srams=Nil,
       sins=Nil,
-      souts=List(out)
+      souts=List(out),
+      vins=List(VecIn(tileA), VecIn(tileB)),
+      vouts=Nil
     )
   }
 
-  top = new Top(List(outer, tileLoadA, tileLoadB, inner), List(dataSize), List(output))
+  top = Top().updateFields(List(outer, tileLoadA, tileLoadB, inner), 
+                           List(dataSize, output), 
+                           List(A, B))
 
   def main(args: Array[String]): Unit = {
     run

@@ -14,24 +14,28 @@ object DotProduct extends PIRApp {
     val output = ArgOut()
     val A = OffChip("A")
     val B = OffChip("B")
+    val tileA = Vector("tileA")
+    val tileB = Vector("tileB")
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit CU =>
       CounterChain(name="i", CU.scalarIn(dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, offchip=A, mctpe=Load){ implicit CU =>
+    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, offchip=A, mctpe=TileLoad){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-      val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.vecOut(s0))
+      val s0::s1::_ = Stages(2)
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.readAddr))
+      Stage(s1, op1=CU.vecIn(A.read), op=Bypass, result=CU.vecOut(s1, tileA))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, offchip=B, mctpe=Load){ implicit CU =>
+    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, offchip=B, mctpe=TileLoad){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-      val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.vecOut(s0))
+      val s0::s1::_ = Stages(2)
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.readAddr))
+      Stage(s1, op1=CU.vecIn(B.read), op=Bypass, result=CU.vecOut(s1, tileB))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit CU =>
@@ -43,8 +47,8 @@ object DotProduct extends PIRApp {
 
       val s0::s1::s2::_ = Stages(3)
       // SRAMs
-      val A = SRAM(size=32, write=tileLoadA, readAddr=ii(0), writeAddr=itA(0))
-      val B = SRAM(size=32, write=tileLoadB, readAddr=ii(0), writeAddr=itB(0))
+      val A = SRAM(size=32, vec=tileA, readAddr=ii(0), writeAddr=itA(0))
+      val B = SRAM(size=32, vec=tileB, readAddr=ii(0), writeAddr=itB(0))
       // ScalarBuffers
       val out = ScalarOut(output)
 

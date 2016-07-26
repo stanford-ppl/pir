@@ -12,7 +12,7 @@ import java.io.File
 
 class SpadePrinter(implicit design: Design) extends Traversal with Printer {
 
-  override val stream = newStream("Spade.txt") 
+  override val stream = newStream(Config.spadeFile) 
   
   override def traverse = {
     design.arch.computeUnits.foreach { cu =>
@@ -73,6 +73,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
 
   override def finPass = {
     close
+    info(s"Finishing Spade Config Printing in ${getPath}")
   }
 
 }

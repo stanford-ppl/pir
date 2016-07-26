@@ -111,6 +111,30 @@ trait Design { self =>
     (l1, l2, l3, l4)
   }
 
+  def addBlock[T1, T2, T3, T4, T5, T6](block: => Any,
+                       f1: Node => Boolean, 
+                       f2: Node => Boolean,
+                       f3: Node => Boolean,
+                       f4: Node => Boolean,
+                       f5: Node => Boolean,
+                       f6: Node => Boolean
+                       ):(List[T1], List[T2], List[T3], List[T4], List[T5], List[T6]) = {
+    nodeStack.push((f1, ListBuffer[Node]()))
+    nodeStack.push((f2, ListBuffer[Node]()))
+    nodeStack.push((f3, ListBuffer[Node]()))
+    nodeStack.push((f4, ListBuffer[Node]()))
+    nodeStack.push((f5, ListBuffer[Node]()))
+    nodeStack.push((f6, ListBuffer[Node]()))
+    block
+    val l6 = nodeStack.pop()._2.toList.asInstanceOf[List[T6]]
+    val l5 = nodeStack.pop()._2.toList.asInstanceOf[List[T5]]
+    val l4 = nodeStack.pop()._2.toList.asInstanceOf[List[T4]]
+    val l3 = nodeStack.pop()._2.toList.asInstanceOf[List[T3]]
+    val l2 = nodeStack.pop()._2.toList.asInstanceOf[List[T2]]
+    val l1 = nodeStack.pop()._2.toList.asInstanceOf[List[T1]]
+    (l1, l2, l3, l4, l5, l6)
+  }
+
 
   def updateLater(s:String, f:Node => Unit) = { val u = (s,f); toUpdate += u }
 
@@ -119,9 +143,10 @@ trait Design { self =>
   val mapExceps = ListBuffer[MappingException]()
 
   val traversals = ListBuffer[Traversal]()
-  traversals += new ForwardRef()
-  traversals += new PIRPrinter()
   traversals += new SpadePrinter()
+  traversals += new ForwardRef()
+  //traversals += new UpdateReader()
+  traversals += new PIRPrinter()
   val dfmapping = new PIRMapping()
   traversals += dfmapping 
 
