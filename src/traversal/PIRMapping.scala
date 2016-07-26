@@ -17,8 +17,11 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     Try(mapping = CUMapper.map) match {
       case Success(_) =>
         info(s"Mapping succeeded") 
-      case Failure(e) =>
-        info(s"Mapping failed")
+      case Failure(e) => e match {
+        case me:MappingException =>
+          info(s"Mapping failed")
+        case _ => throw e
+      }
     }
   } 
 

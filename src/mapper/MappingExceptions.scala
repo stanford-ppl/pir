@@ -1,5 +1,5 @@
 package pir.graph.mapper
-import pir.graph.{ComputeUnit => CU, MemoryController => MC, _}
+import pir.graph.{Controller => CU, MemoryController => MC, _}
 import pir.Design
 import pir.Config
 import pir.plasticine.config._
@@ -13,11 +13,6 @@ abstract class MappingException(implicit design:Design) extends Exception{
   val msg:String
   val mapper:Mapper
   override def toString = s"[$mapper]$msg"
-}
-
-case class TODOException(mapper:Mapper, s:String)(implicit design:Design) 
-extends MappingException {
-  override val msg = s"TODO: ${s}"
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {
@@ -34,26 +29,20 @@ trait OutOfResource extends MappingException {
   val nnode:Int
   override def toString = s"${super.toString}. numRes:${nres}, numNode:${nnode}."
 }
-case class OutOfPMC(mapper:Mapper, nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough MemoryControllers in ${design.arch} to map application."
-} 
-case class OutOfPCU(val mapper:Mapper, nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
-} 
-case class OutOfCtr(val mapper:Mapper, val pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough Counters in ${pcu} to map application."
-}
-case class OutOfSram(val mapper:Mapper, val pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough SRAMs in ${pcu} to map application."
-}
-case class OutOfScalarIn(val mapper:Mapper, val pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough Scalar Input Buffer in ${pcu} to map application."
-}
-case class OutOfScalarOut(val mapper:Mapper, val pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val msg = s"Not enough Scalar Outputs Buffer in ${pcu} to map application."
-}
 
 /* Constrain exceptions */
-case class IntConnct(mapper:Mapper, cu:CU, pcu:PCU)(implicit design:Design) extends MappingException {
-  override val msg = s"Fail to map ${cu} on ${pcu} due to interconnection constrain"
+
+
+trait PIRException extends Exception{
+  val msg:String
+  override def toString = s"[pir] $msg"
 }
+object PIRException {
+  def apply(s:String) = new {override val msg = s} with PIRException
+}
+
+/* Compiler Error */
+case class TODOException(s:String) extends PIRException {
+  override val msg = s"TODO: ${s}"
+}
+

@@ -18,18 +18,22 @@ object CtrMapper extends Mapper {
   override def printMap(m:Map[N,V])(implicit p:Printer) = {
     p.emitBS("ctrMap")
     m.foreach{ case (k,v) =>
-      p.emitln(s"($k -> $v)")
+      p.emitln(s"$k -> $v")
     }
     p.emitBE
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
-    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), OutOfCtr(this, pcu, _, _))
+    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), OutOfCtr(pcu, _, _))
   }
 
-  def mapCtr(c:N, p:R, map:Map[N, V]):M = {
+  def mapCtr(c:N, p:R, map:M):M = {
     map + (c -> p)
   }
 
+}
+case class OutOfCtr(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
+  override val mapper = CtrMapper
+  override val msg = s"Not enough Counters in ${pcu} to map application."
 }

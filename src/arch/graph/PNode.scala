@@ -90,10 +90,7 @@ object MemoryController {
  * mapping stores the list of ports the input port can configured to  
  * */
 
-trait IO extends Node{
-  var src:Option[Node] = None
-}
-trait Input extends IO {
+trait Input {
   type O <: Output
   // List of connections that can map to
   val mapping = ListBuffer[O]()
@@ -101,15 +98,23 @@ trait Input extends IO {
   def <=(n:O) = connect(n)
   def <=(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${mapping.mkString(",")}]"
+  def isConn(n:O) = mapping.contains(n)
 }
-trait Output extends IO {
+trait Output {
   type I <: Input
   val mappedTo = ListBuffer[I]()
   def connectedTo(n:I) = if (!mappedTo.contains(n)) mappedTo += n
   def mt = s"${this}=mt[${mappedTo.mkString(",")}]" 
+  def isConn(n:I) = mappedTo.contains(n)
 } 
 
-trait InPort extends Input {
+trait IO extends Node{
+  var src:Option[Node] = None
+}
+trait Port extends IO
+trait Bus extends IO
+
+trait InPort extends Port with Input {
   type O = OutPort
   override val typeStr = "ip"
   def <=(r:Reg) = connect(r.out)
@@ -127,7 +132,7 @@ object InPort {
  * An output port of a module.
  * src is a pointer to the module
  * */
-trait OutPort extends Output { 
+trait OutPort extends Port with Output { 
   type I = InPort
   override val typeStr = "op"
 }
@@ -143,27 +148,25 @@ object Const extends OutPort {
   override def toString = "Const"
 }
 
-trait InBus extends Input with OutPort {
+trait InBus extends Bus with Input {
   type O = OutBus
   override val typeStr = "ib"
-  override def toString = if (src.isDefined) s"${src.get}.vi${id}" else super.toString
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
   val outports:List[OutPort]
   outports.foreach(_.src = Some(this))
 }
 object InBus {
-  def apply(ops:List[OutPort]) = new {val outports = ops} with InBus
-  def apply(ops:List[OutPort], s:Node) = new {val outports = ops} with InBus {src = Some(s)}
+  def apply(ops:List[OutPort]) = new {val outports = ops} with OutPort with InBus
+  def apply(ops:List[OutPort], s:Node) = new {val outports = ops} with OutPort with InBus {src = Some(s)}
 }
 
-trait OutBus extends Output with InPort {
+trait OutBus extends Bus with Output {
   type I = InBus
   override val typeStr = "ob"
-  override def toString = if (src.isDefined) s"${src.get}.vo" else super.toString
   val inports:List[InPort]
   inports.foreach(_.src = Some(this))
 }
 object OutBus {
-  def apply(ips:List[InPort]) = new {val inports = ips } with OutBus
-  def apply(ips:List[InPort], s:Node) = new {val inports = ips} with OutBus {src = Some(s)}
+  def apply(ips:List[InPort]) = new {val inports = ips } with InPort with OutBus
+  def apply(ips:List[InPort], s:Node) = new {val inports = ips} with InPort with OutBus {src = Some(s)}
 }

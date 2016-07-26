@@ -36,9 +36,8 @@ object DotProductNoSugar extends Design {
     implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-    val s0::s1::_ = Stages(2)
+    val s0::_ = Stages(1)
     Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.readAddr))
-    Stage(s1, op1=CU.vecIn(A.read), op=Bypass, result=CU.vecOut(s1, tileA))
     CU.updateFields(
       cchains=List(ic, it),
       srams=Nil,
@@ -53,9 +52,8 @@ object DotProductNoSugar extends Design {
     implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
-    val s0::s1::_ = Stages(2)
+    val s0::_ = Stages(1)
     Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.readAddr))
-    Stage(s1, op1=CU.vecIn(B.read), op=Bypass, result=CU.vecOut(s1, tileB))
     CU.updateFields(
       cchains=List(ic, it),
       srams=Nil,
@@ -74,12 +72,12 @@ object DotProductNoSugar extends Design {
     val itB = CounterChain.copy(tileLoadB, "it")
     val s0::s1::s2::_ = Stages(3)
     // SRAMs
-    val A = SRAM(size=32, vec=tileA, readAddr=ii(0), writeAddr=itA(0))
-    val B = SRAM(size=32, vec=tileB, readAddr=ii(0), writeAddr=itB(0))
+    val sA = SRAM(size=32, vec=A.load, readAddr=ii(0), writeAddr=itA(0))
+    val sB = SRAM(size=32, vec=A.load, readAddr=ii(0), writeAddr=itB(0))
     //Scalar buffer
     val out = ScalarOut(output)
     // Pipeline Stages 
-    Stage(s0, opds=List(A.load,B.load), o=FixMul, r=CU.reduce(s0))
+    Stage(s0, opds=List(sA.load,sB.load), o=FixMul, r=CU.reduce(s0))
     Stage.reduce(s1, op=FixAdd) 
     Stage(s2, opds=List(CU.reduce(s1)), o=Bypass, r=CU.scalarOut(s0, out))
 
@@ -88,7 +86,7 @@ object DotProductNoSugar extends Design {
       srams=Nil,
       sins=Nil,
       souts=List(out),
-      vins=List(VecIn(tileA), VecIn(tileB)),
+      vins=List(VecIn(A.load), VecIn(tileB)),
       vouts=Nil
     )
   }

@@ -364,8 +364,8 @@ case class OffChip(name: Option[String])(implicit design: Design) extends Contro
 
   def readAddr = { val s = Scalar(name); readAddrs += s; s } 
   def writeAddr = { val s = Scalar(name); writeAddrs += s; s } 
-  def read = { val c = Vector(name); readChannels += c; c }
-  def write = { val c = Vector(name); writeChannels += c; c }
+  def load = { val c = Vector(name); readChannels += c; c }
+  def store = { val c = Vector(name); writeChannels += c; c }
 
   def updateFields = {
     val sins = ListBuffer[ScalarIn]()
