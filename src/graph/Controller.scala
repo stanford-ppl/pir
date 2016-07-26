@@ -12,6 +12,8 @@ trait Controller extends Node {
   var souts:List[ScalarOut] = _
   var vins:List[VecIn] = _
   var vouts:List[VecOut] = _
+  override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
+
   def updateFields(sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) = {
     this.sins = sins.toSet.toList 
     this.souts = souts.toSet.toList 
@@ -34,7 +36,9 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
   //  souts:List[ScalarOut] = _
   val stages = ListBuffer[Stage]()
 
-  toUpdate = true
+  override def toUpdate = { 
+    super.toUpdate || parent==null || cchains==null || srams==null
+  }
 
   def this(name: Option[String], tpe:CtrlType, cchains:List[CounterChain], srams:List[SRAM], 
   sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])(implicit design: Design) = {
@@ -68,7 +72,7 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
     design.updateLater(parent, (n:Node) => updateParent(n.asInstanceOf[Controller]))
     this
   }
-  def updateParent(parent:Controller):ComputeUnit = { this.parent = parent; toUpdate = false; this }
+  def updateParent(parent:Controller):ComputeUnit = { this.parent = parent; this }
 
   var regId = 0
   private def newTemp = {val temp = regId; regId +=1; temp}
@@ -320,6 +324,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
+  override def toUpdate = super.toUpdate || ctrlNodes==null || offchips==null
 
   def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], offchips:List[OffChip]) = {
     this.ctrlNodes = cs

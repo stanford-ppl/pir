@@ -20,14 +20,15 @@ abstract class Primitive(implicit val ctrler:Controller, design:Design) extends 
 case class CounterChain(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "CC"
   /* Fields */
-  var counters:List[Counter] = Nil 
+  var counters:List[Counter] = _ 
   /* Pointers */
   var dep:Option[CounterChain] = None
   var copy:Option[CounterChain] = None
-  toUpdate = true
+
+  override def toUpdate = super.toUpdate || counters==null || dep==null || copy==null 
 
   def apply(i: Int)(implicit ctrler:Controller, design: Design):Counter = {
-    if (counters.size == 0) {
+    if (counters == null) {
       // Speculatively create counters base on need and check index out of bound during update
       this.counters = (0 to i).map { j => Counter() }.toList
     }
@@ -43,12 +44,10 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
       c.copy(cp.counters(i))
     }
     this.copy = Some(cp)
-    toUpdate = false
   }
   def update(bds: Seq[(Port, Port, Port)]):Unit = {
     counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(mi, ma, s)}.toList
     this.copy = None 
-    toUpdate = false
   }
 }
 object CounterChain {
@@ -74,13 +73,12 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   var max:Port = _
   var step:Port = _
   val out:Port = Port(this, {s"${this}.out"}) 
-  toUpdate = true
+  override def toUpdate = super.toUpdate || min==null || max==null || step==null
 
   def update(mi:Port, ma:Port, s:Port):Unit = {
     min = mi
     max  = ma
     step = s
-    toUpdate = false
   }
   def copy(c:Counter) = {
     assert(min==null, 
@@ -120,6 +118,7 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
   var writeAddr: Port = _
   val readPort: Port = Port(this, s"${this}.rp") 
   var writePort: Port = _
+  override def toUpdate = super.toUpdate || readAddr==null || writeAddr==null || writePort==null
 
   def updateRA(ra:Port):SRAM = { readAddr = ra; this } 
   def updateWA(wa:Port):SRAM = { writeAddr = wa; this } 
@@ -221,6 +220,7 @@ case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design
   var operands:List[Port] = _
   var op:Op = _
   var result:Port = _
+  override def toUpdate = super.toUpdate || operands==null || op==null || result==null
 } 
 object Stage {
   /* No Sugar API */

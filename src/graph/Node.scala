@@ -16,7 +16,7 @@ abstract class Node (implicit design: Design) {
   val typeStr:String
 	design.addNode(this)
   val id : Int = design.nextId // Unique id for each node
-  var toUpdate:Boolean = false // Whether fields of the node is not yet defined, 
+  def toUpdate:Boolean = false // Whether fields of the node is not yet defined, 
                                // which would be updated later. Debug purpose only 
 
   override def equals(that: Any) = that match {
@@ -24,6 +24,4 @@ abstract class Node (implicit design: Design) {
     case _ => super.equals(that)
   }
   override def toString = s"${typeStr}${id}${if(name.isDefined) "_" else ""}${name.getOrElse("")}" 
-}
-object Node {
 }
