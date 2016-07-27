@@ -1,8 +1,8 @@
 package pir.graph.mapper
 import pir.graph._
-import pir.graph.{ComputeUnit => CU, MemoryController => MC}
+import pir.graph.{ComputeUnit => CU, TileTransfer => TT}
 import pir._
-import pir.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC, InBus => PInBus}
+import pir.plasticine.graph.{ComputeUnit => PCU, TileTransfer => PTT, InBus => PInBus}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -35,21 +35,21 @@ object CUMapper extends Mapper{
   }
 
   /* Saperate Compute Unit and Memory controller to map saperately */
-  private def setResource(implicit design: Design):(List[PCU], List[CU], List[PMC], List[MC]) = {
+  private def setResource(implicit design: Design):(List[PCU], List[CU], List[PTT], List[TT]) = {
     val ctrlNodes = design.top.ctrlNodes
     val arch = design.arch
     val pcus = ListBuffer[PCU]()
-    val pmcs = ListBuffer[PMC]()
+    val pmcs = ListBuffer[PTT]()
     val cus = ListBuffer[CU]()
-    val mcs = ListBuffer[MC]()
+    val mcs = ListBuffer[TT]()
     arch.computeUnits.foreach { c => c match {
-        case n:PMC => pmcs += n
+        case n:PTT => pmcs += n
         case n:PCU => pcus += n
         case n => throw TODOException(s"unknown Spade ComputeUnit type: ${n}") 
       }
     }
     ctrlNodes.foreach { c => c match {
-        case n:MC => mcs += n
+        case n:TT => mcs += n
         case n:CU => cus += n
         case n => throw TODOException(s"unknown PIR controller type: ${n}") 
       }
@@ -71,7 +71,7 @@ object CUMapper extends Mapper{
           pcu.vins.filter{ pvin => pvin.src == pdep && !vmap.values.exists(_==pvin) }
         case dep:Top =>
           pcu.vins.filter{ pvin => !vmap.values.exists(_==pvin) }
-        case dep:OffChip =>
+        case dep:MemoryController =>
           pcu.vins.filter{ pvin => !vmap.values.exists(_==pvin) }
       }
       if (validVins.size == 0)  // pcu have no vin connecting to pdep that's not been used
@@ -109,16 +109,16 @@ object CUMapper extends Mapper{
     val (pcus, cus, pmcs, mcs) = setResource
     val cons = List(checkIntConnct _, primMapping _)
     val m = simAneal(pcus, cus, Map[N, V](), cons, OutOfPCU(_, _))
-    simAneal(pmcs.toList, mcs.toList, m, cons, OutOfPMC(_, _))
+    simAneal(pmcs.toList, mcs.toList, m, cons, OutOfPTT(_, _))
   }
 }
 case class IntConnct(cu:CU, pcu:PCU)(implicit design:Design) extends MappingException {
   override val mapper = CUMapper
   override val msg = s"Fail to map ${cu} on ${pcu} due to interconnection constrain"
 }
-case class OutOfPMC(nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
+case class OutOfPTT(nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
   override val mapper = CUMapper
-  override val msg = s"Not enough MemoryControllers in ${design.arch} to map application."
+  override val msg = s"Not enough TileTransfers in ${design.arch} to map application."
 } 
 case class OutOfPCU(nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
   override val mapper = CUMapper

@@ -24,7 +24,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"type=${n.tpe}"
-      case p:OffChip =>
+      case p:MemoryController =>
         fields += s"RA=[${p.readAddrs.mkString(",")}], WA=[${p.writeAddrs.mkString(",")}]"
         fields += s"RC=[${p.readChannels.mkString(",")}], WC=[${p.writeChannels.mkString(",")}]"
       case n:Primitive => {

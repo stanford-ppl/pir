@@ -271,43 +271,43 @@ object ComputeUnit {
   }
 }
 
-trait MemoryController extends ComputeUnit {
+trait TileTransfer extends ComputeUnit {
   val mctpe:MCType
-  val offchip:OffChip
+  val memctrl:MemoryController
   override val typeStr = "MemCtrl"
-  override def updateParent(parent:String):MemoryController = 
-    super.updateParent(parent).asInstanceOf[MemoryController]
-  override def updateParent(parent:Controller):MemoryController = 
-    super.updateParent(parent).asInstanceOf[MemoryController]
+  override def updateParent(parent:String):TileTransfer = 
+    super.updateParent(parent).asInstanceOf[TileTransfer]
+  override def updateParent(parent:Controller):TileTransfer = 
+    super.updateParent(parent).asInstanceOf[TileTransfer]
   override def updateFields(cchains:List[CounterChain], srams:List[SRAM], sins:List[ScalarIn], 
-    souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]):MemoryController = 
-      super.updateFields(cchains, srams, sins, souts, vins, vouts).asInstanceOf[MemoryController]
-  override def updateBlock(block: ComputeUnit => Any)(implicit design: Design):MemoryController =
-    super.updateBlock(block).asInstanceOf[MemoryController]
+    souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]):TileTransfer = 
+      super.updateFields(cchains, srams, sins, souts, vins, vouts).asInstanceOf[TileTransfer]
+  override def updateBlock(block: ComputeUnit => Any)(implicit design: Design):TileTransfer =
+    super.updateBlock(block).asInstanceOf[TileTransfer]
 } 
-object MemoryController extends {
-  def apply(name:Option[String], oc:OffChip, mt:MCType) (implicit design: Design):MemoryController = 
+object TileTransfer extends {
+  def apply(name:Option[String], oc:MemoryController, mt:MCType) (implicit design: Design):TileTransfer = 
     new {
-      override val offchip = oc 
+      override val memctrl = oc 
       override val mctpe = mt
-    } with ComputeUnit(name, Pipe) with MemoryController
+    } with ComputeUnit(name, Pipe) with TileTransfer
   /* Sugar API */
-  def apply (parent:String, offchip:OffChip, mctpe:MCType) (block: ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(None, offchip, mctpe).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: String, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(Some(name), offchip, mctpe).updateBlock(block).updateParent(parent)
-  def apply (parent:Controller, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(None, offchip, mctpe).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: Controller, offchip:OffChip, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):MemoryController =
-    MemoryController(Some(name), offchip, mctpe).updateBlock(block).updateParent(parent)
+  def apply (parent:String, memctrl:MemoryController, mctpe:MCType) (block: ComputeUnit => Any) (implicit design: Design):TileTransfer =
+    TileTransfer(None, memctrl, mctpe).updateBlock(block).updateParent(parent)
+  def apply (name:String, parent: String, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+    TileTransfer(Some(name), memctrl, mctpe).updateBlock(block).updateParent(parent)
+  def apply (parent:Controller, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+    TileTransfer(None, memctrl, mctpe).updateBlock(block).updateParent(parent)
+  def apply (name:String, parent: Controller, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+    TileTransfer(Some(name), memctrl, mctpe).updateBlock(block).updateParent(parent)
   /* No Sugar API */
-  def apply(name:Option[String], parent: Controller, offchip:OffChip, mctpe:MCType, cchains:List[CounterChain], 
-  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])   (implicit design: Design):MemoryController = {
-    MemoryController(name, offchip, mctpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent)
+  def apply(name:Option[String], parent: Controller, memctrl:MemoryController, mctpe:MCType, cchains:List[CounterChain], 
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])   (implicit design: Design):TileTransfer = {
+    TileTransfer(name, memctrl, mctpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent)
   }
-  def apply(name:Option[String], parent:String, offchip:OffChip, mctpe:MCType, cchains:List[CounterChain], 
-  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) (implicit design: Design):MemoryController = {
-    MemoryController(name, offchip, mctpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent)
+  def apply(name:Option[String], parent:String, memctrl:MemoryController, mctpe:MCType, cchains:List[CounterChain], 
+  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) (implicit design: Design):TileTransfer = {
+    TileTransfer(name, memctrl, mctpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent)
   }
 }
 
@@ -319,16 +319,16 @@ case class Top()(implicit design: Design) extends Controller { self =>
 
   /* Fields */
   var ctrlNodes:List[ComputeUnit] = _
-  var offchips:List[OffChip] = _
+  var memctrls:List[MemoryController] = _
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
-  override def toUpdate = super.toUpdate || ctrlNodes==null || offchips==null
+  override def toUpdate = super.toUpdate || ctrlNodes==null || memctrls==null
 
-  def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], offchips:List[OffChip]) = {
+  def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], memctrls:List[MemoryController]) = {
     this.ctrlNodes = cs
-    this.offchips = offchips
+    this.memctrls = memctrls
     val sins = ListBuffer[ScalarIn]()
     val souts = ListBuffer[ScalarOut]()
     scalars.foreach { s => s match {
@@ -337,26 +337,26 @@ case class Top()(implicit design: Design) extends Controller { self =>
         case _ =>
       }
     }
-    offchips.foreach { oc => oc.updateFields }
+    memctrls.foreach { oc => oc.updateFields }
     super.updateFields(sins.toList, souts.toList, Nil, Nil)
     this
   }
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {
-    val (cs, scalars, offchips) = 
-      design.addBlock[ComputeUnit, Scalar, OffChip](block(this), 
+    val (cs, scalars, memctrls) = 
+      design.addBlock[ComputeUnit, Scalar, MemoryController](block(this), 
                       (n:Node) => n.isInstanceOf[ComputeUnit],
                       (n:Node) => n.isInstanceOf[Scalar], 
-                      (n:Node) => n.isInstanceOf[OffChip] 
+                      (n:Node) => n.isInstanceOf[MemoryController] 
                       )
-    updateFields(cs, scalars, offchips)
+    updateFields(cs, scalars, memctrls)
   }
 }
 
-case class OffChip(name: Option[String])(implicit design: Design) extends Controller { self =>
+case class MemoryController(name: Option[String])(implicit design: Design) extends Controller { self =>
   implicit val ctrler:Controller = self
 
-  val typeStr = "OffChip"
+  val typeStr = "MemoryController"
   val readAddrs = ListBuffer[Scalar]()
   val writeAddrs = ListBuffer[Scalar]()
   val readChannels = ListBuffer[Vector]()
@@ -379,9 +379,9 @@ case class OffChip(name: Option[String])(implicit design: Design) extends Contro
     super.updateFields(sins.toList, souts.toList, vins.toList, vouts.toList)
   }
 }
-object OffChip {
-  def apply()(implicit design: Design): OffChip 
-    = OffChip(None)
-  def apply(name:String)(implicit design: Design): OffChip 
-    = OffChip(Some(name))
+object MemoryController {
+  def apply()(implicit design: Design): MemoryController 
+    = MemoryController(None)
+  def apply(name:String)(implicit design: Design): MemoryController 
+    = MemoryController(Some(name))
 }

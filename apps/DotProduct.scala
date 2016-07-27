@@ -1,5 +1,5 @@
 import pir.graph._
-import pir.graph.{MemoryController => MemCtrl, MetaPipeline => MetaPipe}
+import pir.graph.{MetaPipeline => MetaPipe}
 import pir.graph
 import pir.codegen._
 import pir.Design
@@ -12,8 +12,8 @@ object DotProduct extends PIRApp {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
     val output = ArgOut()
-    val A = OffChip("A")
-    val B = OffChip("B")
+    val A = MemoryController("A")
+    val B = MemoryController("B")
     val tileA = Vector("tileA")
     val tileB = Vector("tileB")
 
@@ -22,14 +22,14 @@ object DotProduct extends PIRApp {
       CounterChain(name="i", CU.scalarIn(dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = MemCtrl (name="tileLoadA", parent=outer, offchip=A, mctpe=TileLoad){ implicit CU =>
+    val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.readAddr))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = MemCtrl (name="tileLoadB", parent=outer, offchip=B, mctpe=TileLoad){ implicit CU =>
+    val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)

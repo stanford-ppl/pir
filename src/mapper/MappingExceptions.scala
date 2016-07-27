@@ -1,9 +1,9 @@
 package pir.graph.mapper
-import pir.graph.{Controller => CU, MemoryController => MC, _}
+import pir.graph.{Controller => CU, _}
 import pir.Design
 import pir.Config
 import pir.plasticine.config._
-import pir.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
+import pir.plasticine.graph.{ComputeUnit => PCU}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

@@ -75,13 +75,13 @@ case class ComputeUnit(val pregs:List[Reg], val srams:List[SRAM], val ctrs:List[
   def numScalarOut = souts.size 
 }
 
-trait MemoryController extends ComputeUnit{
+trait TileTransfer extends ComputeUnit{
   override val typeStr = "mc"
 }
-object MemoryController {
+object TileTransfer {
   def apply(pregs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
     souts:List[ScalarOut], vins:List[InBus], vout:OutBus) = {
-    new ComputeUnit(pregs, srams, ctrs, sins, souts, vins, vout) with MemoryController
+    new ComputeUnit(pregs, srams, ctrs, sins, souts, vins, vout) with TileTransfer
   }
 }
 

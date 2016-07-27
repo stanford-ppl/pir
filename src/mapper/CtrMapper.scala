@@ -1,8 +1,8 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, MemoryController => MC}
+import pir.graph.{ComputeUnit => CU, TileTransfer => TT}
 import pir.graph.{Counter => Ctr, _}
-import pir.plasticine.graph.{ComputeUnit => PCU, MemoryController => PMC}
+import pir.plasticine.graph.{ComputeUnit => PCU, TileTransfer => PTT}
 import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}
 import pir.graph.traversal.PIRMapping
 

@@ -1,5 +1,5 @@
 import pir.graph._
-import pir.graph.{MemoryController => MemCtrl, MetaPipeline => MetaPipe}
+import pir.graph.{MetaPipeline => MetaPipe}
 import pir.graph
 import pir.codegen._
 import pir.plasticine.config._
@@ -13,8 +13,8 @@ object DotProductNoSugar extends Design {
   val tileSize = Const(4l)
   val dataSize = ArgIn()
   val output = ArgOut()
-  val A = OffChip("A")
-  val B = OffChip("B")
+  val A = MemoryController("A")
+  val B = MemoryController("B")
   val tileA = Vector("tileA")
   val tileB = Vector("tileB")
 
@@ -33,7 +33,7 @@ object DotProductNoSugar extends Design {
   }
   // b1 := v1(i::i+tileSize)
   val tileLoadA =  {
-    implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
+    implicit val CU = TileTransfer (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)
@@ -49,7 +49,7 @@ object DotProductNoSugar extends Design {
   }
   // b2 := v2(i::i+tileSize)
   val tileLoadB =  {
-    implicit val CU = MemCtrl (name=None, oc=A, mt=TileLoad).updateParent(outer)
+    implicit val CU = TileTransfer (name=None, oc=A, mt=TileLoad).updateParent(outer)
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)

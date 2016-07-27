@@ -13,7 +13,7 @@ object Config0 extends Spade {
   override val numLanes = 4
   
   private val numRCUs = 4
-  private val numMCs = 2 
+  private val numTTs = 2 
 
   def genFields(numPRs:Int, numCtrs:Int, numSRAMs:Int) = {
     val numBusIns = if (numSRAMs==0) 1 else numSRAMs
@@ -81,13 +81,13 @@ object Config0 extends Spade {
     c
   } 
 
-  private val mcs = List.tabulate(numMCs) { i =>
+  private val mcs = List.tabulate(numTTs) { i =>
     val numPRs = 15
     val numCtrs = 10
     val numSRAMs = 0
 
     val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOuts, ptr) = genFields(numPRs, numCtrs, numSRAMs)
-    val c = MemoryController(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOuts)
+    val c = TileTransfer(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOuts)
     regs(ptr) <= c.reduce
     c
   }

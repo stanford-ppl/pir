@@ -1,8 +1,8 @@
 package pir.graph.mapper
-import pir.graph.{ComputeUnit => CU, MemoryController => MC, _}
+import pir.graph.{ComputeUnit => CU, TileTransfer => TT, _}
 import pir._
 import pir.plasticine.config._
-import pir.plasticine.graph.{Node => PNode, ComputeUnit => PCU, MemoryController => PMC}
+import pir.plasticine.graph.{Node => PNode, ComputeUnit => PCU, TileTransfer => PTT}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
