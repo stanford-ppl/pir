@@ -12,10 +12,8 @@ object DotProduct extends PIRApp {
     val tileSize = Const(4l)
     val dataSize = ArgIn()
     val output = ArgOut()
-    val A = MemoryController("A")
-    val B = MemoryController("B")
-    val tileA = Vector("tileA")
-    val tileB = Vector("tileB")
+    val A = MemoryController("A", TileLoad)
+    val B = MemoryController("B", TileLoad)
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit CU =>
@@ -26,14 +24,14 @@ object DotProduct extends PIRApp {
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.readAddr))
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
     }
     // b2 := v2(i::i+tileSize)
     val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.readAddr))
+      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit CU =>
@@ -45,8 +43,8 @@ object DotProduct extends PIRApp {
 
       val s0::s1::s2::_ = Stages(3)
       // SRAMs
-      val sA = SRAM(size=32, vec=A.load, readAddr=ii(0), writeAddr=itA(0))
-      val sB = SRAM(size=32, vec=B.load, readAddr=ii(0), writeAddr=itB(0))
+      val sA = SRAM(size=32, vec=tileLoadA.out, readAddr=ii(0), writeAddr=itA(0))
+      val sB = SRAM(size=32, vec=tileLoadB.out, readAddr=ii(0), writeAddr=itB(0))
       // ScalarBuffers
       val out = ScalarOut(output)
 
