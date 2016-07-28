@@ -13,8 +13,8 @@ object DotProductNoSugar extends Design {
   val tileSize = Const(4l)
   val dataSize = ArgIn()
   val output = ArgOut()
-  val A = MemoryController("A", TileLoad)
-  val B = MemoryController("B", TileLoad)
+  val A = MemoryController("A", TileLoad, OffChip())
+  val B = MemoryController("B", TileLoad, OffChip())
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
   val outer = {

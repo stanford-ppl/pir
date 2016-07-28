@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-case class Scalar(val name:Option[String])(implicit design: Design) extends Node {
+case class Scalar(name:Option[String])(implicit design: Design) extends Node {
   override val typeStr = "Scalar"
   val writers:Set[Controller] = Set[Controller]() 
   val readers:Set[Controller] = Set[Controller]() 
@@ -42,5 +42,13 @@ case class Vector(val name:Option[String])(implicit design: Design) extends Node
 object Vector {
   def apply(name:String)(implicit design: Design):Vector = Vector(Some(name)) 
   def apply()(implicit design: Design):Vector = Vector(None) 
+}
+
+case class OffChip(name:Option[String])(implicit design: Design) extends Node{
+  override val typeStr = "OffChip"
+}
+object OffChip {
+  def apply()(implicit design:Design):OffChip = OffChip(None)
+  def apply(name:String)(implicit design:Design):OffChip = OffChip(Some(name))
 }
 

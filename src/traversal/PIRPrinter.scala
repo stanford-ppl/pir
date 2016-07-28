@@ -21,12 +21,13 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   def genFields(node:Node):String = {
     val fields = ListBuffer[String]()
     node match {
+      case p:TileTransfer =>
+        fields += s"mctpe=${p.mctpe}"
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"type=${n.tpe}"
       case p:MemoryController =>
-        fields += s"RA=[${p.readAddrs.mkString(",")}], WA=[${p.writeAddrs.mkString(",")}]"
-        fields += s"RC=[${p.readChannels.mkString(",")}], WC=[${p.writeChannels.mkString(",")}]"
+        fields += s"mctpe=${p.mctpe}"
       case n:Primitive => {
         //fields += s"ctrler=${n.ctrler}"
         n match {

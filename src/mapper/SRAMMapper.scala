@@ -44,7 +44,7 @@ object SRAMMapper extends Mapper {
       usedRes += psram
       pmap + (sram ->psram)
     }
-    //simAneal(pcu.srams, cu.srams, HashMap[N, R](), List(mapSRAM(cuMap) _), OutOfSram(pcu, _, _))
+    //simAneal(pcu.srams, cu.srams, HashMap[N, R](), List(mapSRAM(cuMap) _), None, OutOfSram(pcu, _, _))
   }
 }
 

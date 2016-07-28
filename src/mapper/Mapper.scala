@@ -14,11 +14,13 @@ trait Mapper {
   type N
   type V
   type M = Map[N,V]
+  
+  override def toString = this.getClass().getSimpleName() 
 
   def printMap(m:M)(implicit p:Printer):Unit
 
   def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], 
+    constrains:List[(N, R, M) => M], finPass: Option[M => M], 
     oor:(Int, Int) => OutOfResource)(implicit design:Design):M = {
 
     /* Recursively try a node on a list of resource */
@@ -42,7 +44,10 @@ trait Mapper {
 
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
-      if (remainNodes.size==0) return recmap
+      if (remainNodes.size==0) { //Successfully mapped all nodes
+        println(s"Running finPass")
+        return if (finPass.isDefined) finPass.get(recmap) else recmap
+      }
       //assert(remainRes.size>0)
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 

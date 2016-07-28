@@ -11,9 +11,14 @@ object Config0 extends Spade {
    // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
+
   
   private val numRCUs = 4
   private val numTTs = 2 
+  private val numSIs = 2 
+
+  override val argIns = List.fill(numSIs)( ScalarOut() )
+  override val argOuts = List.fill(numSIs)( ScalarIn() )
 
   def genFields(numPRs:Int, numCtrs:Int, numSRAMs:Int) = {
     val numBusIns = if (numSRAMs==0) 1 else numSRAMs
@@ -91,6 +96,8 @@ object Config0 extends Spade {
     regs(ptr) <= c.reduce
     c
   }
+  
+  override val computeUnits = rcus ++ mcs 
 
   /* Network Constrain */ 
   rcus(0).vins(0) <= mcs(0).vout 
@@ -101,7 +108,15 @@ object Config0 extends Spade {
   rcus(2).vins(1) <= rcus(1).vout
   rcus(3).vins(0) <= rcus(0).vout 
   rcus(3).vins(1) <= rcus(1).vout
-  
-  override val computeUnits = rcus ++ mcs 
+
+  /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to scalarOuts of all CUs*/
+  computeUnits.foreach { cu =>
+    cu.sins.foreach {sin =>
+      argIns.foreach { ai => sin <= ai }
+    }
+    cu.souts.foreach {sout =>
+      argOuts.foreach {ao => ao <= sout }
+    }
+  }
 
 }

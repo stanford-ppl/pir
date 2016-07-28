@@ -147,6 +147,7 @@ trait Design { self =>
   traversals += new ForwardRef()
   //traversals += new UpdateReader()
   traversals += new PIRPrinter()
+  traversals += new SpadeNetworkDot()
   val dfmapping = new PIRMapping()
   traversals += dfmapping 
 

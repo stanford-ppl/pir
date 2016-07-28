@@ -21,6 +21,7 @@ object Config {
   var outDir = getProperty("pir.outDir", "out")
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
+  var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var debug = getProperty("pir.debug", "true") == "true"
 

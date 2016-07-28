@@ -29,7 +29,7 @@ object ScalarOutMapper extends Mapper {
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val sout = cu.souts
     val psout = pcu.souts
-    simAneal(psout, sout, HashMap[N, V](), List(mapScalarOuts _), OutOfScalarOut(pcu, _, _))
+    simAneal(psout, sout, HashMap[N, V](), List(mapScalarOuts _), None, OutOfScalarOut(pcu, _, _))
   }
 
 }

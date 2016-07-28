@@ -8,7 +8,12 @@ trait Spade {
   val numLanes:Int
 
   val computeUnits:List[ComputeUnit]
+  val argIns:List[ScalarOut]
+  val argOuts:List[ScalarIn]
+
   def numCUs = computeUnits.size
+  def numArgIn = argIns.size
+  def numArgOut = argOuts.size
 
   implicit def reg_to_port(r:Reg):OutPort = r.out
 }

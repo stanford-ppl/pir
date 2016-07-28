@@ -110,6 +110,7 @@ trait Output {
 
 trait IO extends Node{
   var src:Option[Node] = None
+  def connTo(n:Node) = if (!src.isDefined) false else (src.get == n)
 }
 trait Port extends IO
 trait Bus extends IO

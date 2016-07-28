@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, ScalarIn => SI}
-import pir.plasticine.graph.{ComputeUnit => PCU, InBus => PVI, ScalarIn => PSI}
+import pir.graph.{ComputeUnit => CU, ScalarIn => SI, Top}
+import pir.plasticine.graph.{ComputeUnit => PCU, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -11,7 +11,7 @@ import scala.collection.immutable.Map
 object ScalarInMapper extends Mapper {
   type N = SI
   type R = PSI 
-  type V = PSI 
+  type V = (PSI, PSO) 
 
   def printMap(m:M)(implicit p:Printer) = {
     p.emitBS("scalarInMap")
@@ -22,18 +22,23 @@ object ScalarInMapper extends Mapper {
   }
 
   private def mapScalarIns(cuMap:CUMapper.M)(n:N, p:R, map:M)(implicit design: Design):M = {
-    val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
-    val dep = n.scalar.writers.head
-    val pvin = vmap(dep)
-    val validOPorts = pvin.outports.filter(op => p.in.isConn(op))
-    if (validOPorts.size == 0) throw ScalarInRouting(p, pvin) 
-    map + (n -> p)
+    //val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
+    //val dep = n.scalar.writers.head
+    //val validSouts = dep match {
+    //  case c:CU =>
+    //    val pvin = vmap(dep)
+    //    pvin.outports.filter(op => p.in.isConn(op))
+    //  case c:Top =>
+    //    design.arch.argIns.filter(ai => p.in.isConn(ai))
+    //}
+    //if (validSouts.size == 0) throw ScalarInRouting(p, pvin) 
+    map + (n -> (p, null))
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val sin = cu.sins
     val psin = pcu.sins
-    simAneal(psin, sin, HashMap[N, V](), List(mapScalarIns(cuMap) _), OutOfScalarIn(pcu, _, _))
+    simAneal(psin, sin, HashMap[N, V](), List(mapScalarIns(cuMap) _),None,OutOfScalarIn(pcu, _, _))
   }
 
 }

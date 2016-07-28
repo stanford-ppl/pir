@@ -6,6 +6,7 @@ import scala.collection.mutable.HashMap
 import scala.math.max
 import pir.Design
 import pir.graph._
+import pir.graph.mapper.PIRException
 
 trait Controller extends Node {
   var sins:List[ScalarIn] = _
@@ -13,6 +14,9 @@ trait Controller extends Node {
   var vins:List[VecIn] = _
   var vouts:List[VecOut] = _
   override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
+
+  def readers = souts.map(_.scalar.readers) ++ vouts.map(_.vector.readers)
+  def writers = sins.map(_.scalar.writers) ++ vins.map(_.vector.writers)
 
   def updateFields(sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) = {
     this.sins = sins.toSet.toList 
@@ -22,7 +26,7 @@ trait Controller extends Node {
   }
 }
 
-case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: Design) extends Controller { self =>
+class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit design: Design) extends Controller { self =>
   implicit val ctrler:Controller = self
   override val typeStr = "CU"
 
@@ -250,6 +254,7 @@ case class ComputeUnit(val name: Option[String], tpe:CtrlType)(implicit design: 
 }
 
 object ComputeUnit {
+  def apply(name: Option[String], tpe:CtrlType)(implicit design: Design) = new ComputeUnit(name, tpe)
   /* Sugar API */
   def apply (parent:String, tpe:CtrlType) (block: ComputeUnit => Any) (implicit design: Design):ComputeUnit =
     ComputeUnit(None, tpe).updateBlock(block).updateParent(parent)
@@ -271,10 +276,17 @@ object ComputeUnit {
   }
 }
 
-trait TileTransfer extends ComputeUnit {
-  val mctpe:MCType
-  val memctrl:MemoryController
-  override val typeStr = "MemCtrl"
+case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType)
+  (implicit design:Design) extends ComputeUnit(name, Pipe) {
+
+  /* Fields */
+  val dataIn:VecIn = if (mctpe==TileLoad) VecIn(memctrl.load) else VecIn(Vector()) 
+  val dataOut:VecOut = if (mctpe==TileStore) VecOut(memctrl.store) else VecOut(Vector())
+
+  def in:Vector = dataIn.vector
+  def out:Vector = dataOut.vector
+
+  override val typeStr = "TileTransfer"
   override def updateParent(parent:String):TileTransfer = 
     super.updateParent(parent).asInstanceOf[TileTransfer]
   override def updateParent(parent:Controller):TileTransfer = 
@@ -282,23 +294,29 @@ trait TileTransfer extends ComputeUnit {
   override def updateFields(cchains:List[CounterChain], srams:List[SRAM], sins:List[ScalarIn], 
     souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]):TileTransfer = 
       super.updateFields(cchains, srams, sins, souts, vins, vouts).asInstanceOf[TileTransfer]
-  override def updateBlock(block: ComputeUnit => Any)(implicit design: Design):TileTransfer =
-    super.updateBlock(block).asInstanceOf[TileTransfer]
+  def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
+    val (cchains, srams, sins, souts, vins, vouts) = 
+      design.addBlock[CounterChain, SRAM, ScalarIn, ScalarOut, VecIn, VecOut](block(this), 
+                            (n:Node) => n.isInstanceOf[CounterChain], 
+                            (n:Node) => n.isInstanceOf[SRAM],
+                            (n:Node) => n.isInstanceOf[ScalarIn],
+                            (n:Node) => n.isInstanceOf[ScalarOut],
+                            (n:Node) => n.isInstanceOf[VecIn],
+                            (n:Node) => n.isInstanceOf[VecOut]
+                            ) 
+    updateFields(cchains, srams, sins, souts, vins, vouts)
+    this
+  }
 } 
 object TileTransfer extends {
-  def apply(name:Option[String], oc:MemoryController, mt:MCType) (implicit design: Design):TileTransfer = 
-    new {
-      override val memctrl = oc 
-      override val mctpe = mt
-    } with ComputeUnit(name, Pipe) with TileTransfer
   /* Sugar API */
-  def apply (parent:String, memctrl:MemoryController, mctpe:MCType) (block: ComputeUnit => Any) (implicit design: Design):TileTransfer =
+  def apply (parent:String, memctrl:MemoryController, mctpe:MCType) (block:TileTransfer => Any) (implicit design: Design):TileTransfer =
     TileTransfer(None, memctrl, mctpe).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: String, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+  def apply (name:String, parent: String, memctrl:MemoryController, mctpe:MCType) (block:TileTransfer => Any) (implicit design: Design):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe).updateBlock(block).updateParent(parent)
-  def apply (parent:Controller, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+  def apply (parent:Controller, memctrl:MemoryController, mctpe:MCType) (block:TileTransfer => Any) (implicit design: Design):TileTransfer =
     TileTransfer(None, memctrl, mctpe).updateBlock(block).updateParent(parent)
-  def apply (name:String, parent: Controller, memctrl:MemoryController, mctpe:MCType) (block:ComputeUnit => Any) (implicit design: Design):TileTransfer =
+  def apply (name:String, parent: Controller, memctrl:MemoryController, mctpe:MCType) (block:TileTransfer => Any) (implicit design: Design):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe).updateBlock(block).updateParent(parent)
   /* No Sugar API */
   def apply(name:Option[String], parent: Controller, memctrl:MemoryController, mctpe:MCType, cchains:List[CounterChain], 
@@ -309,6 +327,31 @@ object TileTransfer extends {
   srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) (implicit design: Design):TileTransfer = {
     TileTransfer(name, memctrl, mctpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent)
   }
+}
+
+case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends Controller { self =>
+  implicit val ctrler:Controller = self
+
+  val typeStr = "MemoryController"
+  val addr = ScalarIn(Scalar())
+  val dataIn = if (mctpe==TileStore) Some(VecIn(Vector())) else None
+  val dataOut = if (mctpe==TileLoad) Some(VecOut(Vector())) else None
+
+  def saddr = addr.scalar 
+  def load = if (mctpe==TileLoad) dataOut.get.vector
+    else throw PIRException(s"Cannot load from a MemoryController with mctpe=${mctpe}")
+  def store = if(mctpe==TileStore) dataIn.get.vector 
+    else throw PIRException(s"Cannot store to a MemoryController with mctpe=${mctpe}")
+
+  def updateFields = {
+    super.updateFields(List(addr), Nil, dataIn.toList, dataOut.toList)
+  }
+}
+object MemoryController {
+  def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
+    = MemoryController(None, mctpe, offchip)
+  def apply(name:String, mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
+    = MemoryController(Some(name), mctpe, offchip)
 }
 
 case class Top()(implicit design: Design) extends Controller { self =>
@@ -353,35 +396,3 @@ case class Top()(implicit design: Design) extends Controller { self =>
   }
 }
 
-case class MemoryController(name: Option[String])(implicit design: Design) extends Controller { self =>
-  implicit val ctrler:Controller = self
-
-  val typeStr = "MemoryController"
-  val readAddrs = ListBuffer[Scalar]()
-  val writeAddrs = ListBuffer[Scalar]()
-  val readChannels = ListBuffer[Vector]()
-  val writeChannels = ListBuffer[Vector]()
-
-  def readAddr = { val s = Scalar(name); readAddrs += s; s } 
-  def writeAddr = { val s = Scalar(name); writeAddrs += s; s } 
-  def load = { val c = Vector(name); readChannels += c; c }
-  def store = { val c = Vector(name); writeChannels += c; c }
-
-  def updateFields = {
-    val sins = ListBuffer[ScalarIn]()
-    val souts = ListBuffer[ScalarOut]()
-    val vins = ListBuffer[VecIn]()
-    val vouts = ListBuffer[VecOut]()
-    readAddrs.foreach {ra => sins += ScalarIn(ra.addReader(this))}
-    writeAddrs.foreach {wa => sins += ScalarIn(wa.addReader(this))}
-    readChannels.foreach {rc => vouts += VecOut(rc.addWriter(this))}
-    writeChannels.foreach {wc => vins += VecIn(wc.addReader(this))}
-    super.updateFields(sins.toList, souts.toList, vins.toList, vouts.toList)
-  }
-}
-object MemoryController {
-  def apply()(implicit design: Design): MemoryController 
-    = MemoryController(None)
-  def apply(name:String)(implicit design: Design): MemoryController 
-    = MemoryController(Some(name))
-}

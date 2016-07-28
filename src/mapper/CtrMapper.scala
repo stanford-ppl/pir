@@ -25,7 +25,7 @@ object CtrMapper extends Mapper {
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
-    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), OutOfCtr(pcu, _, _))
+    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), None, OutOfCtr(pcu, _, _))
   }
 
   def mapCtr(c:N, p:R, map:M):M = {

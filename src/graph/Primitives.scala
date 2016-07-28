@@ -151,7 +151,7 @@ object SRAM {
 
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
   extends Primitive  {
-  scalar.readers += ctrler
+  scalar.addReader(ctrler)
   override val typeStr = "ScalarIn"
   val out:Port = Port(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
@@ -168,7 +168,7 @@ object ScalarIn {
 }
 
 case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Primitive {
-  scalar.writers += ctrler
+  scalar.addWriter(ctrler)
   override val typeStr = "ScalarOut"
   override def equals(that: Any) = that match {
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
@@ -184,7 +184,7 @@ object ScalarOut {
 
 case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) 
   extends Primitive  {
-  vector.readers += ctrler
+  vector.addReader(ctrler)
   override val typeStr = "VecIn"
   val out:Port = Port(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
@@ -201,7 +201,7 @@ object VecIn {
 }
 
 case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Primitive {
-  vector.writers += ctrler
+  vector.addWriter(ctrler)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
     case n: VecOut => n.vector==vector && n.ctrler == ctrler 

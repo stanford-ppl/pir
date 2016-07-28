@@ -16,7 +16,7 @@ abstract class MappingException(implicit design:Design) extends Exception{
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {
-  override val msg = s"No solution found to map nodes to resources. Exceptions:\n ${exceps.mkString("\n")}"
+  override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.mkString("\n")}\n}"
 }
 
 //TODO: n should be node
