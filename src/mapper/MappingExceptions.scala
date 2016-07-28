@@ -12,7 +12,9 @@ abstract class MappingException(implicit design:Design) extends Exception{
   design.mapExceps += this
   val msg:String
   val mapper:Mapper
-  override def toString = s"[$mapper]$msg"
+  val typeStr = this.getClass().getSimpleName() 
+  override def toString = s"[$mapper] $typeStr: $msg"
+  //println(s"$typeStr")
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {

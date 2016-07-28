@@ -13,6 +13,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     mapping = null
   }
 
+  val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
   override def traverse = {
     Try(mapping = CUMapper.map) match {
       case Success(_) =>
@@ -20,7 +21,6 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Failure(e) => e match {
         case me:MappingException =>
           info(s"Mapping failed")
-          val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
           p.emitln("Mapping Exceptions:")
           p.emitln(me)
           p.flush
@@ -31,15 +31,13 @@ class PIRMapping(implicit val design: Design) extends Traversal{
 
   override def finPass = {
     if (Config.debug) {
-      //val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
-      //val p:Printer = new Printer { val a = 3 }
-      //if (mapping!=null) CUMapper.printMap(mapping)(p)
-      //p.emitln(s"MappingExceptions:")
-      //design.mapExceps.foreach { h =>
-      //  p.emitln(h)
-      //}
-      //p.close
-      //info(s"Mapping printed in ${p.getPath}")
+      if (mapping!=null) CUMapper.printMap(mapping)(p)
+      p.emitln(s"MappingExceptions:")
+      design.mapExceps.foreach { h =>
+        p.emitln(h)
+      }
+      p.close
+      info(s"Mapping printed in ${p.getPath}")
     }
     info("Finishing PIR Mapping")
   }

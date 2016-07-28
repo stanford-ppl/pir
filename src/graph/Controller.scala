@@ -15,8 +15,8 @@ trait Controller extends Node {
   var vouts:List[VecOut] = _
   override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
 
-  def readers = souts.map(_.scalar.readers) ++ vouts.map(_.vector.readers)
-  def writers = sins.map(_.scalar.writers) ++ vins.map(_.vector.writers)
+  def readers:List[Controller] = souts.flatMap(_.scalar.readers) ++ vouts.flatMap(_.vector.readers)
+  def writers:List[Controller] = sins.map(_.scalar.writers.head) ++ vins.map(_.vector.writers.head)
 
   def updateFields(sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) = {
     this.sins = sins.toSet.toList 

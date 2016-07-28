@@ -9,7 +9,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-object CUMapper extends Mapper with Printer{
+object CUMapper extends Mapper {
   type R = PCU
   type N = CU
   type VM = Map[Controller,PInBus] // Reader (Controler) -> InBus
@@ -94,6 +94,7 @@ object CUMapper extends Mapper with Printer{
           case c:ComputeUnit => if (cu.vouts.size!=0 && cu.souts.size!=0)
             throw PIRException(s"CU ${cu} cannot have scalarOut and vecOut at the same time!")
         }
+        //p.emitln(s"mapVins ${cu} -- ${pcu}"); printMap(cmap)(p); p.flush 
         cmap = cu.readers.foldLeft(cmap) { case (pm, reader) =>
           reader match {
             case r:ComputeUnit =>
@@ -104,7 +105,7 @@ object CUMapper extends Mapper with Printer{
         }
         /* Find vins that connects to the depended ctrler */
         val pdep = getPcu(cmap, dep) 
-        pcu.vins.filter{ pvin => pvin.connTo(pdep) && !vm.values.exists(_==pvin) }
+        pcu.vins.filter{ pvin => pvin.mapping.contains(pdep.vout) && !vm.values.exists(_==pvin) }
       case dep:Top =>
         pcu.vins.filter{ pvin => !vm.values.exists(_==pvin) }
       case dep:MemoryController =>
@@ -113,27 +114,18 @@ object CUMapper extends Mapper with Printer{
     // pcu have no vin connecting to pdep that's not been used
     vm = if (validVins.size == 0) throw IntConnct(cu, pcu) 
          else vm + (dc -> validVins.head) //Pick vin to the mapping
-    cmap = setCmap(cmap, cu, pcu, vm)
-    //println(s"mapVins:---------")
-    //printMap(cmap)(this)
-    //flush 
-    cmap
+    setCmap(cmap, cu, pcu, vm)
   }
 
   private def matchCU(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
     var cmap = setCmap(cuMap, cu, pcu) 
     /* Map CU */
-    cmap = cu.sins.foldLeft(cmap) { case (pm, ScalarIn(_, scalar)) =>
-      assert(scalar.writers.size==1)
-      val dep = scalar.writers.last
+   // Assume sin and vin have only one writer
+    val deps:List[Controller] = cu.writers 
+    //println(s"cu: ${cu} deps: ${deps.mkString(", ")}")
+    cmap = deps.foldLeft(cmap){ case (pm, dep) =>
       mapVins(cu, pcu, pm, dep)
     }
-    cmap = cu.vins.foldLeft(cmap){ case (pm, VecIn(_, vector)) =>
-      assert(vector.writers.size==1)
-      val dep = vector.writers.last
-      mapVins(cu, pcu, pm, dep)
-    }
-    //println(s"cmap: matchCU-------")
     //println(s"cu:${cu}")
     //printMap(cmap)(this)
     //flush 
