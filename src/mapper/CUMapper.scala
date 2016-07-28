@@ -107,7 +107,9 @@ object CUMapper extends Mapper {
         val pdep = getPcu(cmap, dep) 
         pcu.vins.filter{ pvin => pvin.mapping.contains(pdep.vout) && !vm.values.exists(_==pvin) }
       case dep:Top =>
-        pcu.vins.filter{ pvin => !vm.values.exists(_==pvin) }
+        pcu.vins.filter{ pvin => 
+          pvin.mapping.contains(design.arch.argIns(0)) && !vm.values.exists(_==pvin)
+        }
       case dep:MemoryController =>
         pcu.vins.filter{ pvin => !vm.values.exists(_==pvin) }
     }
@@ -115,21 +117,6 @@ object CUMapper extends Mapper {
     vm = if (validVins.size == 0) throw IntConnct(cu, pcu) 
          else vm + (dc -> validVins.head) //Pick vin to the mapping
     setCmap(cmap, cu, pcu, vm)
-  }
-
-  private def matchCU(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
-    var cmap = setCmap(cuMap, cu, pcu) 
-    /* Map CU */
-   // Assume sin and vin have only one writer
-    val deps:List[Controller] = cu.writers 
-    //println(s"cu: ${cu} deps: ${deps.mkString(", ")}")
-    cmap = deps.foldLeft(cmap){ case (pm, dep) =>
-      mapVins(cu, pcu, pm, dep)
-    }
-    //println(s"cu:${cu}")
-    //printMap(cmap)(this)
-    //flush 
-    cmap
   }
 
   private def mapPrim(cuMap:M)(implicit design: Design):M = {
@@ -146,14 +133,29 @@ object CUMapper extends Mapper {
     }
   }
 
+  private def mapCU(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
+    var cmap = setCmap(cuMap, cu, pcu) 
+    /* Map CU */
+   // Assume sin and vin have only one writer
+    val deps:List[Controller] = cu.writers 
+    // println(s"cu: ${cu} deps: ${deps.mkString(", ")}")
+    cmap = deps.foldLeft(cmap){ case (pm, dep) =>
+      mapVins(cu, pcu, pm, dep)
+    }
+    //println(s"cu:${cu}")
+    //printMap(cmap)(this)
+    //flush 
+    cmap
+  }
+
   def mapRCU(pcus:List[PCU], cus:List[CU], cuMap:M)(implicit design: Design):M = {
-    val cons = List(matchCU _)
+    val cons = List(mapCU _)
     simAneal(pcus, cus, cuMap, cons, Some(mapPrim _), OutOfPCU(_, _))
   }
 
   def map(implicit design: Design):M = {
     val (pcus, cus, ptts, tts) = setResource
-    val cons = List(matchCU _)
+    val cons = List(mapCU _)
     simAneal(ptts.toList, tts.toList, Map.empty, cons,Some(mapRCU(pcus, cus, _)), OutOfPTT(_, _))
   }
 }

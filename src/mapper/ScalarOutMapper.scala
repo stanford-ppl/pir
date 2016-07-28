@@ -31,8 +31,8 @@ object ScalarOutMapper extends Mapper {
     val psout = pcu.souts
     simAneal(psout, sout, HashMap[N, V](), List(mapScalarOuts _), None, OutOfScalarOut(pcu, _, _))
   }
-
 }
+
 case class OutOfScalarOut(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = ScalarOutMapper 
   override val msg = s"Not enough Scalar Outputs Buffer in ${pcu} to map application."
