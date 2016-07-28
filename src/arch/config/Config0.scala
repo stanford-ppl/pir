@@ -15,10 +15,21 @@ object Config0 extends Spade {
   
   private val numRCUs = 4
   private val numTTs = 2 
-  private val numSIs = 2 
+  private val numArgIns = 1 * numLanes 
+  private val numArgOuts = 1 * numLanes 
 
-  override val argIns = List.fill(numSIs)( ScalarOut() )
-  override val argOuts = List.fill(numSIs)( ScalarIn() )
+  override val argIns = {
+    List.fill(numArgIns/numLanes) { 
+      val ais = List.fill(numLanes){ InPort() }
+      OutBus(ais)
+    }
+  }
+  override val argOuts = {
+    List.fill(numArgOuts/numLanes) { 
+      val aos = List.fill(numLanes){ OutPort() }
+      InBus(aos)
+    }
+  }
 
   def genFields(numPRs:Int, numCtrs:Int, numSRAMs:Int) = {
     val numBusIns = if (numSRAMs==0) 1 else numSRAMs
@@ -111,12 +122,10 @@ object Config0 extends Spade {
 
   /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to scalarOuts of all CUs*/
   computeUnits.foreach { cu =>
-    cu.sins.foreach {sin =>
-      argIns.foreach { ai => sin <= ai }
+    for (i <- 0 until Math.min(cu.vins.size, argIns.size)) {
+      cu.vins(i) <= argIns(i)
     }
-    cu.souts.foreach {sout =>
-      argOuts.foreach {ao => ao <= sout }
-    }
+    argOuts(0) <= cu.vout
   }
 
 }

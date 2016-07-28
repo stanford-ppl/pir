@@ -8,8 +8,8 @@ trait Spade {
   val numLanes:Int
 
   val computeUnits:List[ComputeUnit]
-  val argIns:List[ScalarOut]
-  val argOuts:List[ScalarIn]
+  val argIns:List[OutBus]
+  val argOuts:List[InBus]
 
   def numCUs = computeUnits.size
   def numArgIn = argIns.size
