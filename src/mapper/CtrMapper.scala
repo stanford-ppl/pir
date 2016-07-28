@@ -15,7 +15,7 @@ object CtrMapper extends Mapper {
   type N = Ctr
   type V = PCtr
 
-  override def printMap(m:Map[N,V])(implicit p:Printer) = {
+  override def printMap(m:MP)(implicit p:Printer) = {
     p.emitBS("ctrMap")
     m.foreach{ case (k,v) =>
       p.emitln(s"$k -> $v")
@@ -25,11 +25,11 @@ object CtrMapper extends Mapper {
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
-    simAneal(pcu.ctrs, ctrs, HashMap[N, V](), List(mapCtr _), None, OutOfCtr(pcu, _, _))
+    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr(cu, pcu) _), None, OutOfCtr(pcu, _, _))
   }
 
-  def mapCtr(c:N, p:R, map:M):M = {
-    map + (c -> p)
+  def mapCtr(cu:CU, pcu:PCU)(c:N, p:R, map:M):M = {
+    CUMapper.setCtmap(map, cu, CUMapper.getCtmap(map, cu) + (c -> p))
   }
 
 }

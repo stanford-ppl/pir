@@ -13,7 +13,7 @@ object ScalarInMapper extends Mapper {
   type R = PSI 
   type V = (PSI, PSO) 
 
-  def printMap(m:M)(implicit p:Printer) = {
+  def printMap(m:MP)(implicit p:Printer) = {
     p.emitBS("scalarInMap")
     m.foreach{ case (k,v) =>
       p.emitln(s"$k -> $v")

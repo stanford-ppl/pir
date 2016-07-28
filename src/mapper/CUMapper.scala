@@ -14,34 +14,36 @@ object CUMapper extends Mapper {
   type N = CU
   type VM = Map[Controller,PInBus] // Reader (Controler) -> InBus
   type V = (PCU, VM,
-                 SRAMMapper.M, 
-                 CtrMapper.M, 
-                 ScalarInMapper.M, 
-                 ScalarOutMapper.M)
+                 SRAMMapper.MP, 
+                 CtrMapper.MP, 
+                 ScalarInMapper.MP, 
+                 ScalarOutMapper.MP)
 
   def getPcu(tup:V):PCU = tup._1
   def getVmap(tup:V):VM = tup._2
+  def getSmap(tup:V):SRAMMapper.MP = tup._3
+  def getCtmap(tup:V):CtrMapper.MP = tup._4
+
+  def setPcu(tup:V, pcu:PCU):V = tup.copy(_1=pcu)
+  def setVmap(tup:V, mp:VM):V = tup.copy(_2=mp) 
+  def setSmap(tup:V, mp:SRAMMapper.MP):V = tup.copy(_3=mp) 
+  def setCtmap(tup:V, mp:CtrMapper.MP):V = tup.copy(_4=mp) 
+
   def getPcu(cuMap:M, cu:N):PCU = getPcu(cuMap(cu))
   def getVmap(cuMap:M, cu:N):VM = getVmap(cuMap(cu))
+  def getSmap(cuMap:M, cu:N):SRAMMapper.MP = getSmap(cuMap(cu))
+  def getCtmap(cuMap:M, cu:N):CtrMapper.MP = getCtmap(cuMap(cu))
 
-  def setCmap(cuMap:M, cu:N, pcu:R):M = 
-    if (cuMap.contains(cu)) {
-      val m = cuMap(cu)
-      cuMap + (cu -> (pcu, m._2, m._3, m._4, m._5, m._6))
-    } else {
+  def setPcu(cuMap:M, cu:N, pcu:R):M = 
+    if (!cuMap.contains(cu))
       cuMap + (cu -> (pcu, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty))
-    }
+    else
+      cuMap + (cu -> setPcu(cuMap(cu), pcu))
+  def setVmap(cuMap:M, cu:N, mp:VM):M = cuMap + (cu -> setVmap(cuMap(cu), mp))
+  def setCtmap(cuMap:M, cu:N, mp:CtrMapper.MP):M = cuMap + (cu -> setCtmap(cuMap(cu), mp))
+  def setSmap(cuMap:M, cu:N, mp:SRAMMapper.MP):M = cuMap + (cu -> setSmap(cuMap(cu), mp))
 
-  def setCmap(cuMap:M, cu:N, pcu:R, vmap:VM):M = 
-    if (cuMap.contains(cu)) {
-      val m = cuMap(cu)
-      cuMap + (cu -> (pcu, vmap, m._3, m._4, m._5, m._6))
-    } else {
-      cuMap + (cu -> (pcu, vmap, Map.empty, Map.empty, Map.empty, Map.empty))
-    }
-  def setCmap(cuMap:M, cu:N, v:V):M = cuMap + (cu -> v)
-
-  def printMap(m:M)(implicit p:Printer) = {
+  def printMap(m:MP)(implicit p:Printer) = {
     p.emitBS("cuMap")
     m.foreach{ case (cu, (pcu, vm, sm, cm, sim, som)) =>
       p.emitBS(s"$cu -> $pcu")
@@ -116,7 +118,7 @@ object CUMapper extends Mapper {
     // pcu have no vin connecting to pdep that's not been used
     vm = if (validVins.size == 0) throw IntConnct(cu, pcu) 
          else vm + (dc -> validVins.head) //Pick vin to the mapping
-    setCmap(cmap, cu, pcu, vm)
+    setVmap(cmap, cu, vm)
   }
 
   private def mapPrim(cuMap:M)(implicit design: Design):M = {
@@ -125,16 +127,15 @@ object CUMapper extends Mapper {
     //printMap(cuMap)(this)
     //flush 
       val pcu = getPcu(v)
-      val sm     = SRAMMapper.map(cu, pcu, pm)
-      val cm     = CtrMapper.map(cu, pcu, pm)
-      val som    = ScalarOutMapper.map(cu, pcu, pm)
-      val sim    = ScalarInMapper.map(cu, pcu, pm)
-      setCmap(pm, cu, (pcu, getVmap(v), sm, cm, sim, som))
+      val m1    = SRAMMapper.map(cu, pcu, pm)
+      val m2    = CtrMapper.map(cu, pcu, m1)
+      val m3    = ScalarOutMapper.map(cu, pcu, m2)
+      ScalarInMapper.map(cu, pcu, m3)
     }
   }
 
   private def mapCU(cu:N, pcu:R, cuMap:M)(implicit design: Design):M = {
-    var cmap = setCmap(cuMap, cu, pcu) 
+    var cmap = setPcu(cuMap, cu, pcu) 
     /* Map CU */
    // Assume sin and vin have only one writer
     val deps:List[Controller] = cu.writers 

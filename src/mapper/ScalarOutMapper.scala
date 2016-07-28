@@ -14,7 +14,7 @@ object ScalarOutMapper extends Mapper {
   type R = PSO 
   type V = PSO 
 
-  def printMap(m:M)(implicit p:Printer) = {
+  def printMap(m:MP)(implicit p:Printer) = {
     p.emitBS("scalarOutMap")
     m.foreach{ case (k,v) =>
       p.emitln(s"$k -> $v")

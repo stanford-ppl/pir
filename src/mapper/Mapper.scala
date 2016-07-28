@@ -13,11 +13,12 @@ trait Mapper {
   type R
   type N
   type V
-  type M = Map[N,V]
+  type MP = Map[N,V]
+  type M = CUMapper.MP
   
   override def toString = this.getClass().getSimpleName() 
 
-  def printMap(m:M)(implicit p:Printer):Unit
+  def printMap(m:MP)(implicit p:Printer):Unit
 
   def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
