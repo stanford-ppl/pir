@@ -25,14 +25,12 @@ object SRAMMapper extends Mapper {
   }
 
   private def mapSRAM(cu:CU, pcu:PCU)(s:N, p:R, cuMap:M):M = {
-    val suc = if (s.writePort.src.isInstanceOf[VecIn]) {
-      val writers = s.writePort.src.asInstanceOf[VecIn].vector.writers 
-      assert(writers.size==1)
-      val vmap = CUMapper.getVmap(cuMap, cu)
-      val pvin = vmap(writers.head)
-      p.writePort.isConn(pvin.outports(0))
-    } else {
-      true
+    val suc = s.writePort.src match {
+      case wp:VecIn =>
+        val writers = s.writePort.src.asInstanceOf[VecIn].vector.writers 
+        assert(writers.size==1)
+        p.writePort.isConn(VecMapper.getIB(cuMap, cu, wp).outports(0))
+      case _ => true
     }
     assert(suc) //TODO: Current arch this should always success
     CUMapper.setSmap(cuMap, cu, CUMapper.getSmap(cuMap, cu) + (s -> p))

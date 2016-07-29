@@ -21,7 +21,7 @@ object ScalarInMapper extends Mapper {
     p.emitBE
   }
 
-  private def mapScalarIns(cuMap:CUMapper.M)(n:N, p:R, map:M)(implicit design: Design):M = {
+  private def mapScalarIns(cu:CU, pcu:PCU)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
     //val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
     //val dep = n.scalar.writers.head
     //val validSouts = dep match {
@@ -32,13 +32,13 @@ object ScalarInMapper extends Mapper {
     //    design.arch.argIns.filter(ai => p.in.isConn(ai))
     //}
     //if (validSouts.size == 0) throw ScalarInRouting(p, pvin) 
-    map + (n -> (p, null))
+    CUMapper.setSImap(cuMap, cu, CUMapper.getSImap(cuMap, cu) + (n -> (p, null)))
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val sin = cu.sins
     val psin = pcu.sins
-    simAneal(psin, sin, HashMap[N, V](), List(mapScalarIns(cuMap) _),None,OutOfScalarIn(pcu, _, _))
+    simAneal(psin, sin, cuMap, List(mapScalarIns(cu, pcu) _),None,OutOfScalarIn(pcu, _, _))
   }
 
 }

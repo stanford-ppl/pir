@@ -22,14 +22,14 @@ object ScalarOutMapper extends Mapper {
     p.emitBE
   }
 
-  private def mapScalarOuts(n:N, p:R, map:M):M = {
-    map + (n -> p)
+  private def mapScalarOuts(cu:CU, pcu:PCU)(n:N, p:R, cuMap:M):M = {
+    CUMapper.setSOmap(cuMap, cu, CUMapper.getSOmap(cuMap, cu) + (n -> p))
   }
 
   def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
     val sout = cu.souts
     val psout = pcu.souts
-    simAneal(psout, sout, HashMap[N, V](), List(mapScalarOuts _), None, OutOfScalarOut(pcu, _, _))
+    simAneal(psout, sout, cuMap, List(mapScalarOuts(cu, pcu) _), None, OutOfScalarOut(pcu, _, _))
   }
 }
 

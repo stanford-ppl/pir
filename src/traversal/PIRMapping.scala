@@ -18,6 +18,10 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     Try(mapping = CUMapper.map) match {
       case Success(_) =>
         info(s"Mapping succeeded") 
+        if (Config.debug) {
+          if (mapping!=null) CUMapper.printMap(mapping)(p)
+          info(s"Mapping printed in ${p.getPath}")
+        }
       case Failure(e) => e match {
         case me:MappingException =>
           info(s"Mapping failed")
@@ -30,15 +34,6 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   } 
 
   override def finPass = {
-    if (Config.debug) {
-      if (mapping!=null) CUMapper.printMap(mapping)(p)
-      p.emitln(s"MappingExceptions:")
-      design.mapExceps.foreach { h =>
-        p.emitln(h)
-      }
-      p.close
-      info(s"Mapping printed in ${p.getPath}")
-    }
     info("Finishing PIR Mapping")
   }
 }
