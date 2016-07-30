@@ -7,13 +7,14 @@ trait Spade {
   val wordWidth:Int
   val numLanes:Int
 
-  val computeUnits:List[ComputeUnit]
-  val argIns:List[OutBus]
-  val argOuts:List[InBus]
+  val top:Top
+  val rcus:List[ComputeUnit]
+  val ttcus:List[TileTransfer]
 
-  def numCUs = computeUnits.size
-  def numArgIn = argIns.size
-  def numArgOut = argOuts.size
+  def ctrlers = top :: rcus ++ ttcus
+  def cus = rcus ++ ttcus
+
+  def numCUs = rcus.size
 
   implicit def reg_to_port(r:Reg):OutPort = r.out
 }

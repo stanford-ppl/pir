@@ -24,7 +24,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal with Printer {
     //CUPrinter.emitln(s"splines=ortho;")
   }
   override def traverse = {
-    design.arch.computeUnits.foreach { cu =>
+    design.arch.cus.foreach { cu =>
       val recs = ListBuffer[String]()
       recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
       recs += s"${cu}"
@@ -41,7 +41,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal with Printer {
         }
       }
     }
-    design.arch.argOuts.foreach { vin =>
+    design.arch.top.argOutBuses.foreach { vin =>
       vin.mapping.foreach { vout =>
         ArgPrinter.emitln(s"""${vout.src.get}:${vout}:s -> argout_${vin}""")
       }

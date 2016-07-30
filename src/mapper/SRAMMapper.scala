@@ -33,11 +33,11 @@ object SRAMMapper extends Mapper {
       case _ => true
     }
     assert(suc) //TODO: Current arch this should always success
-    CUMapper.setSmap(cuMap, cu, CUMapper.getSmap(cuMap, cu) + (s -> p))
+    cuMap.setSmap(cu, cuMap.getSmap(cu) + (s -> p))
   }
 
   // No need to try. Assume 1 to 1 correspondent between vecIn and sram write port in arch
-  def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
+  def map(cu:CU, pcu:PCU, cuMap:M)(implicit design: Design):M = {
     val cons = List(mapSRAM(cu, pcu) _)
     simAneal(pcu.srams, cu.srams, cuMap, cons, None, OutOfSram(pcu, _, _))
   }

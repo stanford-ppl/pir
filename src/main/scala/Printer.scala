@@ -23,6 +23,7 @@ trait Printer {
   def emitBS(s:String):Unit = { emit(s); emitBS }
   def emitBS:Unit = { pw.println(s"{"); level += 1 }
   def emitBE = { level -= 1; emitln(s"}") }
+  def emitBlock(s:String)(block: =>Any) = { emitBS(s); block; emitBE }
   def flush = pw.flush()
   def close = {
     pw.flush()

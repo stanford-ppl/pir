@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, ScalarOut => SO}
-import pir.plasticine.graph.{ComputeUnit => PCU}
+import pir.graph.{Controller => CL, ComputeUnit => CU, ScalarOut => SO}
+import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU}
 import pir.plasticine.graph.{ScalarOut => PSO}
 import pir.graph.traversal.PIRMapping
 
@@ -22,18 +22,18 @@ object ScalarOutMapper extends Mapper {
     p.emitBE
   }
 
-  private def mapScalarOuts(cu:CU, pcu:PCU)(n:N, p:R, cuMap:M):M = {
-    CUMapper.setSOmap(cuMap, cu, CUMapper.getSOmap(cuMap, cu) + (n -> p))
+  private def mapScalarOuts(cu:CU, pcu:PCL)(n:N, p:R, cuMap:M):M = {
+    cuMap.setSOmap(cu, cuMap.getSOmap(cu) + (n -> p))
   }
 
-  def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
+  def map(cu:CU, pcu:PCL, cuMap:M)(implicit design: Design):M = {
     val sout = cu.souts
     val psout = pcu.souts
     simAneal(psout, sout, cuMap, List(mapScalarOuts(cu, pcu) _), None, OutOfScalarOut(pcu, _, _))
   }
 }
 
-case class OutOfScalarOut(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
+case class OutOfScalarOut(pcu:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = ScalarOutMapper 
   override val msg = s"Not enough Scalar Outputs Buffer in ${pcu} to map application."
 }

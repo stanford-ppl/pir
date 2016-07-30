@@ -1,8 +1,8 @@
 package pir.graph.mapper
-import pir.graph.{ComputeUnit => CU, TileTransfer => TT, _}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
 import pir._
 import pir.plasticine.config._
-import pir.plasticine.graph.{Node => PNode, ComputeUnit => PCU, TileTransfer => PTT}
+import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -14,11 +14,12 @@ trait Mapper {
   type N
   type V
   type MP = Map[N,V]
-  type M = CUMapper.MP
+  type M = CLMap 
+
+  implicit var design:Design = _
+  def setDesign(d:Design) = design = d
   
   override def toString = this.getClass().getSimpleName() 
-
-  def printMap(m:MP)(implicit p:Printer):Unit
 
   def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 

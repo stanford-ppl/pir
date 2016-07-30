@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, ScalarIn => SI, Top}
-import pir.plasticine.graph.{ComputeUnit => PCU, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
+import pir.graph.{Controller => CL, ComputeUnit => CU, ScalarIn => SI, Scalar, Top}
+import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -21,7 +21,7 @@ object ScalarInMapper extends Mapper {
     p.emitBE
   }
 
-  private def mapScalarIns(cu:CU, pcu:PCU)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
+  private def mapScalarIns(cu:CU, pcu:PCL)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
     //val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
     //val dep = n.scalar.writers.head
     //val validSouts = dep match {
@@ -32,10 +32,10 @@ object ScalarInMapper extends Mapper {
     //    design.arch.argIns.filter(ai => p.in.isConn(ai))
     //}
     //if (validSouts.size == 0) throw ScalarInRouting(p, pvin) 
-    CUMapper.setSImap(cuMap, cu, CUMapper.getSImap(cuMap, cu) + (n -> (p, null)))
+    cuMap.setSImap(cu, cuMap.getSImap(cu) + (n -> (p, null)))
   }
 
-  def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
+  def map(cu:CU, pcu:PCL, cuMap:M)(implicit design: Design):M = {
     val sin = cu.sins
     val psin = pcu.sins
     simAneal(psin, sin, cuMap, List(mapScalarIns(cu, pcu) _),None,OutOfScalarIn(pcu, _, _))
@@ -43,7 +43,7 @@ object ScalarInMapper extends Mapper {
 
 }
 
-case class OutOfScalarIn(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
+case class OutOfScalarIn(pcu:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = ScalarInMapper
   override val msg = s"Not enough Scalar Input Buffer in ${pcu} to map application."
 }

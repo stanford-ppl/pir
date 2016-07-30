@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, TileTransfer => TT, VecIn => VI, VecOut => VO, _}
-import pir.plasticine.graph.{ComputeUnit => PCU, TileTransfer => PTT, InBus => PIB, OutBus => POB}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Input => I, VecOut => VO, _}
+import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, InBus => PIB, OutBus => POB}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -10,16 +10,13 @@ import scala.collection.immutable.Map
 
 object VecMapper extends Mapper {
   type R = PIB
-  type N = VI
+  type N = I
   type V = (PIB, POB)
 
-  def getIB(cuMap:M, cu:CU, vi:N) = {
-    CUMapper.getVmap(cuMap, cu)(vi)._1
-  }
-  def getOB(cuMap:M, cu:CU, vi:N) = {
-    CUMapper.getVmap(cuMap, cu)(vi)._2
-  }
-  override def printMap(m:MP)(implicit p:Printer) = {
+  def getIB(clMap:M, cl:CL, k:N) = clMap.getVmap(cl)(k)._1
+  def getOB(clMap:M, cl:CL, k:N) = clMap.getVmap(cl)(k)._2
+
+  def printMap(m:MP)(implicit p:Printer) = {
     p.emitBS("vecMap")
     m.foreach{ case (k,v) =>
       p.emitln(s"$k -> $v")
@@ -27,56 +24,51 @@ object VecMapper extends Mapper {
     p.emitBE
   }
 
-  def map(cu:CU, pcu:PCU, cuMap:CUMapper.M)(implicit design: Design):M = {
+  def map(cl:CL, pcl:PCL, cuMap:M)(implicit design: Design):M = {
    // Assume sin and vin have only one writer
-    val deps:List[Controller] = cu.writers 
-    // println(s"cu: ${cu} deps: ${deps.mkString(", ")}")
-    var cmap = deps.foldLeft(cuMap){ case (pm, dep) => 
-      val cons = List(mapVec(cu, pcu, dep) _) 
-      if (dep.isInstanceOf[CU] && !cuMap.contains(dep.asInstanceOf[CU])) {
-        pm // dep ctrler haven't been placed. postpone mapping of vins until dep is mapped 
-      } else {
-        simAneal(pcu.vins, cu.vins, cuMap, cons, None, OutOfVec(cu, pcu, _, _))
-      }
-    }
+    val cons = List(mapVec(cl, pcl) _) 
+    //val cmap = simAneal(pcl.vins, cl.vins ++ cl.sins, cuMap, cons, None, OutOfVec(cl, pcl, _, _))
+    val cmap = cuMap
     // Check if need to handle postponed mapping
-    cu.readers.foldLeft(cmap) { case (pm, reader) =>
-      reader match {
-        case r:CU =>
-          if (pm.contains(r)) {
-            val cons = List(mapVec(r, CUMapper.getPcu(pm, r), cu) _) 
-            simAneal(CUMapper.getPcu(pm, r).vins, r.vins, pm, cons, None, OutOfVec(cu, pcu, _, _))
-          } else pm
-        case _ => pm //TODO
-      }
+    cl.readers.foldLeft(cmap) { case (pm, r) =>
+      if (pm.contains(r)) {
+        val pr = pm.getPcu(r)
+        val rcons = List(mapVec(r, pr) _) 
+        val pcu = pm.getPcu(r).vins
+        simAneal(pcu, r.vins, pm, rcons, None, OutOfVec(r, pr, _, _))
+      } else pm
     }
   }
 
-  def mapVec(cu:CU, pcu:PCU, dep:Controller)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
-    val pdvouts = dep match {
-      case d:Top => design.arch.argIns
-      case d:MemoryController => Nil
-      case d:CU => List(CUMapper.getPcu(cuMap, d).vout) 
+  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
+    val dep = n match {
+      case n:ScalarIn => n.scalar.writers.head
+      case n:VecIn => n.vector.writers.head
     }
-    var vm = CUMapper.getVmap(cuMap, cu)
+    val pdvouts = dep match {
+      case d:MemoryController => Nil
+      case d => List(cuMap.getPcu(d).vouts) 
+    }
+    var vm = cuMap.getVmap(cl)
     assert(pdvouts.size == 1)
     val pdvout = pdvouts.head
     /* Find vins that connects to the depended ctrler */
     if (p.mapping.contains(pdvout)) {
-      println(s"suc: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
-      CUMapper.setVmap(cuMap, cu, CUMapper.getVmap(cuMap, cu) + (n -> (p, pdvout)))
+      //println(s"suc: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
+      //TODO:  + (n -> (p, pdvout))
+      cuMap.setVmap(cl, cuMap.getVmap(cl))
     } else {
-      println(s"fail: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
-      throw IntConnct(cu, pcu)
+      //println(s"fail: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
+      throw IntConnct(cl, pcl)
     }
   }
+}
 
-}
-case class IntConnct(cu:CU, pcu:PCU)(implicit design:Design) extends MappingException {
+case class IntConnct(cl:CL, pcl:PCL)(implicit design:Design) extends MappingException {
   override val mapper = VecMapper 
-  override val msg = s"Fail to map ${cu} on ${pcu} due to interconnection constrain"
+  override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }
-case class OutOfVec(cu:CU, pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
+case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = VecMapper
-  override val msg = s"Not enough InBus IO in ${pcu} to map ${cu}."
+  override val msg = s"Not enough InBus IO in ${pcl} to map ${cl}."
 }

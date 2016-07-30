@@ -7,7 +7,7 @@ import scala.util.{Try, Success, Failure}
 
 class PIRMapping(implicit val design: Design) extends Traversal{
 
-  var mapping:CUMapper.M = _
+  var mapping:CLMap = _
 
   override def reset = {
     mapping = null
@@ -19,7 +19,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Success(_) =>
         info(s"Mapping succeeded") 
         if (Config.debug) {
-          if (mapping!=null) CUMapper.printMap(mapping)(p)
+          if (mapping!=null) mapping.printMap(p)
           info(s"Mapping printed in ${p.getPath}")
         }
       case Failure(e) => e match {

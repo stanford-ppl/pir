@@ -52,16 +52,38 @@ object Reg {
 }
 
 trait ScalarBuffer extends Reg
-case class ScalarIn() extends ScalarBuffer {
+case class ScalarIn(outport:BusOutPort) extends ScalarBuffer {
   override val typeStr = "si"
+  this <= outport
+  def inBus = outport.src
+  def idx = outport.idx
 } 
-case class ScalarOut() extends ScalarBuffer {
+case class ScalarOut(inport:BusInPort) extends ScalarBuffer {
   override val typeStr = "so"
+  inport <= this
+  def outBus = inport.src
+}
+
+trait Controller extends Node {
+  val sins:List[ScalarIn]
+  val souts:List[ScalarOut]
+  val vins:List[InBus]
+  val vouts:List[OutBus]
+}
+
+case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn], argInBuses:List[OutBus], argOutBuses:List[InBus]) extends Controller {
+  override val sins:List[ScalarIn] = argOuts
+  override val souts:List[ScalarOut] = argIns
+  override val vins:List[InBus] = argOutBuses
+  override val vouts:List[OutBus] = argInBuses
+  def numArgIn = argIns.size
+  def numArgOut = argOuts.size
 }
 
 case class ComputeUnit(val pregs:List[Reg], val srams:List[SRAM], val ctrs:List[Counter], 
-  val sins:List[ScalarIn], val souts:List[ScalarOut], val vins:List[InBus], val vout:OutBus) extends Node{
+  override val sins:List[ScalarIn], override val souts:List[ScalarOut], override val vins:List[InBus], val vout:OutBus) extends Controller{
   override val typeStr = "cu"
+  override val vouts = List(vout)
 
   val reduce = OutPort(this, s"${this}.reduce")
   vins.foreach(_.src = Some(this))
@@ -76,7 +98,7 @@ case class ComputeUnit(val pregs:List[Reg], val srams:List[SRAM], val ctrs:List[
 }
 
 trait TileTransfer extends ComputeUnit{
-  override val typeStr = "mc"
+  override val typeStr = "tt"
 }
 object TileTransfer {
   def apply(pregs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
@@ -149,25 +171,32 @@ object Const extends OutPort {
   override def toString = "Const"
 }
 
-trait InBus extends Bus with Input {
+case class InBus(outports:List[BusOutPort]) extends Bus with Input {
   type O = OutBus
   override val typeStr = "ib"
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
-  val outports:List[OutPort]
   outports.foreach(_.src = Some(this))
 }
 object InBus {
-  def apply(ops:List[OutPort]) = new {val outports = ops} with OutPort with InBus
-  def apply(ops:List[OutPort], s:Node) = new {val outports = ops} with OutPort with InBus {src = Some(s)}
+  def apply(numPort:Int):InBus = {
+    val outports = List.tabulate(numPort) { i => BusOutPort(i) }
+    InBus(outports)
+  }
+  def apply(ops:List[BusOutPort], s:Node):InBus = new InBus(ops) {src = Some(s)}
 }
 
-trait OutBus extends Bus with Output {
+case class OutBus(inports:List[BusInPort]) extends Bus with Output {
   type I = InBus
   override val typeStr = "ob"
-  val inports:List[InPort]
   inports.foreach(_.src = Some(this))
 }
 object OutBus {
-  def apply(ips:List[InPort]) = new {val inports = ips } with InPort with OutBus
-  def apply(ips:List[InPort], s:Node) = new {val inports = ips} with InPort with OutBus {src = Some(s)}
+  def apply(numPort:Int):OutBus = {
+    val inports = List.tabulate(numPort) { i => BusInPort(i) }
+    OutBus(inports)
+  }
+  def apply(ips:List[BusInPort], s:Node) = new OutBus(ips) {src = Some(s)}
 }
+
+case class BusInPort(idx:Int) extends InPort
+case class BusOutPort(idx:Int) extends OutPort
