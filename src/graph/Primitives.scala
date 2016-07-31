@@ -258,21 +258,39 @@ object Stage {
   def apply(stage:Stage, op1:Port, op2:Port, op3:Port, op:Op, result:Port)(implicit ctrler:ComputeUnit):Unit =
     Stage(stage, List(op1, op2, op3), op, result)
   //TODO
-  def reduce(stage:Stage, op:Op)(implicit ctrler:ComputeUnit):Unit = {
-    Stage(stage, List(ctrler.reduce(stage).read), op, ctrler.reduce(stage).read)
+  def reduce(op:Op)(implicit ctrler:ComputeUnit, design:Design):Stage = {
+    val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
+    val rdstages = Stages.reduce(numStages) 
+    rdstages.foreach {s =>
+      Stage(s, List(ctrler.reduce(s).read), op, ctrler.reduce(s).read)
+    }
+    rdstages.last
   }
-
 }
 object Stages {
+  def addMaps(s:Stage, ctrler:ComputeUnit) = {
+    ctrler.stageUses += (s -> Set[PipeReg]())
+    ctrler.stageDefs += (s -> Set[PipeReg]())
+    ctrler.stagePRs += (s -> HashMap[Int, PipeReg]())
+  }
   def apply(n:Int) (implicit ctrler:ComputeUnit, design: Design):List[Stage] = {
     List.tabulate(n) {i => 
       val s = Stage(None)
-      ctrler.stageUses += (s -> Set[PipeReg]())
-      ctrler.stageDefs += (s -> Set[PipeReg]())
-      ctrler.stagePRs += (s -> HashMap[Int, PipeReg]())
+      addMaps(s, ctrler)
       s
     }
   }
+  def reduce(n:Int) (implicit ctrler:ComputeUnit, design: Design):List[ReduceStage] = {
+    List.tabulate(n) {i => 
+      val s = new {override val idx = i} with Stage(None) with ReduceStage
+      addMaps(s, ctrler)
+      s
+    }
+  }
+}
+trait ReduceStage extends Stage {
+  val idx:Int
+  override val typeStr = s"RedStage"
 }
 
 trait Reg extends Primitive {

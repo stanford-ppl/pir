@@ -41,7 +41,7 @@ object DotProduct extends PIRApp {
       val itA = CounterChain.copy(tileLoadA, "it")
       val itB = CounterChain.copy(tileLoadB, "it")
 
-      val s0::s1::s2::_ = Stages(3)
+      val s0::s1::_ = Stages(2)
       // SRAMs
       val sA = SRAM(size=32, vec=tileLoadA.out, readAddr=ii(0), writeAddr=itA(0))
       val sB = SRAM(size=32, vec=tileLoadB.out, readAddr=ii(0), writeAddr=itB(0))
@@ -50,8 +50,8 @@ object DotProduct extends PIRApp {
 
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
-      Stage.reduce(s1, op=FixAdd) 
-      Stage(s2, op1=CU.reduce(s1), op=Bypass, result=CU.scalarOut(s2, out)) 
+      val rd = Stage.reduce(op=FixAdd) 
+      Stage(s1, op1=CU.reduce(rd), op=Bypass, result=CU.scalarOut(s1, out)) 
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
   }

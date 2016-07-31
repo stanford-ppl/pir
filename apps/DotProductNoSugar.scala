@@ -68,7 +68,7 @@ object DotProductNoSugar extends Design {
     val ii = CounterChain(tileSize by Const(1l)) //Local
     val itA = CounterChain.copy(tileLoadA, "it")
     val itB = CounterChain.copy(tileLoadB, "it")
-    val s0::s1::s2::_ = Stages(3)
+    val s0::s1::_ = Stages(2)
     // SRAMs
     val sA = SRAM(size=32, vec=tileLoadA.out, readAddr=ii(0), writeAddr=itA(0))
     val sB = SRAM(size=32, vec=tileLoadB.out, readAddr=ii(0), writeAddr=itB(0))
@@ -76,8 +76,8 @@ object DotProductNoSugar extends Design {
     val out = ScalarOut(output)
     // Pipeline Stages 
     Stage(s0, opds=List(sA.load,sB.load), o=FixMul, r=CU.reduce(s0))
-    Stage.reduce(s1, op=FixAdd) 
-    Stage(s2, opds=List(CU.reduce(s1)), o=Bypass, r=CU.scalarOut(s2, out))
+    val rd = Stage.reduce(op=FixAdd) 
+    Stage(s1, opds=List(CU.reduce(rd)), o=Bypass, r=CU.scalarOut(s1, out))
 
     CU.updateFields(
       cchains=List(ii, itA, itB),
