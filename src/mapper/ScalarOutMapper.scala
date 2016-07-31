@@ -14,14 +14,6 @@ object ScalarOutMapper extends Mapper {
   type R = PSO 
   type V = PSO 
 
-  def printMap(m:MP)(implicit p:Printer) = {
-    p.emitBS("scalarOutMap")
-    m.foreach{ case (k,v) =>
-      p.emitln(s"$k -> $v")
-    }
-    p.emitBE
-  }
-
   private def mapScalarOuts(cu:CU, pcu:PCL)(n:N, p:R, cuMap:M):M = {
     cuMap.setSOmap(cu, cuMap.getSOmap(cu) + (n -> p))
   }

@@ -179,7 +179,7 @@ case class InBus(outports:List[BusOutPort]) extends Bus with Input {
 }
 object InBus {
   def apply(numPort:Int):InBus = {
-    val outports = List.tabulate(numPort) { i => BusOutPort(i) }
+    val outports = List.tabulate(numPort) { i => new BusOutPort(i) {src = Some(this)} }
     InBus(outports)
   }
   def apply(ops:List[BusOutPort], s:Node):InBus = new InBus(ops) {src = Some(s)}
@@ -192,7 +192,7 @@ case class OutBus(inports:List[BusInPort]) extends Bus with Output {
 }
 object OutBus {
   def apply(numPort:Int):OutBus = {
-    val inports = List.tabulate(numPort) { i => BusInPort(i) }
+    val inports = List.tabulate(numPort) { i => new BusInPort(i) {src = Some(this)}}
     OutBus(inports)
   }
   def apply(ips:List[BusInPort], s:Node) = new OutBus(ips) {src = Some(s)}

@@ -149,10 +149,10 @@ object SRAM {
     = SRAM(Some(name), size).updateRA(readAddr).updateWA(writeAddr)
 }
 
-trait Output
-trait Input
+trait Output extends Primitive
+trait Input extends Primitive
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
-  extends Primitive with Input{
+  extends Input{
   scalar.addReader(ctrler)
   override val typeStr = "ScalarIn"
   val out:Port = Port(this, {s"${this}.out"}) 
@@ -169,7 +169,7 @@ object ScalarIn {
     ScalarIn(Some(name), scalar)
 }
 
-case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Primitive with Output{
+case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Output{
   scalar.addWriter(ctrler)
   override val typeStr = "ScalarOut"
   override def equals(that: Any) = that match {
@@ -185,7 +185,7 @@ object ScalarOut {
 }
 
 case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) 
-  extends Primitive with Input{
+  extends Input{
   vector.addReader(ctrler)
   override val typeStr = "VecIn"
   val out:Port = Port(this, {s"${this}.out"}) 
@@ -202,7 +202,7 @@ object VecIn {
     VecIn(Some(name), vector)
 }
 
-case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Primitive with Output{
+case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Output{
   vector.addWriter(ctrler)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {

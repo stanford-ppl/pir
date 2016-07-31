@@ -13,14 +13,6 @@ object ScalarInMapper extends Mapper {
   type R = PSI 
   type V = (PSI, PSO) 
 
-  def printMap(m:MP)(implicit p:Printer) = {
-    p.emitBS("scalarInMap")
-    m.foreach{ case (k,v) =>
-      p.emitln(s"$k -> $v")
-    }
-    p.emitBE
-  }
-
   private def mapScalarIns(cu:CU, pcu:PCL)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
     //val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
     //val dep = n.scalar.writers.head

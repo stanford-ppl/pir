@@ -9,61 +9,6 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-trait CLMap {
-  type K = CLMap.K
-  type V = CLMap.V
-  type M = CLMap.M
-
-  val map: M 
-
-  def apply(k:K):V = map(k)
-  def getPcu(k:K):PCL = map(k)._1
-  def getVmap(k:K):VecMapper.MP = map(k)._2
-  def getSmap(k:K):SRAMMapper.MP = map(k)._3
-  def getCtmap(k:K):CtrMapper.MP = map(k)._4
-  def getSImap(k:K):ScalarInMapper.MP = map(k)._5
-  def getSOmap(k:K):ScalarOutMapper.MP = map(k)._6
-
-  def update(k:K, v:V):CLMap = CLMap(map + (k -> v))
-  def setPcu(k:K, pcu:PCL):CLMap = CLMap(map + (k -> map.getOrElse(k, CLMap.emptyV).copy(_1=pcu)))
-  def setVmap(k:K, mp:VecMapper.MP):CLMap = CLMap(map + (k -> map(k).copy(_2=mp))) 
-  def setSmap(k:K, mp:SRAMMapper.MP):CLMap = CLMap(map + (k -> map(k).copy(_3=mp)))
-  def setCtmap(k:K, mp:CtrMapper.MP):CLMap = CLMap(map + (k -> map(k).copy(_4=mp)))
-  def setSImap(k:K, mp:ScalarInMapper.MP):CLMap = CLMap(map + (k -> map(k).copy(_5=mp)))
-  def setSOmap(k:K, mp:ScalarOutMapper.MP):CLMap = CLMap(map + (k -> map(k).copy(_6=mp)))
-
-  def contains(k:K) = map.contains(k)
-
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("clMap") {
-      map.foreach{ case (cl, (pcl, vm, sm, cm, sim, som)) =>
-        p.emitBlock(s"$cl -> $pcl") {
-          VecMapper.printMap(vm)
-          SRAMMapper.printMap(sm)
-          CtrMapper.printMap(cm)
-          ScalarInMapper.printMap(sim)
-          ScalarOutMapper.printMap(som)
-        }
-      }
-    }
-  p.close
-  }
-}
-
-object CLMap {
-  type K = CL
-  type V = (PCL, VecMapper.MP,
-                 SRAMMapper.MP, 
-                 CtrMapper.MP, 
-                 ScalarInMapper.MP, 
-                 ScalarOutMapper.MP)
-  type M = Map[K,V]
-
-  def apply(m:M) = new { override val map = m } with CLMap
-  def empty:CLMap = CLMap(Map.empty)
-  def emptyV:V = (null, Map.empty, Map.empty, Map.empty, Map.empty, Map.empty)
-}
-
 object CUMapper extends Mapper {
   type R = PCL
   type N = CL
@@ -100,7 +45,7 @@ object CUMapper extends Mapper {
   }
 
   private def mapCU(cu:N, pcu:R, cuMap:M):M = {
-    println(s"mapCU: ${cu} -- ${pcu} ")
+    //println(s"mapCU: ${cu} -- ${pcu} ")
     val cmap = cuMap.setPcu(cu, pcu) 
     //val p:Printer = new Printer{}; CUMapper.printMap(cmap)(p)
     /* Map CU */

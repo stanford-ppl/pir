@@ -14,22 +14,13 @@ import scala.collection.immutable.Map
 object SRAMMapper extends Mapper {
   type N = SRAM 
   type R = PSRAM 
-  type V = PSRAM 
-
-  def printMap(m:MP)(implicit p:Printer) = {
-    p.emitBS("sramMap")
-    m.foreach{ case (k,v) =>
-      p.emitln(s"$k -> $v")
-    }
-    p.emitBE
-  }
 
   private def mapSRAM(cu:CU, pcu:PCU)(s:N, p:R, cuMap:M):M = {
     val suc = s.writePort.src match {
       case wp:VecIn =>
         val writers = s.writePort.src.asInstanceOf[VecIn].vector.writers 
         assert(writers.size==1)
-        p.writePort.isConn(VecMapper.getIB(cuMap, cu, wp).outports(0))
+        p.writePort.isConn(cuMap.getVmap(cu).getIB(wp).outports(0))
       case _ => true
     }
     assert(suc) //TODO: Current arch this should always success

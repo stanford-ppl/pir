@@ -13,17 +13,6 @@ object VecMapper extends Mapper {
   type N = I
   type V = (PIB, POB)
 
-  def getIB(clMap:M, cl:CL, k:N) = clMap.getVmap(cl)(k)._1
-  def getOB(clMap:M, cl:CL, k:N) = clMap.getVmap(cl)(k)._2
-
-  def printMap(m:MP)(implicit p:Printer) = {
-    p.emitBS("vecMap")
-    m.foreach{ case (k,v) =>
-      p.emitln(s"$k -> $v")
-    }
-    p.emitBE
-  }
-
   def map(cl:CL, pcl:PCL, cuMap:M)(implicit design: Design):M = {
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 

@@ -12,8 +12,6 @@ import scala.util.{Try, Success, Failure}
 trait Mapper {
   type R
   type N
-  type V
-  type MP = Map[N,V]
   type M = CLMap 
 
   implicit var design:Design = _

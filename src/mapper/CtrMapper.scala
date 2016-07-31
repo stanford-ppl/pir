@@ -13,15 +13,6 @@ import scala.collection.immutable.Map
 object CtrMapper extends Mapper {
   type R = PCtr
   type N = Ctr
-  type V = PCtr
-
-  def printMap(m:MP)(implicit p:Printer) = {
-    p.emitBS("ctrMap")
-    m.foreach{ case (k,v) =>
-      p.emitln(s"$k -> $v")
-    }
-    p.emitBE
-  }
 
   def map(cu:CU, pcu:PCU, cuMap:M)(implicit design: Design):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
