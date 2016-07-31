@@ -11,6 +11,12 @@ class PIRMapping(implicit val design: Design) extends Traversal{
 
   override def reset = {
     mapping = null
+    CUMapper.setDesign(design)
+    CtrMapper.setDesign(design)
+    SRAMMapper.setDesign(design)
+    ScalarInMapper.setDesign(design)
+    ScalarOutMapper.setDesign(design)
+    VecInMapper.setDesign(design)
   }
 
   val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
@@ -19,21 +25,24 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Success(_) =>
         info(s"Mapping succeeded") 
         if (Config.debug) {
-          if (mapping!=null) mapping.printMap(p)
-          info(s"Mapping printed in ${p.getPath}")
+          mapping.printMap(p)
         }
       case Failure(e) => e match {
         case me:MappingException =>
           info(s"Mapping failed")
           p.emitln("Mapping Exceptions:")
           p.emitln(me)
-          p.flush
         case _ => throw e
       }
     }
   } 
 
   override def finPass = {
+    if (Config.debug) {
+      if (mapping!=null) mapping.printMap(p)
+      info(s"Mapping printed in ${p.getPath}")
+    }
     info("Finishing PIR Mapping")
+    p.close
   }
 }

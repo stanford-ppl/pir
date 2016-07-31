@@ -153,8 +153,9 @@ trait Output extends Primitive
 trait Input extends Primitive
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
   extends Input{
-  scalar.addReader(ctrler)
-  override val typeStr = "ScalarIn"
+  scalar.addReader(this)
+  override val typeStr = "ScalIn"
+  override def toString = s"${super.toString}($scalar)"
   val out:Port = Port(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
     case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
@@ -170,8 +171,9 @@ object ScalarIn {
 }
 
 case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Output{
-  scalar.addWriter(ctrler)
-  override val typeStr = "ScalarOut"
+  scalar.setWriter(this)
+  override val typeStr = "ScalOut"
+  override def toString = s"${super.toString}($scalar)"
   override def equals(that: Any) = that match {
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
@@ -186,7 +188,7 @@ object ScalarOut {
 
 case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) 
   extends Input{
-  vector.addReader(ctrler)
+  vector.addReader(this)
   override val typeStr = "VecIn"
   val out:Port = Port(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
@@ -203,7 +205,7 @@ object VecIn {
 }
 
 case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Output{
-  vector.addWriter(ctrler)
+  vector.setWriter(this)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
     case n: VecOut => n.vector==vector && n.ctrler == ctrler 

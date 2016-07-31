@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, ScalarIn => SI, Scalar, Top}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
+import pir.graph.{Controller => CL, ScalarIn => SI, Scalar, Top}
+import pir.plasticine.graph.{Controller => PCL, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -11,35 +11,32 @@ import scala.collection.immutable.Map
 object ScalarInMapper extends Mapper {
   type N = SI
   type R = PSI 
-  type V = (PSI, PSO) 
 
-  private def mapScalarIns(cu:CU, pcu:PCL)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
-    //val vmap = cuMap(n.ctrler.asInstanceOf[CU])._2
-    //val dep = n.scalar.writers.head
-    //val validSouts = dep match {
-    //  case c:CU =>
-    //    val pvin = vmap(dep)
-    //    pvin.outports.filter(op => p.in.isConn(op))
-    //  case c:Top =>
-    //    design.arch.argIns.filter(ai => p.in.isConn(ai))
-    //}
-    //if (validSouts.size == 0) throw ScalarInRouting(p, pvin) 
-    cuMap.setSImap(cu, cuMap.getSImap(cu) + (n -> (p, null)))
+  private def mapScalarIns(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M):M = {
+    val ib = cuMap.getVImap(cl)(n)
+    val idx = cuMap.getSLmap(cl).getIdx(n.scalar)
+    if (p.in.isConn(ib.outports(idx)))
+      cuMap.setSI(cl, n, p)
+    else
+      throw ScalarInRouting(n, p)
   }
 
-  def map(cu:CU, pcu:PCL, cuMap:M)(implicit design: Design):M = {
-    val sin = cu.sins
-    val psin = pcu.sins
-    simAneal(psin, sin, cuMap, List(mapScalarIns(cu, pcu) _),None,OutOfScalarIn(pcu, _, _))
+  def map(cl:CL, cuMap:M):M = {
+    val pcl = cuMap.getPcu(cl)
+    val sin = cl.sins
+    val psin = pcl.sins
+    // Assume one SI to one outport, no need to map
+    
+    simAneal(psin, sin, cuMap, List(mapScalarIns(cl, pcl) _),None,OutOfScalarIn(pcl, _, _))
   }
 
 }
 
-case class OutOfScalarIn(pcu:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
+case class OutOfScalarIn(pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = ScalarInMapper
-  override val msg = s"Not enough Scalar Input Buffer in ${pcu} to map application."
+  override val msg = s"Not enough Scalar Input Buffer in ${pcl} to map application."
 }
-case class ScalarInRouting(psi:PSI, pvin:PVI)(implicit design:Design) extends MappingException {
+case class ScalarInRouting(n:SI, p:PSI)(implicit design:Design) extends MappingException {
   override val mapper = ScalarInMapper
-  override val msg = s"Fail to route ${psi} to ${pvin}"
+  override val msg = s"Fail to map ${n} to ${p}"
 }

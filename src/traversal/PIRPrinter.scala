@@ -38,11 +38,11 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:Stage =>
             fields += s"operands=[${p.operands.mkString(",")}], op=${p.op}, result=${p.result}"
           case p:ScalarIn =>
-            fields += s"scalar=${p.scalar}, writer=${p.scalar.writers.mkString(",")}"
+            fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
           case p:ScalarOut =>
             fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
           case p:VecIn =>
-            fields += s"vector=${p.vector}, writer=${p.vector.writers.mkString(",")}"
+            fields += s"vector=${p.vector}, writer=${p.vector.writer}"
           case p:VecOut =>
             fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 

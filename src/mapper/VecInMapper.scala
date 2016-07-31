@@ -8,44 +8,47 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-object VecMapper extends Mapper {
+object VecInMapper extends Mapper {
   type R = PIB
   type N = I
-  type V = (PIB, POB)
 
-  def map(cl:CL, pcl:PCL, cuMap:M)(implicit design: Design):M = {
+  def map(cl:CL, cuMap:M):M = {
+    val pcl = cuMap.getPcu(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
-    //val cmap = simAneal(pcl.vins, cl.vins ++ cl.sins, cuMap, cons, None, OutOfVec(cl, pcl, _, _))
-    val cmap = cuMap
-    // Check if need to handle postponed mapping
-    cl.readers.foldLeft(cmap) { case (pm, r) =>
-      if (pm.contains(r)) {
-        val pr = pm.getPcu(r)
-        val rcons = List(mapVec(r, pr) _) 
-        val pcu = pm.getPcu(r).vins
-        simAneal(pcu, r.vins, pm, rcons, None, OutOfVec(r, pr, _, _))
-      } else pm
+    val cmap = simAneal(pcl.vins, cl.vins ++ cl.sins, cuMap, cons, None, OutOfVec(cl, pcl, _, _))
+    cl.readers.foldLeft(cmap) { case (pm, reader) =>
+      if (cuMap.contains(reader))
+        map(reader, pm)
+      else
+        pm
     }
   }
 
-  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M)(implicit design: Design):M = {
+  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M):M = {
+    if (cuMap.getVImap(cl).contains(n))
+      return cuMap
     val dep = n match {
-      case n:ScalarIn => n.scalar.writers.head
-      case n:VecIn => n.vector.writers.head
+      case n:ScalarIn => n.scalar.writer.ctrler
+      case n:VecIn => n.vector.writer.ctrler
     }
-    val pdvouts = dep match {
-      case d:MemoryController => Nil
-      case d => List(cuMap.getPcu(d).vouts) 
-    }
-    var vm = cuMap.getVmap(cl)
-    assert(pdvouts.size == 1)
-    val pdvout = pdvouts.head
+    if (!cuMap.contains(dep))
+      return cuMap
+    val pdvout:POB = n match {
+      case n:VecIn => dep match {
+        //case d:MemoryController => Nil //TODO
+        case d:CU => cuMap.getPcu(d).vouts.head //TODO Assume only 1 vout 
+        case _ => throw TODOException(s"Not supported vecout mapping")
+      }
+      case n:ScalarIn =>
+        cuMap.getSLmap(dep).getOutBus(n.scalar)
+    } 
+
     /* Find vins that connects to the depended ctrler */
     if (p.mapping.contains(pdvout)) {
       //println(s"suc: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
-      //TODO:  + (n -> (p, pdvout))
-      cuMap.setVmap(cl, cuMap.getVmap(cl))
+      val cmap = cuMap.setVI(cl, n, p)
+      cmap.setIB(cl, p, pdvout)
     } else {
       //println(s"fail: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
       throw IntConnct(cl, pcl)
@@ -54,10 +57,10 @@ object VecMapper extends Mapper {
 }
 
 case class IntConnct(cl:CL, pcl:PCL)(implicit design:Design) extends MappingException {
-  override val mapper = VecMapper 
+  override val mapper = VecInMapper 
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }
 case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = VecMapper
+  override val mapper = VecInMapper
   override val msg = s"Not enough InBus IO in ${pcl} to map ${cl}."
 }

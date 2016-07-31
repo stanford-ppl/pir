@@ -1,6 +1,7 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ScalarOut => SO}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, MemoryController => MC, 
+                  ScalarOut => SO}
 import pir.plasticine.graph.{Controller => PCL}
 import pir.plasticine.graph.{ScalarOut => PSO}
 import pir.graph.traversal.PIRMapping
@@ -15,13 +16,18 @@ object ScalarOutMapper extends Mapper {
   type V = PSO 
 
   private def mapScalarOuts(cl:CL)(n:N, p:R, cuMap:M):M = {
-    val scalar = n.scalar
-    val t = (p.outBus, p.idx)
-    val cmap = cuMap.setSLmap(cl, cuMap.getSLmap(cl) + (scalar -> t))
-    cmap.setSOmap(cl, cmap.getSOmap(cl) + (n -> p))
+    cl match {
+      case c:MC => cuMap
+      case c:TT => cuMap
+      case c =>
+        val t = (p.outBus, p.idx)
+        val cmap = cuMap.setSL(cl, n.scalar, t)
+        cmap.setSO(cl, n, p)
+    }
   }
 
-  def map(cl:CL, pcl:PCL, cuMap:M)(implicit design: Design):M = {
+  def map(cl:CL, cuMap:M):M = {
+    val pcl = cuMap.getPcu(cl)
     val souts = cl.souts
     val psouts = pcl.souts
     simAneal(psouts, souts, cuMap, List(mapScalarOuts(cl) _), None, OutOfScalarOut(pcl, _, _))

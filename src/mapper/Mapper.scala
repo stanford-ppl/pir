@@ -21,7 +21,7 @@ trait Mapper {
 
   def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
-    oor:(Int, Int) => OutOfResource)(implicit design:Design):M = {
+    oor:(Int, Int) => OutOfResource):M = {
     //println(s"simAneal")
 
     /* Recursively try a node on a list of resource */

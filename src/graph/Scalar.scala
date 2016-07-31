@@ -10,10 +10,14 @@ import scala.collection.mutable.ListBuffer
  * the scalar value, not a real register */
 case class Scalar(name:Option[String])(implicit design: Design) extends Node {
   override val typeStr = "Scalar"
-  val writers:Set[Controller] = Set[Controller]() 
-  val readers:Set[Controller] = Set[Controller]() 
-  def addReader(r:Controller) = { readers += r; this }
-  def addWriter(w:Controller) = { writers += w; this }
+  var writer:ScalarOut = _ 
+  val readers:Set[ScalarIn] = Set[ScalarIn]() 
+  def addReader(r:ScalarIn) = { readers += r; this }
+  def setWriter(w:ScalarOut) = { 
+    assert(writer == null, s"Already set ${this}'s writer to ${writer}, but trying to reset to ${w}")
+    writer = w; this 
+  }
+  override def toUpdate = super.toUpdate || writer==null
 }
 object Scalar {
   def apply(name:String)(implicit design: Design):Scalar = Scalar(Some(name)) 
@@ -34,10 +38,14 @@ object ArgOut {
 
 case class Vector(val name:Option[String])(implicit design: Design) extends Node {
   override val typeStr = "Vector"
-  val writers:Set[Controller] = Set[Controller]() 
-  val readers:Set[Controller] = Set[Controller]() 
-  def addReader(r:Controller) = { readers += r; this }
-  def addWriter(w:Controller) = { writers += w; this }
+  var writer:VecOut = _
+  val readers:Set[VecIn] = Set[VecIn]() 
+  def addReader(r:VecIn) = { readers += r; this }
+  def setWriter(w:VecOut) = {
+    assert(writer == null, s"Already set ${this}'s writer to ${writer}, but trying to reset to ${w}")
+    writer = w; this
+  }
+  override def toUpdate = super.toUpdate || writer==null
 }
 object Vector {
   def apply(name:String)(implicit design: Design):Vector = Vector(Some(name)) 

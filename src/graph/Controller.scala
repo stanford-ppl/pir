@@ -15,8 +15,10 @@ trait Controller extends Node {
   var vouts:List[VecOut] = _
   override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
 
-  def readers:List[Controller] = souts.flatMap(_.scalar.readers) ++ vouts.flatMap(_.vector.readers)
-  def writers:List[Controller] = sins.map(_.scalar.writers.head) ++ vins.map(_.vector.writers.head)
+  def readers:List[Controller] = souts.flatMap(_.scalar.readers.map(_.ctrler)) ++
+                                 vouts.flatMap(_.vector.readers.map(_.ctrler))
+  def writers:List[Controller] = sins.map(_.scalar.writer.ctrler) ++
+                                 vins.map(_.vector.writer.ctrler)
 
   def updateFields(sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]) = {
     this.sins = sins.toSet.toList 
@@ -375,8 +377,8 @@ case class Top()(implicit design: Design) extends Controller { self =>
     val sins = ListBuffer[ScalarIn]()
     val souts = ListBuffer[ScalarOut]()
     scalars.foreach { s => s match {
-        case a:ArgIn => souts += ScalarOut(a.addWriter(this))
-        case a:ArgOut => sins += ScalarIn(a.addReader(this))
+        case a:ArgIn => souts += ScalarOut(a)
+        case a:ArgOut => sins += ScalarIn(a)
         case _ =>
       }
     }

@@ -14,13 +14,13 @@ object CtrMapper extends Mapper {
   type R = PCtr
   type N = Ctr
 
-  def map(cu:CU, pcu:PCU, cuMap:M)(implicit design: Design):M = {
+  def map(cu:CU, pcu:PCU, cuMap:M):M = {
     val ctrs = cu.cchains.flatMap{cc => cc.counters}
     simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr(cu, pcu) _), None, OutOfCtr(pcu, _, _))
   }
 
   def mapCtr(cu:CU, pcu:PCU)(c:N, p:R, map:M):M = {
-    map.setCtmap(cu, map.getCtmap(cu) + (c -> p))
+    map.setCt(cu, c, p)
   }
 
 }
