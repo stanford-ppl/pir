@@ -257,14 +257,11 @@ object Stage {
     Stage(stage, List(op1, op2), op, result)
   def apply(stage:Stage, op1:Port, op2:Port, op3:Port, op:Op, result:Port)(implicit ctrler:ComputeUnit):Unit =
     Stage(stage, List(op1, op2, op3), op, result)
-  //TODO
-  def reduce(op:Op)(implicit ctrler:ComputeUnit, design:Design):Stage = {
+  def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):Stage = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
-    val rdstages = Stages.reduce(numStages) 
-    rdstages.foreach {s =>
-      Stage(s, List(ctrler.reduce(s).read), op, ctrler.reduce(s).read)
-    }
-    rdstages.last
+    val rdstages = Stages.reduce(numStages, op) 
+    val accStage = Stages.accum(rdstages.last, op, init) 
+    accStage
   }
 }
 object Stages {
@@ -280,17 +277,30 @@ object Stages {
       s
     }
   }
-  def reduce(n:Int) (implicit ctrler:ComputeUnit, design: Design):List[ReduceStage] = {
+  def reduce(n:Int, op:Op) (implicit ctrler:ComputeUnit, design: Design):List[ReduceStage] = {
     List.tabulate(n) {i => 
       val s = new {override val idx = i} with Stage(None) with ReduceStage
       addMaps(s, ctrler)
+      val rreg = ctrler.reduce(s, None)
+      Stage(s, List(rreg.read), op, rreg.read)
       s
     }
+  }
+  def accum(pre:Stage, op:Op, i:Const) (implicit ctrler:ComputeUnit, design: Design):AccumStage = {
+    val s = new {override val init=i} with Stage(None) with AccumStage 
+    addMaps(s, ctrler)
+    val areg = ctrler.reduce(s, Some(i))
+    Stage(s, List(ctrler.reduce(pre).read, areg.read), op, areg.read)
+    s
   }
 }
 trait ReduceStage extends Stage {
   val idx:Int
   override val typeStr = s"RedStage"
+}
+trait AccumStage extends Stage {
+  val init:Const
+  override val typeStr = s"AccStage"
 }
 
 trait Reg extends Primitive {
@@ -313,7 +323,7 @@ case class PipeReg(name:Option[String], stage:Stage, regId:Int)(implicit ctrler:
 trait LoadPR      extends PipeReg {override val typeStr = "PRld"}
 trait StorePR     extends PipeReg {override val typeStr = "PRst"}
 trait CtrPR       extends PipeReg {override val typeStr = "PRct"}
-trait ReducePR    extends PipeReg {override val typeStr = "PRrd"}
+trait ReducePR    extends PipeReg {override val typeStr = "PRrd"; val init:Option[Const]}
 trait VecInPR     extends PipeReg {override val typeStr = "PRvi"}
 trait VecOutPR    extends PipeReg {override val typeStr = "PRvo"}
 trait ScalarInPR  extends PipeReg {override val typeStr = "PRsi"; val scalarIn:ScalarIn }

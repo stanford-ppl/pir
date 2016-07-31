@@ -38,7 +38,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:Stage =>
             fields += s"operands=[${p.operands.mkString(",")}], op=${p.op}, result=${p.result}"
             p match {
-              case rs:ReduceStage => fields += s"idx=${rs.idx}"
+              case s:ReduceStage => fields += s"idx=${s.idx}"
+              case s:AccumStage => fields += s"init=${s.init}"
               case _ =>
             }
           case p:ScalarIn =>

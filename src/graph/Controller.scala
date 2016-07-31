@@ -116,7 +116,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
  def load(stage:Stage, s:SRAM):PipeReg = {
@@ -127,7 +127,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that stores to the sram
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
   def stores(stage:Stage, s:SRAM):PipeReg = {
@@ -139,7 +139,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param c: counter 
   */
   def ctr(stage:Stage, c:Counter):PipeReg = {
@@ -150,11 +150,22 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the reduction network 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
+  * @param i: initial value
   */
+  def reduce(stage:Stage, i:Option[Const]):PipeReg = {
+    val prs = stagePRs(stage); val rid = reduceReg
+    if (!prs.contains(rid))
+      prs += (rid -> new {override val init = i} with PipeReg(stage, rid) with ReducePR)
+    prs(rid)
+  }
+  /* Refer to the reduction register of the stage
+   * @param stage: Stage of the pipeline register 
+   * */
   def reduce(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = reduceReg
-    if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with ReducePR)
+    if (!prs.contains(rid))
+      prs += (rid -> new {override val init = None} with PipeReg(stage, rid) with ReducePR)
     prs(rid)
   }
  /** Create a ScalarIn object 
@@ -163,7 +174,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def scalarIn(s:Scalar):ScalarIn = ScalarIn(s)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
   def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
@@ -175,7 +186,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
   def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, ScalarIn(s))
@@ -186,7 +197,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   //def scalarOut(s:Scalar):ScalarOut = ScalarOut(s)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarOut buffer
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:ScalarOut):PipeReg = {
     if (!scalarOuts.contains(s)) scalarOuts += (s -> newTemp)
@@ -197,12 +208,12 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register and a scalar buffer for a stage. 
   *  The pipeline register connects to the scalarOut buffer
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, ScalarOut(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, v:VecIn):PipeReg = {
     if (!vecIns.contains(v)) vecIns += (v -> newTemp)
@@ -212,13 +223,13 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, VecIn(vec))
   def vecIn(vec:Vector):Port = VecIn(vec).out
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   * @param vo: VecOut of current ComputeUnit. One per CU 
   */
   def vecOut(stage:Stage, vo:VecOut):PipeReg = {
@@ -228,7 +239,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, VecOut(vec))
 
@@ -237,7 +248,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def temp = newTemp
 
  /** Get the pipeline register for stage with rid 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def temp(stage:Stage, rid:Int):PipeReg = {
     val prs = stagePRs(stage)
@@ -245,7 +256,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     prs(rid)
   }
  /** Allocate a new pipeline register in the stage 
-  * @param stage: Stage for the pipeline register 
+  * @param stage: Stage of the pipeline register 
   */
   def temp(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = newTemp

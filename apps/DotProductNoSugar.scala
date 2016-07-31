@@ -76,7 +76,7 @@ object DotProductNoSugar extends Design {
     val out = ScalarOut(output)
     // Pipeline Stages 
     Stage(s0, opds=List(sA.load,sB.load), o=FixMul, r=CU.reduce(s0))
-    val rd = Stage.reduce(op=FixAdd) 
+    val rd = Stage.reduce(op=FixAdd, init=Const(0)) 
     Stage(s1, opds=List(CU.reduce(rd)), o=Bypass, r=CU.scalarOut(s1, out))
 
     CU.updateFields(
