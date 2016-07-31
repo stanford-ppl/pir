@@ -20,7 +20,7 @@ object CtrMapper extends Mapper {
   }
 
   def mapCtr(cu:CU, pcu:PCU)(c:N, p:R, map:M):M = {
-    map.setCt(cu, c, p)
+    map.setCt(c, p)
   }
 
 }

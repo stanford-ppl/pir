@@ -16,16 +16,57 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 
-trait PIRMap {
+case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SRAMMap, ctmap:CtrMap, simap:SIMap,
+  somap:SOMap, slmap:SLMap, ibmap:IBMap) {
+
+  def set(cp:CLMap  ):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap)
+  def set(cp:VIMap  ):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap)
+  def set(cp:SRAMMap):PIRMap = PIRMap(clmap, vimap, cp   , ctmap, simap, somap, slmap, ibmap)
+  def set(cp:CtrMap ):PIRMap = PIRMap(clmap, vimap, smmap, cp   , simap, somap, slmap, ibmap)
+  def set(cp:SIMap  ):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, cp   , somap, slmap, ibmap)
+  def set(cp:SOMap  ):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, cp   , slmap, ibmap)
+  def set(cp:SLMap  ):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, cp   , ibmap)
+  def set(cp:IBMap  ):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, cp   )
+
+  def setCL(k:CLMap.K  , v:CLMap.V  ):PIRMap = set(clmap + (k -> v))
+  def setVI(k:VIMap.K  , v:VIMap.V  ):PIRMap = set(vimap + (k -> v))
+  def setSM(k:SRAMMap.K, v:SRAMMap.V):PIRMap = set(smmap + (k -> v))
+  def setCt(k:CtrMap.K , v:CtrMap.V ):PIRMap = set(ctmap + (k -> v))
+  def setSI(k:SIMap.K  , v:SIMap.V  ):PIRMap = set(simap + (k -> v))
+  def setSO(k:SOMap.K  , v:SOMap.V  ):PIRMap = set(somap + (k -> v))
+  def setSL(k:SLMap.K  , v:SLMap.V  ):PIRMap = set(slmap + (k -> v))
+  def setIB(k:IBMap.K  , v:IBMap.V  ):PIRMap = set(ibmap + (k -> v))
+
+  def printMap(implicit p:Printer):Unit = {
+    clmap.printMap
+    vimap.printMap
+    smmap.printMap
+    ctmap.printMap
+    simap.printMap
+    somap.printMap
+    slmap.printMap
+    ibmap.printMap
+  }
+}
+object PIRMap {
+  def empty:PIRMap = PIRMap(CLMap.empty, VIMap.empty, SRAMMap.empty, CtrMap.empty, 
+                  SIMap.empty, SOMap.empty, SLMap.empty, IBMap.empty)
+}
+
+trait PMap {
   type K
   type V
   type M = Map[K, V]
   val map:M
   def contains(k:K) = map.contains(k)
   def apply(k:K):V = map(k)
-  def printMap(implicit p:Printer):Unit 
+  val name:String = this.getClass().getInterfaces().head.getSimpleName() 
 
-  def printMap(name:String, m:Map[_,_])(implicit p:Printer):Unit = {
+  def check(rec:(K,V)):Unit =  {
+    assert(!map.contains(rec._1), s"${name} already contains key ${rec._1} -> ${map(rec._1)} but try to rebind to ${rec._2}")
+  }
+  def + (rec:(K,V)):PMap 
+  def printMap(implicit p:Printer):Unit = {
     if (map.size!=0) {
       p.emitBlock(name) {
         map.foreach{ case (k,v) =>
@@ -36,180 +77,115 @@ trait PIRMap {
   }
 }
 
-trait CLMap extends PIRMap {
+trait OPMap {
+  type K
+  type V
+  type M = Map[K,V]
+}
+trait CLMap extends PMap {
   type K = CLMap.K
   type V = CLMap.V
-
-  def getPcu(k:K):PCL = map(k)._1
-  def getVImap(k:K):VIMap = map(k)._2
-  def getSMmap(k:K):SRAMMap = map(k)._3
-  def getCtmap(k:K):CtrMap = map(k)._4
-  def getSImap(k:K):SIMap = map(k)._5
-  def getSOmap(k:K):SOMap = map(k)._6
-  def getSLmap(k:K):SLMap = map(k)._7
-  def getIBmap(k:K):IBMap = map(k)._8
-
-  def update(k:K, v:V):CLMap = CLMap(map + (k -> v))
-  def setPcu(k:K, pcu:PCL):CLMap = CLMap(map + (k -> map.getOrElse(k, CLMap.emptyV).copy(_1=pcu)))
-  def setVImap(k:K, mp:VIMap  ):CLMap = CLMap(map + (k -> map(k).copy(_2=mp)))
-  def setSMmap(k:K, mp:SRAMMap):CLMap = CLMap(map + (k -> map(k).copy(_3=mp)))
-  def setCtmap(k:K, mp:CtrMap ):CLMap = CLMap(map + (k -> map(k).copy(_4=mp)))
-  def setSImap(k:K, mp:SIMap  ):CLMap = CLMap(map + (k -> map(k).copy(_5=mp)))
-  def setSOmap(k:K, mp:SOMap  ):CLMap = CLMap(map + (k -> map(k).copy(_6=mp)))
-  def setSLmap(k:K, mp:SLMap  ):CLMap = CLMap(map + (k -> map(k).copy(_7=mp)))
-  def setIBmap(k:K, mp:IBMap  ):CLMap = CLMap(map + (k -> map(k).copy(_8=mp)))
-
-  def setVI(k:K, kk:VIMap.K  , v:VIMap.V  ) = setVImap(k, getVImap(k) + (kk -> v))
-  def setSM(k:K, kk:SRAMMap.K, v:SRAMMap.V) = setSMmap(k, getSMmap(k) + (kk -> v))
-  def setCt(k:K, kk:CtrMap.K , v:CtrMap.V ) = setCtmap(k, getCtmap(k) + (kk -> v))
-  def setSI(k:K, kk:SIMap.K  , v:SIMap.V  ) = setSImap(k, getSImap(k) + (kk -> v))
-  def setSO(k:K, kk:SOMap.K  , v:SOMap.V  ) = setSOmap(k, getSOmap(k) + (kk -> v))
-  def setSL(k:K, kk:SLMap.K  , v:SLMap.V  ) = setSLmap(k, getSLmap(k) + (kk -> v))
-  def setIB(k:K, kk:IBMap.K  , v:IBMap.V  ) = setIBmap(k, getIBmap(k) + (kk -> v))
-
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("clMap") {
-      map.foreach{ case (cl, (pcl, vm, sm, cm, sim, som, slm, ibm)) =>
-        p.emitBlock(s"$cl -> $pcl") {
-          vm.printMap
-          ibm.printMap
-          sm.printMap
-          cm.printMap
-          slm.printMap
-          sim.printMap
-          som.printMap
-        }
-      }
-    }
-  }
+  override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec) }
 }
-object CLMap {
+object CLMap extends OPMap {
   type K = CL
-  type V = (PCL, VIMap, SRAMMap, CtrMap, SIMap, SOMap, SLMap, IBMap)
-
+  type V = PCL
   def apply(m:Map[K,V]) = new { override val map = m } with CLMap
   def empty:CLMap = CLMap(Map.empty)
-  def emptyV:V = (null, VIMap.empty, SRAMMap.empty, CtrMap.empty, 
-                  SIMap.empty, SOMap.empty, SLMap.empty, IBMap.empty)
 }
 
 /* A mapping between a PInBus and the POutBus it connects to */
-trait IBMap extends PIRMap {
+trait IBMap extends PMap {
   type K = IBMap.K
   type V = IBMap.V
-
-  def printMap(implicit p:Printer) = printMap("ibMap", map)
-  def + (rec:(K,V)) = IBMap(map + rec)
+  override def + (rec:(K,V)) = { super.check(rec); IBMap(map + rec) }
 }
-object IBMap {
+object IBMap extends OPMap {
   type K = PIB
   type V = POB
-
   def apply(m:Map[K,V]) = new { override val map = m } with IBMap
   def empty:IBMap = IBMap(Map.empty)
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus and the POutBus where Input is 
  * connecting to */
-trait VIMap extends PIRMap {
+trait VIMap extends PMap {
   type K = VIMap.K
   type V = VIMap.V
-
-  def printMap(implicit p:Printer) = printMap("vecInMap", map)
-  def + (rec:(K,V)) = VIMap(map + rec)
+  override def + (rec:(K,V)) = { super.check(rec); VIMap(map + rec) }
 }
-object VIMap {
+object VIMap extends OPMap {
   type K = I
   type V = PIB
-
   def apply(m:Map[K,V]) = new { override val map = m } with VIMap
   def empty:VIMap = VIMap(Map.empty)
 }
 
 /* A Map between PIR Counter to Spade Counter */
-trait SRAMMap extends PIRMap {
+trait SRAMMap extends PMap {
   type K = SRAMMap.K
   type V = SRAMMap.V
-
-  def printMap(implicit p:Printer) = printMap("sramMap", map)
-  def + (rec:(K,V)) = SRAMMap(map + rec)
-
+  override def + (rec:(K,V)) = { super.check(rec); SRAMMap(map + rec) }
 }
-object SRAMMap {
+object SRAMMap extends OPMap {
   type K = SRAM
   type V = PSRAM
-
   def apply(m:Map[K,V]) = new { override val map = m } with SRAMMap
   def empty:SRAMMap = SRAMMap(Map.empty)
 }
 
 /* A Map between PIR Counter to Spade Counter */
-trait CtrMap extends PIRMap {
+trait CtrMap extends PMap {
   type K = CtrMap.K
   type V = CtrMap.V
-
-  def printMap(implicit p:Printer) = printMap("ctrMap", map)
-  def + (rec:(K,V)) = CtrMap(map + rec)
-
+  override def + (rec:(K,V)) = { super.check(rec); CtrMap(map + rec) }
 }
-object CtrMap {
+object CtrMap extends OPMap {
   type K = Ctr
   type V = PCtr
-
   def apply(m:Map[K,V]) = new { override val map = m } with CtrMap
   def empty:CtrMap = CtrMap(Map.empty)
 }
 
 /* A Map between PIR Counter to Spade Counter */
-trait SIMap extends PIRMap {
+trait SIMap extends PMap {
   type K = SIMap.K
   type V = SIMap.V
-
-  def printMap(implicit p:Printer) = printMap("siMap", map)
-  def + (rec:(K,V)) = SIMap(map + rec)
-
+  override def + (rec:(K,V)) = { super.check(rec); SIMap(map + rec) }
 }
-object SIMap {
+object SIMap extends OPMap {
   type K = SI
   type V = PSI
-
   def apply(m:Map[K,V]) = new { override val map = m } with SIMap
   def empty:SIMap = SIMap(Map.empty)
 }
 
 /* A Map between PIR Counter to Spade Counter */
-trait SOMap extends PIRMap {
+trait SOMap extends PMap {
   type K = SOMap.K
   type V = SOMap.V
-
-  def printMap(implicit p:Printer) = printMap("soMap", map)
-  def + (rec:(K,V)) = SOMap(map + rec)
-
+  override def + (rec:(K,V)) = { super.check(rec); SOMap(map + rec) }
 }
 
-object SOMap {
+object SOMap extends OPMap {
   type K = SO 
   type V = PSO 
-
   def apply(m:Map[K,V]) = new { override val map = m } with SOMap
   def empty:SOMap = SOMap(Map.empty)
 }
 
 /* A mapping between a scalar value and its writer's (OutBus, Index of Scalar Port in the Bus) */
-trait SLMap extends PIRMap {
+trait SLMap extends PMap {
   type K = SLMap.K
   type V = SLMap.V
-
-  def printMap(implicit p:Printer) = printMap("scalarMap", map)
-  def + (rec:(K,V)) = SLMap(map + rec)
+  override def + (rec:(K,V)) = { super.check(rec); SLMap(map + rec) }
   def getOutBus(k:K) = map(k)._1
   def getIdx(k:K) = map(k)._2
 
 }
-object SLMap {
+object SLMap extends OPMap {
   type K = Scalar 
   type V = (POB, Int)
-
   def apply(m:Map[K,V]) = new { override val map = m } with SLMap
   def empty:SLMap = SLMap(Map.empty)
 }

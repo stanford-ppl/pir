@@ -12,7 +12,7 @@ import scala.util.{Try, Success, Failure}
 trait Mapper {
   type R
   type N
-  type M = CLMap 
+  type M = PIRMap 
 
   implicit var design:Design = _
   def setDesign(d:Design) = design = d

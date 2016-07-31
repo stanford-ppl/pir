@@ -18,12 +18,12 @@ object SRAMMapper extends Mapper {
   private def mapSRAM(cu:CU, pcu:PCU)(s:N, p:R, cuMap:M):M = {
     val suc = s.writePort.src match {
       case wp:VecIn => 
-        val ib = cuMap.getVImap(cu)(wp)
+        val ib = cuMap.vimap(wp)
         p.writePort.isConn(ib.outports(0))
       case _ => true //TODO
     }
     assert(suc) //TODO: Current arch this should always success
-    cuMap.setSM(cu, s, p) 
+    cuMap.setSM(s, p) 
   }
 
   // No need to try. Assume 1 to 1 correspondent between vecIn and sram write port in arch

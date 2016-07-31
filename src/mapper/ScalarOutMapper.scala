@@ -21,13 +21,13 @@ object ScalarOutMapper extends Mapper {
       case c:TT => cuMap
       case c =>
         val t = (p.outBus, p.idx)
-        val cmap = cuMap.setSL(cl, n.scalar, t)
-        cmap.setSO(cl, n, p)
+        val cmap = cuMap.setSL(n.scalar, t)
+        cmap.setSO(n, p)
     }
   }
 
   def map(cl:CL, cuMap:M):M = {
-    val pcl = cuMap.getPcu(cl)
+    val pcl = cuMap.clmap(cl)
     val souts = cl.souts
     val psouts = pcl.souts
     simAneal(psouts, souts, cuMap, List(mapScalarOuts(cl) _), None, OutOfScalarOut(pcl, _, _))

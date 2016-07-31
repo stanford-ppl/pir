@@ -31,13 +31,13 @@ object CUMapper extends Mapper {
     (pcus, cus.toList, ptts, tts.toList)
   }
 
-  private def mapPrim(cuMap:M):M = {
-    cuMap.map.foldLeft(cuMap) { case (pm, (ctrler, v)) =>
+  private def mapPrim(pirMap:M):M = {
+    pirMap.clmap.map.foldLeft(pirMap) { case (pm, (ctrler, v)) =>
       var cmap = pm
       cmap = ScalarInMapper.map(ctrler, cmap)
       ctrler match {
         case cu:ComputeUnit =>
-          val pcu = cmap.getPcu(cu).asInstanceOf[PCU]
+          val pcu = cmap.clmap(cu).asInstanceOf[PCU]
           cmap = SRAMMapper.map(cu, pcu, cmap)
           cmap = CtrMapper.map(cu, pcu, cmap)
           //ScalarOutMapper.map(cu, pcu, m2)
@@ -48,9 +48,9 @@ object CUMapper extends Mapper {
     }
   }
 
-  private def mapCU(cu:N, pcu:R, cuMap:M):M = {
+  private def mapCU(cu:N, pcu:R, pirMap:M):M = {
     //println(s"mapCU: ${cu} -- ${pcu} ")
-    var cmap = cuMap.setPcu(cu, pcu) 
+    var cmap = pirMap.setCL(cu, pcu) 
     //val p:Printer = new Printer{}; CUMapper.printMap(cmap)(p)
     /* Map CU */
    // Assume sin and vin have only one writer
@@ -62,18 +62,18 @@ object CUMapper extends Mapper {
   val cons = List(mapCU _)
   lazy val (pcus, cus, ptts, tts) = setResource
 
-  def mapRCU(cuMap:M):M = {
-    //simAneal(pcus, cus, cuMap, cons, Some(mapPrim _), OutOfPCU(_, _))
-    simAneal(pcus, cus, cuMap, cons, None, OutOfPCU(_, _)) //TODO
+  def mapRCU(pirMap:M):M = {
+    //simAneal(pcus, cus, pirMap, cons, Some(mapPrim _), OutOfPCU(_, _))
+    simAneal(pcus, cus, pirMap, cons, None, OutOfPCU(_, _)) //TODO
   }
 
-  def mapTT(cuMap:M):M = {
-    simAneal(ptts, tts, cuMap, cons, Some(mapRCU _), OutOfPTT(_, _))
+  def mapTT(pirMap:M):M = {
+    simAneal(ptts, tts, pirMap, cons, Some(mapRCU _), OutOfPTT(_, _))
   }
 
   def map:M = {
     setDesign(design)
-    simAneal(List(design.arch.top), List(design.top), CLMap.empty, cons, Some(mapTT _), OutOfPCU(_, _))
+    simAneal(List(design.arch.top), List(design.top), PIRMap.empty, cons, Some(mapTT _), OutOfPCU(_, _))
   }
 }
 

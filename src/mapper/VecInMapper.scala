@@ -12,43 +12,43 @@ object VecInMapper extends Mapper {
   type R = PIB
   type N = I
 
-  def map(cl:CL, cuMap:M):M = {
-    val pcl = cuMap.getPcu(cl)
+  def map(cl:CL, pirMap:M):M = {
+    val pcl = pirMap.clmap(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
-    val cmap = simAneal(pcl.vins, cl.vins ++ cl.sins, cuMap, cons, None, OutOfVec(cl, pcl, _, _))
-    cl.readers.foldLeft(cmap) { case (pm, reader) =>
-      if (cuMap.contains(reader))
+    val pmap = simAneal(pcl.vins, cl.vins ++ cl.sins, pirMap, cons, None, OutOfVec(cl, pcl, _, _))
+    cl.readers.foldLeft(pmap) { case (pm, reader) =>
+      if (pirMap.clmap.contains(reader))
         map(reader, pm)
       else
         pm
     }
   }
 
-  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M):M = {
-    if (cuMap.getVImap(cl).contains(n))
-      return cuMap
+  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
+    if (pirMap.vimap.contains(n))
+      return pirMap
     val dep = n match {
       case n:ScalarIn => n.scalar.writer.ctrler
       case n:VecIn => n.vector.writer.ctrler
     }
-    if (!cuMap.contains(dep))
-      return cuMap
+    if (!pirMap.clmap.contains(dep))
+      return pirMap
     val pdvout:POB = n match {
       case n:VecIn => dep match {
         //case d:MemoryController => Nil //TODO
-        case d:CU => cuMap.getPcu(d).vouts.head //TODO Assume only 1 vout 
+        case d:CU => pirMap.clmap(d).vouts.head //TODO Assume only 1 vout 
         case _ => throw TODOException(s"Not supported vecout mapping")
       }
       case n:ScalarIn =>
-        cuMap.getSLmap(dep).getOutBus(n.scalar)
+        pirMap.slmap.getOutBus(n.scalar)
     } 
 
     /* Find vins that connects to the depended ctrler */
-    if (p.mapping.contains(pdvout)) {
+    if (p.isConn(pdvout)) {
       //println(s"suc: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
-      val cmap = cuMap.setVI(cl, n, p)
-      cmap.setIB(cl, p, pdvout)
+      val pmap = pirMap.setVI(n, p)
+      pmap.setIB(p, pdvout)
     } else {
       //println(s"fail: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
       throw IntConnct(cl, pcl)

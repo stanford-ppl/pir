@@ -12,22 +12,22 @@ object ScalarInMapper extends Mapper {
   type N = SI
   type R = PSI 
 
-  private def mapScalarIns(cl:CL, pcl:PCL)(n:N, p:R, cuMap:M):M = {
-    val ib = cuMap.getVImap(cl)(n)
-    val idx = cuMap.getSLmap(cl).getIdx(n.scalar)
+  private def mapScalarIns(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
+    val ib = pirMap.vimap(n)
+    val idx = pirMap.slmap.getIdx(n.scalar)
     if (p.in.isConn(ib.outports(idx)))
-      cuMap.setSI(cl, n, p)
+      pirMap.setSI(n, p)
     else
       throw ScalarInRouting(n, p)
   }
 
-  def map(cl:CL, cuMap:M):M = {
-    val pcl = cuMap.getPcu(cl)
+  def map(cl:CL, pirMap:M):M = {
+    val pcl = pirMap.clmap(cl)
     val sin = cl.sins
     val psin = pcl.sins
     // Assume one SI to one outport, no need to map
     
-    simAneal(psin, sin, cuMap, List(mapScalarIns(cl, pcl) _),None,OutOfScalarIn(pcl, _, _))
+    simAneal(psin, sin, pirMap, List(mapScalarIns(cl, pcl) _),None,OutOfScalarIn(pcl, _, _))
   }
 
 }

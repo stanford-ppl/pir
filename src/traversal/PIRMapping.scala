@@ -7,7 +7,7 @@ import scala.util.{Try, Success, Failure}
 
 class PIRMapping(implicit val design: Design) extends Traversal{
 
-  var mapping:CLMap = _
+  var mapping:PIRMap = _
 
   override def reset = {
     mapping = null
