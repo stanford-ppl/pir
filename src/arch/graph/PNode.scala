@@ -36,6 +36,8 @@ case class Counter() extends Node {
   val max = InPort(this, s"${this}.max")
   val step = InPort(this, s"${this}.step")
   val out = OutPort(this, s"${this}.out")
+  val en = InWire(this, s"${this}.en")
+  val sat = OutWire(this, s"${this}.sat")
 }
 
 /** 1 mapping of pipeline register (1 row of reg for all stages) */
@@ -72,11 +74,13 @@ trait Controller extends Node {
   val vouts:List[OutBus]
 }
 
-case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn], argInBuses:List[OutBus], argOutBuses:List[InBus]) extends Controller {
+case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn], 
+               argInBuses:List[OutBus], argOutBuses:List[InBus]) extends Controller {
   override val sins:List[ScalarIn] = argOuts
   override val souts:List[ScalarOut] = argIns
   override val vins:List[InBus] = argOutBuses
   override val vouts:List[OutBus] = argInBuses
+  val clk = OutWire(this, s"clk")
   def numArgIn = argIns.size
   def numArgOut = argOuts.size
 }
@@ -135,8 +139,38 @@ trait IO extends Node{
   var src:Option[Node] = None
   def connTo(n:Node) = if (!src.isDefined) false else (src.get == n)
 }
+
+trait Control
+
+trait Wire extends IO with Control
 trait Port extends IO
 trait Bus extends IO
+
+trait InWire extends Wire with Input {
+  type O = OutWire
+  override val typeStr = "iw"
+  override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
+}
+object InWire {
+  def apply() = new Node with InWire
+  def apply(s:Node) = new Node with InWire {src = Some(s)}
+  def apply(s:Node, sf: =>String) = new Node with InWire {
+    src = Some(s)
+    override def toString = sf
+  }
+}
+trait OutWire extends Port with Output { 
+  type I = InWire
+  override val typeStr = "ow"
+}
+object OutWire {
+  def apply() = new Node with OutWire
+  def apply(s:Node) = new Node with OutWire {src = Some(s)}
+  def apply(s:Node, sf: =>String) = new Node with OutWire {
+    src = Some(s)
+    override def toString = sf
+  }
+}
 
 trait InPort extends Port with Input {
   type O = OutPort
@@ -168,9 +202,7 @@ object OutPort {
     override def toString = sf
   }
 }
-object Const extends OutPort {
-  override def toString = "Const"
-}
+object Const extends OutPort { override def toString = "Const" }
 
 case class InBus(outports:List[BusOutPort]) extends Bus with Input {
   type O = OutBus

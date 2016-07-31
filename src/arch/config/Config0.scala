@@ -70,6 +70,12 @@ object Config0 extends Spade {
       regs(ptr + ic) <= c.out
       c
     }
+    for (i <- 1 until numCtrs) { // Chain counters together
+      ctrs(i).en <= ctrs(i-1).sat
+    } 
+    for (i <- 0 until numCtrs by 2) {
+      ctrs(i).en <= top.clk
+    }
     ptr += numCtrs
 
     val srams = List.tabulate(numSRAMs) { is => 

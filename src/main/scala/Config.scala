@@ -23,6 +23,7 @@ object Config {
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
   var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
+  var spadeCtr = getProperty("pir.spade_ctr", "Ctr.dot")
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var debug = getProperty("pir.debug", "true") == "true"
 

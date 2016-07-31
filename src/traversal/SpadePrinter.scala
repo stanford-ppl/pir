@@ -63,6 +63,8 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
                 emitln(s"${c.max.ms}")
                 emitln(s"${c.step.ms}")
                 emitln(s"${c.out.mt}")
+                emitln(s"${c.en.ms}")
+                emitln(s"${c.sat.mt}")
               }
             }
           }
