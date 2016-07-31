@@ -38,14 +38,47 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SRAMMap, ctmap:CtrMap, simap:S
   def setIB(k:IBMap.K  , v:IBMap.V  ):PIRMap = set(ibmap + (k -> v))
 
   def printMap(implicit p:Printer):Unit = {
-    clmap.printMap
-    vimap.printMap
-    smmap.printMap
-    ctmap.printMap
-    simap.printMap
-    somap.printMap
     slmap.printMap
     ibmap.printMap
+    clmap.map.foreach { case (cl, pcl) =>
+      p.emitBlock( s"$cl -> $pcl" ) {
+        if (!cl.isInstanceOf[TileTransfer]) { //TODO
+          p.emitBlock(s"SIMap") {
+            cl.sins.foreach { sin =>
+              p.emitln(s"${sin} -> ${simap(sin)}")
+            } 
+          }
+          p.emitBlock(s"SOMap") {
+            cl.souts.foreach { sout =>
+              p.emitln(s"${sout} -> ${somap(sout)}")
+            } 
+          }
+        }
+        p.emitBlock(s"VIMap") {
+          (cl.sins ++ cl.vins).foreach { in =>
+            p.emitln(s"${in} -> ${vimap(in)}")
+          } 
+        }
+        cl match {
+          case cu:CU =>
+            p.emitBlock(s"SMMap") {
+              cu.srams.foreach { sram =>
+                p.emitln(s"${sram} -> ${smmap(sram)}")
+              }
+            }
+            p.emitBlock(s"CCMap") {
+              cu.cchains.foreach { cc =>
+                p.emitBlock(s"${cc}") {
+                  cc.counters.foreach { ct =>
+                    p.emitln(s"${ct} -> ${ctmap(ct)}")
+                  }
+                }
+              }
+            }
+          case _ =>
+        }
+      }
+    }
   }
 }
 object PIRMap {

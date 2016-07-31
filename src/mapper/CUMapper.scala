@@ -40,8 +40,6 @@ object CUMapper extends Mapper {
           val pcu = cmap.clmap(cu).asInstanceOf[PCU]
           cmap = SRAMMapper.map(cu, pcu, cmap)
           cmap = CtrMapper.map(cu, pcu, cmap)
-          //ScalarOutMapper.map(cu, pcu, m2)
-          //ScalarInMapper.map(cu, pcu, m3)
         case _ => pm
       }
       cmap
@@ -63,8 +61,7 @@ object CUMapper extends Mapper {
   lazy val (pcus, cus, ptts, tts) = setResource
 
   def mapRCU(pirMap:M):M = {
-    //simAneal(pcus, cus, pirMap, cons, Some(mapPrim _), OutOfPCU(_, _))
-    simAneal(pcus, cus, pirMap, cons, None, OutOfPCU(_, _)) //TODO
+    simAneal(pcus, cus, pirMap, cons, Some(mapPrim _), OutOfPCU(_, _))
   }
 
   def mapTT(pirMap:M):M = {
