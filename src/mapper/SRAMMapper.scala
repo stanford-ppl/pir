@@ -15,7 +15,7 @@ object SRAMMapper extends Mapper {
   type N = SRAM 
   type R = PSRAM 
 
-  private def mapSRAM(cu:CU, pcu:PCU)(s:N, p:R, cuMap:M):M = {
+  private def mapSRAM(cu:CU)(s:N, p:R, cuMap:M):M = {
     val suc = s.writePort.src match {
       case wp:VecIn => 
         val ib = cuMap.vimap(wp)
@@ -27,8 +27,9 @@ object SRAMMapper extends Mapper {
   }
 
   // No need to try. Assume 1 to 1 correspondent between vecIn and sram write port in arch
-  def map(cu:CU, pcu:PCU, cuMap:M):M = {
-    val cons = List(mapSRAM(cu, pcu) _)
+  def map(cu:CU, cuMap:M):M = {
+    val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
+    val cons = List(mapSRAM(cu) _)
     simAneal(pcu.srams, cu.srams, cuMap, cons, None, OutOfSram(pcu, _, _))
   }
 }

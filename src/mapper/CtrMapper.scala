@@ -14,17 +14,31 @@ object CtrMapper extends Mapper {
   type R = PCtr
   type N = Ctr
 
-  def map(cu:CU, pcu:PCU, cuMap:M):M = {
-    val ctrs = cu.cchains.flatMap{cc => cc.counters}
-    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr(cu, pcu) _), None, OutOfCtr(pcu, _, _))
+  def map(cu:CU, cuMap:M):M = {
+    val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
+    // Mapping inner counter first converges faster
+    val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
+    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), None, OutOfCtr(pcu, _, _))
   }
 
-  def mapCtr(cu:CU, pcu:PCU)(c:N, p:R, map:M):M = {
-    map.setCt(c, p)
+  def mapCtr(c:N, p:R, map:M):M = {
+    if (c.dep.isDefined && map.ctmap.contains(c.dep.get)) {
+      val pdep = map.ctmap(c.dep.get)
+      if (!p.isDep(pdep)) throw CtrRouting(c, p)
+    }
+    if (c.deped.isDefined && map.ctmap.contains(c.deped.get)) {
+      val pdeped = map.ctmap(c.deped.get)
+      if (!pdeped.isDep(p)) throw CtrRouting(c, p)
+    }
+    return map.setCt(c,p) 
   }
 
 }
 case class OutOfCtr(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = CtrMapper
   override val msg = s"Not enough Counters in ${pcu} to map application."
+}
+case class CtrRouting(n:Ctr, p:PCtr)(implicit design:Design) extends MappingException {
+  override val mapper = ScalarInMapper
+  override val msg = s"Fail to map ${n} to ${p}"
 }

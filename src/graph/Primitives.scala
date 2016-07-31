@@ -27,12 +27,12 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
 
   override def toUpdate = super.toUpdate || counters==null || dep==null || copy==null 
 
-  def apply(i: Int)(implicit ctrler:Controller, design: Design):Counter = {
+  def apply(num: Int)(implicit ctrler:Controller, design: Design):Counter = {
     if (counters == null) {
       // Speculatively create counters base on need and check index out of bound during update
-      this.counters = (0 to i).map { j => Counter() }.toList
+      this.counters = (0 to num).map { j => Counter() }.toList
     }
-    counters(i)
+    counters(num)
   }
   def copy(cp:CounterChain):Unit = {
     // Check whether speculative wire allocation was correct
@@ -43,11 +43,20 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
     counters.zipWithIndex.foreach { case(c,i) => 
       c.copy(cp.counters(i))
     }
+    updateDep
     this.copy = Some(cp)
   }
   def update(bds: Seq[(Port, Port, Port)]):Unit = {
     counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(mi, ma, s)}.toList
+    updateDep
     this.copy = None 
+  }
+
+  def updateDep = {
+    for (i <- 0 until counters.size - 1) {
+      counters(i).setDep(counters(i+1))  
+    }
+    counters.last.setDep(None)
   }
 }
 object CounterChain {
@@ -73,12 +82,19 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   var max:Port = _
   var step:Port = _
   val out:Port = Port(this, {s"${this}.out"}) 
-  override def toUpdate = super.toUpdate || min==null || max==null || step==null
+  var dep:Option[Counter] = _
+  var deped:Option[Counter] = None
+  override def toUpdate = super.toUpdate || min==null || max==null || step==null || dep==null
 
   def update(mi:Port, ma:Port, s:Port):Unit = {
     min = mi
     max  = ma
     step = s
+  }
+  def setDep(c:Counter) = { dep = Some(c); c.deped = Some(this) }
+  def setDep(c:Option[Counter]) = { 
+    if (c.isDefined) { c.get.deped = Some(this) }
+    dep = c
   }
   def copy(c:Counter) = {
     assert(min==null, 

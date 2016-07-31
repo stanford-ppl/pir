@@ -37,9 +37,8 @@ object CUMapper extends Mapper {
       cmap = ScalarInMapper.map(ctrler, cmap)
       ctrler match {
         case cu:ComputeUnit =>
-          val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-          cmap = SRAMMapper.map(cu, pcu, cmap)
-          cmap = CtrMapper.map(cu, pcu, cmap)
+          cmap = SRAMMapper.map(cu, cmap)
+          cmap = CtrMapper.map(cu, cmap)
         case _ => pm
       }
       cmap

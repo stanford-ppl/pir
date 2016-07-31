@@ -46,7 +46,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:VecOut =>
             fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 
-            fields += s"min=${p.min}, max=${p.max}, step=${p.step}"
+            fields += s"min=${p.min}, max=${p.max}, step=${p.step}, dep=${p.dep}"
           case p:Reg => p match {
             case r:PipeReg =>
             case r:Const => fields += s"${r.value}"
