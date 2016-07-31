@@ -22,9 +22,18 @@ trait PIRMap {
   type V
   type M = Map[K, V]
   val map:M
-  def printMap(implicit p:Printer):Unit 
   def contains(k:K) = map.contains(k)
   def apply(k:K):V = map(k)
+  def printMap(implicit p:Printer):Unit 
+
+  def printMap(name:String, m:Map[_,_])(implicit p:Printer):Unit = {
+    p.emitBlock(name) {
+      map.foreach{ case (k,v) =>
+        p.emitln(s"$k -> $v")
+      }
+    }
+    p.close
+  }
 }
 
 trait CLMap extends PIRMap {
@@ -39,6 +48,7 @@ trait CLMap extends PIRMap {
   def getCtmap(k:K):CtrMap = map(k)._4
   def getSImap(k:K):SIMap = map(k)._5
   def getSOmap(k:K):SOMap = map(k)._6
+  def getSLmap(k:K):SLMap = map(k)._7
 
   def update(k:K, v:V):CLMap = CLMap(map + (k -> v))
   def setPcu(k:K, pcu:PCL):CLMap = CLMap(map + (k -> map.getOrElse(k, CLMap.emptyV).copy(_1=pcu)))
@@ -47,14 +57,16 @@ trait CLMap extends PIRMap {
   def setCtmap(k:K, mp:CtrMap):CLMap = CLMap(map + (k -> map(k).copy(_4=mp)))
   def setSImap(k:K, mp:SIMap):CLMap = CLMap(map + (k -> map(k).copy(_5=mp)))
   def setSOmap(k:K, mp:SOMap):CLMap = CLMap(map + (k -> map(k).copy(_6=mp)))
+  def setSLmap(k:K, mp:SLMap):CLMap = CLMap(map + (k -> map(k).copy(_7=mp)))
 
   def printMap(implicit p:Printer) = {
     p.emitBlock("clMap") {
-      map.foreach{ case (cl, (pcl, vm, sm, cm, sim, som)) =>
+      map.foreach{ case (cl, (pcl, vm, sm, cm, sim, som, slm)) =>
         p.emitBlock(s"$cl -> $pcl") {
           vm.printMap
           sm.printMap
           cm.printMap
+          slm.printMap
           sim.printMap
           som.printMap
         }
@@ -65,15 +77,11 @@ trait CLMap extends PIRMap {
 }
 object CLMap {
   type K = CL
-  type V = (PCL, VecMap,
-                 SRAMMap, 
-                 CtrMap, 
-                 SIMap, 
-                 SOMap)
+  type V = (PCL, VecMap, SRAMMap, CtrMap, SIMap, SOMap, SLMap)
 
   def apply(m:Map[K,V]) = new { override val map = m } with CLMap
   def empty:CLMap = CLMap(Map.empty)
-  def emptyV:V = (null, VecMap.empty, SRAMMap.empty, CtrMap.empty, SIMap.empty, SOMap.empty)
+  def emptyV:V = (null, VecMap.empty, SRAMMap.empty, CtrMap.empty, SIMap.empty, SOMap.empty, SLMap.empty)
 }
 
 trait VecMap extends PIRMap {
@@ -82,14 +90,7 @@ trait VecMap extends PIRMap {
 
   val map: M 
 
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("vecMap") {
-      map.foreach{ case (k,v) =>
-        p.emitln(s"$k -> $v")
-      }
-    }
-    p.close
-  }
+  def printMap(implicit p:Printer) = printMap("vecMap", map)
   def + (rec:(K,V)) = VecMap(map + rec)
   def getIB(k:K) = map(k)._1
   def getOB(k:K) = map(k)._2
@@ -110,14 +111,7 @@ trait SRAMMap extends PIRMap {
 
   val map: M 
 
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("sramMap") {
-      map.foreach{ case (k,v) =>
-        p.emitln(s"$k -> $v")
-      }
-    }
-    p.close
-  }
+  def printMap(implicit p:Printer) = printMap("sramMap", map)
   def + (rec:(K,V)) = SRAMMap(map + rec)
 
 }
@@ -136,14 +130,7 @@ trait CtrMap extends PIRMap {
 
   val map: M 
 
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("ctrMap") {
-      map.foreach{ case (k,v) =>
-        p.emitln(s"$k -> $v")
-      }
-    }
-    p.close
-  }
+  def printMap(implicit p:Printer) = printMap("ctrMap", map)
   def + (rec:(K,V)) = CtrMap(map + rec)
 
 }
@@ -162,14 +149,7 @@ trait SIMap extends PIRMap {
 
   val map: M 
 
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("siMap") {
-      map.foreach{ case (k,v) =>
-        p.emitln(s"$k -> $v")
-      }
-    }
-    p.close
-  }
+  def printMap(implicit p:Printer) = printMap("siMap", map)
   def + (rec:(K,V)) = SIMap(map + rec)
 
 }
@@ -188,21 +168,34 @@ trait SOMap extends PIRMap {
 
   val map: M 
 
-  def printMap(implicit p:Printer) = {
-    p.emitBlock("soMap") {
-      map.foreach{ case (k,v) =>
-        p.emitln(s"$k -> $v")
-      }
-    }
-    p.close
-  }
+  def printMap(implicit p:Printer) = printMap("soMap", map)
   def + (rec:(K,V)) = SOMap(map + rec)
 
 }
+
 object SOMap {
   type K = SO 
   type V = PSO 
 
   def apply(m:Map[K,V]) = new { override val map = m } with SOMap
   def empty:SOMap = SOMap(Map.empty)
+}
+
+/* A Map between PIR Counter to Spade Counter */
+trait SLMap extends PIRMap {
+  type K = SLMap.K
+  type V = SLMap.V
+
+  val map: M 
+
+  def printMap(implicit p:Printer) = printMap("scalarMap", map)
+  def + (rec:(K,V)) = SLMap(map + rec)
+
+}
+object SLMap {
+  type K = Scalar 
+  type V = (POB, Int)
+
+  def apply(m:Map[K,V]) = new { override val map = m } with SLMap
+  def empty:SLMap = SLMap(Map.empty)
 }

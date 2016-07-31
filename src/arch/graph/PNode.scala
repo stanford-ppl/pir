@@ -55,13 +55,14 @@ trait ScalarBuffer extends Reg
 case class ScalarIn(outport:BusOutPort) extends ScalarBuffer {
   override val typeStr = "si"
   this <= outport
-  def inBus = outport.src
+  def inBus:InBus = outport.src.get.asInstanceOf[InBus]
   def idx = outport.idx
 } 
 case class ScalarOut(inport:BusInPort) extends ScalarBuffer {
   override val typeStr = "so"
   inport <= this
-  def outBus = inport.src
+  def outBus:OutBus = inport.src.get.asInstanceOf[OutBus]
+  def idx = inport.idx
 }
 
 trait Controller extends Node {

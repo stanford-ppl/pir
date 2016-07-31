@@ -50,6 +50,7 @@ object CUMapper extends Mapper {
     //val p:Printer = new Printer{}; CUMapper.printMap(cmap)(p)
     /* Map CU */
    // Assume sin and vin have only one writer
+    ScalarOutMapper.map(cu, pcu, cmap)
     VecMapper.map(cu, pcu, cmap)
   }
 
