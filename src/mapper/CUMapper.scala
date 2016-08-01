@@ -16,13 +16,14 @@ object CUMapper extends Mapper {
 
   /* Saperate Compute Unit and Memory controller to map saperately */
   private def setResource:(List[PCU], List[CU], List[PTT], List[TT]) = {
-    val ctrlNodes = design.top.ctrlNodes
+    //TODO match memory ctrler
+    val compUnits = design.top.compUnits
     val arch = design.arch
     val pcus = arch.rcus 
     val ptts = arch.ttcus 
     val cus = ListBuffer[CU]()
     val tts = ListBuffer[TT]()
-    ctrlNodes.foreach { c => c match {
+    compUnits.foreach { c => c match {
         case n:TT => tts += n
         case n:CU => cus += n
         case n => throw TODOException(s"unknown PIR controller type: ${n}") 

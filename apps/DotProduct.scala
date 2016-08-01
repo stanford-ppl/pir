@@ -50,8 +50,8 @@ object DotProduct extends PIRApp {
 
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
-      val rd = Stage.reduce(op=FixAdd, init=Const(0l)) 
-      Stage(s1, op1=CU.reduce(rd), op=Bypass, result=CU.scalarOut(s1, out)) 
+      val (sr, acc) = Stage.reduce(op=FixAdd, init=Const(0l)) 
+      Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, out)) 
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
   }

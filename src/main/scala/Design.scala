@@ -148,8 +148,9 @@ trait Design { self =>
   //traversals += new UpdateReader()
   traversals += new PIRPrinter()
   traversals += new SpadeNetworkDot()
-  val dfmapping = new PIRMapping()
-  traversals += dfmapping 
+  val pirmapping = new PIRMapping()
+  traversals += pirmapping 
+  traversals += new RegAlloc(pirmapping)
 
   reset()
 

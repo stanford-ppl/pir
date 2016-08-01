@@ -5,6 +5,7 @@ import pir.PIRMisc._
 import pir.graph.mapper._
 import scala.util.{Try, Success, Failure}
 
+object MapPrinter extends Printer { override val stream = newStream(Config.mapFile) }
 class PIRMapping(implicit val design: Design) extends Traversal{
 
   var mapping:PIRMap = _
@@ -19,30 +20,25 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     VecInMapper.setDesign(design)
   }
 
-  val p:Printer = new Printer { override val stream = newStream(Config.mapFile) }
   override def traverse = {
     Try(mapping = CUMapper.map) match {
       case Success(_) =>
         info(s"Mapping succeeded") 
         if (Config.debug) {
-          mapping.printMap(p)
+          MapPrinter.emitln(s"/* ------------------- Mapping -----------------*/")
+          mapping.printMap(MapPrinter)
         }
       case Failure(e) => e match {
         case me:MappingException =>
           info(s"Mapping failed")
-          p.emitln("Mapping Exceptions:")
-          p.emitln(me)
+          MapPrinter.emitln("Mapping Exceptions:")
+          MapPrinter.emitln(me)
         case _ => throw e
       }
     }
   } 
 
   override def finPass = {
-    if (Config.debug) {
-      if (mapping!=null) mapping.printMap(p)
-      info(s"Mapping printed in ${p.getPath}")
-    }
     info("Finishing PIR Mapping")
-    p.close
   }
 }

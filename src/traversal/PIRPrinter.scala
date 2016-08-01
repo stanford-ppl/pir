@@ -67,6 +67,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   }
 
   private def toStr(mp:Map[String, String], s:String, i:Int) = mp += (s -> i.toString)
+  private def toStr(mp:Map[String, String], s:String, l:Set[_]) = 
+    if (l.size > 0) mp += (s -> s"[${l.mkString(",")}]")
   private def toStr(mp:Map[String, String], s:String, l:ListBuffer[_]) = 
     if (l.size > 0) mp += (s -> s"[${l.mkString(",")}]")
   private def toStr(mp:Map[String, String], s:String, m:Map[_,_]) = 
@@ -90,6 +92,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     toStr(m, "storeRegs" , c.storeRegs  )
     toStr(m, "ctrRegs"   , c.ctrRegs    )
     toStr(m, "tempRegs"  , c.tempRegs   )
+    toStr(m, "liveOuts"  , c.liveOuts   )
     toStr(m, "stageUses" , c.stageUses  )
     toStr(m, "stageDefs" , c.stageDefs  )
     toStr(m, "stagePRs"  , c.stagePRs   )

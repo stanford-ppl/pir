@@ -2,7 +2,7 @@ package pir.graph
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.Map
 import scala.math.max
 import pir.Design
 import pir.graph._
@@ -84,24 +84,26 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   private def newTemp = {val temp = regId; regId +=1; temp}
 
   /* Register Mapping */
-  val reduceReg = newTemp
-  val vecIns = HashMap[VecIn, Int]() 
-  val vecOut = newTemp
-  val scalarIns = HashMap[ScalarIn, Int]() 
-  val scalarOuts = HashMap[ScalarOut, Int]() 
-  val loadRegs  = HashMap[SRAM, Int]()
-  val storeRegs  = HashMap[SRAM, Int]()
-  val ctrRegs   = HashMap[Counter, Int]()
-  val tempRegs  = ListBuffer[Int]()
-
-  val stageUses = HashMap[Stage, Set[PipeReg]]()
-  val stageDefs = HashMap[Stage, Set[PipeReg]]()
-  val stagePRs  = HashMap[Stage, HashMap[Int,PipeReg]]()
+  val reduceReg  = newTemp
+  val vecIns     = Map[VecIn, Int]()
+  val vecOut     = newTemp
+  val scalarIns  = Map[ScalarIn, Int]()
+  val scalarOuts = Map[ScalarOut, Int]()
+  val loadRegs   = Map[SRAM, Int]()
+  val storeRegs  = Map[SRAM, Int]()
+  val ctrRegs    = Map[Counter, Int]()
+  val tempRegs   = Set[Int]()
+  val accumRegs  = Set[Int]()
+  val liveOuts   = Set[Int]()
+  val stageUses  = Map[Stage, Set[Int]]()
+  val stageDefs  = Map[Stage, Set[Int]]()
+  val stagePRs   = Map[Stage, Map[Int,PipeReg]]()
   def reset     = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear; stageUses.clear; stageDefs.clear }
 
   def addStage(s:Stage):Unit = {
     stages += s
-    s.operands.foreach { opd => opd.src match {
+    s.operands.foreach { opd => 
+      opd.src match {
         case pr:PipeReg => addUse(pr)
         case _ =>
       } 
@@ -111,8 +113,10 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
       case _ =>
     }
   }
-  private def addUse(p:PipeReg) = stageUses(p.stage) += p
-  private def addDef(p:PipeReg) = stageDefs(p.stage) += p
+  private def addUse(p:PipeReg) = { 
+    stageUses(p.stage) += p.regId
+}
+  private def addDef(p:PipeReg) = stageDefs(p.stage) += p.regId
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
@@ -135,6 +139,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     val prs = stagePRs(stage); val rid = storeRegs(s)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with StorePR)
     s.writePort = prs(rid).out
+    liveOuts += rid
     prs(rid)
   }
  /** Create a pipeline register for a stage corresponding to 
@@ -148,24 +153,33 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with CtrPR)
     prs(rid)
   }
+  def accum(stage:Stage, i:Option[Const]):AccumPR = {
+    val rid = newTemp; accumRegs += rid 
+    crtAccum(stage, rid, i)
+  }
+  def accum(stage:Stage, rid:Int):AccumPR = {
+    assert(accumRegs.contains(rid), s"AccumReg with ${rid} wasn't created but trying to refer to it")
+    crtAccum(stage, rid, None)
+  }
+  def accum(stage:Stage, rid:Int, init:Option[Const]):AccumPR = {
+    assert(accumRegs.contains(rid), s"AccumReg with ${rid} wasn't created but trying to refer to it")
+    crtAccum(stage, rid, init)
+  }
+  def crtAccum(stage:Stage, rid:Int, i:Option[Const]):AccumPR = {
+    val prs = stagePRs(stage)
+    if (!prs.contains(rid))
+      prs += (rid -> new {override val init = i} with PipeReg(stage, rid) with AccumPR)
+    prs(rid).asInstanceOf[AccumPR]
+  }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the reduction network 
   * @param stage: Stage of the pipeline register 
   * @param i: initial value
   */
-  def reduce(stage:Stage, i:Option[Const]):PipeReg = {
-    val prs = stagePRs(stage); val rid = reduceReg
-    if (!prs.contains(rid))
-      prs += (rid -> new {override val init = i} with PipeReg(stage, rid) with ReducePR)
-    prs(rid)
-  }
-  /* Refer to the reduction register of the stage
-   * @param stage: Stage of the pipeline register 
-   * */
   def reduce(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = reduceReg
     if (!prs.contains(rid))
-      prs += (rid -> new {override val init = None} with PipeReg(stage, rid) with ReducePR)
+      prs += (rid -> new PipeReg(stage, rid) with ReducePR)
     prs(rid)
   }
  /** Create a ScalarIn object 
@@ -204,6 +218,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     val prs = stagePRs(stage); val rid = scalarOuts(s)
     if (!prs.contains(rid)) 
       prs += (rid -> new { override val scalarOut = s } with PipeReg(stage, rid) with ScalarOutPR)
+    liveOuts += rid
     prs(rid)
   }
  /** Create a pipeline register and a scalar buffer for a stage. 
@@ -235,6 +250,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def vecOut(stage:Stage, vo:VecOut):PipeReg = {
     val prs = stagePRs(stage); val rid = vecOut 
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with VecOutPR)
+    liveOuts += rid
     prs(rid)
   }
  /** Create a pipeline register for a stage corresponding to 
@@ -247,10 +263,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
    * */
   def temp = newTemp
 
- /** Get the pipeline register for stage with rid 
+ /** Refer to the pipeline register for stage with rid 
   * @param stage: Stage of the pipeline register 
   */
   def temp(stage:Stage, rid:Int):PipeReg = {
+    assert(tempRegs.contains(rid), s"PipeReg with rid:${rid} wans't created but try to refer to it")
     val prs = stagePRs(stage)
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with TempPR)
     prs(rid)
@@ -260,6 +277,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   */
   def temp(stage:Stage):PipeReg = {
     val prs = stagePRs(stage); val rid = newTemp
+    tempRegs += rid
     if (!prs.contains(rid)) prs += (rid -> new PipeReg(stage, rid) with TempPR)
     prs(rid)
   }
@@ -320,6 +338,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
     updateFields(cchains, srams, sins, souts, vins, vouts)
     this
   }
+
 } 
 object TileTransfer extends {
   /* Sugar API */
@@ -374,16 +393,16 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  var ctrlNodes:List[ComputeUnit] = _
+  var compUnits:List[ComputeUnit] = _
   var memctrls:List[MemoryController] = _
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
-  override def toUpdate = super.toUpdate || ctrlNodes==null || memctrls==null
+  override def toUpdate = super.toUpdate || compUnits==null || memctrls==null
 
   def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], memctrls:List[MemoryController]) = {
-    this.ctrlNodes = cs
+    this.compUnits = cs
     this.memctrls = memctrls
     val sins = ListBuffer[ScalarIn]()
     val souts = ListBuffer[ScalarOut]()
