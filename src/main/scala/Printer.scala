@@ -24,6 +24,8 @@ trait Printer {
   def emitBS:Unit = { pw.println(s"{"); level += 1 }
   def emitBE = { level -= 1; emitln(s"}") }
   def emitBlock(s:String)(block: =>Any) = { emitBS(s"$s "); block; emitBE }
+  def emitTitleComment(title:String) = 
+    emitln(s"/*****************************${title}****************************/")
   def flush = pw.flush()
   def close = {
     pw.flush()

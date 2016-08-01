@@ -257,7 +257,7 @@ object Stage {
     Stage(stage, List(op1, op2), op, result)
   def apply(stage:Stage, op1:Port, op2:Port, op3:Port, op:Op, result:Port)(implicit ctrler:ComputeUnit):Unit =
     Stage(stage, List(op1, op2, op3), op, result)
-  def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):(AccumStage, AccumPR) = {
+  def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     Stages.accum(rdstages.last, op, init) 
@@ -265,9 +265,8 @@ object Stage {
 }
 object Stages {
   def addMaps(s:Stage, ctrler:ComputeUnit) = {
-    ctrler.stageUses += (s -> Set[Int]())
-    ctrler.stageDefs += (s -> Set[Int]())
-    ctrler.stagePRs += (s -> Map[Int, PipeReg]())
+    ctrler.stageUses += (s -> Set[Reg]())
+    ctrler.stageDefs += (s -> Set[Reg]())
   }
   def apply(n:Int) (implicit ctrler:ComputeUnit, design: Design):List[Stage] = {
     List.tabulate(n) {i => 
@@ -285,10 +284,11 @@ object Stages {
       s
     }
   }
-  def accum(pre:Stage, op:Op, i:Const) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, AccumPR) = {
-    val s = new {override val init=i} with Stage(None) with AccumStage 
+  def accum(pre:Stage, op:Op, i:Const) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, PipeReg) = {
+    val s = new Stage(None) with AccumStage 
     addMaps(s, ctrler)
     val areg = ctrler.accum(s, Some(i))
+    s.accReg = areg.reg.asInstanceOf[AccumPR]
     Stage(s, List(ctrler.reduce(pre).read, areg.read), op, areg.read)
     (s, areg)
   }
@@ -298,35 +298,49 @@ trait ReduceStage extends Stage {
   override val typeStr = s"RedStage"
 }
 trait AccumStage extends Stage {
-  val init:Const
+  var accReg:AccumPR = _
+  override def toUpdate = super.toUpdate || accReg==null
   override val typeStr = s"AccStage"
 }
 
 trait Reg extends Primitive {
-  var in:Option[Port] = None
-  val out:Port = Port(this, {s"${this}"}) 
-  def read:Port = out
+  val regId:Int
+  override val typeStr = "Reg"
+  override val name = None
+  override def toString = s"${super.toString}_${regId}"
+  override def equals(that: Any) = that match {
+    case n: Reg => regId == n.regId && ctrler == n.ctrler
+    case _ => false 
+  }
 }
-
+object Reg {
+  def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
+}
+case class LoadPR(override val regId:Int, rdPort:Port)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regld"}
+case class StorePR(override val regId:Int, wtPort:Port)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regst"}
+case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regct"}
+case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regrd"}
+case class AccumPR(override val regId:Int, init:Option[Const])(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "Regac"}
+case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regvi"}
+case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regvo"; var vecOut:VecOut = _}
+case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)    extends Reg {override val typeStr = "Regsi"}
+case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctrler:Controller, design: Design) extends Reg {override val typeStr = "Regso"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
  * the PR belongs to
  * @param n Optional user defined name
  * @param regId Register ID the PipeReg mapped to
  **/
-case class PipeReg(name:Option[String], stage:Stage, regId:Int)(implicit ctrler:Controller, design: Design) extends Reg{
-  override val typeStr = "PR"
-  override def toString = s"${super.toString}_${stage.name.getOrElse("")}${regId}"
-  def this (stage:Stage, regId:Int)(implicit ctrler:Controller, design: Design) = this(None, stage, regId)
+case class PipeReg(stage:Stage, val reg:Reg)(implicit ctrler:Controller, design: Design) extends Primitive{
+  override val name = None
+  var in:Option[Port] = None
+  val out:Port = Port(this, {s"${this}"}) 
+  def read:Port = out
+  override val typeStr = reg.typeStr.replace("Reg","PR")
+  override def toString = s"${super.toString}_${stage.name.getOrElse("")}${reg.regId}"
+  override def equals(that: Any) = that match {
+    case n: PipeReg => stage==n.stage && reg == n.reg && ctrler == n.ctrler
+    case _ => false 
+  }
 }
-trait LoadPR      extends PipeReg {override val typeStr = "PRld"}
-trait StorePR     extends PipeReg {override val typeStr = "PRst"}
-trait CtrPR       extends PipeReg {override val typeStr = "PRct"}
-trait ReducePR    extends PipeReg {override val typeStr = "PRrd"}
-trait AccumPR     extends PipeReg {override val typeStr = "PRac"; val init:Option[Const]}
-trait VecInPR     extends PipeReg {override val typeStr = "PRvi"}
-trait VecOutPR    extends PipeReg {override val typeStr = "PRvo"}
-trait ScalarInPR  extends PipeReg {override val typeStr = "PRsi"; val scalarIn:ScalarIn }
-trait ScalarOutPR extends PipeReg {override val typeStr = "PRso"; val scalarOut:ScalarOut }
-trait TempPR      extends PipeReg {override val typeStr = "PRtp"}
 

@@ -17,4 +17,6 @@ trait Spade {
   def numCUs = rcus.size
 
   implicit def reg_to_port(r:Reg):OutPort = r.out
+  implicit def ib_to_op(ib:InBus):RMOutPort = ib.rmport
+  implicit def ob_to_ip(ob:OutBus):RMInPort = ob.rmport
 }

@@ -39,7 +39,6 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
             fields += s"operands=[${p.operands.mkString(",")}], op=${p.op}, result=${p.result}"
             p match {
               case s:ReduceStage => fields += s"idx=${s.idx}"
-              case s:AccumStage => fields += s"init=${s.init}"
               case _ =>
             }
           case p:ScalarIn =>
@@ -66,7 +65,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     s"(${if (fields.size>0) fields.reduce(_+", "+_) else ""})"
   }
 
-  private def toStr(mp:Map[String, String], s:String, i:Int) = mp += (s -> i.toString)
+  private def toStr(mp:Map[String, String], s:String, i:Reg) = mp += (s -> i.toString)
   private def toStr(mp:Map[String, String], s:String, l:Set[_]) = 
     if (l.size > 0) mp += (s -> s"[${l.mkString(",")}]")
   private def toStr(mp:Map[String, String], s:String, l:ListBuffer[_]) = 
@@ -95,7 +94,6 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     toStr(m, "liveOuts"  , c.liveOuts   )
     toStr(m, "stageUses" , c.stageUses  )
     toStr(m, "stageDefs" , c.stageDefs  )
-    toStr(m, "stagePRs"  , c.stagePRs   )
     m
   }
 

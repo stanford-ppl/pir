@@ -37,27 +37,27 @@ object Config0 extends Spade {
     val numScalarOuts = numLanes 
     // Create Pipeline Regs (entire row of physicall register for all stages)
     // No overlapping between mappings
-    val regs = List.tabulate(numPRs) { ir => Reg() }
+    val regs = List.tabulate(numPRs) { ir => PipeReg() }
     var ptr = 0
 
     val vecIns = List.tabulate(numBusIns) { is =>
       val ib = InBus(numLanes)
-      regs(ptr + is) <= ib.outports.head 
+      regs(ptr + is) <= ib
       ib
     }
     val vecOut = {
       val ob = OutBus(numLanes)
-      ob.inports.head <= regs(ptr)
+      ob <= regs(ptr)
       ob
     } 
     val scalarIns = List.tabulate(numBusIns, numScalarIns) { case (ib, is) => 
         val si = ScalarIn(vecIns(ib).outports(is))
-        si <= regs(ptr + is)
+        regs(ptr + is) <= si
         si
     }.flatten
     val scalarOuts = List.tabulate(numScalarOuts) { is =>
       val so = ScalarOut(vecOut.inports(is))
-      regs(ptr + is) <= so
+      so <= regs(ptr + is)
       so
     }
 

@@ -23,10 +23,10 @@ object Node {
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
 case class SRAM() extends Node{
   override val typeStr = "sram"
-  val readPort = OutPort(this, s"${this}.rp")
-  val writePort = InPort(this, s"${this}.wp")
-  val readAddr = InPort(this, s"${this}.ra")
-  val writeAddr = InPort(this, s"${this}.wa")
+  val readPort = RMOutPort(this, s"${this}.rp")
+  val writePort = RMInPort(this, s"${this}.wp")
+  val readAddr = RMInPort(this, s"${this}.ra")
+  val writeAddr = RMInPort(this, s"${this}.wa")
 }
 
 /** Physical Counter  */
@@ -35,7 +35,7 @@ case class Counter() extends Node {
   val min = InPort(this, s"${this}.min")
   val max = InPort(this, s"${this}.max")
   val step = InPort(this, s"${this}.step")
-  val out = OutPort(this, s"${this}.out")
+  val out = RMOutPort(this, s"${this}.out")
   val en = InWire(this, s"${this}.en")
   val sat = OutWire(this, s"${this}.sat")
   def isDep(c:Counter) = en.isConn(c.sat)
@@ -53,16 +53,19 @@ class Reg() extends Node {
 object Reg {
   def apply() = new Reg()
 }
+case class PipeReg() extends Reg {override val typeStr = "preg"}
 
 trait ScalarBuffer extends Reg
 case class ScalarIn(outport:BusOutPort) extends ScalarBuffer {
   override val typeStr = "si"
+  override val out = RMOutPort(this, s"${this}.o")
   this <= outport
   def inBus:InBus = outport.src.get.asInstanceOf[InBus]
   def idx = outport.idx
 } 
 case class ScalarOut(inport:BusInPort) extends ScalarBuffer {
   override val typeStr = "so"
+  override val in = RMInPort(this, s"${this}.i")
   inport <= this
   def outBus:OutBus = inport.src.get.asInstanceOf[OutBus]
   def idx = inport.idx
@@ -86,12 +89,12 @@ case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn],
   def numArgOut = argOuts.size
 }
 
-case class ComputeUnit(val pregs:List[Reg], val srams:List[SRAM], val ctrs:List[Counter], 
+case class ComputeUnit(val pregs:List[PipeReg], val srams:List[SRAM], val ctrs:List[Counter], 
   override val sins:List[ScalarIn], override val souts:List[ScalarOut], override val vins:List[InBus], val vout:OutBus) extends Controller{
   override val typeStr = "cu"
   override val vouts = List(vout)
 
-  val reduce = OutPort(this, s"${this}.reduce")
+  val reduce = RMOutPort(this, s"${this}.reduce")
   vins.foreach(_.src = Some(this))
   vout.src = Some(this)
   assert(vins.size>0, "ComputeUnit must have at least 1 vector input")
@@ -107,7 +110,7 @@ trait TileTransfer extends ComputeUnit{
   override val typeStr = "tt"
 }
 object TileTransfer {
-  def apply(pregs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
+  def apply(pregs:List[PipeReg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
     souts:List[ScalarOut], vins:List[InBus], vout:OutBus) = {
     new ComputeUnit(pregs, srams, ctrs, sins, souts, vins, vout) with TileTransfer
   }
@@ -187,6 +190,20 @@ object InPort {
     override def toString = sf
   }
 }
+trait RMInPort extends InPort {
+  val mappedRegs = ListBuffer[PipeReg]()
+  override def ms = s"${super.ms} regs=[${mappedRegs.mkString(",")}]"
+  override def connect(n:O) =  {
+    super.connect(n)
+    if (n.src.isDefined && n.src.get.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] 
+  }
+}
+object RMInPort {
+  def apply(s:Node, sf: =>String) = new Node with RMInPort {
+    src = Some(s)
+    override def toString = sf
+  }
+}
 /*
  * An output port of a module.
  * src is a pointer to the module
@@ -204,16 +221,34 @@ object OutPort {
   }
 }
 object Const extends OutPort { override def toString = "Const" }
+trait RMOutPort extends OutPort {
+  val mappedRegs = ListBuffer[PipeReg]()
+  override def mt = s"${super.mt} regs=[${mappedRegs.mkString(",")}]"
+  override def connectedTo(n:I) = { 
+    super.connectedTo(n)
+    if (n.src.isDefined && n.src.get.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] 
+  }
+}
+object RMOutPort {
+  def apply(s:Node, sf: =>String) = new Node with RMOutPort {
+    src = Some(s)
+    override def toString = sf
+  }
+}
 
 case class InBus(outports:List[BusOutPort]) extends Bus with Input {
   type O = OutBus
   override val typeStr = "ib"
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
   outports.foreach(_.src = Some(this))
+  val rmport:RMOutPort = outports(0).asInstanceOf[RMOutPort]
 }
 object InBus {
   def apply(numPort:Int):InBus = {
-    val outports = List.tabulate(numPort) { i => new BusOutPort(i) {src = Some(this)} }
+    val outports = List.tabulate(numPort) { i => 
+      if (i==0) new BusOutPort(i) with RMOutPort { src = Some(this) }
+      else new BusOutPort(i) {src = Some(this)}
+    }
     InBus(outports)
   }
   def apply(ops:List[BusOutPort], s:Node):InBus = new InBus(ops) {src = Some(s)}
@@ -223,10 +258,14 @@ case class OutBus(inports:List[BusInPort]) extends Bus with Output {
   type I = InBus
   override val typeStr = "ob"
   inports.foreach(_.src = Some(this))
+  val rmport:RMInPort = inports(0).asInstanceOf[RMInPort]
 }
 object OutBus {
   def apply(numPort:Int):OutBus = {
-    val inports = List.tabulate(numPort) { i => new BusInPort(i) {src = Some(this)}}
+    val inports = List.tabulate(numPort) { i => 
+      if (i==0) new BusInPort(i) with RMInPort { src = Some(this) }
+      else new BusInPort(i) {src = Some(this)}
+    }
     OutBus(inports)
   }
   def apply(ips:List[BusInPort], s:Node) = new OutBus(ips) {src = Some(s)}

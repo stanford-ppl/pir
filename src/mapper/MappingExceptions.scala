@@ -8,7 +8,7 @@ import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU}
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 
-abstract class MappingException(implicit design:Design) extends Exception{
+abstract class MappingException(implicit design:Design) extends PIRException{
   design.mapExceps += this
   val msg:String
   val mapper:Mapper

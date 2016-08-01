@@ -18,7 +18,7 @@ object CtrMapper extends Mapper {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     // Mapping inner counter first converges faster
     val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
-    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), None, OutOfCtr(pcu, _, _))
+    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), Some(RegAlloc.map(cu, _)), OutOfCtr(pcu, _, _))
   }
 
   def mapCtr(c:N, p:R, map:M):M = {

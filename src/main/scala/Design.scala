@@ -150,7 +150,6 @@ trait Design { self =>
   traversals += new SpadeNetworkDot()
   val pirmapping = new PIRMapping()
   traversals += pirmapping 
-  traversals += new RegAlloc(pirmapping)
 
   reset()
 
@@ -174,8 +173,8 @@ object PIRMisc {
   implicit def scalarBuf_to_port(sb:ScalarIn):Port = {
     sb.out
   }
-  implicit def reg_to_port(reg:Reg):Port = {
-    reg.out
+  implicit def pr_to_port(pr:PipeReg):Port = {
+    pr.out
   }
   implicit def ctr_to_port(ctr:Counter):Port = {
     ctr.out
