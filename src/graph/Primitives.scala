@@ -318,6 +318,8 @@ object Reg {
 }
 case class LoadPR(override val regId:Int, rdPort:Port)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regld"}
 case class StorePR(override val regId:Int, wtPort:Port)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regst"}
+case class RdAddrPR(override val regId:Int, raPort:Port)(implicit ctrler:Controller, design: Design)            extends Reg {override val typeStr = "Regra"}
+case class WtAddrPR(override val regId:Int, waPort:Port)(implicit ctrler:Controller, design: Design)            extends Reg {override val typeStr = "Regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regct"}
 case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regrd"}
 case class AccumPR(override val regId:Int, init:Option[Const])(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "Regac"}

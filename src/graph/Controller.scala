@@ -91,6 +91,8 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val loadRegs   = Map[SRAM, LoadPR]()
   val storeRegs  = Map[SRAM, StorePR]()
+  val wtAddrRegs = Map[SRAM, WtAddrPR]()
+  val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
   val accumRegs  = Set[AccumPR]()
@@ -132,11 +134,25 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
-  def stores(stage:Stage, s:SRAM):PipeReg = {
+  def store(stage:Stage, s:SRAM):PipeReg = {
     if (!storeRegs.contains(s)) storeRegs += (s -> StorePR(newTemp, s.writePort))
     liveOuts += storeRegs(s)
     val pr = PipeReg(stage, storeRegs(s))
     s.writePort = pr.out
+    pr
+  }
+  def wtAddr(stage:Stage, s:SRAM):PipeReg = {
+    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> WtAddrPR(newTemp, s.writeAddr))
+    liveOuts += wtAddrRegs(s)
+    val pr = PipeReg(stage, wtAddrRegs(s))
+    s.writeAddr = pr.out
+    pr
+  }
+  def rdAddr(stage:Stage, s:SRAM):PipeReg = {
+    if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> RdAddrPR(newTemp, s.readAddr))
+    liveOuts += rdAddrRegs(s)
+    val pr = PipeReg(stage, rdAddrRegs(s))
+    s.readAddr = pr.out
     pr
   }
  /** Create a pipeline register for a stage corresponding to 

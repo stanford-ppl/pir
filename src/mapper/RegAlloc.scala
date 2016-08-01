@@ -43,9 +43,15 @@ object RegAlloc extends Mapper {
     val stages = cu.stages
     stages.foreach {s =>
       lm(s).foreach { r =>
-        infGraph += (r -> MSet.empty)
+        if (!infGraph.contains(r))
+          infGraph += (r -> MSet.empty)
         infGraph(r) ++= (lm(s) - r)
       }
+    }
+    cu.liveOuts.foreach { r =>
+      if (!infGraph.contains(r))
+        infGraph += (r -> MSet.empty)
+      infGraph(r) ++= cu.liveOuts.toSet - r
     }
     infGraph
   }
@@ -75,6 +81,14 @@ object RegAlloc extends Mapper {
           val sram = wtPort.src
           val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
           preColor(r, psram.writePort.mappedRegs.toList)
+        case WtAddrPR(regId, waPort) =>
+          val sram = waPort.src
+          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
+          preColor(r, psram.writeAddr.mappedRegs.toList)
+        case RdAddrPR(regId, rdPort) =>
+          val sram = rdPort.src
+          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
+          preColor(r, psram.readAddr.mappedRegs.toList)
         case CtrPR(regId, ctr) =>
           val pctr = cuMap.ctmap(ctr)
           preColor(r, pctr.out.mappedRegs.toList)
@@ -90,8 +104,10 @@ r       case VecInPR(regId, vecIn) =>
           val psi = cuMap.simap(scalarIn)
           preColor(r, psi.out.mappedRegs.toList)
         case ScalarOutPR(regId, scalarOut) =>
-          val pso = cuMap.somap(scalarOut)
-          preColor(r, pso.in.mappedRegs.toList)
+          if (!cu.isInstanceOf[TT]) { //TODO
+            val pso = cuMap.somap(scalarOut)
+            preColor(r, pso.in.mappedRegs.toList)
+          }
         case _ => // No predefined color
       }
     }

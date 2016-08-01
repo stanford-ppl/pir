@@ -4,7 +4,7 @@ import pir.graph._
 import pir.graph.{ Controller => CL, ComputeUnit => CU, TileTransfer => TT, 
                   Input => I, VecOut => VO, 
                   SRAM,
-                  Counter => Ctr,
+                  Counter => Ctr, CounterChain => CC,
                   ScalarIn => SI, ScalarOut => SO,
                   Stage => ST, Reg => R}
 import pir.plasticine.graph.{ Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
@@ -71,12 +71,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
         cl match {
           case cu:CU =>
             smmap.printMap(cu.srams)
-            p.emitBlock(s"CCMap") {
-              cu.cchains.foreach { cc =>
-                ctmap.printMap(cc.counters)
-              }
-            }
-            limap.printMap(cu.stages.toList)
+            ctmap.printCCMap(cu.cchains)
+            limap.printMap(cu, cu.stages.toList)
             igmap.printMap(igmap.keys.filter(k => k.ctrler==cu).toList)
             rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
           case _ =>
@@ -187,6 +183,13 @@ trait CTMap extends PMap {
   type K = CTMap.K
   type V = CTMap.V
   override def + (rec:(K,V)) = { super.check(rec); CTMap(map + rec) }
+  def printCCMap(ccs:List[CC])(implicit p:Printer):Unit = {
+    p.emitBlock(s"CCMap") {
+      ccs.foreach { cc =>
+        super.printMap(cc.counters)
+      }
+    }
+  }
 }
 object CTMap extends OPMap {
   type K = Ctr
@@ -242,16 +245,17 @@ trait LIMap extends PMap {
   type K = LIMap.K 
   type V = LIMap.V
   override def + (rec:(K,V)) = { super.check(rec); LIMap(map + rec) }
-  override def printMap(ks:List[K])(implicit p:Printer):Unit = {
+  def printMap(cu:CU, ks:List[K])(implicit p:Printer):Unit = {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
-          val cu = k.ctrler.asInstanceOf[ComputeUnit]
           val defs = cu.stageDefs(k).mkString(",") 
           val uses = cu.stageUses(k).mkString(",")
           val lins = map(k).mkString(",")
           p.emitln(s"${k} def=[${defs}] use=[${uses}] liveIn=[${lins}]]")
         }
+        val louts = cu.liveOuts.mkString(",")
+        p.emitln(s"liveOut=[${louts}]")
       }
     }
   }
