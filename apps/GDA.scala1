@@ -1,0 +1,140 @@
+import pir.graph._
+import pir.graph.{MetaPipeline => MetaPipe}
+import pir.graph
+import pir.codegen._
+import pir.Design
+import pir.PIRApp
+import pir.PIRMisc._
+
+object GDA extends PIRApp {
+  def main(args: String*)(top:Top) = {
+  val m0 = MemoryController("m0", TileLoad, OffChip())
+  val m1 = MemoryController("m1", TileLoad, OffChip())
+  val x = MemoryController("x", TileLoad, OffChip())
+  val y = MemoryController("y", TileLoad, OffChip())
+  val rows = ArgIn()
+  val rTileSize = Const(4l)
+
+  //mu0Tile := mu0(0::Cmax, subLoopPar)  // Load mu0
+  val tileLoadm0 = TileTransfer(parent=top, memctrl=m0, mctpe=TileLoad) { implicit TT =>
+    CounterChain(name="cc", Const(0) until Cmax)
+  }
+  //mu1Tile := mu1(0::Cmax, subLoopPar)  // Load mu1
+  val tileLoadm1 = TileTransfer(parent=top, memctrl=m1, mctpe=TileLoad) { implicit TT =>
+    CounterChain(name="cc", Const(0) until Cmax)
+  }
+  
+  //Pipe.fold(rows by rTileSize par outerPar, outerAccumPar)(sigmaOut){ r =>
+  //}{_+_}
+  ComputeUnit (id=0) {
+    // StateMachines / CounterChain
+    val r = CounterChain(rows by rTileSize) //Local
+    val acc = CounterChain(sigmaOutWidth by Const(1)) //BlockReduce
+    val rr = CounterChain.copy(ComputeUnit(2), "rr")
+
+    // SRAMs
+    val sigmaBlk = SRAM(write = ComputeUnit(1), readAddr = acc(0) , writeAddr = rr(0))
+    val sigmaOut = SRAM(write = local, readAddr = acc(0) , writeAddr = acc(0))
+
+    // Pipeline Stages
+    val x = sigmaTile.load
+    val y = sigmaOut.load
+    Stage (op1=x, op2=y, op=Add, result=PR.store(sigmaOut))
+  }
+
+  //yTile := y(r::r+rTileSize, subLoopPar)
+  val yTileLoad = TileTransfer (id=2, memctrl=y, mctpe=TileLoad) { implicit TT =>
+    val r = CounterChain.copy(ComputeUnit(0), "r")
+    val rr = CounterChain(r until r+rTileSize by 1, dep=r, type=pipeline)
+  }
+
+  //xTile := x(r::r+rTileSize, 0::cols, subLoopPar)  // Load tile of x
+  val xTileLoad = TileTransfer (id=3, memctrl=x, mctpe=TileLoad)) { implicit TT =>
+    val r = CounterChain.copy(ComputeUnit(0), "r")
+    val rr = CounterChain(r until r+rTileSize by 1, cols by 1, dep=r, type=pipeline)
+  }
+
+  //Pipe.fold(rTileSize par innerPar, prodLoopPar)(sigmaBlk){rr =>
+  //}{_+_}
+  ComputeUnit (id=1) {
+    // StateMachines / CounterChain
+    val rr = CounterChain(rTileSize par innerPar, dep=CounterChain(ComputeUnit(0), "r"), type=pipeline) //Local
+    val acc = CounterChain(sigmaBlkSize by 1) //BlockReduce
+    val c1 = CounterChain.copy(ComputeUnit(3), "c1")
+
+    // SRAMs
+    val sigmaTile    = SRAM(write = ComputeUnit(3), readAddr = acc(0) , writeAddr = PR(stage="sigmaTileWA", id=2))
+    val sigmaBlk = SRAM(write = local, readAddr = acc(0) , writeAddr = acc(0))
+
+    // Remote Addr Calc for sigmaTile 
+    val j = c1(0)
+    val i = c1(1)
+    val temp1 = PR.temp
+    val temp2 = PR.temp
+    val s0 = Stage (op1=i, op2=Const(sigmaTile.size(1)), op=Mul, result=PR(temp1))
+    Stage (name="sigmaTileWA", op1=PR(temp1), op2=j, op=Add, result=PR(temp2))
+
+    // Accumulate
+    Stage (op1=sigmaTile.load, op2=sigmaOut.load, op=Add, result=PR.store(sigmaBlk))
+  }
+  
+  //Pipe(cols par subLoopPar){ cc =>
+  //  subTile(cc) = xTile(rr,cc) - mux(yTile(rr), mu1Tile(cc), mu0Tile(cc))
+  //}
+  ComputeUnit (id=2) {
+    // StateMachines / CounterChain
+    val rr = CounterChain.copy(ComputeUnit(1), rr)
+    val cc = CounterChain(cols by 1, dep=rr, type=pipeline) //Local
+    val cmu0 = CounterChain.copy(TileTransfer(0), "cc")
+    val cmu1 = CounterChain.copy(TileTransfer(1), "cc")
+    val cy = CounterChain.copy(TileTransfer(2), "rr")
+    val cx = CounterChain.copy(TileTransfer(3), "rr")
+
+    // SRAMs
+    val xTile   = SRAM(write = TileTransfer(3), readAddr = PR(stage="xTileRA", id="xTileRA") , writeAddr = PR(stage="xTileWA", id="xTileRA"))
+    val yTile = SRAM(write = TileTransfer(2), readAddr = rr(0), writeAddr = cy(0))
+    val mu0Tile = SRAM(write = TileTransfer(0), readAddr = cc(0), writeAddr = cmu0(0))
+    val mu1Tile = SRAM(write = TileTransfer(1), readAddr = cc(0), writeAddr = cmu1(0))
+
+    // Pipeline Stages
+      // Remote Addr Calc for xTile
+    val temp1 = PR.temp
+    val temp2 = PR.temp
+    val s0 = Stage (op1=cx(0), op2=Const(xTile.size(1)), op=Mul, result=PR(temp1))
+    val s1 = Stage (name="xTileWA", op1=PR(s0,temp1), op2=cx(1), op=Add, result=PR(temp2))
+    // xTile readAddr calculation
+    val temp3 = PR.temp
+    val temp4 = PR.temp
+    Stage (op1=rr(0), op2=Const(xTile.size(1)), op=Mul, result=temp3)
+    Stage (name="xTileRA", op1=PR(temp3), op2=PR.ctr(cc(0)), op=Add, result=PR(temp4))
+    // Compute
+    val y   = yTile.load
+    val x   = xTile.load
+    val mu1 = mu1.load
+    val mu0 = mu0.load
+    val temp3 = PR.temp
+    Stage (op1=mu1, op2=mu0, op3=y, op=mux, result=temp3)
+    Stage (op1=x, op2=temp3, op=sub, result=PR.vecOut)
+  }
+
+  //Pipe(cols by 1, cols par prodLoopPar){ (ii,jj) =>
+  //  sigmaTile(ii,jj) = subTile(ii) * subTile(jj)
+  //}
+  ComputeUnit (id=3) {
+    // StateMachines / CounterChain
+    val c2 = CounterChain.copy(ComputeUnit(2), "cc")
+    val c1 = CounterChain(cols by 1, cols by 1, dep=c2, type=sequential) //Local, (i,j)
+
+    // SRAMs
+    val subTile_ra   = SRAM(write=ComputeUnit(2), readAddr=c1(0), writeAddr=c2(0))
+    val subTile_ca   = SRAM(write=ComputeUnit(2), readAddr=c1(1), writeAddr=c2(0))
+
+    // Pipeline Stages
+    val a = PR(-1).load(subTile_ra) // val a = subTile_ra.read
+    val b = PR(-1).load(subTile_ca) // val b = subTile_ca.read
+    Stage (op1=a, op2=b, op=Mul, result=PR.vecOut)
+  }
+
+
+  }
+}

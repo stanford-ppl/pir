@@ -260,7 +260,7 @@ object Stage {
   def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
-    Stages.accum(rdstages.last, op, init) 
+    Stages.accum(ctrler.reduce(rdstages.last), op, init) 
   }
 }
 object Stages {
@@ -284,12 +284,18 @@ object Stages {
       s
     }
   }
-  def accum(pre:Stage, op:Op, i:Const) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, PipeReg) = {
+  /* Create an accumulation stage
+   * @param operand operand to accumulate. i.e. acc = acc + operand
+   * @init initial value of accumulator
+   * @op accumulation operand
+   * Returns the accumulation stage and PipeReg of the accumulator
+   * */
+  def accum(operand:PipeReg, op:Op, init:Const) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, PipeReg) = {
     val s = new Stage(None) with AccumStage 
     addMaps(s, ctrler)
-    val areg = ctrler.accum(s, Some(i))
+    val areg = ctrler.accum(s, Some(init))
     s.accReg = areg.reg.asInstanceOf[AccumPR]
-    Stage(s, List(ctrler.reduce(pre).read, areg.read), op, areg.read)
+    Stage(s, List(operand.read, areg.read), op, areg.read)
     (s, areg)
   }
 }

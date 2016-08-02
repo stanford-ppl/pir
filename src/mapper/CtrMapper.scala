@@ -39,6 +39,6 @@ case class OutOfCtr(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extend
   override val msg = s"Not enough Counters in ${pcu} to map application."
 }
 case class CtrRouting(n:Ctr, p:PCtr)(implicit design:Design) extends MappingException {
-  override val mapper = ScalarInMapper
+  override val mapper = CtrMapper 
   override val msg = s"Fail to map ${n} to ${p}"
 }

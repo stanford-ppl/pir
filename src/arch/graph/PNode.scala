@@ -2,7 +2,10 @@ package pir.plasticine.graph
 
 import pir.graph._
 
+import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
+import scala.collection.mutable.Set
 
 class Node { 
   val id : Int = Node.nextId
@@ -46,9 +49,9 @@ class Reg() extends Node {
   override val typeStr = "reg"
   val in = InPort(this, s"${this}.i") 
   val out = OutPort(this, s"${this}.o")
-  def <=(r:Reg) = in.connect(r.out)
-  def <=(n:OutPort) = in.connect(n)
-  def <=(ns:List[OutPort]) = ns.foreach(n => in.connect(n))
+  def <==(r:Reg) = in.connect(r.out)
+  def <==(n:OutPort) = in.connect(n)
+  def <==(ns:List[OutPort]) = ns.foreach(n => in.connect(n))
 }
 object Reg {
   def apply() = new Reg()
@@ -56,19 +59,61 @@ object Reg {
 case class PipeReg() extends Reg {override val typeStr = "preg"}
 
 trait ScalarBuffer extends Reg
-case class ScalarIn(outport:BusOutPort) extends ScalarBuffer {
+/* If ScalarIn is connecting to the vector network, its input connects to 1 out port of the 
+ * InBus */
+case class ScalarIn(outport:Option[BusOutPort]) extends ScalarBuffer {
   override val typeStr = "si"
   override val out = RMOutPort(this, s"${this}.o")
-  this <= outport
-  def inBus:InBus = outport.src.get.asInstanceOf[InBus]
-  def idx = outport.idx
+  if (outport.isDefined) this <== outport.get
+  def inBus:InBus = outport.get.src.get.asInstanceOf[InBus]
+  def idx = outport.get.idx
 } 
-case class ScalarOut(inport:BusInPort) extends ScalarBuffer {
+object ScalarIn {
+  def apply(outport:BusOutPort):ScalarIn = ScalarIn(Some(outport))
+}
+/* If ScalarOut is connecting to the vector network, its output connects to 1 in port of the
+ * OutBus */
+case class ScalarOut(inport:Option[BusInPort]) extends ScalarBuffer {
   override val typeStr = "so"
   override val in = RMInPort(this, s"${this}.i")
-  inport <= this
-  def outBus:OutBus = inport.src.get.asInstanceOf[OutBus]
-  def idx = inport.idx
+  if (inport.isDefined) inport.get <== this
+  def outBus:OutBus = inport.get.src.get.asInstanceOf[OutBus]
+  def idx = inport.get.idx
+}
+object ScalarOut {
+  def apply(inport:BusInPort):ScalarOut = ScalarOut(Some(inport))
+}
+/* ScalarOut of TileTransfer CU, whos AddrOut has dedicated scalar network */
+trait AddrOut extends ScalarOut {
+  override val typeStr = "ado"
+}
+object AddrOut {
+  def apply() = new ScalarOut(None) with AddrOut
+}
+
+case class FuncUnit(numOprds:Int) extends Node {
+  val oprds = List.fill(numOprds) (new FUInPort(this)) 
+  val out = new FUOutPort(this)
+  def ==> (reg:Reg, stage:Stage) = out ==> (reg, stage) 
+  def ==> (ip:InPort) = ip <== out
+}
+
+case class Stage(fu:FuncUnit) extends Node {
+  override val typeStr = "st"
+  var prForward = false // Whether the stage have a forwarding path between connections going into the first pipeline registers into this stage
+  def setPRForward = prForward = true
+}
+object Stage {
+  def apply(numOprds:Int):Stage = Stage(FuncUnit(numOprds))
+}
+
+trait RedStage extends Stage
+object RedStage {
+  def apply(numOprds:Int):RedStage = new Stage(FuncUnit(numOprds)) with RedStage
+}
+trait WAStage extends Stage
+object WAStage {
+  def apply(numOprds:Int):WAStage = new Stage(FuncUnit(numOprds)) with WAStage 
 }
 
 trait Controller extends Node {
@@ -89,8 +134,9 @@ case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn],
   def numArgOut = argOuts.size
 }
 
-case class ComputeUnit(val pregs:List[PipeReg], val srams:List[SRAM], val ctrs:List[Counter], 
-  override val sins:List[ScalarIn], override val souts:List[ScalarOut], override val vins:List[InBus], val vout:OutBus) extends Controller{
+case class ComputeUnit(pregs:List[PipeReg], srams:List[SRAM], ctrs:List[Counter], 
+  override val sins:List[ScalarIn], override val souts:List[ScalarOut], 
+  override val vins:List[InBus], vout:OutBus, stages:List[Stage]) extends Controller{
   override val typeStr = "cu"
   override val vouts = List(vout)
 
@@ -111,8 +157,8 @@ trait TileTransfer extends ComputeUnit{
 }
 object TileTransfer {
   def apply(pregs:List[PipeReg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
-    souts:List[ScalarOut], vins:List[InBus], vout:OutBus) = {
-    new ComputeUnit(pregs, srams, ctrs, sins, souts, vins, vout) with TileTransfer
+    souts:List[ScalarOut], vins:List[InBus], vout:OutBus, stages:List[Stage]) = {
+    new ComputeUnit(pregs, srams, ctrs, sins, souts, vins, vout, stages) with TileTransfer
   }
 }
 
@@ -126,8 +172,8 @@ trait Input {
   // List of connections that can map to
   val mapping = ListBuffer[O]()
   def connect(n:O) = { if (!mapping.contains(n)) mapping += n }
-  def <=(n:O) = connect(n)
-  def <=(ns:List[O]) = ns.foreach(n => connect(n))
+  def <==(n:O) = connect(n)
+  def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${mapping.mkString(",")}]"
   def isConn(n:O) = mapping.contains(n)
 }
@@ -179,7 +225,7 @@ object OutWire {
 trait InPort extends Port with Input {
   type O = OutPort
   override val typeStr = "ip"
-  def <=(r:Reg) = connect(r.out)
+  def <==(r:Reg) = connect(r.out)
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
 }
 object InPort {
@@ -234,6 +280,22 @@ object RMOutPort {
     src = Some(s)
     override def toString = sf
   }
+}
+trait FUPort extends Port {
+  val prAccess = Map[Reg, Set[Stage]]()
+  def addAccess(reg:Reg, stage:Stage) = {
+    if (!prAccess.contains(reg)) prAccess += reg -> Set[Stage](); prAccess(reg) += stage
+  }
+}
+class FUInPort(fu:FuncUnit) extends InPort with FUPort {
+  src = Some(fu)
+  override def toString = s"${fu}.oprd${id}"
+  def <== (reg:Reg, stage:Stage) = { super.connect(reg.out); addAccess(reg, stage) }
+}
+class FUOutPort(fu:FuncUnit) extends OutPort with FUPort {
+  src = Some(fu)
+  override def toString = s"${fu}.out"
+  def ==> (reg:Reg, stage:Stage) = { reg.in.connect(this); addAccess(reg, stage) }
 }
 
 case class InBus(outports:List[BusOutPort]) extends Bus with Input {

@@ -13,7 +13,7 @@ object RegAlloc extends Mapper {
   type R = PReg
   type N = Reg
 
-  type LI = MMap[Stage, Set[Reg]]
+  type LI = MMap[Stage, (Set[Reg], Set[Reg])] // Stage -> (LiveIn, LiveOut)
   type IG = MMap[Reg, MSet[Reg]]
   type RC = MMap[Reg, PReg]
 
@@ -25,15 +25,16 @@ object RegAlloc extends Mapper {
       val liveOut = 
         if (i==stages.size-1) cu.liveOuts.toSet 
         else {
-          val ns = stages(i+1)
-          ns match {
+          val next = stages(i+1)
+          val nextLiveIn = liveMap(next)._1
+          next match {
             case as:AccumStage => // Implicit def due to initial value
-              liveMap(ns) - as.accReg
-            case _ =>
-              liveMap(ns)
+              nextLiveIn - as.accReg
+            case _ => nextLiveIn 
           }
         } 
-      liveMap += s -> (liveOut -- cu.stageDefs(s) ++ cu.stageUses(s))
+      val liveIn = (liveOut -- cu.stageDefs(s) ++ cu.stageUses(s))
+      liveMap += s -> (liveIn, liveOut)
     }
     liveMap
   }
@@ -41,17 +42,16 @@ object RegAlloc extends Mapper {
   private def infAnalysis(cu:CU, lm:LI):IG = {
     val infGraph:IG = MMap.empty
     val stages = cu.stages
-    stages.foreach {s =>
-      lm(s).foreach { r =>
-        if (!infGraph.contains(r))
-          infGraph += (r -> MSet.empty)
-        infGraph(r) ++= (lm(s) - r)
+    stages.foreach { s =>
+      val (liveIn, liveOut) = lm(s)
+      liveIn.foreach { r =>
+        if (!infGraph.contains(r)) infGraph += (r -> MSet.empty)
+        infGraph(r) ++= (liveIn - r)
       }
-    }
-    cu.liveOuts.foreach { r =>
-      if (!infGraph.contains(r))
-        infGraph += (r -> MSet.empty)
-      infGraph(r) ++= cu.liveOuts.toSet - r
+      liveOut.foreach { r =>
+        if (!infGraph.contains(r)) infGraph += (r -> MSet.empty)
+        infGraph(r) ++= (liveOut - r)
+      }
     }
     infGraph
   }
@@ -104,10 +104,8 @@ r       case VecInPR(regId, vecIn) =>
           val psi = cuMap.simap(scalarIn)
           preColor(r, psi.out.mappedRegs.toList)
         case ScalarOutPR(regId, scalarOut) =>
-          if (!cu.isInstanceOf[TT]) { //TODO
-            val pso = cuMap.somap(scalarOut)
-            preColor(r, pso.in.mappedRegs.toList)
-          }
+          val pso = cuMap.somap(scalarOut)
+          preColor(r, pso.in.mappedRegs.toList)
         case _ => // No predefined color
       }
     }
