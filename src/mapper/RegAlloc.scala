@@ -130,7 +130,9 @@ r       case VecInPR(regId, vecIn) =>
     val cmap = cuMap.copy(newLi).copy(newIg).copy(newRc)
     val remainRegs = (ig.keys.toSet -- rc.keys.toSet).toList
     val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-    simAneal(pcu.pregs, remainRegs, cmap, List(regColor(cu) _), None, OutOfReg(pcu, _, _))
+    //val finPass:Option[M=>M] = Some(StageMapper.map(cu, _))
+    val finPass:Option[M=>M] = None 
+    simAneal(pcu.pregs, remainRegs, cmap, List(regColor(cu) _), finPass, OutOfReg(pcu, _, _))
   } 
 }
 

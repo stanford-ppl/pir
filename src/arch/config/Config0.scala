@@ -100,7 +100,7 @@ object Config0 extends Spade {
      * that stage ) */
     val wastages = List.fill(3) { WAStage(numOprds=2) } // Write addr calculation stages
     val regstages = List.fill(3) { Stage(numOprds=3) } // Regular stages
-    val redstages = List.fill(4) { RedStage(numOprds=2) } // Reduction stage 
+    val redstages = List.fill(4) { ReduceStage(numOprds=2) } // Reduction stage 
 
     // <== : readAcess, ==> : writeAcess
     val stages = wastages ++ regstages ++ redstages 
@@ -125,6 +125,7 @@ object Config0 extends Spade {
         scalarIns.foreach{ oprd <== _ }
         ctrs.foreach{ oprd <== _.out }
         srams.foreach{ oprd <== _.readPort }
+        oprd <== Const
       }
     }
     // Connections in last stage

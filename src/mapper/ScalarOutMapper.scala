@@ -15,6 +15,8 @@ object ScalarOutMapper extends Mapper {
   type R = PSO 
   type V = PSO 
 
+  val finPass = None
+
   private def mapScalarOuts(cl:CL)(n:N, p:R, cuMap:M):M = {
     cl match {
       case c:MC => cuMap
@@ -30,7 +32,8 @@ object ScalarOutMapper extends Mapper {
     val pcl = cuMap.clmap(cl)
     val souts = cl.souts
     val psouts = pcl.souts
-    simAneal(psouts, souts, cuMap, List(mapScalarOuts(cl) _), None, OutOfScalarOut(pcl, _, _))
+    val cons = List(mapScalarOuts(cl) _)
+    simAneal(psouts, souts, cuMap, cons, finPass, OutOfScalarOut(pcl, _, _))
   }
 }
 

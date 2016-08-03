@@ -14,6 +14,7 @@ object CUMapper extends Mapper {
   type N = CL
   type V = CLMap.V
 
+  val finPass:Option[M => M] = Some(mapPrim _)
   /* Saperate Compute Unit and Memory controller to map saperately */
   private def setResource:(List[PCU], List[CU], List[PTT], List[TT]) = {
     //TODO match memory ctrler
@@ -47,7 +48,6 @@ object CUMapper extends Mapper {
   }
 
   private def mapCU(cu:N, pcu:R, pirMap:M):M = {
-    //println(s"mapCU: ${cu} -- ${pcu} ")
     var cmap = pirMap.setCL(cu, pcu) 
     //val p:Printer = new Printer{}; CUMapper.printMap(cmap)(p)
     /* Map CU */
@@ -61,7 +61,7 @@ object CUMapper extends Mapper {
   lazy val (pcus, cus, ptts, tts) = setResource
 
   def mapRCU(pirMap:M):M = {
-    simAneal(pcus, cus, pirMap, cons, Some(mapPrim _), OutOfPCU(_, _))
+    simAneal(pcus, cus, pirMap, cons, finPass, OutOfPCU(_, _))
   }
 
   def mapTT(pirMap:M):M = {

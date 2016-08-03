@@ -18,6 +18,8 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     ScalarInMapper.setDesign(design)
     ScalarOutMapper.setDesign(design)
     VecInMapper.setDesign(design)
+    RegAlloc.setDesign(design)
+    StageMapper.setDesign(design)
   }
 
   override def traverse = {

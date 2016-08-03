@@ -13,12 +13,17 @@ import scala.collection.immutable.Map
 object CtrMapper extends Mapper {
   type R = PCtr
   type N = Ctr
-
+  
+  def next(cu:CU, cuMap:M) = {
+    var cmap = RegAlloc.map(cu, cuMap)
+    StageMapper.map(cu, cmap)
+  }
   def map(cu:CU, cuMap:M):M = {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     // Mapping inner counter first converges faster
     val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
-    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), Some(RegAlloc.map(cu, _)), OutOfCtr(pcu, _, _))
+    val finPass:Option[M => M] = Some(next(cu, _))
+    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), finPass, OutOfCtr(pcu, _, _))
   }
 
   def mapCtr(c:N, p:R, map:M):M = {
@@ -30,7 +35,8 @@ object CtrMapper extends Mapper {
       val pdeped = map.ctmap(c.deped.get)
       if (!pdeped.isDep(p)) throw CtrRouting(c, p)
     }
-    return map.setCt(c,p) 
+    val opmap = map.opmap + (c.out -> p.out)
+    return map.setCt(c,p).set(opmap) 
   }
 
 }

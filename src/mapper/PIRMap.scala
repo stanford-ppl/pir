@@ -5,14 +5,14 @@ import pir.graph.{ Controller => CL, ComputeUnit => CU, TileTransfer => TT,
                   Input => I, VecOut => VO, 
                   SRAM,
                   Counter => Ctr, CounterChain => CC,
-                  ScalarIn => SI, ScalarOut => SO,
-                  Stage => ST, Reg => R}
+                  ScalarIn => SI, ScalarOut => SO, Port => PT,
+                  Stage => ST, Reg => R, Const}
 import pir.plasticine.graph.{ Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
                             InBus => PIB, OutBus => POB,
-                            InPort => IP, OutPort => OP,
+                            Port => PPT, InPort => IP, OutPort => OP,
                             Counter => PCtr, SRAM => PSRAM,
                             ScalarIn => PSI, ScalarOut => PSO,
-                            Stage => PST, Reg => PReg}
+                            Stage => PST, Reg => PReg, FUInPort => PFIP}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -21,21 +21,22 @@ import scala.collection.mutable.ListBuffer
 
 case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMap,
   somap:SOMap, slmap:SLMap, ibmap:IBMap, limap:LIMap, igmap:IGMap, rcmap:RCMap,
-  stmap:STMap, ipmap:IPMap) {
+  stmap:STMap, ipmap:IPMap, opmap:OPMap) {
 
-  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, cp   , ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, smmap, cp   , simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:SIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, cp   , somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:SOMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, cp   , slmap, ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:SLMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, cp   , ibmap, limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:IBMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, cp   , limap, igmap, rcmap, stmap, ipmap)
-  def set(cp:LIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, cp   , igmap, rcmap, stmap, ipmap)
-  def set(cp:IGMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, cp   , rcmap, stmap, ipmap)
-  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, cp   , stmap, ipmap)
-  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, cp   , ipmap)
-  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, cp   )
+  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, cp   , ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, smmap, cp   , simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:SIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, cp   , somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:SOMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, cp   , slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:SLMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, cp   , ibmap, limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:IBMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, cp   , limap, igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:LIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, cp   , igmap, rcmap, stmap, ipmap, opmap)
+  def set(cp:IGMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, cp   , rcmap, stmap, ipmap, opmap)
+  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, cp   , stmap, ipmap, opmap)
+  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, cp   , ipmap, opmap)
+  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, cp   , opmap)
+  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, limap, igmap, rcmap, stmap, ipmap, cp  )
   def copy(cp:PMap):PIRMap = cp match {
     case m:CLMap => set(m) 
     case m:VIMap => set(m)    
@@ -50,6 +51,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
     case m:RCMap => set(m)
     case m:STMap => set(m)
     case m:IPMap => set(m)
+    case m:OPMap => set(m)
   } 
 
   def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + (k -> v))
@@ -65,6 +67,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
   def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + (k -> v))
   def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + (k -> v))
   def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + (k -> v))
+  def setPT(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
 
   def printMap(implicit p:Printer):Unit = {
     slmap.printMap
@@ -95,7 +98,7 @@ object PIRMap {
   def empty:PIRMap = 
     PIRMap(CLMap.empty, VIMap.empty, SMMap.empty, CTMap.empty, 
            SIMap.empty, SOMap.empty, SLMap.empty, IBMap.empty, LIMap.empty,
-           IGMap.empty, RCMap.empty, STMap.empty, IPMap.empty)
+           IGMap.empty, RCMap.empty, STMap.empty, IPMap.empty, OPMap.empty)
 }
 
 trait PMap {
@@ -132,7 +135,7 @@ trait PMap {
   }
 }
 
-trait OPMap {
+trait PMapObj {
   type K
   type V
   type M = Map[K,V]
@@ -142,7 +145,7 @@ trait CLMap extends PMap {
   type V = CLMap.V
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec) }
 }
-object CLMap extends OPMap {
+object CLMap extends PMapObj {
   type K = CL
   type V = PCL
   def apply(m:Map[K,V]) = new { override val map = m } with CLMap
@@ -155,7 +158,7 @@ trait IBMap extends PMap {
   type V = IBMap.V
   override def + (rec:(K,V)) = { super.check(rec); IBMap(map + rec) }
 }
-object IBMap extends OPMap {
+object IBMap extends PMapObj {
   type K = PIB
   type V = POB
   def apply(m:Map[K,V]) = new { override val map = m } with IBMap
@@ -167,11 +170,27 @@ trait IPMap extends PMap {
   type V = IPMap.V
   override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec) }
 }
-object IPMap extends OPMap {
-  type K = R 
-  type V = PReg 
+object IPMap extends PMapObj {
+  type K = IP  
+  type V = OP 
   def apply(m:Map[K,V]) = new { override val map = m } with IPMap
   def empty:IPMap = IPMap(Map.empty)
+}
+/* A mapping between Port and the PPort */
+trait OPMap extends PMap {
+  type K = OPMap.K
+  type V = OPMap.V
+  override def + (rec:(K,V)):OPMap = { 
+    if (!rec._1.src.isInstanceOf[Const]) {
+      super.check(rec); OPMap(map + rec)
+    } else this
+  }
+}
+object OPMap extends PMapObj {
+  type K = PT
+  type V = OP 
+  def apply(m:Map[K,V]) = new { override val map = m } with OPMap
+  def empty:OPMap = OPMap(Map.empty)
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus and the POutBus where Input is 
@@ -181,7 +200,7 @@ trait VIMap extends PMap {
   type V = VIMap.V
   override def + (rec:(K,V)) = { super.check(rec); VIMap(map + rec) }
 }
-object VIMap extends OPMap {
+object VIMap extends PMapObj {
   type K = I
   type V = PIB
   def apply(m:Map[K,V]) = new { override val map = m } with VIMap
@@ -194,7 +213,7 @@ trait SMMap extends PMap {
   type V = SMMap.V
   override def + (rec:(K,V)) = { super.check(rec); SMMap(map + rec) }
 }
-object SMMap extends OPMap {
+object SMMap extends PMapObj {
   type K = SRAM
   type V = PSRAM
   def apply(m:Map[K,V]) = new { override val map = m } with SMMap
@@ -214,7 +233,7 @@ trait CTMap extends PMap {
     }
   }
 }
-object CTMap extends OPMap {
+object CTMap extends PMapObj {
   type K = Ctr
   type V = PCtr
   def apply(m:Map[K,V]) = new { override val map = m } with CTMap
@@ -227,7 +246,7 @@ trait SIMap extends PMap {
   type V = SIMap.V
   override def + (rec:(K,V)) = { super.check(rec); SIMap(map + rec) }
 }
-object SIMap extends OPMap {
+object SIMap extends PMapObj {
   type K = SI
   type V = PSI
   def apply(m:Map[K,V]) = new { override val map = m } with SIMap
@@ -241,7 +260,7 @@ trait SOMap extends PMap {
   override def + (rec:(K,V)) = { super.check(rec); SOMap(map + rec) }
 }
 
-object SOMap extends OPMap {
+object SOMap extends PMapObj {
   type K = SO 
   type V = PSO 
   def apply(m:Map[K,V]) = new { override val map = m } with SOMap
@@ -257,7 +276,7 @@ trait SLMap extends PMap {
   def getIdx(k:K) = map(k)._2
 
 }
-object SLMap extends OPMap {
+object SLMap extends PMapObj {
   type K = Scalar 
   type V = (POB, Int)
   def apply(m:Map[K,V]) = new { override val map = m } with SLMap
@@ -282,7 +301,7 @@ trait LIMap extends PMap {
     }
   }
 }
-object LIMap extends OPMap {
+object LIMap extends PMapObj {
   type K = ST 
   type V = (Set[R], Set[R]) // Stage -> (LiveIn, LiveOut)
   def apply(m:Map[K,V]) = new { override val map = m } with LIMap
@@ -294,7 +313,7 @@ trait IGMap extends PMap {
   type V = IGMap.V
   override def + (rec:(K,V)) = { super.check(rec); IGMap(map + rec) }
 }
-object IGMap extends OPMap {
+object IGMap extends PMapObj {
   type K = Reg  
   type V = Set[Reg] 
   def apply(m:Map[K,V]) = new { override val map = m } with IGMap
@@ -306,7 +325,7 @@ trait RCMap extends PMap {
   type V = RCMap.V
   override def + (rec:(K,V)) = { super.check(rec); RCMap(map + rec) }
 }
-object RCMap extends OPMap {
+object RCMap extends PMapObj {
   type K = R 
   type V = PReg 
   def apply(m:Map[K,V]) = new { override val map = m } with RCMap
@@ -317,10 +336,23 @@ trait STMap extends PMap {
   type K = STMap.K
   type V = STMap.V
   override def + (rec:(K,V)) = { super.check(rec); STMap(map + rec) }
+  def getStage(k:K):PST = map(k)._1
+  def getOprdMap(k:K):STMap.OM = map(k)._2
+  override def printMap(ks:List[K])(implicit p:Printer):Unit = {
+    if (ks.size!=0) {
+      p.emitBlock(name) {
+        ks.foreach{ k =>
+          val (pst, om) = map(k)
+          p.emitln(s"$k -> ${pst} oprd=[${om.map{case (kk,vv) => s"$kk->$vv"}.mkString(s", ")}]")
+        }
+      }
+    }
+  }
 }
-object STMap extends OPMap {
+object STMap extends PMapObj {
   type K = ST 
-  type V = PST 
+  type OM = Map[PT, PFIP]
+  type V = (PST, OM) 
   def apply(m:Map[K,V]) = new { override val map = m } with STMap
   def empty:STMap = STMap(Map.empty)
 }

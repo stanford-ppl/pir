@@ -10,8 +10,6 @@ import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 trait Mapper {
-  type R
-  type N
   type M = PIRMap 
 
   implicit var design:Design = _
@@ -20,24 +18,31 @@ trait Mapper {
   override def toString = this.getClass().getSimpleName() 
 
   /* Bind a list of nodes to a list of resource exhausting all possibilities 
+   * before failing and throw NoSolFound Exception
+   * @param allRes list of resource
+   * @param allNodes list of nodes
+   * @param initMap initial mapping
+   * @param constrains constrains to map a node to a resource. Throw Mapping exceptio if failed 
+   * @param finPass Additional mapping or map transformation after all nodes are successfully mapped
+   * before return in recursive mapping. If finPass throws an exception, previous mapping of all
+   * nodes was considered failed and continues trying
+   * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
-  def simAneal(allRes:List[R], allNodes:List[N], initMap:M, 
+  def simAneal[R,N,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
     oor:(Int, Int) => OutOfResource):M = {
-    //println(s"simAneal")
 
     /* Recursively try a node on a list of resource */
     def recRes(remainRes:List[R], n:N, remainNodes:List[N], preMap:M):M = {
-      //println(s"recRes: ${n}")
       val exceps = ListBuffer[MappingException]()
       for (ir <- 0 until remainRes.size) {
-        val (h, t) = remainRes.splitAt(ir)
-        val res::rt = t
+        val (h, res::rt) = remainRes.splitAt(ir)
+        val restRes = h ++ rt
         Try {
           constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
         } match {
           case Success(m) => 
-            Try(recMap(h ++ rt, remainNodes, m)) match {
+            Try(recMap(restRes, remainNodes, m)) match {
               case Success(m) => return m
               case Failure(e) => e match {
                 case me:NoSolFound => exceps += me
@@ -56,17 +61,14 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        //println(s"Running finPass")
         return if (finPass.isDefined) finPass.get(recmap) else recmap
       }
-      //println(s"recMap")
-      //assert(remainRes.size>0)
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 
-        val (h,t) = remainNodes.splitAt(in)
-        val n::rt = t
+        val (h, n::rt) = remainNodes.splitAt(in)
+        val restNodes = h ++ rt
         Try{
-          recRes(remainRes, n, h ++ rt, recmap)
+          recRes(remainRes, n, restNodes, recmap)
         } match {
           case Success(m) => return m 
           case Failure(e) => e match {
@@ -78,28 +80,38 @@ trait Mapper {
       throw NoSolFound(this, exceps.toList) 
     }
 
-    if (allRes.size < allNodes.size)
-      throw oor(allRes.size, allNodes.size)
+    checkOOR(allRes.size, allNodes.size, oor)
     recMap(allRes, allNodes, initMap)
   }
 
-  def inOrderBind(allRes:List[R], allNodes:List[N], initMap:M, 
+  /* Trying to map a list of nodes to a list of resource exhausting all
+   * possibilities that guarantees binded ordered nodes possesses resource that are of the same
+   * order in allRes. E.g. mapping { n1 -> r1, n2 -> r2 }. If n1 before n2 in allNodes, r1 also
+   * before r2 in allRes
+   * @param allRes list of resource
+   * @param allNodes list of nodes
+   * @param initMap initial mapping
+   * @param constrains constrains to map a node to a resource. Throw Mapping exception if failed 
+   * @param finPass Additional mapping or map transformation after all nodes are successfully mapped
+   * before return in recursive mapping. If finPass throws an exception, previous mapping of all
+   * nodes was considered failed and continues trying
+   * @param oor (resSize, nodeSize) => OutOfResource Exception
+   * */
+  def inordBind[R,N,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
     oor:(Int, Int) => OutOfResource):M = {
-    //println(s"simAneal")
 
     /* Recursively try a node on a list of resource */
     def recRes(remainRes:List[R], n:N, remainNodes:List[N], preMap:M):M = {
-      //println(s"recRes: ${n}")
       val exceps = ListBuffer[MappingException]()
       for (ir <- 0 until remainRes.size) {
-        val (h, t) = remainRes.splitAt(ir)
-        val res::rt = t
+        val (_, res::rt) = remainRes.splitAt(ir)
+        val restRes = rt
         Try {
           constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
         } match {
           case Success(m) => 
-            Try(recMap(h ++ rt, remainNodes, m)) match {
+            Try(recMap(restRes, remainNodes, m)) match {
               case Success(m) => return m
               case Failure(e) => e match {
                 case me:NoSolFound => exceps += me
@@ -118,31 +130,29 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        //println(s"Running finPass")
         return if (finPass.isDefined) finPass.get(recmap) else recmap
       }
-      //println(s"recMap")
-      //assert(remainRes.size>0)
-      val exceps = ListBuffer[MappingException]()
-      for (in <- 0 until remainNodes.size) { 
-        val (h,t) = remainNodes.splitAt(in)
-        val n::rt = t
-        Try{
-          recRes(remainRes, n, h ++ rt, recmap)
-        } match {
-          case Success(m) => return m 
-          case Failure(e) => e match {
-            case fe:FailToMapNode => exceps += fe // recRes failed
-            case _ => throw e // Unknown exception
-          }
+      val n::rt = remainNodes
+      val restNodes = rt
+      Try {
+        recRes(remainRes, n, restNodes, recmap)
+      } match {
+        case Success(m) => return m
+        case Failure(e) => e match { 
+          case fe:FailToMapNode => 
+            throw NoSolFound(this, List(fe)) // recRes failed
+          case _ => throw e // Unknown exception
         }
       }
-      throw NoSolFound(this, exceps.toList) 
     }
 
-    if (allRes.size < allNodes.size)
-      throw oor(allRes.size, allNodes.size)
+    checkOOR(allRes.size, allNodes.size, oor)
     recMap(allRes, allNodes, initMap)
+  }
+  
+  private def checkOOR(nres:Int, nnodes:Int, oor:(Int, Int) => OutOfResource) = {
+    if (nres < nnodes)
+      throw oor(nres, nnodes)
   }
 }
 

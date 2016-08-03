@@ -12,11 +12,15 @@ object VecInMapper extends Mapper {
   type R = PIB
   type N = I
 
+  val finPass:Option[M => M] = None
+
   def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
-    val pmap = simAneal(pcl.vins, cl.vins ++ cl.sins, pirMap, cons, None, OutOfVec(cl, pcl, _, _))
+    val ins = cl.vins ++ cl.sins
+    val pvins = pcl.vins
+    val pmap = simAneal(pvins, ins, pirMap, cons, finPass, OutOfVec(cl, pcl, _, _))
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
       if (pirMap.clmap.contains(reader))
         map(reader, pm)
@@ -46,11 +50,9 @@ object VecInMapper extends Mapper {
 
     /* Find vins that connects to the depended ctrler */
     if (p.isConn(pdvout)) {
-      //println(s"suc: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
       val pmap = pirMap.setVI(n, p)
       pmap.setIB(p, pdvout)
     } else {
-      //println(s"fail: dep:${dep} n:${n} p:${p} pdvout:${pdvout}, p.mapping:${p.mapping}")
       throw IntConnct(cl, pcl)
     }
   }

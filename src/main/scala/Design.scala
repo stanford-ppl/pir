@@ -170,18 +170,11 @@ trait PIRApp extends Design{
 }
 
 object PIRMisc {
-  implicit def scalarBuf_to_port(sb:ScalarIn):Port = {
-    sb.out
-  }
-  implicit def pr_to_port(pr:PipeReg):Port = {
-    pr.out
-  }
-  implicit def ctr_to_port(ctr:Counter):Port = {
-    ctr.out
-  }
-  implicit def mExcep_to_string(e:MappingException):String = {
-    e.toString
-  }
+  implicit def scalarBuf_to_port(sb:ScalarIn):Port = sb.out
+  implicit def pr_to_port(pr:PipeReg):Port = pr.out
+  implicit def ctr_to_port(ctr:Counter):Port = ctr.out
+  implicit def const_to_port(const:Const):Port = const.out
+  implicit def mExcep_to_string(e:MappingException):String = e.toString
   def dprintln(s:String) = if (Config.debug) println(s)
   def dprint(s:String) = if (Config.debug) print(s)
   def info(s:String) = println(s"[pir] ${s}")

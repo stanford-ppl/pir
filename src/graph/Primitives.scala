@@ -108,6 +108,7 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
         p
       } else p.src match {
         case s@ScalarIn(n, scalar) => ScalarIn(n, scalar).out
+        case s:Const => s.out
         case _ => throw new Exception(s"Don't know how to copy port")
       }
     }
@@ -308,6 +309,9 @@ trait AccumStage extends Stage {
   override def toUpdate = super.toUpdate || accReg==null
   override val typeStr = s"AccStage"
 }
+trait WAStage extends Stage {
+  val sram:SRAM
+}
 
 trait Reg extends Primitive {
   val regId:Int
@@ -352,3 +356,13 @@ case class PipeReg(stage:Stage, val reg:Reg)(implicit ctrler:Controller, design:
   }
 }
 
+case class Const(name:Option[String], value:Long)(implicit design: Design) extends Node {
+  override val typeStr = "Const"
+  override def toString = s"Const(${value})"
+  val out = Port(this, s"Const(${value})")
+}
+object Const {
+  def apply(v:Long)(implicit design: Design):Const = Const(None, v)
+  def apply(name:String, v:Long)(implicit design: Design):Const =
+    Const(Some(name), v)
+}

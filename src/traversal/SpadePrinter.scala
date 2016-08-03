@@ -70,10 +70,22 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
           }
           emitBlock(s"piperegs") {
             cu.pregs.foreach { pr =>
-              emitln(s"(${pr.in.ms}, ${pr.out.mt})")
+              emitln(s"${pr.in.ms}")
+              emitln(s"${pr.out.mt}")
             }
           }
           emitln(s"reduce: ${cu.reduce.mt}")
+          emitBlock("stages") {
+            cu.stages.foreach { s =>
+              emitBlock(s"${s}") {
+                s.fu.oprds.foreach { oprd =>
+                  emitln(s"${oprd.ms}")
+                }
+                val res = s.fu.out
+                emitln(s"${res.mt}")
+              }
+            }
+          }
         }
       }
     }

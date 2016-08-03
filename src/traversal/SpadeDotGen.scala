@@ -13,7 +13,7 @@ import java.io.File
 object CUPrinter extends Printer { override val stream = newStream(Config.spadeNetwork) }
 object ArgPrinter extends Printer { override val stream = newStream(Config.spadeArgInOut) }
 object CtrPrinter extends Printer { override val stream = newStream(Config.spadeCtr) }
-class SpadeNetworkDot(implicit design: Design) extends Traversal with Printer {
+class SpadeNetworkDot(implicit design: Design) extends Traversal {
 
   override def initPass = {
     CUPrinter.emitBS("digraph G")
@@ -64,7 +64,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal with Printer {
     ArgPrinter.close
     CtrPrinter.emitBE
     CtrPrinter.close
-    info(s"Finishing Spade Config Printing in ${getPath}")
+    info(s"Finishing Spade Dot Printing in ${CUPrinter.getPath} ${ArgPrinter.getPath} ${CtrPrinter.getPath}")
   }
 
 }

@@ -92,6 +92,7 @@ object AddrOut {
 }
 
 case class FuncUnit(numOprds:Int) extends Node {
+  override val typeStr = "fu"
   val oprds = List.fill(numOprds) (new FUInPort(this)) 
   val out = new FUOutPort(this)
   def ==> (reg:Reg, stage:Stage) = out ==> (reg, stage) 
@@ -107,9 +108,11 @@ object Stage {
   def apply(numOprds:Int):Stage = Stage(FuncUnit(numOprds))
 }
 
-trait RedStage extends Stage
-object RedStage {
-  def apply(numOprds:Int):RedStage = new Stage(FuncUnit(numOprds)) with RedStage
+trait ReduceStage extends Stage {
+  override val typeStr = "rdst"
+}
+object ReduceStage {
+  def apply(numOprds:Int):ReduceStage = new Stage(FuncUnit(numOprds)) with ReduceStage
 }
 trait WAStage extends Stage
 object WAStage {
@@ -291,11 +294,13 @@ class FUInPort(fu:FuncUnit) extends InPort with FUPort {
   src = Some(fu)
   override def toString = s"${fu}.oprd${id}"
   def <== (reg:Reg, stage:Stage) = { super.connect(reg.out); addAccess(reg, stage) }
+  override def ms = s"${super.ms} prAccess=[${prAccess.map{ case (k,v) => s"$k:[${v.mkString(",")}]"}.mkString(s",")}]"
 }
 class FUOutPort(fu:FuncUnit) extends OutPort with FUPort {
   src = Some(fu)
   override def toString = s"${fu}.out"
   def ==> (reg:Reg, stage:Stage) = { reg.in.connect(this); addAccess(reg, stage) }
+  override def mt = s"${super.mt} prAccess=[${prAccess.map{ case (k,v) => s"$k:[${v.mkString(",")}]"}.mkString(s",")}]"
 }
 
 case class InBus(outports:List[BusOutPort]) extends Bus with Input {
