@@ -24,7 +24,7 @@ object StageMapper extends Mapper {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val psts = pcu.stages
     val sts = cu.stages.toList
-    Try { //TODO: Currently if fail doesn't finish mapping 
+    Try { //TODO: Currently if fail take a while to finish 
       inordBind(psts, sts, cuMap, List(mapStage _), finPass, OutOfStage(pcu, _, _))
     } match  {
       case Success(m) => return m
@@ -35,6 +35,8 @@ object StageMapper extends Mapper {
 
   type OMIM = (OM, IPMap)
   def mapStage(n:N, p:R, map:M):M = {
+    if (n.prForward && (!p.prForward))
+      throw StageRouting(n, p)
     val stmap = map.stmap + (n -> (p, Map.empty))
     n match {
       case s:WST => 

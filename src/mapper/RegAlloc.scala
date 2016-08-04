@@ -62,7 +62,7 @@ object RegAlloc extends Mapper {
     def preColorReg(r:Reg, pr:PReg):Unit = {
       ig(r).foreach { ifr =>
         if (cm.contains(ifr) && cm(ifr) == pr )
-          throw PreColorException(r, ifr, pr)
+          throw PreColorInterfere(r, ifr, pr)
       }
       cm += (r -> pr)
     }
@@ -81,14 +81,16 @@ object RegAlloc extends Mapper {
           val sram = wtPort.src
           val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
           preColor(r, psram.writePort.mappedRegs.toList)
-        case WtAddrPR(regId, waPort) =>
-          val sram = waPort.src
-          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
-          preColor(r, psram.writeAddr.mappedRegs.toList)
+        case WtAddrPR(regId, waPorts) =>
+          val srams = waPorts.map{_.src}
+          val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
+          val colors = psrams.map { psram => preColor(r, psram.writeAddr.mappedRegs.toList) }
+          if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
         case RdAddrPR(regId, rdPort) =>
-          val sram = rdPort.src
-          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
-          preColor(r, psram.readAddr.mappedRegs.toList)
+          val srams = rdPort.map{_.src}
+          val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
+          val colors = psrams.map { psram => preColor(r, psram.readAddr.mappedRegs.toList) }
+          if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
         case CtrPR(regId, ctr) =>
           val pctr = cuMap.ctmap(ctr)
           preColor(r, pctr.out.mappedRegs.toList)
@@ -136,8 +138,13 @@ r       case VecInPR(regId, vecIn) =>
   } 
 }
 
-case class PreColorException(r1:Reg, r2:Reg, c:PReg)(implicit design:Design) extends MappingException {
+trait PreColorException extends MappingException {
   override val mapper = RegAlloc
+}
+case class PreColorSameReg(reg:Reg)(implicit design:Design) extends PreColorException{
+  override val msg = s"${reg} has more than 1 predefined color" 
+}
+case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit design:Design) extends PreColorException {
   override val msg = s"Interfering $r1 and $r2 have the same predefined color $c" 
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit design:Design) extends MappingException{

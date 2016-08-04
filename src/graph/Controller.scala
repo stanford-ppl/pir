@@ -40,7 +40,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   var srams:List[SRAM] = _ 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
-  val stages = ListBuffer[Stage]()
+  
+  val wtAddrStages = ListBuffer[WAStage]()
+  val localStages = ListBuffer[Stage]()
+
+  def stages = (wtAddrStages ++ localStages).toList
 
   override def toUpdate = { 
     super.toUpdate || parent==null || cchains==null || srams==null
@@ -100,10 +104,18 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val stageUses  = Map[Stage, Set[Reg]]()
   val stageDefs  = Map[Stage, Set[Reg]]()
   //val stagePRs   = Map[Stage, Map[Int,PipeReg]]()
-  def reset     = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear; stageUses.clear; stageDefs.clear }
+  def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear; 
+    stageUses.clear; stageDefs.clear; localStages.clear; wtAddrStages.clear}
 
-  def addStage(s:Stage):Unit = {
-    stages += s
+  def addStage(s:Stage):Unit = { s match {
+      case ss:WAStage =>
+        wtAddrStages += ss
+      case ss:Stage =>
+        if (localStages.size==0) {
+          s.setPRForward
+          localStages += s
+        }
+    }
     s.operands.foreach { opd => 
       opd.src match {
         case pr:PipeReg => addUse(pr)
@@ -141,18 +153,26 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     s.writePort = pr.out
     pr
   }
-  def wtAddr(stage:Stage, s:SRAM):PipeReg = {
-    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> WtAddrPR(newTemp, s.writeAddr))
-    liveOuts += wtAddrRegs(s)
-    val pr = PipeReg(stage, wtAddrRegs(s))
-    s.writeAddr = pr.out
+  def wtAddr(srams:List[SRAM]):WtAddrPR = WtAddrPR(newTemp, srams.map{_.writeAddr})
+  def wtAddr(stage:Stage, srams:List[SRAM]):PipeReg = {
+    val reg = wtAddr(srams)
+    val pr = PipeReg(stage, reg)
+    srams.foreach { s => 
+      if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> reg)
+      s.writeAddr = pr.out
+    }
+    liveOuts += reg
     pr
   }
-  def rdAddr(stage:Stage, s:SRAM):PipeReg = {
-    if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> RdAddrPR(newTemp, s.readAddr))
-    liveOuts += rdAddrRegs(s)
-    val pr = PipeReg(stage, rdAddrRegs(s))
-    s.readAddr = pr.out
+  def rdAddr(srams:List[SRAM]):RdAddrPR = RdAddrPR(newTemp, srams.map{_.readAddr})
+  def rdAddr(stage:Stage, srams:List[SRAM]):PipeReg = {
+    val reg = rdAddr(srams)
+    val pr = PipeReg(stage, reg)
+    srams.foreach {s =>
+      if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> reg)
+      s.readAddr = pr.out
+    }
+    liveOuts += reg 
     pr
   }
  /** Create a pipeline register for a stage corresponding to 
@@ -164,14 +184,27 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     if (!ctrRegs.contains(c)) ctrRegs += (c -> CtrPR(newTemp, c))
     PipeReg(stage, ctrRegs(c))
   }
-  def accum(stage:Stage, i:Option[Const]):PipeReg = {
-    val reg = AccumPR(newTemp, i)
-    accumRegs += reg 
+  /* Create a new logical accumulator register */
+  def accum(init:Const):AccumPR = {
+    AccumPR(newTemp, init)
+  }
+  /* Create a new logical accumulator register and return a PipeReg for the stage and the created
+   * accumulator 
+  * @param stage: Stage of the pipeline register 
+   * @param init initial value of the accumulator
+   * */
+  def accum(stage:Stage, init:Const):PipeReg = {
+    val reg = accum(init) 
+    accum(stage, reg)
     PipeReg(stage, reg)
   }
-  def accum(stage:Stage, reg:AccumPR):PipeReg = {
-    assert(accumRegs.contains(reg), s"AccumReg ${reg} wasn't created but trying to refer to it")
-    PipeReg(stage, reg)
+  /* Create a pipeline register for a stage that connects to the accumulator reg 
+   * @param stage
+   * @param acc 
+   */
+  def accum(stage:Stage, acc:AccumPR):PipeReg = {
+    accumRegs += acc 
+    PipeReg(stage, acc)
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the reduction network 
@@ -188,7 +221,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
-  * @param rid: reg rid of scalar input 
+  * @param s: ScalarIn buffer 
   */
   def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
     if (!scalarIns.contains(s)) scalarIns += (s -> ScalarInPR(newTemp, s))
@@ -250,7 +283,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   */
   def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, VecOut(vec))
 
-  /* Create a new register id for mapping
+  /* Create a new logical register 
    * */
   def temp = Reg(newTemp)
 

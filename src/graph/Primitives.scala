@@ -238,6 +238,8 @@ object VecOut {
 
 case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "Stage"
+  var prForward = false
+  def setPRForward = prForward = true
   var operands:List[Port] = _
   var op:Op = _
   var result:Port = _
@@ -261,7 +263,8 @@ object Stage {
   def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
-    Stages.accum(ctrler.reduce(rdstages.last), op, init) 
+    val acc = ctrler.accum(init)
+    Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
   }
 }
 object Stages {
@@ -291,11 +294,10 @@ object Stages {
    * @op accumulation operand
    * Returns the accumulation stage and PipeReg of the accumulator
    * */
-  def accum(operand:PipeReg, op:Op, init:Const) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, PipeReg) = {
-    val s = new Stage(None) with AccumStage 
+  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:ComputeUnit, design: Design):(AccumStage, PipeReg) = {
+    val s = AccumStage(acc)
     addMaps(s, ctrler)
-    val areg = ctrler.accum(s, Some(init))
-    s.accReg = areg.reg.asInstanceOf[AccumPR]
+    val areg = ctrler.accum(s, acc)
     Stage(s, List(operand.read, areg.read), op, areg.read)
     (s, areg)
   }
@@ -305,12 +307,28 @@ trait ReduceStage extends Stage {
   override val typeStr = s"RedStage"
 }
 trait AccumStage extends Stage {
-  var accReg:AccumPR = _
+  val accReg:AccumPR
   override def toUpdate = super.toUpdate || accReg==null
   override val typeStr = s"AccStage"
 }
-trait WAStage extends Stage {
-  val sram:SRAM
+object AccumStage {
+  def apply(acc:AccumPR)(implicit ctrler:ComputeUnit, design: Design) = 
+    new {override val accReg = acc} with Stage(None) with AccumStage
+}
+class WAStage (override val name:Option[String], val sram:SRAM)
+  (implicit ctrler:Controller, design: Design) extends Stage(name) {
+}
+object WAStage {
+  def apply(sram:SRAM)(implicit ctrler:Controller, design: Design)  = new WAStage(None, sram)
+}
+object WAStages {
+  def apply(sram:SRAM, n:Int) (implicit ctrler:ComputeUnit, design: Design):List[WAStage] = {
+    List.tabulate(n) {i => 
+      val s = WAStage(sram)
+      Stages.addMaps(s, ctrler)
+      s
+    }
+  }
 }
 
 trait Reg extends Primitive {
@@ -328,11 +346,11 @@ object Reg {
 }
 case class LoadPR(override val regId:Int, rdPort:Port)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regld"}
 case class StorePR(override val regId:Int, wtPort:Port)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regst"}
-case class RdAddrPR(override val regId:Int, raPort:Port)(implicit ctrler:Controller, design: Design)            extends Reg {override val typeStr = "Regra"}
-case class WtAddrPR(override val regId:Int, waPort:Port)(implicit ctrler:Controller, design: Design)            extends Reg {override val typeStr = "Regwa"}
+case class RdAddrPR(override val regId:Int, raPorts:List[Port])(implicit ctrler:Controller, design: Design)     extends Reg {override val typeStr = "Regra"}
+case class WtAddrPR(override val regId:Int, waPorts:List[Port])(implicit ctrler:Controller, design: Design)     extends Reg {override val typeStr = "Regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regct"}
 case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regrd"}
-case class AccumPR(override val regId:Int, init:Option[Const])(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "Regac"}
+case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regac"}
 case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regvi"}
 case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regvo"; var vecOut:VecOut = _}
 case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)    extends Reg {override val typeStr = "Regsi"}
