@@ -18,7 +18,7 @@ object DotProductNoSugar extends Design {
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
   val outer = {
-    implicit val CU:ComputeUnit = ComputeUnit(name=None, tpe=MetaPipeline, parent="Top", deps=List("inner"))
+    implicit val CU:ComputeUnit = ComputeUnit(name=None, tpe=MetaPipeline, parent="Top", deps=List())
     //implicit val CU = ComputeUnit(name=None, tpe=MetaPipeline).updateParent("Top").updateDeps(List("inner")) // Alternative
     val ds = ScalarIn(dataSize)
     CU.updateFields(
