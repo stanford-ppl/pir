@@ -16,25 +16,25 @@ object DotProduct extends PIRApp {
     val B = MemoryController("B", TileLoad, OffChip())
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline){ implicit CU =>
+    val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline, deps=List("inner")){ implicit CU =>
       CounterChain(name="i", CU.scalarIn(dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad){ implicit CU =>
+    val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad, deps=List("inner")){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad){ implicit CU =>
+    val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad, deps=List("inner")){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
       Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
-    ComputeUnit (name="inner", parent=outer, tpe=Pipe) { implicit CU =>
+    ComputeUnit (name="inner", parent=outer, tpe=Pipe, deps=List(tileLoadA, tileLoadB)) { implicit CU =>
       
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const(1l)) //Local
