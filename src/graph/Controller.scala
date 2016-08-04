@@ -175,10 +175,10 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     s.writePort = pr.out
     pr
   }
-  def wtAddr(srams:List[SRAM]):WtAddrPR = WtAddrPR(newTemp, srams.map{_.writeAddr})
-  def wtAddr(stage:Stage, srams:List[SRAM]):PipeReg = {
-    val reg = wtAddr(srams)
+  def wtAddr():WtAddrPR = WtAddrPR(newTemp)
+  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = {
     val pr = PipeReg(stage, reg)
+    val srams = reg.waPorts.map{_.src.asInstanceOf[SRAM]}
     srams.foreach { s => 
       if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> reg)
       s.writeAddr = pr.out
@@ -186,10 +186,10 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     liveOuts += reg
     pr
   }
-  def rdAddr(srams:List[SRAM]):RdAddrPR = RdAddrPR(newTemp, srams.map{_.readAddr})
-  def rdAddr(stage:Stage, srams:List[SRAM]):PipeReg = {
-    val reg = rdAddr(srams)
+  def rdAddr():RdAddrPR = RdAddrPR(newTemp)
+  def rdAddr(stage:Stage, reg:RdAddrPR):PipeReg = {
     val pr = PipeReg(stage, reg)
+    val srams = reg.raPorts.map{_.src.asInstanceOf[SRAM]}
     srams.foreach {s =>
       if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> reg)
       s.readAddr = pr.out

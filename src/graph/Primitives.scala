@@ -137,8 +137,26 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
   var writePort: Port = _
   override def toUpdate = super.toUpdate || readAddr==null || writeAddr==null || writePort==null
 
-  def updateRA(ra:Port):SRAM = { readAddr = ra; this } 
-  def updateWA(wa:Port):SRAM = { writeAddr = wa; this } 
+  def updateRA(ra:Port):SRAM = { 
+    readAddr = ra; 
+    ra.src match {
+      case PipeReg(stage,r) =>
+        val reg:RdAddrPR = r.asInstanceOf[RdAddrPR]
+        reg.raPorts += readAddr 
+      case _ =>
+    }
+    this
+  } 
+  def updateWA(wa:Port):SRAM = { 
+    writeAddr = wa
+    wa.src match {
+      case PipeReg(stage, r) =>
+        val reg:WtAddrPR = r.asInstanceOf[WtAddrPR]
+        reg.waPorts += writeAddr
+      case _ =>
+    }
+    this 
+  }
   def updateWP(wp:Port):SRAM = { writePort = wp; this } 
   def updateWP(vec:Vector):SRAM = updateWP(VecIn(vec).out)
 
@@ -344,17 +362,17 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, rdPort:Port)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regld"}
-case class StorePR(override val regId:Int, wtPort:Port)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regst"}
-case class RdAddrPR(override val regId:Int, raPorts:List[Port])(implicit ctrler:Controller, design: Design)     extends Reg {override val typeStr = "Regra"}
-case class WtAddrPR(override val regId:Int, waPorts:List[Port])(implicit ctrler:Controller, design: Design)     extends Reg {override val typeStr = "Regwa"}
-case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regct"}
-case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regrd"}
-case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:Controller, design: Design)              extends Reg {override val typeStr = "Regac"}
-case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)             extends Reg {override val typeStr = "Regvi"}
-case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                         extends Reg {override val typeStr = "Regvo"; var vecOut:VecOut = _}
-case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)    extends Reg {override val typeStr = "Regsi"}
-case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctrler:Controller, design: Design) extends Reg {override val typeStr = "Regso"}
+case class LoadPR(override val regId:Int, rdPort:Port)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "Regld"}
+case class StorePR(override val regId:Int, wtPort:Port)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regst"}
+case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design) extends Reg {override val typeStr = "Regra"; val raPorts = ListBuffer[Port]()}
+case class WtAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design) extends Reg {override val typeStr = "Regwa"; val waPorts = ListBuffer[Port]()}
+case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)                 extends Reg {override val typeStr = "Regct"}
+case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "Regrd"}
+case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "Regac"}
+case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "Regvi"}
+case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "Regvo"; var vecOut:VecOut = _}
+case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "Regsi"}
+case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctrler:Controller, design: Design)   extends Reg {override val typeStr = "Regso"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
  * the PR belongs to

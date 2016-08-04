@@ -81,13 +81,15 @@ object RegAlloc extends Mapper {
           val sram = wtPort.src
           val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
           preColor(r, psram.writePort.mappedRegs.toList)
-        case WtAddrPR(regId, waPorts) =>
+        case rr:WtAddrPR =>
+          val waPorts = rr.waPorts
           val srams = waPorts.map{_.src}
           val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
           val colors = psrams.map { psram => preColor(r, psram.writeAddr.mappedRegs.toList) }
           if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
-        case RdAddrPR(regId, rdPort) =>
-          val srams = rdPort.map{_.src}
+        case rr:RdAddrPR =>
+          val raPorts = rr.raPorts
+          val srams = raPorts.map{_.src}
           val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
           val colors = psrams.map { psram => preColor(r, psram.readAddr.mappedRegs.toList) }
           if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
