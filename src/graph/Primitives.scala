@@ -20,17 +20,21 @@ abstract class Primitive(implicit val ctrler:Controller, design:Design) extends 
 case class CounterChain(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "CC"
   /* Fields */
-  var counters:List[Counter] = _ 
+  var counters:List[Counter] = Nil 
   /* Pointers */
   var dep:Option[CounterChain] = None
   var copy:Option[CounterChain] = None
+  var updated = false // Become updated if copied counter is updated
 
-  override def toUpdate = super.toUpdate || counters==null || dep==null || copy==null 
+  override def toUpdate = super.toUpdate || (!updated) 
 
   def apply(num: Int)(implicit ctrler:Controller, design: Design):Counter = {
-    if (counters == null) {
+    if (!updated) {
       // Speculatively create counters base on need and check index out of bound during update
-      this.counters = (0 to num).map { j => Counter() }.toList
+      this.counters = List.tabulate(num+1) { i => 
+        if (i < counters.size) counters(i)
+        else Counter()
+      }
     }
     counters(num)
   }
@@ -45,11 +49,13 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
     }
     updateDep
     this.copy = Some(cp)
+    updated = true
   }
   def update(bds: Seq[(Port, Port, Port)]):Unit = {
     counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(mi, ma, s)}.toList
     updateDep
     this.copy = None 
+    updated = true
   }
 
   def updateDep = {
@@ -71,7 +77,7 @@ object CounterChain {
     cc
   }
   def copy(from:Controller, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
-    copy(from.toString, name)
+    copy(from.name.getOrElse(""), name)
   }
 }
 
@@ -333,14 +339,25 @@ object AccumStage {
   def apply(acc:AccumPR)(implicit ctrler:ComputeUnit, design: Design) = 
     new {override val accReg = acc} with Stage(None) with AccumStage
 }
-class WAStage (override val name:Option[String], val sram:SRAM)
+class WAStage (override val name:Option[String])
   (implicit ctrler:Controller, design: Design) extends Stage(name) {
+  var sram:SRAM = _
+  override def toUpdate = super.toUpdate || sram==null
+
+  def updateSRAM[T](sram:T):WAStage = {
+    sram match {
+      case s:String => design.updateLater(s"${ctrler.name.getOrElse(s"")}_${s}", (n:Node) => this.sram = n.asInstanceOf[SRAM])
+      case s:SRAM => this.sram = s
+    }
+    this
+  }
+
 }
 object WAStage {
-  def apply(sram:SRAM)(implicit ctrler:Controller, design: Design)  = new WAStage(None, sram)
+  def apply[T](sram:T)(implicit ctrler:Controller, design: Design)  = new WAStage(None).updateSRAM(sram)
 }
 object WAStages {
-  def apply(sram:SRAM, n:Int) (implicit ctrler:ComputeUnit, design: Design):List[WAStage] = {
+  def apply[T](n:Int, sram:T) (implicit ctrler:ComputeUnit, design: Design):List[WAStage] = {
     List.tabulate(n) {i => 
       val s = WAStage(sram)
       Stages.addMaps(s, ctrler)

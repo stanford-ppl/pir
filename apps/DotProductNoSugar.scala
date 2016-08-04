@@ -18,8 +18,7 @@ object DotProductNoSugar extends Design {
 
   // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
   val outer = {
-    implicit val CU:ComputeUnit = ComputeUnit(name=None, tpe=MetaPipeline, parent="Top", deps=List())
-    //implicit val CU = ComputeUnit(name=None, tpe=MetaPipeline).updateParent("Top").updateDeps(List("inner")) // Alternative
+    implicit val CU = ComputeUnit(name=None, tpe=MetaPipeline).updateParent("Top").updateDeps(List("inner"))
     val ds = ScalarIn(dataSize)
     CU.updateFields(
       cchains=List(CounterChain(name="i", ds.out by tileSize)),
@@ -32,7 +31,7 @@ object DotProductNoSugar extends Design {
   }
   // b1 := v1(i::i+tileSize)
   val tileLoadA =  {
-    implicit val TT:TileTransfer = TileTransfer(name=None, memctrl=A, mctpe=TileLoad, parent=outer, deps=List("inner"))
+    implicit val TT = TileTransfer (name=None, memctrl=A, mctpe=TileLoad).updateParent(outer).updateDeps(List("inner"))
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)
@@ -49,7 +48,7 @@ object DotProductNoSugar extends Design {
   }
   // b2 := v2(i::i+tileSize)
   val tileLoadB =  {
-    implicit val TT:TileTransfer = TileTransfer (name=None, memctrl=A, mctpe=TileLoad, parent=outer, deps=List("inner"))
+    implicit val TT = TileTransfer (name=None, memctrl=B, mctpe=TileLoad).updateParent(outer).updateDeps(List("inner"))
     val ic = CounterChain.copy(outer, "i")
     val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
     val s0::_ = Stages(1)
@@ -96,7 +95,7 @@ object DotProductNoSugar extends Design {
 
   top = Top().updateFields(cs=List(outer, tileLoadA, tileLoadB, inner), 
                            scalars=List(dataSize, output), 
-                           memctrls=List(A, B))
+                           memCtrls=List(A, B))
 
   def main(args: Array[String]): Unit = {
     run

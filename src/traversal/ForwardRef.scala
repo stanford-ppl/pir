@@ -2,6 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.PIRMisc._
+import pir.graph.mapper.PIRException
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
@@ -18,7 +19,19 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear()
-    design.allNodes.foreach(n => assert(!n.toUpdate, s"Node ${n} contains unupdated field/fields!"))
+    design.allNodes.foreach{ n => 
+      if (n.toUpdate) {
+        var info = ""
+        n match {
+          case s:Scalar => info += s"writer:${s.writer} readers=[${s.readers.mkString(",")}]" 
+          case t:Top => 
+            info += s"sins:${t.sins} souts:${t.souts} vins:${t.vins} vouts:${t.vouts}" 
+            info += s"compUnits:${t.compUnits} memCtrls:${t.memCtrls}"
+          case _ =>
+        }
+        throw PIRException(s"Node ${n} contains unupdated field/fields! ${info}")
+      }
+    }
   } 
 
   override def finPass = {
@@ -33,7 +46,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
         nameMap += (s -> c)
       case p:Primitive =>
         assert(p.ctrler!=null, s"Primitive ${p} doesn't have ctriler!")
-        val s = s"${p.ctrler}_${n.name.get}"
+        val s = s"${p.ctrler.name.getOrElse("")}_${n.name.get}"
         assert(!nameMap.contains(s),
           s"Already create primitive with name ${s} for controller ${p.ctrler}")
         nameMap += (s -> p)
@@ -45,7 +58,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
   }
 
   def getByName(s:String):Node = {
-    assert(nameMap.contains(s), s"No node defined with name:${s}. nameMap:${nameMap}")
+    assert(nameMap.contains(s), s"No node defined with name:${s}. \nnameMap:${nameMap}")
     nameMap(s)
   }
 

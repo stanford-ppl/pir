@@ -145,12 +145,10 @@ trait Design { self =>
   val traversals = ListBuffer[Traversal]()
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
-  //traversals += new UpdateReader()
   traversals += new PIRPrinter()
   traversals += new SpadeNetworkDot()
   val pirmapping = new PIRMapping()
-  traversals += pirmapping 
-
+  if (Config.mapping) traversals += pirmapping 
   reset()
 
   def run = traversals.foreach(_.run)
@@ -175,6 +173,7 @@ object PIRMisc {
   implicit def ctr_to_port(ctr:Counter):Port = ctr.out
   implicit def const_to_port(const:Const):Port = const.out
   implicit def mExcep_to_string(e:MappingException):String = e.toString
+  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const(1) 
   def dprintln(s:String) = if (Config.debug) println(s)
   def dprint(s:String) = if (Config.debug) print(s)
   def info(s:String) = println(s"[pir] ${s}")
