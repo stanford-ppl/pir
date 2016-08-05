@@ -67,7 +67,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
   def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + (k -> v))
   def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + (k -> v))
   def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + (k -> v))
-  def setPT(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
+  def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
 
   def printMap(implicit p:Printer):Unit = {
     slmap.printMap
@@ -176,7 +176,7 @@ object IPMap extends PMapObj {
   def apply(m:Map[K,V]) = new { override val map = m } with IPMap
   def empty:IPMap = IPMap(Map.empty)
 }
-/* A mapping between Port and the PPort */
+/* A mapping between Port and the POutPort */
 trait OPMap extends PMap {
   type K = OPMap.K
   type V = OPMap.V

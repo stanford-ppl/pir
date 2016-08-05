@@ -176,11 +176,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     pr
   }
   def wtAddr():WtAddrPR = WtAddrPR(newTemp)
-  def wtAddr(stage:Stage):PipeReg = {
+  def wtAddr(stage:WAStage):PipeReg = {
     val reg = wtAddr()
     wtAddr(stage, reg)
   }
-  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = {
+  def wtAddr(stage:WAStage, reg:WtAddrPR):PipeReg = {
     val pr = PipeReg(stage, reg)
     val srams = reg.waPorts.map{_.src.asInstanceOf[SRAM]}
     srams.foreach { s => 
@@ -191,6 +191,10 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     pr
   }
   def rdAddr():RdAddrPR = RdAddrPR(newTemp)
+  def rdAddr(stage:Stage):PipeReg = {
+    val reg = rdAddr()
+    rdAddr(stage, reg)
+  }
   def rdAddr(stage:Stage, reg:RdAddrPR):PipeReg = {
     val pr = PipeReg(stage, reg)
     val srams = reg.raPorts.map{_.src.asInstanceOf[SRAM]}
@@ -384,12 +388,12 @@ object UnitComputeUnit {
   }
 }
 
-case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType)
+case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
   (implicit design:Design) extends ComputeUnit(name, Pipe) {
 
   /* Fields */
-  val dataIn:VecIn = if (mctpe==TileLoad) VecIn(memctrl.load) else VecIn(Vector()) 
-  val dataOut:VecOut = if (mctpe==TileStore) VecOut(memctrl.store) else VecOut(Vector())
+  val dataIn:VecIn = if (mctpe==TileLoad) VecIn(memctrl.load) else VecIn(vec) 
+  val dataOut:VecOut = if (mctpe==TileStore) VecOut(memctrl.store) else VecOut(vec)
 
   def in:Vector = dataIn.vector
   def out:Vector = dataOut.vector

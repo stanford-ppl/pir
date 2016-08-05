@@ -23,7 +23,9 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       if (n.toUpdate) {
         var info = ""
         n match {
-          case s:Scalar => info += s"writer:${s.writer} readers=[${s.readers.mkString(",")}]" 
+          case s:Scalar => 
+            def str(p:Primitive) = { if (p==null) "null" else p.ctrler.toString }
+            info += s"writer:${str(s.writer)} readers=[${s.readers.map(r => str(r)).mkString(",")}]" 
           case t:Top => 
             info += s"sins:${t.sins} souts:${t.souts} vins:${t.vins} vouts:${t.vouts}" 
             info += s"compUnits:${t.compUnits} memCtrls:${t.memCtrls}"

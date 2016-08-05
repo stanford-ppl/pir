@@ -15,9 +15,9 @@ object ScalarInMapper extends Mapper {
   private def mapScalarIns(n:N, p:R, pirMap:M):M = {
     val ib = pirMap.vimap(n)
     val idx = pirMap.slmap.getIdx(n.scalar)
-    if (p.in.isConn(ib.outports(idx)))
-      pirMap.setSI(n, p)
-    else
+    if (p.in.isConn(ib.outports(idx))) {
+      pirMap.setSI(n, p).setOP(n.out, p.out)
+    } else
       throw ScalarInRouting(n, p)
   }
 
