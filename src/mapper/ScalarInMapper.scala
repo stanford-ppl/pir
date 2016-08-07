@@ -16,9 +16,10 @@ object ScalarInMapper extends Mapper {
     val ib = pirMap.vimap(n)
     val idx = pirMap.slmap.getIdx(n.scalar)
     if (p.in.isConn(ib.outports(idx))) {
-      pirMap.setSI(n, p).setOP(n.out, p.out)
+      //TODO: pirMap.setSI(n, p).setOP(n.out, p.out)
     } else
       throw ScalarInRouting(n, p)
+    pirMap
   }
 
   def map(cl:CL, pirMap:M):M = {

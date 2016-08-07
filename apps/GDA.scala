@@ -34,7 +34,7 @@ object GDA extends PIRApp {
     val tlm0 = TileTransfer(name="tlm0", parent=accel, memctrl=m0, mctpe=TileLoad, deps=Nil, vec=tlm0Vec){ implicit CU =>
       val s0::_ = Stages(1)
       val cc = CounterChain(name="cc", Cmax by Const(1))
-      Stage(s0, op1=CU.ctr(s0, cc(0)), op=Bypass, result=CU.scalarOut(s0, m0.saddr))
+      Stage(s0, op1=CU.ctr(cc(0)), op=Bypass, result=CU.scalarOut(s0, m0.saddr))
     }
     //mu1Tile := mu1(0::Cmax, subLoopPar)  // Load mu1
     val tlm1 = TileTransfer(name="tlm1", parent=accel, memctrl=m1, mctpe=TileLoad, deps=Nil, vec=tlm1Vec){ implicit CU =>
@@ -46,8 +46,9 @@ object GDA extends PIRApp {
     //Pipe.fold(rows by rTileSize par outerPar, outerAccumPar)(sigmaOut){ r =>
     //}{_+_}
     val outerBR = ComputeUnit (name="outerBR", parent=accel, tpe=MetaPipeline, deps=List(tlm0, tlm1)) { implicit CU =>
+      val es = CU.emptyStage
       // StateMachines / CounterChain
-      val r = CounterChain(name="r", CU.scalarIn(rows) by rTileSize) //Local
+      val r = CounterChain(name="r", CU.scalarIn(es, rows) by rTileSize) //Local
       val acc = CounterChain(Cmax by Const(1)) //BlockReduce
       val rr = CounterChain.copy("innerBL", "rr")
 
@@ -75,7 +76,8 @@ object GDA extends PIRApp {
     //xTile := x(r::r+rTileSize, 0::cols, subLoopPar)  // Load tile of x
     val tlx = TileTransfer (name="tlx", parent=outerBR, memctrl=x, mctpe=TileLoad, deps=Nil, vec=tlXVec) { implicit CU =>
       val r = CounterChain.copy(outerBR, "r")
-      val rr = CounterChain(name="rr", Const(0) until rTileSize, Const(0) until CU.scalarIn(cols))
+      val rr = CounterChain(name="rr", Const(0) until rTileSize, 
+                                       Const(0) until CU.scalarIn(CU.emptyStage, cols))
       val s0::s1::s2::_ = Stages(3)
       val t1 = CU.temp(s0)
       val t2 = CU.temp(s1)
@@ -93,9 +95,8 @@ object GDA extends PIRApp {
       val c1 = CounterChain.copy("outProd", "c1")
 
       val ws0::ws1::_ = WAStages(2, "sigmaTile")
-      val wa = CU.wtAddr(ws1)
       // SRAMs
-      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=actr(0), writeAddr=wa)
+      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=actr(0))
       val sigmaBlk = SRAM(size=256, readAddr=actr(0), writeAddr=actr(0))
 
       // Remote Addr Calc for sigmaTile 
@@ -103,7 +104,7 @@ object GDA extends PIRApp {
       val jj = c1(1)
       val t1 = CU.temp(ws0)
       Stage (ws0, op1=ii, op2=Cmax, op=FixMul, result=t1)
-      Stage (ws1, op1=t1, op2=jj, op=FixAdd, result=wa)
+      Stage (ws1, op1=t1, op2=jj, op=FixAdd, result=sigmaTile.writeAddr)
 
       val s0::s1::_ = Stages(2)
       // Accumulate
@@ -118,7 +119,7 @@ object GDA extends PIRApp {
     val subPipe = ComputeUnit (name="subPipe", parent=innerBL, tpe=Pipe, deps=Nil) { implicit CU =>
       // StateMachines / CounterChain
       val rr = CounterChain.copy("innerBL", "rr")
-      val cc = CounterChain(name="cc", CU.scalarIn(cols) by Const(1)) //Local
+      val cc = CounterChain(name="cc", CU.scalarIn(CU.emptyStage, cols) by Const(1)) //Local
       val cmu0 = CounterChain.copy(tlm0, "cc")
       val cmu1 = CounterChain.copy(tlm1, "cc")
       val cy = CounterChain.copy(tly, "rr")
@@ -127,10 +128,8 @@ object GDA extends PIRApp {
       val ws0::ws1::_ = WAStages(2, "xTile")
       val s0::s1::s2::s3::_ = Stages(4)
 
-      val xWA = CU.wtAddr(ws1)
-      val xRA = CU.rdAddr(s1)
       // SRAMs
-      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec, readAddr=xRA ,writeAddr=xWA)
+      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec)
       val yTile   = SRAM(size=4, vec=tlYVec, readAddr=rr(0), writeAddr = cy(0))
       val mu0Tile = SRAM(size=16, vec=tlm0Vec, readAddr=cc(0), writeAddr=cmu0(0))
       val mu1Tile = SRAM(size=16, vec=tlm1Vec, readAddr=cc(0), writeAddr=cmu1(0))
@@ -139,16 +138,14 @@ object GDA extends PIRApp {
       // xTile Write Addr Calculation
       val t1 = CU.temp(ws0)
       Stage(ws0, op1=cx(0), op2=Cmax, op=FixMul, result=t1)
-      Stage(ws1, op1=t1, op2=cx(1), op=FixAdd, result=xWA)
+      Stage(ws1, op1=t1, op2=cx(1), op=FixAdd, result=xTile.writeAddr)
       // xTile Read Addr Calculation
-      val t2 = CU.temp(s1)
+      val t2 = CU.temp(s0)
       Stage (s0, op1=rr(0), op2=Cmax, op=FixMul, result=t2)
-      Stage (s1, op1=t2, op2=CU.ctr(s0, cc(0)), op=FixAdd, result=xRA)
+      Stage (s1, op1=t2, op2=CU.ctr(s0, cc(0)), op=FixAdd, result=xTile.readAddr)
       // Compute
-      val y   = yTile.load
-      val x   = xTile.load
       val t3 = CU.temp(s2)
-      Stage (s2, op1=mu1Tile.load, op2=mu0Tile.load, op3=y, op=Mux, result=t3)
+      Stage (s2, op1=mu1Tile.load, op2=mu0Tile.load, op3=yTile.load, op=Mux, result=t3)
       Stage (s3, op1=CU.load(s2, xTile), op2=t3, op=FixSub, result=CU.vecOut(s3, subVec))
     }
 
@@ -158,7 +155,7 @@ object GDA extends PIRApp {
     val outProd = ComputeUnit (name="outProd", parent=innerBL, tpe=Pipe, deps=List(subPipe)) { implicit CU =>
       // StateMachines / CounterChain
       val cc = CounterChain.copy("subPipe", "cc")
-      val sCols = CU.scalarIn(cols)
+      val sCols = CU.scalarIn(CU.emptyStage, cols)
       val c1 = CounterChain(name="c1", sCols by Const(1), sCols by Const(1))
       val ii = c1(0) 
       val jj = c1(1)

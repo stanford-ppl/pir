@@ -38,6 +38,8 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   var parent:Controller = _
   // List of controllers the current controller expecting token from 
   val dependencies = ListBuffer[Controller]()
+  // List of controllers the current controller send token to
+  val dependeds = ListBuffer[Controller]()
 
   /* Fields */
   var cchains:List[CounterChain] = _
@@ -45,10 +47,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
-  val wtAddrStages = ListBuffer[WAStage]()
-  val localStages = ListBuffer[Stage]()
+  val emptyStage = EmptyStage()
+  val wtAddrStages = ListBuffer[List[WAStage]]()
+  val localStages = ListBuffer[LocalStage]()
 
-  def stages = (wtAddrStages ++ localStages).toList
+  def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
 
   override def toUpdate = { 
     super.toUpdate || parent==null || cchains==null || srams==null
@@ -90,8 +93,16 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     this
   }
 
+  def updateDeped(deped:Controller):Unit = {
+    dependeds += deped
+  }
+
   def updateDep(dep:Controller):Unit = {
     dependencies += dep
+    dep match {
+      case d:ComputeUnit => d.updateDeped(this)
+      case _ =>
+    }
   }
 
   def updateDeps[T](deps:List[T])(implicit cltp:TypeTag[T]):this.type = {
@@ -107,7 +118,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   }
 
   var regId = 0
-  private def newTemp = {val temp = regId; regId +=1; temp}
+  def newTemp = {val temp = regId; regId +=1; temp}
 
   /* Register Mapping */
   val reduceReg  = ReducePR(newTemp)
@@ -117,42 +128,69 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val loadRegs   = Map[SRAM, LoadPR]()
   val storeRegs  = Map[SRAM, StorePR]()
-  val wtAddrRegs = Map[SRAM, WtAddrPR]()
-  val rdAddrRegs = Map[SRAM, RdAddrPR]()
+  //val wtAddrRegs = Map[SRAM, WtAddrPR]()
+  //val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
   val accumRegs  = Set[AccumPR]()
-  val liveOuts   = Set[Reg]()
-  val stageUses  = Map[Stage, Set[Reg]]()
-  val stageDefs  = Map[Stage, Set[Reg]]()
-  //val stagePRs   = Map[Stage, Map[Int,PipeReg]]()
   def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear; 
-    stageUses.clear; stageDefs.clear; localStages.clear; wtAddrStages.clear}
+    localStages.clear; wtAddrStages.clear}
+
+  def addWAStages(was:List[WAStage]) = {
+    wtAddrStages += was
+  }
 
   def addStage(s:Stage):Unit = { s match {
-      case ss:WAStage =>
-        wtAddrStages += ss
-      case ss:Stage =>
-        if (localStages.size==0) {
-          s.setPRForward
-          localStages += s
-        }
-    }
-    s.operands.foreach { opd => 
-      opd.src match {
-        case pr:PipeReg => addUse(pr)
-        case _ =>
-      } 
-    }
-    s.result.src match {
-      case pr:PipeReg => addDef(pr)
-      case _ =>
+      case ss:LocalStage =>
+        localStages += ss
+      case ss:WAStage => // Added at WAStages
     }
   }
-  private def addUse(p:PipeReg) = { 
-    stageUses(p.stage) += p.reg
-}
-  private def addDef(p:PipeReg) = stageDefs(p.stage) += p.reg
+
+  def pipeReg(stage:Stage, reg:Reg) = {
+    val prs = stage.prs
+    if (!prs.contains(reg))
+      prs += (reg -> PipeReg(stage, reg))
+    prs(reg)
+  }
+  def loadPR(s:SRAM):LoadPR = {
+    if (!loadRegs.contains(s)) loadRegs += (s -> LoadPR(newTemp, s.readPort))
+    loadRegs(s)
+  }
+  def storePR(s:SRAM):StorePR = {
+    if (!storeRegs.contains(s)) storeRegs += (s -> StorePR(newTemp, s.writePort))
+    storeRegs(s)
+  }
+  def ctrPR(c:Counter):CtrPR = {
+    if (!ctrRegs.contains(c)) ctrRegs += (c -> CtrPR(newTemp, c))
+    ctrRegs(c)
+  }
+  def accumPR(init:Const):AccumPR = {
+    val acc = AccumPR(newTemp, init)
+    accumRegs += acc 
+    acc
+  }
+  def scalarInPR(s:ScalarIn):ScalarInPR = {
+    if (!scalarIns.contains(s)) scalarIns += (s -> ScalarInPR(newTemp, s))
+    scalarIns(s)
+  }
+  def scalarOutPR(s:ScalarOut):ScalarOutPR = {
+    if (!scalarOuts.contains(s)) scalarOuts += (s -> ScalarOutPR(newTemp, s))
+    scalarOuts(s)
+  }
+  def vecInPR(v:VecIn):VecInPR =  {
+    if (!vecIns.contains(v)) vecIns += (v -> VecInPR(newTemp, v))
+    vecIns(v)
+  }
+  def vecOutPR(vo:VecOut):VecOutPR = {
+    vecOut.vecOut = vo
+    vecOut
+  }
+  def tempPR():Reg = {
+    val reg = Reg(newTemp)
+    tempRegs += reg 
+    reg
+  }
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
@@ -160,8 +198,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param s: sram to load from 
   */
  def load(stage:Stage, s:SRAM):PipeReg = {
-    if (!loadRegs.contains(s)) loadRegs += (s -> LoadPR(newTemp, s.readPort))
-    PipeReg(stage, loadRegs(s))
+    pipeReg(stage, loadPR(s))
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that stores to the sram
@@ -169,41 +206,41 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param s: sram to load from 
   */
   def store(stage:Stage, s:SRAM):PipeReg = {
-    if (!storeRegs.contains(s)) storeRegs += (s -> StorePR(newTemp, s.writePort))
-    liveOuts += storeRegs(s)
-    val pr = PipeReg(stage, storeRegs(s))
-    s.writePort = pr.out
+    val pr = pipeReg(stage, storePR(s))
+    s.writePort.connect(pr.out)
     pr
   }
-  def wtAddr():WtAddrPR = WtAddrPR(newTemp)
-  def wtAddr(stage:WAStage):PipeReg = {
-    val reg = wtAddr()
-    wtAddr(stage, reg)
-  }
-  def wtAddr(stage:WAStage, reg:WtAddrPR):PipeReg = {
-    val pr = PipeReg(stage, reg)
-    val srams = reg.waPorts.map{_.src.asInstanceOf[SRAM]}
-    srams.foreach { s => 
-      if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> reg)
-      s.writeAddr = pr.out
-    }
-    liveOuts += reg
-    pr
-  }
-  def rdAddr():RdAddrPR = RdAddrPR(newTemp)
-  def rdAddr(stage:Stage):PipeReg = {
-    val reg = rdAddr()
-    rdAddr(stage, reg)
-  }
-  def rdAddr(stage:Stage, reg:RdAddrPR):PipeReg = {
-    val pr = PipeReg(stage, reg)
-    val srams = reg.raPorts.map{_.src.asInstanceOf[SRAM]}
-    srams.foreach {s =>
-      if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> reg)
-      s.readAddr = pr.out
-    }
-    liveOuts += reg 
-    pr
+  //def wtAddr():WtAddrPR = WtAddrPR(newTemp)
+  //def wtAddr(stage:WAStage):PipeReg = {
+  //  val reg = wtAddr()
+  //  wtAddr(stage, reg)
+  //}
+  //def wtAddr(stage:WAStage, reg:WtAddrPR):PipeReg = {
+  //  val pr = pipeReg(stage, reg)
+  //  val srams = reg.waPorts.map{_.src.asInstanceOf[SRAM]}
+  //  srams.foreach { s => 
+  //    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> reg)
+  //    s.writeAddr = pr.out
+  //  }
+  //  pr
+  //}
+  //def rdAddr():RdAddrPR = RdAddrPR(newTemp)
+  //def rdAddr(stage:Stage):PipeReg = {
+  //  val reg = rdAddr()
+  //  rdAddr(stage, reg)
+  //}
+  //def rdAddr(stage:Stage, reg:RdAddrPR):PipeReg = {
+  //  val pr = pipeReg(stage, reg)
+  //  val srams = reg.raPorts.map{_.src.asInstanceOf[SRAM]}
+  //  srams.foreach {s =>
+  //    if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> reg)
+  //    s.readAddr = pr.out
+  //  }
+  //  pr
+  //}
+  
+  def ctr(c:Counter):PipeReg = {
+    pipeReg(emptyStage, ctrPR(c))
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 
@@ -211,52 +248,35 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param c: counter 
   */
   def ctr(stage:Stage, c:Counter):PipeReg = {
-    if (!ctrRegs.contains(c)) ctrRegs += (c -> CtrPR(newTemp, c))
-    PipeReg(stage, ctrRegs(c))
+    pipeReg(stage, ctrPR(c))
   }
   /* Create a new logical accumulator register */
-  def accum(init:Const):AccumPR = {
-    AccumPR(newTemp, init)
-  }
+  def accum(init:Const):AccumPR = accumPR(init)
   /* Create a new logical accumulator register and return a PipeReg for the stage and the created
    * accumulator 
   * @param stage: Stage of the pipeline register 
    * @param init initial value of the accumulator
    * */
-  def accum(stage:Stage, init:Const):PipeReg = {
-    val reg = accum(init) 
-    accum(stage, reg)
-    PipeReg(stage, reg)
-  }
+  def accum(stage:Stage, init:Const):PipeReg = pipeReg(stage, accum(init))
   /* Create a pipeline register for a stage that connects to the accumulator reg 
    * @param stage
    * @param acc 
    */
-  def accum(stage:Stage, acc:AccumPR):PipeReg = {
-    accumRegs += acc 
-    PipeReg(stage, acc)
-  }
+  def accum(stage:Stage, acc:AccumPR):PipeReg = pipeReg(stage, acc)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the reduction network 
   * @param stage: Stage of the pipeline register 
   * @param i: initial value
   */
   def reduce(stage:Stage):PipeReg = {
-    PipeReg(stage, reduceReg)
+    pipeReg(stage, reduceReg)
   }
- /** Create a ScalarIn object 
-  * @param s: scalar value 
-  */
-  def scalarIn(s:Scalar):ScalarIn = ScalarIn(s)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
   * @param s: ScalarIn buffer 
   */
-  def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
-    if (!scalarIns.contains(s)) scalarIns += (s -> ScalarInPR(newTemp, s))
-    PipeReg(stage, scalarIns(s))
-  }
+  def scalarIn(stage:Stage, s:ScalarIn):PipeReg = pipeReg(stage, scalarInPR(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
@@ -266,18 +286,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
-  //No use case
-  def scalarOut(s:Scalar):ScalarOut = ScalarOut(s)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = {
-    if (!scalarOuts.contains(s)) scalarOuts += (s -> ScalarOutPR(newTemp, s))
-    val reg = scalarOuts(s)
-    liveOuts += reg 
-    PipeReg(stage, reg)
-  }
+  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = pipeReg(stage, scalarOutPR(s))
  /** Create a pipeline register and a scalar buffer for a stage. 
   *  The pipeline register connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
@@ -288,24 +301,21 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, v:VecIn):PipeReg = {
-    if (!vecIns.contains(v)) vecIns += (v -> VecInPR(newTemp, v))
-    PipeReg(stage, vecIns(v))
+    pipeReg(stage, vecInPR(v))
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, VecIn(vec))
-  def vecIn(vec:Vector):Port = VecIn(vec).out
+  //def vecIn(vec:Vector):Port = VecIn(vec).out
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
   * @param vo: VecOut of current ComputeUnit. One per CU 
   */
   def vecOut(stage:Stage, vo:VecOut):PipeReg = {
-    vecOut.vecOut = vo
-    liveOuts += vecOut
-    PipeReg(stage, vecOut)
+    pipeReg(stage, vecOutPR(vo))
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
@@ -322,15 +332,13 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   */
   def temp(stage:Stage, reg:Reg):PipeReg = {
     assert(tempRegs.contains(reg), s"PipeReg with reg:${reg} wans't created but try to refer to it")
-    PipeReg(stage, reg)
+    pipeReg(stage, reg)
   }
  /** Allocate a new pipeline register in the stage 
   * @param stage: Stage of the pipeline register 
   */
   def temp(stage:Stage):PipeReg = {
-    val reg = Reg(newTemp)
-    tempRegs += reg 
-    PipeReg(stage, reg)
+    pipeReg(stage, tempPR())
   }
 
   def apply(block:this.type => Any) (implicit design:Design):this.type =

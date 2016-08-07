@@ -8,11 +8,12 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
+import java.io.OutputStream
 import java.io.File
 
 class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
 
-  override val stream = newStream(Config.pirFile) 
+  override val stream:OutputStream = newStream(Config.pirFile) 
 
   override def initPass() = {
     super.initPass
@@ -21,11 +22,16 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   def genFields(node:Node):String = {
     val fields = ListBuffer[String]()
     node match {
-      case p:TileTransfer =>
-        fields += s"mctpe=${p.mctpe}"
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"type=${n.tpe}"
+        fields += s"dep=[${n.dependencies.mkString(",")}]"
+        fields += s"deped=[${n.dependeds.mkString(",")}]"
+        n match {
+          case c:TileTransfer =>
+            fields += s"mctpe=${c.mctpe}"
+          case _ =>
+        }
       case p:MemoryController =>
         fields += s"mctpe=${p.mctpe}"
       case n:Primitive => {
@@ -34,9 +40,15 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:CounterChain =>
             fields += s"copy=${p.copy.getOrElse("None")}"
           case p:SRAM =>
-            fields += s"size=${p.size}, RA=${p.readAddr}, WA=${p.writeAddr}, RP=${p.writeAddr}"
+            fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
+            fields += s"RP=${p.readPort.to}, WP=${p.writePort.from}"
           case p:Stage =>
-            fields += s"operands=[${p.operands.mkString(",")}], op=${p.op}, result=${p.result}"
+            if (p.operands.size!=0)
+              fields += s"operands=[${p.operands.map(_.from).mkString(",")}]"
+            if (p.fu.isDefined)
+              fields += s"op=${p.fu.get.op}"
+            if (p.results.size!=0)
+              fields += s"results=[${p.results.map(_.to).mkString(",")}]"
             p match {
               case s:ReduceStage => fields += s"idx=${s.idx}"
               case _ =>
@@ -50,7 +62,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:VecOut =>
             fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 
-            fields += s"min=${p.min}, max=${p.max}, step=${p.step}, dep=${p.dep}"
+            fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}, dep=${p.dep}"
           case p:Reg => p match {
             case r:PipeReg =>
             case r:Const => fields += s"${r.value}"
@@ -91,9 +103,6 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     toStr(m, "storeRegs" , c.storeRegs  )
     toStr(m, "ctrRegs"   , c.ctrRegs    )
     toStr(m, "tempRegs"  , c.tempRegs   )
-    toStr(m, "liveOuts"  , c.liveOuts   )
-    toStr(m, "stageUses" , c.stageUses  )
-    toStr(m, "stageDefs" , c.stageDefs  )
     m
   }
 
@@ -106,9 +115,23 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           emitln(s"${k}:${v}")
         }
         emitBE
-      case _ =>
+        super.visitNode(node)
+      case n:Stage =>
+        val strs = ListBuffer[String]()
+        strs += s"uses:[${n.uses.mkString(",")}]"
+        strs += s"defs:[${n.defs.mkString(",")}]"
+        emitln(strs.mkString(" "))
+        strs.clear
+        strs += s"liveIns:[${n.liveIns.mkString(",")}]"
+        strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
+        emitln(strs.mkString(" "))
+        n.prs.foreach { case (reg, pr) =>
+          val in = pr.in.from
+          val out = pr.out.to
+         emitln(s"pr=${pr}, in=${in}, out=${out}")
+        }
+      case _ => super.visitNode(node)
     }
-    super.visitNode(node)
     emitBE
   }
 
@@ -116,6 +139,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     node match {
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
+      case n:Stage => emitBlock(s"${node}${genFields(node)}", node)
       case _ => emitln(s"${node}${genFields(node)}")
     }
   }

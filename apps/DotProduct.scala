@@ -20,7 +20,8 @@ object DotProduct extends PIRApp {
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = ComputeUnit(name="outer", parent=top, tpe=MetaPipeline, deps=Nil){ implicit CU =>
-      CounterChain(name="i", CU.scalarIn(dataSize) by tileSize)
+      val es = CU.emptyStage
+      CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
     val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad,
@@ -28,7 +29,9 @@ object DotProduct extends PIRApp {
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
+      val es = CU.emptyStage 
+      val output = CU.scalarOut(s0, A.saddr)
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
     }
     // b2 := v2(i::i+tileSize)
     val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad,
@@ -36,7 +39,9 @@ object DotProduct extends PIRApp {
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const(0) until tileSize by Const(1))
       val s0::_ = Stages(1)
-      Stage(s0, op1=it(0), op2=ic(0), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
+      val es = CU.emptyStage
+      val output = CU.scalarOut(s0, B.saddr)
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     val inner = ComputeUnit (name="inner", parent=outer, tpe=Pipe, deps=List(tileLoadA, tileLoadB)) { implicit CU =>
@@ -53,12 +58,18 @@ object DotProduct extends PIRApp {
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const(0l))
       Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, innerScalar))
+      // Testing
+      val s2::s3::_ = Stages(2)
+      val t1 = CU.temp(s2) 
+      Stage(s2, op1=CU.load(s1, sA), op2=CU.load(s1, sB), op=FixAdd, result=t1)
+      Stage(s3, op1=t1, op2=CU.load(s2, sA), op=FixAdd, result=CU.vecOut(s3, Vector()))
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
     UnitComputeUnit (name="accum", parent=outer, deps=List(inner)) { implicit CU =>
+      val es = CU.emptyStage
       val s0::s1::_ = Stages(2)
       val accum = CU.accum(s0, init=Const(0))
-      Stage(s0, op1=CU.scalarIn(innerScalar), op2=accum, op=FixAdd, accum)
+      Stage(s0, op1=CU.scalarIn(es, innerScalar), op2=accum, op=FixAdd, accum)
       Stage(s1, op1=accum, op=Bypass, result=CU.scalarOut(s1, output))
     }
   }

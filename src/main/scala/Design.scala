@@ -145,6 +145,7 @@ trait Design { self =>
   val traversals = ListBuffer[Traversal]()
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
+  traversals += new LiveAnalysis()
   traversals += new PIRPrinter()
   traversals += new SpadeNetworkDot()
   val pirmapping = new PIRMapping()
@@ -168,10 +169,11 @@ trait PIRApp extends Design{
 }
 
 object PIRMisc {
-  implicit def scalarBuf_to_port(sb:ScalarIn):Port = sb.out
-  implicit def pr_to_port(pr:PipeReg):Port = pr.out
-  implicit def ctr_to_port(ctr:Counter):Port = ctr.out
-  implicit def const_to_port(const:Const):Port = const.out
+  implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
+  implicit def pr_to_outport(pr:PipeReg):OutPort = pr.out
+  implicit def sram_to_outport(sram:SRAM):OutPort = sram.readPort
+  implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
+  implicit def const_to_port(const:Const):OutPort = const.out
   implicit def mExcep_to_string(e:MappingException):String = e.toString
   implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const(1) 
   def dprintln(s:String) = if (Config.debug) println(s)

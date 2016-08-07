@@ -13,37 +13,15 @@ object RegAlloc extends Mapper {
   type R = PReg
   type N = Reg
 
-  type LI = MMap[Stage, (Set[Reg], Set[Reg])] // Stage -> (LiveIn, LiveOut)
   type IG = MMap[Reg, MSet[Reg]]
   type RC = MMap[Reg, PReg]
 
-  private def liveAnalysis(cu:CU):LI = {
-    val liveMap:LI = MMap.empty
-    val stages = cu.stages
-    for (i <- stages.size-1 to 0 by -1){
-      val s = stages(i)
-      val liveOut = 
-        if (i==stages.size-1) cu.liveOuts.toSet 
-        else {
-          val next = stages(i+1)
-          val nextLiveIn = liveMap(next)._1
-          next match {
-            case as:AccumStage => // Implicit def due to initial value
-              nextLiveIn - as.accReg
-            case _ => nextLiveIn 
-          }
-        } 
-      val liveIn = (liveOut -- cu.stageDefs(s) ++ cu.stageUses(s))
-      liveMap += s -> (liveIn, liveOut)
-    }
-    liveMap
-  }
-
-  private def infAnalysis(cu:CU, lm:LI):IG = {
+  private def infAnalysis(cu:CU):IG = {
     val infGraph:IG = MMap.empty
     val stages = cu.stages
     stages.foreach { s =>
-      val (liveIn, liveOut) = lm(s)
+      val liveIn = s.liveIns
+      val liveOut = s.liveOuts
       liveIn.foreach { r =>
         if (!infGraph.contains(r)) infGraph += (r -> MSet.empty)
         infGraph(r) ++= (liveIn - r)
@@ -56,7 +34,7 @@ object RegAlloc extends Mapper {
     infGraph
   }
 
-  private def preColorAnalysis(cu:CU, cuMap:M, lm:LI, ig:IG):RC = {
+  private def preColorAnalysis(cu:CU, cuMap:M, ig:IG):RC = {
     val cm:RC = MMap.empty // Color Map
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     def preColorReg(r:Reg, pr:PReg):Unit = {
@@ -81,18 +59,18 @@ object RegAlloc extends Mapper {
           val sram = wtPort.src
           val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
           preColor(r, psram.writePort.mappedRegs.toList)
-        case rr:WtAddrPR =>
-          val waPorts = rr.waPorts
-          val srams = waPorts.map{_.src}
-          val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
-          val colors = psrams.map { psram => preColor(r, psram.writeAddr.mappedRegs.toList) }
-          if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
-        case rr:RdAddrPR =>
-          val raPorts = rr.raPorts
-          val srams = raPorts.map{_.src}
-          val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
-          val colors = psrams.map { psram => preColor(r, psram.readAddr.mappedRegs.toList) }
-          if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
+        //case rr:WtAddrPR =>
+        //  val waPorts = rr.waPorts
+        //  val srams = waPorts.map{_.src}
+        //  val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
+        //  val colors = psrams.map { psram => preColor(r, psram.writeAddr.mappedRegs.toList) }
+        //  if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
+        //case rr:RdAddrPR =>
+        //  val raPorts = rr.raPorts
+        //  val srams = raPorts.map{_.src}
+        //  val psrams = srams.map{ sram => cuMap.smmap(sram.asInstanceOf[SRAM]) }
+        //  val colors = psrams.map { psram => preColor(r, psram.readAddr.mappedRegs.toList) }
+        //  if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
         case CtrPR(regId, ctr) =>
           val pctr = cuMap.ctmap(ctr)
           preColor(r, pctr.out.mappedRegs.toList)
@@ -125,13 +103,11 @@ r       case VecInPR(regId, vecIn) =>
   }
 
   def map(cu:CU, cuMap:M):M = {
-    val li = liveAnalysis(cu)
-    val ig = infAnalysis(cu, li)
-    val rc = preColorAnalysis(cu, cuMap, li, ig)
-    val newLi = LIMap(cuMap.limap.map ++ li.toMap) 
+    val ig = infAnalysis(cu)
+    val rc = preColorAnalysis(cu, cuMap, ig)
     val newIg = IGMap(cuMap.igmap.map ++ ig.map{case (k,v) => (k, v.toSet)}.toMap)
     val newRc = RCMap(cuMap.rcmap.map ++ rc.toMap) 
-    val cmap = cuMap.copy(newLi).copy(newIg).copy(newRc)
+    val cmap = cuMap.copy(newIg).copy(newRc)
     val remainRegs = (ig.keys.toSet -- rc.keys.toSet).toList
     val pcu = cmap.clmap(cu).asInstanceOf[PCU]
     //val finPass:Option[M=>M] = Some(StageMapper.map(cu, _))

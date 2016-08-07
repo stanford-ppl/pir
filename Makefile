@@ -15,5 +15,6 @@ clean:
 distclean: clean
 	make -C docs/manual clean
 
-ctags:
-	sbt gen-ctags
+tag:
+	ctags -R src/ apps/
+	#sbt gen-ctags

@@ -12,7 +12,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
   private val nameMap = HashMap[String, Node]()
 
   override def reset = nameMap.clear()
-  override def traverse = {
+  override def traverse:Unit = {
     design.allNodes.foreach(n => addName(n))
     design.toUpdate.foreach { case (k,f) =>
       val n:Node = getByName(k)
@@ -21,17 +21,10 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     design.toUpdate.clear()
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
-        var info = ""
-        n match {
-          case s:Scalar => 
-            def str(p:Primitive) = { if (p==null) "null" else p.ctrler.toString }
-            info += s"writer:${str(s.writer)} readers=[${s.readers.map(r => str(r)).mkString(",")}]" 
-          case t:Top => 
-            info += s"sins:${t.sins} souts:${t.souts} vins:${t.vins} vouts:${t.vouts}" 
-            info += s"compUnits:${t.compUnits} memCtrls:${t.memCtrls}"
-          case _ =>
-        }
-        throw PIRException(s"Node ${n} contains unupdated field/fields! ${info}")
+        val printer = new { override val stream = System.out } with PIRPrinter()
+        printer.visitNode(n)
+        printer.flush
+        throw PIRException(s"Node ${n} contains unupdated field/fields!")
       }
     }
   } 
