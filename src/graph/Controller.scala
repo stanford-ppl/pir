@@ -205,11 +205,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
-  def store(stage:Stage, s:SRAM):PipeReg = {
-    val pr = pipeReg(stage, storePR(s))
-    s.writePort.connect(pr.out)
-    pr
-  }
+  def store(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, storePR(s))
   //def wtAddr():WtAddrPR = WtAddrPR(newTemp)
   //def wtAddr(stage:WAStage):PipeReg = {
   //  val reg = wtAddr()

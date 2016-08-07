@@ -146,6 +146,7 @@ trait Design { self =>
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
   traversals += new LiveAnalysis()
+  traversals += new IRCheck()
   traversals += new PIRPrinter()
   traversals += new SpadeNetworkDot()
   val pirmapping = new PIRMapping()

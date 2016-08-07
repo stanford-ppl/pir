@@ -19,14 +19,6 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear()
-    design.allNodes.foreach{ n => 
-      if (n.toUpdate) {
-        val printer = new { override val stream = System.out } with PIRPrinter()
-        printer.visitNode(n)
-        printer.flush
-        throw PIRException(s"Node ${n} contains unupdated field/fields!")
-      }
-    }
   } 
 
   override def finPass = {

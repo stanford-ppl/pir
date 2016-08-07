@@ -89,7 +89,7 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   val min:InPort = InPort(this, s"${this}.min")
   val max:InPort = InPort(this, s"${this}.max")
   val step:InPort = InPort(this, s"${this}.step")
-  val out:OutPort = OutPort(this, {s"${this}.out"}) 
+  val out:CtrOutPort = CtrOutPort(this, {s"${this}.out"}) 
   var dep:Option[Counter] = _
   var deped:Option[Counter] = None
 
@@ -146,11 +146,11 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
 
   val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
   val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
-  val readPort: OutPort = OutPort(this, s"${this}.rp") 
+  val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
 
   override def toUpdate = super.toUpdate || !readAddr.isConnected || 
-    !writeAddr.isConnected || !writePort.isConnected
+    !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
 
   def updateRA(ra:OutPort):SRAM = { 
     readAddr.connect(ra); 
@@ -377,6 +377,7 @@ object AccumStage {
 class WAStage (override val name:Option[String])
   (implicit ctrler:Controller, design: Design) extends Stage(name) {
   var sram:SRAM = _
+  override val typeStr = "WAStage"
   override def toUpdate = super.toUpdate || sram==null
 
   def updateSRAM[T](sram:T):WAStage = {
@@ -423,7 +424,7 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, rdPort:OutPort)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "regld"}
+case class LoadPR(override val regId:Int, rdPort:ReadOutPort)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "regld"}
 case class StorePR(override val regId:Int, wtPort:InPort)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
 //case class WtAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regwa"; val waPorts = ListBuffer[InPort]()}

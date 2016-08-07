@@ -13,19 +13,25 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   //override def reset = nameMap.clear()
   override def traverse = {
     design.top.compUnits.foreach { implicit cu =>
-      updates(cu)
-      cu.wtAddrStages.foreach { was => liveness(was); connectPRs(was) }
+      // Uses in sram and counter
+      updatesPrim(cu)
+      // Write Addr Stages
+      cu.wtAddrStages.foreach { was => updateStages(was); liveness(was); connectPRs(was) }
+      // Local Stages
       val empty = if (cu.wtAddrStages.size > 0) cu.wtAddrStages.last.last else cu.emptyStage 
-      liveness(empty::cu.localStages.toList) 
-      connectPRs(empty::cu.localStages.toList)
+      val locals = empty::cu.localStages.toList
+      updateStages(locals)
+      liveness(locals) 
+      connectPRs(locals)
     }
   } 
 
-  def updates(implicit cu:ComputeUnit) = {
+  def updatesPrim(implicit cu:ComputeUnit) = {
     cu.srams.foreach { sram =>
       addLiveOut(sram.readAddr)
       addLiveOut(sram.writeAddr)
-      addLiveOut(sram.writePort)
+      if (sram.writePort.isConnected)
+        addLiveOut(sram.writePort)
     }
     cu.cchains.foreach { cc => 
       cc.counters.foreach { ctr =>
@@ -34,10 +40,13 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         addLiveOut(ctr.step)
       }
     }
-    cu.stages.zipWithIndex.foreach { case (s, i) =>
+  }
+  
+  def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
+    stages.zipWithIndex.foreach { case (s, i) =>
       if (s.fu.isDefined) {
-        s.operands.foreach { opd => addOpd(opd, s) }
-        s.results.foreach { res => addRes(res, i) }
+        s.operands.foreach { opd => addOpd(opd, s, stages) }
+        s.results.foreach { res => addRes(res, i, stages) }
       }
     }
   }
@@ -49,8 +58,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     }
   }
 
-  private def addOpd(port:InPort, stage:Stage) (implicit cu:ComputeUnit) = {
-    val stages = cu.stages
+  private def addOpd(port:InPort, stage:Stage, stages:List[Stage]) (implicit cu:ComputeUnit) = {
     port.from.src match {
       case pr@PipeReg(s, reg) => 
         if (stage == s) s.addUse(reg) // If is current stage, is a usage
@@ -71,8 +79,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   }
 
 
-  private def addRes(res:OutPort, i:Int)(implicit cu:ComputeUnit) = {
-    val stages = cu.stages
+  private def addRes(res:OutPort, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
     val stage = stages(i)
     res.to match {
       case p:PRInPort =>
@@ -90,28 +97,41 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     }
   }
 
+  def compLiveIn(liveOuts:ISet[Reg], defs:ISet[Reg], uses:ISet[Reg]):ISet[Reg] = 
+    (liveOuts -- defs ++ uses)
   // Definition of use here is different from traditional CPU use
   // sn: reg(sn,c) <- reg(sn-1, a) + reg(sn-1, b)
   // reg(sn-1, a) and reg(sn-1, b) are considered as use of sn-1 rather than sn 
   def liveness(stages:List[Stage]) = {
     for (i <- stages.size-1 to 0 by -1){
       val s = stages(i)
-      s.liveOuts = if (i==stages.size-1) s.liveOuts else s.liveOuts ++ stages(i+1).liveIns
-      s.liveIns = (s.liveOuts -- s.defs ++ s.uses).toSet
+      s.liveOuts = if (s==stages.last) s.liveOuts else s.liveOuts ++ stages(i+1).liveIns
+      s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       s.operands.foreach { o =>
         o.from.src match {
           case PipeReg(stage,reg) => if (reg.isInstanceOf[AccumPR]) s.liveIns = s.liveIns - reg
           case _ =>
         }
       }
-      if (s == stages(0)) { 
+      if (s == stages.head) { // Empty stage. Add forwarding path to liveIn variables 
         s.liveIns.foreach{ r => 
           r match {
-            case (_:CtrPR | _:LoadPR | _:VecInPR | _:ScalarInPR ) => s.addDef(r)
+            case (_:CtrPR | _:VecInPR | _:ScalarInPR ) => s.addDef(r)
             case _ => throw PIRException(s"Register ${r} has no definition!")
           }
         }
-        s.liveIns = ISet.empty
+        s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
+      } else if (i==1) { // s == stages.second. First stage after "empty stage" 
+        s.liveIns.foreach{ r => 
+          // If there's no def on loaded value, check if sram's readAddr is directly connected to 
+          // the counter. If it is, forward loaded value to the first local stage
+          if (r.isInstanceOf[LoadPR]) { 
+            val sram = r.asInstanceOf[LoadPR].rdPort.src
+            if (sram.readAddr.from.isInstanceOf[CtrOutPort]) s.addDef(r)
+            else throw PIRException(s"${sram} has no readAddr defined!")
+          }
+        }
+        s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       }
     }
   }
@@ -146,6 +166,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           } else {
             throw PIRException(s"what's going on")
           } 
+        }
+        if (stage==stages.last) {
+          if (!pr.out.isConnected) {
+            reg match {
+              case StorePR(_, wtPort) => wtPort.connect(pr.out)
+              case VecOutPR(_) =>
+              case ScalarOutPR(_, _) =>
+              case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
+            }
+          }
         }
       }
     }
