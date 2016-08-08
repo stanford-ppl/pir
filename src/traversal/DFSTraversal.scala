@@ -44,8 +44,6 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         case p:VecIn =>
         case p:VecOut =>
         case p:Stage =>
-          p.operands.foreach(op => visitNode(op.src))
-          p.results.foreach( result => visitNode(result.src))
         case p:Reg => p match {
           case r:PipeReg =>
           case r:Const =>

@@ -49,7 +49,6 @@ object CUMapper extends Mapper {
 
   private def mapCU(cu:N, pcu:R, pirMap:M):M = {
     var cmap = pirMap.setCL(cu, pcu) 
-    //val p:Printer = new Printer{}; CUMapper.printMap(cmap)(p)
     /* Map CU */
    // Assume sin and vin have only one writer
     cmap = ScalarOutMapper.map(cu, cmap)

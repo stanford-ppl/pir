@@ -10,15 +10,17 @@ import scala.collection.mutable.Map
 
 class LiveAnalysis(implicit val design: Design) extends Traversal{
 
-  //override def reset = nameMap.clear()
   override def traverse = {
     design.top.compUnits.foreach { implicit cu =>
       // Uses in sram and counter
       updatesPrim(cu)
+      // EmptyStage
+      val empty = 
+        if (cu.wtAddrStages.size > 0) { stageAnalysis(List(cu.emptyStage)); cu.wtAddrStages.last.last}
+        else { cu.emptyStage }
       // Write Addr Stages
       cu.wtAddrStages.foreach { was => stageAnalysis(was) }
       // Local Stages
-      val empty = if (cu.wtAddrStages.size > 0) cu.wtAddrStages.last.last else cu.emptyStage 
       val locals = empty::cu.localStages.toList
       stageAnalysis(locals)
       // Interference Graph
@@ -51,10 +53,8 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   
   private def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
     stages.zipWithIndex.foreach { case (s, i) =>
-      if (s.fu.isDefined) {
-        s.operands.foreach { opd => addOpd(opd, s, stages) }
-        s.results.foreach { res => addRes(res, i, stages) }
-      }
+      s.fu.foreach(_.operands.foreach ( opd => addOpd(opd, s, stages) ))
+      s.fu.foreach(f => addRes(f.out, i, stages))
     }
   }
 
@@ -88,19 +88,20 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
 
   private def addRes(res:OutPort, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
     val stage = stages(i)
-    res.to match {
-      case p:PRInPort =>
-        val PipeReg(s, reg) = p.src
-        s.addDef(reg)
-        reg match {
-          case (_:StorePR | _:VecOutPR | _:ScalarOutPR) => stages.last.addLiveOut(reg)
-          case _ => 
-        }
-      case p:RdAddrInPort =>
-        val sram = p.src
-        if (stage!=stages.last) // Loaded value are forwarded one stage after readAddr calc
-          stages(i+1).addDef(cu.loadPR(sram))
-      case _ =>
+    res.to.foreach { _ match {
+        case p:PRInPort =>
+          val PipeReg(s, reg) = p.src
+          s.addDef(reg)
+          reg match {
+            case (_:StorePR | _:VecOutPR | _:ScalarOutPR) => stages.last.addLiveOut(reg)
+            case _ => 
+          }
+        case p:RdAddrInPort =>
+          val sram = p.src
+          if (stage!=stages.last) // Loaded value are forwarded one stage after readAddr calc
+            stages(i+1).addDef(cu.loadPR(sram))
+        case _ =>
+      }
     }
   }
 
@@ -114,6 +115,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
       val s = stages(i)
       s.liveOuts = if (s==stages.last) s.liveOuts else s.liveOuts ++ stages(i+1).liveIns
       s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
+      if (s.id==326) println(s.liveIns)
       if (s == stages.head) { // Empty stage. Add forwarding path to liveIn variables 
         s.liveIns.foreach{ r => 
           r match {
@@ -163,9 +165,17 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
                 case CtrPR(_, ctr) => pr.in.connect(ctr.out) 
                 case LoadPR(_, rdPort) => pr.in.connect(rdPort) 
                 case VecInPR(_, vecIn) => 
-                  if (stage!=stages.head) pr.in.connect(cu.pipeReg(stages.head, reg))
+                  val head = cu.pipeReg(stages.head, reg)
+                  if (stage!=stages.head) {
+                    pr.in.connect(head)
+                  }
+                  if (!head.in.isConnected) head.in.connect(vecIn.out)
                 case ScalarInPR(_, scalarIn) =>
-                  if (stage!=stages.head) pr.in.connect(cu.pipeReg(stages.head, reg))
+                  val head = cu.pipeReg(stages.head, reg)
+                  if (stage!=stages.head) {
+                    pr.in.connect(head)
+                  }
+                  if (!head.in.isConnected) head.in.connect(scalarIn.out) 
                 case _ => throw PIRException(s"Cannot forward reg type: ${reg}")
               }
             }
@@ -177,12 +187,12 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
             throw PIRException(s"what's going on")
           } 
         }
-        if (stage==stages.last) {
+        if (stage==stages.last) { // Last stage
           if (!pr.out.isConnected) {
             reg match {
               case StorePR(_, wtPort) => wtPort.connect(pr.out)
-              case VecOutPR(_) =>
-              case ScalarOutPR(_, _) =>
+              case p:VecOutPR => p.vecOut.in.connect(pr.out)
+              case ScalarOutPR(_, scalarOut) => scalarOut.in.connect(pr.out)
               case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
             }
           }

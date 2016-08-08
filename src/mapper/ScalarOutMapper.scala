@@ -20,8 +20,8 @@ object ScalarOutMapper extends Mapper {
   private def mapScalarOuts(cl:CL)(n:N, p:R, cuMap:M):M = {
     cl match {
       case c:MC => cuMap
-      case c:TT => cuMap.setSO(n, p)
-      case c =>
+      // case c:TT => cuMap.setSO(n, p)
+      case c:CU =>
         val t = (p.outBus, p.idx)
         val cmap = cuMap.setSL(n.scalar, t)
         cmap.setSO(n, p)

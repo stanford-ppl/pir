@@ -47,7 +47,7 @@ object StageMapper extends Mapper {
       case _ =>
     }
     val oprdCons = List(mapOprd(map.rcmap, stmap, map.opmap) _)
-    val oprds = n.operands
+    val oprds = n.fu.map(_.operands).getOrElse(Nil)
     val poprds = p.fu.oprds
     val oprdInit:OMIM = (Map.empty, map.ipmap)
     val (oprdmap, ipmap) = simAneal[PFIP,P,OMIM](poprds, oprds, oprdInit, oprdCons, 

@@ -41,14 +41,13 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
             fields += s"copy=${p.copy.getOrElse("None")}"
           case p:SRAM =>
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
-            fields += s"RP=${p.readPort.to}, WP=${p.writePort.from}"
+            fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
           case p:Stage =>
-            if (p.operands.size!=0)
-              fields += s"operands=[${p.operands.map(_.from).mkString(",")}]"
-            if (p.fu.isDefined)
+            if (p.fu.isDefined) {
+              fields += s"operands=[${p.fu.get.operands.map(_.from).mkString(",")}]"
               fields += s"op=${p.fu.get.op}"
-            if (p.results.size!=0)
-              fields += s"results=[${p.results.map(_.to).mkString(",")}]"
+              fields += s"results=[${p.fu.get.out.to.mkString(",")}]"
+            }
             p match {
               case s:ReduceStage => fields += s"idx=${s.idx}"
               case _ =>
@@ -131,9 +130,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
         strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
         emitln(strs.mkString(" "))
         n.prs.foreach { case (reg, pr) =>
-          val in = pr.in.from
-          val out = pr.out.to
-         emitln(s"pr=${pr}, in=${in}, out=${out}")
+         emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
         }
       case _ => super.visitNode(node)
     }

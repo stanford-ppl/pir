@@ -58,14 +58,14 @@ object GDA extends PIRApp {
       val sigmaBlk = SRAM(size=256, vec=sigmaBlkVec, readAddr=acc(0) , writeAddr=rr(0))
       val sigmaOut = SRAM(size=256, readAddr=acc(0) , writeAddr=acc(0))
 
-      //// Pipeline Stages
+      // Pipeline Stages
       val s0::_ = Stages(1)
       val xt = sigmaBlk.load
       val yt = sigmaOut.load
       val st = CU.store(s0, sigmaOut)
       val vo = CU.vecOut(s0, tlSigVec)
       Stage(s0, operands=List(xt,yt), op=FixAdd, results=List(st, vo))
-    tlSigVec}
+    }
       // Implicit conversion from PipeReg to PipeReg.in doesn't work in list
 
     //yTile := y(r::r+rTileSize, subLoopPar)

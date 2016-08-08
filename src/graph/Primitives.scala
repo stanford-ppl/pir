@@ -234,6 +234,7 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Contro
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
+  val in = ScalarOutInPort(this, s"${this}.out")
 }
 object ScalarOut {
   def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
@@ -246,7 +247,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   extends Input{
   vector.addReader(this)
   override val typeStr = "VecIn"
-  val out:OutPort = OutPort(this, {s"${this}.out"}) 
+  val out = VecInOutPort(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
     case n: VecIn => n.vector==vector && n.ctrler == ctrler 
     case _ => super.equals(that)
@@ -267,6 +268,7 @@ case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controlle
     case n: VecOut => n.vector==vector && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
+  val in = VecOutInPort(this, s"${this}.in")
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
@@ -278,17 +280,17 @@ object VecOut {
 class FuncUnit(stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
-  val operands = List.tabulate(oprds.size){ i => InPort(stage, oprds(i), s"${this}.oprd") }
+  val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${this}.oprd") }
   val op = o
-  val results = List.tabulate(reses.size) { i => OutPort(stage, reses(i), s"${this}.out") } 
+  val out = OutPort(this, s"${this}.out")
+  reses.foreach { _.connect(out) }
   override def toUpdate = 
-    super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || results.map { !_.isConnected }. reduce{_ | _} 
-  val defs:List[Reg] = results.flatMap{ op => 
-    op.to.src match {
-      case PipeReg(s, reg) => if (s == stage) Some(reg) else None
-      case _ => None
-    } 
-  }
+    super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || !out.isConnected
+  val defs:List[Reg] = out.to.flatMap { _.src match {
+        case PipeReg(s, reg) => if (s == stage) Some(reg) else None
+        case _ => None
+      } 
+    }.toList
   def defines(reg:Reg) = defs.contains(reg) 
 }
 
@@ -297,8 +299,6 @@ case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design
   var prForward = false
   var fu:Option[FuncUnit] = _
   val prs:Map[Reg, PipeReg] = Map.empty
-  def operands:List[InPort] = if (fu.isDefined) fu.get.operands else Nil
-  def results:List[OutPort] = if (fu.isDefined) fu.get.results else Nil
   val defs:Set[Reg] = Set.empty
   val uses:Set[Reg] = Set.empty
   var liveIns:ISet[Reg] = ISet.empty
@@ -336,12 +336,17 @@ object Stages {
     List.tabulate(n) { i => LocalStage(None) }
   }
   def reduce(n:Int, op:Op) (implicit ctrler:ComputeUnit, design: Design):List[ReduceStage] = {
-    List.tabulate(n) {i => 
-      val s = new {override val idx = i} with Stage(None) with ReduceStage
-      val rreg = ctrler.reduce(s)
-      Stage(s, op1=rreg.out, op, result=rreg.in)
-      s
+    val preStage = ctrler.stages.last
+    val rdStages = List.tabulate(n) {i => 
+      new { override val idx = i } with Stage(None) with ReduceStage
     }
+    val stages = preStage :: rdStages
+    for ( i <- 1 until stages.size ) {
+      val preg = ctrler.reduce(stages(i-1))
+      val creg = ctrler.reduce(stages(i))
+      Stage(stages(i), op1=preg.out, op, result=creg.in)
+    }
+    rdStages
   }
   /* Create an accumulation stage
    * @param operand operand to accumulate. i.e. acc = acc + operand
