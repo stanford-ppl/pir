@@ -9,10 +9,12 @@ import scala.collection.mutable.Set
 trait Traversal {
   var isInit = false
   val visited = Set[Node]()
+  var isTraversed = false
 
   def reset {
     visited.clear()
     isInit = false
+    isTraversed = false
   }
   
   def run = {
@@ -27,5 +29,5 @@ trait Traversal {
     isInit = true
   }
 
-  def finPass:Unit
+  def finPass:Unit = { isTraversed = true }
 }

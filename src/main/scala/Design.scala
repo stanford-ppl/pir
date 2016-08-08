@@ -147,13 +147,23 @@ trait Design { self =>
   traversals += new ForwardRef()
   traversals += new LiveAnalysis()
   traversals += new IRCheck()
-  traversals += new PIRPrinter()
+  val pirPrinter = new PIRPrinter()
+  traversals += pirPrinter 
   traversals += new SpadeNetworkDot()
-  val pirmapping = new PIRMapping()
-  if (Config.mapping) traversals += pirmapping 
+  val pirMapping = new PIRMapping()
+  if (Config.mapping) traversals += pirMapping 
   reset()
 
-  def run = traversals.foreach(_.run)
+  def run = {
+    try {
+      traversals.foreach(_.run)
+    } catch {
+      case e:PIRException => 
+        if (!pirPrinter.isTraversed) pirPrinter.run
+        throw e
+      case e:Throwable => throw e
+    }
+  }
 
 }
 

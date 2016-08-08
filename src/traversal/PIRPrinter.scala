@@ -110,11 +110,16 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     emitBS(title)
     node match {
       case n:ComputeUnit =>
-        emitBS(s"mapping=")
-        regMapToStrs(n).foreach { case (k, v) =>
-          emitln(s"${k}:${v}")
+        emitBlock(s"mapping =") {
+          regMapToStrs(n).foreach { case (k, v) =>
+            emitln(s"${k}:${v}")
+          }
         }
-        emitBE
+        emitBlock(s"InfGraph =") {
+          n.infGraph.foreach { case (k, v) => 
+            emitln(s"${k}: [${v.mkString(s",")}]")
+          }
+        }
         super.visitNode(node)
       case n:Stage =>
         val strs = ListBuffer[String]()

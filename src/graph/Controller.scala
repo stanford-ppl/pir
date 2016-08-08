@@ -51,6 +51,8 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val wtAddrStages = ListBuffer[List[WAStage]]()
   val localStages = ListBuffer[LocalStage]()
 
+  var infGraph:Map[Reg, Set[Reg]] = Map.empty
+
   def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
 
   override def toUpdate = { 

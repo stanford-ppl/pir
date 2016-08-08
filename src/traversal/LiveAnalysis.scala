@@ -16,17 +16,24 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
       // Uses in sram and counter
       updatesPrim(cu)
       // Write Addr Stages
-      cu.wtAddrStages.foreach { was => updateStages(was); liveness(was); connectPRs(was) }
+      cu.wtAddrStages.foreach { was => stageAnalysis(was) }
       // Local Stages
       val empty = if (cu.wtAddrStages.size > 0) cu.wtAddrStages.last.last else cu.emptyStage 
       val locals = empty::cu.localStages.toList
-      updateStages(locals)
-      liveness(locals) 
-      connectPRs(locals)
+      stageAnalysis(locals)
+      // Interference Graph
+      infAnalysis(cu)
     }
   } 
 
-  def updatesPrim(implicit cu:ComputeUnit) = {
+  private def stageAnalysis(stages:List[Stage])(implicit cu:ComputeUnit) = {
+    updateStages(stages)
+    liveness(stages) 
+    checkLiveness(stages)
+    connectPRs(stages)
+  }
+
+  private def updatesPrim(implicit cu:ComputeUnit) = {
     cu.srams.foreach { sram =>
       addLiveOut(sram.readAddr)
       addLiveOut(sram.writeAddr)
@@ -42,7 +49,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     }
   }
   
-  def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
     stages.zipWithIndex.foreach { case (s, i) =>
       if (s.fu.isDefined) {
         s.operands.foreach { opd => addOpd(opd, s, stages) }
@@ -97,22 +104,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     }
   }
 
-  def compLiveIn(liveOuts:ISet[Reg], defs:ISet[Reg], uses:ISet[Reg]):ISet[Reg] = 
+  private def compLiveIn(liveOuts:ISet[Reg], defs:ISet[Reg], uses:ISet[Reg]):ISet[Reg] = 
     (liveOuts -- defs ++ uses)
   // Definition of use here is different from traditional CPU use
   // sn: reg(sn,c) <- reg(sn-1, a) + reg(sn-1, b)
   // reg(sn-1, a) and reg(sn-1, b) are considered as use of sn-1 rather than sn 
-  def liveness(stages:List[Stage]) = {
+  private def liveness(stages:List[Stage]) = {
     for (i <- stages.size-1 to 0 by -1){
       val s = stages(i)
       s.liveOuts = if (s==stages.last) s.liveOuts else s.liveOuts ++ stages(i+1).liveIns
       s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
-      s.operands.foreach { o =>
-        o.from.src match {
-          case PipeReg(stage,reg) => if (reg.isInstanceOf[AccumPR]) s.liveIns = s.liveIns - reg
-          case _ =>
-        }
-      }
       if (s == stages.head) { // Empty stage. Add forwarding path to liveIn variables 
         s.liveIns.foreach{ r => 
           r match {
@@ -133,6 +134,15 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         }
         s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       }
+      s.uses.foreach { r => if (r.isInstanceOf[AccumPR]) s.liveIns = s.liveIns - r }
+    }
+  }
+
+  private def checkLiveness(stages:List[Stage]) = {
+    stages.foreach { s =>
+      if ((s.liveIns -- s.liveOuts).size!=0) {
+        throw PIRException(s"liveIn is not contained by liveOut! stage:${s} liveIns:${s.liveIns} liveOuts:${s.liveOuts}")
+      }
     }
   }
 
@@ -141,7 +151,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   // if liveIn, register is passed through from previous reg
   // if defs but not defined by ALU, forwarding value to pipereg
   // assert liveOut but not liveIn and no def
-  def connectPRs(stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def connectPRs(stages:List[Stage])(implicit cu:ComputeUnit) = {
     for (i <- 0 until stages.size) {
       val stage = stages(i)
       stage.liveOuts.foreach { reg =>
@@ -177,6 +187,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
             }
           }
         }
+      }
+    }
+  }
+
+  private def infAnalysis(cu:ComputeUnit):Unit = {
+    val stages = cu.stages
+    stages.foreach { s =>
+      s.liveOuts.foreach { r =>
+        if (!cu.infGraph.contains(r)) cu.infGraph += (r -> Set.empty)
+        cu.infGraph(r) ++= (s.liveOuts - r)
       }
     }
   }

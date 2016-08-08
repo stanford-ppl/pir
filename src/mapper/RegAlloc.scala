@@ -13,32 +13,13 @@ object RegAlloc extends Mapper {
   type R = PReg
   type N = Reg
 
-  type IG = MMap[Reg, MSet[Reg]]
   type RC = MMap[Reg, PReg]
 
-  private def infAnalysis(cu:CU):IG = {
-    val infGraph:IG = MMap.empty
-    val stages = cu.stages
-    stages.foreach { s =>
-      val liveIn = s.liveIns
-      val liveOut = s.liveOuts
-      liveIn.foreach { r =>
-        if (!infGraph.contains(r)) infGraph += (r -> MSet.empty)
-        infGraph(r) ++= (liveIn - r)
-      }
-      liveOut.foreach { r =>
-        if (!infGraph.contains(r)) infGraph += (r -> MSet.empty)
-        infGraph(r) ++= (liveOut - r)
-      }
-    }
-    infGraph
-  }
-
-  private def preColorAnalysis(cu:CU, cuMap:M, ig:IG):RC = {
+  private def preColorAnalysis(cu:CU, cuMap:M):RC = {
     val cm:RC = MMap.empty // Color Map
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     def preColorReg(r:Reg, pr:PReg):Unit = {
-      ig(r).foreach { ifr =>
+      cu.infGraph(r).foreach { ifr =>
         if (cm.contains(ifr) && cm(ifr) == pr )
           throw PreColorInterfere(r, ifr, pr)
       }
@@ -49,15 +30,15 @@ object RegAlloc extends Mapper {
         s"Current mapper assuming each PipeReg Mappable Port is mapped to 1 Register. Found ${prs}")
       preColorReg(r, prs.head)
     }
-    ig.foreach { case (r, itfs)  =>
+    cu.infGraph.foreach { case (r, itfs)  =>
       r match {
         case LoadPR(regId, rdPort) =>
           val sram = rdPort.src
-          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
+          val psram = cuMap.smmap(sram)
           preColor(r, psram.readPort.mappedRegs.toList)
         case StorePR(regId, wtPort) =>
           val sram = wtPort.src
-          val psram = cuMap.smmap(sram.asInstanceOf[SRAM])
+          val psram = cuMap.smmap(sram)
           preColor(r, psram.writePort.mappedRegs.toList)
         //case rr:WtAddrPR =>
         //  val waPorts = rr.waPorts
@@ -95,20 +76,19 @@ r       case VecInPR(regId, vecIn) =>
   }
 
   private def regColor(cu:CU)(n:N, p:R, cuMap:M):M = {
-    val ig = cuMap.igmap.map
     val rc = cuMap.rcmap.map
     if (rc.contains(n)) return cuMap
-    ig(n).foreach{ itf => if (rc.contains(itf) && rc(itf) == p) throw InterfereException(n, itf, p) }
+    cu.infGraph(n).foreach{ itf => 
+      if (rc.contains(itf) && rc(itf) == p) throw InterfereException(n, itf, p)
+    }
     cuMap.setRC(n, p)
   }
 
   def map(cu:CU, cuMap:M):M = {
-    val ig = infAnalysis(cu)
-    val rc = preColorAnalysis(cu, cuMap, ig)
-    val newIg = IGMap(cuMap.igmap.map ++ ig.map{case (k,v) => (k, v.toSet)}.toMap)
-    val newRc = RCMap(cuMap.rcmap.map ++ rc.toMap) 
-    val cmap = cuMap.copy(newIg).copy(newRc)
-    val remainRegs = (ig.keys.toSet -- rc.keys.toSet).toList
+    val rc = preColorAnalysis(cu, cuMap)
+    val prc = RCMap(cuMap.rcmap.map ++ rc.toMap) 
+    val cmap = cuMap.copy(prc)
+    val remainRegs = (cu.infGraph.keys.toSet -- rc.keys.toSet).toList
     val pcu = cmap.clmap(cu).asInstanceOf[PCU]
     //val finPass:Option[M=>M] = Some(StageMapper.map(cu, _))
     val finPass:Option[M=>M] = None 

@@ -18,7 +18,7 @@ object SRAMMapper extends Mapper {
   val finPass = None
 
   private def mapSRAM(cu:CU)(s:N, p:R, cuMap:M):M = {
-    s.writePort.src match {
+    s.writePort.from.src match {
       case wp:VecIn => 
         val ib = cuMap.vimap(wp)
         if(!p.writePort.isConn(ib.rmport))

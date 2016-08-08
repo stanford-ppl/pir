@@ -67,6 +67,12 @@ object WtAddrInPort {
     new {override val src = s} with WtAddrInPort {override def toString = toStr}
   }
 }
+trait WriteInPort extends InPort { override val src:SRAM }
+object WriteInPort {
+  def apply(s:SRAM, toStr: => String)(implicit design:Design):WriteInPort = {
+    new {override val src = s} with WriteInPort {override def toString = toStr}
+  }
+}
 trait ReadOutPort extends OutPort { override val src:SRAM }
 object ReadOutPort {
   def apply(s:SRAM, toStr: => String)(implicit design:Design):ReadOutPort = {
