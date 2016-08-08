@@ -20,25 +20,22 @@ object Config0 extends Spade {
   
   private val numRCUs = 4
   private val numTTs = 2 
-  private val numArgIns = numLanes // per bus
-  private val numArgOuts = numLanes // per bus 
 
   private val numArgInBuses = 1 
   private val numArgOutBuses = 1 
 
   val argInBuses = List.fill(numArgInBuses) { OutBus(numLanes) }
   val argOutBuses = List.fill (numArgOutBuses) { InBus(numLanes) }
-  val argIns = List.tabulate(numArgInBuses, numArgIns) { case (ib, ia) =>
+  val argIns = List.tabulate(numArgInBuses, argInBuses.head.inports.size) { case (ib, ia) =>
     ScalarOut(argInBuses(ib).inports(ia))
   }.flatten
-  val argOuts = List.tabulate(numArgOutBuses, numArgOuts) { case (ib, ia) =>
+  val argOuts = List.tabulate(numArgOutBuses, argOutBuses.head.outports.size) { case (ib, ia) =>
     ScalarIn(argOutBuses(ib).outports(ia))
   }.flatten
   override val top = Top(argIns, argOuts, argInBuses, argOutBuses)
 
   def genFields[T](numPRs:Int, numCtrs:Int, numSRAMs:Int, numScalarOuts:Int)(implicit cltp:TypeTag[T]) = {
     val numBusIns = if (numSRAMs==0) 1 else numSRAMs
-    val numScalarIns = numLanes // Number of scalarIn per InBus 
 
     // Create Pipeline Regs (entire row of physicall register for all stages)
     // No overlapping between mappings
@@ -55,12 +52,12 @@ object Config0 extends Spade {
       ob <== regs(ptr)
       ob
     } 
-    val scalarIns = List.tabulate(numBusIns, numScalarIns) { case (ib, is) => 
+    val scalarIns = List.tabulate(numBusIns, vecIns.head.outports.size) { case (ib, is) => 
       val si = ScalarIn(vecIns(ib).outports(is))
       regs(ptr + is) <== si
       si
     }.flatten
-    val scalarOuts = List.tabulate(numScalarOuts) { is =>
+    val scalarOuts = List.tabulate(vecOut.inports.size) { is =>
       val so = typeOf[T] match {
         case t if t =:= typeOf[ComputeUnit] => ScalarOut(vecOut.inports(is))
         case t if t =:= typeOf[TileTransfer] => AddrOut()
