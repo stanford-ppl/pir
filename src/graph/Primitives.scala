@@ -152,7 +152,7 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
   override def toUpdate = super.toUpdate || !readAddr.isConnected || 
     !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
 
-  def updateRA(ra:OutPort):SRAM = { 
+  def rdAddr(ra:OutPort):SRAM = { 
     readAddr.connect(ra); 
     ra.src match {
       case PipeReg(stage,r) =>
@@ -163,7 +163,7 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
     }
     this
   } 
-  def updateWA(wa:OutPort):SRAM = { 
+  def wtAddr(wa:OutPort):SRAM = { 
     writeAddr.connect(wa)
     wa.src match {
       case PipeReg(stage, r) =>
@@ -174,25 +174,25 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
     }
     this 
   }
-  def updateWP(wp:OutPort):SRAM = { writePort.connect(wp); this } 
-  def updateWP(vec:Vector):SRAM = updateWP(VecIn(vec).out)
+  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
+  def wtPort(vec:Vector):SRAM = wtPort(VecIn(vec).out)
 
   def load = readPort
 }
 object SRAM {
   /* Remote Write */
   def apply(size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).updateWP(vec)
+    = SRAM(None, size).wtPort(vec)
   def apply(name:String, size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).updateWP(vec)
+    = SRAM(Some(name), size).wtPort(vec)
   def apply(size:Int, vec:Vector, readAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).updateRA(readAddr).updateWP(vec)
+    = SRAM(None, size).rdAddr(readAddr).wtPort(vec)
   def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).updateRA(readAddr).updateWA(writeAddr).updateWP(vec)
+    = SRAM(None, size).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
   def apply(name:String, size:Int, vec:Vector, readAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).updateRA(readAddr).updateWP(vec)
+    = SRAM(Some(name), size).rdAddr(readAddr).wtPort(vec)
   def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).updateRA(readAddr).updateWA(writeAddr).updateWP(vec)
+    = SRAM(Some(name), size).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
   def apply(size:Int)(implicit ctrler:Controller, design: Design): SRAM
@@ -200,9 +200,9 @@ object SRAM {
   def apply(name:String, size:Int)(implicit ctrler:Controller, design: Design): SRAM
     = SRAM(Some(name), size)
   def apply(size:Int, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).updateRA(readAddr).updateWA(writeAddr)
+    = SRAM(None, size).rdAddr(readAddr).wtAddr(writeAddr)
   def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).updateRA(readAddr).updateWA(writeAddr)
+    = SRAM(Some(name), size).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive
@@ -216,6 +216,7 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
     case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
+  val out = ScalarInOutPort(this, s"${this}.out")
 }
 
 object ScalarIn {
