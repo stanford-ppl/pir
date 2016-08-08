@@ -62,9 +62,9 @@ trait ScalarBuffer extends Reg
 /* If ScalarIn is connecting to the vector network, its input connects to 1 out port of the 
  * InBus */
 case class ScalarIn(outport:Option[BusOutPort]) extends ScalarBuffer {
+  outport.foreach { this <== _ }
   override val typeStr = "si"
   override val out = RMOutPort(this, s"${this}.o")
-  if (outport.isDefined) this <== outport.get
   def inBus:InBus = outport.get.src.get.asInstanceOf[InBus]
   def idx = outport.get.idx
 } 
@@ -74,9 +74,9 @@ object ScalarIn {
 /* If ScalarOut is connecting to the vector network, its output connects to 1 in port of the
  * OutBus */
 case class ScalarOut(inport:Option[BusInPort]) extends ScalarBuffer {
+  inport.foreach( _ <== this )
   override val typeStr = "so"
   override val in = RMInPort(this, s"${this}.i")
-  if (inport.isDefined) inport.get <== this
   def outBus:OutBus = inport.get.src.get.asInstanceOf[OutBus]
   def idx = inport.get.idx
 }
@@ -190,7 +190,7 @@ trait Output {
 
 trait IO extends Node{
   var src:Option[Node] = None
-  def connTo(n:Node) = if (!src.isDefined) false else (src.get == n)
+  def connTo(n:Node) = src.fold(false){_ == n}
 }
 
 trait Control
@@ -242,9 +242,9 @@ object InPort {
 trait RMInPort extends InPort {
   val mappedRegs = ListBuffer[PipeReg]()
   override def ms = s"${super.ms} regs=[${mappedRegs.mkString(",")}]"
-  override def connect(n:O) =  {
+  override def connect(n:O):Unit =  {
     super.connect(n)
-    if (n.src.isDefined && n.src.get.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] 
+    n.src.foreach { s => if (s.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] }
   }
 }
 object RMInPort {
@@ -275,7 +275,7 @@ trait RMOutPort extends OutPort {
   override def mt = s"${super.mt} regs=[${mappedRegs.mkString(",")}]"
   override def connectedTo(n:I) = { 
     super.connectedTo(n)
-    if (n.src.isDefined && n.src.get.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] 
+    n.src.foreach { s => if (s.isInstanceOf[PipeReg]) mappedRegs += n.src.get.asInstanceOf[PipeReg] }
   }
 }
 object RMOutPort {

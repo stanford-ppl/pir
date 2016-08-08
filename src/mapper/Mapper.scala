@@ -61,7 +61,7 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return if (finPass.isDefined) finPass.get(recmap) else recmap
+        return finPass.fold(recmap)(p => p(recmap))
       }
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 
@@ -130,7 +130,7 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return if (finPass.isDefined) finPass.get(recmap) else recmap
+        return finPass.fold(recmap)(p => p(recmap))
       }
       val n::rt = remainNodes
       val restNodes = rt

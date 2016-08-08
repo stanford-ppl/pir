@@ -23,5 +23,5 @@ abstract class Node (implicit design: Design) {
     case n: Node => super.equals(that) && id == n.id
     case _ => super.equals(that)
   }
-  override def toString = s"${typeStr}${id}${if(name.isDefined) "_" else ""}${name.getOrElse("")}" 
+  override def toString = s"${typeStr}${id}${name.fold("")(n => s"_${n}")}" 
 }

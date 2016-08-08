@@ -9,6 +9,7 @@ import scala.math.max
 import pir.Design
 import pir.graph._
 import pir.graph.mapper.PIRException
+import pir.graph.traversal.ForwardRef
 
 
 abstract class Primitive(implicit val ctrler:Controller, design:Design) extends Node 
@@ -100,7 +101,7 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   }
   def setDep(c:Counter) = { dep = Some(c); c.deped = Some(this) }
   def setDep(c:Option[Counter]) = { 
-    if (c.isDefined) { c.get.deped = Some(this) }
+    c.foreach(_.deped = Some(this))
     dep = c
   }
   def copy(c:Counter) = {
@@ -388,7 +389,8 @@ class WAStage (override val name:Option[String])
 
   def updateSRAM[T](sram:T):WAStage = {
     sram match {
-      case s:String => design.updateLater(s"${ctrler.name.getOrElse(s"")}_${s}", (n:Node) => this.sram = n.asInstanceOf[SRAM])
+      case s:String => design.updateLater(ForwardRef.getPrimName(ctrler, s), 
+                                          (n:Node) => this.sram = n.asInstanceOf[SRAM])
       case s:SRAM => this.sram = s
     }
     this

@@ -6,11 +6,9 @@ import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 
-// Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
-// Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
-// to outports and inports of inbus and outbus
-object Config0 extends Spade {
-  override def toString = "Plasticine_Config0"
+// Assuming scalar buffer are before and after pipeline stages
+object Config1 extends Spade {
+  override def toString = "Plasticine_Config1"
 
   // Assume all CUs are homogenous for now
 

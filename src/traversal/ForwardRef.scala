@@ -25,15 +25,13 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     info("Finishing updating forward referenced nodes")
   }
 
-  def addName(n:Node):Unit = if (n.name.isDefined) {
+  def addName(n:Node):Unit = n.name.foreach { name => 
     n match {
       case c:Controller => 
-        val s = n.name.get  
-        assert(!nameMap.contains(s), s"Already create controller with name ${s}: ${n}")
-        nameMap += (s -> c)
+        assert(!nameMap.contains(name), s"Already create controller with name ${name}: ${n}")
+        nameMap += (name -> c)
       case p:Primitive =>
-        assert(p.ctrler!=null, s"Primitive ${p} doesn't have ctriler!")
-        val s = s"${p.ctrler.name.getOrElse("")}_${n.name.get}"
+        val s = ForwardRef.getPrimName(p.ctrler, name)
         assert(!nameMap.contains(s),
           s"Already create primitive with name ${s} for controller ${p.ctrler}")
         nameMap += (s -> p)
@@ -49,4 +47,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     nameMap(s)
   }
 
+}
+object ForwardRef {
+  def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
 }

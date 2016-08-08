@@ -27,13 +27,15 @@ object CtrMapper extends Mapper {
   }
 
   def mapCtr(c:N, p:R, map:M):M = {
-    if (c.dep.isDefined && map.ctmap.contains(c.dep.get)) {
-      val pdep = map.ctmap(c.dep.get)
-      if (!p.isDep(pdep)) throw CtrRouting(c, p)
+    c.dep.foreach { dep =>
+      if (map.ctmap.contains(dep)) {
+        val pdep = map.ctmap(dep); if (!p.isDep(pdep)) throw CtrRouting(c, p)
+      }
     }
-    if (c.deped.isDefined && map.ctmap.contains(c.deped.get)) {
-      val pdeped = map.ctmap(c.deped.get)
-      if (!pdeped.isDep(p)) throw CtrRouting(c, p)
+    c.deped.foreach { deped =>
+      if (map.ctmap.contains(deped)) {
+        val pdeped = map.ctmap(deped); if (!pdeped.isDep(p)) throw CtrRouting(c, p)
+      }
     }
     val opmap = map.opmap + (c.out -> p.out)
     return map.setCt(c,p).set(opmap) 

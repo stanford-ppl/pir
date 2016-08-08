@@ -120,7 +120,10 @@ trait PMap {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
-          p.emitln(s"$k -> ${map(k)}")
+          if (!map.contains(k))
+            p.emitln(s"$k -> failed")
+          else
+            p.emitln(s"$k -> ${map(k)}")
         }
       }
     }
@@ -297,8 +300,12 @@ trait STMap extends PMap {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
-          val (pst, om) = map(k)
-          p.emitln(s"$k -> ${pst} oprd=[${om.map{case (kk,vv) => s"$kk->$vv"}.mkString(s", ")}]")
+          if (map.contains(k)) {
+            val (pst, om) = map(k)
+            p.emitln(s"$k -> ${pst} oprd=[${om.map{case (kk,vv) => s"$kk->$vv"}.mkString(s", ")}]")
+          } else {
+            p.emitln(s"$k -> failed")
+          }
         }
       }
     }

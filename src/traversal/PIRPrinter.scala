@@ -43,10 +43,10 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
             fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
           case p:Stage =>
-            if (p.fu.isDefined) {
-              fields += s"operands=[${p.fu.get.operands.map(_.from).mkString(",")}]"
-              fields += s"op=${p.fu.get.op}"
-              fields += s"results=[${p.fu.get.out.to.mkString(",")}]"
+            p.fu.foreach { fu =>
+              fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
+              fields += s"op=${fu.op}"
+              fields += s"results=[${fu.out.to.mkString(",")}]"
             }
             p match {
               case s:ReduceStage => fields += s"idx=${s.idx}"

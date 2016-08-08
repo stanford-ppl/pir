@@ -14,7 +14,8 @@ object CUMapper extends Mapper {
   type N = CL
   type V = CLMap.V
 
-  val finPass:Option[M => M] = Some(mapPrim _)
+  //val finPass:Option[M => M] = Some(mapPrim _)
+  val finPass:Option[M => M] = None 
   /* Saperate Compute Unit and Memory controller to map saperately */
   private def setResource:(List[PCU], List[CU], List[PTT], List[TT]) = {
     //TODO match memory ctrler
