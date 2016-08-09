@@ -452,7 +452,7 @@ case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctr
 case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Design) extends Primitive{
   override val name = None
   val in:PRInPort = PRInPort(this, s"${this}") 
-  val out:OutPort = OutPort(this, {s"${this}"}) 
+  val out:OutPort = PROutPort(this, {s"${this}"}) 
   def read:OutPort = out
   def write(p:OutPort):Unit = in.connect(p) 
   override val typeStr = "PR"
@@ -466,7 +466,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
 case class Const(name:Option[String], value:Long)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   override def toString = s"Const(${value})"
-  val out = OutPort(this, s"Const(${value})")
+  val out = ConstOutPort(this, s"Const(${value})")
 }
 object Const {
   def apply(v:Long)(implicit design: Design):Const = Const(None, v)

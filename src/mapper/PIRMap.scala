@@ -21,34 +21,26 @@ import scala.collection.mutable.ListBuffer
 
 case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMap,
   somap:SOMap, slmap:SLMap, ibmap:IBMap, rcmap:RCMap,
-  stmap:STMap, ipmap:IPMap, opmap:OPMap) {
+  stmap:STMap, ipmap:IPMap, opmap:OPMap, fpmap:FPMap) {
+  
+  stmap.pirMap = this
+  ipmap.pirMap = this
+  opmap.pirMap = this
+  ctmap.pirMap = this
 
-  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, cp   , ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, smmap, cp   , simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:SIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, cp   , somap, slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:SOMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, cp   , slmap, ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:SLMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, cp   , ibmap, rcmap, stmap, ipmap, opmap)
-  def set(cp:IBMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, cp   , rcmap, stmap, ipmap, opmap)
-  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, cp   , stmap, ipmap, opmap)
-  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, cp   , ipmap, opmap)
-  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, cp   , opmap)
-  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, cp  )
-  def copy(cp:PMap):PIRMap = cp match {
-    case m:CLMap => set(m) 
-    case m:VIMap => set(m)    
-    case m:SMMap => set(m)
-    case m:CTMap => set(m)
-    case m:SIMap => set(m)
-    case m:SOMap => set(m)
-    case m:SLMap => set(m)
-    case m:IBMap => set(m)
-    case m:RCMap => set(m)
-    case m:STMap => set(m)
-    case m:IPMap => set(m)
-    case m:OPMap => set(m)
-  } 
+  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, cp   , ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, smmap, cp   , simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:SIMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, cp   , somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:SOMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, cp   , slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:SLMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, cp   , ibmap, rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:IBMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, cp   , rcmap, stmap, ipmap, opmap, fpmap)
+  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, cp   , stmap, ipmap, opmap, fpmap)
+  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, cp   , ipmap, opmap, fpmap)
+  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, cp   , opmap, fpmap)
+  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, cp   , fpmap)
+  def set(cp:FPMap):PIRMap = PIRMap(clmap, vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, cp   )
 
   def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + (k -> v))
   def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + (k -> v))
@@ -62,11 +54,11 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
   def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + (k -> v))
   def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + (k -> v))
   def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
+  def setFP(k:FPMap.K, v:FPMap.V):PIRMap = set(fpmap + (k -> v))
 
   def printMap(implicit p:Printer):Unit = {
     slmap.printMap
     ibmap.printMap
-    ipmap.printMap
     clmap.map.foreach { case (cl, pcl) =>
       p.emitBlock( s"$cl -> $pcl" ) {
         if (!cl.isInstanceOf[TileTransfer]) { //TODO
@@ -90,13 +82,15 @@ object PIRMap {
   def empty:PIRMap = 
     PIRMap(CLMap.empty, VIMap.empty, SMMap.empty, CTMap.empty, 
            SIMap.empty, SOMap.empty, SLMap.empty, IBMap.empty,
-           RCMap.empty, STMap.empty, IPMap.empty, OPMap.empty)
+           RCMap.empty, STMap.empty, IPMap.empty, OPMap.empty,
+           FPMap.empty)
 }
 
 trait PMap {
   type K
   type V
   type M = Map[K, V]
+  var pirMap:PIRMap = _
   val map:M
   def contains(k:K) = map.contains(k)
   def apply(k:K):V = map(k)
@@ -124,6 +118,20 @@ trait PMap {
             p.emitln(s"$k -> failed")
           else
             p.emitln(s"$k -> ${map(k)}")
+        }
+      }
+    }
+  }
+  def printMap(ks:List[K], lambda:K=>Unit)(implicit p:Printer):Unit = {
+    if (ks.size!=0) {
+      p.emitBlock(name) {
+        ks.foreach{ k =>
+          if (!map.contains(k))
+            p.emitln(s"$k -> failed")
+          else {
+            //p.emitln(s"$k -> ${map(k)}")
+            p.emitBlock(s"$k -> ${map(k)}") { lambda(k) }
+          }
         }
       }
     }
@@ -182,9 +190,17 @@ trait CTMap extends PMap {
   def printCCMap(ccs:List[CC])(implicit p:Printer):Unit = {
     p.emitBlock(s"CCMap") {
       ccs.foreach { cc =>
-        super.printMap(cc.counters)
+        super.printMap(cc.counters, printCtr)
       }
     }
+  }
+  def printCtr(ctr:K)(implicit c:Printer) = {
+    val ipmap = pirMap.ipmap 
+    val opmap = pirMap.opmap
+    ipmap.printInPort(ctr.min)
+    ipmap.printInPort(ctr.max)
+    ipmap.printInPort(ctr.step)
+    opmap.printOutPort(ctr.out)
   }
 }
 object CTMap extends PMapObj {
@@ -254,19 +270,21 @@ trait STMap extends PMap {
   type V = STMap.V
   override def + (rec:(K,V)) = { super.check(rec); STMap(map + rec) }
   override def printMap(ks:List[K])(implicit p:Printer):Unit = {
-    if (ks.size!=0) {
-      p.emitBlock(name) {
-        ks.foreach{ k =>
-          if (map.contains(k)) {
-            //TODO
-            val oprd = k.fu.fold("") { fu => s"oprd=${fu.operands.mkString(",")}]" }
-            p.emitln(s"$k -> ${map(k)} ${oprd}")
-          } else {
-            p.emitln(s"$k -> failed")
-          }
-        }
+    val ipmap = pirMap.ipmap 
+    val fpmap = pirMap.fpmap
+    val opmap = pirMap.opmap
+    def printStage(stage:K) = {
+      stage.fu.foreach { f =>
+        f.operands.foreach { oprd => ipmap.printInPort(oprd) }
+        opmap.printOutPort(f.out)
+      }
+      val pstage = map(stage)
+      stage.prs.foreach{ case (reg, pr) =>
+        ipmap.printInPort(pr.in)
+        opmap.printOutPort(pr.out)
       }
     }
+    super.printMap(ks, printStage)
   }
 }
 object STMap extends PMapObj {
@@ -274,22 +292,6 @@ object STMap extends PMapObj {
   type V = PST
   def apply(m:Map[K,V]) = new { override val map = m } with STMap
   def empty:STMap = STMap(Map.empty)
-}
-/* A mapping between OutPort and the POutPort */
-trait OPMap extends PMap {
-  type K = OPMap.K
-  type V = OPMap.V
-  override def + (rec:(K,V)):OPMap = { 
-    if (!rec._1.src.isInstanceOf[Const]) {
-      super.check(rec); OPMap(map + rec)
-    } else this
-  }
-}
-object OPMap extends PMapObj {
-  type K = OP
-  type V = POP 
-  def apply(m:Map[K,V]) = new { override val map = m } with OPMap
-  def empty:OPMap = OPMap(Map.empty)
 }
 /* A mapping between a PInBus and the POutBus it connects to */
 trait IBMap extends PMap {
@@ -303,16 +305,64 @@ object IBMap extends PMapObj {
   def apply(m:Map[K,V]) = new { override val map = m } with IBMap
   def empty:IBMap = IBMap(Map.empty)
 }
-/* A mapping between PIR InPort and Spade InPort */
+/* A mapping between InPort and PInPort */
 trait IPMap extends PMap {
   type K = IPMap.K
   type V = IPMap.V
   override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec) }
+  def printInPort(ip:IP)(implicit p:Printer) = {
+    if (map.contains(ip)) {
+      val pip = map(ip)
+      val fpmap = pirMap.fpmap
+      if (fpmap.contains(pip)) {
+        val pop = fpmap(pip)
+        p.emitln(s"${ip} -> ${pip} <- ${pop}")
+      } else {
+        p.emitln(s"${ip} -> ${pip} <- failed")
+      }
+    } else {
+      p.emitln(s"${ip} -> failed")
+    }
+  }
 }
 object IPMap extends PMapObj {
-  type K = IP  
+  type K = IP 
   type V = PIP 
   def apply(m:Map[K,V]) = new { override val map = m } with IPMap
   def empty:IPMap = IPMap(Map.empty)
 }
-
+/* A mapping between OutPort and the POutPort */
+trait OPMap extends PMap {
+  type K = OPMap.K
+  type V = OPMap.V
+  override def + (rec:(K,V)):OPMap = { 
+    if (!rec._1.src.isInstanceOf[Const]) {
+      super.check(rec); OPMap(map + rec)
+    } else this
+  }
+  def printOutPort(op:OP)(implicit p:Printer) = {
+    if (map.contains(op)) {
+      p.emitln(s"${op} -> ${map(op)}")
+    } else {
+      p.emitln(s"${op} -> failed")
+    }
+  }
+}
+object OPMap extends PMapObj {
+  type K = OP
+  type V = POP 
+  def apply(m:Map[K,V]) = new { override val map = m } with OPMap
+  def empty:OPMap = OPMap(Map.empty)
+}
+/* A mapping between PInPort and the POutPort it connects to*/
+trait FPMap extends PMap {
+  type K = FPMap.K
+  type V = FPMap.V
+  override def + (rec:(K,V)) = { super.check(rec); FPMap(map + rec) }
+}
+object FPMap extends PMapObj {
+  type K = PIP
+  type V = POP 
+  def apply(m:Map[K,V]) = new { override val map = m } with FPMap
+  def empty:FPMap = FPMap(Map.empty)
+}

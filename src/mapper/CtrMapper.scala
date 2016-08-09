@@ -1,9 +1,9 @@
 package pir.graph.mapper
 import pir._
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{Counter => Ctr, _}
+import pir.graph.{Counter => Ctr, InPort => IP, _}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}
+import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, Const => PConst}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -37,8 +37,19 @@ object CtrMapper extends Mapper {
         val pdeped = map.ctmap(deped); if (!pdeped.isDep(p)) throw CtrRouting(c, p)
       }
     }
-    val opmap = map.opmap + (c.out -> p.out)
-    return map.setCt(c,p).set(opmap) 
+    var ipmap = map.ipmap
+    var fpmap = map.fpmap
+    def mapInPort(n:IP, p:PIP) = {
+      ipmap += n -> p 
+      n.from.src match {
+        case c:Const => fpmap += p -> PConst 
+        case _ =>
+      }
+    }
+    mapInPort(c.min, p.min)
+    mapInPort(c.max, p.max)
+    mapInPort(c.step, p.step)
+    return map.setCt(c,p).setOP(c.out, p.out).set(ipmap).set(fpmap)
   }
 
 }

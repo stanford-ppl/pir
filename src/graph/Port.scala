@@ -87,6 +87,12 @@ object PRInPort {
     new {override val src = s} with PRInPort {override def toString = toStr}
   }
 }
+trait PROutPort extends OutPort { override val src:PipeReg }
+object PROutPort {
+  def apply(s:PipeReg, toStr: => String)(implicit design:Design):PROutPort = {
+    new {override val src = s} with PROutPort {override def toString = toStr}
+  }
+}
 /* Ctr Ports */
 trait CtrOutPort extends OutPort { override val src:Counter }
 object CtrOutPort {
@@ -120,5 +126,12 @@ trait VecOutInPort extends InPort { override val src:VecOut }
 object VecOutInPort {
   def apply(s:VecOut, toStr: => String)(implicit design:Design):VecOutInPort = {
     new {override val src = s} with VecOutInPort {override def toString = toStr}
+  }
+}
+/* Const OutPort */
+trait ConstOutPort extends OutPort { override val src:Const }
+object ConstOutPort {
+  def apply(s:Const, toStr: => String)(implicit design:Design):ConstOutPort = {
+    new {override val src = s} with ConstOutPort {override def toString = toStr}
   }
 }

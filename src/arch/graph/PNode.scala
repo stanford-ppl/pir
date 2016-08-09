@@ -60,8 +60,8 @@ case class Reg() extends Node {
 }
 case class PipeReg(stage:Stage, reg:Reg) extends Node {
   override val typeStr = "pr"
-  val in = InPort(this, s"${this}.i") 
-  val out = OutPort(this, s"${this}.o")
+  val in = RegInPort(this, s"${this}.i") 
+  val out = RegOutPort(this, s"${this}.o")
 }
 
 trait ScalarBuffer extends Node {
@@ -100,41 +100,47 @@ object AddrOut {
   def apply() = new ScalarOut(None) with AddrOut
 }
 
-case class FuncUnit(numOprds:Int, ops:List[Op]) extends Node {
+case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage) extends Node {
   override val typeStr = "fu"
   val operands = List.fill(numOprds) (new FUInPort(this)) 
   val out = new FUOutPort(this)
 }
 
-class Stage(val funcUnit:Option[FuncUnit], regs:List[Reg]) extends Node {
+class Stage(regs:List[Reg]) extends Node {
+  val funcUnit:Option[FuncUnit] = None
   val prs = Map[Reg, PipeReg]()
   regs.foreach { reg => prs += (reg -> PipeReg(this, reg)) }
+  var pre:Option[Stage] = _ // Set up in controller
+  var next:Option[Stage] = _
+  var idx:Int = _
+  def before(s:Stage) = idx < s.idx
+  def after(s:Stage) = idx > s.idx
   override val typeStr = "st"
 }
 trait EmptyStage extends Stage {
   override val typeStr = "etst"
 }
 object EmptyStage {
-  def apply(regs:List[Reg]) = new Stage(None, regs) with EmptyStage
+  def apply(regs:List[Reg]) = new Stage(regs) with EmptyStage
 }
 trait FUStage extends Stage {
   def fu:FuncUnit = funcUnit.get 
 }
 object FUStage {
   def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):FUStage = 
-    new Stage(Some(FuncUnit(numOprds, ops)), regs) with FUStage
+    new Stage(regs) with FUStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 trait ReduceStage extends FUStage {
   override val typeStr = "rdst"
 }
 object ReduceStage {
   def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):ReduceStage = 
-    new Stage(Some(FuncUnit(numOprds, ops)), regs) with ReduceStage
+    new Stage(regs) with ReduceStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 trait WAStage extends FUStage
 object WAStage {
   def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):WAStage = 
-    new Stage(Some(FuncUnit(numOprds, ops)), regs) with WAStage 
+    new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 
 trait Controller extends Node {
@@ -161,6 +167,11 @@ case class ComputeUnit(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],
   override val typeStr = "cu"
   override val vouts = List(vout)
 
+  for (i <- 0 until stages.size) {
+    stages(i).pre = if (i!=0) Some(stages(i-1)) else None
+    stages(i).next = if (i!=stages.size-1) Some(stages(i+1)) else None
+    stages(i).idx = i
+  }
   private val es::fs = stages 
   val etstage:EmptyStage = es.asInstanceOf[EmptyStage]
   val fustages:List[FUStage] = fs.asInstanceOf[List[FUStage]]
@@ -282,6 +293,7 @@ object Const extends OutPort { override def toString = "Const" }
 trait RMPort extends Port {
   val mappedRegs = Set[Reg]()
   def mappedTo(reg:Reg) = { mappedRegs += reg }
+  def isMappedTo(reg:Reg) = mappedRegs.contains(reg)
 }
 trait RMInPort extends InPort with RMPort {
   override def ms = s"${super.ms} regs=[${mappedRegs.mkString(",")}]"
@@ -315,32 +327,28 @@ object RMOutPort {
     override def toString = sf
   }
 }
-//trait RegInPort extends InPort {
-//  override def connect(n:O):Unit = {
-//    if (!n.isInstanceOf[RMOutPort]) throw new Exception(s"Register can only connect to RMPort")
-//    super.connect(n)
-//  } 
-//}
-//object RegInPort {
-//  def apply(s:Node, sf: =>String) = new Node with RegInPort {
-//    src = Some(s)
-//    override def toString = sf
-//  }
-//}
-//trait RegOutPort extends OutPort {
-//  override def connectedTo(n:I):Unit = {
-//    if (!n.isInstanceOf[RMInPort]) throw new Exception(s"Register can only connect to RMPort")
-//    super.connectedTo(n)
-//  }
-//}
-//object RegOutPort {
-//  def apply(s:Node, sf: =>String) = new Node with RegOutPort {
-//    src = Some(s)
-//    override def toString = sf
-//  }
-//}
-class FUInPort(fu:FuncUnit) extends InPort {
+trait Stagable {
+  val stage:Stage
+}
+trait RegInPort extends RMInPort with Stagable
+object RegInPort {
+  def apply(s:PipeReg, sf: =>String) = new Node with RegInPort {
+    src = Some(s)
+    override val stage = s.stage
+    override def toString = sf
+  }
+}
+trait RegOutPort extends RMOutPort with Stagable
+object RegOutPort {
+  def apply(s:PipeReg, sf: =>String) = new Node with RegOutPort {
+    src = Some(s)
+    override val stage = s.stage
+    override def toString = sf
+  }
+}
+class FUInPort(fu:FuncUnit) extends RMInPort with Stagable{
   src = Some(fu)
+  override val stage = fu.stage
   override def toString = s"${fu}.oprd${id}"
 }
 class FUOutPort(fu:FuncUnit) extends OutPort {
