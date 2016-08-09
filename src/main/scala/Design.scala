@@ -30,6 +30,7 @@ trait Design { self =>
   private var nextSym = 0
   def nextId = {nextSym += 1; nextSym }
 
+  //TODO use collect to implement this
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
   val toUpdate = ListBuffer[(String, Node => Unit)]()
   val allNodes = ListBuffer[Node]()

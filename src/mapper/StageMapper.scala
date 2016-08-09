@@ -23,7 +23,7 @@ object StageMapper extends Mapper {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
-    val cmap = cuMap.setST(est, pest) // Map empty stage
+    val cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), finPass, OutOfStage(pcu, _, _))
     Try { //TODO: Currently if fail take a while to finish 
       inordBind(pfusts, fusts, cmap, List(mapStage _), finPass, OutOfStage(pcu, _, _))
     } match  {
@@ -34,24 +34,30 @@ object StageMapper extends Mapper {
   }
 
   def mapStage(n:N, p:R, map:M):M = {
-    val stmap = map.stmap + (n -> p)
+    val cmap = map.setST(n, p)
     n match {
+      case s:EST => if (!p.isInstanceOf[PEST]) throw StageRouting(n, p) else return cmap 
       case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p)
       case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p)
       case _ =>
     }
+    mapFU(n,p, cmap)
+  }
+
+  def mapFU(n:N, p:R, map:M):M = {
     val fu = n.fu.get
     val pfu = p.asInstanceOf[PFUST].fu
-    val opmap = mapResult(map.rcmap, stmap)(pfu.out, fu.out, map.opmap)
+    if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n)
+    val opmap = mapResult(map.rcmap, map.stmap)(pfu.out, fu.out, map.opmap)
     val oprds = fu.operands
     val poprds = pfu.operands
-    val oprdCons = List(mapOprd(map.rcmap, stmap, opmap) _)
+    val oprdCons = List(mapOprd(map.rcmap, map.stmap, opmap) _)
     val ipmap = simAneal(poprds, oprds, map.ipmap, oprdCons, None, OutOfOperand(p, n, _, _))
-    map.set(stmap).set(opmap).set(ipmap)
+    map.set(opmap).set(ipmap)
   }
 
   def mapOprd(rcmap:RCMap, stmap:STMap, opmap:OPMap)(n:IP, r:PIP, map:IPMap):IPMap = {
-    n.src match {
+    n.from.src match {
       case s:Const =>
         if (!r.isConn(PConst)) throw OperandRouting(n, r)
       case PipeReg(stage, reg) => 
@@ -82,6 +88,10 @@ object StageMapper extends Mapper {
 case class OutOfStage(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = StageMapper
   override val msg = s"Not enough Counters in ${pcu} to map application."
+}
+case class OpNotSupported(ps:PST, s:ST)(implicit design:Design) extends MappingException {
+  override val mapper = StageMapper
+  override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
 }
 case class OutOfOperand(ps:PST, s:ST, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
   override val mapper = StageMapper

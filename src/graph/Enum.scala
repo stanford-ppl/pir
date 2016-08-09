@@ -22,6 +22,12 @@ case object FltMin extends FltOp
 case object FltMax extends FltOp 
 case object FltCmp extends FltOp 
 
+object Ops {
+  val fixOps:List[FixOp] = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixCmp)
+  val fltOps:List[FltOp] = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltCmp)
+  val allOps:List[Op] = fixOps ++ fltOps ++ List(Mux, Bypass) 
+}
+
 sealed trait CtrlType 
 case object Pipe extends CtrlType
 case object Sequential extends CtrlType

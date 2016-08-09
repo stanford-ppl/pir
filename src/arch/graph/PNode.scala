@@ -47,16 +47,16 @@ case class Counter() extends Node {
 /** 1 fanIns of pipeline register (1 row of reg for all stages) */
 case class Reg() extends Node {
   override val typeStr = "reg"
-  val mapping = Map[Stage, ListBuffer[RMPort]]() 
-  def mapTo (p:RMPort, stage:Stage) = {
-    if (!mapping.contains(stage)) mapping += (stage -> ListBuffer[RMPort]())
-    mapping(stage) += p
-    p.mappedTo(this) 
-  }
-  def <-- (p:RMPort, stage:Stage) = mapTo(p, stage)
-  def <-- (ps:List[RMPort], stage:Stage) = ps.foreach(p => mapTo(p, stage))
-  def <-- (p:RMPort, stages:List[Stage]) = stages.foreach(stage => mapTo(p, stage))
-  def ms = s"mapping=[${mapping.mkString(",")}]"
+  //val mapping = Map[Stage, ListBuffer[RMPort]]() 
+  //def mapTo (p:RMPort, stage:Stage) = {
+  //  if (!mapping.contains(stage)) mapping += (stage -> ListBuffer[RMPort]())
+  //  mapping(stage) += p
+  //  p.mappedTo(this) 
+  //}
+  //def <-- (p:RMPort, stage:Stage) = mapTo(p, stage)
+  //def <-- (ps:List[RMPort], stage:Stage) = ps.foreach(p => mapTo(p, stage))
+  //def <-- (p:RMPort, stages:List[Stage]) = stages.foreach(stage => mapTo(p, stage))
+  //def ms = s"mapping=[${mapping.mkString(",")}]"
 }
 case class PipeReg(stage:Stage, reg:Reg) extends Node {
   override val typeStr = "pr"
@@ -100,7 +100,7 @@ object AddrOut {
   def apply() = new ScalarOut(None) with AddrOut
 }
 
-case class FuncUnit(numOprds:Int) extends Node {
+case class FuncUnit(numOprds:Int, ops:List[Op]) extends Node {
   override val typeStr = "fu"
   val operands = List.fill(numOprds) (new FUInPort(this)) 
   val out = new FUOutPort(this)
@@ -121,20 +121,20 @@ trait FUStage extends Stage {
   def fu:FuncUnit = funcUnit.get 
 }
 object FUStage {
-  def apply(numOprds:Int, regs:List[Reg]):FUStage = 
-    new Stage(Some(FuncUnit(numOprds)), regs) with FUStage
+  def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):FUStage = 
+    new Stage(Some(FuncUnit(numOprds, ops)), regs) with FUStage
 }
 trait ReduceStage extends FUStage {
   override val typeStr = "rdst"
 }
 object ReduceStage {
-  def apply(numOprds:Int, regs:List[Reg]):ReduceStage = 
-    new Stage(Some(FuncUnit(numOprds)), regs) with ReduceStage
+  def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):ReduceStage = 
+    new Stage(Some(FuncUnit(numOprds, ops)), regs) with ReduceStage
 }
 trait WAStage extends FUStage
 object WAStage {
-  def apply(numOprds:Int, regs:List[Reg]):WAStage = 
-    new Stage(Some(FuncUnit(numOprds)), regs) with WAStage 
+  def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):WAStage = 
+    new Stage(Some(FuncUnit(numOprds, ops)), regs) with WAStage 
 }
 
 trait Controller extends Node {
@@ -164,6 +164,7 @@ case class ComputeUnit(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],
   private val es::fs = stages 
   val etstage:EmptyStage = es.asInstanceOf[EmptyStage]
   val fustages:List[FUStage] = fs.asInstanceOf[List[FUStage]]
+  val rdstages:List[ReduceStage] = stages.collect {case s:ReduceStage => s}
 
   val reduce = RMOutPort(this, s"${this}.reduce")
   vins.foreach(_.src = Some(this))
@@ -196,18 +197,18 @@ trait Input {
   type O <: Output
   // List of connections that can map to
   val fanIns = ListBuffer[O]()
-  def connect(n:O) = { if (!fanIns.contains(n)) fanIns += n }
+  def connect(n:O):Unit = { if (!fanIns.contains(n)) fanIns += n }
   def <==(n:O) = connect(n)
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${fanIns.mkString(",")}]"
-  def isConn(n:O) = fanIns.contains(n)
+  def isConn(n:O):Boolean = fanIns.contains(n)
 }
 trait Output {
   type I <: Input
   val fanOuts = ListBuffer[I]()
-  def connectedTo(n:I) = if (!fanOuts.contains(n)) fanOuts += n
+  def connectedTo(n:I):Unit = if (!fanOuts.contains(n)) fanOuts += n
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
-  def isConn(n:I) = fanOuts.contains(n)
+  def isConn(n:I):Boolean = fanOuts.contains(n)
 } 
 
 trait IO extends Node{
@@ -250,8 +251,8 @@ object OutWire {
 trait InPort extends Port with Input {
   type O = OutPort
   override val typeStr = "ip"
-  def <==(r:PipeReg) = connect(r.out)
-  override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
+  def <==(r:PipeReg):Unit = connect(r.out)
+  override def connect(n:O):Unit = {super.connect(n); n.connectedTo(this)}
 }
 object InPort {
   def apply() = new Node with InPort
@@ -279,11 +280,18 @@ object OutPort {
 }
 object Const extends OutPort { override def toString = "Const" }
 trait RMPort extends Port {
-  val mappedRegs = ListBuffer[Reg]()
+  val mappedRegs = Set[Reg]()
   def mappedTo(reg:Reg) = { mappedRegs += reg }
 }
 trait RMInPort extends InPort with RMPort {
   override def ms = s"${super.ms} regs=[${mappedRegs.mkString(",")}]"
+  override def connect(n:O):Unit = {
+    super.connect(n)
+    n.src match {
+      case Some(PipeReg(stage, reg)) => mappedTo(reg)
+      case _ =>
+    }
+  } 
 }
 object RMInPort {
   def apply(s:Node, sf: =>String) = new Node with RMInPort {
@@ -293,6 +301,13 @@ object RMInPort {
 }
 trait RMOutPort extends OutPort with RMPort {
   override def mt = s"${super.mt} regs=[${mappedRegs.mkString(",")}]"
+  override def connectedTo(n:I):Unit = {
+    super.connectedTo(n)
+    n.src match {
+      case Some(PipeReg(stage, reg)) => mappedTo(reg)
+      case _ =>
+    }
+  }
 }
 object RMOutPort {
   def apply(s:Node, sf: =>String) = new Node with RMOutPort {
@@ -300,6 +315,30 @@ object RMOutPort {
     override def toString = sf
   }
 }
+//trait RegInPort extends InPort {
+//  override def connect(n:O):Unit = {
+//    if (!n.isInstanceOf[RMOutPort]) throw new Exception(s"Register can only connect to RMPort")
+//    super.connect(n)
+//  } 
+//}
+//object RegInPort {
+//  def apply(s:Node, sf: =>String) = new Node with RegInPort {
+//    src = Some(s)
+//    override def toString = sf
+//  }
+//}
+//trait RegOutPort extends OutPort {
+//  override def connectedTo(n:I):Unit = {
+//    if (!n.isInstanceOf[RMInPort]) throw new Exception(s"Register can only connect to RMPort")
+//    super.connectedTo(n)
+//  }
+//}
+//object RegOutPort {
+//  def apply(s:Node, sf: =>String) = new Node with RegOutPort {
+//    src = Some(s)
+//    override def toString = sf
+//  }
+//}
 class FUInPort(fu:FuncUnit) extends InPort {
   src = Some(fu)
   override def toString = s"${fu}.oprd${id}"
