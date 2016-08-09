@@ -30,14 +30,12 @@ object VecInMapper extends Mapper {
   }
 
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
-    if (pirMap.vimap.contains(n))
-      return pirMap
+    if (pirMap.vimap.contains(n)) return pirMap
     val dep = n match {
       case n:ScalarIn => n.scalar.writer.ctrler
       case n:VecIn => n.vector.writer.ctrler
     }
-    if (!pirMap.clmap.contains(dep))
-      return pirMap
+    if (!pirMap.clmap.contains(dep)) return pirMap
     val pdvout:POB = n match {
       case n:VecIn => dep match {
         //case d:MemoryController => Nil //TODO

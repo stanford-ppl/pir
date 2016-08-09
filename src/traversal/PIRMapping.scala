@@ -33,7 +33,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Failure(e) => e match {
         case me:MappingException =>
           info(s"Mapping failed")
-          MapPrinter.emitln("Mapping Exceptions:")
+          MapPrinter.emitTitleComment("Mapping Exceptions:")
           MapPrinter.emitln(me)
         case _ => throw e
       }

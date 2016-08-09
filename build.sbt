@@ -13,3 +13,4 @@
   //
     addCommandAlias("make", ";project pir; compile")
     addCommandAlias("pir", "; project apps; run-main")
+    cancelable in Global := true

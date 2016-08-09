@@ -91,8 +91,9 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   val max:InPort = InPort(this, s"${this}.max")
   val step:InPort = InPort(this, s"${this}.step")
   val out:CtrOutPort = CtrOutPort(this, {s"${this}.out"}) 
-  var dep:Option[Counter] = _
-  var deped:Option[Counter] = None
+  var dep:Option[Counter] = _ // Outer counter depends on inner counter
+  var deped:Option[Counter] = None // Inner counter is depended on outer counter
+  override def toUpdate = super.toUpdate || dep==null
 
   def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {
     min.connect(mi)
@@ -119,9 +120,9 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
           assert(s.reg.isInstanceOf[ScalarInPR])
           val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
           val cu = ctrler.asInstanceOf[ComputeUnit]
-          val reg = ScalarInPR(cu.newTemp, ScalarIn(n, scalar))
-          val pr = PipeReg(cu.emptyStage, reg)
-          cu.emptyStage.prs += (reg -> pr)
+          val si = ScalarIn(n, scalar)
+          cu.sins = cu.sins :+ si
+          val pr = cu.scalarIn(cu.emptyStage, si)
           pr.out
         case _ => throw new Exception(s"Don't know how to copy port")
       }
@@ -297,7 +298,6 @@ class FuncUnit(stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(impli
 
 case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "Stage"
-  var prForward = false
   var fu:Option[FuncUnit] = _
   val prs:Map[Reg, PipeReg] = Map.empty
   val defs:Set[Reg] = Set.empty

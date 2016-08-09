@@ -406,16 +406,14 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
 
   override val typeStr = "TileTransfer"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
-    val (cchains, srams, sins, souts, vins, vouts) = 
-      design.addBlock[CounterChain, SRAM, ScalarIn, ScalarOut, VecIn, VecOut](block(this), 
+    val (cchains, sins, souts) = 
+      design.addBlock[CounterChain, ScalarIn, ScalarOut](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM],
                             (n:Node) => n.isInstanceOf[ScalarIn],
-                            (n:Node) => n.isInstanceOf[ScalarOut],
-                            (n:Node) => n.isInstanceOf[VecIn],
-                            (n:Node) => n.isInstanceOf[VecOut]
+                            (n:Node) => n.isInstanceOf[ScalarOut]
                             ) 
-    updateFields(cchains, srams, sins, souts, vins, vouts)
+    //updateFields(cchains, Nil, sins, souts, List(dataIn), List(dataOut))
+    updateFields(cchains, Nil, sins, souts, Nil, Nil)
   }
 
 } 

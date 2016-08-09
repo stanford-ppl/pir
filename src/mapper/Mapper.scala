@@ -1,5 +1,5 @@
 package pir.graph.mapper
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Node}
 import pir._
 import pir.plasticine.config._
 import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
@@ -28,7 +28,7 @@ trait Mapper {
    * nodes was considered failed and continues trying
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
-  def simAneal[R,N,M](allRes:List[R], allNodes:List[N], initMap:M, 
+  def simAneal[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
     oor:(Int, Int) => OutOfResource):M = {
 
@@ -39,16 +39,10 @@ trait Mapper {
         val (h, res::rt) = remainRes.splitAt(ir)
         val restRes = h ++ rt
         Try {
-          constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
+          val mp = constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
+          recMap(restRes, remainNodes, mp)
         } match {
-          case Success(m) => 
-            Try(recMap(restRes, remainNodes, m)) match {
-              case Success(m) => return m
-              case Failure(e) => e match {
-                case me:NoSolFound => exceps += me
-                case e => throw e
-              }
-            }
+          case Success(m) => return m
           case Failure(e) => e match {
             case me:MappingException => exceps += me // constrains failed
             case _ => throw e // Unknown exception
@@ -61,7 +55,7 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return finPass.fold(recmap)(p => p(recmap))
+        return finPass.fold(recmap)(p => p(recmap)) // throw MappingException
       }
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 
@@ -97,7 +91,7 @@ trait Mapper {
    * nodes was considered failed and continues trying
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
-  def inordBind[R,N,M](allRes:List[R], allNodes:List[N], initMap:M, 
+  def inordBind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: Option[M => M], 
     oor:(Int, Int) => OutOfResource):M = {
 
@@ -108,16 +102,10 @@ trait Mapper {
         val (_, res::rt) = remainRes.splitAt(ir)
         val restRes = rt
         Try {
-          constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
+          val mp = constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
+          recMap(restRes, remainNodes, mp)
         } match {
-          case Success(m) => 
-            Try(recMap(restRes, remainNodes, m)) match {
-              case Success(m) => return m
-              case Failure(e) => e match {
-                case me:NoSolFound => exceps += me
-                case e => throw e
-              }
-            }
+          case Success(m) => return m 
           case Failure(e) => e match {
             case me:MappingException => exceps += me // constrains failed
             case _ => throw e // Unknown exception

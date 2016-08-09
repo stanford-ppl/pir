@@ -16,8 +16,12 @@ trait Spade {
 
   def numCUs = rcus.size
 
-  implicit def reg_to_outport(r:Reg):OutPort = r.out
-  implicit def reg_to_inport(r:Reg):InPort = r.in
-  implicit def ib_to_op(ib:InBus):RMOutPort = ib.rmport
-  implicit def ob_to_ip(ob:OutBus):RMInPort = ob.rmport
+  implicit def ib_to_rmp(ib:InBus):RMPort = ib.viport
+  implicit def ib_to_op(ib:InBus):OutPort = ib.viport
+  implicit def ob_to_rmp(ob:OutBus):RMPort = ob.voport
+  implicit def ob_to_ip(ob:OutBus):InPort = ob.voport
+  implicit def si_to_rmp(si:ScalarIn):RMPort = si.out
+  implicit def so_to_rmp(so:ScalarOut):RMPort = so.in
+  implicit def pr_to_ip(pr:PipeReg):InPort = pr.in
+  implicit def pr_to_op(pr:PipeReg):OutPort = pr.out
 }

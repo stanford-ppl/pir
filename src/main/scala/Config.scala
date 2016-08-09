@@ -26,7 +26,7 @@ object Config {
   var spadeCtr = getProperty("pir.spade_ctr", "Ctr.dot")
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var debug = getProperty("pir.debug", "true") == "true"
-  var mapping = getProperty("pir.mapping", "true") == "true"
+  var mapping = getProperty("pir.mapping", "false") == "true"
 
   var dse = false
 

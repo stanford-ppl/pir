@@ -58,12 +58,6 @@ object DotProduct extends PIRApp {
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const(0l))
       Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, innerScalar))
-      // Testing -----
-      val s2::s3::_ = Stages(2)
-      val t1 = CU.temp(s2) 
-      Stage(s2, op1=CU.load(s1, sA), op2=CU.load(s1, sB), op=FixAdd, result=t1)
-      // Testing------
-      Stage(s3, op1=t1, op2=CU.load(s2, sA), op=FixAdd, result=CU.vecOut(s3, Vector()))
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
     UnitComputeUnit (name="accum", parent=outer, deps=List(inner)) { implicit CU =>

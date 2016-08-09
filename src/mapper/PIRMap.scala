@@ -5,11 +5,11 @@ import pir.graph.{ Controller => CL, ComputeUnit => CU, TileTransfer => TT,
                   Input => I, VecOut => VO, 
                   SRAM,
                   Counter => Ctr, CounterChain => CC,
-                  ScalarIn => SI, ScalarOut => SO, Port => PT,
+                  ScalarIn => SI, ScalarOut => SO, InPort => IP, OutPort => OP, Port => PT,
                   Stage => ST, Reg => R, Const}
 import pir.plasticine.graph.{ Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
                             InBus => PIB, OutBus => POB,
-                            Port => PPT, InPort => IP, OutPort => POP,
+                            Port => PPT, InPort => PIP, OutPort => POP,
                             Counter => PCtr, SRAM => PSRAM,
                             ScalarIn => PSI, ScalarOut => PSO,
                             Stage => PST, Reg => PReg, FUInPort => PFIP}
@@ -147,47 +147,6 @@ object CLMap extends PMapObj {
   def empty:CLMap = CLMap(Map.empty)
 }
 
-/* A mapping between a PInBus and the POutBus it connects to */
-trait IBMap extends PMap {
-  type K = IBMap.K
-  type V = IBMap.V
-  override def + (rec:(K,V)) = { super.check(rec); IBMap(map + rec) }
-}
-object IBMap extends PMapObj {
-  type K = PIB
-  type V = POB
-  def apply(m:Map[K,V]) = new { override val map = m } with IBMap
-  def empty:IBMap = IBMap(Map.empty)
-}
-/* A mapping between InPort and the OutPort it connects to */
-trait IPMap extends PMap {
-  type K = IPMap.K
-  type V = IPMap.V
-  override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec) }
-}
-object IPMap extends PMapObj {
-  type K = IP  
-  type V = POP 
-  def apply(m:Map[K,V]) = new { override val map = m } with IPMap
-  def empty:IPMap = IPMap(Map.empty)
-}
-/* A mapping between Port and the POutPort */
-trait OPMap extends PMap {
-  type K = OPMap.K
-  type V = OPMap.V
-  override def + (rec:(K,V)):OPMap = { 
-    if (!rec._1.src.isInstanceOf[Const]) {
-      super.check(rec); OPMap(map + rec)
-    } else this
-  }
-}
-object OPMap extends PMapObj {
-  type K = PT
-  type V = POP 
-  def apply(m:Map[K,V]) = new { override val map = m } with OPMap
-  def empty:OPMap = OPMap(Map.empty)
-}
-
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus and the POutBus where Input is 
  * connecting to */
 trait VIMap extends PMap {
@@ -248,7 +207,7 @@ object SIMap extends PMapObj {
   def empty:SIMap = SIMap(Map.empty)
 }
 
-/* A Map between PIR Counter to Spade Counter */
+/* A Map between PIR ScalarOut to Spade ScalarOut */
 trait SOMap extends PMap {
   type K = SOMap.K
   type V = SOMap.V
@@ -294,15 +253,14 @@ trait STMap extends PMap {
   type K = STMap.K
   type V = STMap.V
   override def + (rec:(K,V)) = { super.check(rec); STMap(map + rec) }
-  def getStage(k:K):PST = map(k)._1
-  def getOprdMap(k:K):STMap.OM = map(k)._2
   override def printMap(ks:List[K])(implicit p:Printer):Unit = {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
           if (map.contains(k)) {
-            val (pst, om) = map(k)
-            p.emitln(s"$k -> ${pst} oprd=[${om.map{case (kk,vv) => s"$kk->$vv"}.mkString(s", ")}]")
+            //TODO
+            val oprd = k.fu.fold("") { fu => s"oprd=${fu.operands.mkString(",")}]" }
+            p.emitln(s"$k -> ${map(k)} ${oprd}")
           } else {
             p.emitln(s"$k -> failed")
           }
@@ -313,8 +271,48 @@ trait STMap extends PMap {
 }
 object STMap extends PMapObj {
   type K = ST 
-  type OM = Map[PT, PFIP]
-  type V = (PST, OM) 
+  type V = PST
   def apply(m:Map[K,V]) = new { override val map = m } with STMap
   def empty:STMap = STMap(Map.empty)
 }
+/* A mapping between OutPort and the POutPort */
+trait OPMap extends PMap {
+  type K = OPMap.K
+  type V = OPMap.V
+  override def + (rec:(K,V)):OPMap = { 
+    if (!rec._1.src.isInstanceOf[Const]) {
+      super.check(rec); OPMap(map + rec)
+    } else this
+  }
+}
+object OPMap extends PMapObj {
+  type K = OP
+  type V = POP 
+  def apply(m:Map[K,V]) = new { override val map = m } with OPMap
+  def empty:OPMap = OPMap(Map.empty)
+}
+/* A mapping between a PInBus and the POutBus it connects to */
+trait IBMap extends PMap {
+  type K = IBMap.K
+  type V = IBMap.V
+  override def + (rec:(K,V)) = { super.check(rec); IBMap(map + rec) }
+}
+object IBMap extends PMapObj {
+  type K = PIB
+  type V = POB
+  def apply(m:Map[K,V]) = new { override val map = m } with IBMap
+  def empty:IBMap = IBMap(Map.empty)
+}
+/* A mapping between PIR InPort and Spade InPort */
+trait IPMap extends PMap {
+  type K = IPMap.K
+  type V = IPMap.V
+  override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec) }
+}
+object IPMap extends PMapObj {
+  type K = IP  
+  type V = PIP 
+  def apply(m:Map[K,V]) = new { override val map = m } with IPMap
+  def empty:IPMap = IPMap(Map.empty)
+}
+

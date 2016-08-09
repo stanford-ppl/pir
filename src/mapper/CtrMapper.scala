@@ -14,16 +14,16 @@ object CtrMapper extends Mapper {
   type R = PCtr
   type N = Ctr
   
-  def next(cu:CU, cuMap:M) = {
-    var cmap = RegAlloc.map(cu, cuMap)
+  def next(cu:CU, pirMap:M) = {
+    val cmap = RegAlloc.map(cu, pirMap)
     StageMapper.map(cu, cmap)
   }
-  def map(cu:CU, cuMap:M):M = {
-    val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
+  def map(cu:CU, pirMap:M):M = {
+    val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     // Mapping inner counter first converges faster
     val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
     val finPass:Option[M => M] = Some(next(cu, _))
-    simAneal(pcu.ctrs, ctrs, cuMap, List(mapCtr _), finPass, OutOfCtr(pcu, _, _))
+    simAneal(pcu.ctrs, ctrs, pirMap, List(mapCtr _), finPass, OutOfCtr(pcu, _, _))
   }
 
   def mapCtr(c:N, p:R, map:M):M = {

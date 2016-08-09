@@ -14,14 +14,15 @@ object ScalarInMapper extends Mapper {
 
   val finPass = None
 
-  private def mapScalarIns(n:N, p:R, pirMap:M):M = {
-    val ib = pirMap.vimap(n)
-    val idx = pirMap.slmap.getIdx(n.scalar)
+  type MP = (SIMap, OPMap)
+  private def mapScalarIns(vimap:VIMap, slmap:SLMap)(n:N, p:R, maps:MP):MP = {
+    val (simap, opmap) = maps 
+    val ib = vimap(n)
+    val idx = slmap.getIdx(n.scalar)
     if (p.in.isConn(ib.outports(idx))) {
-      //TODO: pirMap.setSI(n, p).setOP(n.out, p.out)
+      (simap + (n -> p), opmap + (n.out -> p.out))
     } else
       throw ScalarInRouting(n, p)
-    pirMap
   }
 
   def map(cl:CL, pirMap:M):M = {
@@ -29,8 +30,10 @@ object ScalarInMapper extends Mapper {
     val sin = cl.sins
     val psin = pcl.sins
     // Assume one SI to one outport, no need to map
-    
-    simAneal(psin, sin, pirMap, List(mapScalarIns _), finPass, OutOfScalarIn(pcl, _, _))
+    val cons = List(mapScalarIns(pirMap.vimap, pirMap.slmap) _)
+    val maps = (pirMap.simap, pirMap.opmap)
+    val (simap, opmap) = simAneal(psin, sin, maps, cons, finPass, OutOfScalarIn(pcl, _, _))
+    pirMap.set(simap).set(opmap)
   }
 
 }

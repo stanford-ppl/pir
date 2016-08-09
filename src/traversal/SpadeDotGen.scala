@@ -30,7 +30,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
       CUPrinter.emitln(s"""${cu} [label="{${recs.mkString("|")}}", shape=Mrecord ];""")
       ArgPrinter.emitln(s"""${cu} [label="{${recs.mkString("|")}}", shape=Mrecord ];""")
       cu.vins.foreach { vin =>
-        vin.mapping.foreach { vout =>
+        vin.fanIns.foreach { vout =>
           if (vout.src.isDefined) {
             CUPrinter.emitln(s"""${vout.src.get}:${vout}:s -> ${cu}:${vin}:n""")
           } else { // ArgIn
@@ -40,7 +40,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
       }
     }
     design.arch.top.argOutBuses.foreach { vin =>
-      vin.mapping.foreach { vout =>
+      vin.fanIns.foreach { vout =>
         ArgPrinter.emitln(s"""${vout.src.get}:${vout}:s -> argout_${vin}""")
       }
     }
@@ -51,7 +51,7 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
       recs += s"${ctr}"
       recs += s"<sat> sat"
       CtrPrinter.emitln(s"""${ctr} [label="${recs.mkString(s"|")}", shape=Mrecord ];""")
-      ctr.en.mapping.foreach { from => 
+      ctr.en.fanIns.foreach { from => 
         CtrPrinter.emitln(s"${s"$from".replace(".", ":")} -> ${s"${ctr.en}".replace(".",":")}")
       }
     }

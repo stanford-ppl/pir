@@ -40,30 +40,30 @@ object Config1 extends Spade {
 
     // Create Pipeline Regs (entire row of physicall register for all stages)
     // No overlapping between mappings
-    val regs = List.tabulate(numPRs) { ir => PipeReg() }
+    val regs = List.tabulate(numPRs) { ir => Reg() }
     var ptr = 0
 
     val vecIns = List.tabulate(numBusIns) { is =>
       val ib = InBus(numLanes)
-      regs(ptr + is) <== ib // Map logical register to InBus
+      regs(ptr + is) <-- ib // Map logical register to InBus
       ib
     }
     val vecOut = {
       val ob = OutBus(numLanes)
-      ob <== regs(ptr)
+      regs(ptr) <-- ob
       ob
     } 
-    val scalarIns = List.tabulate(numBusIns, numScalarIns) { case (ib, is) => 
+    val scalarIns = List.tabulate(numBusIns, vecIns.head.outports.size) { case (ib, is) => 
       val si = ScalarIn(vecIns(ib).outports(is))
-      regs(ptr + is) <== si
+      regs(ptr + is) <-- si
       si
     }.flatten
-    val scalarOuts = List.tabulate(numScalarOuts) { is =>
+    val scalarOuts = List.tabulate(vecOut.inports.size) { is =>
       val so = typeOf[T] match {
         case t if t =:= typeOf[ComputeUnit] => ScalarOut(vecOut.inports(is))
         case t if t =:= typeOf[TileTransfer] => AddrOut()
       }
-      so <== regs(ptr + is)
+      regs(ptr + is) <-- so
       so
     }
     val ctrs = List.tabulate(numCtrs) { ic => 
@@ -72,7 +72,7 @@ object Config1 extends Spade {
       c.min <== sis :+ Const
       c.max <== sis :+ Const
       c.step <== sis :+ Const
-      regs(ptr + ic) <== c.out
+      regs(ptr + ic) <-- c.out
       c
     }
     /* Chain counters together */
@@ -86,53 +86,61 @@ object Config1 extends Spade {
 
     val srams = List.tabulate(numSRAMs) { is => 
       val s = SRAM()
-      s.readAddr <== ctrs.map(_.out) :+ regs(ptr + is).out 
-      s.writeAddr <== ctrs.map(_.out) :+ regs(ptr + is).out
+      s.readAddr <== ctrs.map(_.out)
+      s.writeAddr <== ctrs.map(_.out)
+      regs(ptr + is) <-- List[RMPort](s.readAddr, s.writeAddr) 
       s
     } 
     ptr += numSRAMs
     srams.zipWithIndex.foreach { case (s,is) =>
-      s.writePort <== List[OutPort](vecIns(is).outports(0),regs(ptr + is))
-      regs(ptr + is) <== s.readPort
+      s.writePort <== vecIns(is).outports(0)
+      regs(ptr + is) <-- List[RMPort](s.writePort, s.readPort)
     }
     ptr += numSRAMs
 
     /* Pipeline Stages ( Describing configurable connections of operands and result of the FU in
      * that stage ) */
-    val wastages = List.fill(3) { WAStage(numOprds=2) } // Write addr calculation stages
-    val regstages = List.fill(3) { Stage(numOprds=3) } // Regular stages
-    val redstages = List.fill(4) { ReduceStage(numOprds=2) } // Reduction stage 
+    val etstage = EmptyStage(regs)
+    val wastages:List[WAStage] = List.fill(3) { WAStage(numOprds=2, regs) } // Write addr calculation stages
+    val rastages:List[FUStage] = List.fill(3) { FUStage(numOprds=2, regs) } // Read addr calculation stages 
+    val regstages:List[FUStage] = List.fill(3) { FUStage(numOprds=1, regs) } // Regular stages
+    val redstages:List[ReduceStage] = List.fill(4) { ReduceStage(numOprds=2, regs) } // Reduction stage 
 
-    // <== : readAcess, ==> : writeAcess
-    val stages = wastages ++ regstages ++ redstages 
-    // All stage can read from any regs of its own stage
-    stages.foreach{ stage => regs.foreach { reg => stage.fu.oprds.foreach { _ <== (reg, stage) }}}
-    // All Stages have forwarding path from its previous stage on all regs to all operands
-    for (i <- 1 until stages.size) {
-      regs.foreach { reg => stages(i).fu.oprds.foreach( _ <== (reg, stages(i-1)) )
+    val fustages:List[FUStage] = wastages ++ rastages ++ regstages ++ redstages 
+    val stages:List[Stage] = etstage :: fustages 
+
+    fustages.zipWithIndex.foreach { case (stage, i) =>
+      val preStage = stages(i-1)
+      stage.fu.operands.foreach{ oprd =>
+        regs.foreach{ reg =>
+          // All stage can read from any regs of its own stage and Const, and  have forwarding 
+          // path from its previous stage
+          oprd <== stage.prs(reg)
+          oprd <== preStage.prs(reg)
+        }
+        oprd <== Const
       }
+      // All stage can write to all regs of its stage
+      regs.foreach{ reg => stage.prs(reg) <== stage.fu.out }
     }
-    // All stage can write to all regs of its stage
-    stages.foreach { stage => regs.foreach { reg => stage.fu ==> (reg, stage) } }
+
+    // Stages where srams, ctrs, scalarIn, vecIn can be forwarded to
+    val fwstages:List[FUStage] = wastages ++ rastages :+ regstages.head
 
     // Stages where srams, ctrs, vins, vouts can be forwarded to
-    val fwstages = wastages :+ regstages.head
     fwstages.foreach { stage =>
-      // Set a forwarding path from inputs to first stage pipeline registers to this stage
-      stage.setPRForward
       // Creating forwarding path to all operands of the FUs in these stages  
-      stage.fu.oprds.foreach { oprd =>
-        vecIns.foreach{ oprd <== _ }
-        scalarIns.foreach{ oprd <== _ }
+      stage.fu.operands.foreach { oprd =>
+        vecIns.foreach{ oprd <== _.viport }
+        scalarIns.foreach{ oprd <== _.out }
         ctrs.foreach{ oprd <== _.out }
         srams.foreach{ oprd <== _.readPort }
-        oprd <== Const
       }
     }
     // Connections in last stage
-    stages.last.fu ==> vecOut
-    scalarOuts.foreach { stages.last.fu ==> _ }
-    srams.foreach { stages.last.fu ==> _.writePort }
+    vecOut <== fustages.last.fu.out
+    scalarOuts.foreach { _.in <== fustages.last.fu.out }
+    srams.foreach { _.writePort <== fustages.last.fu.out }
 
     (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr)
   }
@@ -146,7 +154,7 @@ object Config1 extends Spade {
     val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr) =
       genFields[ComputeUnit](numPRs, numCtrs, numSRAMs, numScalarOuts)
     val c = ComputeUnit(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages)
-    regs(ptr) <== c.reduce
+    regs(ptr) <-- c.reduce
     c
   } 
 
@@ -159,7 +167,7 @@ object Config1 extends Spade {
     val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr) =
       genFields[TileTransfer](numPRs, numCtrs, numSRAMs, numScalarOuts)
     val c = TileTransfer(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages)
-    regs(ptr) <== c.reduce
+    regs(ptr) <-- c.reduce
     c
   }
   

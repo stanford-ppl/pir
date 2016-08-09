@@ -1,9 +1,9 @@
 package pir.graph.mapper
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Node, Primitive}
 import pir.Design
 import pir.Config
 import pir.plasticine.config._
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU}
+import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -22,8 +22,9 @@ case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit des
 }
 
 //TODO: n should be node
-case class FailToMapNode(mapper:Mapper, n:Any, exceps:List[MappingException])(implicit design:Design) extends MappingException {
-  override val msg = s"No resource can map ${n}. Exceptions:\n ${exceps.mkString("\n")}"
+case class FailToMapNode(mapper:Mapper, n:Node, exceps:List[MappingException])(implicit design:Design) extends MappingException {
+  val s = if (n.isInstanceOf[Primitive]) s"${n} in ${n.asInstanceOf[Primitive].ctrler}" else s"$n"
+  override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
 }
 
 trait OutOfResource extends MappingException {
