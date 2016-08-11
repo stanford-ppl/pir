@@ -14,17 +14,6 @@ abstract class Codegen(implicit design: Design) extends DFSTraversal {
   def clearOldFiles = true
   def outdir = s"${pwd}/out/$ext"
 
-  def fp(pw: PrintWriter, a: Any) = pw.println(a)
-
-  def filesDir = s"$pwd/src/codegen/$ext/files"
-
-  def quote(x: Any): String = {
-    x match {
-      case Some(v) => v.toString
-      case _ => x.toString
-    }
-  }
-
   override def initPass() = {
     val file = new File(outdir)
     if (clearOldFiles) {

@@ -11,7 +11,6 @@ import plasticine.config._
 //import analysis._
 
 import codegen._
-import codegen.dot._
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Queue
@@ -146,6 +145,7 @@ trait Design { self =>
   val traversals = ListBuffer[Traversal]()
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
+  traversals += new CtrlAlloc()
   traversals += new LiveAnalysis()
   traversals += new IRCheck()
   val pirPrinter = new PIRPrinter()
@@ -153,6 +153,7 @@ trait Design { self =>
   traversals += new SpadeNetworkDot()
   val pirMapping = new PIRMapping()
   if (Config.mapping) traversals += pirMapping 
+  traversals += new PisaCodegen()
   reset()
 
   def run = {

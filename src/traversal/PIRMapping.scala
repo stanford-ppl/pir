@@ -1,6 +1,7 @@
 package pir.graph.traversal
 import pir.graph._
 import pir._
+import pir.codegen.Printer
 import pir.PIRMisc._
 import pir.graph.mapper._
 import scala.util.{Try, Success, Failure}

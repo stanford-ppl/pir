@@ -2,6 +2,7 @@ package pir.graph.traversal
 
 import pir.graph._
 import pir._
+import pir.codegen.Printer
 import pir.PIRMisc._
 
 import scala.collection.mutable.ListBuffer
@@ -22,11 +23,18 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   def genFields(node:Node):String = {
     val fields = ListBuffer[String]()
     node match {
+      case n:Controller =>
+        fields += s"children=[${n.children.mkString(",")}]"
+      case _ =>
+    }
+    node match {
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"type=${n.tpe}"
         fields += s"dep=[${n.dependencies.mkString(",")}]"
         fields += s"deped=[${n.dependeds.mkString(",")}]"
+        if (n.tpe==Pipe)
+          fields += s"outers=[${n.outers.mkString(s",")}]"
         n match {
           case c:TileTransfer =>
             fields += s"mctpe=${c.mctpe}"
@@ -62,6 +70,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
             fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 
             fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}, dep=${p.dep}"
+          case p:LUT => 
+            fields += s"init=${p.init}"
           case p:Reg => p match {
             case r:PipeReg =>
             case r:Const => fields += s"${r.value}"
@@ -106,35 +116,35 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   }
 
   def emitBlock(title:String, node:Node):Unit = {
-    emitBS(title)
-    node match {
-      case n:ComputeUnit =>
-        emitBlock(s"mapping =") {
-          regMapToStrs(n).foreach { case (k, v) =>
-            emitln(s"${k}:${v}")
+    emitBlock(title) {
+      node match {
+        case n:ComputeUnit =>
+          emitBlock(s"mapping =") {
+            regMapToStrs(n).foreach { case (k, v) =>
+              emitln(s"${k}:${v}")
+            }
           }
-        }
-        emitBlock(s"InfGraph =") {
-          n.infGraph.foreach { case (k, v) => 
-            emitln(s"${k}: [${v.mkString(s",")}]")
+          emitBlock(s"InfGraph =") {
+            n.infGraph.foreach { case (k, v) => 
+              emitln(s"${k}: [${v.mkString(s",")}]")
+            }
           }
-        }
-        super.visitNode(node)
-      case n:Stage =>
-        val strs = ListBuffer[String]()
-        strs += s"uses:[${n.uses.mkString(",")}]"
-        strs += s"defs:[${n.defs.mkString(",")}]"
-        emitln(strs.mkString(" "))
-        strs.clear
-        strs += s"liveIns:[${n.liveIns.mkString(",")}]"
-        strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
-        emitln(strs.mkString(" "))
-        n.prs.foreach { case (reg, pr) =>
-         emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
-        }
-      case _ => super.visitNode(node)
+          super.visitNode(node)
+        case n:Stage =>
+          val strs = ListBuffer[String]()
+          strs += s"uses:[${n.uses.mkString(",")}]"
+          strs += s"defs:[${n.defs.mkString(",")}]"
+          emitln(strs.mkString(" "))
+          strs.clear
+          strs += s"liveIns:[${n.liveIns.mkString(",")}]"
+          strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
+          emitln(strs.mkString(" "))
+          n.prs.foreach { case (reg, pr) =>
+           emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
+          }
+        case _ => super.visitNode(node)
+      }
     }
-    emitBE
   }
 
   override def visitNode(node: Node) : Unit = {

@@ -1,4 +1,6 @@
-package pir
+package pir.codegen
+
+import pir._
 
 import java.io.PrintWriter
 import java.io.File
@@ -18,12 +20,23 @@ trait Printer {
   val tab = "  "
   var level = 0
 
-  def emit(s:String) = pw.print(s"${tab*level}${s}")
-  def emitln(s:String) = pw.println(s"${tab*level}${s}")
-  def emitBS(s:String):Unit = { emit(s); emitBS }
-  def emitBS:Unit = { pw.println(s"{"); level += 1 }
-  def emitBE = { level -= 1; emitln(s"}") }
-  def emitBlock(s:String)(block: =>Any) = { emitBS(s"$s "); block; emitBE }
+  def pprint(s:String):Unit = pw.print(s)
+  def pprintln(s:String):Unit = pw.println(s)
+  def pprintln:Unit = pw.println
+  def emit(s:String):Unit = pprint(s"${tab*level}${s}")
+  def emit(s:Any):Unit = emit(s.toString) 
+  def emit:Unit = emit("") 
+  def emitln(s:String):Unit = pprintln(s"${tab*level}${s}")
+  def emitln:Unit = pprintln
+  def emitBSln(s:String):Unit = { emit(s); emitBSln }
+  def emitBSln:Unit = { pprintln(s"{"); level += 1 }
+  def emitBEln = { emitBE; pprintln }
+  def emitBE = { level -= 1; emit(s"}") }
+  def emitCSln(s:String):Unit = { emit(s); emitCSln }
+  def emitCSln:Unit = { pprintln(s"["); level += 1 }
+  def emitCE = { level -= 1; emit(s"]") }
+  def emitBlock(block: =>Any) = { emitBSln; block; emitBEln }
+  def emitBlock(s:String)(block: =>Any) = { emitBSln(s"$s "); block; emitBEln }
   def emitTitleComment(title:String) = 
     emitln(s"/*****************************${title}****************************/")
   def flush = pw.flush()

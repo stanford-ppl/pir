@@ -28,7 +28,9 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         case c:ComputeUnit => {
           c.cchains.foreach { cc => visitNode(cc) }
           c.srams.foreach { s => visitNode(s) }
-          c.stages.foreach {s => visitNode(s) }
+          c.stages.foreach { s => visitNode(s) }
+          c.tokenBuffers.foreach { t => visitNode(t) }
+          c.creditBuffers.foreach { c => visitNode(c) }
           c match {
             case cu:TileTransfer =>
             case _ =>
@@ -44,6 +46,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         case p:VecIn =>
         case p:VecOut =>
         case p:Stage =>
+        case p:TokenBuffer =>
         case p:Reg => p match {
           case r:PipeReg =>
           case r:Const =>

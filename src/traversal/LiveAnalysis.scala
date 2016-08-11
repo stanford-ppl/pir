@@ -11,6 +11,7 @@ import scala.collection.mutable.Map
 class LiveAnalysis(implicit val design: Design) extends Traversal{
 
   override def traverse = {
+    //TODO Outer CU only run updatePrim
     design.top.compUnits.foreach { implicit cu =>
       // Uses in sram and counter
       updatesPrim(cu)

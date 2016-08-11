@@ -3,6 +3,7 @@ import pir.graph._
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
 import pir._
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, InBus => PInBus}
+import pir.codegen.Printer
 import pir.graph.traversal.{PIRMapping, MapPrinter}
 
 import scala.collection.immutable.Set
@@ -19,13 +20,13 @@ object CUMapper extends Mapper {
   /* Saperate Compute Unit and Memory controller to map saperately */
   private def setResource:(List[PCU], List[CU], List[PTT], List[TT]) = {
     //TODO match memory ctrler
-    val compUnits = design.top.compUnits
+    val inners = design.top.innerCUs
     val arch = design.arch
     val pcus = arch.rcus 
     val ptts = arch.ttcus 
     val cus = ListBuffer[CU]()
     val tts = ListBuffer[TT]()
-    compUnits.foreach { c => c match {
+    inners.foreach { c => c match {
         case n:TT => tts += n
         case n:CU => cus += n
         case n => throw TODOException(s"unknown PIR controller type: ${n}") 

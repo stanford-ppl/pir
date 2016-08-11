@@ -12,8 +12,8 @@ import pir.graph.Ops
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object Config0 extends Spade {
-  override def toString = "Plasticine_Config0"
+object Config2 extends Spade {
+  override def toString = "Plasticine_Config2"
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -22,7 +22,7 @@ object Config0 extends Spade {
   override val wordWidth = 32
   override val numLanes = 4
   
-  private val numRCUs = 2
+  private val numRCUs = 4
   private val numTTs = 2 
 
   private val numArgInBuses = 1 
@@ -85,8 +85,8 @@ object Config0 extends Spade {
     val ops = Ops.allOps // All fu can perform all operations
     val etstage = EmptyStage(regs)
     val wastages:List[WAStage] = List.fill(3) { WAStage(numOprds=2, regs, ops) } // Write/read addr calculation stages
-    val rastages:List[FUStage] = List.fill(1) { FUStage(numOprds=2, regs, ops) } // Additional read addr only calculation stages 
-    val regstages:List[FUStage] = List.fill(1) { FUStage(numOprds=1, regs, ops) } // Regular stages
+    val rastages:List[FUStage] = List.fill(3) { FUStage(numOprds=2, regs, ops) } // Additional read addr only calculation stages 
+    val regstages:List[FUStage] = List.fill(3) { FUStage(numOprds=1, regs, ops) } // Regular stages
     val rdstages:List[ReduceStage] = List.fill(4) { ReduceStage(numOprds=2, regs, ops) } // Reduction stage 
     val fustages:List[FUStage] = wastages ++ rastages ++ regstages ++ rdstages // Stages with fu 
     val stages:List[Stage] = etstage :: fustages // All stages 
@@ -184,8 +184,12 @@ object Config0 extends Spade {
   /* Network Constrain */ 
   rcus(0).vins(0) <== ttcus(0).vout 
   rcus(0).vins(1) <== ttcus(1).vout
-  rcus(1).vins(0) <== rcus(0).vout 
-  rcus(1).vins(1) <== rcus(0).vout
+  rcus(1).vins(0) <== ttcus(0).vout 
+  rcus(1).vins(1) <== ttcus(1).vout
+  rcus(2).vins(0) <== rcus(0).vout 
+  rcus(2).vins(1) <== rcus(1).vout
+  rcus(3).vins(0) <== rcus(0).vout 
+  rcus(3).vins(1) <== rcus(1).vout
 
   /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to scalarOuts of all CUs*/
   (rcus ++ ttcus).foreach { cu =>

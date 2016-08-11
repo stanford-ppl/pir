@@ -21,6 +21,7 @@ object Config {
   var outDir = getProperty("pir.outDir", "out")
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
+  var pisaFile = getProperty("pir.pisafile", "pisa.json")
   var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
   var spadeCtr = getProperty("pir.spade_ctr", "Ctr.dot")

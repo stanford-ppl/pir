@@ -16,6 +16,8 @@ trait Controller extends Node {
   var vouts:List[VecOut] = _
   override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
 
+  val children = ListBuffer[ComputeUnit]()
+
   def readers:List[Controller] = souts.flatMap(_.scalar.readers.map(_.ctrler)) ++
                                  vouts.flatMap(_.vector.readers.map(_.ctrler))
   def writers:List[Controller] = sins.map(_.scalar.writer.ctrler) ++
@@ -40,6 +42,14 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val dependencies = ListBuffer[Controller]()
   // List of controllers the current controller send token to
   val dependeds = ListBuffer[Controller]()
+  def isHead = (dependencies.size==0)
+  def isTail = (dependeds.size==0)
+
+  val tokenBuffers = ListBuffer[TokenBuffer]()
+  val creditBuffers = ListBuffer[CreditBuffer]()
+  
+  /* List of outer controllers reside in current inner*/
+  var outers:List[Controller] = Nil
 
   /* Fields */
   var cchains:List[CounterChain] = _
@@ -91,6 +101,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
         design.updateLater(p, (n:Node) => updateParent(n.asInstanceOf[Controller]))
       case p:Controller =>
         this.parent = p 
+        p.children += this
     }
     this
   }
@@ -462,16 +473,20 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  var compUnits:List[ComputeUnit] = _
+  var innerCUs:List[ComputeUnit] = _
+  var outerCUs:List[ComputeUnit] = _
+  def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
-  override def toUpdate = super.toUpdate || compUnits==null || memCtrls==null
+  override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
 
   def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], memCtrls:List[MemoryController]) = {
-    this.compUnits = cs
+    //TODO change innerCU and outerCU to a type
+    this.innerCUs = cs.filter { c => c.tpe==Pipe }
+    this.outerCUs = cs.filter { c => c.tpe!=Pipe }
     this.memCtrls = memCtrls
     val sins = ListBuffer[ScalarIn]()
     val souts = ListBuffer[ScalarOut]()

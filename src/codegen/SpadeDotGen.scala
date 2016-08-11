@@ -1,6 +1,7 @@
 package pir.graph.traversal
 
 import pir._
+import pir.codegen.Printer
 import pir.PIRMisc._
 import pir.plasticine.graph._
 
@@ -16,9 +17,9 @@ object CtrPrinter extends Printer { override val stream = newStream(Config.spade
 class SpadeNetworkDot(implicit design: Design) extends Traversal {
 
   override def initPass = {
-    CUPrinter.emitBS("digraph G")
-    ArgPrinter.emitBS("digraph G")
-    CtrPrinter.emitBS(s"digraph G")
+    CUPrinter.emitBSln("digraph G")
+    ArgPrinter.emitBSln("digraph G")
+    CtrPrinter.emitBSln(s"digraph G")
     //CUPrinter.emitln(s"splines=ortho;")
   }
   override def traverse = {
@@ -58,11 +59,11 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
   }
 
   override def finPass = {
-    CUPrinter.emitBE
+    CUPrinter.emitBEln
     CUPrinter.close
-    ArgPrinter.emitBE
+    ArgPrinter.emitBEln
     ArgPrinter.close
-    CtrPrinter.emitBE
+    CtrPrinter.emitBEln
     CtrPrinter.close
     info(s"Finishing Spade Dot Printing in ${CUPrinter.getPath} ${ArgPrinter.getPath} ${CtrPrinter.getPath}")
   }

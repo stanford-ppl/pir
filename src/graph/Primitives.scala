@@ -463,6 +463,20 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
   }
 }
 
+trait LUT extends Primitive {
+  val init:Int
+}
+case class TokenBuffer(init:Int)(implicit ctrler:Controller, design: Design) 
+  extends LUT{
+  override val name = None
+  override val typeStr = "TokenBuffer"
+}
+case class CreditBuffer(init:Int)(implicit ctrler:Controller, design: Design) 
+  extends LUT{
+  override val name = None
+  override val typeStr = "CreditBuffer"
+}
+
 case class Const(name:Option[String], value:Long)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   override def toString = s"Const(${value})"

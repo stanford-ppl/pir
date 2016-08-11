@@ -1,5 +1,6 @@
 package pir.graph.mapper
 import pir._
+import pir.codegen.Printer
 import pir.graph._
 import pir.graph.{ Controller => CL, ComputeUnit => CU, TileTransfer => TT, 
                   Input => I, VecOut => VO, 
