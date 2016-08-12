@@ -153,7 +153,7 @@ trait Design { self =>
   traversals += new SpadeNetworkDot()
   val pirMapping = new PIRMapping()
   if (Config.mapping) traversals += pirMapping 
-  traversals += new PisaCodegen()
+  traversals += new PisaCodegen(pirMapping)
   reset()
 
   def run = {
@@ -162,7 +162,7 @@ trait Design { self =>
     } catch {
       case e:PIRException => 
         if (!pirPrinter.isTraversed) pirPrinter.run
-        throw e
+        e.printStackTrace
       case e:Throwable => throw e
     }
   }

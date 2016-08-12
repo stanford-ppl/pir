@@ -17,24 +17,29 @@ object SRAMMapper extends Mapper {
 
   val finPass = None
 
-  type MP = (SMMap, OPMap)
+  type MP = (SMMap, OPMap, IPMap)
   private def mapSRAM(vimap:VIMap)(s:N, p:R, maps:MP):MP = {
-    val (smmap, opmap) = maps
+    var (smmap, opmap, ipmap) = maps
     s.writePort.from.src match {
       case wp:VecIn => // Remote write 
         val ib = vimap(wp)
         if(!p.writePort.isConn(ib.viport)) throw SRAMRouting(s, p)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
     }
-    (smmap + (s -> p), opmap + (s.readPort -> p.readPort))
+    smmap += (s -> p)
+    opmap += (s.readPort -> p.readPort)
+    ipmap += (s.writeAddr -> p.writeAddr)
+    ipmap += (s.readAddr -> p.readAddr)
+    ipmap += (s.writePort -> p.writePort)
+    (smmap, opmap, ipmap)
   }
 
   def map(cu:CU, pirMap:M):M = {
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     val cons = List(mapSRAM(pirMap.vimap) _)
-    val maps = (pirMap.smmap, pirMap.opmap)
-    val (simap, opmap) = simAneal(pcu.srams, cu.srams, maps, cons, finPass, OutOfSram(pcu, _, _))
-    pirMap.set(simap).set(opmap)
+    val maps = (pirMap.smmap, pirMap.opmap, pirMap.ipmap)
+    val (simap, opmap, ipmap) = simAneal(pcu.srams, cu.srams, maps, cons, finPass, OutOfSram(pcu, _, _))
+    pirMap.set(simap).set(opmap).set(ipmap)
   }
 }
 

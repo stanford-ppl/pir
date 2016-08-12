@@ -51,7 +51,7 @@ object CUMapper extends Mapper {
     } match {
       case Success(m) => return m
       // TODO: at the moment if prim failed. stop trying
-      case Failure(e) => MapPrinter.emitln(e.toString); System.exit(-1); throw e
+      case Failure(e) => e.printStackTrace; System.exit(-1); throw e
     }
   }
 

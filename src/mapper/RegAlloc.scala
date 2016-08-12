@@ -39,12 +39,11 @@ object RegAlloc extends Mapper {
           val sram = wtPort.src
           val psram = pirMap.smmap(sram)
           preColor(r, psram.writePort.mappedRegs.toList)
-        //case rr:WtAddrPR =>
-        //  val waPorts = rr.waPorts
-        //  val srams = waPorts.map{_.src}
-        //  val psrams = srams.map{ sram => pirMap.smmap(sram.asInstanceOf[SRAM]) }
-        //  val colors = psrams.map { psram => preColor(r, psram.writeAddr.mappedRegs.toList) }
-        //  if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
+        case rr:WtAddrPR =>
+          val waPort = rr.waPort
+          val sram = waPort.src.asInstanceOf[SRAM]
+          val psram = pirMap.smmap(sram)
+          preColor(r, psram.writeAddr.mappedRegs.toList)
         //case rr:RdAddrPR =>
         //  val raPorts = rr.raPorts
         //  val srams = raPorts.map{_.src}

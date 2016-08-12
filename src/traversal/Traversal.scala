@@ -21,6 +21,7 @@ trait Traversal {
     initPass
     traverse
     finPass
+    isTraversed = true
   }
 
   def traverse:Unit
@@ -29,5 +30,5 @@ trait Traversal {
     isInit = true
   }
 
-  def finPass:Unit = { isTraversed = true }
+  def finPass:Unit
 }

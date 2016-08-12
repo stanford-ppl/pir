@@ -31,8 +31,8 @@ object Config0 extends Spade {
   // ArgIns and ArgOuts are ScalarOuts and ScalarIns of the top level module.
   // argInBuses and argOutBuses bundles scalar value into buses since only bus routing including
   // ArgIn to a CU is allowed
-  val argInBuses = List.fill(numArgInBuses) { OutBus(numLanes) }
-  val argOutBuses = List.fill (numArgOutBuses) { InBus(numLanes) }
+  val argInBuses = List.tabulate(numArgInBuses) { i => OutBus(i, numLanes) }
+  val argOutBuses = List.tabulate(numArgOutBuses) { i => InBus(i, numLanes) }
   val argIns = List.tabulate(numArgInBuses, argInBuses.head.inports.size) { case (ib, ia) =>
     ScalarOut(argInBuses(ib).inports(ia))
   }.flatten
@@ -47,10 +47,10 @@ object Config0 extends Spade {
     val numBusIns = if (numSRAMs==0) 1 else numSRAMs // If there's no sram (TileTransfer CU), there's at least 1 bus input
 
     // Create Logical Registers (entire row of physical register for all stages)
-    val regs = List.tabulate(numPRs) { ir => Reg() }
+    val regs = List.tabulate(numPRs) { ir => Reg(ir) }
 
-    val vecIns = List.tabulate(numBusIns) { is => InBus(numLanes) } // Bus Input with numLanes words
-    val vecOut =  OutBus(numLanes) // Bus Output with numLanes words. Assume only single bus output per CU for now
+    val vecIns = List.tabulate(numBusIns) { is => InBus(is, numLanes) } // Bus Input with numLanes words
+    val vecOut =  OutBus(0, numLanes) // Bus Output with numLanes words. Assume only single bus output per CU for now
     val scalarIns = List.tabulate(numBusIns, vecIns.head.outports.size) { case (ib, is) => // Scalar inputs. 1 per word in bus input 
       ScalarIn(vecIns(ib).outports(is))
     }.flatten
@@ -62,10 +62,10 @@ object Config0 extends Spade {
       }
     }
     val ctrs = List.tabulate(numCtrs) { ic => 
-      val c = Counter() 
-      c.min <== Const // Counter max, min, step can be constant or scalarIn(specified later)
-      c.max <== Const
-      c.step <== Const
+      val c = Counter(ic) 
+      c.min <== Const.out // Counter max, min, step can be constant or scalarIn(specified later)
+      c.max <== Const.out
+      c.step <== Const.out
       c
     }
     /* Chain counters together */
@@ -73,7 +73,7 @@ object Config0 extends Spade {
     for (i <- 0 until numCtrs by 2) { ctrs(i).en <== top.clk } // Allow group counter in chain in multiple of 2
 
     val srams = List.tabulate(numSRAMs) { is => 
-      val s = SRAM()
+      val s = SRAM(is)
       s.readAddr <== ctrs.map(_.out) // sram read/write addr can be from all counters
       s.writeAddr <== ctrs.map(_.out)
       s
@@ -133,7 +133,7 @@ object Config0 extends Spade {
       // All stage can read from any regs of its own stage, previous stage, and Const
       val preStage = stages(i) // == fustages(i-1)
       stage.fu.operands.foreach{ oprd =>
-        oprd <== Const // operand is constant
+        oprd <== Const.out // operand is constant
         regs.foreach{ reg =>
           oprd <== stage.prs(reg) // operand is from current register block
           oprd <== preStage.prs(reg) // operand is forwarded from previous register block
@@ -143,13 +143,16 @@ object Config0 extends Spade {
       regs.foreach{ reg => stage.prs(reg) <== stage.fu.out }
     }
 
-    // Creating forwarding path from counter outputs to all operands of the FUs in write addr stages  
     wastages.foreach { stage =>
-      stage.fu.operands.foreach { oprd => ctrs.foreach{ oprd <== _.out } }
-    }
-    // Creating forwarding path from srams loads to all operands of the FUs
-    wastages.foreach { stage =>
-      stage.fu.operands.foreach { oprd => srams.foreach{ oprd <== _.readPort } }
+      stage.fu.operands.foreach { oprd => 
+        // Creating forwarding path from counter outputs to all operands of the FUs in write 
+        // addr stages
+        ctrs.foreach{ oprd <== _.out } 
+        // Creating forwarding path from srams loads to all operands of the FUs
+        srams.foreach{ oprd <== _.readPort }
+      }
+      // Connect all srams's write addr to writeAddr stages
+      srams.foreach { _.writeAddr <== stage.fu.out }
     }
     
     (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr)

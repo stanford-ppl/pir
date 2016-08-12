@@ -8,6 +8,7 @@ import pir.Design
 import pir.graph._
 import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
+import pir.graph.traversal.ForwardRef
 
 trait Controller extends Node {
   var sins:List[ScalarIn] = _
@@ -141,7 +142,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val loadRegs   = Map[SRAM, LoadPR]()
   val storeRegs  = Map[SRAM, StorePR]()
-  //val wtAddrRegs = Map[SRAM, WtAddrPR]()
+  val wtAddrRegs = Map[SRAM, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
@@ -173,6 +174,10 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def storePR(s:SRAM):StorePR = {
     if (!storeRegs.contains(s)) storeRegs += (s -> StorePR(newTemp, s.writePort))
     storeRegs(s)
+  }
+  def wtAddrPR(s:SRAM):WtAddrPR = {
+    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> WtAddrPR(newTemp, s.writeAddr))
+    wtAddrRegs(s)
   }
   def ctrPR(c:Counter):CtrPR = {
     if (!ctrRegs.contains(c)) ctrRegs += (c -> CtrPR(newTemp, c))
@@ -219,20 +224,14 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param s: sram to load from 
   */
   def store(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, storePR(s))
-  //def wtAddr():WtAddrPR = WtAddrPR(newTemp)
+  def wtAddr(sram:SRAM):WtAddrPR = wtAddrPR(sram)
   //def wtAddr(stage:WAStage):PipeReg = {
   //  val reg = wtAddr()
   //  wtAddr(stage, reg)
   //}
-  //def wtAddr(stage:WAStage, reg:WtAddrPR):PipeReg = {
-  //  val pr = pipeReg(stage, reg)
-  //  val srams = reg.waPorts.map{_.src.asInstanceOf[SRAM]}
-  //  srams.foreach { s => 
-  //    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> reg)
-  //    s.writeAddr = pr.out
-  //  }
-  //  pr
-  //}
+  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = {
+    pipeReg(stage, reg)
+  }
   //def rdAddr():RdAddrPR = RdAddrPR(newTemp)
   //def rdAddr(stage:Stage):PipeReg = {
   //  val reg = rdAddr()

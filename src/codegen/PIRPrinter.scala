@@ -50,6 +50,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:SRAM =>
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
             fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
+            fields += s"cchain=${p.cchain}"
           case p:Stage =>
             p.fu.foreach { fu =>
               fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"

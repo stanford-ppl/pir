@@ -24,8 +24,9 @@ object Node {
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM() extends Node{
+case class SRAM(idx:Int) extends Node{
   override val typeStr = "sram"
+  override def toString = s"${super.toString}[${idx}]"
   val readPort = RMOutPort(this, s"${this}.rp")
   val writePort = RMInPort(this, s"${this}.wp")
   val readAddr = RMInPort(this, s"${this}.ra")
@@ -33,8 +34,9 @@ case class SRAM() extends Node{
 }
 
 /** Physical Counter  */
-case class Counter() extends Node {
+case class Counter(idx:Int) extends Node {
   override val typeStr = "ctr"
+  override def toString = s"${super.toString}[${idx}]"
   val min = InPort(this, s"${this}.min")
   val max = InPort(this, s"${this}.max")
   val step = InPort(this, s"${this}.step")
@@ -45,7 +47,7 @@ case class Counter() extends Node {
 }
 
 /** 1 fanIns of pipeline register (1 row of reg for all stages) */
-case class Reg() extends Node {
+case class Reg(idx:Int) extends Node {
   override val typeStr = "reg"
   //val mapping = Map[Stage, ListBuffer[RMPort]]() 
   //def mapTo (p:RMPort, stage:Stage) = {
@@ -60,6 +62,7 @@ case class Reg() extends Node {
 }
 case class PipeReg(stage:Stage, reg:Reg) extends Node {
   override val typeStr = "pr"
+  override def toString = s"pr(${stage},${reg})"
   val in = RegInPort(this, s"${this}.i") 
   val out = RegOutPort(this, s"${this}.o")
 }
@@ -116,6 +119,7 @@ class Stage(regs:List[Reg]) extends Node {
   def before(s:Stage) = idx < s.idx
   def after(s:Stage) = idx > s.idx
   override val typeStr = "st"
+  override def toString = s"${super.toString}[${idx}]"
 }
 trait EmptyStage extends Stage {
   override val typeStr = "etst"
@@ -137,7 +141,9 @@ object ReduceStage {
   def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):ReduceStage = 
     new Stage(regs) with ReduceStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
-trait WAStage extends FUStage
+trait WAStage extends FUStage {
+  override val typeStr = "wast"
+}
 object WAStage {
   def apply(numOprds:Int, regs:List[Reg], ops:List[Op]):WAStage = 
     new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
@@ -170,7 +176,7 @@ case class ComputeUnit(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],
   for (i <- 0 until stages.size) {
     stages(i).pre = if (i!=0) Some(stages(i-1)) else None
     stages(i).next = if (i!=stages.size-1) Some(stages(i+1)) else None
-    stages(i).idx = i
+    stages(i).idx = i-1 // Empty stage is -1
   }
   private val es::fs = stages 
   val etstage:EmptyStage = es.asInstanceOf[EmptyStage]
@@ -289,7 +295,6 @@ object OutPort {
     override def toString = sf
   }
 }
-object Const extends OutPort { override def toString = "Const" }
 trait RMPort extends Port {
   val mappedRegs = Set[Reg]()
   def mappedTo(reg:Reg) = { mappedRegs += reg }
@@ -356,40 +361,50 @@ class FUOutPort(fu:FuncUnit) extends OutPort {
   override def toString = s"${fu}.out"
 }
 
-case class InBus(outports:List[BusOutPort]) extends Bus with Input {
+case class InBus(idx:Int, outports:List[BusOutPort]) extends Bus with Input {
   type O = OutBus
   override val typeStr = "ib"
+  override def toString = s"${super.toString}[${idx}]"
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
   outports.foreach(_.src = Some(this))
   val viport:RMOutPort = outports(0).asInstanceOf[RMOutPort]
 }
 object InBus {
-  def apply(numPort:Int):InBus = {
+  def apply(idx:Int, numPort:Int):InBus = {
     val outports = List.tabulate(numPort) { i => 
       if (i==0) new BusOutPort(i) with RMOutPort { src = Some(this) }
       else new BusOutPort(i) {src = Some(this)}
     }
-    InBus(outports)
+    InBus(idx, outports)
   }
-  def apply(ops:List[BusOutPort], s:Node):InBus = new InBus(ops) {src = Some(s)}
+  def apply(idx:Int, ops:List[BusOutPort], s:Node):InBus = new InBus(idx, ops) {src = Some(s)}
 }
 
-case class OutBus(inports:List[BusInPort]) extends Bus with Output {
+case class OutBus(idx:Int, inports:List[BusInPort]) extends Bus with Output {
   type I = InBus
   override val typeStr = "ob"
+  override def toString = s"${super.toString}[${idx}]"
   inports.foreach(_.src = Some(this))
   val voport:RMInPort = inports(0).asInstanceOf[RMInPort]
 }
 object OutBus {
-  def apply(numPort:Int):OutBus = {
+  def apply(idx:Int, numPort:Int):OutBus = {
     val inports = List.tabulate(numPort) { i => 
       if (i==0) new BusInPort(i) with RMInPort { src = Some(this) }
       else new BusInPort(i) {src = Some(this)}
     }
-    OutBus(inports)
+    OutBus(idx, inports)
   }
-  def apply(ips:List[BusInPort], s:Node) = new OutBus(ips) {src = Some(s)}
+  def apply(idx:Int, ips:List[BusInPort], s:Node) = new OutBus(idx, ips) {src = Some(s)}
 }
 
 case class BusInPort(idx:Int) extends InPort
 case class BusOutPort(idx:Int) extends OutPort
+
+case class Const(v:Long) extends Node {
+  val out = OutPort(this, s"Const")
+}
+object Const extends Node { 
+  override def toString = "Const"
+  val out = RMOutPort(this, s"Const")
+}

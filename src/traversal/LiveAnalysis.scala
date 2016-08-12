@@ -39,7 +39,8 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   private def updatesPrim(implicit cu:ComputeUnit) = {
     cu.srams.foreach { sram =>
       addLiveOut(sram.readAddr)
-      addLiveOut(sram.writeAddr)
+      if (sram.writeAddr.isConnected)
+        addLiveOut(sram.writeAddr)
       if (sram.writePort.isConnected)
         addLiveOut(sram.writePort)
     }
@@ -94,7 +95,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           val PipeReg(s, reg) = p.src
           s.addDef(reg)
           reg match {
-            case (_:StorePR | _:VecOutPR | _:ScalarOutPR) => stages.last.addLiveOut(reg)
+            case (_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR) => stages.last.addLiveOut(reg)
             case _ => 
           }
         case p:RdAddrInPort =>
@@ -194,6 +195,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
               case StorePR(_, wtPort) => wtPort.connect(pr.out)
               case p:VecOutPR => p.vecOut.in.connect(pr.out)
               case ScalarOutPR(_, scalarOut) => scalarOut.in.connect(pr.out)
+              case r:WtAddrPR => r.waPort.connect(pr.out)
               case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
             }
           }

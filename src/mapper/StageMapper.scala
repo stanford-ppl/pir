@@ -1,10 +1,11 @@
 package pir.graph.mapper
 import pir._
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{Stage => ST, EmptyStage => EST, WAStage => WAST, ReduceStage => RDST, AccumStage, Const, PipeReg}
+import pir.graph.{Stage => ST, EmptyStage => EST, WAStage => WAST, ReduceStage => RDST, AccumStage, Const, PipeReg, Reg}
 import pir.graph.{InPort => IP, OutPort => OP}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{EmptyStage => PEST, FUStage => PFUST, Stage => PST, WAStage => PWAST, ReduceStage => PRDST}
+import pir.plasticine.graph.{EmptyStage => PEST, FUStage => PFUST, Stage => PST, WAStage => PWAST, 
+                            ReduceStage => PRDST, Reg => PReg}
 import pir.plasticine.graph.{Const => PConst, InPort => PIP, OutPort => POP, RMPort, Stagable}
 import pir.graph.traversal.{PIRMapping, MapPrinter}
 
@@ -23,14 +24,36 @@ object StageMapper extends Mapper {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
-    val cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), finPass, OutOfStage(pcu, cu, _, _))
-    Try { //TODO: Currently if fail take a while to finish 
+    var cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), finPass, OutOfStage(pcu, cu, _, _))
+    cmap = Try { //TODO: Currently if fail take a while to finish 
       inordBind(pfusts, fusts, cmap, List(mapStage _), finPass, OutOfStage(pcu, cu, _, _))
     } match  {
-      case Success(m) => return m
-      case Failure(e) => MapPrinter.emitln(e.toString); System.exit(-1)
+      case Success(m) => m
+      case Failure(e) => 
+        e.printStackTrace
+        design.pirMapping.printMap
+        System.exit(-1); cmap
     }
-    cmap 
+    stageFowarding(pcu, cmap)
+  }
+
+  /* Forward liveOut regs in pstages that doesn't have stage corresponding to them */
+  def stageFowarding(pcu:PCU, cuMap:M):M = {
+    var preLiveOuts:Set[Reg] = Set.empty
+    var fpmap = cuMap.fpmap
+    pcu.stages.foreach { pstage =>
+      val ppregs:Set[PReg] = preLiveOuts.map {reg => cuMap.rcmap(reg) }
+      if (cuMap.stmap.pmap.contains(pstage)) {
+        val stage = cuMap.stmap.pmap(pstage)
+        preLiveOuts = stage.liveOuts 
+      } else {
+        pstage.prs.foreach { case (preg, ppr) =>
+          if (ppregs.contains(preg))
+            fpmap += ppr.in -> pstage.pre.get.prs(preg).out
+        }
+      }
+    }
+    cuMap.set(fpmap)
   }
 
   def mapStage(n:N, p:R, map:M):M = {
@@ -101,11 +124,11 @@ object StageMapper extends Mapper {
     val opmap = map.opmap
     val ipmap = map.ipmap
     val pop:POP = n.from.src match {
-      case s:Const =>
-        if (!r.isConn(PConst)) {
+      case Const(_, c) =>
+        if (!r.isConn(PConst.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info)
-        } else PConst
+        } else PConst(c).out
       case pr@PipeReg(stage, reg) => 
         val preg = rcmap(reg)
         val pstage = stmap(stage)
@@ -117,18 +140,21 @@ object StageMapper extends Mapper {
               val info = s"${n} connects to PipeReg ${pr}. Mapped to PipeReg: ${ppr}. r's mappedReg:${rmp.mappedRegs}"
               throw InPortRouting(n, r, info) 
             } else { // inport map to logical reg but have some slack to reach pr
-              var nextStage = pstage
-              var out = ppr.out
-              var info = s"Cannot find connection to ${ppr}: " 
-              while (!rp.isConn(out)) {
-                val pcurStage = rp.stage
-                if (nextStage.before(pcurStage)) {
-                  nextStage = nextStage.next.get
-                  info += s" ${nextStage}:${out}"
-                } else throw InPortRouting(n, r, info)
-                out = nextStage.prs(preg).out
+              var info = "" 
+              val pcurStage = rp.stage
+              if (pstage.before(pcurStage)) {
+                pcurStage.pre.get.prs(preg).out
+              } else if (pstage == pcurStage) {
+                if (!rp.isConn(ppr.out)) {
+                  info = s"Cannot find connection to ${ppr}: " 
+                  throw InPortRouting(n, r, info)
+                } else {
+                  ppr.out
+                }
+              } else {
+                info = s"Cannot read later stage. reader:${pcurStage} to:${pstage}"
+                throw InPortRouting(n, r, info)
               }
-              out
             } 
           case rp => // src of the inport doesn't belong to a stage. e.g. counter max
             if (!r.isConn(ppr.out)) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")

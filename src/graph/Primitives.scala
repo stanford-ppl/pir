@@ -6,6 +6,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
+import scala.reflect.runtime.universe._
 import pir.Design
 import pir.graph._
 import pir.graph.mapper.PIRException
@@ -76,7 +77,7 @@ object CounterChain {
   def copy(from:String, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_${name}_copy"))
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
-    design.updateLater(s"${from}_${name}", updateFunc)
+    design.updateLater(ForwardRef.getPrimName(from, name), updateFunc _ )
     cc
   }
   def copy(from:Controller, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
@@ -142,7 +143,7 @@ object Counter{
  *  @param nameStr: user defined name of SRAM 
  *  @param Size: size of SRAM in all dimensions 
  */
-case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, design: Design) 
+case class SRAM(name: Option[String], size: Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -150,6 +151,15 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
   val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
+  def writeEnable:Counter = cchain.counters.last
+
+  def writer = {
+    writePort.from.src match {
+      case VecIn(_, vec) => vec.writer.ctrler
+      case r:StorePR => ctrler.asInstanceOf[ComputeUnit] 
+      case p => throw PIRException(s"Unknown SRAM write port ${p}")
+    }
+  }
 
   override def toUpdate = super.toUpdate || !readAddr.isConnected || 
     !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
@@ -167,13 +177,6 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
   } 
   def wtAddr(wa:OutPort):SRAM = { 
     writeAddr.connect(wa)
-    wa.src match {
-      case PipeReg(stage, r) =>
-        throw PIRException(s"Currently don't support register to writeAddr! sram:${this}")
-        //val reg:WtAddrPR = r.asInstanceOf[WtAddrPR]
-        //reg.waPorts += writeAddr
-      case _ =>
-    }
     this 
   }
   def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
@@ -183,28 +186,28 @@ case class SRAM(name: Option[String], size: Int)(implicit ctrler:Controller, des
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, cchain).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, cchain).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, cchain).rdAddr(readAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, cchain).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size)
-  def apply(name:String, size:Int)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(size:Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, cchain)
+  def apply(name:String, size:Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, cchain)
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, cchain).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive
@@ -279,7 +282,7 @@ object VecOut {
     VecOut(Some(name), vector)
 }
 
-class FuncUnit(stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
+class FuncUnit(val stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${this}.oprd") }
@@ -383,26 +386,37 @@ object AccumStage {
 }
 class WAStage (override val name:Option[String])
   (implicit ctrler:Controller, design: Design) extends Stage(name) {
-  var sram:SRAM = _
+  var srams:Either[List[String], ListBuffer[SRAM]] = _
   override val typeStr = "WAStage"
-  override def toUpdate = super.toUpdate || sram==null
+  override def toUpdate = super.toUpdate || srams==null
 
-  def updateSRAM[T](sram:T):WAStage = {
-    sram match {
-      case s:String => design.updateLater(ForwardRef.getPrimName(ctrler, s), 
-                                          (n:Node) => this.sram = n.asInstanceOf[SRAM])
-      case s:SRAM => this.sram = s
+  def updateSRAM(n:Node) = {
+    srams match {
+      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
+      case Right(l) => l += n.asInstanceOf[SRAM]
+    }
+  }
+
+  def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):WAStage = {
+    typeOf[T] match {
+      case t if t =:= typeOf[String] => 
+        this.srams = Left(srams.asInstanceOf[List[String]])
+        srams.asInstanceOf[List[String]].foreach { s =>
+          design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
+        }
+      case t if t =:= typeOf[SRAM] => 
+        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
     }
     this
   }
 
 }
 object WAStage {
-  def apply[T](sram:T)(implicit ctrler:Controller, design: Design)  = new WAStage(None).updateSRAM(sram)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:Controller, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 object WAStages {
-  def apply[T](n:Int, sram:T) (implicit ctrler:ComputeUnit, design: Design):List[WAStage] = {
-    val was = List.tabulate(n) { i => WAStage(sram) }
+  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:ComputeUnit, design: Design):List[WAStage] = {
+    val was = List.tabulate(n) { i => WAStage(srams) }
     ctrler.addWAStages(was)
     was
   }
@@ -435,7 +449,7 @@ object Reg {
 case class LoadPR(override val regId:Int, rdPort:ReadOutPort)(implicit ctrler:Controller, design: Design)         extends Reg {override val typeStr = "regld"}
 case class StorePR(override val regId:Int, wtPort:WriteInPort)(implicit ctrler:Controller, design: Design)        extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
-//case class WtAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regwa"; val waPorts = ListBuffer[InPort]()}
+case class WtAddrPR(override val regId:Int, waPort:InPort)(implicit ctrler:Controller, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)                 extends Reg {override val typeStr = "regct"}
 case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regrd"}
 case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "regac"}

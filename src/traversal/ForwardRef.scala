@@ -50,4 +50,5 @@ class ForwardRef(implicit val design: Design) extends Traversal{
 }
 object ForwardRef {
   def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
+  def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
 }

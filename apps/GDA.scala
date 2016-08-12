@@ -55,8 +55,8 @@ object GDA extends PIRApp {
       val rr = CounterChain.copy("innerBL", "rr")
 
       // SRAMs
-      val sigmaBlk = SRAM(size=256, vec=sigmaBlkVec, readAddr=acc(0) , writeAddr=rr(0))
-      val sigmaOut = SRAM(size=256, readAddr=acc(0) , writeAddr=acc(0))
+      val sigmaBlk = SRAM(size=256, vec=sigmaBlkVec, readAddr=acc(0) , writeAddr=rr(0), cchain=rr)
+      val sigmaOut = SRAM(size=256, readAddr=acc(0) , writeAddr=acc(0), cchain=acc)
 
       // Pipeline Stages
       val s0::_ = Stages(1)
@@ -96,14 +96,13 @@ object GDA extends PIRApp {
     //}{_+_}
     val innerBL = ComputeUnit(name="innerBL", parent=outerBR, tpe=MetaPipeline, deps=List(tly, tlx)) { implicit CU =>
       // StateMachines / CounterChain
-      val rr = CounterChain(name="rr", Const(0) until rTileSize)
-      val actr = CounterChain(Cmax by Const(1)) //BlockReduce Ctr
+      val rr = CounterChain(name="rr", Const(0) until rTileSize, Cmax by Const(1))
       val c1 = CounterChain.copy("outProd", "c1")
 
-      val ws0::ws1::_ = WAStages(2, "sigmaTile")
+      val ws0::ws1::_ = WAStages(2, List("sigmaTile"))
       // SRAMs
-      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=actr(0))
-      val sigmaBlk = SRAM(size=256, readAddr=actr(0), writeAddr=actr(0))
+      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=rr(1), cchain=c1)
+      val sigmaBlk = SRAM(size=256, readAddr=rr(1), writeAddr=rr(1), cchain=rr)
 
       // Remote Addr Calc for sigmaTile 
       val ii = c1(0)
@@ -125,7 +124,7 @@ object GDA extends PIRApp {
     val subPipe = ComputeUnit (name="subPipe", parent=innerBL, tpe=Pipe, deps=Nil) { implicit CU =>
       val es = CU.emptyStage
 
-      val ws0::ws1::_ = WAStages(2, "xTile")
+      val ws0::ws1::_ = WAStages(2, List("xTile"))
       val s0::s1::s2::s3::_ = Stages(4)
       // StateMachines / CounterChain
       val rr = CounterChain.copy("innerBL", "rr")
@@ -136,10 +135,10 @@ object GDA extends PIRApp {
       val cx = CounterChain.copy(tlx, "rr")
 
       // SRAMs
-      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec)
-      val yTile   = SRAM(size=4, name="yTile", vec=tlYVec, readAddr=rr(0), writeAddr = cy(0))
-      val mu0Tile = SRAM(size=16, name="m0Tile", vec=tlm0Vec, readAddr=cc(0), writeAddr=cmu0(0))
-      val mu1Tile = SRAM(size=16, name="m1Tile", vec=tlm1Vec, readAddr=cc(0), writeAddr=cmu1(0))
+      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec, cchain=cx)
+      val yTile   = SRAM(size=4, name="yTile", vec=tlYVec, readAddr=rr(0), writeAddr = cy(0), cchain=cy)
+      val mu0Tile = SRAM(size=16, name="m0Tile", vec=tlm0Vec, readAddr=cc(0), writeAddr=cmu0(0), cchain=cmu0)
+      val mu1Tile = SRAM(size=16, name="m1Tile", vec=tlm1Vec, readAddr=cc(0), writeAddr=cmu1(0), cchain=cmu1)
 
       // Pipeline Stages
       // xTile Write Addr Calculation
@@ -173,8 +172,8 @@ object GDA extends PIRApp {
 
       val s0::_ = Stages(1)
       // SRAMs
-      val subTile_ra   = SRAM(size=16, vec=subVec, readAddr=ii, writeAddr=cc(1))
-      val subTile_ca   = SRAM(size=16, vec=subVec, readAddr=jj, writeAddr=cc(0))
+      val subTile_ra   = SRAM(size=16, vec=subVec, readAddr=ii, writeAddr=cc(1), cchain=cc)
+      val subTile_ca   = SRAM(size=16, vec=subVec, readAddr=jj, writeAddr=cc(0), cchain=cc)
 
       // Pipeline Stages
       Stage (s0, op1=subTile_ra.load, op2=subTile_ca.load, op=FixMul, result=CU.vecOut(s0, sigmaTileVec))

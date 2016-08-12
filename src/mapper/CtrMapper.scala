@@ -42,7 +42,7 @@ object CtrMapper extends Mapper {
     def mapInPort(n:IP, p:PIP) = {
       ipmap += n -> p 
       n.from.src match {
-        case c:Const => fpmap += p -> PConst 
+        case Const(_, v) => fpmap += p -> PConst(v).out
         case _ =>
       }
     }
