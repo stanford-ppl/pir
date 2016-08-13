@@ -36,3 +36,9 @@ case object MetaPipeline extends CtrlType
 sealed trait MCType 
 case object TileLoad extends MCType 
 case object TileStore extends MCType 
+
+sealed trait Banking
+case class Strided(stride:Int) extends Banking
+case class Diagonal(stride1:Int, stride2:Int) extends Banking
+case class Duplicated() extends Banking
+case class NoBanking() extends Banking

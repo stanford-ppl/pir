@@ -149,6 +149,7 @@ trait Design { self =>
   traversals += new LiveAnalysis()
   traversals += new IRCheck()
   val pirPrinter = new PIRPrinter()
+  traversals += new CtrlDotGen()
   traversals += pirPrinter 
   traversals += new SpadeNetworkDot()
   val pirMapping = new PIRMapping()
@@ -188,7 +189,7 @@ object PIRMisc {
   implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
   implicit def const_to_port(const:Const):OutPort = const.out
   implicit def mExcep_to_string(e:MappingException):String = e.toString
-  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const(1) 
+  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
   def dprintln(s:String) = if (Config.debug) println(s)
   def dprint(s:String) = if (Config.debug) print(s)
   def info(s:String) = println(s"[pir] ${s}")

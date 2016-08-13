@@ -28,17 +28,17 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
   /* Pointers */
   var dep:Option[CounterChain] = None
   var copy:Option[CounterChain] = None
-  var updated = false // Become updated if copied counter is updated
+  var isCopy = false
 
-  override def toUpdate = super.toUpdate || (!updated) 
+  override def toUpdate = super.toUpdate
+
+  def outer:Counter = counters.head
+  def inner:Counter = counters.last
 
   def apply(num: Int)(implicit ctrler:Controller, design: Design):Counter = {
-    if (!updated) {
-      // Speculatively create counters base on need and check index out of bound during update
-      this.counters = List.tabulate(num+1) { i => 
-        if (i < counters.size) counters(i)
-        else Counter()
-      }
+    if (isCopy) {
+      // Speculatively create extra counters base on need and check bound during update
+      this.counters = counters ++ List.tabulate(num+1-counters.size) { i =>Counter(this) }
     }
     counters(num)
   }
@@ -46,20 +46,18 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
     // Check whether speculative wire allocation was correct
     assert(counters.size <= cp.counters.size, 
       s"Accessed counter ${counters.size-1} of ${this} is out of bound")
-    val addiCtrs = (counters.size until cp.counters.size).map {i => Counter()}
+    val addiCtrs = (counters.size until cp.counters.size).map {i => Counter(this)}
     counters = counters ++ addiCtrs
     counters.zipWithIndex.foreach { case(c,i) => 
       c.copy(cp.counters(i))
     }
     updateDep
     this.copy = Some(cp)
-    updated = true
   }
   def update(bds: Seq[(OutPort, OutPort, OutPort)]):Unit = {
-    counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(mi, ma, s)}.toList
+    counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(this, mi, ma, s)}.toList
     updateDep
     this.copy = None 
-    updated = true
   }
 
   def updateDep = {
@@ -76,6 +74,7 @@ object CounterChain {
     {val c = CounterChain(Some(name)); c.update(bds); c}
   def copy(from:String, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_${name}_copy"))
+    cc.isCopy = true
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
     design.updateLater(ForwardRef.getPrimName(from, name), updateFunc _ )
     cc
@@ -85,7 +84,7 @@ object CounterChain {
   }
 }
 
-case class Counter(val name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
+case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -132,18 +131,20 @@ case class Counter(val name:Option[String])(implicit ctrler:Controller, design: 
   } 
 }
 object Counter{
-  def apply(min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
-    { val c = Counter(None); c.update(min, max, step); c }
-  def apply(name:String, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
-    { val c = Counter(Some(name)); c.update(min, max, step); c }
-  def apply()(implicit ctrler:Controller, design: Design):Counter = Counter(None)
+  def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
+    { val c = Counter(None, cchain); c.update(min, max, step); c }
+  def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
+    { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
+  def apply(cchain:CounterChain)(implicit ctrler:Controller, design: Design):Counter = 
+    Counter(None, cchain)
 }
 
 /** SRAM 
  *  @param nameStr: user defined name of SRAM 
  *  @param Size: size of SRAM in all dimensions 
  */
-case class SRAM(name: Option[String], size: Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design) 
+case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
+  writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -151,7 +152,6 @@ case class SRAM(name: Option[String], size: Int, cchain:CounterChain)(implicit c
   val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
-  def writeEnable:Counter = cchain.counters.last
 
   def writer = {
     writePort.from.src match {
@@ -186,28 +186,28 @@ case class SRAM(name: Option[String], size: Int, cchain:CounterChain)(implicit c
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, cchain).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, cchain).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, cchain).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, cchain).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, cchain)
-  def apply(name:String, size:Int, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, cchain)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(None, size, cchain).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, cchain:CounterChain)(implicit ctrler:Controller, design: Design): SRAM
-    = SRAM(Some(name), size, cchain).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr)
+  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr)
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:Controller, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive
@@ -477,27 +477,94 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
   }
 }
 
-trait LUT extends Primitive {
-  val init:Int
-}
-case class TokenBuffer(init:Int)(implicit ctrler:Controller, design: Design) 
-  extends LUT{
-  override val name = None
-  override val typeStr = "TokenBuffer"
-}
-case class CreditBuffer(init:Int)(implicit ctrler:Controller, design: Design) 
-  extends LUT{
-  override val name = None
-  override val typeStr = "CreditBuffer"
-}
-
-case class Const(name:Option[String], value:Long)(implicit design: Design) extends Node {
+case class Const(name:Option[String], value:String)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   override def toString = s"Const(${value})"
   val out = ConstOutPort(this, s"Const(${value})")
 }
 object Const {
-  def apply(v:Long)(implicit design: Design):Const = Const(None, v)
-  def apply(name:String, v:Long)(implicit design: Design):Const =
+  def apply(v:String)(implicit design: Design):Const = Const(None, v)
+  def apply(name:String, v:String)(implicit design: Design):Const =
     Const(Some(name), v)
 }
+
+abstract class UDCounter(implicit ctrler:Controller, design: Design) extends Primitive {
+  val initVal:Int
+  val inc = InPort(this, s"${this}.inc")
+  val dec = InPort(this, s"${this}.dec")
+  val out = OutPort(this, s"${this}.o")
+}
+case class TokenBuffer(dep:ComputeUnit, initVal:Int)
+  (implicit ctrler:Controller, design: Design) extends UDCounter{
+  val init = InPort(this, s"${this}.init")
+  override val name = None
+  override val typeStr = "TokBuf"
+}
+case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: Design) 
+  extends UDCounter{
+  override val initVal = 2
+  override val name = None
+  override val typeStr = "CredBuf"
+}
+
+case class TokenDownLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "TokDownLUT"
+}
+object TokenDownLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
+      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = TokenDownLUT(outs.size, transFunc, info)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
+}
+case class TokenOutLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "TokOutLUT"
+}
+object TokenOutLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
+      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = TokenOutLUT(outs.size, transFunc, info)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
+}
+case class EnLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "EnLUT"
+}
+object EnLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
+      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = EnLUT(outs.size, transFunc, info)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
+}
+abstract class LUT(implicit ctrler:Controller, design: Design) extends Primitive {
+  override val name = None
+  val numIns:Int
+  val info:String
+  val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
+  val out = OutPort(this, s"${this}.o")
+}
+case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive {
+  override val ctrler:ComputeUnit = cu
+  override val name = None
+  override val typeStr = "CtrlBox"
+  val tokenBuffers = Map[Controller, TokenBuffer]()
+  val creditBuffers = Map[Controller, CreditBuffer]()
+  val luts = ListBuffer[LUT]()
+  val innerCtrEn = EnInPort(this, s"${this}.e")
+  val outerCtrDone = DoneOutPort(this, s"${this}.d")
+  var tokenOut:OutPort = _ 
+  // only outer controller have token down, which is the init signal first child stage
+  var tokenDown:OutPort = _
+  override def toUpdate = super.toUpdate || tokenOut == null
+}
+

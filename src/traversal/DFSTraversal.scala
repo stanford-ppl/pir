@@ -29,8 +29,8 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
           c.cchains.foreach { cc => visitNode(cc) }
           c.srams.foreach { s => visitNode(s) }
           c.stages.foreach { s => visitNode(s) }
-          c.tokenBuffers.foreach { t => visitNode(t) }
-          c.creditBuffers.foreach { c => visitNode(c) }
+          c.ctrlBox.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
+          c.ctrlBox.creditBuffers.foreach { case (deped, c) => visitNode(c) }
           c match {
             case cu:TileTransfer =>
             case _ =>

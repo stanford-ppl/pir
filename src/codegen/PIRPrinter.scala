@@ -50,7 +50,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
           case p:SRAM =>
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
             fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
-            fields += s"cchain=${p.cchain}"
+            fields += s"banking=${p.banking}, dblBuf=${p.doubleBuffer}"
+            fields += s"writeCtr=${p.writeCtr}, swapCtr=${p.swapCtr}"
           case p:Stage =>
             p.fu.foreach { fu =>
               fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
@@ -71,8 +72,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
             fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
           case p:Counter => 
             fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}, dep=${p.dep}"
-          case p:LUT => 
-            fields += s"init=${p.init}"
+          //case p:UDCounter => 
+            //fields += s"init=${p.init}"
           case p:Reg => p match {
             case r:PipeReg =>
             case r:Const => fields += s"${r.value}"

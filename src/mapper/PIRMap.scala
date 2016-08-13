@@ -59,26 +59,59 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
   def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
   def setFP(k:FPMap.K, v:FPMap.V):PIRMap = set(fpmap + (k -> v))
 
-  def printMap(implicit p:Printer):Unit = {
+  def printMap(implicit p:Printer, design:Design):Unit = {
     slmap.printMap
     ibmap.printMap
-    clmap.map.foreach { case (cl, pcl) =>
-      p.emitBlock( s"$cl -> $pcl" ) {
-        if (!cl.isInstanceOf[TileTransfer]) { //TODO
-          simap.printMap(cl.sins)
-          somap.printMap(cl.souts)
+    design.top.ctrlers.foreach { cl => 
+      if (clmap.map.contains(cl)) {
+        val pcl = clmap.map(cl)
+        p.emitBlock( s"$cl -> $pcl" ) {
+          if (!cl.isInstanceOf[TileTransfer]) { //TODO
+            simap.printMap(cl.sins)
+            somap.printMap(cl.souts)
+          }
+          vimap.printMap(cl.sins ++ cl.vins)
+          cl match {
+            case cu:CU =>
+              val pcu = clmap.map(cu).asInstanceOf[PCU]
+              smmap.printMap(cu.srams)
+              ctmap.printCCMap(cu.totalCChains)
+              rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
+              //stmap.printPMap(pcu.stages)
+              stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
+            case _ =>
+          }
         }
-        vimap.printMap(cl.sins ++ cl.vins)
-        cl match {
-          case cu:CU =>
-            val pcu = pcl.asInstanceOf[PCU]
-            smmap.printMap(cu.srams)
-            ctmap.printCCMap(cu.cchains)
-            rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
-            //stmap.printPMap(pcu.stages)
-            stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
-          case _ =>
+      } else {
+        p.emitln(s"$cl <- failed")
+      }
+    }
+  }
+  def printPMap(implicit p:Printer, design:Design):Unit = {
+    slmap.printMap
+    ibmap.printMap
+    design.arch.ctrlers.foreach { pcl => 
+      if (clmap.pmap.contains(pcl)) {
+        val cl = clmap.pmap(pcl)
+        p.emitBlock( s"$pcl <- $cl" ) {
+          if (!cl.isInstanceOf[TileTransfer]) { //TODO
+            simap.printMap(cl.sins)
+            somap.printMap(cl.souts)
+          }
+          vimap.printMap(cl.sins ++ cl.vins)
+          pcl match {
+            case pcu:PCU =>
+              val cu = clmap.pmap(pcu).asInstanceOf[CU]
+              smmap.printPMap(pcu.srams)
+              ctmap.printPMap(pcu.ctrs)
+              rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
+              //stmap.printPMap(pcu.stages)
+              stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
+            case _ =>
+          }
         }
+      } else {
+        p.emitln(s"$pcl <- no mapping")
       }
     }
   }
@@ -157,9 +190,22 @@ trait BMap extends PMap {
       p.emitBlock(name) {
         ks.foreach{ k =>
           if (!pmap.contains(k))
-            p.emitln(s"$k -> no map")
+            p.emitln(s"$k <- no map")
           else
-            p.emitln(s"$k -> ${pmap(k)}")
+            p.emitln(s"$k <- ${pmap(k)}")
+        }
+      }
+    }
+  }
+  def printPMap(ks:List[V], lambda:V=>Unit)(implicit p:Printer):Unit = {
+    if (ks.size!=0) {
+      p.emitBlock(name) {
+        ks.foreach{ k =>
+          if (!pmap.contains(k))
+            p.emitln(s"$k <- no map")
+          else {
+            p.emitBlock(s"$k <- ${pmap(k)}") { lambda(k) }
+          }
         }
       }
     }
@@ -234,6 +280,17 @@ case class CTMap(map:CTMap.M, pmap:CTMap.PM) extends BMap {
     ipmap.printInPort(ctr.max)
     ipmap.printInPort(ctr.step)
     opmap.printOutPort(ctr.out)
+  }
+  override def printPMap(ks:List[V])(implicit p:Printer):Unit = {
+    super.printPMap(ks, printPCtr)
+  }
+  def printPCtr(pctr:V)(implicit c:Printer) = {
+    val ipmap = pirMap.ipmap 
+    val opmap = pirMap.opmap
+    ipmap.printInPort(pctr.min)
+    ipmap.printInPort(pctr.max)
+    ipmap.printInPort(pctr.step)
+    opmap.printOutPort(pctr.out)
   }
 }
 object CTMap extends BMapObj {
@@ -314,18 +371,23 @@ case class STMap(map:STMap.M, pmap:STMap.PM) extends BMap {
     }
     super.printMap(ks.asInstanceOf[List[K]], printStage)
   }
-  //TODO
   override def printPMap(ks:List[V])(implicit p:Printer):Unit = {
     val ipmap = pirMap.ipmap 
     val fpmap = pirMap.fpmap
     val opmap = pirMap.opmap
-    def printStage(stage:V) = {
-      stage match {
+    def printStage(pstage:V) = {
+      pstage match {
         case fs:PFUST =>
+          fs.fu.operands.foreach { oprd => ipmap.printInPort(oprd) }
+          opmap.printOutPort(fs.fu.out)
         case s =>
       }
+      pstage.prs.foreach { case (reg, ppr) =>
+        ipmap.printInPort(ppr.in)
+        opmap.printOutPort(ppr.out)
+      }
     }
-    //super.printMap(ks, printStage)
+    super.printPMap(ks, printStage)
   }
 }
 object STMap extends BMapObj {
@@ -345,10 +407,10 @@ object IBMap extends PMapObj {
   def empty:IBMap = IBMap(Map.empty)
 }
 /* A mapping between InPort and PInPort */
-case class IPMap(map:IPMap.M) extends PMap {
+case class IPMap(map:IPMap.M, pmap:IPMap.PM) extends BMap {
   type K = IPMap.K
   type V = IPMap.V
-  override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec) }
+  override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec, pmap + rec.swap) }
   def printInPort(ip:IP)(implicit p:Printer) = {
     if (map.contains(ip)) {
       val pip = map(ip)
@@ -363,19 +425,33 @@ case class IPMap(map:IPMap.M) extends PMap {
       p.emitln(s"${ip} -> failed")
     }
   }
+  def printInPort(pip:PIP)(implicit p:Printer) = {
+    if (pmap.contains(pip)) {
+      val ip = pmap(pip)
+      val fpmap = pirMap.fpmap
+      if (fpmap.contains(pip)) {
+        val pop = fpmap(pip)
+        p.emitln(s"${pip}(${ip}) <- ${pop}")
+      } else {
+        p.emitln(s"${pip}(${ip}) <- failed")
+      }
+    } else {
+      p.emitln(s"${pip} -> no map")
+    }
+  }
 }
-object IPMap extends PMapObj {
+object IPMap extends BMapObj {
   type K = IP 
   type V = PIP 
-  def empty:IPMap = IPMap(Map.empty)
+  def empty:IPMap = IPMap(Map.empty, Map.empty)
 }
 /* A mapping between OutPort and the POutPort */
-case class OPMap(map:OPMap.M) extends PMap {
+case class OPMap(map:OPMap.M, pmap:OPMap.PM) extends BMap {
   type K = OPMap.K
   type V = OPMap.V
   override def + (rec:(K,V)):OPMap = { 
     if (!rec._1.src.isInstanceOf[Const]) {
-      super.check(rec); OPMap(map + rec)
+      super.check(rec); OPMap(map + rec, pmap + rec.swap)
     } else this
   }
   def printOutPort(op:OP)(implicit p:Printer) = {
@@ -385,11 +461,18 @@ case class OPMap(map:OPMap.M) extends PMap {
       p.emitln(s"${op} -> failed")
     }
   }
+  def printOutPort(pop:POP)(implicit p:Printer) = {
+    if (pmap.contains(pop)) {
+      p.emitln(s"${pop} <- ${pmap(pop)}")
+    } else {
+      p.emitln(s"${pop} <- no map")
+    }
+  }
 }
-object OPMap extends PMapObj {
+object OPMap extends BMapObj {
   type K = OP
   type V = POP 
-  def empty:OPMap = OPMap(Map.empty)
+  def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 /* A mapping between PInPort and the POutPort it connects to*/
 case class FPMap(map:FPMap.M) extends PMap {

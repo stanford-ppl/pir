@@ -10,9 +10,13 @@ object MapPrinter extends Printer { override val stream = newStream(Config.mapFi
 class PIRMapping(implicit val design: Design) extends Traversal{
 
   var mapping:PIRMap = _
+  var success = false
+
+  def failed = !success
 
   override def reset = {
     mapping = null
+    success = false
     CUMapper.setDesign(design)
     CtrMapper.setDesign(design)
     SRAMMapper.setDesign(design)
@@ -26,9 +30,12 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   override def traverse = {
     Try(mapping = CUMapper.map) match {
       case Success(_) =>
+        success = true
         info(s"Mapping succeeded") 
         printMap
-      case Failure(e) => e match {
+      case Failure(e) => 
+        success = false
+        e match {
         case me:MappingException =>
           info(s"Mapping failed")
           MapPrinter.emitTitleComment("Mapping Exceptions:")
@@ -41,7 +48,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   def printMap = {
     if (Config.debug) {
       MapPrinter.emitTitleComment(s"Mapping")
-      mapping.printMap(MapPrinter)
+      mapping.printPMap(MapPrinter, design)
     }
   }
 

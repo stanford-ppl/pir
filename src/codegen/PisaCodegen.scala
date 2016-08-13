@@ -34,9 +34,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   override val stream = newStream(Config.pisaFile) 
   
-  override def initPass = {
-  }
-
   def lookUp(op:Op):String = {
     op match {
       case o:FltOp => throw TODOException(s"Op ${op} is not supported at the moment")
@@ -99,7 +96,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
-  override def traverse = {
+  override def traverse:Unit = {
+    if (pirMapping.failed) return
     implicit val ms = new CollectionStatus(false)
     emitBlock {
       emitMap("PISA") { implicit ms =>
@@ -146,7 +144,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                         case s:PR => "local"
                       }
                       emitPair("wd", wd)
-                      emitPair("wen",lookUp(sram.writeEnable))
+                      emitPair("wen",lookUp(sram.writeCtr))
                     } else {
                       emitPair("ra", "x")
                       emitPair("wa", "x")
@@ -242,17 +240,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               emitMap(s"control") { implicit ms =>
               }
             }
-            //emitBlock(s"ctrs") {
-            //  pcu.ctrs.foreach{ c =>
-            //    emitBlock(s"${c}") {
-            //    }
-            //  }
-            //}
-            //emitln(s"reduce: ${pcu.reduce.mt}")
-            //emitBlock("stages") {
-            //  pcu.stages.foreach { s =>
-            //  }
-            //}
         }
       }
     }

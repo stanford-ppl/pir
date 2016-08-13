@@ -11,8 +11,7 @@ import scala.collection.mutable.Map
 class LiveAnalysis(implicit val design: Design) extends Traversal{
 
   override def traverse = {
-    //TODO Outer CU only run updatePrim
-    design.top.compUnits.foreach { implicit cu =>
+    design.top.innerCUs.foreach { implicit cu =>
       // Uses in sram and counter
       updatesPrim(cu)
       // EmptyStage
@@ -44,7 +43,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
       if (sram.writePort.isConnected)
         addLiveOut(sram.writePort)
     }
-    cu.cchains.foreach { cc => 
+    cu.totalCChains.foreach { cc => 
       cc.counters.foreach { ctr =>
         addLiveOut(ctr.min)
         addLiveOut(ctr.max)

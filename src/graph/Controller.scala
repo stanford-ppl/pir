@@ -34,21 +34,19 @@ trait Controller extends Node {
 }
 
 class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit design: Design) extends Controller { self =>
-  implicit val ctrler:Controller = self
+  implicit val ctrler:ComputeUnit = self
   override val typeStr = "CU"
 
   /* Pointer */
   var parent:Controller = _
   // List of controllers the current controller expecting token from 
-  val dependencies = ListBuffer[Controller]()
+  val dependencies = ListBuffer[ComputeUnit]()
   // List of controllers the current controller send token to
-  val dependeds = ListBuffer[Controller]()
+  val dependeds = ListBuffer[ComputeUnit]()
   def isHead = (dependencies.size==0)
   def isTail = (dependeds.size==0)
 
-  val tokenBuffers = ListBuffer[TokenBuffer]()
-  val creditBuffers = ListBuffer[CreditBuffer]()
-  
+  val ctrlBox = CtrlBox() 
   /* List of outer controllers reside in current inner*/
   var outers:List[Controller] = Nil
 
@@ -65,6 +63,14 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   var infGraph:Map[Reg, Set[Reg]] = Map.empty
 
   def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+  lazy val localCChain:CounterChain = {
+    val locals = cchains.filter { cc => cc.copy.isEmpty }
+    if (locals.size!=1)
+      throw PIRException(s"Currently assume each CU have exactly 1 local counterchain")
+    locals.head
+  }
+  lazy val remoteCChains = cchains.filter { cc => cc.copy.isDefined } 
+  def totalCChains = outers.collect {case c:ComputeUnit => c}.flatMap(_.cchains) ++ cchains
 
   override def toUpdate = { 
     super.toUpdate || parent==null || cchains==null || srams==null
@@ -107,11 +113,11 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     this
   }
 
-  def updateDeped(deped:Controller):Unit = {
+  def updateDeped(deped:ComputeUnit):Unit = {
     dependeds += deped
   }
 
-  def updateDep(dep:Controller):Unit = {
+  def updateDep(dep:ComputeUnit):Unit = {
     dependencies += dep
     dep match {
       case d:ComputeUnit => d.updateDeped(this)
@@ -123,8 +129,8 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     deps.foreach { dep =>
       dep match {
         case d:String => 
-          design.updateLater(d, (n:Node) => updateDep(n.asInstanceOf[Controller]))
-        case d:Controller => 
+          design.updateLater(d, (n:Node) => updateDep(n.asInstanceOf[ComputeUnit]))
+        case d:ComputeUnit => 
           updateDep(d)
       }
     }
@@ -476,10 +482,14 @@ case class Top()(implicit design: Design) extends Controller { self =>
   var outerCUs:List[ComputeUnit] = _
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
+  def ctrlers = this :: compUnits ++ memCtrls
+  val command = OutPort(this, s"${this}.command")
+  val status = InPort(this, s"${this}.status")
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
+  
   override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
 
   def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], memCtrls:List[MemoryController]) = {

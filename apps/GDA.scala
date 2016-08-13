@@ -15,8 +15,8 @@ object GDA extends PIRApp {
     val sigmaOut = MemoryController("sigmaOut", TileStore, OffChip())
     val rows = ArgIn()
     val cols = ArgIn()
-    val rTileSize = Const(4l)
-    val Cmax = Const(16)
+    val rTileSize = Const("4i")
+    val Cmax = Const("16i")
     val sigmaTileVec = Vector()
     val sigmaBlkVec = Vector()
     val tlm0Vec = Vector()
@@ -27,21 +27,21 @@ object GDA extends PIRApp {
     val subVec = Vector()
 
     val accel = ComputeUnit(name="accel", parent=top, tpe=Sequential, deps=Nil) { implicit CU =>
-      CounterChain(Const(1) by Const(1))
+      CounterChain(Const("1i") by Const("1i"))
     }
 
     //mu0Tile := mu0(0::Cmax, subLoopPar)  // Load mu0
     val tlm0 = TileTransfer(name="tlm0", parent=accel, memctrl=m0, mctpe=TileLoad, deps=Nil, vec=tlm0Vec){ implicit CU =>
       val es = CU.emptyStage
       val s0::_ = Stages(1)
-      val cc = CounterChain(name="cc", Cmax by Const(1))
+      val cc = CounterChain(name="cc", Cmax by Const("1i"))
       Stage(s0, op1=CU.ctr(es, cc(0)), op=Bypass, result=CU.scalarOut(s0, m0.saddr))
     }
     //mu1Tile := mu1(0::Cmax, subLoopPar)  // Load mu1
     val tlm1 = TileTransfer(name="tlm1", parent=accel, memctrl=m1, mctpe=TileLoad, deps=Nil, vec=tlm1Vec){ implicit CU =>
       val es = CU.emptyStage
       val s0::_ = Stages(1)
-      val cc = CounterChain(name="cc", Cmax by Const(1))
+      val cc = CounterChain(name="cc", Cmax by Const("1i"))
       Stage(s0, op1=CU.ctr(es, cc(0)), op=Bypass, result=CU.scalarOut(s0, m1.saddr))
     }
     
@@ -50,13 +50,15 @@ object GDA extends PIRApp {
     val outerBR = ComputeUnit (name="outerBR", parent=accel, tpe=MetaPipeline, deps=List(tlm0, tlm1)) { implicit CU =>
       val es = CU.emptyStage
       // StateMachines / CounterChain
-      val r = CounterChain(name="r", CU.scalarIn(es, rows) by rTileSize) //Local
-      val acc = CounterChain(Cmax by Const(1)) //BlockReduce
+      //Local
+      val r = CounterChain(name="r", CU.scalarIn(es, rows) by rTileSize, Cmax by Const("1i"))
       val rr = CounterChain.copy("innerBL", "rr")
 
       // SRAMs
-      val sigmaBlk = SRAM(size=256, vec=sigmaBlkVec, readAddr=acc(0) , writeAddr=rr(0), cchain=rr)
-      val sigmaOut = SRAM(size=256, readAddr=acc(0) , writeAddr=acc(0), cchain=acc)
+      val sigmaBlk = SRAM(size=256, vec=sigmaBlkVec, readAddr=r(1) , writeAddr=rr(0), 
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=rr(0), swapCtr=rr(0))
+      val sigmaOut = SRAM(size=256, readAddr=r(1) , writeAddr=r(1),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=r(0), swapCtr=r(0))
 
       // Pipeline Stages
       val s0::_ = Stages(1)
@@ -71,7 +73,7 @@ object GDA extends PIRApp {
     //yTile := y(r::r+rTileSize, subLoopPar)
     val tly = TileTransfer (name="tly", parent=outerBR, memctrl=y, mctpe=TileLoad, deps=Nil, vec=tlYVec) { implicit CU =>
       val r = CounterChain.copy(outerBR, "r")
-      val rr = CounterChain(name="rr", Const(0) until rTileSize)
+      val rr = CounterChain(name="rr", Const("0i") until rTileSize)
       val es = CU.emptyStage
       val s0::_ = Stages(1)
       Stage(s0, op1=CU.ctr(es, r(0)), op2=CU.ctr(es, rr(0)), op=FixAdd, 
@@ -82,8 +84,8 @@ object GDA extends PIRApp {
     val tlx = TileTransfer (name="tlx", parent=outerBR, memctrl=x, mctpe=TileLoad, deps=Nil, vec=tlXVec) { implicit CU =>
       val es = CU.emptyStage
       val r = CounterChain.copy(outerBR, "r")
-      val rr = CounterChain(name="rr", Const(0) until rTileSize, 
-                                       Const(0) until CU.scalarIn(es, cols))
+      val rr = CounterChain(name="rr", Const("0i") until rTileSize, 
+                                       Const("0i") until CU.scalarIn(es, cols))
       val s0::s1::s2::_ = Stages(3)
       val t1 = CU.temp(s0)
       val t2 = CU.temp(s1)
@@ -96,13 +98,15 @@ object GDA extends PIRApp {
     //}{_+_}
     val innerBL = ComputeUnit(name="innerBL", parent=outerBR, tpe=MetaPipeline, deps=List(tly, tlx)) { implicit CU =>
       // StateMachines / CounterChain
-      val rr = CounterChain(name="rr", Const(0) until rTileSize, Cmax by Const(1))
+      val rr = CounterChain(name="rr", Const("0i") until rTileSize, Cmax by Const("1i"))
       val c1 = CounterChain.copy("outProd", "c1")
 
       val ws0::ws1::_ = WAStages(2, List("sigmaTile"))
       // SRAMs
-      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=rr(1), cchain=c1)
-      val sigmaBlk = SRAM(size=256, readAddr=rr(1), writeAddr=rr(1), cchain=rr)
+      val sigmaTile = SRAM(name="sigmaTile", size=256, vec=sigmaTileVec, readAddr=rr(1),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=c1(0), swapCtr=c1(0))
+      val sigmaBlk = SRAM(size=256, readAddr=rr(1), writeAddr=rr(1),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=rr(0), swapCtr=rr(0))
 
       // Remote Addr Calc for sigmaTile 
       val ii = c1(0)
@@ -128,17 +132,21 @@ object GDA extends PIRApp {
       val s0::s1::s2::s3::_ = Stages(4)
       // StateMachines / CounterChain
       val rr = CounterChain.copy("innerBL", "rr")
-      val cc = CounterChain(name="cc", CU.scalarIn(es, cols) by Const(1)) //Local
+      val cc = CounterChain(name="cc", CU.scalarIn(es, cols) by Const("1i")) //Local
       val cmu0 = CounterChain.copy(tlm0, "cc")
       val cmu1 = CounterChain.copy(tlm1, "cc")
       val cy = CounterChain.copy(tly, "rr")
       val cx = CounterChain.copy(tlx, "rr")
 
       // SRAMs
-      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec, cchain=cx)
-      val yTile   = SRAM(size=4, name="yTile", vec=tlYVec, readAddr=rr(0), writeAddr = cy(0), cchain=cy)
-      val mu0Tile = SRAM(size=16, name="m0Tile", vec=tlm0Vec, readAddr=cc(0), writeAddr=cmu0(0), cchain=cmu0)
-      val mu1Tile = SRAM(size=16, name="m1Tile", vec=tlm1Vec, readAddr=cc(0), writeAddr=cmu1(0), cchain=cmu1)
+      val xTile   = SRAM(size=4*16, name="xTile", vec=tlXVec,
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cx(0), swapCtr=cx(0))
+      val yTile   = SRAM(size=4, name="yTile", vec=tlYVec, readAddr=rr(0), writeAddr = cy(0),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cx(0), swapCtr=cy(0))
+      val mu0Tile = SRAM(size=16, name="m0Tile", vec=tlm0Vec, readAddr=cc(0),writeAddr=cmu0(0),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cmu0(0), swapCtr=cmu0(0))
+      val mu1Tile = SRAM(size=16, name="m1Tile", vec=tlm1Vec, readAddr=cc(0),writeAddr=cmu1(0),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cmu1(0), swapCtr=cmu1(0))
 
       // Pipeline Stages
       // xTile Write Addr Calculation
@@ -166,14 +174,16 @@ object GDA extends PIRApp {
       // StateMachines / CounterChain
       val cc = CounterChain.copy("subPipe", "cc")
       val sCols = CU.scalarIn(CU.emptyStage, cols)
-      val c1 = CounterChain(name="c1", sCols by Const(1), sCols by Const(1))
+      val c1 = CounterChain(name="c1", sCols by Const("1i"), sCols by Const("1i"))
       val ii = c1(0) 
       val jj = c1(1)
 
       val s0::_ = Stages(1)
       // SRAMs
-      val subTile_ra   = SRAM(size=16, vec=subVec, readAddr=ii, writeAddr=cc(1), cchain=cc)
-      val subTile_ca   = SRAM(size=16, vec=subVec, readAddr=jj, writeAddr=cc(0), cchain=cc)
+      val subTile_ra   = SRAM(size=16, vec=subVec, readAddr=ii, writeAddr=cc(0),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cc(0), swapCtr=cc(0))
+      val subTile_ca   = SRAM(size=16, vec=subVec, readAddr=jj, writeAddr=cc(0),
+                    banking=NoBanking(), doubleBuffer=true, writeCtr=cc(0), swapCtr=cc(0))
 
       // Pipeline Stages
       Stage (s0, op1=subTile_ra.load, op2=subTile_ca.load, op=FixMul, result=CU.vecOut(s0, sigmaTileVec))
@@ -181,7 +191,7 @@ object GDA extends PIRApp {
 
     // sigma(0::Cmax, 0::Cmax, prodLoopPar) := sigmaOut
     val tlsig = TileTransfer(name="tlsig", parent=accel, memctrl=sigmaOut, mctpe=TileStore, deps=List(outerBR), vec=tlSigVec){ implicit CU =>
-      val rr = CounterChain(Const(0) until Cmax, Const(0) until Cmax)
+      val rr = CounterChain(Const("0i") until Cmax, Const("0i") until Cmax)
       val i = rr(0)
       val j = rr(1)
       val es = CU.emptyStage 

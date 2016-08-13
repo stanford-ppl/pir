@@ -42,7 +42,7 @@ trait OutPort extends Port{
   override val name=None
   override val typeStr = "OutPort"
   def width(implicit design:Design) = design.arch.wordWidth
-  def by(step:OutPort)(implicit design:Design) = (Const(0l).out, this, step)
+  def by(step:OutPort)(implicit design:Design) = (Const("0i").out, this, step)
   def until(max:OutPort) = new Range(this, max)
 }
 object OutPort {
@@ -133,5 +133,25 @@ trait ConstOutPort extends OutPort { override val src:Const }
 object ConstOutPort {
   def apply(s:Const, toStr: => String)(implicit design:Design):ConstOutPort = {
     new {override val src = s} with ConstOutPort {override def toString = toStr}
+  }
+}
+/* Inner Counter En Port */
+trait EnInPort extends InPort { 
+  override val src:CtrlBox
+  lazy val inner:Counter = src.ctrler.localCChain.inner
+}
+object EnInPort {
+  def apply(s:CtrlBox, toStr: => String)(implicit design:Design):EnInPort = {
+    new {override val src = s} with EnInPort {override def toString = toStr}
+  }
+}
+/* Outer Counter Done Port */
+trait DoneOutPort extends OutPort { 
+  override val src:CtrlBox
+  lazy val outer:Counter = src.ctrler.localCChain.outer
+}
+object DoneOutPort {
+  def apply(s:CtrlBox, toStr: => String)(implicit design:Design):DoneOutPort = {
+    new {override val src = s} with DoneOutPort {override def toString = toStr}
   }
 }

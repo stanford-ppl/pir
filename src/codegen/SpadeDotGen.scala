@@ -11,10 +11,11 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-object CUPrinter extends Printer { override val stream = newStream(Config.spadeNetwork) }
-object ArgPrinter extends Printer { override val stream = newStream(Config.spadeArgInOut) }
-object CtrPrinter extends Printer { override val stream = newStream(Config.spadeCtr) }
+object CUPrinter extends DotGen { override val stream = newStream(Config.spadeNetwork) }
+object ArgPrinter extends DotGen { override val stream = newStream(Config.spadeArgInOut) }
+object CtrPrinter extends DotGen { override val stream = newStream(Config.spadeCtr) }
 class SpadeNetworkDot(implicit design: Design) extends Traversal {
+  import DotEnum._
 
   override def initPass = {
     CUPrinter.emitBSln("digraph G")
@@ -22,27 +23,29 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
     CtrPrinter.emitBSln(s"digraph G")
     //CUPrinter.emitln(s"splines=ortho;")
   }
+
   override def traverse = {
     design.arch.cus.foreach { cu =>
       val recs = ListBuffer[String]()
       recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
       recs += s"${cu}"
       recs += s"<${cu.vout}> ${cu.vout}"
-      CUPrinter.emitln(s"""${cu} [label="{${recs.mkString("|")}}", shape=Mrecord ];""")
-      ArgPrinter.emitln(s"""${cu} [label="{${recs.mkString("|")}}", shape=Mrecord ];""")
+      val label = recs.mkString("|")
+      CUPrinter.emitNode(cu, label, DotAttr().setShape(Mrecord))
+      ArgPrinter.emitNode(cu, label, DotAttr().setShape(Mrecord))
       cu.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
           if (vout.src.isDefined) {
-            CUPrinter.emitln(s"""${vout.src.get}:${vout}:s -> ${cu}:${vin}:n""")
+            CUPrinter.emitEdge(vout.src.get, vout, cu, vin)
           } else { // ArgIn
-            ArgPrinter.emitln(s"""argin_${vout} -> ${cu}:${vin}:n""")
+            ArgPrinter.emitEdge(s"""argin_${vout}""", s"""${cu}:${vin}:n""")
           }
         }
       }
     }
     design.arch.top.argOutBuses.foreach { vin =>
       vin.fanIns.foreach { vout =>
-        ArgPrinter.emitln(s"""${vout.src.get}:${vout}:s -> argout_${vin}""")
+        ArgPrinter.emitEdge(s"""${vout.src.get}:${vout}:s""", s"""argout_${vin}""")
       }
     }
 
@@ -51,9 +54,11 @@ class SpadeNetworkDot(implicit design: Design) extends Traversal {
       recs += s"<en> en"
       recs += s"${ctr}"
       recs += s"<sat> sat"
-      CtrPrinter.emitln(s"""${ctr} [label="${recs.mkString(s"|")}", shape=Mrecord ];""")
+      val label = recs.mkString(s"|")
+      CtrPrinter.emitNode(ctr, label, DotAttr().setShape(Mrecord))
       ctr.en.fanIns.foreach { from => 
-        CtrPrinter.emitln(s"${s"$from".replace(".", ":")} -> ${s"${ctr.en}".replace(".",":")}")
+        CtrPrinter.emitEdge(s"${s"${from}".replace(".", ":")}", 
+                            s"${s"${ctr.en}".replace(".",":")}")
       }
     }
   }

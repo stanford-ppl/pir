@@ -401,7 +401,7 @@ object OutBus {
 case class BusInPort(idx:Int) extends InPort
 case class BusOutPort(idx:Int) extends OutPort
 
-case class Const(v:Long) extends Node {
+case class Const(v:String) extends Node {
   val out = OutPort(this, s"Const")
 }
 object Const extends Node { 
