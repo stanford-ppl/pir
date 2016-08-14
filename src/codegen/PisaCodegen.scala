@@ -64,6 +64,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case sm:SM =>
         val psram = smmap(sm)
         lookUp(psram)
+      case pr@PR(stage, reg) =>
+        val pstage = stmap(stage)
+        val pin = ipmap(pr.in)
+        val ppr = pin.src.get 
+        lookUp(pstage, ppr)
       case _ => throw new TODOException(s"Don't know how to lookUp ${node}"); "?"
     }
   }
@@ -81,6 +86,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+  /*
+   * @param pstage current stage
+   * @param pn
+   * */
   def lookUp(pstage:PST, pn:PNode):String = {
     pn match {
       case ppr:PPR =>
@@ -188,7 +197,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                         if (stmap.pmap.contains(pstage)) { //Physical stage have corresponding pir stage
                           val fu = stmap.pmap(pstage).fu.get
                           if (fu.operands.size>2)
-                            throw PIRException(s"Dont' support any operation with more than 2 operands at the moment ${fu.operands}")
+                            throw PIRException(s"Don't support any operation with more than 2 operands at the moment ${fu.operands}")
                           // Operand
                           val popA = fpmap(pfu.operands.head)
                           emitPair("opA", lookUp(pstage, popA.src.get))

@@ -31,7 +31,6 @@ object DotProduct extends PIRApp {
       val s0::_ = Stages(1)
       val es = CU.emptyStage 
       val output = CU.scalarOut(s0, A.saddr)
-      println(s"ic:${ic.counters} it:${it.counters}")
       Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
     }
     // b2 := v2(i::i+tileSize)

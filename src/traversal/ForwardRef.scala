@@ -5,11 +5,12 @@ import pir.PIRMisc._
 import pir.graph.mapper.PIRException
 
 import scala.collection.mutable.Set
-import scala.collection.mutable.HashMap
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 
 class ForwardRef(implicit val design: Design) extends Traversal{
 
-  private val nameMap = HashMap[String, Node]()
+  private val nameMap = Map[String, Node]()
 
   override def reset = nameMap.clear()
   override def traverse:Unit = {
@@ -19,10 +20,29 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear()
+    collectOuters
   } 
 
-  override def finPass = {
-    info("Finishing updating forward referenced nodes")
+  // Collect outer controllers that are in the same CU
+  private def collectOuters = {
+    design.top.innerCUs.foreach { inner =>
+      val outers = ListBuffer[Controller]()
+      var parent = inner.parent
+      var child = inner
+
+      while (!parent.isInstanceOf[Top]) {
+        if (child.isTail) {
+          outers += parent
+          parent.asInstanceOf[ComputeUnit].cchains.foreach { cc =>
+            val original = cc.copy.getOrElse(cc)
+            if (!inner.cchainMap.contains(original))
+              inner.addCChain(CounterChain.copy(cc)(inner, design))
+          }
+        }
+        parent = parent.asInstanceOf[ComputeUnit].parent
+      }
+      inner.outers = outers.toList
+    }
   }
 
   def addName(n:Node):Unit = n.name.foreach { name => 
@@ -45,6 +65,10 @@ class ForwardRef(implicit val design: Design) extends Traversal{
   def getByName(s:String):Node = {
     assert(nameMap.contains(s), s"No node defined with name:${s}. \nnameMap:${nameMap}")
     nameMap(s)
+  }
+
+  override def finPass = {
+    info("Finishing updating forward referenced nodes")
   }
 
 }

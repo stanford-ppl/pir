@@ -28,7 +28,10 @@ object CUMapper extends Mapper {
     val tts = ListBuffer[TT]()
     inners.foreach { c => c match {
         case n:TT => tts += n
-        case n:CU => cus += n
+        case n:CU => n.tpe match {
+          case Pipe => cus += n
+          case _ =>
+        }
         case n => throw TODOException(s"unknown PIR controller type: ${n}") 
       }
     }

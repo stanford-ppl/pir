@@ -22,20 +22,23 @@ object VecInMapper extends Mapper {
     val pvins = pcl.vins
     val pmap = simAneal(pvins, ins, pirMap, cons, finPass, OutOfVec(cl, pcl, _, _))
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
-      if (pirMap.clmap.contains(reader))
-        map(reader, pm)
-      else
-        pm
+      if (pirMap.clmap.contains(reader)) {
+        val rins = reader.vins ++ reader.sins
+        if (rins.exists( rin => !pirMap.vimap.contains(rin) )) map(reader, pm)
+        else pm
+      } else pm
     }
   }
 
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     if (pirMap.vimap.contains(n)) return pirMap
-    val dep = n match {
+    val dep = n match { // ctrler that writes n
       case n:ScalarIn => n.scalar.writer.ctrler
       case n:VecIn => n.vector.writer.ctrler
     }
+    // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) return pirMap
+    // Get dep's output bus 
     val pdvout:POB = n match {
       case n:VecIn => dep match {
         //case d:MemoryController => Nil //TODO

@@ -43,7 +43,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
       if (sram.writePort.isConnected)
         addLiveOut(sram.writePort)
     }
-    cu.totalCChains.foreach { cc => 
+    cu.cchains.foreach { cc => 
       cc.counters.foreach { ctr =>
         addLiveOut(ctr.min)
         addLiveOut(ctr.max)

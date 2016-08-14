@@ -18,6 +18,16 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
 
   override def initPass() = {
     super.initPass
+    emitBlock("Scalars") {
+      design.top.scalars.foreach { s =>
+        emitln(s"${s} writer=${s.writer.ctrler} readers=[${s.readers.map(_.ctrler).mkString(",")}]")
+      }
+    }
+    emitBlock("Vectors") {
+      design.top.vectors.foreach { v =>
+        emitln(s"${v} writer=${v.writer.ctrler} readers=[${v.readers.map(_.ctrler).mkString(",")}]")
+      }
+    }
   }
 
   def genFields(node:Node):String = {

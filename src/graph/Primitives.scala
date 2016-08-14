@@ -21,12 +21,11 @@ abstract class Primitive(implicit val ctrler:Controller, design:Design) extends 
  *  Each tuple represents the (max, stride) for one level in the loop.
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
-case class CounterChain(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
+case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "CC"
   /* Fields */
   var counters:List[Counter] = Nil 
   /* Pointers */
-  var dep:Option[CounterChain] = None
   var copy:Option[CounterChain] = None
   var isCopy = false
 
@@ -35,7 +34,7 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
   def outer:Counter = counters.head
   def inner:Counter = counters.last
 
-  def apply(num: Int)(implicit ctrler:Controller, design: Design):Counter = {
+  def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
     if (isCopy) {
       // Speculatively create extra counters base on need and check bound during update
       this.counters = counters ++ List.tabulate(num+1-counters.size) { i =>Counter(this) }
@@ -68,19 +67,25 @@ case class CounterChain(name:Option[String])(implicit ctrler:Controller, design:
   }
 }
 object CounterChain {
-  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:Controller, design: Design):CounterChain =
+  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
     {val c = CounterChain(None); c.update(bds); c}
-  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:Controller, design: Design):CounterChain =
+  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
     {val c = CounterChain(Some(name)); c.update(bds); c}
-  def copy(from:String, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
+  def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_${name}_copy"))
     cc.isCopy = true
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
     design.updateLater(ForwardRef.getPrimName(from, name), updateFunc _ )
     cc
   }
-  def copy(from:Controller, name:String) (implicit ctrler:Controller, design: Design):CounterChain = {
+  def copy(from:ComputeUnit, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
     copy(from.name.getOrElse(""), name)
+  }
+  def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    val cc = CounterChain(Some(s"${from}_copy"))
+    cc.isCopy = true
+    cc.copy(from)
+    cc
   }
 }
 
@@ -120,9 +125,7 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Con
           assert(s.reg.isInstanceOf[ScalarInPR])
           val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
           val cu = ctrler.asInstanceOf[ComputeUnit]
-          val si = ScalarIn(n, scalar)
-          cu.sins = cu.sins :+ si
-          val pr = cu.scalarIn(cu.emptyStage, si)
+          val pr = cu.scalarIn(cu.emptyStage, scalar)
           pr.out
         case _ => throw new Exception(s"Don't know how to copy port")
       }

@@ -10,20 +10,6 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
 class CtrlAlloc(implicit val design: Design) extends Traversal{
-  // Collect outer controllers that are in the same CU
-  private def collectOuters = {
-    design.top.innerCUs.foreach { inner =>
-      val outers = ListBuffer[Controller]()
-      var parent = inner.parent
-      var child = inner
-      while (!parent.isInstanceOf[Top]) {
-        if (child.isTail)
-          outers += parent
-        parent = parent.asInstanceOf[ComputeUnit].parent
-      }
-      inner.outers = outers.toList
-    }
-  }
   // Allocate token buffer and credit buffer in all compute units 
   private def bufferAlloc = {
     design.top.compUnits.foreach { cu =>
@@ -184,7 +170,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     connectInputs
   }
   override def traverse:Unit = {
-    collectOuters
     bufferAlloc
     logicGen
   } 

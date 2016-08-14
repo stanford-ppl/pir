@@ -47,7 +47,7 @@ object GDA extends PIRApp {
     
     //Pipe.fold(rows by rTileSize par outerPar, outerAccumPar)(sigmaOut){ r =>
     //}{_+_}
-    val outerBR = ComputeUnit (name="outerBR", parent=accel, tpe=MetaPipeline, deps=List(tlm0, tlm1)) { implicit CU =>
+    val outerBR = ComputeUnit (name="outerBR", parent=accel, tpe=Pipe, deps=List(tlm0, tlm1)) { implicit CU =>
       val es = CU.emptyStage
       // StateMachines / CounterChain
       //Local
@@ -96,7 +96,7 @@ object GDA extends PIRApp {
 
     //Pipe.fold(rTileSize par innerPar, prodLoopPar)(sigmaBlk){rr =>
     //}{_+_}
-    val innerBL = ComputeUnit(name="innerBL", parent=outerBR, tpe=MetaPipeline, deps=List(tly, tlx)) { implicit CU =>
+    val innerBL = ComputeUnit(name="innerBL", parent=outerBR, tpe=Pipe, deps=List(tly, tlx)) { implicit CU =>
       // StateMachines / CounterChain
       val rr = CounterChain(name="rr", Const("0i") until rTileSize, Cmax by Const("1i"))
       val c1 = CounterChain.copy("outProd", "c1")

@@ -75,7 +75,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
             case cu:CU =>
               val pcu = clmap.map(cu).asInstanceOf[PCU]
               smmap.printMap(cu.srams)
-              ctmap.printCCMap(cu.totalCChains)
+              ctmap.printCCMap(cu.cchains)
               rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
               //stmap.printPMap(pcu.stages)
               stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)

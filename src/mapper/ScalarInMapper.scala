@@ -29,10 +29,12 @@ object ScalarInMapper extends Mapper {
     val pcl = pirMap.clmap(cl)
     val sin = cl.sins
     val psin = pcl.sins
+    println(s"simap: ${cl} ${sin}")
     // Assume one SI to one outport, no need to map
     val cons = List(mapScalarIns(pirMap.vimap, pirMap.slmap) _)
     val maps = (pirMap.simap, pirMap.opmap)
     val (simap, opmap) = simAneal(psin, sin, maps, cons, finPass, OutOfScalarIn(pcl, _, _))
+    println(s"${opmap.map}")
     pirMap.set(simap).set(opmap)
   }
 

@@ -1,7 +1,8 @@
 package pir.graph.mapper
 import pir._
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{Stage => ST, EmptyStage => EST, WAStage => WAST, ReduceStage => RDST, AccumStage, Const, PipeReg, Reg}
+import pir.graph.{Stage => ST, EmptyStage => EST, WAStage => WAST, ReduceStage => RDST, 
+                  AccumStage, Const, PipeReg, Reg, Primitive}
 import pir.graph.{InPort => IP, OutPort => OP}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
 import pir.plasticine.graph.{EmptyStage => PEST, FUStage => PFUST, Stage => PST, WAStage => PWAST, 
@@ -21,6 +22,7 @@ object StageMapper extends Mapper {
   val finPass = None
 
   def map(cu:CU, cuMap:M):M = {
+    println(s"stage mapper: ${cu}")
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
@@ -98,6 +100,7 @@ object StageMapper extends Mapper {
   def mapPRIn(stage:ST, pstage:PST, map:M):M = {
     val rcmap = map.rcmap
     stage.prs.foldLeft(map) { case (pmap, (reg, pr)) =>
+      println(s"${stage} ${stage.ctrler.sins} ${pr.in.from} ${pr.in.from.src} ${pr.out.to}")
       val preg = rcmap(reg)
       val ppr = pstage.prs(preg)
       mapInPort(pr.in, ppr.in, pmap)

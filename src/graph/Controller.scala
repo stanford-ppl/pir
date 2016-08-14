@@ -10,31 +10,47 @@ import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
 
-trait Controller extends Node {
-  var sins:List[ScalarIn] = _
-  var souts:List[ScalarOut] = _
-  var vins:List[VecIn] = _
-  var vouts:List[VecOut] = _
-  override def toUpdate = (sins==null) || (souts==null) || (vins==null) || (vouts==null)
+abstract class Controller(implicit design:Design) extends Node {
+  implicit val ctrler = this
+  val sinMap = Map[Scalar, ScalarIn]()
+  val soutMap = Map[Scalar, ScalarOut]()
+  val vinMap = Map[Vector, VecIn]()
+  val voutMap = Map[Vector, VecOut]()
+  def sins = sinMap.values.toList
+  def souts = soutMap.values.toList
+  def vins = vinMap.values.toList 
+  def vouts = voutMap.values.toList
+  def newSin(s:Scalar):ScalarIn = {
+    if (!sinMap.contains(s))
+      sinMap += s -> ScalarIn(s)
+    sinMap(s)
+  }
+  def newSout(s:Scalar):ScalarOut = {
+    if (!soutMap.contains(s))
+      soutMap += (s -> ScalarOut(s))
+    soutMap(s) 
+  }
+  def newVin(v:Vector):VecIn = {
+    if (!vinMap.contains(v))
+      vinMap += (v -> VecIn(v))
+    vinMap(v)
+  }
+  def newVout(v:Vector):VecOut = {
+    if (!voutMap.contains(v))
+      voutMap += (v -> VecOut(v))
+    voutMap(v) 
+  }
 
   val children = ListBuffer[ComputeUnit]()
 
-  def readers:List[Controller] = souts.flatMap(_.scalar.readers.map(_.ctrler)) ++
-                                 vouts.flatMap(_.vector.readers.map(_.ctrler))
-  def writers:List[Controller] = sins.map(_.scalar.writer.ctrler) ++
-                                 vins.map(_.vector.writer.ctrler)
-
-  def updateFields(sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]):this.type = {
-    this.sins = sins.toSet.toList 
-    this.souts = souts.toSet.toList 
-    this.vins = vins.toSet.toList
-    this.vouts = vouts.toSet.toList
-    this
-  }
+  def readers:List[Controller] = soutMap.keys.flatMap(_.readers.map(_.ctrler)).toList ++
+                                 voutMap.keys.flatMap(_.readers.map(_.ctrler)).toList
+  def writers:List[Controller] = sinMap.keys.map(_.writer.ctrler).toList ++
+                                 vinMap.keys.map(_.writer.ctrler).toList
 }
 
 class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit design: Design) extends Controller { self =>
-  implicit val ctrler:ComputeUnit = self
+  override implicit val ctrler:ComputeUnit = self
   override val typeStr = "CU"
 
   /* Pointer */
@@ -51,7 +67,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   var outers:List[Controller] = Nil
 
   /* Fields */
-  var cchains:List[CounterChain] = _
+  def cchains:List[CounterChain] = cchainMap.values.toList
   var srams:List[SRAM] = _ 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
@@ -69,37 +85,37 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
       throw PIRException(s"Currently assume each CU have exactly 1 local counterchain")
     locals.head
   }
-  lazy val remoteCChains = cchains.filter { cc => cc.copy.isDefined } 
-  def totalCChains = outers.collect {case c:ComputeUnit => c}.flatMap(_.cchains) ++ cchains
+  def addCChain(cc:CounterChain) = {
+    val original = cc.copy.getOrElse(cc)
+    if (cchainMap.contains(original))
+      throw PIRException(s"Already have copy/original copy of ${original} but adding duplicated copy ${cc}")
+    else cchainMap += (original -> cc)
+  }
+  val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
+  //lazy val remoteCChains = cchains.filter { cc => cc.copy.isDefined } 
+  //def totalCChains = outers.collect {case c:ComputeUnit => c}.flatMap(_.cchains) ++ cchains
 
   override def toUpdate = { 
     super.toUpdate || parent==null || cchains==null || srams==null
   }
 
-  def this(name: Option[String], tpe:CtrlType, cchains:List[CounterChain], srams:List[SRAM], 
-  sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])(implicit design: Design) = {
+  def this(name: Option[String], tpe:CtrlType, cchains:List[CounterChain], srams:List[SRAM]) (implicit design: Design) = {
     this(name, tpe)
-    updateFields(cchains, srams, sins, souts, vins, vouts)
   }
 
-  def updateFields(cchains:List[CounterChain], srams:List[SRAM], sins:List[ScalarIn], 
-    souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut]):this.type = {
-    this.cchains = cchains
+  def updateFields(cchains:List[CounterChain], srams:List[SRAM]):this.type = {
+    cchains.foreach { cc => addCChain(cc) }
     this.srams = srams 
-    super.updateFields(sins, souts, vins, vouts)
+    this
   }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
-    val (cchains, srams, sins, souts, vins, vouts) = 
-      design.addBlock[CounterChain, SRAM, ScalarIn, ScalarOut, VecIn, VecOut](block(this), 
+    val (cchains, srams) = 
+      design.addBlock[CounterChain, SRAM](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM],
-                            (n:Node) => n.isInstanceOf[ScalarIn],
-                            (n:Node) => n.isInstanceOf[ScalarOut],
-                            (n:Node) => n.isInstanceOf[VecIn],
-                            (n:Node) => n.isInstanceOf[VecOut]
+                            (n:Node) => n.isInstanceOf[SRAM]
                             ) 
-    updateFields(cchains, srams, sins, souts, vins, vouts)
+    updateFields(cchains, srams)
   }
 
   def updateParent[T](parent:T):this.type = {
@@ -296,7 +312,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, ScalarIn(s))
+  def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -309,7 +325,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   *  The pipeline register connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, ScalarOut(s))
+  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
@@ -321,8 +337,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, VecIn(vec))
-  //def vecIn(vec:Vector):Port = VecIn(vec).out
+  def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
@@ -335,7 +350,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
   */
-  def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, VecOut(vec))
+  def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newVout(vec))
 
   /* Create a new logical register 
    * */
@@ -370,27 +385,22 @@ object ComputeUnit {
     ComputeUnit(Some(name), tpe).updateBlock(block).updateParent(parent).updateDeps(deps)
   /* No Sugar API */
   def apply[P,D](name:Option[String], parent:P, deps:List[D], tpe:CtrlType, cchains:List[CounterChain], 
-  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])
+  srams:List[SRAM])
   (implicit design:Design, dtp:TypeTag[D]):ComputeUnit = {
-    ComputeUnit(name, tpe).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent).updateDeps(deps)
+    ComputeUnit(name, tpe).updateFields(cchains, srams).updateParent(parent).updateDeps(deps)
   }
 }
 
 /* Corresponding to inner loop unit pipe */
 class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends ComputeUnit(name, Pipe) { self =>
   override val typeStr = "UnitCompUnit"
-  def updateFields(cchains:List[CounterChain], srams:List[SRAM], sins:List[ScalarIn], 
-    souts:List[ScalarOut]):UnitComputeUnit = 
-      super.updateFields(cchains, srams, sins, souts, Nil, Nil).asInstanceOf[UnitComputeUnit]
   def updateBlock(block: UnitComputeUnit => Any)(implicit design: Design):UnitComputeUnit = {
-    val (cchains, srams, sins, souts) = 
-      design.addBlock[CounterChain, SRAM, ScalarIn, ScalarOut](block(this), 
+    val (cchains, srams) = 
+      design.addBlock[CounterChain, SRAM](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM],
-                            (n:Node) => n.isInstanceOf[ScalarIn],
-                            (n:Node) => n.isInstanceOf[ScalarOut]
+                            (n:Node) => n.isInstanceOf[SRAM]
                             ) 
-    updateFields(cchains, srams, sins, souts)
+    super.updateFields(cchains, srams)
     this
   }
 }
@@ -403,10 +413,9 @@ object UnitComputeUnit {
   def apply[P,D](name:String, parent:P, deps:List[D]) (block:UnitComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):UnitComputeUnit =
     UnitComputeUnit(Some(name), parent, deps).updateBlock(block)
   /* No Sugar API */
-  def apply[P,D](name:Option[String], parent:P, deps:List[D], cchains:List[CounterChain], 
-  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut])
+  def apply[P,D](name:Option[String], parent:P, deps:List[D], cchains:List[CounterChain], srams:List[SRAM])
   (implicit design:Design, dtp:TypeTag[D]):UnitComputeUnit = {
-    UnitComputeUnit(name, parent, deps).updateFields(cchains, srams, sins, souts)
+    UnitComputeUnit(name, parent, deps).updateFields(cchains, srams)
   }
 }
 
@@ -414,22 +423,18 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   (implicit design:Design) extends ComputeUnit(name, Pipe) {
 
   /* Fields */
-  val dataIn:VecIn = if (mctpe==TileLoad) VecIn(memctrl.load) else VecIn(vec) 
-  val dataOut:VecOut = if (mctpe==TileStore) VecOut(memctrl.store) else VecOut(vec)
+  val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
+  val dataOut:VecOut = if (mctpe==TileStore) newVout(memctrl.store) else newVout(vec)
 
   def in:Vector = dataIn.vector
   def out:Vector = dataOut.vector
 
   override val typeStr = "TileTransfer"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
-    val (cchains, sins, souts) = 
-      design.addBlock[CounterChain, ScalarIn, ScalarOut](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[ScalarIn],
-                            (n:Node) => n.isInstanceOf[ScalarOut]
-                            ) 
-    //updateFields(cchains, Nil, sins, souts, List(dataIn), List(dataOut))
-    updateFields(cchains, Nil, sins, souts, Nil, Nil)
+    val cchains = 
+      design.addBlock[CounterChain](block(this), 
+                            (n:Node) => n.isInstanceOf[CounterChain]) 
+    updateFields(cchains, Nil)
   }
 
 } 
@@ -441,18 +446,18 @@ object TileTransfer extends {
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
   /* No Sugar API */
   def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector, cchains:List[CounterChain], 
-  srams:List[SRAM], sins:List[ScalarIn], souts:List[ScalarOut], vins:List[VecIn], vouts:List[VecOut])   (implicit design:Design, dtp:TypeTag[D]):TileTransfer = {
-    TileTransfer(name, memctrl, mctpe, vec).updateFields(cchains, srams, sins, souts, vins, vouts).updateParent(parent).updateDeps(deps)
+  srams:List[SRAM])   (implicit design:Design, dtp:TypeTag[D]):TileTransfer = {
+    TileTransfer(name, memctrl, mctpe, vec).updateFields(cchains, srams).updateParent(parent).updateDeps(deps)
   }
 }
 
 case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends Controller { self =>
-  implicit val ctrler:Controller = self
+  override implicit val ctrler:Controller = self
 
   val typeStr = "MemoryController"
-  val addr = ScalarIn(Scalar())
-  val dataIn  = if (mctpe==TileStore) Some(VecIn(Vector())) else None
-  val dataOut = if (mctpe==TileLoad) Some(VecOut(Vector())) else None
+  val addr = newSin(Scalar())
+  val dataIn  = if (mctpe==TileStore) Some(newVin(Vector())) else None
+  val dataOut = if (mctpe==TileLoad) Some(newVout(Vector())) else None
 
   def saddr = addr.scalar 
   def load = if (mctpe==TileLoad) dataOut.get.vector
@@ -461,7 +466,9 @@ case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)
     else throw PIRException(s"Cannot store to a MemoryController with mctpe=${mctpe}")
 
   def updateFields = {
-    super.updateFields(List(addr), Nil, dataIn.toList, dataOut.toList)
+    sinMap += addr.scalar -> addr 
+    dataIn.foreach { di => vinMap += di.vector -> di }
+    dataOut.foreach { dout => voutMap += dout.vector -> dout }
   }
 }
 object MemoryController {
@@ -472,7 +479,7 @@ object MemoryController {
 }
 
 case class Top()(implicit design: Design) extends Controller { self =>
-  implicit val ctrler:Controller = self
+  override implicit val ctrler:Controller = self
 
   override val name = Some("Top")
   override val typeStr = "Top"
@@ -485,6 +492,8 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def ctrlers = this :: compUnits ++ memCtrls
   val command = OutPort(this, s"${this}.command")
   val status = InPort(this, s"${this}.status")
+  var scalars:List[Scalar] = _
+  var vectors:List[Vector] = _
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
@@ -492,32 +501,32 @@ case class Top()(implicit design: Design) extends Controller { self =>
   
   override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
 
-  def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], memCtrls:List[MemoryController]) = {
+  def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
     //TODO change innerCU and outerCU to a type
     this.innerCUs = cs.filter { c => c.tpe==Pipe }
     this.outerCUs = cs.filter { c => c.tpe!=Pipe }
     this.memCtrls = memCtrls
-    val sins = ListBuffer[ScalarIn]()
-    val souts = ListBuffer[ScalarOut]()
+    this.scalars = scalars
+    this.vectors = vectors
     scalars.foreach { s => s match {
-        case a:ArgIn => souts += ScalarOut(a)
-        case a:ArgOut => sins += ScalarIn(a)
+        case a:ArgIn => super.newSout(a)
+        case a:ArgOut => super.newSin(a)
         case _ =>
       }
     }
     memCtrls.foreach { oc => oc.updateFields }
-    super.updateFields(sins.toList, souts.toList, Nil, Nil)
     this
   }
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {
-    val (cs, scalars, memCtrls) = 
-      design.addBlock[ComputeUnit, Scalar, MemoryController](block(this), 
+    val (cs, scalars, vectors, memCtrls) = 
+      design.addBlock[ComputeUnit, Scalar, Vector, MemoryController](block(this), 
                       (n:Node) => n.isInstanceOf[ComputeUnit],
                       (n:Node) => n.isInstanceOf[Scalar], 
+                      (n:Node) => n.isInstanceOf[Vector], 
                       (n:Node) => n.isInstanceOf[MemoryController] 
                       )
-    updateFields(cs, scalars, memCtrls)
+    updateFields(cs, scalars, vectors, memCtrls)
   }
 }
 
