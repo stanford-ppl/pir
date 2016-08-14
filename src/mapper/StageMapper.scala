@@ -22,7 +22,6 @@ object StageMapper extends Mapper {
   val finPass = None
 
   def map(cu:CU, cuMap:M):M = {
-    println(s"stage mapper: ${cu}")
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
@@ -100,7 +99,6 @@ object StageMapper extends Mapper {
   def mapPRIn(stage:ST, pstage:PST, map:M):M = {
     val rcmap = map.rcmap
     stage.prs.foldLeft(map) { case (pmap, (reg, pr)) =>
-      println(s"${stage} ${stage.ctrler.sins} ${pr.in.from} ${pr.in.from.src} ${pr.out.to}")
       val preg = rcmap(reg)
       val ppr = pstage.prs(preg)
       mapInPort(pr.in, ppr.in, pmap)
@@ -121,7 +119,7 @@ object StageMapper extends Mapper {
   }
 
   def mapInPort(n:IP, r:PIP, map:M):M = {
-    if (map.fpmap.contains(r)) return map
+    if (map.fpmap.contains(r) && map.ipmap.contains(n)) return map
     val rcmap = map.rcmap
     val stmap = map.stmap
     val opmap = map.opmap

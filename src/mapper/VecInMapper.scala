@@ -18,7 +18,10 @@ object VecInMapper extends Mapper {
     val pcl = pirMap.clmap(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
-    val ins = cl.vins ++ cl.sins
+    val ins = cl match {
+      case cl:TT => cl.sins // Assume tile transfer vin internallly connected
+      case _ => cl.vins ++ cl.sins
+    }
     val pvins = pcl.vins
     val pmap = simAneal(pvins, ins, pirMap, cons, finPass, OutOfVec(cl, pcl, _, _))
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
@@ -51,8 +54,11 @@ object VecInMapper extends Mapper {
 
     /* Find vins that connects to the depended ctrler */
     if (p.isConn(pdvout)) {
-      val pmap = pirMap.setVI(n, p)
-      pmap.setIB(p, pdvout)
+      val pmap = pirMap.setVI(n, p).setIB(p, pdvout)
+      n match {
+        case n:VecIn => pmap.setOP(n.out, p.viport)
+        case n:ScalarIn => pmap // set at scalarIn mapper
+      }
     } else {
       throw IntConnct(cl, pcl)
     }

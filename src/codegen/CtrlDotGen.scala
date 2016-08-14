@@ -148,7 +148,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
           emitEdge(cu.ctrlBox.innerCtrEn, attr)
         }
 			}
-      emitEdge(cu.parent, cu, DotAttr().setStyle("bold"))
+      emitEdge(cu.parent, cu, DotAttr().setStyle("bold").setColor("red"))
       cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().setStyle("dashed")) }
     }
     val command = design.top.command 

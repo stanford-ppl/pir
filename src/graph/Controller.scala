@@ -90,6 +90,15 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     else cchainMap += (original -> cc)
   }
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
+  def getCopy(cchain:CounterChain) = {
+    if (cchainMap.contains(cchain)) {
+      cchainMap(cchain)
+    } else {
+      val local = CounterChain.copy(cchain)(this, design)
+      this.addCChain(local)
+      local
+    }
+  }
   //lazy val remoteCChains = cchains.filter { cc => cc.copy.isDefined } 
   //def totalCChains = outers.collect {case c:ComputeUnit => c}.flatMap(_.cchains) ++ cchains
 
@@ -324,13 +333,13 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
+
+  def vecIn(vec:Vector) = newVin(vec)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, v:VecIn):PipeReg = {
-    pipeReg(stage, vecInPR(v))
-  }
+  def vecIn(stage:Stage, v:VecIn):PipeReg = pipeReg(stage, vecInPR(v))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 

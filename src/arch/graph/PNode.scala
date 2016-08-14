@@ -408,3 +408,15 @@ object Const extends Node {
   override def toString = "Const"
   val out = RMOutPort(this, s"Const")
 }
+
+case class EnLUT() {
+}
+case class TokenOutLUT() {
+}
+case class TokenDownLUT() {
+}
+
+case class CtrlBox(numEnLuts:Int, numTokOutLus:Int, numTokenIns:Int) extends Node {
+  val numUDC = numEnLuts
+  val numTokOuts = numTokOutLus + 1
+}

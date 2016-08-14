@@ -70,7 +70,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     port.from.src match {
       case pr@PipeReg(s, reg) => 
         if (stage == s) s.addUse(reg) // If is current stage, is a usage
-        else s.addLiveOut(reg) // Forwarding path, a branch out
+        else s.addLiveOut(reg) // Forwarding path, a branch out, essentially or next liveIns to get current liveOut
       case pm => {
         if (stage.isInstanceOf[LocalStage] && stage==stages.head && !pm.isInstanceOf[SRAM]) {
           throw PIRException(s"Local stage ${stage} of ${stage.ctrler} excepts the first stage cannot directly reference ${pm} as operand")
@@ -108,15 +108,11 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
 
   private def compLiveIn(liveOuts:ISet[Reg], defs:ISet[Reg], uses:ISet[Reg]):ISet[Reg] = 
     (liveOuts -- defs ++ uses)
-  // Definition of use here is different from traditional CPU use
-  // sn: reg(sn,c) <- reg(sn-1, a) + reg(sn-1, b)
-  // reg(sn-1, a) and reg(sn-1, b) are considered as use of sn-1 rather than sn 
   private def liveness(stages:List[Stage]) = {
     for (i <- stages.size-1 to 0 by -1){
       val s = stages(i)
       s.liveOuts = if (s==stages.last) s.liveOuts else s.liveOuts ++ stages(i+1).liveIns
       s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
-      if (s.id==326) println(s.liveIns)
       if (s == stages.head) { // Empty stage. Add forwarding path to liveIn variables 
         s.liveIns.foreach{ r => 
           r match {
@@ -137,7 +133,14 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         }
         s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       }
-      s.uses.foreach { r => if (r.isInstanceOf[AccumPR]) s.liveIns = s.liveIns - r }
+      // Kill live in of accum due to initial value
+      var accums = s.uses.collect {case r:AccumPR => r}
+      s.liveIns = s.liveIns -- accums
+      // Hack: Force accum to live out but not live in in the next stage when there are multiple
+      // defs (assume the parallel def might use accum). Works because liveness is backward
+      accums = s.defs.collect {case r:AccumPR => r}
+      if (s.defs.size > 1)
+        accums.foreach { accum => if (!s.liveOuts.contains(accum)) s.liveOuts += accum }
     }
   }
 
@@ -208,7 +211,11 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     stages.foreach { s =>
       s.liveOuts.foreach { r =>
         if (!cu.infGraph.contains(r)) cu.infGraph += (r -> Set.empty)
-        cu.infGraph(r) ++= (s.liveOuts - r)
+        if (s.defs.contains(r)) { // register doesn't interfere with co-def
+          cu.infGraph(r) ++= (s.liveOuts -- s.defs)
+        } else {
+          cu.infGraph(r) ++= (s.liveOuts - r)
+        }
       }
     }
   }

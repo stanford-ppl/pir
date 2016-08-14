@@ -34,8 +34,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
         parent.inner = inner
         parent.cchains.foreach { cc =>
           val original = cc.copy.getOrElse(cc)
-          if (!inner.cchainMap.contains(original))
-            inner.addCChain(CounterChain.copy(cc)(inner, design))
+          inner.getCopy(original)
         }
         child = child.parent.asInstanceOf[ComputeUnit]
       }

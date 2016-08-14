@@ -20,11 +20,11 @@ object ScalarOutMapper extends Mapper {
   private def mapScalarOuts(cl:CL)(n:N, p:R, cuMap:M):M = {
     cl match {
       case c:MC => cuMap
-      case c:TT => cuMap.setSO(n, p) // ScalarOut of TileTransfer is internally connected to MC
+      case c:TT => cuMap.setSO(n, p).setIP(n.in, p.in) // ScalarOut of TileTransfer is internally connected to MC
       case _ => // CU + Top
         val t = (p.outBus, p.idx)
         val cmap = cuMap.setSL(n.scalar, t)
-        cmap.setSO(n, p)
+        cmap.setSO(n, p).setIP(n.in, p.in)
     }
   }
 

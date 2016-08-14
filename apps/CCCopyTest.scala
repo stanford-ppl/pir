@@ -30,10 +30,12 @@ object CCCopyTest extends PIRApp {
     }
     val p4 = ComputeUnit(name="p4", parent=m01, tpe=Pipe, deps=Nil){ implicit CU =>
       CounterChain(name="ip4", Const("0i") by Const("0i"), Const("0i") by Const("0i"))
-      CounterChain.copy("m0", "im0")
+      //CounterChain.copy("m0", "im0")
+      //CounterChain.copy("m0", "im01")
     }
     val p5 = ComputeUnit(name="p5", parent=m01, tpe=Pipe, deps=p4::Nil){ implicit CU =>
       CounterChain(name="ip5", Const("0i") by Const("0i"), Const("0i") by Const("0i"))
+      CounterChain.copy("p1", "ip1")
     }
     val p6 = ComputeUnit(name="p6", parent=m01, tpe=Pipe, deps=p5::Nil){ implicit CU =>
       CounterChain(name="ip6", Const("0i") by Const("0i"), Const("0i") by Const("0i"))

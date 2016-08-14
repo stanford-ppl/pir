@@ -213,17 +213,18 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                             op = "r" + op
                           }
                           emitPair("opcode", s"${op}")
-                          val firstResult = fu.out.to.head
-                          val pip = ipmap(firstResult) // TODO: only gen 1 result at the time
-                          emitPair("result", s"${lookUp(pstage, pip.src.get)}")
-                          firstResult.src match {
-                            case PR(s, r) => r match {
-                              case AccumPR(_, Const(_, c)) => 
-                                emitPair("accumInit", s"c${c}")
-                              case _ =>
-                            }
-                            case _ =>
+                          val results = fu.out.to
+                          val pips= results.map(result => ipmap(result))
+                          val res = pips.map(pip => lookUp(pstage, pip.src.get)) 
+                          emitPair("result", s"[${res.mkString(",")}]")
+                          val inits = results.map(_.src).collect { 
+                            case PR(s,r) => r }.collect {
+                              case AccumPR(_, Const(_, c)) => c 
                           }
+                          if (inits.size>1)
+                            throw PIRException(s"Currently assume writing to a single accum per stage ${inits}")
+                          else if (inits.size==1)
+                            emitPair("accumInit", s"c${inits.head}")
                         } else {
                           emitPair("opA", "x")
                           emitPair("opB", "x")

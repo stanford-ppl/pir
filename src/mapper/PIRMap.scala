@@ -30,6 +30,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
   opmap.pirMap = this
   ctmap.pirMap = this
   smmap.pirMap = this
+  simap.pirMap = this
+  somap.pirMap = this
 
   def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
   def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , smmap, ctmap, simap, somap, slmap, ibmap, rcmap, stmap, ipmap, opmap, fpmap)
@@ -105,8 +107,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
               smmap.printPMap(pcu.srams)
               ctmap.printPMap(pcu.ctrs)
               rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
-              //stmap.printPMap(pcu.stages)
-              stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
+              stmap.printPMap(pcu.stages)
             case _ =>
           }
         }
@@ -136,7 +137,8 @@ trait PMap {
   def keys = map.keys
 
   def check(rec:(K,V)):Unit =  {
-    assert(!map.contains(rec._1), s"${name} already contains key ${rec._1} -> ${map(rec._1)} but try to rebind to ${rec._2}")
+    if (map.contains(rec._1) && map(rec._1)!=rec._2)
+      throw PIRException(s"${name} already contains key ${rec._1} -> ${map(rec._1)} but try to rebind to ${rec._2}")
   }
   def + (rec:(K,V)):PMap 
   def printMap(implicit p:Printer):Unit = {
@@ -189,10 +191,12 @@ trait BMap extends PMap {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
-          if (!pmap.contains(k))
-            p.emitln(s"$k <- no map")
-          else
+          if (pmap.contains(k))
             p.emitln(s"$k <- ${pmap(k)}")
+          //if (!pmap.contains(k))
+          //  p.emitln(s"$k <- no map")
+          //else
+          //  p.emitln(s"$k <- ${pmap(k)}")
         }
       }
     }
@@ -201,11 +205,13 @@ trait BMap extends PMap {
     if (ks.size!=0) {
       p.emitBlock(name) {
         ks.foreach{ k =>
-          if (!pmap.contains(k))
-            p.emitln(s"$k <- no map")
-          else {
+          if (pmap.contains(k))
             p.emitBlock(s"$k <- ${pmap(k)}") { lambda(k) }
-          }
+          //if (!pmap.contains(k))
+          //  p.emitln(s"$k <- no map")
+          //else {
+          //  p.emitBlock(s"$k <- ${pmap(k)}") { lambda(k) }
+          //}
         }
       }
     }
@@ -304,6 +310,14 @@ case class SIMap(map:SIMap.M) extends PMap {
   type K = SIMap.K
   type V = SIMap.V
   override def + (rec:(K,V)) = { super.check(rec); SIMap(map + rec) }
+  override def printMap(ks:List[K])(implicit p:Printer):Unit = {
+    val ipmap = pirMap.ipmap
+    val opmap = pirMap.opmap
+    def printScalarIn(s:K) = {
+      opmap.printOutPort(s.out)
+    }
+    super.printMap(ks.asInstanceOf[List[K]], printScalarIn)
+  }
 }
 object SIMap extends PMapObj {
   type K = SI
@@ -316,6 +330,14 @@ case class SOMap(map:SOMap.M) extends PMap {
   type K = SOMap.K
   type V = SOMap.V
   override def + (rec:(K,V)) = { super.check(rec); SOMap(map + rec) }
+  override def printMap(ks:List[K])(implicit p:Printer):Unit = {
+    val ipmap = pirMap.ipmap
+    val opmap = pirMap.opmap
+    def printScalarOut(s:K) = {
+      ipmap.printInPort(s.in)
+    }
+    super.printMap(ks.asInstanceOf[List[K]], printScalarOut)
+  }
 }
 
 object SOMap extends PMapObj {
@@ -435,9 +457,9 @@ case class IPMap(map:IPMap.M, pmap:IPMap.PM) extends BMap {
       } else {
         p.emitln(s"${pip}(${ip}) <- failed")
       }
-    } else {
-      p.emitln(s"${pip} -> no map")
-    }
+    } //else {
+      //p.emitln(s"${pip} -> no map")
+    //}
   }
 }
 object IPMap extends BMapObj {
@@ -464,9 +486,9 @@ case class OPMap(map:OPMap.M, pmap:OPMap.PM) extends BMap {
   def printOutPort(pop:POP)(implicit p:Printer) = {
     if (pmap.contains(pop)) {
       p.emitln(s"${pop} <- ${pmap(pop)}")
-    } else {
-      p.emitln(s"${pop} <- no map")
-    }
+    }// else {
+      //p.emitln(s"${pop} <- no map")
+    //}
   }
 }
 object OPMap extends BMapObj {
