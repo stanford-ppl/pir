@@ -153,13 +153,16 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
                   val parent = child.parent.asInstanceOf[ComputeUnit]
                   val plocal = CounterChain.copy(parent.localCChain)(inner, design)
                   inner.addCChain(plocal)
-                  plocal.inner.en.connect(child.localCChain.outer.done)
+                  println(s"${plocal} ${child} ${child.localCChain.outer}")
+                  val clocal = inner.cchainMap(child.localCChain).outer.done
+                  plocal.inner.en.connect(clocal)
                   child = child.parent.asInstanceOf[ComputeUnit]
                   if (child.parent.isInstanceOf[Top]) {
                     throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controler ${cu}")
                   }
                 }
-                cc.inner.en.connect(child.localCChain.outer.done)
+                val clocal = inner.cchainMap(child.localCChain).outer.done
+                cc.inner.en.connect(clocal)
 
             }
           }
