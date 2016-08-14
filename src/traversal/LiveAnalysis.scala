@@ -211,11 +211,13 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
     stages.foreach { s =>
       s.liveOuts.foreach { r =>
         if (!cu.infGraph.contains(r)) cu.infGraph += (r -> Set.empty)
-        if (s.defs.contains(r)) { // register doesn't interfere with co-def
-          cu.infGraph(r) ++= (s.liveOuts -- s.defs)
-        } else {
-          cu.infGraph(r) ++= (s.liveOuts - r)
+        // register doesn't interfere with co-def from the same source
+        // e.g. FU writes to 2 registers
+        val sameSrcDefs = s.liveOuts.filter { lo =>
+          if (s.prs(r).in.src == s.prs(lo).in.src) true
+          else false
         }
+        cu.infGraph(r) ++= (s.liveOuts -- sameSrcDefs)
       }
     }
   }

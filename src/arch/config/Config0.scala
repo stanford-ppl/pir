@@ -118,7 +118,7 @@ object Config0 extends Spade {
     // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
     // only write to 1 sram)
     srams.zipWithIndex.foreach { case (s, is) => 
-      (wastages ++ rastages).foreach(s.readAddr <== _.prs(regs(ptr + is)))
+      (wastages ++ rastages).foreach(s.readAddr <== _.fu.out)
       s.writeAddr <== stages.last.prs(regs(ptr + is))
     }
     ptr += numSRAMs
@@ -155,31 +155,32 @@ object Config0 extends Spade {
       srams.foreach { _.writeAddr <== stage.fu.out }
     }
     
-    (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr)
+    val ctrlBox = CtrlBox(numEnLUTs = numCtrs, numTokOutLUTs = 3, numTokenIns = 4)
+    (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr)
   }
 
   override val rcus = List.tabulate(numRCUs) { i =>
     val numPRs = 20
-    val numCtrs = 10
+    val numCtrs = 4
     val numSRAMs = 2
     val numScalarOuts = numLanes
 
-    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr) =
+    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
       genFields[ComputeUnit](numPRs, numCtrs, numSRAMs, numScalarOuts)
-    val c = ComputeUnit(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages)
+    val c = ComputeUnit(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
     c.rdstages.foreach( _.prs(regs(ptr)) <== c.reduce)
     c
   } 
 
   override val ttcus = List.tabulate(numTTs) { i =>
     val numPRs = 15
-    val numCtrs = 10
+    val numCtrs = 4
     val numSRAMs = 0
     val numScalarOuts = 1
 
-    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ptr) =
+    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
       genFields[TileTransfer](numPRs, numCtrs, numSRAMs, numScalarOuts)
-    val c = TileTransfer(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages)
+    val c = TileTransfer(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
     c.rdstages.foreach( _.prs(regs(ptr)) <== c.reduce)
     c
   }

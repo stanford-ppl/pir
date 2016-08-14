@@ -44,11 +44,15 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       cu.tpe match {
         case Pipe =>
           val parent = cu.parent.asInstanceOf[ComputeUnit]
-          val tks = cu.ctrlBox.tokenBuffers
-          val cds = cu.ctrlBox.creditBuffers
-          val ins = tks.map(_._2.out).toList ++ cds.map(_._2.out).toList
-          def tf(ins:List[Boolean]) = ins.reduce(_ && _) 
-          en.connect(EnLUT(cu, ins, tf _, s"${ins.mkString(s" && ")}"))
+          val tks = cu.ctrlBox.tokenBuffers.map(_._2.out).toList
+          val cds = cu.ctrlBox.creditBuffers.map(_._2.out).toList
+          val ins = tks ++ cds
+          val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, ins) =>
+            //val tkIns = tks.map(tk => ins(map(tk)))
+            //val cdIns = cds.map(cd => ins(map(cd)))
+            ins.reduce(_ && _)
+          }
+          en.connect(EnLUT(cu, ins, tf))
         case _ =>
           val lasts = cu.children.filter(_.isTail)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
@@ -63,21 +67,25 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       cu.parent match {
         case parent:ComputeUnit =>
           if (!cu.isTail) {
-            val ins = cu.ctrlBox.outerCtrDone::Nil
-            def tf(ins:List[Boolean]) = ins.head
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${ins.head}")
+            val done = cu.ctrlBox.outerCtrDone
+            val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
           } else {
             val c = cu.ctrlBox.outerCtrDone
             val p = parent.ctrlBox.outerCtrDone
             val ins = c::p::Nil
-            def tf(ins:List[Boolean]) = { val c::p::_ = ins; !p && c }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"!${p} && ${c}")
+            val tf = TransferFunction(s"!${p} && ${c}") { case (map, ins) =>
+              !ins(map(p)) && ins(map(c))
+            }
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf)
           }
           case t:Top => 
-            val ins = cu.ctrlBox.outerCtrDone::Nil
-            def tf(ins:List[Boolean]) = { val c::_ = ins; c }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${ins.head}")
-            case _ =>
+            val done = cu.ctrlBox.outerCtrDone
+            val tf = TransferFunction(s"${done}") { case (map, ins) =>
+              ins(map(done))
+            }
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
+          case _ =>
       }
     }
   }
@@ -88,20 +96,22 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       implicit val cu = queue.dequeue 
       if (cu.tpe!=Pipe) {
         if (cu.isHead) {
-          val td:OutPort = cu.parent match {
+          val init:OutPort = cu.parent match {
             case t:Top => t.command 
             case c:ComputeUnit => c.ctrlBox.tokenDown 
             case _ => throw PIRException(s"unknown parent type")
           } 
-          val ins = td :: cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
-          def tf(ins:List[Boolean]) = { val init::tos = ins; init || tos.reduce(_ && _) }
-          val init::tos = ins
-          cu.ctrlBox.tokenDown = 
-            TokenDownLUT(cu, ins, tf _, s"${init} || ${tos.mkString( "&&")}")
+          val tos = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
+          val tf = TransferFunction(s"${init} || ${tos.mkString( "&&")}") { case (map, ins) =>
+            ins(map(init)) || tos.map(to => ins(map(to))).reduce(_ && _)
+          }
+          cu.ctrlBox.tokenDown = TokenDownLUT(cu, init::tos, tf)
         } else {
-          val ins = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
-          def tf(ins:List[Boolean]) = {ins.reduce(_ && _) }
-          cu.ctrlBox.tokenDown = TokenDownLUT(cu, ins, tf _, ins.mkString( "&&"))
+          val tos = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
+          val tf = TransferFunction(s"${tos.mkString( "&&")}") { case (map, ins) =>
+            tos.map(to => ins(map(to))).reduce(_ && _)
+          }
+          cu.ctrlBox.tokenDown = TokenDownLUT(cu, tos, tf)
         }
       }
       queue ++= cu.children

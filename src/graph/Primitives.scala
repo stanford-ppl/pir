@@ -509,51 +509,57 @@ case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: D
   override val typeStr = "CredBuf"
 }
 
-case class TokenDownLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
-              (implicit ctrler:Controller, design: Design) extends LUT {
-  override val typeStr = "TokDownLUT"
-}
-object TokenDownLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
-      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
-    val lut = TokenDownLUT(outs.size, transFunc, info)
-    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
-    lut.out
-  }
-}
-case class TokenOutLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
-              (implicit ctrler:Controller, design: Design) extends LUT {
-  override val typeStr = "TokOutLUT"
-}
-object TokenOutLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
-      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
-    val lut = TokenOutLUT(outs.size, transFunc, info)
-    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
-    lut.out
-  }
-}
-case class EnLUT(numIns:Int, transFunc:List[Boolean] => Boolean, info:String)
-              (implicit ctrler:Controller, design: Design) extends LUT {
-  override val typeStr = "EnLUT"
-}
-object EnLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:List[Boolean] => Boolean, 
-      info:String)(implicit ctrler:Controller, design: Design):OutPort = {
-    val lut = EnLUT(outs.size, transFunc, info)
-    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
-    lut.out
+case class TransferFunction(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean, info:String)
+object TransferFunction {
+  def apply(info:String)(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean):TransferFunction = {
+    TransferFunction(transFunc, info)
   }
 }
 abstract class LUT(implicit ctrler:Controller, design: Design) extends Primitive {
   override val name = None
+  val transFunc:TransferFunction
   val numIns:Int
-  val info:String
   val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
   val out = OutPort(this, s"${this}.o")
+}
+case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "TokDownLUT"
+}
+object TokenDownLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
+  (implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = TokenDownLUT(outs.size, transFunc)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
+}
+case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "TokOutLUT"
+}
+object TokenOutLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
+  (implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = TokenOutLUT(outs.size, transFunc)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
+}
+case class EnLUT(numIns:Int, transFunc:TransferFunction)
+              (implicit ctrler:Controller, design: Design) extends LUT {
+  override val typeStr = "EnLUT"
+}
+object EnLUT {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
+  (implicit ctrler:Controller, design: Design):OutPort = {
+    val lut = EnLUT(outs.size, transFunc)
+    lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
+    cu.ctrlBox.luts += lut
+    lut.out
+  }
 }
 case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive {
   override val ctrler:ComputeUnit = cu

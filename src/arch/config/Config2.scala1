@@ -69,7 +69,7 @@ object Config2 extends Spade {
       c
     }
     /* Chain counters together */
-    for (i <- 1 until numCtrs) { ctrs(i).en <== ctrs(i-1).sat } 
+    for (i <- 1 until numCtrs) { ctrs(i).en <== ctrs(i-1).done } 
     for (i <- 0 until numCtrs by 2) { ctrs(i).en <== top.clk } // Allow group counter in chain in multiple of 2
 
     val srams = List.tabulate(numSRAMs) { is => 

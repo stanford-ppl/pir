@@ -168,8 +168,8 @@ case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn],
 }
 
 case class ComputeUnit(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter], 
-  override val sins:List[ScalarIn], override val souts:List[ScalarOut], 
-  override val vins:List[InBus], vout:OutBus, stages:List[Stage]) extends Controller{
+  sins:List[ScalarIn], souts:List[ScalarOut], vins:List[InBus], vout:OutBus,
+  stages:List[Stage], ctrlBox:CtrlBox) extends Controller{
   override val typeStr = "cu"
   override val vouts = List(vout)
 
@@ -200,8 +200,9 @@ trait TileTransfer extends ComputeUnit{
 }
 object TileTransfer {
   def apply(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
-    souts:List[ScalarOut], vins:List[InBus], vout:OutBus, stages:List[Stage]) = {
-    new ComputeUnit(regs, srams, ctrs, sins, souts, vins, vout, stages) with TileTransfer
+    souts:List[ScalarOut], vins:List[InBus], vout:OutBus, stages:List[Stage], 
+    ctrlBox:CtrlBox) = {
+    new ComputeUnit(regs, srams, ctrs, sins, souts, vins, vout, stages, ctrlBox) with TileTransfer
   }
 }
 
@@ -409,14 +410,24 @@ object Const extends Node {
   val out = RMOutPort(this, s"Const")
 }
 
-case class EnLUT() {
+case class EnLUT(idx:Int) {
 }
-case class TokenOutLUT() {
+case class TokenOutLUT(idx:Int) {
 }
 case class TokenDownLUT() {
 }
+case class UDCounter(idx:Int) {
+  //val init = InPort(this, s"${this}.init")
+  //val inc = InPort(this, s"${this}.inc")
+  //val dec = InPort(this, s"${this}.dec")
+  //val out = OutPort(this, s"${this}.out")
+}
 
-case class CtrlBox(numEnLuts:Int, numTokOutLus:Int, numTokenIns:Int) extends Node {
-  val numUDC = numEnLuts
-  val numTokOuts = numTokOutLus + 1
+case class CtrlBox(numEnLUTs:Int, numTokOutLUTs:Int, numTokenIns:Int) extends Node {
+  val numUDCs = numEnLUTs
+  val numTokOuts = numTokOutLUTs + 1
+  val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
+  val tokDownLUTs = TokenDownLUT()
+  val tokOutLUTs = List.tabulate(numTokOutLUTs) { i => TokenOutLUT(i) }
+  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(i) }
 }

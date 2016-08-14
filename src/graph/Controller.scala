@@ -80,7 +80,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   lazy val localCChain:CounterChain = {
     val locals = cchains.filter { cc => cc.copy.isEmpty }
     if (locals.size!=1)
-      throw PIRException(s"Currently assume each CU have exactly 1 local counterchain")
+      throw PIRException(s"Currently assume each CU have exactly 1 local counterchain. locals:${locals}")
     locals.head
   }
   def addCChain(cc:CounterChain) = {

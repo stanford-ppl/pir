@@ -39,9 +39,9 @@ object CUMapper extends Mapper {
   }
 
   private def mapPrim(pirMap:M):M = {
+    var cmap = pirMap
     Try{
-      pirMap.clmap.map.foldLeft(pirMap) { case (pm, (ctrler, v)) =>
-        var cmap = pm
+      cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
         cmap = ScalarInMapper.map(ctrler, cmap)
         ctrler match {
           case cu:ComputeUnit =>
@@ -54,7 +54,11 @@ object CUMapper extends Mapper {
     } match {
       case Success(m) => return m
       // TODO: at the moment if prim failed. stop trying
-      case Failure(e) => e.printStackTrace; System.exit(-1); throw e
+      case Failure(e) =>
+        e.printStackTrace
+        MapPrinter.printMap(cmap)(design)
+        System.exit(-1)
+        throw e
     }
   }
 

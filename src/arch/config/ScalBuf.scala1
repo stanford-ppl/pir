@@ -77,7 +77,7 @@ object Config1 extends Spade {
     }
     /* Chain counters together */
     for (i <- 1 until numCtrs) {
-      ctrs(i).en <== ctrs(i-1).sat
+      ctrs(i).en <== ctrs(i-1).done
     } 
     for (i <- 0 until numCtrs by 2) {
       ctrs(i).en <== top.clk

@@ -69,7 +69,7 @@ object Config0 extends Spade {
       c
     }
     /* Chain counters together */
-    for (i <- 1 until numCtrs) { ctrs(i).en <== ctrs(i-1).sat } 
+    for (i <- 1 until numCtrs) { ctrs(i).en <== ctrs(i-1).done } 
     for (i <- 0 until numCtrs by 2) { ctrs(i).en <== top.clk } // Allow group counter in chain in multiple of 2
 
     val srams = List.tabulate(numSRAMs) { is => 
@@ -118,7 +118,7 @@ object Config0 extends Spade {
     // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
     // only write to 1 sram)
     srams.zipWithIndex.foreach { case (s, is) => 
-      (wastages ++ rastages).foreach(s.readAddr <== _.prs(regs(ptr + is)))
+      (wastages ++ rastages).foreach(s.readAddr <== _.fu.out)
       s.writeAddr <== stages.last.prs(regs(ptr + is))
     }
     ptr += numSRAMs

@@ -29,7 +29,7 @@ object SimpleSequentialTestDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val x314_unitCC = CounterChain(name = "x314_unitCC", (Const("0i"), Const("1i"), Const("1i")))
       val x295 = CounterChain.copy(x309, "x295")
-      val x293_x311 = SRAM(size = 96, vec = x293_vector, writeAddr = x295(0), swapCtr = x295(0), writeCtr = x295(0), banking = Strided(1), doubleBuffer = false)
+      val x293_x311 = SRAM(size = 96, vec = x293_vector, swapCtr = x295(0), writeCtr = x295(0), banking = Strided(1), doubleBuffer = false).wtAddr(x295(0)) 
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), x289_argin)), op=Bypass, results=List(x293_x311.readAddr))

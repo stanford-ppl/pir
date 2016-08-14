@@ -32,7 +32,7 @@ object StageMapper extends Mapper {
       case Success(m) => m
       case Failure(e) => 
         e.printStackTrace
-        design.pirMapping.printMap
+        MapPrinter.printMap(cmap)(design)
         System.exit(-1); cmap
     }
     stageFowarding(pcu, cmap)

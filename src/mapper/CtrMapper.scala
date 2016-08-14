@@ -15,8 +15,7 @@ object CtrMapper extends Mapper {
   type N = Ctr
   
   def next(cu:CU, pirMap:M) = {
-    val cmap = RegAlloc.map(cu, pirMap)
-    StageMapper.map(cu, cmap)
+    CtrlMapper.map(cu, pirMap)
   }
   def map(cu:CU, pirMap:M):M = {
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]

@@ -127,7 +127,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
           emitEdge(c.dec, "dec")
         }
         cu.ctrlBox.luts.foreach { lut =>
-          val label = s"{${lut}|${cu}|tf=${lut.info}}"
+          val label = s"{${lut}|${cu}|tf=${lut.transFunc.info}}"
           emitNode(lut, label, DotAttr().setShape(Mrecord))
           lut match {
             case l:EnLUT =>
