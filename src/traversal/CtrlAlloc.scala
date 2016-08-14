@@ -150,7 +150,8 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               case cu:OuterComputeUnit =>
                 var child:ComputeUnit = inner
                 while (child.parent!=cu) {
-                  val plocal = CounterChain.copy(child.parent.asInstanceOf[ComputeUnit].localCChain)(inner, design)
+                  val parent = child.parent.asInstanceOf[ComputeUnit]
+                  val plocal = CounterChain.copy(parent.localCChain)(inner, design)
                   inner.addCChain(plocal)
                   plocal.inner.en.connect(child.localCChain.outer.done)
                   child = child.parent.asInstanceOf[ComputeUnit]

@@ -3,6 +3,8 @@ package pir.graph
 sealed trait Op 
 case object Mux extends Op
 case object Bypass extends Op
+case object BitAnd extends Op
+case object BitOr  extends Op
 
 sealed trait FixOp extends Op 
 case object FixAdd extends FixOp 
@@ -11,7 +13,10 @@ case object FixMul extends FixOp
 case object FixDiv extends FixOp 
 case object FixMin extends FixOp 
 case object FixMax extends FixOp 
-case object FixCmp extends FixOp 
+case object FixLt  extends FixOp
+case object FixLeq extends FixOp
+case object FixEql extends FixOp
+case object FixNeq extends FixOp
 
 sealed trait FltOp extends Op 
 case object FltAdd extends FltOp 
@@ -20,12 +25,21 @@ case object FltMul extends FltOp
 case object FltDiv extends FltOp 
 case object FltMin extends FltOp 
 case object FltMax extends FltOp 
-case object FltCmp extends FltOp 
+case object FltLt  extends FltOp
+case object FltLeq extends FltOp
+case object FltEql extends FltOp
+case object FltNeq extends FltOp
+case object FltExp extends FltOp
+case object FltAbs extends FltOp
 
 object Ops {
-  val fixOps:List[FixOp] = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixCmp)
-  val fltOps:List[FltOp] = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltCmp)
-  val allOps:List[Op] = fixOps ++ fltOps ++ List(Mux, Bypass) 
+  val fixOps:List[FixOp] = 
+    List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixEql,
+        FixNeq)
+  val fltOps:List[FltOp] = 
+    List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltEql,
+      FltNeq, FltExp, FltAbs)
+  val allOps:List[Op] = fixOps ++ fltOps ++ List(Mux, Bypass, BitAnd, BitOr) 
 }
 
 sealed trait CtrlType 

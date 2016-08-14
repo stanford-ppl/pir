@@ -19,6 +19,8 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
     emitBlock("OuterComputeUnit") {
       design.top.outerCUs.foreach { cu =>
         emitBlock(s"${cu}") {
+          emitln(s"ctrlBox.en: ${cu.ctrlBox.innerCtrEn}")
+          emitln(s"ctrlBox.done: ${cu.ctrlBox.outerCtrDone}")
           cu.cchains.foreach { cc =>
             emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
               cc.counters.foreach { ctr =>
@@ -32,6 +34,8 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
     emitBlock("InnerComputeUnit") {
       design.top.innerCUs.foreach { cu =>
         emitBlock(s"${cu}") {
+          emitln(s"ctrlBox.en: ${cu.ctrlBox.innerCtrEn}")
+          emitln(s"ctrlBox.done: ${cu.ctrlBox.outerCtrDone}")
           cu.cchains.foreach { cc =>
             emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
               cc.counters.foreach { ctr =>

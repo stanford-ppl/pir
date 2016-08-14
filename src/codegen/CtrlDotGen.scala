@@ -54,10 +54,10 @@ trait DotGen extends Printer {
     emitln(s"""${q(from)} -> ${q(to)}""")
   }
   def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any):Unit = {
-    emitEdge(s"${from}:${to}", s"${to}:${tfield}")
+    emitEdge(s"${from}:${ffield}", s"${to}:${tfield}")
   }
   def emitEdge(from:AnyVal, ffield:Any, fd:String, to:Any, tfield:Any, td:String):Unit = {
-    emitEdge(s"${from}:${to}:${fd}", s"${to}:${tfield}:${td}")
+    emitEdge(s"${from}:${ffield}:${fd}", s"${to}:${tfield}:${td}")
   }
 
   def emitSG(n:Any, label:Any)(block: =>Any):Unit = {
