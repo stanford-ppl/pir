@@ -7,6 +7,11 @@ fi
 
 argsArray=( "$@" )
 
+if [ "$PIR_HOME" != "" ]
+then 
+  cd $PIR_HOME
+fi
+
 sbtArgs=${argsArray[@]:0:$#}
 
 echo "Running $sbtArgs.."
