@@ -352,7 +352,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
 
   /* Create a new logical register 
    * */
-  def temp = Reg(newTemp)
+  def temp = tempPR() 
 
  /** Refer to the pipeline register for stage with rid 
   * @param stage: Stage of the pipeline register 
