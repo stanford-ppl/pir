@@ -84,14 +84,8 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
     //emitln(s"splines=ortho;")
   }
 
-  def q(in:InPort) = in match {
-    case p:EnInPort => p.inner 
-    case _ => in.src
-  }
-  def q(out:OutPort) = out match {
-    case p:DoneOutPort => p.outer 
-    case _ => out.src
-  }
+  def q(in:InPort) = in.src
+  def q(out:OutPort) = out.src
 
   override def reset = { emittedEdges.clear; super.reset}
   val emittedEdges = Set[(OutPort, InPort)]() 
@@ -141,9 +135,13 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
             case _ =>
           }
         }
-        cu.localCChain.counters.foreach { c =>
+        val cchain = cu match {
+          case cu:InnerComputeUnit => cu.localCChain
+          case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain)
+        }
+        cchain.counters.foreach { c =>
           emitNode(c, c, DotAttr().setShape(circle).setColor(indianred).setStyle(filled))
-          c.dep.foreach{ d => emitEdge(c, d) }
+          if (c.en.isConnected) emitEdge(c.en, "en")
         }
         if (cu.ctrlBox.innerCtrEn.isConnected) {
           val attr = DotAttr().setColor("blue").setLabel("en")

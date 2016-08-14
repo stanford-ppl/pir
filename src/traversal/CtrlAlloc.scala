@@ -37,26 +37,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       }
     }
   }
-  def qi(ins:List[InPort]) = ins.map{ in =>
-    in match {
-      case p:EnInPort => p.inner 
-      case _ => in.src
-    }
-  }
-  def qo(outs:List[OutPort]) = outs.map { out => 
-    out match {
-      case p:DoneOutPort => p.outer 
-      case _ => out.src
-    }
-  }
-  def q(in:InPort) = in match {
-    case p:EnInPort => p.inner 
-    case _ => in.src
-  }
-  def q(out:OutPort) = out match {
-    case p:DoneOutPort => p.outer 
-    case _ => out.src
-  }
   // Generate logic on control I/Os
   def genEnDec:Unit = {
     design.top.compUnits.foreach { implicit cu =>
@@ -68,18 +48,14 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val cds = cu.ctrlBox.creditBuffers
           val ins = tks.map(_._2.out).toList ++ cds.map(_._2.out).toList
           def tf(ins:List[Boolean]) = ins.reduce(_ && _) 
-          en.connect(EnLUT(cu, ins, tf _, s"${qo(ins).mkString(s" && ")}"))
+          en.connect(EnLUT(cu, ins, tf _, s"${ins.mkString(s" && ")}"))
         case _ =>
           val lasts = cu.children.filter(_.isTail)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           en.connect(lasts.head.ctrlBox.outerCtrDone)
       }
-      cu.ctrlBox.tokenBuffers.foreach { case (dep, t) =>
-        t.dec.connect(cu.ctrlBox.outerCtrDone)
-      }
-      cu.ctrlBox.creditBuffers.foreach { case (dep, c) =>
-        c.dec.connect(cu.ctrlBox.outerCtrDone)
-      }
+      cu.ctrlBox.tokenBuffers.foreach { case (dep, t) => t.dec.connect(cu.ctrlBox.outerCtrDone) }
+      cu.ctrlBox.creditBuffers.foreach { case (dep, c) => c.dec.connect(cu.ctrlBox.outerCtrDone) }
     }
   }
   def genTokenOut:Unit = {
@@ -89,18 +65,18 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           if (!cu.isTail) {
             val ins = cu.ctrlBox.outerCtrDone::Nil
             def tf(ins:List[Boolean]) = ins.head
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${q(ins.head)}")
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${ins.head}")
           } else {
             val c = cu.ctrlBox.outerCtrDone
             val p = parent.ctrlBox.outerCtrDone
             val ins = c::p::Nil
             def tf(ins:List[Boolean]) = { val c::p::_ = ins; !p && c }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"!${q(p)} && ${q(c)}")
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"!${p} && ${c}")
           }
           case t:Top => 
             val ins = cu.ctrlBox.outerCtrDone::Nil
             def tf(ins:List[Boolean]) = { val c::_ = ins; c }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${q(ins.head)}")
+            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf _, s"${ins.head}")
             case _ =>
       }
     }
@@ -121,11 +97,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           def tf(ins:List[Boolean]) = { val init::tos = ins; init || tos.reduce(_ && _) }
           val init::tos = ins
           cu.ctrlBox.tokenDown = 
-            TokenDownLUT(cu, ins, tf _, s"${q(init)} || ${qo(tos).mkString( "&&")}")
+            TokenDownLUT(cu, ins, tf _, s"${init} || ${tos.mkString( "&&")}")
         } else {
           val ins = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
           def tf(ins:List[Boolean]) = {ins.reduce(_ && _) }
-          cu.ctrlBox.tokenDown = TokenDownLUT(cu, ins, tf _, qo(ins).mkString( "&&"))
+          cu.ctrlBox.tokenDown = TokenDownLUT(cu, ins, tf _, ins.mkString( "&&"))
         }
       }
       queue ++= cu.children
@@ -163,11 +139,39 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     }
     design.top.status.connect(design.top.children.head.ctrlBox.outerCtrDone)
   }
+  def wireCChainCopy = {
+    design.top.innerCUs.foreach { inner =>
+      inner.cchains.foreach { cc =>
+        if (!cc.inner.en.isConnected) {
+          cc.copy.foreach { original =>
+            original.ctrler match {
+              case cu:InnerComputeUnit =>
+                cc.inner.en.connect(original.inner.en.from)
+              case cu:OuterComputeUnit =>
+                var child:ComputeUnit = inner
+                while (child.parent!=cu) {
+                  val plocal = CounterChain.copy(child.parent.asInstanceOf[ComputeUnit].localCChain)(inner, design)
+                  inner.addCChain(plocal)
+                  plocal.inner.en.connect(child.localCChain.outer.done)
+                  child = child.parent.asInstanceOf[ComputeUnit]
+                  if (child.parent.isInstanceOf[Top]) {
+                    throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controler ${cu}")
+                  }
+                }
+                cc.inner.en.connect(child.localCChain.outer.done)
+
+            }
+          }
+        }
+      }
+    }
+  }
   def logicGen = {
     genEnDec
     genTokenOut
     genTokenDown
     connectInputs
+    wireCChainCopy
   }
   override def traverse:Unit = {
     bufferAlloc

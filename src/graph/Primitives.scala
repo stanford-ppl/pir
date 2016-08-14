@@ -63,7 +63,6 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
     for (i <- 0 until counters.size - 1) {
       counters(i).setDep(counters(i+1))  
     }
-    counters.last.setDep(None)
   }
 }
 object CounterChain {
@@ -96,20 +95,20 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Con
   val max:InPort = InPort(this, s"${this}.max")
   val step:InPort = InPort(this, s"${this}.step")
   val out:CtrOutPort = CtrOutPort(this, {s"${this}.out"}) 
-  var dep:Option[Counter] = _ // Outer counter depends on inner counter
-  var deped:Option[Counter] = None // Inner counter is depended on outer counter
-  override def toUpdate = super.toUpdate || dep==null
+  val en:EnInPort = EnInPort(this, s"${this}.en")
+  val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
+  //var dep:Option[Counter] = _ // Outer counter depends on inner counter
+  //var deped:Option[Counter] = None // Inner counter is depended on outer counter
+  override def toUpdate = super.toUpdate 
 
   def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {
     min.connect(mi)
     max.connect(ma)
     step.connect(s)
   }
-  def setDep(c:Counter) = { dep = Some(c); c.deped = Some(this) }
-  def setDep(c:Option[Counter]) = { 
-    c.foreach(_.deped = Some(this))
-    dep = c
-  }
+
+  def setDep(c:Counter) = { en.connect(c.done) }
+
   def copy(c:Counter) = {
     assert(min.from==null, 
       s"Overriding existing counter ${this} with min ${c.min}")
@@ -563,8 +562,14 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   val tokenBuffers = Map[Controller, TokenBuffer]()
   val creditBuffers = Map[Controller, CreditBuffer]()
   val luts = ListBuffer[LUT]()
-  val innerCtrEn = EnInPort(this, s"${this}.e")
-  val outerCtrDone = DoneOutPort(this, s"${this}.d")
+  def innerCtrEn:EnInPort = cu match {
+    case cu:InnerComputeUnit => cu.localCChain.inner.en 
+    case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).inner.en
+  }
+  def outerCtrDone:DoneOutPort = cu match {
+    case cu:InnerComputeUnit => cu.localCChain.outer.done 
+    case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).outer.done
+  }
   var tokenOut:OutPort = _ 
   // only outer controller have token down, which is the init signal first child stage
   var tokenDown:OutPort = _

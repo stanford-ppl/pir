@@ -30,73 +30,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     }
   }
 
-  def genFields(node:Node):String = {
-    val fields = ListBuffer[String]()
-    node match {
-      case n:Controller =>
-        fields += s"children=[${n.children.mkString(",")}]"
-      case _ =>
-    }
-    node match {
-      case n:ComputeUnit =>
-        fields += s"parent=${n.parent}"
-        fields += s"type=${n.tpe}"
-        fields += s"dep=[${n.dependencies.mkString(",")}]"
-        fields += s"deped=[${n.dependeds.mkString(",")}]"
-        if (n.tpe==Pipe)
-          fields += s"outers=[${n.outers.mkString(s",")}]"
-        n match {
-          case c:TileTransfer =>
-            fields += s"mctpe=${c.mctpe}"
-          case _ =>
-        }
-      case p:MemoryController =>
-        fields += s"mctpe=${p.mctpe}"
-      case n:Primitive => {
-        //fields += s"ctrler=${n.ctrler}"
-        n match {
-          case p:CounterChain =>
-            fields += s"copy=${p.copy.getOrElse("None")}"
-          case p:SRAM =>
-            fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
-            fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
-            fields += s"banking=${p.banking}, dblBuf=${p.doubleBuffer}"
-            fields += s"writeCtr=${p.writeCtr}, swapCtr=${p.swapCtr}"
-          case p:Stage =>
-            p.fu.foreach { fu =>
-              fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
-              fields += s"op=${fu.op}"
-              fields += s"results=[${fu.out.to.mkString(",")}]"
-            }
-            p match {
-              case s:ReduceStage => fields += s"idx=${s.idx}"
-              case _ =>
-            }
-          case p:ScalarIn =>
-            fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
-          case p:ScalarOut =>
-            fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
-          case p:VecIn =>
-            fields += s"vector=${p.vector}, writer=${p.vector.writer}"
-          case p:VecOut =>
-            fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
-          case p:Counter => 
-            fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}, dep=${p.dep}"
-          //case p:UDCounter => 
-            //fields += s"init=${p.init}"
-          case p:Reg => p match {
-            case r:PipeReg =>
-            case r:Const => fields += s"${r.value}"
-            case r:ArgIn =>
-            case r:ArgOut =>
-          }
-          case _ =>
-        }
-      }
-      case _ =>
-    }
-    s"(${if (fields.size>0) fields.reduce(_+", "+_) else ""})"
-  }
+  def genFields(node:Node):String = PIRPrinter.genFields(node)
 
   private def toStr(mp:Map[String, String], s:String, i:Reg) = mp += (s -> i.toString)
   private def toStr(mp:Map[String, String], s:String, l:Set[_]) = 
@@ -172,4 +106,79 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     info(s"Finishing PIR Printing in ${getPath}")
     close
   }
+}
+object PIRPrinter {
+  def genFields(node:Node):String = {
+    val fields = ListBuffer[String]()
+    node match {
+      case n:Controller =>
+        fields += s"children=[${n.children.mkString(",")}]"
+      case _ =>
+    }
+    node match {
+      case n:ComputeUnit =>
+        fields += s"parent=${n.parent}"
+        fields += s"type=${n.tpe}"
+        fields += s"dep=[${n.dependencies.mkString(",")}]"
+        fields += s"deped=[${n.dependeds.mkString(",")}]"
+        n match {
+          case n:InnerComputeUnit =>
+            fields += s"outers=[${n.outers.mkString(s",")}]"
+          case n:OuterComputeUnit =>
+            fields += s"inner=[${n.inner}]"
+        }
+        n match {
+          case c:TileTransfer =>
+            fields += s"mctpe=${c.mctpe}"
+          case _ =>
+        }
+      case p:MemoryController =>
+        fields += s"mctpe=${p.mctpe}"
+      case n:Primitive => {
+        //fields += s"ctrler=${n.ctrler}"
+        n match {
+          case p:CounterChain =>
+            fields += s"copy=${p.copy.getOrElse("None")}"
+          case p:SRAM =>
+            fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
+            fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
+            fields += s"banking=${p.banking}, dblBuf=${p.doubleBuffer}"
+            fields += s"writeCtr=${p.writeCtr}, swapCtr=${p.swapCtr}"
+          case p:Stage =>
+            p.fu.foreach { fu =>
+              fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
+              fields += s"op=${fu.op}"
+              fields += s"results=[${fu.out.to.mkString(",")}]"
+            }
+            p match {
+              case s:ReduceStage => fields += s"idx=${s.idx}"
+              case _ =>
+            }
+          case p:ScalarIn =>
+            fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
+          case p:ScalarOut =>
+            fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
+          case p:VecIn =>
+            fields += s"vector=${p.vector}, writer=${p.vector.writer}"
+          case p:VecOut =>
+            fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
+          case p:Counter => 
+            fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
+            fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
+          case p:UDCounter => 
+            fields += s"init=${p.initVal}"
+          case p:Reg => p match {
+            case r:PipeReg =>
+            case r:Const => fields += s"${r.value}"
+            case r:ArgIn =>
+            case r:ArgOut =>
+          }
+          case _ =>
+        }
+      }
+      case _ =>
+    }
+    s"(${if (fields.size>0) fields.reduce(_+", "+_) else ""})"
+  }
+
 }

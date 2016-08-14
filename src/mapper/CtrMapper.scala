@@ -27,14 +27,24 @@ object CtrMapper extends Mapper {
   }
 
   def mapCtr(c:N, p:R, map:M):M = {
-    c.dep.foreach { dep =>
-      if (map.ctmap.contains(dep)) {
-        val pdep = map.ctmap(dep); if (!p.isDep(pdep)) throw CtrRouting(c, p)
+    if (c.en.isConnected) {
+      c.en.from.src match {
+        case dep:Ctr =>
+          if (map.ctmap.contains(dep)) {
+            val pdep = map.ctmap(dep); if (!p.isDep(pdep)) throw CtrRouting(c, p)
+          }
+        case _ =>
       }
     }
-    c.deped.foreach { deped =>
-      if (map.ctmap.contains(deped)) {
-        val pdeped = map.ctmap(deped); if (!pdeped.isDep(p)) throw CtrRouting(c, p)
+    if (c.done.isConnected) {
+      c.done.to.foreach { 
+        _.src match {
+          case deped:Ctr =>
+            if (map.ctmap.contains(deped)) {
+              val pdeped = map.ctmap(deped); if (!pdeped.isDep(p)) throw CtrRouting(c, p)
+            }
+          case _ =>
+        }
       }
     }
     var ipmap = map.ipmap

@@ -63,8 +63,6 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def isTail = (dependeds.size==0)
 
   val ctrlBox = CtrlBox() 
-  /* List of outer controllers reside in current inner*/
-  var outers:List[Controller] = Nil
 
   /* Fields */
   def cchains:List[CounterChain] = cchainMap.values.toList
@@ -374,10 +372,25 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     updateBlock(block)
 }
 
+trait InnerComputeUnit extends ComputeUnit {
+  /* List of outer controllers reside in current inner*/
+  var outers:List[OuterComputeUnit] = Nil
+}
+trait OuterComputeUnit extends ComputeUnit {
+  var inner:InnerComputeUnit = _
+  override def toUpdate = super.toUpdate || inner == null
+}
+
 object ComputeUnit {
-  def apply(name: Option[String], tpe:CtrlType)(implicit design: Design) = new ComputeUnit(name, tpe)
-  def apply[P,D](name: Option[String], tpe:CtrlType, parent:P, deps:List[D]) (implicit design: Design, dtp:TypeTag[D]) =
-    new ComputeUnit(name, tpe).updateParent(parent).updateDeps(deps)
+  def apply(name: Option[String], tpe:CtrlType)(implicit design: Design):ComputeUnit = {
+    tpe match {
+      case Pipe => new ComputeUnit(name, tpe) with InnerComputeUnit
+      case _ => new ComputeUnit(name, tpe) with OuterComputeUnit
+    }
+  }
+  def apply[P,D](name: Option[String], tpe:CtrlType, parent:P, deps:List[D]) (implicit design: Design, dtp:TypeTag[D]):ComputeUnit = {
+    ComputeUnit(name, tpe).updateParent(parent).updateDeps(deps)
+  }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D], tpe:CtrlType) (block: ComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):ComputeUnit =
     ComputeUnit(None, tpe).updateBlock(block).updateParent(parent).updateDeps(deps)
@@ -392,7 +405,7 @@ object ComputeUnit {
 }
 
 /* Corresponding to inner loop unit pipe */
-class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends ComputeUnit(name, Pipe) { self =>
+class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends ComputeUnit(name, Pipe) with InnerComputeUnit { self =>
   override val typeStr = "UnitCompUnit"
   def updateBlock(block: UnitComputeUnit => Any)(implicit design: Design):UnitComputeUnit = {
     val (cchains, srams) = 
@@ -420,7 +433,7 @@ object UnitComputeUnit {
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends ComputeUnit(name, Pipe) {
+  (implicit design:Design) extends ComputeUnit(name, Pipe) with InnerComputeUnit {
 
   /* Fields */
   val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
@@ -485,8 +498,8 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  var innerCUs:List[ComputeUnit] = _
-  var outerCUs:List[ComputeUnit] = _
+  var innerCUs:List[InnerComputeUnit] = _
+  var outerCUs:List[OuterComputeUnit] = _
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
   def ctrlers = this :: compUnits ++ memCtrls
@@ -501,10 +514,10 @@ case class Top()(implicit design: Design) extends Controller { self =>
   
   override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
 
-  def updateFields(cs:List[ComputeUnit], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
+  def updateFields(inners:List[InnerComputeUnit], outers:List[OuterComputeUnit], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
     //TODO change innerCU and outerCU to a type
-    this.innerCUs = cs.filter { c => c.tpe==Pipe }
-    this.outerCUs = cs.filter { c => c.tpe!=Pipe }
+    this.innerCUs = inners 
+    this.outerCUs = outers 
     this.memCtrls = memCtrls
     this.scalars = scalars
     this.vectors = vectors
@@ -519,14 +532,15 @@ case class Top()(implicit design: Design) extends Controller { self =>
   }
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {
-    val (cs, scalars, vectors, memCtrls) = 
-      design.addBlock[ComputeUnit, Scalar, Vector, MemoryController](block(this), 
-                      (n:Node) => n.isInstanceOf[ComputeUnit],
+    val (inners, outers, scalars, vectors, memCtrls) = 
+      design.addBlock[InnerComputeUnit, OuterComputeUnit, Scalar, Vector, MemoryController](block(this), 
+                      (n:Node) => n.isInstanceOf[InnerComputeUnit],
+                      (n:Node) => n.isInstanceOf[OuterComputeUnit],
                       (n:Node) => n.isInstanceOf[Scalar], 
                       (n:Node) => n.isInstanceOf[Vector], 
                       (n:Node) => n.isInstanceOf[MemoryController] 
                       )
-    updateFields(cs, scalars, vectors, memCtrls)
+    updateFields(inners, outers, scalars, vectors, memCtrls)
   }
 }
 

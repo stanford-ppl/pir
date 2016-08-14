@@ -137,21 +137,19 @@ object ConstOutPort {
 }
 /* Inner Counter En Port */
 trait EnInPort extends InPort { 
-  override val src:CtrlBox
-  lazy val inner:Counter = src.ctrler.localCChain.inner
+  override val src:Counter
 }
 object EnInPort {
-  def apply(s:CtrlBox, toStr: => String)(implicit design:Design):EnInPort = {
+  def apply(s:Counter, toStr: => String)(implicit design:Design):EnInPort = {
     new {override val src = s} with EnInPort {override def toString = toStr}
   }
 }
 /* Outer Counter Done Port */
 trait DoneOutPort extends OutPort { 
-  override val src:CtrlBox
-  lazy val outer:Counter = src.ctrler.localCChain.outer
+  override val src:Counter
 }
 object DoneOutPort {
-  def apply(s:CtrlBox, toStr: => String)(implicit design:Design):DoneOutPort = {
+  def apply(s:Counter, toStr: => String)(implicit design:Design):DoneOutPort = {
     new {override val src = s} with DoneOutPort {override def toString = toStr}
   }
 }

@@ -42,8 +42,8 @@ case class Counter(idx:Int) extends Node {
   val step = InPort(this, s"${this}.step")
   val out = RMOutPort(this, s"${this}.out")
   val en = InWire(this, s"${this}.en")
-  val sat = OutWire(this, s"${this}.sat")
-  def isDep(c:Counter) = en.isConn(c.sat)
+  val done = OutWire(this, s"${this}.done")
+  def isDep(c:Counter) = en.isConn(c.done)
 }
 
 /** 1 fanIns of pipeline register (1 row of reg for all stages) */
