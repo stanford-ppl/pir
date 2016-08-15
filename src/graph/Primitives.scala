@@ -28,6 +28,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   /* Pointers */
   var copy:Option[CounterChain] = None
   var isCopy = false
+  val wasrams = ListBuffer[SRAM]()
+  var isStreaming = false
 
   override def toUpdate = super.toUpdate
 
@@ -146,7 +148,7 @@ object Counter{
  *  @param Size: size of SRAM in all dimensions 
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
-  writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design) 
+  writeCtr:Counter, swapCtr:Counter)(implicit override val ctrler:ComputeUnit, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -155,6 +157,9 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
+  override def toUpdate = super.toUpdate || !readAddr.isConnected || 
+    !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
+
   def writer = {
     writePort.from.src match {
       case VecIn(_, vec) => vec.writer.ctrler
@@ -162,9 +167,6 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
   }
-
-  override def toUpdate = super.toUpdate || !readAddr.isConnected || 
-    !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
 
   def rdAddr(ra:OutPort):SRAM = { 
     readAddr.connect(ra); 
@@ -301,7 +303,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(i
   def defines(reg:Reg) = defs.contains(reg) 
 }
 
-case class Stage(name:Option[String])(implicit ctrler:Controller, design: Design) extends Primitive {
+case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Stage"
   var fu:Option[FuncUnit] = _
   val prs:Map[Reg, PipeReg] = Map.empty
@@ -387,7 +389,7 @@ object AccumStage {
     new {override val accReg = acc} with Stage(None) with AccumStage
 }
 class WAStage (override val name:Option[String])
-  (implicit ctrler:Controller, design: Design) extends Stage(name) {
+  (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
   var srams:Either[List[String], ListBuffer[SRAM]] = _
   override val typeStr = "WAStage"
   override def toUpdate = super.toUpdate || srams==null
@@ -414,7 +416,7 @@ class WAStage (override val name:Option[String])
 
 }
 object WAStage {
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:Controller, design: Design)  = new WAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:ComputeUnit, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 object WAStages {
   def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:ComputeUnit, design: Design):List[WAStage] = {
@@ -428,9 +430,9 @@ trait EmptyStage extends Stage {
   fu = None
 }
 object EmptyStage {
-  def apply(name:Option[String])(implicit ctrler:Controller, design: Design):EmptyStage  = 
+  def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
     new Stage(name) with EmptyStage
-  def apply()(implicit ctrler:Controller, design: Design):EmptyStage  = 
+  def apply()(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
     new Stage(None) with EmptyStage
 }
 
@@ -494,11 +496,11 @@ abstract class UDCounter(implicit ctrler:Controller, design: Design) extends Pri
   val initVal:Int
   val inc = InPort(this, s"${this}.inc")
   val dec = InPort(this, s"${this}.dec")
+  val init = InPort(this, s"${this}.init")
   val out = OutPort(this, s"${this}.o")
 }
 case class TokenBuffer(dep:ComputeUnit, initVal:Int)
   (implicit ctrler:Controller, design: Design) extends UDCounter{
-  val init = InPort(this, s"${this}.init")
   override val name = None
   override val typeStr = "TokBuf"
 }
@@ -509,13 +511,13 @@ case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: D
   override val typeStr = "CredBuf"
 }
 
-case class TransferFunction(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean, info:String)
+case class TransferFunction(tf:(Map[OutPort, Int], List[Boolean]) => Boolean, info:String)
 object TransferFunction {
   def apply(info:String)(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean):TransferFunction = {
     TransferFunction(transFunc, info)
   }
 }
-abstract class LUT(implicit ctrler:Controller, design: Design) extends Primitive {
+abstract class LUT(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val name = None
   val transFunc:TransferFunction
   val numIns:Int
@@ -523,42 +525,43 @@ abstract class LUT(implicit ctrler:Controller, design: Design) extends Primitive
   val out = OutPort(this, s"${this}.o")
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
-              (implicit ctrler:Controller, design: Design) extends LUT {
+              (implicit ctrler:ComputeUnit, design: Design) extends LUT {
   override val typeStr = "TokDownLUT"
 }
 object TokenDownLUT {
   def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit ctrler:Controller, design: Design):OutPort = {
+  (implicit ctrler:ComputeUnit, design: Design):OutPort = {
     val lut = TokenDownLUT(outs.size, transFunc)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
+    cu.ctrlBox.tokDownLUTs += lut
     lut.out
   }
 }
 case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
-              (implicit ctrler:Controller, design: Design) extends LUT {
+              (implicit ctrler:ComputeUnit, design: Design) extends LUT {
   override val typeStr = "TokOutLUT"
 }
 object TokenOutLUT {
   def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit ctrler:Controller, design: Design):OutPort = {
+  (implicit ctrler:ComputeUnit, design: Design):OutPort = {
     val lut = TokenOutLUT(outs.size, transFunc)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
+    cu.ctrlBox.tokOutLUTs += lut
     lut.out
   }
 }
 case class EnLUT(numIns:Int, transFunc:TransferFunction)
-              (implicit ctrler:Controller, design: Design) extends LUT {
+              (implicit ctrler:ComputeUnit, design: Design) extends LUT {
   override val typeStr = "EnLUT"
 }
 object EnLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit ctrler:Controller, design: Design):OutPort = {
+  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction, en:EnInPort)
+  (implicit ctrler:ComputeUnit, design: Design):EnLUT = {
     val lut = EnLUT(outs.size, transFunc)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
-    cu.ctrlBox.luts += lut
-    lut.out
+    en.connect(lut.out)
+    cu.ctrlBox.enLUTs += (en -> lut)
+    lut
   }
 }
 case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive {
@@ -566,8 +569,12 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   override val name = None
   override val typeStr = "CtrlBox"
   val tokenBuffers = Map[Controller, TokenBuffer]()
-  val creditBuffers = Map[Controller, CreditBuffer]()
-  val luts = ListBuffer[LUT]()
+  val creditBuffers = Map[ComputeUnit, CreditBuffer]()
+  def udcounters:Map[Controller, UDCounter] = tokenBuffers ++ creditBuffers
+  val enLUTs = Map[EnInPort, EnLUT]()
+  val tokOutLUTs = ListBuffer[TokenOutLUT]()
+  val tokDownLUTs = ListBuffer[TokenDownLUT]()
+  def luts = enLUTs.map(_._2).toList ++ tokOutLUTs.toList ++ tokDownLUTs.toList 
   def innerCtrEn:EnInPort = cu match {
     case cu:InnerComputeUnit => cu.localCChain.inner.en 
     case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).inner.en
@@ -579,6 +586,58 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   var tokenOut:OutPort = _ 
   // only outer controller have token down, which is the init signal first child stage
   var tokenDown:OutPort = _
+
+  def getTokenIns:List[InPort] = {
+    val tokenIns = ListBuffer[InPort]()
+    udcounters.foreach { case (ctrler, udc) =>
+      if (udc.inc.isConnected)
+        tokenIns += udc.inc
+      if (udc.init.isConnected)
+        tokenIns += udc.init
+    }
+    if (cu.isInstanceOf[InnerComputeUnit]) {
+      cu.cchains.foreach { cc =>
+        if (cc.inner.en.isConnected) {
+          val from = cc.inner.en.from.src.asInstanceOf[Primitive].ctrler
+          assert(from.isInstanceOf[InnerComputeUnit])
+          if (from!=cu)
+            tokenIns += cc.inner.en
+        }
+      }
+    }
+    cu.ctrlBox.tokDownLUTs.foreach { tdl => 
+      tdl.ins.foreach { in => 
+        in.from.src match {
+          case top:Top =>
+            tokenIns += in
+          case ctrler:ComputeUnit => 
+            if (ctrler!=cu)
+              tokenIns += in
+          case _ =>
+        }
+      }
+    }
+    tokenIns.toList
+  }
+  def getTokenOuts:List[OutPort] = {
+    val tos = ListBuffer[OutPort]()
+    if (tokenOut!=null) tos += tokenOut
+    if (tokenDown!=null) tos += tokenDown
+    if (cu.isInstanceOf[InnerComputeUnit]) {
+      cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
+        if (en.src.ctrler!=cu) tos += enlut.out 
+      }
+      cu.cchains.foreach { cc =>
+        val en = cc.inner.en 
+        if (en.isConnected) {
+          if (en.from.src.asInstanceOf[Primitive].ctrler!=cu) {
+          }
+        }
+      }
+    }
+    tos.toList
+  }
+
   override def toUpdate = super.toUpdate || tokenOut == null
 }
 

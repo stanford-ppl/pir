@@ -453,10 +453,14 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
 
   override val typeStr = "TileTransfer"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
-    val cchains = 
-      design.addBlock[CounterChain](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain]) 
+    val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
     updateFields(cchains, Nil)
+  }
+
+  def streamCChain:CounterChain = {
+    val ccs = cchains.filter(cc => cc.isStreaming)
+    assert(ccs.size==1)
+    ccs.head
   }
 
 } 

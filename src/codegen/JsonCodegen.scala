@@ -59,7 +59,9 @@ trait JsonCodegen extends Traversal with Printer {
     { emitComma; emit(s"""$value""") }
 
   def emitComment(str:String) = {
-    emitln(s"// ${str}")
+    if (Config.debug) {
+      emitln(s"// ${str}")
+    }
   }
 }
 

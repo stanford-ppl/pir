@@ -410,24 +410,39 @@ object Const extends Node {
   val out = RMOutPort(this, s"Const")
 }
 
-case class EnLUT(idx:Int) {
+trait LUT extends Node {
+  val numIns:Int
 }
-case class TokenOutLUT(idx:Int) {
+case class EnLUT(idx:Int, numIns:Int) extends LUT {
+  override val typeStr = "enlut"
+  override def toString = s"${super.toString}[${idx}]"
 }
-case class TokenDownLUT() {
+case class TokenOutLUT(idx:Int) extends LUT{
+  override val typeStr = "tolut"
+  override def toString = s"${super.toString}[${idx}]"
+  override val numIns = 2
 }
-case class UDCounter(idx:Int) {
+case class TokenDownLUT(numIns:Int) extends LUT {
+  override val typeStr = "tdlut"
+}
+case class UDCounter(idx:Int) extends Node {
+  override val typeStr = "udlut"
+  override def toString = s"${super.toString}[${idx}]"
   //val init = InPort(this, s"${this}.init")
   //val inc = InPort(this, s"${this}.inc")
   //val dec = InPort(this, s"${this}.dec")
   //val out = OutPort(this, s"${this}.out")
 }
 
-case class CtrlBox(numEnLUTs:Int, numTokOutLUTs:Int, numTokenIns:Int) extends Node {
+case class CtrlBox(numCtrs:Int, numTokenIns:Int, numTokenOuts:Int) extends Node {
+  val tokenIns = List.tabulate(numTokenIns) {i => BusInPort(i)}
+  val tokenOuts = List.tabulate(numTokenOuts) {i => BusOutPort(i)}
+  val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs
-  val numTokOuts = numTokOutLUTs + 1
+  val numTokOutLUTs = numTokenOuts - 1
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
-  val tokDownLUTs = TokenDownLUT()
+  val tokDownLUT = TokenDownLUT(1 + numUDCs)
   val tokOutLUTs = List.tabulate(numTokOutLUTs) { i => TokenOutLUT(i) }
-  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(i) }
+  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(i, numUDCs) }
+  def luts:List[LUT] = enLUTs ++ tokOutLUTs :+ tokDownLUT
 }

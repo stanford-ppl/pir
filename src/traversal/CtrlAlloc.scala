@@ -48,11 +48,16 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val cds = cu.ctrlBox.creditBuffers.map(_._2.out).toList
           val ins = tks ++ cds
           val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, ins) =>
-            //val tkIns = tks.map(tk => ins(map(tk)))
-            //val cdIns = cds.map(cd => ins(map(cd)))
             ins.reduce(_ && _)
           }
-          en.connect(EnLUT(cu, ins, tf))
+          EnLUT(cu, ins, tf, en)
+          cu match {
+            case tt:TileTransfer => 
+              //TODO
+              //val streamcc = tt.streamCChain
+              //EnLUT(cu, ins, tf, streamcc.inner.en)
+            case _ =>
+          }
         case _ =>
           val lasts = cu.children.filter(_.isTail)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
@@ -81,9 +86,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           }
           case t:Top => 
             val done = cu.ctrlBox.outerCtrDone
-            val tf = TransferFunction(s"${done}") { case (map, ins) =>
-              ins(map(done))
-            }
+            val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
             cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
           case _ =>
       }
@@ -127,9 +130,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         val last = lasts.head
         if (cu!=last) {
           tk.inc.connect(last.ctrlBox.tokenOut)
-          cu.ctrlBox.creditBuffers.foreach { case (deped, cd) =>
-            cd.inc.connect(deped.asInstanceOf[ComputeUnit].ctrlBox.outerCtrDone) 
-          }
         }
         val tokenDown = cu.parent match {
           case t:Top => t.command
@@ -144,7 +144,9 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         }
       }
       cu.ctrlBox.creditBuffers.foreach { case (deped, cd) =>
-        cd.inc.connect(deped.asInstanceOf[ComputeUnit].ctrlBox.outerCtrDone)
+        val done = deped.asInstanceOf[ComputeUnit].ctrlBox.outerCtrDone
+        val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+        cd.inc.connect(TokenOutLUT(deped, done::Nil, tf)) 
       }
     }
     design.top.status.connect(design.top.children.head.ctrlBox.outerCtrDone)
@@ -192,32 +194,4 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   override def finPass = {
     info("Finishing control logic allocation")
   }
-}
-object CtrlCodegen {
-  def lookUp(numBits:Int, transFunc: List[Boolean] => Boolean):List[Boolean] = {
-    val size:Int = Math.pow(2, numBits).toInt
-    val table = ListBuffer[Boolean]()
-    for (i <- 0 until size) {
-      var inputs = i.toBinaryString.toList.map(_ == '1') // Boolean inputs
-      inputs = List.fill(numBits-inputs.size)(false) ++ inputs
-      table += transFunc(inputs)
-    }
-    table.toList
-  }
-  def printTable(table:List[Boolean]) = {
-    val size = table.size
-    val numBits = Math.ceil(Math.log(size)/Math.log(2)).toInt
-    println(s"----- Start ------")
-    for (i <- 0 until size) {
-      println(f"${int2Bin(i, numBits+1)} ${bool2Bin(table(i))}")
-    }
-    println(s"----- End ------")
-  }
-
-  def int2Bin(i:Int, width:Int):String = {
-    val fmt = s"%${width}s"
-    String.format(fmt, Integer.toBinaryString(i)).replace(' ', '0')
-  }
-
-  def bool2Bin(i:Boolean):String = if (i) "1" else "0"
 }

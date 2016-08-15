@@ -155,13 +155,13 @@ object Config0 extends Spade {
       srams.foreach { _.writeAddr <== stage.fu.out }
     }
     
-    val ctrlBox = CtrlBox(numEnLUTs = numCtrs, numTokOutLUTs = 3, numTokenIns = 4)
+    val ctrlBox = CtrlBox(numCtrs = numCtrs, numTokenOuts =numCtrs, numTokenIns=numCtrs)
     (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr)
   }
 
   override val rcus = List.tabulate(numRCUs) { i =>
     val numPRs = 20
-    val numCtrs = 4
+    val numCtrs = 8
     val numSRAMs = 2
     val numScalarOuts = numLanes
 
@@ -174,7 +174,7 @@ object Config0 extends Spade {
 
   override val ttcus = List.tabulate(numTTs) { i =>
     val numPRs = 15
-    val numCtrs = 4
+    val numCtrs = 8
     val numSRAMs = 0
     val numScalarOuts = 1
 
