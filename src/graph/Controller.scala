@@ -61,6 +61,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   val dependeds = ListBuffer[ComputeUnit]()
   def isHead = (dependencies.size==0)
   def isTail = (dependeds.size==0)
+  def isUnitStage = isHead && isTail
 
   val ctrlBox = CtrlBox() 
 
@@ -78,7 +79,7 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
 
   def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
   lazy val localCChain:CounterChain = {
-    val locals = cchains.filter { cc => cc.copy.isEmpty }
+    val locals = cchains.filter { cc => cc.copy.isEmpty && !cc.streaming }
     if (locals.size!=1)
       throw PIRException(s"Currently assume each CU have exactly 1 local counterchain. locals:${locals}")
     locals.head
@@ -458,7 +459,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   }
 
   def streamCChain:CounterChain = {
-    val ccs = cchains.filter(cc => cc.isStreaming)
+    val ccs = cchains.filter(cc => cc.streaming)
     assert(ccs.size==1)
     ccs.head
   }

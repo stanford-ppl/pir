@@ -17,8 +17,8 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
   
   def emitCU(cu:ComputeUnit)(block: => Any) = {
     emitBlock(s"${cu}") {
-      emitln(s"ctrlBox.en: ${cu.ctrlBox.innerCtrEn}")
-      emitln(s"ctrlBox.done: ${cu.ctrlBox.outerCtrDone}")
+      //emitln(s"ctrlBox.en: ${cu.ctrlBox.innerCtrEn}")
+      //emitln(s"ctrlBox.done: ${cu.ctrlBox.outerCtrDone}")
       cu.cchains.foreach { cc =>
         emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
           cc.counters.foreach { ctr =>

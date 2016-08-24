@@ -88,6 +88,15 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+	def lookUp(banking: Banking):String = {
+    banking match {
+      case Strided(stride) => s"b${stride}"
+      case Diagonal(stride1, stride2) => throw new TODOException(s"Don't support diagonal banking at the moment") 
+      case Duplicated() => s"c" 
+      case NoBanking() => s"no" 
+    }
+	}
+
   /*
    * @param pstage current stage
    * @param pn
@@ -219,11 +228,19 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       }
                       emitPair("wd", wd)
                       emitPair("wen",lookUp(sram.writeCtr))
+                      emitPair("banking", lookUp(sram.banking))
+                      emitPair("dblBuf", sram.doubleBuffer.toString)
+                      emitPair("rswap", lookUp(sram.swapRead))
+                      emitPair("rswap", lookUp(sram.swapWrite))
                     } else {
                       emitPair("ra", "x")
                       emitPair("wa", "x")
                       emitPair("wd", "x")
                       emitPair("wen", "x")
+                      emitPair("banking", "x")
+                      emitPair("dblBuf", "false")
+                      emitPair("rswap", "x")
+                      emitPair("rswap", "x")
                     }
                   }
                 }
@@ -316,8 +333,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                             emitPair("accumInit", s"c${inits.head}")
                         } else {
                           emitPair("stage", s"${pstage} <- no map")
-                          val cu = clmap.pmap(pcu).asInstanceOf[CU]
-                          emitPair(s"en", lookUp(cu.localCChain.inner))
+                          if (clmap.pmap.contains(pcu)) {
+                            val cu = clmap.pmap(pcu).asInstanceOf[CU]
+                            emitPair(s"en", lookUp(cu.localCChain.inner))
+                          }
                           emitPair("opA", "x")
                           emitPair("opB", "x")
                           emitPair("opcode", "x")
@@ -448,7 +467,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitList("enableLUT") { implicit ms =>
                   pcu.ctrlBox.enLUTs.foreach { penlut => 
                     val table = if (!lumap.pmap.contains(penlut)) {
-                      CtrlCodegen.lookUpX(penlut.numIns)
+                      s"""["x"]"""
                     } else {
                       val enlut = lumap.pmap(penlut)
                       val udcs = enlut.ins.map(_.from.src.asInstanceOf[UDC])

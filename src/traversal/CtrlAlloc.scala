@@ -53,9 +53,8 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           EnLUT(cu, ins, tf, en)
           cu match {
             case tt:TileTransfer => 
-              //TODO
-              //val streamcc = tt.streamCChain
-              //EnLUT(cu, ins, tf, streamcc.inner.en)
+              val streamcc = tt.streamCChain
+              EnLUT(cu, ins, tf, streamcc.inner.en)
             case _ =>
           }
         case _ =>
@@ -69,26 +68,31 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   }
   def genTokenOut:Unit = {
     design.top.compUnits.foreach { implicit cu =>
-      cu.parent match {
-        case parent:ComputeUnit =>
-          if (!cu.isTail) {
-            val done = cu.ctrlBox.outerCtrDone
-            val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
-          } else {
-            val c = cu.ctrlBox.outerCtrDone
-            val p = parent.ctrlBox.outerCtrDone
-            val ins = c::p::Nil
-            val tf = TransferFunction(s"!${p} && ${c}") { case (map, ins) =>
-              !ins(map(p)) && ins(map(c))
+      if (cu.isUnitStage) {
+        cu.ctrlBox.tokenOut = None 
+      } else {
+        cu.parent match {
+          case parent:ComputeUnit =>
+            if (!cu.isTail) {
+              val done = cu.ctrlBox.outerCtrDone
+              val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+              cu.ctrlBox.tokenOut = Some(TokenOutLUT(cu, done::Nil, tf))
+            } else {
+              //TODO: don't need this tokenout if cu.parent is unit controller
+              val c = cu.ctrlBox.outerCtrDone
+              val p = parent.ctrlBox.outerCtrDone
+              val ins = c::p::Nil
+              val tf = TransferFunction(s"!${p} && ${c}") { case (map, ins) =>
+                !ins(map(p)) && ins(map(c))
+              }
+              cu.ctrlBox.tokenOut = Some(TokenOutLUT(cu, ins, tf))
             }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, ins, tf)
-          }
           case t:Top => 
-            val done = cu.ctrlBox.outerCtrDone
-            val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-            cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
+            //val done = cu.ctrlBox.outerCtrDone
+            //val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+            //cu.ctrlBox.tokenOut = TokenOutLUT(cu, done::Nil, tf)
           case _ =>
+        }
       }
     }
   }
@@ -101,21 +105,23 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         if (cu.isHead) {
           val init:OutPort = cu.parent match {
             case t:Top => t.command 
-            case c:ComputeUnit => c.ctrlBox.tokenDown 
+            case c:ComputeUnit => c.ctrlBox.tokenDown.get
             case _ => throw PIRException(s"unknown parent type")
           } 
           val tos = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
           val tf = TransferFunction(s"${init} || ${tos.mkString( "&&")}") { case (map, ins) =>
             ins(map(init)) || tos.map(to => ins(map(to))).reduce(_ && _)
           }
-          cu.ctrlBox.tokenDown = TokenDownLUT(cu, init::tos, tf)
+          cu.ctrlBox.tokenDown = Some(TokenDownLUT(cu, init::tos, tf))
         } else {
           val tos = cu.ctrlBox.tokenBuffers.map { case (dep, tk) => tk.out }.toList
           val tf = TransferFunction(s"${tos.mkString( "&&")}") { case (map, ins) =>
             tos.map(to => ins(map(to))).reduce(_ && _)
           }
-          cu.ctrlBox.tokenDown = TokenDownLUT(cu, tos, tf)
+          cu.ctrlBox.tokenDown = Some(TokenDownLUT(cu, tos, tf))
         }
+      } else {
+        cu.ctrlBox.tokenDown = None 
       }
       queue ++= cu.children
     }
@@ -123,24 +129,22 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   def connectInputs = {
     design.top.compUnits.foreach { implicit cu =>
       if (cu.isHead) {
-        // Assume a single last stage, which means a single tokenbuffer for first stage
         val tk = cu.ctrlBox.tokenBuffers.head._2
         val lasts = cu.parent.children.filter(_.isTail)
-        assert(lasts.size==1)
+        assert(lasts.size==1) // TODO: Assume a single last stage, which means a single tokenbuffer for first stage
         val last = lasts.head
-        if (cu!=last) {
-          tk.inc.connect(last.ctrlBox.tokenOut)
+        if (cu!=last) { // Avoid single stage case
+          tk.inc.connect(last.ctrlBox.tokenOut.get)
         }
         val tokenDown = cu.parent match {
           case t:Top => t.command
-          case c:ComputeUnit => c.ctrlBox.tokenDown
+          case c:ComputeUnit => c.ctrlBox.tokenDown.get
           case _ => throw PIRException(s"unknown parent type")
         }
         tk.init.connect(tokenDown)
       } else {
         cu.ctrlBox.tokenBuffers.foreach { case (dep, tk) =>
-          val dto = dep.asInstanceOf[ComputeUnit].ctrlBox.tokenOut
-          tk.inc.connect(dep.asInstanceOf[ComputeUnit].ctrlBox.tokenOut)
+          tk.inc.connect(dep.asInstanceOf[ComputeUnit].ctrlBox.tokenOut.get)
         }
       }
       cu.ctrlBox.creditBuffers.foreach { case (deped, cd) =>

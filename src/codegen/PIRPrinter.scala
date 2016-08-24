@@ -98,6 +98,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
       case n:Stage => emitBlock(s"${node}${genFields(node)}", node)
+      case n:UDCounter => // printed in Ctrl.txt
       case _ => emitln(s"${node}${genFields(node)}")
     }
   }
@@ -143,7 +144,8 @@ object PIRPrinter {
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
             fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
             fields += s"banking=${p.banking}, dblBuf=${p.doubleBuffer}"
-            fields += s"writeCtr=${p.writeCtr}, swapCtr=${p.swapCtr}"
+            fields += s"writeCtr=${p.writeCtr}, swapRead=${p.swapRead}, "
+            fields += s"swapWrite=${p.swapWrite}"
           case p:Stage =>
             p.fu.foreach { fu =>
               fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
@@ -165,8 +167,8 @@ object PIRPrinter {
           case p:Counter => 
             fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
             fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
-          case p:UDCounter => 
-            fields += s"init=${p.initVal}"
+          //case p:UDCounter => 
+          //  fields += s"init=${p.initVal}"
           case p:Reg => p match {
             case r:PipeReg =>
             case r:Const => fields += s"${r.value}"

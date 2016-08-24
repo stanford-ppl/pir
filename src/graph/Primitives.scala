@@ -29,7 +29,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   var copy:Option[CounterChain] = None
   var isCopy = false
   val wasrams = ListBuffer[SRAM]()
-  var isStreaming = false
+  var streaming = false
+  def isStreaming(s:Boolean) = streaming = s
 
   override def toUpdate = super.toUpdate
 
@@ -148,7 +149,7 @@ object Counter{
  *  @param Size: size of SRAM in all dimensions 
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
-  writeCtr:Counter, swapCtr:Counter)(implicit override val ctrler:ComputeUnit, design: Design) 
+  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:ComputeUnit, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -187,31 +188,32 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
   def wtPort(vec:Vector):SRAM = wtPort(ctrler.vecIn(vec).out)
 
   def load = readPort
+
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr)
-  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapCtr:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapCtr).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
+  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive
@@ -583,9 +585,9 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     case cu:InnerComputeUnit => cu.localCChain.outer.done 
     case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).outer.done
   }
-  var tokenOut:OutPort = _ 
+  var tokenOut:Option[OutPort] = _ 
   // only outer controller have token down, which is the init signal first child stage
-  var tokenDown:OutPort = _
+  var tokenDown:Option[OutPort] = _
 
   def getTokenIns:List[InPort] = {
     val tokenIns = ListBuffer[InPort]()
@@ -621,8 +623,8 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   }
   def getTokenOuts:List[OutPort] = {
     val tos = ListBuffer[OutPort]()
-    if (tokenOut!=null) tos += tokenOut
-    if (tokenDown!=null) tos += tokenDown
+    tokenOut.foreach { to => tos += to }
+    tokenDown.foreach { td => tos += td }
     if (cu.isInstanceOf[InnerComputeUnit]) {
       cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
         if (en.src.ctrler!=cu) tos += enlut.out 
@@ -638,6 +640,6 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     tos.toList
   }
 
-  override def toUpdate = super.toUpdate || tokenOut == null
+  override def toUpdate = super.toUpdate || tokenOut == null || tokenDown == null
 }
 

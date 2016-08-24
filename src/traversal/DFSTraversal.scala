@@ -46,7 +46,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         case p:VecIn =>
         case p:VecOut =>
         case p:Stage =>
-        case p:TokenBuffer =>
+        case p:UDCounter =>
         case p:Reg => p match {
           case r:PipeReg =>
           case r:Const =>
@@ -54,8 +54,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
           case r:ArgOut =>
         }
       }
-      case _ =>
-        throw new Exception(s"Don't know how to visit $node")
+      case _ => throw new Exception(s"Don't know how to visit $node")
     }
     visited += node
   }

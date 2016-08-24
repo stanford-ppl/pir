@@ -63,8 +63,8 @@ object DotProductCompilerDesign extends PIRApp {
       val x1027 = (Const("0i").out, Const("19200i").out, Const("1i").out) // Counter
       val x1028 = CounterChain(name = "x1028", x1027)
       val x1000 = CounterChain.copy(x998, "x1000")
-      val x995_x1035 = SRAM(size = 19200, swapCtr = x1000(0), writeCtr = x1000(0), banking = Strided(1), doubleBuffer = true).wtPort(x997_vector).rdAddr(x1028(0)).wtAddr(x1000(0))
-      val x996_x1036 = SRAM(size = 19200, swapCtr = x1014(0), writeCtr = x1014(0), banking = Strided(1), doubleBuffer = true).wtPort(x1011_vector).rdAddr(x1028(0)).wtAddr(x1014(0))
+      val x995_x1035 = SRAM(size = 19200, swapRead=x1028.outer, swapWrite = x1000(0), writeCtr = x1000(0), banking = Strided(1), doubleBuffer = true).wtPort(x997_vector).rdAddr(x1028(0)).wtAddr(x1000(0))
+      val x996_x1036 = SRAM(size = 19200, swapRead=x1028.outer, swapWrite = x1014(0), writeCtr = x1014(0), banking = Strided(1), doubleBuffer = true).wtPort(x1011_vector).rdAddr(x1028(0)).wtAddr(x1014(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(x995_x1035.load, x996_x1036.load), op=FixMul, results=List(CU.reduce(stage(1))))
