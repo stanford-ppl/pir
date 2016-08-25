@@ -119,7 +119,6 @@ object PIRPrinter {
     node match {
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
-        fields += s"type=${n.tpe}"
         fields += s"dep=[${n.dependencies.mkString(",")}]"
         fields += s"deped=[${n.dependeds.mkString(",")}]"
         n match {

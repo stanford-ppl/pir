@@ -3,15 +3,15 @@ package pir.graph
 sealed trait Op 
 case object Mux extends Op
 case object Bypass extends Op
-case object BitAnd extends Op
-case object BitOr  extends Op
+case object BitAnd extends Op // &
+case object BitOr  extends Op // |
 
 sealed trait FixOp extends Op 
 case object FixAdd extends FixOp 
 case object FixSub extends FixOp 
 case object FixMul extends FixOp 
 case object FixDiv extends FixOp 
-case object FixMin extends FixOp 
+case object FixMin extends FixOp
 case object FixMax extends FixOp 
 case object FixLt  extends FixOp
 case object FixLeq extends FixOp

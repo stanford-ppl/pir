@@ -12,8 +12,7 @@ import scala.util.{Try, Success, Failure}
 trait Mapper {
   type M = PIRMap 
 
-  implicit var design:Design = _
-  def setDesign(d:Design) = design = d
+  implicit val design:Design
   
   override def toString = this.getClass().getSimpleName() 
 
@@ -29,7 +28,7 @@ trait Mapper {
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
   def simAneal[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], finPass: Option[M => M], 
+    constrains:List[(N, R, M) => M], finPass: M => M, 
     oor:(Int, Int) => OutOfResource):M = {
 
     /* Recursively try a node on a list of resource */
@@ -55,7 +54,7 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return finPass.fold(recmap)(p => p(recmap)) // throw MappingException
+        return finPass(recmap) // throw MappingException
       }
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 
@@ -92,7 +91,7 @@ trait Mapper {
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
   def inordBind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], finPass: Option[M => M], 
+    constrains:List[(N, R, M) => M], finPass: M => M, 
     oor:(Int, Int) => OutOfResource):M = {
 
     /* Recursively try a node on a list of resource */
@@ -118,7 +117,7 @@ trait Mapper {
     /* Recursively map a list of nodes to a list of resource */
     def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return finPass.fold(recmap)(p => p(recmap))
+        return finPass(recmap) // throw MappingException
       }
       val n::rt = remainNodes
       val restNodes = rt

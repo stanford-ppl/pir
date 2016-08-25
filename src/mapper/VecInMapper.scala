@@ -8,11 +8,11 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-object VecInMapper extends Mapper {
+class VecInMapper(implicit val design:Design) extends Mapper {
   type R = PIB
   type N = I
 
-  val finPass:Option[M => M] = None
+  def finPass(cl:CL)(m:M):M = m
 
   def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
@@ -23,7 +23,7 @@ object VecInMapper extends Mapper {
       case _ => cl.vins ++ cl.sins
     }
     val pvins = pcl.vins
-    val pmap = simAneal(pvins, ins, pirMap, cons, finPass, OutOfVec(cl, pcl, _, _))
+    val pmap = simAneal(pvins, ins, pirMap, cons, finPass(cl) _, OutOfVec(cl, pcl, _, _))
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
       if (pirMap.clmap.contains(reader)) {
         val rins = reader.vins ++ reader.sins
@@ -66,10 +66,10 @@ object VecInMapper extends Mapper {
 }
 
 case class IntConnct(cl:CL, pcl:PCL)(implicit design:Design) extends MappingException {
-  override val mapper = VecInMapper 
+  override val mapper = null 
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }
 case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = VecInMapper
+  override val mapper = null 
   override val msg = s"Not enough InBus IO in ${pcl} to map ${cl}."
 }

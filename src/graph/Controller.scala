@@ -49,7 +49,7 @@ abstract class Controller(implicit design:Design) extends Node {
                                  vinMap.keys.map(_.writer.ctrler).toList
 }
 
-class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit design: Design) extends Controller { self =>
+class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller { self =>
   override implicit val ctrler:ComputeUnit = self
   override val typeStr = "CU"
 
@@ -107,8 +107,8 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
     super.toUpdate || parent==null || cchains==null || srams==null
   }
 
-  def this(name: Option[String], tpe:CtrlType, cchains:List[CounterChain], srams:List[SRAM]) (implicit design: Design) = {
-    this(name, tpe)
+  def this(name: Option[String], cchains:List[CounterChain], srams:List[SRAM]) (implicit design: Design) = {
+    this(name)
   }
 
   def updateFields(cchains:List[CounterChain], srams:List[SRAM]):this.type = {
@@ -381,21 +381,12 @@ class ComputeUnit(override val name: Option[String], val tpe:CtrlType)(implicit 
   def apply(block:this.type => Any) (implicit design:Design):this.type =
     updateBlock(block)
 }
-
-trait InnerComputeUnit extends ComputeUnit {
-  /* List of outer controllers reside in current inner*/
-  var outers:List[OuterComputeUnit] = Nil
-}
-trait OuterComputeUnit extends ComputeUnit {
-  var inner:InnerComputeUnit = _
-  override def toUpdate = super.toUpdate || inner == null
-}
-
 object ComputeUnit {
   def apply(name: Option[String], tpe:CtrlType)(implicit design: Design):ComputeUnit = {
     tpe match {
-      case Pipe => new ComputeUnit(name, tpe) with InnerComputeUnit
-      case _ => new ComputeUnit(name, tpe) with OuterComputeUnit
+      case Pipe => new ComputeUnit(name) with InnerComputeUnit
+      case Sequential => new ComputeUnit(name) with SequentialComputeUnit
+      case MetaPipeline => new ComputeUnit(name) with MetaPipelineComputeUnit 
     }
   }
   def apply[P,D](name: Option[String], tpe:CtrlType, parent:P, deps:List[D]) (implicit design: Design, dtp:TypeTag[D]):ComputeUnit = {
@@ -414,8 +405,24 @@ object ComputeUnit {
   }
 }
 
-/* Corresponding to inner loop unit pipe */
-class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends ComputeUnit(name, Pipe) with InnerComputeUnit { self =>
+trait InnerComputeUnit extends ComputeUnit {
+  override val typeStr = "PipeCU"
+  /* List of outer controllers reside in current inner*/
+  var outers:List[OuterComputeUnit] = Nil
+}
+trait OuterComputeUnit extends ComputeUnit {
+  var inner:InnerComputeUnit = _
+  override def toUpdate = super.toUpdate || inner == null
+}
+trait SequentialComputeUnit extends OuterComputeUnit {
+  override val typeStr = "SeqCU"
+}
+trait MetaPipelineComputeUnit extends OuterComputeUnit {
+  override val typeStr = "MetaPipeCU"
+}
+
+/* Inner Unit Pipe */
+class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends ComputeUnit(name) with InnerComputeUnit { self =>
   override val typeStr = "UnitCompUnit"
   def updateBlock(block: UnitComputeUnit => Any)(implicit design: Design):UnitComputeUnit = {
     val (cchains, srams) = 
@@ -443,7 +450,7 @@ object UnitComputeUnit {
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends ComputeUnit(name, Pipe) with InnerComputeUnit {
+  (implicit design:Design) extends ComputeUnit(name) with InnerComputeUnit {
 
   /* Fields */
   val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
@@ -460,7 +467,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
 
   def streamCChain:CounterChain = {
     val ccs = cchains.filter(cc => cc.streaming)
-    assert(ccs.size==1)
+    assert(ccs.size==1, s"streaming ctrs in ${this}: ${ccs}")
     ccs.head
   }
 

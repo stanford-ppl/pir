@@ -15,19 +15,19 @@ import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 import scala.util.{Try, Success, Failure}
 
-object StageMapper extends Mapper {
+class StageMapper(implicit val design:Design) extends Mapper {
   type R = PST
   type N = ST
 
-  val finPass = None
+  def finPass(cu:CU)(m:M):M = m
 
   def map(cu:CU, cuMap:M):M = {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
-    var cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), finPass, OutOfStage(pcu, cu, _, _))
+    var cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), (m:M) => m, OutOfStage(pcu, cu, _, _))
     cmap = Try { //TODO: Currently if fail take a while to finish 
-      inordBind(pfusts, fusts, cmap, List(mapStage _), finPass, OutOfStage(pcu, cu, _, _))
+      inordBind(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, OutOfStage(pcu, cu, _, _))
     } match  {
       case Success(m) => m
       case Failure(e) => 
@@ -84,7 +84,7 @@ object StageMapper extends Mapper {
     val oprds = fu.operands
     val poprds = pfu.operands
     val oprdCons = List(mapInPort _)
-    simAneal(poprds, oprds, map, oprdCons, None, OutOfOperand(p, n, _, _))
+    simAneal(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
   }
 
   def mapFUOut(n:ST, p:PST, map:M):M = {
@@ -183,26 +183,26 @@ object StageMapper extends Mapper {
 
 }
 case class OutOfStage(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = StageMapper
+  override val mapper = null 
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
 case class OpNotSupported(ps:PST, s:ST)(implicit design:Design) extends MappingException {
-  override val mapper = StageMapper
+  override val mapper = null 
   override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
 }
 case class OutOfPipeReg(ps:PST, s:ST, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = StageMapper
+  override val mapper = null 
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."
 }
 case class OutOfOperand(ps:PST, s:ST, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = StageMapper
+  override val mapper = null 
   override val msg = s"Not enough operands in ${ps} to map ${s}."
 }
 case class StageRouting(n:ST, p:PST)(implicit design:Design) extends MappingException {
-  override val mapper = StageMapper 
+  override val mapper = null 
   override val msg = s"Fail to map ${n} to ${p}"
 }
 case class InPortRouting(n:IP, p:PIP, info:String)(implicit design:Design) extends MappingException {
-  override val mapper = StageMapper 
+  override val mapper = null 
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }

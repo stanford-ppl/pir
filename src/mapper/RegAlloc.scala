@@ -9,11 +9,13 @@ import pir.graph.mapper._
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}
 
-object RegAlloc extends Mapper {
+class RegAlloc(implicit val design:Design) extends Mapper {
   type R = PReg
   type N = Reg
 
   type RC = MMap[Reg, PReg]
+
+  def finPass(cu:CU)(m:M):M = m
 
   private def preColorAnalysis(cu:CU, pirMap:M):RC = {
     val rc:RC = MMap.empty // Color Map
@@ -87,14 +89,12 @@ r       case VecInPR(regId, vecIn) =>
     val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
     val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
     val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-    //val finPass:Option[M=>M] = Some(StageMapper.map(cu, _))
-    val finPass:Option[M=>M] = None 
-    simAneal(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass, OutOfReg(pcu, _, _))
+    simAneal(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _, OutOfReg(pcu, _, _))
   } 
 }
 
 trait PreColorException extends MappingException {
-  override val mapper = RegAlloc
+  override val mapper = null 
 }
 case class PreColorSameReg(reg:Reg)(implicit design:Design) extends PreColorException{
   override val msg = s"${reg} has more than 1 predefined color" 
@@ -103,10 +103,10 @@ case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit design:Design) ext
   override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color $c" 
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit design:Design) extends MappingException{
-  override val mapper = RegAlloc
+  override val mapper = null 
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "
 }
 case class OutOfReg(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource{
-  override val mapper = RegAlloc
+  override val mapper = null 
   override val msg = s"Not enough pipeline registers in ${pcu} to map application."
 }

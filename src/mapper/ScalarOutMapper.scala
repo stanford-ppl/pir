@@ -10,12 +10,12 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-object ScalarOutMapper extends Mapper {
+class ScalarOutMapper(implicit val design:Design) extends Mapper {
   type N = SO 
   type R = PSO 
   type V = PSO 
 
-  val finPass = None
+  def finPass(cl:CL)(m:M):M = m
 
   private def mapScalarOuts(cl:CL)(n:N, p:R, cuMap:M):M = {
     cl match {
@@ -33,11 +33,11 @@ object ScalarOutMapper extends Mapper {
     val souts = cl.souts
     val psouts = pcl.souts
     val cons = List(mapScalarOuts(cl) _)
-    simAneal(psouts, souts, cuMap, cons, finPass, OutOfScalarOut(pcl, _, _))
+    simAneal(psouts, souts, cuMap, cons, finPass(cl) _, OutOfScalarOut(pcl, _, _))
   }
 }
 
 case class OutOfScalarOut(pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = ScalarOutMapper 
+  override val mapper = null 
   override val msg = s"Not enough Scalar Outputs Buffer in ${pcl} to map application."
 }

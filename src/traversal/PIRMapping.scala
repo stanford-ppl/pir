@@ -32,22 +32,51 @@ class PIRMapping(implicit val design: Design) extends Traversal{
 
   def failed = !success
 
+  val siMapper = new ScalarInMapper()
+  val sramMapper = new SRAMMapper()
+  val regAlloc = new RegAlloc()
+  val stageMapper = new StageMapper()
+  val soMapper = new ScalarOutMapper()
+  val viMapper = new VecInMapper()
+  val ctrlMapper = new CtrlMapper() {
+    override def finPass(cu:ComputeUnit)(m:M):M =  { stageMapper.map(cu, regAlloc.map(cu, m)) }
+  }
+  val ctrMapper = new CtrMapper() { 
+    override def finPass(cu:ComputeUnit)(m:M):M = ctrlMapper.map(cu, m)
+  }
+  val cuMapper = new CUMapper(soMapper, viMapper) {
+    override def finPass(m:M):M = {
+      var cmap = m 
+      Try {
+        cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
+          cmap = siMapper.map(ctrler, cmap)
+          ctrler match {
+            case cu:ComputeUnit =>
+              cmap = sramMapper.map(cu, cmap)
+              cmap = ctrMapper.map(cu, cmap)
+            case _ => pm
+          }
+          cmap
+        }
+      } match {
+        case Success(m) => return m
+        // TODO: at the moment if prim failed. stop trying
+        case Failure(e) =>
+          e.printStackTrace
+          MapPrinter.printMap(cmap)(design)
+          System.exit(-1)
+          throw e
+      }
+    }
+  }
+
   override def reset = {
     mapping = null
     success = false
-    CUMapper.setDesign(design)
-    CtrMapper.setDesign(design)
-    CtrlMapper.setDesign(design)
-    SRAMMapper.setDesign(design)
-    ScalarInMapper.setDesign(design)
-    ScalarOutMapper.setDesign(design)
-    VecInMapper.setDesign(design)
-    RegAlloc.setDesign(design)
-    StageMapper.setDesign(design)
   }
 
   override def traverse = {
-    Try(mapping = CUMapper.map) match {
+    Try(mapping = cuMapper.map) match {
       case Success(_) =>
         success = true
         info(s"Mapping succeeded") 

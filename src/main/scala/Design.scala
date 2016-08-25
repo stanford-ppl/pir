@@ -161,14 +161,17 @@ trait Design { self =>
   var top:Top = _
   val mapExceps = ListBuffer[MappingException]()
 
+  /* Traversals */
   val traversals = ListBuffer[Traversal]()
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
   traversals += new CtrlAlloc()
+  val ctrlDotPrinter = new CtrlDotGen()
+  traversals += ctrlDotPrinter 
   traversals += new LiveAnalysis()
-  traversals += new IRCheck()
+  if (Config.debug)
+    traversals += new IRCheck()
   val pirPrinter = new PIRPrinter()
-  traversals += new CtrlDotGen()
   traversals += new CtrlPrinter()
   traversals += pirPrinter 
   traversals += new SpadeNetworkDot()
@@ -183,6 +186,7 @@ trait Design { self =>
     } catch {
       case e:PIRException => 
         if (!pirPrinter.isTraversed) pirPrinter.run
+        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
         e.printStackTrace
       case e:Throwable => throw e
     }
