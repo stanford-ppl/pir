@@ -215,7 +215,7 @@ trait Input {
   type O <: Output
   // List of connections that can map to
   val fanIns = ListBuffer[O]()
-  def connect(n:O):Unit = { if (!fanIns.contains(n)) fanIns += n }
+  def connect(n:O):Unit = fanIns += n
   def <==(n:O) = connect(n)
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${fanIns.mkString(",")}]"
@@ -224,7 +224,7 @@ trait Input {
 trait Output {
   type I <: Input
   val fanOuts = ListBuffer[I]()
-  def connectedTo(n:I):Unit = if (!fanOuts.contains(n)) fanOuts += n
+  def connectedTo(n:I):Unit = fanOuts += n
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
   def isConn(n:I):Boolean = fanOuts.contains(n)
 } 

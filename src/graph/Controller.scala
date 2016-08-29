@@ -20,26 +20,10 @@ abstract class Controller(implicit design:Design) extends Node {
   def souts = soutMap.values.toList
   def vins = vinMap.values.toList 
   def vouts = voutMap.values.toList
-  def newSin(s:Scalar):ScalarIn = {
-    if (!sinMap.contains(s))
-      sinMap += s -> ScalarIn(s)
-    sinMap(s)
-  }
-  def newSout(s:Scalar):ScalarOut = {
-    if (!soutMap.contains(s))
-      soutMap += (s -> ScalarOut(s))
-    soutMap(s) 
-  }
-  def newVin(v:Vector):VecIn = {
-    if (!vinMap.contains(v))
-      vinMap += (v -> VecIn(v))
-    vinMap(v)
-  }
-  def newVout(v:Vector):VecOut = {
-    if (!voutMap.contains(v))
-      voutMap += (v -> VecOut(v))
-    voutMap(v) 
-  }
+  def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
+  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
+  def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
+  def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
 
   val children = ListBuffer[ComputeUnit]()
 
@@ -191,49 +175,30 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
     }
   }
 
-  def pipeReg(stage:Stage, reg:Reg) = {
-    val prs = stage.prs
-    if (!prs.contains(reg))
-      prs += (reg -> PipeReg(stage, reg))
-    prs(reg)
-  }
-  def loadPR(s:SRAM):LoadPR = {
-    if (!loadRegs.contains(s)) loadRegs += (s -> LoadPR(newTemp, s.readPort))
-    loadRegs(s)
-  }
-  def storePR(s:SRAM):StorePR = {
-    if (!storeRegs.contains(s)) storeRegs += (s -> StorePR(newTemp, s.writePort))
-    storeRegs(s)
-  }
-  def wtAddrPR(s:SRAM):WtAddrPR = {
-    if (!wtAddrRegs.contains(s)) wtAddrRegs += (s -> WtAddrPR(newTemp, s.writeAddr))
-    wtAddrRegs(s)
-  }
-  def ctrPR(c:Counter):CtrPR = {
-    if (!ctrRegs.contains(c)) ctrRegs += (c -> CtrPR(newTemp, c))
-    ctrRegs(c)
-  }
+  def pipeReg(stage:Stage, reg:Reg) = stage.prs.getOrElseUpdate(reg, PipeReg(stage,reg))
+
+  def loadPR(s:SRAM):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s.readPort))
+
+  def storePR(s:SRAM):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s.writePort))
+
+  def wtAddrPR(s:SRAM):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(newTemp, s.writeAddr))
+
+  def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(newTemp, c))
+
   def accumPR(init:Const):AccumPR = {
     val acc = AccumPR(newTemp, init)
     accumRegs += acc 
     acc
   }
-  def scalarInPR(s:ScalarIn):ScalarInPR = {
-    if (!scalarIns.contains(s)) scalarIns += (s -> ScalarInPR(newTemp, s))
-    scalarIns(s)
-  }
-  def scalarOutPR(s:ScalarOut):ScalarOutPR = {
-    if (!scalarOuts.contains(s)) scalarOuts += (s -> ScalarOutPR(newTemp, s))
-    scalarOuts(s)
-  }
-  def vecInPR(v:VecIn):VecInPR =  {
-    if (!vecIns.contains(v)) vecIns += (v -> VecInPR(newTemp, v))
-    vecIns(v)
-  }
-  def vecOutPR(vo:VecOut):VecOutPR = {
-    vecOut.vecOut = vo
-    vecOut
-  }
+
+  def scalarInPR(s:ScalarIn):ScalarInPR = scalarIns.getOrElseUpdate(s, ScalarInPR(newTemp, s))
+
+  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOuts.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
+
+  def vecInPR(v:VecIn):VecInPR = vecIns.getOrElseUpdate(v, VecInPR(newTemp, v))
+
+  def vecOutPR(vo:VecOut):VecOutPR = { vecOut.vecOut = vo; vecOut }
+
   def tempPR():Reg = {
     val reg = Reg(newTemp)
     tempRegs += reg 
@@ -245,9 +210,7 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
- def load(stage:Stage, s:SRAM):PipeReg = {
-    pipeReg(stage, loadPR(s))
-  }
+ def load(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, loadPR(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that stores to the sram
   * @param stage: Stage of the pipeline register 
@@ -259,9 +222,8 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   //  val reg = wtAddr()
   //  wtAddr(stage, reg)
   //}
-  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = {
-    pipeReg(stage, reg)
-  }
+  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
+  
   //def rdAddr():RdAddrPR = RdAddrPR(newTemp)
   //def rdAddr(stage:Stage):PipeReg = {
   //  val reg = rdAddr()
@@ -277,17 +239,13 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   //  pr
   //}
   
-  def ctr(c:Counter):PipeReg = {
-    pipeReg(emptyStage, ctrPR(c))
-  }
+  def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 
   * @param stage: Stage of the pipeline register 
   * @param c: counter 
   */
-  def ctr(stage:Stage, c:Counter):PipeReg = {
-    pipeReg(stage, ctrPR(c))
-  }
+  def ctr(stage:Stage, c:Counter):PipeReg = pipeReg(stage, ctrPR(c))
   /* Create a new logical accumulator register */
   def accum(init:Const):AccumPR = accumPR(init)
   /* Create a new logical accumulator register and return a PipeReg for the stage and the created
@@ -306,9 +264,7 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   * @param stage: Stage of the pipeline register 
   * @param i: initial value
   */
-  def reduce(stage:Stage):PipeReg = {
-    pipeReg(stage, reduceReg)
-  }
+  def reduce(stage:Stage):PipeReg = pipeReg(stage, reduceReg)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
@@ -351,9 +307,7 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   * @param stage: Stage of the pipeline register 
   * @param vo: VecOut of current ComputeUnit. One per CU 
   */
-  def vecOut(stage:Stage, vo:VecOut):PipeReg = {
-    pipeReg(stage, vecOutPR(vo))
-  }
+  def vecOut(stage:Stage, vo:VecOut):PipeReg = pipeReg(stage, vecOutPR(vo))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
