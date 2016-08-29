@@ -65,11 +65,9 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   }
 }
 
-case class IntConnct(cl:CL, pcl:PCL)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class IntConnct(cl:CL, pcl:PCL)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }
-case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough InBus IO in ${pcl} to map ${cl}."
 }

@@ -38,11 +38,9 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
   }
 }
 
-case class OutOfSram(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfSram(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough SRAMs in ${pcu} to map application."
 }
-case class SRAMRouting(n:SRAM, p:PSRAM)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class SRAMRouting(n:SRAM, p:PSRAM)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }

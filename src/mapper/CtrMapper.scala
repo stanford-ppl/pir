@@ -60,11 +60,9 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class OutOfCtr(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfCtr(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough Counters in ${pcu} to map application."
 }
-case class CtrRouting(n:Ctr, p:PCtr)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class CtrRouting(n:Ctr, p:PCtr)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }

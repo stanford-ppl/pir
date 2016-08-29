@@ -60,11 +60,9 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 }
 
-case class OutOfPTT(nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfPTT(nres:Int, nnode:Int) (implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TileTransfers in ${design.arch} to map application."
 } 
-case class OutOfPCU(nres:Int, nnode:Int) (implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfPCU(nres:Int, nnode:Int) (implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
 } 

@@ -93,20 +93,16 @@ r       case VecInPR(regId, vecIn) =>
   } 
 }
 
-trait PreColorException extends MappingException {
-  override val mapper = null 
-}
-case class PreColorSameReg(reg:Reg)(implicit design:Design) extends PreColorException{
+trait PreColorException extends MappingException
+case class PreColorSameReg(reg:Reg)(implicit val mapper:Mapper, design:Design) extends PreColorException{
   override val msg = s"${reg} has more than 1 predefined color" 
 }
-case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit design:Design) extends PreColorException {
+case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit val mapper:Mapper, design:Design) extends PreColorException {
   override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color $c" 
 }
-case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit design:Design) extends MappingException{
-  override val mapper = null 
+case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit val mapper:Mapper, design:Design) extends MappingException{
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "
 }
-case class OutOfReg(pcu:PCU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource{
-  override val mapper = null 
+case class OutOfReg(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource{
   override val msg = s"Not enough pipeline registers in ${pcu} to map application."
 }

@@ -37,7 +37,6 @@ class ScalarOutMapper(implicit val design:Design) extends Mapper {
   }
 }
 
-case class OutOfScalarOut(pcl:PCL, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfScalarOut(pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough Scalar Outputs Buffer in ${pcl} to map application."
 }

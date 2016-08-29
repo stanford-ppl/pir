@@ -9,7 +9,9 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-trait Mapper {
+trait Mapper { self =>
+  implicit val mapper = self
+
   type M = PIRMap 
 
   implicit val design:Design

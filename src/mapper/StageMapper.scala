@@ -182,27 +182,21 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class OutOfStage(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfStage(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
-case class OpNotSupported(ps:PST, s:ST)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class OpNotSupported(ps:PST, s:ST)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
 }
-case class OutOfPipeReg(ps:PST, s:ST, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfPipeReg(ps:PST, s:ST, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."
 }
-case class OutOfOperand(ps:PST, s:ST, nres:Int, nnode:Int)(implicit design:Design) extends OutOfResource {
-  override val mapper = null 
+case class OutOfOperand(ps:PST, s:ST, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough operands in ${ps} to map ${s}."
 }
-case class StageRouting(n:ST, p:PST)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class StageRouting(n:ST, p:PST)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }
-case class InPortRouting(n:IP, p:PIP, info:String)(implicit design:Design) extends MappingException {
-  override val mapper = null 
+case class InPortRouting(n:IP, p:PIP, info:String)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }
