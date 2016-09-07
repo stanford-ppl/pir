@@ -1,7 +1,6 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir._
-import pir.codegen.Printer
 import pir.PIRMisc._
 import pir.plasticine.graph._
 import pir.graph._
@@ -20,7 +19,7 @@ class CollectionStatus {
     inScope = im
   }
 }
-trait JsonCodegen extends Traversal with Printer {
+trait JsonCodegen extends Printer {
   def emitComma(implicit ms:CollectionStatus) = { 
     if (ms.inScope) { 
       if (ms.firstPair) ms.firstPair = false 

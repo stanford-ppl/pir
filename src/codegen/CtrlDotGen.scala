@@ -1,7 +1,7 @@
 package pir.graph.traversal
 
 import pir._
-import pir.codegen.Printer
+import pir.codegen._
 import pir.PIRMisc._
 import pir.graph._
 
@@ -9,73 +9,9 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import java.io.File
+import scala.language.implicitConversions
 
-case class DotAttr() {
-  val attrMap:Map[String, String] = Map.empty 
-  def setShape(s:String) = { attrMap += "shape" -> s; this }
-  def setColor(s:String) = { attrMap += "color" -> s; this }
-  def setStyle(s:String) = { attrMap += "style" -> s; this }
-  def setLabel(s:String) = { attrMap += "label" -> s; this }
-
-  def + (rec:(String, String)):DotAttr = { attrMap += rec; this}
-
-  def list = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(",")
-}
-object DotEnum {
-  val Mrecord = "Mrecord"
-  val box="box"
-  val ellipse="ellipse"
-  val circle = "circle"
-  val indianred = "indianred1"
-
-	val filled = "filled"
-	val white = "white"
-	val lightgrey = "lightgrey"
-  val hexagon = "hexagon"
-  val gold = "gold"
-  val limegreen = "limegreen"
-}
-trait DotGen extends Printer {
-  import DotEnum._
-
-  val regex = "\\[[0-9]*\\]".r
-  def q(s:Any) = regex.replaceAllIn(s.toString, "")
-
-  def emitNode(n:Any, label:Any) = {
-    emitln(s"""${q(n)} [label="${q(label)}"];""")
-  }
-  def emitNode(n:Any, label:Any, attr:DotAttr) = {
-    emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
-  }
-  def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
-    emitln(s"""${q(from)} -> ${q(to)} [${attr.list}]""")
-  }
-  def emitEdge(from:Any, to:Any):Unit = {
-    emitln(s"""${q(from)} -> ${q(to)}""")
-  }
-  def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any):Unit = {
-    emitEdge(s"${from}:${ffield}", s"${to}:${tfield}")
-  }
-  def emitEdge(from:AnyVal, ffield:Any, fd:String, to:Any, tfield:Any, td:String):Unit = {
-    emitEdge(s"${from}:${ffield}:${fd}", s"${to}:${tfield}:${td}")
-  }
-
-  def emitSubGraph(n:Any, label:Any)(block: =>Any):Unit = {
-		emitSubGraph(n, label, filled, lightgrey)(block)
-	}
-  def emitSubGraph(n:Any, label:Any, style:String, color:String)(block: =>Any):Unit = {
-		emitBlock(s"""subgraph cluster_${n}""") {
-			emitln(s"""style=${style};""")
-			emitln(s"""color=${color};""")
-      emitln(s"""node [style=filled]""")
-			emitln(s"""label = "${label}";""")
-			block
-		}
-  }
-}
-
-class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
-  import DotEnum._
+class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
 
   override val stream = newStream(Config.ctrlDot)
 
@@ -91,7 +27,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
   val emittedEdges = Set[(OutPort, InPort)]() 
   def emitEdge(to:InPort):Unit = { if (to.isConnected) emitEdge(to.from, to) }
   def emitEdge(to:InPort, label:String):Unit = 
-    if (to.isConnected) emitEdge(to.from, to, DotAttr().setLabel(label))
+    if (to.isConnected) emitEdge(to.from, to, DotAttr().label(label))
   def emitEdge(to:InPort, attr:DotAttr):Unit = 
     if (to.isConnected) emitEdge(to.from, to, attr)
   def emitEdge(from:OutPort, to:InPort):Unit = {
@@ -113,25 +49,25 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
     design.top.compUnits.foreach { cu =>
       /* Emit nodes in cluster */
 			emitSubGraph(cu, cu) {
-      	emitNode(cu, cu.ctrlBox, DotAttr().setShape(Mrecord).setColor(white))
+      	emitNode(cu, cu.ctrlBox, DotAttr().shape(Mrecord).color(white))
         cu.ctrlBox.tokenBuffers.foreach{ case (dep, t) =>
           val label = s"{${t}|init=${t.initVal}|dep=${t.dep}}"
-          emitNode(t, label, DotAttr().setShape(Mrecord).setColor(gold))
+          emitNode(t, label, DotAttr().shape(Mrecord).color(gold))
         }
         cu.ctrlBox.creditBuffers.foreach { case (deped, c) =>
           val label = s"{${c}|init=${c.initVal}|deped=${c.deped}}"
-          emitNode(c, label, DotAttr().setShape(Mrecord).setColor(limegreen))
+          emitNode(c, label, DotAttr().shape(Mrecord).color(limegreen))
         }
         cu.ctrlBox.luts.foreach { lut =>
           val label = s"{${lut}|tf=${lut.transFunc.info}}"
-          emitNode(lut, label, DotAttr().setShape(Mrecord).setColor(white))
+          emitNode(lut, label, DotAttr().shape(Mrecord).color(white))
         }
         val cchain = cu match {
           case cu:InnerComputeUnit => cu.localCChain
           case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain)
         }
         cchain.counters.foreach { c =>
-          emitNode(c, c, DotAttr().setShape(circle).setColor(indianred).setStyle(filled))
+          emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
           if (c.en.isConnected) emitEdge(c.en, "en")
         }
 			}
@@ -149,11 +85,11 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotGen {
         lut.ins.foreach { in => emitEdge(in, "in") }
       }
       if (cu.ctrlBox.innerCtrEn.isConnected) {
-        val attr = DotAttr().setColor("blue").setLabel("en")
+        val attr = DotAttr().color(blue).label("en")
         emitEdge(cu.ctrlBox.innerCtrEn, attr)
       }
-      emitEdge(cu.parent, cu, DotAttr().setStyle("bold").setColor("red"))
-      cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().setStyle("dashed")) }
+      emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
+      cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().style(dashed)) }
     }
     val command = design.top.command 
     command.to.foreach { to => emitEdge(to, "command") }

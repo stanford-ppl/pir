@@ -100,8 +100,6 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Con
   val out:CtrOutPort = CtrOutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
-  //var dep:Option[Counter] = _ // Outer counter depends on inner counter
-  //var deped:Option[Counter] = None // Inner counter is depended on outer counter
   override def toUpdate = super.toUpdate 
 
   def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {

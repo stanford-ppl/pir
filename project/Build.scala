@@ -3,7 +3,7 @@ import Keys._
 import java.io.File
 import CommandExample._
 
-object DHDLBuild extends Build {
+object PIRBuild extends Build {
 	if (System.getProperty("showSuppressedErrors") == null) System.setProperty("showSuppressedErrors", "false")
 
 	val bldSettings = Defaults.defaultSettings ++ Seq (
@@ -12,7 +12,8 @@ object DHDLBuild extends Build {
 
 		scalaVersion := "2.11.5",
 		scalaSource in Compile <<= baseDirectory(_ / "src"),
-		scalaSource in Test <<= baseDirectory(_ / "tests"),
+		scalaSource in Test <<= baseDirectory(_ / "test"),
+    logBuffered in Test := false,
 
     libraryDependencies += "org.scala-lang" % "scala-library" % "2.11.5", 
     libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.11.5",

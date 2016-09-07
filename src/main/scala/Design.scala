@@ -174,7 +174,7 @@ trait Design { self =>
   val pirPrinter = new PIRPrinter()
   traversals += new CtrlPrinter()
   traversals += pirPrinter 
-  traversals += new SpadeNetworkDot()
+  traversals += new SpadeDotGen()
   val pirMapping = new PIRMapping()
   if (Config.mapping) traversals += pirMapping 
   traversals += new PisaCodegen(pirMapping)
@@ -214,6 +214,8 @@ object PIRMisc {
   implicit def const_to_port(const:Const):OutPort = const.out
   implicit def mExcep_to_string(e:MappingException):String = e.toString
   implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
+  implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
+    (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)
   def dprintln(s:String) = if (Config.debug) println(s)
   def dprint(s:String) = if (Config.debug) print(s)
   def info(s:String) = println(s"[pir] ${s}")

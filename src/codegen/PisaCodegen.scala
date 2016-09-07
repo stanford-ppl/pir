@@ -1,7 +1,7 @@
 package pir.graph.traversal
 
 import pir._
-import pir.codegen.Printer
+import pir.codegen._
 import pir.PIRMisc._
 import pir.plasticine.graph._
 import pir.graph._

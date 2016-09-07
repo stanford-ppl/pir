@@ -144,6 +144,7 @@ trait PMap {
   def apply(k:K):V = map(k)
   val name:String = this.getClass().getSimpleName() 
   def keys = map.keys
+  def get(k:K) = map.get(k)
 
   def check(rec:(K,V)):Unit =  {
     if (map.contains(rec._1) && map(rec._1)!=rec._2)

@@ -55,8 +55,8 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
     simAneal(ptts, tts, pirMap, cons, mapRCU _, OutOfPTT(_, _))
   }
 
-  def map:M = {
-    simAneal(List(design.arch.top), List(design.top), PIRMap.empty, cons, mapTT _, OutOfPCU(_, _))
+  def map(m:M):M = {
+    simAneal(List(design.arch.top), List(design.top), m, cons, mapTT _, OutOfPCU(_, _))
   }
 }
 
