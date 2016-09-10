@@ -147,7 +147,7 @@ object Counter{
  *  @param Size: size of SRAM in all dimensions 
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
-  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:ComputeUnit, design: Design) 
+  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:InnerComputeUnit, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -190,27 +190,27 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:ComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
@@ -321,18 +321,18 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
 object Stage {
   /* No Sugar API */
   def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
-            (implicit ctrler:ComputeUnit, design:Design):Unit= {
+            (implicit ctrler:InnerComputeUnit, design:Design):Unit= {
     stage.fu = Some(new FuncUnit(stage, operands, op, results))
     ctrler.addStage(stage)
   }
   /* Sugar API */
-  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:ComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
     Stage(stage, List(op1), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:ComputeUnit, design:Design):Unit = 
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit = 
     Stage(stage, List(op1, op2), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:ComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
-  def reduce(op:Op, init:Const)(implicit ctrler:ComputeUnit, design:Design):(AccumStage, PipeReg) = {
+  def reduce(op:Op, init:Const)(implicit ctrler:InnerComputeUnit, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
@@ -340,10 +340,10 @@ object Stage {
   }
 }
 object Stages {
-  def apply(n:Int) (implicit ctrler:ComputeUnit, design: Design):List[LocalStage] = {
+  def apply(n:Int) (implicit ctrler:InnerComputeUnit, design: Design):List[LocalStage] = {
     List.tabulate(n) { i => LocalStage(None) }
   }
-  def reduce(n:Int, op:Op) (implicit ctrler:ComputeUnit, design: Design):List[ReduceStage] = {
+  def reduce(n:Int, op:Op) (implicit ctrler:InnerComputeUnit, design: Design):List[ReduceStage] = {
     val preStage = ctrler.stages.last
     val rdStages = List.tabulate(n) {i => 
       new { override val idx = i } with Stage(None) with ReduceStage
@@ -362,7 +362,7 @@ object Stages {
    * @op accumulation operand
    * Returns the accumulation stage and PipeReg of the accumulator
    * */
-  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:ComputeUnit, design: Design):
+  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerComputeUnit, design: Design):
     (AccumStage, PipeReg) = {
     val s = AccumStage(acc)
     val areg = ctrler.accum(s, acc)
@@ -416,10 +416,10 @@ class WAStage (override val name:Option[String])
 
 }
 object WAStage {
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:ComputeUnit, design: Design)  = new WAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 object WAStages {
-  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:ComputeUnit, design: Design):List[WAStage] = {
+  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design):List[WAStage] = {
     val was = List.tabulate(n) { i => WAStage(srams) }
     ctrler.addWAStages(was)
     was

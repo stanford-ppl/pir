@@ -4,6 +4,8 @@ import pir._
 import pir.codegen._
 import pir.PIRMisc._
 import pir.plasticine.graph.{Counter => PCtr, ComputeUnit => PCU, Top => PTop}
+import pir.graph.{Counter => Ctr}
+import graph.mapper.PIRMap
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -11,7 +13,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PCUPrinter(fileName:String) extends DotCodegen { 
+class CUDotPrinter(fileName:String) extends DotCodegen { 
 
   def this() = this(Config.spadeNetwork)
 
@@ -40,7 +42,7 @@ class PCUPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class PArgPrinter(fileName:String) extends DotCodegen { 
+class ArgDotPrinter(fileName:String) extends DotCodegen { 
   override val stream = newStream(fileName)
 
   def this() = this(Config.spadeArgInOut)
@@ -73,7 +75,7 @@ class PArgPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class PCtrPrinter(fileName:String) extends DotCodegen { 
+class CtrDotPrinter(fileName:String) extends DotCodegen { 
 
   def this() = this(Config.spadeCtr)
 
@@ -81,15 +83,54 @@ class PCtrPrinter(fileName:String) extends DotCodegen {
 
   def print(pctrs:List[PCtr]) {
     emitBlock(s"digraph G") {
-      pctrs.foreach { ctr =>
+      pctrs.foreach { pctr =>
         val recs = ListBuffer[String]()
         recs += s"<en> en"
-        recs += s"${ctr}"
+        recs += s"${pctr}"
         recs += s"<done> done"
         val label = recs.mkString(s"|")
-        emitNode(ctr, label, DotAttr().shape(Mrecord))
-        ctr.en.fanIns.foreach { from => 
-          emitEdge(s"${s"${from}".replace(".", ":")}", s"${s"${ctr.en}".replace(".",":")}")
+        emitNode(pctr, label, DotAttr().shape(Mrecord))
+        pctr.en.fanIns.foreach { from => 
+          emitEdge(s"${s"${from}".replace(".", ":")}", s"${s"${pctr.en}".replace(".",":")}")
+        }
+      }
+    }
+  close
+  }
+
+  def emitMapping(pctrs:List[PCtr], mapping:PIRMap) = {
+    val map = mapping.ctmap.map
+    val pmap = mapping.ctmap.pmap
+    pctrs.foreach { pctr =>
+      val recs = ListBuffer[String]()
+      val da = DotAttr().shape(Mrecord)
+      recs += s"<en> en"
+      recs += s"{${pctr}|${pmap.get(pctr).fold("no mapping"){c => da.color(red); c.toString }}}"
+      recs += s"<done> done"
+      val label = recs.mkString(s"|")
+      emitNode(pctr, label, da)
+      pctr.en.fanIns.foreach { from => 
+        emitEdge(s"${s"${from}".replace(".", ":")}", s"${s"${pctr.en}".replace(".",":")}")
+      }
+    }
+  }
+
+  def print(pctrs:List[PCtr], mapping:PIRMap) = {
+    emitBlock(s"digraph G") {
+      emitMapping(pctrs, mapping)
+    }
+  }
+
+  def print(pctrs:List[PCtr], ctrs:List[Ctr], mapping:PIRMap) {
+    emitBlock(s"digraph G") {
+      emitSubGraph("Mapping", "Mapping") {
+        emitMapping(pctrs, mapping)
+      }
+      emitSubGraph("Nodes", "Nodes") {
+        ctrs.foreach { ctr =>
+          emitNode(ctr, ctr, DotAttr().shape(circle).color(indianred).style(filled))
+          if (ctr.en.isConnected) 
+            emitEdge(s"${ctr.en.from}".replace(".",":"), s"${ctr.en}".replace(".",":"))
         }
       }
     }
@@ -97,11 +138,8 @@ class PCtrPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class SpadeDotGen(implicit design: Design) extends Traversal {
-
-  val ctrPrinter = new PCtrPrinter()
-  val cuPrinter = new PCUPrinter()
-  val argInOutPrinter = new PArgPrinter()
+class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
+  ctrPrinter:CtrDotPrinter)(implicit design: Design) extends Traversal {
 
   override def traverse = {
     cuPrinter.print(design.arch.cus)
@@ -112,5 +150,4 @@ class SpadeDotGen(implicit design: Design) extends Traversal {
   override def finPass = {
     info(s"Finishing Spade Dot Printing in ${cuPrinter.getPath} ${argInOutPrinter.getPath} ${ctrPrinter.getPath}")
   }
-
 }

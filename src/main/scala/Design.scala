@@ -161,21 +161,24 @@ trait Design { self =>
   var top:Top = _
   val mapExceps = ListBuffer[MappingException]()
 
+  val ctrlDotPrinter = new CtrlDotGen()
+  val pirPrinter = new PIRPrinter()
+  val pirMapping = new PIRMapping()
+  val cuDotPrinter = new CUDotPrinter()
+  val argDotPrinter = new ArgDotPrinter()
+  val ctrDotPrinter = new CtrDotPrinter()
+
   /* Traversals */
   val traversals = ListBuffer[Traversal]()
   traversals += new SpadePrinter()
   traversals += new ForwardRef()
   traversals += new CtrlAlloc()
-  val ctrlDotPrinter = new CtrlDotGen()
   traversals += ctrlDotPrinter 
   traversals += new LiveAnalysis()
-  if (Config.debug)
-    traversals += new IRCheck()
-  val pirPrinter = new PIRPrinter()
+  if (Config.debug) traversals += new IRCheck()
   traversals += new CtrlPrinter()
   traversals += pirPrinter 
-  traversals += new SpadeDotGen()
-  val pirMapping = new PIRMapping()
+  traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
   if (Config.mapping) traversals += pirMapping 
   traversals += new PisaCodegen(pirMapping)
   reset()

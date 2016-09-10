@@ -6,14 +6,16 @@ import scala.collection.mutable.Map
 class DotAttr() {
   val attrMap:Map[String, String] = Map.empty 
 
-  def shape(s:DotField) = { attrMap += "shape" -> s.field; this }
-  def color(s:DotField) = { attrMap += "color" -> s.field; this }
-  def style(s:DotField) = { attrMap += "style" -> s.field; this }
-  def label(s:String) = { attrMap += "label" -> s; this }
-
   def + (rec:(String, String)):DotAttr = { attrMap += rec; this}
 
+  def shape(s:Shape) = { attrMap += "shape" -> s.field; this }
+  def color(s:Color) = { attrMap += "color" -> s.field; this }
+  def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
+  def style(s:Style) = { attrMap += "style" -> s.field; this }
+  def label(s:String) = { attrMap += "label" -> s; this }
+
   def list = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(",")
+  def expand = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(";\n")
 }
 object DotAttr {
   def apply() = new DotAttr()
@@ -28,7 +30,6 @@ trait DotEnum {
   val box       = Shape("box")
   val ellipse   = Shape("ellipse")
   val circle    = Shape("circle")
-  val indianred = Shape("indianred1")
 
 	val filled    = Style("filled")
   val bold      = Style("bold")
@@ -41,6 +42,7 @@ trait DotEnum {
   val limegreen = Color("limegreen")
   val blue      = Color("blue")
   val red       = Color("red")
+  val indianred = Color("indianred1")
 
   implicit def field_to_string(f:DotField):String = f.field
 }
@@ -70,14 +72,16 @@ trait DotCodegen extends Printer with DotEnum {
   }
 
   def emitSubGraph(n:Any, label:Any)(block: =>Any):Unit = {
-		emitSubGraph(n, label, filled, lightgrey)(block)
+		emitSubGraph(n, DotAttr().label(label.toString))(block)
 	}
-  def emitSubGraph(n:Any, label:Any, style:String, color:String)(block: =>Any):Unit = {
+  def emitSubGraph(n:Any, attr:DotAttr)(block: =>Any):Unit = {
 		emitBlock(s"""subgraph cluster_${n}""") {
-			emitln(s"""style=${style};""")
-			emitln(s"""color=${color};""")
-      emitln(s"""node [style=filled]""")
-			emitln(s"""label = "${label}";""")
+      //emitln(s"""${attr.expand}""")
+			//emitln(s"""style=${filled};""")
+			//emitln(s"""color=${lightgrey};""")
+      //emitln(s"""node [style=filled]""")
+			//emitln(s"""label = "${label}";""")
+      emitln(attr.expand)
 			block
 		}
   }

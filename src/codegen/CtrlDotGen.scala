@@ -68,7 +68,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
         }
         cchain.counters.foreach { c =>
           emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
-          if (c.en.isConnected) emitEdge(c.en, "en")
+          if (c.en.isConnected) emitEdge(c.en, "en") //TODO
         }
 			}
       /* Emit edges */

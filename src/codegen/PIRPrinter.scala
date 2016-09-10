@@ -47,7 +47,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
       }
       mp += (s -> s"[${mstrs.mkString(",")}]")
     }
-  def regMapToStrs(c:ComputeUnit):Map[String, String] = {
+  def regMapToStrs(c:InnerComputeUnit):Map[String, String] = {
     var m = HashMap[String, String]()
     toStr(m, "reduceReg" , c.reduceReg  )
     toStr(m, "vecIns"    , c.vecIns      )
@@ -64,7 +64,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
   def emitBlock(title:String, node:Node):Unit = {
     emitBlock(title) {
       node match {
-        case n:ComputeUnit =>
+        case n:InnerComputeUnit =>
           emitBlock(s"mapping =") {
             regMapToStrs(n).foreach { case (k, v) =>
               emitln(s"${k}:${v}")
@@ -75,6 +75,8 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
               emitln(s"${k}: [${v.mkString(s",")}]")
             }
           }
+          super.visitNode(node)
+        case n:OuterComputeUnit =>
           super.visitNode(node)
         case n:Stage =>
           val strs = ListBuffer[String]()

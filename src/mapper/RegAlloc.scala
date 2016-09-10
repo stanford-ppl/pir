@@ -1,5 +1,5 @@
 package pir.graph.mapper
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, _}
+import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, InnerComputeUnit => ICU, _}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
                              Reg => PReg}
 import pir._

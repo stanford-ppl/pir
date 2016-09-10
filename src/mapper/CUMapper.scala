@@ -48,15 +48,17 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   lazy val (pcus, cus, ptts, tts) = setResource
 
   def mapRCU(pirMap:M):M = {
-    simAneal(pcus, cus, pirMap, cons, finPass _, OutOfPCU(_, _))
+    if (pcus.size < cus.size) throw OutOfPTT(pcus, cus)
+    bind(pcus, cus, pirMap, cons, finPass _)
   }
 
   def mapTT(pirMap:M):M = {
-    simAneal(ptts, tts, pirMap, cons, mapRCU _, OutOfPTT(_, _))
+    if (ptts.size < tts.size) throw OutOfPTT(ptts, tts)
+    bind(ptts, tts, pirMap, cons, mapRCU _)
   }
 
   def map(m:M):M = {
-    simAneal(List(design.arch.top), List(design.top), m, cons, mapTT _, OutOfPCU(_, _))
+    bind(List(design.arch.top), List(design.top), m, cons, mapTT _)
   }
 }
 

@@ -51,8 +51,10 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
           cmap = siMapper.map(ctrler, cmap)
           ctrler match {
-            case cu:ComputeUnit =>
+            case cu:InnerComputeUnit => 
               cmap = sramMapper.map(cu, cmap)
+              cmap = ctrMapper.map(cu, cmap)
+            case cu:ComputeUnit =>
               cmap = ctrMapper.map(cu, cmap)
             case _ => pm
           }

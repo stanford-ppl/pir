@@ -126,7 +126,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val ipmap = map.ipmap
     val pop:POP = n.from.src match {
       case Const(_, c) =>
-        if (!r.isConn(PConst.out)) {
+        if (!r.canFrom(PConst.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info)
         } else PConst(c).out
@@ -146,7 +146,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
               if (pstage.before(pcurStage)) {
                 pcurStage.pre.get.prs(preg).out
               } else if (pstage == pcurStage) {
-                if (!rp.isConn(ppr.out)) {
+                if (!rp.canFrom(ppr.out)) {
                   info = s"Cannot find connection to ${ppr}: " 
                   throw InPortRouting(n, r, info)
                 } else {
@@ -158,13 +158,13 @@ class StageMapper(implicit val design:Design) extends Mapper {
               }
             } 
           case rp => // src of the inport doesn't belong to a stage. e.g. counter max
-            if (!r.isConn(ppr.out)) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")
+            if (!r.canFrom(ppr.out)) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")
             else ppr.out
         }
       case s => 
         val pport = opmap(n.from)
         val info = s"${n} connects to ${n.from}. Mapped OutPort:${pport}"
-        if (!r.isConn(pport)) throw InPortRouting(n, r, info)
+        if (!r.canFrom(pport)) throw InPortRouting(n, r, info)
         else pport
     }
     val cmap = if (map.ipmap.contains(n)) map else map.setIP(n,r)

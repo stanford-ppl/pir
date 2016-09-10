@@ -36,12 +36,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   }
 
   private def updatesPrim(implicit cu:ComputeUnit) = {
-    cu.srams.foreach { sram =>
-      addLiveOut(sram.readAddr)
-      if (sram.writeAddr.isConnected)
-        addLiveOut(sram.writeAddr)
-      if (sram.writePort.isConnected)
-        addLiveOut(sram.writePort)
+    cu match {
+      case icu:InnerComputeUnit =>
+        icu.srams.foreach { sram =>
+          addLiveOut(sram.readAddr)
+          if (sram.writeAddr.isConnected)
+            addLiveOut(sram.writeAddr)
+          if (sram.writePort.isConnected)
+            addLiveOut(sram.writePort)
+        }
+      case _ =>
     }
     cu.cchains.foreach { cc => 
       cc.counters.foreach { ctr =>
@@ -76,11 +80,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           throw PIRException(s"Local stage ${stage} of ${stage.ctrler} excepts the first stage cannot directly reference ${pm} as operand")
         }
         pm match {
-          case n:VecIn => stage.addDef(cu.vecInPR(n))
           case n:ScalarIn => stage.addDef(cu.scalarInPR(n))
-          case n:SRAM => stage.addDef(cu.loadPR(n)) 
-          case n:Counter => stage.addDef(cu.ctrPR(n))
           case _ =>
+        }
+        cu match {
+          case cu:InnerComputeUnit => pm match {
+            case n:VecIn => stage.addDef(cu.vecInPR(n))
+            case n:SRAM => stage.addDef(cu.loadPR(n)) 
+            case n:Counter => stage.addDef(cu.ctrPR(n))
+            case _ =>
+          }
         }
       }
     } 
@@ -99,8 +108,9 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           }
         case p:RdAddrInPort =>
           val sram = p.src
+          val icu = cu.asInstanceOf[InnerComputeUnit]
           if (stage!=stages.last) // Loaded value are forwarded one stage after readAddr calc
-            stages(i+1).addDef(cu.loadPR(sram))
+            stages(i+1).addDef(icu.loadPR(sram))
         case _ =>
       }
     }

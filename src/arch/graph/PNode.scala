@@ -43,22 +43,12 @@ case class Counter(idx:Int) extends Node {
   val out = RMOutPort(this, s"${this}.out")
   val en = InWire(this, s"${this}.en")
   val done = OutWire(this, s"${this}.done")
-  def isDep(c:Counter) = en.isConn(c.done)
+  def isDep(c:Counter) = en.canFrom(c.done)
 }
 
 /** 1 fanIns of pipeline register (1 row of reg for all stages) */
 case class Reg(idx:Int) extends Node {
   override val typeStr = "reg"
-  //val mapping = Map[Stage, ListBuffer[RMPort]]() 
-  //def mapTo (p:RMPort, stage:Stage) = {
-  //  if (!mapping.contains(stage)) mapping += (stage -> ListBuffer[RMPort]())
-  //  mapping(stage) += p
-  //  p.mappedTo(this) 
-  //}
-  //def <-- (p:RMPort, stage:Stage) = mapTo(p, stage)
-  //def <-- (ps:List[RMPort], stage:Stage) = ps.foreach(p => mapTo(p, stage))
-  //def <-- (p:RMPort, stages:List[Stage]) = stages.foreach(stage => mapTo(p, stage))
-  //def ms = s"mapping=[${mapping.mkString(",")}]"
 }
 case class PipeReg(stage:Stage, reg:Reg) extends Node {
   override val typeStr = "pr"
@@ -219,14 +209,14 @@ trait Input {
   def <==(n:O) = connect(n)
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${fanIns.mkString(",")}]"
-  def isConn(n:O):Boolean = fanIns.contains(n)
+  def canFrom(n:O):Boolean = fanIns.contains(n)
 }
 trait Output {
   type I <: Input
   val fanOuts = ListBuffer[I]()
   def connectedTo(n:I):Unit = fanOuts += n
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
-  def isConn(n:I):Boolean = fanOuts.contains(n)
+  def canTo(n:I):Boolean = fanOuts.contains(n)
 } 
 
 trait IO extends Node{

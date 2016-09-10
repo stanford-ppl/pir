@@ -53,7 +53,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     } 
 
     /* Find vins that connects to the depended ctrler */
-    if (p.isConn(pdvout)) {
+    if (p.canFrom(pdvout)) {
       val pmap = pirMap.setVI(n, p).setIB(p, pdvout)
       n match {
         case n:VecIn => pmap.setOP(n.out, p.viport)

@@ -19,7 +19,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val opmap = map.opmap
     val ib = vimap(n)
     val idx = slmap.getIdx(n.scalar)
-    if (p.in.isConn(ib.outports(idx))) {
+    if (p.in.canFrom(ib.outports(idx))) {
       map.setSI(n,p).setOP(n.out, p.out)
     } else
       throw ScalarInRouting(n, p)

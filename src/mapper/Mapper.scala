@@ -24,7 +24,7 @@ trait Mapper { self =>
    * @param allNodes list of nodes
    * @param initMap initial mapping
    * @param constrains constrains to map a node to a resource. Throw Mapping exceptio if failed 
-   * @param resPool a function defines list of resource to try to bind node n. The list of resource
+   * @param resFunc a function defines list of resource to try to bind node n. The list of resource
    * is defined based on current node n,  current mapping M, and remaining unbinded resource.
    * The resulting list should be ordered based on convergence speed, where resource likely 
    * to success should be placed early in the list.
@@ -33,14 +33,14 @@ trait Mapper { self =>
    * considered failed and binding process continues try different options
    * */
   def bind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], resPool:(N, M, List[R]) => List[R],
+    constrains:List[(N, R, M) => M], resFunc:(N, M, List[R]) => List[R],
     finPass: M => M):M = {
 
-    // Recursively try a node on a list of resource defined by resPool 
+    // Recursively try a node on a list of resource defined by resFunc 
     /* Recursively try a node on a list of resource */
     def recRes(remainRes:List[R], n:N, remainNodes:List[N], preMap:M):M = {
       val exceps = ListBuffer[MappingException]()
-      val reses = resPool(n, preMap, remainRes)
+      val reses = resFunc(n, preMap, remainRes)
       for (ir <- 0 until reses.size) {
         val (h, res::rt) = reses.splitAt(ir)
         val restRes = h ++ rt
@@ -94,6 +94,10 @@ trait Mapper { self =>
    * nodes was considered failed and continues trying
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
+  def bind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
+    constrains:List[(N, R, M) => M], finPass: M => M):M = {
+    bind(allRes, allNodes, initMap, constrains, (n:N, m:M, rm:List[R]) => rm, finPass)
+  }
   def simAneal[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: M => M, 
     oor:(Int, Int) => OutOfResource):M = {

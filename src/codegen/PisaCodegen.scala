@@ -6,7 +6,7 @@ import pir.PIRMisc._
 import pir.plasticine.graph._
 import pir.graph._
 import pir.graph.mapper._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Node, Primitive, Top, 
+import pir.graph.{Controller => CL, ComputeUnit => CU, InnerComputeUnit => ICU, TileTransfer => TT, Node, Primitive, Top, 
 MemoryController => MC, InPort => IP, OutPort => OP, Const, FuncUnit => FU, Counter => CT, 
 PipeReg => PR, VecIn, SRAM => SM, Stage => ST, ReduceStage => RDST, WAStage => WAST, AccumPR, ScalarIn => SI, UDCounter => UDC, EnLUT, LUT}
 import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, 
@@ -148,7 +148,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def localWADelay(pcu:PCU, ctr:CT):Int = {
-    val cu = ctr.ctrler.asInstanceOf[CU]
+    val cu = ctr.ctrler.asInstanceOf[ICU]
     val wasrams = cu.srams.filter(_.writeCtr==ctr)
     val wastages = pcu.stages.filter { pstage =>
       if (stmap.pmap.contains(pstage)) {
