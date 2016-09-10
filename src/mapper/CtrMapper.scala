@@ -25,30 +25,32 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
   def map(ctrs:List[N], pctrs:List[R], initMap:M, finPass:M => M) = {
-    //simAneal(pcu.ctrs, ctrs, initMap, List(mapCtr _), finPass(cu) _, OutOfCtr(pcu, _, _))
     bind(
       allRes = pctrs,
       allNodes=ctrs,
       initMap=initMap,
       constrains=List(mapCtr _), 
-      resPool=resPool _, 
+      resFunc=resFunc _, 
       finPass=finPass
     )
   }
 
-  def resPool(n:N, m:M, remainRes:List[R]):List[R] = {
+  def resFunc(n:N, m:M, remainRes:List[R]):List[R] = {
+    val ptop = design.arch.top
     val enCtrs = if (n.en.isConnected) {
       val dep = n.en.from.src.asInstanceOf[Ctr]
       m.ctmap.get(dep).fold(remainRes) { pdep =>
-        pdep.done.fanOuts.map{ fo => fo.src.get }.collect{case pc:R => pc}.toList
+        pdep.done.fanOuts.map{ fo => fo.src.get }.collect{ case pc:R => pc }
+          .filter{ pc => !m.ctmap.pmap.contains(pc) }.toList
       }
-    } else {
-      remainRes
+    } else { // Inner most counter
+      remainRes.filter{ pc => !m.ctmap.pmap.contains(pc) && pc.en.canFrom(ptop.clk)}
     }
     val doneCtrs = n.done.to.map { d =>
       val deped = d.src.asInstanceOf[Ctr]
       m.ctmap.get(deped).fold(remainRes) { pdeped =>
-        pdeped.en.fanIns.map{ fi => fi.src.get}.collect{case pc:R => pc}.toList
+        pdeped.en.fanIns.map{ fi => fi.src.get}.collect{case pc:R => pc}
+          .filter{ pc => !m.ctmap.pmap.contains(pc) }.toList
       }
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
@@ -56,26 +58,6 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
   def mapCtr(n:N, p:R, map:M):M = {
-    //if (n.en.isConnected) {
-    //  n.en.from.src match {
-    //    case dep:Ctr =>
-    //      if (map.ctmap.contains(dep)) {
-    //        val pdep = map.ctmap(dep); if (!p.isDep(pdep)) throw CtrRouting(n, p)
-    //      }
-    //    case _ =>
-    //  }
-    //}
-    //if (n.done.isConnected) {
-    //  n.done.to.foreach { 
-    //    _.src match {
-    //      case deped:Ctr =>
-    //        if (map.ctmap.contains(deped)) {
-    //          val pdeped = map.ctmap(deped); if (!pdeped.isDep(p)) throw CtrRouting(n, p)
-    //        }
-    //      case _ =>
-    //    }
-    //  }
-    //}
     var ipmap = map.ipmap
     var fpmap = map.fpmap
     def mapInPort(n:IP, p:PIP) = {
