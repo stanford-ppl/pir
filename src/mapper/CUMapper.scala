@@ -48,12 +48,12 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   lazy val (pcus, cus, ptts, tts) = setResource
 
   def mapRCU(pirMap:M):M = {
-    if (pcus.size < cus.size) throw OutOfPTT(pcus, cus)
+    if (pcus.size < cus.size) throw OutOfPTT(pcus.size, cus.size)
     bind(pcus, cus, pirMap, cons, finPass _)
   }
 
   def mapTT(pirMap:M):M = {
-    if (ptts.size < tts.size) throw OutOfPTT(ptts, tts)
+    if (ptts.size < tts.size) throw OutOfPTT(ptts.size, tts.size)
     bind(ptts, tts, pirMap, cons, mapRCU _)
   }
 
