@@ -22,7 +22,7 @@ class IRCheck(implicit val design: Design) extends Traversal{
             r match {
               case t:Top =>
               case c:ComputeUnit =>
-                if (!c.isInstanceOf[InnerComputeUnit]) 
+                if (!c.isInstanceOf[InnerController]) 
                   throw PIRException(s"${n} have non inner pipe reader: ${r}")
               case _ =>
             }
@@ -31,7 +31,7 @@ class IRCheck(implicit val design: Design) extends Traversal{
             w match {
               case t:Top =>
               case c:ComputeUnit =>
-                if (!c.isInstanceOf[InnerComputeUnit]) 
+                if (!c.isInstanceOf[InnerController]) 
                   throw PIRException(s"${n} have non inner pipe writer: ${w}")
               case _ =>
             }

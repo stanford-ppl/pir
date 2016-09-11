@@ -147,7 +147,7 @@ object Counter{
  *  @param Size: size of SRAM in all dimensions 
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
-  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:InnerComputeUnit, design: Design) 
+  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:InnerController, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -190,27 +190,27 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerComputeUnit, design: Design): SRAM
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
     = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
@@ -321,18 +321,18 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
 object Stage {
   /* No Sugar API */
   def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
-            (implicit ctrler:InnerComputeUnit, design:Design):Unit= {
+            (implicit ctrler:InnerController, design:Design):Unit= {
     stage.fu = Some(new FuncUnit(stage, operands, op, results))
     ctrler.addStage(stage)
   }
   /* Sugar API */
-  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit = 
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit = 
     Stage(stage, List(op1, op2), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
-  def reduce(op:Op, init:Const)(implicit ctrler:InnerComputeUnit, design:Design):(AccumStage, PipeReg) = {
+  def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
@@ -340,10 +340,10 @@ object Stage {
   }
 }
 object Stages {
-  def apply(n:Int) (implicit ctrler:InnerComputeUnit, design: Design):List[LocalStage] = {
+  def apply(n:Int) (implicit ctrler:InnerController, design: Design):List[LocalStage] = {
     List.tabulate(n) { i => LocalStage(None) }
   }
-  def reduce(n:Int, op:Op) (implicit ctrler:InnerComputeUnit, design: Design):List[ReduceStage] = {
+  def reduce(n:Int, op:Op) (implicit ctrler:InnerController, design: Design):List[ReduceStage] = {
     val preStage = ctrler.stages.last
     val rdStages = List.tabulate(n) {i => 
       new { override val idx = i } with Stage(None) with ReduceStage
@@ -362,7 +362,7 @@ object Stages {
    * @op accumulation operand
    * Returns the accumulation stage and PipeReg of the accumulator
    * */
-  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerComputeUnit, design: Design):
+  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerController, design: Design):
     (AccumStage, PipeReg) = {
     val s = AccumStage(acc)
     val areg = ctrler.accum(s, acc)
@@ -416,10 +416,10 @@ class WAStage (override val name:Option[String])
 
 }
 object WAStage {
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design)  = new WAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 object WAStages {
-  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design):List[WAStage] = {
+  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[WAStage] = {
     val was = List.tabulate(n) { i => WAStage(srams) }
     ctrler.addWAStages(was)
     was
@@ -450,13 +450,13 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, rdPort:ReadOutPort)(implicit ctrler:Controller, design: Design)         extends Reg {override val typeStr = "regld"}
-case class StorePR(override val regId:Int, wtPort:WriteInPort)(implicit ctrler:Controller, design: Design)        extends Reg {override val typeStr = "regst"}
+case class LoadPR(override val regId:Int, rdPort:ReadOutPort)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
+case class StorePR(override val regId:Int, wtPort:WriteInPort)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
-case class WtAddrPR(override val regId:Int, waPort:InPort)(implicit ctrler:Controller, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
-case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:Controller, design: Design)                 extends Reg {override val typeStr = "regct"}
-case class ReducePR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regrd"}
-case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:Controller, design: Design)                extends Reg {override val typeStr = "regac"}
+case class WtAddrPR(override val regId:Int, waPort:InPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
+case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                 extends Reg {override val typeStr = "regct"}
+case class ReducePR(override val regId:Int)(implicit ctrler:InnerController, design: Design)                           extends Reg {override val typeStr = "regrd"}
+case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:InnerController, design: Design)                extends Reg {override val typeStr = "regac"}
 case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "regvi"}
 case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regvo"; var vecOut:VecOut = _}
 case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "regsi"}
@@ -566,6 +566,7 @@ object EnLUT {
 }
 case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive {
   override val ctrler:ComputeUnit = cu
+
   override val name = None
   override val typeStr = "CtrlBox"
   val tokenBuffers = Map[Controller, TokenBuffer]()
@@ -576,12 +577,12 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   val tokDownLUTs = ListBuffer[TokenDownLUT]()
   def luts = enLUTs.map(_._2).toList ++ tokOutLUTs.toList ++ tokDownLUTs.toList 
   def innerCtrEn:EnInPort = cu match {
-    case cu:InnerComputeUnit => cu.localCChain.inner.en 
-    case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).inner.en
+    case cu:InnerController => cu.localCChain.inner.en 
+    case cu:OuterController => cu.inner.cchainMap(cu.localCChain).inner.en
   }
   def outerCtrDone:DoneOutPort = cu match {
-    case cu:InnerComputeUnit => cu.localCChain.outer.done 
-    case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain).outer.done
+    case cu:InnerController => cu.localCChain.outer.done 
+    case cu:OuterController => cu.inner.cchainMap(cu.localCChain).outer.done
   }
   var tokenOut:Option[OutPort] = _ 
   // only outer controller have token down, which is the init signal first child stage
@@ -595,11 +596,11 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       if (udc.init.isConnected)
         tokenIns += udc.init
     }
-    if (cu.isInstanceOf[InnerComputeUnit]) {
+    if (cu.isInstanceOf[InnerController]) {
       cu.cchains.foreach { cc =>
         if (cc.inner.en.isConnected) {
           val from = cc.inner.en.from.src.asInstanceOf[Primitive].ctrler
-          assert(from.isInstanceOf[InnerComputeUnit])
+          assert(from.isInstanceOf[InnerController])
           if (from!=cu)
             tokenIns += cc.inner.en
         }
@@ -623,7 +624,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     val tos = ListBuffer[OutPort]()
     tokenOut.foreach { to => tos += to }
     tokenDown.foreach { td => tos += td }
-    if (cu.isInstanceOf[InnerComputeUnit]) {
+    if (cu.isInstanceOf[InnerController]) {
       cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
         if (en.src.ctrler!=cu) tos += enlut.out 
       }

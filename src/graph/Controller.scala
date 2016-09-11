@@ -10,8 +10,8 @@ import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
 
-abstract class Controller(implicit design:Design) extends Node {
-  implicit val ctrler = this
+abstract class Controller(implicit design:Design) extends Node { self =>
+  implicit val ctrler = self 
   val sinMap = Map[Scalar, ScalarIn]()
   val soutMap = Map[Scalar, ScalarOut]()
   val vinMap = Map[Vector, VecIn]()
@@ -33,8 +33,8 @@ abstract class Controller(implicit design:Design) extends Node {
                                  vinMap.keys.map(_.writer.ctrler).toList
 }
 
-class ComputeUnit(override val name: Option[String])(implicit val design: Design) extends Controller with OuterRegBlock { self =>
-  override implicit val ctrler:ComputeUnit = self
+class ComputeUnit(override val name: Option[String])(implicit val design: Design) extends Controller with OuterRegBlock { self => 
+  implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
 
   /* Pointer */
@@ -132,30 +132,13 @@ class ComputeUnit(override val name: Option[String])(implicit val design: Design
   def apply(block:this.type => Any) (implicit design:Design):this.type =
     updateBlock(block)
 }
-object ComputeUnit {
-  def apply(name: Option[String], tpe:CtrlType)(implicit design: Design):ComputeUnit = {
-    tpe match {
-      case Pipe => new InnerComputeUnit(name)
-      case Sequential => new ComputeUnit(name) with SequentialComputeUnit
-      case MetaPipeline => new ComputeUnit(name) with MetaPipelineComputeUnit 
-    }
-  }
-  def apply[P,D](name: Option[String], tpe:CtrlType, parent:P, deps:List[D]) (implicit design: Design, dtp:TypeTag[D]):ComputeUnit = {
-    ComputeUnit(name, tpe).updateParent(parent).updateDeps(deps)
-  }
-  /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D], tpe:CtrlType) (block: ComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):ComputeUnit =
-    ComputeUnit(None, tpe).updateBlock(block).updateParent(parent).updateDeps(deps)
-  def apply[P,D](name:String, parent:P, deps:List[D], tpe:CtrlType) (block:ComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):ComputeUnit =
-    ComputeUnit(Some(name), tpe).updateBlock(block).updateParent(parent).updateDeps(deps)
-}
 
-class InnerComputeUnit(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerRegBlock { self =>
-  override implicit val ctrler:InnerComputeUnit = self
+class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerRegBlock { self =>
+  implicit val icu:InnerController = self
 
   override val typeStr = "PipeCU"
   /* List of outer controllers reside in current inner*/
-  var outers:List[OuterComputeUnit] = Nil
+  var outers:List[OuterController] = Nil
 
   var srams:List[SRAM] = _ 
   val wtAddrStages = ListBuffer[List[WAStage]]()
@@ -184,24 +167,54 @@ class InnerComputeUnit(name:Option[String])(implicit design:Design) extends Comp
     updateFields(cchains, srams)
   }
 }
+object Pipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: InnerController => Any)  (implicit design: Design, dtp:TypeTag[D]):InnerController = {
+    new InnerController(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: InnerController => Any) (implicit design:Design, dtp:TypeTag[D]):InnerController =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:InnerController => Any) (implicit design:Design, dtp:TypeTag[D]):InnerController =
+    apply(Some(name), parent, deps)(block)
+}
 
-trait OuterComputeUnit extends ComputeUnit {
-  var inner:InnerComputeUnit = _
+class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
+  var inner:InnerController = _
   override def toUpdate = super.toUpdate || inner == null
 }
 
-trait SequentialComputeUnit extends OuterComputeUnit {
+class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
   override val typeStr = "SeqCU"
 }
+object Sequential {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)  (implicit design: Design, dtp:TypeTag[D]):Sequential = {
+    new Sequential(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    apply(Some(name), parent, deps)(block)
+}
 
-trait MetaPipelineComputeUnit extends OuterComputeUnit {
+class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterController(name) {
   override val typeStr = "MetaPipeCU"
+}
+object MetaPipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
+    new MetaPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    apply(Some(name), parent, deps)(block)
 }
 
 /* Inner Unit Pipe */
-class UnitComputeUnit(override val name: Option[String])(implicit design: Design) extends InnerComputeUnit(name) { self =>
+class UnitPipeline(override val name: Option[String])(implicit design: Design) extends InnerController(name) { self =>
   override val typeStr = "UnitCompUnit"
-  def updateBlock(block: UnitComputeUnit => Any)(implicit design: Design):UnitComputeUnit = {
+  def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
     val (cchains, srams) = 
       design.addBlock[CounterChain, SRAM](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
@@ -211,23 +224,18 @@ class UnitComputeUnit(override val name: Option[String])(implicit design: Design
     this
   }
 }
-object UnitComputeUnit {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D])(implicit design: Design, dtp:TypeTag[D]):UnitComputeUnit =
-    new UnitComputeUnit(name).updateParent(parent).updateDeps(deps)
+object UnitPipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D])(implicit design: Design, dtp:TypeTag[D]):UnitPipeline =
+    new UnitPipeline(name).updateParent(parent).updateDeps(deps)
   /* Sugar API */
-  def apply[P,D](parent:P, deps:List[D]) (block: UnitComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):UnitComputeUnit =
-    UnitComputeUnit(None, parent, deps).updateBlock(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:UnitComputeUnit => Any) (implicit design:Design, dtp:TypeTag[D]):UnitComputeUnit =
-    UnitComputeUnit(Some(name), parent, deps).updateBlock(block)
-  /* No Sugar API */
-  def apply[P,D](name:Option[String], parent:P, deps:List[D], cchains:List[CounterChain], srams:List[SRAM])
-  (implicit design:Design, dtp:TypeTag[D]):UnitComputeUnit = {
-    UnitComputeUnit(name, parent, deps).updateFields(cchains, srams)
-  }
+  def apply[P,D](parent:P, deps:List[D]) (block: UnitPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):UnitPipeline =
+    UnitPipeline(None, parent, deps).updateBlock(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:UnitPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):UnitPipeline =
+    UnitPipeline(Some(name), parent, deps).updateBlock(block)
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends InnerComputeUnit(name)  {
+  (implicit design:Design) extends InnerController(name)  {
 
   /* Fields */
   val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
@@ -255,15 +263,9 @@ object TileTransfer extends {
     TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).updateDeps(deps).updateBlock(block)
   def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any) (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
-  /* No Sugar API */
-  def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector, cchains:List[CounterChain], 
-  srams:List[SRAM])   (implicit design:Design, dtp:TypeTag[D]):TileTransfer = {
-    TileTransfer(name, memctrl, mctpe, vec).updateFields(cchains, srams).updateParent(parent).updateDeps(deps)
-  }
 }
 
 case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends Controller { self =>
-  override implicit val ctrler:Controller = self
 
   val typeStr = "MemoryController"
   val addr = newSin(Scalar())
@@ -290,14 +292,14 @@ object MemoryController {
 }
 
 case class Top()(implicit design: Design) extends Controller { self =>
-  override implicit val ctrler:Controller = self
+  implicit val top:Controller = self
 
   override val name = Some("Top")
   override val typeStr = "Top"
 
   /* Fields */
-  var innerCUs:List[InnerComputeUnit] = _
-  var outerCUs:List[OuterComputeUnit] = _
+  var innerCUs:List[InnerController] = _
+  var outerCUs:List[OuterController] = _
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
   def ctrlers = this :: compUnits ++ memCtrls
@@ -312,7 +314,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   
   override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
 
-  def updateFields(inners:List[InnerComputeUnit], outers:List[OuterComputeUnit], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
+  def updateFields(inners:List[InnerController], outers:List[OuterController], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
     //TODO change innerCU and outerCU to a type
     this.innerCUs = inners 
     this.outerCUs = outers 
@@ -331,9 +333,9 @@ case class Top()(implicit design: Design) extends Controller { self =>
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {
     val (inners, outers, scalars, vectors, memCtrls) = 
-      design.addBlock[InnerComputeUnit, OuterComputeUnit, Scalar, Vector, MemoryController](block(this), 
-                      (n:Node) => n.isInstanceOf[InnerComputeUnit],
-                      (n:Node) => n.isInstanceOf[OuterComputeUnit],
+      design.addBlock[InnerController, OuterController, Scalar, Vector, MemoryController](block(this), 
+                      (n:Node) => n.isInstanceOf[InnerController],
+                      (n:Node) => n.isInstanceOf[OuterController],
                       (n:Node) => n.isInstanceOf[Scalar], 
                       (n:Node) => n.isInstanceOf[Vector], 
                       (n:Node) => n.isInstanceOf[MemoryController] 

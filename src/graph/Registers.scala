@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
 trait OuterRegBlock { self:ComputeUnit =>
+
   var regId = 0
   def newTemp = {val temp = regId; regId +=1; temp}
 
@@ -31,7 +32,7 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param rid: reg rid of scalar input 
   */
   def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
-  def scalarIn(s:Scalar):PipeReg = scalarIn(ctrler.emptyStage, newSin(s))
+  def scalarIn(s:Scalar):PipeReg = scalarIn(emptyStage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -45,15 +46,15 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
-  def scalarOut(s:Scalar):PipeReg = scalarOut(ctrler.emptyStage, newSout(s))
+  def scalarOut(s:Scalar):PipeReg = scalarOut(emptyStage, newSout(s))
 }
 
-trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
+trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
-  val reduceReg  = ReducePR(newTemp)
+  lazy val reduceReg  = ReducePR(newTemp)
   val vecIns     = Map[VecIn, VecInPR]()
-  val vecOut     = VecOutPR(newTemp)
+  lazy val vecOut     = VecOutPR(newTemp)
   val loadRegs   = Map[SRAM, LoadPR]()
   val storeRegs  = Map[SRAM, StorePR]()
   val wtAddrRegs = Map[SRAM, WtAddrPR]()
@@ -169,7 +170,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
-  def vecIn(vec:Vector):PipeReg = vecIn(ctrler.emptyStage, newVin(vec))
+  def vecIn(vec:Vector):PipeReg = vecIn(emptyStage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
@@ -181,7 +182,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newVout(vec))
-  def vecOut(vec:Vector):PipeReg = vecOut(ctrler.emptyStage, newVout(vec))
+  def vecOut(vec:Vector):PipeReg = vecOut(emptyStage, newVout(vec))
 
   /* Create a new logical register 
    * */

@@ -42,10 +42,10 @@ object Ops {
   val allOps:List[Op] = fixOps ++ fltOps ++ List(Mux, Bypass, BitAnd, BitOr) 
 }
 
-sealed trait CtrlType 
-case object Pipe extends CtrlType
-case object Sequential extends CtrlType
-case object MetaPipeline extends CtrlType
+//sealed trait CtrlType 
+//case object Pipe extends CtrlType
+//case object Sequential extends CtrlType
+//case object MetaPipeline extends CtrlType
 
 sealed trait MCType 
 case object TileLoad extends MCType 

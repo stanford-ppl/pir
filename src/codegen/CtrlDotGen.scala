@@ -63,8 +63,8 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
           emitNode(lut, label, DotAttr().shape(Mrecord).color(white))
         }
         val cchain = cu match {
-          case cu:InnerComputeUnit => cu.localCChain
-          case cu:OuterComputeUnit => cu.inner.cchainMap(cu.localCChain)
+          case cu:InnerController => cu.localCChain
+          case cu:OuterController => cu.inner.cchainMap(cu.localCChain)
         }
         cchain.counters.foreach { c =>
           emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))

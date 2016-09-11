@@ -6,7 +6,7 @@ import pir.PIRMisc._
 import pir.plasticine.graph._
 import pir.graph._
 import pir.graph.mapper._
-import pir.graph.{Controller => CL, ComputeUnit => CU, InnerComputeUnit => ICU, TileTransfer => TT, Node, Primitive, Top, 
+import pir.graph.{Controller => CL, ComputeUnit => CU, InnerController => ICU, TileTransfer => TT, Node, Primitive, Top, 
 MemoryController => MC, InPort => IP, OutPort => OP, Const, FuncUnit => FU, Counter => CT, 
 PipeReg => PR, VecIn, SRAM => SM, Stage => ST, ReduceStage => RDST, WAStage => WAST, AccumPR, ScalarIn => SI, UDCounter => UDC, EnLUT, LUT}
 import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, 
@@ -188,8 +188,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     else {
       var fromCU = cchain.copy.get.ctrler.asInstanceOf[CU]
       fromCU = fromCU match {
-        case i:InnerComputeUnit => i
-        case o:OuterComputeUnit => o.inner
+        case i:InnerController => i
+        case o:OuterController => o.inner
       }
       val pFromCU = clmap(fromCU).asInstanceOf[PCU]
       val delay = (pFromCU.stages.size - numWAStage(pFromCU)) * timeMplx +

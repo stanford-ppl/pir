@@ -1,6 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, InnerComputeUnit => ICU, TileTransfer => TT}
+import pir.graph.{ComputeUnit => CU, InnerController => ICU, TileTransfer => TT}
 import pir.graph.{Counter => Ctr, _}
 import pir.plasticine.graph.{ComputeUnit => PCU, TileTransfer => PTT}
 import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}

@@ -25,7 +25,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper {
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
     val cb = cu.ctrlBox
-    val inner = cu.asInstanceOf[InnerComputeUnit]
+    val inner = cu.asInstanceOf[InnerController]
     val locals = inner :: inner.outers
     val ptouts = pcb.tokenOuts
     val touts = locals.flatMap(_.ctrlBox.getTokenOuts)

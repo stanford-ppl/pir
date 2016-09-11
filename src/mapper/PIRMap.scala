@@ -85,7 +85,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
             case cu:CU =>
               val pcu = clmap.map(cu).asInstanceOf[PCU]
               cu match {
-                case icu:InnerComputeUnit => smmap.printMap(icu.srams)
+                case icu:InnerController => smmap.printMap(icu.srams)
                 case _ =>
               }
               ctmap.printCCMap(cu.cchains)

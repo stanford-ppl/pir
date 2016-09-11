@@ -37,7 +37,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
 
   private def updatesPrim(implicit cu:ComputeUnit) = {
     cu match {
-      case icu:InnerComputeUnit =>
+      case icu:InnerController =>
         icu.srams.foreach { sram =>
           addLiveOut(sram.readAddr)
           if (sram.writeAddr.isConnected)
@@ -84,7 +84,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           case _ =>
         }
         cu match {
-          case cu:InnerComputeUnit => pm match {
+          case cu:InnerController => pm match {
             case n:VecIn => stage.addDef(cu.vecInPR(n))
             case n:SRAM => stage.addDef(cu.loadPR(n)) 
             case n:Counter => stage.addDef(cu.ctrPR(n))
@@ -108,7 +108,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           }
         case p:RdAddrInPort =>
           val sram = p.src
-          val icu = cu.asInstanceOf[InnerComputeUnit]
+          val icu = cu.asInstanceOf[InnerController]
           if (stage!=stages.last) // Loaded value are forwarded one stage after readAddr calc
             stages(i+1).addDef(icu.loadPR(sram))
         case _ =>
