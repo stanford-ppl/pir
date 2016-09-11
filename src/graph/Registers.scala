@@ -31,6 +31,7 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param rid: reg rid of scalar input 
   */
   def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
+  def scalarIn(s:Scalar):PipeReg = scalarIn(ctrler.emptyStage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -44,6 +45,7 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
+  def scalarOut(s:Scalar):PipeReg = scalarOut(ctrler.emptyStage, newSout(s))
 }
 
 trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
@@ -157,7 +159,6 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
   */
   def reduce(stage:Stage):PipeReg = pipeReg(stage, reduceReg)
 
-  def vecIn(vec:Vector) = newVin(vec)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
@@ -168,6 +169,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
+  def vecIn(vec:Vector):PipeReg = vecIn(ctrler.emptyStage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
@@ -179,6 +181,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerComputeUnit =>
   * @param stage: Stage of the pipeline register 
   */
   def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newVout(vec))
+  def vecOut(vec:Vector):PipeReg = vecOut(ctrler.emptyStage, newVout(vec))
 
   /* Create a new logical register 
    * */
