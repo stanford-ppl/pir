@@ -36,6 +36,7 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
+    if (cu.isInstanceOf[TT] != pcu.isInstanceOf[PTT]) throw PIRException(s"Type mismatch")
     var cmap = pirMap.setCL(cu, pcu) 
     /* Map CU */
    // Assume sin and vin have only one writer
@@ -47,18 +48,19 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   val cons = List(mapCU _)
   lazy val (pcus, cus, ptts, tts) = setResource
 
-  def mapRCU(pirMap:M):M = {
-    if (pcus.size < cus.size) throw OutOfPTT(pcus.size, cus.size)
-    bind(pcus, cus, pirMap, cons, finPass _)
-  }
-
-  def mapTT(pirMap:M):M = {
-    if (ptts.size < tts.size) throw OutOfPTT(ptts.size, tts.size)
-    bind(ptts, tts, pirMap, cons, mapRCU _)
+  def mapCUs(pcus:List[R], cus:List[N], pirMap:M, finPass:M => M):M = {
+    bind(pcus, cus, pirMap, cons, finPass)
   }
 
   def map(m:M):M = {
-    bind(List(design.arch.top), List(design.top), m, cons, mapTT _)
+
+    def mapRest(pirMap:M):M = {
+      if (pcus.size < cus.size) throw OutOfPCU(pcus.size, cus.size)
+      if (ptts.size < tts.size) throw OutOfPTT(ptts.size, tts.size)
+      mapCUs(pcus ++ ptts, cus ++ tts, pirMap, finPass _)
+    }
+
+    mapCUs(List(design.arch.top), List(design.top), m, mapRest _)
   }
 }
 

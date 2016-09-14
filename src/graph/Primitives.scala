@@ -215,9 +215,11 @@ object SRAM {
 }
 
 trait Output extends Primitive
-trait Input extends Primitive
+trait Input extends Primitive {
+  def variable:Variable
+}
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
-  extends Input{
+  extends Input {
   scalar.addReader(this)
   override val typeStr = "ScalIn"
   override def toString = s"${super.toString}($scalar)"
@@ -225,6 +227,7 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
     case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
+  override def variable:Scalar = scalar
   val out = ScalarInOutPort(this, s"${this}.out")
 }
 
@@ -261,6 +264,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
     case n: VecIn => n.vector==vector && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
+  override def variable:Vector = vector
 }
 
 object VecIn {

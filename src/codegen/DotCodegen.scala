@@ -34,6 +34,7 @@ trait DotEnum {
 	val filled    = Style("filled")
   val bold      = Style("bold")
   val dashed    = Style("dashed")
+  val rounded   = Style("rounded")
 
 	val white     = Color("white")
 	val lightgrey = Color("lightgrey")
@@ -58,6 +59,9 @@ trait DotCodegen extends Printer with DotEnum {
   def emitNode(n:Any, label:Any, attr:DotAttr) = {
     emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
   }
+  def emitEdge(from:Any, to:Any, label:String):Unit = {
+    emitln(s"""${q(from)} -> ${q(to)} [label=${label}]""")
+  }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
     emitln(s"""${q(from)} -> ${q(to)} [${attr.list}]""")
   }
@@ -66,6 +70,9 @@ trait DotCodegen extends Printer with DotEnum {
   }
   def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any):Unit = {
     emitEdge(s"${from}:${ffield}", s"${to}:${tfield}")
+  }
+  def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any, attr:DotAttr):Unit = {
+    emitEdge(s"${from}:${ffield}", s"${to}:${tfield}", attr)
   }
   def emitEdge(from:AnyVal, ffield:Any, fd:String, to:Any, tfield:Any, td:String):Unit = {
     emitEdge(s"${from}:${ffield}:${fd}", s"${to}:${tfield}:${td}")

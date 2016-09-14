@@ -4,7 +4,7 @@ import pir._
 import pir.codegen._
 import pir.PIRMisc._
 import pir.plasticine.graph.{Counter => PCtr, ComputeUnit => PCU, Top => PTop}
-import pir.graph.{Counter => Ctr}
+import pir.graph.{Counter => Ctr, ComputeUnit => CU, _}
 import graph.mapper.PIRMap
 
 import scala.collection.mutable.ListBuffer
@@ -19,15 +19,14 @@ class CUDotPrinter(fileName:String) extends DotCodegen {
 
   override val stream = newStream(fileName) 
   
-  def print(pcus:List[PCU]) = {
-    emitBlock("digraph G") {
+  def emitPCUs(pcus:List[PCU]) = {
     //CUPrinter.emitln(s"splines=ortho;")
       pcus.foreach { cu =>
         val recs = ListBuffer[String]()
         recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
         recs += s"${cu}"
         recs += s"<${cu.vout}> ${cu.vout}"
-        val label = recs.mkString("|")
+        val label = s"{${recs.mkString("|")}}"
         emitNode(cu, label, DotAttr().shape(Mrecord))
         cu.vins.foreach { vin =>
           vin.fanIns.foreach { vout =>
@@ -37,6 +36,64 @@ class CUDotPrinter(fileName:String) extends DotCodegen {
           }
         }
       }
+  }
+
+  def emitMapping(pcus:List[PCU], mapping:PIRMap) = {
+    pcus.foreach { pcu =>
+      val recs = ListBuffer[String]()
+      recs += s"{${pcu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
+      recs += mapping.clmap.pmap.get(pcu).fold(s"${pcu}") { cu => s"{${pcu}|${cu}}"}
+      recs += s"<${pcu.vout}> ${pcu.vout}"
+      val label = s"{${recs.mkString("|")}}"
+      emitNode(pcu, label, DotAttr().shape(Mrecord))
+      pcu.vins.foreach { pvin =>
+        pvin.fanIns.foreach { pvout =>
+          if (pvout.src.isDefined) {
+            val attr = mapping.vimap.pmap.get(pvin).fold(DotAttr()) { set =>
+              DotAttr().label(set.map(_.variable).mkString(",")).color(red)
+            }
+            emitEdge(pvout.src.get, pvout, pcu, pvin, attr)
+          }
+        }
+      }
+    }
+  }
+
+  def emitNodes(cus:List[CU]) = {
+    cus.foreach { _ match {
+        case cu:InnerController =>
+          emitNode(cu, cu, DotAttr().shape(box).style(rounded))
+          cu.sinMap.foreach { case (s, sin) => emitEdge(s.writer.ctrler, cu, s"$s")}
+          cu.vinMap.foreach { case (v, vin) => emitEdge(v.writer.ctrler, cu, s"$v")}
+        case cu:OuterController =>
+          cu.sinMap.foreach { case (s, sin) => 
+            val writer = s.writer.ctrler match {
+              case w:InnerController => w
+              case w:OuterController => w.inner
+            }
+            emitEdge(writer, cu.inner, s"$s")
+          }
+      } 
+    }
+  }
+
+  def print(pcus:List[PCU]) = {
+    emitBlock("digraph G") { emitPCUs(pcus) }
+    close
+  }
+
+  def print(pcus:List[PCU], cus:List[CU]) = {
+    emitBlock("digraph G") {
+      emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus) }
+      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
+    }
+    close
+  }
+
+  def print(pcus:List[PCU], cus:List[CU], mapping:PIRMap) = {
+    emitBlock("digraph G") {
+      emitSubGraph("Mapping", "Mapping") { emitMapping(pcus, mapping) }
+      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
     }
     close
   }
@@ -49,17 +106,17 @@ class ArgDotPrinter(fileName:String) extends DotCodegen {
 
   def print(pcus:List[PCU], ptop:PTop) = {
     emitBlock("digraph G") {
-      pcus.foreach { cu =>
+      pcus.foreach { pcu =>
         val recs = ListBuffer[String]()
-        recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
-        recs += s"${cu}"
-        recs += s"<${cu.vout}> ${cu.vout}"
+        recs += s"{${pcu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
+        recs += s"${pcu}"
+        recs += s"<${pcu.vout}> ${pcu.vout}"
         val label = recs.mkString("|")
-        emitNode(cu, label, DotAttr().shape(Mrecord))
-        cu.vins.foreach { vin =>
+        emitNode(pcu, label, DotAttr().shape(Mrecord))
+        pcu.vins.foreach { vin =>
           vin.fanIns.foreach { vout =>
             if (!vout.src.isDefined) { //TODO
-              emitEdge(s"""argin_${vout}""", s"""${cu}:${vin}:n""")
+              emitEdge(s"""argin_${vout}""", s"""${pcu}:${vin}:n""")
             }
           }
         }

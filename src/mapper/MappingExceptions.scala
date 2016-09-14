@@ -1,7 +1,6 @@
 package pir.graph.mapper
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Node, Primitive}
-import pir.Design
-import pir.Config
+import pir._
 import pir.plasticine.config._
 import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU}
 
@@ -25,6 +24,11 @@ case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit des
 case class FailToMapNode(mapper:Mapper, n:Node, exceps:List[MappingException])(implicit design:Design) extends MappingException {
   val s = if (n.isInstanceOf[Primitive]) s"${n} in ${n.asInstanceOf[Primitive].ctrler}" else s"$n"
   override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
+}
+
+/* Binding succeeded but don't mark resource as used */
+case class ResourceNotUsed[M](mapper:Mapper, n:Node, r:PNode, m:M)(implicit design:Design) extends MappingException {
+  override val msg = s"Binding succeeded for $n on $r but don't mark $r as used"
 }
 
 trait OutOfResource extends MappingException {

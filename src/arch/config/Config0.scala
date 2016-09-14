@@ -63,9 +63,9 @@ object Config0 extends Spade {
     }
     val ctrs = List.tabulate(numCtrs) { ic => 
       val c = Counter(ic) 
-      c.min <== Const.out // Counter max, min, step can be constant or scalarIn(specified later)
-      c.max <== Const.out
-      c.step <== Const.out
+      c.min <== const.out // Counter max, min, step can be constant or scalarIn(specified later)
+      c.max <== const.out
+      c.step <== const.out
       c
     }
     /* Chain counters together */
@@ -133,7 +133,7 @@ object Config0 extends Spade {
       // All stage can read from any regs of its own stage, previous stage, and Const
       val preStage = stages(i) // == fustages(i-1)
       stage.fu.operands.foreach{ oprd =>
-        oprd <== Const.out // operand is constant
+        oprd <== const.out // operand is constant
         regs.foreach{ reg =>
           oprd <== stage.prs(reg) // operand is from current register block
           oprd <== preStage.prs(reg) // operand is forwarded from previous register block

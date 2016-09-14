@@ -44,10 +44,17 @@ trait Mapper { self =>
       for (ir <- 0 until reses.size) {
         val (h, res::rt) = reses.splitAt(ir)
         val restRes = h ++ rt
-        Try {
-          val mp = constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
-          recMap(restRes, remainNodes, mp)
+        val cons = Try {
+          constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
         } match {
+          case Success(m) => 
+            Try(recMap(restRes, remainNodes, m))
+          case Failure(ResourceNotUsed(_,_,_,m)) => 
+            Try(recMap(reses, remainNodes, m.asInstanceOf[M]))
+          case Failure(e) => 
+            Failure(e) 
+        } 
+        cons match {
           case Success(m) => return m
           case Failure(e) => e match {
             case me:MappingException => exceps += me // constrains failed
@@ -161,7 +168,7 @@ trait Mapper { self =>
    * nodes was considered failed and continues trying
    * @param oor (resSize, nodeSize) => OutOfResource Exception
    * */
-  def inordBind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
+  def bindInOrder[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M], finPass: M => M, 
     oor:(Int, Int) => OutOfResource):M = {
 

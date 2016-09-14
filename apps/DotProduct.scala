@@ -64,7 +64,7 @@ object DotProduct extends PIRApp {
       Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, innerScalar))
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register
     }
-    UnitComputeUnit (name="accum", parent=outer, deps=List(inner)) { implicit CU =>
+    UnitPipeline (name="accum", parent=outer, deps=List(inner)) { implicit CU =>
       CounterChain(Const("1i") by Const("1i")) //Local
       val es = CU.emptyStage
       val s0::s1::_ = Stages(2)

@@ -14,11 +14,11 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
 
   def finPass(cl:CL)(m:M):M = m 
 
-  private def mapScalarIns(vimap:VIMap, slmap:SLMap)(n:N, p:R, map:M):M = {
+  private def mapScalarIns(vimap:VIMap, somap:SOMap)(n:N, p:R, map:M):M = {
     val simap = map.simap
     val opmap = map.opmap
     val ib = vimap(n)
-    val idx = slmap.getIdx(n.scalar)
+    val idx = somap(n.scalar.writer).idx
     if (p.in.canFrom(ib.outports(idx))) {
       map.setSI(n,p).setOP(n.out, p.out)
     } else
@@ -30,7 +30,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val sin = cl.sins
     val psin = pcl.sins
     // Assume one SI to one outport, no need to map
-    val cons = List(mapScalarIns(pirMap.vimap, pirMap.slmap) _)
+    val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)
     simAneal(psin, sin, pirMap, cons, finPass(cl) _, OutOfScalarIn(pcl, _, _))
   }
 

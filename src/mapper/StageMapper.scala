@@ -7,7 +7,7 @@ import pir.graph.{InPort => IP, OutPort => OP}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
 import pir.plasticine.graph.{EmptyStage => PEST, FUStage => PFUST, Stage => PST, WAStage => PWAST, 
                             ReduceStage => PRDST, Reg => PReg}
-import pir.plasticine.graph.{Const => PConst, InPort => PIP, OutPort => POP, RMPort, Stagable}
+import pir.plasticine.graph.{ConstVal => PConstVal, InPort => PIP, OutPort => POP, RMPort, Stagable}
 import pir.graph.traversal.{PIRMapping, MapPrinter}
 
 import scala.collection.immutable.Set
@@ -25,9 +25,9 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
-    var cmap = inordBind(List(pest), List(est), cuMap, List(mapStage _), (m:M) => m, OutOfStage(pcu, cu, _, _))
+    var cmap = bindInOrder(List(pest), List(est), cuMap, List(mapStage _), (m:M) => m, OutOfStage(pcu, cu, _, _))
     cmap = Try { //TODO: Currently if fail take a while to finish 
-      inordBind(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, OutOfStage(pcu, cu, _, _))
+      bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, OutOfStage(pcu, cu, _, _))
     } match  {
       case Success(m) => m
       case Failure(e) => 
@@ -126,10 +126,10 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val ipmap = map.ipmap
     val pop:POP = n.from.src match {
       case Const(_, c) =>
-        if (!r.canFrom(PConst.out)) {
+        if (!r.canFrom(design.arch.const.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info)
-        } else PConst(c).out
+        } else PConstVal(c)(design.arch).out
       case pr@PipeReg(stage, reg) => 
         val preg = rcmap(reg)
         val pstage = stmap(stage)

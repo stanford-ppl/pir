@@ -118,21 +118,6 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   //}
   def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
   
-  //def rdAddr():RdAddrPR = RdAddrPR(newTemp)
-  //def rdAddr(stage:Stage):PipeReg = {
-  //  val reg = rdAddr()
-  //  rdAddr(stage, reg)
-  //}
-  //def rdAddr(stage:Stage, reg:RdAddrPR):PipeReg = {
-  //  val pr = pipeReg(stage, reg)
-  //  val srams = reg.raPorts.map{_.src.asInstanceOf[SRAM]}
-  //  srams.foreach {s =>
-  //    if (!rdAddrRegs.contains(s)) rdAddrRegs += (s -> reg)
-  //    s.readAddr = pr.out
-  //  }
-  //  pr
-  //}
-  
   def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 

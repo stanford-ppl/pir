@@ -3,7 +3,7 @@ import pir._
 import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
 import pir.graph.{Counter => Ctr, InPort => IP, _}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, Const => PConst}
+import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, ConstVal => PConstVal}
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -63,7 +63,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     def mapInPort(n:IP, p:PIP) = {
       ipmap += n -> p 
       n.from.src match {
-        case Const(_, v) => fpmap += p -> PConst(v).out
+        case Const(_, v) => fpmap += p -> PConstVal(v)(design.arch).out
         case _ =>
       }
     }

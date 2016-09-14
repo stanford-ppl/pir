@@ -3,7 +3,8 @@ package pir.plasticine.config
 import pir.plasticine.graph._
 import scala.language.implicitConversions
 
-trait Spade {
+trait Spade { self =>
+  implicit val spade:Spade = self
   val wordWidth:Int
   val numLanes:Int
 
@@ -24,4 +25,9 @@ trait Spade {
   implicit def so_to_rmp(so:ScalarOut):RMPort = so.in
   implicit def pr_to_ip(pr:PipeReg):InPort = pr.in
   implicit def pr_to_op(pr:PipeReg):OutPort = pr.out
+
+  var nextSym = 0
+  def nextId = {val temp = nextSym; nextSym +=1; temp}
+  val const = Const()
+
 }

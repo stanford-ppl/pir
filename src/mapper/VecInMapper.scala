@@ -7,6 +7,7 @@ import pir.graph.traversal.PIRMapping
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
+import scala.util.{Try, Success, Failure}
 
 class VecInMapper(implicit val design:Design) extends Mapper {
   type R = PIB
@@ -14,33 +15,40 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
   def finPass(cl:CL)(m:M):M = m
 
+  private def getOB(sin:ScalarIn, pirMap:M):POB = {
+    pirMap.somap(sin.scalar.writer).outBus
+  }
+
   def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
+
     val ins = cl match {
       case cl:TT => cl.sins // Assume tile transfer vin internallly connected
       case _ => cl.vins ++ cl.sins
     }
+
     val pvins = pcl.vins
-    val pmap = simAneal(pvins, ins, pirMap, cons, finPass(cl) _, OutOfVec(cl, pcl, _, _))
+    val pmap = bind(pvins, ins, pirMap, cons, finPass(cl) _)
+    //TODO: OutOfVec(cl, pcl, _, _)
+
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
-      if (pirMap.clmap.contains(reader)) {
+      if (pm.clmap.contains(reader)) {
         val rins = reader.vins ++ reader.sins
-        if (rins.exists( rin => !pirMap.vimap.contains(rin) )) map(reader, pm)
-        else pm
+        if (rins.exists( rin => !pm.vimap.contains(rin) )) map(reader, pm) else pm
       } else pm
     }
   }
 
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
-    if (pirMap.vimap.contains(n)) return pirMap
+    if (pirMap.vimap.contains(n)) throw ResourceNotUsed(this, n, p, pirMap) 
     val dep = n match { // ctrler that writes n
       case n:ScalarIn => n.scalar.writer.ctrler
       case n:VecIn => n.vector.writer.ctrler
     }
     // If reader ctrler dep haven't been placed, postpone mapping
-    if (!pirMap.clmap.contains(dep)) return pirMap
+    if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
     val pdvout:POB = n match {
       case n:VecIn => dep match {
@@ -48,8 +56,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
         case d:CU => pirMap.clmap(d).vouts.head //TODO Assume only 1 vout 
         case _ => throw TODOException(s"Not supported vecout mapping")
       }
-      case n:ScalarIn =>
-        pirMap.slmap.getOutBus(n.scalar)
+      case n:ScalarIn => getOB(n, pirMap)
     } 
 
     /* Find vins that connects to the depended ctrler */
@@ -57,15 +64,26 @@ class VecInMapper(implicit val design:Design) extends Mapper {
       val pmap = pirMap.setVI(n, p).setIB(p, pdvout)
       n match {
         case n:VecIn => pmap.setOP(n.out, p.viport)
-        case n:ScalarIn => pmap // set at scalarIn mapper
+        case n:ScalarIn => 
+          cl.sins.foldLeft(pmap) { case (pmap, sin) =>
+            if (sin.scalar.writer.ctrler==n.scalar.writer.ctrler) {
+              if (getOB(sin, pmap) == pdvout && 
+                !pmap.vimap.contains(sin)) {
+                pmap.setVI(sin, p)
+              } else pmap
+            } else pmap
+          } // opmap set at scalarIn mapper
       }
     } else {
-      throw IntConnct(cl, pcl)
+      throw InterConnct(cl, pcl)
     }
   }
 }
 
-case class IntConnct(cl:CL, pcl:PCL)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class UsedInBus(pib:PIB)(implicit val mapper:Mapper, design:Design) extends MappingException {
+  override val msg = s"Resource ${pib} has already been used"
+}
+case class InterConnct(cl:CL, pcl:PCL)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }
 case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {

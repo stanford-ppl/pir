@@ -12,7 +12,7 @@ PipeReg => PR, VecIn, SRAM => SM, Stage => ST, ReduceStage => RDST, WAStage => W
 import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, 
 TileTransfer => PTT, EmptyStage => PES, Stage => PST, FUStage => PFUST, Top => PTop, FuncUnit => PFU,
 Counter => PCT, InBus => PIB, PipeReg => PPR, InPort => PIP, OutPort => POP, SRAM => PSM, 
-Const => PConst, ScalarIn => PSI, EnLUT => PEnLUT, LUT => PLUT, BusInPort => PBIP}
+Const => PConst, ConstVal => PConstVal, ScalarIn => PSI, EnLUT => PEnLUT, LUT => PLUT, BusInPort => PBIP}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -77,8 +77,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def lookUp(pnode:PNode):String = {
     pnode match {
-      case PConst(c) => s"c${c}"
-      case PConst => throw PIRException(s"don't know how to lookUp PConst")
+      case PConstVal(c) => s"c${c}"
+      case PConst() => throw PIRException(s"don't know how to lookUp PConst")
       case pst:PST => s"s${pst.idx}"
       case pfu:PFU => lookUp(pfu.stage) 
       case pctr:PCT => s"i${pctr.idx}"
