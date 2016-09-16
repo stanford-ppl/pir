@@ -28,6 +28,9 @@ object DotProduct extends PIRApp {
       deps=Nil, vec=tlAVec){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("1i"))
+      //TODO
+      val stream = CounterChain(name="stream", Const("0i") until tileSize by Const("1i"))
+      stream.isStreaming(true)
       val s0::_ = Stages(1)
       val es = CU.emptyStage 
       val output = CU.scalarOut(s0, A.saddr)
@@ -38,6 +41,8 @@ object DotProduct extends PIRApp {
       deps=Nil, vec=tlBVec){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("0i"))
+      val stream = CounterChain(name="stream", Const("0i") until tileSize by Const("1i"))
+      stream.isStreaming(true)
       val s0::_ = Stages(1)
       val es = CU.emptyStage
       val output = CU.scalarOut(s0, B.saddr)

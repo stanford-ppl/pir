@@ -4,6 +4,7 @@ import pir._
 import pir.codegen._
 import pir.PIRMisc._
 import pir.plasticine.graph._
+import pir.plasticine.main._
 import pir.graph._
 import pir.graph.mapper._
 import pir.graph.{Controller => CL, ComputeUnit => CU, InnerController => ICU, TileTransfer => TT, Node, Primitive, Top, 
@@ -20,7 +21,8 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen {
+class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata {
+  implicit lazy val spade:Spade = design.arch
 
   lazy val mapping:PIRMap = pirMapping.mapping
   lazy val opmap:OPMap = mapping.opmap
@@ -79,11 +81,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     pnode match {
       case PConstVal(c) => s"c${c}"
       case PConst() => throw PIRException(s"don't know how to lookUp PConst")
-      case pst:PST => s"s${pst.idx}"
+      case pst:PST => s"s${indexOf(pst)}"
       case pfu:PFU => lookUp(pfu.stage) 
-      case pctr:PCT => s"i${pctr.idx}"
-      case pib:PIB => s"bus${pib.idx}"
-      case psm:PSM => s"m${psm.idx}"
+      case pctr:PCT => s"i${indexOf(pctr)}"
+      case pib:PIB => s"bus${indexOf(pib)}"
+      case psm:PSM => s"m${indexOf(psm)}"
       case _ => throw new TODOException(s"Don't know how to lookUp ${pnode}"); "?"
     }
   }
@@ -104,10 +106,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def lookUp(pstage:PST, pn:PNode):String = {
     pn match {
       case ppr:PPR =>
-        if (ppr.stage.idx==pstage.idx) {
-          s"l${ppr.reg.idx}"
-        } else if (ppr.stage.idx==pstage.idx-1) {
-          s"r${ppr.reg.idx}"
+        if (indexOf(ppr.stage)==indexOf(pstage)) {
+          s"l${indexOf(ppr.reg)}"
+        } else if (indexOf(ppr.stage)==indexOf(pstage)-1) {
+          s"r${indexOf(ppr.reg)}"
         } else {
           throw PIRException(s"Reading from not accessable stage curr:${pstage}, ${ppr.stage}")
         }
@@ -162,7 +164,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       } else false
     }
-    if (wastages.size==0) 0 else wastages.last.idx - wastages.head.idx
+    if (wastages.size==0) 0 else indexOf(wastages.last) - indexOf(wastages.head)
   }
 
   //TODO
@@ -348,9 +350,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       assert(pstage==ppr.stage)
                       if (fpmap.contains(ppr.in)) {
                         fpmap(ppr.in).src.get match {
-                          case p:PFU => Some(s""""r${preg.idx}" : "alu"""")
+                          case p:PFU => Some(s""""r${indexOf(preg)}" : "alu"""")
                           case p:PSI => None
-                          case p => Some(s""""r${preg.idx}" : "${lookUp(pstage, p)}"""")
+                          case p => Some(s""""r${indexOf(preg)}" : "${lookUp(pstage, p)}"""")
                         }
                       } else None
                     }
@@ -385,10 +387,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                     emitComment(s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
                     inits.foreach { init =>
                       val pip = ipmap(init).asInstanceOf[PBIP]
-                      map += (init.from -> pip.idx)
+                      map += (init.from -> indexOf(pip))
                     }
                     tos.foreach { to =>
-                      map += (to -> ucmap(to.src.asInstanceOf[UDC]).idx)
+                      map += (to -> indexOf(ucmap(to.src.asInstanceOf[UDC])))
                     }
                     val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
                     emitComment(s"${tdlut} ${tdlut.transFunc.info} ${map}")
@@ -409,7 +411,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       assert(ctrs.size<=2)
                       val map:Map[OP, Int] = Map.empty
                       doneXbar ++= List.tabulate(2) { i => // sel for Xbar
-                        if (i<ctrs.size) s""""${ctmap(ctrs(i)).idx}"""" 
+                        if (i<ctrs.size) s""""${indexOf(ctmap(ctrs(i)))}"""" 
                         else s""""x""""
                       }
                       ctrs.zipWithIndex.foreach { case (ctr,i) =>
@@ -443,13 +445,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                     val udc = ucmap.pmap(pudc)
                     val inc = if (udc.inc.isConnected) {
                       val pip = ipmap(udc.inc).asInstanceOf[PBIP]
-                      s""""${pip.idx}""""
+                      s""""${indexOf(pip)}""""
                     } else { s""""x"""" }
                     incs += inc 
                     // dec
                     val ctr = udc.dec.from.src.asInstanceOf[CT]
                     val pctr = ctmap(ctr)
-                    decs += s""""${pctr.idx}""""
+                    decs += s""""${indexOf(pctr)}""""
                     initVals += s""""${udc.initVal}""""
                   } else {
                     incs += s""""x""""
@@ -474,7 +476,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       val map:Map[OP, Int] = Map.empty
                       udcs.foreach { udc =>
                         val pudc = ucmap(udc)
-                        map += (udc.out -> pudc.idx)
+                        map += (udc.out -> indexOf(pudc))
                       }
                       val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
                       emitComment(s"${enlut} ${enlut.transFunc.info} ${map}")
@@ -493,7 +495,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                         val penlut = lumap(e).asInstanceOf[PEnLUT]
                         val cu = clmap.pmap(pcu)
                         if (e.ctrler==cu) {
-                          assert(penlut.idx == i)
+                          assert(indexOf(penlut) == i)
                           s""""0""""
                         } else { // from token in
                           //TODO: config interconnect

@@ -14,6 +14,7 @@ class ScalarOutMapper(implicit val design:Design) extends Mapper {
   type N = SO 
   type R = PSO 
   type V = PSO 
+  val typeStr = "SOMapper"
 
   def finPass(cl:CL)(m:M):M = m
 

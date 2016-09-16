@@ -1,6 +1,8 @@
 package pir.plasticine.config
                           
 import pir.plasticine.graph._
+import pir.plasticine.main._
+
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -49,7 +51,7 @@ object Config0 extends Spade {
     // Create Logical Registers (entire row of physical register for all stages)
     val regs = List.tabulate(numPRs) { ir => Reg(ir) }
 
-    val vecIns = List.tabulate(numBusIns) { is => InBus(is, numLanes) } // Bus Input with numLanes words
+    val vecIns = InBuses(numBusIns, numLanes) // Bus Input with numLanes words
     val vecOut =  OutBus(0, numLanes) // Bus Output with numLanes words. Assume only single bus output per CU for now
     val scalarIns = List.tabulate(numBusIns, vecIns.head.outports.size) { case (ib, is) => // Scalar inputs. 1 per word in bus input 
       ScalarIn(vecIns(ib).outports(is))

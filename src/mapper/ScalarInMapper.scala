@@ -11,6 +11,7 @@ import scala.collection.immutable.Map
 class ScalarInMapper(implicit val design:Design) extends Mapper {
   type N = SI
   type R = PSI 
+  val typeStr = "SIMapper"
 
   def finPass(cl:CL)(m:M):M = m 
 

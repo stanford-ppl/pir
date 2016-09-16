@@ -16,7 +16,8 @@ trait Mapper { self =>
 
   implicit val design:Design
   
-  override def toString = this.getClass().getSimpleName() 
+  val typeStr:String
+  override def toString = s"$typeStr"
 
   /* Bind a list of nodes to a list of resource exhausting all possibilities 
    * before failing and throw NoSolFound Exception

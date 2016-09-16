@@ -13,6 +13,7 @@ import scala.collection.immutable.Map
 class CtrMapper(implicit val design:Design) extends Mapper {
   type R = PCtr
   type N = Ctr
+  val typeStr = "CtrMapper"
   
   def finPass(cu:CU)(m:M):M = m
 
@@ -37,20 +38,22 @@ class CtrMapper(implicit val design:Design) extends Mapper {
 
   def resFunc(n:N, m:M, remainRes:List[R]):List[R] = {
     val ptop = design.arch.top
-    val enCtrs = if (n.en.isConnected) {
-      val dep = n.en.from.src.asInstanceOf[Ctr]
-      m.ctmap.get(dep).fold(remainRes) { pdep =>
-        pdep.done.fanOuts.map{ fo => fo.src.get }.collect{ case pc:R => pc }
-          .filter{ pc => !m.ctmap.pmap.contains(pc) }.toList
-      }
-    } else { // Inner most counter
-      remainRes.filter{ pc => !m.ctmap.pmap.contains(pc) && pc.en.canFrom(ptop.clk)}
+    val enCtrs = n.en.from.src match {
+      case dep:Ctr =>
+        m.ctmap.get(dep).fold(remainRes) { pdep =>
+          pdep.done.fanOuts.map{ fo => fo.src.get }.collect{ case pc:R => pc }.toList
+        }
+      case _:EnLUT => // Inner most counter
+        remainRes.filter{ pc => pc.en.canFrom(ptop.clk)}
+      case _ => throw PIRException(s"unknown driver of ${n}'s enable")
     }
-    val doneCtrs = n.done.to.map { d =>
-      val deped = d.src.asInstanceOf[Ctr]
-      m.ctmap.get(deped).fold(remainRes) { pdeped =>
-        pdeped.en.fanIns.map{ fi => fi.src.get}.collect{case pc:R => pc}
-          .filter{ pc => !m.ctmap.pmap.contains(pc) }.toList
+    val doneCtrs = n.done.to.map { done =>
+      done.src match {
+        case deped:Ctr =>
+          m.ctmap.get(deped).fold(remainRes) { pdeped =>
+            pdeped.en.fanIns.map{ fi => fi.src.get}.collect{case pc:R => pc}.toList
+          }
+        case _ => remainRes
       }
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 

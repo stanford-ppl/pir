@@ -14,6 +14,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type N = Reg
 
   type RC = MMap[Reg, PReg]
+  val typeStr = "RegAlloc"
 
   def finPass(cu:CU)(m:M):M = m
 

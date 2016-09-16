@@ -4,6 +4,7 @@ import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
 import pir.graph.{CtrlBox => CB, Counter => Ctr, InPort => IP, TokenOutLUT => TOLUT, _}
 import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
 import pir.plasticine.graph.{CtrlBox => PCB, Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, Const => PConst}
+import pir.plasticine.main._
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.mutable.ListBuffer
@@ -11,7 +12,10 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
 
-class CtrlMapper(implicit val design:Design) extends Mapper {
+class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
+  implicit lazy val spade:Spade = design.arch
+  val typeStr = "CtrlMapper"
+
   type R = PCB
   type N = CB
   
@@ -54,10 +58,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper {
     enluts.foreach { case (en, enLut) =>
       val ctr = en.src
       val pctr = pirMap.ctmap(ctr)
-      val penLut = pcb.enLUTs(pctr.idx)
+      val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)
       lumap += (enLut -> penLut)
-      val ptout = ptouts(pctr.idx)
+      val ptout = ptouts(indexOf(pctr))
       assert(!opmap.pmap.contains(ptout))
       opmap += (enLut.out -> ptout)
     }
@@ -79,14 +83,14 @@ class CtrlMapper(implicit val design:Design) extends Mapper {
     def findPto(tolut:TOLUT):Unit = {
       ptoluts.foreach { ptolut =>
         assert(tolut.ins.size <= ptolut.numIns)
-        val ptout = ptouts(ptolut.idx)
+        val ptout = ptouts(indexOf(ptolut))
         if (!opmap.pmap.contains(ptout)) {
           lumap += (tolut -> ptolut)
           opmap += (tolut.out -> ptout)
           return
         }
       }
-      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${ptouts.map(_.idx).mkString(",")}")
+      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${ptouts.map(po => indexOf(po)).mkString(",")}")
     }
     toluts.foreach { tolut => findPto(tolut) }
 

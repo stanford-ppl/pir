@@ -3,39 +3,78 @@ package pir.graph.traversal
 import pir._
 import pir.codegen._
 import pir.PIRMisc._
-import pir.plasticine.graph.{Counter => PCtr, ComputeUnit => PCU, Top => PTop}
+import pir.plasticine.graph.{Counter => PCtr, ComputeUnit => PCU, Top => PTop, SwitchBox}
 import pir.graph.{Counter => Ctr, ComputeUnit => CU, _}
-import graph.mapper.PIRMap
+import pir.graph.mapper.PIRMap
+import pir.plasticine.main._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
+import scala.reflect.runtime.universe._
 
-class CUDotPrinter(fileName:String) extends DotCodegen { 
+class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+  implicit lazy val spade:Spade = design.arch
 
-  def this() = this(Config.spadeNetwork)
+  def this()(implicit design:Design) = this(Config.spadeNetwork)
 
   override val stream = newStream(fileName) 
   
+  def emitSwitchBoxes(sbs:List[SwitchBox]) = {
+    val emittedBackEdge = Set[(SwitchBox, SwitchBox)]()
+    sbs.foreach { sb =>
+      val label = s"$sb"
+      val attr = DotAttr().shape(box)
+      coordOf.get(sb).foreach { case co => attr.pos(co) }
+      emitNode(sb, label, attr)
+      sb.vins.foreach { vin =>
+        vin.fanIns.foreach { vout =>
+          vout.src.get match {
+            case to:SwitchBox =>
+              if (!emittedBackEdge.contains((sb, to))) {
+                val toFanIns = to.vins.flatMap(_.fanIns.map(_.src)
+                                .collect{case Some(s@SwitchBox(_,_)) => s})
+                if (toFanIns.contains(sb)) {
+                  emitEdge(s"${vout.src.get}", sb, DotAttr().dir(both))
+                  emittedBackEdge += (to -> sb)
+                } else {
+                  emitEdge(s"${vout.src.get}", sb)
+                }
+              }
+            case cu:PCU =>
+              emitEdge(s"${vout.src.get}:$vout", sb)
+          }
+        }
+      }
+    }
+  }
+
   def emitPCUs(pcus:List[PCU]) = {
-    //CUPrinter.emitln(s"splines=ortho;")
-      pcus.foreach { cu =>
-        val recs = ListBuffer[String]()
-        recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
-        recs += s"${cu}"
-        recs += s"<${cu.vout}> ${cu.vout}"
-        val label = s"{${recs.mkString("|")}}"
-        emitNode(cu, label, DotAttr().shape(Mrecord))
-        cu.vins.foreach { vin =>
-          vin.fanIns.foreach { vout =>
-            if (vout.src.isDefined) { //TODO
-              emitEdge(vout.src.get, vout, cu, vin)
+    //emitln(s"splines=ortho;")
+    pcus.foreach { cu =>
+      val recs = ListBuffer[String]()
+      recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
+      recs += s"${cu}"
+      recs += s"<${cu.vout}> ${cu.vout}"
+      val label = s"{${recs.mkString("|")}}"
+      var attr = DotAttr().shape(Mrecord)
+      coordOf.get(cu).foreach { case co => attr.pos(co) }
+      emitNode(cu, label, attr)
+      cu.vins.foreach { vin =>
+        vin.fanIns.foreach { vout =>
+          vout.src.foreach { from => //TODO
+            from match {
+              case from:SwitchBox =>
+                emitEdge(from, s"$cu:$vin")
+              case from:PCU =>
+                emitEdge(from, vout, cu, vin)
             }
           }
         }
       }
+    }
   }
 
   def emitMapping(pcus:List[PCU], mapping:PIRMap) = {
@@ -82,7 +121,19 @@ class CUDotPrinter(fileName:String) extends DotCodegen {
     close
   }
 
-  def print(pcus:List[PCU], cus:List[CU]) = {
+  def print[T](pcus:List[PCU], l:List[T])(implicit cltp:TypeTag[T]) = {
+    typeOf[T] match {
+      case t if t =:= typeOf[SwitchBox] => printRes(pcus, l.asInstanceOf[List[SwitchBox]])
+      case t if t =:= typeOf[CU] => printResAndNode(pcus, l.asInstanceOf[List[CU]]) 
+    }
+  }
+
+  def printRes(pcus:List[PCU], sbs:List[SwitchBox]) = {
+    emitBlock("digraph G") { emitPCUs(pcus); emitSwitchBoxes(sbs) }
+    close
+  }
+
+  def printResAndNode(pcus:List[PCU], cus:List[CU]) = {
     emitBlock("digraph G") {
       emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus) }
       emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }

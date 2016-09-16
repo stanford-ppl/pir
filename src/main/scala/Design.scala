@@ -4,9 +4,8 @@ import pir.PIRMisc._
 import graph._
 import graph.traversal._
 import graph.mapper._
-import plasticine._
 import plasticine.config._
-//import plasticine.graph._
+import pir.plasticine.main._
 
 //import analysis._
 

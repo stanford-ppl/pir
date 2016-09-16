@@ -18,6 +18,7 @@ import scala.util.{Try, Success, Failure}
 class StageMapper(implicit val design:Design) extends Mapper {
   type R = PST
   type N = ST
+  val typeStr = "StageMapper"
 
   def finPass(cu:CU)(m:M):M = m
 

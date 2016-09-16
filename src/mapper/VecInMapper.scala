@@ -12,6 +12,7 @@ import scala.util.{Try, Success, Failure}
 class VecInMapper(implicit val design:Design) extends Mapper {
   type R = PIB
   type N = I
+  val typeStr = "VIMapper"
 
   def finPass(cl:CL)(m:M):M = m
 

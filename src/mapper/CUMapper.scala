@@ -15,6 +15,7 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   type R = PCL
   type N = CL
   type V = CLMap.V
+  val typeStr = "CUMapper"
 
   def finPass(m:M):M = m
   /* Saperate Compute Unit and Memory controller to map saperately */

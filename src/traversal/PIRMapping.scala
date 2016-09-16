@@ -10,21 +10,22 @@ object MapPrinter extends Printer {
   override val stream = newStream(Config.mapFile)
   def printMap(mapping:PIRMap)(implicit design:Design) = {
     if (Config.debug) {
-      MapPrinter.emitTitleComment(s"Mapping")
-      mapping.printPMap(MapPrinter, design)
-      MapPrinter.close
+      emitTitleComment(s"Mapping")
+      mapping.printPMap(this, design)
+      close
     }
   }
 
   def printException(e:PIRException) = {
     if (Config.debug) {
-      MapPrinter.emitTitleComment("Mapping Exceptions:")
-      MapPrinter.emitln(e.toString)
-      MapPrinter.close
+      emitTitleComment("Mapping Exceptions:")
+      emitln(e.toString)
+      close
     }
   }
 
 }
+
 class PIRMapping(implicit val design: Design) extends Traversal{
 
   var mapping:PIRMap = _
@@ -39,7 +40,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val soMapper = new ScalarOutMapper()
   val viMapper = new VecInMapper()
   val ctrlMapper = new CtrlMapper() {
-    override def finPass(cu:ComputeUnit)(m:M):M =  { stageMapper.map(cu, regAlloc.map(cu, m)) }
+    override def finPass(cu:ComputeUnit)(m:M):M = stageMapper.map(cu, regAlloc.map(cu, m))
   }
   val ctrMapper = new CtrMapper() { 
     override def finPass(cu:ComputeUnit)(m:M):M = ctrlMapper.map(cu, m)
@@ -66,7 +67,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         case Failure(e) =>
           e.printStackTrace
           MapPrinter.printMap(cmap)(design)
-          System.exit(-1)
+          assert(false)
           throw e
       }
     }

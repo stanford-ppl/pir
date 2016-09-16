@@ -13,6 +13,8 @@ class DotAttr() {
   def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
   def style(s:Style) = { attrMap += "style" -> s.field; this }
   def label(s:String) = { attrMap += "label" -> s; this }
+  def dir(s:Direction) = { attrMap += "dir" -> s.field; this }
+  def pos(coord:(Int,Int)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
 
   def list = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(",")
   def expand = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(";\n")
@@ -24,6 +26,7 @@ trait DotField { val field:String }
 case class Shape(field:String) extends DotField
 case class Color(field:String) extends DotField
 case class Style(field:String) extends DotField
+case class Direction(field:String) extends DotField
 
 trait DotEnum {
   val Mrecord   = Shape("Mrecord")
@@ -44,6 +47,8 @@ trait DotEnum {
   val blue      = Color("blue")
   val red       = Color("red")
   val indianred = Color("indianred1")
+
+  val both = Direction("both")
 
   implicit def field_to_string(f:DotField):String = f.field
 }

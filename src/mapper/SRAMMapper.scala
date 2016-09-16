@@ -14,6 +14,7 @@ import scala.collection.immutable.Map
 class SRAMMapper(implicit val design:Design) extends Mapper {
   type N = SRAM 
   type R = PSRAM 
+  val typeStr = "SramMapper"
 
   def finPass(cu:ICU)(m:M):M = m 
 

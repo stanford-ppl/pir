@@ -1,17 +1,15 @@
 package pir.test
 
 import pir._
-import pir.graph.{Counter => Ctr, CounterChain, ComputeUnit => CU}
+import pir.graph.{Counter => Ctr, CounterChain, ComputeUnit => CU, _}
 import pir.plasticine.graph.{Counter => PCtr, Const => PConst, Top => PTop}
 import pir.PIRMisc._
-import plasticine.config._
+import plasticine.main._
 import pir.graph.mapper._
 import pir.graph.traversal._
 
 import org.scalatest._
 import scala.language.reflectiveCalls
-
-object Current extends Tag("Current")
 
 class CtrMapperTest extends UnitTest { self =>
 
@@ -21,6 +19,8 @@ class CtrMapperTest extends UnitTest { self =>
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)
+      cc1.inner.en.connect(EnLUT(0, null).out)
+      cc0.inner.en.connect(EnLUT(0, null).out)
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
@@ -54,6 +54,8 @@ class CtrMapperTest extends UnitTest { self =>
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)
+      cc1.inner.en.connect(EnLUT(0, null).out)
+      cc0.inner.en.connect(EnLUT(0, null).out)
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
@@ -83,12 +85,14 @@ class CtrMapperTest extends UnitTest { self =>
     }
   }
 
-  "CtrMapper Test3" should "success" taggedAs(Current) in {
+  "CtrMapper Test3" should "success" in {
     new Design {
       implicit val ctrler:CU = null
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)
+      cc1.inner.en.connect(EnLUT(0, null).out)
+      cc0.inner.en.connect(EnLUT(0, null).out)
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
