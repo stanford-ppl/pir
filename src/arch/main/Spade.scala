@@ -12,6 +12,7 @@ trait Spade extends Metadata { self =>
   val top:Top
   val rcus:List[ComputeUnit]
   val ttcus:List[TileTransfer]
+  val sbs:List[SwitchBox]
 
   def ctrlers = top :: rcus ++ ttcus
   def cus = rcus ++ ttcus

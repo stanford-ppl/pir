@@ -6,7 +6,7 @@ import pir.misc._
 import pir.graph._
 import pir.graph.enums._
 import plasticine.main._
-import plasticine.config.Config0
+import plasticine.config._
 import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
 import pir.graph.mapper._
 import pir.graph.traversal._
@@ -73,6 +73,7 @@ class CUMapperTest extends UnitTest {
           c
         } 
         val ttcus = Nil
+        val sbs = Nil 
         val top = PTop(Nil, Nil, Nil, Nil)
         val wordWidth = 32
 
@@ -121,10 +122,11 @@ class CUMapperTest extends UnitTest {
         val top = PTop(Nil, Nil, Nil, Nil)
         val ttcus = Nil
         val scale = 4
-        val sbs = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-        for (i <- 0 until sbs.size) {
-          for (j <- 0 until sbs.head.size) {
-            coordOf(sbs(i)(j)) = (i*scale-scale/2, j*scale-scale/2)
+        val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+        override val sbs = switchBoxes.flatten 
+        for (i <- 0 until switchBoxes.size) {
+          for (j <- 0 until switchBoxes.head.size) {
+            coordOf(switchBoxes(i)(j)) = (i*scale-scale/2, j*scale-scale/2)
           }
         }
         val rcus = {
@@ -136,48 +138,13 @@ class CUMapperTest extends UnitTest {
             c
           }
           /* Network Constrain */ 
-          for (i <- 0 until numRowCUs) {
-            for (j <- 0 until numColCUs) {
-              // CU to CU (Horizontal)
-              if (i!=numRowCUs-1)
-                cus(i+1)(j).vins(0) <== cus(i)(j).vout
-              // CU to CU (Vertical)
-              if (j!=numColCUs-1)
-                cus(i)(j+1).vins(2) <== cus(i)(j).vout
-            }
-          }
-          for (i <- 0 until numRowCUs+1) {
-            for (j <- 0 until numColCUs+1) {
-              // SB to SB (Horizontal)
-              if (i!=numRowCUs) {
-                sbs(i+1)(j).vins(2) <== sbs(i)(j).vouts(1)
-                sbs(i)(j).vins(5) <== sbs(i+1)(j).vouts(4)
-              }
-              // SB to SB (Vertical)
-              if (j!=numColCUs) {
-                sbs(i)(j+1).vins(0) <== sbs(i)(j).vouts(2)
-                sbs(i)(j).vins(4) <== sbs(i)(j+1).vouts(0)
-              }
-            }
-          }
-          for (i <- 0 until numRowCUs) {
-            for (j <- 0 until numColCUs) {
-              // SB to CU (NW -> SE)
-              cus(i)(j).vins(1) <== sbs(i)(j).vouts(3)
-              // SB to CU (SW -> NE)
-              cus(i)(j).vins(3) <== sbs(i)(j+1).vouts(5)
-              // CU to SB (SW -> NE)
-              sbs(i+1)(j).vins(3) <== cus(i)(j).vout
-              // CU to SB (NW -> SE)
-              sbs(i+1)(j+1).vins(1) <== cus(i)(j).vout
-            }
-          }
+          Config1.genNetwork(cus, switchBoxes)
           cus.flatten
         }
 
       }
       val pcus = arch.rcus
-      val sbs = arch.sbs.flatten
+      val sbs = arch.sbs
 
       // Mapping
       //val soMapper = new ScalarOutMapper()

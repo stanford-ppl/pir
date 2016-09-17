@@ -188,7 +188,8 @@ object Config0 extends Spade {
     c.rdstages.foreach( _.prs(regs(ptr)) <== c.reduce)
     c
   }
-  
+
+  override val sbs = Nil
   /* Network Constrain */ 
   rcus(0).vins(0) <== ttcus(0).vout 
   rcus(0).vins(1) <== ttcus(1).vout
@@ -196,7 +197,7 @@ object Config0 extends Spade {
   rcus(1).vins(1) <== rcus(0).vout
 
   /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to scalarOuts of all CUs*/
-  (rcus ++ ttcus).foreach { cu =>
+  cus.foreach { cu =>
     top.vouts.foreach { aib =>
       cu.vins.foreach { vin =>
         vin <== aib
