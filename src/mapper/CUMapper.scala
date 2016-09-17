@@ -26,19 +26,16 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
-    if (cu.isInstanceOf[TT]) { 
-      assert(pcu.isInstanceOf[PTT], println(s"$cu, $pcu")) 
-    }
+    if (cu.isInstanceOf[TT]) assert(pcu.isInstanceOf[PTT], s"$cu, $pcu") 
     val cmap = pirMap.setCL(cu, pcu) 
     /* Map CU */
-   // Assume sin and vin have only one writer
     Try {
       soMapper.map(cu, cmap)
     }.map { m =>
       viMapper.map(cu, m)
     } match {
-      case Success(m) => println(s"$cu -> $pcu (succeeded)"); m
-      case Failure(e) => println(s"$cu -> $pcu (failed)"); throw e
+      case Success(m) => dprintln(s"$cu -> $pcu (succeeded)"); m
+      case Failure(e) => dprintln(s"$cu -> $pcu (failed)"); throw e
     }
   }
 
@@ -56,12 +53,12 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
         case (nn:Int, nr:Int) => qualify && (nn <= nr)
         case (info:String, nn:Int, nr:Int) => 
           val cond = (nn <= nr)
-          //if (!cond) println(s"$info: pass:$cond numNodes:$nn numRes:$nr")
+          //if (!cond) dprintln(s"$info: pass:$cond numNodes:$nn numRes:$nr")
           qualify && cond
         case (ns:Iterable[_], rs:Iterable[_]) => qualify && (ns.size <= rs.size)
         case (info:String, ns:Iterable[_], rs:Iterable[_]) => 
           val cond = (ns.size <= rs.size)
-          //if (!cond) println(s"$info: pass:$cond numNodes:${ns.size} numRes:${rs.size}")
+          //if (!cond) dprintln(s"$info: pass:$cond numNodes:${ns.size} numRes:${rs.size}")
           qualify && cond
         case c => throw PIRException(s"Unknown checking format: $cond")
       }
@@ -93,10 +90,9 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
         cons += (("enLut"	    , cu.enLUTs, pcu.ctrlBox.enLUTs))
         cons += (("tokDownLut", cu.tokDownLUTs.size, 1)) // TODO
         cons += (("tokOutLut" , cu.tokOutLUTs, pcu.ctrlBox.tokOutLUTs))
-        val q = check(cons)
-        q
+        check(cons)
       }
-      // println(s"$cu -> ${resMap(cu)}")
+      dprintln(s"qualified resource: $cu -> ${resMap(cu)}")
     }
 
     // Bind nodes to resources
@@ -104,14 +100,11 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 
   def map(m:M):M = {
-    println(s"[$this] Datapath placement & routing ")
+    dprintln(s"Datapath placement & routing ")
     Try{
       mapCU(design.top, design.arch.top, m) 
     } match {
-      case Success(mp) => 
-        //if (pcus.size < cus.size) throw OutOfPCU(pcus.size, cus.size)
-        //if (ptts.size < tts.size) throw OutOfPTT(ptts.size, tts.size)
-        mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
+      case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
       case Failure(e) => throw e
     }
   }

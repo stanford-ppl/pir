@@ -57,10 +57,11 @@ trait JsonCodegen extends Printer {
   def emitElem(value: String)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s"""$value""") }
 
-  def emitComment(str:String) = {
-    if (Config.debug) {
-      emitln(s"// ${str}")
-    }
+  def emitComment(label:String, str:String)(implicit ms:CollectionStatus) = {
+    if (Config.debug) { emitPair(s"comment-$label", str) }
+  }
+  def emitComment(str:String)(implicit ms:CollectionStatus) = {
+    if (Config.debug) { emitPair(s"comment", str) }
   }
 }
 

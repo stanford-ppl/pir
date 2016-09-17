@@ -80,8 +80,6 @@ object Config0 extends Spade {
       s.writeAddr <== ctrs.map(_.out)
       s
     } 
-    // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
-    srams.zipWithIndex.foreach { case (s,is) => s.writePort <== vecIns(is).outports(0) } 
 
     /* Pipeline Stages */
     val etstage = EmptyStage(regs)
@@ -101,7 +99,12 @@ object Config0 extends Spade {
       regs.foreach { reg => stages(i).prs(reg).in <== stages(i-1).prs(reg).out }
     }
     // Bus input is forwarded to 1 register in empty stage
-    vecIns.zipWithIndex.foreach { case (vin, is) => etstage.prs(regs(ptr + is)) <== (vin.viport) }
+    vecIns.zipWithIndex.foreach { case (vin, is) => 
+      val reg = etstage.prs(regs(ptr + is))
+      reg.in <== (vin.viport)
+      // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
+      srams.zipWithIndex.foreach { case (s,is) => s.writePort <== reg.out } 
+    }
     // Bus output is connected to 1 register in last stage
     vecOut.voport <== stages.last.prs(regs(ptr))
     scalarIns.zipWithIndex.foreach { case (si, is) => 

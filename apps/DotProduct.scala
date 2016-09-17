@@ -17,7 +17,7 @@ object DotProduct extends PIRApp {
     val B = MemoryController("B", TileLoad, OffChip())
     val tlAVec = Vector()
     val tlBVec = Vector()
-    val innerScalar = Scalar()
+    val innerScalar = Scalar("innerScalar")
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = MetaPipeline(name="outer", parent=top, deps=Nil){ implicit CU =>

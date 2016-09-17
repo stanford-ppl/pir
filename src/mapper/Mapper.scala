@@ -3,6 +3,7 @@ package pir.graph.mapper
 import pir._
 import pir.typealias._
 import pir.plasticine.config._
+import pir.graph.traversal.MapperLogger
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -19,6 +20,21 @@ trait Mapper { self =>
   
   val typeStr:String
   override def toString = s"$typeStr"
+
+  def dprintln(s:Any):Unit = MapperLogger.dprintln(Config.debugMapper, s"$this", s)
+  def dprint(s:Any):Unit = MapperLogger.dprint(Config.debugMapper, s"$this", s)
+  def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(Config.debugMapper, s"$mapper", s)
+
+  def log[M](mapper:Mapper, info:Any)(block: => M):M = {
+    dprintln(mapper, s"$info { ")
+    Try(block) match {
+      case Success(m) =>
+        dprintln(mapper, s"$info (succeeded) }"); MapperLogger.flush; m
+      case Failure(e) =>
+        dprintln(mapper, s"$info (failed) }"); MapperLogger.flush; throw e
+    }
+  }
+  def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
   /* Bind a list of nodes to a list of resource exhausting all possibilities 
    * before failing and throw NoSolFound Exception

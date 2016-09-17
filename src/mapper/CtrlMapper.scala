@@ -19,6 +19,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   def finPass(cu:CU)(m:M):M = m
 
   def map(cu:CU, pirMap:M):M = {
+    val m = mapCtrl(cu, pirMap)
+    finPass(cu)(m)
+  }
+
+  def mapCtrl(cu:CU, pirMap:M):M = {
     var ucmap = pirMap.ucmap
     var lumap = pirMap.lumap
     var opmap = pirMap.opmap
@@ -81,8 +86,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     }
     inner.tokOutLUTs.foreach { tolut => findPto(tolut) }
 
-    val cmap = pirMap.set(ucmap).set(lumap).set(opmap).set(ipmap)
-    finPass(cu)(cmap)
+    pirMap.set(ucmap).set(lumap).set(opmap).set(ipmap)
   }
 
 }

@@ -2,6 +2,7 @@ package pir.graph.mapper
 import pir._
 import pir.typealias._
 import pir.graph.traversal.PIRMapping
+import scala.util.{Try, Success, Failure}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -21,8 +22,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val idx = somap(n.scalar.writer).idx
     if (p.in.canFrom(ib.outports(idx))) {
       map.setSI(n,p).setOP(n.out, p.out)
-    } else
-      throw ScalarInRouting(n, p)
+    } else throw ScalarInRouting(n, p)
   }
 
   def map(cl:CL, pirMap:M):M = {

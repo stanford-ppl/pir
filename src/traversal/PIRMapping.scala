@@ -6,6 +6,9 @@ import pir.misc._
 import pir.graph.mapper._
 import scala.util.{Try, Success, Failure}
 
+object MapperLogger extends Logger {
+  override val stream = newStream(Config.mapperLog)
+}
 object MapPrinter extends Printer { 
   override val stream = newStream(Config.mapFile)
   def printMap(mapping:PIRMap)(implicit design:Design) = {
@@ -23,7 +26,6 @@ object MapPrinter extends Printer {
       close
     }
   }
-
 }
 
 class PIRMapping(implicit val design: Design) extends Traversal{
@@ -39,34 +41,43 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val stageMapper = new StageMapper()
   val soMapper = new ScalarOutMapper()
   val viMapper = new VecInMapper()
-  val ctrlMapper = new CtrlMapper() {
-    override def finPass(cu:ComputeUnit)(m:M):M = stageMapper.map(cu, regAlloc.map(cu, m))
-  }
+  val ctrlMapper = new CtrlMapper()
   val ctrMapper = new CtrMapper() { 
-    override def finPass(cu:ComputeUnit)(m:M):M = ctrlMapper.map(cu, m)
+    override def finPass(cu:ComputeUnit)(m:M):M = { 
+      var cmap = log(ctrlMapper, cu)(ctrlMapper.map(cu, m))
+      log(regAlloc, cu)(regAlloc.map(cu, cmap))
+    }
   }
   val cuMapper = new CUMapper(soMapper, viMapper) {
     override def finPass(m:M):M = {
       var cmap = m 
       Try {
         cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
-          cmap = siMapper.map(ctrler, cmap)
+          cmap = log(siMapper, ctrler)(siMapper.map(ctrler, cmap))
           ctrler match {
             case cu:InnerController => 
-              cmap = sramMapper.map(cu, cmap)
-              cmap = ctrMapper.map(cu, cmap)
+              cmap = log(sramMapper, cu)(sramMapper.map(cu, cmap))
+              cmap = log(ctrMapper, cu)(ctrMapper.map(cu, cmap))
+              cmap = log(stageMapper, cu)(stageMapper.map(cu, cmap))
             case cu:ComputeUnit =>
-              cmap = ctrMapper.map(cu, cmap)
+              cmap = log(ctrMapper, cu)(ctrMapper.map(cu, cmap))
+              cmap = log(stageMapper, cu)(stageMapper.map(cu, cmap))
             case _ => pm
           }
           cmap
         }
       } match {
         case Success(m) => 
-          println(s"[debug-$this] Final Pass: Primitive Mapping (succeeded)"); m
+          dprintln(s"Final Pass: Primitive Mapping (succeeded)"); m
         case Failure(e) => 
-          println(s"[debug-$this] Final Pass: Primitive Mapping (failed)")
+          dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
+          e match {
+            case e:PIRException => dprintln(e)
+            e.asInstanceOf[NoSolFound].exceps.last.asInstanceOf[FailToMapNode].exceps.last.printStackTrace
+            case e => e.printStackTrace 
+          }
           MapPrinter.printMap(cmap)(design)
+          MapperLogger.flush
           System.exit(-1) // TODO: at the moment if prim failed. stop trying
           throw e
       }
@@ -96,6 +107,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   } 
 
   override def finPass = {
+    MapperLogger.close
     info("Finishing PIR Mapping")
   }
 }

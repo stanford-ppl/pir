@@ -10,9 +10,10 @@ import java.io.OutputStream
 trait Printer {
   var fileName:String = "System.out"
   val stream:OutputStream = System.out
+  def stdOut = stream == System.out
 
   def getPath = {
-    if (stream==System.out) "console"
+    if (stdOut) "console"
     else s"${Config.outDir}${File.separator}${fileName}"
   }
 
@@ -20,9 +21,10 @@ trait Printer {
   val tab = "  "
   var level = 0
 
-  def pprint(s:String):Unit = pw.print(s)
-  def pprintln(s:String):Unit = pw.println(s)
-  def pprintln:Unit = pw.println
+  def pprint(s:String):Unit = { pw.print(s); if (stdOut) flush }
+  def pprintln(s:String):Unit = { pw.println(s); if (stdOut) flush }
+  def pprintln:Unit = { pw.println; if (stdOut) flush }
+
   def emit(s:String):Unit = pprint(s"${tab*level}${s}")
   def emit(s:Any):Unit = emit(s.toString) 
   def emit:Unit = emit("") 
@@ -50,7 +52,7 @@ trait Printer {
     fileName = fname
     val dir = new File(Config.outDir);
     if (!dir.exists()) {
-      println(s"creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
+      println(s"[info] creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
       dir.mkdir();
     }
     new FileOutputStream(new File(s"${getPath}"))
