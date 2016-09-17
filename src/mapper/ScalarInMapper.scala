@@ -1,7 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ScalarIn => SI, Scalar, Top}
-import pir.plasticine.graph.{Controller => PCL, InBus => PVI, ScalarIn => PSI, ScalarOut => PSO}
+import pir.typealias._
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -32,7 +31,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val psin = pcl.sins
     // Assume one SI to one outport, no need to map
     val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)
-    simAneal(psin, sin, pirMap, cons, finPass(cl) _, OutOfScalarIn(pcl, _, _))
+    bind(psin, sin, pirMap, cons, finPass(cl) _)
   }
 
 }

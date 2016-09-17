@@ -1,9 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{ComputeUnit => CU, InnerController => ICU, TileTransfer => TT}
-import pir.graph.{Counter => Ctr, _}
-import pir.plasticine.graph.{ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM}
+import pir.typealias._
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.mutable.ListBuffer
@@ -16,11 +13,11 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
   type R = PSRAM 
   val typeStr = "SramMapper"
 
-  def finPass(cu:ICU)(m:M):M = m 
+  def finPass(cu:ICL)(m:M):M = m 
 
   private def mapSRAM(vimap:VIMap)(s:N, p:R, map:M):M = {
     s.writePort.from.src match {
-      case wp:VecIn => // Remote write 
+      case wp:VI => // Remote write 
         val ib = vimap(wp)
         if(!p.writePort.canFrom(ib.viport)) throw SRAMRouting(s, p)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
@@ -32,10 +29,10 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
       .setIP(s.writePort, p.writePort)
   }
 
-  def map(cu:ICU, pirMap:M):M = {
+  def map(cu:ICL, pirMap:M):M = {
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     val cons = List(mapSRAM(pirMap.vimap) _)
-    simAneal(pcu.srams, cu.srams, pirMap, cons, finPass(cu) _, OutOfSram(pcu, _, _))
+    bind(pcu.srams, cu.srams, pirMap, cons, finPass(cu) _)
   }
 }
 

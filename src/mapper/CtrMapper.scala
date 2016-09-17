@@ -1,10 +1,9 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{Counter => Ctr, InPort => IP, _}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, ConstVal => PConstVal}
+import pir.typealias._
 import pir.graph.traversal.PIRMapping
+import pir.graph.Const
+import pir.plasticine.graph.{ ConstVal => PConstVal }
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -45,7 +44,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
         }
       case _:EnLUT => // Inner most counter
         remainRes.filter{ pc => pc.en.canFrom(ptop.clk)}
-      case _ => throw PIRException(s"unknown driver of ${n}'s enable")
+      case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")
     }
     val doneCtrs = n.done.to.map { done =>
       done.src match {

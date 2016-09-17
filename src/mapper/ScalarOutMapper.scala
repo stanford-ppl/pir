@@ -1,9 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, MemoryController => MC, 
-                  ScalarOut => SO}
-import pir.plasticine.graph.{Controller => PCL}
-import pir.plasticine.graph.{ScalarOut => PSO}
+import pir.typealias._
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -32,7 +29,7 @@ class ScalarOutMapper(implicit val design:Design) extends Mapper {
     val souts = cl.souts
     val psouts = pcl.souts
     val cons = List(mapScalarOuts(cl) _)
-    simAneal(psouts, souts, cuMap, cons, finPass(cl) _, OutOfScalarOut(pcl, _, _))
+    bind(psouts, souts, cuMap, cons, finPass(cl) _)
   }
 }
 

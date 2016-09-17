@@ -1,6 +1,7 @@
 package pir.plasticine.graph
 
 import pir.graph._
+import pir.graph.enums._
 import pir.plasticine.main._
 
 import scala.language.reflectiveCalls

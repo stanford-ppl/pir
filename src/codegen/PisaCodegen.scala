@@ -2,18 +2,13 @@ package pir.graph.traversal
 
 import pir._
 import pir.codegen._
-import pir.PIRMisc._
-import pir.plasticine.graph._
+import pir.misc._
+import pir.typealias._
 import pir.plasticine.main._
-import pir.graph._
+import pir.graph.enums._
 import pir.graph.mapper._
-import pir.graph.{Controller => CL, ComputeUnit => CU, InnerController => ICU, TileTransfer => TT, Node, Primitive, Top, 
-MemoryController => MC, InPort => IP, OutPort => OP, Const, FuncUnit => FU, Counter => CT, 
-PipeReg => PR, VecIn, SRAM => SM, Stage => ST, ReduceStage => RDST, WAStage => WAST, AccumPR, ScalarIn => SI, UDCounter => UDC, EnLUT, LUT}
-import pir.plasticine.graph.{Node => PNode, Controller => PCL, ComputeUnit => PCU, 
-TileTransfer => PTT, EmptyStage => PES, Stage => PST, FUStage => PFUST, Top => PTop, FuncUnit => PFU,
-Counter => PCT, InBus => PIB, PipeReg => PPR, InPort => PIP, OutPort => POP, SRAM => PSM, 
-Const => PConst, ConstVal => PConstVal, ScalarIn => PSI, EnLUT => PEnLUT, LUT => PLUT, BusInPort => PBIP}
+import pir.graph.{EnLUT => _, _}
+import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst }
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -62,13 +57,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         val stage = fu.stage
         val pstage = stmap(stage)
         lookUp(pstage)
-      case ctr:CT => 
+      case ctr:Ctr => 
         val pctr = ctmap(ctr)
         lookUp(pctr)
-      case sm:SM =>
+      case sm:SRAM =>
         val psram = smmap(sm)
         lookUp(psram)
-      case pr@PR(stage, reg) =>
+      case pr@PipeReg(stage, reg) =>
         val pstage = stmap(stage)
         val pin = ipmap(pr.in)
         val ppr = pin.src.get 
@@ -83,9 +78,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case PConst() => throw PIRException(s"don't know how to lookUp PConst")
       case pst:PST => s"s${indexOf(pst)}"
       case pfu:PFU => lookUp(pfu.stage) 
-      case pctr:PCT => s"i${indexOf(pctr)}"
+      case pctr:PCtr => s"i${indexOf(pctr)}"
       case pib:PIB => s"bus${indexOf(pib)}"
-      case psm:PSM => s"m${indexOf(psm)}"
+      case psm:PSRAM => s"m${indexOf(psm)}"
       case _ => throw new TODOException(s"Don't know how to lookUp ${pnode}"); "?"
     }
   }
@@ -149,8 +144,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     lastWAStage
   }
 
-  def localWADelay(pcu:PCU, ctr:CT):Int = {
-    val cu = ctr.ctrler.asInstanceOf[ICU]
+  def localWADelay(pcu:PCU, ctr:Ctr):Int = {
+    val cu = ctr.ctrler.asInstanceOf[ICL]
     val wasrams = cu.srams.filter(_.writeCtr==ctr)
     val wastages = pcu.stages.filter { pstage =>
       if (stmap.pmap.contains(pstage)) {
@@ -172,7 +167,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   val dataInterConnectDelay:Int = 1
   val timeMplx = 1
 
-  def localDoneDelay(pcu:PCU, ctr:CT):String = {
+  def localDoneDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (cchain.isCopy) { "0" }
     else if (cchain.outer!=ctr) { "0" }
@@ -183,15 +178,15 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
-  def writeAddrStartDelay(pcu:PCU, ctr:CT):String = {
+  def writeAddrStartDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (!cchain.isCopy) { "0" }
     else if (cchain.inner!=ctr) { "0" }
     else {
       var fromCU = cchain.copy.get.ctrler.asInstanceOf[CU]
       fromCU = fromCU match {
-        case i:InnerController => i
-        case o:OuterController => o.inner
+        case i:ICL => i
+        case o:OCL => o.inner
       }
       val pFromCU = clmap(fromCU).asInstanceOf[PCU]
       val delay = (pFromCU.stages.size - numWAStage(pFromCU)) * timeMplx +
@@ -225,7 +220,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                           emitPair("wa", lookUp(sram.writeAddr))
                       }
                       val wd = sram.writePort.from.src match {
-                        case v:VecIn => lookUp(vimap(v))
+                        case v:VI => lookUp(vimap(v))
                         case s:PR => "local"
                       }
                       emitPair("wd", wd)
@@ -326,7 +321,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                           val reses = pips.map(pip => lookUp(pstage, pip.src.get)) 
                           emitList("result", reses.map(r => s""""$r"""").toList)
                           val inits = results.map(_.src).collect { 
-                            case PR(s,r) => r }.collect {
+                            case PipeReg(s,r) => r }.collect {
                               case AccumPR(_, Const(_, c)) => c 
                           }
                           if (inits.size>1)
@@ -374,7 +369,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       in.from.src match {
                         case t:Top =>
                           inits += in
-                        case p:Primitive => 
+                        case p:PRIM => 
                           if (p.ctrler==tdlut.ctrler.parent)
                             inits += in
                           else
@@ -390,7 +385,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       map += (init.from -> indexOf(pip))
                     }
                     tos.foreach { to =>
-                      map += (to -> indexOf(ucmap(to.src.asInstanceOf[UDC])))
+                      map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
                     }
                     val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
                     emitComment(s"${tdlut} ${tdlut.transFunc.info} ${map}")
@@ -407,7 +402,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       CtrlCodegen.lookUpX(ptolut.numIns)
                     } else {
                       val tolut = lumap.pmap(ptolut)
-                      val ctrs = tolut.ins.map(_.from.src.asInstanceOf[CT])
+                      val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
                       assert(ctrs.size<=2)
                       val map:Map[OP, Int] = Map.empty
                       doneXbar ++= List.tabulate(2) { i => // sel for Xbar
@@ -449,7 +444,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                     } else { s""""x"""" }
                     incs += inc 
                     // dec
-                    val ctr = udc.dec.from.src.asInstanceOf[CT]
+                    val ctr = udc.dec.from.src.asInstanceOf[Ctr]
                     val pctr = ctmap(ctr)
                     decs += s""""${indexOf(pctr)}""""
                     initVals += s""""${udc.initVal}""""
@@ -472,7 +467,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                       s"""["x"]"""
                     } else {
                       val enlut = lumap.pmap(penlut)
-                      val udcs = enlut.ins.map(_.from.src.asInstanceOf[UDC])
+                      val udcs = enlut.ins.map(_.from.src.asInstanceOf[UC])
                       val map:Map[OP, Int] = Map.empty
                       udcs.foreach { udc =>
                         val pudc = ucmap(udc)
@@ -501,7 +496,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                           //TODO: config interconnect
                           s""""1""""
                         }
-                      case c:CT => //Chained
+                      case c:Ctr => //Chained
                         s""""x""""
                     }
                   } else {

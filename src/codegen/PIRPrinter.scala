@@ -3,7 +3,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.codegen.Printer
-import pir.PIRMisc._
+import pir.misc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

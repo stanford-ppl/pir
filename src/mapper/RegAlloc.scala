@@ -1,9 +1,8 @@
 package pir.graph.mapper
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, InnerController => ICU, _}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
-                             Reg => PReg}
+import pir.typealias._
+import pir.graph._
 import pir._
-import pir.PIRMisc._
+import pir.misc._
 import pir.graph.mapper._
 
 import scala.collection.mutable.{Map => MMap}
@@ -47,12 +46,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val sram = waPort.src.asInstanceOf[SRAM]
           val psram = pirMap.smmap(sram)
           preColor(r, psram.writeAddr.mappedRegs.toList)
-        //case rr:RdAddrPR =>
-        //  val raPorts = rr.raPorts
-        //  val srams = raPorts.map{_.src}
-        //  val psrams = srams.map{ sram => pirMap.smmap(sram.asInstanceOf[SRAM]) }
-        //  val colors = psrams.map { psram => preColor(r, psram.readAddr.mappedRegs.toList) }
-        //  if (colors.toSet.size!=1) { throw PreColorSameReg(r) } 
         case CtrPR(regId, ctr) =>
           val pctr = pirMap.ctmap(ctr)
           preColor(r, pctr.out.mappedRegs.toList)
@@ -90,7 +83,7 @@ r       case VecInPR(regId, vecIn) =>
     val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
     val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
     val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-    simAneal(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _, OutOfReg(pcu, _, _))
+    bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)
   } 
 }
 

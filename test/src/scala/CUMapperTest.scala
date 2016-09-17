@@ -1,12 +1,13 @@
 package pir.test
 
 import pir._
-import pir.graph.{Counter => Ctr, CounterChain, ComputeUnit => CU, Top, Scalar, _}
-import pir.plasticine.graph.{Counter => PCtr, Const => PConst, Top => PTop, 
-  ComputeUnit => PCU, _}
-import pir.PIRMisc._
+import pir.typealias._
+import pir.misc._
+import pir.graph._
+import pir.graph.enums._
 import plasticine.main._
 import plasticine.config.Config0
+import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
 import pir.graph.mapper._
 import pir.graph.traversal._
 import scala.language.reflectiveCalls

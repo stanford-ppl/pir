@@ -1,9 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{CtrlBox => CB, Counter => Ctr, InPort => IP, TokenOutLUT => TOLUT, _}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{CtrlBox => PCB, Counter => PCtr, SRAM => PSRAM, InPort => PIP, OutPort => POP, Const => PConst}
+import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.traversal.PIRMapping
 
@@ -28,71 +25,61 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     var ipmap = pirMap.ipmap
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
-    val cb = cu.ctrlBox
-    val inner = cu.asInstanceOf[InnerController]
-    val locals = inner :: inner.outers
-    val ptouts = pcb.tokenOuts
-    val touts = locals.flatMap(_.ctrlBox.getTokenOuts)
-    if (touts.size > ptouts.size) throw OutOfTokenOut(pcu, cu, ptouts.size, touts.size)
-    val ptins = pcb.tokenIns
-    val tins = locals.flatMap(_.ctrlBox.getTokenIns)
-    tins.zipWithIndex.foreach { case (tin, i) => 
-      ipmap += (tin -> ptins(i))
+    val inner = cu.asInstanceOf[ICL]
+    assert(inner.tokenOuts.size <= pcb.tokenOuts.size)
+    assert(inner.tokenIns.size <= pcb.tokenIns.size)
+    assert(inner.udcounters.size <= pcb.udcs.size)
+    assert(inner.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
+    assert(inner.tokDownLUTs.size <= 1) //TODO
+    assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokOutLUTs.size)
+
+    inner.tokenIns.zipWithIndex.foreach { case (tin, i) => 
+      ipmap += (tin -> pcb.tokenIns(i))
     }
-    if (tins.size > ptins.size) throw OutOfTokenIn(pcu, cu, ptins.size, tins.size)
     //println(s"--${inner}: ${inner.outers}---")
     /* Up-Down Counter mapping */
-    val udcs = locals.flatMap{ _.ctrlBox.udcounters }
     val pudcs = pcb.udcs.to[ListBuffer]
-    if (pudcs.size < udcs.size) throw OutOfUDC(pcu, cu, pudcs.size, udcs.size)
     //println(s"udcs:${udcs}")
-    udcs.foreach { case (ctrler, udc) =>
+    inner.udcounters.foreach { case (ctrler, udc) =>
       val pudc = pudcs.remove(0)
       ucmap += (udc -> pudc)
     }
     /* Enable LUT mapping */
-    val penluts = pcu.ctrlBox.enLUTs 
-    val enluts = locals.flatMap(_.ctrlBox.enLUTs)
-    if (penluts.size < enluts.size) throw OutOfEnLUT(pcu, cu, penluts.size, enluts.size)
     //println(s"enluts:${enluts}")
-    enluts.foreach { case (en, enLut) =>
+    inner.enLUTs.foreach { case (en, enLut) =>
       val ctr = en.src
       val pctr = pirMap.ctmap(ctr)
       val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)
       lumap += (enLut -> penLut)
-      val ptout = ptouts(indexOf(pctr))
+      val ptout = pcb.tokenOuts(indexOf(pctr))
       assert(!opmap.pmap.contains(ptout))
       opmap += (enLut.out -> ptout)
     }
     /* TokenDown LUT mapping */
-    val tdluts = locals.flatMap(_.ctrlBox.tokDownLUTs)
     //println(s"tdluts:${tdluts}")
-    if (tdluts.size>1) throw OutOfTokenDownLUT(pcu, cu, 1, tdluts.size)
-    tdluts.foreach { tdlut =>
+    inner.tokDownLUTs.foreach { tdlut =>
       val ptdlut = pcb.tokDownLUT 
       assert(tdlut.ins.size <= ptdlut.numIns)
       lumap += (tdlut -> ptdlut)
     }
     /* TokenOut LUT mapping */
     val ptoluts = pcb.tokOutLUTs.to[ListBuffer]
-    val toluts = cb.tokOutLUTs ++ inner.outers.flatMap(_.ctrlBox.tokOutLUTs)
     //println(s"${cu} ${ptoluts} ${toluts}")
-    if (ptoluts.size < toluts.size) throw OutOfTokenOutLUT(pcu, cu, ptoluts.size, toluts.size)
     //println(s"toluts:${toluts}")
     def findPto(tolut:TOLUT):Unit = {
       ptoluts.foreach { ptolut =>
         assert(tolut.ins.size <= ptolut.numIns)
-        val ptout = ptouts(indexOf(ptolut))
+        val ptout = pcb.tokenOuts(indexOf(ptolut))
         if (!opmap.pmap.contains(ptout)) {
           lumap += (tolut -> ptolut)
           opmap += (tolut.out -> ptout)
           return
         }
       }
-      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${ptouts.map(po => indexOf(po)).mkString(",")}")
+      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${pcb.tokenOuts.map(po => indexOf(po)).mkString(",")}")
     }
-    toluts.foreach { tolut => findPto(tolut) }
+    inner.tokOutLUTs.foreach { tolut => findPto(tolut) }
 
     val cmap = pirMap.set(ucmap).set(lumap).set(opmap).set(ipmap)
     finPass(cu)(cmap)

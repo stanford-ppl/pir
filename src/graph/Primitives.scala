@@ -9,6 +9,7 @@ import scala.math.max
 import scala.reflect.runtime.universe._
 import pir.Design
 import pir.graph._
+import pir.graph.enums._
 import pir.graph.mapper.PIRException
 import pir.graph.traversal.ForwardRef
 
@@ -588,9 +589,9 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     case cu:InnerController => cu.localCChain.outer.done 
     case cu:OuterController => cu.inner.cchainMap(cu.localCChain).outer.done
   }
-  var tokenOut:Option[OutPort] = _ 
+  var tokenOut:Option[OutPort] = None 
   // only outer controller have token down, which is the init signal first child stage
-  var tokenDown:Option[OutPort] = _
+  var tokenDown:Option[OutPort] = None
 
   def getTokenIns:List[InPort] = {
     val tokenIns = ListBuffer[InPort]()

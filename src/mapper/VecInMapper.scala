@@ -1,7 +1,6 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT, Input => I, VecOut => VO, _}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, InBus => PIB, OutBus => POB}
+import pir.typealias._
 import pir.graph.traversal.PIRMapping
 
 import scala.collection.immutable.Set
@@ -16,7 +15,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
   def finPass(cl:CL)(m:M):M = m
 
-  private def getOB(sin:ScalarIn, pirMap:M):POB = {
+  private def getOB(sin:SI, pirMap:M):POB = {
     pirMap.somap(sin.scalar.writer).outBus
   }
 
@@ -45,27 +44,27 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     if (pirMap.vimap.contains(n)) throw ResourceNotUsed(this, n, p, pirMap) 
     val dep = n match { // ctrler that writes n
-      case n:ScalarIn => n.scalar.writer.ctrler
-      case n:VecIn => n.vector.writer.ctrler
+      case n:SI => n.scalar.writer.ctrler
+      case n:VI => n.vector.writer.ctrler
     }
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
     val pdvout:POB = n match {
-      case n:VecIn => dep match {
+      case n:VI => dep match {
         //case d:MemoryController => Nil //TODO
         case d:CU => pirMap.clmap(d).vouts.head //TODO Assume only 1 vout 
         case _ => throw TODOException(s"Not supported vecout mapping")
       }
-      case n:ScalarIn => getOB(n, pirMap)
+      case n:SI => getOB(n, pirMap)
     } 
 
     /* Find vins that connects to the depended ctrler */
     if (p.canFrom(pdvout)) {
       val pmap = pirMap.setVI(n, p).setIB(p, pdvout)
       n match {
-        case n:VecIn => pmap.setOP(n.out, p.viport)
-        case n:ScalarIn => 
+        case n:VI => pmap.setOP(n.out, p.viport)
+        case n:SI => 
           cl.sins.foldLeft(pmap) { case (pmap, sin) =>
             if (sin.scalar.writer.ctrler==n.scalar.writer.ctrler) {
               if (getOB(sin, pmap) == pdvout && 

@@ -1,7 +1,7 @@
 package pir.codegen
 
 import pir._
-import pir.PIRMisc._
+import pir.misc._
 import pir.plasticine.graph._
 import pir.graph._
 

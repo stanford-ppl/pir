@@ -1,13 +1,8 @@
 package pir.graph.mapper
 import pir._
-import pir.graph.{Controller => CL, ComputeUnit => CU, TileTransfer => TT}
-import pir.graph.{Stage => ST, EmptyStage => EST, WAStage => WAST, ReduceStage => RDST, 
-                  AccumStage, Const, PipeReg, Reg, Primitive}
-import pir.graph.{InPort => IP, OutPort => OP}
-import pir.plasticine.graph.{Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT}
-import pir.plasticine.graph.{EmptyStage => PEST, FUStage => PFUST, Stage => PST, WAStage => PWAST, 
-                            ReduceStage => PRDST, Reg => PReg}
-import pir.plasticine.graph.{ConstVal => PConstVal, InPort => PIP, OutPort => POP, RMPort, Stagable}
+import pir.typealias._
+import pir.graph.{Const, PipeReg}
+import pir.plasticine.graph.{ConstVal}
 import pir.graph.traversal.{PIRMapping, MapPrinter}
 
 import scala.collection.immutable.Set
@@ -85,7 +80,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val oprds = fu.operands
     val poprds = pfu.operands
     val oprdCons = List(mapInPort _)
-    simAneal(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+    bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
   }
 
   def mapFUOut(n:ST, p:PST, map:M):M = {
@@ -130,14 +125,14 @@ class StageMapper(implicit val design:Design) extends Mapper {
         if (!r.canFrom(design.arch.const.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info)
-        } else PConstVal(c)(design.arch).out
+        } else ConstVal(c)(design.arch).out
       case pr@PipeReg(stage, reg) => 
         val preg = rcmap(reg)
         val pstage = stmap(stage)
         val ppr = pstage.prs(preg) //TODO
         r match {
           case rp:Stagable => // src of the inport belongs to a stage
-            val rmp = r.asInstanceOf[RMPort] 
+            val rmp = r.asInstanceOf[PRMPT] 
             if (!rmp.isMappedTo(preg)) { // inport doens't map to logical reg
               val info = s"${n} connects to PipeReg ${pr}. Mapped to PipeReg: ${ppr}. r's mappedReg:${rmp.mappedRegs}"
               throw InPortRouting(n, r, info) 

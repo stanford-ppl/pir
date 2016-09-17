@@ -2,7 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.codegen.Printer
-import pir.PIRMisc._
+import pir.misc._
 import pir.graph.mapper._
 import scala.util.{Try, Success, Failure}
 
@@ -62,12 +62,12 @@ class PIRMapping(implicit val design: Design) extends Traversal{
           cmap
         }
       } match {
-        case Success(m) => return m
-        // TODO: at the moment if prim failed. stop trying
-        case Failure(e) =>
-          e.printStackTrace
+        case Success(m) => 
+          println(s"[debug-$this] Final Pass: Primitive Mapping (succeeded)"); m
+        case Failure(e) => 
+          println(s"[debug-$this] Final Pass: Primitive Mapping (failed)")
           MapPrinter.printMap(cmap)(design)
-          assert(false)
+          System.exit(-1) // TODO: at the moment if prim failed. stop trying
           throw e
       }
     }

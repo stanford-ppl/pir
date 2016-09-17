@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
-import pir.graph.Ops
+import pir.graph.enums._
 
 // 4 cu + 2 tt
 
@@ -84,7 +84,6 @@ object Config0 extends Spade {
     srams.zipWithIndex.foreach { case (s,is) => s.writePort <== vecIns(is).outports(0) } 
 
     /* Pipeline Stages */
-    val ops = Ops.allOps // All fu can perform all operations
     val etstage = EmptyStage(regs)
     val wastages:List[WAStage] = List.fill(3) { WAStage(numOprds=2, regs, ops) } // Write/read addr calculation stages
     val rastages:List[FUStage] = List.fill(1) { FUStage(numOprds=2, regs, ops) } // Additional read addr only calculation stages 

@@ -1,19 +1,7 @@
 package pir.graph.mapper
 import pir._
 import pir.codegen.Printer
-import pir.graph._
-import pir.graph.{ Controller => CL, ComputeUnit => CU, TileTransfer => TT, 
-                  Input => I, VecOut => VO,  SRAM,
-                  Counter => Ctr, CounterChain => CC,
-                  ScalarIn => SI, ScalarOut => SO, InPort => IP, OutPort => OP, Port => PT,
-Stage => ST, Reg => R, Const, UDCounter => UC, LUT => LU}
-import pir.plasticine.graph.{ Controller => PCL, ComputeUnit => PCU, TileTransfer => PTT, 
-                            InBus => PIB, OutBus => POB,
-                            Port => PPT, InPort => PIP, OutPort => POP,
-                            Counter => PCtr, SRAM => PSRAM,
-                            ScalarIn => PSI, ScalarOut => PSO,
-                            Stage => PST, FUStage => PFUST, Reg => PReg, FUInPort => PFIP, 
-UDCounter => PUC, LUT => PLU}
+import pir.typealias._
 
 import pir.graph.traversal.PIRMapping
 
@@ -72,7 +60,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
       if (clmap.map.contains(cl)) {
         val pcl = clmap.map(cl)
         p.emitBlock( s"$cl -> $pcl" ) {
-          if (!cl.isInstanceOf[TileTransfer]) { //TODO
+          if (!cl.isInstanceOf[TT]) { //TODO
             simap.printMap(cl.sins)
             somap.printMap(cl.souts)
           }
@@ -81,7 +69,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
             case cu:CU =>
               val pcu = clmap.map(cu).asInstanceOf[PCU]
               cu match {
-                case icu:InnerController => smmap.printMap(icu.srams)
+                case icu:ICL => smmap.printMap(icu.srams)
                 case _ =>
               }
               ctmap.printCCMap(cu.cchains)
@@ -102,7 +90,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, smmap:SMMap, ctmap:CTMap, simap:SIMa
       if (clmap.pmap.contains(pcl)) {
         val cl = clmap.pmap(pcl)
         p.emitBlock( s"$pcl <- $cl" ) {
-          if (!cl.isInstanceOf[TileTransfer]) { //TODO
+          if (!cl.isInstanceOf[TT]) { //TODO
             simap.printMap(cl.sins)
             somap.printMap(cl.souts)
           }
@@ -379,7 +367,7 @@ case class RCMap(map:RCMap.M) extends PMap {
   override def + (rec:(K,V)) = { super.check(rec); RCMap(map + rec) }
 }
 object RCMap extends PMapObj {
-  type K = R 
+  type K = Reg 
   type V = PReg 
   def empty:RCMap = RCMap(Map.empty)
 }
@@ -537,7 +525,7 @@ case class LUMap(map:LUMap.M, pmap:LUMap.PM) extends BMap {
   override def + (rec:(K,V)) = { super.check(rec); LUMap(map + rec, pmap + rec.swap) }
 }
 object LUMap extends BMapObj {
-  type K = LU
-  type V = PLU
+  type K = LUT
+  type V = PLUT
   def empty:LUMap = LUMap(Map.empty, Map.empty)
 }

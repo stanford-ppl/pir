@@ -6,6 +6,7 @@ import scala.collection.mutable.Map
 import scala.math.max
 import pir.Design
 import pir.graph._
+import pir.graph.enums._
 import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
@@ -145,6 +146,14 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   val localStages = ListBuffer[LocalStage]()
 
   override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+
+  def locals = this :: outers
+  def tokenIns = locals.flatMap(_.ctrlBox.getTokenIns)
+  def tokenOuts = locals.flatMap(_.ctrlBox.getTokenOuts)
+  def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
+  def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
+  def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
+  def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
 
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
 

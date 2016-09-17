@@ -4,7 +4,8 @@ import pir.graph
 import pir.codegen._
 import pir.Design
 import pir.PIRApp
-import pir.PIRMisc._
+import pir.misc._
+import pir.graph.enums._
 
 /* Examp0ile PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {

@@ -1,6 +1,6 @@
 package pir
 
-import pir.PIRMisc._
+import pir.misc._
 import graph._
 import graph.traversal._
 import graph.mapper._
@@ -206,20 +206,5 @@ trait PIRApp extends Design{
     info("Finishing graph construction")
     run
   }
-}
-
-object PIRMisc {
-  implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
-  implicit def pr_to_outport(pr:PipeReg):OutPort = pr.out
-  implicit def sram_to_outport(sram:SRAM):OutPort = sram.readPort
-  implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
-  implicit def const_to_port(const:Const):OutPort = const.out
-  implicit def mExcep_to_string(e:MappingException):String = e.toString
-  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
-  implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
-    (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)
-  def dprintln(s:String) = if (Config.debug) println(s)
-  def dprint(s:String) = if (Config.debug) print(s)
-  def info(s:String) = println(s"[pir] ${s}")
 }
 

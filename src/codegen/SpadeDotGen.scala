@@ -2,11 +2,11 @@ package pir.graph.traversal
 
 import pir._
 import pir.codegen._
-import pir.PIRMisc._
-import pir.plasticine.graph.{Counter => PCtr, ComputeUnit => PCU, Top => PTop, SwitchBox}
-import pir.graph.{Counter => Ctr, ComputeUnit => CU, _}
+import pir.misc._
+import pir.typealias._
 import pir.graph.mapper.PIRMap
 import pir.plasticine.main._
+import pir.plasticine.graph.{SwitchBox}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -22,8 +22,8 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
 
   override val stream = newStream(fileName) 
   
-  def emitSwitchBoxes(sbs:List[SwitchBox]) = {
-    val emittedBackEdge = Set[(SwitchBox, SwitchBox)]()
+  def emitSwitchBoxes(sbs:List[PSB]) = {
+    val emittedBackEdge = Set[(PSB, PSB)]()
     sbs.foreach { sb =>
       val label = s"$sb"
       val attr = DotAttr().shape(box)
@@ -32,7 +32,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       sb.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
           vout.src.get match {
-            case to:SwitchBox =>
+            case to:PSB =>
               if (!emittedBackEdge.contains((sb, to))) {
                 val toFanIns = to.vins.flatMap(_.fanIns.map(_.src)
                                 .collect{case Some(s@SwitchBox(_,_)) => s})
@@ -100,15 +100,15 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
 
   def emitNodes(cus:List[CU]) = {
     cus.foreach { _ match {
-        case cu:InnerController =>
+        case cu:ICL =>
           emitNode(cu, cu, DotAttr().shape(box).style(rounded))
           cu.sinMap.foreach { case (s, sin) => emitEdge(s.writer.ctrler, cu, s"$s")}
           cu.vinMap.foreach { case (v, vin) => emitEdge(v.writer.ctrler, cu, s"$v")}
-        case cu:OuterController =>
+        case cu:OCL =>
           cu.sinMap.foreach { case (s, sin) => 
             val writer = s.writer.ctrler match {
-              case w:InnerController => w
-              case w:OuterController => w.inner
+              case w:ICL => w
+              case w:OCL => w.inner
             }
             emitEdge(writer, cu.inner, s"$s")
           }
@@ -124,7 +124,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
   def print[T](pcus:List[PCU], l:List[T])(implicit cltp:TypeTag[T]) = {
     typeOf[T] match {
       case t if t =:= typeOf[SwitchBox] => printRes(pcus, l.asInstanceOf[List[SwitchBox]])
-      case t if t =:= typeOf[CU] => printResAndNode(pcus, l.asInstanceOf[List[CU]]) 
+      case t if t <:< typeOf[CU] => printResAndNode(pcus, l.asInstanceOf[List[CU]]) 
     }
   }
 

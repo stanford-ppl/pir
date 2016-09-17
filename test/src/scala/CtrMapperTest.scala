@@ -1,9 +1,11 @@
 package pir.test
 
 import pir._
-import pir.graph.{Counter => Ctr, CounterChain, ComputeUnit => CU, _}
-import pir.plasticine.graph.{Counter => PCtr, Const => PConst, Top => PTop}
-import pir.PIRMisc._
+import pir.typealias._
+import pir.misc._
+import pir.graph.enums._
+import pir.graph._
+import pir.plasticine.graph.{Counter => PCtr, Top => PTop}
 import plasticine.main._
 import pir.graph.mapper._
 import pir.graph.traversal._
