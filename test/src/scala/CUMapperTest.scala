@@ -160,7 +160,7 @@ class CUMapperTest extends UnitTest {
       //    throw e
       //}
       // Printer
-      new CUDotPrinter("TestPCU2.dot").print(pcus, sbs)
+      new CUDotPrinter("TestPCU2.dot").print((pcus, sbs))
     }
   }
 
