@@ -50,7 +50,7 @@ object Config1 extends Spade {
   private def genRCU() = {
     val numPRs = 25
     val numCtrs = 8
-    val numSRAMs = 6
+    val numSRAMs = 4
     val numScalarOuts = numLanes
     val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
       Config0.genFields[ComputeUnit](numPRs, numCtrs, numSRAMs, numScalarOuts)
@@ -62,7 +62,7 @@ object Config1 extends Spade {
   private def genTT() = {
     val numPRs = 25
     val numCtrs = 8
-    val numSRAMs = 6 //TODO: should be 0
+    val numSRAMs = 4 //TODO: should be 0
     val numScalarOuts = 1
     val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
       Config0.genFields[TileTransfer](numPRs, numCtrs, numSRAMs, numScalarOuts)

@@ -121,19 +121,13 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     close
   }
 
-  def print[T](pcus:List[PCU], l:List[T])(implicit cltp:TypeTag[T]) = {
-    typeOf[T] match {
-      case t if t =:= typeOf[SwitchBox] => printRes(pcus, l.asInstanceOf[List[SwitchBox]])
-      case t if t <:< typeOf[CU] => printResAndNode(pcus, l.asInstanceOf[List[CU]]) 
-    }
-  }
-
-  def printRes(pcus:List[PCU], sbs:List[SwitchBox]) = {
+  def print(res:(List[PCU], List[SwitchBox])) = {
+    val (pcus, sbs) = res
     emitBlock("digraph G") { emitPCUs(pcus); emitSwitchBoxes(sbs) }
     close
   }
 
-  def printResAndNode(pcus:List[PCU], cus:List[CU]) = {
+  def print(pcus:List[PCU], cus:List[CU]) = {
     emitBlock("digraph G") {
       emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus) }
       emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }

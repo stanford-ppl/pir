@@ -41,6 +41,23 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
 
   val cons = List(mapCU _)
 
+  def mapCUs(pcus:List[PCU], cus:List[ICL], pirMap:M, finPass:M => M):M = {
+    CUMapper.qualifyCheck(pcus, cus, resMap)
+    // Bind nodes to resources
+    bind(pcus, cus, pirMap, cons, resFunc _, finPass)
+  }
+
+  def map(m:M):M = {
+    dprintln(s"Datapath placement & routing ")
+    Try{
+      mapCU(design.top, design.arch.top, m) 
+    } match {
+      case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
+      case Failure(e) => throw e
+    }
+  }
+}
+object CUMapper {
   def check(qualify:Boolean, curr:Boolean):Boolean = { qualify && curr }
   def check(qualify:Boolean, numNode:Int, numRes:Int):Boolean = {
     check(qualify, numNode <= numRes)
@@ -65,15 +82,17 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
     }
   }
 
-  def mapCUs(pcus:List[PCU], cus:List[ICL], pirMap:M, finPass:M => M):M = {
-    // Filter qualified resource 
+  /* 
+   * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
+   * */
+  def qualifyCheck(pcus:List[PCU], cus:List[ICL], map:MMap[CL, List[PCL]])(implicit mapper:Mapper):Unit = {
     cus.foreach { cu => 
-      resMap += cu -> pcus.filter { pcu =>
+      map += cu -> pcus.filter { pcu =>
         val tpe = cu match {
           case n:TT => pcu.isInstanceOf[PTT]
           case _ => true
         }
-        //println(s"$cu -> $pcu: ----")
+        // println(s"$cu -> $pcu: ----")
         val cons = ListBuffer[Any]()
         cons += tpe
         cons += (("reg"	      , cu.infGraph, pcu.regs))
@@ -92,20 +111,7 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
         cons += (("tokOutLut" , cu.tokOutLUTs, pcu.ctrlBox.tokOutLUTs))
         check(cons)
       }
-      dprintln(s"qualified resource: $cu -> ${resMap(cu)}")
-    }
-
-    // Bind nodes to resources
-    bind(pcus, cus, pirMap, cons, resFunc _, finPass)
-  }
-
-  def map(m:M):M = {
-    dprintln(s"Datapath placement & routing ")
-    Try{
-      mapCU(design.top, design.arch.top, m) 
-    } match {
-      case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
-      case Failure(e) => throw e
+      mapper.dprintln(s"qualified resource: $cu -> ${map(cu)}")
     }
   }
 }

@@ -377,7 +377,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             assert(inits.size <= 1, s"inits:${inits}")
             emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
             inits.foreach { init =>
-              val pip = ipmap(init).asInstanceOf[PBIP]
+              val pip = ipmap(init)
               map += (init.from -> indexOf(pip))
             }
             tos.foreach { to =>
@@ -434,7 +434,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           // inc
           val udc = ucmap.pmap(pudc)
           val inc = if (udc.inc.isConnected) {
-            val pip = ipmap(udc.inc).asInstanceOf[PBIP]
+            val pip = ipmap(udc.inc)
             s""""${indexOf(pip)}""""
           } else { s""""x"""" }
           incs += inc 
