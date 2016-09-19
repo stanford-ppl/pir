@@ -25,51 +25,24 @@ object Config1 extends Spade {
   override val wordWidth = 32
   override val numLanes = 4
   
-  private val numArgInBuses = 1 
-  private val numArgOutBuses = 1 
-
+  private val numArgIns = numLanes  // need to be multiple of numLanes
+  private val numArgOuts = numLanes // need to be multiple of numLanes 
   private val numRowCUs = 4
   private val numColCUs = 4
 
-  // ArgIns and ArgOuts are ScalarOuts and ScalarIns of the top level module.
-  // argInBuses and argOutBuses bundles scalar value into buses since only bus routing including
-  // ArgIn to a CU is allowed
-  val argInBuses = List.tabulate(numArgInBuses) { i => OutBus(i, numLanes) }
-  val argOutBuses = List.tabulate(numArgOutBuses) { i => InBus(i, numLanes) }
-  val argIns = List.tabulate(numArgInBuses, argInBuses.head.inports.size) { case (ib, ia) =>
-    ScalarOut(argInBuses(ib).inports(ia))
-  }.flatten
-  val argOuts = List.tabulate(numArgOutBuses, argOutBuses.head.outports.size) { case (ib, ia) =>
-    ScalarIn(argOutBuses(ib).outports(ia))
-  }.flatten
   // Top level controller ~= Host
-  override val top = Top(argIns, argOuts, argInBuses, argOutBuses)
+  override val top = Top(numLanes, numArgIns, numArgOuts)
 
-  // Generate fields for ComputeUnits and TileTransfer CU
+  private val allCUs = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
+    Config0.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20)
+  }
+  override val rcus = allCUs.flatten 
+  override val ttcus = Nil 
 
-  private def genRCU() = {
-    val numPRs = 25
-    val numCtrs = 8
-    val numSRAMs = 4
-    val numScalarOuts = numLanes
-    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
-      Config0.genFields[ComputeUnit](numPRs, numCtrs, numSRAMs, numScalarOuts)
-    val c = ComputeUnit(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
-    c.rdstages.foreach( _.prs(regs(ptr)) <== c.reduce)
-    c
-  }
-   
-  private def genTT() = {
-    val numPRs = 25
-    val numCtrs = 8
-    val numSRAMs = 4 //TODO: should be 0
-    val numScalarOuts = 1
-    val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
-      Config0.genFields[TileTransfer](numPRs, numCtrs, numSRAMs, numScalarOuts)
-    val c = TileTransfer(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
-    c.rdstages.foreach( _.prs(regs(ptr)) <== c.reduce)
-    c
-  }
+  val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+  override val sbs = switchBoxes.flatten 
+
+  genNetwork(allCUs, switchBoxes)
 
   def genNetwork(cus:List[List[ComputeUnit]], sbs:List[List[SwitchBox]]) = {
     val numRowCUs = cus.size
@@ -111,28 +84,6 @@ object Config1 extends Spade {
       }
     }
   }
-
-  private val trcus = ListBuffer[ComputeUnit]()
-  private val ttts = ListBuffer[TileTransfer]()
-  private val allCUs = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-    if (i==0 || j == 0 || i==numRowCUs-1 || j==numColCUs-1) {
-      val cu = genRCU()
-      trcus += cu
-      cu
-    } else {
-      val cu = genTT()
-      ttts += cu
-      cu
-    }
-  }
-
-  override val rcus = trcus.toList
-  override val ttcus = ttts.toList 
-
-  val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-  override val sbs = switchBoxes.flatten 
-
-  genNetwork(allCUs, switchBoxes)
 
   /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to scalarOuts of all CUs*/
   cus.foreach { cu =>

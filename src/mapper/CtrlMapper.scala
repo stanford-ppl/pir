@@ -16,21 +16,20 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   type R = PCB
   type N = CB
   
-  def finPass(cu:CU)(m:M):M = m
+  def finPass(cu:ICL)(m:M):M = m
 
-  def map(cu:CU, pirMap:M):M = {
+  def map(cu:ICL, pirMap:M):M = {
     val m = mapCtrl(cu, pirMap)
     finPass(cu)(m)
   }
 
-  def mapCtrl(cu:CU, pirMap:M):M = {
+  def mapCtrl(inner:ICL, pirMap:M):M = {
     var ucmap = pirMap.ucmap
     var lumap = pirMap.lumap
     var opmap = pirMap.opmap
     var ipmap = pirMap.ipmap
-    val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
+    val pcu = pirMap.clmap(inner).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
-    val inner = cu.asInstanceOf[ICL]
     assert(inner.tokenOuts.size <= pcb.tokenOuts.size)
     assert(inner.tokenIns.size <= pcb.tokenIns.size)
     assert(inner.udcounters.size <= pcb.udcs.size)
@@ -91,22 +90,22 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
 
 }
 
-case class OutOfUDC(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfUDC(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough UDC in ${pcu} to map ${cu}."
 }
-case class OutOfEnLUT(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfEnLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough EnLUT in ${pcu} to map ${cu}."
 }
-case class OutOfTokenIn(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfTokenIn(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TokenIn in ${pcu} to map ${cu}."
 }
-case class OutOfTokenOut(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfTokenOut(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TokenOut in ${pcu} to map ${cu}."
 }
-case class OutOfTokenOutLUT(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfTokenOutLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TokenOutLUT in ${pcu} to map ${cu}."
 }
-case class OutOfTokenDownLUT(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfTokenDownLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TokenDownLUT in ${pcu} to map ${cu}."
 }
 //case class CtrRouting(n:Ctr, p:PCtr)(implicit val mapper:Mapper, design:Design) extends MappingException {

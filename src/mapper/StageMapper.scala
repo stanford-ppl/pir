@@ -15,9 +15,9 @@ class StageMapper(implicit val design:Design) extends Mapper {
   type N = ST
   val typeStr = "StageMapper"
 
-  def finPass(cu:CU)(m:M):M = m
+  def finPass(cu:ICL)(m:M):M = m
 
-  def map(cu:CU, cuMap:M):M = {
+  def map(cu:ICL, cuMap:M):M = {
     val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
     val pest :: pfusts = pcu.stages
     val est :: fusts = cu.stages.toList
@@ -178,7 +178,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class OutOfStage(pcu:PCU, cu:CU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfStage(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
 case class OpNotSupported(ps:PST, s:ST)(implicit val mapper:Mapper, design:Design) extends MappingException {

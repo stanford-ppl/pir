@@ -26,11 +26,11 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 0
+        val numLanes = 4
         val rcus = Nil
         val ttcus = Nil
         val sbs = Nil 
-        val top = PTop(Nil, Nil, Nil, Nil)
+        val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
         val pctrs = List.tabulate(numCtrs) { ic => 
@@ -62,11 +62,11 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 0
+        val numLanes = 4
         val rcus = Nil
         val ttcus = Nil
         val sbs = Nil 
-        val top = PTop(Nil, Nil, Nil, Nil)
+        val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
         val pctrs = List.tabulate(numCtrs) { ic => 
@@ -100,11 +100,11 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 0
+        val numLanes = 4
         val rcus = Nil
         val ttcus = Nil
         val sbs = Nil 
-        val top = PTop(Nil, Nil, Nil, Nil)
+        val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
         val pctrs = List.tabulate(numCtrs) { ic => 

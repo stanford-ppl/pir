@@ -66,7 +66,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case pr@PipeReg(stage, reg) =>
         val pstage = stmap(stage)
         val pin = ipmap(pr.in)
-        val ppr = pin.src.get 
+        val ppr = pin.src
         lookUp(pstage, ppr)
       case _ => throw new TODOException(s"Don't know how to lookUp ${node}"); "?"
     }
@@ -297,12 +297,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitComment("stage", s"${pstage} <- ${stage}")
                 // Operand
                 val popA = fpmap(pfu.operands.head)
-                emitPair("opA", lookUp(pstage, popA.src.get))
+                emitPair("opA", lookUp(pstage, popA.src))
                 if (fu.operands.size==1)
                   emitPair("opB", "x")
                 else {
                   val popB = fpmap(pfu.operands(1))
-                  emitPair("opB", lookUp(pstage, popB.src.get))
+                  emitPair("opB", lookUp(pstage, popB.src))
                 }
                 var op = lookUp(fu.op)
                 if (stage.isInstanceOf[RDST]) {
@@ -311,7 +311,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitPair("opcode", s"${op}")
                 val results = fu.out.to
                 val pips= results.map(result => ipmap(result))
-                val reses = pips.map(pip => lookUp(pstage, pip.src.get)) 
+                val reses = pips.map(pip => lookUp(pstage, pip.src)) 
                 emitList("result", reses.map(r => s""""$r"""").toList)
                 val inits = results.map(_.src).collect { 
                   case PipeReg(s,r) => r }.collect {
@@ -337,7 +337,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           val rstrs = pstage.prs.flatMap { case (preg, ppr) =>
             assert(pstage==ppr.stage)
             if (fpmap.contains(ppr.in)) {
-              fpmap(ppr.in).src.get match {
+              fpmap(ppr.in).src match {
                 case p:PFU => Some(s""""r${indexOf(preg)}" : "alu"""")
                 case p:PSI => None
                 case p => Some(s""""r${indexOf(preg)}" : "${lookUp(pstage, p)}"""")

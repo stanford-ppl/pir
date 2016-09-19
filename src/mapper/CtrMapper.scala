@@ -14,9 +14,9 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   type N = Ctr
   val typeStr = "CtrMapper"
   
-  def finPass(cu:CU)(m:M):M = m
+  def finPass(cu:ICL)(m:M):M = m
 
-  def map(cu:CU, pirMap:M):M = {
+  def map(cu:ICL, pirMap:M):M = {
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     // Mapping inner counter first converges faster
     val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
@@ -40,7 +40,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     val enCtrs = n.en.from.src match {
       case dep:Ctr =>
         m.ctmap.get(dep).fold(remainRes) { pdep =>
-          pdep.done.fanOuts.map{ fo => fo.src.get }.collect{ case pc:R => pc }.toList
+          pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
       case _:EnLUT => // Inner most counter
         remainRes.filter{ pc => pc.en.canFrom(ptop.clk)}
@@ -50,7 +50,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
       done.src match {
         case deped:Ctr =>
           m.ctmap.get(deped).fold(remainRes) { pdeped =>
-            pdeped.en.fanIns.map{ fi => fi.src.get}.collect{case pc:R => pc}.toList
+            pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
           }
         case _ => remainRes
       }

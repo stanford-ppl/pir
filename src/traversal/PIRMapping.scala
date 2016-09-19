@@ -43,7 +43,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val viMapper = new VecInMapper()
   val ctrlMapper = new CtrlMapper()
   val ctrMapper = new CtrMapper() { 
-    override def finPass(cu:ComputeUnit)(m:M):M = { 
+    override def finPass(cu:InnerController)(m:M):M = { 
       var cmap = log(ctrlMapper, cu)(ctrlMapper.map(cu, m))
       log(regAlloc, cu)(regAlloc.map(cu, cmap))
     }
@@ -59,10 +59,8 @@ class PIRMapping(implicit val design: Design) extends Traversal{
               cmap = log(sramMapper, cu)(sramMapper.map(cu, cmap))
               cmap = log(ctrMapper, cu)(ctrMapper.map(cu, cmap))
               cmap = log(stageMapper, cu)(stageMapper.map(cu, cmap))
-            case cu:ComputeUnit =>
-              cmap = log(ctrMapper, cu)(ctrMapper.map(cu, cmap))
-              cmap = log(stageMapper, cu)(stageMapper.map(cu, cmap))
-            case _ => pm
+            case t:Top => 
+            case _ => assert(false, s"Unknown ctrler:$ctrler")
           }
           cmap
         }

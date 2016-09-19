@@ -67,14 +67,11 @@ class CUMapperTest extends UnitTest {
         val numVins = 2
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
-          val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
-            Config0.genFields[PCU](numRegs, 0, numVins, numLanes)
-          val c = PCU(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
-          c
+          Config0.genRCU(numLanes, numVins, 0, numRegs)
         } 
         val ttcus = Nil
         val sbs = Nil 
-        val top = PTop(Nil, Nil, Nil, Nil)
+        val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
 
         /* Network Constrain */ 
@@ -119,7 +116,7 @@ class CUMapperTest extends UnitTest {
         val numVins = 4
         val numRegs = 20
         val wordWidth = 32
-        val top = PTop(Nil, Nil, Nil, Nil)
+        val top = PTop(numLanes, 0, 0)
         val ttcus = Nil
         val scale = 4
         val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
@@ -131,11 +128,7 @@ class CUMapperTest extends UnitTest {
         }
         val rcus = {
           val cus = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-            val (regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox, ptr) =
-              Config0.genFields[PCU](numRegs, 0, numVins, numLanes)
-            val c = PCU(regs, srams, ctrs, scalarIns, scalarOuts, vecIns, vecOut, stages, ctrlBox)
-            coordOf(c) = (i*scale,j*scale)
-            c
+            Config0.genRCU(numLanes, numVins, 0, numRegs).coord(i*scale,j*scale)
           }
           /* Network Constrain */ 
           Config1.genNetwork(cus, switchBoxes)

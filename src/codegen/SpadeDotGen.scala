@@ -23,28 +23,19 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
   override val stream = newStream(fileName) 
   
   def emitSwitchBoxes(sbs:List[PSB]) = {
-    val emittedBackEdge = Set[(PSB, PSB)]()
     sbs.foreach { sb =>
-      val label = s"$sb"
+      val (x,y) = coordOf(sb)
+      val label = s"$sb[$x,$y]"
       val attr = DotAttr().shape(box)
       coordOf.get(sb).foreach { case co => attr.pos(co) }
       emitNode(sb, label, attr)
       sb.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
-          vout.src.get match {
-            case to:PSB =>
-              if (!emittedBackEdge.contains((sb, to))) {
-                val toFanIns = to.vins.flatMap(_.fanIns.map(_.src)
-                                .collect{case Some(s@SwitchBox(_,_)) => s})
-                if (toFanIns.contains(sb)) {
-                  emitEdge(s"${vout.src.get}", sb, DotAttr().dir(both))
-                  emittedBackEdge += (to -> sb)
-                } else {
-                  emitEdge(s"${vout.src.get}", sb)
-                }
-              }
-            case cu:PCU =>
-              emitEdge(s"${vout.src.get}:$vout", sb)
+          vout.src match {
+            case from:PSB =>
+              emitEdge(s"$from", sb)
+            case from:PCU =>
+              emitEdge(s"$from:$vout", sb)
           }
         }
       }
@@ -56,7 +47,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     pcus.foreach { cu =>
       val recs = ListBuffer[String]()
       recs += s"{${cu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
-      recs += s"${cu}"
+      recs += s"${cu}${coordOf.get(cu).fold(""){ case (x,y) => s"[$x,$y]"}}"
       recs += s"<${cu.vout}> ${cu.vout}"
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
@@ -64,13 +55,12 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       emitNode(cu, label, attr)
       cu.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
-          vout.src.foreach { from => //TODO
-            from match {
-              case from:SwitchBox =>
-                emitEdge(from, s"$cu:$vin")
-              case from:PCU =>
-                emitEdge(from, vout, cu, vin)
-            }
+          vout.src match {
+            case from:SwitchBox =>
+              emitEdge(from, s"$cu:$vin")
+            case from:PCU =>
+              emitEdge(from, vout, cu, vin)
+            case from:PTop =>
           }
         }
       }
@@ -87,12 +77,10 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       emitNode(pcu, label, DotAttr().shape(Mrecord))
       pcu.vins.foreach { pvin =>
         pvin.fanIns.foreach { pvout =>
-          if (pvout.src.isDefined) {
-            val attr = mapping.vimap.pmap.get(pvin).fold(DotAttr()) { set =>
-              DotAttr().label(set.map(_.variable).mkString(",")).color(red)
-            }
-            emitEdge(pvout.src.get, pvout, pcu, pvin, attr)
+          val attr = mapping.vimap.pmap.get(pvin).fold(DotAttr()) { set =>
+            DotAttr().label(set.map(_.variable).mkString(",")).color(red)
           }
+          emitEdge(pvout.src, pvout, pcu, pvin, attr)
         }
       }
     }
@@ -160,16 +148,15 @@ class ArgDotPrinter(fileName:String) extends DotCodegen {
         emitNode(pcu, label, DotAttr().shape(Mrecord))
         pcu.vins.foreach { vin =>
           vin.fanIns.foreach { vout =>
-            if (!vout.src.isDefined) { //TODO
+            if (vout.src.isInstanceOf[PTop])
               emitEdge(s"""argin_${vout}""", s"""${pcu}:${vin}:n""")
-            }
           }
         }
       }
 
-      ptop.argOutBuses.foreach { vin =>
+      ptop.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
-          emitEdge(s"""${vout.src.get}:${vout}:s""", s"""argout_${vin}""")
+          emitEdge(s"""${vout.src}:${vout}:s""", s"""argout_${vin}""")
         }
       }
     }

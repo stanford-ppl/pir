@@ -28,7 +28,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     }
     def preColor(r:Reg, prs:List[PReg]):Unit = {
       assert(prs.size == 1, 
-        s"Current mapper assuming each PipeReg Mappable Port is mapped to 1 Register. Found ${prs}")
+        s"Current mapper assuming each PipeReg Mappable Port is mapped to 1 Register. Found $r -> ${prs}")
       preColorReg(r, prs.head)
     }
     cu.infGraph.foreach { case (r, itfs)  =>
@@ -43,7 +43,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           preColor(r, psram.writePort.mappedRegs.toList)
         case rr:WtAddrPR =>
           val waPort = rr.waPort
-          val sram = waPort.src.asInstanceOf[SRAM]
+          val sram = waPort.src
           val psram = pirMap.smmap(sram)
           preColor(r, psram.writeAddr.mappedRegs.toList)
         case CtrPR(regId, ctr) =>

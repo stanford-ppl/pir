@@ -135,10 +135,14 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         s.liveIns.foreach{ r => 
           // If there's no def on loaded value, check if sram's readAddr is directly connected to 
           // the counter. If it is, forward loaded value to the first local stage
-          if (r.isInstanceOf[LoadPR]) { 
-            val sram = r.asInstanceOf[LoadPR].rdPort.src
-            if (sram.readAddr.from.isInstanceOf[CtrOutPort]) s.addDef(r)
-            else throw PIRException(s"${sram} has no readAddr defined!")
+          r match {
+            case r:LoadPR =>
+              val sram = r.rdPort.src
+              sram.readAddr.from match {
+                case _:CtrOutPort => s.addDef(r)
+                case _ => throw PIRException(s"${sram} has no readAddr defined!")
+              }
+            case _ =>
           }
         }
         s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)

@@ -78,6 +78,7 @@ object DotProduct extends PIRApp {
       Stage(s0, op1=CU.scalarIn(es, innerScalar), op2=accum, op=FixAdd, accum)
       Stage(s1, op1=accum, op=Bypass, result=CU.scalarOut(s1, output))
     }
+
   }
 
 }

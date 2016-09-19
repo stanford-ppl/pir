@@ -64,11 +64,11 @@ object Reg extends Metadata {
 case class PipeReg(stage:Stage, reg:Reg)(implicit spade:Spade) extends Node {
   override val typeStr = "pr"
   override def toString = s"pr(${stage},${reg})"
-  val in = new InPort[this.type](this) with Stagable { 
+  val in = new RMInPort[this.type](this) with Stagable { 
     override def toString = s"$src.i"
     override val stage = PipeReg.this.stage
   }
-  val out = new OutPort[this.type](this) with Stagable {
+  val out = new RMOutPort[this.type](this) with Stagable {
     override def toString = s"$src.o"
     override val stage = PipeReg.this.stage
   } 
@@ -85,7 +85,7 @@ case class ScalarIn(outport:Option[OutPort[InBus[NetworkElement]]])(implicit spa
   outport.foreach { this.in <== _ }
   override val typeStr = "si"
   override val out:RMOutPort[this.type] = RMOutPort(this, s"${this}.o")
-  def inBus:InBus[NetworkElement] = outport.get.src.get
+  def inBus:InBus[NetworkElement] = outport.get.src
   def idx = indexOf(outport.get)
 } 
 object ScalarIn {
@@ -97,7 +97,7 @@ case class ScalarOut(inport:Option[InPort[OutBus[NetworkElement]]])(implicit spa
   inport.foreach( _ <== this.out )
   override val typeStr = "so"
   override val in:RMInPort[this.type] = RMInPort(this, s"${this}.i")
-  def outBus:OutBus[NetworkElement] = inport.get.src.get
+  def outBus:OutBus[NetworkElement] = inport.get.src
   def idx = indexOf(inport.get)
 }
 object ScalarOut {
@@ -120,12 +120,12 @@ object AddrOut {
 case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade) extends Node {
   override val typeStr = "fu"
   val operands = List.fill(numOprds) (
-    new InPort[this.type](this) with Stagable { 
+    new RMInPort[this.type](this) with Stagable { 
       override def toString = s"$src.oprd${id}"
       override val stage = FuncUnit.this.stage
     }
   ) 
-  val out = new OutPort[this.type](this) with Stagable {
+  val out = new RMOutPort[this.type](this) with Stagable {
     override def toString = s"$src.out"
     override val stage = FuncUnit.this.stage
   } 
@@ -184,12 +184,17 @@ object WAStage {
     new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 
+trait NetworkElement extends Node {
+  def vins:List[InBus[Node]]
+  def vouts:List[OutBus[Node]]
+  def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this}
+}
 /* Controller */
 trait Controller extends NetworkElement {
-  val sins:List[ScalarIn]
-  val souts:List[ScalarOut]
-  val vins:List[InBus[Controller]]
-  val vouts:List[OutBus[Controller]]
+  def sins:List[ScalarIn]
+  def souts:List[ScalarOut]
+  def vins:List[InBus[Controller]]
+  def vouts:List[OutBus[Controller]]
 }
 
 /* Top-level controller (host)
@@ -198,83 +203,91 @@ trait Controller extends NetworkElement {
  * @param argInBuses output buses argIns are mapped to
  * @param argOutBuses input buses argOuts are mapped to
  * */
-case class Top(argIns:List[ScalarOut], argOuts:List[ScalarIn], argInBuses:List[OutBus[Top]], 
-  argOutBuses:List[InBus[Top]])(implicit spade:Spade) extends Controller {
-  override val sins:List[ScalarIn] = argOuts
-  override val souts:List[ScalarOut] = argIns
-  override val vins:List[InBus[Top]] = argOutBuses
-  override val vouts:List[OutBus[Top]] = argInBuses
+case class Top(numLanes:Int, numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller {
+  assert(numArgIns % numLanes == 0)
+  assert(numArgOuts % numLanes == 0)
+  val numVouts = numArgIns / numLanes
+  val numVins = numArgOuts / numLanes
+  val vins:List[InBus[Top]] = InBuses(this, numVins, numLanes)
+  val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, numLanes)
+  val sins:List[ScalarIn] = List.tabulate(numVins, numLanes) { case (ib, ia) =>
+    ScalarIn(vins(ib).outports(ia))
+  }.flatten
+  val souts:List[ScalarOut] = List.tabulate(numVouts, numLanes) { case (ib, ia) =>
+    ScalarOut(vouts(ib).inports(ia))
+  }.flatten
   val clk = OutWire(this, s"clk")
-  def numArgIn = argIns.size
-  def numArgOut = argOuts.size
 }
 
 /* ComputeUnit
  * */
-class ComputeUnit(val regs:List[Reg], val srams:List[SRAM], val ctrs:List[Counter], 
-  override val sins:List[ScalarIn], override val souts:List[ScalarOut], 
-  override val vins:List[InBus[ComputeUnit]], val vout:OutBus[ComputeUnit],
-  val stages:List[Stage], val ctrlBox:CtrlBox)(implicit spade:Spade) extends Controller {
+class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Controller {
   override val typeStr = "cu"
-  override val vouts = List(vout)
 
-  for (i <- 0 until stages.size) {
-    stages(i).pre = if (i!=0) Some(stages(i-1)) else None
-    stages(i).next = if (i!=stages.size-1) Some(stages(i+1)) else None
-    indexOf(stages(i)) = i-1 // Empty stage is -1
+  var regs:List[Reg] = _
+  var srams:List[SRAM] = _
+  var ctrs:List[Counter] = _
+  val vins:List[InBus[ComputeUnit]] = InBuses(this, numBusIns, numLanes) // Bus Input with numLanes words
+  // Bus Output with numLanes words. Assume only single bus output per CU for now
+  val vout:OutBus[ComputeUnit] = OutBus(this, 0, numLanes) 
+  val vouts = List(vout)
+  val sins:List[ScalarIn] = List.tabulate(vins.size, numLanes) { case (ib, is) => // Scalar inputs. 1 per word in bus input 
+      ScalarIn(vins(ib).outports(is))
+  }.flatten
+  val souts:List[ScalarOut] = List.tabulate(vout.inports.size) { is => ScalarOut(vout.inports(is)) }
+  var etstage:EmptyStage = _ 
+  var wastages:List[WAStage] = _
+  var rastages:List[FUStage] = _
+  var regstages:List[FUStage] = _ 
+  var rdstages:List[ReduceStage] = _ 
+  def fustages:List[FUStage] = wastages ++ rastages ++ regstages ++ rdstages // Stages with fu 
+  def stages:List[Stage] = {
+    val sts = etstage :: fustages
+    if (indexOf.get(etstage).isEmpty) {
+      for (i <- 0 until sts.size) {
+        sts(i).pre = if (i!=0) Some(sts(i-1)) else None
+        sts(i).next = if (i!=sts.size-1) Some(sts(i+1)) else None
+        sts(i).index(i-1) // Empty stage is -1
+      }
+    }
+    sts
   }
-  private val es::fs = stages 
-  val etstage:EmptyStage = es.asInstanceOf[EmptyStage]
-  val fustages:List[FUStage] = fs.asInstanceOf[List[FUStage]]
-  val rdstages:List[ReduceStage] = stages.collect {case s:ReduceStage => s}
+  var ctrlBox:CtrlBox = _
 
   val reduce = RMOutPort(this, s"${this}.reduce")
   assert(vins.size>0, "ComputeUnit must have at least 1 vector input")
 
-  def numRegs = regs.size 
-  def numCtrs = ctrs.size
-  def numSRAMs = srams.size
-  def numScalarIn = sins.size
-  def numScalarOut = souts.size 
-
-  vins.foreach { _.cu = this }
-}
-object ComputeUnit {
-  def apply(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
-    souts:List[ScalarOut], vins:List[InBus[ComputeUnit]], vout:OutBus[ComputeUnit], 
-    stages:List[Stage], ctrlBox:CtrlBox)(implicit spade:Spade) = {
-    new ComputeUnit(regs, srams, ctrs, sins, souts, vins, vout, stages, ctrlBox)
+  def numRegs(num:Int):this.type = { 
+    regs = List.tabulate(num) { ir => Reg(ir) }
+    etstage = EmptyStage(regs)
+    this
   }
+  def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter(ic) }; this }
+  def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM(is) }; this }
+  def ctrlBox(numTokenIns:Int, numTokenOuts:Int):this.type = { 
+    ctrlBox = CtrlBox(ctrs.size, numTokenIns, numTokenOuts); this }
+
 }
 
 /* A spetial type of CU used for memory loader/storer */
-class TileTransfer(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter], sins:List[ScalarIn], 
-  souts:List[ScalarOut], override val vins:List[InBus[TileTransfer]], 
-  override val vout:OutBus[TileTransfer], stages:List[Stage], ctrlBox:CtrlBox)(implicit spade:Spade) 
-extends ComputeUnit(regs, srams, ctrs, sins, souts, vins, vout, stages, ctrlBox) {
+class TileTransfer(numLanes:Int, numBusIns:Int)(implicit spade:Spade) 
+extends ComputeUnit(numLanes, numBusIns) {
   override val typeStr = "tt"
-}
-object TileTransfer {
-  def apply(regs:List[Reg], srams:List[SRAM], ctrs:List[Counter],  sins:List[ScalarIn],
-    souts:List[ScalarOut], vins:List[InBus[TileTransfer]], vout:OutBus[TileTransfer], 
-    stages:List[Stage], ctrlBox:CtrlBox)(implicit spade:Spade) = {
-    new TileTransfer(regs, srams, ctrs, sins, souts, vins, vout, stages, ctrlBox)
-  }
+  override val souts = List(AddrOut())
+  regstages = Nil
+  rdstages = Nil
 }
 
 /* Switch box (6 inputs 6 outputs) */
-case class SwitchBox(vins:List[InBus[SwitchBox]], vouts:List[OutBus[SwitchBox]])(implicit spade:Spade) extends NetworkElement {
+case class SwitchBox(numVins:Int, numVouts:Int, numLanes:Int)(implicit spade:Spade) extends NetworkElement {
+  val vins:List[InBus[SwitchBox]] = InBuses(this, numVins, numLanes)
+  val vouts:List[OutBus[SwitchBox]] = OutBuses(this, numVouts, numLanes)
   override val typeStr = "sb"
 }
 object SwitchBoxes {
   def apply(numRow:Int, numCol:Int, numLanes:Int)(implicit spade:Spade) = {
-    List.fill(numRow, numCol) (SwitchBox(InBuses(6, numLanes), OutBuses(6, numLanes)))
+    List.tabulate(numRow, numCol) { case (i, j) => SwitchBox(6, 6, numLanes) }
   }
-}
-
-trait NetworkElement extends Node {
-  val vins:List[InBus[_]]
-  val vouts:List[OutBus[_]]
 }
 
 /* 
@@ -283,7 +296,7 @@ trait NetworkElement extends Node {
  * */
 
 trait IO[+S<:Node] extends Node {
-  val src:Option[S] = None
+  val src:S
 }
 
 /* Input pin. Can only connects to output of the same level */
@@ -315,8 +328,7 @@ trait Port extends Link
 /* Bus level IO pin */
 trait Bus extends Link
 
-case class InWire[+S<:Node](s:S)(implicit spade:Spade) extends Wire with Input[Wire, S] {
-  override val src = Some(s)
+case class InWire[+S<:Node](src:S)(implicit spade:Spade) extends Wire with Input[Wire, S] {
   override val typeStr = "iw"
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
 }
@@ -325,8 +337,7 @@ object InWire {
     override def toString = sf
   }
 }
-case class OutWire[+S<:Node](s:S)(implicit spade:Spade) extends Wire with Output[Wire, S] { 
-  override val src = Some(s)
+case class OutWire[+S<:Node](src:S)(implicit spade:Spade) extends Wire with Output[Wire, S] { 
   override val typeStr = "ow"
 }
 object OutWire {
@@ -335,8 +346,7 @@ object OutWire {
   }
 }
 
-class InPort[+S<:Node](s:S)(implicit spade:Spade) extends Port with Input[Port, S] {
-  override val src = Some(s)
+class InPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Input[Port, S] {
   override val typeStr = "ip"
   def <==(r:PipeReg):Unit = connect(r.out)
   override def connect(n:O):Unit = {super.connect(n); n.connectedTo(this)}
@@ -352,12 +362,11 @@ object InPort {
  * An output port of a module.
  * src is a pointer to the module
  * */
-class OutPort[+S<:Node](s:S)(implicit spade:Spade) extends Port with Output[Port, S] { 
-  override val src = Some(s)
+class OutPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Output[Port, S] { 
   override val typeStr = "op"
 }
 object OutPort {
-  def apply[S<:Node](s:S)(implicit spade:Spade):OutPort[S] = OutPort(s)
+  def apply[S<:Node](s:S)(implicit spade:Spade):OutPort[S] = new OutPort(s)
   def apply[S<:Node](s:S, sf: =>String)(implicit spade:Spade):OutPort[S] = new OutPort[S](s) {
     override def toString = sf
   }
@@ -372,7 +381,7 @@ class RMInPort[+S<:Node](s:S)(implicit spade:Spade) extends InPort[S](s) with RM
   override def connect(n:O):Unit = {
     super.connect(n)
     n.src match {
-      case Some(PipeReg(stage, reg)) => mappedTo(reg)
+      case PipeReg(stage, reg) => mappedTo(reg)
       case _ =>
     }
   } 
@@ -388,7 +397,7 @@ class RMOutPort[+S<:Node](s:S)(implicit spade:Spade) extends OutPort[S](s) with 
   override def connectedTo(n:I):Unit = {
     super.connectedTo(n)
     n.src match {
-      case Some(PipeReg(stage, reg)) => mappedTo(reg)
+      case PipeReg(stage, reg) => mappedTo(reg)
       case _ =>
     }
   }
@@ -403,8 +412,7 @@ trait Stagable {
   val stage:Stage
 }
 
-class InBus[+S<:Node](numPort:Int)(implicit spade:Spade) extends Bus with Input[Bus, S] {
-  var cu:ComputeUnit = _
+class InBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Input[Bus, S] {
   val outports = List.tabulate(numPort) { i => 
     (if (i==0) new RMOutPort[InBus[S]](this)
     else OutPort[InBus[S]](this)).index(i)
@@ -415,16 +423,16 @@ class InBus[+S<:Node](numPort:Int)(implicit spade:Spade) extends Bus with Input[
   val viport:RMOutPort[InBus[S]] = outports(0).asInstanceOf[RMOutPort[InBus[S]]]
 }
 object InBus extends Metadata {
-  def apply[S<:Node](idx:Int, numPort:Int)(implicit spade:Spade):InBus[S] = {
-    new InBus[S](numPort).index(idx)
+  def apply[S<:Node](src:S, idx:Int, numPort:Int)(implicit spade:Spade):InBus[S] = {
+    new InBus[S](src, numPort).index(idx)
   }
 }
 object InBuses {
-  def apply[S<:Node](num:Int, numLanes:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => InBus[S](is, numLanes) }
+  def apply[S<:Node](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
+    List.tabulate(num) { is => InBus[S](src, is, numLanes) }
 }
 
-class OutBus[+S<:Node](numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
+class OutBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
   val inports = List.tabulate(numPort) { i => 
     (if (i==0) new RMInPort[OutBus[S]](this)
     else InPort[OutBus[S]](this)).index(i)
@@ -434,13 +442,13 @@ class OutBus[+S<:Node](numPort:Int)(implicit spade:Spade) extends Bus with Outpu
   val voport:RMInPort[OutBus[S]] = inports(0).asInstanceOf[RMInPort[OutBus[S]]]
 }
 object OutBus {
-  def apply[S<:Node](idx:Int, numPort:Int)(implicit spade:Spade):OutBus[S] = {
-    new OutBus(numPort).index(idx)
+  def apply[S<:Node](src:S, idx:Int, numPort:Int)(implicit spade:Spade):OutBus[S] = {
+    new OutBus(src, numPort).index(idx)
   }
 }
 object OutBuses {
-  def apply[S<:Node](num:Int, numLanes:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => OutBus[S](is, numLanes) }
+  def apply[S<:Node](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
+    List.tabulate(num) { is => OutBus[S](src, is, numLanes) }
 }
 
 case class ConstVal(v:String)(implicit spade:Spade) extends Node {
