@@ -633,13 +633,6 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
         if (en.src.ctrler!=cu) tos += enlut.out 
       }
-      cu.cchains.foreach { cc =>
-        val en = cc.inner.en 
-        if (en.isConnected) {
-          if (en.from.src.asInstanceOf[Primitive].ctrler!=cu) {
-          }
-        }
-      }
     }
     tos.toList
   }
