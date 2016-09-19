@@ -88,12 +88,11 @@ package object typealias {
   type PSI       = pir.plasticine.graph.ScalarIn
   type PSO       = pir.plasticine.graph.ScalarOut
   type PPT       = pir.plasticine.graph.Port
-  type PIP       = pir.plasticine.graph.InPort
-  type POP       = pir.plasticine.graph.OutPort
+  type PIP       = pir.plasticine.graph.InPort[PNode]
+  type POP       = pir.plasticine.graph.OutPort[PNode]
   type PRMPT     = pir.plasticine.graph.RMPort
-  type PIB       = pir.plasticine.graph.InBus
-  type POB       = pir.plasticine.graph.OutBus
-  type PFIP      = pir.plasticine.graph.FUInPort
+  type PIB       = pir.plasticine.graph.InBus[PNode]
+  type POB       = pir.plasticine.graph.OutBus[PNode]
   type PCB       = pir.plasticine.graph.CtrlBox
   type PLUT      = pir.plasticine.graph.LUT
   type PEnLUT    = pir.plasticine.graph.EnLUT

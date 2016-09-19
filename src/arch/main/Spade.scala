@@ -19,14 +19,14 @@ trait Spade extends Metadata { self =>
 
   def numCUs = rcus.size
 
-  implicit def ib_to_rmp(ib:InBus):RMPort = ib.viport
-  implicit def ib_to_op(ib:InBus):OutPort = ib.viport
-  implicit def ob_to_rmp(ob:OutBus):RMPort = ob.voport
-  implicit def ob_to_ip(ob:OutBus):InPort = ob.voport
-  implicit def si_to_rmp(si:ScalarIn):RMPort = si.out
-  implicit def so_to_rmp(so:ScalarOut):RMPort = so.in
-  implicit def pr_to_ip(pr:PipeReg):InPort = pr.in
-  implicit def pr_to_op(pr:PipeReg):OutPort = pr.out
+  implicit def ib_to_rmp[S<:Node](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport
+  implicit def ib_to_op[S<:Node](ib:InBus[S]):OutPort[InBus[S]] = ib.viport
+  implicit def ob_to_rmp[S<:Node](ob:OutBus[S]):RMInPort[OutBus[S]] = ob.voport
+  implicit def ob_to_ip[S<:Node](ob:OutBus[S]):InPort[OutBus[S]] = ob.voport
+  implicit def si_to_rmp(si:ScalarIn):RMOutPort[ScalarIn] = si.out
+  implicit def so_to_rmp(so:ScalarOut):RMInPort[ScalarOut] = so.in
+  implicit def pr_to_ip(pr:PipeReg):InPort[PipeReg] = pr.in
+  implicit def pr_to_op(pr:PipeReg):OutPort[PipeReg] = pr.out
 
   var nextSym = 0
   def nextId = {val temp = nextSym; nextSym +=1; temp}
