@@ -19,6 +19,7 @@ import java.io.File
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata {
   implicit lazy val spade:Spade = design.arch
 
+  // Mapping results
   lazy val mapping:PIRMap = pirMapping.mapping
   lazy val opmap:OPMap = mapping.opmap
   lazy val ipmap:IPMap = mapping.ipmap
@@ -101,7 +102,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def lookUp(pstage:PST, pn:PNode):String = {
     pn match {
       case ppr:PPR =>
-        if (indexOf(ppr.stage)==indexOf(pstage)) {
+        if (indexOf(ppr.stage) == -1) {
+          s"e${indexOf(ppr.reg)}"
+        } else if (indexOf(ppr.stage)==indexOf(pstage)) {
           s"l${indexOf(ppr.reg)}"
         } else if (indexOf(ppr.stage)==indexOf(pstage)-1) {
           s"r${indexOf(ppr.reg)}"

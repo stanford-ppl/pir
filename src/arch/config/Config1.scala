@@ -16,7 +16,7 @@ import scala.util.{Try, Success, Failure}
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
 object Config1 extends Spade {
-  override def toString = "Plasticine_Config0"
+  override def toString = "Plasticine_Config1"
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
