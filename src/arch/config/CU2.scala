@@ -10,39 +10,34 @@ import scala.reflect.runtime.universe._
 import pir.graph.enums._
 import scala.util.{Try, Success, Failure}
 
-// Interconnection network with switch boxes
+// Same as Config0 excepts only has 2 CU without TileTransfer CU 
 
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object Config1 extends Spade {
-  override def toString = "Plasticine_Config1"
+object CU2 extends Spade {
+  override def toString = "Plasticine_CU2"
 
-  // input <== output: input can be configured to output
-  // input <== outputs: input can be configured to 1 of the outputs
-  
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
   
   private val numArgIns = numLanes  // need to be multiple of numLanes
   private val numArgOuts = numLanes // need to be multiple of numLanes 
-  private val numRowCUs = 4
-  private val numColCUs = 4
+  private val numRCUs = 2
 
   // Top level controller ~= Host
   override val top = Top(numLanes, numArgIns, numArgOuts)
 
-  private val allCUs = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-    ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20)
-  }
-  override val rcus = allCUs.flatten 
+  override val rcus = List.tabulate(numRCUs) { i =>
+    ConfigFactory.genRCU(numLanes, numSRAMs = 2, numCtrs = 8, numRegs = 20).index(i)
+  } 
   override val ttcus = Nil 
 
-  val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-  override val sbs = switchBoxes.flatten 
+  override val sbs = Nil 
 
-  ConfigFactory.genSwitchNetwork(allCUs, switchBoxes)
+  /* Network Constrain */ 
+  rcus(1).vins(0) <== rcus(0).vout 
 
   ConfigFactory.genArgIOConnection
 

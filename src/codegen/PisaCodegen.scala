@@ -17,6 +17,8 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata {
+  override val stream = newStream(Config.pisaFile) 
+  
   implicit lazy val spade:Spade = design.arch
 
   // Mapping results
@@ -29,11 +31,61 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val smmap:SMMap = mapping.smmap
   lazy val clmap:CLMap = mapping.clmap
   lazy val vimap:VIMap = mapping.vimap
+  lazy val ibmap:IBMap = mapping.ibmap
   lazy val lumap:LUMap = mapping.lumap 
   lazy val ucmap:UCMap = mapping.ucmap
 
-  override val stream = newStream(Config.pisaFile) 
-  
+  override def traverse:Unit = {
+    if (pirMapping.failed) return
+    implicit val ms = new CollectionStatus(false)
+    emitBlock {
+      emitMap("PISA") { implicit ms =>
+        emitPair("version", 0.1)
+        emitMap("topconfig"){ implicit ms =>
+          emitPair("type", "plasticine")
+          emitMap("config") { implicit ms =>
+            emitList("cu") { implicit ms =>
+              emitMain
+            }
+          }
+        }
+      }
+      pprintln
+    }
+  }
+
+  override def finPass = {
+    close
+    info(s"Finishing PisaCodegen in ${getPath}")
+  }
+
+  def emitMain(implicit ms:CollectionStatus) = {
+    design.arch.ctrlers.foreach { ctrler =>
+      ctrler match {
+        case top:PTop =>
+        case pcu:PCU => pcu match {
+          case tt:PTT => //TODO: Not emitting anything for tile transfer yet
+          case _ =>
+            emitMap { implicit ms =>
+              var comment = s"$pcu[${indexOf(pcu)}] "
+              if (clmap.pmap.contains(pcu)) {
+                val cu = clmap.pmap(pcu)
+                comment += s" <- ${cu}"
+              } else {
+                comment += s" <- no mapping"
+              }
+              emitComment(comment)
+              emitInterconnect(pcu)
+              emitSRAMs(pcu)
+              emitCounterChains(pcu)
+              emitStages(pcu)
+              emitCtrl(pcu)
+            }
+        }
+      }
+    }
+  }
+
   def lookUp(op:Op):String = {
     op match {
       case o:FltOp => throw TODOException(s"Op ${op} is not supported at the moment")
@@ -97,44 +149,29 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   /*
    * @param pstage current stage
-   * @param pn
+   * @param pn spade node to look up
    * */
   def lookUp(pstage:PST, pn:PNode):String = {
     pn match {
-      case ppr:PPR =>
-        if (indexOf(ppr.stage) == -1) {
+      case ppr:PPR => // Look up node is a Pipeline Register
+        if (indexOf(ppr.stage) == -1) { // Empty stage
           s"e${indexOf(ppr.reg)}"
-        } else if (indexOf(ppr.stage)==indexOf(pstage)) {
+        } else if (indexOf(ppr.stage)==indexOf(pstage)) { // refering stage is current stage
           s"l${indexOf(ppr.reg)}"
-        } else if (indexOf(ppr.stage)==indexOf(pstage)-1) {
+        } else if (indexOf(ppr.stage)==indexOf(pstage)-1) { // refering stage is previous stage
           s"r${indexOf(ppr.reg)}"
         } else {
           throw PIRException(s"Reading from not accessable stage curr:${pstage}, ${ppr.stage}")
         }
-      case _ => 
-        lookUp(pn)
+      case _ => lookUp(pn)
     }
   }
 
-  override def traverse:Unit = {
-    if (pirMapping.failed) return
-    implicit val ms = new CollectionStatus(false)
-    emitBlock {
-      emitMap("PISA") { implicit ms =>
-        emitPair("version", 0.1)
-        emitMap("topconfig"){ implicit ms =>
-          emitPair("type", "plasticine")
-          emitMap("config") { implicit ms =>
-            emitList("cu") { implicit ms =>
-              emitMain
-            }
-          }
-        }
-      }
-      pprintln
-    }
-  }
-
+  /*
+   * Figure out the index of last mapped write addr calculation stage/number of write addr
+   * calculation stage
+   * @param pcu Spade Compute Unit
+   * */
   def numWAStage(pcu:PCU):Int = {
     var lastWAStage = 0
     pcu.stages.zipWithIndex.foreach { case (pstage, i) =>
@@ -198,6 +235,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+  def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {
+    val inputs = pcu.vins.map { vin =>
+      ibmap.get(vin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
+    }
+    emitList("inputs", inputs)
+  }
+
   def emitSRAMs(pcu:PCU)(implicit ms:CollectionStatus) = {
     emitList(s"scratchpads") { implicit ms =>
       pcu.srams.foreach{ psram => 
@@ -218,9 +262,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitPair("wd", wd)
             emitPair("wen",lookUp(sram.writeCtr))
             emitPair("banking", lookUp(sram.banking))
-            emitPair("dblBuf", sram.doubleBuffer.toString)
-            emitPair("rswap", lookUp(sram.swapRead))
-            emitPair("wswap", lookUp(sram.swapWrite))
+            sram.doubleBuffer match {
+              case DoubleBuffer(swapRead, swapWrite) =>
+                emitPair("dblBuf", "true")
+                emitPair("rswap", lookUp(swapRead))
+                emitPair("wswap", lookUp(swapWrite))
+              case SingleBuffer() =>
+                emitPair("dblBuf", "false")
+                emitPair("rswap", "x")
+                emitPair("wswap", "x")
+            }
           } else {
             emitPair("ra", "x")
             emitPair("wa", "x")
@@ -503,33 +554,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       emitList(s"enableMux", emuxs)
     }
-  }
-
-  def emitMain(implicit ms:CollectionStatus) = {
-    design.arch.ctrlers.foreach { ctrler =>
-      ctrler match {
-        case top:PTop =>
-        case pcu:PCU => pcu match {
-          case tt:PTT =>
-          case _ =>
-            emitMap { implicit ms =>
-              if (clmap.pmap.contains(pcu)) {
-                val cu = clmap.pmap(pcu)
-                emitComment(s"${cu}")
-              }
-              emitSRAMs(pcu)
-              emitCounterChains(pcu)
-              emitStages(pcu)
-              emitCtrl(pcu)
-            }
-        }
-      }
-    }
-  }
-
-  override def finPass = {
-    close
-    info(s"Finishing PisaCodegen in ${getPath}")
   }
 
 }

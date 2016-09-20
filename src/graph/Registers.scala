@@ -111,12 +111,10 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param s: sram to load from 
   */
   def store(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, storePR(s))
+
   def wtAddr(sram:SRAM):WtAddrPR = wtAddrPR(sram)
-  //def wtAddr(stage:WAStage):PipeReg = {
-  //  val reg = wtAddr()
-  //  wtAddr(stage, reg)
-  //}
   def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
+  def wtAddr(stage:Stage, sram:SRAM):PipeReg = pipeReg(stage, wtAddr(sram))
   
   def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
  /** Create a pipeline register for a stage corresponding to 

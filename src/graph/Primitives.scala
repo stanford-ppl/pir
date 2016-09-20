@@ -144,11 +144,15 @@ object Counter{
 }
 
 /** SRAM 
- *  @param nameStr: user defined name of SRAM 
- *  @param Size: size of SRAM in all dimensions 
+ *  @param name: user defined optional name of SRAM 
+ *  @param size: size of SRAM in all dimensions 
+ *  @param banking: Banking mode of SRAM
+ *  @param doubleBuffer: Double buffer mode of sram 
+ *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
+ *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Boolean, 
-  writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit override val ctrler:InnerController, design: Design) 
+case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Buffering, 
+  writeCtr:Counter)(implicit override val ctrler:InnerController, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
 
@@ -191,28 +195,28 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Boolean, writeCtr:Counter, swapRead:Counter, swapWrite:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr, swapRead, swapWrite).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(size:Int, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr)
+  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr)
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive

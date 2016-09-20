@@ -4,6 +4,7 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper._
+import pir.plasticine.graph.{PipeReg}
 
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}
@@ -40,7 +41,11 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case StorePR(regId, wtPort) =>
           val sram = wtPort.src
           val psram = pirMap.smmap(sram)
-          preColor(r, psram.writePort.mappedRegs.toList)
+          val regs = psram.writePort.fanIns.filter{ fi => 
+            val PipeReg(stage, reg) = fi.src
+            stage == psram.ctrler.stages.last
+          }.map(_.src.asInstanceOf[PipeReg].reg).toList
+          preColor(r, regs)
         case rr:WtAddrPR =>
           val waPort = rr.waPort
           val sram = waPort.src

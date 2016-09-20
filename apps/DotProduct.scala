@@ -6,9 +6,12 @@ import pir.Design
 import pir.PIRApp
 import pir.misc._
 import pir.graph.enums._
+import pir.plasticine.config._
 
 /* Examp0ile PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {
+  override val arch = Config0 
+
   def main(args: String*)(top:Top) = {
     val tileSize = Const("4i")
     val dataSize = ArgIn()
@@ -56,16 +59,14 @@ object DotProduct extends PIRApp {
       val itA = CounterChain.copy(tileLoadA, "it")
       val itB = CounterChain.copy(tileLoadB, "it")
 
-
-      val s0::s2::s1::_ = Stages(3)
+      val s0::s1::_ = Stages(2)
       // SRAMs
-      val sA = SRAM(name="sA", size=32, vec=tlAVec, readAddr=ii(0), banking=NoBanking(),
-        doubleBuffer=true, writeCtr=itA(0), swapWrite=itA(0), swapRead=itA(0))
+      val sA = SRAM(name="sA", size=32, vec=tlAVec, readAddr=ii(0), writeAddr=itA(0),
+        banking=NoBanking(), doubleBuffer=DoubleBuffer(swapRead=itA(0), swapWrite=itA(0)), writeCtr=itA(0))
       val sB = SRAM(name="sB", size=32, vec=tlBVec, readAddr=ii(0), writeAddr=itB(0),
-        banking=NoBanking(), doubleBuffer=true, writeCtr=itB(0), swapWrite=itB(0), swapRead=itB(0))
+        banking=NoBanking(), doubleBuffer=DoubleBuffer(swapRead=itB(0), swapWrite=itB(0)), writeCtr=itB(0))
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
-      Stage(s2, op1=ii(0), op=Bypass, result=CU.wtAddr(s2, CU.wtAddr(sA)))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const("0i"))
       Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, innerScalar))
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register

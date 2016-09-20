@@ -56,5 +56,9 @@ package object enums {
   case class Diagonal(stride1:Int, stride2:Int) extends Banking
   case class Duplicated() extends Banking
   case class NoBanking() extends Banking
+
+  sealed trait Buffering 
+  case class DoubleBuffer(swapRead:Counter, swapWrite:Counter) extends Buffering
+  case class SingleBuffer() extends Buffering
 }
 

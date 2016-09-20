@@ -32,6 +32,7 @@ object Config {
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
+  var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
 
   var dse = false
 

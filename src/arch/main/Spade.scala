@@ -4,7 +4,7 @@ import pir.plasticine.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 
-trait Spade extends Metadata { self =>
+trait Spade extends Metadata with ImplicitConversion { self =>
   implicit val spade:Spade = self
   val wordWidth:Int
   val numLanes:Int
@@ -19,6 +19,15 @@ trait Spade extends Metadata { self =>
 
   def numCUs = rcus.size
 
+  var nextSym = 0
+  def nextId = {val temp = nextSym; nextSym +=1; temp}
+  val const = Const()
+
+  val coordMap:coordOf.M = Map.empty
+  val indexMap:indexOf.M = Map.empty
+}
+
+trait ImplicitConversion {
   implicit def ib_to_rmp[S<:Node](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport
   implicit def ib_to_op[S<:Node](ib:InBus[S]):OutPort[InBus[S]] = ib.viport
   implicit def ob_to_rmp[S<:Node](ob:OutBus[S]):RMInPort[OutBus[S]] = ob.voport
@@ -27,13 +36,6 @@ trait Spade extends Metadata { self =>
   implicit def so_to_rmp(so:ScalarOut):RMInPort[ScalarOut] = so.in
   implicit def pr_to_ip(pr:PipeReg):InPort[PipeReg] = pr.in
   implicit def pr_to_op(pr:PipeReg):OutPort[PipeReg] = pr.out
-
-  var nextSym = 0
-  def nextId = {val temp = nextSym; nextSym +=1; temp}
-  val const = Const()
-
-  val coordMap:coordOf.M = Map.empty
-  val indexMap:indexOf.M = Map.empty
 }
 
 trait Metadata {

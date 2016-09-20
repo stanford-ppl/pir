@@ -169,15 +169,15 @@ trait Design { self =>
 
   /* Traversals */
   val traversals = ListBuffer[Traversal]()
-  traversals += new SpadePrinter()
+  if (Config.debug) traversals += new SpadePrinter()
   traversals += new ForwardRef()
   traversals += new CtrlAlloc()
-  traversals += ctrlDotPrinter 
+  if (Config.debug) traversals += ctrlDotPrinter 
   traversals += new LiveAnalysis()
-  if (Config.debug) traversals += new IRCheck()
-  traversals += new CtrlPrinter()
-  traversals += pirPrinter 
-  traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
+  traversals += new IRCheck()
+  if (Config.debug) traversals += new CtrlPrinter()
+  if (Config.debug) traversals += pirPrinter 
+  if (Config.debug) traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
   if (Config.mapping) traversals += pirMapping 
   traversals += new PisaCodegen(pirMapping)
   reset()
@@ -197,7 +197,7 @@ trait Design { self =>
 }
 
 trait PIRApp extends Design{
-  override val arch = Config0 
+  override val arch:Spade = Config0 
 
   def main(args: String*)(top:Top): Any 
   def main(args: Array[String]): Unit = {
