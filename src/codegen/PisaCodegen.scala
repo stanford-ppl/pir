@@ -217,7 +217,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitPair("banking", lookUp(sram.banking))
             emitPair("dblBuf", sram.doubleBuffer.toString)
             emitPair("rswap", lookUp(sram.swapRead))
-            emitPair("rswap", lookUp(sram.swapWrite))
+            emitPair("wswap", lookUp(sram.swapWrite))
           } else {
             emitPair("ra", "x")
             emitPair("wa", "x")
@@ -226,7 +226,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitPair("banking", "x")
             emitPair("dblBuf", "false")
             emitPair("rswap", "x")
-            emitPair("rswap", "x")
+            emitPair("wswap", "x")
           }
         }
       }
@@ -234,7 +234,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitCounterChains(pcu:PCU)(implicit ms:CollectionStatus) = {
-    emitList(s"counterChain") { implicit ms =>
+    emitMap(s"counterChain") { implicit ms =>
       val pctrs = pcu.ctrs
       val ctrs = pctrs.zipWithIndex.map{ case (pctr,i) => 
         val ctr = if (ctmap.pmap.contains(pctr)) ctmap.pmap(pctr).toString
@@ -251,7 +251,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         } else s""""0""""
       }
       emitList("chain", chain)
-      emitMap("counters") { implicit ms =>
+      emitList("counters") { implicit ms =>
         pcu.ctrs.foreach { pctr =>
           emitMap { implicit ms =>
             if (ctmap.pmap.contains(pctr)) {
