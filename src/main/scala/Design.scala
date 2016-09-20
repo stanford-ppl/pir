@@ -158,31 +158,34 @@ trait Design { self =>
 
   val arch:Spade
   var top:Top = _
-  val mapExceps = ListBuffer[MappingException]()
+  lazy val mapExceps = ListBuffer[MappingException]()
 
-  val ctrlDotPrinter = new CtrlDotGen()
-  val pirPrinter = new PIRPrinter()
-  val pirMapping = new PIRMapping()
-  val cuDotPrinter = new CUDotPrinter()
-  val argDotPrinter = new ArgDotPrinter()
-  val ctrDotPrinter = new CtrDotPrinter()
+  lazy val ctrlDotPrinter = new CtrlDotGen()
+  lazy val pirPrinter = new PIRPrinter()
+  lazy val pirMapping = new PIRMapping()
+  lazy val cuDotPrinter = new CUDotPrinter()
+  lazy val argDotPrinter = new ArgDotPrinter()
+  lazy val ctrDotPrinter = new CtrDotPrinter()
 
   /* Traversals */
-  val traversals = ListBuffer[Traversal]()
-  if (Config.debug) traversals += new SpadePrinter()
-  traversals += new ForwardRef()
-  traversals += new CtrlAlloc()
-  if (Config.debug) traversals += ctrlDotPrinter 
-  traversals += new LiveAnalysis()
-  traversals += new IRCheck()
-  if (Config.debug) traversals += new CtrlPrinter()
-  if (Config.debug) traversals += pirPrinter 
-  if (Config.debug) traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
-  if (Config.mapping) traversals += pirMapping 
-  traversals += new PisaCodegen(pirMapping)
-  reset()
+  lazy val traversals = {
+    val traversals = ListBuffer[Traversal]()
+    if (Config.debug) traversals += new SpadePrinter()
+    traversals += new ForwardRef()
+    traversals += new CtrlAlloc()
+    if (Config.debug) traversals += ctrlDotPrinter 
+    traversals += new LiveAnalysis()
+    traversals += new IRCheck()
+    if (Config.debug) traversals += new CtrlPrinter()
+    if (Config.debug) traversals += pirPrinter 
+    if (Config.debug) traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
+    if (Config.mapping) traversals += pirMapping 
+    traversals += new PisaCodegen(pirMapping)
+    traversals
+  }
 
   def run = {
+    reset()
     try {
       traversals.foreach(_.run)
     } catch {
