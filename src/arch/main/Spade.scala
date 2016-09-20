@@ -28,10 +28,10 @@ trait Spade extends Metadata with ImplicitConversion { self =>
 }
 
 trait ImplicitConversion {
-  implicit def ib_to_rmp[S<:Node](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport
-  implicit def ib_to_op[S<:Node](ib:InBus[S]):OutPort[InBus[S]] = ib.viport
-  implicit def ob_to_rmp[S<:Node](ob:OutBus[S]):RMInPort[OutBus[S]] = ob.voport
-  implicit def ob_to_ip[S<:Node](ob:OutBus[S]):InPort[OutBus[S]] = ob.voport
+  implicit def ib_to_rmp[S<:NetworkElement](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport
+  implicit def ib_to_op[S<:NetworkElement](ib:InBus[S]):OutPort[InBus[S]] = ib.viport
+  implicit def ob_to_rmp[S<:NetworkElement](ob:OutBus[S]):RMInPort[OutBus[S]] = ob.voport
+  implicit def ob_to_ip[S<:NetworkElement](ob:OutBus[S]):InPort[OutBus[S]] = ob.voport
   implicit def si_to_rmp(si:ScalarIn):RMOutPort[ScalarIn] = si.out
   implicit def so_to_rmp(so:ScalarOut):RMInPort[ScalarOut] = so.in
   implicit def pr_to_ip(pr:PipeReg):InPort[PipeReg] = pr.in

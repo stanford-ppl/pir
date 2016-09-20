@@ -19,7 +19,7 @@ trait IO[+S<:Node] extends Node {
 
 /* Input pin. Can only connects to output of the same level */
 trait Input[P<:Link, +S<:Node] extends IO[S] { 
-  type O = Output[P, _]
+  type O <: Output[P, Node]
   // List of connections that can map to
   val fanIns = ListBuffer[O]()
   def connect(n:O):Unit = fanIns += n
@@ -30,7 +30,7 @@ trait Input[P<:Link, +S<:Node] extends IO[S] {
 }
 /* Output pin. Can only connects to input of the same level */
 trait Output[P<:Link, +S<:Node] extends IO[S] { 
-  type I = Input[P, _]
+  type I <: Input[P, Node]
   val fanOuts = ListBuffer[I]()
   def connectedTo(n:I):Unit = fanOuts += n
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
@@ -47,6 +47,7 @@ trait Port extends Link
 trait Bus extends Link
 
 case class InWire[+S<:Node](src:S)(implicit spade:Spade) extends Wire with Input[Wire, S] {
+  override type O = OutWire[Node]
   override val typeStr = "iw"
   override def connect(n:O) = {super.connect(n); n.connectedTo(this)}
 }
@@ -56,6 +57,7 @@ object InWire {
   }
 }
 case class OutWire[+S<:Node](src:S)(implicit spade:Spade) extends Wire with Output[Wire, S] { 
+  override type I = InWire[Node]
   override val typeStr = "ow"
 }
 object OutWire {
@@ -65,6 +67,7 @@ object OutWire {
 }
 
 class InPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Input[Port, S] {
+  override type O = OutPort[Node]
   override val typeStr = "ip"
   def <==(r:PipeReg):Unit = connect(r.out)
   override def connect(n:O):Unit = {super.connect(n); n.connectedTo(this)}
@@ -81,6 +84,7 @@ object InPort {
  * src is a pointer to the module
  * */
 class OutPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Output[Port, S] { 
+  override type I = InPort[Node]
   override val typeStr = "op"
 }
 object OutPort {
@@ -130,7 +134,8 @@ trait Stagable {
   val stage:Stage
 }
 
-class InBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Input[Bus, S] {
+class InBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Input[Bus, S] {
+  override type O = OutBus[NetworkElement]
   val outports = List.tabulate(numPort) { i => 
     (if (i==0) new RMOutPort[InBus[S]](this)
     else OutPort[InBus[S]](this)).index(i)
@@ -141,16 +146,17 @@ class InBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) ext
   val viport:RMOutPort[InBus[S]] = outports(0).asInstanceOf[RMOutPort[InBus[S]]]
 }
 object InBus extends Metadata {
-  def apply[S<:Node](src:S, idx:Int, numPort:Int)(implicit spade:Spade):InBus[S] = {
+  def apply[S<:NetworkElement](src:S, idx:Int, numPort:Int)(implicit spade:Spade):InBus[S] = {
     new InBus[S](src, numPort).index(idx)
   }
 }
 object InBuses {
-  def apply[S<:Node](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
+  def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
     List.tabulate(num) { is => InBus[S](src, is, numLanes) }
 }
 
-class OutBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
+class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
+  override type I = InBus[NetworkElement]
   val inports = List.tabulate(numPort) { i => 
     (if (i==0) new RMInPort[OutBus[S]](this)
     else InPort[OutBus[S]](this)).index(i)
@@ -160,11 +166,11 @@ class OutBus[+S<:Node](override val src:S, numPort:Int)(implicit spade:Spade) ex
   val voport:RMInPort[OutBus[S]] = inports(0).asInstanceOf[RMInPort[OutBus[S]]]
 }
 object OutBus {
-  def apply[S<:Node](src:S, idx:Int, numPort:Int)(implicit spade:Spade):OutBus[S] = {
+  def apply[S<:NetworkElement](src:S, idx:Int, numPort:Int)(implicit spade:Spade):OutBus[S] = {
     new OutBus(src, numPort).index(idx)
   }
 }
 object OutBuses {
-  def apply[S<:Node](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
+  def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
     List.tabulate(num) { is => OutBus[S](src, is, numLanes) }
 }

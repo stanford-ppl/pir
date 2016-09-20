@@ -4,6 +4,7 @@ import pir._
 import pir.typealias._
 import pir.codegen.Printer
 import pir.graph.traversal.{PIRMapping, MapPrinter}
+import pir.plasticine.graph._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -22,15 +23,35 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
   val resMap:MMap[N, List[R]] = MMap.empty
 
   type Edge = (POB, PIB)
+  type Path = List[Edge]
+  type PathMap = Map[Int, List[(PCU, Path)]]
 
   def search(pdep:PCL, pcls:List[PCL], m:M, hop:Int) = {
     val pathMap:MMap[PCU, List[Edge]] = MMap.empty
   }
 
-  def advance(pne:PNE, hop:Int) = {
-    pne.vouts.foreach { vout =>
-      vout.fanOuts.foreach { vin =>
-
+  /* 
+   * Traverse interconnection graph to find qualified neighbor PCUs recursively that's within hop
+   * count range minHop and maxHop (exclusive) around the starting CU. Return a mapping 
+   * of HopCount -> List of (qualified PCU -> Path to qualified PCU)
+   * @param pne a network element node currently visiting
+   * @param path current path from starting node to pne
+   * @param map current mapping
+   * @param hop current hop count
+   * @param minHop minimum hop count starting to record (inclusive)
+   * @param maxHop maximum hop count stopping to record and traverse (exclusive)
+   * */
+  def advance(pne:PNE, path:Path, map:PathMap, hop:Int, minHop:Int, maxHop:Int):PathMap = {
+    if (hop == maxHop) return map
+    pne.vouts.foldLeft(map) { case (preMap, vout) =>
+      vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
+        val newPath = path :+ (vout, vin)
+        val newMap = vin.src match {
+          case cu:PCU if (hop>=minHop && hop<maxHop) => pm + (hop -> (pm.getOrElse(hop, Nil) :+ (cu, newPath)))
+          case cu:PCU => pm 
+          case sb:PSB => pm 
+        }
+        advance(vin.src, newPath, newMap, hop+1, minHop, maxHop)
       }
     }
   }

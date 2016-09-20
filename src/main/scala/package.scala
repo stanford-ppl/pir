@@ -91,8 +91,8 @@ package object typealias {
   type PIP       = pir.plasticine.graph.InPort[PNode]
   type POP       = pir.plasticine.graph.OutPort[PNode]
   type PRMPT     = pir.plasticine.graph.RMPort
-  type PIB       = pir.plasticine.graph.InBus[PNode]
-  type POB       = pir.plasticine.graph.OutBus[PNode]
+  type PIB       = pir.plasticine.graph.InBus[PNE]
+  type POB       = pir.plasticine.graph.OutBus[PNE]
   type PCB       = pir.plasticine.graph.CtrlBox
   type PLUT      = pir.plasticine.graph.LUT
   type PEnLUT    = pir.plasticine.graph.EnLUT

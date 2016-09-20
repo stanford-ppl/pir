@@ -11,8 +11,8 @@ import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
 trait NetworkElement extends Node {
-  def vins:List[InBus[Node]] // Input Buses
-  def vouts:List[OutBus[Node]] // Output Buses
+  def vins:List[InBus[NetworkElement]] // Input Buses
+  def vouts:List[OutBus[NetworkElement]] // Output Buses
   def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this} // Coordinate
 }
 
