@@ -17,7 +17,7 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata {
-  override val stream = newStream(Config.pisaFile) 
+  override val stream = newStream(s"${design}.json") 
   
   implicit lazy val spade:Spade = design.arch
 

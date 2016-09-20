@@ -198,12 +198,13 @@ trait Design { self =>
 
 trait PIRApp extends Design{
   override val arch:Spade = Config0 
+  override def toString = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 
   def main(args: Array[String]): Unit = {
     println(args.mkString(", "))
     top = Top().updateBlock(main(args:_*)) 
-    info("Finishing graph construction")
+    info(s"Finishing graph construction for ${this}")
     run
   }
 }
