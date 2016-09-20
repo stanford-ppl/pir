@@ -67,7 +67,7 @@ class CUMapperTest extends UnitTest {
         val numVins = 2
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
-          Config0.genRCU(numLanes, numVins, 0, numRegs)
+          ConfigFactory.genRCU(numLanes, numVins, 0, numRegs)
         } 
         val ttcus = Nil
         val sbs = Nil 
@@ -128,10 +128,10 @@ class CUMapperTest extends UnitTest {
         }
         val rcus = {
           val cus = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-            Config0.genRCU(numLanes, numVins, 0, numRegs).coord(i*scale,j*scale)
+            ConfigFactory.genRCU(numLanes, numVins, 0, numRegs).coord(i*scale,j*scale)
           }
           /* Network Constrain */ 
-          Config1.genNetwork(cus, switchBoxes)
+          ConfigFactory.genSwitchNetwork(cus, switchBoxes)
           cus.flatten
         }
 
@@ -140,9 +140,8 @@ class CUMapperTest extends UnitTest {
       val sbs = arch.sbs
 
       // Mapping
-      //val soMapper = new ScalarOutMapper()
-      //val viMapper = new VecInMapper()
-      //val mapper = new CUMapper(soMapper, viMapper)
+      val soMapper = new ScalarOutMapper()
+      val mapper = new CUSwitchMapper(soMapper)
       //Try {
       //  mapper.mapCUs(pcus, cus, PIRMap.empty, (m:PIRMap) => m)
       //} match {
