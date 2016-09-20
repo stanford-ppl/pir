@@ -33,6 +33,7 @@ class CtrMapperTest extends UnitTest { self =>
         val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
+        implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
           val c = PCtr(ic) 
           c.min <== const.out
@@ -69,6 +70,7 @@ class CtrMapperTest extends UnitTest { self =>
         val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
+        implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
           val c = PCtr(ic) 
           c.min <== const.out
@@ -107,6 +109,7 @@ class CtrMapperTest extends UnitTest { self =>
         val top = PTop(numLanes, 0, 0)
         val wordWidth = 32
         val numCtrs = 3
+        implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
           val c = PCtr(ic) 
           c.min <== const.out
