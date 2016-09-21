@@ -185,7 +185,6 @@ trait Design { self =>
   }
 
   def run = {
-    reset()
     try {
       traversals.foreach(_.run)
     } catch {
@@ -206,6 +205,7 @@ trait PIRApp extends Design{
   def main(args: String*)(top:Top): Any 
   def main(args: Array[String]): Unit = {
     println(args.mkString(", "))
+    reset()
     top = Top().updateBlock(main(args:_*)) 
     info(s"Finishing graph construction for ${this}")
     run
