@@ -5,6 +5,7 @@ import pir.typealias._
 import pir.misc._
 import pir.graph._
 import pir.graph.enums._
+import pir.graph.traversal.{CUDotPrinter}
 import plasticine.main._
 import plasticine.config._
 import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
@@ -15,9 +16,9 @@ import scala.language.reflectiveCalls
 import org.scalatest._
 import scala.util.{Try, Success, Failure}
 
-class CUMapperTest extends UnitTest {
+class CUMapperTest extends UnitTest with Metadata {
 
-  "CUMapper Test1: Point-to-point connection" should "success" in {
+  "Point-to-point connection" should "success" in {
     new Design {
       top = Top()
       // Nodes
@@ -94,66 +95,100 @@ class CUMapperTest extends UnitTest {
         mapper.mapCUs(pcus, cus, PIRMap.empty, (m:PIRMap) => m)
       } match {
         case Success(mapping) =>
-          new CUDotPrinter("TestPCU1.dot").print(pcus, cus, mapping)
+          new CUDotPrinter("TestP2P.dot").print(pcus, cus, mapping)
         case Failure(e) =>
-          new CUDotPrinter("TestPCU1.dot").print(pcus, cus)
+          new CUDotPrinter("TestP2P.dot").print(pcus, cus)
           throw e
       }
       // Printer
     }
   }
 
-  "Test2: SwitchBox Connection" should "success" taggedAs(WIP) in {
-    new Design {
-      // Nodes
-
-      // PNodes
-      override val arch = new Spade {
-        val numLanes = 4
-        val numRowCUs = 4
-        val numColCUs = 4
-        val numRCUs = numRowCUs * numColCUs
-        val numVins = 4
-        val numRegs = 20
-        val wordWidth = 32
-        val top = PTop(numLanes, 0, 0)
-        val ttcus = Nil
-        val scale = 4
-        val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-        override val sbs = switchBoxes.flatten 
-        for (i <- 0 until switchBoxes.size) {
-          for (j <- 0 until switchBoxes.head.size) {
-            coordOf(switchBoxes(i)(j)) = (i*scale-scale/2, j*scale-scale/2)
-          }
-        }
-        val rcus = {
-          val cus = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-            ConfigFactory.genRCU(numLanes, numVins, 0, numRegs).coord(i*scale,j*scale)
-          }
-          /* Network Constrain */ 
-          ConfigFactory.genSwitchNetwork(cus, switchBoxes)
-          cus.flatten
-        }
-
+  def genSwitchNetworkConfig = new Spade {
+    val numLanes = 4
+    val numRowCUs = 4
+    val numColCUs = 4
+    val numRCUs = numRowCUs * numColCUs
+    val numVins = 4
+    val numRegs = 20
+    val wordWidth = 32
+    val top = PTop(numLanes, 0, 0)
+    val ttcus = Nil
+    val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+    override val sbs = switchBoxes.flatten 
+    for (i <- 0 until switchBoxes.size) {
+      for (j <- 0 until switchBoxes.head.size) {
+        coordOf(switchBoxes(i)(j)) = (i,j) 
       }
-      val pcus = arch.rcus
-      val sbs = arch.sbs
-
-      // Mapping
-      val soMapper = new ScalarOutMapper()
-      val mapper = new CUSwitchMapper(soMapper)
-      //Try {
-      //  mapper.mapCUs(pcus, cus, PIRMap.empty, (m:PIRMap) => m)
-      //} match {
-      //  case Success(mapping) =>
-      //    new CUDotPrinter("TestPCU1.dot").print(pcus, cus, mapping)
-      //  case Failure(e) =>
-      //    new CUDotPrinter("TestPCU1.dot").print(pcus, cus)
-      //    throw e
-      //}
-      // Printer
-      new CUDotPrinter("TestPCU2.dot").print((pcus, sbs))
     }
+    val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
+      ConfigFactory.genRCU(numLanes, numVins, 0, numRegs).coord(i,j)
+    }
+    /* Network Constrain */ 
+    ConfigFactory.genSwitchNetwork(cuArray, switchBoxes)
+    val rcus = cuArray.flatten
+  }
+
+  def quote(pne:PNE)(implicit spade:Spade) = CUDotPrinter.quote(pne)
+
+  lazy val design = new Design {
+    // PNodes
+    implicit override val arch = genSwitchNetworkConfig
+    val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+    def checkRange(pcu:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
+      val result = mapper.advance(pcu, min, max)
+      // println(s"pcu: ${quote(pcu)}")
+      //result.foreach { case (to, path) =>
+      //  println(s"- hop:${path.size} to:${quote(to)} path:${CUSwitchMapper.quote(path)}")
+      //}
+      //println(s"number of options: ${result.size}")
+      val neighbors = result.map(_._1)
+      shouldContain.foreach { c =>
+        assert(neighbors.contains(c))
+      }
+      shouldNotContain.foreach { c =>
+        assert(!neighbors.contains(c))
+      }
+    }
+    new CUDotPrinter("TestSwitch.dot").print((arch.cus, arch.sbs))
+  }
+
+  "SwitchBox Connection 1 hop" should "success" in {
+    val arr = design.arch.cuArray
+    val shouldContain = List(arr(2)(1), arr(1)(2));
+    design.checkRange(arr(1)(1), 1, 2, shouldContain, design.arch.cus.diff(shouldContain))
+  }
+  "SwitchBox Connection 2 hop" should "success" in {
+    val arr = design.arch.cuArray
+    val shouldContain = List(arr(2)(0), arr(2)(1), arr(2)(2))
+    design.checkRange(arr(1)(1), 2, 3, shouldContain, design.arch.cus.diff(shouldContain))
+  }
+  "SwitchBox Connection 3 hop" should "success" in {
+    val arr = design.arch.cuArray
+    val shouldContain = List(arr(1)(0), arr(2)(0), arr(3)(0),
+                         arr(2)(1), arr(3)(1),
+                         arr(1)(2), arr(2)(2), arr(3)(2),
+                         arr(2)(3))
+    design.checkRange(arr(1)(1), 3, 4, shouldContain, design.arch.cus.diff(shouldContain))
+  }
+  "SwitchBox Connection 4 hop" should "success" in {
+    val arr = design.arch.cuArray
+    val shouldNotContain = List(arr(0)(3), arr(1)(1), arr(2)(1))
+    design.checkRange(arr(1)(1), 4, 5, design.arch.cus.diff(shouldNotContain), shouldNotContain)
+  }
+
+  "SwitchBox Connection 5 hop" should "success" in {
+    val arr = design.arch.cuArray
+    val shouldNotContain = List(arr(1)(1))
+    design.checkRange(arr(1)(1), 1, 7, design.arch.cus.diff(shouldNotContain), shouldNotContain)
+  }
+
+  "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" taggedAs(WIP) in {
+    val arr = design.arch.cuArray
+    val pcu = arr(1)(1); val min = 1; val max = 7
+    val result1 = design.mapper.advanceBFS(pcu, min, max)
+    val result2 = design.mapper.advanceDFS(pcu, min, max)
+    result1 should equal (result2)
   }
 
 }

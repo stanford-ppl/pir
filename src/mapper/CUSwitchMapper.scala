@@ -3,56 +3,118 @@ import pir.graph._
 import pir._
 import pir.typealias._
 import pir.codegen.Printer
-import pir.graph.traversal.{PIRMapping, MapPrinter}
+import pir.graph.traversal.{PIRMapping, MapPrinter, CUDotPrinter}
 import pir.plasticine.graph._
+import pir.plasticine.main._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 import scala.util.{Try, Success, Failure}
 
+object CUSwitchMapper {
+  type Edge = (POB, PIB)
+  type Path = List[Edge]
+  type PathMap = List[(PCU, Path)]
+  def quote(io:IO[PNE])(implicit spade:Spade):String = {
+    io.src match {
+      case cu:PCU => io.toString
+      case sb:PSB => CUDotPrinter.quote(sb) 
+    }
+  }
+  def quote(path:CUSwitchMapper.Path)(implicit spade:Spade):String = {
+    path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
+  }
+}
 class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) extends Mapper {
   type R = PCL
   type N = CL
   type V = CLMap.V
+  type Edge = CUSwitchMapper.Edge 
+  type Path = CUSwitchMapper.Path 
+  type PathMap = CUSwitchMapper.PathMap 
+
   val typeStr = "CUSwitchMapper"
 
   def finPass(m:M):M = m
 
   val resMap:MMap[N, List[R]] = MMap.empty
 
-  type Edge = (POB, PIB)
-  type Path = List[Edge]
-  type PathMap = Map[Int, List[(PCU, Path)]]
-
-  def search(pdep:PCL, pcls:List[PCL], m:M, hop:Int) = {
-    val pathMap:MMap[PCU, List[Edge]] = MMap.empty
-  }
-
   /* 
    * Traverse interconnection graph to find qualified neighbor PCUs recursively that's within hop
    * count range minHop and maxHop (exclusive) around the starting CU. Return a mapping 
    * of HopCount -> List of (qualified PCU -> Path to qualified PCU)
-   * @param pne a network element node currently visiting
-   * @param path current path from starting node to pne
-   * @param map current mapping
-   * @param hop current hop count
+   * @param start starting Spade cu of traversal 
    * @param minHop minimum hop count starting to record (inclusive)
    * @param maxHop maximum hop count stopping to record and traverse (exclusive)
    * */
-  def advance(pne:PNE, path:Path, map:PathMap, hop:Int, minHop:Int, maxHop:Int):PathMap = {
-    if (hop == maxHop) return map
-    pne.vouts.foldLeft(map) { case (preMap, vout) =>
-      vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
-        val newPath = path :+ (vout, vin)
-        val newMap = vin.src match {
-          case cu:PCU if (hop>=minHop && hop<maxHop) => pm + (hop -> (pm.getOrElse(hop, Nil) :+ (cu, newPath)))
-          case cu:PCU => pm 
-          case sb:PSB => pm 
+  def advance(start:PCU, minHop:Int, maxHop:Int):PathMap = { 
+    advanceDFS(start, minHop, maxHop)
+  }
+
+  def advanceDFS(start:PCU, minHop:Int, maxHop:Int):PathMap = {
+    def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
+      val visited = path.map{ case (f,t) => f.src }
+      if (visited.contains(pne)) return map
+      pne.vouts.foldLeft(map) { case (preMap, vout) =>
+        vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
+          val newPath = path :+ (vout, vin)
+          val hop = newPath.size 
+          vin.src match {
+            case cu:PCU if (hop>=minHop && hop<maxHop && start!=cu) => pm :+ (cu, newPath)
+            case sb:PSB if (hop<maxHop) => rec(vin.src, newPath, pm)
+            case _ => pm 
+          }
         }
-        advance(vin.src, newPath, newMap, hop+1, minHop, maxHop)
       }
+    }
+    rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
+  }
+
+  def advanceBFS(start:PCU, minHop:Int, maxHop:Int):PathMap = {
+    val result = ListBuffer[(PCU, Path)]()
+    val paths = Queue[Path]()
+    paths += Nil
+    while (paths.size!=0) {
+      val path =  paths.dequeue
+      val pne:PNE = path.lastOption.fold[PNE](start) { _._2.src }
+      val visited = path.map{ case (f,t) => f.src }
+      if (!visited.contains(pne)) {
+        pne.vouts.foreach { vout =>
+          vout.fanOuts.foreach { vin =>
+            val newPath = path :+ (vout, vin)
+            val hop = newPath.size
+            vin.src match {
+              case cu:PCU if (hop>=minHop && hop<maxHop && start!=cu) => result += (cu ->newPath)
+              case sb:PSB if (hop<maxHop) => paths += newPath
+              case _ =>
+            }
+          }
+        }
+      }
+    }
+    result.toList
+  }
+
+  def search(cu:CU, m:M) = {
+    val pdeps:List[PCU] = cu.vins.flatMap { vin => 
+      val writer = vin.vector.writer
+      m.clmap.get(writer.ctrler).flatMap { pcl =>
+        pcl match {
+          case pcu:PCU => Some(pcu)
+          case top:PTop => None
+          case _ => None
+        }
+      }
+    }
+
+    val results = pdeps.map{ pdep => (pdep, advance(pdep, 1, 7)) }
+
+    val validCUs = results.map( _._2.map{ case (cu, path) => cu }.toSet ).reduce(_ intersect _)
+    val validPaths = results.map { case (pdep, result) =>
+      pdep -> result.filter { case (cu, path) => validCUs.contains(cu) }
     }
   }
 

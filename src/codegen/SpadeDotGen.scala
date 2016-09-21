@@ -15,6 +15,11 @@ import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
 
+object CUDotPrinter extends Metadata {
+  def quote(pne:PNE)(implicit spade:Spade) = {
+    coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+  }
+}
 class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
@@ -22,13 +27,15 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
 
   override val stream = newStream(fileName) 
   
+  import CUDotPrinter._
+  val scale = 4
+
   def emitSwitchBoxes(sbs:List[PSB]) = {
     sbs.foreach { sb =>
       val (x,y) = coordOf(sb)
-      val label = s"$sb[$x,$y]"
       val attr = DotAttr().shape(box)
-      coordOf.get(sb).foreach { case co => attr.pos(co) }
-      emitNode(sb, label, attr)
+      coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
+      emitNode(sb, quote(sb), attr)
       sb.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
           vout.src match {
@@ -51,7 +58,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       recs += s"<${cu.vout}> ${cu.vout}"
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
-      coordOf.get(cu).foreach { case co => attr.pos(co) }
+      coordOf.get(cu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
       emitNode(cu, label, attr)
       cu.vins.foreach { vin =>
         vin.fanIns.foreach { vout =>
