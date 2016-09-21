@@ -135,9 +135,11 @@ class CUMapperTest extends UnitTest with Metadata {
     // PNodes
     implicit override val arch = genSwitchNetworkConfig
     val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
-    def checkRange(pcu:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
-      val result = mapper.advance(pcu, min, max)
-      // println(s"pcu: ${quote(pcu)}")
+    def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
+      def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
+      def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
+      val result = mapper.advance(start, cuCons _, sbCons _)
+      // println(s"start: ${quote(start)}")
       //result.foreach { case (to, path) =>
       //  println(s"- hop:${path.size} to:${quote(to)} path:${CUSwitchMapper.quote(path)}")
       //}
@@ -185,9 +187,11 @@ class CUMapperTest extends UnitTest with Metadata {
 
   "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" taggedAs(WIP) in {
     val arr = design.arch.cuArray
-    val pcu = arr(1)(1); val min = 1; val max = 7
-    val result1 = design.mapper.advanceBFS(pcu, min, max)
-    val result2 = design.mapper.advanceDFS(pcu, min, max)
+    val start = arr(1)(1); val min = 1; val max = 7
+    def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
+    def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
+    val result1 = design.mapper.advanceBFS(start, cuCons _, sbCons _)
+    val result2 = design.mapper.advanceDFS(start, cuCons _, sbCons _)
     result1 should equal (result2)
   }
 

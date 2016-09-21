@@ -25,6 +25,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
 
   // Collect outer controllers that are in the same CU
   private def collectOuters = {
+    println(design.top)
     design.top.innerCUs.foreach { inner =>
       val outers = ListBuffer[OuterController]()
       var child:ComputeUnit = inner

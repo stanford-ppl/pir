@@ -36,6 +36,43 @@ trait Mapper { self =>
   }
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
+  type RecResFunc[R,N,M] = (List[R], N, List[N], M) => M
+  type RecNodeFunc[R,N,M] = (List[R], List[N], M) => M
+  type ResFunc[R,N,M] = (N, M, List[R]) => List[R]
+
+  def recRes[R,N<:Node,M](constrains:List[(N, R, M) => M], recNode:RecNodeFunc[R,N,M])
+                   (remainRes:List[R], n:N, remainNodes:List[N], map:M):M = {
+    recRes[R,N,M](constrains, (n:N, m:M, rm:List[R]) => rm, recNode)(remainRes, n, remainNodes, map)
+  }
+  // Recursively try a node on a list of resource defined by resFunc 
+  def recRes[R,N<:Node,M](constrains:List[(N, R, M) => M], resFunc:ResFunc[R,N,M], recNode:RecNodeFunc[R,N,M])
+                   (remainRes:List[R], n:N, remainNodes:List[N], map:M):M = {
+    val exceps = ListBuffer[MappingException]()
+    val reses = resFunc(n, map, remainRes)
+    for (ir <- 0 until reses.size) {
+      val (h, res::rt) = reses.splitAt(ir)
+      val restRes = h ++ rt
+      val cons = Try {
+        constrains.foldLeft(map) { case (pm, cons) => cons(n, res, pm) }
+      } match {
+        case Success(m) => 
+          Try(recNode(restRes, remainNodes, m))
+        case Failure(ResourceNotUsed(_,_,_,m)) => 
+          Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
+        case Failure(e) => 
+          Failure(e) 
+      } 
+      cons match {
+        case Success(m) => return m
+        case Failure(e) => e match {
+          case me:MappingException => exceps += me // constrains failed
+          case _ => throw e // Unknown exception
+        }
+      }
+    }
+    throw FailToMapNode(this, n, exceps.toList)
+  }
+
   /* Bind a list of nodes to a list of resource exhausting all possibilities 
    * before failing and throw NoSolFound Exception
    * @param allRes list of resource 
@@ -51,49 +88,19 @@ trait Mapper { self =>
    * considered failed and binding process continues try different options
    * */
   def bind[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], resFunc:(N, M, List[R]) => List[R],
-    finPass: M => M):M = {
-
-    // Recursively try a node on a list of resource defined by resFunc 
-    /* Recursively try a node on a list of resource */
-    def recRes(remainRes:List[R], n:N, remainNodes:List[N], preMap:M):M = {
-      val exceps = ListBuffer[MappingException]()
-      val reses = resFunc(n, preMap, remainRes)
-      for (ir <- 0 until reses.size) {
-        val (h, res::rt) = reses.splitAt(ir)
-        val restRes = h ++ rt
-        val cons = Try {
-          constrains.foldLeft(preMap) { case (pm, cons) => cons(n, res, pm) }
-        } match {
-          case Success(m) => 
-            Try(recMap(restRes, remainNodes, m))
-          case Failure(ResourceNotUsed(_,_,_,m)) => 
-            Try(recMap(reses, remainNodes, m.asInstanceOf[M]))
-          case Failure(e) => 
-            Failure(e) 
-        } 
-        cons match {
-          case Success(m) => return m
-          case Failure(e) => e match {
-            case me:MappingException => exceps += me // constrains failed
-            case _ => throw e // Unknown exception
-          }
-        }
-      }
-      throw FailToMapNode(this, n, exceps.toList)
-    }
+    constrains:List[(N, R, M) => M], resFunc:ResFunc[R,N,M], finPass: M => M):M = {
 
     /* Recursively map a list of nodes to a list of resource */
-    def recMap(remainRes:List[R], remainNodes:List[N], recmap:M):M = {
+    def recNode(remainRes:List[R], remainNodes:List[N], map:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
-        return finPass(recmap) // throw MappingException
+        return finPass(map) // throw MappingException
       }
       val exceps = ListBuffer[MappingException]()
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
         Try{
-          recRes(remainRes, n, restNodes, recmap)
+          recRes[R,N,M](constrains, resFunc, recNode _)(remainRes, n, restNodes, map)
         } match {
           case Success(m) => return m 
           case Failure(e) => e match {
@@ -105,7 +112,7 @@ trait Mapper { self =>
       throw NoSolFound(this, exceps.toList) 
     }
 
-    recMap(allRes, allNodes, initMap)
+    recNode(allRes, allNodes, initMap)
   }
 
   /* Bind a list of nodes to a list of resource exhausting all possibilities 

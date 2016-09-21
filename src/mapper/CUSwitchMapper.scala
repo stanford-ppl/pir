@@ -50,21 +50,20 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
    * @param minHop minimum hop count starting to record (inclusive)
    * @param maxHop maximum hop count stopping to record and traverse (exclusive)
    * */
-  def advance(start:PCU, minHop:Int, maxHop:Int):PathMap = { 
-    advanceDFS(start, minHop, maxHop)
+  def advance(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
+    advanceDFS(start, cuCons, sbCons)
   }
 
-  def advanceDFS(start:PCU, minHop:Int, maxHop:Int):PathMap = {
+  def advanceDFS(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
     def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
       val visited = path.map{ case (f,t) => f.src }
       if (visited.contains(pne)) return map
       pne.vouts.foldLeft(map) { case (preMap, vout) =>
         vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
           val newPath = path :+ (vout, vin)
-          val hop = newPath.size 
           vin.src match {
-            case cu:PCU if (hop>=minHop && hop<maxHop && start!=cu) => pm :+ (cu, newPath)
-            case sb:PSB if (hop<maxHop) => rec(vin.src, newPath, pm)
+            case cu:PCU if cuCons(cu, newPath) => pm :+ (cu, newPath)
+            case sb:PSB if sbCons(sb, newPath) => rec(vin.src, newPath, pm)
             case _ => pm 
           }
         }
@@ -73,7 +72,7 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
     rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
   }
 
-  def advanceBFS(start:PCU, minHop:Int, maxHop:Int):PathMap = {
+  def advanceBFS(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
     val result = ListBuffer[(PCU, Path)]()
     val paths = Queue[Path]()
     paths += Nil
@@ -85,10 +84,9 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
         pne.vouts.foreach { vout =>
           vout.fanOuts.foreach { vin =>
             val newPath = path :+ (vout, vin)
-            val hop = newPath.size
             vin.src match {
-              case cu:PCU if (hop>=minHop && hop<maxHop && start!=cu) => result += (cu ->newPath)
-              case sb:PSB if (hop<maxHop) => paths += newPath
+              case cu:PCU if cuCons(cu, newPath) => result += (cu ->newPath)
+              case sb:PSB if sbCons(sb, newPath) => paths += newPath
               case _ =>
             }
           }
@@ -99,59 +97,113 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
   }
 
   def search(cu:CU, m:M) = {
-    val pdeps:List[PCU] = cu.vins.flatMap { vin => 
-      val writer = vin.vector.writer
-      m.clmap.get(writer.ctrler).flatMap { pcl =>
-        pcl match {
-          case pcu:PCU => Some(pcu)
-          case top:PTop => None
-          case _ => None
-        }
-      }
-    }
+    //val pdeps:List[PCU] = cu.vins.flatMap { vin => 
+    //  val writer = vin.vector.writer
+    //  m.clmap.get(writer.ctrler).flatMap { pcl =>
+    //    pcl match {
+    //      case pcu:PCU => Some(pcu)
+    //      case top:PTop => None
+    //      case _ => None
+    //    }
+    //  }
+    //}
 
-    val results = pdeps.map{ pdep => (pdep, advance(pdep, 1, 7)) }
+    //val results = pdeps.map{ pdep => (pdep, advance(pdep, 1, 7)) }
 
-    val validCUs = results.map( _._2.map{ case (cu, path) => cu }.toSet ).reduce(_ intersect _)
-    val validPaths = results.map { case (pdep, result) =>
-      pdep -> result.filter { case (cu, path) => validCUs.contains(cu) }
-    }
+    //val validCUs = results.map( _._2.map{ case (cu, path) => cu }.toSet ).reduce(_ intersect _)
+    //val validPaths = results.map { case (pdep, result) =>
+    //  pdep -> result.filter { case (cu, path) => validCUs.contains(cu) }
+    //}
   }
 
   def resFunc(cu:N, m:M, remainRes:List[R]):List[R] = {
     resMap(cu).filter { pcu => !m.clmap.pmap.contains(pcu) }
   }
 
-  def mapCU(cu:N, pcu:R, pirMap:M):M = {
-    if (cu.isInstanceOf[TT]) assert(pcu.isInstanceOf[PTT], s"$cu, $pcu") 
-    val cmap = pirMap.setCL(cu, pcu) 
-    /* Map CU */
-    Try {
-      soMapper.map(cu, cmap)
-    }.map { m =>
-      val ins = cu match {
-        case cl:TT => cu.sins // Assume tile transfer vin internallly connected
-        case _ => cu.vins ++ cu.sins
+  //def mapCU(cu:N, pcu:R, pirMap:M):M = {
+  //  if (cu.isInstanceOf[TT]) assert(pcu.isInstanceOf[PTT], s"$cu, $pcu") 
+  //  val cmap = pirMap.setCL(cu, pcu) 
+  //  /* Map CU */
+  //  Try {
+  //    soMapper.map(cu, cmap)
+  //  }.map { m =>
+  //    val ins = cu match {
+  //      case cl:TT => cu.sins // Assume tile transfer vin internallly connected
+  //      case _ => cu.vins ++ cu.sins
+  //    }
+  //    m
+  //  } match {
+  //    case Success(m) => dprintln(s"$cu -> $pcu (succeeded)"); m
+  //    case Failure(e) => dprintln(s"$cu -> $pcu (failed)"); throw e
+  //  }
+  //}
+
+  //val cons = List(mapCU _)
+
+  //def bind[R](cu:CU, allRes:List[R], constrain:(CU, R) => M) = {
+  //  allRes.foreach { res =>
+  //    Try(constrain(cu, res)) match {
+  //      case Success(m) => return m
+  //      case Failure(e) =>
+  //    }
+  //  }
+  //  throw NoSolFound()
+  //}
+
+  def mapCU(remainRes:List[PCU], remainNodes:List[CU], map:M):M = {
+    if (remainNodes.size==0) {
+      return finPass(map) // throw MappingException
+    }
+    val cu::restNodes = remainNodes 
+    // Already mapped depended CUs
+    val pdeps:List[(VI, PCU)] = cu.vins.flatMap { vin => 
+      val writer = vin.vector.writer
+      map.clmap.get(writer.ctrler).flatMap { pcl =>
+        pcl match {
+          case pcu:PCU => Some(vin ->pcu)
+          case _ => None
+        }
       }
-      m
-    } match {
-      case Success(m) => dprintln(s"$cu -> $pcu (succeeded)"); m
-      case Failure(e) => dprintln(s"$cu -> $pcu (failed)"); throw e
+    }
+    if (pdeps.size==0) { // If there's no dependency
+      def constrain(cu:CU, pcu:PCU, m:M):M = {
+        m.setCL(cu, pcu)
+      }
+      recRes[PCU,CU,M](List(constrain _), mapCU _)(remainRes, cu, restNodes, map)
+    } else { // There is dependency
+      //val m = mapDep(cu:CU)(pdeps.head, pdeps.tail, m)
+      mapCU(remainRes, restNodes, map)
     }
   }
 
-  val cons = List(mapCU _)
+  //def mapDep(cu:CU)(pdep:(VI,PCU), remainDep:List[(VI, PCU)], m) = {
+  //  val (vin, start) = pdep
+  //  val pcu = m.clmap.get(cu) 
+  //  def cuCons(to:PCU, path:CUSwitchMapper.Path) = {
+  //    pcu.fold(true) { _ == to } && (path.size >= min) && (path.size < max) && (to!=start)
+  //  }
+  //  def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
+  //  val result = design.mapper.advance(start, cuCons _, sbCons _)
+  //  val constrain(pdep:(VI, PCU), route:(PCU, Path)):M = {
+  //    val (pcu, path) = route
+  //    m.setCL(cu, pcu)
+  //    ...
+  //    mapDep(remainDep.head, remainDep, m)
+  //  }
+  //  bind(pdep, result, constrain)
+  //}
 
-  def mapCUs(pcus:List[PCU], cus:List[ICL], pirMap:M, finPass:M => M):M = {
+  def mapCUs(pcus:List[PCU], cus:List[ICL], m:M, finPass:M => M):M = {
     CUMapper.qualifyCheck(pcus, cus, resMap)
-    // Bind nodes to resources
-    bind(pcus, cus, pirMap, cons, resFunc _, finPass)
+    mapCU(pcus, cus, m)
+    m
   }
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
     Try{
-      mapCU(design.top, design.arch.top, m) 
+      //mapCU(design.top, design.arch.top, m) 
+      m
     } match {
       case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
       case Failure(e) => throw e
