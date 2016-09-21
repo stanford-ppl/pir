@@ -31,7 +31,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val smmap:SMMap = mapping.smmap
   lazy val clmap:CLMap = mapping.clmap
   lazy val vimap:VIMap = mapping.vimap
-  lazy val ibmap:IBMap = mapping.ibmap
+  lazy val fbmap:FBMap = mapping.fbmap
   lazy val lumap:LUMap = mapping.lumap 
   lazy val ucmap:UCMap = mapping.ucmap
 
@@ -237,7 +237,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {
     val inputs = pcu.vins.map { vin =>
-      ibmap.get(vin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
+      fbmap.get(vin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
     }
     emitList("inputs", inputs)
   }

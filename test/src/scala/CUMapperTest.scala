@@ -18,7 +18,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUMapperTest extends UnitTest with Metadata {
 
-  "Point-to-point connection" should "success" in {
+  "Point-to-point connection mapping" should "success" in {
     new Design {
       top = Top()
       // Nodes
@@ -185,7 +185,7 @@ class CUMapperTest extends UnitTest with Metadata {
     design.checkRange(arr(1)(1), 1, 7, design.arch.cus.diff(shouldNotContain), shouldNotContain)
   }
 
-  "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" taggedAs(WIP) in {
+  "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" in {
     val arr = design.arch.cuArray
     val start = arr(1)(1); val min = 1; val max = 7
     def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
@@ -193,6 +193,48 @@ class CUMapperTest extends UnitTest with Metadata {
     val result1 = design.mapper.advanceBFS(start, cuCons _, sbCons _)
     val result2 = design.mapper.advanceDFS(start, cuCons _, sbCons _)
     result1 should equal (result2)
+  }
+
+  "SwitchBox Mapping" should "success" taggedAs(WIP) in {
+    new Design {
+      top = Top()
+      // Nodes
+      val sls = List.fill(8)(Scalar())
+      val vts = List.fill(5)(Vector())
+      val c0 = Pipeline("c0", top, Nil){ implicit CU => 
+        CU.vecOut(vts(0)) 
+      }
+      val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+        CU.vecIn(vts(0))
+        CU.vecOut(vts(1)) 
+      }
+      val c2 = Pipeline("c2", top, Nil){ implicit CU => 
+        CU.vecIn(vts(1))
+        CU.vecIn(vts(0))
+        CU.vecOut(vts(2)) 
+      }
+      val c3 = Pipeline("c3", top, Nil){ implicit CU => 
+        CU.vecIn(vts(2))
+        CU.vecOut(vts(3)) 
+      }
+      val c4 = Pipeline("c4", top, Nil){ implicit CU => 
+        CU.vecIn(vts(3))
+      }
+      val cus = c0::c1::c2::c3::c4::Nil
+      // PNodes
+      implicit override val arch = genSwitchNetworkConfig
+      // Mapping
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+      Try {
+        mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
+      } match {
+        case Success(mapping) =>
+          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), cus, mapping)
+        case Failure(e) =>
+          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), cus)
+          throw e
+      }
+    }
   }
 
 }

@@ -40,12 +40,19 @@ trait Mapper { self =>
   type RecNodeFunc[R,N,M] = (List[R], List[N], M) => M
   type ResFunc[R,N,M] = (N, M, List[R]) => List[R]
 
-  def recRes[R,N<:Node,M](constrains:List[(N, R, M) => M], recNode:RecNodeFunc[R,N,M])
+  def recRes[R,N,M](constrains:List[(N, R, M) => M], resFunc:(N, M) => List[R], recNode:(List[N], M) => M)
+                   (n:N, remainNodes:List[N], map:M):M = {
+    def rn(remainRes:List[R], remainNodes: List[N], m:M) = recNode(remainNodes, m)
+    def rf(n:N, m:M, remainRes:List[R]) = resFunc(n, m)
+    recRes[R,N,M](constrains, rf _, rn _)(Nil, n, remainNodes, map)
+  }
+
+  def recRes[R,N,M](constrains:List[(N, R, M) => M], recNode:RecNodeFunc[R,N,M])
                    (remainRes:List[R], n:N, remainNodes:List[N], map:M):M = {
     recRes[R,N,M](constrains, (n:N, m:M, rm:List[R]) => rm, recNode)(remainRes, n, remainNodes, map)
   }
   // Recursively try a node on a list of resource defined by resFunc 
-  def recRes[R,N<:Node,M](constrains:List[(N, R, M) => M], resFunc:ResFunc[R,N,M], recNode:RecNodeFunc[R,N,M])
+  def recRes[R,N,M](constrains:List[(N, R, M) => M], resFunc:ResFunc[R,N,M], recNode:RecNodeFunc[R,N,M])
                    (remainRes:List[R], n:N, remainNodes:List[N], map:M):M = {
     val exceps = ListBuffer[MappingException]()
     val reses = resFunc(n, map, remainRes)
