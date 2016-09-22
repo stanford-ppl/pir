@@ -93,33 +93,44 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
     result.toList
   }
 
-  def mapCU(remainNodes:List[CU], map:M):M = {
-    type R = PCU
-    type N = CU
-    if (remainNodes.size==0) {
-      return finPass(map) // throw MappingException
-    }
-    val cu::restNodes = remainNodes 
-    // Already mapped depended CUs
-    val pdeps:List[(VI, PCU)] = cu.vins.flatMap { vin => 
-      val writer = vin.vector.writer
-      map.clmap.get(writer.ctrler).flatMap { pcl =>
-        pcl match {
-          case pcu:PCU => Some(vin ->pcu)
-          case _ => None
+  def getDeps(vins:List[VI], map:M):List[(VI, PCU)] = {
+    // Already mapped depended PCUs
+    vins.flatMap { vin => 
+      if (map.vimap.contains(vin)) { None
+      } else {
+        val writer = vin.vector.writer
+        map.clmap.get(writer.ctrler).flatMap { pcl => 
+          pcl match {
+            case pcu:PCU => Some(vin ->pcu)
+            case _ => None
+          }
         }
       }
     }
+  }
+
+  def mapCUs(finPass:M => M)(remainNodes:List[CU], map:M):M = {
+    type R = PCU
+    type N = CU
+    if (remainNodes.size==0) return finPass(map) // throw MappingException
+    val cu::restNodes = remainNodes 
+    val pdeps = getDeps(cu.vins, map)
     if (pdeps.size==0) { // If there's no dependency
-      def constrain(cu:N, pcu:R, m:M):M = {
-        m.setCL(cu, pcu)
+      def constrain(cu:N, pcu:R, m:M):M = { 
+        val mp = m.setCL(cu, pcu)
+        cu.readers.foldLeft(mp) { case (pm, reader) =>
+          reader match {
+            case rd:CU if (pm.clmap.contains(rd)) => mapDep(rd, (m:M) => m)(getDeps(rd.vins, pm), pm) 
+            case _ => pm
+          }
+        }
       }
       def resFunc(cu:N, m:M):List[R] = {
         resMap(cu).filter { pcu => !m.clmap.pmap.contains(pcu) }.asInstanceOf[List[R]]
       }
-      recRes[R,N,M](List(constrain _), resFunc _, mapCU _)(cu, restNodes, map)
+      recRes[R,N,M](List(constrain _), resFunc _, mapCUs((m:M) => m) _)(cu, restNodes, map)
     } else { // There is dependency
-      mapDep(cu, mapCU(restNodes, _))(pdeps, map)
+      mapDep(cu, mapCUs((m:M) => m)(restNodes, _))(pdeps, map)
     }
   }
 
@@ -133,11 +144,12 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
       val (vin, start) = pdep
       val pcu = m.clmap.get(cu) 
       def cuCons(to:PCU, path:Path) = {
-        pcu.fold(true) { _ == to } && (path.size >= minHop) && (path.size < maxHop) && (to!=start)
+        pcu.fold(true) { _ == to } && (path.size >= minHop) && (path.size < maxHop) && (to!=start) &&
+        !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
       }
       def sbCons(psb:PSB, path:Path) = { 
-        !path.exists { case (vout, vin) => m.fbmap.contains(vin) } && // No edge in path has been used
-        (path.size < maxHop)
+        (path.size < maxHop) &&
+        !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
       }
       advance(start, cuCons _, sbCons _)
     }
@@ -151,7 +163,14 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
         mp = mp.setCL(cu, pcu)
       }
       mp = mp.setVI(vin, path.last._2)
-      path.foreach { case (vout, vin) => mp = mp.setFB(vin, vout) }
+      path.zipWithIndex.foreach { case ((vout, vin), i) => 
+        mp = mp.setFB(vin, vout)
+        if (vout.src.isInstanceOf[PSB]) {
+          val to = vout.voport
+          val from = path(i-1)._2.viport
+          mp = mp.setFP(to, from)
+        }
+      }
       mp
     }
     val pdep::restDeps = remainDeps 
@@ -160,17 +179,12 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
 
   def mapCUs(pcus:List[PCU], cus:List[ICL], m:M, finPass:M => M):M = {
     CUMapper.qualifyCheck(pcus, cus, resMap)
-    mapCU(cus, m)
+    mapCUs(finPass)(cus, m)
   }
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    Try{
-      //mapCU(design.top, design.arch.top, m) 
-      m
-    } match {
-      case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
-      case Failure(e) => throw e
-    }
+    val mp = m.setCL(design.top, design.arch.top)
+    mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
   }
 }

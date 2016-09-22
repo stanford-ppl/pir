@@ -16,8 +16,11 @@ import java.io.File
 import scala.reflect.runtime.universe._
 
 object CUDotPrinter extends Metadata {
-  def quote(pne:PNE)(implicit spade:Spade) = {
-    coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+  def quote(pne:Any)(implicit spade:Spade) = {
+    pne match {
+      case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+      case _ => pne.toString
+    }
   }
 }
 class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
@@ -33,23 +36,35 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
   def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = {
     sbs.foreach { sb =>
       val (x,y) = coordOf(sb)
-      val attr = DotAttr().shape(box)
+      val attr = DotAttr().shape(Mrecord)
       coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
-      emitNode(sb, quote(sb), attr)
+      val label = mapping.flatMap { mp => 
+        if (sb.vins.exists( vi => mp.fbmap.contains(vi))) { 
+          attr.style(filled).fillcolor(indianred) 
+          val xbar = sb.vouts.flatMap { vout => 
+            mp.fpmap.get(vout.voport).map{ fp =>
+              s"i-${indexOf(fp.src)} -\\> o-${indexOf(vout)}"
+            }
+          }.mkString(s"|") 
+          Some(s"{${quote(sb)}|${xbar}}")
+        } else {
+          None
+        }
+      }.getOrElse(quote(sb))
+      emitNode(sb, label, attr)
       sb.vins.foreach { pvin =>
         pvin.fanIns.foreach { pvout =>
           val attr = DotAttr()
-          // mapping.foreach { _.fbmap.get(pvin).foreach{ pvo => if (pvo==pvout) attr.color(red) } }
           mapping.foreach { mp => 
-            if (mp.fbmap.contains(pvin)) {
-              attr.color(red) 
-            }
+            if (mp.fbmap.contains(pvin)) { 
+              var label = s"(i-${indexOf(pvin)})"
+              if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
+              attr.color(indianred).style(bold).label(label)
+            } 
           }
           pvout.src match {
-            case from:PSB =>
-              emitEdge(s"$from", sb, attr)
-            case from:PCU =>
-              emitEdge(s"$from:$pvout", sb, attr)
+            case from:PSB => emitEdge(s"$from", sb, attr)
+            case from:PCU => emitEdge(s"$from:$pvout", sb, attr)
           }
         }
       }
@@ -67,13 +82,16 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
       coordOf.get(pcu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
-      mapping.foreach { mp => if (mp.clmap.pmap.contains(pcu)) attr.color(red) }
+      mapping.foreach { mp => if (mp.clmap.pmap.contains(pcu)) attr.style(filled).fillcolor(indianred) }
       emitNode(pcu, label, attr)
       pcu.vins.foreach { pvin =>
         pvin.fanIns.foreach { pvout =>
           val attr = DotAttr()
-          mapping.foreach { _.vimap.pmap.get(pvin).foreach { set =>
-              attr.label(set.map(_.variable).mkString(",")).color(red)
+          mapping.foreach { 
+            _.vimap.pmap.get(pvin).foreach { set =>
+              var label = set.map(_.variable).mkString(",")
+              if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
+              attr.label(label).color(indianred).style(bold)
             }
           }
           pvout.src match {

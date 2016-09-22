@@ -3,7 +3,7 @@ package pir.graph.mapper
 import pir._
 import pir.typealias._
 import pir.plasticine.config._
-import pir.graph.traversal.MapperLogger
+import pir.graph.traversal.{MapperLogger, CUDotPrinter}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -66,14 +66,15 @@ trait Mapper { self =>
           Try(recNode(restRes, remainNodes, m))
         case Failure(ResourceNotUsed(_,_,_,m)) => 
           Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
-        case Failure(e) => 
-          Failure(e) 
+        case Failure(e) => Failure(e) 
       } 
       cons match {
-        case Success(m) => return m
+        case Success(m) => dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (success)"); return m
         case Failure(e) => e match {
           case me:MappingException => exceps += me // constrains failed
-          case _ => throw e // Unknown exception
+            dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (failed) ${e}")
+          case _ => 
+            dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (failed) Unknown exception"); throw e
         }
       }
     }

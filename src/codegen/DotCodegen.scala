@@ -10,9 +10,11 @@ class DotAttr() {
 
   def shape(s:Shape) = { attrMap += "shape" -> s.field; this }
   def color(s:Color) = { attrMap += "color" -> s.field; this }
+  def fillcolor(s:Color) = { attrMap += "fillcolor" -> s.field; this }
   def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
   def style(s:Style) = { attrMap += "style" -> s.field; this }
   def label(s:String) = { attrMap += "label" -> s; this }
+  def label = { attrMap.get("label") }
   def dir(s:Direction) = { attrMap += "dir" -> s.field; this }
   def pos(coord:(Int,Int)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
 
