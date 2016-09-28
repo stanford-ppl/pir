@@ -23,6 +23,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   def nextId = {val temp = nextSym; nextSym +=1; temp}
   val const = Const()
 
+  // Metadata Maps 
   val coordMap:coordOf.M = Map.empty
   val indexMap:indexOf.M = Map.empty
 }

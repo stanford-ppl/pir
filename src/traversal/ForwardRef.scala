@@ -19,7 +19,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       val n:Node = getByName(k)
       f(n)
     }
-    design.toUpdate.clear()
+    design.toUpdate.clear
     collectOuters
   } 
 

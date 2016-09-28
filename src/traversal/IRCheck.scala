@@ -36,7 +36,8 @@ class IRCheck(implicit val design: Design) extends Traversal{
               case _ =>
             }
           }
-        case c =>
+        case n:Counter => if (!n.en.isConnected) throw PIRException(s"${n}'s en in ${n.ctrler} is not connected")
+        case n =>
       }
     }
   } 

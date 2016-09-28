@@ -1,6 +1,6 @@
 package pir.graph.traversal
 
-import pir._
+import pir.Design
 import pir.codegen._
 import pir.misc._
 import pir.typealias._

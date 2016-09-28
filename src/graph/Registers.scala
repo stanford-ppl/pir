@@ -64,17 +64,6 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val accumRegs  = Set[AccumPR]()
   def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear}
 
-  def addWAStages(was:List[WAStage]) = {
-    wtAddrStages += was
-  }
-
-  def addStage(s:Stage):Unit = { s match {
-      case ss:LocalStage =>
-        localStages += ss
-      case ss:WAStage => // Added at WAStages
-    }
-  }
-
   def loadPR(s:SRAM):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s.readPort))
 
   def storePR(s:SRAM):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s.writePort))

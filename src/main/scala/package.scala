@@ -90,6 +90,7 @@ package object typealias {
   type PPT       = pir.plasticine.graph.Port
   type PIP       = pir.plasticine.graph.InPort[PNode]
   type POP       = pir.plasticine.graph.OutPort[PNode]
+  type PIO[S<:PNode]       = pir.plasticine.graph.IO[S]
   type PRMPT     = pir.plasticine.graph.RMPort
   type PIB       = pir.plasticine.graph.InBus[PNE]
   type POB       = pir.plasticine.graph.OutBus[PNE]

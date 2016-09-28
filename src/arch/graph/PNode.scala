@@ -16,3 +16,11 @@ class Node(implicit spade:Spade) extends Metadata {
   override def toString = s"${typeStr}${id}" 
   def index(i:Int)(implicit spade:Spade):this.type = { indexOf(this) = i; this }
 }
+object Node extends Metadata {
+  def quote(pne:Any)(implicit spade:Spade) = {
+    pne match {
+      case pne:NetworkElement => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+      case _ => pne.toString
+    }
+  }
+}

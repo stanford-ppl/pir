@@ -1,12 +1,12 @@
 package pir.graph.traversal
 
-import pir._
+import pir.{Design, Config}
 import pir.codegen._
 import pir.misc._
 import pir.typealias._
 import pir.graph.mapper.PIRMap
 import pir.plasticine.main._
-import pir.plasticine.graph.{SwitchBox}
+import pir.plasticine.graph.{SwitchBox, Node}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -15,14 +15,6 @@ import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
 
-object CUDotPrinter extends Metadata {
-  def quote(pne:Any)(implicit spade:Spade) = {
-    pne match {
-      case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
-      case _ => pne.toString
-    }
-  }
-}
 class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
@@ -30,7 +22,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
 
   override val stream = newStream(fileName) 
   
-  import CUDotPrinter._
+  import Node._
   val scale = 4
 
   def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = {

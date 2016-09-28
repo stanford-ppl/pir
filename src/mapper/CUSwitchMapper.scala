@@ -4,7 +4,7 @@ import pir._
 import pir.typealias._
 import pir.codegen.Printer
 import pir.graph.traversal.{PIRMapping, MapPrinter, CUDotPrinter}
-import pir.plasticine.graph._
+import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 
 import scala.collection.immutable.Set
@@ -18,10 +18,10 @@ object CUSwitchMapper {
   type Edge = (POB, PIB)
   type Path = List[Edge]
   type PathMap = List[(PCU, Path)]
-  def quote(io:IO[PNE])(implicit spade:Spade):String = {
+  def quote(io:PIO[PNE])(implicit spade:Spade):String = {
     io.src match {
       case cu:PCU => io.toString
-      case sb:PSB => CUDotPrinter.quote(sb) 
+      case sb:PSB => PNode.quote(sb) 
     }
   }
   def quote(path:CUSwitchMapper.Path)(implicit spade:Spade):String = {

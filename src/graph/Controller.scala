@@ -34,7 +34,7 @@ abstract class Controller(implicit design:Design) extends Node { self =>
                                  vinMap.keys.map(_.writer.ctrler).toList
 }
 
-class ComputeUnit(override val name: Option[String])(implicit val design: Design) extends Controller with OuterRegBlock { self => 
+class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
   implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
 
@@ -55,7 +55,10 @@ class ComputeUnit(override val name: Option[String])(implicit val design: Design
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
-  val emptyStage = EmptyStage()
+  var index = -1
+  def nextIndex = { val temp = index; index +=1 ; temp}
+
+  val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
   def stages:List[Stage] = emptyStage :: Nil 
   
   lazy val localCChain:CounterChain = {
@@ -146,6 +149,19 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   val localStages = ListBuffer[LocalStage]()
 
   override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+
+  def addWAStages(was:List[WAStage]) = {
+    wtAddrStages += was
+    was.foreach { wa => indexOf(wa) = nextIndex }
+  }
+
+  def addStage(s:Stage):Unit = { s match {
+      case ss:LocalStage =>
+        localStages += ss
+        indexOf(ss) = nextIndex
+      case ss:WAStage => assert(false, s"WAstages should be added as a group associated to sram") 
+    }
+  }
 
   def locals = this :: outers
   def tokenIns = locals.flatMap(_.ctrlBox.getTokenIns)

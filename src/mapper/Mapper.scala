@@ -4,6 +4,7 @@ import pir._
 import pir.typealias._
 import pir.graph.traversal.{MapperLogger, CUDotPrinter}
 import pir.plasticine.main._
+import pir.plasticine.graph.{ Node => PNode }
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -25,7 +26,7 @@ trait Mapper { self =>
   def dprintln(s:Any):Unit = MapperLogger.dprintln(debug, s"$this", s)
   def dprint(s:Any):Unit = MapperLogger.dprint(debug, s"$this", s)
   def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(debug, s"$mapper", s)
-  def quote(pne:Any)(implicit spade:Spade) = CUDotPrinter.quote(pne) 
+  def quote(pne:Any)(implicit spade:Spade) = PNode.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any)(block: => M):M = {
     dprintln(mapper, s"$info { ")

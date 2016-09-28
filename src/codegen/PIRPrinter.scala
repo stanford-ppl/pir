@@ -99,7 +99,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     node match {
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
-      case n:Stage => emitBlock(s"${node}${genFields(node)}", node)
+      case n:Stage => emitBlock(s"${Node.quote(node)}${genFields(node)}", node)
       case n:UDCounter => // printed in Ctrl.txt
       case _ => emitln(s"${node}${genFields(node)}")
     }

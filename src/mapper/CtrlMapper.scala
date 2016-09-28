@@ -1,5 +1,5 @@
 package pir.graph.mapper
-import pir._
+import pir.Design
 import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.traversal.PIRMapping

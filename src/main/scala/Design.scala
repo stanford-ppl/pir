@@ -16,12 +16,11 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
+import scala.collection.mutable.{Set,Map}
 import java.nio.file.{Paths, Files}
 import scala.io.Source
 
-import scala.collection.mutable.{Set,Map}
-
-trait Design { self =>
+trait Design extends Metadata { self =>
 
   implicit val design: Design = self
 
@@ -196,6 +195,8 @@ trait Design { self =>
     }
   }
 
+  // Metadata Maps
+  val indexMap:indexOf.M = Map.empty
 }
 
 trait PIRApp extends Design{
@@ -212,3 +213,19 @@ trait PIRApp extends Design{
   }
 }
 
+trait Metadata {
+  trait Metadata {
+    type V
+    type M = Map[Node, V]
+    def map(implicit design:Design):M
+    def update(n:Node, v:V)(implicit design:Design):Unit = map += (n -> v)
+    def apply(n:Node)(implicit design:Design):V = { val m = map; m(n) }
+    def get(n:Node)(implicit design:Design):Option[V] =  { val m = map; m.get(n) }
+  }
+
+  /* Index of a spade node. Used for pisa codegen */
+  object indexOf extends Metadata {
+    type V = Int
+    def map(implicit design:Design) = design.indexMap
+  }
+}

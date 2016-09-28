@@ -38,9 +38,9 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   // Generate logic on control I/Os
   def genEnDec:Unit = {
     design.top.compUnits.foreach { implicit cu =>
-      val en = cu.ctrlBox.innerCtrEn
       cu match {
         case _:InnerController =>
+          val en = cu.ctrlBox.innerCtrEn
           val tks = cu.ctrlBox.tokenBuffers.map(_._2.out).toList
           val cds = cu.ctrlBox.creditBuffers.map(_._2.out).toList
           val ins = tks ++ cds
@@ -50,13 +50,15 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           EnLUT(cu, ins, tf, en)
           cu match {
             case tt:TileTransfer if tt.mctpe==TileLoad => 
-              val streamcc = tt.streamCChain
+              val streamcc = tt.streamCChain // TODO: this won't behave correctly
               EnLUT(cu, ins, tf, streamcc.inner.en)
             case _ =>
           }
-        case _:OuterController =>
+        case cu:OuterController =>
+          val en = cu.localCChain.inner.en
           val lasts = cu.children.filter(_.isTail)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
+          // Assume OuterController is in the same CU as last stage children 
           en.connect(lasts.head.ctrlBox.outerCtrDone)
       }
       cu.ctrlBox.tokenBuffers.foreach { case (dep, t) => t.dec.connect(cu.ctrlBox.outerCtrDone) }
