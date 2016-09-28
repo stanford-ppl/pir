@@ -603,7 +603,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   // only outer controller have token down, which is the init signal first child stage
   var tokenDown:Option[OutPort] = None
 
-  def getTokenIns:List[InPort] = {
+  def getCtrlIns:List[InPort] = {
     val tokenIns = ListBuffer[InPort]()
     udcounters.foreach { case (ctrler, udc) =>
       if (udc.inc.isConnected)
@@ -635,7 +635,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     }
     tokenIns.toList
   }
-  def getTokenOuts:List[OutPort] = {
+  def getCtrlOuts:List[OutPort] = {
     val tos = ListBuffer[OutPort]()
     tokenOut.foreach { to => tos += to }
     tokenDown.foreach { td => tos += td }

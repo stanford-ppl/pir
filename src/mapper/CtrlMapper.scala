@@ -30,15 +30,15 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     var ipmap = pirMap.ipmap
     val pcu = pirMap.clmap(inner).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
-    assert(inner.tokenOuts.size <= pcb.tokenOuts.size)
-    assert(inner.tokenIns.size <= pcb.tokenIns.size)
+    assert(inner.ctrlOuts.size <= pcb.ctrlOuts.size)
+    assert(inner.ctrlIns.size <= pcb.ctrlIns.size)
     assert(inner.udcounters.size <= pcb.udcs.size)
     assert(inner.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
     assert(inner.tokDownLUTs.size <= 1) //TODO
     assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokOutLUTs.size)
 
-    inner.tokenIns.zipWithIndex.foreach { case (tin, i) => 
-      ipmap += (tin -> pcb.tokenIns(i))
+    inner.ctrlIns.zipWithIndex.foreach { case (tin, i) => 
+      ipmap += (tin -> pcb.ctrlIns(i))
     }
     //println(s"--${inner}: ${inner.outers}---")
     /* Up-Down Counter mapping */
@@ -56,7 +56,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)
       lumap += (enLut -> penLut)
-      val ptout = pcb.tokenOuts(indexOf(pctr))
+      val ptout = pcb.ctrlOuts(indexOf(pctr))
       assert(!opmap.pmap.contains(ptout))
       opmap += (enLut.out -> ptout)
     }
@@ -74,14 +74,14 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     def findPto(tolut:TOLUT):Unit = {
       ptoluts.foreach { ptolut =>
         assert(tolut.ins.size <= ptolut.numIns)
-        val ptout = pcb.tokenOuts(indexOf(ptolut))
+        val ptout = pcb.ctrlOuts(indexOf(ptolut))
         if (!opmap.pmap.contains(ptout)) {
           lumap += (tolut -> ptolut)
           opmap += (tolut.out -> ptout)
           return
         }
       }
-      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${pcb.tokenOuts.map(po => indexOf(po)).mkString(",")}")
+      throw PIRException(s"Cannot map ${tolut} in ${pcu} ptoluts:${ptoluts} ${pcb.ctrlOuts.map(po => indexOf(po)).mkString(",")}")
     }
     inner.tokOutLUTs.foreach { tolut => findPto(tolut) }
 

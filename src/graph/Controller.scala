@@ -164,8 +164,8 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   }
 
   def locals = this :: outers
-  def tokenIns = locals.flatMap(_.ctrlBox.getTokenIns)
-  def tokenOuts = locals.flatMap(_.ctrlBox.getTokenOuts)
+  def ctrlIns = locals.flatMap(_.ctrlBox.getCtrlIns)
+  def ctrlOuts = locals.flatMap(_.ctrlBox.getCtrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
@@ -350,7 +350,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
     scalars.foreach { s => s match {
         case a:ArgIn => super.newSout(a)
         case a:ArgOut => super.newSin(a)
-        case _ =>
+        case _ => 
       }
     }
     memCtrls.foreach { oc => oc.updateFields }

@@ -1,6 +1,6 @@
 package pir.graph.mapper
 import pir.graph._
-import pir._
+import pir.{Design, Config}
 import pir.typealias._
 import pir.codegen.Printer
 import pir.graph.traversal.{PIRMapping, MapPrinter, CUDotPrinter}

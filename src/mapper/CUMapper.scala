@@ -89,13 +89,9 @@ object CUMapper {
   def qualifyCheck(pcus:List[PCU], cus:List[ICL], map:MMap[CL, List[PCL]])(implicit mapper:Mapper):Unit = {
     cus.foreach { cu => 
       map += cu -> pcus.filter { pcu =>
-        val tpe = cu match {
-          case n:TT => pcu.isInstanceOf[PTT]
-          case _ => true
-        }
         // println(s"$cu -> $pcu: ----")
         val cons = ListBuffer[Any]()
-        cons += tpe
+        cons += cu.isInstanceOf[TT] == pcu.isInstanceOf[PTT]
         cons += (("reg"	      , cu.infGraph, pcu.regs))
         cons += (("sram"	    , cu.srams, pcu.srams))
         cons += (("ctr"	      , cu.cchains.flatMap(_.counters), pcu.ctrs))
@@ -104,8 +100,8 @@ object CUMapper {
         cons += (("vin"	      , cu.vins, pcu.vins))
         cons += (("vout"	    , cu.vouts, pcu.vouts))
         cons += (("stage"	    , cu.stages, pcu.stages))
-        cons += (("tokOut"	  , cu.tokenOuts, pcu.ctrlBox.tokenOuts))
-        cons += (("tokIn"	    , cu.tokenIns, pcu.ctrlBox.tokenIns))
+        cons += (("tokOut"	  , cu.ctrlOuts, pcu.ctrlBox.ctrlOuts))
+        cons += (("tokIn"	    , cu.ctrlIns, pcu.ctrlBox.ctrlIns))
         cons += (("udc"	      , cu.udcounters, pcu.ctrlBox.udcs))
         cons += (("enLut"	    , cu.enLUTs, pcu.ctrlBox.enLUTs))
         cons += (("tokDownLut", cu.tokDownLUTs.size, 1)) // TODO

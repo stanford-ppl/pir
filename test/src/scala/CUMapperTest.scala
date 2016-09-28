@@ -1,13 +1,13 @@
 package pir.test
 
-import pir._
+import pir.{Design}
 import pir.typealias._
 import pir.misc._
 import pir.graph._
 import pir.graph.enums._
 import pir.graph.traversal.{CUDotPrinter}
-import plasticine.main._
-import plasticine.config._
+import pir.plasticine.main._
+import pir.plasticine.config._
 import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
 import pir.graph.mapper._
 import pir.graph.traversal._

@@ -29,8 +29,8 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
       val (tins, touts) = cu match {
         case inner:InnerController =>
           val localCtrlers = (inner :: inner.outers)
-          val tins = localCtrlers.flatMap(_.ctrlBox.getTokenIns)
-          val touts = localCtrlers.flatMap(_.ctrlBox.getTokenOuts)
+          val tins = localCtrlers.flatMap(_.ctrlBox.getCtrlIns)
+          val touts = localCtrlers.flatMap(_.ctrlBox.getCtrlOuts)
           (s"tokenIns=[${tins.mkString(",")}]", s"tokenOuts=[${touts.mkString(",")}]")
         case _ => ("", "")
       }

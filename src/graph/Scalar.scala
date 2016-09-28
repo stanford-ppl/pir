@@ -28,7 +28,7 @@ object Scalar {
 trait ArgIn extends Scalar{ override val typeStr = "ArgIn" }
 object ArgIn {
   def apply() (implicit design: Design):Scalar = new Scalar(None) with ArgIn
-  def apply(name:String) (implicit design: Design):Scalar = new Scalar(Some(name)) with ArgOut
+  def apply(name:String) (implicit design: Design):Scalar = new Scalar(Some(name)) with ArgIn
 }
 
 trait ArgOut extends Scalar{ override val typeStr = "ArgOut" }

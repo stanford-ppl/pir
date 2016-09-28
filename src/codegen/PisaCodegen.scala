@@ -474,11 +474,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           }
         }
       }
-      val tom = pcu.ctrlBox.tokenOuts.map { to =>
-        if (opmap.pmap.contains(to)) {
-          if (opmap.pmap(to).src.isInstanceOf[EnLUT]) s""""1""""
-          else s""""0""""
-        } else s""""x""""
+      val tom = pcu.ctrlBox.ctrlOuts.map { pto =>
+        opmap.pmap.get(pto).fold (s""""x"""") { to =>
+          to.src match {
+            case _:EnLUT => s""""1""""
+            case _:TokenOutLUT | _:TokenDownLUT => s""""0""""
+            case _ => throw PIRException(s"Unknown source of ctrl out ${to} ${to.src}")
+          }
+        }
       }
       emitList("tokenOutMux", tom)
       emitMap("doneXbar") { implicit ms =>

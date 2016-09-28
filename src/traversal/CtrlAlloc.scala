@@ -156,28 +156,32 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   def wireCChainCopy = {
     design.top.innerCUs.foreach { inner =>
       inner.cchains.foreach { cc =>
-        if (!cc.inner.en.isConnected) {
+        //if (!cc.inner.en.isConnected) {
           cc.copy.foreach { original =>
-            original.ctrler match {
-              case cu:InnerController =>
-                cc.inner.en.connect(original.inner.en.from)
-              case cu:OuterController =>
-                var child:ComputeUnit = inner
-                while (child.parent!=cu) {
-                  val parent = child.parent.asInstanceOf[ComputeUnit]
-                  val plocal = inner.getCopy(parent.localCChain)
-                  val clocal = inner.getCopy(child.localCChain)
-                  plocal.inner.en.connect(clocal.outer.done)
-                  child = child.parent.asInstanceOf[ComputeUnit]
-                  if (child.parent.isInstanceOf[Top]) {
-                    throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controller ${cu}")
-                  }
-                }
-                val clocal = inner.getCopy(child.localCChain)
-                cc.inner.en.connect(clocal.outer.done)
-            }
+            if (cc.inner.en.isConnected)
+              println(s"${cc} ${cc.inner.en.from}")
+            assert(!cc.inner.en.isConnected)
+            cc.inner.en.connect(original.inner.en.from)
+            //original.ctrler match {
+            //  case cu:InnerController =>
+            //    cc.inner.en.connect(original.inner.en.from)
+            //  case cu:OuterController =>
+            //    var child:ComputeUnit = inner
+            //    while (child.parent!=cu) {
+            //      val parent = child.parent.asInstanceOf[ComputeUnit]
+            //      val plocal = inner.getCopy(parent.localCChain)
+            //      val clocal = inner.getCopy(child.localCChain)
+            //      plocal.inner.en.connect(clocal.outer.done)
+            //      child = child.parent.asInstanceOf[ComputeUnit]
+            //      if (child.parent.isInstanceOf[Top]) {
+            //        throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controller ${cu}")
+            //      }
+            //    }
+            //    val clocal = inner.getCopy(child.localCChain)
+            //    cc.inner.en.connect(clocal.outer.done)
+            //}
           }
-        }
+        //}
       }
     }
   }

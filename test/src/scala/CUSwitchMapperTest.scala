@@ -1,14 +1,14 @@
 package pir.test
 
-import pir._
+import pir.{Design, Config}
 import pir.typealias._
 import pir.misc._
 import pir.graph._
 import pir.graph.enums._
 import pir.graph.traversal.{CUDotPrinter}
-import plasticine.main._
-import plasticine.config._
-import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
+import pir.plasticine.main._
+import pir.plasticine.config._
+import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes, Node => PNode }
 import pir.graph.mapper._
 import pir.graph.traversal._
 import scala.language.reflectiveCalls
@@ -43,7 +43,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val rcus = cuArray.flatten
   }
 
-  def quote(pne:PNE)(implicit spade:Spade) = CUDotPrinter.quote(pne)
+  def quote(pne:PNE)(implicit spade:Spade) = PNode.quote(pne)
 
   lazy val design = new Design {
     // PNodes
