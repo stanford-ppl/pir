@@ -4,12 +4,13 @@ import pir.misc._
 import graph._
 import graph.traversal._
 import graph.mapper._
+import codegen._
 import plasticine.config._
 import pir.plasticine.main._
 
 //import analysis._
 
-import codegen._
+import scala.util.{Try, Success, Failure}
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Queue
@@ -43,8 +44,12 @@ trait Design extends Metadata { self =>
     traversals.foreach(_.reset)
   }
 
-  def addNode(n: Node) { 
-    nodeStack.foreach { case (f,i) => if (f(n)) i+= n }
+  def addNode(n: Node) = { 
+    nodeStack.foreach { case (f,i) => if (f(n)) i += n }
+  }
+
+  def removeNode(n:Node) = {
+    nodeStack.foreach { case (f,i) => if (f(n)) i -= n }
   }
 
   //def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
@@ -188,9 +193,9 @@ trait Design extends Metadata { self =>
       traversals.foreach(_.run)
     } catch {
       case e:PIRException => 
+        e.printStackTrace
         if (!pirPrinter.isTraversed) pirPrinter.run
         if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        e.printStackTrace
       case e:Throwable => throw e
     }
   }

@@ -13,6 +13,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   type R = PCtr
   type N = Ctr
   val typeStr = "CtrMapper"
+  override def debug = Config.debugCTMapper
   
   def finPass(cu:ICL)(m:M):M = m
 
@@ -38,17 +39,20 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def resFunc(n:N, m:M, remainRes:List[R]):List[R] = {
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
-      case dep:Ctr =>
+      case dep:Ctr if n.ctrler.inner == dep.ctrler.inner =>
         m.ctmap.get(dep).fold(remainRes) { pdep =>
           pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
-      case _:EnLUT => // Inner most counter
-        remainRes.filter{ pc => pc.en.canFrom(ptop.clk)}
+      case dep:Ctr => // OuterController CChain copy //TODO
+        remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO
+      case _:EnLUT => // Inner most counter or copied inner most counter whose enable is routed 
+                      // fron network
+        remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO
       case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")
     }
     val doneCtrs = n.done.to.map { done =>
       done.src match {
-        case deped:Ctr =>
+        case deped:Ctr if n.ctrler.inner==deped.ctrler.inner =>
           m.ctmap.get(deped).fold(remainRes) { pdeped =>
             pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
           }
@@ -56,7 +60,12 @@ class CtrMapper(implicit val design:Design) extends Mapper {
       }
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
-    enCtrs intersect doneCtrs
+    val resPool = enCtrs intersect doneCtrs
+    //println(s"$n ${n.ctrler} -------")
+    //println(s"enctrs:${enCtrs} ")
+    //println(s"donectrs:${doneCtrs}")
+    //println(s"respool:$resPool")
+    resPool
   }
 
   def mapCtr(n:N, p:R, map:M):M = {

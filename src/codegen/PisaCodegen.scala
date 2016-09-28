@@ -223,7 +223,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     if (!cchain.isCopy) { "0" }
     else if (cchain.inner!=ctr) { "0" }
     else {
-      var fromCU = cchain.copy.get.ctrler.asInstanceOf[CU]
+      var fromCU = cchain.copy.get.right.get.ctrler
       fromCU = fromCU match {
         case i:ICL => i
         case o:OCL => o.inner

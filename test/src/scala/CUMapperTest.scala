@@ -22,7 +22,7 @@ class CUMapperTest extends UnitTest with Metadata {
     new Design {
       top = Top()
       // Nodes
-      val sls = List.fill(8)(Scalar())
+      val sls = List.tabulate(8){ i => Scalar(s"$i") }
       val vts = List.fill(2)(Vector())
       val c0 = Pipeline("c0", top, Nil){ implicit CU => 
         CU.vecOut(vts(0)) 
@@ -33,15 +33,15 @@ class CUMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(0))
         CU.scalarIn(sls(0))
         //CU.vecOut(vts(1)) 
-        CU.scalarOut(sls(6))
         CU.scalarOut(sls(7))
+        CU.scalarOut(sls(6))
       }
       val c2 = Pipeline("c2", top, Nil){ implicit CU => 
+        CU.scalarIn(sls(6))
         CU.scalarIn(sls(2))
         CU.scalarIn(sls(3))
         CU.scalarIn(sls(4))
         CU.scalarIn(sls(5))
-        CU.scalarIn(sls(6))
         CU.scalarIn(sls(7))
       }
       val c3 = Pipeline("c3", top, Nil){ implicit CU => 
@@ -94,8 +94,12 @@ class CUMapperTest extends UnitTest with Metadata {
       Try {
         mapper.mapCUs(pcus, cus, PIRMap.empty, (m:PIRMap) => m)
       } match {
-        case Success(mapping) => new CUDotPrinter("TestP2P.dot").print(pcus, cus, mapping)
-        case Failure(e) => new CUDotPrinter("TestP2P.dot").print(pcus, cus); throw e
+        case Success(mapping) => 
+          MapperLogger.close
+          new CUDotPrinter("TestP2P.dot").print(pcus, cus, mapping)
+        case Failure(e) => 
+          MapperLogger.close
+          new CUDotPrinter("TestP2P.dot").print(pcus, cus); throw e
       }
       // Printer
     }

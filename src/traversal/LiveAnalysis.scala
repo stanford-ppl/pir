@@ -99,7 +99,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
   private def addRes(res:OutPort, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
     val stage = stages(i)
     res.to.foreach { _ match {
-        case p:PRInPort =>
+        case p:InPort if p.src.isInstanceOf[PipeReg] =>
           val PipeReg(s, reg) = p.src
           s.addDef(reg)
           reg match {
@@ -140,8 +140,8 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           r match {
             case r:LoadPR =>
               val sram = r.rdPort.src
-              sram.readAddr.from match {
-                case _:CtrOutPort => s.addDef(r)
+              sram.readAddr.from.src match {
+                case _:Counter => s.addDef(r)
                 case _ => throw PIRException(s"${sram} has no readAddr defined!")
               }
             case _ =>

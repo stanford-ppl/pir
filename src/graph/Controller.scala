@@ -34,7 +34,7 @@ abstract class Controller(implicit design:Design) extends Node { self =>
                                  vinMap.keys.map(_.writer.ctrler).toList
 }
 
-class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
+abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
   implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
 
@@ -51,43 +51,31 @@ class ComputeUnit(override val name: Option[String])(implicit design: Design) ex
   val ctrlBox = CtrlBox() 
 
   /* Fields */
-  def cchains:List[CounterChain] = cchainMap.values.toList
+  def cchains:List[CounterChain]
+  def addCChain(cc:CounterChain):Unit
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
+  def inner:InnerController
+
   var index = -1
   def nextIndex = { val temp = index; index +=1 ; temp}
 
   val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
   def stages:List[Stage] = emptyStage :: Nil 
   
-  lazy val localCChain:CounterChain = {
-    val locals = cchains.filter { cc => cc.copy.isEmpty && !cc.streaming }
-    if (locals.size!=1)
-      throw PIRException(s"Currently assume each CU have exactly 1 local counterchain. locals:${locals}")
-    locals.head
-  }
-  def addCChain(cc:CounterChain) = {
-    val original = cc.copy.getOrElse(cc)
-    if (cchainMap.contains(original))
-      throw PIRException(s"Already have copy/original copy of ${original} but adding duplicated copy ${cc}")
-    else cchainMap += (original -> cc)
-  }
-  val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
-  def getCopy(cchain:CounterChain) = {
-    if (cchainMap.contains(cchain)) {
-      cchainMap(cchain)
-    } else {
-      val local = CounterChain.copy(cchain)(this, design)
-      this.addCChain(local)
-      local
-    }
-  }
+  var localCChain:CounterChain = _
 
-  override def toUpdate = { super.toUpdate || parent==null || cchains==null }
+  override def toUpdate = { super.toUpdate || parent==null || localCChain == null }
 
   def updateFields(cchains:List[CounterChain]):this.type = {
-    cchains.foreach { cc => addCChain(cc) }
+    cchains.foreach { cc => 
+      addCChain(cc)
+      if (!cc.isCopy && !cc.streaming) {
+        if (localCChain==null) localCChain = cc
+        else throw PIRException(s"Currently assume each CU have exactly 1 local counterchain. Already set local to be ${localCChain}. Trying to reset to $cc")
+      }
+    }
     this
   }
 
@@ -143,8 +131,25 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   override val typeStr = "PipeCU"
   /* List of outer controllers reside in current inner*/
   var outers:List[OuterController] = Nil
+  def inner:InnerController = this
 
   var srams:List[SRAM] = _ 
+
+  val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
+  override def cchains = cchainMap.values.toList
+
+  override def addCChain(cc:CounterChain):Unit = {
+    if (!cc.isDefined) return // If cc is a copy but haven't been updated, addCChain during update 
+    if (cchainMap.contains(cc.original))
+      throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
+    else cchainMap += (cc.original -> cc)
+  }
+
+  def getCopy(cchain:CounterChain):CounterChain = {
+    assert(cchain.isDefined)
+    cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
+  }
+
   val wtAddrStages = ListBuffer[List[WAStage]]()
   val localStages = ListBuffer[LocalStage]()
 
@@ -178,7 +183,7 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   }
 
   def updateFields(cchains:List[CounterChain], srams:List[SRAM]):this.type = {
-    cchains.foreach { cc => addCChain(cc) }
+    super.updateFields(cchains)
     this.srams = srams 
     this
   }
@@ -206,6 +211,13 @@ object Pipeline {
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
   var inner:InnerController = _
   override def toUpdate = super.toUpdate || inner == null
+
+  private val _cchains = ListBuffer[CounterChain]()
+  def cchains:List[CounterChain] = _cchains.toList 
+  def addCChain(cc:CounterChain):Unit = {
+    assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
+    _cchains += cc
+  }
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -272,7 +284,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   override val typeStr = "TileTransfer"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
     val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
-    updateFields(cchains, Nil)
+    super.updateFields(cchains, Nil)
   }
 
   def streamCChain:CounterChain = {

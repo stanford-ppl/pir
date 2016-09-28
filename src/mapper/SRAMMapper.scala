@@ -12,6 +12,7 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
   type N = SRAM 
   type R = PSRAM 
   val typeStr = "SramMapper"
+  override def debug = Config.debugSMMapper
 
   def finPass(cu:ICL)(m:M):M = m 
 

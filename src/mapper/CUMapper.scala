@@ -59,60 +59,64 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 }
 object CUMapper {
-  def check(qualify:Boolean, curr:Boolean):Boolean = { qualify && curr }
-  def check(qualify:Boolean, numNode:Int, numRes:Int):Boolean = {
-    check(qualify, numNode <= numRes)
-  }
-
-  def check(conds:ListBuffer[_]):Boolean = {
-    conds.foldLeft(true) { case (qualify, cond) =>
+  def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
-        case cond:Boolean => qualify && cond
-        case (nn:Int, nr:Int) => qualify && (nn <= nr)
-        case (info:String, nn:Int, nr:Int) => 
-          val cond = (nn <= nr)
+        case cond:Boolean => 
           //if (!cond) dprintln(s"$info: pass:$cond numNodes:$nn numRes:$nr")
-          qualify && cond
-        case (ns:Iterable[_], rs:Iterable[_]) => qualify && (ns.size <= rs.size)
-        case (info:String, ns:Iterable[_], rs:Iterable[_]) => 
-          val cond = (ns.size <= rs.size)
-          //if (!cond) dprintln(s"$info: pass:$cond numNodes:${ns.size} numRes:${rs.size}")
-          qualify && cond
+          (cond, "false")
+        case (nn:Int, nr:Int) => val (pass,_) = check(info, (nn <= nr))
+          (pass, s"$info: numNode:$nn numRes:$nr")
+        case (ns:Iterable[_], rs:Iterable[_]) => check(info, (ns.size, rs.size))
         case c => throw PIRException(s"Unknown checking format: $cond")
       }
+  }
+
+  def check(conds:List[(String, Any)], failureInfo:ListBuffer[String]):Boolean = {
+    conds.foldLeft(true) { case (qualify, cond) => 
+      val (info, c) = cond
+      val (pass, fi) = check(info, c) 
+      if (!pass) failureInfo += fi 
+      qualify && pass 
     }
   }
 
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck(pcus:List[PCU], cus:List[ICL], map:MMap[CL, List[PCL]])(implicit mapper:Mapper):Unit = {
+  def qualifyCheck(pcus:List[PCU], cus:List[ICL], map:MMap[CL, List[PCL]])(implicit mapper:Mapper, design:Design):Unit = {
     cus.foreach { cu => 
+      val failureInfo = MMap[PCU, ListBuffer[String]]()
       map += cu -> pcus.filter { pcu =>
-        // println(s"$cu -> $pcu: ----")
-        val cons = ListBuffer[Any]()
-        cons += cu.isInstanceOf[TT] == pcu.isInstanceOf[PTT]
-        cons += (("reg"	      , cu.infGraph, pcu.regs))
-        cons += (("sram"	    , cu.srams, pcu.srams))
-        cons += (("ctr"	      , cu.cchains.flatMap(_.counters), pcu.ctrs))
-        cons += (("sin"	      , cu.sins, pcu.sins))
-        cons += (("sout"	    , cu.souts, pcu.souts))
-        cons += (("vin"	      , cu.vins, pcu.vins))
-        cons += (("vout"	    , cu.vouts, pcu.vouts))
-        cons += (("stage"	    , cu.stages, pcu.stages))
-        cons += (("tokOut"	  , cu.ctrlOuts, pcu.ctrlBox.ctrlOuts))
-        cons += (("tokIn"	    , cu.ctrlIns, pcu.ctrlBox.ctrlIns))
-        cons += (("udc"	      , cu.udcounters, pcu.ctrlBox.udcs))
-        cons += (("enLut"	    , cu.enLUTs, pcu.ctrlBox.enLUTs))
-        cons += (("tokDownLut", cu.tokDownLUTs.size, 1)) // TODO
-        cons += (("tokOutLut" , cu.tokOutLUTs, pcu.ctrlBox.tokOutLUTs))
-        check(cons)
+        val cons = ListBuffer[(String, Any)]()
+        cons += (("tpe"       ,  cu.isInstanceOf[TT] == pcu.isInstanceOf[PTT]))
+        cons += (("reg"	      , (cu.infGraph, pcu.regs)))
+        cons += (("sram"	    , (cu.srams, pcu.srams)))
+        cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
+        cons += (("sin"	      , (cu.sins, pcu.sins)))
+        cons += (("sout"	    , (cu.souts, pcu.souts)))
+        cons += (("vin"	      , (cu.vins, pcu.vins)))
+        cons += (("vout"	    , (cu.vouts, pcu.vouts)))
+        cons += (("stage"	    , (cu.stages, pcu.stages)))
+        cons += (("tokOut"	  , (cu.ctrlOuts, pcu.ctrlBox.ctrlOuts)))
+        cons += (("tokIn"	    , (cu.ctrlIns, pcu.ctrlBox.ctrlIns)))
+        cons += (("udc"	      , (cu.udcounters, pcu.ctrlBox.udcs)))
+        cons += (("enLut"	    , (cu.enLUTs, pcu.ctrlBox.enLUTs)))
+        cons += (("tokDownLut", (cu.tokDownLUTs.size, 1))) // TODO
+        cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokOutLUTs)))
+        failureInfo += pcu -> ListBuffer[String]()
+        check(cons.toList, failureInfo(pcu))
       }
+      if (map(cu).size==0) 
+        throw CUOutOfSize(cu, 
+          failureInfo.map{ case (pcu, info) => s"$pcu: [${info.mkString(",")}] \n"}.mkString(","))
       mapper.dprintln(s"qualified resource: $cu -> ${map(cu)}")
     }
   }
 }
 
+case class CUOutOfSize(cu:CU, info:String) (implicit val mapper:Mapper, design:Design) extends MappingException {
+  override val msg = s"cannot map ${cu} due to resource constrains\n${info}"
+} 
 case class OutOfPTT(nres:Int, nnode:Int) (implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TileTransfers in ${design.arch} to map application."
 } 

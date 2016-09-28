@@ -27,8 +27,20 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   /* Fields */
   var counters:List[Counter] = Nil 
   /* Pointers */
-  var copy:Option[CounterChain] = None
-  var isCopy = false
+  var copy:Option[Either[String, CounterChain]] = None
+  /*
+   * Whether CounterChain is a copy of other CounterChain
+   * */
+  def isCopy = copy.isDefined
+  /*
+   * Whether CounterChain is not a copy or is a copy and has been updated
+   * */
+  def isDefined = copy.fold(true) { e => e.isRight }
+  /*
+   * The original copy of this CounterChain
+   * */
+  lazy val original = copy.fold(this) { e => e.right.get}
+
   val wasrams = ListBuffer[SRAM]()
   var streaming = false
   def isStreaming(s:Boolean) = streaming = s
@@ -38,6 +50,15 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   def outer:Counter = counters.head
   def inner:Counter = counters.last
 
+  def this(name:Option[String], bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design) = {
+    this(name)
+    counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => 
+      Counter(this, mi, ma, s)(ctrler, design)
+    }.toList
+    updateDep
+    copy = None 
+  }
+
   def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
     if (isCopy) {
       // Speculatively create extra counters base on need and check bound during update
@@ -45,22 +66,17 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
     }
     counters(num)
   }
+
   def copy(cp:CounterChain):Unit = {
     // Check whether speculative wire allocation was correct
     assert(counters.size <= cp.counters.size, 
       s"Accessed counter ${counters.size-1} of ${this} is out of bound")
     val addiCtrs = (counters.size until cp.counters.size).map {i => Counter(this)}
     counters = counters ++ addiCtrs
-    counters.zipWithIndex.foreach { case(c,i) => 
-      c.copy(cp.counters(i))
-    }
+    counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
     updateDep
-    this.copy = Some(cp)
-  }
-  def update(bds: Seq[(OutPort, OutPort, OutPort)]):Unit = {
-    counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => Counter(this, mi, ma, s)}.toList
-    updateDep
-    this.copy = None 
+    this.copy = Some(Right(cp))
+    ctrler.addCChain(this)
   }
 
   def updateDep = {
@@ -70,35 +86,49 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   }
 }
 object CounterChain {
-  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
-    {val c = CounterChain(None); c.update(bds); c}
-  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
-    {val c = CounterChain(Some(name)); c.update(bds); c}
-  def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(Some(s"${from}_${name}_copy"))
-    cc.isCopy = true
-    def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
-    design.updateLater(ForwardRef.getPrimName(from, name), updateFunc _ )
-    cc
+  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    new CounterChain(None, bds:_*)
   }
+  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
+    new CounterChain(Some(name), bds:_*)
+  /*
+   * @param from: User defined name for Controller of the copying CounterChain 
+   * @param name: User defined name for Primitive 
+   * */
+  def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    copy(ForwardRef.getPrimName(from, name))
+  }
+  /*
+   * @param from: Controller of the copying CounterChain 
+   * @param name: User defined name for Primitive 
+   * */
   def copy(from:ComputeUnit, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    copy(from.name.getOrElse(""), name)
+    copy(ForwardRef.getPrimName(from, name))
+  }
+  /*
+   * @param from: full name of Primitive 
+   * */
+  def copy(from:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    val cc = CounterChain(Some(s"${from}_copy"))
+    cc.copy = Some(Left(from)) 
+    def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
+    design.updateLater(from, updateFunc _ )
+    cc
   }
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_copy"))
-    cc.isCopy = true
     cc.copy(from)
     cc
   }
 }
 
-case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Controller, design: Design) extends Primitive {
+case class Counter(name:Option[String], cchain:CounterChain)(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
   val max:InPort = InPort(this, s"${this}.max")
   val step:InPort = InPort(this, s"${this}.step")
-  val out:CtrOutPort = CtrOutPort(this, {s"${this}.out"}) 
+  val out:OutPort = OutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
   override def toUpdate = super.toUpdate 
@@ -135,11 +165,11 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit ctrler:Con
   } 
 }
 object Counter{
-  def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
+  def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(None, cchain); c.update(min, max, step); c }
-  def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:Controller, design: Design):Counter =
+  def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
-  def apply(cchain:CounterChain)(implicit ctrler:Controller, design: Design):Counter = 
+  def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
     Counter(None, cchain)
 }
 
@@ -233,7 +263,7 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
     case _ => super.equals(that)
   }
   override def variable:Scalar = scalar
-  val out = ScalarInOutPort(this, s"${this}.out")
+  val out = OutPort(this, s"${this}.out")
 }
 
 object ScalarIn {
@@ -251,7 +281,7 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Contro
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
-  val in = ScalarOutInPort(this, s"${this}.out")
+  val in = InPort(this, s"${this}.out")
 }
 object ScalarOut {
   def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
@@ -264,7 +294,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   extends Input{
   vector.addReader(this)
   override val typeStr = "VecIn"
-  val out = VecInOutPort(this, {s"${this}.out"}) 
+  val out = OutPort(this, {s"${this}.out"}) 
   override def equals(that: Any) = that match {
     case n: VecIn => n.vector==vector && n.ctrler == ctrler 
     case _ => super.equals(that)
@@ -286,7 +316,7 @@ case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controlle
     case n: VecOut => n.vector==vector && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
-  val in = VecOutInPort(this, s"${this}.in")
+  val in = InPort(this, s"${this}.in")
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
@@ -484,8 +514,8 @@ case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctr
  **/
 case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Design) extends Primitive{
   override val name = None
-  val in:PRInPort = PRInPort(this, s"${this}") 
-  val out:OutPort = PROutPort(this, {s"${this}"}) 
+  val in:InPort = InPort(this, s"${this}") 
+  val out:OutPort = OutPort(this, {s"${this}"}) 
   def read:OutPort = out
   def write(p:OutPort):Unit = in.connect(p) 
   override val typeStr = "PR"
@@ -499,7 +529,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
 case class Const(name:Option[String], value:String)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   override def toString = s"Const(${value})"
-  val out = ConstOutPort(this, s"Const(${value})")
+  val out = OutPort(this, s"Const(${value})")
 }
 object Const {
   def apply(v:String)(implicit design: Design):Const = Const(None, v)
@@ -603,21 +633,39 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   // only outer controller have token down, which is the init signal first child stage
   var tokenDown:Option[OutPort] = None
 
+  //private var inIdx = 0 
+  //private var outIdx = 0
+  //private var _ctrlIns = ListBuffer[InPort]()
+  //private var _ctrlOuts = ListBuffer[OutPort]()
+  //def ctrlIns = _ctrlIns.toList
+  //def ctrlOuts = _ctrlOuts.toList
+
+  //def addCtrlIn(in:InPort) = {
+  //  val ci = CtrlInPort(this, inIdx, in)
+  //  inIdx += 1
+  //  _ctrlIns += ci 
+  //}
+
+  //def addCtrlOut(out:OutPort) = {
+  //  val co = CtrlOutPort(this, outIdx, out)
+  //  inIdx += 1
+  //  _ctrlOuts += co 
+  //}
+
   def getCtrlIns:List[InPort] = {
-    val tokenIns = ListBuffer[InPort]()
+    val ctrlIns = ListBuffer[InPort]()
     udcounters.foreach { case (ctrler, udc) =>
       if (udc.inc.isConnected)
-        tokenIns += udc.inc
+        ctrlIns += udc.inc
       if (udc.init.isConnected)
-        tokenIns += udc.init
+        ctrlIns += udc.init
     }
     if (cu.isInstanceOf[InnerController]) {
       cu.cchains.foreach { cc =>
         if (cc.inner.en.isConnected) {
           val from = cc.inner.en.from.src.asInstanceOf[Primitive].ctrler
           assert(from.isInstanceOf[InnerController])
-          if (from!=cu)
-            tokenIns += cc.inner.en
+          if (from!=cu) ctrlIns += cc.inner.en
         }
       }
     }
@@ -625,26 +673,26 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       tdl.ins.foreach { in => 
         in.from.src match {
           case top:Top =>
-            tokenIns += in
+            ctrlIns += in
           case ctrler:ComputeUnit => 
             if (ctrler!=cu)
-              tokenIns += in
+              ctrlIns += in
           case _ =>
         }
       }
     }
-    tokenIns.toList
+    ctrlIns.toList
   }
   def getCtrlOuts:List[OutPort] = {
-    val tos = ListBuffer[OutPort]()
-    tokenOut.foreach { to => tos += to }
-    tokenDown.foreach { td => tos += td }
+    val ctrlOuts = ListBuffer[OutPort]()
+    tokenOut.foreach { to => ctrlOuts += to }
+    tokenDown.foreach { td => ctrlOuts += td }
     if (cu.isInstanceOf[InnerController]) {
       cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
-        if (en.src.ctrler!=cu) tos += enlut.out 
+        if (en.src.ctrler!=cu) ctrlOuts += enlut.out 
       }
     }
-    tos.toList
+    ctrlOuts.toList
   }
 
   override def toUpdate = super.toUpdate || tokenOut == null || tokenDown == null

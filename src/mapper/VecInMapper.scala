@@ -44,7 +44,11 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     if (pirMap.vimap.contains(n)) throw ResourceNotUsed(this, n, p, pirMap) 
-    if (n.isInstanceOf[VI] && pirMap.vimap.pmap.contains(p)) throw UsedInBus(p)
+    if (pirMap.vimap.pmap.contains(p)) throw UsedInBus(p)
+    n match {
+      case n:VI =>
+      case n:SI =>
+    }
     val dep = n match { // ctrler that writes n
       case n:SI => n.scalar.writer.ctrler
       case n:VI => n.vector.writer.ctrler

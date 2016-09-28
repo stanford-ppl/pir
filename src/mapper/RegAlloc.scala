@@ -15,6 +15,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   type RC = MMap[Reg, PReg]
   val typeStr = "RegAlloc"
+  override def debug = Config.debugRAMapper
 
   def finPass(cu:CU)(m:M):M = m
 

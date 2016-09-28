@@ -45,7 +45,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val ctrMapper = new CtrMapper() { 
     override def finPass(cu:InnerController)(m:M):M = { 
       var cmap = log(ctrlMapper, cu)(ctrlMapper.map(cu, m))
-      log(regAlloc, cu)(regAlloc.map(cu, cmap))
+      regAlloc.map(cu, cmap)
     }
   }
   val cuMapper = new CUMapper(soMapper, viMapper) {
@@ -53,12 +53,12 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       var cmap = m 
       Try {
         cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
-          cmap = log(siMapper, ctrler)(siMapper.map(ctrler, cmap))
+          cmap = siMapper.map(ctrler, cmap)
           ctrler match {
             case cu:InnerController => 
-              cmap = log(sramMapper, cu)(sramMapper.map(cu, cmap))
-              cmap = log(ctrMapper, cu)(ctrMapper.map(cu, cmap))
-              cmap = log(stageMapper, cu)(stageMapper.map(cu, cmap))
+              cmap = sramMapper.map(cu, cmap)
+              cmap = ctrMapper.map(cu, cmap)
+              cmap = stageMapper.map(cu, cmap)
             case t:Top => 
             case _ => assert(false, s"Unknown ctrler:$ctrler")
           }

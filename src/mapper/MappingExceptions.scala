@@ -16,13 +16,15 @@ abstract class MappingException(implicit design:Design) extends PIRException{
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {
-  override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.mkString("\n")}\n}"
+  //override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.mkString("\n")}\n}"
+  override val msg = s"No solution found to map nodes to resources."
 }
 
 //TODO: n should be node
 case class FailToMapNode(mapper:Mapper, n:Any, exceps:List[MappingException])(implicit design:Design) extends MappingException {
   val s = if (n.isInstanceOf[PRIM]) s"${n} in ${n.asInstanceOf[PRIM].ctrler}" else s"$n"
-  override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
+  //override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
+  override val msg = s"No resource can map ${s}."
 }
 
 /* Binding succeeded but don't mark resource as used */

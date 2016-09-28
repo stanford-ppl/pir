@@ -12,9 +12,12 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
   
   override def traverse = traverse(design.top)
 
-  /* Depth first search traversal on node and their fields */
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
+    visitNodeNoCheck(node:Node)
+  }
+  /* Depth first search traversal on node and their fields */
+  def visitNodeNoCheck(node: Node) : Unit = {
     node match {
       case n:Controller => 
         n.sins.foreach { si => visitNode(si) }
@@ -26,7 +29,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
           c.memCtrls.foreach(n => visitNode(n))
           c.compUnits.foreach(n => visitNode(n))
         case c:ComputeUnit => {
-          c.cchains.foreach { cc => visitNode(cc) }
+          c.cchains.foreach { cc => visitNodeNoCheck(cc) }
           c match {
             case ic:InnerController => ic.srams.foreach { s => visitNode(s) }
             case _ =>

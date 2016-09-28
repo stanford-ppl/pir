@@ -24,7 +24,7 @@ object DotProduct extends PIRApp {
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = MetaPipeline(name="outer", parent=top, deps=Nil){ implicit CU =>
       val es = CU.emptyStage
-      CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
+      val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
     val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad,

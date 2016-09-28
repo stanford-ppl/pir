@@ -32,9 +32,9 @@ trait Mapper { self =>
     dprintln(mapper, s"$info { ")
     Try(block) match {
       case Success(m) =>
-        dprintln(mapper, s"$info (succeeded) }"); MapperLogger.flush; m
+        MapperLogger.pprint("}"); dprintln(mapper, s"$info (succeeded)"); MapperLogger.flush; m
       case Failure(e) =>
-        dprintln(mapper, s"$info (failed) }"); MapperLogger.flush; throw e
+        MapperLogger.pprint("}"); dprintln(mapper, s"$info (failed) $e"); MapperLogger.flush; throw e
     }
   }
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
@@ -62,22 +62,25 @@ trait Mapper { self =>
     for (ir <- 0 until reses.size) {
       val (h, res::rt) = reses.splitAt(ir)
       val restRes = h ++ rt
-      val cons = Try {
+      (Try {
         constrains.foldLeft(map) { case (pm, cons) => cons(n, res, pm) }
       } match {
         case Success(m) => 
-          dprintln(s"Try $n -> ${quote(res)(design.arch)} (success)")
+          dprintln(s"Try $n -> ${quote(res)(design.arch)} (success) remain:[${remainNodes.mkString(",")}] {")
           Try(recNode(restRes, remainNodes, m))
         case Failure(ResourceNotUsed(_,_,_,m)) => 
-          dprintln(s"Try $n already mapped")
+          dprintln(s"Try $n already mapped remain:[${remainNodes.mkString(",")}] {")
           Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
         case Failure(e) => 
-          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e}") 
+          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e} {") 
           Failure(e) 
-      } 
-      cons match {
-        case Success(m) =>  return m
-        case Failure(e) => e match {
+      }) match {
+        case Success(m) => 
+          MapperLogger.pprint(s"} "); dprintln(s"(success)")
+          return m
+        case Failure(e) => 
+          MapperLogger.pprint(s"} "); dprintln(s"(failed) ${e}")
+          e match {
           case me:MappingException => exceps += me // constrains failed
           case _ => throw e
         }

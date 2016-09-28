@@ -21,7 +21,24 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     }
     design.toUpdate.clear
     collectOuters
+    updateCChains
   } 
+
+  // If copied outer cchain is already in current CU, replace the copy with the original one
+  private def updateCChains = {
+    design.top.innerCUs.foreach { inner =>
+      //println(s"inner: $inner ${inner.cchainMap}")
+      val outerCChains = inner.outers.flatMap { _.cchains }
+      inner.cchainMap.foreach { case (original, copy) =>
+        if (outerCChains.contains(original) && original != copy) {
+          inner.cchainMap += original -> original
+          copy.counters.foreach { ctr => design.removeNode(ctr) }
+          design.removeNode(copy)
+        }
+      }
+      //println(s"inner: $inner ${inner.cchainMap}")
+    }
+  }
 
   // Collect outer controllers that are in the same CU
   private def collectOuters = {
@@ -32,10 +49,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
         val parent = child.parent.asInstanceOf[OuterController]
         outers += parent
         parent.inner = inner
-        parent.cchains.foreach { cc =>
-          val original = cc.copy.getOrElse(cc)
-          inner.getCopy(original)
-        }
+        parent.cchains.foreach { cc => inner.getCopy(cc.original) }
         child = child.parent.asInstanceOf[ComputeUnit]
       }
       inner.outers = outers.toList
@@ -60,7 +74,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
   }
 
   def getByName(s:String):Node = {
-    assert(nameMap.contains(s), s"No node defined with name:${s}. \nnameMap:${nameMap}")
+    assert(nameMap.contains(s), s"No node defined with name:${s} \nnameMap:${nameMap}")
     nameMap(s)
   }
 
