@@ -16,6 +16,7 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   type N = CL
   type V = CLMap.V
   val typeStr = "CUMapper"
+  override def debug = Config.debugCUMapper
 
   def finPass(m:M):M = m
 
@@ -34,8 +35,8 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
     }.map { m =>
       viMapper.map(cu, m)
     } match {
-      case Success(m) => dprintln(s"$cu -> $pcu (succeeded)"); m
-      case Failure(e) => dprintln(s"$cu -> $pcu (failed)"); throw e
+      case Success(m) => m
+      case Failure(e) => throw e
     }
   }
 

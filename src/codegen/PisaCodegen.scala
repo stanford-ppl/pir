@@ -262,13 +262,17 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitPair("wd", wd)
             emitPair("wen",lookUp(sram.writeCtr))
             emitPair("banking", lookUp(sram.banking))
-            sram.doubleBuffer match {
+            sram.buffering match {
+              case MultiBuffer(n, swapRead, swapWrite) =>
+                emitPair("bufSize", n)
+                emitPair("rswap", lookUp(swapRead))
+                emitPair("wswap", lookUp(swapWrite))
               case DoubleBuffer(swapRead, swapWrite) =>
-                emitPair("dblBuf", "true")
+                emitPair("bufSize", 2)
                 emitPair("rswap", lookUp(swapRead))
                 emitPair("wswap", lookUp(swapWrite))
               case SingleBuffer() =>
-                emitPair("dblBuf", "false")
+                emitPair("bufSize", 1)
                 emitPair("rswap", "x")
                 emitPair("wswap", "x")
             }

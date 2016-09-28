@@ -147,11 +147,11 @@ object Counter{
  *  @param name: user defined optional name of SRAM 
  *  @param size: size of SRAM in all dimensions 
  *  @param banking: Banking mode of SRAM
- *  @param doubleBuffer: Double buffer mode of sram 
+ *  @param buffering: Double buffer mode of sram 
  *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
  *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:Buffering, 
+case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buffering, 
   writeCtr:Counter)(implicit override val ctrler:InnerController, design: Design) 
   extends Primitive {
   override val typeStr = "SRAM"
@@ -195,28 +195,28 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, doubleBuffer:B
 }
 object SRAM {
   /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering, writeCtr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering, writeCtr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtPort(vec)
+  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
 
   /* Local Write */
-  def apply(size:Int, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr)
-  def apply(name:String, size:Int, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, doubleBuffer:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, doubleBuffer, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering, writeCtr)
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering, writeCtr)
+  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
+  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
 trait Output extends Primitive
@@ -295,17 +295,23 @@ object VecOut {
     VecOut(Some(name), vector)
 }
 
-class FuncUnit(val stage:Stage, oprds:List[OutPort], o:Op, reses:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
+class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${this}.oprd") }
-  val op = o
   val out = OutPort(this, s"${this}.out")
-  reses.foreach { _.connect(out) }
+  results.foreach { res => 
+    res.src match {
+      case PipeReg(s, r) if (s!=stage) => 
+        throw PIRException(s"Function Unit can only write to current stage")
+      case _ =>
+    }
+    res.connect(out) 
+  }
   override def toUpdate = 
     super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || !out.isConnected
-  val defs:List[Reg] = out.to.flatMap { _.src match {
-        case PipeReg(s, reg) => if (s == stage) Some(reg) else None
+    val defs:List[Reg] = results.flatMap { _.src match {
+        case PipeReg(s, reg) => Some(reg)
         case _ => None
       } 
     }.toList

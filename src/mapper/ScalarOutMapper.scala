@@ -12,6 +12,7 @@ class ScalarOutMapper(implicit val design:Design) extends Mapper {
   type R = PSO 
   type V = PSO 
   val typeStr = "SOMapper"
+  override def debug = Config.debugSOMapper
 
   def finPass(cl:CL)(m:M):M = m
 

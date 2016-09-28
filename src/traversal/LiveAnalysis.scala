@@ -127,7 +127,9 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         s.liveIns.foreach{ r => 
           r match {
             case (_:CtrPR | _:VecInPR | _:ScalarInPR ) => s.addDef(r)
-            case _ => throw PIRException(s"Register ${r} has no definition!")
+            case (_:LoadPR ) => 
+              throw PIRException(s"Cannot load value in empty stage. ${r} in ${r.ctrler}") 
+            case _ => throw PIRException(s"Register ${r} in ${r.ctrler} has no definition!")
           }
         }
         s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)

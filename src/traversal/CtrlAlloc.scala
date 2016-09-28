@@ -2,6 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
+import pir.graph.enums._
 import pir.graph.mapper.PIRException
 
 import scala.collection.mutable.Set
@@ -48,7 +49,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           }
           EnLUT(cu, ins, tf, en)
           cu match {
-            case tt:TileTransfer => 
+            case tt:TileTransfer if tt.mctpe==TileLoad => 
               val streamcc = tt.streamCChain
               EnLUT(cu, ins, tf, streamcc.inner.en)
             case _ =>
@@ -167,7 +168,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
                   plocal.inner.en.connect(clocal.outer.done)
                   child = child.parent.asInstanceOf[ComputeUnit]
                   if (child.parent.isInstanceOf[Top]) {
-                    throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controler ${cu}")
+                    throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controller ${cu}")
                   }
                 }
                 val clocal = inner.getCopy(child.localCChain)

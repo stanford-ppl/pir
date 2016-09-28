@@ -149,7 +149,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
-  "SwitchBox Mapping - DotProduct" should "success" in {
+  "SwitchBox Mapping - DotProduct" should "success" taggedAs(WIP) in {
     new Design {
       top = Top()
       // Nodes
@@ -218,7 +218,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
-  "SwitchBox Mapping: Dependency out of order" should "success" taggedAs(WIP) in {
+  "SwitchBox Mapping: Dependency out of order" should "success" in {
     new Design {
       top = Top()
       // Nodes

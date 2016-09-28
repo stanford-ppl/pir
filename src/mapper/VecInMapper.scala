@@ -14,6 +14,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   val typeStr = "VIMapper"
 
   def finPass(cl:CL)(m:M):M = m
+  override def debug = Config.debugVIMapper
 
   private def getOB(sin:SI, pirMap:M):POB = {
     pirMap.somap(sin.scalar.writer).outBus
@@ -43,6 +44,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     if (pirMap.vimap.contains(n)) throw ResourceNotUsed(this, n, p, pirMap) 
+    if (n.isInstanceOf[VI] && pirMap.vimap.pmap.contains(p)) throw UsedInBus(p)
     val dep = n match { // ctrler that writes n
       case n:SI => n.scalar.writer.ctrler
       case n:VI => n.vector.writer.ctrler
@@ -61,6 +63,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
     /* Find vins that connects to the depended ctrler */
     if (p.canFrom(pdvout)) {
+      dprintln(s"n:$n ctrler:${n.ctrler}, p:$p, po:$pdvout ${pirMap.vimap.pmap.get(p)}")
       val pmap = pirMap.setVI(n, p).setFB(p, pdvout)
       n match {
         case n:VI => pmap.setOP(n.out, p.viport)

@@ -48,19 +48,19 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
   override def traverse = {
     design.top.compUnits.foreach { cu =>
       /* Emit nodes in cluster */
-			emitSubGraph(cu, cu) {
-      	emitNode(cu, cu.ctrlBox, DotAttr().shape(Mrecord).color(white))
+			emitSubGraph(cu, DotAttr().label(cu).style(filled).color(lightgrey)) {
+      	emitNode(cu, cu.ctrlBox, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
         cu.ctrlBox.tokenBuffers.foreach{ case (dep, t) =>
           val label = s"{${t}|init=${t.initVal}|dep=${t.dep}}"
-          emitNode(t, label, DotAttr().shape(Mrecord).color(gold))
+          emitNode(t, label, DotAttr().shape(Mrecord).style(filled).fillcolor(gold))
         }
         cu.ctrlBox.creditBuffers.foreach { case (deped, c) =>
           val label = s"{${c}|init=${c.initVal}|deped=${c.deped}}"
-          emitNode(c, label, DotAttr().shape(Mrecord).color(limegreen))
+          emitNode(c, label, DotAttr().shape(Mrecord).style(filled).fillcolor(limegreen))
         }
         cu.ctrlBox.luts.foreach { lut =>
           val label = s"{${lut}|tf=${lut.transFunc.info}}"
-          emitNode(lut, label, DotAttr().shape(Mrecord).color(white))
+          emitNode(lut, label, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
         }
         val cchain = cu match {
           case cu:InnerController => cu.localCChain

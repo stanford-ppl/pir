@@ -144,7 +144,7 @@ object PIRPrinter {
           case p:SRAM =>
             fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
             fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
-            fields += s"banking=${p.banking}, dblBuf=${p.doubleBuffer}"
+            fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
             fields += s"writeCtr=${p.writeCtr}"
           case p:Stage =>
             p.fu.foreach { fu =>

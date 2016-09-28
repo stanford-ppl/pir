@@ -2,8 +2,8 @@ package pir.graph.mapper
 
 import pir._
 import pir.typealias._
-import pir.plasticine.config._
 import pir.graph.traversal.{MapperLogger, CUDotPrinter}
+import pir.plasticine.main._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -21,9 +21,11 @@ trait Mapper { self =>
   val typeStr:String
   override def toString = s"$typeStr"
 
-  def dprintln(s:Any):Unit = MapperLogger.dprintln(Config.debugMapper, s"$this", s)
-  def dprint(s:Any):Unit = MapperLogger.dprint(Config.debugMapper, s"$this", s)
-  def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(Config.debugMapper, s"$mapper", s)
+  def debug = Config.debugMapper
+  def dprintln(s:Any):Unit = MapperLogger.dprintln(debug, s"$this", s)
+  def dprint(s:Any):Unit = MapperLogger.dprint(debug, s"$this", s)
+  def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(debug, s"$mapper", s)
+  def quote(pne:Any)(implicit spade:Spade) = CUDotPrinter.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any)(block: => M):M = {
     dprintln(mapper, s"$info { ")
@@ -63,18 +65,20 @@ trait Mapper { self =>
         constrains.foldLeft(map) { case (pm, cons) => cons(n, res, pm) }
       } match {
         case Success(m) => 
+          dprintln(s"Try $n -> ${quote(res)(design.arch)} (success)")
           Try(recNode(restRes, remainNodes, m))
         case Failure(ResourceNotUsed(_,_,_,m)) => 
+          dprintln(s"Try $n already mapped")
           Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
-        case Failure(e) => Failure(e) 
+        case Failure(e) => 
+          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e}") 
+          Failure(e) 
       } 
       cons match {
-        case Success(m) => dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (success)"); return m
+        case Success(m) =>  return m
         case Failure(e) => e match {
           case me:MappingException => exceps += me // constrains failed
-            dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (failed) ${e}")
-          case _ => 
-            dprintln(s"Try $n -> ${CUDotPrinter.quote(res)(design.arch)} (failed) Unknown exception"); throw e
+          case _ => throw e
         }
       }
     }

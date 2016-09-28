@@ -58,6 +58,7 @@ package object enums {
   case class NoBanking() extends Banking
 
   sealed trait Buffering 
+  case class MultiBuffer(depth:Int, swapRead:Counter, swapWrite:Counter) extends Buffering
   case class DoubleBuffer(swapRead:Counter, swapWrite:Counter) extends Buffering
   case class SingleBuffer() extends Buffering
 }

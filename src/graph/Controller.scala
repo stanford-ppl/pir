@@ -261,7 +261,8 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
 
   def streamCChain:CounterChain = {
     val ccs = cchains.filter(cc => cc.streaming)
-    assert(ccs.size==1, s"streaming ctrs in ${this}: ${ccs}")
+    assert(mctpe==TileLoad, s"Only TileLoad has streaming CounterChain")
+    assert(ccs.size==1, s"streaming CounterChain in ${this}: ${ccs}")
     ccs.head
   }
 
