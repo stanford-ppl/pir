@@ -109,9 +109,13 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
             val writer = s.writer.ctrler match {
               case w:ICL => w
               case w:OCL => w.inner
+              case w => w
             }
             emitEdge(writer, cu.inner, s"$s")
           }
+        //TODO
+        //case top:Top => emitNode(top, top, DotAttr().shape(box).style(rounded))
+        //case mc:MC => emitNode(mc, mc, DotAttr().shape(box).style(rounded))
       } 
     }
   }
@@ -258,10 +262,13 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
 }
 
 class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
-  ctrPrinter:CtrDotPrinter)(implicit design: Design) extends Traversal {
+  ctrPrinter:CtrDotPrinter, pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
 
   override def traverse = {
-    cuPrinter.print(design.arch.cus)
+    if (pirMapping.mapping!=null)
+      cuPrinter.print(design.arch.cus, design.top.compUnits, pirMapping.mapping)
+    else
+      cuPrinter.print(design.arch.cus, design.top.compUnits)
     ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }

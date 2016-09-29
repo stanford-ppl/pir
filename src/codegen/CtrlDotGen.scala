@@ -68,7 +68,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
         }
         cchain.counters.foreach { c =>
           emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
-          if (c.en.isConnected) emitEdge(c.en, "en") //TODO
+          if (c.en.isConnected) emitEdge(c.en, "en")
         }
 			}
       /* Emit edges */
@@ -83,10 +83,6 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
       }
       cu.ctrlBox.luts.foreach { lut =>
         lut.ins.foreach { in => emitEdge(in, "in") }
-      }
-      if (cu.ctrlBox.innerCtrEn.isConnected) {
-        val attr = DotAttr().color(blue).label("en")
-        emitEdge(cu.ctrlBox.innerCtrEn, attr)
       }
       emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
       cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().style(dashed)) }

@@ -14,7 +14,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
 
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
-    visitNodeNoCheck(node:Node)
+    visitNodeNoCheck(node)
   }
   /* Depth first search traversal on node and their fields */
   def visitNodeNoCheck(node: Node) : Unit = {
@@ -29,7 +29,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
           c.memCtrls.foreach(n => visitNode(n))
           c.compUnits.foreach(n => visitNode(n))
         case c:ComputeUnit => {
-          c.cchains.foreach { cc => visitNodeNoCheck(cc) }
+          c.cchains.foreach { cc => visitNode(cc) }
           c match {
             case ic:InnerController => ic.srams.foreach { s => visitNode(s) }
             case _ =>

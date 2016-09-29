@@ -9,7 +9,7 @@ import pir.plasticine.config._
 
 /* Examp0ile PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {
-  override val arch = Config0 
+  override val arch = P2P_4CU_4TT 
 
   def main(args: String*)(top:Top) = {
     val tileSize = Const("4i")
@@ -55,8 +55,8 @@ object DotProduct extends PIRApp {
     val inner = Pipeline(name="inner", parent=outer, deps=List(tileLoadA, tileLoadB)) { implicit CU =>
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const("1i")) //Local
-      val itA = CounterChain.copy(tileLoadA, "it")
-      val itB = CounterChain.copy(tileLoadB, "it")
+      val itA = CounterChain.copy(tileLoadA, "stream")
+      val itB = CounterChain.copy(tileLoadB, "stream")
 
       val s0::s1::_ = Stages(2)
       // SRAMs
@@ -72,6 +72,7 @@ object DotProduct extends PIRApp {
     }
     UnitPipeline (name="accum", parent=outer, deps=List(inner)) { implicit CU =>
       CounterChain(Const("1i") by Const("1i")) //Local
+      val ic = CounterChain.copy(outer, "i")
       val es = CU.emptyStage
       val s0::s1::_ = Stages(2)
       val accum = CU.accum(s0, init=Const("0i"))

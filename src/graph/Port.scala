@@ -22,7 +22,12 @@ trait InPort extends Port {
   override val typeStr = "InPort"
   var from:OutPort = _
   def isConnected = from!=null
-  def connect(o:OutPort) = {from = o; o.to += this}
+  def connect(o:OutPort) = { 
+    if (isConnected) assert(from == o, s"${this} is already connected but trying to reconnect to $o")
+    from = o; o.to += this
+  }
+  def unconnect = { if (isConnected) from.to -= this; from = null }
+  def isConnectedTo(o:OutPort) = { from == o }
 }
 object InPort {
   def apply[S<:Node](s:S)(implicit design:Design):InPort = new {override val src:S = s} with InPort
@@ -41,6 +46,7 @@ object InPort {
 trait OutPort extends Port {
   val to:ListBuffer[InPort] = new ListBuffer[InPort]()
   def isConnected = to.size!=0
+  def isConnectedTo(i:InPort) = { to.contains(i) }
   override val name=None
   override val typeStr = "OutPort"
   def width(implicit design:Design) = design.arch.wordWidth

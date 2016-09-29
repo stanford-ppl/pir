@@ -40,10 +40,8 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
       case icu:InnerController =>
         icu.srams.foreach { sram =>
           addLiveOut(sram.readAddr)
-          if (sram.writeAddr.isConnected)
-            addLiveOut(sram.writeAddr)
-          if (sram.writePort.isConnected)
-            addLiveOut(sram.writePort)
+          if (sram.writeAddr.isConnected) addLiveOut(sram.writeAddr)
+          if (sram.writePort.isConnected) addLiveOut(sram.writePort)
         }
       case _ =>
     }

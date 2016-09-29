@@ -57,7 +57,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             case _ =>
           }
         case cu:OuterController =>
-          val en = cu.localCChain.inner.en
+          val en = cu.ctrlBox.innerCtrEn
           val lasts = cu.children.filter(_.isTail)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           // Assume OuterController is in the same CU as last stage children 
@@ -158,28 +158,44 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     }
     design.top.status.connect(design.top.children.head.ctrlBox.outerCtrDone)
   }
+
+  private def chainCounterChains(current:InnerController, inner:InnerController, outer:OuterController) = {
+    val ancestors = inner.ancestors
+    var iter = 0
+    while (iter!=ancestors.size && ancestors(iter)!=outer) {
+      val ccc = ancestors(iter) match {
+        case tt:TileTransfer if (!current.isInstanceOf[TileTransfer] && tt.mctpe==TileLoad) =>
+                   current.getCopy(tt.streamCChain)
+        case cu => current.getCopy(cu.localCChain)
+      }
+      val pcc = current.getCopy(ancestors(iter+1).localCChain)
+      pcc.inner.en.connect(ccc.outer.done)
+      assert(!pcc.inner.en.isConnected || pcc.inner.en.isConnectedTo(ccc.outer.done))
+      iter += 1
+    }
+  }
+
   def wireCChainCopy = {
     design.top.innerCUs.foreach { inner =>
       inner.cchains.foreach { cc =>
         if (cc.isCopy) {
-          assert(!cc.inner.en.isConnected, s"${cc} ${cc.inner.en.from}")
           cc.original.ctrler match {
-            case cu:InnerController =>
+            case cu:InnerController => // Copy of inner controller for write addr calculation
               cc.inner.en.connect(cc.original.inner.en.from)
+            case cu:OuterController if inner.ancestors.contains(cu) =>
+              chainCounterChains(inner, inner, cu)
             case cu:OuterController =>
-              var child:ComputeUnit = inner
-              while (child.parent!=cu) {
-                val parent = child.parent.asInstanceOf[ComputeUnit]
-                val plocal = inner.getCopy(parent.localCChain)
-                val clocal = inner.getCopy(child.localCChain)
-                plocal.inner.en.connect(clocal.outer.done)
-                child = child.parent.asInstanceOf[ComputeUnit]
-                if (child.parent.isInstanceOf[Top]) {
-                  throw PIRException(s"${inner} made cchain copy ${cc} of non-ancestor outer controller ${cu}")
-                }
+              val srams = inner.srams.filter { sram =>
+                sram.writer.ancestors.contains(cu)
               }
-              val clocal = inner.getCopy(child.localCChain)
-              cc.inner.en.connect(clocal.outer.done)
+              if (srams.size==0)
+                throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
+              val usrams = srams.groupBy {_.writer} 
+              if (usrams.size!=1) {
+                throw PIRException(s"Currently don't support if more than one sram use a single copy")
+              }
+              val (writer, sram::_) = usrams.head
+              chainCounterChains(inner, writer, cu)
           }
         }
       }
@@ -197,6 +213,20 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     logicGen
   } 
   override def finPass = {
+    design.top.compUnits.foreach { cu =>
+      cu match {
+        case cu:OuterController =>
+          cu.cchains.flatMap{ _.counters }.foreach { ctr =>
+            if (ctr.en.isConnected || ctr.done.isConnected)
+              throw PIRException(s"Outer controller shouldn't connect control signals")
+          }
+        case cu:InnerController =>
+          cu.cchains.flatMap{ _.counters }.foreach { ctr =>
+            if (!ctr.en.isConnected) 
+              throw PIRException(s"${ctr}'s en in ${ctr.ctrler} is not connected")
+          }
+      }
+    }
     info("Finishing control logic allocation")
   }
 }

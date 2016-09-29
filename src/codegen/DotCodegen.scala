@@ -73,6 +73,7 @@ trait DotCodegen extends Printer with DotEnum {
     emitln(s"""${q(from)} -> ${q(to)} [${attr.list}]""")
   }
   def emitEdge(from:Any, to:Any):Unit = {
+    emitln(s"here?")
     emitln(s"""${q(from)} -> ${q(to)}""")
   }
   def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any):Unit = {

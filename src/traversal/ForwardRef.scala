@@ -21,24 +21,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     }
     design.toUpdate.clear
     collectOuters
-    updateCChains
   } 
-
-  // If copied outer cchain is already in current CU, replace the copy with the original one
-  private def updateCChains = {
-    design.top.innerCUs.foreach { inner =>
-      //println(s"inner: $inner ${inner.cchainMap}")
-      val outerCChains = inner.outers.flatMap { _.cchains }
-      inner.cchainMap.foreach { case (original, copy) =>
-        if (outerCChains.contains(original) && original != copy) {
-          inner.cchainMap += original -> original
-          copy.counters.foreach { ctr => design.removeNode(ctr) }
-          design.removeNode(copy)
-        }
-      }
-      //println(s"inner: $inner ${inner.cchainMap}")
-    }
-  }
 
   // Collect outer controllers that are in the same CU
   private def collectOuters = {

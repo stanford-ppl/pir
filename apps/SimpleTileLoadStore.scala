@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleTileLoadStoreDesign extends PIRApp {
-  override val arch = Config0
+  override val arch = P2P_2CU_2TT
   def main(args: String*)(top:Top) = {
     val x1106_vector = Vector()
     val x1120_vector = Vector()

@@ -76,10 +76,10 @@ trait Mapper { self =>
           Failure(e) 
       }) match {
         case Success(m) => 
-          MapperLogger.pprint(s"} "); dprintln(s"(success)")
+          dprintln(s"} (success)")
           return m
         case Failure(e) => 
-          MapperLogger.pprint(s"} "); dprintln(s"(failed) ${e}")
+          dprintln(s"} (failed) ${e}")
           e match {
           case me:MappingException => exceps += me // constrains failed
           case _ => throw e

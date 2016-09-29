@@ -15,16 +15,15 @@ import scala.util.{Try, Success, Failure}
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object CU2 extends Spade {
-  override def toString = "Plasticine_CU2"
+object P2P_2CU extends Spade {
 
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
   
+  private val numRCUs = 2
   private val numArgIns = numLanes  // need to be multiple of numLanes
   private val numArgOuts = numLanes // need to be multiple of numLanes 
-  private val numRCUs = 2
 
   // Top level controller ~= Host
   override val top = Top(numLanes, numArgIns, numArgOuts)
@@ -40,5 +39,4 @@ object CU2 extends Spade {
   rcus(1).vins(0) <== rcus(0).vout 
 
   ConfigFactory.genArgIOConnection
-
 }

@@ -129,9 +129,6 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   implicit val icu:InnerController = self
 
   override val typeStr = "PipeCU"
-  /* List of outer controllers reside in current inner*/
-  var outers:List[OuterController] = Nil
-  def inner:InnerController = this
 
   var srams:List[SRAM] = _ 
 
@@ -169,6 +166,21 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   }
 
   def locals = this :: outers
+  /* List of outer controllers reside in current inner*/
+  var outers:List[OuterController] = Nil
+  def inner:InnerController = this
+
+  lazy val ancestors: List[ComputeUnit] = {
+    val list = ListBuffer[ComputeUnit]()
+    var child:Controller = this 
+    while (!child.isInstanceOf[Top]) {
+      val temp = child.asInstanceOf[ComputeUnit]
+      list += temp 
+      child = temp.parent
+    }
+    list.toList
+  }
+
   def ctrlIns = locals.flatMap(_.ctrlBox.getCtrlIns)
   def ctrlOuts = locals.flatMap(_.ctrlBox.getCtrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }

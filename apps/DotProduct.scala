@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object DotProductDesign extends PIRApp {
-  override val arch = Config0
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
     val x1132_oc = OffChip()
     val x1223_vector = Vector()

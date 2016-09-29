@@ -36,15 +36,21 @@ class IRCheck(implicit val design: Design) extends Traversal{
               case _ =>
             }
           }
-          c match {
+        case n:CtrlBox =>
+        case n:Counter =>
+          n.ctrler match {
             case cu:OuterController =>
               if (cu.cchains.exists( _.isCopy)) 
                 throw PIRException(s"Outer controller cannot have counter copy")
-            case cu:InnerController =>
+            case _ =>
           }
-        case n:Counter => 
-          if (!n.en.isConnected) throw PIRException(s"${n}'s en in ${n.ctrler} is not connected")
-        case n:CtrlBox =>
+        case n:SRAM => 
+          if (!n.writePort.isConnected)
+            throw PIRException(s"writePort of $n in ${n.ctrler} is not connected")
+          if (!n.writeAddr.isConnected)
+            throw PIRException(s"writeAddr of $n in ${n.ctrler} is not connected")
+          if (!n.readAddr.isConnected)
+            throw PIRException(s"readAddr of $n in ${n.ctrler} is not connected")
         case n =>
       }
     }

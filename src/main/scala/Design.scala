@@ -170,21 +170,22 @@ trait Design extends Metadata { self =>
   lazy val cuDotPrinter = new CUDotPrinter()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
+  lazy val spadeDotGen = new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter, pirMapping)
 
   /* Traversals */
   lazy val traversals = {
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
-    traversals += new CtrlAlloc()
-    if (Config.debug) traversals += ctrlDotPrinter 
     traversals += new LiveAnalysis()
     traversals += new IRCheck()
+    traversals += new CtrlAlloc()
+    if (Config.debug) traversals += ctrlDotPrinter 
     if (Config.debug) traversals += new CtrlPrinter()
     if (Config.debug) traversals += pirPrinter 
-    if (Config.debug) traversals += new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter)
     if (Config.mapping) traversals += pirMapping 
-    traversals += new PisaCodegen(pirMapping)
+    if (Config.debug) traversals += spadeDotGen 
+    if (Config.mapping) traversals += new PisaCodegen(pirMapping)
     traversals
   }
 
@@ -196,6 +197,7 @@ trait Design extends Metadata { self =>
         e.printStackTrace
         if (!pirPrinter.isTraversed) pirPrinter.run
         if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        if (!spadeDotGen.isTraversed) spadeDotGen.run
       case e:Throwable => throw e
     }
   }
@@ -205,7 +207,7 @@ trait Design extends Metadata { self =>
 }
 
 trait PIRApp extends Design{
-  override val arch:Spade = Config0 
+  override val arch:Spade = P2P_2CU_2TT 
   override def toString = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 

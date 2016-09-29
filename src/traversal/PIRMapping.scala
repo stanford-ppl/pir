@@ -76,7 +76,8 @@ class PIRMapping(implicit val design: Design) extends Traversal{
           }
           MapPrinter.printMap(cmap)(design)
           MapperLogger.flush
-          System.exit(-1) // TODO: at the moment if prim failed. stop trying
+          System.exit(-1) // TODO: at the moment if prim failed. stop trying because CUs 
+                          // are homogenous
           throw e
       }
     }

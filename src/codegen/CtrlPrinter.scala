@@ -16,9 +16,11 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
   override val stream = newStream(Config.ctrlFile) 
   
   def emitCU(cu:ComputeUnit)(block: => Any) = {
-    emitBlock(s"${cu}") {
-      //emitln(s"ctrlBox.en: ${cu.ctrlBox.innerCtrEn}")
-      //emitln(s"ctrlBox.done: ${cu.ctrlBox.outerCtrDone}")
+    val fields = cu match {
+      case cu:InnerController => s"(ancestors=${cu.ancestors})"
+      case cu:OuterController => s""
+    }
+    emitBlock(s"${cu} $fields") {
       cu.cchains.foreach { cc =>
         emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
           cc.counters.foreach { ctr =>

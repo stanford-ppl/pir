@@ -71,6 +71,12 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
     // Check whether speculative wire allocation was correct
     assert(counters.size <= cp.counters.size, 
       s"Accessed counter ${counters.size-1} of ${this} is out of bound")
+    assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
+    cp.ctrler match {
+      case tt:TileTransfer if (tt.mctpe==TileLoad && !cp.streaming) =>
+        throw PIRException(s"Only streaming counter of TileLoad can be copied. Tried to copy ${cp} in ${cp.ctrler}")
+      case _ =>
+    }
     val addiCtrs = (counters.size until cp.counters.size).map {i => Counter(this)}
     counters = counters ++ addiCtrs
     counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
@@ -191,13 +197,13 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
-  override def toUpdate = super.toUpdate || !readAddr.isConnected || 
-    !writeAddr.isConnected || !writePort.isConnected || !readPort.isConnected
+  override def toUpdate = super.toUpdate
 
-  def writer = {
+  def writer:InnerController = {
     writePort.from.src match {
-      case VecIn(_, vec) => vec.writer.ctrler
-      case r:StorePR => ctrler.asInstanceOf[ComputeUnit] 
+      case PipeReg(stage, VecInPR(_, vi)) if stage.isInstanceOf[EmptyStage] => 
+        vi.vector.writer.ctrler.asInstanceOf[InnerController]
+      case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last => ctrler
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
   }
@@ -623,11 +629,11 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   def luts = enLUTs.map(_._2).toList ++ tokOutLUTs.toList ++ tokDownLUTs.toList 
   def innerCtrEn:EnInPort = cu match {
     case cu:InnerController => cu.localCChain.inner.en 
-    case cu:OuterController => cu.inner.cchainMap(cu.localCChain).inner.en
+    case cu:OuterController => cu.inner.getCopy(cu.localCChain).inner.en
   }
   def outerCtrDone:DoneOutPort = cu match {
     case cu:InnerController => cu.localCChain.outer.done 
-    case cu:OuterController => cu.inner.cchainMap(cu.localCChain).outer.done
+    case cu:OuterController => cu.inner.getCopy(cu.localCChain).outer.done
   }
   var tokenOut:Option[OutPort] = None 
   // only outer controller have token down, which is the init signal first child stage

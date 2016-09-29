@@ -6,6 +6,8 @@ import scala.collection.mutable.Map
 
 trait Spade extends Metadata with ImplicitConversion { self =>
   implicit val spade:Spade = self
+
+  override def toString = getClass().getSimpleName()
   val wordWidth:Int
   val numLanes:Int
 

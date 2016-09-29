@@ -27,7 +27,6 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
   }
 
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
-    if (cu.isInstanceOf[TT]) assert(pcu.isInstanceOf[PTT], s"$cu, $pcu") 
     val cmap = pirMap.setCL(cu, pcu) 
     /* Map CU */
     Try {
@@ -50,10 +49,20 @@ class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val desi
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
+    val pcus = design.arch.cus
+    val cus = design.top.innerCUs
+    val grp = cus.groupBy(_.isInstanceOf[TT]) 
+    val pgrp = pcus.groupBy(_.isInstanceOf[PTT])
+    val tts = grp.getOrElse(true, Nil)
+    val ptts = pgrp.getOrElse(true, Nil)
+    val rcus = grp.getOrElse(false, Nil)
+    val prcus = pgrp.getOrElse(false, Nil)
+    if (tts.size > ptts.size) throw OutOfPTT(ptts.size, tts.size)
+    if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
     Try{
       mapCU(design.top, design.arch.top, m) 
     } match {
-      case Success(mp) => mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
+      case Success(mp) => mapCUs(pcus, cus, mp, finPass _)
       case Failure(e) => throw e
     }
   }
@@ -63,7 +72,7 @@ object CUMapper {
       cond match {
         case cond:Boolean => 
           //if (!cond) dprintln(s"$info: pass:$cond numNodes:$nn numRes:$nr")
-          (cond, "false")
+          (cond, s"$info: false")
         case (nn:Int, nr:Int) => val (pass,_) = check(info, (nn <= nr))
           (pass, s"$info: numNode:$nn numRes:$nr")
         case (ns:Iterable[_], rs:Iterable[_]) => check(info, (ns.size, rs.size))

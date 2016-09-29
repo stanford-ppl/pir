@@ -39,12 +39,10 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def resFunc(n:N, m:M, remainRes:List[R]):List[R] = {
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
-      case dep:Ctr if n.ctrler.inner == dep.ctrler.inner =>
+      case dep:Ctr if n.ctrler.inner == dep.ctrler.inner => // Counter in the same CU
         m.ctmap.get(dep).fold(remainRes) { pdep =>
           pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
-      case dep:Ctr => // OuterController CChain copy //TODO
-        remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO
       case _:EnLUT => // Inner most counter or copied inner most counter whose enable is routed 
                       // fron network
         remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO

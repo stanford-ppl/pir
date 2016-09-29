@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleFoldDesign extends PIRApp {
-  override val arch = Config0
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
     val x546_oc = OffChip()
     val x586_scalar = Scalar()

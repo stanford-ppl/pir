@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object NiterDesign extends PIRApp {
-  override val arch = Config0
+  override val arch = P2P_2CU_2TT
   def main(args: String*)(top:Top) = {
     val x420_argin = ArgIn()
     val x421_argout = ArgOut()
