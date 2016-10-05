@@ -80,35 +80,51 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       mapping.foreach { mp => if (mp.clmap.pmap.contains(pcu)) attr.style(filled).fillcolor(indianred) }
       emitNode(pcu, label, attr)
       pcu.vins.foreach { pvin =>
-        pvin.fanIns.foreach { pvout =>
-          val attr = DotAttr()
-          mapping.foreach { m => 
-            m.vimap.pmap.get(pvin).foreach { vin =>
-              pvout.src match {
-                case cu:PCU if m.clmap.pmap.contains(cu) && vin.writer.ctrler==m.clmap.pmap(cu) =>
-                  val label = vin match {
-                    case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
-                    case _ => s"${vin.vector}"
-                  }
-                  attr.label(label).color(indianred).style(bold)
-                case top:PTop if vin.writer.ctrler==m.clmap.pmap(top) =>
-                  val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
-                  val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-                  attr.label(label).color(indianred).style(bold)
-                  emitEdge(s"${dvo.ctrler}", s"$pcu:$pvin", attr)
-                case s => 
-              }
+        emitInput(pcu, pvin, mapping)
+      }
+    }
+    mapping.foreach { mp =>
+      design.top.vins.foreach { vin =>
+        val pvout = mp.vomap(vin.writer)
+        val dvo = mp.vomap.pmap(pvout).asInstanceOf[DVO] 
+        val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+        val attr = DotAttr().label(label).color(indianred).style(bold)
+        emitEdge(s"${mp.clmap(dvo.ctrler)}:$pvout", design.top, attr)
+      }
+    }
+  }
+
+  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = {
+    pvin.fanIns.foreach { pvout =>
+      val attr = DotAttr()
+      mapping.foreach { m => 
+        m.vimap.pmap.get(pvin).foreach { vin =>
+          if (m.fbmap(pvin)==pvout) {
+            attr.color(indianred).style(bold)
+            pvout.src match {
+              case cu:PCU if m.clmap.pmap.contains(cu) =>
+                val label = vin match {
+                  case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
+                  case _ => s"${vin.vector}"
+                }
+                attr.label(label)
+              case top:PTop =>
+                val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
+                val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+                attr.label(label)
+                emitEdge(s"${dvo.ctrler}", s"$pcl:$pvin", attr)
+              case s => 
             }
           }
-          pvout.src match {
-            case from:PSB =>
-              attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
-              emitEdge(from, s"$pcu:$pvin", attr)
-            case from:PCU =>
-              emitEdge(from, pvout, pcu, pvin, attr)
-            case from:PTop =>
-          }
         }
+      }
+      pvout.src match {
+        case from:PSB =>
+          attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
+          emitEdge(from, s"$pcl:$pvin", attr)
+        case from:PCU =>
+          emitEdge(from, pvout, pcl, pvin, attr)
+        case from:PTop =>
       }
     }
   }

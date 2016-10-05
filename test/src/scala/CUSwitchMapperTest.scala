@@ -18,10 +18,8 @@ import scala.util.{Try, Success, Failure}
 
 class CUSwitchMapperTest extends UnitTest with Metadata {
 
-  def genSwitchNetworkConfig = new Spade {
+  def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new Spade {
     val numLanes = 4
-    val numRowCUs = 4
-    val numColCUs = 4
     val numRCUs = numRowCUs * numColCUs
     val numVins = 4
     val numRegs = 20
@@ -47,7 +45,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
 
   lazy val design = new Design {
     // PNodes
-    implicit override val arch = genSwitchNetworkConfig
+    implicit override val arch = genSwitchNetworkConfig(4,4)
     val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
       def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
@@ -138,7 +136,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = c0::c1::c2::c3::c4::Nil
       top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig
+      implicit override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
@@ -154,65 +152,71 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
-  "SwitchBox Mapping - DotProduct" should "success" in {
+  "SwitchBox Mapping - DotProduct" should "success" taggedAs(WIP) in {
     new Design {
       top = Top()
+      val aos = List.tabulate(1) { i => ArgOut(s"ao$i") }
+      val sls = Nil
       // Nodes
-      val vts = List.fill(13)(Vector())
+      val vts = List.fill(12)(Vector())
       val c00 = Pipeline("c00", top, Nil){ implicit CU => 
-        CU.vecOut(vts(5)) 
+        CU.vecOut(vts(4)) 
       }
       val c01 = Pipeline("c01", top, Nil){ implicit CU => 
-        CU.vecOut(vts(6)) 
+        CU.vecOut(vts(5)) 
       }
       val c0 = Pipeline("c0", top, Nil){ implicit CU => 
         CU.vecOut(vts(0)) 
+        CU.vecIn(vts(4))
         CU.vecIn(vts(5))
-        CU.vecIn(vts(6))
       }
       val c10 = Pipeline("c10", top, Nil){ implicit CU => 
-        CU.vecOut(vts(7)) 
+        CU.vecOut(vts(6)) 
       }
       val c11 = Pipeline("c11", top, Nil){ implicit CU => 
-        CU.vecOut(vts(8)) 
+        CU.vecOut(vts(7)) 
       }
       val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+        CU.vecIn(vts(6))
         CU.vecIn(vts(7))
-        CU.vecIn(vts(8))
         CU.vecOut(vts(1)) 
       }
       val c20 = Pipeline("c20", top, Nil){ implicit CU => 
-        CU.vecOut(vts(9)) 
+        CU.vecOut(vts(8)) 
       }
       val c21 = Pipeline("c21", top, Nil){ implicit CU => 
-        CU.vecOut(vts(10)) 
+        CU.vecOut(vts(9)) 
       }
       val c2 = Pipeline("c2", top, Nil){ implicit CU => 
         CU.vecOut(vts(2)) 
+        CU.vecIn(vts(8))
         CU.vecIn(vts(9))
-        CU.vecIn(vts(10))
       }
       val c30 = Pipeline("c30", top, Nil){ implicit CU => 
-        CU.vecOut(vts(11)) 
+        CU.vecOut(vts(10)) 
       }
       val c31 = Pipeline("c31", top, Nil){ implicit CU => 
-        CU.vecOut(vts(12)) 
+        CU.vecOut(vts(11)) 
       }
       val c3 = Pipeline("c3", top, Nil){ implicit CU => 
         CU.vecOut(vts(3)) 
+        CU.vecIn(vts(10))
         CU.vecIn(vts(11))
-        CU.vecIn(vts(12))
       }
       val c4 = Pipeline("c4", top, Nil){ implicit CU => 
         CU.vecIn(vts(0))
         CU.vecIn(vts(1))
         CU.vecIn(vts(2))
         CU.vecIn(vts(3))
+        CU.scalarOut(aos(0))
       }
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
-      top.updateFields(cus, Nil, Nil, vts, Nil)
+      top.updateFields(cus, Nil, sls ++ aos, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig
+      implicit override val arch = genSwitchNetworkConfig(5,5)
+
+      new ScalarBundling().run
+      new PIRPrinter().run
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
@@ -257,7 +261,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = (c0::c1::c2::c3::c4::Nil).reverse
       top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig
+      implicit override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
       new PIRNetworkDotPrinter().run

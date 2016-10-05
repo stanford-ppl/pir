@@ -11,7 +11,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class CUMapper(soMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends Mapper {
+class CUMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends Mapper {
   type R = PCL
   type N = CL
   type V = CLMap.V
@@ -30,7 +30,7 @@ class CUMapper(soMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:
     val cmap = pirMap.setCL(cu, pcu) 
     /* Map CU */
     Try {
-      soMapper.map(cu, cmap)
+      outputMapper.map(cu, cmap)
     }.map { m =>
       viMapper.map(cu, m)
     } match {

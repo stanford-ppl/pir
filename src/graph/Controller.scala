@@ -368,6 +368,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   val status = InPort(this, s"${this}.status")
   var scalars:List[Scalar] = _
   var vectors:List[Vector] = _
+
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _

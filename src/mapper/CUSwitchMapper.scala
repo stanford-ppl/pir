@@ -69,7 +69,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     val pdeps = getDeps(cu.vins, map) // returns unmapped vins whose depended cu are mapped
     if (pdeps.size==0) { // If there's no dependency
       def constrain(cu:N, pcu:R, m:M):M = { 
-        val mp = m.setCL(cu, pcu)
+        val mp = mapCU(cu, pcu, m) 
         cu.readers.foldLeft(mp) { case (pm, reader) =>
           reader match {
             case rd:CU if (pm.clmap.contains(rd)) => 
@@ -119,7 +119,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
       if (mp.clmap.contains(cu)) {
         assert(mp.clmap(cu)==pcu)
       } else {
-        mp = mp.setCL(cu, pcu)
+        mp = mapCU(cu, pcu, m)
       }
       mp = mp.setVI(vin, path.last._2)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
@@ -134,6 +134,15 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     }
     val pdep::restDeps = remainDeps 
     recRes[R, N, M](List(constrain _), resFunc _, mapDep(cu, finPass) _)(pdep, restDeps, map)
+  }
+
+  def mapCU(cu:CU, pcu:PCU, map:M):M = {
+    Try {
+      outputMapper.map(cu, map.setCL(cu, pcu))
+    } match {
+      case Success(m) => m
+      case Failure(e) => throw e
+    }
   }
 
   /*

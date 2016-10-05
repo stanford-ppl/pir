@@ -134,7 +134,7 @@ class ScalarBundleTest extends UnitTest { self =>
 
   //TODO: Currently outer controller's input would be routed twice when it's inner also route the
   //same input
-  "ScalarBundleTest Test4" should "success" taggedAs(WIP) in {
+  "ScalarBundleTest Test4" should "success" in {
     new Design {
       top = Top()
       // Nodes
