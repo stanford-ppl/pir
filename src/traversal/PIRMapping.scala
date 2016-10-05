@@ -39,7 +39,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val sramMapper = new SRAMMapper()
   val regAlloc = new RegAlloc()
   val stageMapper = new StageMapper()
-  val soMapper = new ScalarOutMapper()
+  val outputMapper = new OutputMapper()
   val viMapper = new VecInMapper()
   val ctrlMapper = new CtrlMapper()
   val ctrMapper = new CtrMapper() { 
@@ -48,7 +48,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       regAlloc.map(cu, cmap)
     }
   }
-  val cuMapper = new CUMapper(soMapper, viMapper) {
+  val cuMapper = new CUMapper(outputMapper, viMapper) {
     override def finPass(m:M):M = {
       var cmap = m 
       Try {

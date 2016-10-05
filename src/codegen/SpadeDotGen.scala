@@ -102,7 +102,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
           }
           pvout.src match {
             case from:PSB =>
-              attr.label(attr.label + s"\n(o-${indexOf(pvout)})")
+              attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
               emitEdge(from, s"$pcu:$pvin", attr)
             case from:PCU =>
               emitEdge(from, pvout, pcu, pvin, attr)

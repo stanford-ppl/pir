@@ -89,7 +89,7 @@ class CUMapperTest extends UnitTest with Metadata {
       val pcus = arch.rcus
 
       // Mapping
-      val soMapper = new ScalarOutMapper()
+      val soMapper = new OutputMapper()
       val viMapper = new VecInMapper()
       val mapper = new CUMapper(soMapper, viMapper)
 

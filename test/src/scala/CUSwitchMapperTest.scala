@@ -48,7 +48,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   lazy val design = new Design {
     // PNodes
     implicit override val arch = genSwitchNetworkConfig
-    val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+    val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
       def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
       def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
@@ -140,7 +140,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
       new PIRNetworkDotPrinter().run
       Try {
@@ -214,7 +214,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
       new PIRNetworkDotPrinter().run
       Try {
@@ -259,7 +259,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
       new PIRNetworkDotPrinter().run
       Try {
         mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)

@@ -28,7 +28,7 @@ object CUSwitchMapper {
     path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
   }
 }
-class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) extends Mapper {
+class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) extends Mapper {
   type Edge = CUSwitchMapper.Edge 
   type Path = CUSwitchMapper.Path 
   type PathMap = CUSwitchMapper.PathMap 
@@ -124,7 +124,7 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
       mp = mp.setVI(vin, path.last._2)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
-        if (vout.src.isInstanceOf[PSB]) {
+        if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox
           val to = vout.voport
           val from = path(i-1)._2.viport
           mp = mp.setFP(to, from)
@@ -161,16 +161,16 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
    * count range minHop and maxHop (exclusive) around the starting CU. Return a list of  
    * reachable pcu and corresponding path to reach pcu based sorted by hop count
    * @param start starting Spade cu of traversal 
-   * @param cuCons condition on whether the path is valid based on the last CU encountered and the
+   * @param validCons condition on whether the path is valid based on the last CU encountered and the
    * current path 
-   * @param sbCons condition on whether continue advancing based on the current switchbox
+   * @param advanceCons condition on whether continue advancing based on the current switchbox
    * encountered and path went through so far 
    * */
-  def advance(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
-    advanceDFS(start, cuCons, sbCons)
+  def advance(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+    advanceDFS(start, validCons, advanceCons)
   }
 
-  def advanceDFS(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceDFS(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
       val visited = path.map{ case (f,t) => f.src }
       if (visited.contains(pne)) return map
@@ -178,8 +178,8 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
         vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
           val newPath = path :+ (vout, vin)
           vin.src match {
-            case cu:PCU if cuCons(cu, newPath) => pm :+ (cu, newPath)
-            case sb:PSB if sbCons(sb, newPath) => rec(vin.src, newPath, pm)
+            case cu:PCU if validCons(cu, newPath) => pm :+ (cu, newPath)
+            case sb:PSB if advanceCons(sb, newPath) => rec(vin.src, newPath, pm)
             case _ => pm 
           }
         }
@@ -188,7 +188,7 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
     rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
   }
 
-  def advanceBFS(start:PCU, cuCons:(PCU, Path) => Boolean, sbCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceBFS(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     val result = ListBuffer[(PCU, Path)]()
     val paths = Queue[Path]()
     paths += Nil
@@ -201,8 +201,8 @@ class CUSwitchMapper(soMapper:ScalarOutMapper)(implicit val design:Design) exten
           vout.fanOuts.foreach { vin =>
             val newPath = path :+ (vout, vin)
             vin.src match {
-              case cu:PCU if cuCons(cu, newPath) => result += (cu ->newPath)
-              case sb:PSB if sbCons(sb, newPath) => paths += newPath
+              case cu:PCU if validCons(cu, newPath) => result += (cu ->newPath)
+              case sb:PSB if advanceCons(sb, newPath) => paths += newPath
               case _ =>
             }
           }

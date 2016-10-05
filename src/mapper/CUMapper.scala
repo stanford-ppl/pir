@@ -11,7 +11,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class CUMapper(soMapper:ScalarOutMapper, viMapper:VecInMapper)(implicit val design:Design) extends Mapper {
+class CUMapper(soMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends Mapper {
   type R = PCL
   type N = CL
   type V = CLMap.V
