@@ -4,7 +4,7 @@ import pir.{Design, Config}
 import pir.codegen._
 import pir.misc._
 import pir.typealias._
-import pir.graph.mapper.PIRMap
+import pir.graph.mapper.{PIRMap, PIRException}
 import pir.plasticine.main._
 import pir.plasticine.graph.{SwitchBox, Node}
 
@@ -83,22 +83,26 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
         pvin.fanIns.foreach { pvout =>
           val attr = DotAttr()
           mapping.foreach { m => 
-            m.vimap.pmap.get(pvin).foreach { vins =>
-              val cvins = vins.filter { vin => 
-                pvout.src match {
-                  case cu:PCU => m.clmap.pmap.contains(cu) && vin.writer.ctrler==m.clmap.pmap(cu)
-                  case _ => false
-                }
-              }
-              if (cvins.size!=0) {
-                var label = cvins.map(_.variable).mkString(",")
-                if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
-                attr.label(label).color(indianred).style(bold)
+            m.vimap.pmap.get(pvin).foreach { vin =>
+              pvout.src match {
+                case cu:PCU if m.clmap.pmap.contains(cu) && vin.writer.ctrler==m.clmap.pmap(cu) =>
+                  val label = vin match {
+                    case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
+                    case _ => s"${vin.vector}"
+                  }
+                  attr.label(label).color(indianred).style(bold)
+                case top:PTop if vin.writer.ctrler==m.clmap.pmap(top) =>
+                  val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
+                  val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+                  attr.label(label).color(indianred).style(bold)
+                  emitEdge(s"${dvo.ctrler}", s"$pcu:$pvin", attr)
+                case s => 
               }
             }
           }
           pvout.src match {
-            case from:SwitchBox =>
+            case from:PSB =>
+              attr.label(attr.label + s"\n(o-${indexOf(pvout)})")
               emitEdge(from, s"$pcu:$pvin", attr)
             case from:PCU =>
               emitEdge(from, pvout, pcu, pvin, attr)

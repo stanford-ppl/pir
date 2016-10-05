@@ -112,7 +112,8 @@ class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Con
 class TileTransfer(numLanes:Int, numBusIns:Int)(implicit spade:Spade) 
 extends ComputeUnit(numLanes, numBusIns) {
   override val typeStr = "tt"
-  override val souts = List(AddrOut())
+  val addrOut = AddrOut()
+  override val souts = List(addrOut)
   regstages = Nil
   rdstages = Nil
 }

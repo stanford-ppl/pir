@@ -178,6 +178,7 @@ trait Design extends Metadata { self =>
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
+    traversals += new ScalarBundling()
     if (Config.debug) traversals += pirNetworkDotPrinter
     traversals += new LiveAnalysis()
     traversals += new IRCheck()

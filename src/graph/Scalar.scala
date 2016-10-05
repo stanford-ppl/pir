@@ -39,12 +39,13 @@ object ArgOut {
 
 class Vector(val name:Option[String])(implicit design: Design) extends Node with Variable {
   override val typeStr = "Vector"
-  var writer:VecOut = _
-  val readers:Set[VecIn] = Set[VecIn]() 
+  var _writer:VecOut = _
+  def writer:VecOut = _writer
+  val readers:Set[VecIn] = Set.empty
   def addReader(r:VecIn) = { readers += r; this }
   def setWriter(w:VecOut) = {
-    assert(writer == null, s"Already set ${this}'s writer to ${writer}, but trying to reset to ${w}")
-    writer = w; this
+    assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")
+    _writer = w; this
   }
   override def toUpdate = super.toUpdate || writer==null
 }
@@ -55,6 +56,7 @@ object Vector {
 
 class DummyVector(name:Option[String])(implicit design:Design) extends Vector(name) {
   override val typeStr = "DVector"
+  override def writer:DummyVecOut = _writer.asInstanceOf[DummyVecOut]
   val scalars = Set[Scalar]()
   def isFull = scalars.size==design.arch.numLanes
   def remainSpace = design.arch.numLanes - scalars.size

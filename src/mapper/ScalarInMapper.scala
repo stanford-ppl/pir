@@ -8,7 +8,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class ScalarInMapper(implicit val design:Design) extends Mapper {
+class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
   type N = SI
   type R = PSI 
   val typeStr = "SIMapper"
@@ -16,9 +16,10 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
   def finPass(cl:CL)(m:M):M = m 
 
   private def mapScalarIns(vimap:VIMap, somap:SOMap)(n:N, p:R, map:M):M = {
-    val simap = map.simap
-    val opmap = map.opmap
-    val ib = vimap(n)
+    if (n.ctrler.isInstanceOf[TT]) {
+      return map.setSI(n,p).setOP(n.out, p.out)
+    }
+    val ib = vimap(vecOf(n).asInstanceOf[VI])
     val idx = somap(n.scalar.writer).idx
     if (p.in.canFrom(ib.outports(idx))) {
       map.setSI(n,p).setOP(n.out, p.out)

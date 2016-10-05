@@ -56,7 +56,9 @@ package object typealias {
   type SI    = pir.graph.ScalarIn
   type SO    = pir.graph.ScalarOut
   type VI    = pir.graph.VecIn
+  type DVI   = pir.graph.DummyVecIn
   type VO    = pir.graph.VecOut
+  type DVO   = pir.graph.DummyVecOut
   type I     = pir.graph.Input
   type PT    = pir.graph.Port
   type IP    = pir.graph.InPort
@@ -92,6 +94,7 @@ package object typealias {
   type POP       = pir.plasticine.graph.OutPort[PNode]
   type PIO[S<:PNode]       = pir.plasticine.graph.IO[S]
   type PRMPT     = pir.plasticine.graph.RMPort
+  type PBS       = pir.plasticine.graph.Bus
   type PIB       = pir.plasticine.graph.InBus[PNE]
   type POB       = pir.plasticine.graph.OutBus[PNE]
   type PCB       = pir.plasticine.graph.CtrlBox

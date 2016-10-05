@@ -10,7 +10,7 @@ import scala.util.{Try, Success, Failure}
 
 class VecInMapper(implicit val design:Design) extends Mapper {
   type R = PIB
-  type N = I
+  type N = VI
   val typeStr = "VIMapper"
 
   def finPass(cl:CL)(m:M):M = m
@@ -26,8 +26,9 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     val cons = List(mapVec(cl, pcl) _) 
 
     val ins = cl match {
-      case cl:TT => cl.sins // Assume tile transfer vin internallly connected
-      case _ => cl.vins ++ cl.sins
+      case cl:TT => Nil // Assume tile transfer vin internallly connected
+      case cl:MC => Nil
+      case _ => cl.vins
     }
 
     val pvins = pcl.vins
@@ -36,8 +37,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
 
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
       if (pm.clmap.contains(reader)) {
-        val rins = reader.vins ++ reader.sins
-        if (rins.exists( rin => !pm.vimap.contains(rin) )) map(reader, pm) else pm
+        if (reader.vins.exists( rin => !pm.vimap.contains(rin) )) map(reader, pm) else pm
       } else pm
     }
   }
@@ -45,38 +45,17 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     if (pirMap.vimap.contains(n)) throw ResourceNotUsed(this, n, p, pirMap) 
     if (pirMap.vimap.pmap.contains(p)) throw UsedInBus(p)
-    val dep = n match { // ctrler that writes n
-      case n:SI => n.scalar.writer.ctrler
-      case n:VI => n.vector.writer.ctrler
-    }
+    val dep = n.vector.writer.ctrler // ctrler that writes n
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
-    val pdvout:POB = n match {
-      case n:VI => dep match {
-        //case d:MemoryController => Nil //TODO
-        case d:CU => pirMap.clmap(d).vouts.head //TODO Assume only 1 vout 
-        case _ => throw TODOException(s"Not supported vecout mapping")
-      }
-      case n:SI => getOB(n, pirMap)
-    } 
+    val pdvout:POB = pirMap.vomap(n.vector.writer)
 
     /* Find vins that connects to the depended ctrler */
     if (p.canFrom(pdvout)) {
       dprintln(s"n:$n ctrler:${n.ctrler}, p:$p, po:$pdvout ${pirMap.vimap.pmap.get(p)}")
       val pmap = pirMap.setVI(n, p).setFB(p, pdvout)
-      n match {
-        case n:VI => pmap.setOP(n.out, p.viport)
-        case n:SI => 
-          cl.sins.foldLeft(pmap) { case (pmap, sin) =>
-            if (sin.scalar.writer.ctrler==n.scalar.writer.ctrler) {
-              if (getOB(sin, pmap) == pdvout && 
-                !pmap.vimap.contains(sin)) {
-                pmap.setVI(sin, p)
-              } else pmap
-            } else pmap
-          } // opmap set at scalarIn mapper
-      }
+      pmap.setOP(n.out, p.viport)
     } else {
       throw InterConnct(cl, pcl)
     }

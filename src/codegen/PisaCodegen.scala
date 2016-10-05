@@ -236,8 +236,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {
-    val inputs = pcu.vins.map { vin =>
-      fbmap.get(vin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
+    val inputs = pcu.vins.map { pvin =>
+      fbmap.get(pvin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
     }
     emitList("inputs", inputs)
   }

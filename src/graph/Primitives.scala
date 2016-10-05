@@ -324,6 +324,7 @@ object VecIn {
 
 class DummyVecIn(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecIn(name, vector) {
   override val typeStr = "DVecIn"
+  override def writer:DummyVecOut = vector.writer
 }
 
 class VecOut(val name: Option[String], val vector:Vector)(implicit ctrler:Controller, design: Design) extends Output with VectorIO[Output] {
@@ -344,6 +345,7 @@ object VecOut {
 
 class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecOut(name, vector) {
   override val typeStr = "DVecOut"
+  def scalarOuts = vector.scalars.map(_.writer)
 }
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
