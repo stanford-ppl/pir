@@ -255,10 +255,16 @@ object SRAM {
     = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
 }
 
-trait Output extends Primitive
-trait Input extends Primitive {
+trait IO extends Primitive
+trait Input extends IO {
+  def writer:Output
   def variable:Variable
 }
+trait Output extends IO 
+trait VectorIO[T <: IO] { self:T => 
+  def vector:Vector
+}
+
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
   extends Input {
   scalar.addReader(this)
@@ -269,6 +275,7 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
     case _ => super.equals(that)
   }
   override def variable:Scalar = scalar
+  override def writer = scalar.writer
   val out = OutPort(this, s"${this}.out")
 }
 
@@ -297,7 +304,7 @@ object ScalarOut {
 }
 
 case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) 
-  extends Input{
+  extends Input with VectorIO[Input] {
   vector.addReader(this)
   override val typeStr = "VecIn"
   val out = OutPort(this, {s"${this}.out"}) 
@@ -306,8 +313,8 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
     case _ => super.equals(that)
   }
   override def variable:Vector = vector
+  override def writer = vector.writer
 }
-
 object VecIn {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecIn = 
     VecIn(None, vector)
@@ -315,7 +322,11 @@ object VecIn {
     VecIn(Some(name), vector)
 }
 
-case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: Design) extends Output{
+class DummyVecIn(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecIn(name, vector) {
+  override val typeStr = "DVecIn"
+}
+
+class VecOut(val name: Option[String], val vector:Vector)(implicit ctrler:Controller, design: Design) extends Output with VectorIO[Output] {
   vector.setWriter(this)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
@@ -326,9 +337,13 @@ case class VecOut(name: Option[String], vector:Vector)(implicit ctrler:Controlle
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
-    VecOut(None, vector)
+    new VecOut(None, vector)
   def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
-    VecOut(Some(name), vector)
+    new VecOut(Some(name), vector)
+}
+
+class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecOut(name, vector) {
+  override val typeStr = "DVecOut"
 }
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {

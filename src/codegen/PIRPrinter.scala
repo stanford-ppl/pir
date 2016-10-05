@@ -12,7 +12,7 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
+class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer with Metadata {
 
   override val stream:OutputStream = newStream(Config.pirFile) 
 
@@ -20,12 +20,12 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     super.initPass
     emitBlock("Scalars") {
       design.top.scalars.foreach { s =>
-        emitln(s"${s} writer=${s.writer.ctrler} readers=[${s.readers.map(_.ctrler).mkString(",")}]")
+        emitln(s"${s}${genFields(s)}")
       }
     }
     emitBlock("Vectors") {
       design.top.vectors.foreach { v =>
-        emitln(s"${v} writer=${v.writer.ctrler} readers=[${v.readers.map(_.ctrler).mkString(",")}]")
+        emitln(s"${v}${genFields(v)}")
       }
     }
   }
@@ -110,12 +110,15 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer{
     close
   }
 }
-object PIRPrinter {
-  def genFields(node:Node):String = {
+object PIRPrinter extends Metadata {
+  def genFields(node:Node)(implicit design:Design):String = {
     val fields = ListBuffer[String]()
     node match {
       case n:Controller =>
         fields += s"children=[${n.children.mkString(",")}]"
+      case n:Primitive => {
+        //fields += s"ctrler=${n.ctrler}"
+      }
       case _ =>
     }
     node match {
@@ -136,48 +139,56 @@ object PIRPrinter {
         }
       case p:MemoryController =>
         fields += s"mctpe=${p.mctpe}"
-      case n:Primitive => {
-        //fields += s"ctrler=${n.ctrler}"
-        n match {
-          case p:CounterChain =>
-            fields += s"copy=${p.copy.getOrElse("None")}"
-          case p:SRAM =>
-            fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
-            fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
-            fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
-            fields += s"writeCtr=${p.writeCtr}"
-          case p:Stage =>
-            p.fu.foreach { fu =>
-              fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
-              fields += s"op=${fu.op}"
-              fields += s"results=[${fu.out.to.mkString(",")}]"
-            }
-            p match {
-              case s:ReduceStage => fields += s"idx=${s.idx}"
-              case _ =>
-            }
-          case p:ScalarIn =>
-            fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
-          case p:ScalarOut =>
-            fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
-          case p:VecIn =>
-            fields += s"vector=${p.vector}, writer=${p.vector.writer}"
-          case p:VecOut =>
-            fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
-          case p:Counter => 
-            fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
-            fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
-          //case p:UDCounter => 
-          //  fields += s"init=${p.initVal}"
-          case p:Reg => p match {
-            case r:PipeReg =>
-            case r:Const => fields += s"${r.value}"
-            case r:ArgIn =>
-            case r:ArgOut =>
-          }
+      case p:CounterChain =>
+        fields += s"copy=${p.copy.getOrElse("None")}"
+      case p:SRAM =>
+        fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
+        fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
+        fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
+        fields += s"writeCtr=${p.writeCtr}"
+      case p:Stage =>
+        p.fu.foreach { fu =>
+          fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
+          fields += s"op=${fu.op}"
+          fields += s"results=[${fu.out.to.mkString(",")}]"
+        }
+        p match {
+          case s:ReduceStage => fields += s"idx=${s.idx}"
           case _ =>
         }
+      case p:ScalarIn =>
+        fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
+        vecOf.get(p).foreach { vecIn =>
+          fields += s"vecIn=${vecIn}"
+        }
+      case p:ScalarOut =>
+        fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
+        vecOf.get(p).foreach { vecOut =>
+          fields += s"vecOut=${vecOut}"
+        }
+      case p:VecIn =>
+        fields += s"vector=${p.vector}, writer=${p.vector.writer}"
+      case p:VecOut =>
+        fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
+      case p:Counter => 
+        fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
+        fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
+      //case p:UDCounter => 
+      //  fields += s"init=${p.initVal}"
+      case p:Reg => p match {
+        case r:PipeReg =>
+        case r:Const => fields += s"${r.value}"
+        case r:ArgIn =>
+        case r:ArgOut =>
       }
+      case s:Scalar =>
+        fields += s"writer=${s.writer.ctrler} readers=[${s.readers.map(_.ctrler).mkString(",")}]"
+      case v:Vector =>
+        fields += s"writer=${v.writer.ctrler} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 
+        v match {
+          case n:DummyVector => fields += s"scalars=(${n.scalars.mkString(",")})" 
+          case _ =>
+        }
       case _ =>
     }
     s"(${if (fields.size>0) fields.reduce(_+", "+_) else ""})"

@@ -198,9 +198,6 @@ case class TokenOutLUT(implicit spade:Spade) extends LUT{
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   override val numIns = 2
 }
-object TokenOutLUT extends Metadata {
-  def apply(idx:Int)(implicit spade:Spade):TokenOutLUT = TokenOutLUT().index(idx)
-}
 case class TokenDownLUT(numIns:Int)(implicit spade:Spade) extends LUT {
   override val typeStr = "tdlut"
 }
@@ -219,15 +216,15 @@ object UDCounter extends Metadata {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numCtrs:Int, numIns:Int, numOuts:Int)(implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
-  val ctrlIns = List.tabulate(numIns) {i => InPort(this).index(i) }
-  val ctrlOuts = List.tabulate(numOuts) {i => OutPort(this).index(i) }
+class CtrlBox(numCtrs:Int, numIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
+(implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
+  val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
+  val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs
-  val numTokOutLUTs = numOuts - 1
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
-  val tokDownLUT = TokenDownLUT(1 + numUDCs)
-  val tokOutLUTs = List.tabulate(numTokOutLUTs) { i => TokenOutLUT(i) }
+  val tokenDownLUTs = List.tabulate(numTokenDownLUTs) { i => TokenDownLUT(1 + numUDCs).index(i) }
+  val tokenOutLUTs = List.tabulate(numTokenOutLUTs) { i => TokenOutLUT().index(i) }
   val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(i, numUDCs) }
-  def luts:List[LUT] = enLUTs ++ tokOutLUTs :+ tokDownLUT
+  def luts:List[LUT] = enLUTs ++ tokenOutLUTs ++ tokenDownLUTs
 }

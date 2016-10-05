@@ -8,12 +8,12 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleSequentialDesign extends PIRApp {
-  override val arch = P2P_2CU_2TT
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
-    val x366_argout = ArgOut()
-    val x364_argin = ArgIn()
     val x369_vector = Vector()
+    val x364_argin = ArgIn()
     val x365_argin = ArgIn()
+    val x366_argout = ArgOut()
     val x392 = Sequential(name="x392", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x392_unitCC = CounterChain(name = "x392_unitCC", (Const("0i"), Const("1i"), Const("1i")))

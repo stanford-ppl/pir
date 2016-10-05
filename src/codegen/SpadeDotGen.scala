@@ -69,7 +69,10 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       val recs = ListBuffer[String]()
       recs += s"{${pcu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
       val qpcu = s"${quote(pcu)}"
-      recs += mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => s"{$qpcu|${cu}}"} }
+      recs += mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
+        val icl = cu.asInstanceOf[ICL]
+        s"{$qpcu|{${(icl +: icl.outers).mkString(s"|")}}}"} 
+      }
       recs += s"<${pcu.vout}> ${pcu.vout}"
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
@@ -79,11 +82,19 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       pcu.vins.foreach { pvin =>
         pvin.fanIns.foreach { pvout =>
           val attr = DotAttr()
-          mapping.foreach { 
-            _.vimap.pmap.get(pvin).foreach { set =>
-              var label = set.map(_.variable).mkString(",")
-              if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
-              attr.label(label).color(indianred).style(bold)
+          mapping.foreach { m => 
+            m.vimap.pmap.get(pvin).foreach { vins =>
+              val cvins = vins.filter { vin => 
+                pvout.src match {
+                  case cu:PCU => m.clmap.pmap.contains(cu) && vin.writer.ctrler==m.clmap.pmap(cu)
+                  case _ => false
+                }
+              }
+              if (cvins.size!=0) {
+                var label = cvins.map(_.variable).mkString(",")
+                if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
+                attr.label(label).color(indianred).style(bold)
+              }
             }
           }
           pvout.src match {
@@ -98,28 +109,6 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     }
   }
 
-  def emitNodes(cus:List[CU]) = {
-    cus.foreach { _ match {
-        case cu:ICL =>
-          emitNode(cu, cu, DotAttr().shape(box).style(rounded))
-          cu.sinMap.foreach { case (s, sin) => emitEdge(s.writer.ctrler, cu, s"$s")}
-          cu.vinMap.foreach { case (v, vin) => emitEdge(v.writer.ctrler, cu, s"$v")}
-        case cu:OCL =>
-          cu.sinMap.foreach { case (s, sin) => 
-            val writer = s.writer.ctrler match {
-              case w:ICL => w
-              case w:OCL => w.inner
-              case w => w
-            }
-            emitEdge(writer, cu.inner, s"$s")
-          }
-        //TODO
-        //case top:Top => emitNode(top, top, DotAttr().shape(box).style(rounded))
-        //case mc:MC => emitNode(mc, mc, DotAttr().shape(box).style(rounded))
-      } 
-    }
-  }
-
   def print(pcus:List[PCU]) = {
     emitBlock("digraph G") { emitPCUs(pcus, None) }
     close
@@ -131,36 +120,18 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     close
   }
 
-  def print(pcus:List[PCU], cus:List[CU]) = {
+  def print(pcus:List[PCU], mapping:PIRMap) = {
     emitBlock("digraph G") {
-      emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus, None) }
-      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
+      emitPCUs(pcus, Some(mapping))
     }
     close
   }
 
-  def print(res:(List[PCU], List[SwitchBox]), cus:List[CU]) = {
+  def print(res:(List[PCU], List[SwitchBox]), mapping:PIRMap) = {
     val (pcus, sbs) = res
     emitBlock("digraph G") {
-      emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus, None); emitSwitchBoxes(sbs, None) }
-      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
-    }
-    close
-  }
-
-  def print(pcus:List[PCU], cus:List[CU], mapping:PIRMap) = {
-    emitBlock("digraph G") {
-      emitSubGraph("Mapping", "Mapping") { emitPCUs(pcus, Some(mapping)) }
-      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
-    }
-    close
-  }
-
-  def print(res:(List[PCU], List[SwitchBox]), cus:List[CU], mapping:PIRMap) = {
-    val (pcus, sbs) = res
-    emitBlock("digraph G") {
-      emitSubGraph("PCUs", "PCUs") { emitPCUs(pcus, Some(mapping)); emitSwitchBoxes(sbs, Some(mapping)) }
-      emitSubGraph("Nodes", "Nodes") { emitNodes(cus) }
+      emitPCUs(pcus, Some(mapping))
+      emitSwitchBoxes(sbs, Some(mapping))
     }
     close
   }
@@ -218,7 +189,7 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
         }
       }
     }
-  close
+    close
   }
 
   def emitMapping(pctrs:List[PCtr], mapping:PIRMap) = {
@@ -266,9 +237,9 @@ class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
 
   override def traverse = {
     if (pirMapping.mapping!=null)
-      cuPrinter.print(design.arch.cus, design.top.compUnits, pirMapping.mapping)
+      cuPrinter.print(design.arch.cus, pirMapping.mapping)
     else
-      cuPrinter.print(design.arch.cus, design.top.compUnits)
+      cuPrinter.print(design.arch.cus)
     ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }

@@ -8,10 +8,10 @@ import pir.misc._
 import pir.PIRApp
 
 object InOutArgDesign extends PIRApp {
-  override val arch = P2P_2CU_2TT
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
-    val x104_argout = ArgOut()
     val x103_argin = ArgIn()
+    val x104_argout = ArgOut()
     val x112 = Sequential(name="x112", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x112_unitCC = CounterChain(name = "x112_unitCC", (Const("0i"), Const("1i"), Const("1i")))

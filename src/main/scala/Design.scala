@@ -166,6 +166,7 @@ trait Design extends Metadata { self =>
 
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
+  lazy val pirNetworkDotPrinter = new PIRNetworkDotPrinter()
   lazy val pirMapping = new PIRMapping()
   lazy val cuDotPrinter = new CUDotPrinter()
   lazy val argDotPrinter = new ArgDotPrinter()
@@ -177,6 +178,7 @@ trait Design extends Metadata { self =>
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
+    if (Config.debug) traversals += pirNetworkDotPrinter
     traversals += new LiveAnalysis()
     traversals += new IRCheck()
     traversals += new CtrlAlloc()
@@ -204,6 +206,7 @@ trait Design extends Metadata { self =>
 
   // Metadata Maps
   val indexMap:indexOf.M = Map.empty
+  val vecMap:vecOf.M = Map.empty
 }
 
 trait PIRApp extends Design{
@@ -234,5 +237,10 @@ trait Metadata {
   object indexOf extends Metadata {
     type V = Int
     def map(implicit design:Design) = design.indexMap
+  }
+  /* Index of a spade node. Used for pisa codegen */
+  object vecOf extends Metadata {
+    type V = VectorIO[_]
+    def map(implicit design:Design) = design.vecMap
   }
 }

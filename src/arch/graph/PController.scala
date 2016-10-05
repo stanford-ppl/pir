@@ -1,6 +1,5 @@
 package pir.plasticine.graph
 
-import pir.graph._
 import pir.graph.enums._
 import pir.plasticine.main._
 
@@ -75,11 +74,11 @@ class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Con
       ScalarIn(vins(ib).outports(is))
   }.flatten
   val souts:List[ScalarOut] = List.tabulate(vout.inports.size) { is => ScalarOut(vout.inports(is)) }
-  var etstage:EmptyStage = _ 
-  var wastages:List[WAStage] = _
-  var rastages:List[FUStage] = _
-  var regstages:List[FUStage] = _ 
-  var rdstages:List[ReduceStage] = _ 
+  var etstage:EmptyStage = _ // Empty Stage
+  var wastages:List[WAStage] = _ // Write Addr Stages
+  var rastages:List[FUStage] = _ // Read Addr Stages
+  var regstages:List[FUStage] = _  // Regular Stages
+  var rdstages:List[ReduceStage] = _ // Reduction Stages
   def fustages:List[FUStage] = wastages ++ rastages ++ regstages ++ rdstages // Stages with fu 
   def stages:List[Stage] = {
     val sts = etstage :: fustages
@@ -104,8 +103,8 @@ class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Con
   }
   def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter(ic) }; this }
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM(is) }; this }
-  def ctrlBox(numTokenIns:Int, numTokenOuts:Int):this.type = { 
-    ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOuts); this }
+  def ctrlBox(numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int):this.type = { 
+    ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOutLUTs, numTokenDownLUTs); this }
 
 }
 

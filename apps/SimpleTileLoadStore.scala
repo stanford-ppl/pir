@@ -8,73 +8,73 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleTileLoadStoreDesign extends PIRApp {
-  override val arch = P2P_2CU_2TT
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
-    val x1106_vector = Vector()
-    val x1120_vector = Vector()
-    val x1035_argin = ArgIn()
-    val x996_oc = OffChip()
-    val x1036_argin = ArgIn()
-    val x1133_vector = Vector()
+    val x1105_vector = Vector()
+    val x1034_argin = ArgIn()
+    val x1132_vector = Vector()
+    val x994_oc = OffChip()
     val x995_oc = OffChip()
-    val x1107_mc_mc = MemoryController(TileLoad, x995_oc)
-    val x1146_mc_mc = MemoryController(TileStore, x996_oc)
-    val x1152 = Sequential(name="x1152", parent=top, deps=List()) { implicit CU => 
+    val x1119_vector = Vector()
+    val x1035_argin = ArgIn()
+    val x1145_mc_mc = MemoryController(TileStore, x995_oc)
+    val x1106_mc_mc = MemoryController(TileLoad, x994_oc)
+    val x1151 = Sequential(name="x1151", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1152_unitCC = CounterChain(name = "x1152_unitCC", (Const("0i"), Const("1i"), Const("1i")))
+      val x1151_unitCC = CounterChain(name = "x1151_unitCC", (Const("0i"), Const("1i"), Const("1i")))
     }
-    val x1150 = Sequential(name="x1150", parent=x1152, deps=List()) { implicit CU => 
+    val x1149 = Sequential(name="x1149", parent=x1151, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1041 = (Const("0i").out, CU.scalarIn(stage0, x1035_argin).out, Const("96i").out) // Counter
-      val x1042 = CounterChain(name = "x1042", x1041)
+      val x1040 = (Const("0i").out, CU.scalarIn(stage0, x1034_argin).out, Const("96i").out) // Counter
+      val x1041 = CounterChain(name = "x1041", x1040)
     }
-    val x1119 = MetaPipeline(name="x1119", parent=x1150, deps=List()) { implicit CU => 
+    val x1118 = MetaPipeline(name="x1118", parent=x1149, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1119_unitCC = CounterChain(name = "x1119_unitCC", (Const("0i"), Const("1i"), Const("1i")))
+      val x1118_unitCC = CounterChain(name = "x1118_unitCC", (Const("0i"), Const("1i"), Const("1i")))
     }
-    val x1107 = TileTransfer(name="x1107", parent=x1119, memctrl=x1107_mc_mc, mctpe=TileLoad, deps=List(), vec=x1106_vector) { implicit CU => 
+    val x1106 = TileTransfer(name="x1106", parent=x1118, memctrl=x1106_mc_mc, mctpe=TileLoad, deps=List(), vec=x1105_vector) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1042 = CounterChain.copy(x1150, "x1042")
-      val x1107_ctr = (Const("0l").out, Const("96i").out, Const("1l").out) // Counter
-      val x1107_cc = CounterChain(name = "x1107_cc", x1107_ctr)
-      val x1108 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
-      val x1109 = CounterChain(name = "x1109", x1108).isStreaming(true)
+      val x1041 = CounterChain.copy(x1149, "x1041")
+      val x1106_ctr = (Const("0l").out, Const("96i").out, Const("1l").out) // Counter
+      val x1106_cc = CounterChain(name = "x1106_cc", x1106_ctr)
+      val x1107 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
+      val x1108 = CounterChain(name = "x1108", x1107).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1042(0)), CU.ctr(stage(0), x1107_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1107_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1106_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1106_mc_mc.saddr)))
     }
-    val x1132 = Pipeline(name="x1132", parent=x1150, deps=List(x1119)) { implicit CU => 
+    val x1131 = Pipeline(name="x1131", parent=x1149, deps=List(x1118)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1121 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
-      val x1122 = CounterChain(name = "x1122", x1121)
-      val x1109 = CounterChain.copy(x1107, "x1109")
-      val x1040_x1125 = SRAM(size = 96, writeCtr = x1109(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x1106_vector).rdAddr(x1122(0)).wtAddr(x1109(0))
+      val x1120 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
+      val x1121 = CounterChain(name = "x1121", x1120)
+      val x1108 = CounterChain.copy(x1106, "x1108")
+      val x1039_x1124 = SRAM(size = 96, writeCtr = x1108(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x1105_vector).rdAddr(x1121(0)).wtAddr(x1108(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(x1040_x1125.load, CU.scalarIn(stage(0), x1036_argin)), op=FixMul, results=List(CU.vecOut(stage(1), x1120_vector)))
+      Stage(stage(1), operands=List(x1039_x1124.load, CU.scalarIn(stage(0), x1035_argin)), op=FixMul, results=List(CU.vecOut(stage(1), x1119_vector)))
     }
-    val x1148 = MetaPipeline(name="x1148", parent=x1150, deps=List(x1132)) { implicit CU => 
+    val x1147 = MetaPipeline(name="x1147", parent=x1149, deps=List(x1131)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1148_unitCC = CounterChain(name = "x1148_unitCC", (Const("0i"), Const("1i"), Const("1i")))
+      val x1147_unitCC = CounterChain(name = "x1147_unitCC", (Const("0i"), Const("1i"), Const("1i")))
     }
-    val x1145 = Pipeline(name="x1145", parent=x1148, deps=List()) { implicit CU => 
+    val x1144 = Pipeline(name="x1144", parent=x1147, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1122 = CounterChain.copy(x1132, "x1122")
-      val x1134 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
-      val x1135 = CounterChain(name = "x1135", x1134)
-      val x1120_x1138 = SRAM(size = 96, writeCtr = x1122(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x1120_vector).rdAddr(x1135(0)).wtAddr(x1122(0))
+      val x1133 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
+      val x1134 = CounterChain(name = "x1134", x1133)
+      val x1121 = CounterChain.copy(x1131, "x1121")
+      val x1119_x1137 = SRAM(size = 96, writeCtr = x1121(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x1119_vector).rdAddr(x1134(0)).wtAddr(x1121(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(x1120_x1138.load), op=Bypass, results=List(CU.vecOut(stage(1), x1133_vector)))
+      Stage(stage(1), operands=List(x1119_x1137.load), op=Bypass, results=List(CU.vecOut(stage(1), x1132_vector)))
     }
-    val x1146 = TileTransfer(name="x1146", parent=x1148, memctrl=x1146_mc_mc, mctpe=TileStore, deps=List(x1145), vec=x1133_vector) { implicit CU => 
+    val x1145 = TileTransfer(name="x1145", parent=x1147, memctrl=x1145_mc_mc, mctpe=TileStore, deps=List(x1144), vec=x1132_vector) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x1042 = CounterChain.copy(x1150, "x1042")
-      val x1146_ctr = (Const("0l").out, Const("96i").out, Const("1l").out) // Counter
-      val x1146_cc = CounterChain(name = "x1146_cc", x1146_ctr)
+      val x1041 = CounterChain.copy(x1149, "x1041")
+      val x1145_ctr = (Const("0l").out, Const("96i").out, Const("1l").out) // Counter
+      val x1145_cc = CounterChain(name = "x1145_cc", x1145_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1042(0)), CU.ctr(stage(0), x1146_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1146_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1145_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1145_mc_mc.saddr)))
     }
     
   }

@@ -136,20 +136,25 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = c0::c1::c2::c3::c4::Nil
+      top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+
+      new PIRNetworkDotPrinter().run
       Try {
         mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
       } match {
-        case Success(mapping) => new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), cus, mapping)
-        case Failure(e) => new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), cus); throw e
+        case Success(mapping) => 
+          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), mapping)
+        case Failure(e) => 
+          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs)); throw e
       }
     }
   }
 
-  "SwitchBox Mapping - DotProduct" should "success" taggedAs(WIP) in {
+  "SwitchBox Mapping - DotProduct" should "success" in {
     new Design {
       top = Top()
       // Nodes
@@ -205,15 +210,20 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
+      top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+
+      new PIRNetworkDotPrinter().run
       Try {
         mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
       } match {
-        case Success(mapping) => new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), cus, mapping)
-        case Failure(e) => new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), cus); throw e
+        case Success(mapping) => 
+          new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), mapping)
+        case Failure(e) => 
+          new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs)); throw e
       }
     }
   }
@@ -245,16 +255,19 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = (c0::c1::c2::c3::c4::Nil).reverse
+      top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
       implicit override val arch = genSwitchNetworkConfig
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new ScalarOutMapper())
+      new PIRNetworkDotPrinter().run
       Try {
         mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs), cus, mapping)
-        case Failure(e) => new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs), cus); throw e
+          new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs), mapping)
+        case Failure(e) => 
+          new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs)); throw e
       }
       MapperLogger.close
     }

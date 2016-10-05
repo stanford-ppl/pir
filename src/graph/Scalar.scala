@@ -37,7 +37,7 @@ object ArgOut {
   def apply(name:String) (implicit design: Design):Scalar = new Scalar(Some(name)) with ArgOut
 }
 
-case class Vector(val name:Option[String])(implicit design: Design) extends Node with Variable {
+class Vector(val name:Option[String])(implicit design: Design) extends Node with Variable {
   override val typeStr = "Vector"
   var writer:VecOut = _
   val readers:Set[VecIn] = Set[VecIn]() 
@@ -49,8 +49,26 @@ case class Vector(val name:Option[String])(implicit design: Design) extends Node
   override def toUpdate = super.toUpdate || writer==null
 }
 object Vector {
-  def apply(name:String)(implicit design: Design):Vector = Vector(Some(name)) 
-  def apply()(implicit design: Design):Vector = Vector(None) 
+  def apply(name:String)(implicit design: Design):Vector = new Vector(Some(name)) 
+  def apply()(implicit design: Design):Vector = new Vector(None) 
+}
+
+class DummyVector(name:Option[String])(implicit design:Design) extends Vector(name) {
+  override val typeStr = "DVector"
+  val scalars = Set[Scalar]()
+  def isFull = scalars.size==design.arch.numLanes
+  def remainSpace = design.arch.numLanes - scalars.size
+  def addScalar(s:Scalar) = { 
+    assert(scalars.size < design.arch.numLanes) 
+    scalars += s
+  }
+  override def setWriter(w:VecOut) = {
+    val writerCtrlers = scalars.map(_.writer.ctrler).toSet
+    assert(writerCtrlers.size==1, 
+      s"bundled scalars have more than 1 writers scalars:${scalars} writers: ${writerCtrlers}")
+    assert(w.ctrler==writerCtrlers.head)
+    super.setWriter(w)
+  }
 }
 
 case class OffChip(name:Option[String])(implicit design: Design) extends Node{

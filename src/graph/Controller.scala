@@ -23,9 +23,20 @@ abstract class Controller(implicit design:Design) extends Node { self =>
   def vouts = voutMap.values.toList
   def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
   def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
-  def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
-  def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
+  def newVin(v:Vector):VecIn = {
+    v match {
+      case v:DummyVector => vinMap.getOrElseUpdate(v, new DummyVecIn(None, v))
+      case _ => vinMap.getOrElseUpdate(v,VecIn(v))
+    }
+  }
+  def newVout(v:Vector):VecOut = {
+    v match {
+      case v:DummyVector => voutMap.getOrElseUpdate(v, new DummyVecOut(None, v))
+      case _ => voutMap.getOrElseUpdate(v, VecOut(v))
+    }
+  }
 
+  //TODO inner controller shouldn't have children
   val children = ListBuffer[ComputeUnit]()
 
   def readers:List[Controller] = soutMap.keys.flatMap(_.readers.map(_.ctrler)).toList ++
@@ -348,7 +359,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  var innerCUs:List[InnerController] = _
+  var innerCUs:List[InnerController] = _ 
   var outerCUs:List[OuterController] = _
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
@@ -362,7 +373,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
   
-  override def toUpdate = super.toUpdate || innerCUs==null || outerCUs==null || memCtrls==null
+  override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null || memCtrls==null
 
   def updateFields(inners:List[InnerController], outers:List[OuterController], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
     //TODO change innerCU and outerCU to a type

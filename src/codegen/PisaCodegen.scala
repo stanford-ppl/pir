@@ -410,47 +410,44 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def emitCtrl(pcu:PCU)(implicit ms:CollectionStatus) {
     emitMap(s"control") { implicit ms =>
       emitList("tokenDownLUT") { implicit ms =>
-        emitMap { implicit ms =>
-          val ptdlut = pcu.ctrlBox.tokDownLUT
-          val table = if (!lumap.pmap.contains(ptdlut)) {
-            CtrlCodegen.lookUpX(ptdlut.numIns)
-          } else {
-            val tdlut = lumap.pmap(ptdlut)
-            val inits = ListBuffer[IP]()
-            val tos = ListBuffer[OP]()
-            val map:Map[OP, Int] = Map.empty
-            tdlut.ins.foreach { in =>
-              in.from.src match {
-                case t:Top =>
-                  inits += in
-                case p:PRIM => 
-                  if (p.ctrler==tdlut.ctrler.parent)
-                    inits += in
-                  else
-                    tos += in.from
-                case c =>
-                  emitln(s"${c}")
+        pcu.ctrlBox.tokenDownLUTs.foreach { ptdlut =>
+          emitMap { implicit ms =>
+            val table = if (!lumap.pmap.contains(ptdlut)) {
+              CtrlCodegen.lookUpX(ptdlut.numIns)
+            } else {
+              val tdlut = lumap.pmap(ptdlut)
+              val inits = ListBuffer[IP]()
+              val tos = ListBuffer[OP]()
+              val map:Map[OP, Int] = Map.empty
+              tdlut.ins.foreach { in =>
+                in.from.src match {
+                  case t:Top => inits += in
+                  case p:PRIM => 
+                    if (p.ctrler==tdlut.ctrler.parent) inits += in
+                    else tos += in.from
+                  case c => emitln(s"${c}") //TODO?
+                }
               }
+              assert(inits.size <= 1, s"inits:${inits}")
+              emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
+              inits.foreach { init =>
+                val pip = ipmap(init)
+                map += (init.from -> indexOf(pip))
+              }
+              tos.foreach { to =>
+                map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
+              }
+              val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
+              emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
+              CtrlCodegen.lookUp(ptdlut.numIns, tf)
             }
-            assert(inits.size <= 1, s"inits:${inits}")
-            emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
-            inits.foreach { init =>
-              val pip = ipmap(init)
-              map += (init.from -> indexOf(pip))
-            }
-            tos.foreach { to =>
-              map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
-            }
-            val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
-            emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
-            CtrlCodegen.lookUp(ptdlut.numIns, tf)
+            emitPair("table", s"${table}")
           }
-          emitPair("table", s"${table}")
         }
       }
       val doneXbar = ListBuffer[String]()
       emitList("tokenOutLUT") { implicit ms =>
-        pcu.ctrlBox.tokOutLUTs.foreach { ptolut =>
+        pcu.ctrlBox.tokenOutLUTs.foreach { ptolut =>
           emitMap { implicit ms =>
             val table = if (!lumap.pmap.contains(ptolut)) {
               CtrlCodegen.lookUpX(ptolut.numIns)

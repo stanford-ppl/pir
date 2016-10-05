@@ -76,7 +76,9 @@ object CUMapper {
         case (nn:Int, nr:Int) => val (pass,_) = check(info, (nn <= nr))
           (pass, s"$info: numNode:$nn numRes:$nr")
         case (ns:Iterable[_], rs:Iterable[_]) => check(info, (ns.size, rs.size))
-        case c => throw PIRException(s"Unknown checking format: $cond")
+        case c => 
+          println(c)
+          throw PIRException(s"Unknown checking format: $cond")
       }
   }
 
@@ -110,8 +112,8 @@ object CUMapper {
         cons += (("tokIn"	    , (cu.ctrlIns, pcu.ctrlBox.ctrlIns)))
         cons += (("udc"	      , (cu.udcounters, pcu.ctrlBox.udcs)))
         cons += (("enLut"	    , (cu.enLUTs, pcu.ctrlBox.enLUTs)))
-        cons += (("tokDownLut", (cu.tokDownLUTs.size, 1))) // TODO
-        cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokOutLUTs)))
+        cons += (("tokDownLut", (cu.tokDownLUTs, pcu.ctrlBox.tokenDownLUTs)))
+        cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokenOutLUTs)))
         failureInfo += pcu -> ListBuffer[String]()
         check(cons.toList, failureInfo(pcu))
       }

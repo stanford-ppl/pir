@@ -67,7 +67,7 @@ trait DotCodegen extends Printer with DotEnum {
     emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
   }
   def emitEdge(from:Any, to:Any, label:String):Unit = {
-    emitln(s"""${q(from)} -> ${q(to)} [label=${label}]""")
+    emitEdge(from, to, DotAttr().label(label))
   }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
     emitln(s"""${q(from)} -> ${q(to)} [${attr.list}]""")
@@ -91,11 +91,6 @@ trait DotCodegen extends Printer with DotEnum {
 	}
   def emitSubGraph(n:Any, attr:DotAttr)(block: =>Any):Unit = {
 		emitBlock(s"""subgraph cluster_${n}""") {
-      //emitln(s"""${attr.expand}""")
-			//emitln(s"""style=${filled};""")
-			//emitln(s"""color=${lightgrey};""")
-      //emitln(s"""node [style=filled]""")
-			//emitln(s"""label = "${label}";""")
       emitln(attr.expand)
 			block
 		}

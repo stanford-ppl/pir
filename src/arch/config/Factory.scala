@@ -17,7 +17,7 @@ object ConfigFactory extends ImplicitConversion {
   
   def genRCU(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
     val cu = new ComputeUnit(numLanes, numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(numCtrs, numCtrs)
+      .ctrlBox(6, 3, 3)
     /* Pipeline Stages */
     cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
     cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 
@@ -31,7 +31,7 @@ object ConfigFactory extends ImplicitConversion {
 
   def genTT(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
     val cu = new TileTransfer(numLanes, 1).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(numCtrs, numCtrs)
+      .ctrlBox(6,3,3)
     /* Pipeline Stages */
     cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
     cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 

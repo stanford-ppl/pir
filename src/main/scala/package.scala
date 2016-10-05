@@ -97,6 +97,8 @@ package object typealias {
   type PCB       = pir.plasticine.graph.CtrlBox
   type PLUT      = pir.plasticine.graph.LUT
   type PEnLUT    = pir.plasticine.graph.EnLUT
+  type PTDLUT     = pir.plasticine.graph.TokenDownLUT
+  type PTOLUT    = pir.plasticine.graph.TokenOutLUT
   type PUC       = pir.plasticine.graph.UDCounter
   type PSB       = pir.plasticine.graph.SwitchBox
   type Stagable  = pir.plasticine.graph.Stagable

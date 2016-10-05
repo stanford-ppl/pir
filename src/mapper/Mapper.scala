@@ -32,9 +32,9 @@ trait Mapper { self =>
     dprintln(mapper, s"$info { ")
     Try(block) match {
       case Success(m) =>
-        MapperLogger.pprint("}"); dprintln(mapper, s"$info (succeeded)"); MapperLogger.flush; m
+        dprintln(mapper, s"} $info (succeeded)"); MapperLogger.flush; m
       case Failure(e) =>
-        MapperLogger.pprint("}"); dprintln(mapper, s"$info (failed) $e"); MapperLogger.flush; throw e
+        dprintln(mapper, s"} $info (failed) $e"); MapperLogger.flush; throw e
     }
   }
   def log[M](info:Any)(block: => M):M = log(this, info)(block)

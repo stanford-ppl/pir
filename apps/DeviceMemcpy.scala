@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object DeviceMemcpyDesign extends PIRApp {
-  override val arch = P2P_2CU_2TT 
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
     val x634_argout = ArgOut()
     val x639 = Sequential(name="x639", parent=top, deps=List()) { implicit CU => 
