@@ -46,3 +46,6 @@ cycles.txt
 /csv/
 /idealmb/
 tags
+.classpath
+.project
+.settings

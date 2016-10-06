@@ -23,12 +23,12 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
   // Try to bundle scalar outs that going into the same set of readers into a single
   // VecOut as much as possible
   def bundleScalarOuts = {
-    design.top.ctrlers.foreach { cl =>
+    design.top.spadeCtrlers.foreach { cl =>
       if (!cl.isInstanceOf[TileTransfer] && !cl.isInstanceOf[MemoryController]) bundleScalarOut(cl)
     }
   }
 
-  def bundleScalarOut(cl:Controller) = {
+  def bundleScalarOut(cl:SpadeController) = {
     val grps = cl.souts.groupBy(_.scalar.readers.map(_.ctrler).toSet).to[Stack]
     val vecs = ListBuffer[DummyVector]()
     val freeVecs = Stack[DummyVector]()
@@ -56,12 +56,12 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
   }
 
   def bundleScalarIns = {
-    design.top.ctrlers.foreach { cl =>
+    design.top.spadeCtrlers.foreach { cl =>
       if (!cl.isInstanceOf[TileTransfer] && !cl.isInstanceOf[MemoryController]) bundleScalarIn(cl)
     }
   }
 
-  def bundleScalarIn(cl:Controller) = {
+  def bundleScalarIn(cl:SpadeController) = {
     val grps = cl.sins.groupBy { sin => vecOf(sin.scalar.writer) }
     grps.foreach { case (dvout, sins) =>
       val vi = cl.newVin(dvout.vector)

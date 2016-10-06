@@ -85,11 +85,12 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     }
     mapping.foreach { mp =>
       design.top.vins.foreach { vin =>
-        val pvout = mp.vomap(vin.writer)
-        val dvo = mp.vomap.pmap(pvout).asInstanceOf[DVO] 
-        val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-        val attr = DotAttr().label(label).color(indianred).style(bold)
-        emitEdge(s"${mp.clmap(dvo.ctrler)}:$pvout", design.top, attr)
+        mp.vomap.get(vin.writer).foreach { pvout =>
+          val dvo = mp.vomap.pmap(pvout).asInstanceOf[DVO] 
+          val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+          val attr = DotAttr().label(label).color(indianred).style(bold)
+          emitEdge(s"${mp.clmap(dvo.ctrler)}:$pvout", design.top, attr)
+        }
       }
     }
   }

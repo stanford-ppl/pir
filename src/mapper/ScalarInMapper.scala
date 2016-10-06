@@ -26,7 +26,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
     } else throw ScalarInRouting(n, p)
   }
 
-  def map(cl:CL, pirMap:M):M = {
+  def map(cl:SCL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
     val sin = cl.sins
     val psin = pcl.sins

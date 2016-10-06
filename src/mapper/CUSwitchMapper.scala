@@ -17,7 +17,7 @@ import scala.util.{Try, Success, Failure}
 object CUSwitchMapper {
   type Edge = (POB, PIB)
   type Path = List[Edge]
-  type PathMap = List[(PCU, Path)]
+  type PathMap = List[(PCL, Path)]
   def quote(io:PIO[PNE])(implicit spade:Spade):String = {
     io.src match {
       case cu:PCU => io.toString
@@ -28,16 +28,14 @@ object CUSwitchMapper {
     path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
   }
 }
-class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) extends Mapper {
+class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) extends CUMapper {
   type Edge = CUSwitchMapper.Edge 
   type Path = CUSwitchMapper.Path 
   type PathMap = CUSwitchMapper.PathMap 
 
   val typeStr = "CUSwitchMapper"
 
-  def finPass(m:M):M = m
-
-  val resMap:MMap[CL, List[PCL]] = MMap.empty
+  val resMap:MMap[SCL, List[PCL]] = MMap.empty
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
@@ -52,76 +50,77 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     if (tts.size > ptts.size) throw OutOfPTT(ptts.size, tts.size)
     if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
 
-    val mp = m.setCL(design.top, design.arch.top)
-    mapCUs(design.arch.cus, design.top.innerCUs, mp, finPass _)
+    val nodes = design.top::cus
+    val reses = design.arch.top::pcus
+    CUMapper.qualifyCheck(reses, nodes, resMap)
+    mapCUs(finPass _)(nodes, m)
   }
 
-  def mapCUs(pcus:List[PCU], cus:List[ICL], m:M, finPass:M => M):M = {
-    CUMapper.qualifyCheck(pcus, cus, resMap)
-    mapCUs(finPass)(cus, m)
-  }
-
-  def mapCUs(finPass:M => M)(remainNodes:List[CU], map:M):M = {
-    type R = PCU
-    type N = CU
-    if (remainNodes.size==0) return finPass(map) // throw MappingException
+  def mapCUs(fp:M => M)(remainNodes:List[SCL], map:M):M = {
+    type R = PCL
+    type N = SCL
+    if (remainNodes.size==0) return fp(map) // throw MappingException
     val cu::restNodes = remainNodes 
     val pdeps = getDeps(cu.vins, map) // returns unmapped vins whose depended cu are mapped
     if (pdeps.size==0) { // If there's no dependency
-      def constrain(cu:N, pcu:R, m:M):M = { 
-        val mp = mapCU(cu, pcu, m) 
-        cu.readers.foldLeft(mp) { case (pm, reader) =>
-          reader match {
-            case rd:CU if (pm.clmap.contains(rd)) => 
-              mapDep(rd, (m:M) => m)(getDeps(rd.vins, pm), pm) 
-            case _ => pm
+      def constrain(cu:N, pcu:R, m:M):M = {
+        cu.readers.foldLeft(mapCU(cu, pcu, m)) { case (pm, reader) =>
+          val rpdeps = getDeps(reader.vins, pm)
+          if (pm.clmap.contains(reader) && rpdeps.size!=0) {
+            mapDep(reader, (m:M) => m)(rpdeps, pm) 
+          } else { 
+            pm
           }
         }
       }
       def resFunc(cu:N, m:M):List[R] = {
-        resMap(cu).filter { pcu => !m.clmap.pmap.contains(pcu) }.asInstanceOf[List[R]]
+        if (m.clmap.contains(cu)) List(m.clmap(cu))
+        else resMap(cu).filter { pcu => !m.clmap.pmap.contains(pcu) }
       }
-      recRes[R,N,M](List(constrain _), resFunc _, mapCUs((m:M) => m) _)(cu, restNodes, map)
+      recRes[R,N,M](List(constrain _), resFunc _, mapCUs(fp) _)(cu, restNodes, map)
     } else { // There is dependency
-      mapDep(cu, mapCUs((m:M) => m)(restNodes, _))(pdeps, map)
+      mapDep(cu, mapCUs(fp)(remainNodes, _))(pdeps, map)
     }
   }
 
   val minHop = 1
   val maxHop = 4
-  def mapDep(cu:CU, finPass:M => M)(remainDeps:List[(VI,PCU)], map:M):M = {
-    type N = (VI, PCU)
-    type R = (PCU, Path)
-    if (remainDeps.size==0) return finPass(map)
+  def mapDep(cl:SCL, fp:M => M)(remainDeps:List[(VI,PCL)], map:M):M = {
+    type N = (VI, PCL)
+    type R = (PCL, Path)
+    if (remainDeps.size==0) return fp(map)
     // Function returns a list of available pathes to choose to map (vin, pdep)
     def resFunc(pdep:N, m:M):List[R] = {
       val (vin, start) = pdep
-      val pcu = m.clmap.get(cu) 
-      def cuCons(to:PCU, path:Path) = {
-        pcu.fold(true) { _ == to } && // If cu has been mapped, valid path reaches current pcu
+      val pcl = m.clmap.get(cl) 
+      def validCons(toVin:PIB, path:Path) = {
+        val to = toVin.src
+        pcl.fold(true) { _ == to } && // If cl has been mapped, valid path reaches current pcl
         (path.size >= minHop) && // path is with required hops
         (path.size < maxHop) && 
         (to!=start) && // path doesn't end at depended CU
         !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
       }
-      def sbCons(psb:PSB, path:Path) = { 
+      def advanceCons(psb:PSB, path:Path) = { 
         (path.size < maxHop) && // path is within maximum hop to continue
         !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
       }
-      advance(start, cuCons _, sbCons _)
+      advance(start, validCons _, advanceCons _)
     }
     // Function check a specific path is valid for a given (vin, pdep) and exisiting mapping. If
     // valid, add path to the mapping and return the mapping
     def constrain(pdep:N, route:R, m:M):M = {
-      val (pcu, path) = route
+      val (pcl, path) = route
       val (vin, from) = pdep 
       var mp = m
-      if (mp.clmap.contains(cu)) {
-        assert(mp.clmap(cu)==pcu)
+      if (mp.clmap.contains(cl)) {
+        assert(mp.clmap(cl)==pcl)
       } else {
-        mp = mapCU(cu, pcu, m)
+        mp = mapCU(cl, pcl, m)
       }
-      mp = mp.setVI(vin, path.last._2)
+      val pvin = path.last._2
+      val pdvout:POB = mp.vomap(vin.vector.writer)
+      mp = mp.setVI(vin, pvin).setFB(pvin, pdvout).setOP(vin.out, pvin.viport)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
         if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox
@@ -133,12 +132,13 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
       mp
     }
     val pdep::restDeps = remainDeps 
-    recRes[R, N, M](List(constrain _), resFunc _, mapDep(cu, finPass) _)(pdep, restDeps, map)
+    val (vin, pdepcu) = pdep
+    recRes[R, N, M](List(constrain _), resFunc _, mapDep(cl, fp) _)(pdep, restDeps, map)
   }
 
-  def mapCU(cu:CU, pcu:PCU, map:M):M = {
+  def mapCU(cl:SCL, pcl:PCL, map:M):M = {
     Try {
-      outputMapper.map(cu, map.setCL(cu, pcu))
+      outputMapper.map(cl, map.setCL(cl, pcl))
     } match {
       case Success(m) => m
       case Failure(e) => throw e
@@ -149,7 +149,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
    * Returns unmapped vins whose depended CUs are already mapped
    * Returns (vin, pcu)
    * */
-  def getDeps(vins:List[VI], map:M):List[(VI, PCU)] = {
+  def getDeps(vins:List[VI], map:M):List[(VI, PCL)] = {
     // Already mapped depended PCUs
     vins.flatMap { vin => 
       if (map.vimap.contains(vin)) { None
@@ -158,6 +158,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
         map.clmap.get(writer.ctrler).flatMap { pcl => 
           pcl match {
             case pcu:PCU => Some(vin ->pcu)
+            case ptop:PTop => Some(vin -> ptop)
             case _ => None
           }
         }
@@ -175,11 +176,11 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
    * @param advanceCons condition on whether continue advancing based on the current switchbox
    * encountered and path went through so far 
    * */
-  def advance(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     advanceDFS(start, validCons, advanceCons)
   }
 
-  def advanceDFS(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceDFS(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
       val visited = path.map{ case (f,t) => f.src }
       if (visited.contains(pne)) return map
@@ -187,7 +188,8 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
         vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
           val newPath = path :+ (vout, vin)
           vin.src match {
-            case cu:PCU if validCons(cu, newPath) => pm :+ (cu, newPath)
+            case cl:PCU if validCons(vin, newPath) => pm :+ (cl, newPath)
+            case cl:PTop if validCons(vin, newPath) => pm :+ (cl, newPath)
             case sb:PSB if advanceCons(sb, newPath) => rec(vin.src, newPath, pm)
             case _ => pm 
           }
@@ -197,8 +199,8 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
   }
 
-  def advanceBFS(start:PCU, validCons:(PCU, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
-    val result = ListBuffer[(PCU, Path)]()
+  def advanceBFS(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+    val result = ListBuffer[(PCL, Path)]()
     val paths = Queue[Path]()
     paths += Nil
     while (paths.size!=0) {
@@ -210,7 +212,8 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
           vout.fanOuts.foreach { vin =>
             val newPath = path :+ (vout, vin)
             vin.src match {
-              case cu:PCU if validCons(cu, newPath) => result += (cu ->newPath)
+              case cl:PCU if validCons(vin, newPath) => result += (cl ->newPath)
+              case cl:PTop if validCons(vin, newPath) => result += (cl ->newPath)
               case sb:PSB if advanceCons(sb, newPath) => paths += newPath
               case _ =>
             }

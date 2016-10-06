@@ -14,10 +14,10 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   val typeStr = "SOMapper"
   override def debug = Config.debugSOMapper
 
-  def finPass(cl:CL)(m:M):M = m
+  def finPass(scl:SCL)(m:M):M = m
 
-  private def mapVecOut(cl:CL)(n:N, p:R, cuMap:M):M = {
-    cl match {
+  private def mapVecOut(scl:SCL)(n:N, p:R, cuMap:M):M = {
+    scl match {
       case tt:TT if tt.mctpe==TileLoad => cuMap.setVO(n,p)
       case tt:TT if tt.mctpe==TileStore => cuMap
       case _:MC => cuMap
@@ -36,9 +36,9 @@ class OutputMapper(implicit val design:Design) extends Mapper {
     }
   }
 
-  def map(cl:CL, cuMap:M):M = {
-    val pcl = cuMap.clmap(cl)
-    val mp = cl match {
+  def map(scl:SCL, cuMap:M):M = {
+    val pcl = cuMap.clmap(scl)
+    val mp = scl match {
       case c:TT if c.mctpe == TileLoad => 
         val p = pcl.asInstanceOf[PTT].addrOut
         val n = c.souts.head
@@ -46,8 +46,8 @@ class OutputMapper(implicit val design:Design) extends Mapper {
       case c:MC => cuMap
       case _ => cuMap
     }
-    val cons = List(mapVecOut(cl) _)
-    bind(pcl.vouts, cl.vouts, mp, cons, finPass(cl) _)
+    val cons = List(mapVecOut(scl) _)
+    bind(pcl.vouts, scl.vouts, mp, cons, finPass(scl) _)
   }
 }
 

@@ -89,13 +89,13 @@ class CUMapperTest extends UnitTest with Metadata {
       val pcus = arch.rcus
 
       // Mapping
-      val soMapper = new OutputMapper()
+      val outputMapper = new OutputMapper()
       val viMapper = new VecInMapper()
-      val mapper = new CUMapper(soMapper, viMapper)
+      val mapper = CUMapper(outputMapper, viMapper)
 
       new PIRNetworkDotPrinter().run
       Try {
-        mapper.mapCUs(pcus, cus, PIRMap.empty, (m:PIRMap) => m)
+        mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
           MapperLogger.close

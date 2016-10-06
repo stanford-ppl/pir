@@ -48,41 +48,39 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       regAlloc.map(cu, cmap)
     }
   }
-  val cuMapper = new CUMapper(outputMapper, viMapper) {
-    override def finPass(m:M):M = {
-      var cmap = m 
-      Try {
-        cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
-          cmap = siMapper.map(ctrler, cmap)
-          ctrler match {
-            case cu:InnerController => 
-              cmap = sramMapper.map(cu, cmap)
-              cmap = ctrMapper.map(cu, cmap)
-              cmap = stageMapper.map(cu, cmap)
-            case t:Top => 
-            case _ => assert(false, s"Unknown ctrler:$ctrler")
-          }
-          cmap
+  val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, { case (m:PIRMap) =>
+    var cmap = m 
+    Try {
+      cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
+        cmap = siMapper.map(ctrler, cmap)
+        ctrler match {
+          case cu:InnerController => 
+            cmap = sramMapper.map(cu, cmap)
+            cmap = ctrMapper.map(cu, cmap)
+            cmap = stageMapper.map(cu, cmap)
+          case t:Top => 
+          case _ => assert(false, s"Unknown ctrler:$ctrler")
         }
-      } match {
-        case Success(m) => 
-          dprintln(s"Final Pass: Primitive Mapping (succeeded)"); m
-        case Failure(e) => 
-          dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
-          e match {
-            case e:PIRException => dprintln(e)
-            e.printStackTrace
-            case e => e.printStackTrace 
-          }
-          MapPrinter.printMap(cmap)(design)
-          MapperLogger.flush
-          design.cuDotPrinter.print(design.arch.cus, cmap)
-          System.exit(-1) // TODO: at the moment if prim failed. stop trying because CUs 
-                          // are homogenous
-          throw e
+        cmap
       }
+    } match {
+      case Success(m) => 
+        dprintln(s"Final Pass: Primitive Mapping (succeeded)"); m
+      case Failure(e) => 
+        dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
+        e match {
+          case e:PIRException => dprintln(e)
+          e.printStackTrace
+          case e => e.printStackTrace 
+        }
+        MapPrinter.printMap(cmap)(design)
+        MapperLogger.flush
+        design.cuDotPrinter.print(design.arch.cus, cmap)
+        System.exit(-1) // TODO: at the moment if prim failed. stop trying because CUs 
+                        // are homogenous
+        throw e
     }
-  }
+  })
 
   override def reset = {
     mapping = null

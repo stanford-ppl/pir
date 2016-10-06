@@ -13,12 +13,12 @@ object Config {
 
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
-  var newMemAPI = getProperty("pir.newMemAPI", "false") == "true"
-  var genScala = getProperty("pir.scala", "true") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
   var genMaxJ = getProperty("pir.maxj", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
+  var routingAlgorithm = getProperty("pir.routingAlgorithm", "Switch")
   var outDir = getProperty("pir.outDir", "out")
+
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var pirNetworkDot = getProperty("pir.pirNetworkDot", "PIRNetwork.dot")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
@@ -31,6 +31,7 @@ object Config {
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var mapping = getProperty("pir.mapping", "true") == "true"
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
+
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugCUMapper = debugMapper && true 
@@ -46,7 +47,6 @@ object Config {
   if (quick) {
     genMaxJ = false
     genDot = false
-    genScala = false
     test = false
   }
 }

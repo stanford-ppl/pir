@@ -14,36 +14,47 @@ import pir.graph.traversal.ForwardRef
 abstract class Controller(implicit design:Design) extends Node { self =>
   implicit val ctrler = self 
   val sinMap = Map[Scalar, ScalarIn]()
-  val soutMap = Map[Scalar, ScalarOut]()
   val vinMap = Map[Vector, VecIn]()
-  val voutMap = Map[Vector, VecOut]()
   def sins = sinMap.values.toList
-  def souts = soutMap.values.toList
   def vins = vinMap.values.toList 
-  def vouts = voutMap.values.toList
   def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
-  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
   def newVin(v:Vector):VecIn = {
     v match {
       case v:DummyVector => vinMap.getOrElseUpdate(v, new DummyVecIn(None, v))
       case _ => vinMap.getOrElseUpdate(v,VecIn(v))
     }
   }
+
+  //TODO inner controller shouldn't have children
+  val children = ListBuffer[ComputeUnit]()
+
+}
+
+/* Controller that can be binded with a controler in spade. Including InnerController and Top and
+ * MemoryController */
+trait SpadeController extends Controller { self =>
+  override implicit val ctrler:SpadeController = self 
+  val soutMap = Map[Scalar, ScalarOut]()
+  def souts = soutMap.values.toList
+  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
+  val voutMap = Map[Vector, VecOut]()
+  def vouts = voutMap.values.toList
   def newVout(v:Vector):VecOut = {
     v match {
       case v:DummyVector => voutMap.getOrElseUpdate(v, new DummyVecOut(None, v))
       case _ => voutMap.getOrElseUpdate(v, VecOut(v))
     }
   }
-
-  //TODO inner controller shouldn't have children
-  val children = ListBuffer[ComputeUnit]()
-
-  def readers:List[Controller] = soutMap.keys.flatMap(_.readers.map(_.ctrler)).toList ++
-                                 voutMap.keys.flatMap(_.readers.map(_.ctrler)).toList
-  def writers:List[Controller] = sinMap.keys.map(_.writer.ctrler).toList ++
-                                 vinMap.keys.map(_.writer.ctrler).toList
-}
+  // No need to consider scalar after bundling TODO how about tile transfer and memory controller?
+  def readers:List[SpadeController] = voutMap.keys.flatMap {
+    _.readers.map{ _.ctrler match {
+        case top:Top => top
+        case cu:ComputeUnit => cu.inner
+      }
+    }
+  }.toList
+  def writers:List[SpadeController] = vinMap.keys.map(_.writer.ctrler).toList
+} 
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
   implicit val cu:ComputeUnit = self 
@@ -136,7 +147,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     updateBlock(block)
 }
 
-class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerRegBlock { self =>
+class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with SpadeController with InnerRegBlock { self =>
   implicit val icu:InnerController = self
 
   override val typeStr = "PipeCU"
@@ -326,7 +337,7 @@ object TileTransfer extends {
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
 }
 
-case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends Controller { self =>
+case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends SpadeController { self =>
 
   val typeStr = "MemoryController"
   val addr = newSin(Scalar())
@@ -352,7 +363,7 @@ object MemoryController {
     = MemoryController(Some(name), mctpe, offchip)
 }
 
-case class Top()(implicit design: Design) extends Controller { self =>
+case class Top()(implicit design: Design) extends SpadeController { self =>
   implicit val top:Controller = self
 
   override val name = Some("Top")
@@ -364,6 +375,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   var memCtrls:List[MemoryController] = _
   def ctrlers = this :: compUnits ++ memCtrls
+  def spadeCtrlers:List[SpadeController] = this :: innerCUs ++ memCtrls
   val command = OutPort(this, s"${this}.command")
   val status = InPort(this, s"${this}.status")
   var scalars:List[Scalar] = _

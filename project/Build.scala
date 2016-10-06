@@ -20,6 +20,8 @@ object PIRBuild extends Build {
     libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.2",
 
     retrieveManaged := true,
+    javaOptions in (Test) += "-Xdebug",
+    javaOptions in (Test) += "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
     scalacOptions += "-Yno-generic-signatures",
     scalacOptions += "-feature",
     scalacOptions += "-deprecation",

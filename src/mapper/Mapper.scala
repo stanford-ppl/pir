@@ -72,8 +72,8 @@ trait Mapper { self =>
           dprintln(s"Try $n already mapped remain:[${remainNodes.mkString(",")}] {")
           Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
         case Failure(e) => 
-          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e} {") 
-          Failure(e) 
+          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e} {")
+          Failure(e)
       }) match {
         case Success(m) => 
           dprintln(s"} (success)")

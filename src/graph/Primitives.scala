@@ -286,7 +286,7 @@ object ScalarIn {
     ScalarIn(Some(name), scalar)
 }
 
-case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) extends Output{
+case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val ctrler:SpadeController, design: Design) extends Output{
   scalar.setWriter(this)
   override val typeStr = "ScalOut"
   override def toString = s"${super.toString}($scalar)"
@@ -297,9 +297,9 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit ctrler:Contro
   val in = InPort(this, s"${this}.out")
 }
 object ScalarOut {
-  def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
+  def apply(scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
     ScalarOut(None, scalar)
-  def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
+  def apply(name:String, scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
     ScalarOut(Some(name), scalar)
 }
 
@@ -327,7 +327,7 @@ class DummyVecIn(name: Option[String], override val vector:DummyVector)(implicit
   override def writer:DummyVecOut = vector.writer
 }
 
-class VecOut(val name: Option[String], val vector:Vector)(implicit ctrler:Controller, design: Design) extends Output with VectorIO[Output] {
+class VecOut(val name: Option[String], val vector:Vector)(implicit override val ctrler:SpadeController, design: Design) extends Output with VectorIO[Output] {
   vector.setWriter(this)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
@@ -337,13 +337,13 @@ class VecOut(val name: Option[String], val vector:Vector)(implicit ctrler:Contro
   val in = InPort(this, s"${this}.in")
 }
 object VecOut {
-  def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
+  def apply(vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 
     new VecOut(None, vector)
-  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
+  def apply(name:String, vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 
     new VecOut(Some(name), vector)
 }
 
-class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecOut(name, vector) {
+class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:SpadeController, design: Design) extends VecOut(name, vector) {
   override val typeStr = "DVecOut"
   def scalarOuts = vector.scalars.map(_.writer)
 }

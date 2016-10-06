@@ -142,7 +142,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
 
       new PIRNetworkDotPrinter().run
       Try {
-        mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
+        mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
           new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), mapping)
@@ -222,7 +222,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
 
       new PIRNetworkDotPrinter().run
       Try {
-        mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
+        mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
           new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), mapping)
@@ -266,7 +266,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
       new PIRNetworkDotPrinter().run
       Try {
-        mapper.mapCUs(arch.cus, cus, PIRMap.empty, (m:PIRMap) => m)
+        mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
           new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs), mapping)

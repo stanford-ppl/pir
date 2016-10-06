@@ -19,7 +19,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   def finPass(cu:CU)(m:M):M = m
 
-  private def preColorAnalysis(cu:CU, pirMap:M):RC = {
+  private def preColorAnalysis(cu:ICL, pirMap:M):RC = {
     val rc:RC = MMap.empty // Color Map
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     def preColorReg(r:Reg, pr:PReg):Unit = {
@@ -75,7 +75,7 @@ r       case VecInPR(regId, vecIn) =>
     rc
   }
 
-  private def regColor(cu:CU)(n:N, p:R, pirMap:M):M = {
+  private def regColor(cu:ICL)(n:N, p:R, pirMap:M):M = {
     val rc = pirMap.rcmap.map
     if (rc.contains(n)) return pirMap
     cu.infGraph(n).foreach{ itf => 
@@ -84,7 +84,7 @@ r       case VecInPR(regId, vecIn) =>
     pirMap.setRC(n, p)
   }
 
-  def map(cu:CU, pirMap:M):M = {
+  def map(cu:ICL, pirMap:M):M = {
     val prc = preColorAnalysis(cu, pirMap)
     val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
     val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList

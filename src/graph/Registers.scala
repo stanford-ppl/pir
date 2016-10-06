@@ -12,11 +12,8 @@ trait OuterRegBlock { self:ComputeUnit =>
   var infGraph:Map[Reg, Set[Reg]] = Map.empty
 
   val scalarIns  = Map[ScalarIn, ScalarInPR]()
-  val scalarOuts = Map[ScalarOut, ScalarOutPR]()
 
   def scalarInPR(s:ScalarIn):ScalarInPR = scalarIns.getOrElseUpdate(s, ScalarInPR(newTemp, s))
-
-  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOuts.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
 
   def pipeReg(stage:Stage, reg:Reg) = stage.prs.getOrElseUpdate(reg, PipeReg(stage,reg))
 
@@ -36,23 +33,13 @@ trait OuterRegBlock { self:ComputeUnit =>
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
- /** Create a pipeline register for a stage corresponding to 
-  *  the register that connects to the scalarOut buffer
-  * @param stage: Stage of the pipeline register 
-  */
-  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = pipeReg(stage, scalarOutPR(s))
- /** Create a pipeline register and a scalar buffer for a stage. 
-  *  The pipeline register connects to the scalarOut buffer
-  * @param stage: Stage of the pipeline register 
-  */
-  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
-  def scalarOut(s:Scalar):PipeReg = scalarOut(emptyStage, newSout(s))
 }
 
 trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
   lazy val reduceReg  = ReducePR(newTemp)
+  val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val vecIns     = Map[VecIn, VecInPR]()
   lazy val vecOut     = VecOutPR(newTemp)
   val loadRegs   = Map[SRAM, LoadPR]()
@@ -77,6 +64,8 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
     accumRegs += acc 
     acc
   }
+
+  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOuts.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
 
   def vecInPR(v:VecIn):VecInPR = vecIns.getOrElseUpdate(v, VecInPR(newTemp, v))
 
@@ -132,6 +121,17 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   */
   def reduce(stage:Stage):PipeReg = pipeReg(stage, reduceReg)
 
+ /** Create a pipeline register for a stage corresponding to 
+  *  the register that connects to the scalarOut buffer
+  * @param stage: Stage of the pipeline register 
+  */
+  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = pipeReg(stage, scalarOutPR(s))
+ /** Create a pipeline register and a scalar buffer for a stage. 
+  *  The pipeline register connects to the scalarOut buffer
+  * @param stage: Stage of the pipeline register 
+  */
+  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
+  def scalarOut(s:Scalar):PipeReg = scalarOut(emptyStage, newSout(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 

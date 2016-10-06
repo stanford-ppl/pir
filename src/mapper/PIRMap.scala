@@ -59,30 +59,35 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, smmap:SMMap, ctmap:CTMa
   def printMap(implicit p:Printer, design:Design):Unit = {
     fbmap.printMap
     design.top.ctrlers.foreach { cl => 
-      if (clmap.map.contains(cl)) {
-        val pcl = clmap.map(cl)
-        p.emitBlock( s"$cl -> $pcl" ) {
-          if (!cl.isInstanceOf[TT]) { //TODO
-            simap.printMap(cl.sins)
-            somap.printMap(cl.souts)
-          }
-          vimap.printMap(cl.vins)
-          cl match {
-            case cu:CU =>
-              val pcu = clmap.map(cu).asInstanceOf[PCU]
-              cu match {
-                case icu:ICL => smmap.printMap(icu.srams)
+      cl match {
+        case cl:SCL =>
+          if (clmap.map.contains(cl)) {
+            val pcl = clmap.map(cl)
+            p.emitBlock( s"$cl -> $pcl" ) {
+              if (!cl.isInstanceOf[TT]) { //TODO
+                simap.printMap(cl.sins)
+                somap.printMap(cl.souts)
+              }
+              vimap.printMap(cl.vins)
+              cl match {
+                case cu:CU =>
+                  val pcu = clmap.map(cu).asInstanceOf[PCU]
+                  cu match {
+                    case icu:ICL => smmap.printMap(icu.srams)
+                    case _ =>
+                  }
+                  ctmap.printCCMap(cu.cchains)
+                  rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
+                  //stmap.printPMap(pcu.stages)
+                  stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
                 case _ =>
               }
-              ctmap.printCCMap(cu.cchains)
-              rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
-              //stmap.printPMap(pcu.stages)
-              stmap.printMap(stmap.keys.filter(k => k.ctrler==cu).toList)
-            case _ =>
+            }
+          } else {
+            p.emitln(s"$cl <- failed")
           }
-        }
-      } else {
-        p.emitln(s"$cl <- failed")
+        case _ =>
+          p.emitln(s"$cl <- no mapping")
       }
     }
   }
@@ -233,7 +238,7 @@ case class CLMap(map:CLMap.M, pmap:CLMap.PM) extends BMap {
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmap + rec.swap) }
 }
 object CLMap extends BMapObj {
-  type K = CL
+  type K = SCL
   type V = PCL
   def empty:CLMap = CLMap(Map.empty, Map.empty)
 }

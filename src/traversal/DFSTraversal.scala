@@ -21,9 +21,13 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
     node match {
       case n:Controller => 
         n.sins.foreach { si => visitNode(si) }
-        n.souts.foreach { so => visitNode(so) }
         n.vins.foreach { vi => visitNode(vi) }
-        n.vouts.foreach { vo => visitNode(vo) }
+        n match {
+          case n:SpadeController =>
+            n.souts.foreach { so => visitNode(so) }
+            n.vouts.foreach { vo => visitNode(vo) }
+          case _ =>
+        }
         n match {
         case c:Top => 
           c.memCtrls.foreach(n => visitNode(n))
