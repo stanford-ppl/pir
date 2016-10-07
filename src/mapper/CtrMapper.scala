@@ -18,11 +18,13 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def finPass(cu:ICL)(m:M):M = m
 
   def map(cu:ICL, pirMap:M):M = {
-    val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
-    // Mapping inner counter first converges faster
-    val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
-    val pctrs = pcu.ctrs
-    map(ctrs, pctrs, pirMap, finPass(cu) _)
+    log(cu) {
+      val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
+      // Mapping inner counter first converges faster
+      val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
+      val pctrs = pcu.ctrs
+      map(ctrs, pctrs, pirMap, finPass(cu) _)
+    }
   }
 
   def map(ctrs:List[N], pctrs:List[R], initMap:M, finPass:M => M) = {

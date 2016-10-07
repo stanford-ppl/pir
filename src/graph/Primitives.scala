@@ -197,7 +197,9 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
-  override def toUpdate = super.toUpdate
+  var vecInPR:Option[VecInPR] = _
+
+  override def toUpdate = super.toUpdate || vecInPR==null
 
   def writer:InnerController = {
     writePort.from.src match {
@@ -223,8 +225,14 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
     writeAddr.connect(wa)
     this 
   }
-  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
-  def wtPort(vec:Vector):SRAM = wtPort(ctrler.vecIn(vec).out)
+  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); vecInPR = None; this } 
+  def wtPort(vec:Vector):SRAM = {
+    val pr@PipeReg(stage, reg@VecInPR(_,_)) = ctrler.vecIn(vec)
+    assert(stage.isInstanceOf[EmptyStage])
+    writePort.connect(pr.out)
+    vecInPR = Some(reg)
+    this
+  }
 
   def load = readPort
 
@@ -294,7 +302,7 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val 
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
   }
-  val in = InPort(this, s"${this}.out")
+  val in = InPort(this, s"${this}.in")
 }
 object ScalarOut {
   def apply(scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
@@ -351,7 +359,7 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
 class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
-  val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${this}.oprd") }
+  val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${oprds(i)}") }
   val out = OutPort(this, s"${this}.out")
   results.foreach { res => 
     res.src match {
@@ -591,6 +599,7 @@ abstract class LUT(implicit override val ctrler:ComputeUnit, design: Design) ext
   val numIns:Int
   val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
   val out = OutPort(this, s"${this}.o")
+  def isTokenOut = out.to.exists(_.src.asInstanceOf[Primitive].ctrler!=ctrler)
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
               (implicit ctrler:ComputeUnit, design: Design) extends LUT {
@@ -706,17 +715,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     }
     ctrlIns.toList
   }
-  def getCtrlOuts:List[OutPort] = {
-    val ctrlOuts = ListBuffer[OutPort]()
-    tokenOut.foreach { to => ctrlOuts += to }
-    tokenDown.foreach { td => ctrlOuts += td }
-    if (cu.isInstanceOf[InnerController]) {
-      cu.ctrlBox.enLUTs.foreach { case (en, enlut) =>
-        if (en.src.ctrler!=cu) ctrlOuts += enlut.out 
-      }
-    }
-    ctrlOuts.toList
-  }
+  def getCtrlOuts:List[OutPort] = { cu.ctrlBox.luts.filter(_.isTokenOut).map(_.out) }
 
   override def toUpdate = super.toUpdate || tokenOut == null || tokenDown == null
 }

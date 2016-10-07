@@ -18,8 +18,15 @@ class OutputMapper(implicit val design:Design) extends Mapper {
 
   private def mapVecOut(scl:SCL)(n:N, p:R, cuMap:M):M = {
     scl match {
-      case tt:TT if tt.mctpe==TileLoad => cuMap.setVO(n,p)
-      case tt:TT if tt.mctpe==TileStore => cuMap
+      case tt:TT if tt.mctpe==TileLoad => 
+        val so = tt.souts.head
+        val pso = cuMap.clmap(scl).asInstanceOf[PTT].addrOut
+        // ScalarOut of TileTransfer is internally connected to MC
+        cuMap.setVO(n,p).setSO(so, pso).setIP(so.in, pso.in)
+      case tt:TT if tt.mctpe==TileStore =>
+        val so = tt.souts.head
+        val pso = cuMap.clmap(scl).asInstanceOf[PTT].addrOut
+        cuMap.setSO(so, pso).setIP(so.in, pso.in)
       case _:MC => cuMap
       case _:CU | _:Top =>
         val mp = cuMap.setVO(n,p)
@@ -38,16 +45,18 @@ class OutputMapper(implicit val design:Design) extends Mapper {
 
   def map(scl:SCL, cuMap:M):M = {
     val pcl = cuMap.clmap(scl)
-    val mp = scl match {
-      case c:TT if c.mctpe == TileLoad => 
-        val p = pcl.asInstanceOf[PTT].addrOut
-        val n = c.souts.head
-        cuMap.setSO(n, p).setIP(n.in, p.in) // ScalarOut of TileTransfer is internally connected to MC
+    scl match {
+      // TileStore doesn't have vout but has sout 
+      case c:TT if c.mctpe == TileStore => mapVecOut(c)(null, null, cuMap)
       case c:MC => cuMap
+      case c:SCL if (c.vouts.size==1) => 
+        assert(pcl.vouts.size==1)
+        mapVecOut(c)(c.vouts.head, pcl.vouts.head, cuMap)
+      case top:Top =>
+        val cons = List(mapVecOut(scl) _)
+        bind(pcl.vouts, scl.vouts, cuMap, cons, finPass(scl) _)
       case _ => cuMap
     }
-    val cons = List(mapVecOut(scl) _)
-    bind(pcl.vouts, scl.vouts, mp, cons, finPass(scl) _)
   }
 }
 

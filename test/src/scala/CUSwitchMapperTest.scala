@@ -24,7 +24,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val numVins = 4
     val numRegs = 20
     val wordWidth = 32
-    val top = PTop(numLanes, 0, 0)
+    val top = PTop(numLanes, numLanes, numLanes)
     val ttcus = Nil
     val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
     override val sbs = switchBoxes.flatten 
@@ -36,9 +36,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
       ConfigFactory.genRCU(numLanes, numVins, 0, numRegs).coord(i,j)
     }
+    val rcus = cuArray.flatten
     /* Network Constrain */ 
     ConfigFactory.genSwitchNetwork(cuArray, switchBoxes)
-    val rcus = cuArray.flatten
+    ConfigFactory.genArgIOConnection
   }
 
   def quote(pne:PNE)(implicit spade:Spade) = PNode.quote(pne)
@@ -48,7 +49,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     implicit override val arch = genSwitchNetworkConfig(4,4)
     val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
-      def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
+      def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
+        val pcu = toVin.src
+        (path.size >= min) && (path.size < max) && (pcu!=start)
+      }
       def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
       val result = mapper.advance(start, cuCons _, sbCons _)
       // println(s"start: ${quote(start)}")
@@ -100,7 +104,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" in {
     val arr = design.arch.cuArray
     val start = arr(1)(1); val min = 1; val max = 7
-    def cuCons(pcu:PCU, path:CUSwitchMapper.Path) = (path.size >= min) && (path.size < max) && (pcu!=start)
+    def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
+      val pcu = toVin.src
+      (path.size >= min) && (path.size < max) && (pcu!=start)
+    }
     def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
     val result1 = design.mapper.advanceBFS(start, cuCons _, sbCons _)
     val result2 = design.mapper.advanceDFS(start, cuCons _, sbCons _)
@@ -146,7 +153,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       } match {
         case Success(mapping) => 
           new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), mapping)
-        case Failure(e) => 
+        case Failure(e) =>
+          println(e)
           new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs)); throw e
       }
     }
@@ -227,6 +235,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         case Success(mapping) => 
           new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), mapping)
         case Failure(e) => 
+          MapperLogger.dprintln(e)
+          MapperLogger.close
           new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs)); throw e
       }
     }

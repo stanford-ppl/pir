@@ -146,6 +146,7 @@ object PIRPrinter extends Metadata {
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
         fields += s"writeCtr=${p.writeCtr}"
+        fields += s"vecInPR=${p.vecInPR}"
       case p:Stage =>
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"

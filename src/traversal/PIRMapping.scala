@@ -6,9 +6,6 @@ import pir.misc._
 import pir.graph.mapper._
 import scala.util.{Try, Success, Failure}
 
-object MapperLogger extends Logger {
-  override val stream = newStream(Config.mapperLog)
-}
 object MapPrinter extends Printer { 
   override val stream = newStream(Config.mapFile)
   def printMap(mapping:PIRMap)(implicit design:Design) = {
@@ -37,14 +34,16 @@ class PIRMapping(implicit val design: Design) extends Traversal{
 
   val siMapper = new ScalarInMapper()
   val sramMapper = new SRAMMapper()
-  val regAlloc = new RegAlloc()
   val stageMapper = new StageMapper()
   val outputMapper = new OutputMapper()
   val viMapper = new VecInMapper()
   val ctrlMapper = new CtrlMapper()
+  val regAlloc = new RegAlloc() {
+    override def finPass(cu:InnerController)(m:M):M = { stageMapper.map(cu, m) }
+  }
   val ctrMapper = new CtrMapper() { 
     override def finPass(cu:InnerController)(m:M):M = { 
-      var cmap = log(ctrlMapper, cu)(ctrlMapper.map(cu, m))
+      var cmap = ctrlMapper.map(cu, m)
       regAlloc.map(cu, cmap)
     }
   }
@@ -56,8 +55,8 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         ctrler match {
           case cu:InnerController => 
             cmap = sramMapper.map(cu, cmap)
-            cmap = ctrMapper.map(cu, cmap)
-            cmap = stageMapper.map(cu, cmap)
+            //cmap = ctrMapper.map(cu, cmap)
+            //cmap = stageMapper.map(cu, cmap)
           case t:Top => 
           case _ => assert(false, s"Unknown ctrler:$ctrler")
         }
@@ -75,7 +74,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         }
         MapPrinter.printMap(cmap)(design)
         MapperLogger.flush
-        design.cuDotPrinter.print(design.arch.cus, cmap)
+        design.cuDotPrinter.print((design.arch.cus, design.arch.sbs), cmap)
         System.exit(-1) // TODO: at the moment if prim failed. stop trying because CUs 
                         // are homogenous
         throw e

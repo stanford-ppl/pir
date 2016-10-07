@@ -2,7 +2,7 @@ package pir
 
 import pir.graph._
 import graph.mapper._
-import codegen.Printer
+import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 
 package object misc extends Logger {
@@ -15,21 +15,6 @@ package object misc extends Logger {
   implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
   implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
     (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)
-}
-
-trait Logger extends Printer {
-  def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = 
-    if (pred) emitln(s"[debug${header.fold("") { h => s"-$h"}}] $s")
-  def dprint(pred:Boolean, header:Option[String], s:Any):Unit = 
-    if (pred) emit(s"[debug${header.fold("") { h => s"-$h"}}] $s")
-  def dprintln(pred:Boolean, header:String, s:Any):Unit = dprintln(pred, Some(header), s) 
-  def dprint(pred:Boolean, header:String, s:Any):Unit = dprint(pred, Some(header), s) 
-  def dprintln(header:String, s:Any):Unit = dprintln(Config.debug, header, s) 
-  def dprint(header:String, s:Any):Unit = dprint(Config.debug, header, s) 
-  def dprintln(s:Any):Unit = dprintln(Config.debug, None, s) 
-  def dprint(s:Any):Unit = dprintln(Config.debug, None, s)
-
-  def info(s:String) = emitln(s"[pir] ${s}")
 }
 
 package object typealias {

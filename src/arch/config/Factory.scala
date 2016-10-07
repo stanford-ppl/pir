@@ -171,7 +171,7 @@ object ConfigFactory extends ImplicitConversion {
       for (j <- 0 until numColCUs+1) {
         // SB to SB (Horizontal)
         if (i!=numRowCUs) {
-          sbs(i+1)(j).vins(2) <== sbs(i)(j).vouts(1)
+          sbs(i+1)(j).vins(2) <== sbs(i)(j).vouts(1) // Left to right
           sbs(i)(j).vins(5) <== sbs(i+1)(j).vouts(4)
         }
         // SB to SB (Vertical)

@@ -181,14 +181,14 @@ trait Design extends Metadata { self =>
     traversals += new ScalarBundling()
     if (Config.debug) traversals += pirNetworkDotPrinter
     traversals += new LiveAnalysis()
-    traversals += new IRCheck()
     traversals += new CtrlAlloc()
+    traversals += new IRCheck()
     if (Config.debug) traversals += ctrlDotPrinter 
     if (Config.debug) traversals += new CtrlPrinter()
     if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
     if (Config.debug) traversals += spadeDotGen 
-    if (Config.mapping) traversals += new PisaCodegen(pirMapping)
+    if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals
   }
 

@@ -48,7 +48,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
         pvin.fanIns.foreach { pvout =>
           val attr = DotAttr()
           mapping.foreach { mp => 
-            if (mp.fbmap.contains(pvin)) { 
+            if (mp.fbmap.get(pvin).fold(false) { _ == pvout}) { 
               var label = s"(i-${indexOf(pvin)})"
               if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
               attr.color(indianred).style(bold).label(label)
@@ -258,9 +258,9 @@ class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
 
   override def traverse = {
     if (pirMapping.mapping!=null)
-      cuPrinter.print(design.arch.cus, pirMapping.mapping)
+      cuPrinter.print((design.arch.cus, design.arch.sbs), pirMapping.mapping)
     else
-      cuPrinter.print(design.arch.cus)
+      cuPrinter.print((design.arch.cus, design.arch.sbs))
     ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }

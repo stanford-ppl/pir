@@ -2,6 +2,8 @@ package pir.graph.mapper
 import pir._
 import pir.typealias._
 import pir.graph.traversal.PIRMapping
+import pir.graph.{PipeReg => PR, VecInPR}
+import pir.plasticine.graph.{PipeReg => PPR}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
@@ -18,9 +20,15 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
 
   private def mapSRAM(vimap:VIMap)(s:N, p:R, map:M):M = {
     s.writePort.from.src match {
-      case wp:VI => // Remote write 
-        val ib = vimap(wp)
-        if(!p.writePort.canFrom(ib.viport)) throw SRAMRouting(s, p)
+      case PR(stage, VecInPR(_, vi)) if stage.isInstanceOf[EST] =>
+        val ib = vimap(vi)
+        val ibpregs = ib.viport.fanOuts.map(_.src).collect{case PPR(s,r) => r}
+        // Regsiter mapped in empty stage
+        val srampregs = p.writePort.fanIns.filter{ fi => 
+          val PPR(pstage, _) = fi.src
+          pstage == p.ctrler.stages.head
+        }.map(_.src.asInstanceOf[PPR].reg).toList
+        if ((ibpregs intersect srampregs).size == 0) throw SRAMRouting(s,p)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
     }
     map.setSM(s, p)
@@ -31,9 +39,11 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
-    val cons = List(mapSRAM(pirMap.vimap) _)
-    bind(pcu.srams, cu.srams, pirMap, cons, finPass(cu) _)
+    log(cu) {
+      val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
+      val cons = List(mapSRAM(pirMap.vimap) _)
+      bind(pcu.srams, cu.srams, pirMap, cons, finPass(cu) _)
+    }
   }
 }
 

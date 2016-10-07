@@ -14,24 +14,19 @@ class StageMapper(implicit val design:Design) extends Mapper {
   type R = PST
   type N = ST
   val typeStr = "StageMapper"
+  override def debug = Config.debugSTMapper
 
   def finPass(cu:ICL)(m:M):M = m
 
   def map(cu:ICL, cuMap:M):M = {
-    val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
-    val pest :: pfusts = pcu.stages
-    val est :: fusts = cu.stages.toList
-    var cmap = bindInOrder(List(pest), List(est), cuMap, List(mapStage _), (m:M) => m, OutOfStage(pcu, cu, _, _))
-    cmap = Try { //TODO: Currently if fail take a while to finish 
-      bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, OutOfStage(pcu, cu, _, _))
-    } match  {
-      case Success(m) => m
-      case Failure(e) => 
-        e.printStackTrace
-        MapPrinter.printMap(cmap)(design)
-        System.exit(-1); cmap
+    log(cu) {
+      val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
+      val pest :: pfusts = pcu.stages
+      val est :: fusts = cu.stages.toList
+      var cmap = mapStage(est, pest, cuMap)
+      cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _,OutOfStage(pcu, cu, _, _))
+      stageFowarding(pcu, cmap)
     }
-    stageFowarding(pcu, cmap)
   }
 
   /* Forward liveOut regs in pstages that doesn't have stage corresponding to them */

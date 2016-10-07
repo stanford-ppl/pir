@@ -36,10 +36,10 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
           (s"tokenIns=[${tins.mkString(",")}]", s"tokenOuts=[${touts.mkString(",")}]")
         case _ => ("", "")
       }
-      emitBlock(s"CtrlBox(${tins}, ${touts})") {
+      emitBlock(s"CtrlBox(${PIRPrinter.genFields(cu.ctrlBox)}) ${tins} ${touts}") {
         cu.ctrlBox.udcounters.foreach { case (ctrler, tb) =>
           val info = ListBuffer[String]()
-          info += s"ctrler=${ctrler}"
+          info += s"ctrler=${tb.ctrler}"
           info += s"inc=${tb.inc.from}"
           info += s"dec=${tb.dec.from}"
           info += s"init=${tb.init.from}"
@@ -49,7 +49,7 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
         cu.ctrlBox.luts.foreach { lut =>
           val ins = lut.ins.map(_.from).mkString(",")
           val out = lut.out.to.mkString(",")
-          emitln(s"${lut} ins=[${ins}] outs=[${out}]")
+          emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}]")
         }
       }
       block

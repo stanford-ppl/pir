@@ -19,8 +19,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   def finPass(cu:ICL)(m:M):M = m
 
   def map(cu:ICL, pirMap:M):M = {
-    val m = mapCtrl(cu, pirMap)
-    finPass(cu)(m)
+    log(cu) {
+      val m = mapCtrl(cu, pirMap)
+      finPass(cu)(m)
+    }
   }
 
   def mapCtrl(inner:ICL, pirMap:M):M = {
@@ -56,9 +58,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)
       lumap += (enLut -> penLut)
-      val ptout = pcb.ctrlOuts(indexOf(pctr))
-      assert(!opmap.pmap.contains(ptout))
-      opmap += (enLut.out -> ptout)
+      if (enLut.isTokenOut) {
+        val ptout = pcb.ctrlOuts(indexOf(pctr))
+        assert(!opmap.pmap.contains(ptout))
+        opmap += (enLut.out -> ptout)
+      }
     }
 
     def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
@@ -73,21 +77,19 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
           lumap += (lut -> plut)
           opmap += (lut.out -> ptout)
           return
-        } else {
-          //TODO: debugging
-          //println(s"$lut $plut $ptout -> ${opmap.pmap(ptout)}")
         }
       }
-      throw PIRException(s"Cannot map ${lut} in ${pcu} pluts:${pluts}}")
+      throw PIRException(s"Cannot map ${lut} in ${lut.ctrler} ${pcu} pluts:${pluts}}")
     }
 
     /* TokenDown LUT mapping */
-    //println(s"tdluts:${tdluts}")
-    inner.tokDownLUTs.foreach { tdlut => findPto(tdlut, pcb.tokenDownLUTs) }
+    inner.tokDownLUTs.foreach { tdlut => 
+      findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !lumap.pmap.contains(plut)))
+    }
     /* TokenOut LUT mapping */
-    //println(s"${cu} ${ptoluts} ${toluts}")
-    //println(s"toluts:${toluts}")
-    inner.tokOutLUTs.foreach { tolut => findPto(tolut, pcb.tokenOutLUTs) }
+    inner.tokOutLUTs.foreach { tolut => 
+      findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))
+    }
 
     pirMap.set(ucmap).set(lumap).set(opmap).set(ipmap)
   }

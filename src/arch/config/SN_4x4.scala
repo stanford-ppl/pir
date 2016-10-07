@@ -33,12 +33,23 @@ object SN_4x4 extends Spade {
   override val top = Top(numLanes, numArgIns, numArgOuts)
 
   private val allCUs = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-    ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20)
+    ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20).coord(i, j)
   }
   override val rcus = allCUs.flatten 
-  override val ttcus = Nil 
+  override val ttcus = List.tabulate(numRowCUs) { i =>
+    ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 4, numRegs = 20).coord(-1, i)
+  } 
 
   val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+  for (i <- 0 until switchBoxes.size) {
+    for (j <- 0 until switchBoxes.head.size) {
+      coordOf(switchBoxes(i)(j)) = (i,j) 
+      if (i==0 && j<numRowCUs) {
+        ttcus(j).vins(0) <== switchBoxes(i)(j).vouts(4)
+        switchBoxes(i)(j).vins(1) <== ttcus(j).vouts(0) 
+      }
+    }
+  }
   override val sbs = switchBoxes.flatten 
 
   ConfigFactory.genSwitchNetwork(allCUs, switchBoxes)

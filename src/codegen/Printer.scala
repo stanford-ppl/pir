@@ -32,6 +32,7 @@ trait Printer {
   def emitln:Unit = pprintln
   def emitBSln(s:String):Unit = { emit(s); emitBSln }
   def emitBSln:Unit = { pprintln(s"{"); level += 1 }
+  def emitBEln(s:String):Unit = { emitBE; pprintln(s) }
   def emitBEln = { emitBE; pprintln }
   def emitBE = { level -= 1; emit(s"}") }
   def emitCSln(s:String):Unit = { emit(s); emitCSln }
@@ -58,3 +59,21 @@ trait Printer {
     new FileOutputStream(new File(s"${getPath}"))
   }
 }
+
+trait Logger extends Printer {
+  override def emitln(s:String):Unit = { super.emitln(s); flush } 
+  def promp(header:Option[String], s:Any) = s"[debug${header.fold("") { h => s"-$h"}}] $s"
+  def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitln(promp(header, s))
+  def dprint(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emit(promp(header, s))
+  def dprintln(pred:Boolean, header:String, s:Any):Unit = dprintln(pred, Some(header), s) 
+  def dprint(pred:Boolean, header:String, s:Any):Unit = dprint(pred, Some(header), s) 
+  def dprintln(header:String, s:Any):Unit = dprintln(Config.debug, header, s) 
+  def dprint(header:String, s:Any):Unit = dprint(Config.debug, header, s) 
+  def dprintln(s:Any):Unit = dprintln(Config.debug, None, s) 
+  def dprint(s:Any):Unit = dprintln(Config.debug, None, s)
+  def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBSln(promp(header,s) + " ")
+  def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(" " + promp(header, s))
+
+  def info(s:String) = emitln(s"[pir] ${s}")
+}
+

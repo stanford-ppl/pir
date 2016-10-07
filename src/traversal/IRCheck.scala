@@ -19,6 +19,8 @@ class IRCheck(implicit val design: Design) extends Traversal{
       n match {
         case c:SpadeController =>
         case n:CtrlBox =>
+          n.udcounters.foreach { case (_, udc) => assert(udc.ctrler==n.ctrler) }
+          n.luts.foreach { lut => assert(lut.ctrler==n.ctrler) }
         case n:Counter =>
           n.ctrler match {
             case cu:OuterController =>
@@ -34,6 +36,16 @@ class IRCheck(implicit val design: Design) extends Traversal{
           if (!n.readAddr.isConnected)
             throw PIRException(s"readAddr of $n in ${n.ctrler} is not connected")
         case n =>
+      }
+    }
+    design.arch.sbs.foreach { sb => 
+      sb.vins.foreach { vin => 
+        if(vin.fanIns.size>1) 
+          throw PIRException(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
+      }
+      sb.vouts.foreach { vout => 
+        if(vout.fanOuts.size>1) 
+          throw PIRException(s"Switchbox $sb has $vout with fanOuts > 1 ${vout.fanOuts}")
       }
     }
   } 

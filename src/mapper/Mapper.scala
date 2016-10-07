@@ -2,15 +2,19 @@ package pir.graph.mapper
 
 import pir._
 import pir.typealias._
-import pir.graph.traversal.{MapperLogger, CUDotPrinter}
+import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
+import pir.codegen.Logger
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
+object MapperLogger extends Logger {
+  override val stream = newStream(Config.mapperLog)
+}
 trait Mapper { self =>
   implicit val mapper = self
 
@@ -26,15 +30,18 @@ trait Mapper { self =>
   def dprintln(s:Any):Unit = MapperLogger.dprintln(debug, s"$this", s)
   def dprint(s:Any):Unit = MapperLogger.dprint(debug, s"$this", s)
   def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(debug, s"$mapper", s)
+  def dbsln(mapper:Mapper, s:Any):Unit = MapperLogger.dbsln(debug, Some(s"$mapper"), s) 
+  def dbeln(mapper:Mapper, s:Any):Unit = MapperLogger.dbeln(debug, Some(s"$mapper"), s) 
+  def dbsln(s:Any):Unit = dbsln(this, s) 
+  def dbeln(s:Any):Unit = dbeln(this, s) 
+
   def quote(pne:Any)(implicit spade:Spade) = PNode.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any)(block: => M):M = {
-    dprintln(mapper, s"$info { ")
+    dbsln(mapper, s"$info")
     Try(block) match {
-      case Success(m) =>
-        dprintln(mapper, s"} $info (succeeded)"); MapperLogger.flush; m
-      case Failure(e) =>
-        dprintln(mapper, s"} $info (failed) $e"); MapperLogger.flush; throw e
+      case Success(m) => dbeln(mapper, s"$info (succeeded)"); m
+      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); throw e
     }
   }
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
@@ -66,20 +73,20 @@ trait Mapper { self =>
         constrains.foldLeft(map) { case (pm, cons) => cons(n, res, pm) }
       } match {
         case Success(m) => 
-          dprintln(s"Try $n -> ${quote(res)(design.arch)} (success) remain:[${remainNodes.mkString(",")}] {")
+          //dbsln(s"Try $n -> ${quote(res)(design.arch)} (success) remain:[${remainNodes.mkString(",")}]") 
           Try(recNode(restRes, remainNodes, m))
         case Failure(ResourceNotUsed(_,_,_,m)) => 
-          dprintln(s"Try $n already mapped remain:[${remainNodes.mkString(",")}] {")
+          //dbsln(s"Try $n already mapped remain:[${remainNodes.mkString(",")}]")
           Try(recNode(reses, remainNodes, m.asInstanceOf[M]))
         case Failure(e) => 
-          dprintln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e} {")
+          //dbeln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e}")
           Failure(e)
       }) match {
         case Success(m) => 
-          dprintln(s"} (success)")
+          //dbeln(s"(success)")
           return m
         case Failure(e) => 
-          dprintln(s"} (failed) ${e}")
+          //dbeln(s"(failed) ${e}")
           e match {
           case me:MappingException => exceps += me // constrains failed
           case _ => throw e

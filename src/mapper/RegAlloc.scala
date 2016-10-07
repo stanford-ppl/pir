@@ -17,7 +17,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
 
-  def finPass(cu:CU)(m:M):M = m
+  def finPass(cu:ICL)(m:M):M = m
 
   private def preColorAnalysis(cu:ICL, pirMap:M):RC = {
     val rc:RC = MMap.empty // Color Map
@@ -42,11 +42,11 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case StorePR(regId, wtPort) =>
           val sram = wtPort.src
           val psram = pirMap.smmap(sram)
-          val regs = psram.writePort.fanIns.filter{ fi => 
+          val pregs = psram.writePort.fanIns.filter{ fi => 
             val PipeReg(stage, reg) = fi.src
             stage == psram.ctrler.stages.last
           }.map(_.src.asInstanceOf[PipeReg].reg).toList
-          preColor(r, regs)
+          preColor(r, pregs)
         case rr:WtAddrPR =>
           val waPort = rr.waPort
           val sram = waPort.src
@@ -60,6 +60,16 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 r       case VecInPR(regId, vecIn) =>
           val pvin = pirMap.vimap(vecIn)
           preColor(r, pvin.viport.mappedRegs.toList)
+          val rsrams = cu.srams.filter(_.vecInPR==Some(r)) 
+          rsrams.foreach { sram =>
+            val psram = pirMap.smmap(sram)
+            val pregs = psram.writePort.fanIns.filter{ fi => 
+              val PipeReg(pstage, preg) = fi.src
+              pstage == psram.ctrler.etstage
+            }.map(_.src.asInstanceOf[PipeReg].reg).toList
+            if (!pregs.contains(rc(r)))
+              throw PIRException(s"Non overlap mapping between ${sram.writePort}(${pregs.mkString(",")}) and $vecIn(${rc(r)})")
+          }
         case VecOutPR(regId) =>
           val pvout = pcu.vout
           preColor(r, pvout.voport.mappedRegs.toList)
@@ -85,16 +95,18 @@ r       case VecInPR(regId, vecIn) =>
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    val prc = preColorAnalysis(cu, pirMap)
-    val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
-    val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
-    val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-    bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)
+    log(cu) {
+      val prc = preColorAnalysis(cu, pirMap)
+      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
+      val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
+      val pcu = cmap.clmap(cu).asInstanceOf[PCU]
+      bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)
+    }
   } 
 }
 
 trait PreColorException extends MappingException
-case class PreColorSameReg(reg:Reg)(implicit val mapper:Mapper, design:Design) extends PreColorException{
+case class PreColorSameReg(reg:Reg)(implicit val mapper:Mapper, design:Design) extends PreColorException {
   override val msg = s"${reg} has more than 1 predefined color" 
 }
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit val mapper:Mapper, design:Design) extends PreColorException {

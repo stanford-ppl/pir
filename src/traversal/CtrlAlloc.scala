@@ -129,7 +129,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     }
   }
   def connectInputs = {
-    design.top.compUnits.foreach { implicit cu =>
+    design.top.compUnits.foreach { cu =>
       val cb = cu.ctrlBox
       if (cu.isHead) {
         val tk = cb.tokenBuffers.head._2
@@ -151,7 +151,8 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         }
       }
       cb.creditBuffers.foreach { case (deped, cd) =>
-        val done = deped.asInstanceOf[ComputeUnit].ctrlBox.outerCtrDone
+        implicit val depedCU = deped.asInstanceOf[ComputeUnit]
+        val done = depedCU.ctrlBox.outerCtrDone
         val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
         cd.inc.connect(TokenOutLUT(deped, done::Nil, tf)) 
       }

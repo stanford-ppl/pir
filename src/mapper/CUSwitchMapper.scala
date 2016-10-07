@@ -119,8 +119,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
         mp = mapCU(cl, pcl, m)
       }
       val pvin = path.last._2
-      val pdvout:POB = mp.vomap(vin.vector.writer)
-      mp = mp.setVI(vin, pvin).setFB(pvin, pdvout).setOP(vin.out, pvin.viport)
+      mp = mp.setVI(vin, pvin)setOP(vin.out, pvin.viport)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
         if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox

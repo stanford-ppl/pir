@@ -16,8 +16,8 @@ abstract class MappingException(implicit design:Design) extends PIRException{
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {
-  //override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.mkString("\n")}\n}"
-  override val msg = s"No solution found to map nodes to resources."
+  override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.mkString("\n")}\n}"
+  //override val msg = s"No solution found to map nodes to resources."
 }
 
 //TODO: n should be node

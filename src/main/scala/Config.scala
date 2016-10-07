@@ -14,7 +14,7 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
-  var genMaxJ = getProperty("pir.maxj", "true") == "true"
+  var genPisa = getProperty("pir.pisa", "false") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var routingAlgorithm = getProperty("pir.routingAlgorithm", "Switch")
   var outDir = getProperty("pir.outDir", "out")
@@ -35,17 +35,18 @@ object Config {
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugCUMapper = debugMapper && true 
-  var debugSOMapper = debugMapper && false 
+  var debugSOMapper = debugMapper && true 
   var debugVIMapper = debugMapper && false 
-  var debugSMMapper = debugMapper && false 
-  var debugCTMapper = debugMapper && true 
+  var debugSMMapper = debugMapper && true 
+  var debugCTMapper = debugMapper && true
   var debugRAMapper = debugMapper && true 
+  var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"
 
   var dse = false
 
   if (quick) {
-    genMaxJ = false
+    genPisa = false
     genDot = false
     test = false
   }
