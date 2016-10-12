@@ -393,6 +393,8 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
   def addDef(reg:Reg):Unit = { defs += reg }
   def addLiveIn(reg:Reg):Unit = { liveIns += reg}
   def addLiveOut(reg:Reg):Unit = { liveOuts += reg }
+  def isHead = this==ctrler.stages.head
+  def isLast = this==ctrler.stages.last
 } 
 object Stage {
   /* No Sugar API */
@@ -526,8 +528,8 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, rdPort:ReadOutPort)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
-case class StorePR(override val regId:Int, wtPort:WriteInPort)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
+case class LoadPR(override val regId:Int, sram:SRAM)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
+case class StorePR(override val regId:Int, sram:SRAM)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
 case class WtAddrPR(override val regId:Int, waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                 extends Reg {override val typeStr = "regct"}

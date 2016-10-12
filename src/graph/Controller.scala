@@ -45,11 +45,12 @@ trait SpadeController extends Controller { self =>
       case _ => voutMap.getOrElseUpdate(v, VecOut(v))
     }
   }
-  // No need to consider scalar after bundling TODO how about tile transfer and memory controller?
+  // No need to consider scalar after bundling
   def readers:List[SpadeController] = voutMap.keys.flatMap {
     _.readers.map{ _.ctrler match {
         case top:Top => top
         case cu:ComputeUnit => cu.inner
+        case mc:MemoryController => mc
       }
     }
   }.toList
@@ -183,7 +184,7 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
       case ss:LocalStage =>
         localStages += ss
         indexOf(ss) = nextIndex
-      case ss:WAStage => assert(false, s"WAstages should be added as a group associated to sram") 
+      case ss:WAStage => // WAstages are added in addWAStages 
     }
   }
 

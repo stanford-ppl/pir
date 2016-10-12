@@ -35,12 +35,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     }
     cu.infGraph.foreach { case (r, itfs)  =>
       r match {
-        case LoadPR(regId, rdPort) =>
-          val sram = rdPort.src
+        case LoadPR(regId, sram) =>
           val psram = pirMap.smmap(sram)
           preColor(r, psram.readPort.mappedRegs.toList)
-        case StorePR(regId, wtPort) =>
-          val sram = wtPort.src
+        case StorePR(regId, sram) =>
           val psram = pirMap.smmap(sram)
           val pregs = psram.writePort.fanIns.filter{ fi => 
             val PipeReg(stage, reg) = fi.src

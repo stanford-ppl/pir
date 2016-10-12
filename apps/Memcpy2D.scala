@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object Memcpy2DDesign extends PIRApp {
-  override val arch = P2P_4CU_4TT
+  override val arch = SN_4x4 
   def main(args: String*)(top:Top) = {
     val x828_oc = OffChip()
     val x988_scalar = Scalar()
@@ -78,7 +78,7 @@ object Memcpy2DDesign extends PIRApp {
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x1013(0)), Const("96i")), op=FixMul, results=List(CU.temp(stage(1), tr69)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr69), CU.ctr(stage(1), x1016(0))), op=FixAdd, results=List(x983_x1021.readAddr))
-      Stage(stage(3), operands=List(CU.load(stage(2), x983_x1021)), op=Bypass, results=List(CU.vecOut(stage(3), x1011_vector)))
+      Stage(stage(3), operands=List(x983_x1021.load), op=Bypass, results=List(CU.vecOut(stage(3), x1011_vector)))
     }
     val x1035 = UnitPipeline(name ="x1035", parent=x1039, deps=List(x1028)) { implicit CU => 
       val stage0 = CU.emptyStage

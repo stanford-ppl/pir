@@ -1,14 +1,13 @@
 ArgInOut - success
-BlockReduce1DDesign - fail. Not enough token down lut in tile tileload, require 2
+BlockReduce1DDesign - success 
 DeviceMemcpyDesign - success
-DotProductDesign - CtrMapper failed
+DotProductDesign - success 
 DotProductLite - success
 DotProductWritten - success
 InOutArgDesign - success
 Memcpy2DDesign - to be fixed
-NiterDesign - failed. Not enough tokenDown lut, require 3
-SimpleFoldDesign - failed. Not enough tokenDown lut, require 2
+NiterDesign - success 
+SimpleFoldDesign - success 
 SimpleReduceDesign - success
-SimpleSequentialDesign - StageMapper failed
-SimpleTileLoadStoreDesign - TileTransfer not enough tokenDown LUT, require 3, tokenOut require 5,
-tokenIn, require 5
+SimpleSequentialDesign - success 
+SimpleTileLoadStoreDesign - success

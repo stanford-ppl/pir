@@ -124,7 +124,13 @@ object CUMapper {
         }
         cons += (("sin"	      , (cl.sins, pcl.sins)))
         cons += (("sout"	    , (cl.souts, pcl.souts)))
-        cons += (("vin"	      , (cl.vins, pcl.vins)))
+        val vins = cl match {
+          case cl:TileTransfer => cl.vins.filter{ vin => 
+            vin.isInstanceOf[DummyVecIn]
+          }
+          case _ => cl.vins
+        }
+        cons += (("vin"	      , (vins, pcl.vins)))
         cons += (("vout"	    , (cl.vouts, pcl.vouts)))
         failureInfo += pcl -> ListBuffer[String]()
         check(cons.toList, failureInfo(pcl))

@@ -44,16 +44,25 @@ object ConfigFactory extends ImplicitConversion {
   /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to souts of all CUs*/
   def genArgIOConnection(implicit spade:Spade) = {
     val top = spade.top
-    val cus = spade.cus
-    cus.foreach { cu =>
-      top.vouts.foreach { aib =>
-        cu.vins.foreach { vin =>
-          vin <== aib
+    spade match {
+      case s:PointToPointNetwork =>
+        val cus = spade.cus
+        cus.foreach { cu =>
+          top.vouts.foreach { aib =>
+            cu.vins.foreach { vin =>
+              vin <== aib
+            }
+          }
+          top.vins.foreach { aob => 
+            aob <== cu.vout
+          }
         }
-      }
-      top.vins.foreach { aob => 
-        aob <== cu.vout
-      }
+      case s:SwitchNetwork =>
+        for (i <- 0 until sbs.size) {
+          for (j <- 0 until sbs.head.size) {
+            //if (j==0)
+          }
+        }
     }
   }
 

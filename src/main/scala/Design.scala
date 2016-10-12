@@ -172,6 +172,9 @@ trait Design extends Metadata { self =>
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
   lazy val spadeDotGen = new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter, pirMapping)
+  lazy val ctrlPrinter = new CtrlPrinter()
+
+  def mapping = pirMapping.mapping
 
   /* Traversals */
   lazy val traversals = {
@@ -184,7 +187,7 @@ trait Design extends Metadata { self =>
     traversals += new CtrlAlloc()
     traversals += new IRCheck()
     if (Config.debug) traversals += ctrlDotPrinter 
-    if (Config.debug) traversals += new CtrlPrinter()
+    if (Config.debug) traversals += ctrlPrinter 
     if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
     if (Config.debug) traversals += spadeDotGen 
@@ -201,6 +204,7 @@ trait Design extends Metadata { self =>
         if (!pirPrinter.isTraversed) pirPrinter.run
         if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
         if (!spadeDotGen.isTraversed) spadeDotGen.run
+        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
       case e:Throwable => throw e
     }
   }

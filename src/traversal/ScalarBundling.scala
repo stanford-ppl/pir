@@ -57,7 +57,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
 
   def bundleScalarIns = {
     design.top.spadeCtrlers.foreach { cl =>
-      if (!cl.isInstanceOf[TileTransfer] && !cl.isInstanceOf[MemoryController]) bundleScalarIn(cl)
+      if (!cl.isInstanceOf[MemoryController]) bundleScalarIn(cl)
     }
   }
 

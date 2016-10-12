@@ -3,6 +3,7 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper.PIRException
+import pir.plasticine.main._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
@@ -38,15 +39,19 @@ class IRCheck(implicit val design: Design) extends Traversal{
         case n =>
       }
     }
-    design.arch.sbs.foreach { sb => 
-      sb.vins.foreach { vin => 
-        if(vin.fanIns.size>1) 
-          throw PIRException(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
-      }
-      sb.vouts.foreach { vout => 
-        if(vout.fanOuts.size>1) 
-          throw PIRException(s"Switchbox $sb has $vout with fanOuts > 1 ${vout.fanOuts}")
-      }
+    design.arch match {
+      case sn:SwitchNetwork =>
+        sn.sbs.flatten.foreach { sb => 
+          sb.vins.foreach { vin => 
+            if(vin.fanIns.size>1) 
+              throw PIRException(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
+          }
+          sb.vouts.foreach { vout => 
+            if(vout.fanOuts.size>1) 
+              throw PIRException(s"Switchbox $sb has $vout with fanOuts > 1 ${vout.fanOuts}")
+          }
+        }
+      case _ =>
     }
   } 
   override def finPass = {

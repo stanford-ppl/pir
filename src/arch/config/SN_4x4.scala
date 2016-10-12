@@ -15,7 +15,7 @@ import scala.util.{Try, Success, Failure}
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object SN_4x4 extends Spade {
+object SN_4x4 extends SwitchNetwork {
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -37,22 +37,21 @@ object SN_4x4 extends Spade {
   }
   override val rcus = allCUs.flatten 
   override val ttcus = List.tabulate(numRowCUs) { i =>
-    ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 4, numRegs = 20).coord(-1, i)
+    ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 5, numRegs = 20).coord(-1, i)
   } 
 
-  val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-  for (i <- 0 until switchBoxes.size) {
-    for (j <- 0 until switchBoxes.head.size) {
-      coordOf(switchBoxes(i)(j)) = (i,j) 
+  override val sbs = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+  for (i <- 0 until sbs.size) {
+    for (j <- 0 until sbs.head.size) {
+      coordOf(sbs(i)(j)) = (i,j) 
       if (i==0 && j<numRowCUs) {
-        ttcus(j).vins(0) <== switchBoxes(i)(j).vouts(4)
-        switchBoxes(i)(j).vins(1) <== ttcus(j).vouts(0) 
+        ttcus(j).vins(0) <== sbs(i)(j).vouts(4)
+        sbs(i)(j).vins(1) <== ttcus(j).vouts(0) 
       }
     }
   }
-  override val sbs = switchBoxes.flatten 
 
-  ConfigFactory.genSwitchNetwork(allCUs, switchBoxes)
+  ConfigFactory.genSwitchNetwork(allCUs, sbs)
 
   ConfigFactory.genArgIOConnection
 

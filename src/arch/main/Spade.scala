@@ -14,7 +14,6 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   val top:Top
   val rcus:List[ComputeUnit]
   val ttcus:List[TileTransfer]
-  val sbs:List[SwitchBox]
 
   def ctrlers = top :: rcus ++ ttcus
   def cus = rcus ++ ttcus
@@ -28,6 +27,10 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   // Metadata Maps 
   val coordMap:coordOf.M = Map.empty
   val indexMap:indexOf.M = Map.empty
+}
+trait PointToPointNetwork extends Spade
+trait SwitchNetwork extends Spade {
+  val sbs:List[List[SwitchBox]]
 }
 
 trait ImplicitConversion {

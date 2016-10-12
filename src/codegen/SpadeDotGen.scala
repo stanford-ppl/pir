@@ -130,25 +130,40 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     }
   }
 
-  def print(pcus:List[PCU]) = {
+  def print:Unit = { println(design.mapping) }
+
+  def print(mapping:PIRMap):Unit = {
+    design.arch match {
+      case pn:PointToPointNetwork if (mapping!=null) =>
+        print(pn.cus, mapping)
+      case sn:SwitchNetwork if (mapping!=null) =>
+        print((sn.cus, sn.sbs.flatten), mapping)
+      case pn:PointToPointNetwork if (mapping==null) =>
+        print(pn.cus)
+      case sn:SwitchNetwork if (mapping==null) =>
+        print((sn.cus, sn.sbs.flatten))
+    }
+  }
+
+  def print(pcus:List[PCU]):Unit = {
     emitBlock("digraph G") { emitPCUs(pcus, None) }
     close
   }
 
-  def print(res:(List[PCU], List[SwitchBox])) = {
+  def print(res:(List[PCU], List[SwitchBox])):Unit = {
     val (pcus, sbs) = res
     emitBlock("digraph G") { emitPCUs(pcus, None); emitSwitchBoxes(sbs, None) }
     close
   }
 
-  def print(pcus:List[PCU], mapping:PIRMap) = {
+  def print(pcus:List[PCU], mapping:PIRMap):Unit = {
     emitBlock("digraph G") {
       emitPCUs(pcus, Some(mapping))
     }
     close
   }
 
-  def print(res:(List[PCU], List[SwitchBox]), mapping:PIRMap) = {
+  def print(res:(List[PCU], List[SwitchBox]), mapping:PIRMap):Unit = {
     val (pcus, sbs) = res
     emitBlock("digraph G") {
       emitPCUs(pcus, Some(mapping))
@@ -257,10 +272,7 @@ class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
   ctrPrinter:CtrDotPrinter, pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
 
   override def traverse = {
-    if (pirMapping.mapping!=null)
-      cuPrinter.print((design.arch.cus, design.arch.sbs), pirMapping.mapping)
-    else
-      cuPrinter.print((design.arch.cus, design.arch.sbs))
+    cuPrinter.print
     ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }

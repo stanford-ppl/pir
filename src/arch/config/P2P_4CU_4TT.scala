@@ -14,7 +14,7 @@ import pir.graph.enums._
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object P2P_4CU_4TT extends Spade {
+object P2P_4CU_4TT extends PointToPointNetwork {
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -39,8 +39,6 @@ object P2P_4CU_4TT extends Spade {
   override val ttcus = List.tabulate(numTTs) { i =>
     ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 4, numRegs = 20).index(i+rcus.size)
   }
-
-  override val sbs = Nil
 
   /* Network Constrain */ 
   {

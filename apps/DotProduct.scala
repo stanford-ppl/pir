@@ -63,10 +63,10 @@ object DotProductDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val x1253 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
       val x1254 = CounterChain(name = "x1254", x1253)
-      val x1226 = CounterChain.copy(x1224, "x1226")
       val x1250_unitCC = CounterChain.copy(x1250, "x1250_unitCC")
-      val x1236_unitCC = CounterChain.copy(x1236, "x1236_unitCC")
       val x1240 = CounterChain.copy(x1238, "x1240")
+      val x1226 = CounterChain.copy(x1224, "x1226")
+      val x1236_unitCC = CounterChain.copy(x1236, "x1236_unitCC")
       val x1221_x1261 = SRAM(size = 96, writeCtr = x1226(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1254(0), swapWrite = x1236_unitCC(0))).wtPort(x1223_vector).rdAddr(x1254(0)).wtAddr(x1226(0))
       val x1222_x1262 = SRAM(size = 96, writeCtr = x1240(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1254(0), swapWrite = x1250_unitCC(0))).wtPort(x1237_vector).rdAddr(x1254(0)).wtAddr(x1240(0))
       var stage: List[Stage] = Nil

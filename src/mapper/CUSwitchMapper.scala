@@ -95,7 +95,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
       val pcl = m.clmap.get(cl) 
       def validCons(toVin:PIB, path:Path) = {
         val to = toVin.src
-        pcl.fold(true) { _ == to } && // If cl has been mapped, valid path reaches current pcl
+        pcl.fold(resMap(cl).contains(pcl)) { _ == to } && // If cl has been mapped, valid path reaches current pcl
         (path.size >= minHop) && // path is with required hops
         (path.size < maxHop) && 
         (to!=start) && // path doesn't end at depended CU
@@ -119,7 +119,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
         mp = mapCU(cl, pcl, m)
       }
       val pvin = path.last._2
-      mp = mp.setVI(vin, pvin)setOP(vin.out, pvin.viport)
+      mp = mp.setVI(vin, pvin).setOP(vin.out, pvin.viport)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
         if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox

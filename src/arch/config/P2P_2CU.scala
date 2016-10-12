@@ -15,7 +15,7 @@ import scala.util.{Try, Success, Failure}
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object P2P_2CU extends Spade {
+object P2P_2CU extends PointToPointNetwork {
 
   // Inner CU Specs
   override val wordWidth = 32
@@ -32,8 +32,6 @@ object P2P_2CU extends Spade {
     ConfigFactory.genRCU(numLanes, numSRAMs = 2, numCtrs = 8, numRegs = 20).index(i)
   } 
   override val ttcus = Nil 
-
-  override val sbs = Nil 
 
   /* Network Constrain */ 
   rcus(1).vins(0) <== rcus(0).vout 

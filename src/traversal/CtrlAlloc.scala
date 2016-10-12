@@ -217,9 +217,9 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     design.top.compUnits.foreach { cu =>
       cu match {
         case cu:OuterController =>
-          cu.cchains.flatMap{ _.counters }.foreach { ctr =>
-            if (ctr.en.isConnected || ctr.done.isConnected)
-              throw PIRException(s"Outer controller shouldn't connect control signals")
+          cu.cchains.foreach{ cc =>
+            if (cc.inner.en.isConnected || cc.outer.done.isConnected)
+              throw PIRException(s"Outer controller shouldn't connect inner most counter enable or outer most counter done signals ${cu}")
           }
         case cu:InnerController =>
           cu.cchains.flatMap{ _.counters }.foreach { ctr =>

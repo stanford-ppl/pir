@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalysis(implicit val design: Design) extends Traversal{
+class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
 
   override def traverse = {
     design.top.innerCUs.foreach { implicit cu =>
@@ -107,8 +107,16 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         case p:RdAddrInPort =>
           val sram = p.src
           val icu = cu.asInstanceOf[InnerController]
-          if (stage!=stages.last) // Loaded value are forwarded one stage after readAddr calc
-            stages(i+1).addDef(icu.loadPR(sram))
+          // Loaded value are forwarded one stage after readAddr calc
+          if (stage!=stages.last) {
+            val next = stages(i+1)
+            next.addDef(icu.loadPR(sram))
+            if (next.liveOuts.exists{ 
+              case LoadPR(_,sm) if sm==sram => true
+              case _ => false
+            }) {
+            }
+          }
         case _ =>
       }
     }
@@ -131,22 +139,25 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
           }
         }
         s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
-      } else if (i==1) { // s == stages.second. First stage after "empty stage" 
-        s.liveIns.foreach{ r => 
-          // If there's no def on loaded value, check if sram's readAddr is directly connected to 
-          // the counter. If it is, forward loaded value to the first local stage
-          r match {
-            case r:LoadPR =>
-              val sram = r.rdPort.src
-              sram.readAddr.from.src match {
-                case _:Counter => s.addDef(r)
-                case _ => throw PIRException(s"${sram} has no readAddr defined!")
-              }
-            case _ =>
-          }
-        }
-        s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       }
+      s.liveIns.foreach{ r => 
+        // If there's no def on loaded value, check if sram's readAddr is directly connected to 
+        // the counter. If it is, forward loaded value to the first local stage
+        r match {
+          case r@LoadPR(_,sram) =>
+            sram.readAddr.from.src match {
+              case _:Counter if (s == stages(1)) => s.addDef(r)
+              case fu:FuncUnit if (indexOf(fu.stage) == indexOf(s) - 1) =>
+                throw PIRException(s"The stage right after address calculation stage should load from sram directly ${s} in ${s.ctrler}")
+              case fu:FuncUnit if (indexOf(fu.stage) >= indexOf(s)) =>
+                throw PIRException(s"Loading stage is after address calculation stage loading:${s}, address calculation stage:${fu.stage} in ${s.ctrler}")
+              case _ => 
+                throw PIRException(s"Unknown producer of ${sram} readAddr")
+            }
+          case _ =>
+        }
+      }
+      s.liveIns = compLiveIn(s.liveOuts, s.defs.toSet, s.uses.toSet)
       // Kill live in of accum due to initial value
       var accums = s.uses.collect {case r:AccumPR => r}
       s.liveIns = s.liveIns -- accums
@@ -181,7 +192,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
             if (!stage.fu.isDefined || !stage.fu.get.defines(reg)) {
               reg match {
                 case CtrPR(_, ctr) => pr.in.connect(ctr.out) 
-                case LoadPR(_, rdPort) => pr.in.connect(rdPort) 
+                case LoadPR(_, sram) => pr.in.connect(sram.readPort) 
                 case VecInPR(_, vecIn) => 
                   val head = cu.pipeReg(stages.head, reg)
                   if (stage!=stages.head) {
@@ -208,7 +219,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal{
         if (stage==stages.last) { // Last stage
           if (!pr.out.isConnected) {
             reg match {
-              case StorePR(_, wtPort) => wtPort.connect(pr.out)
+              case StorePR(_, sram) => sram.wtPort(pr.out)
               case p:VecOutPR => p.vecOut.in.connect(pr.out)
               case ScalarOutPR(_, scalarOut) => scalarOut.in.connect(pr.out)
               case r:WtAddrPR => r.waPort.connect(pr.out)

@@ -51,9 +51,9 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val accumRegs  = Set[AccumPR]()
   def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear}
 
-  def loadPR(s:SRAM):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s.readPort))
+  def loadPR(s:SRAM):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
 
-  def storePR(s:SRAM):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s.writePort))
+  def storePR(s:SRAM):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s))
 
   def wtAddrPR(s:SRAM):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(newTemp, s.writeAddr))
 
