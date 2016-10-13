@@ -12,6 +12,7 @@
   //addCommandAlias("make", ";project pir;compile")
   //
     addCommandAlias("make", ";project pir; compile")
+    addCommandAlias("makeapps", ";project apps; compile")
     addCommandAlias("pir", "; project apps; run-main")
-    addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
+    addCommandAlias("wip", s"""test-only -- -n "WIP"""")
     cancelable in Global := true

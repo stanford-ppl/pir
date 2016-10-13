@@ -200,11 +200,11 @@ trait Design extends Metadata { self =>
       traversals.foreach(_.run)
     } catch {
       case e:PIRException => 
-        e.printStackTrace
         if (!pirPrinter.isTraversed) pirPrinter.run
         if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
         if (!spadeDotGen.isTraversed) spadeDotGen.run
         if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        throw e
       case e:Throwable => throw e
     }
   }

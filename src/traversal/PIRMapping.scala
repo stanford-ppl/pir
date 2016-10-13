@@ -67,16 +67,14 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         dprintln(s"Final Pass: Primitive Mapping (succeeded)"); m
       case Failure(e) => 
         dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
-        e match {
-          case e:PIRException => dprintln(e)
-          case e => e.printStackTrace 
-        }
         MapPrinter.printMap(cmap)(design)
         MapperLogger.flush
         design.cuDotPrinter.print(cmap)
-        System.exit(-1) // TODO: at the moment if prim failed. stop trying because CUs 
-                        // are homogenous
-        throw e
+        e match {
+          // TODO: at the moment if prim failed. stop trying because CUs are homogenous
+          case e:MappingException => throw PIRException("Mapping Failed")
+          case e => throw e 
+        }
     }
   })
 
@@ -97,7 +95,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         case me:MappingException =>
           info(s"Mapping failed")
           MapPrinter.printException(me)
-          me.printStackTrace
+          throw e
         case pe:PIRException => 
           MapperLogger.close
           throw e

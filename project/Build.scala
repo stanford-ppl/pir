@@ -34,7 +34,10 @@ object PIRBuild extends Build {
   val cmds = Seq(hello, helloAll, failIfTrue, changeColor, printState)
 	lazy val pir = Project("pir", file("."), settings = bldSettings) settings(commands ++= cmds)
 
-	lazy val apps = Project("apps", file("apps"), settings = bldSettings) dependsOn pir settings(commands ++= cmds)
+  lazy val apps = Project("apps", file("apps"), 
+        settings = bldSettings, 
+        dependencies=Seq(pir % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
+      ) settings(commands ++= cmds)
 
 }
 

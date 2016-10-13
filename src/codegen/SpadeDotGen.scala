@@ -140,8 +140,13 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
         case from:PCU =>
           emitEdge(from, pvout, pcl, pvin, attr)
         case from:PTop =>
-          val bottom = coordOf(pvin.src)._2==0 
-          emitEdge(quote(from, bottom), s"$pcl:$pvin", attr)
+          spade match {
+            case sn:SwitchNetwork =>
+              val bottom = coordOf(pvin.src)._2==0 
+              emitEdge(quote(from, bottom), s"$pcl:$pvin", attr)
+            case pn:PointToPointNetwork =>
+              emitEdge(quote(from), s"$pcl:$pvin", attr)
+          }
       }
     }
   }
@@ -190,14 +195,24 @@ object ArgDotPrinter extends Metadata{
     def quote(n:Any) = printer.quote(n)
     ptop.vins.foreach { vin =>
       vin.fanIns.foreach { vout =>
-        val bottom = coordOf(vout.src)._2==0 
-        printer.emitEdge(quote(vout), quote(ptop, bottom))
+        spade match {
+          case sn:SwitchNetwork =>
+            val bottom = coordOf(vout.src)._2==0 
+            printer.emitEdge(quote(vout), quote(ptop, bottom))
+          case pn:PointToPointNetwork =>
+            printer.emitEdge(quote(vout), quote(ptop))
+        }
       }
     }
     ptop.vouts.foreach { vout =>
       vout.fanOuts.foreach { vin =>
-        val bottom = coordOf(vin.src)._2==0 
-        printer.emitEdge(quote(ptop, bottom), quote(vin))
+        spade match {
+          case sn:SwitchNetwork =>
+            val bottom = coordOf(vin.src)._2==0 
+            printer.emitEdge(quote(ptop, bottom), quote(vin))
+          case pn:PointToPointNetwork =>
+            printer.emitEdge(ptop, quote(vin))
+        }
       }
     }
   }

@@ -1,3 +1,4 @@
+package apps
 import pir.graph._
 import pir.graph
 import pir.codegen._
