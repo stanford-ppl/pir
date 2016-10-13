@@ -5,7 +5,7 @@ import pir.typealias._
 import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
-import pir.codegen.Logger
+import pir.codegen.{Logger, DotCodegen}
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
@@ -35,7 +35,7 @@ trait Mapper { self =>
   def dbsln(s:Any):Unit = dbsln(this, s) 
   def dbeln(s:Any):Unit = dbeln(this, s) 
 
-  def quote(pne:Any)(implicit spade:Spade) = PNode.quote(pne) 
+  def quote(pne:Any)(implicit spade:Spade) = DotCodegen.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any)(block: => M):M = {
     dbsln(mapper, s"$info")

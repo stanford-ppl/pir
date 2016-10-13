@@ -1,5 +1,9 @@
 package pir.codegen
 
+import pir.Design
+import pir.plasticine.main._
+import pir.typealias._
+import pir.graph.mapper.PIRException
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 
@@ -70,10 +74,9 @@ trait DotCodegen extends Printer with DotEnum {
     emitEdge(from, to, DotAttr().label(label))
   }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
-    emitln(s"""${q(from)} -> ${q(to)} [${attr.list}]""")
+    emitln(s"""${q(from)} -> ${q(to)} ${if (attr.attrMap.size!=0) s"[${attr.list}]" else ""}""")
   }
   def emitEdge(from:Any, to:Any):Unit = {
-    emitln(s"here?")
     emitln(s"""${q(from)} -> ${q(to)}""")
   }
   def emitEdge(from:Any, ffield:Any, to:Any, tfield:Any):Unit = {
@@ -94,6 +97,32 @@ trait DotCodegen extends Printer with DotEnum {
       emitln(attr.expand)
 			block
 		}
+  }
+  def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
+}
+object DotCodegen extends Metadata {
+  def quote(n:Any)(implicit design:Design) = {
+    implicit val spade:Spade = design.arch 
+    n match {
+      case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+      case vin:PIB =>
+        vin.src match {
+          case cu:PCU => s"""${vin.src}:${vin}:n"""
+          case sb:PSB => s"""${vin.src}"""
+        }
+      case vout:POB =>
+        vout.src match {
+          case cu:PCU => s"""${vout.src}:${vout}:s"""
+          case sb:PSB => s"""${vout.src}"""
+        }
+      case (n,b) =>
+        val bottom = b.asInstanceOf[Boolean]
+        n match {
+          case ptop:PTop if (bottom) => s"""${ptop}_bottom"""
+          case ptop:PTop if (!bottom) => s"""${ptop}_top"""
+        }
+      case _ => n.toString
+    }
   }
 }
 

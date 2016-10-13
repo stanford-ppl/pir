@@ -46,7 +46,7 @@ class CtrMapperTest extends UnitTest { self =>
       }
       // Mapping
       val mapper = new CtrMapper()
-      val mapping = mapper.map(ctrs, arch.pctrs, PIRMap.empty, (m:PIRMap) => m)
+      override val mapping = mapper.map(ctrs, arch.pctrs, PIRMap.empty, (m:PIRMap) => m)
       // Printer
       new CtrDotPrinter("TestPCtr1.dot").print(arch.pctrs, ctrs, mapping)
     }
@@ -122,7 +122,7 @@ class CtrMapperTest extends UnitTest { self =>
       }
       // Mapping
       val mapper = new CtrMapper()
-      val mapping = mapper.map(ctrs, arch.pctrs, PIRMap.empty, (m:PIRMap) => m)
+      override val mapping = mapper.map(ctrs, arch.pctrs, PIRMap.empty, (m:PIRMap) => m)
       // Printer
       new CtrDotPrinter("TestPCtr1.dot").print(arch.pctrs, ctrs, mapping)
       val ctmap = mapping.ctmap

@@ -69,7 +69,6 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
         e match {
           case e:PIRException => dprintln(e)
-          e.printStackTrace
           case e => e.printStackTrace 
         }
         MapPrinter.printMap(cmap)(design)

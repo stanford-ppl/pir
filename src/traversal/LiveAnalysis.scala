@@ -147,12 +147,12 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
           case r@LoadPR(_,sram) =>
             sram.readAddr.from.src match {
               case _:Counter if (s == stages(1)) => s.addDef(r)
+              case _:Counter => stages(1).addDef(r)
               case fu:FuncUnit if (indexOf(fu.stage) == indexOf(s) - 1) =>
                 throw PIRException(s"The stage right after address calculation stage should load from sram directly ${s} in ${s.ctrler}")
               case fu:FuncUnit if (indexOf(fu.stage) >= indexOf(s)) =>
                 throw PIRException(s"Loading stage is after address calculation stage loading:${s}, address calculation stage:${fu.stage} in ${s.ctrler}")
-              case _ => 
-                throw PIRException(s"Unknown producer of ${sram} readAddr")
+              case r => throw PIRException(s"Unknown producer of ${sram} readAddr $r")
             }
           case _ =>
         }

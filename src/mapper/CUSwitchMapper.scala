@@ -2,7 +2,7 @@ package pir.graph.mapper
 import pir.graph._
 import pir.{Design, Config}
 import pir.typealias._
-import pir.codegen.Printer
+import pir.codegen.{Printer, DotCodegen}
 import pir.graph.traversal.{PIRMapping, MapPrinter, CUDotPrinter}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
@@ -18,13 +18,13 @@ object CUSwitchMapper {
   type Edge = (POB, PIB)
   type Path = List[Edge]
   type PathMap = List[(PCL, Path)]
-  def quote(io:PIO[PNE])(implicit spade:Spade):String = {
+  def quote(io:PIO[PNE])(implicit design:Design):String = {
     io.src match {
       case cu:PCU => io.toString
-      case sb:PSB => PNode.quote(sb) 
+      case sb:PSB => DotCodegen.quote(sb) 
     }
   }
-  def quote(path:CUSwitchMapper.Path)(implicit spade:Spade):String = {
+  def quote(path:CUSwitchMapper.Path)(implicit design:Design):String = {
     path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
   }
 }
@@ -62,6 +62,8 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     if (remainNodes.size==0) return fp(map) // throw MappingException
     val cu::restNodes = remainNodes 
     val pdeps = getDeps(cu.vins, map) // returns unmapped vins whose depended cu are mapped
+    dbsln(s"Mapping $cu")
+    Try {
     if (pdeps.size==0) { // If there's no dependency
       def constrain(cu:N, pcu:R, m:M):M = {
         cu.readers.foldLeft(mapCU(cu, pcu, m)) { case (pm, reader) =>
@@ -81,10 +83,14 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     } else { // There is dependency
       mapDep(cu, mapCUs(fp)(remainNodes, _))(pdeps, map)
     }
+    } match {
+      case Success(m) => dbeln(s" Mapping $cu (success) "); m
+      case Failure(e) => dbeln(s" Mapping $cu (failed) "); throw e
+    }
   }
 
   val minHop = 1
-  val maxHop = 4
+  val maxHop = 5
   def mapDep(cl:SCL, fp:M => M)(remainDeps:List[(VI,PCL)], map:M):M = {
     type N = (VI, PCL)
     type R = (PCL, Path)
@@ -95,7 +101,15 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
       val pcl = m.clmap.get(cl) 
       def validCons(toVin:PIB, path:Path) = {
         val to = toVin.src
-        pcl.fold(resMap(cl).contains(pcl)) { _ == to } && // If cl has been mapped, valid path reaches current pcl
+        //if (to.id==15549) {
+        //  dprintln(s"to: $to")
+        //  dprintln(pcl.fold(resMap(cl).contains(to)) { _ == to })
+        //  dprintln(path.size >= minHop)
+        //  dprintln(s"${path.size < maxHop} ${path}")
+        //  dprintln(to!=start)
+        //  dprintln(!path.exists { case (vout, vin) => m.fbmap.contains(vin)} )
+        //}
+        pcl.fold(resMap(cl).contains(to)) { _ == to } && // If cl has been mapped, valid path reaches current pcl
         (path.size >= minHop) && // path is with required hops
         (path.size < maxHop) && 
         (to!=start) && // path doesn't end at depended CU
@@ -136,12 +150,8 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
   }
 
   def mapCU(cl:SCL, pcl:PCL, map:M):M = {
-    Try {
-      outputMapper.map(cl, map.setCL(cl, pcl))
-    } match {
-      case Success(m) => m
-      case Failure(e) => throw e
-    }
+    dprintln(s"Try $cl -> $pcl")
+    outputMapper.map(cl, map.setCL(cl, pcl))
   }
 
   /*
@@ -190,7 +200,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
             case cl:PCU if validCons(vin, newPath) => pm :+ (cl, newPath)
             case cl:PTop if validCons(vin, newPath) => pm :+ (cl, newPath)
             case sb:PSB if advanceCons(sb, newPath) => rec(vin.src, newPath, pm)
-            case _ => pm 
+            case _ =>  pm 
           }
         }
       }

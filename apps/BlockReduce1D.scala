@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object BlockReduce1DDesign extends PIRApp {
-  override val arch = P2P_4CU_4TT
+  override val arch = SN_4x4 
   def main(args: String*)(top:Top) = {
     val x1109_vector = Vector()
     val x1042_vector = Vector()

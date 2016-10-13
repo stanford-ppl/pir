@@ -2,7 +2,7 @@ package pir.graph.traversal
 
 import pir.graph._
 import pir._
-import pir.codegen.Printer
+import pir.codegen.{Printer, DotCodegen}
 import pir.misc._
 
 import scala.collection.mutable.ListBuffer
@@ -99,7 +99,7 @@ class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer with
     node match {
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
-      case n:Stage => emitBlock(s"${Node.quote(node)}${genFields(node)}", node)
+      case n:Stage => emitBlock(s"${DotCodegen.quote(node)}${genFields(node)}", node)
       case n:UDCounter => // printed in Ctrl.txt
       case _ => emitln(s"${node}${genFields(node)}")
     }

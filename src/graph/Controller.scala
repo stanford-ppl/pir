@@ -316,7 +316,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   def in:Vector = dataIn.vector
   def out:Vector = dataOut.vector
 
-  override val typeStr = "TileTransfer"
+  override val typeStr = s"${mctpe}"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
     val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
     super.updateFields(cchains, Nil)

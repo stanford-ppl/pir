@@ -58,9 +58,24 @@ object ConfigFactory extends ImplicitConversion {
           }
         }
       case s:SwitchNetwork =>
-        for (i <- 0 until sbs.size) {
-          for (j <- 0 until sbs.head.size) {
-            //if (j==0)
+        for (i <- 0 until s.sbs.size) {
+          for (j <- 0 until s.sbs.head.size) {
+            if (j==s.sbs.head.size-1) {
+              top.vins.foreach { aob =>
+                aob <== s.sbs(i)(j).vouts(2)
+              }
+              top.vouts.foreach { aib =>
+                s.sbs(i)(j).vins(4) <== aib
+              }
+            }
+            if (j==0) {
+              top.vins.foreach { aob =>
+                aob <== s.sbs(i)(j).vouts(0)
+              }
+              top.vouts.foreach { aib =>
+                s.sbs(i)(j).vins(0) <== aib 
+              }
+            }
           }
         }
     }

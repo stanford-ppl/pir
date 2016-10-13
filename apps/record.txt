@@ -5,9 +5,9 @@ DotProductDesign - success
 DotProductLite - success
 DotProductWritten - success
 InOutArgDesign - success
-Memcpy2DDesign - to be fixed
+Memcpy2DDesign - failed due to two inputs required at tile load 
 NiterDesign - success 
 SimpleFoldDesign - success 
 SimpleReduceDesign - success
 SimpleSequentialDesign - success 
-SimpleTileLoadStoreDesign - success
+SimpleTileLoadStoreDesign - failed due to two inputs required at tile load 

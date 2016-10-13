@@ -5,7 +5,7 @@ import pir.typealias._
 import pir.misc._
 import pir.graph._
 import pir.graph.enums._
-import pir.graph.traversal.{CUDotPrinter}
+import pir.codegen.{DotCodegen}
 import pir.plasticine.main._
 import pir.plasticine.config._
 import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes, Node => PNode }
@@ -18,7 +18,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUSwitchMapperTest extends UnitTest with Metadata {
 
-  def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new Spade {
+  def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new SwitchNetwork {
     val numLanes = 4
     val numRCUs = numRowCUs * numColCUs
     val numVins = 4
@@ -26,11 +26,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val wordWidth = 32
     val top = PTop(numLanes, numLanes, numLanes)
     val ttcus = Nil
-    val switchBoxes = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
-    override val sbs = switchBoxes.flatten 
-    for (i <- 0 until switchBoxes.size) {
-      for (j <- 0 until switchBoxes.head.size) {
-        coordOf(switchBoxes(i)(j)) = (i,j) 
+    override val sbs = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+    for (i <- 0 until sbs.size) {
+      for (j <- 0 until sbs.head.size) {
+        coordOf(sbs(i)(j)) = (i,j) 
       }
     }
     val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
@@ -38,15 +37,15 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
     val rcus = cuArray.flatten
     /* Network Constrain */ 
-    ConfigFactory.genSwitchNetwork(cuArray, switchBoxes)
+    ConfigFactory.genSwitchNetwork(cuArray, sbs)
     ConfigFactory.genArgIOConnection
   }
 
-  def quote(pne:PNE)(implicit spade:Spade) = PNode.quote(pne)
+  def quote(pne:PNE)(implicit design:Design) = DotCodegen.quote(pne)
 
   lazy val design = new Design {
     // PNodes
-    implicit override val arch = genSwitchNetworkConfig(4,4)
+    override val arch = genSwitchNetworkConfig(4,4)
     val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
       def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
@@ -68,7 +67,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         assert(!neighbors.contains(c))
       }
     }
-    new CUDotPrinter("TestSwitch.dot").print((arch.cus, arch.sbs))
+    new CUDotPrinter("TestSwitch.dot").print
   }
 
   "SwitchBox Connection 1 hop" should "success" in {
@@ -143,7 +142,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = c0::c1::c2::c3::c4::Nil
       top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig(4,4)
+      override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
@@ -152,10 +151,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs), mapping)
+          new CUDotPrinter("TestSwitchMapping.dot").print
         case Failure(e) =>
           println(e)
-          new CUDotPrinter("TestSwitchMapping.dot").print((arch.cus, arch.sbs)); throw e
+          new CUDotPrinter("TestSwitchMapping.dot").print; throw e
       }
     }
   }
@@ -233,11 +232,11 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs), mapping)
+          new CUDotPrinter("TestDotProduct.dot").print
         case Failure(e) => 
           MapperLogger.dprintln(e)
           MapperLogger.close
-          new CUDotPrinter("TestDotProduct.dot").print((arch.cus, arch.sbs)); throw e
+          new CUDotPrinter("TestDotProduct.dot").print; throw e
       }
     }
   }
@@ -279,9 +278,9 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs), mapping)
+          new CUDotPrinter("TestOODependency.dot").print
         case Failure(e) => 
-          new CUDotPrinter("TestOODependency.dot").print((arch.cus, arch.sbs)); throw e
+          new CUDotPrinter("TestOODependency.dot").print; throw e
       }
       MapperLogger.close
     }
