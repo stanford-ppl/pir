@@ -15,16 +15,82 @@ import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
 
-class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
-  def this()(implicit design:Design) = this(Config.spadeNetwork)
+  def this()(implicit design:Design) = this(Config.spadeCtrlNetwork)
 
   override val stream = newStream(fileName) 
-  
-  val scale = 4
 
-  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = {
+  val scale = 7
+  def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
+    //emitln(s"splines=ortho;")
+    pcls.foreach { pcl =>
+      val recs = ListBuffer[String]()
+      pcl match {
+        case pcu:PCU => 
+          assert(pcu.cins.size==pcu.couts.size)
+          val cins = pcu.cins.map { cin => s"<${cin}> ${cin}"}
+          val couts = pcu.couts.map { cout => s"<${cout}> ${cout}"}
+          val qpcu = quote(pcu)
+          val culabel = mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
+            val icl = cu.asInstanceOf[ICL]
+            s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
+          }
+          //recs += s"{${cins(1)}  | ${cins(0)}   | ${cins(7)}}"
+          //recs += s"{${couts(1)} | ${couts(0)}  | ${couts(7)}}"
+          //recs += s"{${cins(2)}  | ${culabel}   | ${cins(6)}}"
+          //recs += s"{${couts(2)} |              | ${couts(6)}}"
+          //recs += s"{${cins(3)}  | ${cins(4)}   | ${cins(5)}}"
+          //recs += s"{${couts(3)} | ${couts(4)}  | ${couts(5)}}"
+          recs += s"{${cins(1)}  | ${couts(1)}  | ${cins(0)}| ${couts(0)} | ${cins(7)}   | ${couts(7)}}"
+          recs += s"{{${cins(2)} | ${couts(2)}} | ${culabel}              | {${couts(6)} | ${cins(6)}}}"
+          recs += s"{${cins(3)}  | ${couts(3)}  | ${couts(4)}| ${cins(4)} | ${cins(5)}   | ${couts(5)}}"
+        case ptop:PTop => recs += s"$ptop" 
+      }
+      val label = s"{${recs.mkString("|")}}"
+      var attr = DotAttr().shape(Mrecord)
+      coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
+      mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
+      pcl match {
+        case pcu:PCU =>
+          emitNode(pcl, label, attr)
+        case ptop:PTop => s"$ptop" 
+          emitNode(quote(ptop, true), label, attr)
+          emitNode(quote(ptop, false), label, attr)
+      }
+      pcl.cins.foreach { cin =>
+        emitInput(pcl, cin, mapping)
+      }
+    }
+  }
+
+  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = CUDotPrinter.emitSwitchBoxes(sbs, mapping, scale)(this)
+  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = CUDotPrinter.emitInput(pcl, pvin, mapping, scale)(this)
+
+  def print:Unit = { print(design.mapping) }
+
+  def print(mapping:PIRMap):Unit = {
+    emitBlock("digraph G") {
+      design.arch match {
+        case pn:PointToPointNetwork =>
+        case sn:SwitchNetwork if (mapping!=null) =>
+          emitPCLs(sn.cus :+ sn.top, Some(mapping))
+          emitSwitchBoxes(sn.csbs.flatten, Some(mapping))
+        case sn:SwitchNetwork if (mapping==null) =>
+          emitPCLs(sn.cus :+ sn.top, None)
+          emitSwitchBoxes(sn.csbs.flatten, None)
+      }
+    }
+    close
+  }
+
+}
+
+object CUDotPrinter extends Metadata {
+  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap], scale:Int)(printer:DotCodegen)(implicit design:Design) = {
+    import printer._
+    implicit val spade = design.arch
     sbs.foreach { sb =>
       val (x,y) = coordOf(sb)
       val attr = DotAttr().shape(Mrecord)
@@ -62,6 +128,67 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       }
     }
   }
+  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap], scale:Int)(printer:DotCodegen)(implicit design:Design) = {
+    import printer._
+    implicit val spade = design.arch
+    pvin.fanIns.foreach { pvout =>
+      val attr = DotAttr()
+      mapping.foreach { m => 
+        m.vimap.pmap.get(pvin).foreach { vin =>
+          if (m.fbmap(pvin)==pvout) {
+            attr.color(indianred).style(bold)
+            pvout.src match {
+              case cu:PCU if m.clmap.pmap.contains(cu) =>
+                val label = vin match {
+                  case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
+                  case vi:VI => s"${vi.vector}"
+                  case _ => "" //TODO
+                }
+                attr.label(label)
+              case top:PTop =>
+                val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
+                val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+                attr.label(label)
+                val bottom = coordOf(pvin.src)._2==0 
+                emitEdge(quote(top, bottom), s"$pcl:$pvin", attr)
+              case s => 
+            }
+          }
+        }
+      }
+      pvout.src match {
+        case from:PSB =>
+          attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
+          pcl match {
+            case ptop:PTop => emitEdge(from, quote(ptop, coordOf(from)._2==0), attr)
+            case _ => emitEdge(from, s"$pcl:$pvin", attr)
+          }
+        case from:PCU =>
+          emitEdge(from, pvout, pcl, pvin, attr)
+        case from:PTop =>
+          spade match {
+            case sn:SwitchNetwork =>
+              val bottom = coordOf(pvin.src)._2==0 
+              emitEdge(quote(from, bottom), s"$pcl:$pvin", attr)
+            case pn:PointToPointNetwork =>
+              emitEdge(quote(from), s"$pcl:$pvin", attr)
+          }
+      }
+    }
+  }
+}
+
+class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+  implicit lazy val spade:Spade = design.arch
+
+  def this()(implicit design:Design) = this(Config.spadeNetwork)
+
+  override val stream = newStream(fileName) 
+  
+  val scale = 4
+
+  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = CUDotPrinter.emitSwitchBoxes(sbs, mapping, scale)(this)
+  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = CUDotPrinter.emitInput(pcl, pvin, mapping, scale)(this)
 
   def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
     //emitln(s"splines=ortho;")
@@ -103,52 +230,6 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
     //    }
     //  }
     //}
-  }
-
-  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = {
-    pvin.fanIns.foreach { pvout =>
-      val attr = DotAttr()
-      mapping.foreach { m => 
-        m.vimap.pmap.get(pvin).foreach { vin =>
-          if (m.fbmap(pvin)==pvout) {
-            attr.color(indianred).style(bold)
-            pvout.src match {
-              case cu:PCU if m.clmap.pmap.contains(cu) =>
-                val label = vin match {
-                  case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
-                  case _ => s"${vin.vector}"
-                }
-                attr.label(label)
-              case top:PTop =>
-                val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
-                val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-                attr.label(label)
-                val bottom = coordOf(pvin.src)._2==0 
-                emitEdge(quote(top, bottom), s"$pcl:$pvin", attr)
-              case s => 
-            }
-          }
-        }
-      }
-      pvout.src match {
-        case from:PSB =>
-          attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
-          pcl match {
-            case ptop:PTop => emitEdge(from, quote(ptop, coordOf(from)._2==0), attr)
-            case _ => emitEdge(from, s"$pcl:$pvin", attr)
-          }
-        case from:PCU =>
-          emitEdge(from, pvout, pcl, pvin, attr)
-        case from:PTop =>
-          spade match {
-            case sn:SwitchNetwork =>
-              val bottom = coordOf(pvin.src)._2==0 
-              emitEdge(quote(from, bottom), s"$pcl:$pvin", attr)
-            case pn:PointToPointNetwork =>
-              emitEdge(quote(from), s"$pcl:$pvin", attr)
-          }
-      }
-    }
   }
 
   def print:Unit = { print(design.mapping) }
@@ -302,11 +383,12 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class SpadeDotGen(cuPrinter:CUDotPrinter, argInOutPrinter:ArgDotPrinter,
+class SpadeDotGen(cuPrinter:CUDotPrinter, cuCtrlPrinter:CUCtrlDotPrinter, argInOutPrinter:ArgDotPrinter,
   ctrPrinter:CtrDotPrinter, pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
 
   override def traverse = {
     cuPrinter.print
+    cuCtrlPrinter.print
     ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }

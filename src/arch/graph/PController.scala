@@ -22,6 +22,9 @@ trait Controller extends NetworkElement {
   def souts:List[ScalarOut] // Scalar Outputs
   def vins:List[InBus[Controller]] // Input Buses/Vector inputs
   def vouts:List[OutBus[Controller]] // Output Buses/Vector outputs
+
+  def cins:List[InBus[Controller]] // Control inputs 
+  def couts:List[OutBus[Controller]] // Control outputs 
 }
 
 /* Top-level controller (host)
@@ -44,18 +47,18 @@ case class Top(numLanes:Int, numArgIns:Int, numArgOuts:Int)(implicit spade:Spade
     ScalarOut(vouts(ib).inports(ia))
   }.flatten
   val clk = OutWire(this, s"clk")
+
+  val cin = InBus(this, 0, 1)
+  val cout = OutBus(this, 0, 1)
+  def cins = cin::Nil
+  def couts = cout::Nil 
 }
 
 /* Switch box (6 inputs 6 outputs) */
-case class SwitchBox(numVins:Int, numVouts:Int, numLanes:Int)(implicit spade:Spade) extends NetworkElement {
-  val vins:List[InBus[SwitchBox]] = InBuses(this, numVins, numLanes)
-  val vouts:List[OutBus[SwitchBox]] = OutBuses(this, numVouts, numLanes)
+case class SwitchBox(numVins:Int, numVouts:Int, width:Int)(implicit spade:Spade) extends NetworkElement {
+  val vins:List[InBus[SwitchBox]] = InBuses(this, numVins, width)
+  val vouts:List[OutBus[SwitchBox]] = OutBuses(this, numVouts, width)
   override val typeStr = "sb"
-}
-object SwitchBoxes {
-  def apply(numRow:Int, numCol:Int, numLanes:Int)(implicit spade:Spade) = {
-    List.tabulate(numRow, numCol) { case (i, j) => SwitchBox(6, 6, numLanes) }
-  }
 }
 /* ComputeUnit
  * */
@@ -104,7 +107,11 @@ class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Con
   def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter(ic) }; this }
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM(is) }; this }
   def ctrlBox(numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int):this.type = { 
-    ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOutLUTs, numTokenDownLUTs); this }
+    ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOutLUTs, numTokenDownLUTs); this
+  }
+
+  def cins = ctrlBox.ctrlIns
+  def couts = ctrlBox.ctrlOuts
 
 }
 

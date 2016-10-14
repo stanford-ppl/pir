@@ -8,7 +8,7 @@ import pir.graph.enums._
 import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.config._
-import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes}
+import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop}
 import pir.graph.mapper._
 import pir.graph.traversal._
 import scala.language.reflectiveCalls

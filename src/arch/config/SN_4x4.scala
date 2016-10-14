@@ -40,7 +40,13 @@ object SN_4x4 extends SwitchNetwork {
     ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 5, numRegs = 20).coord(-1, i)
   } 
 
-  override val sbs = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+  override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
+    SwitchBox(6, 6, numLanes).coord(i,j)
+  }
+  override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
+    SwitchBox(8, 8, 1).coord(i,j)
+  }
+
   for (i <- 0 until sbs.size) {
     for (j <- 0 until sbs.head.size) {
       coordOf(sbs(i)(j)) = (i,j) 
@@ -52,6 +58,7 @@ object SN_4x4 extends SwitchNetwork {
   }
 
   ConfigFactory.genSwitchNetwork(allCUs, sbs)
+  ConfigFactory.genCtrlSwitchNetwork(allCUs, ttcus, csbs)
 
   ConfigFactory.genArgIOConnection
 

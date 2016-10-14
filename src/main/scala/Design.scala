@@ -169,9 +169,10 @@ trait Design extends Metadata { self =>
   lazy val pirNetworkDotPrinter = new PIRNetworkDotPrinter()
   lazy val pirMapping = new PIRMapping()
   lazy val cuDotPrinter = new CUDotPrinter()
+  lazy val cuCtrlDotPrinter = new CUCtrlDotPrinter()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
-  lazy val spadeDotGen = new SpadeDotGen(cuDotPrinter, argDotPrinter, ctrDotPrinter, pirMapping)
+  lazy val spadeDotGen = new SpadeDotGen(cuDotPrinter, cuCtrlDotPrinter, argDotPrinter, ctrDotPrinter, pirMapping)
   lazy val ctrlPrinter = new CtrlPrinter()
 
   def mapping = pirMapping.mapping

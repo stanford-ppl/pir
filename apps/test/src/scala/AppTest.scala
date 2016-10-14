@@ -1,6 +1,4 @@
-package apps.test
 
-import apps._
 import pir._
 import pir.test._
 import pir.misc._

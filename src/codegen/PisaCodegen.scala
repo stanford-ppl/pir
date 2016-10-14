@@ -23,6 +23,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   // Mapping results
   lazy val mapping:PIRMap = pirMapping.mapping
+  lazy val vimap:VIMap = mapping.vimap
+  lazy val vomap:VOMap = mapping.vomap
   lazy val opmap:OPMap = mapping.opmap
   lazy val ipmap:IPMap = mapping.ipmap
   lazy val fpmap:FPMap = mapping.fpmap
@@ -30,7 +32,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val ctmap:CTMap = mapping.ctmap
   lazy val smmap:SMMap = mapping.smmap
   lazy val clmap:CLMap = mapping.clmap
-  lazy val vimap:VIMap = mapping.vimap
   lazy val fbmap:FBMap = mapping.fbmap
   lazy val lumap:LUMap = mapping.lumap 
   lazy val ucmap:UCMap = mapping.ucmap
@@ -471,7 +472,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
       val tom = pcu.ctrlBox.ctrlOuts.map { pto =>
-        opmap.pmap.get(pto).fold (s""""x"""") { to =>
+        vomap.pmap.get(pto).fold (s""""x"""") { t =>
+          val to = t.asInstanceOf[Port]
           to.src match {
             case _:EnLUT => s""""1""""
             case _:TokenOutLUT | _:TokenDownLUT => s""""0""""

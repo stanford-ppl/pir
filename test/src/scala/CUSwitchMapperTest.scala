@@ -8,7 +8,7 @@ import pir.graph.enums._
 import pir.codegen.{DotCodegen}
 import pir.plasticine.main._
 import pir.plasticine.config._
-import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, SwitchBoxes, Node => PNode }
+import pir.plasticine.graph.{ComputeUnit => PCU, Top => PTop, Node => PNode, SwitchBox}
 import pir.graph.mapper._
 import pir.graph.traversal._
 import scala.language.reflectiveCalls
@@ -26,7 +26,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val wordWidth = 32
     val top = PTop(numLanes, numLanes, numLanes)
     val ttcus = Nil
-    override val sbs = SwitchBoxes(numRowCUs+1, numColCUs+1, numLanes)
+    override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
+      SwitchBox(6, 6, numLanes)
+    }
+    override val csbs = Nil
     for (i <- 0 until sbs.size) {
       for (j <- 0 until sbs.head.size) {
         coordOf(sbs(i)(j)) = (i,j) 
@@ -220,7 +223,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
       top.updateFields(cus, Nil, sls ++ aos, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig(5,5)
+      implicit override val arch = genSwitchNetworkConfig(4,4)
 
       new ScalarBundling().run
       new PIRPrinter().run
@@ -232,7 +235,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestDotProduct.dot").print
+          new CUDotPrinter("TestDotProduct.dot").print(mapping)
         case Failure(e) => 
           MapperLogger.dprintln(e)
           MapperLogger.close

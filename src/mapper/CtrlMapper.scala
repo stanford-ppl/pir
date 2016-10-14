@@ -28,8 +28,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   def mapCtrl(inner:ICL, pirMap:M):M = {
     var ucmap = pirMap.ucmap
     var lumap = pirMap.lumap
-    var opmap = pirMap.opmap
-    var ipmap = pirMap.ipmap
+    var vimap = pirMap.vimap
+    var vomap = pirMap.vomap
     val pcu = pirMap.clmap(inner).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
     assert(inner.ctrlOuts.size <= pcb.ctrlOuts.size)
@@ -40,7 +40,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
 
     inner.ctrlIns.zipWithIndex.foreach { case (tin, i) => 
-      ipmap += (tin -> pcb.ctrlIns(i))
+      vimap += (tin -> pcb.ctrlIns(i))
     }
     //println(s"--${inner}: ${inner.outers}---")
     /* Up-Down Counter mapping */
@@ -60,8 +60,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       lumap += (enLut -> penLut)
       if (enLut.isTokenOut) {
         val ptout = pcb.ctrlOuts(indexOf(pctr))
-        assert(!opmap.pmap.contains(ptout))
-        opmap += (enLut.out -> ptout)
+        assert(!vomap.pmap.contains(ptout))
+        vomap += (enLut.out -> ptout)
       }
     }
 
@@ -73,9 +73,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
           case to:PTOLUT => pcb.ctrlOuts(indexOf(plut) + pcb.tokenDownLUTs.size)
           case _ => throw PIRException(s"Don't know how to look up lut ${lut}")
         }
-        if (!opmap.pmap.contains(ptout)) {
+        if (!vomap.pmap.contains(ptout)) {
           lumap += (lut -> plut)
-          opmap += (lut.out -> ptout)
+          vomap += (lut.out -> ptout)
           return
         }
       }
@@ -91,7 +91,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))
     }
 
-    pirMap.set(ucmap).set(lumap).set(opmap).set(ipmap)
+    pirMap.set(ucmap).set(lumap).set(vomap).set(vimap)
   }
 
 }

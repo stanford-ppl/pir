@@ -10,9 +10,11 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 
-case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, smmap:SMMap, ctmap:CTMap, simap:SIMap,
-  somap:SOMap, fbmap:FBMap, rcmap:RCMap, stmap:STMap, ipmap:IPMap, opmap:OPMap, 
-  fpmap:FPMap, ucmap:UCMap, lumap:LUMap) {
+case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, 
+  smmap:SMMap, ctmap:CTMap, simap:SIMap, somap:SOMap, 
+  fbmap:FBMap, rcmap:RCMap, stmap:STMap, 
+  ipmap:IPMap, opmap:OPMap, fpmap:FPMap, 
+  ucmap:UCMap, lumap:LUMap) {
   
   stmap.pirMap = this
   ipmap.pirMap = this
@@ -250,7 +252,7 @@ case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends BMap {
   override def + (rec:(K,V)) = { super.check(rec); VIMap(map + rec, pmap + rec.swap) }
 }
 object VIMap extends BMapObj {
-  type K = VI
+  type K = Node 
   type V = PIB
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
@@ -262,7 +264,7 @@ case class VOMap(map:VOMap.M, pmap:VOMap.PM) extends BMap {
   override def + (rec:(K,V)) = { super.check(rec); VOMap(map + rec, pmap + rec.swap) }
 }
 object VOMap extends BMapObj {
-  type K = VO
+  type K = Node 
   type V = POB
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }

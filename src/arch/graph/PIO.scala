@@ -33,6 +33,7 @@ trait Output[P<:Link, +S<:Node] extends IO[S] {
   type I <: Input[P, Node]
   val fanOuts = ListBuffer[I]()
   def connectedTo(n:I):Unit = fanOuts += n
+  def ==>(n:I):Unit = n.connect(this.asInstanceOf[n.O])
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
   def canTo(n:I):Boolean = fanOuts.contains(n)
 } 

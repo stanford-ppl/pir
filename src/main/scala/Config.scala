@@ -24,6 +24,7 @@ object Config {
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
   var pisaFile = getProperty("pir.pisafile", "pisa.json")
   var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
+  var spadeCtrlNetwork = getProperty("pir.spade_network", "CtrlNetwork.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
   var ctrlDot = getProperty("pir.ctrl_dot", "Ctrl.dot")
   var ctrlFile = getProperty("pir.ctrl_file", "Ctrl.txt")

@@ -31,6 +31,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
 trait PointToPointNetwork extends Spade
 trait SwitchNetwork extends Spade {
   val sbs:List[List[SwitchBox]]
+  val csbs:List[List[SwitchBox]]
 }
 
 trait ImplicitConversion {

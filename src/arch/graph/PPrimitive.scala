@@ -218,8 +218,10 @@ object UDCounter extends Metadata {
 
 class CtrlBox(numCtrs:Int, numIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
 (implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
-  val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
-  val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
+  //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
+  //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
+  val ctrlIns = List.tabulate(numIns) { i => InBus(ctrler, 0, 1).index(i) }
+  val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutBus(ctrler, 0, 1).index(i) }
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
