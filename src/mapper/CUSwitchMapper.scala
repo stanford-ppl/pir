@@ -14,20 +14,6 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import scala.util.{Try, Success, Failure}
 
-object CUSwitchMapper {
-  type Edge = (POB, PIB)
-  type Path = List[Edge]
-  type PathMap = List[(PCL, Path)]
-  def quote(io:PIO[PNE])(implicit design:Design):String = {
-    io.src match {
-      case cu:PCU => io.toString
-      case sb:PSB => DotCodegen.quote(sb) 
-    }
-  }
-  def quote(path:CUSwitchMapper.Path)(implicit design:Design):String = {
-    path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
-  }
-}
 class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) extends CUMapper {
   type Edge = CUSwitchMapper.Edge 
   type Path = CUSwitchMapper.Path 
@@ -175,6 +161,24 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     }
   }
 
+  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
+    CUSwitchMapper.advance(start, validCons, advanceCons)
+
+}
+object CUSwitchMapper {
+  type Edge = (POB, PIB)
+  type Path = List[Edge]
+  type PathMap = List[(PCL, Path)]
+  def quote(io:PIO[PNE])(implicit design:Design):String = {
+    io.src match {
+      case cu:PCU => io.toString
+      case sb:PSB => DotCodegen.quote(sb) 
+    }
+  }
+  def quote(path:CUSwitchMapper.Path)(implicit design:Design):String = {
+    path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
+  }
+
   /* 
    * Traverse interconnection graph to find qualified neighbor PCUs recursively that's within hop
    * count range minHop and maxHop (exclusive) around the starting CU. Return a list of  
@@ -232,5 +236,4 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
     }
     result.toList
   }
-
 }

@@ -13,10 +13,14 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   implicit lazy val spade:Spade = design.arch
   val typeStr = "CtrlMapper"
 
-  type R = PCB
-  type N = CB
+  type Edge = CUSwitchMapper.Edge 
+  type Path = CUSwitchMapper.Path 
+  type PathMap = CUSwitchMapper.PathMap 
   
   def finPass(cu:ICL)(m:M):M = m
+
+  val minHop = 1
+  val maxHop = 5
 
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
@@ -25,12 +29,48 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     }
   }
 
+  def ioCons(n:OP, p:POB, m:M):M = {
+    m
+  }
+
+  def mapCtrlOut(cu:ICL, co:OP, pmap:M):M = {
+    type R = POB
+    type N = OP
+    //recRes
+  }
+
+  def mapCtrIn(cu:ICL, ci:IB, pmap:M):M = {
+    val pcu = pmap.clmap(cu).asInstanceOf[PCU]
+    def validCons(vin:PIB, path:Path) = {
+      vin.src == pmap.clmap(cu) // If vin reaches current cu. src of ctrl bus is ctrler
+      (path.size >= minHop) && // path is with required hops
+      (path.size < maxHop) && 
+      !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
+    }
+    def advanceCons(sb:PSB, path:Path) = {
+      (path.size < maxHop) && // path is within maximum hop to continue
+      !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
+    }
+    val co = ci.from
+    if (pmap.vomap.contains(co)) {
+      val pco = pmap.vomap(co)
+      advance(pco.src, validCons _, advanceCons _)
+    } else {
+      mapCtrlOut(co.src, co, pmap) // Call back afterwards
+    }
+  }
+
+  def mapCtrlIns(cu:ICL, pmap:M):M = {
+    type R = PIB
+    type N = IP
+    cu.ctrlIns.foldLeft(pmap) { case (pm, ci) =>
+      mapCtrlIn(cu, ci, pm)
+    }
+  }
+
   def mapCtrl(inner:ICL, pirMap:M):M = {
-    var ucmap = pirMap.ucmap
-    var lumap = pirMap.lumap
-    var vimap = pirMap.vimap
-    var vomap = pirMap.vomap
-    val pcu = pirMap.clmap(inner).asInstanceOf[PCU]
+    var pmap = pirMap
+    val pcu = pmap.clmap(inner).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
     assert(inner.ctrlOuts.size <= pcb.ctrlOuts.size)
     assert(inner.ctrlIns.size <= pcb.ctrlIns.size)
@@ -39,9 +79,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     assert(inner.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
     assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
 
-    inner.ctrlIns.zipWithIndex.foreach { case (tin, i) => 
-      vimap += (tin -> pcb.ctrlIns(i))
-    }
+    //inner.ctrlIns.zipWithIndex.foreach { case (tin, i) => 
+    //  vimap += (tin -> pcb.ctrlIns(i))
+    //}
+    var ucmap = pmap.ucmap
+    var lumap = pmap.lumap
+    var vimap = pmap.vimap
+    var vomap = pmap.vomap
     //println(s"--${inner}: ${inner.outers}---")
     /* Up-Down Counter mapping */
     val pudcs = pcb.udcs.to[ListBuffer]
@@ -54,15 +98,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     //println(s"enluts:${enluts}")
     inner.enLUTs.foreach { case (en, enLut) =>
       val ctr = en.src
-      val pctr = pirMap.ctmap(ctr)
+      val pctr = pmap.ctmap(ctr)
       val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)
       lumap += (enLut -> penLut)
-      if (enLut.isTokenOut) {
-        val ptout = pcb.ctrlOuts(indexOf(pctr))
-        assert(!vomap.pmap.contains(ptout))
-        vomap += (enLut.out -> ptout)
-      }
     }
 
     def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
@@ -91,8 +130,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))
     }
 
-    pirMap.set(ucmap).set(lumap).set(vomap).set(vimap)
+    pmap = pmap.set(ucmap).set(lumap).set(vomap).set(vimap)
+    mapCtrlIn(inner, pmap)
   }
+
+  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
+    CUSwitchMapper.advance(start, validCons, advanceCons)
 
 }
 
