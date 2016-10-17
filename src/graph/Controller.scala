@@ -45,6 +45,8 @@ trait SpadeController extends Controller { self =>
       case _ => voutMap.getOrElseUpdate(v, VecOut(v))
     }
   }
+  def ctrlIns:List[InPort]
+  def ctrlOuts:List[OutPort]
   // No need to consider scalar after bundling
   def readers:List[SpadeController] = voutMap.keys.flatMap {
     _.readers.map{ _.ctrler match {
@@ -204,8 +206,8 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
     list.toList
   }
 
-  def ctrlIns = locals.flatMap(_.ctrlBox.getCtrlIns)
-  def ctrlOuts = locals.flatMap(_.ctrlBox.getCtrlOuts)
+  def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.getCtrlIns)
+  def ctrlOuts:List[OutPort] = locals.flatMap(_.ctrlBox.getCtrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
@@ -345,6 +347,10 @@ case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)
   val dataIn  = if (mctpe==TileStore) Some(newVin(Vector())) else None
   val dataOut = if (mctpe==TileLoad) Some(newVout(Vector())) else None
 
+  //TODO
+  def ctrlIns:List[InPort] = Nil
+  def ctrlOuts:List[OutPort] = Nil
+
   def saddr = addr.scalar 
   def load = if (mctpe==TileLoad) dataOut.get.vector
     else throw PIRException(s"Cannot load from a MemoryController with mctpe=${mctpe}")
@@ -382,6 +388,8 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   var scalars:List[Scalar] = _
   var vectors:List[Vector] = _
 
+  def ctrlIns:List[InPort] = status::Nil 
+  def ctrlOuts:List[OutPort] = command::Nil 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _

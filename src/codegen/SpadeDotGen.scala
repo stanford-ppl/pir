@@ -134,25 +134,27 @@ object CUDotPrinter extends Metadata {
     pvin.fanIns.foreach { pvout =>
       val attr = DotAttr()
       mapping.foreach { m => 
-        m.vimap.pmap.get(pvin).foreach { vin =>
-          if (m.fbmap(pvin)==pvout) {
-            attr.color(indianred).style(bold)
-            pvout.src match {
+        if (m.fbmap.get(pvin).fold(false){ pvo => pvo == pvout }) {
+          attr.color(indianred).style(bold)
+          m.vimap.pmap.get(pvin).foreach { vin =>
+            var label = pvout.src match {
               case cu:PCU if m.clmap.pmap.contains(cu) =>
-                val label = vin match {
+                vin match {
                   case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
                   case vi:VI => s"${vi.vector}"
-                  case _ => "" //TODO
+                  case ip:IP => ""
                 }
-                attr.label(label)
               case top:PTop =>
                 val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
-                val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-                attr.label(label)
-                val bottom = coordOf(pvin.src)._2==0 
-                emitEdge(quote(top, bottom), s"$pcl:$pvin", attr)
-              case s => 
+                s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
+              case s => ""
             }
+            vin match {
+              case ip:IP =>
+                label += s"to: ${ip} \nfrom:${ip.from}" 
+              case _ =>
+            }
+            attr.label(label)
           }
         }
       }

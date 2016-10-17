@@ -37,7 +37,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val ucmap:UCMap = mapping.ucmap
 
   override def traverse:Unit = {
-    if (pirMapping.failed) return
+    if (pirMapping.fail) return
     implicit val ms = new CollectionStatus(false)
     emitBlock {
       emitMap("PISA") { implicit ms =>

@@ -166,7 +166,8 @@ trait Design extends Metadata { self =>
 
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
-  lazy val pirNetworkDotPrinter = new PIRNetworkDotPrinter()
+  lazy val pirNetworkDotGen = new PIRNetworkDotGen()
+  lazy val pirCtrlNetworkDotGen = new PIRCtrlNetworkDotGen()
   lazy val pirMapping = new PIRMapping()
   lazy val cuDotPrinter = new CUDotPrinter()
   lazy val cuCtrlDotPrinter = new CUCtrlDotPrinter()
@@ -183,11 +184,12 @@ trait Design extends Metadata { self =>
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
     traversals += new ScalarBundling()
-    if (Config.debug) traversals += pirNetworkDotPrinter
+    if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()
     traversals += new CtrlAlloc()
     traversals += new IRCheck()
     if (Config.debug) traversals += ctrlDotPrinter 
+    if (Config.debug) traversals += pirCtrlNetworkDotGen
     if (Config.debug) traversals += ctrlPrinter 
     if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
@@ -199,6 +201,7 @@ trait Design extends Metadata { self =>
   def run = {
     try {
       traversals.foreach(_.run)
+      if (pirMapping.fail) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 
         if (!pirPrinter.isTraversed) pirPrinter.run

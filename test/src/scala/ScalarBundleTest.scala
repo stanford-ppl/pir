@@ -57,7 +57,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
     }
   }
 
@@ -89,7 +89,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
 
       c0.vins should have size 1
       c1.vins should have size 2
@@ -126,7 +126,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
 
       top.vouts should have size 1
     }
@@ -163,7 +163,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
 
       top.vouts should have size 1
     }

@@ -75,5 +75,6 @@ trait Logger extends Printer {
   def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(" " + promp(header, s))
 
   def info(s:String) = emitln(s"[pir] ${s}")
+  def warn(s:String) = emitln(s"[warning] ${s}")
 }
 

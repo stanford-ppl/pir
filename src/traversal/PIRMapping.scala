@@ -12,15 +12,13 @@ object MapPrinter extends Printer {
     if (Config.debug) {
       emitTitleComment(s"Mapping")
       mapping.printPMap(this, design)
-      close
     }
   }
 
   def printException(e:PIRException) = {
     if (Config.debug) {
       emitTitleComment("Mapping Exceptions:")
-      emitln(e.toString)
-      close
+      emitln(s"$e ${e.msg}")
     }
   }
 }
@@ -30,7 +28,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   var mapping:PIRMap = _
   var success = false
 
-  def failed = !success
+  def fail = !success
 
   val siMapper = new ScalarInMapper()
   val sramMapper = new SRAMMapper()
@@ -48,34 +46,24 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     }
   }
   val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, { case (m:PIRMap) =>
-    var cmap = m 
-    Try {
-      cmap.clmap.map.foldLeft(cmap) { case (pm, (ctrler, v)) =>
+    try {
+      m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
+        var cmap = pm
         cmap = siMapper.map(ctrler, cmap)
         ctrler match {
           case cu:InnerController => 
             cmap = sramMapper.map(cu, cmap)
-            //cmap = ctrMapper.map(cu, cmap)
+            cmap = ctrMapper.map(cu, cmap)
             //cmap = stageMapper.map(cu, cmap)
-          case t:Top => 
+          case t:Top => ctrlMapper.map(t, cmap)
           case _ => assert(false, s"Unknown ctrler:$ctrler")
         }
         cmap
       }
-    } match {
-      case Success(m) => 
-        dprintln(s"Final Pass: Primitive Mapping (succeeded)"); m
-      case Failure(e) => 
-        dprintln(s"Final Pass: Primitive Mapping (failed) Exception:")
-        MapPrinter.printMap(cmap)(design)
-        MapperLogger.flush
-        design.cuDotPrinter.print(cmap)
-        e match {
-          // TODO: at the moment if prim failed. stop trying because CUs are homogenous
-          case e:MappingException => throw PIRException("Mapping Failed")
-          case e => throw e 
-        }
-    }
+    } catch {
+      case e:MappingException => throw PassThroughException(cuMapper, e, m)
+      case e:Throwable => throw e 
+    } 
   })
 
   override def reset = {
@@ -84,24 +72,28 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   }
 
   override def traverse = {
-    Try(mapping = cuMapper.map(PIRMap.empty)) match {
+    Try(mapping=cuMapper.map(PIRMap.empty)) match {
       case Success(_) =>
         success = true
         info(s"Mapping succeeded") 
         MapPrinter.printMap(mapping)
-      case Failure(e) => 
+      case Failure(e) =>
         success = false
+        info(s"Mapping failed")
         e match {
-        case me:MappingException =>
-          info(s"Mapping failed")
-          MapPrinter.printException(me)
-          throw e
-        case pe:PIRException => 
-          MapperLogger.close
-          throw e
-        case _ => throw e
-      }
+          case PassThroughException(mapper, e, m) =>
+            mapping = m
+            MapPrinter.printMap(mapping)
+            MapPrinter.printException(e)
+          case e:MappingException =>
+            MapPrinter.printException(e)
+          case e:PIRException => 
+            MapPrinter.printException(e)
+          case e => throw e 
+        }
     }
+    MapperLogger.close
+    MapPrinter.close
   } 
 
   override def finPass = {

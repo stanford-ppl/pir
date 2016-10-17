@@ -32,6 +32,16 @@ trait PointToPointNetwork extends Spade
 trait SwitchNetwork extends Spade {
   val sbs:List[List[SwitchBox]]
   val csbs:List[List[SwitchBox]]
+  def switchNetworkDataBandwidth:Int = {
+    sbs.flatten.map{ sb =>
+      sb.vins.map{ _.fanIns.filter { _.src.isInstanceOf[SwitchBox] }.size }.max
+    }.max
+  }
+  def switchNetworkCtrlBandwidth:Int = {
+    csbs.flatten.map{ sb =>
+      sb.vins.map{ _.fanIns.filter { _.src.isInstanceOf[SwitchBox] }.size }.max
+    }.max
+  }
 }
 
 trait ImplicitConversion {

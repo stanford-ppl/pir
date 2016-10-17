@@ -93,7 +93,7 @@ class CUMapperTest extends UnitTest with Metadata {
       val viMapper = new VecInMapper()
       val mapper = CUMapper(outputMapper, viMapper)
 
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {

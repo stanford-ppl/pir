@@ -111,8 +111,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       (path.size >= min) && (path.size < max) && (pcu!=start)
     }
     def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
-    val result1 = design.mapper.advanceBFS(start, cuCons _, sbCons _)
-    val result2 = design.mapper.advanceDFS(start, cuCons _, sbCons _)
+    val result1 = CUSwitchMapper.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)
+    val result2 = CUSwitchMapper.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)
     result1 should equal (result2)
   }
 
@@ -149,7 +149,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
@@ -162,7 +162,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
-  "SwitchBox Mapping - DotProduct" should "success" taggedAs(WIP) in {
+  "SwitchBox Mapping - DotProduct" should "success" in {
     new Design {
       top = Top()
       val aos = List.tabulate(1) { i => ArgOut(s"ao$i") }
@@ -230,7 +230,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
 
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
@@ -276,7 +276,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       implicit override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper())
-      new PIRNetworkDotPrinter().run
+      new PIRNetworkDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {

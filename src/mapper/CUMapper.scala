@@ -130,8 +130,10 @@ object CUMapper {
           }
           case _ => cl.vins
         }
-        cons += (("vin"	      , (vins, pcl.vins)))
-        cons += (("vout"	    , (cl.vouts, pcl.vouts)))
+        cons += (("vin"	      , (vins, pcl.vins.filter(_.fanIns.size>0))))
+        cons += (("vout"	    , (cl.vouts, pcl.vouts.filter(_.fanOuts.size>0))))
+        cons += (("cin"	      , (cl.ctrlIns, pcl.cins.filter(_.fanIns.size>0))))
+        cons += (("cout"	    , (cl.ctrlOuts, pcl.couts.filter(_.fanOuts.size>0))))
         failureInfo += pcl -> ListBuffer[String]()
         check(cons.toList, failureInfo(pcl))
       }

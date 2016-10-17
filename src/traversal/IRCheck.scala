@@ -8,7 +8,7 @@ import pir.plasticine.main._
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
-class IRCheck(implicit val design: Design) extends Traversal{
+class IRCheck(implicit val design: Design) extends Traversal {
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
@@ -64,8 +64,33 @@ class IRCheck(implicit val design: Design) extends Traversal{
       case _ =>
     }
   } 
+
   override def finPass = {
     info("Finishing checking mutable fields")
+    design.arch match {
+      case sn:SwitchNetwork =>
+        val dbw = sn.switchNetworkDataBandwidth
+        val cbw = sn.switchNetworkCtrlBandwidth
+        dprint(s"Switch Network Data Bandwidth:${dbw} Ctrl Bandwidth:${cbw}")
+        design.top.spadeCtrlers.foreach { cu =>
+          cu.vins.groupBy { vin =>
+            vin.writer
+          }.foreach { case (fromcu, vins) =>
+            if (vins.size > dbw)
+              warn(s"Data Connectivity from $fromcu to $cu: ${vins.size}. Data Bandwidth:$dbw")
+          }
+          cu.ctrlIns.groupBy { cin =>
+            cin.from.src match {
+              case prim:Primitive => prim.ctrler.asInstanceOf[ComputeUnit].inner
+              case top:Top => top 
+            }
+          }.foreach { case (fromcu, cins) =>
+            if (cins.size > cbw)
+              warn(s"Ctrl Connectivity from $fromcu to $cu: ${cins.size}. Ctrl Bandwidth:$cbw")
+          }
+        }
+      case pn:PointToPointNetwork =>
+    }
   }
 
 }

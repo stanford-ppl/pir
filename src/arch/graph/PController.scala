@@ -60,7 +60,8 @@ case class SwitchBox(numVins:Int, numVouts:Int, width:Int)(implicit spade:Spade)
   val vouts:List[OutBus[SwitchBox]] = OutBuses(this, numVouts, width)
   override val typeStr = "sb"
 }
-/* ComputeUnit
+/*
+ * ComputeUnit
  * */
 class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Controller {
   override implicit val ctrler:ComputeUnit = this 

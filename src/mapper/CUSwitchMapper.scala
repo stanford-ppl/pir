@@ -162,7 +162,7 @@ class CUSwitchMapper(outputMapper:OutputMapper)(implicit val design:Design) exte
   }
 
   def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
-    CUSwitchMapper.advance(start, validCons, advanceCons)
+    CUSwitchMapper.advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
 
 }
 object CUSwitchMapper {
@@ -189,15 +189,15 @@ object CUSwitchMapper {
    * @param advanceCons condition on whether continue advancing based on the current switchbox
    * encountered and path went through so far 
    * */
-  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
-    advanceDFS(start, validCons, advanceCons)
+  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+    advanceDFS(vouts)(start, validCons, advanceCons)
   }
 
-  def advanceDFS(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceDFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
       val visited = path.map{ case (f,t) => f.src }
       if (visited.contains(pne)) return map
-      pne.vouts.foldLeft(map) { case (preMap, vout) =>
+      vouts(pne).foldLeft(map) { case (preMap, vout) =>
         vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
           val newPath = path :+ (vout, vin)
           vin.src match {
@@ -212,7 +212,7 @@ object CUSwitchMapper {
     rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
   }
 
-  def advanceBFS(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
     val result = ListBuffer[(PCL, Path)]()
     val paths = Queue[Path]()
     paths += Nil
@@ -221,7 +221,7 @@ object CUSwitchMapper {
       val pne:PNE = path.lastOption.fold[PNE](start) { _._2.src }
       val visited = path.map{ case (f,t) => f.src }
       if (!visited.contains(pne)) {
-        pne.vouts.foreach { vout =>
+        vouts(pne).foreach { vout =>
           vout.fanOuts.foreach { vin =>
             val newPath = path :+ (vout, vin)
             vin.src match {
