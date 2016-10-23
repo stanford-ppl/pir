@@ -8,6 +8,10 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 
 abstract class MappingException(implicit design:Design) extends PIRException {
+  if (design.mapExceps.size>500) {
+    println(s"Exiting due to exceed exception limits...")
+    throw PIRException(s"Exception Limit Exceeded")
+  }
   design.mapExceps += this
   val msg:String
   val mapper:Mapper
@@ -22,7 +26,7 @@ case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit des
   //override val msg = s"No solution found to map nodes to resources."
 }
 
-case class FailToMapNode(mapper:Mapper, n:Any, exceps:List[MappingException])(implicit design:Design) extends MappingException {
+case class FailToMapNode[M](mapper:Mapper, n:Any, exceps:List[MappingException], mapping:M)(implicit design:Design) extends MappingException {
   override def toString = s"[$mapper] $typeStr $n"
   val s = if (n.isInstanceOf[PRIM]) s"${n} in ${n.asInstanceOf[PRIM].ctrler}" else s"$n"
   //override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"

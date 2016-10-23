@@ -8,6 +8,7 @@ import pir.plasticine.graph.{ ConstVal => PConstVal }
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
+import scala.util.{Try, Success, Failure}
 
 class CtrMapper(implicit val design:Design) extends Mapper {
   type R = PCtr
@@ -29,16 +30,16 @@ class CtrMapper(implicit val design:Design) extends Mapper {
 
   def map(ctrs:List[N], pctrs:List[R], initMap:M, finPass:M => M) = {
     bind(
-      allRes = pctrs,
       allNodes=ctrs,
       initMap=initMap,
       constrains=List(mapCtr _), 
-      resFunc=resFunc _, 
+      resFunc=resFunc(pctrs) _, 
       finPass=finPass
     )
   }
 
-  def resFunc(n:N, m:M, remainRes:List[R]):List[R] = {
+  def resFunc(allRes:List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
+    val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
       case dep:Ctr if n.ctrler.inner == dep.ctrler.inner => // Counter in the same CU
@@ -71,7 +72,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def mapCtr(n:N, p:R, map:M):M = {
     var ipmap = map.ipmap
     var fpmap = map.fpmap
-    def mapInPort(n:IP, p:PIP) = {
+    def mapInPort(n:IP, p:PIP):Unit = {
       ipmap += n -> p 
       n.from.src match {
         case Const(_, v) => fpmap += p -> PConstVal(v)(design.arch).out

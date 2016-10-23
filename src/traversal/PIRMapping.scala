@@ -18,7 +18,7 @@ object MapPrinter extends Printer {
   def printException(e:PIRException) = {
     if (Config.debug) {
       emitTitleComment("Mapping Exceptions:")
-      emitln(s"$e ${e.msg}")
+      emitln(s"$e ${e.msg} \n ${e.printStackTrace}")
     }
   }
 }
@@ -45,25 +45,30 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       regAlloc.map(cu, cmap)
     }
   }
-  val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, { case (m:PIRMap) =>
-    try {
-      m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
-        var cmap = pm
-        cmap = siMapper.map(ctrler, cmap)
-        ctrler match {
-          case cu:InnerController => 
-            cmap = sramMapper.map(cu, cmap)
-            cmap = ctrMapper.map(cu, cmap)
-            //cmap = stageMapper.map(cu, cmap)
-          case t:Top => ctrlMapper.map(t, cmap)
-          case _ => assert(false, s"Unknown ctrler:$ctrler")
-        }
-        cmap
-      }
-    } catch {
-      case e:MappingException => throw PassThroughException(cuMapper, e, m)
-      case e:Throwable => throw e 
-    } 
+
+  def mapPrim(ctrler:SpadeController)(m:PIRMap):PIRMap = {
+    var cmap = m
+    cmap = siMapper.map(ctrler, cmap)
+    ctrler match {
+      case cu:InnerController => 
+        cmap = sramMapper.map(cu, cmap)
+        cmap = ctrMapper.map(cu, cmap)
+      case t:Top => cmap = ctrlMapper.map(t, cmap)
+      case _ => assert(false, s"Unknown ctrler:$ctrler")
+    }
+    cmap
+  }
+
+  val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, ctrlMapper, { case (m:PIRMap) =>
+    m
+    //try {
+      //m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
+        //ctrlMapper.mapCtrlIOs(ctrler, mapPrim(ctrler)  _)(ctrler.ctrlIns, pm)
+      //}
+    //} catch {
+      //case e:MappingException => throw PassThroughException(cuMapper, e, m)
+      //case e:Throwable => throw e 
+    //} 
   })
 
   override def reset = {

@@ -36,14 +36,14 @@ object Config {
 
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
-  var debugCUMapper = debugMapper && false 
+  var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && false 
   var debugVIMapper = debugMapper && false 
   var debugSMMapper = debugMapper && false 
   var debugCTMapper = debugMapper && false 
   var debugRAMapper = debugMapper && false 
   var debugSTMapper = debugMapper && false 
-  var debugCtrlMapper = debugMapper && true 
+  var debugCtrlMapper = debugMapper && false
   var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"
 
   var dse = false

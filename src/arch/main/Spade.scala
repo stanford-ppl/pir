@@ -34,12 +34,16 @@ trait SwitchNetwork extends Spade {
   val csbs:List[List[SwitchBox]]
   def switchNetworkDataBandwidth:Int = {
     sbs.flatten.map{ sb =>
-      sb.vins.map{ _.fanIns.filter { _.src.isInstanceOf[SwitchBox] }.size }.max
+      sb.vins.filter(_.isConnected).flatMap { vin =>
+        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
+      }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
     }.max
   }
   def switchNetworkCtrlBandwidth:Int = {
     csbs.flatten.map{ sb =>
-      sb.vins.map{ _.fanIns.filter { _.src.isInstanceOf[SwitchBox] }.size }.max
+      sb.vins.filter(_.isConnected).flatMap { vin =>
+        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
+      }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
     }.max
   }
 }

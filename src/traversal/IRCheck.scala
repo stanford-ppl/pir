@@ -18,7 +18,11 @@ class IRCheck(implicit val design: Design) extends Traversal {
         throw PIRException(s"Node ${n} contains unupdated field/fields! Refer to ${printer.getPath} for more information")
       }
       n match {
-        case c:SpadeController =>
+        case cu:SpadeController =>
+          cu.ctrlReaders.foreach { reader =>
+            if (reader == cu)
+              throw PIRException(s"Ctrl Reader $reader same as writer $cu")
+          }
         case n:CtrlBox =>
           n.udcounters.foreach { case (_, udc) => assert(udc.ctrler==n.ctrler) }
           n.luts.foreach { lut => assert(lut.ctrler==n.ctrler) }

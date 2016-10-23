@@ -22,16 +22,20 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
 
   override val stream = newStream(fileName) 
 
-  val scale = 7
+  val scale = 13
   def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
     //emitln(s"splines=ortho;")
+    val bandWidth = spade match {
+      case sb:SwitchNetwork => sb.switchNetworkCtrlBandwidth
+      case pn:PointToPointNetwork => 1
+    }
     pcls.foreach { pcl =>
       val recs = ListBuffer[String]()
       pcl match {
         case pcu:PCU => 
           assert(pcu.cins.size==pcu.couts.size)
-          val cins = pcu.cins.map { cin => s"<${cin}> ${cin}"}
-          val couts = pcu.couts.map { cout => s"<${cout}> ${cout}"}
+          val ctrlIns = pcu.cins.map { cin => s"<${cin}> ${cin}"}
+          val ctrlOuts = pcu.couts.map { cout => s"<${cout}> ${cout}"}
           val qpcu = quote(pcu)
           val culabel = mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
             val icl = cu.asInstanceOf[ICL]
@@ -43,6 +47,8 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
           //recs += s"{${couts(2)} |              | ${couts(6)}}"
           //recs += s"{${cins(3)}  | ${cins(4)}   | ${cins(5)}}"
           //recs += s"{${couts(3)} | ${couts(4)}  | ${couts(5)}}"
+          def cins(i:Int) = List.tabulate(bandWidth) { ibw => s"${ctrlIns(i+ibw*8)}" }.mkString(" | ")
+          def couts(i:Int) = List.tabulate(bandWidth) { ibw => s"${ctrlOuts(i+ibw*8)}" }.mkString(" | ")
           recs += s"{${cins(1)}  | ${couts(1)}  | ${cins(0)}| ${couts(0)} | ${cins(7)}   | ${couts(7)}}"
           recs += s"{{${cins(2)} | ${couts(2)}} | ${culabel}              | {${couts(6)} | ${cins(6)}}}"
           recs += s"{${cins(3)}  | ${couts(3)}  | ${couts(4)}| ${cins(4)} | ${cins(5)}   | ${couts(5)}}"
@@ -377,7 +383,7 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
         ctrs.foreach { ctr =>
           emitNode(ctr, ctr, DotAttr().shape(circle).color(indianred).style(filled))
           if (ctr.en.isConnected) 
-            emitEdge(s"${ctr.en.from}".replace(".",":"), s"${ctr.en}".replace(".",":"))
+            emitEdge(s"${ctr.en.from.src}".replace(".",":"), s"${ctr}".replace(".",":"))
         }
       }
     }

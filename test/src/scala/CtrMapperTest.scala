@@ -15,7 +15,7 @@ import scala.language.reflectiveCalls
 
 class CtrMapperTest extends UnitTest { self =>
 
-  "CtrMapper Test1" should "success" in {
+  "CtrMapper Test1" should "success" taggedAs(WIP) in {
     new Design {
       implicit val ctrler:CU = new InnerController(Some("Test")) 
       // Nodes

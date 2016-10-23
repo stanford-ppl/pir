@@ -56,6 +56,13 @@ trait SpadeController extends Controller { self =>
       }
     }
   }.toList
+  def ctrlReaders:List[SpadeController] = ctrlOuts.flatMap { _.to  }.map { cin => 
+    cin.src match {
+      case prim:Primitive => prim.ctrler.asInstanceOf[ComputeUnit].inner
+      case top:Top => top
+    }
+  }.filter { _ != this }
+
   def writers:List[SpadeController] = vinMap.keys.map(_.writer.ctrler).toList
 } 
 
@@ -315,6 +322,16 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
   val dataOut:VecOut = if (mctpe==TileStore) newVout(memctrl.store) else newVout(vec)
 
+  override def vins = mctpe match {
+    case TileLoad => super.vins.filterNot( vin => vin==dataIn )
+    case _ => super.vins
+  }
+
+  override def vouts = mctpe match {
+    case TileStore => super.vouts.filterNot( vout => vout==dataOut )
+    case _ => super.vouts
+  }
+
   def in:Vector = dataIn.vector
   def out:Vector = dataOut.vector
 
@@ -346,6 +363,16 @@ case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)
   val addr = newSin(Scalar())
   val dataIn  = if (mctpe==TileStore) Some(newVin(Vector())) else None
   val dataOut = if (mctpe==TileLoad) Some(newVout(Vector())) else None
+
+  override def vins = mctpe match {
+    case TileLoad => super.vins.filterNot( vin => vin==dataIn.get )
+    case _ => super.vins
+  }
+
+  override def vouts = mctpe match {
+    case TileStore => super.vouts.filterNot( vout => vout==dataOut.get )
+    case _ => super.vouts
+  }
 
   //TODO
   def ctrlIns:List[InPort] = Nil

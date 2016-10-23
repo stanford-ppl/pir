@@ -4,6 +4,7 @@ import pir._
 import pir.typealias._
 import pir.codegen.Printer
 import pir.graph.traversal.{PIRMapping, MapPrinter}
+import pir.plasticine.main._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -17,10 +18,6 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
   val typeStr = "CUP2PMapper"
 
   val resMap:MMap[N, List[R]] = MMap.empty
-
-  def resFunc(cu:N, m:M, remainRes:List[R]):List[R] = {
-    resMap(cu).filter { pcu => !m.clmap.pmap.contains(pcu) }
-  }
 
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
     val cmap = pirMap.setCL(cu, pcu) 
@@ -52,26 +49,31 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     val nodes:List[SCL] = design.top::cus
     val reses = design.arch.top::pcus
     CUMapper.qualifyCheck(reses, nodes, resMap)
-    bind(reses, nodes, m, cons, resFunc _, finPass _)
+    def resFunc(cu:N, m:M, triedRes:List[R]):List[R] = {
+      (resMap(cu).diff(triedRes)).filter { pcu => !m.clmap.pmap.contains(pcu)}
+    }
+    bind(nodes, m, cons, resFunc _, finPass _)
   }
 }
 trait CUMapper extends Mapper {
+  override implicit val mapper:CUMapper = this
+  def resMap:MMap[SCL, List[PCL]]
   def finPass(m:M):M = m
   def map(m:M):M
   override def debug = Config.debugCUMapper
 }
 object CUMapper {
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, fp:PIRMap => PIRMap)(implicit design:Design):CUMapper = {
+  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper, fp:PIRMap => PIRMap)(implicit design:Design):CUMapper = {
     Config.routingAlgorithm match {
       case "P2P" => new CUP2PMapper(outputMapper, viMapper) { override def finPass(m:M):M = fp(m) }
-      case "Switch" => new CUSwitchMapper(outputMapper) { override def finPass(m:M):M = fp(m) }
+      case "Switch" => new CUSwitchMapper(outputMapper, ctrlMapper) { override def finPass(m:M):M = fp(m) }
       case _ => throw PIRException("Unknown routing algorithm")
     }
   }
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit design:Design):CUMapper = {
+  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper)(implicit design:Design):CUMapper = {
     Config.routingAlgorithm match {
       case "P2P" => new CUP2PMapper(outputMapper, viMapper)
-      case "Switch" => new CUSwitchMapper(outputMapper)
+      case "Switch" => new CUSwitchMapper(outputMapper, ctrlMapper)
       case _ => throw PIRException("Unknown routing algorithm")
     }
   }
@@ -99,7 +101,7 @@ object CUMapper {
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck(pcls:List[PCL], cls:List[SCL], map:MMap[SCL, List[PCL]])(implicit mapper:Mapper, design:Design):Unit = {
+  def qualifyCheck(pcls:List[PCL], cls:List[SCL], map:MMap[SCL, List[PCL]])(implicit mapper:CUMapper, design:Design):Unit = {
     cls.foreach { cl => 
       val failureInfo = MMap[PCL, ListBuffer[String]]()
       map += cl -> pcls.filter { pcl =>
@@ -124,16 +126,14 @@ object CUMapper {
         }
         cons += (("sin"	      , (cl.sins, pcl.sins)))
         cons += (("sout"	    , (cl.souts, pcl.souts)))
-        val vins = cl match {
-          case cl:TileTransfer => cl.vins.filter{ vin => 
-            vin.isInstanceOf[DummyVecIn]
-          }
-          case _ => cl.vins
+        cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcl.vins.filter(_.fanIns.size>0))))
+        cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))
+        design.arch match {
+          case sn:SwitchNetwork =>
+            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected), pcl.cins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pcl.couts.filter(_.fanOuts.size>0))))
+          case pn:PointToPointNetwork =>
         }
-        cons += (("vin"	      , (vins, pcl.vins.filter(_.fanIns.size>0))))
-        cons += (("vout"	    , (cl.vouts, pcl.vouts.filter(_.fanOuts.size>0))))
-        cons += (("cin"	      , (cl.ctrlIns, pcl.cins.filter(_.fanIns.size>0))))
-        cons += (("cout"	    , (cl.ctrlOuts, pcl.couts.filter(_.fanOuts.size>0))))
         failureInfo += pcl -> ListBuffer[String]()
         check(cons.toList, failureInfo(pcl))
       }
@@ -144,12 +144,12 @@ object CUMapper {
   }
 }
 
-case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:Mapper, design:Design) extends MappingException {
+case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:CUMapper, design:Design) extends MappingException {
   override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
 } 
-case class OutOfPTT(nres:Int, nnode:Int) (implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfPTT(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough TileTransfers in ${design.arch} to map application."
 } 
-case class OutOfPCU(nres:Int, nnode:Int) (implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfPCU(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
 } 

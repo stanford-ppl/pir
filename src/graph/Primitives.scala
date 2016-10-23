@@ -271,6 +271,7 @@ trait Input extends IO {
 trait Output extends IO 
 trait VectorIO[T <: IO] { self:T => 
   def vector:Vector
+  def isConnected:Boolean
 }
 
 case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: Design) 
@@ -322,6 +323,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   }
   override def variable:Vector = vector
   override def writer = vector.writer
+  def isConnected = writer!=null
 }
 object VecIn {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecIn = 
@@ -343,6 +345,7 @@ class VecOut(val name: Option[String], val vector:Vector)(implicit override val 
     case _ => super.equals(that)
   }
   val in = InPort(this, s"${this}.in")
+  def isConnected = vector.readers.size!=0
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 

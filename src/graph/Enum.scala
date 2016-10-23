@@ -5,8 +5,6 @@ package object enums {
   sealed trait Op 
   case object Mux extends Op
   case object Bypass extends Op
-  case object BitAnd extends Op // &
-  case object BitOr  extends Op // |
   
   sealed trait FixOp extends Op 
   case object FixAdd extends FixOp 
@@ -19,6 +17,7 @@ package object enums {
   case object FixLeq extends FixOp
   case object FixEql extends FixOp
   case object FixNeq extends FixOp
+  case object FixMod extends FixOp
   
   sealed trait FltOp extends Op 
   case object FltAdd extends FltOp 
@@ -34,13 +33,20 @@ package object enums {
   case object FltExp extends FltOp
   case object FltAbs extends FltOp
 
+  sealed trait BitOp extends Op 
+  case object BitAnd extends BitOp // &
+  case object BitOr  extends BitOp // |
+
   val fixOps:List[FixOp] = 
     List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixEql,
         FixNeq)
   val fltOps:List[FltOp] = 
     List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltEql,
       FltNeq, FltExp, FltAbs)
-  val ops:List[Op] = fixOps ++ fltOps ++ List(Mux, Bypass, BitAnd, BitOr) 
+  val bitOps:List[BitOp] = 
+    List(BitAnd, BitOr)
+
+  val ops:List[Op] = fixOps ++ fltOps ++ bitOps ++ List(Mux, Bypass) 
 
   //sealed trait CtrlType 
   //case object Pipe extends CtrlType

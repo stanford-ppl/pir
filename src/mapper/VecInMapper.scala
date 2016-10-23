@@ -25,15 +25,9 @@ class VecInMapper(implicit val design:Design) extends Mapper {
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
 
-    //Outer controller's scalar in are copied when counterchain gets copied
-    val vins = cl match {
-      case cl:TT => Nil // Assume tile transfer vin internallly connected
-      case cl:MC => Nil
-      case _ => cl.vins.filter( vin => !pirMap.vimap.contains(vin))
-    }
     val pvins = pcl.vins.filter( pvin => !pirMap.vimap.pmap.contains(pvin) )
 
-    val pmap = bind(pvins, vins, pirMap, cons, finPass(cl) _)
+    val pmap = bind(pvins, cl.vins, pirMap, cons, finPass(cl) _)
 
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
       if (pm.clmap.contains(reader)) {

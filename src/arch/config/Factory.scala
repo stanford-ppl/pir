@@ -18,7 +18,7 @@ object ConfigFactory extends ImplicitConversion {
   
   def genRCU(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
     val cu = new ComputeUnit(numLanes, numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(8, 4, 4)
+      .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
     cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
     cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 
@@ -31,8 +31,8 @@ object ConfigFactory extends ImplicitConversion {
   }
 
   def genTT(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new TileTransfer(numLanes, 1).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(8, 4, 4)
+    val cu = new TileTransfer(numLanes, 2).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
+      .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
     cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
     cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 
@@ -224,34 +224,41 @@ object ConfigFactory extends ImplicitConversion {
     val top = spade.top
     val numRowCUs = cus.size
     val numColCUs = cus.head.size
+    val bandWidth = 2
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        // CU to CU (Horizontal)
-        if (i!=numRowCUs-1) {
-          cus(i)(j).couts(6) ==> cus(i+1)(j).cins(2) // left to right
-          cus(i+1)(j).couts(2) ==> cus(i)(j).cins(6) // right to left
-        }
-        // CU to CU (Vertical)
-        if (j!=numColCUs-1) {
-          cus(i)(j).couts(0) ==> cus(i)(j+1).cins(4) // bottom up 
-          cus(i)(j+1).couts(4) ==> cus(i)(j).cins(0) // top down 
+        for (ibw <- 0 until bandWidth) {
+          val offset = ibw*8
+          // CU to CU (Horizontal)
+          if (i!=numRowCUs-1) {
+            cus(i)(j).couts(6+offset) ==> cus(i+1)(j).cins(2+offset) // left to right
+            cus(i+1)(j).couts(2+offset) ==> cus(i)(j).cins(6+offset) // right to left
+          }
+          // CU to CU (Vertical)
+          if (j!=numColCUs-1) {
+            cus(i)(j).couts(0+offset) ==> cus(i)(j+1).cins(4+offset) // bottom up 
+            cus(i)(j+1).couts(4+offset) ==> cus(i)(j).cins(0+offset) // top down 
+          }
         }
       }
     }
     for (i <- 0 until numRowCUs+1) {
       for (j <- 0 until numColCUs+1) {
-        // SB to SB (Horizontal)
-        if (i!=numRowCUs) {
-          csbs(i)(j).vouts(6) ==> csbs(i+1)(j).vins(2) // Left to right 
-          csbs(i+1)(j).vouts(2) ==> csbs(i)(j).vins(6) // Right to left
+        for (ibw <- 0 until bandWidth) {
+          val offset = ibw*8
+          // SB to SB (Horizontal)
+          if (i!=numRowCUs) {
+            csbs(i)(j).vouts(6+offset) ==> csbs(i+1)(j).vins(2+offset) // Left to right 
+            csbs(i+1)(j).vouts(2+offset) ==> csbs(i)(j).vins(6+offset) // Right to left
+          }
+          // SB to SB (Vertical)
+          if (j!=numColCUs) {
+            csbs(i)(j).vouts(0+offset) ==> csbs(i)(j+1).vins(4+offset) // bottom up 
+            csbs(i)(j+1).vouts(4+offset) ==> csbs(i)(j).vins(0+offset) // top down
+          }
         }
-        // SB to SB (Vertical)
-        if (j!=numColCUs) {
-          csbs(i)(j).vouts(0) ==> csbs(i)(j+1).vins(4) // bottom up 
-          csbs(i)(j+1).vouts(4) ==> csbs(i)(j).vins(0) // top down
-        }
+        // Top to SB
         if (j==numColCUs) {
-          // Top down
           csbs(i)(j).vouts(0) ==> top.cin // bottom up 
           top.cout ==> csbs(i)(j).vins(0) // top down
         }
@@ -263,27 +270,33 @@ object ConfigFactory extends ImplicitConversion {
     }
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        // SB and CU (NW <-> SE)
-        csbs(i+1)(j).vouts(1) ==> cus(i)(j).cins(5)
-        cus(i)(j).couts(5) ==> csbs(i+1)(j).vins(1)
-        // SB and CU (SE <-> NW)
-        csbs(i)(j+1).vouts(5) ==> cus(i)(j).cins(1)
-        cus(i)(j).couts(1) ==> csbs(i)(j+1).vins(5)
-        // SB and CU (SW <-> NE)
-        csbs(i)(j).vouts(7) ==> cus(i)(j).cins(3)
-        cus(i)(j).couts(3) ==> csbs(i)(j).vins(7)
-        // SB and CU (NW <-> SE)
-        csbs(i+1)(j+1).vouts(3) ==> cus(i)(j).cins(7)
-        cus(i)(j).couts(7) ==> csbs(i+1)(j+1).vins(3)
+        for (ibw <- 0 until bandWidth) {
+          val offset = ibw*8
+          // SB and CU (NW <-> SE)
+          csbs(i+1)(j).vouts(1+offset) ==> cus(i)(j).cins(5+offset)
+          cus(i)(j).couts(5+offset) ==> csbs(i+1)(j).vins(1+offset)
+          // SB and CU (SE <-> NW)
+          csbs(i)(j+1).vouts(5+offset) ==> cus(i)(j).cins(1+offset)
+          cus(i)(j).couts(1+offset) ==> csbs(i)(j+1).vins(5+offset)
+          // SB and CU (SW <-> NE)
+          csbs(i)(j).vouts(7+offset) ==> cus(i)(j).cins(3+offset)
+          cus(i)(j).couts(3+offset) ==> csbs(i)(j).vins(7+offset)
+          // SB and CU (NW <-> SE)
+          csbs(i+1)(j+1).vouts(3+offset) ==> cus(i)(j).cins(7+offset)
+          cus(i)(j).couts(7+offset) ==> csbs(i+1)(j+1).vins(3+offset)
+        }
       }
     }
-    for (i <- 0 until ttcus.size) {
-      ttcus(i).couts(5) ==> csbs(0)(i).vins(1)
-      csbs(0)(i).vouts(1) ==> ttcus(i).cins(5)
-      ttcus(i).couts(6) ==> csbs(0)(i).vins(2)
-      csbs(0)(i).vouts(2) ==> ttcus(i).cins(6)
-      ttcus(i).couts(7) ==> csbs(0)(i).vins(3)
-      csbs(0)(i).vouts(3) ==> ttcus(i).cins(7)
+    for (ibw <- 0 until bandWidth) {
+      val offset = ibw*8
+      for (i <- 0 until ttcus.size) {
+        ttcus(i).couts(5+offset) ==> csbs(0)(i).vins(1+offset)
+        csbs(0)(i).vouts(1+offset) ==> ttcus(i).cins(5+offset)
+        ttcus(i).couts(6+offset) ==> csbs(0)(i).vins(2+offset)
+        csbs(0)(i).vouts(2+offset) ==> ttcus(i).cins(6+offset)
+        ttcus(i).couts(7+offset) ==> csbs(0)(i).vins(3+offset)
+        csbs(0)(i).vouts(3+offset) ==> ttcus(i).cins(7+offset)
+      }
     }
 
   }

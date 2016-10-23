@@ -63,7 +63,7 @@ class CUMapperTest extends UnitTest with Metadata {
       top.updateFields(cus, Nil, sls, Nil, Nil)
 
       // PNodes
-      override val arch = new Spade {
+      override val arch = new Spade with PointToPointNetwork {
         val numLanes = 4
         val numRCUs = 5
         val numVins = 2
@@ -91,7 +91,8 @@ class CUMapperTest extends UnitTest with Metadata {
       // Mapping
       val outputMapper = new OutputMapper()
       val viMapper = new VecInMapper()
-      val mapper = CUMapper(outputMapper, viMapper)
+      val ctrlMapper = new CtrlMapper()
+      val mapper = CUMapper(outputMapper, viMapper, ctrlMapper)
 
       new PIRNetworkDotGen().run
       Try {

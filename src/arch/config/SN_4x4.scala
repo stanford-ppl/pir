@@ -41,10 +41,11 @@ object SN_4x4 extends SwitchNetwork {
   } 
 
   override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    SwitchBox(6, 6, numLanes).coord(i,j)
+    if (i==0) SwitchBox(7, 7, numLanes).coord(i,j) // extra for tileload
+    else SwitchBox(6, 6, numLanes).coord(i,j)
   }
   override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    SwitchBox(8, 8, 1).coord(i,j)
+    SwitchBox(16, 16, 1).coord(i,j)
   }
 
   for (i <- 0 until sbs.size) {
@@ -52,6 +53,7 @@ object SN_4x4 extends SwitchNetwork {
       coordOf(sbs(i)(j)) = (i,j) 
       if (i==0 && j<numRowCUs) {
         ttcus(j).vins(0) <== sbs(i)(j).vouts(4)
+        ttcus(j).vins(1) <== sbs(i)(j).vouts(6)
         sbs(i)(j).vins(1) <== ttcus(j).vouts(0) 
       }
     }

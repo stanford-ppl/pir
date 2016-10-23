@@ -15,6 +15,7 @@ import scala.collection.mutable.Set
  * */
 trait IO[+S<:Node] extends Node {
   val src:S
+  def isConnected: Boolean
 }
 
 /* Input pin. Can only connects to output of the same level */
@@ -27,6 +28,7 @@ trait Input[P<:Link, +S<:Node] extends IO[S] {
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${fanIns.mkString(",")}]"
   def canFrom(n:O):Boolean = fanIns.contains(n)
+  def isConnected = fanIns.size!=0
 }
 /* Output pin. Can only connects to input of the same level */
 trait Output[P<:Link, +S<:Node] extends IO[S] { 
@@ -36,6 +38,7 @@ trait Output[P<:Link, +S<:Node] extends IO[S] {
   def ==>(n:I):Unit = n.connect(this.asInstanceOf[n.O])
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
   def canTo(n:I):Boolean = fanOuts.contains(n)
+  def isConnected = fanOuts.size!=0
 } 
 
 trait Link extends Node
