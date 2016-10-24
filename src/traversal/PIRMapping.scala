@@ -77,6 +77,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   }
 
   override def traverse = {
+    tic
     Try(mapping=cuMapper.map(PIRMap.empty)) match {
       case Success(_) =>
         success = true
@@ -97,6 +98,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
           case e => throw e 
         }
     }
+    toc(s"Mapping", "ms")
     MapperLogger.close
     MapPrinter.close
   } 

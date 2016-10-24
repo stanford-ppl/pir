@@ -38,16 +38,17 @@ trait Mapper { self =>
 
   def quote(pne:Any)(implicit spade:Spade) = DotCodegen.quote(pne) 
 
-  def log[M](mapper:Mapper, info:Any, finPass:M => Unit)(block: => M):M = {
+  def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
     dbsln(mapper, s"$info")
     //printCaller 
     Try(block) match {
       case Success(m) => finPass(m);dbeln(mapper, s"$info (succeeded)"); m
-      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); throw e
+      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); failPass(e); throw e
     }
   }
-  def log[M](info:Any, finPass:M => Unit)(block: => M):M = log(this, info, finPass)(block)
-  def log[M](mapper:Mapper, info:Any)(block: => M):M = log(mapper, info, (m:M) => ())(block) 
+  def log[M](info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = log(this, info, finPass, failPass)(block)
+  def log[M](info:Any, finPass:M => Unit)(block: => M):M = log(this, info, finPass, (e:Throwable) => ())(block)
+  def log[M](mapper:Mapper, info:Any)(block: => M):M = log(mapper, info, (m:M) => (), (e:Throwable) => ())(block)
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
   def printCaller:Unit = {
@@ -278,6 +279,16 @@ trait Mapper { self =>
   private def checkOOR(nres:Int, nnodes:Int, oor:(Int, Int) => OutOfResource) = {
     if (nres < nnodes)
       throw oor(nres, nnodes)
+  }
+
+  def flattenExceptions(es:List[MappingException]):Set[MappingException] = {
+    es.flatMap { e =>
+      e match {
+        case FailToMapNode(mapper, n, exceps, m) => flattenExceptions(exceps)
+        case NoSolFound(mapper, exceps) => flattenExceptions(exceps)
+        case e => e::Nil
+      }
+    }.toSet
   }
 }
 

@@ -55,12 +55,7 @@ class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversa
           cu.vinMap.foreach { case (v, vin) => emitEdge(v.writer.ctrler, cu, s"$v")}
         case cu:OuterController =>
           cu.sinMap.foreach { case (s, sin) => 
-            val writer = s.writer.ctrler match {
-              case w:InnerController => w
-              case w:OuterController => w.inner
-              case w => w
-            }
-            emitEdge(writer, cu.inner, s"$s")
+            emitEdge(s.writer.ctrler, cu.inner, s"$s")
           }
         //TODO
         //case top:Top => emitNode(top, top, DotAttr().shape(box).style(rounded))

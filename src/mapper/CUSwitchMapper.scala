@@ -1,9 +1,9 @@
 package pir.graph.mapper
 import pir.graph._
-import pir.{Design, Config}
+import pir.{Config, Design}
 import pir.typealias._
-import pir.codegen.{Printer, DotCodegen}
-import pir.graph.traversal.{PIRMapping, MapPrinter, CUDotPrinter}
+import pir.codegen.{DotCodegen, Printer}
+import pir.graph.traversal.{CUCtrlDotPrinter, CUDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 
@@ -12,7 +12,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit val design:Design) extends CUMapper {
   type Edge = CUSwitchMapper.Edge 
@@ -92,7 +92,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
     }
 
     def next(m:M):M = {
-      if (debug) new CUDotPrinter().print(m)
+      //if (debug) { new CUDotPrinter().print(m) }
       mapCUs(restNodes)(m)
     }
     log(s"Mapping $cl") {
@@ -106,8 +106,9 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
   def getRoute(cl:SCL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
     def validCons(toVin:PIB, path:Path) = {
-      val to = toVin.src
-      m.clmap.get(cl).fold(resMap(cl).contains(to)) { _ == to } && // If cl has been mapped, valid path reaches current pcl
+      val to = toVin.src.asInstanceOf[PCL]
+      // If cl has been mapped, valid path reaches current pcl
+      m.clmap.get(cl).fold(resMap(cl).contains(to) && !m.clmap.pmap.contains(to)) { _ == to } &&
       (path.size >= minHop) && // path is with required hops
       (path.size < maxHop) && 
       (to!=start) // path doesn't end at depended CU
@@ -116,13 +117,12 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
       (path.size < maxHop) // path is within maximum hop to continue
     }
     val routes = advance(start, validCons _, advanceCons _) // start from depended cu
-    dprintln(s"from $cl to $start routes:${routes.size} ${routes.map(_._1)}")
+    //dprintln(s"from $cl to $start routes:${routes.size} ${routes.map(_._1)}")
     if (routes.size==0) {
-      throw NotReachable(m.clmap.pmap(start), start, cl, m.clmap.get(cl))
+      val scu = m.clmap.pmap(start)
+      throw NotReachable(scu, start, cl, m.clmap.get(cl))
     }
-    routes.filter { case (reachedCU, path) => 
-      !path.exists { case (vout, vin) => m.fbmap.contains(vin) } // No edge in path has been used
-    }
+    CUSwitchMapper.filterUsedRoutes(routes, m)
   }
   // Map inputs of the current cu. If source of the input is not mapped, postpond mapping of the
   // input until the source is mapped.
@@ -155,8 +155,8 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
     // Get routes that goes from pcl's output in pdep to current cl 
     val allRoutes = getRoute(cl, pdep, map)
     def resFilter(triedRes:List[R], es:List[MappingException]):List[R] = {
-      dprintln(s"Filtering for mapping $pdep of $cl res:${allRoutes.diff(triedRes).size}")
-      dprintln(s"-- flattenExceptions: {${ flattenExceptions(es).mkString("\n") }}")
+      //dprintln(s"Filtering for mapping $pdep of $cl res:${allRoutes.diff(triedRes).size}")
+      //dprintln(s"-- flattenExceptions: {${ flattenExceptions(es).mkString("\n") }}")
       flattenExceptions(es).foldLeft(allRoutes.diff(triedRes)) { case (remainRoutes, except) =>
         except match {
           case NotReachable(target, ptarget, _, _) if (cl == target) => 
@@ -172,25 +172,13 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
   }
 
   def bindCU(cl:SCL, pcl:PCL, map:M, es:List[MappingException]):M = {
-    val fes = flattenExceptions(es)
     dprintln(s"Try $cl -> $pcl")
-    dprintln(s"Flatten Exceptions: {${ fes.mkString("\n") }}")
-    fes.collect { case e@NotReachable(to, topcu, _, _) =>
+    flattenExceptions(es).collect { case e@NotReachable(to, topcu, _, _) =>
       if (to == cl && pcl == topcu) {
         throw e
       }
     }
     outputMapper.map(cl, map.setCL(cl, pcl))
-  }
-
-  def flattenExceptions(es:List[MappingException]):Set[MappingException] = {
-    es.flatMap { e =>
-      e match {
-        case FailToMapNode(mapper, n, exceps, m) => flattenExceptions(exceps)
-        case NoSolFound(mapper, exceps) => flattenExceptions(exceps)
-        case e => e::Nil
-      }
-    }.toSet
   }
 
   /*
@@ -225,6 +213,7 @@ object CUSwitchMapper {
     io.src match {
       case cu:PCU => io.toString
       case sb:PSB => DotCodegen.quote(sb) 
+      case top:PTop => top.toString
     }
   }
   def quote(path:CUSwitchMapper.Path)(implicit design:Design):String = {
@@ -242,15 +231,17 @@ object CUSwitchMapper {
    * @param advanceCons condition on whether continue advancing based on the current switchbox
    * encountered and path went through so far 
    * */
-  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
     advanceDFS(vouts)(start, validCons, advanceCons)
   }
 
-  def advanceDFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceDFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
     def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
       val visited = path.map{ case (f,t) => f.src }
       if (visited.contains(pne)) return map
-      vouts(pne).foldLeft(map) { case (preMap, vout) =>
+      //Prioritize visiting PCU to finish faster on hit
+      val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
+      vos.foldLeft(map) { case (preMap, vout) =>
         vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
           val newPath = path :+ (vout, vin)
           vin.src match {
@@ -265,7 +256,7 @@ object CUSwitchMapper {
     rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
   }
 
-  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
     val result = ListBuffer[(PCL, Path)]()
     val paths = Queue[Path]()
     paths += Nil
@@ -288,5 +279,27 @@ object CUSwitchMapper {
       }
     }
     result.toList
+  }
+  def filterUsedRoutes(routes:PathMap, map:PIRMap):PathMap = {
+    routes.filterNot { case r@(reached, path) =>
+      path.zipWithIndex.exists { case ((vout, vin), i) =>
+        val vinTaken = map.vimap.pmap.contains(vin)
+        if (vinTaken) assert(vin.src.isInstanceOf[PCL])
+        val edgeTaken = map.fbmap.get(vin).fold(false) { vo =>
+          (vo != vout)
+        }
+        val switchTaken = {
+          if (vout.src.isInstanceOf[PSB]) {
+            // Check switch box
+            val to = vout.voport
+            val from = path(i - 1)._2.viport
+            map.fpmap.get(to).fold(false) {
+              _ != from
+            }
+          } else false
+        } // no edge has been taken
+        vinTaken || edgeTaken || switchTaken
+      }
+    }
   }
 }

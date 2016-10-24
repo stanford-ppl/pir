@@ -17,6 +17,8 @@ import org.scalatest._
 import scala.util.{Try, Success, Failure}
 
 class CUSwitchMapperTest extends UnitTest with Metadata {
+  type Path = CUSwitchMapper.Path 
+  type PathMap = CUSwitchMapper.PathMap 
 
   def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new SwitchNetwork {
     val numLanes = 4
@@ -111,8 +113,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       (path.size >= min) && (path.size < max) && (pcu!=start)
     }
     def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
-    val result1 = CUSwitchMapper.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)
-    val result2 = CUSwitchMapper.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)
+    val result1 = CUSwitchMapper.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
+    val result2 = CUSwitchMapper.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
     result1 should equal (result2)
   }
 
@@ -286,6 +288,91 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
           new CUDotPrinter("TestOODependency.dot").print; throw e
       }
       MapperLogger.close
+    }
+  }
+
+  "SwitchNetwork Connection" should "success" taggedAs(WIP) in {
+    new Design {
+      top = Top()
+      val aos = Nil 
+      val sls = Nil
+      // Nodes
+      val vts = Nil 
+      val cus = Nil 
+      top.updateFields(cus, Nil, sls ++ aos, vts, Nil)
+      // PNodes
+      implicit override val arch = SN_4x4 
+
+      def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
+        CUSwitchMapper.advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
+
+      def advanceCons(psb:PSB, path:Path) = { 
+        (path.size < 5) // path is within maximum hop to continue
+      }
+      {
+        val start = arch.top
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to.id == 16794 &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
+      {
+        val start = arch.ttcus(3) 
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to == arch.top &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
+      {
+        val start = arch.ttcus(3) 
+        val target = arch.cuArray(1)(1) 
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to == target &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
+      {
+        val start = arch.cuArray(1)(1) 
+        val target = arch.ttcus(3)  
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to == target &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
+      {
+        val start = arch.ttcus(3) 
+        val target = arch.cuArray(0)(1) 
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to == target &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
+      {
+        val start = arch.cuArray(0)(1) 
+        val target = arch.ttcus(3)  
+        def validCons(toVin:PIB, path:Path) = {
+          val to = toVin.src
+          to == target &&
+          (to!=start) // path doesn't end at depended CU
+        }
+        val paths = advance(start, validCons _, advanceCons _)
+        assert(paths.size>0)
+      }
     }
   }
 

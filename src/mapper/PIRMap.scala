@@ -192,6 +192,11 @@ trait PMapObj {
 trait BMap extends PMap {
   type PM = Map[V, K]
   val pmap:PM
+  override def check(rec:(K,V)):Unit =  {
+    super.check(rec)
+    if (pmap.contains(rec._2) && pmap(rec._2)!=rec._1)
+      throw PIRException(s"${name} already contains key ${rec._2} -> ${pmap(rec._2)} but try to rebind to ${rec._1}")
+  }
   def printPMap(ks:List[V])(implicit p:Printer):Unit = {
     if (ks.size!=0) {
       p.emitBlock(name) {

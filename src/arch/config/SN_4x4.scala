@@ -32,10 +32,10 @@ object SN_4x4 extends SwitchNetwork {
   // Top level controller ~= Host
   override val top = Top(numLanes, numArgIns, numArgOuts)
 
-  private val allCUs = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
+  val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
     ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20).coord(i, j)
   }
-  override val rcus = allCUs.flatten 
+  override val rcus = cuArray.flatten 
   override val ttcus = List.tabulate(numRowCUs) { i =>
     ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 5, numRegs = 20).coord(-1, i)
   } 
@@ -59,8 +59,8 @@ object SN_4x4 extends SwitchNetwork {
     }
   }
 
-  ConfigFactory.genSwitchNetwork(allCUs, sbs)
-  ConfigFactory.genCtrlSwitchNetwork(allCUs, ttcus, csbs)
+  ConfigFactory.genSwitchNetwork(cuArray, sbs)
+  ConfigFactory.genCtrlSwitchNetwork(cuArray, ttcus, csbs)
 
   ConfigFactory.genArgIOConnection
 

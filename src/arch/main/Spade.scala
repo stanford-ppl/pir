@@ -30,6 +30,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
 }
 trait PointToPointNetwork extends Spade
 trait SwitchNetwork extends Spade {
+  val cuArray:List[List[ComputeUnit]]
   val sbs:List[List[SwitchBox]]
   val csbs:List[List[SwitchBox]]
   def switchNetworkDataBandwidth:Int = {

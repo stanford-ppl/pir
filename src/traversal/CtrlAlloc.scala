@@ -11,6 +11,17 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
 class CtrlAlloc(implicit val design: Design) extends Traversal{
+  def logicGen = {
+    genEnDec
+    genTokenOut
+    genTokenDown
+    connectInputs
+    wireCChainCopy
+  }
+  override def traverse:Unit = {
+    bufferAlloc
+    logicGen
+  } 
   // Allocate token buffer and credit buffer in all compute units 
   private def bufferAlloc = {
     design.top.compUnits.foreach { cu =>
@@ -165,8 +176,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     var iter = 0
     while (iter!=ancestors.size && ancestors(iter)!=outer) {
       val ccc = ancestors(iter) match {
+        //TODO: should this be changed with stream counter or normal counter?
         case tt:TileTransfer if (!current.isInstanceOf[TileTransfer] && tt.mctpe==TileLoad) =>
-                   current.getCopy(tt.streamCChain)
+          val streamCopy = current.getCopy(tt.streamCChain)
+          streamCopy.inner.en.connect(tt.streamCChain.inner.en.from)
+          streamCopy
         case cu => current.getCopy(cu.localCChain)
       }
       val pcc = current.getCopy(ancestors(iter+1).localCChain)
@@ -202,17 +216,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       }
     }
   }
-  def logicGen = {
-    genEnDec
-    genTokenOut
-    genTokenDown
-    connectInputs
-    wireCChainCopy
-  }
-  override def traverse:Unit = {
-    bufferAlloc
-    logicGen
-  } 
   override def finPass = {
     design.top.compUnits.foreach { cu =>
       cu match {
@@ -224,7 +227,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu:InnerController =>
           cu.cchains.flatMap{ _.counters }.foreach { ctr =>
             if (!ctr.en.isConnected) 
-              throw PIRException(s"${ctr}'s en in ${ctr.ctrler} is not connected")
+              throw PIRException(s"${ctr}'s en in ${ctr.cchain} in ${ctr.ctrler} is not connected")
           }
       }
     }
