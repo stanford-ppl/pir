@@ -13,26 +13,30 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
   type R = PSI 
   val typeStr = "SIMapper"
 
+  override def debug = Config.debugSIMapper
   def finPass(cl:CL)(m:M):M = m 
 
   private def mapScalarIns(vimap:VIMap, somap:SOMap)(n:N, p:R, map:M):M = {
-    if (n.ctrler.isInstanceOf[TT]) {
-      return map.setSI(n,p).setOP(n.out, p.out)
-    }
     val ib = vimap(vecOf(n).asInstanceOf[VI])
     val idx = somap(n.scalar.writer).idx
+    dprintln(s"Try $n -> $p $ib")
     if (p.in.canFrom(ib.outports(idx))) {
       map.setSI(n,p).setOP(n.out, p.out)
-    } else throw ScalarInRouting(n, p)
+    } else {
+      dprintln(s"$n -> $p (failed)")
+      throw ScalarInRouting(n, p)
+    }
   }
 
   def map(cl:SCL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
-    val sin = cl.sins
-    val psin = pcl.sins
+    val sins = cl.sins
+    val psins = pcl.sins
     // Assume one SI to one outport, no need to map
     val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)
-    bind(psin, sin, pirMap, cons, finPass(cl) _)
+    log(s"$cl($pcl) $sins $psins") {
+      bind(psins, sins, pirMap, cons, finPass(cl) _)
+    }
   }
 
 }

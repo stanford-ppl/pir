@@ -20,9 +20,9 @@ object ConfigFactory extends ImplicitConversion {
     val cu = new ComputeUnit(numLanes, numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
-    cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
-    cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 
-    cu.regstages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Regular stages
+    cu.wastages = List.fill(3) { WAStage(numOprds=3, cu.regs, ops) } // Write/read addr calculation stages
+    cu.rastages = List.fill(2) { FUStage(numOprds=3, cu.regs, ops) } // Additional read addr only calculation stages 
+    cu.regstages = List.fill(1) { FUStage(numOprds=3, cu.regs, ops) } // Regular stages
     cu.rdstages = List.fill(4) { ReduceStage(numOprds=2, cu.regs, ops) } // Reduction stage 
 
     genConnections(cu)
@@ -34,8 +34,8 @@ object ConfigFactory extends ImplicitConversion {
     val cu = new TileTransfer(numLanes, 2).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
-    cu.wastages = List.fill(3) { WAStage(numOprds=2, cu.regs, ops) } // Write/read addr calculation stages
-    cu.rastages = List.fill(1) { FUStage(numOprds=2, cu.regs, ops) } // Additional read addr only calculation stages 
+    cu.wastages = List.fill(3) { WAStage(numOprds=3, cu.regs, ops) } // Write/read addr calculation stages
+    cu.rastages = List.fill(1) { FUStage(numOprds=3, cu.regs, ops) } // Additional read addr only calculation stages 
 
     genConnections(cu)
     genMapping(cu)

@@ -1,7 +1,7 @@
 package pir.graph.mapper
 import pir._
 import pir.typealias._
-import pir.graph.traversal.PIRMapping
+import pir.graph.traversal.{PIRMapping, CtrDotPrinter}
 import pir.graph.Const
 import pir.plasticine.graph.{ ConstVal => PConstVal }
 
@@ -15,6 +15,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   type N = Ctr
   val typeStr = "CtrMapper"
   override def debug = Config.debugCTMapper
+  override val exceptLimit = 200
   
   def finPass(cu:ICL)(m:M):M = m
 
@@ -32,7 +33,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     bind(
       allNodes=ctrs,
       initMap=initMap,
-      constrains=List(mapCtr _), 
+      constrains=List(mapCtr(pctrs) _), 
       resFunc=resFunc(pctrs) _, 
       finPass=finPass
     )
@@ -69,7 +70,8 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     resPool
   }
 
-  def mapCtr(n:N, p:R, map:M):M = {
+  def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
+    //new CtrDotPrinter().print(pctrs, map)
     var ipmap = map.ipmap
     var fpmap = map.fpmap
     def mapInPort(n:IP, p:PIP):Unit = {

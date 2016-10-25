@@ -15,6 +15,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   type N = ST
   val typeStr = "StageMapper"
   override def debug = Config.debugSTMapper
+  override val exceptLimit = 200
 
   def finPass(cu:ICL)(m:M):M = m
 
@@ -24,7 +25,9 @@ class StageMapper(implicit val design:Design) extends Mapper {
       val pest :: pfusts = pcu.stages
       val est :: fusts = cu.stages.toList
       var cmap = mapStage(est, pest, cuMap)
-      cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _,OutOfStage(pcu, cu, _, _))
+      log(s"$cu bindStages") {
+        cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _,OutOfStage(pcu, cu, _, _))
+      }
       stageFowarding(pcu, cmap)
     }
   }
@@ -49,23 +52,25 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
   def mapStage(n:N, p:R, map:M):M = {
-    var cmap = map.setST(n, p)
-    n match {
-      case s:EST => 
-        if (!p.isInstanceOf[PEST]) throw StageRouting(n, p)
-        cmap = mapPROut(n, p, cmap)
-        cmap = mapPRIn(n, p, cmap)
-      case fs => fs match {
-          case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p)
-          case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p)
-          case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p)
-        }
-        cmap = mapPROut(n, p, cmap)
-        cmap = mapFUOut(n, p, cmap)
-        cmap = mapPRIn(n, p, cmap)
-        cmap = mapFUIn(n, p, cmap)
+    log(s"Try $n -> $p") {
+      var cmap = map.setST(n, p)
+      n match {
+        case s:EST => 
+          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p)
+          cmap = mapPROut(n, p, cmap)
+          cmap = mapPRIn(n, p, cmap)
+        case fs => fs match {
+            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p)
+            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p)
+            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p)
+          }
+          cmap = mapPROut(n, p, cmap)
+          cmap = mapFUOut(n, p, cmap)
+          cmap = mapPRIn(n, p, cmap)
+          cmap = mapFUIn(n, p, cmap)
+      }
+      cmap
     }
-    cmap
   }
 
   def mapFUIn(n:ST, p:PST, map:M):M = {
@@ -75,7 +80,9 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val oprds = fu.operands
     val poprds = pfu.operands
     val oprdCons = List(mapInPort _)
-    bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+    log(s"$n bind FU Inputs") {
+      bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+    }
   }
 
   def mapFUOut(n:ST, p:PST, map:M):M = {

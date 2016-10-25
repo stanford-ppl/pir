@@ -27,6 +27,8 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   val typeStr = "CUSwitchMapper"
   override implicit val mapper:CUSwitchMapper = this
 
+  override val exceptLimit = 200
+
   val resMap:MMap[SCL, List[PCL]] = MMap.empty
 
   def map(m:M):M = {

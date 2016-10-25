@@ -8,16 +8,16 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 
 abstract class MappingException(implicit design:Design) extends PIRException {
-  if (design.mapExceps.size>500) {
-    println(s"Exiting due to exceed exception limits...")
-    throw PIRException(s"Exception Limit Exceeded")
-  }
-  design.mapExceps += this
   val msg:String
   val mapper:Mapper
   val typeStr = this.getClass().getSimpleName() 
   override def toString = s"[$mapper] $typeStr: $msg"
-  //println(s"$typeStr")
+  if (mapper.exceedExceptLimit) {
+    println(s"Exiting due to exceed exception limits...")
+    throw PIRException(s"$mapper Exception Limit Exceeded")
+  } else {
+    mapper.mapExceps += this
+  }
 }
 
 case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit design:Design) extends MappingException {

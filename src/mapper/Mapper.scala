@@ -18,6 +18,9 @@ object MapperLogger extends Logger {
 }
 trait Mapper { self =>
   implicit val mapper = self
+  val exceptLimit:Int = -1
+  lazy val mapExceps = ListBuffer[MappingException]()
+  def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
   type M = PIRMap 
 
@@ -42,7 +45,7 @@ trait Mapper { self =>
     dbsln(mapper, s"$info")
     //printCaller 
     Try(block) match {
-      case Success(m) => finPass(m);dbeln(mapper, s"$info (succeeded)"); m
+      case Success(m) => dbeln(mapper, s"$info (succeeded)"); finPass(m); m
       case Failure(e) => dbeln(mapper, s"$info (failed) $e"); failPass(e); throw e
     }
   }
@@ -176,18 +179,17 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        Try{
-          def rn(m:M): M = recNode(restNodes, m)
-          def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
-          recRes[R,N,M](n, constrains, rf _, rn _, map)
-        } match {
-          case Success(m) => return m 
-          case Failure(e) => 
-            e match {
+        log(s"Mapping $n", { (m:M) => return m; () // finPass
+        }, { (e:Throwable) => // Failpass
+          e match {
             case fe:FailToMapNode[_] => exceps += fe // recRes failed
             case _ => throw e // Unknown exception
           }
-        }
+        }) { // Block
+          def rn(m:M): M = recNode(restNodes, m)
+          def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
+          recRes[R,N,M](n, constrains, rf _, rn _, map)
+        } 
       }
       throw NoSolFound(this, exceps.toList) 
     }

@@ -25,6 +25,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   type Path = CUSwitchMapper.Path 
   type PathMap = CUSwitchMapper.PathMap 
   
+  override val exceptLimit = 200
+
   def finPass(cu:SCL)(m:M):M = m
 
   val minHop = 1

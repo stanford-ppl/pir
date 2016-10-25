@@ -162,7 +162,6 @@ trait Design extends Metadata { self =>
 
   val arch:Spade
   var top:Top = _
-  lazy val mapExceps = ListBuffer[MappingException]()
 
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
