@@ -51,7 +51,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   lazy val design = new Design {
     // PNodes
     override val arch = genSwitchNetworkConfig(4,4)
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), new CtrlMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
       def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
         val pcu = toVin.src
@@ -149,7 +149,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), new CtrlMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
 
       new PIRNetworkDotGen().run
       Try {
@@ -230,7 +230,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       new ScalarBundling().run
       new PIRPrinter().run
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), new CtrlMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
 
       new PIRNetworkDotGen().run
       Try {
@@ -277,7 +277,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = genSwitchNetworkConfig(4,4)
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), new CtrlMapper())
+      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
       new PIRNetworkDotGen().run
       Try {
         mapper.map(PIRMap.empty)

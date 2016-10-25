@@ -14,7 +14,12 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import scala.util.{Failure, Success, Try}
 
-class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit val design:Design) extends CUMapper {
+class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper {
+
+  def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
+    this(outputMapper, Some(ctrlMapper))
+  }
+
   type Edge = CUSwitchMapper.Edge 
   type Path = CUSwitchMapper.Path 
   type PathMap = CUSwitchMapper.PathMap 
@@ -50,8 +55,9 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
     } else {
       val cl::rest = remainNodes 
       mapDep(cl) {
-        ctrlMapper.mapCtrlIOs(cl) {
-          mapCU(cl, rest) _
+        ctrlMapper.fold((m:M) => m) { _.mapCtrlIOs(cl) {
+            mapCU(cl, rest) _
+          } _
         }
       } (map)
     }
@@ -68,11 +74,13 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit 
           pm
         }
       }
-      cl.ctrlReaders.foldLeft(mp) { case (pm, reader) =>
-        if (pm.clmap.contains(reader)) {
-          ctrlMapper.mapCtrlIOs(reader)((m:M) => m)(pm)
-        } else {
-          pm
+      ctrlMapper.fold(mp) { ctrlMapper =>
+        cl.ctrlReaders.foldLeft(mp) { case (pm, reader) =>
+          if (pm.clmap.contains(reader)) {
+            ctrlMapper.mapCtrlIOs(reader)((m:M) => m)(pm)
+          } else {
+            pm
+          }
         }
       }
     }
@@ -265,7 +273,8 @@ object CUSwitchMapper {
       val pne:PNE = path.lastOption.fold[PNE](start) { _._2.src }
       val visited = path.map{ case (f,t) => f.src }
       if (!visited.contains(pne)) {
-        vouts(pne).foreach { vout =>
+        val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
+        vos.foreach { vout =>
           vout.fanOuts.foreach { vin =>
             val newPath = path :+ (vout, vin)
             vin.src match {
@@ -280,6 +289,7 @@ object CUSwitchMapper {
     }
     result.toList
   }
+
   def filterUsedRoutes(routes:PathMap, map:PIRMap):PathMap = {
     routes.filterNot { case r@(reached, path) =>
       path.zipWithIndex.exists { case ((vout, vin), i) =>

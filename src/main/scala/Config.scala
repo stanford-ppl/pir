@@ -16,7 +16,6 @@ object Config {
   var genDot = getProperty("pir.dot", "true") == "true"
   var genPisa = getProperty("pir.pisa", "false") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
-  var routingAlgorithm = getProperty("pir.routingAlgorithm", "Switch")
   var outDir = getProperty("pir.outDir", "out")
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
