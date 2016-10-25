@@ -60,15 +60,14 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   }
 
   val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, ctrlMapper, { case (m:PIRMap) =>
-    m
-    //try {
-      //m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
-        //ctrlMapper.mapCtrlIOs(ctrler, mapPrim(ctrler)  _)(ctrler.ctrlIns, pm)
-      //}
-    //} catch {
-      //case e:MappingException => throw PassThroughException(cuMapper, e, m)
-      //case e:Throwable => throw e 
-    //} 
+    try {
+      m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
+        mapPrim(ctrler)(pm)
+      }
+    } catch {
+      case e:MappingException => throw PassThroughException(cuMapper, e, m)
+      case e:Throwable => throw e 
+    } 
   })
 
   override def reset = {

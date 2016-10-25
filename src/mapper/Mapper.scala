@@ -128,9 +128,8 @@ trait Mapper { self =>
     finPass: M => M,
     oor:(Int, Int) => OutOfResource
   ):M = {
-    def rf(n:N, m:M, triedRes:List[R]) = allRes.diff(triedRes)
     checkOOR(allRes.size, allNodes.size, oor)
-    bind(allNodes, initMap, constrains, rf _, finPass)
+    bind(allRes, allNodes, initMap, constrains, finPass)
   }
 
   def bind[R,N,M](
