@@ -75,8 +75,10 @@ object Memcpy2DDesign extends PIRApp {
       stage = stage0 +: WAStages(2, List(x983_x1021))
       Stage(stage(1), operands=List(x986(0), Const("96i")), op=FixMul, results=List(CU.temp(stage(1), tr66)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr66), CU.ctr(stage(1), x998(0))), op=FixAdd, results=List(x983_x1021.writeAddr))
-      stage = stage0 +: Stages(3)
+      //TODO empty stage of the local stages should be last stage of the write addr stage
+      stage = stage(2) +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x1013(0)), Const("96i")), op=FixMul, results=List(CU.temp(stage(1), tr69)))
+      //Stage(stage(1), operands=List(CU.ctr(stage(0), x1013(0)), Const("96i")), op=FixMul, results=List(CU.temp(stage(1), tr69)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr69), CU.ctr(stage(1), x1016(0))), op=FixAdd, results=List(x983_x1021.readAddr))
       Stage(stage(3), operands=List(x983_x1021.load), op=Bypass, results=List(CU.vecOut(stage(3), x1011_vector)))
     }

@@ -8,28 +8,28 @@ import pir.misc._
 import pir.PIRApp
 
 object OuterProductDesign extends PIRApp {
-  override val arch = SN_4x4 
+  override val arch = P2P_4CU_4TT
   def main(args: String*)(top:Top) = {
     val x3775_vector = Vector()
     val x3683_argin = ArgIn()
     val x3778_vector = Vector()
-    val x3825_scalar = Scalar()
-    val x3781_scalar = Scalar()
+    val x3825_scalar = Scalar(x3825)
+    val x3781_scalar = Scalar(x3781)
     val x3689_oc = OffChip()
     val x3906_vector = Vector()
     val x3823_vector = Vector()
     val x3691_oc = OffChip()
-    val x3777_scalar = Scalar()
-    val x3782_scalar = Scalar()
-    val x3827_scalar = Scalar()
-    val x3909_scalar = Scalar()
-    val x3780_scalar = Scalar()
-    val x3826_scalar = Scalar()
-    val x3779_scalar = Scalar()
+    val x3777_scalar = Scalar(x3777)
+    val x3782_scalar = Scalar(x3782)
+    val x3827_scalar = Scalar(x3827)
+    val x3909_scalar = Scalar(x3909)
+    val x3780_scalar = Scalar(x3780)
+    val x3826_scalar = Scalar(x3826)
+    val x3779_scalar = Scalar(x3779)
     val x3687_oc = OffChip()
-    val x3824_scalar = Scalar()
+    val x3824_scalar = Scalar(x3824)
     val x3682_argin = ArgIn()
-    val x3776_scalar = Scalar()
+    val x3776_scalar = Scalar(x3776)
     val x3846_mc_mc = MemoryController(TileLoad, x3689_oc)
     val x3927_mc_mc = MemoryController(TileStore, x3691_oc)
     val x3801_mc_mc = MemoryController(TileLoad, x3687_oc)
@@ -72,7 +72,6 @@ object OuterProductDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val x3801_ctr = (Const("0l").out, CU.scalarIn(stage0, x3782_scalar).out, Const("1l").out) // Counter
       val x3801_cc = CounterChain(name = "x3801_cc", x3801_ctr)
-      CounterChain(name = "x3801_cc_stream", x3801_ctr).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), x3781_scalar), CU.ctr(stage(0), x3801_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x3801_mc_mc.saddr)))
@@ -119,7 +118,6 @@ object OuterProductDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val x3846_ctr = (Const("0l").out, CU.scalarIn(stage0, x3827_scalar).out, Const("1l").out) // Counter
       val x3846_cc = CounterChain(name = "x3846_cc", x3846_ctr)
-      CounterChain(name = "x3846_cc_stream", x3846_ctr).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), x3826_scalar), CU.ctr(stage(0), x3846_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x3846_mc_mc.saddr)))
@@ -160,19 +158,19 @@ object OuterProductDesign extends PIRApp {
     val x3905 = Pipeline(name="x3905", parent=x3931, deps=List(x3822, x3867, x3873, x3879)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x3803 = CounterChain.copy(x3820, "x3803")
+      val x3867_unitCC = CounterChain.copy(x3867, "x3867_unitCC")
       val x3887 = (Const("0i").out, CU.scalarIn(stage0, x3776_scalar).out, Const("1i").out) // Counter
       val x3888 = (Const("0i").out, CU.scalarIn(stage0, x3777_scalar).out, Const("1i").out) // Counter
       val x3889 = CounterChain(name = "x3889", x3887, x3888)
-      val x3822_unitCC = CounterChain.copy(x3822, "x3822_unitCC")
       val x3848 = CounterChain.copy(x3865, "x3848")
-      val x3867_unitCC = CounterChain.copy(x3867, "x3867_unitCC")
+      val x3822_unitCC = CounterChain.copy(x3822, "x3822_unitCC")
       val x3773_x3892 = SRAM(size = 96, writeCtr = x3803(0), banking = Duplicated(), buffering = MultiBuffer(2, swapRead = x3889(0), swapWrite = x3822_unitCC(0))).wtPort(x3778_vector).rdAddr(x3889(0))
       val x3774_x3895 = SRAM(size = 96, writeCtr = x3848(0), banking = Duplicated(), buffering = MultiBuffer(2, swapRead = x3889(0), swapWrite = x3867_unitCC(0))).wtPort(x3823_vector).rdAddr(x3889(1))
       var stage: List[Stage] = Nil
       stage = stage0 +: WAStages(1, List(x3773_x3892))
-      Stage(stage(1), operands=List(x3803(0), CU.scalarIn(stage(0), x3779_scalar)), op=FixSub, results=List(x3773_x3892.writeAddr))
+      Stage(stage(1), operands=List(x3803(0), CU.scalarOut(stage(0), x3779_scalar)), op=FixSub, results=List(x3773_x3892.writeAddr))
       stage = stage0 +: WAStages(1, List(x3774_x3895))
-      Stage(stage(1), operands=List(x3848(0), CU.scalarIn(stage(0), x3824_scalar)), op=FixSub, results=List(x3774_x3895.writeAddr))
+      Stage(stage(1), operands=List(x3848(0), CU.scalarOut(stage(0), x3824_scalar)), op=FixSub, results=List(x3774_x3895.writeAddr))
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x3773_x3892.load, x3774_x3895.load), op=FixMul, results=List(CU.vecOut(stage(1), x3775_vector)))
     }
@@ -198,10 +196,10 @@ object OuterProductDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr238 = CU.temp
       val tr243 = CU.temp
-      val x3889 = CounterChain.copy(x3905, "x3889")
       val x3908 = CounterChain.copy(x3929, "x3908")
       val x3915 = (Const("0i").out, CU.scalarIn(stage0, x3777_scalar).out, Const("1i").out) // Counter
       val x3916 = CounterChain(name = "x3916", x3915)
+      val x3889 = CounterChain.copy(x3905, "x3889")
       val x3775_x3919 = SRAM(size = 9216, writeCtr = x3889(0), banking = Duplicated(), buffering = MultiBuffer(2, swapRead = x3908(0), swapWrite = x3889(0))).wtPort(x3775_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: WAStages(2, List(x3775_x3919))
