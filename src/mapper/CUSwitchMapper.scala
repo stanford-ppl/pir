@@ -150,7 +150,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       var mp = m
       mp = bindCU(cl, reachedCU, mp, es)
       val pvin = path.last._2
-      mp = mp.setVI(vin, pvin).setOP(vin.out, pvin.viport)
+      mp = mp.setVI(vin, pvin).setOP(vin.out, pvin.viport).setRT(vin, path.size)
       path.zipWithIndex.foreach { case ((pvout, pvin), i) => 
         mp = mp.setFB(pvin, pvout)
         if (pvout.src.isInstanceOf[PSB]) { // Config SwitchBox

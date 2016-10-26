@@ -69,10 +69,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           case tt:PTT => //TODO: Not emitting anything for tile transfer yet
           case _ =>
             emitMap { implicit ms =>
-              var comment = design.arch match {
-                case sn:SwitchNetwork => s"$pcu[${coordOf(pcu)}]"
-                case pn:PointToPointNetwork => s"$pcu[${indexOf(pcu)}] "
-              } 
+              var comment = s"$pcu[${indexOf(pcu)}] "
               if (clmap.pmap.contains(pcu)) {
                 val cu = clmap.pmap(pcu)
                 comment += s" <- ${cu}"
@@ -212,7 +209,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   val dataInterConnectDelay:Int = 1
   val timeMplx = 1
 
-  /* amount of delay to decalre done of the counter */
   def localDoneDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (cchain.isCopy) { "0" }
@@ -224,24 +220,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
-  /* Calculate amount of delay to start write addr inner counter */
   def writeAddrStartDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (!cchain.isCopy) { "0" }
     else if (cchain.inner!=ctr) { "0" }
     else {
-      if (ctr.cchain.wasrams.size==0) { "0" } else {
-        assert(ctr.cchain.wasrams.size==1)
-        val sram = ctr.cchain.wasrams.head
-        assert(sram.isRemoteWrite)
-        val vin = sram.vecInPR.get.vecIn
-        val fromCU = vin.writer.ctrler
-        val pFromCU = clmap(fromCU).asInstanceOf[PCU]
-        val dataInterConnectDelay = rtmap(vin)
-        val delay = (pFromCU.stages.size - numWAStage(pFromCU)) * timeMplx +
-        dataInterConnectDelay - localWADelay(pcu, ctr)
-        s"${delay}"
+      val cu = ctr.ctrler
+      if (ctr.cchain.srams.size!=0)
+      val fromCU:ICL = cchain.copy.get.right.get.ctrler match {
+        case i:ICL => i
+        case o:OCL => o.inner
       }
+      val pFromCU = clmap(fromCU).asInstanceOf[PCU]
+      val vins = cu.vins.filter {_.writer.ctrler == fromCU}
+      assert(vins.size==1)
+      val vin = vins.head
+      val dataInterConnectDelay = rtmap(vin)
+      val delay = (pFromCU.stages.size - numWAStage(pFromCU)) * timeMplx +
+                  dataInterConnectDelay - localWADelay(pcu, ctr)
+      s"${delay}"
     }
   }
 

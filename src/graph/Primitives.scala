@@ -42,6 +42,9 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   lazy val original = copy.fold(this) { e => e.right.get}
 
   val wasrams = ListBuffer[SRAM]()
+  def addWASram(sram:SRAM):Unit = {
+    wasrams += sram
+  }
   var streaming = false
   def isStreaming(s:Boolean) = streaming = s
 
@@ -198,6 +201,8 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
   var vecInPR:Option[VecInPR] = _
+
+  def isRemoteWrite = vecInPR.isDefined
 
   override def toUpdate = super.toUpdate || vecInPR==null
 
@@ -362,7 +367,18 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
 class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
-  val operands = List.tabulate(oprds.size){ i => InPort(this, oprds(i), s"${oprds(i)}") }
+  val operands = List.tabulate(oprds.size){ i => 
+    stage match {
+      case wast:WAStage =>
+        oprds(i).src match {
+          case PipeReg(_, CtrPR(_, ctr)) => wast.srams.right.get.foreach { sram => ctr.cchain.addWASram(sram) }
+          case c:Counter => wast.srams.right.get.foreach { sram => c.cchain.addWASram(sram) }
+          case _ =>
+        }
+      case _ =>
+    }
+    InPort(this, oprds(i), s"${oprds(i)}")
+  }
   val out = OutPort(this, s"${this}.out")
   results.foreach { res => 
     res.src match {
@@ -413,6 +429,7 @@ object Stage {
     Stage(stage, List(op1, op2), op, List(result))
   def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
+
   def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 

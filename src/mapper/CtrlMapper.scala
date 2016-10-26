@@ -104,9 +104,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     def cons(n:N, r:R, m:M, es:List[MappingException]):M = {
       val (reachedCU, path) = r
       val pcin = path.last._2
-      var mp = m.setVI(n, pcin)
       val pcout = path.head._1
-      mp = mp.setVO(n.from, pcout)
+      var mp = m.setVI(n, pcin).setVO(n.from, pcout).setRT(n, path.size)
       mp = cuMapper.bindCU(cl, reachedCU, mp, es)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
