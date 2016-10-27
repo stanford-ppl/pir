@@ -14,7 +14,7 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
-  var genPisa = getProperty("pir.pisa", "false") == "true"
+  var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
 
@@ -32,6 +32,7 @@ object Config {
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
   var mapping = getProperty("pir.mapping", "true") == "true"
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
+  var debugLog = getProperty("pir.debugLog", "Debug.log")
 
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
@@ -44,7 +45,7 @@ object Config {
   var debugSTMapper = debugMapper && true 
   var debugSIMapper = debugMapper && false 
   var debugCtrlMapper = debugMapper && false 
-  var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"
+  var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
 
   var dse = false
 

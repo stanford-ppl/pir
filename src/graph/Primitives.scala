@@ -32,6 +32,10 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * Whether CounterChain is a copy of other CounterChain
    * */
   def isCopy = copy.isDefined
+  def isLocal = (!isCopy) && (ctrler match { 
+    case tt:TileTransfer => tt.mctpe==TileLoad && streaming==false
+    case _ => true 
+  }) 
   /*
    * Whether CounterChain is not a copy or is a copy and has been updated
    * */
@@ -147,6 +151,9 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
     max.connect(ma)
     step.connect(s)
   }
+
+  def isInner = this==cchain.inner
+  def isOuter = !isInner
 
   def setDep(c:Counter) = { en.connect(c.done) }
 
@@ -450,7 +457,7 @@ object Stages {
     for ( i <- 1 until stages.size ) {
       val preg = ctrler.reduce(stages(i-1))
       val creg = ctrler.reduce(stages(i))
-      Stage(stages(i), op1=preg.out, op, result=creg.in)
+      Stage(stages(i), op1=preg.out, op2=preg.out, op, result=creg.in)
     }
     rdStages
   }

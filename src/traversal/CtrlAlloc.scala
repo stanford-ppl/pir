@@ -58,7 +58,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val cds = cb.creditBuffers.map(_._2.out).toList
           val ins = tks ++ cds
           val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, ins) =>
-            ins.reduce(_ && _)
+            (tks ++ cds).map(in =>ins(map(in))).reduce(_ && _)
           }
           EnLUT(cu, ins, tf, en)
           cu match {

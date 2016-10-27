@@ -196,7 +196,7 @@ object EnLUT extends Metadata {
 case class TokenOutLUT(implicit spade:Spade) extends LUT{
   override val typeStr = "tolut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  override val numIns = 2
+  override val numIns = 2 // Token out is a combination of two output
 }
 case class TokenDownLUT(numIns:Int)(implicit spade:Spade) extends LUT {
   override val typeStr = "tdlut"

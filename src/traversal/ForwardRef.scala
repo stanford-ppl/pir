@@ -44,6 +44,9 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       case c:Controller => 
         assert(!nameMap.contains(name), s"Already create controller with name ${name}: ${n}")
         nameMap += (name -> c)
+      case c:OffChip => 
+        assert(!nameMap.contains(name), s"Already create name ${name}: ${n}")
+        nameMap += (name -> c)
       case p:Primitive =>
         val s = ForwardRef.getPrimName(p.ctrler, name)
         assert(!nameMap.contains(s),

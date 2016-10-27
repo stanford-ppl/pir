@@ -41,9 +41,10 @@ trait JsonCodegen extends Printer {
     block
     emitCE
   }
-  def emitList(key:String, value: List[String])(implicit ms:CollectionStatus):Unit = { 
+  def emitList(key:String, value: List[String])(implicit ms:CollectionStatus):Unit =
     { emitComma; emit(s""""$key" : [${value.mkString(",")}]""") }
-  }
+  def emitLineMap(key:String, value:List[(String, String)])(implicit ms:CollectionStatus):Unit =
+  { emitComma; emit(s""""$key" : {${value.map{ case (k,v) => s""""$k" : "$v""""}.mkString(",")}}""") }
   def emitPair(key:String, value: Int)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$key" : $value""") }
   def emitPair(key:String, value: Double)(implicit ms:CollectionStatus):Unit = 
@@ -55,7 +56,7 @@ trait JsonCodegen extends Printer {
   def emitElem(value: =>Unit)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit; emitBSln; value; emitBE }
   def emitElem(value: String)(implicit ms:CollectionStatus):Unit = 
-    { emitComma; emit(s"""$value""") }
+    { emitComma; emit(s""""$value"""") }
 
   def emitComment(label:String, str:String)(implicit ms:CollectionStatus) = {
     if (Config.debugCodegen) { emitPair(s"comment-$label", str) }
