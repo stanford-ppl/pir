@@ -4,7 +4,7 @@ import pir.misc._
 import graph._
 import graph.traversal._
 import graph.mapper._
-import codegen._
+import pir.codegen._
 import plasticine.config._
 import pir.plasticine.main._
 
@@ -210,6 +210,7 @@ trait Design extends Metadata { self =>
         throw e
       case e:Throwable => throw e
     }
+    if (Config.debug) DebugLogger.close
   }
 
   // Metadata Maps

@@ -16,7 +16,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata {
+class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with DebugLogger {
   override val stream = newStream(s"${design}.json") 
   
   implicit lazy val spade:Spade = design.arch
@@ -36,6 +36,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val lumap:LUMap = mapping.lumap 
   lazy val ucmap:UCMap = mapping.ucmap
   lazy val rtmap:RTMap = mapping.rtmap
+  lazy val simap:SIMap = mapping.simap
+  lazy val somap:SOMap = mapping.somap
 
   override def traverse:Unit = {
     if (pirMapping.fail) return
@@ -60,6 +62,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitMain(implicit ms:CollectionStatus) = {
+    val argOuts = ListBuffer[String]()
+    design.top.sins.foreach { sin =>
+      argOuts += s"${sin.scalar} -> ${indexOf(simap(sin).outport.get)}"
+    }
+    val argIns = ListBuffer[String]()
+    design.top.souts.foreach { sout =>
+      argIns += s"${sout.scalar} -> ${indexOf(somap(sout).inport.get)}"
+    }
+    emitComment("argIns", argIns.mkString(","))
+    emitComment("argOuts", argOuts.mkString(","))
     emitList("cu") { implicit ms =>
       design.arch.rcus.foreach { pcu =>
         if (clmap.pmap.contains(pcu)) {
@@ -86,6 +98,33 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
     }
+    design.arch match {
+      case sn:SwitchNetwork =>
+        emitList("dataSwitch") { implicit ms =>
+          sn.sbs.flatten.foreach { sb =>
+            emitSwitch(sb)
+          }
+        }
+        emitList("controlSwitch") { implicit ms =>
+          sn.csbs.flatten.foreach { sb =>
+            emitSwitch(sb)
+          }
+        }
+      case _ =>
+    }
+  }
+
+  def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
+    val ins = ListBuffer[String]()
+    sb.vouts.foreach { pvout =>
+      if (fpmap.contains(pvout.voport)) {
+        ins += s""""${indexOf(fpmap(pvout.voport).src)}""""
+      } else {
+        ins += s""""x""""
+      }
+    }
+    emitComment(s"sb", DotCodegen.quote(sb))
+    emitList("outSelect", ins.toList)
   }
 
   def lookUp(op:Op):String = {
@@ -268,8 +307,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def emitSRAMs(pcu:PCU)(implicit ms:CollectionStatus) = {
     emitList(s"scratchpads") { implicit ms =>
       pcu.srams.foreach{ psram => 
-        emitMap { implicit ms =>
-          if (smmap.pmap.contains(psram)) {
+        if (smmap.pmap.contains(psram)) {
+          emitMap { implicit ms =>
             val sram = smmap.pmap(psram)
             emitPair("ra", lookUp(sram.readAddr))
             sram.writeAddr.from.src match {
@@ -299,16 +338,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitPair("rswap", "x")
                 emitPair("wswap", "x")
             }
-          } else {
-            emitPair("ra", "x")
-            emitPair("wa", "x")
-            emitPair("wd", "x")
-            emitPair("wen", "x")
-            emitPair("banking", "x")
-            emitPair("numBufs", 0)
-            emitPair("rswap", "x")
-            emitPair("wswap", "x")
           }
+        } else {
+          emitElem("x")
         }
       }
     }
@@ -334,26 +366,23 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitList("chain", chain)
       emitList("counters") { implicit ms =>
         pcu.ctrs.foreach { pctr =>
-          emitMap { implicit ms =>
-            if (ctmap.pmap.contains(pctr)) {
-              val ctr = ctmap.pmap(pctr)
+          if (ctmap.pmap.contains(pctr)) {
+            val ctr = ctmap.pmap(pctr)
+            emitMap { implicit ms =>
               emitPair("max", lookUp(ctr.max))
               emitPair("min", lookUp(ctr.min))
               emitPair("stride", lookUp(ctr.step))
               emitPair("startDelay", startDelay(pcu, ctr))
               emitPair("endDelay",  doneDelay(pcu, ctr))
-            } else {
-              emitPair("max", "x")
-              emitPair("min", "x")
-              emitPair("stride", "x")
-              emitPair("startDelay", "x")
-              emitPair("endDelay", "x")
             }
+          } else {
+            emitElem("x")
           }
         }
       }
     }
   }
+
   def emitStages(pcu:PCU)(implicit ms:CollectionStatus) = {
     emitList(s"pipeStage") { implicit ms =>
       pcu.stages.foreach { pstage =>
@@ -427,13 +456,21 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
     }
   }
+
+  def emitXbar(name:String, outSelect:List[String])(implicit ms:CollectionStatus) = {
+    emitMap(name) { implicit ms =>
+      emitList("outSelect", outSelect)
+    }
+  }
+
   def emitCtrl(pcu:PCU)(implicit ms:CollectionStatus) {
     emitMap(s"control") { implicit ms =>
       emitList("tokenDownLUT") { implicit ms =>
         pcu.ctrlBox.tokenDownLUTs.foreach { ptdlut =>
           emitMap { implicit ms =>
-            val table = if (!lumap.pmap.contains(ptdlut)) {
+            if (!lumap.pmap.contains(ptdlut)) {
               CtrlCodegen.lookUpX(ptdlut.numIns)
+              emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
             } else {
               val tdlut = lumap.pmap(ptdlut)
               val inits = ListBuffer[IP]()
@@ -459,10 +496,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
               emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
-              CtrlCodegen.lookUp(ptdlut.numIns, tf)
+              val table = CtrlCodegen.lookUp(ptdlut.numIns, tf)
               //CtrlCodegen.printTable(ptdlut.numIns, tdlut.transFunc, map)
+              emitList("table", table)
             }
-            emitPair("table", s"${table}")
           }
         }
       }
@@ -470,8 +507,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitList("tokenOutLUT") { implicit ms =>
         pcu.ctrlBox.tokenOutLUTs.foreach { ptolut =>
           emitMap { implicit ms =>
-            val table = if (!lumap.pmap.contains(ptolut)) {
+            if (!lumap.pmap.contains(ptolut)) {
               CtrlCodegen.lookUpX(ptolut.numIns)
+              emitPair("table", CtrlCodegen.lookUpX(ptolut.numIns))
             } else {
               val tolut = lumap.pmap(ptolut)
               val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
@@ -486,26 +524,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               val tf:List[Boolean] => Boolean = tolut.transFunc.tf(map, _)
               emitComment(s"${tolut}", s"TransferFunction: ${tolut.transFunc.info}, ${map}")
-              CtrlCodegen.lookUp(ptolut.numIns, tf)
+              val table = CtrlCodegen.lookUp(ptolut.numIns, tf)
+              emitList("table", table)
             }
-            emitPair("table", s"${table}")
           }
         }
       }
       val tom = pcu.ctrlBox.ctrlOuts.map { pto =>
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
-          to.src match {
-            case _:EnLUT => s""""1""""
-            case _:TokenOutLUT | _:TokenDownLUT => s""""0""""
-            case _ => throw PIRException(s"Unknown source of ctrl out ${to} ${to.src}")
+          val idx = to.src match {
+            case l:TokenDownLUT => indexOf(lumap(l)) 
+            case l:TokenOutLUT => pcu.ctrlBox.tokenDownLUTs.size + indexOf(lumap(l)) 
+            case l:EnLUT => pcu.ctrlBox.tokenDownLUTs.size + pcu.ctrlBox.tokenOutLUTs.size + indexOf(lumap(l))
           }
+          s""""$idx""""
         }
       }
-      emitList("tokenOutMux", tom)
-      emitMap("doneXbar") { implicit ms =>
-        emitList("outSelect", doneXbar.toList)
-      }
+      emitXbar("tokenOutXbar", tom)
+      emitXbar("doneXbar", doneXbar.toList)
       val incs = ListBuffer[String]() 
       val decs = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
@@ -529,18 +566,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           initVals += s""""x""""
         }
       }
-      emitMap("incXbar") { implicit ms =>
-        emitList("outSelect", incs.toList)
-      }
-      emitMap("decXbar") { implicit ms =>
-        emitList("outSelect", decs.toList)
-      }
+      emitXbar("incXbar", incs.toList)
+      emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)
       emitList("enableLUT") { implicit ms =>
         pcu.ctrlBox.enLUTs.foreach { penlut => 
           emitMap { implicit ms =>
-            val table = if (!lumap.pmap.contains(penlut)) {
-              s"x"
+            if (!lumap.pmap.contains(penlut)) {
+              emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
             } else {
               val enlut = lumap.pmap(penlut)
               val udcs = enlut.ins.map(_.from.src.asInstanceOf[UC])
@@ -551,12 +584,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
               emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map}")
-              CtrlCodegen.lookUp(penlut.numIns, tf)
+              val table = CtrlCodegen.lookUp(penlut.numIns, tf)
+              emitList("table", table)
             }
-            emitPair("table", s"${table}")
           }
         }
       }
+      val tokIns = Array.fill(pcu.ctrs.size)(s""""x"""")
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
         if (ctmap.pmap.contains(pctr)) {
           val ctr = ctmap.pmap(pctr)
@@ -568,7 +602,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 assert(indexOf(penlut) == i)
                 s""""0""""
               } else { // from token in
-                //TODO: config interconnect
+                tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
                 s""""1""""
               }
             case c:Ctr => //Chained
@@ -579,16 +613,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
       emitList(s"enableMux", emuxs)
+      emitXbar(s"tokenInXbar", tokIns.toList)
     }
   }
 
 }
 object CtrlCodegen extends DebugLogger {
-  def lookUp(numBits:Int, transFunc: List[Boolean] => Boolean):String = {
+  def lookUp(numBits:Int, transFunc: List[Boolean] => Boolean):List[String] = {
     val size:Int = Math.pow(2, numBits).toInt
     val table = genTable(numBits, transFunc)
-    val l = table.map(b => if (b) s""""1"""" else """"0"""" ).toList.mkString(",")
-    s"[${l}]"
+    table.map(b => if (b) s""""1"""" else """"0"""" ).toList
   }
   def lookUpX(numBits:Int):String = {
     "x"

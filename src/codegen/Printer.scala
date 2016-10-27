@@ -80,6 +80,10 @@ trait Logger extends Printer {
   def warn(s:String) = emitln(s"[warning] ${s}")
 }
 
-trait DebugLogger extends Logger {
+trait DebugLogger {
+  def dprintln(s:Any):Unit = DebugLogger.dprintln(s) 
+  def dprint(s:Any):Unit = DebugLogger.dprint(s) 
+}
+object DebugLogger extends Logger {
   override val stream = newStream(Config.debugLog)
 }

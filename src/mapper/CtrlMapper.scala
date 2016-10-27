@@ -148,11 +148,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     var ucmap = pmap.ucmap
     var lumap = pmap.lumap
     /* Up-Down Counter mapping */
-    val pudcs = pcb.udcs.to[ListBuffer]
-    inner.udcounters.foreach { case (ctrler, udc) =>
-      val pudc = pudcs.remove(0)
+    pcb.udcs.zip(inner.udcounters).foreach { case (pudc, (ctrler, udc)) =>
       ucmap += (udc -> pudc)
     }
+
     /* Enable LUT mapping */
     inner.enLUTs.foreach { case (en, enLut) =>
       val ctr = en.src
@@ -177,6 +176,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     inner.tokDownLUTs.foreach { tdlut => 
       findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !lumap.pmap.contains(plut)))
     }
+
     /* TokenOut LUT mapping */
     inner.tokOutLUTs.foreach { tolut => 
       findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))

@@ -2,8 +2,10 @@ package pir.graph.traversal
 
 import pir._
 import pir.codegen.Printer
+import pir.codegen.DotCodegen
 import pir.misc._
 import pir.plasticine.graph._
+import pir.plasticine.main._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -15,6 +17,25 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
 
   override val stream = newStream(Config.spadeFile) 
   
+  def emitVecIOs(pne:NetworkElement) = {
+    emitBlock(s"vecins") {
+      pne.vins.foreach { vi =>
+        emitln(s"${vi.ms}")
+        vi.outports.foreach { op =>
+          emitln(s"${op.mt}")
+        }
+      }
+    }
+    emitBlock(s"vecouts: ") {
+      pne.vouts.foreach { vout =>
+        emitln(s"${vout.mt}")
+        vout.inports.foreach { ip =>
+          emitln(s"${ip.ms}")
+        }
+      }
+    }
+  }
+
   override def traverse = {
     design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
       emitBlock(s"scalarins") {
@@ -29,21 +50,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
           emitln(s"${so.out.mt}")
         }
       }
-      emitBlock(s"vecins") {
-        ctrler.vins.foreach { vi =>
-          emitln(s"${vi.ms}")
-          vi.outports.foreach { op =>
-            emitln(s"${op.mt}")
-          }
-        }
-      }
-      emitln(s"vecouts: ")
-      ctrler.vouts.foreach { vout =>
-        emitln(s"${vout.mt}")
-        vout.inports.foreach { ip =>
-          emitln(s"${ip.ms}")
-        }
-      }
+      emitVecIOs(ctrler)
       ctrler match {
         case top:Top =>
         case cu:ComputeUnit =>
@@ -90,6 +97,12 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
           }
         }
       }
+    }
+    design.arch match {
+      case sn:SwitchNetwork =>
+        sn.sbs.flatten.foreach { sb => emitBlock(DotCodegen.quote(sb)) { emitVecIOs(sb) } }
+        sn.csbs.flatten.foreach { sb => emitBlock(DotCodegen.quote(sb)) { emitVecIOs(sb) } }
+      case pn:PointToPointNetwork =>
     }
   }
 

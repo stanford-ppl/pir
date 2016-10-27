@@ -190,9 +190,6 @@ case class EnLUT(numIns:Int)(implicit spade:Spade) extends LUT {
   override val typeStr = "enlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
-object EnLUT extends Metadata {
-  def apply(idx:Int, numIns:Int)(implicit spade:Spade):EnLUT = EnLUT(numIns).index(idx)
-}
 case class TokenOutLUT(implicit spade:Spade) extends LUT{
   override val typeStr = "tolut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -227,6 +224,6 @@ class CtrlBox(numCtrs:Int, numIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
   val tokenDownLUTs = List.tabulate(numTokenDownLUTs) { i => TokenDownLUT(1 + numUDCs).index(i) }
   val tokenOutLUTs = List.tabulate(numTokenOutLUTs) { i => TokenOutLUT().index(i) }
-  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(i, numUDCs) }
+  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(numUDCs).index(i) }
   def luts:List[LUT] = enLUTs ++ tokenOutLUTs ++ tokenDownLUTs
 }
