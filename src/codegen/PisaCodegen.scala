@@ -408,11 +408,17 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 // Operand
                 val popA = fpmap(pfu.operands.head)
                 emitPair("opA", lookUp(pstage, popA.src))
-                if (fu.operands.size==1)
+                if (fu.operands.size < 2)
                   emitPair("opB", "x")
                 else {
                   val popB = fpmap(pfu.operands(1))
                   emitPair("opB", lookUp(pstage, popB.src))
+                }
+                if (fu.operands.size < 3)
+                  emitPair("opC", "x")
+                else {
+                  val popC = fpmap(pfu.operands(2))
+                  emitPair("opC", lookUp(pstage, popC.src))
                 }
                 emitPair("opcode", s"${lookUp(fu.op)}")
                 val results = fu.out.to
@@ -435,6 +441,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 }
                 emitPair("opA", "x")
                 emitPair("opB", "x")
+                emitPair("opC", "x")
                 emitPair("opcode", "x")
                 emitList("result", Nil)
                 emitPair("accumInit", s"x")
