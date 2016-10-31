@@ -81,6 +81,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Success(_) =>
         success = true
         info(s"Mapping succeeded") 
+        mappingCheck
         MapPrinter.printMap(mapping)
       case Failure(e) =>
         success = false
@@ -102,6 +103,13 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     MapPrinter.close
   } 
 
+  def mappingCheck = {
+    design.top.innerCUs.foreach { inner =>
+      inner.ctrlIns.foreach { cin =>
+        assert(mapping.vimap.contains(cin), s"${cin} in ${cin.src} wasn't mapped")
+      }
+    }
+  }
   override def finPass = {
     MapperLogger.close
     info("Finishing PIR Mapping")

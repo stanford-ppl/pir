@@ -735,10 +735,10 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
         in.from.src match {
           case top:Top =>
             ctrlIns += in
-          case ctrler:ComputeUnit => 
-            if (ctrler!=cu)
+          case prim:Primitive =>
+            if (prim.ctrler!=cu)
               ctrlIns += in
-          case _ =>
+          case _ => assert(false)
         }
       }
     }
