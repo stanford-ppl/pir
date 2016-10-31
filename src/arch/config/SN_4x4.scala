@@ -6,6 +6,8 @@ import pir.plasticine.main._
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
+import scala.collection.immutable.{Map => IMap}
 import scala.reflect.runtime.universe._
 import pir.graph.enums._
 import scala.util.{Try, Success, Failure}
@@ -23,29 +25,50 @@ object SN_4x4 extends SwitchNetwork {
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
+  override val scalarBandwidth = 2 // BO, how many scalar registers can be read from each bus
   
-  private val numArgIns = numLanes  // need to be multiple of numLanes
-  private val numArgOuts = numLanes // need to be multiple of numLanes 
+  private val numArgIns = scalarBandwidth  // need to be multiple of numLanes
+  private val numArgOuts = scalarBandwidth // need to be multiple of numLanes 
   private val numRowCUs = 4
   private val numColCUs = 4
 
   // Top level controller ~= Host
-  override val top = Top(numLanes, numArgIns, numArgOuts)
+  override val top = Top(numArgIns, numArgOuts)
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-    ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20).coord(i, j)
+    val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).coord(i, j)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    cu
   }
   override val rcus = cuArray.flatten 
   override val ttcus = List.tabulate(numRowCUs) { i =>
-    ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 5, numRegs = 20).coord(-1, i)
+    val cu = ConfigFactory.genTT(numSRAMs = 0, numCtrs = 8, numRegs = 16).coord(-1, i)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    cu
   } 
 
   override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    if (i==0) SwitchBox(7, 7, numLanes).coord(i,j) // extra for tileload
-    else SwitchBox(6, 6, numLanes).coord(i,j)
+    var map = IMap[String, Int]()
+    SwitchBox.fourDirections.foreach { dir =>
+      map += s"i$dir" -> 1 
+      map += s"o$dir" -> 1 
+    }
+    if (i!=0) {
+      map += s"iNW" -> 1
+      map += s"iSW" -> 1
+      map += s"oNE" -> 1
+      map += s"oSE" -> 1
+    } else {
+      map += s"iSW" -> 2
+      map += s"oNE" -> 1
+      map += s"oSE" -> 1
+      map += s"oSW" -> 1
+    }
+    if (i==0) SwitchBox(map, numLanes).coord(i,j) // extra for tileload
+    else SwitchBox(map, numLanes).coord(i,j)
   }
   override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    SwitchBox(16, 16, 1).coord(i,j)
+    SwitchBox.full(bw=2, width=1).coord(i,j)
   }
 
   for (i <- 0 until sbs.size) {

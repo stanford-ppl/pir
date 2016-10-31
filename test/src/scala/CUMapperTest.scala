@@ -65,15 +65,16 @@ class CUMapperTest extends UnitTest with Metadata {
       // PNodes
       override val arch = new Spade with PointToPointNetwork {
         val numLanes = 4
+        val scalarBandwidth = numLanes 
         val numRCUs = 5
         val numVins = 2
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
-          ConfigFactory.genRCU(numLanes, numVins, 0, numRegs)
+          ConfigFactory.genRCU(numVins, 0, numRegs)
         } 
         val ttcus = Nil
         val sbs = Nil 
-        val top = PTop(numLanes, 0, 0)
+        val top = PTop(0, 0)
         val wordWidth = 32
 
         /* Network Constrain */ 

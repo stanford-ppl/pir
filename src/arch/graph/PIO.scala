@@ -155,8 +155,8 @@ object InBus extends Metadata {
   }
 }
 object InBuses {
-  def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => InBus[S](src, is, numLanes) }
+  def apply[S<:NetworkElement](src:S, num:Int, numPort:Int)(implicit spade:Spade) = 
+    List.tabulate(num) { is => InBus[S](src, is, numPort) }
 }
 
 class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {

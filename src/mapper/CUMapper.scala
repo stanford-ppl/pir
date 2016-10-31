@@ -81,7 +81,7 @@ object CUMapper {
           case _ =>
             cons += (("tpe"       , false))
         }
-        cons += (("sin"	      , (cl.sins, pcl.sins)))
+        cons += (("sin"	      , (cl.sins.size, design.arch.scalarBandwidth)))
         cons += (("sout"	    , (cl.souts, pcl.souts)))
         cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcl.vins.filter(_.fanIns.size>0))))
         cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))

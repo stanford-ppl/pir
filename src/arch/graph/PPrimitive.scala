@@ -213,12 +213,23 @@ object UDCounter extends Metadata {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numCtrs:Int, numIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
+class CtrlBox(numCtrs:Int, numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
 (implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
   //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
   //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
-  val ctrlIns = List.tabulate(numIns) { i => InBus(ctrler, 0, 1).index(i) }
-  val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutBus(ctrler, 0, 1).index(i) }
+  assert(numTokenIns % 8 == 0)
+  assert((numTokenOutLUTs + numTokenDownLUTs) % 8 == 0)
+  val inBandwidth = numTokenIns / 8
+  val outBandwidth = (numTokenOutLUTs + numTokenDownLUTs) / 8 
+  var cinMap = Map[String, List[InBus[ComputeUnit]]]()
+  var coutMap = Map[String, List[OutBus[ComputeUnit]]]()
+  SwitchBox.eightDirections.foreach { dir => cinMap += dir -> InBuses(ctrler, inBandwidth, 1) } 
+  SwitchBox.eightDirections.foreach { dir => coutMap += dir -> OutBuses(ctrler, outBandwidth, 1) } 
+  val ctrlIns:List[InBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => cinMap(dir) }
+  val ctrlOuts:List[OutBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => coutMap(dir) }  
+  ctrlIns.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+  ctrlOuts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }

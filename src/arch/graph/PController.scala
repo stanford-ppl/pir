@@ -5,7 +5,6 @@ import pir.plasticine.main._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
@@ -33,17 +32,18 @@ trait Controller extends NetworkElement {
  * @param argInBuses output buses argIns are mapped to
  * @param argOutBuses input buses argOuts are mapped to
  * */
-case class Top(numLanes:Int, numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller {
-  assert(numArgIns % numLanes == 0)
-  assert(numArgOuts % numLanes == 0)
-  val numVouts = numArgIns / numLanes
-  val numVins = numArgOuts / numLanes
-  val vins:List[InBus[Top]] = InBuses(this, numVins, numLanes)
-  val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, numLanes)
-  val sins:List[ScalarIn] = List.tabulate(numVins, numLanes) { case (ib, ia) =>
+case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller {
+  val sbw = spade.scalarBandwidth
+  assert(numArgIns % sbw == 0)
+  assert(numArgOuts % sbw == 0)
+  val numVouts = numArgIns / sbw 
+  val numVins = numArgOuts / sbw 
+  val vins:List[InBus[Top]] = InBuses(this, numVins, sbw)
+  val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, sbw)
+  val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
     ScalarIn(vins(ib).outports(ia))
   }.flatten
-  val souts:List[ScalarOut] = List.tabulate(numVouts, numLanes) { case (ib, ia) =>
+  val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
     ScalarOut(vouts(ib).inports(ia))
   }.flatten
   val clk = OutWire(this, s"clk")
@@ -55,35 +55,89 @@ case class Top(numLanes:Int, numArgIns:Int, numArgOuts:Int)(implicit spade:Spade
 }
 
 /* Switch box (6 inputs 6 outputs) */
-case class SwitchBox(numVins:Int, numVouts:Int, width:Int)(implicit spade:Spade) extends NetworkElement {
-  val vins:List[InBus[SwitchBox]] = InBuses(this, numVins, width)
-  val vouts:List[OutBus[SwitchBox]] = OutBuses(this, numVouts, width)
+case class SwitchBox(map:Map[String, Int], width:Int)(implicit spade:Spade) extends NetworkElement {
+  var vinMap = Map[String, List[InBus[SwitchBox]]]()
+  var voutMap = Map[String, List[OutBus[SwitchBox]]]()
+  map.foreach { case (d, bw) =>
+    val (io, dir) = d.splitAt(1)
+    if (io=="i")
+      vinMap += s"$dir" -> InBuses(this, bw, width)
+    else
+      voutMap += s"$dir" -> OutBuses(this, bw, width)
+  }
+
+  val vins:List[InBus[SwitchBox]] = SwitchBox.eightDirections.flatMap { dir => vinMap.getOrElse(dir, Nil) } 
+  val vouts:List[OutBus[SwitchBox]] = SwitchBox.eightDirections.flatMap { dir => voutMap.getOrElse(dir, Nil) }  
+ 
   override val typeStr = "sb"
+}
+object SwitchBox {
+  def fourDirections = { "W" :: "N" :: "E" :: "S" ::Nil }
+  def eightDirections = { "W" :: "NW" :: "N" :: "NE" :: "E" ::  "SE" :: "S" :: "SW" ::Nil }
+  def full(bw:Int, width:Int)(implicit spade:Spade) = {
+    var map = Map[String, Int]()
+    eightDirections.foreach { dir =>
+      map += s"i$dir" -> bw
+      map += s"o$dir" -> bw
+    }
+    SwitchBox(map, width)
+  }
 }
 /*
  * ComputeUnit
  * */
-class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Controller {
+class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   override implicit val ctrler:ComputeUnit = this 
   override val typeStr = "cu"
 
   var regs:List[Reg] = _
   var srams:List[SRAM] = _
   var ctrs:List[Counter] = _
-  val vins:List[InBus[ComputeUnit]] = InBuses(this, numBusIns, numLanes) // Bus Input with numLanes words
+  val bandWidth = 1
+  var vinMap = Map[String, List[InBus[ComputeUnit]]]()
+  var voutMap = Map[String, List[OutBus[ComputeUnit]]]()
+  spade match {
+    case sn:SwitchNetwork =>
+      List("W", "NW", "N", "SW").foreach { dir =>
+        vinMap += s"$dir" -> InBuses(this, bandWidth, spade.numLanes)
+      }
+      List("E").foreach { dir =>
+        voutMap += s"$dir" -> OutBuses(this, bandWidth, spade.numLanes)
+      }
+    case pn:PointToPointNetwork =>
+  }
   // Bus Output with numLanes words. Assume only single bus output per CU for now
-  val vout:OutBus[ComputeUnit] = OutBus(this, 0, numLanes) 
-  val vouts = List(vout)
-  val sins:List[ScalarIn] = List.tabulate(vins.size, numLanes) { case (ib, is) => // Scalar inputs. 1 per word in bus input 
+  val vins:List[InBus[ComputeUnit]] = spade match {
+    case sn:SwitchNetwork =>
+      SwitchBox.eightDirections.flatMap { dir => vinMap.getOrElse(dir, Nil) } 
+    case pn:PointToPointNetwork =>
+      InBuses(this, numBusIns, spade.numLanes)
+  }
+  
+  val vouts:List[OutBus[ComputeUnit]] = spade match {
+    case sn:SwitchNetwork =>
+      SwitchBox.eightDirections.flatMap {  dir => voutMap.getOrElse(dir, Nil) }  
+    case pn:PointToPointNetwork =>
+      OutBuses(this, 1, spade.numLanes)
+  }
+  val vout = vouts.head
+ // Scalar inputs. 1 per word in bus input 
+  val sins:List[ScalarIn] = List.tabulate(vins.size, spade.scalarBandwidth) { case (ib, is) =>
       ScalarIn(vins(ib).outports(is))
   }.flatten
-  val souts:List[ScalarOut] = List.tabulate(vout.inports.size) { is => ScalarOut(vout.inports(is)) }
+  val souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
   var etstage:EmptyStage = _ // Empty Stage
-  var wastages:List[WAStage] = _ // Write Addr Stages
-  var rastages:List[FUStage] = _ // Read Addr Stages
-  var regstages:List[FUStage] = _  // Regular Stages
-  var rdstages:List[ReduceStage] = _ // Reduction Stages
-  def fustages:List[FUStage] = wastages ++ rastages ++ regstages ++ rdstages // Stages with fu 
+  var wastages:List[WAStage] = Nil // Write Addr Stages
+  var rastages:List[FUStage] = Nil // Read Addr Stages
+  var regstages:List[FUStage] = Nil  // Regular Stages
+  var rdstages:List[ReduceStage] = Nil // Reduction Stages
+  var fustages:List[FUStage] = Nil // Function Unit Stages
+
+  def addWAstages(stages:List[WAStage]) = { wastages ++= stages; fustages ++= stages }
+  def addRAstages(stages:List[FUStage]) = { rastages ++= stages; fustages ++= stages }
+  def addRegstages(stages:List[FUStage]) = { regstages ++= stages; fustages ++= stages }
+  def addRdstages(stages:List[ReduceStage]) = { rdstages ++= stages; fustages ++= stages }
+
   def stages:List[Stage] = {
     val sts = etstage :: fustages
     if (indexOf.get(etstage).isEmpty) {
@@ -117,8 +171,8 @@ class ComputeUnit(numLanes:Int, numBusIns:Int)(implicit spade:Spade) extends Con
 }
 
 /* A spetial type of CU used for memory loader/storer */
-class TileTransfer(numLanes:Int, numBusIns:Int)(implicit spade:Spade) 
-extends ComputeUnit(numLanes, numBusIns) {
+class TileTransfer(numBusIns:Int)(implicit spade:Spade) 
+extends ComputeUnit(numBusIns) {
   override val typeStr = "tt"
   val addrOut = AddrOut()
   override val souts = List(addrOut)
