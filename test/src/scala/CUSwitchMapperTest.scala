@@ -313,7 +313,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         val start = arch.top
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
-          to.id == 16794 &&
+          coordOf.get(to).fold(false) { _ == (1,1) } &&
           (to!=start) // path doesn't end at depended CU
         }
         val paths = advance(start, validCons _, advanceCons _)
