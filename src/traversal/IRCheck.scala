@@ -9,6 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
 class IRCheck(implicit val design: Design) extends Traversal {
+  implicit val spade = design.arch
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
@@ -66,6 +67,15 @@ class IRCheck(implicit val design: Design) extends Traversal {
           }
         }
       case _ =>
+    }
+    design.arch.cus.foreach { cu =>
+      cu.stages.zipWithIndex.foreach { case (stage, i) =>
+        assert(stage.index==i-1, s"stage:$stage stage.index=${stage.index} should be ${i-1}")
+        if (stage!=cu.stages.head) assert(stage.pre==Some(cu.stages(i-1)))
+        else assert(stage.pre==None)
+        if (stage!=cu.stages.last) assert(stage.next==Some(cu.stages(i+1)))
+        else assert(stage.next==None)
+      }
     }
   } 
 

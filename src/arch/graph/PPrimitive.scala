@@ -131,8 +131,10 @@ class Stage(regs:List[Reg])(implicit spade:Spade) extends Node {
   val funcUnit:Option[FuncUnit] = None
   val prs = Map[Reg, PipeReg]() // Mapping between logical register and physical register
   regs.foreach { reg => prs += (reg -> PipeReg(this, reg)) }
-  var pre:Option[Stage] = _ // Set up in controller
-  var next:Option[Stage] = _
+  var pre:Option[Stage] = None // Set up in controller
+  var next:Option[Stage] = None
+  def isLast = next.isEmpty
+  def isHead = pre.isEmpty
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
   override val typeStr = "st"
