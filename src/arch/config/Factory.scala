@@ -168,11 +168,16 @@ object ConfigFactory extends ImplicitConversion {
         // Creating forwarding path from counter outputs to all operands of the FUs in write 
         // addr stages
         cu.ctrs.foreach{ oprd <== _.out } 
-        // Creating forwarding path from cu.srams loads to all operands of the FUs
-        cu.srams.foreach{ oprd <== _.readPort }
       }
       // Connect all cu.srams's write addr to writeAddr stages
       cu.srams.foreach { _.writeAddr <== stage.fu.out }
+    }
+
+    (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach { stage =>
+      stage.fu.operands.foreach { oprd =>
+        // Creating forwarding path from cu.srams loads to all operands of the FUs
+        cu.srams.foreach{ oprd <== _.readPort }
+      }
     }
     
   }
