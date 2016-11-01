@@ -15,4 +15,5 @@
     addCommandAlias("makeapps", ";project apps; compile")
     addCommandAlias("pir", "; project apps; run-main")
     addCommandAlias("wip", s"""test-only -- -n "WIP"""")
+    addCommandAlias("arch", s"""test-only -- -n "ARCH"""")
     cancelable in Global := true
