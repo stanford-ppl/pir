@@ -55,8 +55,13 @@ trait Mapper { self =>
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
   def printCaller:Unit = {
-    val str = Thread.currentThread().getStackTrace().slice(7,10).map("" + _).mkString("\n")
-    if (Config.debug) MapperLogger.pprintln(str)
+    if (Config.debug) MapperLogger.pprintln(getStackTrace(7,10))
+  }
+  def getStackTrace:String = {
+    getStackTrace(1, 5)
+  }
+  def getStackTrace(start:Int, end:Int):String = {
+    Thread.currentThread().getStackTrace().slice(start,end).map("" + _).mkString("\n")
   }
 
   //def recRes[R,N,M](
