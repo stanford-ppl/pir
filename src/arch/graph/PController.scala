@@ -155,7 +155,7 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   assert(vins.size>0, "ComputeUnit must have at least 1 vector input")
 
   def numRegs(num:Int):this.type = { 
-    regs = List.tabulate(num) { ir => Reg(ir) }
+    regs = List.tabulate(num) { ir => Reg(ir).index(ir) }
     etstage = EmptyStage(regs)
     this
   }

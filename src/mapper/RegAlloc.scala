@@ -73,7 +73,19 @@ r       case VecInPR(regId, vecIn) =>
           preColor(r, pvout.voport.mappedRegs.toList)
         case ScalarInPR(regId, scalarIn) =>
           val psi = pirMap.simap(scalarIn)
-          preColor(r, psi.out.mappedRegs.toList)
+          val pregs = psi.out.mappedRegs.toList
+          def mapReg(r:Reg):Unit = {
+            pregs.foreach { pr =>
+              cu.infGraph(r).foreach { ifr =>
+                if (!rc.contains(ifr) || rc(ifr) != pr ) 
+                  rc += (r -> pr)
+                  println(s"$r -> $pr")
+                  return
+              }
+            }
+            throw PIRException(s"Cannot find non interfering register to map $scalarIn $psi") //TODO
+          }
+          mapReg(r)
         case ScalarOutPR(regId, scalarOut) =>
           val pso = pirMap.somap(scalarOut)
           preColor(r, pso.in.mappedRegs.toList)

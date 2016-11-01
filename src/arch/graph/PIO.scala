@@ -2,6 +2,7 @@ package pir.plasticine.graph
 
 import pir.graph._
 import pir.graph.enums._
+import pir.codegen._
 import pir.plasticine.main._
 
 import scala.language.reflectiveCalls
@@ -103,7 +104,7 @@ trait RMPort extends Port {
   def isMappedTo(reg:Reg) = mappedRegs.contains(reg)
 }
 class RMInPort[+S<:Node](s:S)(implicit spade:Spade) extends InPort[S](s) with RMPort {
-  override def ms = s"${super.ms} regs=[${mappedRegs.mkString(",")}]"
+  override def ms = s"${super.ms} regs=[${mappedRegs.map(r => DotCodegen.quote(r, spade)).mkString(",")}]"
   override def connect(n:O):Unit = {
     super.connect(n)
     n.src match {
@@ -119,7 +120,7 @@ object RMInPort {
   }
 }
 class RMOutPort[+S<:Node](s:S)(implicit spade:Spade) extends OutPort[S](s) with RMPort {
-  override def mt = s"${super.mt} regs=[${mappedRegs.mkString(",")}]"
+  override def mt = s"${super.mt} regs=[${mappedRegs.map(r => DotCodegen.quote(r, spade)).mkString(",")}]"
   override def connectedTo(n:I):Unit = {
     super.connectedTo(n)
     n.src match {

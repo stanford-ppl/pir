@@ -101,9 +101,13 @@ trait DotCodegen extends Printer with DotEnum {
   def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
 }
 object DotCodegen extends Metadata {
-  def quote(n:Any)(implicit design:Design) = {
-    implicit val spade:Spade = design.arch 
+  def quote(n:Any)(implicit design:Design):String = {
+    quote(n, design.arch)
+  }
+  def quote(n:Any, s:Spade):String = {
+    implicit val spade = s
     n match {
+      case preg:PReg => indexOf.get(preg).fold(s"$preg") { i => s"$preg[$i]"}
       case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
       case vin:PIB =>
         vin.src match {
