@@ -143,7 +143,8 @@ trait Mapper { self =>
     finPass: M => M
   ):M = {
     type MP = (M, List[R])
-    def rf(n:N, mp:MP, triedRes:List[R]) = {  // Add filter to exclude mappedRes and triedRes
+    // Add filter to exclude mappedRes and triedRes
+    def rf(n:N, mp:MP, triedRes:List[R]) = {
       val (m, usedRes) = mp
       allRes.diff(usedRes).diff(triedRes)
     }
