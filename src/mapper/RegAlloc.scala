@@ -79,7 +79,6 @@ r       case VecInPR(regId, vecIn) =>
               cu.infGraph(r).foreach { ifr =>
                 if (!rc.contains(ifr) || rc(ifr) != pr ) 
                   rc += (r -> pr)
-                  println(s"$r -> $pr")
                   return
               }
             }

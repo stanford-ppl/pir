@@ -126,29 +126,45 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
       ScalarIn(vins(ib).outports(is))
   }.flatten
   val souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
-  var etstage:EmptyStage = _ // Empty Stage
-  var wastages:List[WAStage] = Nil // Write Addr Stages
-  var rastages:List[FUStage] = Nil // Read Addr Stages
-  var regstages:List[FUStage] = Nil  // Regular Stages
-  var rdstages:List[ReduceStage] = Nil // Reduction Stages
-  var fustages:List[FUStage] = Nil // Function Unit Stages
+  private var _etstage:EmptyStage = _ // Empty Stage
+  private var _wastages:List[WAStage] = Nil // Write Addr Stages
+  private var _rastages:List[FUStage] = Nil // Read Addr Stages
+  private var _regstages:List[FUStage] = Nil  // Regular Stages
+  private var _rdstages:List[ReduceStage] = Nil // Reduction Stages
+  private var _fustages:List[FUStage] = Nil // Function Unit Stages
+  private var _stages:List[Stage] = Nil // All stages
+  def etstage:EmptyStage = _etstage // Empty Stage
+  def wastages:List[WAStage] = _wastages // Write Addr Stages
+  def rastages:List[FUStage] = _rastages // Read Addr Stages
+  def regstages:List[FUStage] = _regstages  // Regular Stages
+  def rdstages:List[ReduceStage] = _rdstages // Reduction Stages
+  def fustages:List[FUStage] = _fustages // Function Unit Stages
+  def stages:List[Stage] = _stages // All stages
 
-  def addWAstages(stages:List[WAStage]) = { wastages ++= stages; fustages ++= stages }
-  def addRAstages(stages:List[FUStage]) = { rastages ++= stages; fustages ++= stages }
-  def addRegstages(stages:List[FUStage]) = { regstages ++= stages; fustages ++= stages }
-  def addRdstages(stages:List[ReduceStage]) = { rdstages ++= stages; fustages ++= stages }
+  def addETStage(stage:EmptyStage) = { _etstage = stage; addStages(stage::Nil) }
+  def addWAstages(stages:List[WAStage]) = { _wastages ++= stages; _fustages ++= stages; addStages(stages) }
+  def addRAstages(stages:List[FUStage]) = { _rastages ++= stages; _fustages ++= stages; addStages(stages) }
+  def addRegstages(stages:List[FUStage]) = { _regstages ++= stages; _fustages ++= stages; addStages(stages) }
+  def addRdstages(stages:List[ReduceStage]) = { _rdstages ++= stages; _fustages ++= stages; addStages(stages) }
 
-  def stages:List[Stage] = {
-    val sts = etstage :: fustages
-    if (indexOf.get(etstage).isEmpty) {
-      for (i <- 0 until sts.size) {
-        sts(i).pre = if (i!=0) Some(sts(i-1)) else None
-        sts(i).next = if (i!=sts.size-1) Some(sts(i+1)) else None
-        sts(i).index(i-1) // Empty stage is -1
+  private def addStages(sts:List[Stage]) = {
+    sts.zipWithIndex.foreach { case (stage, i) =>
+      stage match {
+        case etstage:EmptyStage =>
+          stage.index(-1) // Empty stage is -1
+        case _ =>
+          stage.index(i + stages.last.index + 1) // Empty stage is -1
+          if (i==0) {
+            stage.pre = Some(stages.last)
+          } else {
+            stage.pre = Some(sts(i-1))
+          }
+          stage.pre.get.next = Some(stage)
       }
     }
-    sts
+    _stages ++= sts
   }
+
   var ctrlBox:CtrlBox = _
 
   val reduce = RMOutPort(this, s"${this}.reduce")
@@ -156,7 +172,7 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
 
   def numRegs(num:Int):this.type = { 
     regs = List.tabulate(num) { ir => Reg(ir).index(ir) }
-    etstage = EmptyStage(regs)
+    addETStage(EmptyStage(regs))
     this
   }
   def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter(ic) }; this }
@@ -176,6 +192,4 @@ extends ComputeUnit(numBusIns) {
   override val typeStr = "tt"
   val addrOut = AddrOut()
   override val souts = List(addrOut)
-  regstages = Nil
-  rdstages = Nil
 }
