@@ -16,4 +16,6 @@ class Node(implicit spade:Spade) extends Metadata {
   override def toString = s"${typeStr}${id}" 
   def index(i:Int)(implicit spade:Spade):this.type = { indexOf(this) = i; this }
   def index(implicit spade:Spade):Int = { indexOf(this) }
+  def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this} // Coordinate
+  def coord(implicit spade:Spade):(Int, Int) = { coordOf(this) }
 }

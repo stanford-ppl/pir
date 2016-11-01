@@ -12,7 +12,6 @@ import scala.collection.mutable.Set
 trait NetworkElement extends Node {
   def vins:List[InBus[NetworkElement]] // Input Buses
   def vouts:List[OutBus[NetworkElement]] // Output Buses
-  def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this} // Coordinate
 }
 
 /* Controller */
