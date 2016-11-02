@@ -7,8 +7,8 @@ import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.mapper._
-import pir.graph.{EnLUT => _, _}
-import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst }
+import pir.graph.{EnLUT => _, ScalarInPR, _}
+import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -38,6 +38,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val simap:SIMap = mapping.simap
   lazy val somap:SOMap = mapping.somap
+  lazy val rcmap:RCMap = mapping.rcmap
 
   override def traverse:Unit = {
     if (pirMapping.fail) return
@@ -88,6 +89,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitComment("CUName", comment)
             //emitInterconnect(pcu)
+            emitSIXbar(pcu)
             emitSRAMs(pcu)
             emitCounterChains(pcu)
             emitStages(pcu)
@@ -112,6 +114,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       case _ =>
     }
+  }
+
+  def emitSIXbar(pcu:PCU)(implicit ms:CollectionStatus) = {
+    var siXbar = ListBuffer[String]() 
+    pcu.etstage.prs.foreach { case (preg, ppr) =>
+      val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
+      if (psins.size!=0) { // Is scalarIn Register
+        val mpsins = psins.filter { psin =>
+          simap.pmap.get(psin).fold(false) { sin => 
+            val reg = sin.ctrler.asInstanceOf[CU].scalarInPR(sin)
+            rcmap(reg) == preg
+          }
+        }
+        if (mpsins.size==0) siXbar += s""""x""""
+        else if(mpsins.size==1) siXbar += s""""${indexOf(mpsins.head)}""""
+        else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
+      }
+    }
+    emitXbar("scalarInXbar", siXbar.toList)
   }
 
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {

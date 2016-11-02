@@ -14,21 +14,21 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type R = PReg
   type N = Reg
 
-  type RC = MMap[Reg, PReg]
+  type RC = RCMap
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
 
   def finPass(cu:ICL)(m:M):M = m
 
   private def preColorAnalysis(cu:ICL, pirMap:M):RC = {
-    val rc:RC = MMap.empty // Color Map
+    var rc:RC = RCMap.empty // Color Map
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     def preColorReg(r:Reg, pr:PReg):Unit = {
       cu.infGraph(r).foreach { ifr =>
         if (rc.contains(ifr) && rc(ifr) == pr ) throw PreColorInterfere(r, ifr, pr)
       }
       dprintln(s"preg mapping $r -> $pr")
-      rc += (r -> pr)
+      rc = rc + (r -> pr)
     }
     def preColor(r:Reg, prs:List[PReg]):Unit = {
       assert(prs.size == 1, 
@@ -118,7 +118,7 @@ r       case VecInPR(regId, vecIn) =>
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val prc = preColorAnalysis(cu, pirMap)
-      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
+      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map))
       val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
       val pcu = cmap.clmap(cu).asInstanceOf[PCU]
       bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)

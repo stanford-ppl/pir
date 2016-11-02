@@ -101,12 +101,11 @@ object ConfigFactory extends ImplicitConversion {
     }
     // Bus output is connected to 1 register in last stage
     cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
-    cu.sins.groupBy(_.outport.map{_.src}).map{ case (inBus, sins) =>
-      sins.zipWithIndex.foreach { case (si, is) => 
-        val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
-        sireg <== si.out // ScalarIn is connected to 1 register in empty stage
-        cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
-      }
+    (0 until spade.scalarBandwidth).foreach { is =>
+      val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
+      cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
+      // ScalarInXbar
+      cu.sins.foreach { sin => sireg <== sin.out}
     }
     // Scalar outputs is connected to 1 register in last stage
     cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
