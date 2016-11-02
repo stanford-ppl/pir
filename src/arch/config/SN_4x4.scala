@@ -38,12 +38,24 @@ object SN_4x4 extends SwitchNetwork {
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
     val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).coord(i, j)
+    spade match {
+      case sn:SwitchNetwork =>
+        List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, 1) }
+        List("E").foreach { dir => cu.addVoutAt(dir, 1) }
+      case pn:PointToPointNetwork =>
+    }
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   }
   override val rcus = cuArray.flatten 
   override val ttcus = List.tabulate(numRowCUs) { i =>
     val cu = ConfigFactory.genTT(numSRAMs = 0, numCtrs = 8, numRegs = 16).coord(-1, i)
+    spade match {
+      case sn:SwitchNetwork =>
+        List("SE").foreach { dir => cu.addVinAt(dir, 2) }
+        List("E").foreach { dir => cu.addVoutAt(dir, 1) }
+      case pn:PointToPointNetwork =>
+    }
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   } 
@@ -59,11 +71,11 @@ object SN_4x4 extends SwitchNetwork {
       map += s"iSW" -> 1
       map += s"oNE" -> 1
       map += s"oSE" -> 1
-    } else {
-      map += s"iSW" -> 2
+    } else { // Switch box attached to TileTransfer CU
+      map += s"iNW" -> 1
+      map += s"oNW" -> 2
       map += s"oNE" -> 1
       map += s"oSE" -> 1
-      map += s"oSW" -> 1
     }
     if (i==0) SwitchBox(map, numLanes).coord(i,j) // extra for tileload
     else SwitchBox(map, numLanes).coord(i,j)
@@ -76,9 +88,8 @@ object SN_4x4 extends SwitchNetwork {
     for (j <- 0 until sbs.head.size) {
       coordOf(sbs(i)(j)) = (i,j) 
       if (i==0 && j<numRowCUs) {
-        ttcus(j).vins(0) <== sbs(i)(j).vouts(4)
-        ttcus(j).vins(1) <== sbs(i)(j).vouts(6)
-        sbs(i)(j).vins(1) <== ttcus(j).vouts(0) 
+        sbs(i)(j).voutAt("NW").zip(ttcus(j).vinAt("SE")).foreach { case(o, i) => o ==> i}
+        ttcus(j).vout ==> sbs(i)(j).vinAt("NW")
       }
     }
   }

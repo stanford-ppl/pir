@@ -39,7 +39,9 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   val numVouts = numArgIns / sbw 
   val numVins = numArgOuts / sbw 
   val vins:List[InBus[Top]] = InBuses(this, numVins, sbw)
+  vins.zipWithIndex.foreach{ case (ib, i) => ib.index(i) }
   val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, sbw)
+  vouts.zipWithIndex.foreach {case (ob,i) => ob.index(i) }
   val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
     ScalarIn(vins(ib).outports(ia)).index(numVins*ib + ia)
   }.flatten
@@ -48,8 +50,8 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   }.flatten
   val clk = OutWire(this, s"clk")
 
-  val cin = InBus(this, 0, 1)
-  val cout = OutBus(this, 0, 1)
+  val cin = InBus(this, 1).index(0)
+  val cout = OutBus(this, 1).index(0)
   def cins = cin::Nil
   def couts = cout::Nil 
 }
@@ -68,7 +70,10 @@ case class SwitchBox(map:Map[String, Int], width:Int)(implicit spade:Spade) exte
 
   val vins:List[InBus[SwitchBox]] = SwitchBox.eightDirections.flatMap { dir => vinMap.getOrElse(dir, Nil) } 
   val vouts:List[OutBus[SwitchBox]] = SwitchBox.eightDirections.flatMap { dir => voutMap.getOrElse(dir, Nil) }  
- 
+  vins.zipWithIndex.foreach { case (vin, i) => vin.index(i) }
+  vouts.zipWithIndex.foreach { case (vout, i) => vout.index(i) }
+  def vinAt(dir:String):List[InBus[SwitchBox]] = { vinMap(dir) }
+  def voutAt(dir:String):List[OutBus[SwitchBox]] = { voutMap(dir) }
   override val typeStr = "sb"
 }
 object SwitchBox {
@@ -93,39 +98,40 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   var regs:List[Reg] = _
   var srams:List[SRAM] = _
   var ctrs:List[Counter] = _
-  val bandWidth = 1
   var vinMap = Map[String, List[InBus[ComputeUnit]]]()
   var voutMap = Map[String, List[OutBus[ComputeUnit]]]()
-  spade match {
-    case sn:SwitchNetwork =>
-      List("W", "NW", "N", "SW").foreach { dir =>
-        vinMap += s"$dir" -> InBuses(this, bandWidth, spade.numLanes)
-      }
-      List("E").foreach { dir =>
-        voutMap += s"$dir" -> OutBuses(this, bandWidth, spade.numLanes)
-      }
-    case pn:PointToPointNetwork =>
+  def addVinAt(dir:String, num:Int):Unit = { 
+    val ibs = InBuses(this, num, spade.numLanes)
+    ibs.zipWithIndex.foreach { case (ib, i) => ib.index(i+vinMap.size) }
+    vinMap += s"$dir" -> ibs 
+  }
+  def addVoutAt(dir:String, i:Int):Unit = {
+    val obs = OutBuses(this, i, spade.numLanes)
+    obs.zipWithIndex.foreach { case (ob, i) => ob.index(i+voutMap.size) }
+    voutMap += s"$dir" -> obs 
   }
   // Bus Output with numLanes words. Assume only single bus output per CU for now
-  val vins:List[InBus[ComputeUnit]] = spade match {
-    case sn:SwitchNetwork =>
-      SwitchBox.eightDirections.flatMap { dir => vinMap.getOrElse(dir, Nil) } 
-    case pn:PointToPointNetwork =>
-      InBuses(this, numBusIns, spade.numLanes)
+  lazy val _vins:List[InBus[ComputeUnit]] = spade match {
+    case sn:SwitchNetwork => SwitchBox.eightDirections.flatMap { dir => vinMap.getOrElse(dir, Nil) } 
+    case pn:PointToPointNetwork => InBuses(this, numBusIns, spade.numLanes)
   }
+  lazy val _vouts:List[OutBus[ComputeUnit]] = spade match {
+    case sn:SwitchNetwork => SwitchBox.eightDirections.flatMap {  dir => voutMap.getOrElse(dir, Nil) }  
+    case pn:PointToPointNetwork => OutBuses(this, 1, spade.numLanes)
+  }
+  def vins = _vins
+  def vouts = _vouts
+  def vout = vouts.head
+  def vinAt(dir:String):List[InBus[ComputeUnit]] = { vinMap(dir) }
+  def voutAt(dir:String):List[OutBus[ComputeUnit]] = { voutMap(dir) }
   
-  val vouts:List[OutBus[ComputeUnit]] = spade match {
-    case sn:SwitchNetwork =>
-      SwitchBox.eightDirections.flatMap {  dir => voutMap.getOrElse(dir, Nil) }  
-    case pn:PointToPointNetwork =>
-      OutBuses(this, 1, spade.numLanes)
-  }
-  val vout = vouts.head
  // Scalar inputs. 1 per word in bus input 
-  val sins:List[ScalarIn] = List.tabulate(vins.size, spade.scalarBandwidth) { case (ib, is) =>
+  lazy val _sins:List[ScalarIn] = List.tabulate(vins.size, spade.scalarBandwidth) { case (ib, is) =>
       ScalarIn(vins(ib).outports(is)).index(vins.size*ib + is)
   }.flatten
-  val souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
+  def sins = _sins
+  lazy val _souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
+  def souts = _souts
   private var _etstage:EmptyStage = _ // Empty Stage
   private var _wastages:List[WAStage] = Nil // Write Addr Stages
   private var _rastages:List[FUStage] = Nil // Read Addr Stages
@@ -168,7 +174,6 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   var ctrlBox:CtrlBox = _
 
   val reduce = RMOutPort(this, s"${this}.reduce")
-  assert(vins.size>0, "ComputeUnit must have at least 1 vector input")
 
   def numRegs(num:Int):this.type = { 
     regs = List.tabulate(num) { ir => Reg(ir).index(ir) }
@@ -183,7 +188,8 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
 
   def cins = ctrlBox.ctrlIns
   def couts = ctrlBox.ctrlOuts
-
+  def cinAt(dir:String):List[InBus[ComputeUnit]] = ctrlBox.cinAt(dir) 
+  def coutAt(dir:String):List[OutBus[ComputeUnit]] = ctrlBox.coutAt(dir) 
 }
 
 /* A spetial type of CU used for memory loader/storer */

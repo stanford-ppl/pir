@@ -231,6 +231,8 @@ class CtrlBox(numCtrs:Int, numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUT
   val ctrlOuts:List[OutBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => coutMap(dir) }  
   ctrlIns.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
   ctrlOuts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+  def cinAt(dir:String):List[InBus[ComputeUnit]] = cinMap(dir)
+  def coutAt(dir:String):List[OutBus[ComputeUnit]] = coutMap(dir)
 
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs

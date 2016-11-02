@@ -24,8 +24,8 @@ trait Input[P<:Link, +S<:Node] extends IO[S] {
   type O <: Output[P, Node]
   // List of connections that can map to
   val fanIns = ListBuffer[O]()
-  def connect(n:O):Unit = fanIns += n
-  def <==(n:O) = connect(n)
+  def connect(n:O):Unit = { fanIns += n }
+  def <==(n:O) = { connect(n) }
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
   def ms = s"${this}=mp[${fanIns.mkString(",")}]"
   def canFrom(n:O):Boolean = fanIns.contains(n)
@@ -36,7 +36,8 @@ trait Output[P<:Link, +S<:Node] extends IO[S] {
   type I <: Input[P, Node]
   val fanOuts = ListBuffer[I]()
   def connectedTo(n:I):Unit = fanOuts += n
-  def ==>(n:I):Unit = n.connect(this.asInstanceOf[n.O])
+  def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
+  def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=mt[${fanOuts.mkString(",")}]" 
   def canTo(n:I):Boolean = fanOuts.contains(n)
   def isConnected = fanOuts.size!=0
@@ -151,13 +152,13 @@ class InBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:
   val viport:RMOutPort[InBus[S]] = outports(0).asInstanceOf[RMOutPort[InBus[S]]]
 }
 object InBus extends Metadata {
-  def apply[S<:NetworkElement](src:S, idx:Int, numPort:Int)(implicit spade:Spade):InBus[S] = {
-    new InBus[S](src, numPort).index(idx)
+  def apply[S<:NetworkElement](src:S, numPort:Int)(implicit spade:Spade):InBus[S] = {
+    new InBus[S](src, numPort)
   }
 }
 object InBuses {
   def apply[S<:NetworkElement](src:S, num:Int, numPort:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => InBus[S](src, is, numPort) }
+    List.tabulate(num) { is => InBus[S](src, numPort) }
 }
 
 class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
@@ -171,11 +172,11 @@ class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade
   val voport:RMInPort[OutBus[S]] = inports(0).asInstanceOf[RMInPort[OutBus[S]]]
 }
 object OutBus {
-  def apply[S<:NetworkElement](src:S, idx:Int, numPort:Int)(implicit spade:Spade):OutBus[S] = {
-    new OutBus(src, numPort).index(idx)
+  def apply[S<:NetworkElement](src:S, numPort:Int)(implicit spade:Spade):OutBus[S] = {
+    new OutBus(src, numPort)
   }
 }
 object OutBuses {
   def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => OutBus[S](src, is, numLanes) }
+    List.tabulate(num) { is => OutBus[S](src, numLanes) }
 }

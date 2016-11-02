@@ -17,7 +17,8 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with DebugLogger {
-  override val stream = newStream(s"${design}.json") 
+  lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
+  override val stream = newStream(dir, s"${design}.json") 
   
   implicit lazy val spade:Spade = design.arch
 
@@ -499,6 +500,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             if (!lumap.pmap.contains(ptdlut)) {
               CtrlCodegen.lookUpX(ptdlut.numIns)
               emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
+              emitPair("mux", "x")
             } else {
               val tdlut = lumap.pmap(ptdlut)
               val inits = ListBuffer[IP]()
@@ -515,12 +517,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               assert(inits.size <= 1, s"inits:${inits}")
               emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
-              inits.foreach { init =>
+              if (inits.size==0) {
+                emitPair("mux", "x")
+              } else {
+                val init = inits.head
                 val pcin = vimap(init)
-                map += (init.from -> indexOf(pcin))
+                emitPair("mux", s"${indexOf(pcin)}")
+                map += (init.from -> 0) // Assume init is the first input
               }
               tos.foreach { to =>
-                map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
+                map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
               }
               val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
               emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
