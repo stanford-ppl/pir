@@ -3,6 +3,7 @@ package pir.plasticine.graph
 import pir.graph._
 import pir.graph.enums._
 import pir.plasticine.main._
+import pir.codegen.DotCodegen
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -55,7 +56,7 @@ object Reg extends Metadata {
 /* Phyiscal pipeline register */
 case class PipeReg(stage:Stage, reg:Reg)(implicit spade:Spade) extends Node {
   override val typeStr = "pr"
-  override def toString = s"pr(${stage},${reg})"
+  override def toString = s"pr(${DotCodegen.quote(stage, spade)},${DotCodegen.quote(reg, spade)})"
   val in = new RMInPort[this.type](this) with Stagable { 
     override def toString = s"$src.i"
     override val stage = PipeReg.this.stage
@@ -138,7 +139,6 @@ class Stage(regs:List[Reg])(implicit spade:Spade) extends Node {
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
   override val typeStr = "st"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
 /* Dummy stage that only has register block */
 trait EmptyStage extends Stage {

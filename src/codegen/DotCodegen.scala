@@ -107,6 +107,7 @@ object DotCodegen extends Metadata {
   def quote(n:Any, s:Spade):String = {
     implicit val spade = s
     n match {
+      case pstage:PST => indexOf.get(pstage).fold(""){ i =>s"$pstage[$i]"}
       case preg:PReg => indexOf.get(preg).fold(s"$preg") { i => s"$preg[$i]"}
       case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
       case vin:PIB =>
