@@ -10,6 +10,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   override def toString = getClass().getSimpleName()
   val wordWidth:Int
   val numLanes:Int
+  val numScalarInReg:Int
   val scalarBandwidth:Int
 
   val top:Top

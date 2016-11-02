@@ -23,6 +23,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new SwitchNetwork {
     val numLanes = 4
     val scalarBandwidth = numLanes
+    val numScalarInReg = numLanes 
     val numRCUs = numRowCUs * numColCUs
     val numVins = 4
     val numRegs = 20
@@ -31,22 +32,18 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     val ttcus = Nil
     var map = Map[String, Int]()
     SwitchBox.fourDirections.foreach { dir =>
-      map += s"in$dir" -> 1 
-      map += s"out$dir" -> 1 
+      map += s"i$dir" -> 1 
+      map += s"o$dir" -> 1 
     }
-    map += s"inNW" -> 1
-    map += s"inSW" -> 1
-    map += s"outNE" -> 1
-    map += s"outSE" -> 1
+    map += s"iNW" -> 1
+    map += s"iSW" -> 1
+    map += s"oNE" -> 1
+    map += s"oSE" -> 1
 
     override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-      SwitchBox(map, numLanes) }
-    override val csbs = Nil
-    for (i <- 0 until sbs.size) {
-      for (j <- 0 until sbs.head.size) {
-        coordOf(sbs(i)(j)) = (i,j) 
-      }
+      SwitchBox(map, numLanes).coord(i,j)
     }
+    override val csbs = Nil
     val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
       ConfigFactory.genRCU(numVins, 0, numRegs).coord(i,j)
     }

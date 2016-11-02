@@ -21,6 +21,7 @@ object P2P_2CU extends PointToPointNetwork {
   override val wordWidth = 32
   override val numLanes = 4
   override val scalarBandwidth = numLanes // BO, how many scalar registers can be read from each bus
+  override val numScalarInReg = numLanes // BO, how many scalar registers can be read from each bus
   
   private val numRCUs = 2
   private val numArgIns = scalarBandwidth  // need to be multiple of numLanes
