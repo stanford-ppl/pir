@@ -17,7 +17,8 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with DebugLogger {
-  override val stream = newStream(s"${design}.json") 
+  lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
+  override val stream = newStream(dir, s"${design}.json") 
   
   implicit lazy val spade:Spade = design.arch
 
@@ -38,6 +39,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val simap:SIMap = mapping.simap
   lazy val somap:SOMap = mapping.somap
+  lazy val rcmap:RCMap = mapping.rcmap
 
   override def traverse:Unit = {
     if (pirMapping.fail) return
@@ -129,14 +131,26 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def lookUp(op:Op):String = {
     op match {
-      case o:FltOp => throw TODOException(s"Op ${op} is not supported at the moment")
-      case o:FixOp => o match {
-        case FixAdd => s"+"
-        case FixSub => s"-"
-        case FixMul => s"*"
-        case FixDiv => s"%"
-        case _ => throw TODOException(s"Op ${op} is not supported at the moment")
-      }
+      // Fix Point Operations
+      case FixAdd => s"+"
+      case FixSub => s"-"
+      case FixMul => s"*"
+      case FixDiv => s"/"
+      case FixLt  => s"<"
+      case FixLeq => s"<=" 
+      case FixEql => s"==" 
+      case FixNeq => s"!=" 
+      case FixMod => s"%" 
+      // Floating Point Operations
+      case FltAdd => s"f+"
+      case FltSub => s"f-"
+      case FltMul => s"f*"
+      case FltDiv => s"f/"
+      case FltLt  => s"f<"
+      case FltLeq => s"f<=" 
+      case FltEql => s"f==" 
+      case FltNeq => s"f!=" 
+      // Others
       case Bypass => "passA" 
       case _ => throw TODOException(s"Op ${op} is not supported at the moment")
     }
@@ -494,12 +508,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               assert(inits.size <= 1, s"inits:${inits}")
               emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
-              inits.foreach { init =>
+              if (inits.size==0) {
+                emitPair("mux", "x")
+              } else {
+                val init = inits.head
                 val pcin = vimap(init)
-                map += (init.from -> indexOf(pcin))
+                emitPair("mux", s"${indexOf(pcin)}")
+                map += (init.from -> 0) // Assume init is the first input
               }
               tos.foreach { to =>
-                map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
+                map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
               }
               val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
               emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
