@@ -8,6 +8,7 @@ import pir.plasticine.graph.{ ConstVal => PConstVal }
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
+import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 class CtrMapper(implicit val design:Design) extends Mapper {
@@ -19,11 +20,26 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   
   def finPass(cu:ICL)(m:M):M = m
 
+  /*Make sure counters that are chained are next to each other and the counter is order such that
+   * inner counter */
+  def sortCChains(cchains:List[CC]):List[Ctr] = {
+    cchains.filter(_.inner.isInner).flatMap { cc =>
+      val ctrs = ListBuffer[Ctr]()
+      var cur = cc.inner
+      while (!cur.isOuter) {
+        ctrs += cur
+        cur = cur.next
+      }
+      ctrs += cur
+      ctrs.toList
+    }
+  }
+
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster
-      val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
+      val ctrs = sortCChains(cu.cchains)
       val pctrs = pcu.ctrs
       map(ctrs, pctrs, pirMap, finPass(cu) _)
     }
@@ -40,6 +56,9 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
   def resFunc(allRes:List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
+    //if (n.id==507){
+      //new CtrDotPrinter().print(allRes, m)
+    //}
     val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
@@ -63,15 +82,14 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
     val resPool = enCtrs intersect doneCtrs
-    //println(s"$n ${n.ctrler} -------")
-    //println(s"enctrs:${enCtrs} ")
-    //println(s"donectrs:${doneCtrs}")
-    //println(s"respool:$resPool")
+    //if (resPool.size==0) {
+      //new CtrDotPrinter().print(allRes, m)
+      //println(s"here")
+    //}
     resPool
   }
 
   def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
-    //new CtrDotPrinter().print(pctrs, map)
     var ipmap = map.ipmap
     var fpmap = map.fpmap
     def mapInPort(n:IP, p:PIP):Unit = {
@@ -84,7 +102,11 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     mapInPort(n.min, p.min)
     mapInPort(n.max, p.max)
     mapInPort(n.step, p.step)
-    return map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fpmap)
+    dprintln(s"mapping $n -> $p")
+    val mp = map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fpmap)
+    //if (n.ctrler.id==433)
+      //new CtrDotPrinter().print(pctrs, mp)
+    mp
   }
 
 }

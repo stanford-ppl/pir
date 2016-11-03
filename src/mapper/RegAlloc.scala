@@ -4,6 +4,7 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper._
+import pir.codegen.DotCodegen
 import pir.plasticine.graph.{PipeReg}
 import pir.codegen.DotCodegen
 
@@ -131,7 +132,7 @@ case class PreColorSameReg(reg:Reg)(implicit val mapper:Mapper, design:Design) e
   override val msg = s"${reg} has more than 1 predefined color" 
 }
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit val mapper:Mapper, design:Design) extends PreColorException {
-  override val msg = s"Interfering ${r1} and ${r2} in ${r1.ctrler} have the same predefined color ${DotCodegen.quote(c)}" 
+  override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${DotCodegen.quote(c)}" 
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit val mapper:Mapper, design:Design) extends MappingException{
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "

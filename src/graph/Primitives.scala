@@ -152,8 +152,14 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
     step.connect(s)
   }
 
-  def isInner = this==cchain.inner
-  def isOuter = !isInner
+  def isInner = { en.isConnected && en.from.src.isInstanceOf[EnLUT] }
+  def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
+  def next:Counter = {
+    val ns = done.to.map(_.src).collect{ case c:Counter => c}
+    assert(ns.size==1, s"$this has not exactly 1 next counter ${done.to} ${ns}")
+    ns.head
+  }
+  def prev:Counter = en.from.src.asInstanceOf[Counter]
 
   def setDep(c:Counter) = { en.connect(c.done) }
 

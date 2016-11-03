@@ -190,7 +190,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     }
   }
 
-  def wireCChainCopy = {
+  private def wireCChainCopy = {
     design.top.innerCUs.foreach { inner =>
       inner.cchains.foreach { cc =>
         if (cc.isCopy) {

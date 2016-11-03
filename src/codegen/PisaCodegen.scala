@@ -151,14 +151,26 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def lookUp(op:Op):String = {
     op match {
-      case o:FltOp => throw TODOException(s"Op ${op} is not supported at the moment")
-      case o:FixOp => o match {
-        case FixAdd => s"+"
-        case FixSub => s"-"
-        case FixMul => s"*"
-        case FixDiv => s"%"
-        case _ => throw TODOException(s"Op ${op} is not supported at the moment")
-      }
+      // Fix Point Operations
+      case FixAdd => s"+"
+      case FixSub => s"-"
+      case FixMul => s"*"
+      case FixDiv => s"/"
+      case FixLt  => s"<"
+      case FixLeq => s"<=" 
+      case FixEql => s"==" 
+      case FixNeq => s"!=" 
+      case FixMod => s"%" 
+      // Floating Point Operations
+      case FltAdd => s"f+"
+      case FltSub => s"f-"
+      case FltMul => s"f*"
+      case FltDiv => s"f/"
+      case FltLt  => s"f<"
+      case FltLeq => s"f<=" 
+      case FltEql => s"f==" 
+      case FltNeq => s"f!=" 
+      // Others
       case Bypass => "passA" 
       case _ => throw TODOException(s"Op ${op} is not supported at the moment")
     }

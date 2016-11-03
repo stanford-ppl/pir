@@ -188,7 +188,7 @@ trait Mapper { self =>
         log(s"Mapping $n", { (m:M) => return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
-            case fe:FailToMapNode[_] => exceps += fe // recRes failed
+            case fe:FailToMapNode[_] => exceps += fe; dprintln(flattenExceptions(fe.exceps)) // recRes failed
             case _ => throw e // Unknown exception
           }
         }) { // Block
