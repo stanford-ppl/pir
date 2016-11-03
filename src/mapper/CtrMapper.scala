@@ -8,6 +8,7 @@ import pir.plasticine.graph.{ ConstVal => PConstVal }
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
+import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 class CtrMapper(implicit val design:Design) extends Mapper {
@@ -19,11 +20,27 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   
   def finPass(cu:ICL)(m:M):M = m
 
+  /*Make sure counters that are chained are next to each other and the counter is order such that
+   * inner counter */
+  def sortCChains(cchains:List[CC]):List[Ctr] = {
+    cchains.filter(_.inner.isInner).flatMap { cc =>
+      val ctrs = ListBuffer[Ctr]()
+      var cur = cc.inner
+      while (!cur.isOuter) {
+        ctrs += cur
+        cur = cur.next
+      }
+      ctrs += cur
+      println(ctrs.mkString(","))
+      ctrs.toList
+    }
+  }
+
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster
-      val ctrs = cu.cchains.flatMap{cc => cc.counters}.reverse 
+      val ctrs = sortCChains(cu.cchains)
       val pctrs = pcu.ctrs
       map(ctrs, pctrs, pirMap, finPass(cu) _)
     }
@@ -40,6 +57,9 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
   def resFunc(allRes:List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
+    //if (n.id==507){
+      //new CtrDotPrinter().print(allRes, m)
+    //}
     val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
@@ -63,14 +83,10 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
     val resPool = enCtrs intersect doneCtrs
-    if (resPool.size==1) {
-      new CtrDotPrinter().print(allRes, m)
-      println(s"here")
-    }
-    //println(s"$n ${n.ctrler} -------")
-    //println(s"enctrs:${enCtrs} ")
-    //println(s"donectrs:${doneCtrs}")
-    //println(s"respool:$resPool")
+    //if (resPool.size==0) {
+      //new CtrDotPrinter().print(allRes, m)
+      //println(s"here")
+    //}
     resPool
   }
 
