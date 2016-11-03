@@ -44,7 +44,7 @@ object SN_4x4 extends SwitchNetwork {
         List("E").foreach { dir => cu.addVoutAt(dir, 1) }
       case pn:PointToPointNetwork =>
     }
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   }
   override val rcus = cuArray.flatten 
@@ -56,7 +56,7 @@ object SN_4x4 extends SwitchNetwork {
         List("E").foreach { dir => cu.addVoutAt(dir, 1) }
       case pn:PointToPointNetwork =>
     }
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   } 
 
