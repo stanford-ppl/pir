@@ -292,7 +292,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin)
-        val ctrlInterConnectDelay = rtmap(ctr.en.from)
+        val ctrlInterConnectDelay = rtmap(ctr.en)
         //TODO: assume data delay matches control delay for all inputs for now
         val delay = numLocalStages(pFromCU) + dataInterConnectDelay - ctrlInterConnectDelay 
         s"${delay}"
