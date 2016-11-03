@@ -20,44 +20,11 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   type Path = CUSwitchMapper.Path 
   type PathMap = CUSwitchMapper.PathMap 
 
-  def genSwitchNetworkConfig(numRowCUs:Int, numColCUs:Int) = new SwitchNetwork {
-    val numLanes = 4
-    val scalarBandwidth = numLanes
-    val numScalarInReg = numLanes 
-    val numRCUs = numRowCUs * numColCUs
-    val numVins = 4
-    val numRegs = 20
-    val wordWidth = 32
-    val top = PTop(scalarBandwidth, scalarBandwidth)
-    val ttcus = Nil
-    var map = Map[String, Int]()
-    SwitchBox.fourDirections.foreach { dir =>
-      map += s"i$dir" -> 1 
-      map += s"o$dir" -> 1 
-    }
-    map += s"iNW" -> 1
-    map += s"iSW" -> 1
-    map += s"oNE" -> 1
-    map += s"oSE" -> 1
-
-    override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-      SwitchBox(map, numLanes).coord(i,j)
-    }
-    override val csbs = Nil
-    val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-      ConfigFactory.genRCU(numVins, 0, numRegs).coord(i,j)
-    }
-    val rcus = cuArray.flatten
-    /* Network Constrain */ 
-    ConfigFactory.genSwitchNetwork(cuArray, sbs)
-    ConfigFactory.genArgIOConnection
-  }
-
   def quote(pne:PNE)(implicit design:Design) = DotCodegen.quote(pne)
 
   lazy val design = new Design {
     // PNodes
-    override val arch = genSwitchNetworkConfig(4,4)
+    override val arch = SN_4x4 
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
       def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
@@ -100,10 +67,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
                          arr(2)(3))
     design.checkRange(arr(1)(1), 3, 4, shouldContain, design.arch.cus.diff(shouldContain))
   }
-  "SwitchBox Connection 4 hop" should "success" in {
+  "SwitchBox Connection 4 hop" should "success" taggedAs(WIP) in {
     val arr = design.arch.cuArray
     val shouldNotContain = List(arr(0)(3), arr(1)(1), arr(2)(1))
-    design.checkRange(arr(1)(1), 4, 5, design.arch.cus.diff(shouldNotContain), shouldNotContain)
+    design.checkRange(arr(1)(1), 4, 5, design.arch.rcus.diff(shouldNotContain), shouldNotContain)
   }
 
   "SwitchBox Connection 5 hop" should "success" in {
@@ -154,7 +121,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = c0::c1::c2::c3::c4::Nil
       top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
-      override val arch = genSwitchNetworkConfig(4,4)
+      override val arch = SN_4x4 
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
 
@@ -232,7 +199,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
       top.updateFields(cus, Nil, sls ++ aos, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig(4,4)
+      implicit override val arch = SN_4x4 
 
       new ScalarBundling().run
       new PIRPrinter().run
@@ -282,7 +249,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       val cus = (c0::c1::c2::c3::c4::Nil).reverse
       top.updateFields(cus, Nil, Nil, vts, Nil)
       // PNodes
-      implicit override val arch = genSwitchNetworkConfig(4,4)
+      implicit override val arch = SN_4x4 
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
       new PIRNetworkDotGen().run

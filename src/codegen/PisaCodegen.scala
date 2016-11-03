@@ -302,10 +302,29 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val cchain = ctr.cchain
     if (!ctr.isInner) { "0" }
     else if (cchain.isLocal) {
-      ctr.ctrler.vins.foreach { vin =>
-        val dataInterConnectDelay = rtmap(vin)
+      assert(ctr.ctrler.isInstanceOf[ICL])
+      val icl = ctr.ctrler.asInstanceOf[ICL]
+      val delays = ctr.ctrler.vins.map { vin =>
+        val cins = icl.ctrlIns.filter { cin => 
+          cin.from.src match { // Only expected ctrlIn associated with data for a local counter
+            case tklut:TOLUT => tklut.ctrler == vin.ctrler
+            case top:Top => top == vin.ctrler
+            case tdlut:TDLUT => false
+            case enlut:EnLUT => false // copied writer counter delay
+          }
+        }
+        if (cins.size>0) {
+          assert(cins.size==1, s"$vin should only have <= one tokenIn associated with but has ${cins}")
+          val dataInterConnectDelay = rtmap(vin)
+          val ctrlInterConnectDelay = rtmap(cins.head)
+          assert(dataInterConnectDelay==ctrlInterConnectDelay)
+          0 //TODO: assume data delay matches control delay for all inputs for now
+        } else {
+          0
+        }
       } 
-      "0" //TODO: assume data delay matches control delay for all inputs for now
+      if (delays.size==0) "0"
+      else s"${delays.max}"
     } else if (!cchain.isCopy) { "0" }
     else { // Write Address Start Delay
       if (ctr.cchain.wasrams.size==0) { "0" } else {
