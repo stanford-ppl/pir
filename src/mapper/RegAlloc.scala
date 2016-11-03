@@ -77,7 +77,6 @@ r       case VecInPR(regId, vecIn) =>
         case ScalarInPR(regId, scalarIn) =>
           val psi = pirMap.simap(scalarIn)
           val pregs = psi.out.mappedRegs.toList
-          dprintln(s"---r:$r scalarIn $scalarIn -> $psi $pregs")
           var info = s"$r connected to $pregs. Interference:"
           def mapReg:Unit = {
             pregs.foreach { pr =>

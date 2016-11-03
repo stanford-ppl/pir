@@ -301,8 +301,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def startDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (!ctr.isInner) { "0" }
-    else if (cchain.isLocal) { "0" } //TODO: assume data delay matches control delay for all inputs for now
-    else if (!cchain.isCopy) { "0" }
+    else if (cchain.isLocal) {
+      ctr.ctrler.vins.foreach { vin =>
+        val dataInterConnectDelay = rtmap(vin)
+      } 
+      "0" //TODO: assume data delay matches control delay for all inputs for now
+    } else if (!cchain.isCopy) { "0" }
     else { // Write Address Start Delay
       if (ctr.cchain.wasrams.size==0) { "0" } else {
         assert(ctr.cchain.wasrams.size==1)
@@ -312,7 +316,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin)
-        val ctrlInterConnectDelay = rtmap(ctr.en.from)
+        val ctrlInterConnectDelay = rtmap(ctr.en)
         //TODO: assume data delay matches control delay for all inputs for now
         val delay = numLocalStages(pFromCU) + dataInterConnectDelay - ctrlInterConnectDelay 
         s"${delay}"
