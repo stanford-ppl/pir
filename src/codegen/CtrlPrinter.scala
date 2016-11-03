@@ -32,8 +32,8 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
         case inner:InnerController =>
           (s"tokenIns=[${inner.ctrlIns.map(_.from).mkString(",")}]", s"tokenOuts=[${inner.ctrlOuts.mkString(",")}]")
         case outer:OuterController => 
-          (s"tokenIns=[${outer.ctrlBox.getCtrlIns.map(_.from).mkString(",")}]", 
-            s"tokenOuts=[${outer.ctrlBox.getCtrlOuts.mkString(",")}]")
+          (s"tokenIns=[${outer.ctrlBox.ctrlIns.map(_.from).mkString(",")}]", 
+            s"tokenOuts=[${outer.ctrlBox.ctrlOuts.mkString(",")}]")
       }
       emitBlock(s"CtrlBox(${PIRPrinter.genFields(cu.ctrlBox)}) ${tins} ${touts}") {
         cu.ctrlBox.udcounters.foreach { case (ctrler, tb) =>

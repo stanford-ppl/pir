@@ -280,8 +280,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   //TODO
-  val ctrlInterConnectDelay:Int = 1
-  val dataInterConnectDelay:Int = 1
   val timeMplx = 1
 
   /* Calculate the number of active local stages*/
@@ -305,22 +303,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       assert(ctr.ctrler.isInstanceOf[ICL])
       val icl = ctr.ctrler.asInstanceOf[ICL]
       val delays = ctr.ctrler.vins.map { vin =>
-        val cins = icl.ctrlIns.filter { cin => 
-          cin.from.src match { // Only expected ctrlIn associated with data for a local counter
-            case tklut:TOLUT => tklut.ctrler == vin.ctrler
-            case top:Top => top == vin.ctrler
-            case tdlut:TDLUT => false
-            case enlut:EnLUT => false // copied writer counter delay
-          }
-        }
-        if (cins.size>0) {
-          assert(cins.size==1, s"$vin should only have <= one tokenIn associated with but has ${cins}")
+        vin.tokenIn.fold(0) { cin =>
           val dataInterConnectDelay = rtmap(vin)
-          val ctrlInterConnectDelay = rtmap(cins.head)
+          val ctrlInterConnectDelay = rtmap(cin)
           assert(dataInterConnectDelay==ctrlInterConnectDelay)
           0 //TODO: assume data delay matches control delay for all inputs for now
-        } else {
-          0
         }
       } 
       if (delays.size==0) "0"

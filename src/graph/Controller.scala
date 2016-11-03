@@ -213,8 +213,8 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
     list.toList
   }
 
-  def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.getCtrlIns)
-  def ctrlOuts:List[OutPort] = locals.flatMap(_.ctrlBox.getCtrlOuts)
+  def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.ctrlIns)
+  def ctrlOuts:List[OutPort] = locals.flatMap(_.ctrlBox.ctrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
