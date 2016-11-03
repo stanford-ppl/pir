@@ -63,6 +63,10 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
     val resPool = enCtrs intersect doneCtrs
+    if (resPool.size==1) {
+      new CtrDotPrinter().print(allRes, m)
+      println(s"here")
+    }
     //println(s"$n ${n.ctrler} -------")
     //println(s"enctrs:${enCtrs} ")
     //println(s"donectrs:${doneCtrs}")
@@ -71,7 +75,6 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
   def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
-    //new CtrDotPrinter().print(pctrs, map)
     var ipmap = map.ipmap
     var fpmap = map.fpmap
     def mapInPort(n:IP, p:PIP):Unit = {
@@ -84,7 +87,11 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     mapInPort(n.min, p.min)
     mapInPort(n.max, p.max)
     mapInPort(n.step, p.step)
-    return map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fpmap)
+    dprintln(s"mapping $n -> $p")
+    val mp = map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fpmap)
+    //if (n.ctrler.id==433)
+      //new CtrDotPrinter().print(pctrs, mp)
+    mp
   }
 
 }

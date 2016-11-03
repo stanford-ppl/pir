@@ -9,12 +9,13 @@ import java.io.OutputStream
 
 trait Printer {
   var fileName:String = "System.out"
+  var dirPath:String = Config.outDir 
   val stream:OutputStream = System.out
   def stdOut = stream == System.out
 
   def getPath = {
     if (stdOut) "console"
-    else s"${Config.outDir}${File.separator}${fileName}"
+    else s"${dirPath}${File.separator}${fileName}"
   }
 
   lazy val pw = new PrintWriter(stream)
@@ -49,15 +50,17 @@ trait Printer {
       pw.close()
   }
 
-  def newStream(fname:String) = { 
+  def newStream(dp:String, fname:String):FileOutputStream = { 
     fileName = fname
-    val dir = new File(Config.outDir);
+    dirPath = dp
+    val dir = new File(dirPath)
     if (!dir.exists()) {
       println(s"[info] creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
       dir.mkdir();
     }
     new FileOutputStream(new File(s"${getPath}"))
   }
+  def newStream(fname:String):FileOutputStream = { newStream(Config.outDir, fname) }
 }
 
 trait Logger extends Printer {

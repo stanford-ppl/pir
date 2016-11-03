@@ -372,6 +372,7 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
     emitBlock(s"digraph G") {
       emitMapping(pctrs, mapping)
     }
+    close
   }
 
   def print(pctrs:List[PCtr], ctrs:List[Ctr], mapping:PIRMap) {
@@ -397,7 +398,7 @@ class SpadeDotGen(cuPrinter:CUDotPrinter, cuCtrlPrinter:CUCtrlDotPrinter, argInO
   override def traverse = {
     cuPrinter.print
     cuCtrlPrinter.print
-    ctrPrinter.print(design.arch.rcus.head.ctrs)
+    //ctrPrinter.print(design.arch.rcus.head.ctrs)
     argInOutPrinter.print(design.arch.cus, design.arch.top)
   }
 
