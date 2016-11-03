@@ -156,13 +156,28 @@ class StageMapper(implicit val design:Design) extends Mapper {
               }
             } 
           case rp => // src of the inport doesn't belong to a stage. e.g. counter max
-            if (!r.canFrom(ppr.out)) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")
-            else ppr.out
+                     // and inport is from a PipeReg
+            var pop:POP = null
+            var curppr:PPR = null
+            // Check if stretch the pipeline can inport reaches desired out reg
+            do {
+              if (curppr==null) curppr = ppr // First iteration
+              else {
+                curppr = curppr.stage.next.get.prs(curppr.reg) 
+              }
+              if (r.canFrom(curppr.out)) pop = ppr.out
+            } while (!curppr.stage.isLast) 
+            if (pop==null) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")
+            else pop
         }
-      case s => 
+      case s => // src of the inport doesn't belong to a stage
+                // and inport is not from a PipeReg
         val pport = opmap(n.from)
         val info = s"${n} connects to ${n.from}. Mapped OutPort:${pport}"
-        if (!r.canFrom(pport)) throw InPortRouting(n, r, info)
+        if (!r.canFrom(pport)) {
+          dprintln(s"Fail mapping $n because $r can't from $pport. ${r.fanIns}")
+          throw InPortRouting(n, r, info)
+        }
         else pport
     }
     val cmap = if (map.ipmap.contains(n)) map else map.setIP(n,r)

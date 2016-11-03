@@ -27,17 +27,17 @@ object DotProductLite extends PIRApp {
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const("1i")) //Local
 
-      val s0::s2::s1::_ = Stages(3)
+      val et = CU.emptyStage
+      val s0::s1::_ = Stages(2)
       // SRAMs
       // SingleBuffer = no DoubleBuffer
-      val sA = SRAM(name="sA", size=32, readAddr=ii(0), writeAddr=ii(0), 
-        banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
-      val sB = SRAM(name="sB", size=32, readAddr=ii(0), writeAddr=ii(0),
-        banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
+      //val sA = SRAM(name="sA", size=32, readAddr=ii(0), writeAddr=ii(0), 
+        //banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
+      //val sB = SRAM(name="sB", size=32, readAddr=ii(0), writeAddr=ii(0),
+        //banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
       // Pipeline Stages 
-      Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
+      Stage(s0, op1=CU.ctr(et, ii(0)), op2=CU.ctr(et, ii(0)), op=FixMul, result=CU.reduce(s0))
       // Writing some random constant to sA and sB locally to avoid no connection to sram write port
-      Stage(s2, operands=List(Const("13i")), op=Bypass, results=List(CU.store(s2, sA), CU.store(s2, sB)))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const("0i"))
       Stage(s1, op1=acc, op=Bypass, result=CU.scalarOut(s1, innerScalar))
       //Last stage can be removed if CU.reduce and CU.scalarOut map to the same register

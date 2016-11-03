@@ -147,7 +147,6 @@ object PIRPrinter extends Metadata {
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
         fields += s"writeCtr=${p.writeCtr}"
-        fields += s"vecInPR=${p.vecInPR}"
       case p:Stage =>
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
@@ -175,6 +174,7 @@ object PIRPrinter extends Metadata {
       case p:Counter => 
         fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
         fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
+        fields += s"isInner=${p.isInner}, isOuter=${p.isOuter}"
       //case p:UDCounter => 
       //  fields += s"init=${p.initVal}"
       case p:Reg => p match {

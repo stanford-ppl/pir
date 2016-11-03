@@ -81,7 +81,7 @@ object CUMapper {
           case _ =>
             cons += (("tpe"       , false))
         }
-        cons += (("sin"	      , (cl.sins, pcl.sins)))
+        cons += (("sin"	      , (cl.sins.size, Math.min(design.arch.scalarBandwidth*pcl.vins.size, design.arch.numScalarInReg))))
         cons += (("sout"	    , (cl.souts, pcl.souts)))
         cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcl.vins.filter(_.fanIns.size>0))))
         cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))
@@ -94,8 +94,11 @@ object CUMapper {
         failureInfo += pcl -> ListBuffer[String]()
         check(cons.toList, failureInfo(pcl))
       }
-      if (map(cl).size==0) throw CUOutOfSize(cl, 
-          failureInfo.map{ case (pcl, info) => s"$pcl: [${info.mkString(",")}] \n"}.mkString(","))
+      if (map(cl).size==0) {
+        val info = failureInfo.map{ case (pcl, info) => s"$pcl: [${info.mkString(",")}] \n"}.mkString(",")
+        println(info)
+        throw CUOutOfSize(cl, info)
+      }
       mapper.dprintln(s"qualified resource: $cl -> ${map(cl)}")
     }
   }

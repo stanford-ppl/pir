@@ -3,6 +3,7 @@ package pir.plasticine.graph
 import pir.graph._
 import pir.graph.enums._
 import pir.plasticine.main._
+import pir.codegen.DotCodegen
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -55,7 +56,7 @@ object Reg extends Metadata {
 /* Phyiscal pipeline register */
 case class PipeReg(stage:Stage, reg:Reg)(implicit spade:Spade) extends Node {
   override val typeStr = "pr"
-  override def toString = s"pr(${stage},${reg})"
+  override def toString = s"pr(${DotCodegen.quote(stage, spade)},${DotCodegen.quote(reg, spade)})"
   val in = new RMInPort[this.type](this) with Stagable { 
     override def toString = s"$src.i"
     override val stage = PipeReg.this.stage
@@ -131,12 +132,13 @@ class Stage(regs:List[Reg])(implicit spade:Spade) extends Node {
   val funcUnit:Option[FuncUnit] = None
   val prs = Map[Reg, PipeReg]() // Mapping between logical register and physical register
   regs.foreach { reg => prs += (reg -> PipeReg(this, reg)) }
-  var pre:Option[Stage] = _ // Set up in controller
-  var next:Option[Stage] = _
+  var pre:Option[Stage] = None // changed in addStage in PController
+  var next:Option[Stage] = None 
+  def isLast = next.isEmpty
+  def isHead = pre.isEmpty
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
   override val typeStr = "st"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
 /* Dummy stage that only has register block */
 trait EmptyStage extends Stage {
@@ -213,12 +215,25 @@ object UDCounter extends Metadata {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numCtrs:Int, numIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
+class CtrlBox(numCtrs:Int, numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
 (implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
   //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
   //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
-  val ctrlIns = List.tabulate(numIns) { i => InBus(ctrler, 0, 1).index(i) }
-  val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutBus(ctrler, 0, 1).index(i) }
+  assert(numTokenIns % 8 == 0)
+  assert((numTokenOutLUTs + numTokenDownLUTs) % 8 == 0)
+  val inBandwidth = numTokenIns / 8
+  val outBandwidth = (numTokenOutLUTs + numTokenDownLUTs) / 8 
+  var cinMap = Map[String, List[InBus[ComputeUnit]]]()
+  var coutMap = Map[String, List[OutBus[ComputeUnit]]]()
+  SwitchBox.eightDirections.foreach { dir => cinMap += dir -> InBuses(ctrler, inBandwidth, 1) } 
+  SwitchBox.eightDirections.foreach { dir => coutMap += dir -> OutBuses(ctrler, outBandwidth, 1) } 
+  val ctrlIns:List[InBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => cinMap(dir) }
+  val ctrlOuts:List[OutBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => coutMap(dir) }  
+  ctrlIns.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+  ctrlOuts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+  def cinAt(dir:String):List[InBus[ComputeUnit]] = cinMap(dir)
+  def coutAt(dir:String):List[OutBus[ComputeUnit]] = coutMap(dir)
+
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }

@@ -9,6 +9,7 @@ import scala.collection.mutable.Map
 
 class DotAttr() {
   val attrMap:Map[String, String] = Map.empty 
+  val graphAttrMap:Map[String, String] = Map.empty 
 
   def + (rec:(String, String)):DotAttr = { attrMap += rec; this}
 
@@ -17,13 +18,20 @@ class DotAttr() {
   def fillcolor(s:Color) = { attrMap += "fillcolor" -> s.field; this }
   def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
   def style(s:Style) = { attrMap += "style" -> s.field; this }
+  def graphStyle(s:Style) = { graphAttrMap += "style" -> s"${s.field}"; this }
   def label(s:Any) = { attrMap += "label" -> s.toString; this }
   def label = { attrMap.get("label") }
   def dir(s:Direction) = { attrMap += "dir" -> s.field; this }
   def pos(coord:(Int,Int)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
 
-  def list = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(",")
-  def expand = attrMap.map{case (k,v) => s"""${k}="${v}""""}.mkString(";\n")
+  def elements:List[String] = {
+    var elems = attrMap.map{case (k,v) => s"""$k="$v""""}.toList
+    if (graphAttrMap.size!=0)
+      elems = elems :+ s"graph[${graphAttrMap.map{case(k,v) => s"""$k="$v"""" }.mkString(",")}]"
+    elems
+  }
+  def list = elements.mkString(",")
+  def expand = elements.mkString(";") 
 }
 object DotAttr {
   def apply() = new DotAttr()
@@ -44,8 +52,10 @@ trait DotEnum {
   val bold      = Style("bold")
   val dashed    = Style("dashed")
   val rounded   = Style("rounded")
+  val dotted    = Style("dotted")
 
 	val white     = Color("white")
+	val black     = Color("black")
 	val lightgrey = Color("lightgrey")
   val hexagon   = Color("hexagon")
   val gold      = Color("gold")
@@ -101,9 +111,14 @@ trait DotCodegen extends Printer with DotEnum {
   def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
 }
 object DotCodegen extends Metadata {
-  def quote(n:Any)(implicit design:Design) = {
-    implicit val spade:Spade = design.arch 
+  def quote(n:Any)(implicit design:Design):String = {
+    quote(n, design.arch)
+  }
+  def quote(n:Any, s:Spade):String = {
+    implicit val spade = s
     n match {
+      case pstage:PST => indexOf.get(pstage).fold(""){ i =>s"$pstage[$i]"}
+      case preg:PReg => indexOf.get(preg).fold(s"$preg") { i => s"$preg[$i]"}
       case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
       case vin:PIB =>
         vin.src match {

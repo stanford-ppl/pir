@@ -4,11 +4,13 @@ import pir._
 import pir.misc._
 import pir.graph.mapper.PIRException
 import pir.plasticine.main._
+import pir.typealias._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
 class IRCheck(implicit val design: Design) extends Traversal {
+  implicit val spade = design.arch
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
@@ -66,6 +68,23 @@ class IRCheck(implicit val design: Design) extends Traversal {
           }
         }
       case _ =>
+    }
+    design.arch.cus.foreach { cu =>
+      cu.stages.zipWithIndex.foreach { case (stage, i) =>
+        assert(stage.index==i-1, s"stage:$stage stage.index=${stage.index} should be ${i-1}")
+        if (stage!=cu.stages.head) assert(stage.pre==Some(cu.stages(i-1)))
+        else assert(stage.pre==None)
+        if (stage!=cu.stages.last) assert(stage.next==Some(cu.stages(i+1)))
+        else assert(stage.next==None)
+      }
+      cu match {
+        case tt:PTT =>
+          assert(tt.souts.size==1, 
+            s"tt:$tt tt.souts.size=${tt.souts.size}")
+        case cu:PCU =>
+          assert(cu.souts.size==(design.arch.scalarBandwidth*cu.vouts.size), 
+            s"cu:$cu cu.souts.size=${cu.souts.size}, scalarBandwidth=${design.arch.scalarBandwidth}")
+      }
     }
   } 
 

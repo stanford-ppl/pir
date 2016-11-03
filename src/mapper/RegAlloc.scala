@@ -4,7 +4,9 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper._
+import pir.codegen.DotCodegen
 import pir.plasticine.graph.{PipeReg}
+import pir.codegen.DotCodegen
 
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}
@@ -13,20 +15,21 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type R = PReg
   type N = Reg
 
-  type RC = MMap[Reg, PReg]
+  type RC = RCMap
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
 
   def finPass(cu:ICL)(m:M):M = m
 
   private def preColorAnalysis(cu:ICL, pirMap:M):RC = {
-    val rc:RC = MMap.empty // Color Map
+    var rc:RC = RCMap.empty // Color Map
     val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
     def preColorReg(r:Reg, pr:PReg):Unit = {
       cu.infGraph(r).foreach { ifr =>
         if (rc.contains(ifr) && rc(ifr) == pr ) throw PreColorInterfere(r, ifr, pr)
       }
-      rc += (r -> pr)
+      dprintln(s"preg mapping $r -> $pr")
+      rc = rc + (r -> pr)
     }
     def preColor(r:Reg, prs:List[PReg]):Unit = {
       assert(prs.size == 1, 
@@ -58,22 +61,32 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 r       case VecInPR(regId, vecIn) =>
           val pvin = pirMap.vimap(vecIn)
           preColor(r, pvin.viport.mappedRegs.toList)
-          val rsrams = cu.srams.filter(_.vecInPR==Some(r)) 
-          rsrams.foreach { sram =>
-            val psram = pirMap.smmap(sram)
-            val pregs = psram.writePort.fanIns.filter{ fi => 
-              val PipeReg(pstage, preg) = fi.src
-              pstage == psram.ctrler.etstage
-            }.map(_.src.asInstanceOf[PipeReg].reg).toList
-            if (!pregs.contains(rc(r)))
-              throw PIRException(s"Non overlap mapping between ${sram.writePort}(${pregs.mkString(",")}) and $vecIn(${rc(r)})")
-          }
         case VecOutPR(regId) =>
           val pvout = pcu.vout
           preColor(r, pvout.voport.mappedRegs.toList)
         case ScalarInPR(regId, scalarIn) =>
           val psi = pirMap.simap(scalarIn)
-          preColor(r, psi.out.mappedRegs.toList)
+          val pregs = psi.out.mappedRegs.toList
+          var info = s"$r connected to $pregs. Interference:"
+          def mapReg:Unit = {
+            pregs.foreach { pr =>
+              if (cu.infGraph(r).size==0) {
+                rc += (r -> pr)
+                return
+              } else {
+                cu.infGraph(r).foreach { ifr =>
+                  if (!rc.contains(ifr) || rc(ifr) != pr ) {
+                    rc += (r -> pr)
+                    return
+                  } else {
+                    info += s"$ifr mapped ${rc.contains(ifr)} -> $pr" 
+                  }
+                }
+              }
+            }
+            throw PIRException(s"Cannot find non interfering register to map $scalarIn $psi $info" ) //TODO
+          }
+          mapReg
         case ScalarOutPR(regId, scalarOut) =>
           val pso = pirMap.somap(scalarOut)
           preColor(r, pso.in.mappedRegs.toList)
@@ -95,7 +108,7 @@ r       case VecInPR(regId, vecIn) =>
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val prc = preColorAnalysis(cu, pirMap)
-      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.toMap))
+      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map))
       val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
       val pcu = cmap.clmap(cu).asInstanceOf[PCU]
       bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)
@@ -108,7 +121,7 @@ case class PreColorSameReg(reg:Reg)(implicit val mapper:Mapper, design:Design) e
   override val msg = s"${reg} has more than 1 predefined color" 
 }
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit val mapper:Mapper, design:Design) extends PreColorException {
-  override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color $c" 
+  override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${DotCodegen.quote(c)}" 
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit val mapper:Mapper, design:Design) extends MappingException{
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "

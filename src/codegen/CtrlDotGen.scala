@@ -64,13 +64,19 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
               val label = s"{${lut}|tf=${lut.transFunc.info}}"
               emitNode(lut, label, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
             }
-            val cchain = cu match {
-              case cu:InnerController => cu.localCChain
-              case cu:OuterController => cu.inner.cchainMap(cu.localCChain)
-            }
-            cchain.counters.foreach { c =>
-              emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
-              if (c.en.isConnected) emitEdge(c.en, "en")
+            //val cchain = cu match {
+              //case cu:InnerController => cu.localCChain
+              //case cu:OuterController => cu.inner.cchainMap(cu.localCChain)
+            //}
+            if (cu==icu) {
+              icu.cchains.foreach { cchain =>
+                emitSubGraph(cchain, DotAttr().label(cchain).color(black).style(dashed)) {
+                  cchain.counters.foreach { c =>
+                    emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
+                    if (c.en.isConnected) emitEdge(c.en, "en")
+                  }
+                }
+              }
             }
 			    }
         }
@@ -90,13 +96,15 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
       cu.ctrlBox.luts.foreach { lut =>
         lut.ins.foreach { in => emitEdge(in, "in") }
       }
-      emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
+      //emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
       cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().style(dashed)) }
     }
+    emitNode(design.top, design.top)
     val command = design.top.command 
     command.to.foreach { to => emitEdge(to, "command") }
-    val status = design.top.status
-    emitEdge(status, "status")
+    //TODO: Somehow dot fails if add this edge
+    //val status = design.top.status
+    //emitEdge(status, "status")
   }
 
   override def finPass = {

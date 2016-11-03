@@ -124,7 +124,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             } 
             val tos = cb.tokenBuffers.map { case (dep, tk) => tk.out }.toList
             val tf = TransferFunction(s"${init} || ${tos.mkString( "&&")}") { case (map, ins) =>
-              ins(map(init)) || tos.map(to => ins(map(to))).reduce(_ && _)
+              ins(map(init)) || tos.map{to => ins(map(to))}.reduce(_ && _)
             }
             cb.tokenDown = Some(TokenDownLUT(cu, init::tos, tf))
           } else {
@@ -190,7 +190,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     }
   }
 
-  def wireCChainCopy = {
+  private def wireCChainCopy = {
     design.top.innerCUs.foreach { inner =>
       inner.cchains.foreach { cc =>
         if (cc.isCopy) {

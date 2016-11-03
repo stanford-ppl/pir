@@ -152,8 +152,14 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
     step.connect(s)
   }
 
-  def isInner = this==cchain.inner
-  def isOuter = !isInner
+  def isInner = { en.isConnected && en.from.src.isInstanceOf[EnLUT] }
+  def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
+  def next:Counter = {
+    val ns = done.to.map(_.src).collect{ case c:Counter => c}
+    assert(ns.size==1, s"$this has not exactly 1 next counter ${done.to} ${ns}")
+    ns.head
+  }
+  def prev:Counter = en.from.src.asInstanceOf[Counter]
 
   def setDep(c:Counter) = { en.connect(c.done) }
 
@@ -207,16 +213,13 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
-  var vecInPR:Option[VecInPR] = _
+  def isRemoteWrite = writePort.from.src.isInstanceOf[VecIn] 
 
-  def isRemoteWrite = vecInPR.isDefined
-
-  override def toUpdate = super.toUpdate || vecInPR==null
+  override def toUpdate = super.toUpdate
 
   def writer:InnerController = {
     writePort.from.src match {
-      case PipeReg(stage, VecInPR(_, vi)) if stage.isInstanceOf[EmptyStage] => 
-        vi.vector.writer.ctrler.asInstanceOf[InnerController]
+      case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
       case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last => ctrler
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
@@ -237,14 +240,8 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
     writeAddr.connect(wa)
     this 
   }
-  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); vecInPR = None; this } 
-  def wtPort(vec:Vector):SRAM = {
-    val pr@PipeReg(stage, reg@VecInPR(_,_)) = ctrler.vecIn(vec)
-    assert(stage.isInstanceOf[EmptyStage])
-    writePort.connect(pr.out)
-    vecInPR = Some(reg)
-    this
-  }
+  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
+  def wtPort(vec:Vector):SRAM = { wtPort(ctrler.newVin(vec).out) }
 
   def load = readPort
 
@@ -336,6 +333,27 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   override def variable:Vector = vector
   override def writer = vector.writer
   def isConnected = writer!=null
+
+  /* Associated TokenIn for this VecIn */
+  def tokenIn:Option[InPort] = {
+    ctrler match {
+      case c:SpadeController =>
+        val cins = c.ctrlIns.filter { cin => 
+          cin.from.src match { // Only expected ctrlIn associated with data for a local counter
+            case tklut:TokenOutLUT => tklut.ctrler == ctrler
+            case top:Top => top == ctrler
+            case tdlut:TokenDownLUT => false
+            case enlut:EnLUT => false // copied writer counter delay
+          }
+        }
+        if (cins.size==0) None
+        else {
+          assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")
+          Some(cins.head)
+        }
+      case _ => None
+    }
+  }
 }
 object VecIn {
   def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecIn = 
@@ -694,39 +712,20 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   // only outer controller have token down, which is the init signal first child stage
   var tokenDown:Option[OutPort] = None
 
-  //private var inIdx = 0 
-  //private var outIdx = 0
-  //private var _ctrlIns = ListBuffer[InPort]()
-  //private var _ctrlOuts = ListBuffer[OutPort]()
-  //def ctrlIns = _ctrlIns.toList
-  //def ctrlOuts = _ctrlOuts.toList
-
-  //def addCtrlIn(in:InPort) = {
-  //  val ci = CtrlInPort(this, inIdx, in)
-  //  inIdx += 1
-  //  _ctrlIns += ci 
-  //}
-
-  //def addCtrlOut(out:OutPort) = {
-  //  val co = CtrlOutPort(this, outIdx, out)
-  //  inIdx += 1
-  //  _ctrlOuts += co 
-  //}
-
-  def getCtrlIns:List[InPort] = {
-    val ctrlIns = ListBuffer[InPort]()
+  lazy val ctrlIns:List[InPort] = {
+    val cins = ListBuffer[InPort]()
     udcounters.foreach { case (ctrler, udc) =>
       if (udc.inc.isConnected)
-        ctrlIns += udc.inc
+        cins += udc.inc
       if (udc.init.isConnected)
-        ctrlIns += udc.init
+        cins += udc.init
     }
     if (cu.isInstanceOf[InnerController]) {
       cu.cchains.foreach { cc =>
         if (cc.inner.en.isConnected) {
           val from = cc.inner.en.from.src.asInstanceOf[Primitive].ctrler
           assert(from.isInstanceOf[InnerController])
-          if (from!=cu) ctrlIns += cc.inner.en
+          if (from!=cu) cins += cc.inner.en
         }
       }
     }
@@ -734,17 +733,17 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       tdl.ins.foreach { in => 
         in.from.src match {
           case top:Top =>
-            ctrlIns += in
+            cins += in
           case prim:Primitive =>
             if (prim.ctrler!=cu)
-              ctrlIns += in
+              cins += in
           case _ => assert(false)
         }
       }
     }
-    ctrlIns.toList
+    cins.toList
   }
-  def getCtrlOuts:List[OutPort] = { cu.ctrlBox.luts.filter(_.isTokenOut).map(_.out) }
+  lazy val ctrlOuts:List[OutPort] = { cu.ctrlBox.luts.filter(_.isTokenOut).map(_.out) }
 
   override def toUpdate = super.toUpdate || tokenOut == null || tokenDown == null
 }

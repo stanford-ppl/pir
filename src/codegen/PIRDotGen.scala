@@ -121,7 +121,7 @@ class PIRCtrlNetworkDotGen(fileName:String)(implicit design:Design) extends Trav
   def emitInputs(cl:Controller) = {
     val cins = cl match {
       case top:Top => top.ctrlIns
-      case cu:ComputeUnit => cu.ctrlBox.getCtrlIns
+      case cu:ComputeUnit => cu.ctrlBox.ctrlIns
       case mc:MemoryController => mc.ctrlIns
     }
     cins.foreach { ci =>

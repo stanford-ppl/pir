@@ -16,29 +16,28 @@ object ConfigFactory extends ImplicitConversion {
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
-  def genRCU(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new ComputeUnit(numLanes, numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
+  def genRCU(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
+    val cu = new ComputeUnit(numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
-    cu.wastages = List.fill(3) { WAStage(numOprds=3, cu.regs, ops) } // Write/read addr calculation stages
-    cu.rastages = List.fill(2) { FUStage(numOprds=3, cu.regs, ops) } // Additional read addr only calculation stages 
-    cu.regstages = List.fill(1) { FUStage(numOprds=3, cu.regs, ops) } // Regular stages
-    cu.rdstages = List.fill(4) { ReduceStage(numOprds=2, cu.regs, ops) } // Reduction stage 
+    cu.addWAstages(List.fill(4) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
+    cu.addRAstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
+    cu.addRegstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
+    cu.addRdstages(List.fill(4) { ReduceStage(numOprds=3, cu.regs, ops)}) // Reduction stage 
+    cu.addRegstages(List.fill(2) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
 
     genConnections(cu)
-    genMapping(cu)
     cu
   }
 
-  def genTT(numLanes:Int, numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new TileTransfer(numLanes, 2).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
+  def genTT(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
+    val cu = new TileTransfer(2).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
-    cu.wastages = List.fill(3) { WAStage(numOprds=3, cu.regs, ops) } // Write/read addr calculation stages
-    cu.rastages = List.fill(1) { FUStage(numOprds=3, cu.regs, ops) } // Additional read addr only calculation stages 
+    cu.addWAstages(List.fill(3) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
+    cu.addRAstages(List.fill(1) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
 
     genConnections(cu)
-    genMapping(cu)
     cu
   }
 
@@ -62,20 +61,12 @@ object ConfigFactory extends ImplicitConversion {
         for (i <- 0 until s.sbs.size) {
           for (j <- 0 until s.sbs.head.size) {
             if (j==s.sbs.head.size-1) {
-              top.vins.foreach { aob =>
-                aob <== s.sbs(i)(j).vouts(2)
-              }
-              top.vouts.foreach { aib =>
-                s.sbs(i)(j).vins(4) <== aib
-              }
+              top.vins.foreach { _ <== s.sbs(i)(j).voutAt("N") }
+              top.vouts.foreach { _ ==> s.sbs(i)(j).vinAt("N") }
             }
             if (j==0) {
-              top.vins.foreach { aob =>
-                aob <== s.sbs(i)(j).vouts(0)
-              }
-              top.vouts.foreach { aib =>
-                s.sbs(i)(j).vins(0) <== aib 
-              }
+              top.vins.foreach { _ <== s.sbs(i)(j).voutAt("S") }
+              top.vouts.foreach { _ ==> s.sbs(i)(j).vinAt("S") }
             }
           }
         }
@@ -83,9 +74,8 @@ object ConfigFactory extends ImplicitConversion {
   }
 
   /* Generate connections relates to register mapping of a cu */
-  def genMapping(cu:ComputeUnit)(implicit spade:Spade) = {
+  def genMapping(cu:ComputeUnit, vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
     /* Register Constrain */
-    var ptr = 0
     // All Pipeline Registers (PipeReg) connect to its previous stage ('stage.prs(reg)':Pipeline
     // Register 'reg' at stage 'stage')
     for (i <- 1 until cu.stages.size) {
@@ -93,7 +83,7 @@ object ConfigFactory extends ImplicitConversion {
     }
     // Bus input is forwarded to 1 register in empty stage
     cu.vins.zipWithIndex.foreach { case (vin, is) => 
-      val reg = cu.etstage.prs(cu.regs(ptr + is))
+      val reg = cu.etstage.prs(cu.regs(vinsPtr + is))
       reg.in <== (vin.viport)
       // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
       cu match {
@@ -102,32 +92,32 @@ object ConfigFactory extends ImplicitConversion {
       }
     }
     // Bus output is connected to 1 register in last stage
-    cu.vout.voport <== cu.stages.last.prs(cu.regs(ptr))
-    cu.sins.zipWithIndex.foreach { case (si, is) => 
-      val sireg = cu.etstage.prs(cu.regs(ptr + is)) 
-      sireg <== si.out // ScalarIn is connected to 1 register in empty stage
+    cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
+    (0 until spade.numScalarInReg).foreach { is =>
+      val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
       cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
+      // ScalarInXbar
+      cu.sins.foreach { sin => sireg <== sin.out}
     }
     // Scalar outputs is connected to 1 register in last stage
-    cu.souts.zipWithIndex.foreach { case (so, is) => so.in <== cu.stages.last.prs(cu.regs(ptr + is)) }
+    cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
+      souts.zipWithIndex.foreach { case (so, is) =>
+        so.in <== cu.stages.last.prs(cu.regs(soutsPtr + is))
+      }
+    }
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-      (cu.etstage :: cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(ptr + ic)) <== c.out) 
+      (cu.etstage :: cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(ctrsPtr + ic)) <== c.out) 
     }
-    ptr += cu.ctrs.size 
     // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
     // only write to 1 sram)
     cu.srams.zipWithIndex.foreach { case (s, is) => 
       (cu.wastages ++ cu.rastages).foreach(s.readAddr <== _.fu.out)
-      s.writeAddr <== cu.stages.last.prs(cu.regs(ptr + is))
+      s.writeAddr <== cu.stages.last.prs(cu.regs(waPtr))
+      s.writePort <== cu.stages.last.prs(cu.regs(wpPtr)) // Sram write port is connected to 1 register of last stage
+      (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
     }
-    ptr += cu.srams.size 
-    cu.srams.zipWithIndex.foreach { case (s, is) => 
-      s.writePort <== cu.stages.last.prs(cu.regs(ptr + is)) // Sram write port is connected to 1 register of last stage
-      (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach(_.prs(cu.regs(ptr + is)) <== s.readPort) // Sram read port forwarding 
-    }
-    ptr += cu.srams.size 
-    cu.rdstages.foreach( _.prs(cu.regs(ptr)) <== cu.reduce)
+    cu.rdstages.foreach( _.prs(cu.regs(rdPtr)) <== cu.reduce)
   }
 
   /* Generate primitive connections within a CU */ 
@@ -169,11 +159,16 @@ object ConfigFactory extends ImplicitConversion {
         // Creating forwarding path from counter outputs to all operands of the FUs in write 
         // addr stages
         cu.ctrs.foreach{ oprd <== _.out } 
-        // Creating forwarding path from cu.srams loads to all operands of the FUs
-        cu.srams.foreach{ oprd <== _.readPort }
       }
       // Connect all cu.srams's write addr to writeAddr stages
       cu.srams.foreach { _.writeAddr <== stage.fu.out }
+    }
+
+    (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach { stage =>
+      stage.fu.operands.foreach { oprd =>
+        // Creating forwarding path from cu.srams loads to all operands of the FUs
+        cu.srams.foreach{ oprd <== _.readPort }
+      }
     }
     
   }
@@ -184,38 +179,38 @@ object ConfigFactory extends ImplicitConversion {
     val numColCUs = cus.head.size
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        // CU to CU (Horizontal)
+        // CU to CU (Horizontal W -> E)
         if (i!=numRowCUs-1)
-          cus(i+1)(j).vins(0) <== cus(i)(j).vout
-        // CU to CU (Vertical)
+          cus(i)(j).vout ==> cus(i+1)(j).vinAt("W")
+        // CU to CU (Vertical S -> N)
         if (j!=numColCUs-1)
-          cus(i)(j+1).vins(2) <== cus(i)(j).vout
+          cus(i)(j).vout ==> cus(i)(j+1).vinAt("S")
       }
     }
     for (i <- 0 until numRowCUs+1) {
       for (j <- 0 until numColCUs+1) {
         // SB to SB (Horizontal)
         if (i!=numRowCUs) {
-          sbs(i+1)(j).vins(2) <== sbs(i)(j).vouts(1) // Left to right
-          sbs(i)(j).vins(5) <== sbs(i+1)(j).vouts(4)
+          sbs(i)(j).voutAt("E").zip(sbs(i+1)(j).vinAt("W")).foreach{ case (o,i) => o ==> i } // W -> E
+          sbs(i)(j).vinAt("E").zip(sbs(i+1)(j).voutAt("W")).foreach{ case (i,o) => i <== o } // E -> W
         }
         // SB to SB (Vertical)
         if (j!=numColCUs) {
-          sbs(i)(j+1).vins(0) <== sbs(i)(j).vouts(2)
-          sbs(i)(j).vins(4) <== sbs(i)(j+1).vouts(0)
+          sbs(i)(j).voutAt("N").zip(sbs(i)(j+1).vinAt("S")).foreach{ case (o,i) => o ==> i } // S -> N
+          sbs(i)(j).vinAt("N").zip(sbs(i)(j+1).voutAt("S")).foreach{ case (i,o) => i <== o } // N -> S
         }
       }
     }
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
         // SB to CU (NW -> SE)
-        cus(i)(j).vins(1) <== sbs(i)(j).vouts(3)
+        sbs(i)(j+1).voutAt("SE").zip(cus(i)(j).vinAt("NW")).foreach { case (o, i) => o ==> i } 
         // SB to CU (SW -> NE)
-        cus(i)(j).vins(3) <== sbs(i)(j+1).vouts(5)
+        sbs(i)(j).voutAt("NE").zip(cus(i)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
         // CU to SB (SW -> NE)
-        sbs(i+1)(j).vins(3) <== cus(i)(j).vout
+        cus(i)(j).vout ==> sbs(i+1)(j).vinAt("SW")
         // CU to SB (NW -> SE)
-        sbs(i+1)(j+1).vins(1) <== cus(i)(j).vout
+        cus(i)(j).vout ==> sbs(i+1)(j+1).vinAt("NW")
       }
     }
   }
@@ -227,76 +222,67 @@ object ConfigFactory extends ImplicitConversion {
     val bandWidth = 2
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        for (ibw <- 0 until bandWidth) {
-          val offset = ibw*8
-          // CU to CU (Horizontal)
-          if (i!=numRowCUs-1) {
-            cus(i)(j).couts(6+offset) ==> cus(i+1)(j).cins(2+offset) // left to right
-            cus(i+1)(j).couts(2+offset) ==> cus(i)(j).cins(6+offset) // right to left
-          }
-          // CU to CU (Vertical)
-          if (j!=numColCUs-1) {
-            cus(i)(j).couts(0+offset) ==> cus(i)(j+1).cins(4+offset) // bottom up 
-            cus(i)(j+1).couts(4+offset) ==> cus(i)(j).cins(0+offset) // top down 
-          }
+        // CU to CU (Horizontal)
+        if (i!=numRowCUs-1) {
+          cus(i)(j).coutAt("E").zip(cus(i+1)(j).cinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
+          cus(i)(j).cinAt("E").zip(cus(i+1)(j).coutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
+        }
+        // CU to CU (Vertical)
+        if (j!=numColCUs-1) {
+          cus(i)(j).coutAt("N").zip(cus(i)(j+1).cinAt("S")).foreach { case (o, i) => o ==> i } // S -> N
+          cus(i)(j).cinAt("N").zip(cus(i)(j+1).coutAt("S")).foreach { case (i, o) => o ==> i } // N -> S 
         }
       }
     }
     for (i <- 0 until numRowCUs+1) {
       for (j <- 0 until numColCUs+1) {
-        for (ibw <- 0 until bandWidth) {
-          val offset = ibw*8
-          // SB to SB (Horizontal)
-          if (i!=numRowCUs) {
-            csbs(i)(j).vouts(6+offset) ==> csbs(i+1)(j).vins(2+offset) // Left to right 
-            csbs(i+1)(j).vouts(2+offset) ==> csbs(i)(j).vins(6+offset) // Right to left
-          }
-          // SB to SB (Vertical)
-          if (j!=numColCUs) {
-            csbs(i)(j).vouts(0+offset) ==> csbs(i)(j+1).vins(4+offset) // bottom up 
-            csbs(i)(j+1).vouts(4+offset) ==> csbs(i)(j).vins(0+offset) // top down
-          }
+        // SB to SB (Horizontal)
+        if (i!=numRowCUs) {
+          csbs(i)(j).voutAt("E").zip(csbs(i+1)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
+          csbs(i)(j).vinAt("E").zip(csbs(i+1)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
+        }
+        // SB to SB (Vertical)
+        if (j!=numColCUs) {
+          csbs(i)(j).voutAt("N").zip(csbs(i)(j+1).vinAt("S")).foreach { case (o, i) => o ==> i } // S -> N
+          csbs(i)(j).vinAt("N").zip(csbs(i)(j+1).voutAt("S")).foreach { case (i, o) => o ==> i } // N -> S 
         }
         // Top to SB
         if (j==numColCUs) {
-          csbs(i)(j).vouts(0) ==> top.cin // bottom up 
-          top.cout ==> csbs(i)(j).vins(0) // top down
+          top.cin <== csbs(i)(j).voutAt("N") // bottom up 
+          top.cout ==> csbs(i)(j).vinAt("N") // top down
         }
         if (j==0) {
-          csbs(i)(j).vouts(4) ==> top.cin // top down
-          top.cout ==> csbs(i)(j).vins(4) // bottom up 
+          top.cin <== csbs(i)(j).voutAt("S") // top down
+          top.cout ==> csbs(i)(j).vinAt("S") // bottom up 
         }
       }
     }
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        for (ibw <- 0 until bandWidth) {
-          val offset = ibw*8
-          // SB and CU (NW <-> SE)
-          csbs(i+1)(j).vouts(1+offset) ==> cus(i)(j).cins(5+offset)
-          cus(i)(j).couts(5+offset) ==> csbs(i+1)(j).vins(1+offset)
-          // SB and CU (SE <-> NW)
-          csbs(i)(j+1).vouts(5+offset) ==> cus(i)(j).cins(1+offset)
-          cus(i)(j).couts(1+offset) ==> csbs(i)(j+1).vins(5+offset)
-          // SB and CU (SW <-> NE)
-          csbs(i)(j).vouts(7+offset) ==> cus(i)(j).cins(3+offset)
-          cus(i)(j).couts(3+offset) ==> csbs(i)(j).vins(7+offset)
-          // SB and CU (NW <-> SE)
-          csbs(i+1)(j+1).vouts(3+offset) ==> cus(i)(j).cins(7+offset)
-          cus(i)(j).couts(7+offset) ==> csbs(i+1)(j+1).vins(3+offset)
-        }
+        // CU and SB (NW <-> SE) (top left)
+        cus(i)(j).coutAt("NW").zip(csbs(i)(j+1).vinAt("SE")).foreach { case (o, i) => o ==> i }
+        cus(i)(j).cinAt("NW").zip(csbs(i)(j+1).voutAt("SE")).foreach { case (i, o) => o ==> i }
+        // CU and SB (NE <-> SW) (top right)
+        cus(i)(j).coutAt("NE").zip(csbs(i+1)(j+1).vinAt("SW")).foreach { case (o, i) => o ==> i }
+        cus(i)(j).cinAt("NE").zip(csbs(i+1)(j+1).voutAt("SW")).foreach { case (i, o) => o ==> i }
+        // CU and SB (SW <-> NE) (bottom left)
+        cus(i)(j).coutAt("SW").zip(csbs(i)(j).vinAt("NE")).foreach { case (o, i) => o ==> i }
+        cus(i)(j).cinAt("SW").zip(csbs(i)(j).voutAt("NE")).foreach { case (i, o) => o ==> i }
+        // CU and SB (SE <-> NW) (bottom right)
+        cus(i)(j).coutAt("SE").zip(csbs(i+1)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
+        cus(i)(j).cinAt("SE").zip(csbs(i+1)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
       }
     }
-    for (ibw <- 0 until bandWidth) {
-      val offset = ibw*8
-      for (i <- 0 until ttcus.size) {
-        ttcus(i).couts(5+offset) ==> csbs(0)(i).vins(1+offset)
-        csbs(0)(i).vouts(1+offset) ==> ttcus(i).cins(5+offset)
-        ttcus(i).couts(6+offset) ==> csbs(0)(i).vins(2+offset)
-        csbs(0)(i).vouts(2+offset) ==> ttcus(i).cins(6+offset)
-        ttcus(i).couts(7+offset) ==> csbs(0)(i).vins(3+offset)
-        csbs(0)(i).vouts(3+offset) ==> ttcus(i).cins(7+offset)
-      }
+    for (j <- 0 until ttcus.size) {
+      // TT and SB (SE <-> NW) (bottom right)
+      ttcus(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
+      ttcus(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
+      // TT and SB (E <-> W) (right)
+      ttcus(j).coutAt("E").zip(csbs(0)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
+      ttcus(j).cinAt("E").zip(csbs(0)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
+      // TT and SB (NE <-> SW) (top right)
+      ttcus(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
+      ttcus(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
     }
 
   }

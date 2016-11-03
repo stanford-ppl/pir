@@ -343,10 +343,10 @@ object CTMap extends BMapObj {
 }
 
 /* A Map between PIR Counter to Spade Counter */
-case class SIMap(map:SIMap.M) extends PMap {
+case class SIMap(map:SIMap.M, pmap:SIMap.PM) extends BMap {
   type K = SIMap.K
   type V = SIMap.V
-  override def + (rec:(K,V)) = { super.check(rec); SIMap(map + rec) }
+  override def + (rec:(K,V)) = { super.check(rec); SIMap(map + rec, pmap + rec.swap) }
   override def printMap(ks:List[K])(implicit p:Printer):Unit = {
     val ipmap = pirMap.ipmap
     val opmap = pirMap.opmap
@@ -356,10 +356,10 @@ case class SIMap(map:SIMap.M) extends PMap {
     super.printMap(ks.asInstanceOf[List[K]], printScalarIn)
   }
 }
-object SIMap extends PMapObj {
+object SIMap extends BMapObj {
   type K = SI
   type V = PSI
-  def empty:SIMap = SIMap(Map.empty)
+  def empty:SIMap = SIMap(Map.empty, Map.empty)
 }
 
 /* A Map between PIR ScalarOut to Spade ScalarOut */

@@ -15,6 +15,8 @@ import java.io.File
 
 class SpadePrinter(implicit design: Design) extends Traversal with Printer {
 
+  def quote(n:Any)(implicit design:Design):String = { DotCodegen.quote(n) }
+
   override val stream = newStream(Config.spadeFile) 
   
   def emitVecIOs(pne:NetworkElement) = {
@@ -79,7 +81,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
           emitln(s"reduce: ${cu.reduce.mt}")
           emitBlock("stages") {
             cu.stages.foreach { s =>
-              emitBlock(s"${s}") {
+              emitBlock(s"${quote(s)}") {
                 s match {
                   case es:EmptyStage =>
                   case fs:FUStage =>
@@ -100,8 +102,8 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        sn.sbs.flatten.foreach { sb => emitBlock(DotCodegen.quote(sb)) { emitVecIOs(sb) } }
-        sn.csbs.flatten.foreach { sb => emitBlock(DotCodegen.quote(sb)) { emitVecIOs(sb) } }
+        sn.sbs.flatten.foreach { sb => emitBlock(quote(sb)) { emitVecIOs(sb) } }
+        sn.csbs.flatten.foreach { sb => emitBlock(s"c${quote(sb)}") { emitVecIOs(sb) } }
       case pn:PointToPointNetwork =>
     }
   }

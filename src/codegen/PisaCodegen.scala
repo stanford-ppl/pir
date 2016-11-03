@@ -7,8 +7,8 @@ import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.mapper._
-import pir.graph.{EnLUT => _, _}
-import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst }
+import pir.graph.{EnLUT => _, ScalarInPR, _}
+import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -17,7 +17,8 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with DebugLogger {
-  override val stream = newStream(s"${design}.json") 
+  lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
+  override val stream = newStream(dir, s"${design}.json") 
   
   implicit lazy val spade:Spade = design.arch
 
@@ -38,6 +39,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val simap:SIMap = mapping.simap
   lazy val somap:SOMap = mapping.somap
+  lazy val rcmap:RCMap = mapping.rcmap
 
   override def traverse:Unit = {
     if (pirMapping.fail) return
@@ -88,6 +90,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitComment("CUName", comment)
             //emitInterconnect(pcu)
+            emitSIXbar(pcu)
             emitSRAMs(pcu)
             emitCounterChains(pcu)
             emitStages(pcu)
@@ -114,6 +117,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+  def emitSIXbar(pcu:PCU)(implicit ms:CollectionStatus) = {
+    var siXbar = ListBuffer[String]() 
+    pcu.etstage.prs.foreach { case (preg, ppr) =>
+      val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
+      if (psins.size!=0) { // Is scalarIn Register
+        val mpsins = psins.filter { psin =>
+          simap.pmap.get(psin).fold(false) { sin => 
+            val reg = sin.ctrler.asInstanceOf[CU].scalarInPR(sin)
+            rcmap(reg) == preg
+          }
+        }
+        if (mpsins.size==0) siXbar += s""""x""""
+        else if(mpsins.size==1) siXbar += s""""${indexOf(mpsins.head)}""""
+        else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
+      }
+    }
+    emitXbar("scalarInXbar", siXbar.toList)
+  }
+
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
     sb.vouts.foreach { pvout =>
@@ -129,14 +151,26 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def lookUp(op:Op):String = {
     op match {
-      case o:FltOp => throw TODOException(s"Op ${op} is not supported at the moment")
-      case o:FixOp => o match {
-        case FixAdd => s"+"
-        case FixSub => s"-"
-        case FixMul => s"*"
-        case FixDiv => s"%"
-        case _ => throw TODOException(s"Op ${op} is not supported at the moment")
-      }
+      // Fix Point Operations
+      case FixAdd => s"+"
+      case FixSub => s"-"
+      case FixMul => s"*"
+      case FixDiv => s"/"
+      case FixLt  => s"<"
+      case FixLeq => s"<=" 
+      case FixEql => s"==" 
+      case FixNeq => s"!=" 
+      case FixMod => s"%" 
+      // Floating Point Operations
+      case FltAdd => s"f+"
+      case FltSub => s"f-"
+      case FltMul => s"f*"
+      case FltDiv => s"f/"
+      case FltLt  => s"f<"
+      case FltLeq => s"f<=" 
+      case FltEql => s"f==" 
+      case FltNeq => s"f!=" 
+      // Others
       case Bypass => "passA" 
       case _ => throw TODOException(s"Op ${op} is not supported at the moment")
     }
@@ -246,8 +280,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   //TODO
-  val ctrlInterConnectDelay:Int = 1
-  val dataInterConnectDelay:Int = 1
   val timeMplx = 1
 
   /* Calculate the number of active local stages*/
@@ -267,18 +299,30 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def startDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (!ctr.isInner) { "0" }
-    else if (cchain.isLocal) { "0" } //TODO: assume data delay matches control delay for all inputs for now
-    else if (!cchain.isCopy) { "0" }
+    else if (cchain.isLocal) {
+      assert(ctr.ctrler.isInstanceOf[ICL])
+      val icl = ctr.ctrler.asInstanceOf[ICL]
+      val delays = ctr.ctrler.vins.map { vin =>
+        vin.tokenIn.fold(0) { cin =>
+          val dataInterConnectDelay = rtmap(vin)
+          val ctrlInterConnectDelay = rtmap(cin)
+          assert(dataInterConnectDelay==ctrlInterConnectDelay)
+          0 //TODO: assume data delay matches control delay for all inputs for now
+        }
+      } 
+      if (delays.size==0) "0"
+      else s"${delays.max}"
+    } else if (!cchain.isCopy) { "0" }
     else { // Write Address Start Delay
       if (ctr.cchain.wasrams.size==0) { "0" } else {
         assert(ctr.cchain.wasrams.size==1)
         val sram = ctr.cchain.wasrams.head
         assert(sram.isRemoteWrite)
-        val vin = sram.vecInPR.get.vecIn
+        val vin = sram.writePort.from.src.asInstanceOf[VecIn]
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin)
-        val ctrlInterConnectDelay = rtmap(ctr.en.from)
+        val ctrlInterConnectDelay = rtmap(ctr.en)
         //TODO: assume data delay matches control delay for all inputs for now
         val delay = numLocalStages(pFromCU) + dataInterConnectDelay - ctrlInterConnectDelay 
         s"${delay}"
@@ -478,6 +522,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             if (!lumap.pmap.contains(ptdlut)) {
               CtrlCodegen.lookUpX(ptdlut.numIns)
               emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
+              emitPair("mux", "x")
             } else {
               val tdlut = lumap.pmap(ptdlut)
               val inits = ListBuffer[IP]()
@@ -494,12 +539,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
               assert(inits.size <= 1, s"inits:${inits}")
               emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
-              inits.foreach { init =>
+              if (inits.size==0) {
+                emitPair("mux", "x")
+              } else {
+                val init = inits.head
                 val pcin = vimap(init)
-                map += (init.from -> indexOf(pcin))
+                emitPair("mux", s"${indexOf(pcin)}")
+                map += (init.from -> 0) // Assume init is the first input
               }
               tos.foreach { to =>
-                map += (to -> indexOf(ucmap(to.src.asInstanceOf[UC])))
+                map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
               }
               val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
               emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")

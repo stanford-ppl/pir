@@ -20,22 +20,24 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
     val ib = vimap(vecOf(n).asInstanceOf[VI])
     val idx = somap(n.scalar.writer).idx
     dprintln(s"Try $n -> $p $ib")
-    if (p.in.canFrom(ib.outports(idx))) {
-      map.setSI(n,p).setOP(n.out, p.out)
-    } else {
-      dprintln(s"$n -> $p (failed)")
-      throw ScalarInRouting(n, p)
-    }
+    assert(p.in.canFrom(ib.outports(idx)))
+    map.setSI(n,p).setOP(n.out, p.out)
+  }
+
+  def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
+    val ib = m.vimap(vecOf(n).asInstanceOf[VI])
+    val idx = m.somap(n.scalar.writer).idx
+    ib.outports(idx).fanOuts.map{_.src}.collect{ case psi:R => psi}.filter{ psi =>
+      !triedRes.contains(psi) && !m.simap.pmap.contains(psi)
+    }.toList
   }
 
   def map(cl:SCL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
     val sins = cl.sins
-    val psins = pcl.sins
-    // Assume one SI to one outport, no need to map
     val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)
-    log(s"$cl($pcl) $sins $psins") {
-      bind(psins, sins, pirMap, cons, finPass(cl) _)
+    log(s"$cl($pcl) $sins") {
+      bind(sins, pirMap, cons, resFunc _, finPass(cl) _)
     }
   }
 

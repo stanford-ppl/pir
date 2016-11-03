@@ -52,6 +52,7 @@ package object typealias {
   type CB    = pir.graph.CtrlBox
   type LUT   = pir.graph.LUT
   type TOLUT = pir.graph.TokenOutLUT
+  type TDLUT = pir.graph.TokenDownLUT
   type EnLUT = pir.graph.EnLUT
   type UC    = pir.graph.UDCounter
   type Const = pir.graph.Const

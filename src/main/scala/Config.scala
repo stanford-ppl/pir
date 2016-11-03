@@ -22,7 +22,7 @@ object Config {
   var pirNetworkDot = getProperty("pir.pir_network", "PIRNetwork.dot")
   var pirCtrlNetworkDot = getProperty("pir.pir_ctrl_network", "PIRCtrlNetwork.dot")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
-  var pisaFile = getProperty("pir.pisafile", "pisa.json")
+  //var pisaFile = getProperty("pir.pisafile", "pisa.json")
   var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
   var spadeCtrlNetwork = getProperty("pir.spade_ctrl_network", "CtrlNetwork.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
@@ -36,16 +36,16 @@ object Config {
 
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
-  var debugCUMapper = debugMapper && false 
-  var debugSOMapper = debugMapper && false 
-  var debugVIMapper = debugMapper && false 
-  var debugSMMapper = debugMapper && false
+  var debugCUMapper = debugMapper && true 
+  var debugSOMapper = debugMapper && true 
+  var debugVIMapper = debugMapper && true
+  var debugSMMapper = debugMapper && true 
   var debugCTMapper = debugMapper && true 
-  var debugRAMapper = debugMapper && false 
+  var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
-  var debugSIMapper = debugMapper && false 
-  var debugCtrlMapper = debugMapper && false 
-  var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
+  var debugSIMapper = debugMapper && true 
+  var debugCtrlMapper = debugMapper && true 
+  var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"
 
   var dse = false
 

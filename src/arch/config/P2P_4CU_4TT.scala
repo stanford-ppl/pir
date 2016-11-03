@@ -22,22 +22,28 @@ object P2P_4CU_4TT extends PointToPointNetwork {
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
+  override val scalarBandwidth = numLanes // BO, how many scalar registers can be read from each bus
+  override val numScalarInReg = numLanes // BO, how many scalar registers can be read from each bus
   
   private val numRCUs = 4
   private val numTTs = 4
 
-  private val numArgIns = numLanes  // need to be multiple of numLanes
-  private val numArgOuts = numLanes // need to be multiple of numLanes 
+  private val numArgIns = scalarBandwidth  // need to be multiple of scalarBandwith 
+  private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwith 
 
   // Top level controller ~= Host
-  override val top = Top(numLanes, numArgIns, numArgOuts).index(-1)
+  override val top = Top(numArgIns, numArgOuts).index(-1)
 
   override val rcus = List.tabulate(numRCUs) { i =>
-    ConfigFactory.genRCU(numLanes, numSRAMs = 4, numCtrs = 8, numRegs = 20).index(i)
+    val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 20).index(i)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    cu
   } 
 
   override val ttcus = List.tabulate(numTTs) { i =>
-    ConfigFactory.genTT(numLanes, numSRAMs = 0, numCtrs = 4, numRegs = 20).index(i+rcus.size)
+    val cu = ConfigFactory.genTT(numSRAMs = 0, numCtrs = 4, numRegs = 20).index(i+rcus.size)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
+    cu
   }
 
   /* Network Constrain */ 
