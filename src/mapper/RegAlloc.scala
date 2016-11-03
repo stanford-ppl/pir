@@ -59,16 +59,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 r       case VecInPR(regId, vecIn) =>
           val pvin = pirMap.vimap(vecIn)
           preColor(r, pvin.viport.mappedRegs.toList)
-          val rsrams = cu.srams.filter(_.vecInPR==Some(r)) 
-          rsrams.foreach { sram =>
-            val psram = pirMap.smmap(sram)
-            val pregs = psram.writePort.fanIns.filter{ fi => 
-              val PipeReg(pstage, preg) = fi.src
-              pstage == psram.ctrler.etstage
-            }.map(_.src.asInstanceOf[PipeReg].reg).toList
-            if (!pregs.contains(rc(r)))
-              throw PIRException(s"Non overlap mapping between ${sram.writePort}(${pregs.mkString(",")}) and $vecIn(${rc(r)})")
-          }
         case VecOutPR(regId) =>
           val pvout = pcu.vout
           preColor(r, pvout.voport.mappedRegs.toList)

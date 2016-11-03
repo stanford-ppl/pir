@@ -31,7 +31,6 @@ class CtrMapper(implicit val design:Design) extends Mapper {
         cur = cur.next
       }
       ctrs += cur
-      println(ctrs.mkString(","))
       ctrs.toList
     }
   }

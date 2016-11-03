@@ -213,16 +213,13 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
-  var vecInPR:Option[VecInPR] = _
+  def isRemoteWrite = writePort.from.src.isInstanceOf[VecIn] 
 
-  def isRemoteWrite = vecInPR.isDefined
-
-  override def toUpdate = super.toUpdate || vecInPR==null
+  override def toUpdate = super.toUpdate
 
   def writer:InnerController = {
     writePort.from.src match {
-      case PipeReg(stage, VecInPR(_, vi)) if stage.isInstanceOf[EmptyStage] => 
-        vi.vector.writer.ctrler.asInstanceOf[InnerController]
+      case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
       case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last => ctrler
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
@@ -243,14 +240,8 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
     writeAddr.connect(wa)
     this 
   }
-  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); vecInPR = None; this } 
-  def wtPort(vec:Vector):SRAM = {
-    val pr@PipeReg(stage, reg@VecInPR(_,_)) = ctrler.vecIn(vec)
-    assert(stage.isInstanceOf[EmptyStage])
-    writePort.connect(pr.out)
-    vecInPR = Some(reg)
-    this
-  }
+  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
+  def wtPort(vec:Vector):SRAM = { wtPort(ctrler.newVin(vec).out) }
 
   def load = readPort
 
