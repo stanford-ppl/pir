@@ -318,7 +318,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         assert(ctr.cchain.wasrams.size==1)
         val sram = ctr.cchain.wasrams.head
         assert(sram.isRemoteWrite)
-        val vin = sram.writePort.from.asInstanceOf[VecIn]
+        val vin = sram.writePort.from.src.asInstanceOf[VecIn]
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin)
