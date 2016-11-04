@@ -24,7 +24,7 @@ object SN_4x4 extends SwitchNetwork {
   
   // Inner CU Specs
   override val wordWidth = 32
-  override val numLanes = 4
+  override val numLanes = 16
   override val scalarBandwidth = 2 // BO, how many scalar value can be transmitted on bus 
   override val numScalarInReg = 2 // BO, how many scalar registers connected to the crossbar 
   
