@@ -175,12 +175,12 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   val reduce = RMOutPort(this, s"${this}.reduce")
 
   def numRegs(num:Int):this.type = { 
-    regs = List.tabulate(num) { ir => Reg(ir).index(ir) }
+    regs = List.tabulate(num) { ir => Reg().index(ir) }
     addETStage(EmptyStage(regs))
     this
   }
-  def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter(ic) }; this }
-  def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM(is) }; this }
+  def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter().index(ic) }; this }
+  def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM().index(is) }; this }
   def ctrlBox(numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int):this.type = { 
     ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOutLUTs, numTokenDownLUTs); this
   }

@@ -30,6 +30,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   val coordMap:coordOf.M = Map.empty
   val indexMap:indexOf.M = Map.empty
 }
+
 trait PointToPointNetwork extends Spade
 trait SwitchNetwork extends Spade {
   val cuArray:List[List[ComputeUnit]]
@@ -39,7 +40,7 @@ trait SwitchNetwork extends Spade {
     sbs.flatten.map{ sb =>
       sb.vins.filter(_.isConnected).flatMap { vin =>
         vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
-      }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
+      }.groupBy( k => k ).map{case (k, l)  => l.size}.max
     }.max
   }
   def switchNetworkCtrlBandwidth:Int = {

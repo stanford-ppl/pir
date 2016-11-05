@@ -25,10 +25,6 @@ case class SRAM(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
   val writeAddr = RMInPort(this, s"${this}.wa")
 }
 
-object SRAM extends Metadata {
-  def apply(idx:Int)(implicit spade:Spade, ctrler:ComputeUnit):SRAM = SRAM().index(idx)
-}
-
 /** Physical Counter  */
 case class Counter(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
   override val typeStr = "ctr"
@@ -41,16 +37,10 @@ case class Counter(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
   val done = OutWire(this, s"${this}.done")
   def isDep(c:Counter) = en.canFrom(c.done)
 }
-object Counter extends Metadata {
-  def apply(idx:Int)(implicit spade:Spade, ctrler:ComputeUnit):Counter = Counter().index(idx)
-}
 
 /* Logical register (1 row of pipeline registers for all stages) */
 case class Reg(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
   override val typeStr = "reg"
-}
-object Reg extends Metadata {
-  def apply(idx:Int)(implicit spade:Spade, ctrler:ComputeUnit):Reg = Reg().index(idx)
 }
 
 /* Phyiscal pipeline register */
