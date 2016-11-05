@@ -37,7 +37,7 @@ class CtrMapperTest extends UnitTest { self =>
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
-          val c = PCtr(ic) 
+          val c = PCtr().index(ic) 
           c.min <== const.out
           c.max <== const.out
           c.step <== const.out
@@ -76,7 +76,7 @@ class CtrMapperTest extends UnitTest { self =>
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
-          val c = PCtr(ic) 
+          val c = PCtr().index(ic) 
           c.min <== const.out
           c.max <== const.out
           c.step <== const.out
@@ -117,7 +117,7 @@ class CtrMapperTest extends UnitTest { self =>
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
-          val c = PCtr(ic) 
+          val c = PCtr().index(ic) 
           c.min <== const.out
           c.max <== const.out
           c.step <== const.out
