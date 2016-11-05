@@ -22,6 +22,18 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
 
   override val stream = newStream(fileName) 
 
+  override def quote(n:Any)(implicit design:Design):String = {
+    n match {
+      case (n,b) =>
+        val bottom = b.asInstanceOf[Boolean]
+        n match {
+          case ptop:PTop if (bottom) => s"""${quote(ptop)}_bottom"""
+          case ptop:PTop if (!bottom) => s"""${quote(ptop)}_top"""
+        }
+      case n => super.quote(n)
+    }
+  }
+
   val scale = 13
   def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
     //emitln(s"splines=ortho;")
@@ -34,36 +46,35 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
       pcl match {
         case pcu:PCU => 
           assert(pcu.cins.size==pcu.couts.size)
-          val ctrlIns = pcu.cins.map { cin => s"<${cin}> ${cin}"}
-          val ctrlOuts = pcu.couts.map { cout => s"<${cout}> ${cout}"}
           val qpcu = quote(pcu)
           val culabel = mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
             val icl = cu.asInstanceOf[ICL]
             s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
           }
-          //recs += s"{${cins(1)}  | ${cins(0)}   | ${cins(7)}}"
-          //recs += s"{${couts(1)} | ${couts(0)}  | ${couts(7)}}"
-          //recs += s"{${cins(2)}  | ${culabel}   | ${cins(6)}}"
-          //recs += s"{${couts(2)} |              | ${couts(6)}}"
-          //recs += s"{${cins(3)}  | ${cins(4)}   | ${cins(5)}}"
-          //recs += s"{${couts(3)} | ${couts(4)}  | ${couts(5)}}"
-          def cins(i:Int) = List.tabulate(bandWidth) { ibw => s"${ctrlIns(i+ibw*8)}" }.mkString(" | ")
-          def couts(i:Int) = List.tabulate(bandWidth) { ibw => s"${ctrlOuts(i+ibw*8)}" }.mkString(" | ")
-          recs += s"{${cins(1)}  | ${couts(1)}  | ${cins(0)}| ${couts(0)} | ${cins(7)}   | ${couts(7)}}"
-          recs += s"{{${cins(2)} | ${couts(2)}} | ${culabel}              | {${couts(6)} | ${cins(6)}}}"
-          recs += s"{${cins(3)}  | ${couts(3)}  | ${couts(4)}| ${cins(4)} | ${cins(5)}   | ${couts(5)}}"
+          def ports(dir:String) = {
+            val ios = pcu.cinAt(dir).zip(pcu.coutAt(dir)).flatMap{case (i,o) => 
+              if (dir=="S" || dir=="E") List(o,i)
+              else List(i,o)
+            }
+            ios.map{io => s"<$io> $io"}.mkString("|")
+          }
+          recs += s"{${ports("NW")}  | ${ports("N")} | ${ports("NE")}}"
+          recs += s"{{${ports("W")}} | ${culabel}    | {${ports("E")}}}"
+          recs += s"{${ports("SW")}  | ${ports("S")} | ${ports("SE")}}"
         case ptop:PTop => recs += s"$ptop" 
       }
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
       coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
       mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
+      val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
+      val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
       pcl match {
         case pcu:PCU =>
           emitNode(pcl, label, attr)
         case ptop:PTop => s"$ptop" 
-          emitNode(quote(ptop, true), label, attr)
-          emitNode(quote(ptop, false), label, attr)
+          emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
+          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale/2))
       }
       pcl.cins.foreach { cin =>
         emitInput(pcl, cin, mapping)
@@ -195,6 +206,18 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
   
   val scale = 4
 
+  override def quote(n:Any)(implicit design:Design):String = {
+    n match {
+      case (n,b) =>
+        val bottom = b.asInstanceOf[Boolean]
+        n match {
+          case ptop:PTop if (bottom) => s"""${quote(ptop)}_bottom"""
+          case ptop:PTop if (!bottom) => s"""${quote(ptop)}_top"""
+        }
+      case n => super.quote(n)
+    }
+  }
+
   def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = CUDotPrinter.emitSwitchBoxes(sbs, mapping, scale)(this)
   def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = CUDotPrinter.emitInput(pcl, pvin, mapping, scale)(this)
 
@@ -217,27 +240,19 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       var attr = DotAttr().shape(Mrecord)
       coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
       mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
+      val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
+      val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
       pcl match {
         case pcu:PCU =>
           emitNode(pcl, label, attr)
         case ptop:PTop => s"$ptop" 
-          emitNode(quote(ptop, true), label, attr)
-          emitNode(quote(ptop, false), label, attr)
+          emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
+          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
       }
       pcl.vins.foreach { pvin =>
         emitInput(pcl, pvin, mapping)
       }
     }
-    //mapping.foreach { mp =>
-    //  design.top.vins.foreach { vin =>
-    //    mp.vomap.get(vin.writer).foreach { pvout =>
-    //      val dvo = mp.vomap.pmap(pvout).asInstanceOf[DVO] 
-    //      val label = s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-    //      val attr = DotAttr().label(label).color(indianred).style(bold)
-    //      emitEdge(s"${mp.clmap(dvo.ctrler)}:$pvout", design.top, attr)
-    //    }
-    //  }
-    //}
   }
 
   def print:Unit = { print(design.mapping) }
@@ -286,8 +301,7 @@ object ArgDotPrinter extends Metadata{
       vin.fanIns.foreach { vout =>
         spade match {
           case sn:SwitchNetwork =>
-            val bottom = coordOf(vout.src)._2==0 
-            printer.emitEdge(quote(vout), quote(ptop, bottom))
+            printer.emitEdge(quote(vout), quote(ptop))
           case pn:PointToPointNetwork =>
             printer.emitEdge(quote(vout), quote(ptop))
         }
@@ -297,8 +311,7 @@ object ArgDotPrinter extends Metadata{
       vout.fanOuts.foreach { vin =>
         spade match {
           case sn:SwitchNetwork =>
-            val bottom = coordOf(vin.src)._2==0 
-            printer.emitEdge(quote(ptop, bottom), quote(vin))
+            printer.emitEdge(quote(ptop), quote(vin))
           case pn:PointToPointNetwork =>
             printer.emitEdge(ptop, quote(vin))
         }

@@ -36,6 +36,26 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
         }
       }
     }
+    pne match {
+      case pne:Controller =>
+        emitBlock(s"ctrlins") {
+          pne.cins.foreach { ci =>
+            emitln(s"${ci.ms}")
+            ci.outports.foreach { op =>
+              emitln(s"${op.mt}")
+            }
+          }
+        }
+        emitBlock(s"vecouts: ") {
+          pne.couts.foreach { cout =>
+            emitln(s"${cout.mt}")
+            cout.inports.foreach { ip =>
+              emitln(s"${ip.ms}")
+            }
+          }
+        }
+      case _ =>
+    }
   }
 
   override def traverse = {

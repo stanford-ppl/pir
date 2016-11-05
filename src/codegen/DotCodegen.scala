@@ -34,7 +34,12 @@ class DotAttr() {
   def expand = elements.mkString(";") 
 }
 object DotAttr {
-  def apply() = new DotAttr()
+  def apply():DotAttr = new DotAttr()
+  def copy(attr:DotAttr):DotAttr = {
+    val newAttr = DotAttr()
+    attr.attrMap.foreach { e => newAttr + e }
+    newAttr
+  }
 }
 trait DotField { val field:String }
 case class Shape(field:String) extends DotField
@@ -129,12 +134,6 @@ object DotCodegen extends Metadata {
         vout.src match {
           case cu:PCU => s"""${vout.src}:${vout}:s"""
           case sb:PSB => s"""${vout.src}"""
-        }
-      case (n,b) =>
-        val bottom = b.asInstanceOf[Boolean]
-        n match {
-          case ptop:PTop if (bottom) => s"""${ptop}_bottom"""
-          case ptop:PTop if (!bottom) => s"""${ptop}_top"""
         }
       case _ => n.toString
     }
