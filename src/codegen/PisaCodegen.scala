@@ -334,11 +334,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def doneDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
     if (!cchain.isLocal) { "0" }
-    else if (!ctr.isOuter) { "0" }
-    else {
-      val delay = numLocalStages(pcu)
-      s"${delay}"
-    }
+    else if (ctr.isInner) { s"${numLocalStages(pcu)}" }
+    else { "0" }
   }
 
   def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {

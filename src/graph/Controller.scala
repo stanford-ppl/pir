@@ -157,6 +157,46 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     updateBlock(block)
 }
 
+class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
+  var inner:InnerController = _
+  override def toUpdate = super.toUpdate || inner == null
+
+  private val _cchains = ListBuffer[CounterChain]()
+  def cchains:List[CounterChain] = _cchains.toList 
+  def addCChain(cc:CounterChain):Unit = {
+    assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
+    _cchains += cc
+  }
+}
+
+class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
+  override val typeStr = "SeqCU"
+}
+object Sequential {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)  (implicit design: Design, dtp:TypeTag[D]):Sequential = {
+    new Sequential(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    apply(Some(name), parent, deps)(block)
+}
+
+class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterController(name) {
+  override val typeStr = "MetaPipeCU"
+}
+object MetaPipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
+    new MetaPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    apply(Some(name), parent, deps)(block)
+}
+
 class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with SpadeController with InnerRegBlock { self =>
   implicit val icu:InnerController = self
 
@@ -241,54 +281,16 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
     updateFields(cchains, srams)
   }
 }
+class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+}
 object Pipeline {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: InnerController => Any)  (implicit design: Design, dtp:TypeTag[D]):InnerController = {
-    new InnerController(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Pipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):Pipeline = {
+    new Pipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
   }
   /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: InnerController => Any) (implicit design:Design, dtp:TypeTag[D]):InnerController =
+  def apply [P,D](parent:P, deps:List[D]) (block: Pipeline => Any) (implicit design:Design, dtp:TypeTag[D]):Pipeline =
     apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:InnerController => Any) (implicit design:Design, dtp:TypeTag[D]):InnerController =
-    apply(Some(name), parent, deps)(block)
-}
-
-class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
-  var inner:InnerController = _
-  override def toUpdate = super.toUpdate || inner == null
-
-  private val _cchains = ListBuffer[CounterChain]()
-  def cchains:List[CounterChain] = _cchains.toList 
-  def addCChain(cc:CounterChain):Unit = {
-    assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
-    _cchains += cc
-  }
-}
-
-class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
-  override val typeStr = "SeqCU"
-}
-object Sequential {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)  (implicit design: Design, dtp:TypeTag[D]):Sequential = {
-    new Sequential(name).updateParent(parent).updateDeps(deps).updateBlock(block)
-  }
-  /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
-    apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
-    apply(Some(name), parent, deps)(block)
-}
-
-class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterController(name) {
-  override val typeStr = "MetaPipeCU"
-}
-object MetaPipeline {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
-    new MetaPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
-  }
-  /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
-    apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Pipeline => Any) (implicit design:Design, dtp:TypeTag[D]):Pipeline =
     apply(Some(name), parent, deps)(block)
 }
 
@@ -355,6 +357,19 @@ object TileTransfer extends {
     TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).updateDeps(deps).updateBlock(block)
   def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any) (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
+}
+
+class StreamingPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+}
+object StreamingPipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamingPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):StreamingPipeline = {
+    new StreamingPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: StreamingPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):StreamingPipeline =
+    apply(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:StreamingPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):StreamingPipeline =
+    apply(Some(name), parent, deps)(block)
 }
 
 case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends SpadeController { self =>
