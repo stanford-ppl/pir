@@ -240,14 +240,18 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       var attr = DotAttr().shape(Mrecord)
       coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
       mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
-      val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
-      val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
       pcl match {
         case pcu:PCU =>
           emitNode(pcl, label, attr)
         case ptop:PTop => s"$ptop" 
-          emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
-          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
+          design.arch match {
+            case sn:SwitchNetwork =>
+              val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
+              val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
+              emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
+              emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
+            case pn:PointToPointNetwork =>
+          }
       }
       pcl.vins.foreach { pvin =>
         emitInput(pcl, pvin, mapping)
