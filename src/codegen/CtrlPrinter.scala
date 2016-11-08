@@ -28,6 +28,16 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
           } 
         }
       }
+      cu match {
+        case cu:InnerController =>
+          cu.mems.foreach { mem =>
+            val info = ListBuffer[String]()
+            mem match { case mem:FIFOOnWrite => info += s"notFull=${mem.notFull}, enqEn=${mem.enqueueEnable.from}"; case _ => }
+            mem match { case mem:FIFOOnRead => info += s"notEmpty=${mem.notEmpty}, deqEn=${mem.dequeueEnable.from}"; case _ => }
+            emitln(s"$mem(${info.mkString(",")})")
+          }
+        case _ =>
+      }
       val (tins, touts) = cu match {
         case inner:InnerController =>
           (s"tokenIns=[${inner.ctrlIns.map(_.from).mkString(",")}]", s"tokenOuts=[${inner.ctrlOuts.mkString(",")}]")
@@ -50,6 +60,10 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
           val out = lut.out.to.mkString(",")
           emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}]")
         }
+        val fifoat = cu.ctrlBox.fifoAndTree
+        emitln(s"$fifoat(${fifoat.ins.map(_.from).mkString(",")})")
+        val tiat = cu.ctrlBox.tokInAndTree
+        emitln(s"$tiat(${tiat.ins.map(_.from).mkString(",")})")
       }
       block
     }

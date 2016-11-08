@@ -129,6 +129,7 @@ object PIRPrinter extends Metadata {
         n match {
           case n:InnerController =>
             fields += s"outers=[${n.outers.mkString(s",")}]"
+            fields += s"writtenMem=[${n.writtenMem}]"
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
         }
@@ -142,11 +143,13 @@ object PIRPrinter extends Metadata {
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
         fields += s"wasrams=[${p.wasrams.mkString(",")}]"
-      case p:SRAM =>
-        fields += s"size=${p.size}, RA=${p.readAddr.from}, WA=${p.writeAddr.from}"
+      case p:OnChipMem =>
+        fields += s"size=${p.size}"
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
-        fields += s"writeCtr=${p.writeCtr}"
+        p match { case p:SRAMOnRead => fields += s"RA=${p.readAddr.from}"; case _ => }
+        p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}, writeCtr=${p.writeCtr}"; case _ => }
+        p match { case p:FIFOOnWrite => fields += s"start=${p.start}, end=${p.end}"; case _ => }
       case p:Stage =>
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"

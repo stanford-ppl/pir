@@ -42,20 +42,20 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val vecIns     = Map[VecIn, VecInPR]()
   lazy val vecOut     = VecOutPR(newTemp)
-  val loadRegs   = Map[SRAM, LoadPR]()
-  val storeRegs  = Map[SRAM, StorePR]()
-  val wtAddrRegs = Map[SRAM, WtAddrPR]()
+  val loadRegs   = Map[OnChipMem, LoadPR]()
+  val storeRegs  = Map[OnChipMem, StorePR]()
+  val wtAddrRegs = Map[SRAMOnWrite, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
   val accumRegs  = Set[AccumPR]()
   def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear}
 
-  def loadPR(s:SRAM):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
+  def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
 
-  def storePR(s:SRAM):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s))
+  def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s))
 
-  def wtAddrPR(s:SRAM):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(newTemp, s.writeAddr))
+  def wtAddrPR(s:SRAMOnWrite):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(newTemp, s.writeAddr))
 
   def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(newTemp, c))
 
@@ -82,17 +82,17 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
- def load(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, loadPR(s))
+ def load(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, loadPR(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that stores to the sram
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
-  def store(stage:Stage, s:SRAM):PipeReg = pipeReg(stage, storePR(s))
+  def store(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, storePR(s))
 
-  def wtAddr(sram:SRAM):WtAddrPR = wtAddrPR(sram)
+  def wtAddr(sram:SRAMOnWrite):WtAddrPR = wtAddrPR(sram)
   def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
-  def wtAddr(stage:Stage, sram:SRAM):PipeReg = pipeReg(stage, wtAddr(sram))
+  def wtAddr(stage:Stage, sram:SRAMOnWrite):PipeReg = pipeReg(stage, wtAddr(sram))
   
   def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
  /** Create a pipeline register for a stage corresponding to 

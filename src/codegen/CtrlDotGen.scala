@@ -48,6 +48,25 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
   override def traverse = {
     design.top.innerCUs.foreach { icu =>
       emitSubGraph(s"inner_$icu", DotAttr().label(icu)) {
+        icu.mems.collect{ case mem:FIFOOnRead => mem; case mem:FIFOOnWrite => mem}.foreach { mem =>
+          emitNode(mem, mem, DotAttr().shape(box).style(filled).fillcolor(cyan))
+          mem match {
+            case mem:FIFOOnRead => emitEdge(mem.dequeueEnable.from.src, mem, s"${mem.dequeueEnable}")
+            case _ =>
+          }
+          mem match {
+            case mem:FIFOOnWrite => emitEdge(mem.enqueueEnable.from.src, mem, s"${mem.enqueueEnable}")
+            case _ =>
+          }
+        }
+        icu.cchains.foreach { cchain =>
+          emitSubGraph(cchain, DotAttr().label(cchain).color(black).style(dashed)) {
+            cchain.counters.foreach { c =>
+              emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
+              if (c.en.isConnected) emitEdge(c.en, "en")
+            }
+          }
+        }
         icu.locals.foreach { cu =>
           /* Emit nodes in cluster */
 			    emitSubGraph(cu, DotAttr().label(cu).style(filled).color(lightgrey)) {
@@ -63,20 +82,6 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
             cu.ctrlBox.luts.foreach { lut =>
               val label = s"{${lut}|tf=${lut.transFunc.info}}"
               emitNode(lut, label, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
-            }
-            //val cchain = cu match {
-              //case cu:InnerController => cu.localCChain
-              //case cu:OuterController => cu.inner.cchainMap(cu.localCChain)
-            //}
-            if (cu==icu) {
-              icu.cchains.foreach { cchain =>
-                emitSubGraph(cchain, DotAttr().label(cchain).color(black).style(dashed)) {
-                  cchain.counters.foreach { c =>
-                    emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
-                    if (c.en.isConnected) emitEdge(c.en, "en")
-                  }
-                }
-              }
             }
 			    }
         }
@@ -94,7 +99,12 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
         emitEdge(c.dec, "dec")
       }
       cu.ctrlBox.luts.foreach { lut =>
-        lut.ins.foreach { in => emitEdge(in, "in") }
+        lut.ins.flatMap { in =>
+          in.from.src match {
+            case at:AndTree => cu.ctrlBox.fifoAndTree.ins ++ cu.ctrlBox.tokInAndTree.ins
+            case _ => in::Nil
+          }
+        }.foreach { in => emitEdge(in.from.src, lut, s"${in.from}") }
       }
       //emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
       cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().style(dashed)) }

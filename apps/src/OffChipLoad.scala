@@ -50,8 +50,8 @@ object OffChipLoad extends PIRApp {
 
       val s0::s1::_ = Stages(2)
       // SRAMs
-      val sA = SRAM(name="sA", size=32, vec=tlAVec, readAddr=ii(0), writeAddr=itA(0),
-        banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itA(0), swapWrite=itA(0)), writeCtr=itA(0))
+      val sA = SRAM(name="sA", size=32, banking=NoBanking(), buffering=MultiBuffer(depth=2, 
+        swapRead=itA(0), swapWrite=itA(0)), writeCtr=itA(0)).wtPort(tlAVec).rdAddr(ii(0)).wtAddr(itA(0))
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sA.load, op=FixMul, result=CU.reduce(s0))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const("0i"))

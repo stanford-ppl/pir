@@ -61,10 +61,10 @@ object DotProduct extends PIRApp {
 
       val s0::s1::_ = Stages(2)
       // SRAMs
-      val sA = SRAM(name="sA", size=32, vec=tlAVec, readAddr=ii(0), writeAddr=itA(0),
-        banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itA(0), swapWrite=itA(0)), writeCtr=itA(0))
-      val sB = SRAM(name="sB", size=32, vec=tlBVec, readAddr=ii(0), writeAddr=itB(0),
-        banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itB(0), swapWrite=itB(0)), writeCtr=itB(0))
+      val sA = SRAM(name="sA", size=32, banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itA(0), 
+        swapWrite=itA(0)), writeCtr=itA(0)).wtPort(tlAVec).rdAddr(ii(0)).wtAddr(itA(0))
+      val sB = SRAM(name="sB", size=32, banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itB(0),
+        swapWrite=itB(0)), writeCtr=itB(0)).wtPort(tlBVec).rdAddr(ii(0)).wtAddr(itB(0))
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const("0i"))

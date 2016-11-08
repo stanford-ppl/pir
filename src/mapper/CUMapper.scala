@@ -69,7 +69,7 @@ object CUMapper {
             val pcu = pcl.asInstanceOf[PCU]
             cons += (("tttpe"       , cu.isInstanceOf[TT] == pcu.isInstanceOf[PTT]))
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
-            cons += (("sram"	    , (cu.srams, pcu.srams)))
+            cons += (("onchipmem"	, (cu.mems, pcu.srams)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
             cons += (("tokOut"	  , (cu.ctrlOuts, pcu.ctrlBox.ctrlOuts)))

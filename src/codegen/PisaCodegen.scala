@@ -91,7 +91,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitComment("CUName", comment)
             //emitInterconnect(pcu)
             emitSIXbar(pcu)
-            emitSRAMs(pcu)
+            emitOnChipMems(pcu)
             emitCounterChains(pcu)
             emitStages(pcu)
             emitCtrl(pcu)
@@ -188,7 +188,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case ctr:Ctr => 
         val pctr = ctmap(ctr)
         lookUp(pctr)
-      case sm:SRAM =>
+      case sm:OnMem =>
         val psram = smmap(sm)
         lookUp(psram)
       case pr@PipeReg(stage, reg) =>
@@ -263,7 +263,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def localWADelay(pcu:PCU, ctr:Ctr):Int = {
     val cu = ctr.ctrler.asInstanceOf[ICL]
-    val wasrams = cu.srams.filter(_.writeCtr==ctr)
+    val wasrams = cu.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
     val wastages = pcu.stages.filter { pstage =>
       if (stmap.pmap.contains(pstage)) {
         val stage = stmap.pmap(pstage)
@@ -345,27 +345,57 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     emitList("inputs", inputs)
   }
 
-  def emitSRAMs(pcu:PCU)(implicit ms:CollectionStatus) = {
+  def emitOnChipMems(pcu:PCU)(implicit ms:CollectionStatus) = {
     emitList(s"scratchpads") { implicit ms =>
       pcu.srams.foreach{ psram => 
         if (smmap.pmap.contains(psram)) {
           emitMap { implicit ms =>
-            val sram = smmap.pmap(psram)
-            emitPair("ra", lookUp(sram.readAddr))
-            sram.writeAddr.from.src match {
-              case pr:PR => 
-                emitPair("wa", "local")
-              case _ => 
-                emitPair("wa", lookUp(sram.writeAddr))
+            val mem = smmap.pmap(psram)
+            mem match {
+              case mem:SOR =>
+                emitPair("ra", lookUp(mem.readAddr))
+                emitPair("deqEn", "x")
+                emitComment("readType", "SRAMOnRead")
+              case mem:FOR =>
+                emitPair("ra", "x")
+                val enlut = mem.dequeueEnable.from.src.asInstanceOf[EnLUT]
+                emitPair("deqEn", s"${indexOf(lumap(enlut))}")
+                emitComment("readType", "FIFOOnRead")
             }
-            val wd = sram.writePort.from.src match {
+            mem match {
+              case mem:SOW =>
+                mem.writeAddr.from.src match {
+                  case pr:PR => 
+                    emitPair("wa", "local")
+                  case _ => 
+                    emitPair("wa", lookUp(mem.writeAddr))
+                }
+                emitPair("wen",lookUp(mem.writeCtr))
+                emitPair("start", s"x")
+                emitPair("end", s"x")
+                emitPair(s"enqEn", s"x")
+                emitComment("writeType", "SRAMOnWrite")
+              case mem:FOW =>
+                emitPair("wa", "x")
+                emitPair("wen", "x")
+                if (mem.start.isDefined)
+                  emitPair("start", s"${lookUp(mem.start.get.src)}")
+                else
+                  emitPair("start", s"x")
+                if (mem.end.isDefined)
+                  emitPair("end", s"${lookUp(mem.end.get.src)}")
+                else
+                  emitPair("end", s"x")
+                emitPair(s"enqEn", s"${indexOf(vimap(mem.enqueueEnable))}")
+                emitComment("writeType", "FIFOOnWrite")
+            }
+            val wd = mem.writePort.from.src match {
               case v:VI => lookUp(vimap(v))
               case s:PR => "local"
             }
             emitPair("wd", wd)
-            emitPair("wen",lookUp(sram.writeCtr))
-            emitPair("banking", lookUp(sram.banking))
-            sram.buffering match {
+            emitPair("banking", lookUp(mem.banking))
+            mem.buffering match {
               case MultiBuffer(n, swapRead, swapWrite) =>
                 emitPair("numBufs", n)
                 emitPair("rswap", lookUp(swapRead))
@@ -512,9 +542,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitCtrl(pcu:PCU)(implicit ms:CollectionStatus) {
+    val pcb = pcu.ctrlBox
     emitMap(s"control") { implicit ms =>
       emitList("tokenDownLUT") { implicit ms =>
-        pcu.ctrlBox.tokenDownLUTs.foreach { ptdlut =>
+        pcb.tokenDownLUTs.foreach { ptdlut =>
           emitMap { implicit ms =>
             if (!lumap.pmap.contains(ptdlut)) {
               CtrlCodegen.lookUpX(ptdlut.numIns)
@@ -558,7 +589,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       val doneXbar = ListBuffer[String]()
       emitList("tokenOutLUT") { implicit ms =>
-        pcu.ctrlBox.tokenOutLUTs.foreach { ptolut =>
+        pcb.tokenOutLUTs.foreach { ptolut =>
           emitMap { implicit ms =>
             if (!lumap.pmap.contains(ptolut)) {
               CtrlCodegen.lookUpX(ptolut.numIns)
@@ -583,13 +614,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           }
         }
       }
-      val tom = pcu.ctrlBox.ctrlOuts.map { pto =>
+      val tom = pcb.ctrlOuts.map { pto =>
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
             case l:TokenDownLUT => indexOf(lumap(l)) 
-            case l:TokenOutLUT => pcu.ctrlBox.tokenDownLUTs.size + indexOf(lumap(l)) 
-            case l:EnLUT => pcu.ctrlBox.tokenDownLUTs.size + pcu.ctrlBox.tokenOutLUTs.size + indexOf(lumap(l))
+            case l:TokenOutLUT => pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
+            case l:EnLUT => pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
+            case l:FOW => pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + pcb.enLUTs.size + indexOf(smmap(l))
           }
           s""""$idx""""
         }
@@ -599,7 +631,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val incs = ListBuffer[String]() 
       val decs = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
-      pcu.ctrlBox.udcs.map { pudc =>
+      pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
           val udc = ucmap.pmap(pudc)
@@ -623,17 +655,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)
       emitList("enableLUT") { implicit ms =>
-        pcu.ctrlBox.enLUTs.foreach { penlut => 
+        pcb.enLUTs.foreach { penlut => 
           emitMap { implicit ms =>
             if (!lumap.pmap.contains(penlut)) {
               emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
             } else {
               val enlut = lumap.pmap(penlut)
-              val udcs = enlut.ins.map(_.from.src.asInstanceOf[UC])
               val map:Map[OP, Int] = Map.empty
-              udcs.foreach { udc =>
-                val pudc = ucmap(udc)
-                map += (udc.out -> indexOf(pudc))
+              enlut.ins.map(_.from.src).foreach { 
+                case udc:UC => map += (udc.out -> indexOf(ucmap(udc)))
+                case at:AT => map += (at.out -> 0) 
               }
               val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
               emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map}")

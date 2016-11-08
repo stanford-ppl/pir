@@ -74,7 +74,7 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
           emitNode(pcl, label, attr)
         case ptop:PTop => s"$ptop" 
           emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
-          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale/2))
+          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
       }
       pcl.cins.foreach { cin =>
         emitInput(pcl, cin, mapping)

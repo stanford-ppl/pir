@@ -148,8 +148,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     var ucmap = pmap.ucmap
     var lumap = pmap.lumap
     /* Up-Down Counter mapping */
-    pcb.udcs.zip(inner.udcounters).foreach { case (pudc, (ctrler, udc)) =>
-      ucmap += (udc -> pudc)
+    inner.udcounters.groupBy { case (_, udc) => 
+      // Whether an udc can placed in the first pudc or not
+      udc.out.to.map{_.src}.collect{case enlut:EnLUT => enlut}.exists{_.ins.exists{_.from.src.isInstanceOf[AT]} } 
+    }.foreach {
+      case (true, udcs) => udcs.zip(pcb.udcs.tail.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
+      case (false, udcs) => udcs.zip(pcb.udcs.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
     }
 
     /* Enable LUT mapping */

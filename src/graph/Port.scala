@@ -65,27 +65,27 @@ object OutPort {
 }
 
 /* SRAM Ports */
-trait RdAddrInPort extends InPort { override val src:SRAM }
+trait RdAddrInPort extends InPort { override val src:SRAMOnRead }
 object RdAddrInPort {
-  def apply(s:SRAM, toStr: => String)(implicit design:Design):RdAddrInPort = {
+  def apply(s:SRAMOnRead, toStr: => String)(implicit design:Design):RdAddrInPort = {
     new {override val src = s} with RdAddrInPort {override def toString = toStr}
   }
 }
-trait WtAddrInPort extends InPort { override val src:SRAM }
+trait WtAddrInPort extends InPort { override val src:SRAMOnWrite }
 object WtAddrInPort {
-  def apply(s:SRAM, toStr: => String)(implicit design:Design):WtAddrInPort = {
+  def apply(s:SRAMOnWrite, toStr: => String)(implicit design:Design):WtAddrInPort = {
     new {override val src = s} with WtAddrInPort {override def toString = toStr}
   }
 }
-trait WriteInPort extends InPort { override val src:SRAM }
+trait WriteInPort extends InPort { override val src:OnChipMem }
 object WriteInPort {
-  def apply(s:SRAM, toStr: => String)(implicit design:Design):WriteInPort = {
+  def apply(s:OnChipMem, toStr: => String)(implicit design:Design):WriteInPort = {
     new {override val src = s} with WriteInPort {override def toString = toStr}
   }
 }
-trait ReadOutPort extends OutPort { override val src:SRAM }
+trait ReadOutPort extends OutPort { override val src:OnChipMem }
 object ReadOutPort {
-  def apply(s:SRAM, toStr: => String)(implicit design:Design):ReadOutPort = {
+  def apply(s:OnChipMem, toStr: => String)(implicit design:Design):ReadOutPort = {
     new {override val src = s} with ReadOutPort {override def toString = toStr}
   }
 }

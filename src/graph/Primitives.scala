@@ -45,8 +45,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * */
   lazy val original = copy.fold(this) { e => e.right.get}
 
-  val wasrams = ListBuffer[SRAM]()
-  def addWASram(sram:SRAM):Unit = {
+  val wasrams = ListBuffer[SRAMOnWrite]()
+  def addWASram(sram:SRAMOnWrite):Unit = {
     wasrams += sram
   }
   var streaming = false
@@ -186,7 +186,7 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
     update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from))
   } 
 }
-object Counter{
+object Counter {
   def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(None, cchain); c.update(min, max, step); c }
   def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
@@ -195,28 +195,15 @@ object Counter{
     Counter(None, cchain)
 }
 
-/** SRAM 
- *  @param name: user defined optional name of SRAM 
- *  @param size: size of SRAM in all dimensions 
- *  @param banking: Banking mode of SRAM
- *  @param buffering: Double buffer mode of sram 
- *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
- *  calculate write address?
- */
-case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buffering, 
-  writeCtr:Counter)(implicit override val ctrler:InnerController, design: Design) 
-  extends Primitive {
-  override val typeStr = "SRAM"
+abstract class OnChipMem(implicit override val ctrler:InnerController, design:Design) extends Primitive {
+  val size:Int
+  val banking:Banking
+  val buffering:Buffering
 
-  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
-  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
   def isRemoteWrite = writePort.from.src.isInstanceOf[VecIn] 
-
-  override def toUpdate = super.toUpdate
-
   def writer:InnerController = {
     writePort.from.src match {
       case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
@@ -225,51 +212,99 @@ case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buff
     }
   }
 
-  def rdAddr(ra:OutPort):SRAM = { 
+  def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
+  def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
+  def load = readPort
+}
+
+trait SRAMOnRead extends OnChipMem {
+  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
+  def rdAddr(ra:OutPort):this.type = { 
     readAddr.connect(ra); 
     ra.src match {
       case PipeReg(stage,r) =>
         throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
-        //val reg:RdAddrPR = r.asInstanceOf[RdAddrPR]
-        //reg.raPorts += readAddr 
       case _ =>
     }
     this
   } 
-  def wtAddr(wa:OutPort):SRAM = { 
+}
+trait FIFOOnRead extends OnChipMem {
+  /* Control Signals */
+  val notEmpty = OutPort(this, s"$this.notEmpty")
+  val dequeueEnable = InPort(this, s"$this.deqEn")
+  //val counter = Counter()
+}
+
+trait SRAMOnWrite extends OnChipMem {
+  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
+  var writeCtr:Counter = _
+  def wtAddr(wa:OutPort):this.type = { 
     writeAddr.connect(wa)
     this 
   }
-  def wtPort(wp:OutPort):SRAM = { writePort.connect(wp); this } 
-  def wtPort(vec:Vector):SRAM = { wtPort(ctrler.newVin(vec).out) }
+  def wtCtr(ct:Counter):this.type = { writeCtr = ct; this }
 
-  def load = readPort
+  override def toUpdate = super.toUpdate || writeCtr == null
+}
+trait FIFOOnWrite extends OnChipMem {
+  var _start:Option[OutPort] = None
+  var _end:Option[OutPort] = None 
+  def start(op:OutPort):this.type = { _start = Some(op); this }
+  def end(op:OutPort):this.type = { _end = Some(op); this }
+  def start:Option[OutPort] = _start
+  def end:Option[OutPort] = _end 
 
+  /* Control Signals */
+  val notFull = OutPort(this, s"$this.notFull")
+  val enqueueEnable = InPort(this, s"$this.enqEn")
+  override def toUpdate = super.toUpdate
+}
+/** SRAM 
+ *  @param name: user defined optional name of SRAM 
+ *  @param size: size of SRAM in all dimensions 
+ *  @param banking: Banking mode of SRAM
+ *  @param buffering: Double buffer mode of sram 
+ *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
+ *  calculate write address?
+ */
+case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
+  extends OnChipMem with SRAMOnRead with SRAMOnWrite {
+  override val typeStr = "SRAM"
 }
 object SRAM {
-  /* Remote Write */
-  def apply(size:Int, vec:Vector, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering, writeCtr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering, writeCtr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtPort(vec)
-  def apply(name:String, size:Int, vec:Vector, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr).wtPort(vec)
-
-  /* Local Write */
+  //TODO remove after apps are regenerated
   def apply(size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering, writeCtr)
+    = SRAM(None, size, banking, buffering).wtCtr(writeCtr)
   def apply(name:String, size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering, writeCtr)
-  def apply(size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
-  def apply(name:String, size:Int, readAddr:OutPort, writeAddr:OutPort, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering, writeCtr).rdAddr(readAddr).wtAddr(writeAddr)
+    = SRAM(Some(name), size, banking, buffering).wtCtr(writeCtr)
+
+  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(None, size, banking, buffering)
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SRAM
+    = SRAM(Some(name), size, banking, buffering)
+}
+
+case class FIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
+  extends OnChipMem with FIFOOnRead with FIFOOnWrite {
+  override val typeStr = "FIFO"
+}
+object FIFO {
+  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
+    = FIFO(None, size, banking, buffering)
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
+    = FIFO(Some(name), size, banking, buffering)
+}
+
+case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
+  extends OnChipMem with SRAMOnRead with FIFOOnWrite {
+  override val typeStr = "FIFO"
+}
+object SemiFIFO {
+  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
+    = SemiFIFO(None, size, banking, buffering)
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
+    = SemiFIFO(Some(name), size, banking, buffering)
 }
 
 trait IO extends Primitive
@@ -513,14 +548,14 @@ object AccumStage {
 }
 class WAStage (override val name:Option[String])
   (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
-  var srams:Either[List[String], ListBuffer[SRAM]] = _
+  var srams:Either[List[String], ListBuffer[SRAMOnWrite]] = _
   override val typeStr = "WAStage"
   override def toUpdate = super.toUpdate || srams==null
 
   def updateSRAM(n:Node) = {
     srams match {
-      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
-      case Right(l) => l += n.asInstanceOf[SRAM]
+      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAMOnWrite]))
+      case Right(l) => l += n.asInstanceOf[SRAMOnWrite]
     }
   }
 
@@ -531,8 +566,8 @@ class WAStage (override val name:Option[String])
         srams.asInstanceOf[List[String]].foreach { s =>
           design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
         }
-      case t if t =:= typeOf[SRAM] => 
-        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
+      case t if t <:< typeOf[SRAMOnWrite] => 
+        this.srams = Right(srams.asInstanceOf[List[SRAMOnWrite]].to[ListBuffer])
     }
     this
   }
@@ -573,8 +608,8 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, sram:SRAM)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
-case class StorePR(override val regId:Int, sram:SRAM)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
+case class LoadPR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
+case class StorePR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
 case class WtAddrPR(override val regId:Int, waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                 extends Reg {override val typeStr = "regct"}
@@ -646,7 +681,7 @@ abstract class LUT(implicit override val ctrler:ComputeUnit, design: Design) ext
   val numIns:Int
   val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
   val out = OutPort(this, s"${this}.o")
-  def isTokenOut = out.to.exists(_.src.asInstanceOf[Primitive].ctrler!=ctrler)
+  def isCtrlOut = out.to.exists(_.src.asInstanceOf[Primitive].ctrler!=ctrler)
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
               (implicit ctrler:ComputeUnit, design: Design) extends LUT {
@@ -688,6 +723,29 @@ object EnLUT {
     lut
   }
 }
+class AndTree(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
+  override val name = None
+  override val typeStr = "AndTree"
+  val ins = ListBuffer[InPort]() 
+  val out = OutPort(this, s"$this.out")
+  def addInputs(inputs:List[OutPort]) = {
+    ins ++= inputs.map{op => val ip = InPort(this, s"$this.in"); ip.connect(op); ip }
+  }
+}
+object AndTree {
+  def apply(inputs:OutPort*)(implicit ctrler:ComputeUnit, design:Design) = {
+    val at = new AndTree()
+    at.addInputs(inputs.toList)
+    at
+  }
+}
+case class FIFOAndTree()(implicit ctrler:ComputeUnit, design:Design) extends AndTree {
+  override val typeStr = "FIFOAndTree"
+}
+case class TokenInAndTree()(implicit ctrler:ComputeUnit, design:Design) extends AndTree {
+  override val typeStr = "TokInAndTree"
+}
+
 case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive {
   override val ctrler:ComputeUnit = cu
 
@@ -700,12 +758,19 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   val tokOutLUTs = ListBuffer[TokenOutLUT]()
   val tokDownLUTs = ListBuffer[TokenDownLUT]()
   def luts = enLUTs.map(_._2).toList ++ tokOutLUTs.toList ++ tokDownLUTs.toList 
+  val fifoAndTree = FIFOAndTree()
+  val tokInAndTree = TokenInAndTree()
+  val andTree = AndTree(fifoAndTree.out, tokInAndTree.out)
   def innerCtrEn:EnInPort = cu match {
-    case cu:InnerController => cu.localCChain.inner.en 
+    case cu:Pipeline => cu.localCChain.inner.en //Local CChain Enable
+    //Make a copy of parent's CounterChain and becomes local CounterChain
+    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).inner.en
+    //OuterController's inner most counter's enable
     case cu:OuterController => cu.inner.getCopy(cu.localCChain).inner.en
   }
   def outerCtrDone:DoneOutPort = cu match {
-    case cu:InnerController => cu.localCChain.outer.done 
+    case cu:Pipeline => cu.localCChain.outer.done 
+    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).outer.done
     case cu:OuterController => cu.inner.getCopy(cu.localCChain).outer.done
   }
   var tokenOut:Option[OutPort] = None 
@@ -741,9 +806,26 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
         }
       }
     }
+    cu match {
+      case cu:InnerController =>
+        cu.mems.foreach { 
+          case mem:FIFOOnWrite => cins += mem.enqueueEnable
+          case _ =>
+        }
+        cins ++= tokInAndTree.ins
+      case _ =>
+    }
     cins.toList
   }
-  lazy val ctrlOuts:List[OutPort] = { cu.ctrlBox.luts.filter(_.isTokenOut).map(_.out) }
+
+  lazy val ctrlOuts:List[OutPort] = { 
+    cu.ctrlBox.luts.filter(_.isCtrlOut).map(_.out) ++
+    (cu match {
+      case cu:InnerController =>
+        cu.mems.collect{ case mem:FIFOOnWrite => mem }.filter{_.readPort.isConnected}.map(_.notFull)
+      case _ => Nil
+    })
+  }
 
   override def toUpdate = super.toUpdate || tokenOut == null || tokenDown == null
 }

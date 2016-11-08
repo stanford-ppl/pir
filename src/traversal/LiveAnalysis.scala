@@ -38,10 +38,10 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
   private def updatesPrim(implicit cu:ComputeUnit) = {
     cu match {
       case icu:InnerController =>
-        icu.srams.foreach { sram =>
-          addLiveOut(sram.readAddr)
-          if (sram.writeAddr.isConnected) addLiveOut(sram.writeAddr)
-          if (sram.writePort.isConnected) addLiveOut(sram.writePort)
+        icu.mems.foreach { mem =>
+          mem match { case mem:SRAMOnRead => addLiveOut(mem.readAddr); case _ => }
+          mem match { case mem:SRAMOnWrite => addLiveOut(mem.writeAddr); case _ => }
+          if (mem.writePort.isConnected) addLiveOut(mem.writePort)
         }
       case _ =>
     }
@@ -144,15 +144,18 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
         // If there's no def on loaded value, check if sram's readAddr is directly connected to 
         // the counter. If it is, forward loaded value to the first local stage
         r match {
-          case r@LoadPR(_,sram) =>
-            sram.readAddr.from.src match {
-              case _:Counter if (s == stages(1)) => s.addDef(r)
-              case _:Counter => stages(1).addDef(r)
-              case fu:FuncUnit if (indexOf(fu.stage) == indexOf(s) - 1) =>
-                throw PIRException(s"The stage right after address calculation stage should load from sram directly ${s} in ${s.ctrler}")
-              case fu:FuncUnit if (indexOf(fu.stage) >= indexOf(s)) =>
-                throw PIRException(s"Loading stage is after address calculation stage loading:${s}, address calculation stage:${fu.stage} in ${s.ctrler}")
-              case r => throw PIRException(s"Unknown producer of ${sram} readAddr $r")
+          case r@LoadPR(_,mem) =>
+            mem match {
+              case mem:SRAMOnRead =>
+                mem.readAddr.from.src match {
+                  case _:Counter if (s == stages(1)) => s.addDef(r)
+                  case fu:FuncUnit if (indexOf(fu.stage) == indexOf(s) - 1) =>
+                    throw PIRException(s"The stage right after address calculation stage should load from sram directly ${s} in ${s.ctrler}")
+                  case fu:FuncUnit if (indexOf(fu.stage) >= indexOf(s)) =>
+                    throw PIRException(s"Loading stage is after address calculation stage loading:${s}, address calculation stage:${fu.stage} in ${s.ctrler}")
+                  case r => throw PIRException(s"Unknown producer of ${mem} readAddr $r")
+                }
+              case mem:FIFOOnRead => if (s == stages(1)) s.addDef(r)
             }
           case _ =>
         }

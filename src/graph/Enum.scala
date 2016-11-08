@@ -67,5 +67,10 @@ package object enums {
   case class MultiBuffer(depth:Int, swapRead:Counter, swapWrite:Counter) extends Buffering
   case class DoubleBuffer(swapRead:Counter, swapWrite:Counter) extends Buffering
   case class SingleBuffer() extends Buffering
+
+  //sealed trait SramMode
+  //case object Fifo extends SramMode
+  //case object FifoOnWrite extends SramMode 
+  //case object Sram extends SramMode
 }
 

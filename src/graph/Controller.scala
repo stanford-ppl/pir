@@ -70,8 +70,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
 
-  /* Pointer */
-  var parent:Controller = _
+  def parent:Controller
+  def parent(p:Controller)
   // List of controllers the current controller expecting token from 
   val dependencies = ListBuffer[ComputeUnit]()
   // List of controllers the current controller send token to
@@ -96,18 +96,22 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
   def stages:List[Stage] = emptyStage :: Nil 
   
-  var localCChain:CounterChain = _
+  lazy val localCChain:CounterChain = {
+    this match {
+      case cu:StreamPipeline =>
+        assert(cchains.size==1)
+        cchains.head // Should be the copy of StreamController
+      case cu =>
+        val locals = cchains.filter{cc => !cc.isCopy && !cc.streaming}
+        assert(locals.size==1, "Currently assume each ComputeUnit only have a single local Counterchain")
+        locals.head
+    }
+  }
 
-  override def toUpdate = { super.toUpdate || parent==null || localCChain == null }
+  override def toUpdate = { super.toUpdate }
 
   def updateFields(cchains:List[CounterChain]):this.type = {
-    cchains.foreach { cc => 
-      addCChain(cc)
-      if (!cc.isCopy && !cc.streaming) {
-        if (localCChain==null) localCChain = cc
-        else throw PIRException(s"Currently assume each CU have exactly 1 local counterchain. Already set local to be ${localCChain}. Trying to reset to $cc")
-      }
-    }
+    cchains.foreach { cc => addCChain(cc) }
     this
   }
 
@@ -123,7 +127,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
       case p:String =>
         design.updateLater(p, (n:Node) => updateParent(n.asInstanceOf[Controller]))
       case p:Controller =>
-        this.parent = p 
+        this.parent(p)
         p.children += this
     }
     this
@@ -158,8 +162,11 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
+  var _parent:Controller = _
+  def parent:Controller = { _parent }
+  def parent(p:Controller) = { _parent = p }
   var inner:InnerController = _
-  override def toUpdate = super.toUpdate || inner == null
+  override def toUpdate = super.toUpdate || inner == null || _parent == null
 
   private val _cchains = ListBuffer[CounterChain]()
   def cchains:List[CounterChain] = _cchains.toList 
@@ -173,36 +180,73 @@ class Sequential(name:Option[String])(implicit design:Design) extends OuterContr
   override val typeStr = "SeqCU"
 }
 object Sequential {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)  (implicit design: Design, dtp:TypeTag[D]):Sequential = {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)
+                (implicit design: Design, dtp:TypeTag[D]):Sequential = {
     new Sequential(name).updateParent(parent).updateDeps(deps).updateBlock(block)
   }
   /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
-    apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Sequential => Any) (implicit design:Design, dtp:TypeTag[D]):Sequential =
-    apply(Some(name), parent, deps)(block)
+  def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    Sequential(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:Sequential => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):Sequential =
+    Sequential(Some(name), parent, deps)(block)
 }
 
 class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterController(name) {
   override val typeStr = "MetaPipeCU"
 }
 object MetaPipeline {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)
+                (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
     new MetaPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
   }
   /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
-    apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:MetaPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
-    apply(Some(name), parent, deps)(block)
+  def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    MetaPipeline(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:MetaPipeline => Any)
+                (implicit design:Design, dtp:TypeTag[D]):MetaPipeline =
+    MetaPipeline(Some(name), parent, deps)(block)
 }
 
-class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with SpadeController with InnerRegBlock { self =>
+class StreamController(name:Option[String])(implicit design:Design) extends OuterController(name) {
+  override val typeStr = "StreamCtrler"
+}
+object StreamController {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamController => Any)
+                (implicit design: Design, dtp:TypeTag[D]):StreamController = {
+    new StreamController(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+  }
+  /* Sugar API */
+  def apply [P,D](parent:P, deps:List[D]) (block: StreamController => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):StreamController =
+    StreamController(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:StreamController => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):StreamController =
+    StreamController(Some(name), parent, deps)(block)
+}
+
+abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with SpadeController with InnerRegBlock { self =>
   implicit val icu:InnerController = self
 
   override val typeStr = "PipeCU"
 
-  var srams:List[SRAM] = _ 
+  var _parent:OuterController = _
+  override def parent:OuterController = _parent
+  override def parent(p:Controller) = { 
+    p match {
+      case p:OuterController => _parent = p
+      case _ => throw PIRException(s"InnerController's parent must be OuterController $this.parent=$p")
+    }
+  }
+
+  def mems:List[OnChipMem]
+  def mems(ms:List[OnChipMem])
+  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
+  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
+  }
 
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
   override def cchains = cchainMap.values.toList
@@ -242,6 +286,7 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   var outers:List[OuterController] = Nil
   def inner:InnerController = this
 
+  /* Including current CU */
   lazy val ancestors: List[ComputeUnit] = {
     val list = ListBuffer[ComputeUnit]()
     var child:Controller = this 
@@ -263,25 +308,35 @@ class InnerController(name:Option[String])(implicit design:Design) extends Compu
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
 
   override def toUpdate = { 
-    super.toUpdate || parent==null || cchains==null || srams==null
+    super.toUpdate || _parent==null
   }
 
-  def updateFields(cchains:List[CounterChain], srams:List[SRAM]):this.type = {
+  def updateFields(cchains:List[CounterChain], mems:List[OnChipMem]):this.type = {
     super.updateFields(cchains)
-    this.srams = srams 
+    this.mems(mems)
     this
   }
 
   override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
-    val (cchains, srams) = 
-      design.addBlock[CounterChain, SRAM](block(this), 
+    val (cchains, mems) = 
+      design.addBlock[CounterChain, OnChipMem](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM]
+                            (n:Node) => n.isInstanceOf[OnChipMem]
                             ) 
-    updateFields(cchains, srams)
+    updateFields(cchains, mems)
   }
 }
 class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+  override def writtenMem:List[SRAMOnWrite] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[SRAMOnWrite]) }.toList
+  }
+  val _mems = ListBuffer[SRAMOnRead]()
+  override def mems:List[SRAMOnRead] = _mems.toList
+  def mems(ms:List[OnChipMem]) = {
+    ms.foreach { m =>
+      _mems += m.asInstanceOf[SRAMOnRead]
+    }
+  }
 }
 object Pipeline {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Pipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):Pipeline = {
@@ -295,15 +350,15 @@ object Pipeline {
 }
 
 /* Inner Unit Pipe */
-class UnitPipeline(override val name: Option[String])(implicit design: Design) extends InnerController(name) { self =>
+class UnitPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) { self =>
   override val typeStr = "UnitCompUnit"
   def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
-    val (cchains, srams) = 
-      design.addBlock[CounterChain, SRAM](block(this), 
+    val (cchains, mems) = 
+      design.addBlock[CounterChain, OnChipMem](block(this), 
                             (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[SRAM]
+                            (n:Node) => n.isInstanceOf[OnChipMem]
                             ) 
-    super.updateFields(cchains, srams)
+    super.updateFields(cchains, mems)
     this
   }
 }
@@ -318,7 +373,7 @@ object UnitPipeline {
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends InnerController(name)  {
+  (implicit design:Design) extends Pipeline(name)  {
 
   /* Fields */
   val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
@@ -353,23 +408,38 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
 } 
 object TileTransfer extends {
   /* Sugar API */
-  def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)(implicit design:Design, dtp:TypeTag[D]):TileTransfer =
+  def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)
+                (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).updateDeps(deps).updateBlock(block)
-  def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any) (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
+  def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)               (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
 }
 
-class StreamingPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+  override val typeStr = "StreamPipe"
+  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
+  }
+  val _mems = ListBuffer[FIFOOnRead]()
+  override def mems:List[FIFOOnRead] = _mems.toList
+  def mems(ms:List[OnChipMem]) = {
+    ms.foreach { m =>
+      _mems += m.asInstanceOf[FIFOOnRead]
+    }
+  }
 }
-object StreamingPipeline {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamingPipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):StreamingPipeline = {
-    new StreamingPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+object StreamPipeline {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamPipeline => Any)
+                (implicit design: Design, dtp:TypeTag[D]):StreamPipeline = {
+    new StreamPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
   }
   /* Sugar API */
-  def apply [P,D](parent:P, deps:List[D]) (block: StreamingPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):StreamingPipeline =
-    apply(None, parent, deps)(block)
-  def apply[P,D](name:String, parent:P, deps:List[D]) (block:StreamingPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):StreamingPipeline =
-    apply(Some(name), parent, deps)(block)
+  def apply [P,D](parent:P, deps:List[D]) (block: StreamPipeline => Any)
+                 (implicit design:Design, dtp:TypeTag[D]):StreamPipeline =
+    StreamPipeline(None, parent, deps)(block)
+  def apply[P,D](name:String, parent:P, deps:List[D]) (block:StreamPipeline => Any)
+                (implicit design:Design, dtp:TypeTag[D]):StreamPipeline =
+    StreamPipeline(Some(name), parent, deps)(block)
 }
 
 case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends SpadeController { self =>

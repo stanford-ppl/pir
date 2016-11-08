@@ -11,7 +11,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
 class SRAMMapper(implicit val design:Design) extends Mapper {
-  type N = SRAM 
+  type N = OnMem 
   type R = PSRAM 
   val typeStr = "SramMapper"
   override def debug = Config.debugSMMapper
@@ -31,18 +31,17 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
         if ((ibpregs intersect srampregs).size == 0) throw SRAMRouting(s,p)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
     }
-    map.setSM(s, p)
-      .setOP(s.readPort, p.readPort)
-      .setIP(s.writeAddr, p.writeAddr)
-      .setIP(s.readAddr, p.readAddr)
-      .setIP(s.writePort, p.writePort)
+    var mp = map.setSM(s, p).setOP(s.readPort, p.readPort).setIP(s.writePort, p.writePort)
+    s match { case s:SOW => mp = mp.setIP(s.writeAddr, p.writeAddr); case _ => }
+    s match { case s:SOR => mp = mp.setIP(s.readAddr, p.readAddr); case _ => }
+    mp
   }
 
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val cons = List(mapSRAM(pirMap.vimap) _)
-      bind(pcu.srams, cu.srams, pirMap, cons, finPass(cu) _)
+      bind(pcu.srams, cu.mems, pirMap, cons, finPass(cu) _)
     }
   }
 }
@@ -50,6 +49,6 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
 case class OutOfSram(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough SRAMs in ${pcu} to map application."
 }
-case class SRAMRouting(n:SRAM, p:PSRAM)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class SRAMRouting(n:OnMem, p:PSRAM)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }

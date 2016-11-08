@@ -77,7 +77,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
                 case cu:CU =>
                   val pcu = clmap.map(cu).asInstanceOf[PCU]
                   cu match {
-                    case icu:ICL => smmap.printMap(icu.srams)
+                    case icu:ICL => smmap.printMap(icu.mems)
                     case _ =>
                   }
                   ctmap.printCCMap(cu.cchains)
@@ -284,18 +284,23 @@ case class SMMap(map:SMMap.M, pmap:SMMap.PM) extends BMap {
   override def printMap(ks:List[K])(implicit p:Printer):Unit = {
     val ipmap = pirMap.ipmap
     val opmap = pirMap.opmap
-    def printSRAM(sram:K) = {
-      ipmap.printInPort(sram.readAddr)
-      ipmap.printInPort(sram.writeAddr)
-      ipmap.printInPort(sram.writePort)
-      opmap.printOutPort(sram.readPort)
+    def printMem(mem:K) = {
+      mem match {
+        case mem:SOR =>
+          ipmap.printInPort(mem.readAddr)
+        case mem:SOW =>
+          ipmap.printInPort(mem.writeAddr)
+        case _ =>
+      }
+      ipmap.printInPort(mem.writePort)
+      opmap.printOutPort(mem.readPort)
     }
-    super.printMap(ks.asInstanceOf[List[K]], printSRAM)
+    super.printMap(ks.asInstanceOf[List[K]], printMem)
   }
 }
 object SMMap extends BMapObj {
-  type K = SRAM
-  type V = PSRAM
+  type K = OnMem 
+  type V = PSRAM 
   def empty:SMMap = SMMap(Map.empty, Map.empty)
 }
 

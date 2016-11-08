@@ -68,6 +68,7 @@ trait DotEnum {
   val blue      = Color("blue")
   val red       = Color("red")
   val indianred = Color("indianred1")
+  val cyan      = Color("cyan4")
 
   val both = Direction("both")
 

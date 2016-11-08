@@ -30,7 +30,12 @@ package object typealias {
   type PRIM  = pir.graph.Primitive
   type Reg   = pir.graph.Reg
   type PR    = pir.graph.PipeReg
+  type OnMem = pir.graph.OnChipMem
   type SRAM  = pir.graph.SRAM
+  type SOR   = pir.graph.SRAMOnRead
+  type SOW   = pir.graph.SRAMOnWrite
+  type FOR   = pir.graph.FIFOOnRead
+  type FOW   = pir.graph.FIFOOnWrite
   type CC    = pir.graph.CounterChain
   type Ctr   = pir.graph.Counter
   type FU    = pir.graph.FuncUnit
@@ -54,6 +59,7 @@ package object typealias {
   type TOLUT = pir.graph.TokenOutLUT
   type TDLUT = pir.graph.TokenDownLUT
   type EnLUT = pir.graph.EnLUT
+  type AT    = pir.graph.AndTree
   type UC    = pir.graph.UDCounter
   type Const = pir.graph.Const
   type Top   = pir.graph.Top
