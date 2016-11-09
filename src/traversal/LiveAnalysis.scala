@@ -15,9 +15,10 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
       // Uses in sram and counter
       updatesPrim(cu)
       // EmptyStage
-      val empty = 
-        if (cu.wtAddrStages.size > 0) { stageAnalysis(List(cu.emptyStage)); cu.wtAddrStages.last.last}
-        else { cu.emptyStage }
+      //val empty = 
+        //if (cu.wtAddrStages.size > 0) { stageAnalysis(List(cu.emptyStage)); cu.wtAddrStages.last.last}
+        //else { cu.emptyStage }
+      val empty = cu.emptyStage
       // Write Addr Stages
       cu.wtAddrStages.foreach { was => stageAnalysis(was) }
       // Local Stages
