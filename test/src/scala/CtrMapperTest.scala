@@ -17,7 +17,7 @@ class CtrMapperTest extends UnitTest { self =>
 
   "CtrMapper Test1" should "success" in {
     new Design {
-      implicit val ctrler:CU = new InnerController(Some("Test")) 
+      implicit val ctrler:CU = new Pipeline(Some("Test")) 
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)(ctrler, design)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)
@@ -56,7 +56,7 @@ class CtrMapperTest extends UnitTest { self =>
 
   "CtrMapper Test2" should "fail" in {
     new Design {
-      implicit val ctrler:CU = new InnerController(Some("Test")) 
+      implicit val ctrler:CU = new Pipeline(Some("Test")) 
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)
@@ -97,7 +97,7 @@ class CtrMapperTest extends UnitTest { self =>
 
   "CtrMapper Test3" should "success" in {
     new Design {
-      implicit val ctrler:CU = new InnerController(Some("Test")) 
+      implicit val ctrler:CU = new Pipeline(Some("Test")) 
       // Nodes
       val cc1 = CounterChain(0 until 1 by 2)
       val cc0 = CounterChain(0 until 1 by 2, 3 until 4 by 5)

@@ -13,7 +13,7 @@ import pir.graph.mapper._
 import pir.graph.traversal._
 import scala.language.reflectiveCalls
 
-import org.scalatest._
+import org.scalatest.{Sequential => _, _}
 import scala.util.{Try, Success, Failure}
 
 class CUMapperTest extends UnitTest with Metadata {
@@ -24,19 +24,20 @@ class CUMapperTest extends UnitTest with Metadata {
       // Nodes
       val sls = List.tabulate(8){ i => Scalar(s"$i") }
       val vts = List.fill(2)(Vector())
-      val c0 = Pipeline("c0", top, Nil){ implicit CU => 
+      val outer = Sequential("outer", top, Nil) { implicit CU => }
+      val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
         CU.vecOut(vts(0)) 
         CU.scalarOut(sls(0)) 
         CU.scalarOut(sls(1)) 
       }
-      val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+      val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
         CU.vecIn(vts(0))
         CU.scalarIn(sls(0))
         //CU.vecOut(vts(1)) 
         CU.scalarOut(sls(7))
         CU.scalarOut(sls(6))
       }
-      val c2 = Pipeline("c2", top, Nil){ implicit CU => 
+      val c2 = Pipeline("c2", outer, Nil){ implicit CU => 
         CU.scalarIn(sls(6))
         CU.scalarIn(sls(2))
         CU.scalarIn(sls(3))
@@ -44,13 +45,13 @@ class CUMapperTest extends UnitTest with Metadata {
         CU.scalarIn(sls(5))
         CU.scalarIn(sls(7))
       }
-      val c3 = Pipeline("c3", top, Nil){ implicit CU => 
+      val c3 = Pipeline("c3", outer, Nil){ implicit CU => 
         CU.vecIn(vts(0))
         //CU.vecIn(vts(1))
         CU.scalarIn(sls(6))
         CU.scalarIn(sls(7))
       }
-      val c4 = Pipeline("c4", top, Nil){ implicit CU => 
+      val c4 = Pipeline("c4", outer, Nil){ implicit CU => 
         CU.vecIn(vts(0))
         CU.scalarIn(sls(0))
         CU.scalarIn(sls(1))
@@ -60,7 +61,7 @@ class CUMapperTest extends UnitTest with Metadata {
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, Nil, sls, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls, Nil, Nil)
 
       // PNodes
       override val arch = new Spade with PointToPointNetwork {

@@ -16,28 +16,38 @@ object StreamPipe extends PIRApp {
     val tileSize = Const("4i")
     val dataSize = Const("8i")
     val output = ArgOut()
-    val bound = ArgIn()
-    val vec0 = Vector("vec0")
+    val vecA = Vector("vecA")
+    val vecB = Vector("vecB")
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
     val outer = StreamController(name="outer", parent=top, deps=Nil){ implicit CU =>
       CounterChain(name="i", dataSize by tileSize)
     }
-    //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
-    val inner = StreamPipeline(name="inner", parent=outer, deps=Nil) { implicit CU =>
+    //Pipe.reduce(tileSize par cuAPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
+    val cuA = StreamPipeline(name="cuA", parent=outer, deps=Nil) { implicit CU =>
       // StateMachines / CounterChain
       val ii = CounterChain.copy(outer, "i")
       val et = CU.emptyStage
       val s0::_ = Stages(1)
       // SRAMs
       // Pipeline Stages 
-      Stage(s0, op1=CU.ctr(et, ii(0)), op=Bypass, result=CU.vecOut(s0, vec0))
+      Stage(s0, op1=CU.ctr(et, ii(0)), op=Bypass, result=CU.vecOut(s0, vecA))
     }
-    StreamPipeline (name="accum", parent=outer, deps=List(inner)) { implicit CU =>
-      val sA = FIFO(name="sA", size=32, banking=Strided(1), buffering=SingleBuffer()).wtPort(vec0)
+    val cuB = StreamPipeline(name="cuB", parent=outer, deps=Nil) { implicit CU =>
+      // StateMachines / CounterChain
+      val ii = CounterChain.copy(outer, "i")
+      val et = CU.emptyStage
+      val s0::_ = Stages(1)
+      // SRAMs
+      // Pipeline Stages 
+      Stage(s0, op1=CU.ctr(et, ii(0)), op=Bypass, result=CU.vecOut(s0, vecB))
+    }
+    StreamPipeline (name="accum", parent=outer, deps=List(cuA, cuB)) { implicit CU =>
+      val sA = FIFO(name="sA", size=32, banking=Strided(1), buffering=SingleBuffer()).wtPort(vecA)
+      val sB = FIFO(name="sB", size=32, banking=Strided(1), buffering=SingleBuffer()).wtPort(vecB)
       val es = CU.emptyStage
       val s0::_ = Stages(1)
-      Stage(s0, op1=sA.load, op=Bypass, CU.scalarOut(s0, output))
+      Stage(s0, op1=sA.load, op2=sB.load, op=Bypass, CU.scalarOut(s0, output))
     }
 
   }

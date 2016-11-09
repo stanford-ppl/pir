@@ -18,16 +18,17 @@ class ScalarBundleTest extends UnitTest { self =>
       top = Top()
       // Nodes
       val sls = List.tabulate(8){ i => Scalar(s"s$i") }
-      val c0 = Pipeline("c0", top, Nil){ implicit CU => 
+      val outer = Sequential("outer", top, Nil) { implicit CU => } 
+      val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
         CU.scalarOut(sls(0)) 
         CU.scalarOut(sls(1)) 
       }
-      val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+      val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
         CU.scalarIn(sls(0))
         CU.scalarOut(sls(7))
         CU.scalarOut(sls(6))
       }
-      val c2 = Pipeline("c2", top, Nil){ implicit CU => 
+      val c2 = Pipeline("c2", outer, Nil){ implicit CU => 
         CU.scalarIn(sls(6))
         CU.scalarIn(sls(2))
         CU.scalarIn(sls(3))
@@ -35,11 +36,11 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(sls(5))
         CU.scalarIn(sls(7))
       }
-      val c3 = Pipeline("c3", top, Nil){ implicit CU => 
+      val c3 = Pipeline("c3", outer, Nil){ implicit CU => 
         CU.scalarIn(sls(6))
         CU.scalarIn(sls(7))
       }
-      val c4 = Pipeline("c4", top, Nil){ implicit CU => 
+      val c4 = Pipeline("c4", outer, Nil){ implicit CU => 
         CU.scalarIn(sls(0))
         CU.scalarIn(sls(1))
         CU.scalarOut(sls(2))
@@ -48,7 +49,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, Nil, sls, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls, Nil, Nil)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -68,11 +69,12 @@ class ScalarBundleTest extends UnitTest { self =>
       val ais = List.tabulate(7) { i => ArgIn(s"ai$i") }
 
       val sls = Nil 
-      val c0 = Pipeline("c0", top, Nil){ implicit CU => 
+      val outer = Sequential("outer", top, Nil) { implicit CU => } 
+      val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
         CU.scalarIn(ais(0))
         CU.scalarIn(ais(1))
       }
-      val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+      val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
         CU.scalarIn(ais(2))
         CU.scalarIn(ais(3))
         CU.scalarIn(ais(4))
@@ -80,7 +82,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(ais(6))
       }
       val cus = c0::c1::Nil
-      top.updateFields(cus, Nil, sls ++ ais, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls ++ ais, Nil, Nil)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -105,19 +107,20 @@ class ScalarBundleTest extends UnitTest { self =>
       val ais = List.tabulate(3) { i => ArgIn(s"ai$i") }
 
       val sls = Nil 
-      val c0 = Pipeline("c0", top, Nil){ implicit CU => 
+      val outer = Sequential("outer", top, Nil) { implicit CU => } 
+      val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
         CU.scalarIn(ais(0))
         CU.scalarIn(ais(1))
       }
-      val c1 = Pipeline("c1", top, Nil){ implicit CU => 
+      val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
         CU.scalarIn(ais(1))
         CU.scalarIn(ais(2))
       }
-      val c2 = Pipeline("c2", top, Nil){ implicit CU => 
+      val c2 = Pipeline("c2", outer, Nil){ implicit CU => 
         CU.scalarIn(ais(2))
       }
       val cus = c0::c1::c2::Nil
-      top.updateFields(cus, Nil, sls ++ ais, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls ++ ais, Nil, Nil)
 
       // PNodes
       override val arch = P2P_2CU  

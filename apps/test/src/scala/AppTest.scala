@@ -15,6 +15,7 @@ class AppTests extends UnitTest { self =>
   //intercept[PIRException] {
   "DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
   "DotProductLite" should "success" taggedAs(WIP) in { DotProductLite.main(Array("DotProductLite")) }
+  "StreamPipe" should "success" in { StreamPipe.main(Array("StreamPipe")) }
   "ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
   "BlockReduce1DDesign" should "success" in { BlockReduce1DDesign.main(Array("BlockReduce1DDesign")) }
   "DeviceMemcpyDesign" should "success" in { DeviceMemcpyDesign.main(Array("DeviceMemcpyDesign")) }
