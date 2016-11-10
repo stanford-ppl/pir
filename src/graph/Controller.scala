@@ -539,8 +539,8 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
     }
   }
   def spadeCtrlers:List[SpadeController] = this :: innerCUs ++ memCtrls
-  val command = OutPort(this, s"${this}.command")
-  val status = InPort(this, s"${this}.status")
+  val command = CtrlOutPort(this, s"${this}.command")
+  val status = CtrlInPort(this, s"${this}.status")
   var scalars:List[Scalar] = _
   var vectors:List[Vector] = _
 

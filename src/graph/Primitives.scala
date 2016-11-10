@@ -250,8 +250,8 @@ trait SRAMOnRead extends OnChipMem {
 }
 trait FIFOOnRead extends OnChipMem {
   /* Control Signals */
-  val notEmpty = OutPort(this, s"$this.notEmpty")
-  val dequeueEnable = InPort(this, s"$this.deqEn")
+  val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
+  val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
   //val counter = Counter()
 }
 
@@ -275,8 +275,8 @@ trait FIFOOnWrite extends OnChipMem {
   def end:Option[OutPort] = _end 
 
   /* Control Signals */
-  val notFull = OutPort(this, s"$this.notFull")
-  val enqueueEnable = InPort(this, s"$this.enqEn")
+  val notFull = CtrlOutPort(this, s"$this.notFull")
+  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
   override def toUpdate = super.toUpdate
 }
 /** SRAM 
@@ -671,10 +671,10 @@ object Const {
 
 abstract class UDCounter(implicit ctrler:Controller, design: Design) extends Primitive {
   val initVal:Int
-  val inc = InPort(this, s"${this}.inc")
-  val dec = InPort(this, s"${this}.dec")
-  val init = InPort(this, s"${this}.init")
-  val out = OutPort(this, s"${this}.o")
+  val inc = CtrlInPort(this, s"${this}.inc")
+  val dec = CtrlInPort(this, s"${this}.dec")
+  val init = CtrlInPort(this, s"${this}.init")
+  val out = CtrlOutPort(this, s"${this}.o")
 }
 case class TokenBuffer(dep:ComputeUnit, initVal:Int)
   (implicit ctrler:Controller, design: Design) extends UDCounter{
@@ -688,9 +688,9 @@ case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: D
   override val typeStr = "CredBuf"
 }
 
-case class TransferFunction(tf:(Map[OutPort, Int], List[Boolean]) => Boolean, info:String)
+case class TransferFunction(tf:(Map[CtrlOutPort, Int], List[Boolean]) => Boolean, info:String)
 object TransferFunction {
-  def apply(info:String)(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean):TransferFunction = {
+  def apply(info:String)(transFunc:(Map[CtrlOutPort, Int], List[Boolean]) => Boolean):TransferFunction = {
     TransferFunction(transFunc, info)
   }
 }
@@ -698,17 +698,16 @@ abstract class LUT(implicit override val ctrler:ComputeUnit, design: Design) ext
   override val name = None
   val transFunc:TransferFunction
   val numIns:Int
-  val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
-  val out = OutPort(this, s"${this}.o")
-  def isCtrlOut = out.to.exists(_.src match { case p:Primitive => p.ctrler!=ctrler; case top:Top => top!=ctrler})
+  val ins = List.fill(numIns) { CtrlInPort(this,s"${this}.i") } 
+  val out = CtrlOutPort(this, s"${this}.o")
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
               (implicit ctrler:ComputeUnit, design: Design) extends LUT {
   override val typeStr = "TokDownLUT"
 }
 object TokenDownLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit design: Design):OutPort = {
+  def apply(cu:ComputeUnit, outs:List[CtrlOutPort], transFunc:TransferFunction)
+  (implicit design: Design):CtrlOutPort = {
     val lut = TokenDownLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     cu.ctrlBox.tokDownLUTs += lut
@@ -720,8 +719,8 @@ case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
   override val typeStr = "TokOutLUT"
 }
 object TokenOutLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit design: Design):OutPort = {
+  def apply(cu:ComputeUnit, outs:List[CtrlOutPort], transFunc:TransferFunction)
+  (implicit design: Design):CtrlOutPort = {
     val lut = TokenOutLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     cu.ctrlBox.tokOutLUTs += lut
@@ -733,7 +732,7 @@ case class EnLUT(numIns:Int, transFunc:TransferFunction)
   override val typeStr = "EnLUT"
 }
 object EnLUT {
-  def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction, en:EnInPort)
+  def apply(cu:ComputeUnit, outs:List[CtrlOutPort], transFunc:TransferFunction, en:EnInPort)
   (implicit design: Design):EnLUT = {
     val lut = EnLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
@@ -745,14 +744,14 @@ object EnLUT {
 class AndTree(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
   override val name = None
   override val typeStr = "AndTree"
-  val ins = ListBuffer[InPort]() 
-  val out = OutPort(this, s"$this.out")
-  def addInputs(inputs:List[OutPort]) = {
-    ins ++= inputs.map{op => val ip = InPort(this, s"$this.in"); ip.connect(op); ip }
+  val ins = ListBuffer[CtrlInPort]() 
+  val out = CtrlOutPort(this, s"$this.out")
+  def addInputs(inputs:List[CtrlOutPort]) = {
+    ins ++= inputs.map{op => val ip = CtrlInPort(this, s"$this.in"); ip.connect(op); ip }
   }
 }
 object AndTree {
-  def apply(inputs:OutPort*)(implicit ctrler:ComputeUnit, design:Design) = {
+  def apply(inputs:CtrlOutPort*)(implicit ctrler:ComputeUnit, design:Design) = {
     val at = new AndTree()
     at.addInputs(inputs.toList)
     at
@@ -792,12 +791,12 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).outer.done
     case cu:OuterController => cu.inner.getCopy(cu.localCChain).outer.done
   }
-  var tokenOut:Option[OutPort] = None 
+  var tokenOut:Option[CtrlOutPort] = None 
   // only outer controller have token down, which is the init signal first child stage
-  var tokenDown:Option[OutPort] = None
+  var tokenDown:Option[CtrlOutPort] = None
 
-  lazy val ctrlIns:List[InPort] = {
-    val cins = ListBuffer[InPort]()
+  lazy val ctrlIns:List[CtrlInPort] = {
+    val cins = ListBuffer[CtrlInPort]()
     udcounters.foreach { case (ctrler, udc) =>
       if (udc.inc.isConnected)
         cins += udc.inc
@@ -814,16 +813,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       }
     }
     cu.ctrlBox.tokDownLUTs.foreach { tdl => 
-      tdl.ins.foreach { in => 
-        in.from.src match {
-          case top:Top =>
-            cins += in
-          case prim:Primitive =>
-            if (prim.ctrler!=cu)
-              cins += in
-          case _ => assert(false)
-        }
-      }
+      cins ++= tdl.ins.filter { _.isCtrlIn }
     }
     cu match {
       case cu:InnerController =>
@@ -837,8 +827,8 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     cins.toList
   }
 
-  lazy val ctrlOuts:List[OutPort] = { 
-    cu.ctrlBox.luts.filter(_.isCtrlOut).map(_.out) ++
+  lazy val ctrlOuts:List[CtrlOutPort] = { 
+    cu.ctrlBox.luts.map(_.out).filter(_.isCtrlOut) ++
     (cu match {
       case cu:InnerController =>
         cu.mems.collect{ case mem:FIFOOnWrite => mem }.filter{_.readPort.isConnected}.map(_.notFull)

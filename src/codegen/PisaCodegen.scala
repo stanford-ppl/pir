@@ -553,15 +553,15 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               emitPair("syncTokenMux", "x")
             } else {
               val tdlut = lumap.pmap(ptdlut)
-              val inits = ListBuffer[IP]()
-              val tos = ListBuffer[OP]()
-              val map:Map[OP, Int] = Map.empty
+              val inits = ListBuffer[CIP]()
+              val tos = ListBuffer[COP]()
+              val map:Map[COP, Int] = Map.empty
               tdlut.ins.foreach { in =>
                 in.from.src match {
                   case t:Top => inits += in
                   case p:PRIM => 
                     if (p.ctrler==tdlut.ctrler.parent) inits += in
-                    else tos += in.from
+                    else tos += in.from.asInstanceOf[COP]
                   case c => emitln(s"${c}") //TODO?
                 }
               }
@@ -573,7 +573,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 val init = inits.head
                 val pcin = vimap(init)
                 emitPair("syncTokenMux", s"${indexOf(pcin)}")
-                map += (init.from -> 0) // Assume init is the first input
+                map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
               }
               tos.foreach { to =>
                 map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
@@ -599,7 +599,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               val tolut = lumap.pmap(ptolut)
               val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
               assert(ctrs.size<=2)
-              val map:Map[OP, Int] = Map.empty
+              val map:Map[COP, Int] = Map.empty
               doneXbar ++= List.tabulate(2) { i => // sel for Xbar
                 if (i<ctrs.size) s""""${indexOf(ctmap(ctrs(i)))}"""" 
                 else s""""x""""
@@ -662,7 +662,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
             } else {
               val enlut = lumap.pmap(penlut)
-              val map:Map[OP, Int] = Map.empty
+              val map:Map[COP, Int] = Map.empty
               enlut.ins.map(_.from.src).foreach { 
                 case udc:UC => map += (udc.out -> indexOf(ucmap(udc)))
                 case at:AT => map += (at.out -> 0) 
@@ -724,7 +724,7 @@ object CtrlCodegen extends DebugLogger {
     }
     table.toList
   }
-  def printTable(numBits:Int, transFunc:TransferFunction, map:Map[OP, Int]):Unit = {
+  def printTable(numBits:Int, transFunc:TransferFunction, map:Map[COP, Int]):Unit = {
     val table = genTable(numBits, transFunc.tf(map, _))
     val size:Int = table.size
     dprintln(s"TransferFunction: ${transFunc.info}, map:${map} numBits:$numBits")

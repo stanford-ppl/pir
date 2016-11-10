@@ -53,7 +53,9 @@ package object typealias {
   type I     = pir.graph.Input
   type PT    = pir.graph.Port
   type IP    = pir.graph.InPort
+  type CIP   = pir.graph.CtrlInPort
   type OP    = pir.graph.OutPort
+  type COP   = pir.graph.CtrlOutPort
   type CB    = pir.graph.CtrlBox
   type LUT   = pir.graph.LUT
   type TOLUT = pir.graph.TokenOutLUT

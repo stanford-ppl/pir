@@ -56,11 +56,11 @@ trait OutPort extends Port {
   def until(max:OutPort) = new Range(this, max)
 }
 object OutPort {
-  def apply(s:Node)(implicit design:Design) = new {override val src = s} with OutPort
-  def apply(s:Node, toStr: => String)(implicit design:Design) = {
+  def apply(s:Node)(implicit design:Design):OutPort = new {override val src = s} with OutPort
+  def apply(s:Node, toStr: => String)(implicit design:Design):OutPort = {
     new {override val src = s} with OutPort { override def toString = toStr }
   }
-  def apply(s:Node, t:InPort, toStr: => String)(implicit design:Design) = {
+  def apply(s:Node, t:InPort, toStr: => String)(implicit design:Design):OutPort = {
     new {override val src = s} with OutPort { override def toString = toStr; t.connect(this)}
   }
 }
@@ -91,7 +91,7 @@ object ReadOutPort {
   }
 }
 /* Inner Counter En Port */
-trait EnInPort extends InPort { 
+trait EnInPort extends InPort with CtrlInPort { 
   override val src:Counter
 }
 object EnInPort {
@@ -100,7 +100,7 @@ object EnInPort {
   }
 }
 /* Outer Counter Done Port */
-trait DoneOutPort extends OutPort { 
+trait DoneOutPort extends OutPort with CtrlOutPort { 
   override val src:Counter
 }
 object DoneOutPort {
@@ -109,27 +109,57 @@ object DoneOutPort {
   }
 }
 
-case class CtrlInPort(src:CtrlBox)(implicit design:Design) extends InPort { 
-  override def toString = s"${src}.i[${indexOf(this)}]"
-  val out = OutPort(this, s"${this}.op")
-}
-object CtrlInPort extends Metadata {
-  def apply(src:CtrlBox, index:Int, in:InPort)(implicit design:Design):CtrlInPort = {
-    val ci = CtrlInPort(src)
-    indexOf(ci) = index
-    in.connect(ci.out)
-    ci
+trait CtrlInPort extends InPort { 
+  def isCtrlIn = {
+    val ctrler = src match {
+      case p:Primitive =>
+        p.ctrler match {
+          case cl:ComputeUnit => cl.inner
+          case mc:MemoryController => mc
+        }
+      case top:Top => top
+    }
+    from.src match { 
+      case p:Primitive =>
+        val inner = p.ctrler match {
+          case cl:ComputeUnit => cl.inner
+          case mc:MemoryController => mc
+        }
+        inner != ctrler
+      case top:Top => top!=ctrler
+    } 
   }
 }
-case class CtrlOutPort(src:CtrlBox)(implicit design:Design) extends OutPort { 
-  override def toString = s"${src}.o[${indexOf(this)}]"
-  val in = InPort(this, s"${this}.ip")
+object CtrlInPort extends Metadata {
+  def apply[S<:Node](s:S, toStr: => String)(implicit design:Design):CtrlInPort = {
+    new {override val src:S = s} with CtrlInPort {override def toString = toStr}
+  }
+}
+trait CtrlOutPort extends OutPort { 
+  def isCtrlOut = {
+    val ctrler = src match {
+      case p:Primitive =>
+        p.ctrler match {
+          case cl:ComputeUnit => cl.inner
+          case mc:MemoryController => mc
+        }
+      case top:Top => top
+    }
+    to.exists{
+      _.src match { 
+        case p:Primitive =>
+          val inner = p.ctrler match {
+            case cl:ComputeUnit => cl.inner
+            case mc:MemoryController => mc
+          }
+          inner != ctrler
+        case top:Top => top!=ctrler
+      } 
+    }
+  }
 }
 object CtrlOutPort extends Metadata {
-  def apply(src:CtrlBox, index:Int, out:OutPort)(implicit design:Design):CtrlOutPort = {
-    val co = CtrlOutPort(src)
-    indexOf(co) = index
-    co.in.connect(out)
-    co
+  def apply(s:Node, toStr: => String)(implicit design:Design):CtrlOutPort = {
+    new {override val src = s} with CtrlOutPort { override def toString = toStr }
   }
 }

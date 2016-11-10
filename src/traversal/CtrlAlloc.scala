@@ -156,7 +156,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       cu match {
         case _:OuterController =>
           if (cu.isHead) {
-            val init:OutPort = cu.parent match {
+            val init:CtrlOutPort = cu.parent match {
               case t:Top => t.command 
               case c:OuterController => c.ctrlBox.tokenDown.get
             } 
