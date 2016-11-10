@@ -25,7 +25,9 @@ abstract class Primitive(implicit val ctrler:Controller, design:Design) extends 
 case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "CC"
   /* Fields */
-  var counters:List[Counter] = Nil 
+  val _counters = ListBuffer[Counter]()
+  def counters:List[Counter] = _counters.toList
+
   /* Pointers */
   var copy:Option[Either[String, CounterChain]] = None
   /*
@@ -57,19 +59,31 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   def outer:Counter = counters.head
   def inner:Counter = counters.last
 
+  def addCounter(ctr:Counter):Unit = {
+    _counters.lastOption.foreach { pre =>
+      pre.setDep(ctr)
+    }
+    _counters += ctr
+  }
+
+  def addCounters(ctrs:List[Counter]):Unit = {ctrs.foreach { ctr => addCounter(ctr) } }
+  def addOuterCounter(ctr:Counter):Unit = {
+    _counters.headOption.foreach { next =>
+      ctr.setDep(next)
+    }
+    _counters.insert(0, ctr)
+  }
+
   def this(name:Option[String], bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design) = {
     this(name)
-    counters = bds.zipWithIndex.map {case ((mi, ma, s),i) => 
-      Counter(this, mi, ma, s)(ctrler, design)
-    }.toList
-    updateDep
+    bds.zipWithIndex.foreach {case ((mi, ma, s),i) => addCounter(Counter(this, mi, ma, s)(ctrler, design)) }
     copy = None 
   }
 
   def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
     if (isCopy) {
       // Speculatively create extra counters base on need and check bound during update
-      this.counters = counters ++ List.tabulate(num+1-counters.size) { i =>Counter(this) }
+      addCounters(List.fill(num+1-counters.size)(Counter(this)))
     }
     counters(num)
   }
@@ -84,19 +98,13 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
         throw PIRException(s"Only streaming counter of TileLoad can be copied. Tried to copy ${cp} in ${cp.ctrler}")
       case _ =>
     }
-    val addiCtrs = (counters.size until cp.counters.size).map {i => Counter(this)}
-    counters = counters ++ addiCtrs
+    val addiCtrs = List.fill(cp.counters.size-counters.size)(Counter(this))
+    addCounters(addiCtrs)
     counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
-    updateDep
     this.copy = Some(Right(cp))
     ctrler.addCChain(this)
   }
 
-  def updateDep = {
-    for (i <- 0 until counters.size - 1) {
-      counters(i).setDep(counters(i+1))  
-    }
-  }
 }
 object CounterChain {
   def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
@@ -135,7 +143,7 @@ object CounterChain {
   }
 }
 
-case class Counter(name:Option[String], cchain:CounterChain)(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+case class Counter(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -144,7 +152,15 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
-  override def toUpdate = super.toUpdate 
+  var _cchain:CounterChain = _
+  def cchain:CounterChain = _cchain
+  def cchain(cc:CounterChain):Counter = {
+    en.disconnect
+    done.disconnect
+    _cchain = cc
+    this
+  }
+  override def toUpdate = super.toUpdate || cchain==null
 
   def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {
     min.connect(mi)
@@ -187,6 +203,9 @@ case class Counter(name:Option[String], cchain:CounterChain)(implicit override v
   } 
 }
 object Counter {
+  def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
+    Counter(name).cchain(cc)
+  }
   def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(None, cchain); c.update(min, max, step); c }
   def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
@@ -681,7 +700,7 @@ abstract class LUT(implicit override val ctrler:ComputeUnit, design: Design) ext
   val numIns:Int
   val ins = List.fill(numIns) { InPort(this,s"${this}.i") } 
   val out = OutPort(this, s"${this}.o")
-  def isCtrlOut = out.to.exists(_.src.asInstanceOf[Primitive].ctrler!=ctrler)
+  def isCtrlOut = out.to.exists(_.src match { case p:Primitive => p.ctrler!=ctrler; case top:Top => top!=ctrler})
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
               (implicit ctrler:ComputeUnit, design: Design) extends LUT {
@@ -689,8 +708,8 @@ case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
 }
 object TokenDownLUT {
   def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit ctrler:ComputeUnit, design: Design):OutPort = {
-    val lut = TokenDownLUT(outs.size, transFunc)
+  (implicit design: Design):OutPort = {
+    val lut = TokenDownLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     cu.ctrlBox.tokDownLUTs += lut
     lut.out
@@ -702,8 +721,8 @@ case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
 }
 object TokenOutLUT {
   def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit ctrler:ComputeUnit, design: Design):OutPort = {
-    val lut = TokenOutLUT(outs.size, transFunc)
+  (implicit design: Design):OutPort = {
+    val lut = TokenOutLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     cu.ctrlBox.tokOutLUTs += lut
     lut.out
@@ -715,8 +734,8 @@ case class EnLUT(numIns:Int, transFunc:TransferFunction)
 }
 object EnLUT {
   def apply(cu:ComputeUnit, outs:List[OutPort], transFunc:TransferFunction, en:EnInPort)
-  (implicit ctrler:ComputeUnit, design: Design):EnLUT = {
-    val lut = EnLUT(outs.size, transFunc)
+  (implicit design: Design):EnLUT = {
+    val lut = EnLUT(outs.size, transFunc)(cu, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     en.connect(lut.out)
     cu.ctrlBox.enLUTs += (en -> lut)

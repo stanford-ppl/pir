@@ -26,8 +26,10 @@ abstract class Controller(implicit design:Design) extends Node { self =>
   }
 
   //TODO inner controller shouldn't have children
-  val children = ListBuffer[ComputeUnit]()
-
+  val _children = ListBuffer[ComputeUnit]()
+  def children = _children.toList
+  def removeChildren(c:ComputeUnit) = { _children -= c }
+  def addChildren(c:ComputeUnit) = { _children += c }
 }
 
 /* Controller that can be binded with a controler in spade. Including InnerController and Top and
@@ -70,12 +72,20 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
 
-  def parent:Controller
-  def parent(p:Controller)
+  private var _parent:Controller = _
+  def parent:Controller = { _parent }
+  def parent(p:Controller) = { _parent = p }
+  def removeParent:Unit = _parent = null
   // List of controllers the current controller expecting token from 
-  val dependencies = ListBuffer[ComputeUnit]()
+  private val _dependencies = ListBuffer[ComputeUnit]()
   // List of controllers the current controller send token to
-  val dependeds = ListBuffer[ComputeUnit]()
+  private val _dependeds = ListBuffer[ComputeUnit]()
+  def dependencies = _dependencies.toList
+  def dependeds = _dependeds.toList
+  def removeDep(dep:ComputeUnit) = { _dependencies -= dep; dep.removeDeped(this) }
+  def removeDeped(deped:ComputeUnit) = { _dependeds -= deped }
+  def removeDeps = { dependencies.foreach{ dep => removeDep(dep) } }
+  def removeDepeds = { dependeds.foreach { deped => deped.removeDep(this) } }
   def isHead = (dependencies.size==0)
   def isTail = (dependeds.size==0)
   def isUnitStage = isHead && isTail
@@ -85,6 +95,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   /* Fields */
   def cchains:List[CounterChain]
   def addCChain(cc:CounterChain):Unit
+  def removeCChain(cc:CounterChain):Unit
+  def removeCChainCopy(cc:CounterChain):Unit
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
@@ -128,23 +140,24 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         design.updateLater(p, (n:Node) => updateParent(n.asInstanceOf[Controller]))
       case p:Controller =>
         this.parent(p)
-        p.children += this
+        p.addChildren(this)
     }
     this
   }
 
   def updateDeped(deped:ComputeUnit):Unit = {
-    dependeds += deped
+    _dependeds += deped
   }
 
   def updateDep(dep:ComputeUnit):Unit = {
-    dependencies += dep
+    _dependencies += dep
     dep match {
       case d:ComputeUnit => d.updateDeped(this)
       case _ =>
     }
   }
 
+  /* Current CU depends on deps (input sources) */
   def updateDeps[T](deps:List[T])(implicit cltp:TypeTag[T]):this.type = {
     deps.foreach { dep =>
       dep match {
@@ -162,17 +175,23 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
-  var _parent:Controller = _
-  def parent:Controller = { _parent }
-  def parent(p:Controller) = { _parent = p }
+  //var _parent:Controller = _
+  //def parent:Controller = { _parent }
+  //def parent(p:Controller) = { _parent = p }
+  //def removeParent:Unit = _parent = null
   var inner:InnerController = _
-  override def toUpdate = super.toUpdate || inner == null || _parent == null
+  override def toUpdate = super.toUpdate || inner == null 
 
   private val _cchains = ListBuffer[CounterChain]()
   def cchains:List[CounterChain] = _cchains.toList 
   def addCChain(cc:CounterChain):Unit = {
     assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
     _cchains += cc
+  }
+  def removeCChain(cc:CounterChain):Unit = { _cchains -= cc }
+  def removeCChainCopy(cc:CounterChain):Unit = { 
+    assert(!cc.isCopy)
+    _cchains.filterNot( _.original == cc)
   }
 }
 
@@ -232,14 +251,15 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
 
   override val typeStr = "PipeCU"
 
-  var _parent:OuterController = _
-  override def parent:OuterController = _parent
-  override def parent(p:Controller) = { 
-    p match {
-      case p:OuterController => _parent = p
-      case _ => throw PIRException(s"InnerController's parent must be OuterController $this.parent=$p")
-    }
-  }
+  //var _parent:OuterController = _
+  //def parent:OuterController = _parent
+  //def parent(p:Controller) = { 
+    //p match {
+      //case p:OuterController => _parent = p
+      //case _ => throw PIRException(s"InnerController's parent must be OuterController $this.parent=$p")
+    //}
+  //}
+  //def removeParent:Unit = _parent = null
 
   def mems:List[OnChipMem]
   def mems(ms:List[OnChipMem])
@@ -249,13 +269,19 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   }
 
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
-  override def cchains = cchainMap.values.toList
-
-  override def addCChain(cc:CounterChain):Unit = {
+  def cchains = cchainMap.values.toList
+  def addCChain(cc:CounterChain):Unit = {
     if (!cc.isDefined) return // If cc is a copy but haven't been updated, addCChain during update 
     if (cchainMap.contains(cc.original))
       throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
     else cchainMap += (cc.original -> cc)
+  }
+  def removeCChain(cc:CounterChain):Unit = {
+    cchainMap.get(cc.original).foreach { cp => if (cp== cc) cchainMap -= cc.original }
+  }
+  def removeCChainCopy(cc:CounterChain):Unit = { 
+    assert(!cc.isCopy)
+    cchainMap -= cc
   }
 
   def getCopy(cchain:CounterChain):CounterChain = {
@@ -306,10 +332,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
 
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
-
-  override def toUpdate = { 
-    super.toUpdate || _parent==null
-  }
 
   def updateFields(cchains:List[CounterChain], mems:List[OnChipMem]):this.type = {
     super.updateFields(cchains)
@@ -417,6 +439,15 @@ object TileTransfer extends {
 
 class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "StreamPipe"
+  private var _parent:StreamController = _
+  override def parent:StreamController = _parent
+  override def parent(p:Controller) = { 
+    p match {
+      case p:StreamController => _parent = p
+      case _ => throw PIRException(s"StreamPipeline's parent must be StreamController $this.parent=$p")
+    }
+  }
+  override def removeParent:Unit = _parent = null
   override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
   }
@@ -489,11 +520,24 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  var innerCUs:List[InnerController] = _ 
-  var outerCUs:List[OuterController] = _
+  private var _innerCUs:List[InnerController] = _ 
+  private var _outerCUs:List[OuterController] = _
+  private var _memCtrls:List[MemoryController] = _
+  def innerCUs = _innerCUs
+  def outerCUs = _outerCUs
+  def memCtrls = _memCtrls
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
-  var memCtrls:List[MemoryController] = _
   def ctrlers = this :: compUnits ++ memCtrls
+  def removeCtrler(ctrler:Controller) = {
+    ctrler match {
+      case _:InnerController => 
+        _innerCUs = _innerCUs.filterNot(_==ctrler)
+      case _:OuterController => 
+        _outerCUs = _outerCUs.filterNot(_==ctrler)
+      case _:MemoryController => 
+        _memCtrls = _memCtrls.filterNot(_==ctrler)
+    }
+  }
   def spadeCtrlers:List[SpadeController] = this :: innerCUs ++ memCtrls
   val command = OutPort(this, s"${this}.command")
   val status = InPort(this, s"${this}.status")
@@ -511,9 +555,9 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
 
   def updateFields(inners:List[InnerController], outers:List[OuterController], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
     //TODO change innerCU and outerCU to a type
-    this.innerCUs = inners 
-    this.outerCUs = outers 
-    this.memCtrls = memCtrls
+    this._innerCUs = inners 
+    this._outerCUs = outers 
+    this._memCtrls = memCtrls
     this.scalars = scalars
     this.vectors = vectors
     scalars.foreach { s => s match {
