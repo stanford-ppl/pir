@@ -145,6 +145,7 @@ object PIRPrinter extends Metadata {
         fields += s"mctpe=${p.mctpe}"
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
+        fields += s"copied=[${p.copied.mkString(",")}]"
         fields += s"wasrams=[${p.wasrams.mkString(",")}]"
       case p:OnChipMem =>
         fields += s"size=${p.size}"

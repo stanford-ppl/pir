@@ -9,7 +9,7 @@ import pir.graph.enums._
 import pir.plasticine.config._
 
 /* Examp0ile PIR using block (User facing PIR)*/
-object NestedSignleStage extends PIRApp {
+object NestedSignleStage2 extends PIRApp {
   override val arch = SN_4x4 
 
   def main(args: String*)(top:Top) = {
@@ -17,12 +17,15 @@ object NestedSignleStage extends PIRApp {
     val dataSize = Const("8i")
     val output = ArgOut()
 
+    val outer2 = MetaPipeline(name="outer2", parent=top, deps=Nil){ implicit CU =>
+      CounterChain(name="i", dataSize by tileSize)
+    }
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = MetaPipeline(name="outer", parent=top, deps=Nil){ implicit CU =>
+    val outer1 = MetaPipeline(name="outer1", parent=outer2, deps=Nil){ implicit CU =>
       CounterChain(name="i", dataSize by tileSize)
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
-    val inner = Pipeline(name="inner", parent=outer, deps=Nil) { implicit CU =>
+    val inner = Pipeline(name="inner", parent=outer1, deps=Nil) { implicit CU =>
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const("1i")) //Local
 

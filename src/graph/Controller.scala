@@ -312,8 +312,8 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   var outers:List[OuterController] = Nil
   def inner:InnerController = this
 
-  /* Including current CU */
-  lazy val ancestors: List[ComputeUnit] = {
+  /* Including current CU. From current to top */
+  def ancestors: List[ComputeUnit] = {
     val list = ListBuffer[ComputeUnit]()
     var child:Controller = this 
     while (!child.isInstanceOf[Top]) {

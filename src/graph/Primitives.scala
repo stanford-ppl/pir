@@ -29,7 +29,17 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   def counters:List[Counter] = _counters.toList
 
   /* Pointers */
-  var copy:Option[Either[String, CounterChain]] = None
+  // Pointer to the original copy
+  private var _copy:Option[Either[String, CounterChain]] = None
+  def copy:Option[Either[String, CounterChain]] = _copy
+  def setCopy(cc:String) = { _copy = Some(Left(cc)) }
+  def setCopy(cc:CounterChain) = { _copy = Some(Right(cc)); cc.addCopied(this) }
+
+  // List of copies to this original Counterchain 
+  private val _copied = ListBuffer[CounterChain]()
+  def addCopied(cc:CounterChain) = _copied += cc
+  def copied = _copied.toList
+
   /*
    * Whether CounterChain is a copy of other CounterChain
    * */
@@ -77,7 +87,6 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   def this(name:Option[String], bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design) = {
     this(name)
     bds.zipWithIndex.foreach {case ((mi, ma, s),i) => addCounter(Counter(this, mi, ma, s)(ctrler, design)) }
-    copy = None 
   }
 
   def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
@@ -93,15 +102,10 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
     assert(counters.size <= cp.counters.size, 
       s"Accessed counter ${counters.size-1} of ${this} is out of bound")
     assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
-    cp.ctrler match {
-      case tt:TileTransfer if (tt.mctpe==TileLoad && !cp.streaming) =>
-        throw PIRException(s"Only streaming counter of TileLoad can be copied. Tried to copy ${cp} in ${cp.ctrler}")
-      case _ =>
-    }
     val addiCtrs = List.fill(cp.counters.size-counters.size)(Counter(this))
     addCounters(addiCtrs)
     counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
-    this.copy = Some(Right(cp))
+    this.setCopy(cp)
     ctrler.addCChain(this)
   }
 
@@ -131,7 +135,7 @@ object CounterChain {
    * */
   def copy(from:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_copy"))
-    cc.copy = Some(Left(from)) 
+    cc.setCopy(from)
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
     design.updateLater(from, updateFunc _ )
     cc

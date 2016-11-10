@@ -18,6 +18,31 @@ class FusionTransform(implicit val design: Design) extends Traversal{
         assert(ccu.isHead && ccu.isTail)
         val ccchain = ccu.localCChain
         val pcchain = pcu.localCChain
+        // Handling Remote Copies of counters
+        pcchain.copied.foreach { pcp =>
+          val cpccu = pcp.ctrler.asInstanceOf[InnerController]
+          pcu match {
+            // Copy ancesstor outer controller because used in datapath 
+            case cu:OuterController if cpccu.ancestors.contains(cu) && (cu.inner!=cpccu)=> 
+              val ancestors = cpccu.ancestors
+              val pcuPre = ancestors(ancestors.indexOf(pcu)-1)
+              val icc = cpccu.getCopy(pcuPre.localCChain)
+              pcp.counters.reverseIterator.foreach { ctr =>
+                ctr.cchain(icc)
+                icc.addOuterCounter(ctr)
+              }
+              cpccu.removeCChain(pcp)
+            // Copy outer controller of the writer for write addr calculation
+            case cu:OuterController if !cpccu.ancestors.contains(cu) =>
+              val icc = cpccu.getCopy(ccchain)
+              pcp.counters.reverseIterator.foreach { ctr =>
+                ctr.cchain(icc)
+                icc.addOuterCounter(ctr)
+              }
+              cpccu.removeCChain(pcp)
+            case _ =>
+          }
+        }
         // Copying from inner most to outer most
         ccu match {
           case ccu:InnerController => // ccu might already have a copy of pcchain 
@@ -26,12 +51,21 @@ class FusionTransform(implicit val design: Design) extends Traversal{
               ccchain.addOuterCounter(ctr)
             }
             ccu.removeCChainCopy(pcchain)
-          case _ =>
+          case ccu:OuterController =>
             pcchain.counters.reverseIterator.foreach { ctr =>
-              val cp = Counter(ccchain)
+              val cp = Counter(ccchain)(ccu, design)
               cp.copy(ctr)
               ccchain.addOuterCounter(cp)
             }
+            ccu.removeCChainCopy(pcchain)
+            val iccchain = ccu.inner.getCopy(ccchain)
+            val ipcchain = ccu.inner.getCopy(pcchain)
+            ipcchain.counters.reverseIterator.foreach { ctr =>
+              val cp = Counter(iccchain)(ccu.inner, design)
+              cp.copy(ctr)
+              iccchain.addOuterCounter(cp)
+            }
+            ccu.inner.removeCChainCopy(pcchain)
         }
         ccu.parent(pcu.parent)
         pcu.parent.addChildren(ccu) 

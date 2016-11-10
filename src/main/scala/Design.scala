@@ -55,7 +55,9 @@ trait Design extends Metadata { self =>
         design.top.removeCtrler(n)
         n.cchains.foreach { cc => design.removeNode(cc) }
       case n:CounterChain =>
-        n.counters.foreach { ctr => design.removeNode(ctr) }
+        n.counters.foreach { ctr => 
+          if (ctr.cchain==n) design.removeNode(ctr)
+        }
       case n:Counter =>
         design.removeNode(n.min)
         design.removeNode(n.max)
