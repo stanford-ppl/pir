@@ -40,8 +40,8 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
     cu match {
       case icu:InnerController =>
         icu.mems.foreach { mem =>
-          mem match { case mem:SRAMOnRead => addLiveOut(mem.readAddr); case _ => }
-          mem match { case mem:SRAMOnWrite => addLiveOut(mem.writeAddr); case _ => }
+          mem match { case mem:SRAMOnRead => if (mem.readAddr.isConnected) addLiveOut(mem.readAddr); case _ => }
+          mem match { case mem:SRAMOnWrite => if (mem.writeAddr.isConnected) addLiveOut(mem.writeAddr); case _ => }
           if (mem.writePort.isConnected) addLiveOut(mem.writePort)
         }
       case _ =>
@@ -149,7 +149,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
             mem match {
               case mem:SRAMOnRead =>
                 mem.readAddr.from.src match {
-                  case _:Counter if (s == stages(1)) => s.addDef(r)
+                  case _:Counter => stages(1).addDef(r)
                   case fu:FuncUnit if (indexOf(fu.stage) == indexOf(s) - 1) =>
                     throw PIRException(s"The stage right after address calculation stage should load from sram directly ${s} in ${s.ctrler}")
                   case fu:FuncUnit if (indexOf(fu.stage) >= indexOf(s)) =>
