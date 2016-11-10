@@ -550,7 +550,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             if (!lumap.pmap.contains(ptdlut)) {
               CtrlCodegen.lookUpX(ptdlut.numIns)
               emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
-              emitPair("mux", "x")
+              emitPair("syncTokenMux", "x")
             } else {
               val tdlut = lumap.pmap(ptdlut)
               val inits = ListBuffer[IP]()
@@ -568,11 +568,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               assert(inits.size <= 1, s"inits:${inits}")
               emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
               if (inits.size==0) {
-                emitPair("mux", "x")
+                emitPair("syncTokenMux", "x")
               } else {
                 val init = inits.head
                 val pcin = vimap(init)
-                emitPair("mux", s"${indexOf(pcin)}")
+                emitPair("syncTokenMux", s"${indexOf(pcin)}")
                 map += (init.from -> 0) // Assume init is the first input
               }
               tos.foreach { to =>
@@ -594,6 +594,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             if (!lumap.pmap.contains(ptolut)) {
               CtrlCodegen.lookUpX(ptolut.numIns)
               emitPair("table", CtrlCodegen.lookUpX(ptolut.numIns))
+              doneXbar ++= List.tabulate(2) { i => s""""x"""" }
             } else {
               val tolut = lumap.pmap(ptolut)
               val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
