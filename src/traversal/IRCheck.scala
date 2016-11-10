@@ -20,6 +20,8 @@ class IRCheck(implicit val design: Design) extends Traversal {
         throw PIRException(s"Node ${n} contains unupdated field/fields! Refer to ${printer.getPath} for more information")
       }
       n match {
+        case top:Top => 
+          if (top.children.size!=1) throw PIRException(s"Top must have a single children!")
         case cu:OuterController =>
           if (cu.children.size==1)
             warn(s"Nested Single Stage. Control won't be correctly generated at the moment! ${cu} children:[${cu.children.mkString(",")}]")

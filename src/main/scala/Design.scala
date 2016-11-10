@@ -48,9 +48,30 @@ trait Design extends Metadata { self =>
     nodeStack.foreach { case (f,i) => if (f(n)) i += n }
   }
 
-  def removeNode(n:Node) = {
+  def removeNode(n:Node):Unit = {
     nodeStack.foreach { case (f,i) => if (f(n)) i -= n }
+    n match {
+      case n:OuterController => 
+        design.top.removeCtrler(n)
+        n.cchains.foreach { cc => design.removeNode(cc) }
+      case n:CounterChain =>
+        n.counters.foreach { ctr => design.removeNode(ctr) }
+      case n:Counter =>
+        design.removeNode(n.min)
+        design.removeNode(n.max)
+        design.removeNode(n.step)
+      case n:InPort =>
+        val from = n.from
+        n.disconnect
+        if (!from.isConnected)
+          design.removeNode(from)
+      case n:OutPort =>
+        n.disconnect
+        design.removeNode(n.src)
+      case _ =>
+    }
   }
+  def removeNodes(ns:List[Node]) = { ns.foreach { n => removeNode(n) } }
 
   //def addBlock(block: => Any, f1:Node => Boolean, filters: Node => Boolean *):List[List[Node]] = {
   //  nodeStack.push((f1, ListBuffer[Node]()))
@@ -182,6 +203,8 @@ trait Design extends Metadata { self =>
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
+    if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
+    //traversals += new FusionTransform()
     traversals += new ScalarBundling()
     if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()

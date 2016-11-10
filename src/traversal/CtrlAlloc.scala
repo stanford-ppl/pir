@@ -65,12 +65,12 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
             ins.map(in =>inputs(map(in))).reduce(_ && _)
           }
-          EnLUT(cu, ins, tf, en)(cu, design)
+          EnLUT(cu, ins, tf, en)
           //TODO: remove folling after apps are rewritten
           cu match {
             case tt:TileTransfer if tt.mctpe==TileLoad => 
               val streamcc = tt.streamCChain // TODO: this won't behave correctly
-              EnLUT(cu, ins, tf, streamcc.inner.en)(cu, design)
+              EnLUT(cu, ins, tf, streamcc.inner.en)
             case _ =>
           }
         case cu:StreamPipeline =>
@@ -87,7 +87,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
             ins.map(in =>inputs(map(in))).reduce(_ && _)
           }
-          val enlut = EnLUT(cu, ins, tf, en)(cu, design)
+          val enlut = EnLUT(cu, ins, tf, en)
           cu.writtenMem.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
           cu.mems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
         case cu:StreamController =>
@@ -134,11 +134,16 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               cb.tokenOut = Some(TokenOutLUT(cu, ins, tf))
             }
           case t:Top => 
-            //val done = cb.outerCtrDone
-            //val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-            //cb.tokenOut = TokenOutLUT(cu, done::Nil, tf)
           case _ =>
         }
+      }
+      // Generate status event when cu is UnitStage 
+      cu.parent match {
+        case t:Top =>
+          val done = cb.outerCtrDone
+          val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+          t.status.connect(TokenOutLUT(cu, done::Nil, tf))
+        case _ =>
       }
     }
   }
@@ -214,7 +219,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           }
       }
     }
-    design.top.status.connect(design.top.children.head.ctrlBox.outerCtrDone)
   }
 
   /* Copy counterchain from inner to outer (exclusive) in current controller and chain them together */

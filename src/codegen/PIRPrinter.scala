@@ -12,9 +12,12 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class PIRPrinter(implicit design: Design) extends DFSTraversal with Printer with Metadata {
+class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal with Printer with Metadata {
 
-  override val stream:OutputStream = newStream(Config.pirFile) 
+  def this()(implicit design: Design) = {
+    this(Config.pirFile)
+  }
+  override val stream:OutputStream = newStream(fileName) 
 
   override def initPass() = {
     super.initPass
