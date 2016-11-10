@@ -74,6 +74,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
     emitComment("argIns", argIns.mkString(","))
     emitComment("argOuts", argOuts.mkString(","))
+    emitMap("top") { implicit ms =>
+      design.arch match {
+        case sn:SwitchNetwork =>
+          // Status
+          val ib = vimap(design.top.status)
+          val (x,y) = coordOf(fbmap(ib).src)
+          val idx = if (y==0) x else x + sn.numCols
+          emitPair(s"done", s"$idx")
+          // ArgOutBus
+          assert(design.arch.top.vins.size==1)
+          if (!design.top.vins.isEmpty) {
+            val aob = vimap(design.top.vins.head) 
+            val (x,y) = coordOf(fbmap(ib).src)
+            val idx = if (y==0) x else x + sn.numCols
+            emitPair(s"argOut", s"$idx")
+          }
+        case pn:PointToPointNetwork =>
+      }
+    }
     emitList("cu") { implicit ms =>
       design.arch.rcus.foreach { pcu =>
         if (clmap.pmap.contains(pcu)) {
