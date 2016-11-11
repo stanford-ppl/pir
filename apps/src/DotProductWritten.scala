@@ -18,8 +18,6 @@ object DotProduct extends PIRApp {
     val output = ArgOut()
     val A = MemoryController("A", TileLoad, OffChip())
     val B = MemoryController("B", TileLoad, OffChip())
-    val tlAVec = Vector()
-    val tlBVec = Vector()
     val innerScalar = Scalar("innerScalar")
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
@@ -28,43 +26,36 @@ object DotProduct extends PIRApp {
       val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
     }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = TileTransfer(name="tileLoadA", parent=outer, memctrl=A, mctpe=TileLoad,
-      deps=Nil, vec=tlAVec){ implicit CU =>
+    val tileLoadA = UnitPipeline(name="tileLoadA", parent=outer, deps=Nil){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("1i"))
-      //TODO
-      val stream = CounterChain(name="stream", Const("0i") until tileSize by Const("1i"))
-      stream.isStreaming(true)
-      val s0::_ = Stages(1)
+      val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
-      val output = CU.scalarOut(s0, A.saddr)
-      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, A.saddr))
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = TileTransfer(name="tileLoadB", parent=outer, memctrl=B, mctpe=TileLoad,
-      deps=Nil, vec=tlBVec){ implicit CU =>
+    val tileLoadB = UnitPipeline(name="tileLoadB", parent=outer, deps=Nil){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("0i"))
-      val stream = CounterChain(name="stream", Const("0i") until tileSize by Const("1i"))
-      stream.isStreaming(true)
-      val s0::_ = Stages(1)
-      val es = CU.emptyStage
-      val output = CU.scalarOut(s0, B.saddr)
-      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
+      val s0::s1::_ = Stages(2)
+      val es = CU.emptyStage 
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, B.saddr))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     val inner = Pipeline(name="inner", parent=outer, deps=List(tileLoadA, tileLoadB)) { implicit CU =>
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const("1i")) //Local
-      val itA = CounterChain.copy(tileLoadA, "stream")
-      val itB = CounterChain.copy(tileLoadB, "stream")
+      val itA = CounterChain.copy(tileLoadA, "it")
+      val itB = CounterChain.copy(tileLoadB, "it")
 
       val s0::s1::_ = Stages(2)
       // SRAMs
       val sA = SRAM(name="sA", size=32, banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itA(0), 
-        swapWrite=itA(0)), writeCtr=itA(0)).wtPort(tlAVec).rdAddr(ii(0)).wtAddr(itA(0))
+        swapWrite=itA(0)), writeCtr=itA(0)).wtPort(A.vdata).rdAddr(ii(0)).wtAddr(itA(0))
       val sB = SRAM(name="sB", size=32, banking=NoBanking(), buffering=MultiBuffer(depth=2, swapRead=itB(0),
-        swapWrite=itB(0)), writeCtr=itB(0)).wtPort(tlBVec).rdAddr(ii(0)).wtAddr(itB(0))
+        swapWrite=itB(0)), writeCtr=itB(0)).wtPort(B.vdata).rdAddr(ii(0)).wtAddr(itB(0))
       // Pipeline Stages 
       Stage(s0, op1=sA.load, op2=sB.load, op=FixMul, result=CU.reduce(s0))
       val (sr, acc) = Stage.reduce(op=FixAdd, init=Const("0i"))
