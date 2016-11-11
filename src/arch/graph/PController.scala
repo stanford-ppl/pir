@@ -42,7 +42,7 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, sbw)
   vouts.zipWithIndex.foreach {case (ob,i) => ob.index(i) }
   val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
-    ScalarIn(vins(ib).outports(ia)).index(numVins*ib + ia)
+    ScalarIn(vins(ib).outports(ia)).index(sbw*ib + ia)
   }.flatten
   val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
     ScalarOut(vouts(ib).inports(ia))
@@ -126,7 +126,7 @@ class ComputeUnit(numBusIns:Int)(implicit spade:Spade) extends Controller {
   
  // Scalar inputs. 1 per word in bus input 
   lazy val _sins:List[ScalarIn] = List.tabulate(vins.size, spade.scalarBandwidth) { case (ib, is) =>
-      ScalarIn(vins(ib).outports(is)).index(vins.size*ib + is)
+      ScalarIn(vins(ib).outports(is)).index(spade.scalarBandwidth*ib + is)
   }.flatten
   def sins = _sins
   lazy val _souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
