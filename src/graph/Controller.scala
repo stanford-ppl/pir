@@ -29,7 +29,7 @@ abstract class Controller(implicit design:Design) extends Node { self =>
   val _children = ListBuffer[ComputeUnit]()
   def children = _children.toList
   def removeChildren(c:ComputeUnit) = { _children -= c }
-  def addChildren(c:ComputeUnit) = { _children += c }
+  def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
 }
 
 /* Controller that can be binded with a controler in spade. Including InnerController and Top and
@@ -54,7 +54,6 @@ trait SpadeController extends Controller { self =>
     _.readers.map{ _.ctrler match {
         case top:Top => top
         case cu:ComputeUnit => cu.inner
-        case mc:MemoryController => mc
       }
     }
   }.toList
@@ -87,8 +86,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def removeDeps = { dependencies.foreach{ dep => removeDep(dep) } }
   def removeDepeds = { dependeds.foreach { deped => deped.removeDep(this) } }
   def isHead = (dependencies.size==0)
-  def isTail = (dependeds.size==0)
-  def isUnitStage = isHead && isTail
+  def isLast = (dependeds.size==0)
+  def isUnitStage = isHead && isLast
 
   val ctrlBox = CtrlBox() 
 
@@ -145,26 +144,21 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     this
   }
 
-  def updateDeped(deped:ComputeUnit):Unit = {
-    _dependeds += deped
-  }
+  def addDeped(deped:ComputeUnit):Unit = { if (!_dependeds.contains(deped)) _dependeds += deped }
 
-  def updateDep(dep:ComputeUnit):Unit = {
-    _dependencies += dep
-    dep match {
-      case d:ComputeUnit => d.updateDeped(this)
-      case _ =>
-    }
+  def addDep(dep:ComputeUnit):Unit = {
+    if (!_dependencies.contains(dep)) _dependencies += dep
+    dep.addDeped(this)
   }
 
   /* Current CU depends on deps (input sources) */
-  def updateDeps[T](deps:List[T])(implicit cltp:TypeTag[T]):this.type = {
+  def addDeps[T](deps:List[T])(implicit cltp:TypeTag[T]):this.type = {
     deps.foreach { dep =>
       dep match {
         case d:String => 
-          design.updateLater(d, (n:Node) => updateDep(n.asInstanceOf[ComputeUnit]))
+          design.updateLater(d, (n:Node) => addDep(n.asInstanceOf[ComputeUnit]))
         case d:ComputeUnit => 
-          updateDep(d)
+          addDep(d)
       }
     }
     this
@@ -201,7 +195,7 @@ class Sequential(name:Option[String])(implicit design:Design) extends OuterContr
 object Sequential {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Sequential => Any)
                 (implicit design: Design, dtp:TypeTag[D]):Sequential = {
-    new Sequential(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+    new Sequential(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D]) (block: Sequential => Any)
@@ -218,7 +212,7 @@ class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterCon
 object MetaPipeline {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: MetaPipeline => Any)
                 (implicit design: Design, dtp:TypeTag[D]):MetaPipeline = {
-    new MetaPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+    new MetaPipeline(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D]) (block: MetaPipeline => Any)
@@ -235,7 +229,7 @@ class StreamController(name:Option[String])(implicit design:Design) extends Oute
 object StreamController {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamController => Any)
                 (implicit design: Design, dtp:TypeTag[D]):StreamController = {
-    new StreamController(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+    new StreamController(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D]) (block: StreamController => Any)
@@ -246,27 +240,8 @@ object StreamController {
     StreamController(Some(name), parent, deps)(block)
 }
 
-abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with SpadeController with InnerRegBlock { self =>
-  implicit val icu:InnerController = self
-
-  override val typeStr = "PipeCU"
-
-  //var _parent:OuterController = _
-  //def parent:OuterController = _parent
-  //def parent(p:Controller) = { 
-    //p match {
-      //case p:OuterController => _parent = p
-      //case _ => throw PIRException(s"InnerController's parent must be OuterController $this.parent=$p")
-    //}
-  //}
-  //def removeParent:Unit = _parent = null
-
-  def mems:List[OnChipMem]
-  def mems(ms:List[OnChipMem])
-  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
-  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
-  }
+trait InnerController extends ComputeUnit with SpadeController with InnerRegBlock {
+  implicit val icu:InnerController = this 
 
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
   def cchains = cchainMap.values.toList
@@ -287,24 +262,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def getCopy(cchain:CounterChain):CounterChain = {
     assert(cchain.isDefined)
     cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
-  }
-
-  val wtAddrStages = ListBuffer[List[WAStage]]()
-  val localStages = ListBuffer[LocalStage]()
-
-  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
-
-  def addWAStages(was:List[WAStage]) = {
-    wtAddrStages += was
-    was.foreach { wa => indexOf(wa) = nextIndex }
-  }
-
-  def addStage(s:Stage):Unit = { s match {
-      case ss:LocalStage =>
-        localStages += ss
-        indexOf(ss) = nextIndex
-      case ss:WAStage => // WAstages are added in addWAStages 
-    }
   }
 
   def locals = this :: outers
@@ -330,6 +287,36 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
   def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
+}
+
+abstract class InnerComputeUnit(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerController 
+{ self =>
+  override val typeStr = "PipeCU"
+
+  def mems:List[OnChipMem]
+  def mems(ms:List[OnChipMem])
+  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
+  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
+  }
+
+  val wtAddrStages = ListBuffer[List[WAStage]]()
+  val localStages = ListBuffer[LocalStage]()
+
+  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+
+  def addWAStages(was:List[WAStage]) = {
+    wtAddrStages += was
+    was.foreach { wa => indexOf(wa) = nextIndex }
+  }
+
+  def addStage(s:Stage):Unit = { s match {
+      case ss:LocalStage =>
+        localStages += ss
+        indexOf(ss) = nextIndex
+      case ss:WAStage => // WAstages are added in addWAStages 
+    }
+  }
 
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
 
@@ -348,7 +335,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     updateFields(cchains, mems)
   }
 }
-class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+class Pipeline(name:Option[String])(implicit design:Design) extends InnerComputeUnit(name) { self =>
   override def writtenMem:List[SRAMOnWrite] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[SRAMOnWrite]) }.toList
   }
@@ -362,7 +349,7 @@ class Pipeline(name:Option[String])(implicit design:Design) extends InnerControl
 }
 object Pipeline {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Pipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):Pipeline = {
-    new Pipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+    new Pipeline(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D]) (block: Pipeline => Any) (implicit design:Design, dtp:TypeTag[D]):Pipeline =
@@ -386,7 +373,7 @@ class UnitPipeline(override val name: Option[String])(implicit design: Design) e
 }
 object UnitPipeline {
   def apply[P,D](name: Option[String], parent:P, deps:List[D])(implicit design: Design, dtp:TypeTag[D]):UnitPipeline =
-    new UnitPipeline(name).updateParent(parent).updateDeps(deps)
+    new UnitPipeline(name).updateParent(parent).addDeps(deps)
   /* Sugar API */
   def apply[P,D](parent:P, deps:List[D]) (block: UnitPipeline => Any) (implicit design:Design, dtp:TypeTag[D]):UnitPipeline =
     UnitPipeline(None, parent, deps).updateBlock(block)
@@ -398,8 +385,8 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   (implicit design:Design) extends Pipeline(name)  {
 
   /* Fields */
-  val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.load) else newVin(vec) 
-  val dataOut:VecOut = if (mctpe==TileStore) newVout(memctrl.store) else newVout(vec)
+  val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.vdata) else newVin(vec) 
+  val dataOut:VecOut = if (mctpe==TileStore) newVout(memctrl.vdata) else newVout(vec)
 
   override def vins = mctpe match {
     case TileLoad => super.vins.filterNot( vin => vin==dataIn )
@@ -432,12 +419,12 @@ object TileTransfer extends {
   /* Sugar API */
   def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)
                 (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
-    TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).updateDeps(deps).updateBlock(block)
+    TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).addDeps(deps).updateBlock(block)
   def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)               (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
-    TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateDeps(deps).updateBlock(block)
+    TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).addDeps(deps).updateBlock(block)
 }
 
-class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerComputeUnit(name) { self =>
   override val typeStr = "StreamPipe"
   private var _parent:StreamController = _
   override def parent:StreamController = _parent
@@ -462,7 +449,7 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
 object StreamPipeline {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamPipeline => Any)
                 (implicit design: Design, dtp:TypeTag[D]):StreamPipeline = {
-    new StreamPipeline(name).updateParent(parent).updateDeps(deps).updateBlock(block)
+    new StreamPipeline(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
   def apply [P,D](parent:P, deps:List[D]) (block: StreamPipeline => Any)
@@ -473,44 +460,53 @@ object StreamPipeline {
     StreamPipeline(Some(name), parent, deps)(block)
 }
 
-case class MemoryController(name: Option[String], mctpe:MCType, offchip:OffChip)(implicit design: Design) extends SpadeController { self =>
+class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends ComputeUnit(name)
+  with InnerController with SpadeController { self =>
+  override val typeStr = "MemoryController"
 
-  val typeStr = "MemoryController"
-  val addr = newSin(Scalar())
-  val dataIn  = if (mctpe==TileStore) Some(newVin(Vector())) else None
-  val dataOut = if (mctpe==TileLoad) Some(newVout(Vector())) else None
-
-  override def vins = mctpe match {
-    case TileLoad => super.vins.filterNot( vin => vin==dataIn.get )
-    case _ => super.vins
+  private var _parent:OuterController = _
+  override def parent:OuterController = _parent
+  override def parent(p:Controller) = { 
+    p match {
+      case p:OuterController => _parent = p
+      case _ => throw PIRException(s"MemoryController's parent must be OuterController $this.parent=$p")
+    }
   }
 
-  override def vouts = mctpe match {
-    case TileStore => super.vouts.filterNot( vout => vout==dataOut.get )
-    case _ => super.vouts
+  val vdata = Vector()
+  val saddr = Scalar()
+  val ssize = Scalar()
+  val addr = {
+    val si = newSin(saddr)
+    sinMap += saddr -> si 
+    si
   }
-
+  val offset = {
+    val si = newSin(ssize)
+    sinMap += ssize -> si 
+    si
+  }
   //TODO
-  def ctrlIns:List[InPort] = Nil
-  def ctrlOuts:List[OutPort] = Nil
+  val dataIn  = if (mctpe==TileStore) {
+    val vi = newVin(vdata)
+    vinMap += vdata -> vi
+    Some(vi)
+  } else None
+  val dataOut = if (mctpe==TileLoad) {
+    val vi = newVout(vdata)
+    voutMap += vdata -> vi 
+    Some(vi)
+  } else None
 
-  def saddr = addr.scalar 
-  def load = if (mctpe==TileLoad) dataOut.get.vector
-    else throw PIRException(s"Cannot load from a MemoryController with mctpe=${mctpe}")
-  def store = if(mctpe==TileStore) dataIn.get.vector 
-    else throw PIRException(s"Cannot store to a MemoryController with mctpe=${mctpe}")
-
-  def updateFields = {
-    sinMap += addr.scalar -> addr 
-    dataIn.foreach { di => vinMap += di.vector -> di }
-    dataOut.foreach { dout => voutMap += dout.vector -> dout }
-  }
+  val ready = CtrlOutPort(this, s"${this}.ready")
+  val dataValid = CtrlOutPort(this, s"${this}.dataValid")
+  val issue = CtrlInPort(this, s"${this}.issue")
 }
 object MemoryController {
   def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
-    = MemoryController(None, mctpe, offchip)
+    = new MemoryController(None, mctpe, offchip)
   def apply(name:String, mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
-    = MemoryController(Some(name), mctpe, offchip)
+    = new MemoryController(Some(name), mctpe, offchip)
 }
 
 case class Top()(implicit design: Design) extends SpadeController { self =>
@@ -522,23 +518,19 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   /* Fields */
   private var _innerCUs:List[InnerController] = _ 
   private var _outerCUs:List[OuterController] = _
-  private var _memCtrls:List[MemoryController] = _
   def innerCUs = _innerCUs
   def outerCUs = _outerCUs
-  def memCtrls = _memCtrls
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
-  def ctrlers = this :: compUnits ++ memCtrls
+  def ctrlers = this :: compUnits
   def removeCtrler(ctrler:Controller) = {
     ctrler match {
       case _:InnerController => 
         _innerCUs = _innerCUs.filterNot(_==ctrler)
       case _:OuterController => 
         _outerCUs = _outerCUs.filterNot(_==ctrler)
-      case _:MemoryController => 
-        _memCtrls = _memCtrls.filterNot(_==ctrler)
     }
   }
-  def spadeCtrlers:List[SpadeController] = this :: innerCUs ++ memCtrls
+  def spadeCtrlers:List[SpadeController] = this :: innerCUs
   val command = CtrlOutPort(this, s"${this}.command")
   val status = CtrlInPort(this, s"${this}.status")
   var scalars:List[Scalar] = _
@@ -551,13 +543,12 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   //  vins:List[VecIn] = _
   //  vouts:List[VecOut] = _
   
-  override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null || memCtrls==null
+  override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null
 
-  def updateFields(inners:List[InnerController], outers:List[OuterController], scalars:List[Scalar], vectors:List[Vector], memCtrls:List[MemoryController]) = {
+  def updateFields(inners:List[InnerController], outers:List[OuterController], scalars:List[Scalar], vectors:List[Vector]) = {
     //TODO change innerCU and outerCU to a type
     this._innerCUs = inners 
     this._outerCUs = outers 
-    this._memCtrls = memCtrls
     this.scalars = scalars
     this.vectors = vectors
     scalars.foreach { s => s match {
@@ -566,20 +557,18 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
         case _ => 
       }
     }
-    memCtrls.foreach { oc => oc.updateFields }
     this
   }
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {
-    val (inners, outers, scalars, vectors, memCtrls) = 
-      design.addBlock[InnerController, OuterController, Scalar, Vector, MemoryController](block(this), 
+    val (inners, outers, scalars, vectors) = 
+      design.addBlock[InnerController, OuterController, Scalar, Vector](block(this), 
                       (n:Node) => n.isInstanceOf[InnerController],
                       (n:Node) => n.isInstanceOf[OuterController],
                       (n:Node) => n.isInstanceOf[Scalar], 
-                      (n:Node) => n.isInstanceOf[Vector], 
-                      (n:Node) => n.isInstanceOf[MemoryController] 
+                      (n:Node) => n.isInstanceOf[Vector] 
                       )
-    updateFields(inners, outers, scalars, vectors, memCtrls)
+    updateFields(inners, outers, scalars, vectors)
   }
 }
 

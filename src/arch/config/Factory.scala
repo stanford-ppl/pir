@@ -17,7 +17,7 @@ object ConfigFactory extends ImplicitConversion {
   // input <== outputs: input can be configured to 1 of the outputs
   
   def genRCU(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new ComputeUnit(numSRAMs).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
+    val cu = new ComputeUnit().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
     cu.addWAstages(List.fill(4) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
@@ -25,18 +25,22 @@ object ConfigFactory extends ImplicitConversion {
     cu.addRegstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
     cu.addRdstages(List.fill(4) { ReduceStage(numOprds=3, cu.regs, ops)}) // Reduction stage 
     cu.addRegstages(List.fill(2) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
-
     genConnections(cu)
     cu
   }
 
   def genTT(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new TileTransfer(2).numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
+    val cu = new TileTransfer().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
       .ctrlBox(16, 8, 8)
     /* Pipeline Stages */
     cu.addWAstages(List.fill(3) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
     cu.addRAstages(List.fill(1) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
+    genConnections(cu)
+    cu
+  }
 
+  def genMC(numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
+    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(0).ctrlBox(16, 8, 8)
     genConnections(cu)
     cu
   }
@@ -88,6 +92,7 @@ object ConfigFactory extends ImplicitConversion {
       // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
       cu match {
         case cu:TileTransfer => assert(cu.srams.size==0) // TileTransfer has no sram
+        case cu:MemoryController => assert(cu.srams.size==0)
         case cu:ComputeUnit => cu.srams(is).writePort <== reg.out
       }
     }
@@ -174,7 +179,7 @@ object ConfigFactory extends ImplicitConversion {
   }
 
   // Generate interconnection network with switch boxes
-  def genSwitchNetwork(cus:List[List[ComputeUnit]], sbs:List[List[SwitchBox]]) = {
+  def genSwitchNetwork(cus:List[List[ComputeUnit]], mcs:List[MemoryController], sbs:List[List[SwitchBox]]) = {
     val numRowCUs = cus.size
     val numColCUs = cus.head.size
     for (i <- 0 until numRowCUs) {
@@ -183,8 +188,9 @@ object ConfigFactory extends ImplicitConversion {
         if (i!=numRowCUs-1)
           cus(i)(j).vout ==> cus(i+1)(j).vinAt("W")
         // CU to CU (Vertical S -> N)
-        if (j!=numColCUs-1)
+        if (j!=numColCUs-1) {
           cus(i)(j).vout ==> cus(i)(j+1).vinAt("S")
+        }
       }
     }
     for (i <- 0 until numRowCUs+1) {
@@ -213,9 +219,15 @@ object ConfigFactory extends ImplicitConversion {
         cus(i)(j).vout ==> sbs(i+1)(j+1).vinAt("NW")
       }
     }
+    for (j <- 0 until sbs.head.size) {
+      if (j<numRowCUs) {
+        sbs(0)(j).voutAt("W").zip(mcs(j).vinAt("E")).foreach { case(o, i) => o ==> i}
+        mcs(j).vout ==> sbs(0)(j).vinAt("W")
+      }
+    }
   }
 
-  def genCtrlSwitchNetwork(cus:List[List[ComputeUnit]], ttcus:List[TileTransfer], csbs:List[List[SwitchBox]])(implicit spade:Spade) = {
+  def genCtrlSwitchNetwork(cus:List[List[ComputeUnit]], mcs:List[MemoryController], csbs:List[List[SwitchBox]])(implicit spade:Spade) = {
     val top = spade.top
     val numRowCUs = cus.size
     val numColCUs = cus.head.size
@@ -273,16 +285,16 @@ object ConfigFactory extends ImplicitConversion {
         cus(i)(j).cinAt("SE").zip(csbs(i+1)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
       }
     }
-    for (j <- 0 until ttcus.size) {
+    for (j <- 0 until mcs.size) {
       // TT and SB (SE <-> NW) (bottom right)
-      ttcus(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
-      ttcus(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
+      mcs(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
+      mcs(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
       // TT and SB (E <-> W) (right)
-      ttcus(j).coutAt("E").zip(csbs(0)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
-      ttcus(j).cinAt("E").zip(csbs(0)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
+      mcs(j).coutAt("E").zip(csbs(0)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
+      mcs(j).cinAt("E").zip(csbs(0)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
       // TT and SB (NE <-> SW) (top right)
-      ttcus(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
-      ttcus(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
+      mcs(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
+      mcs(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
     }
 
   }

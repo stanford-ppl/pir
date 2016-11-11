@@ -22,6 +22,7 @@ package object typealias {
   type Node  = pir.graph.Node
   type CL    = pir.graph.Controller
   type ICL   = pir.graph.InnerController
+  type ICU   = pir.graph.InnerComputeUnit
   type OCL   = pir.graph.OuterController
   type CU    = pir.graph.ComputeUnit
   type SCL   = pir.graph.SpadeController
@@ -70,6 +71,7 @@ package object typealias {
   type PCL       = pir.plasticine.graph.Controller
   type PCU       = pir.plasticine.graph.ComputeUnit
   type PTT       = pir.plasticine.graph.TileTransfer
+  type PMC       = pir.plasticine.graph.MemoryController
   type PTop      = pir.plasticine.graph.Top
   type PNE       = pir.plasticine.graph.NetworkElement
   type PReg      = pir.plasticine.graph.Reg

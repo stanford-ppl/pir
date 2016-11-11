@@ -20,10 +20,14 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
         //else { cu.emptyStage }
       val empty = cu.emptyStage
       // Write Addr Stages
-      cu.wtAddrStages.foreach { was => stageAnalysis(was) }
-      // Local Stages
-      val locals = empty::cu.localStages.toList
-      stageAnalysis(locals)
+      cu match {
+        case cu:InnerComputeUnit =>
+          cu.wtAddrStages.foreach { was => stageAnalysis(was)(cu) }
+          val locals = empty::cu.localStages.toList
+          stageAnalysis(locals)(cu)
+        case mc:MemoryController =>
+          stageAnalysis(empty::Nil)
+      }
       // Interference Graph
       infAnalysis(cu)
     }
@@ -38,7 +42,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
 
   private def updatesPrim(implicit cu:ComputeUnit) = {
     cu match {
-      case icu:InnerController =>
+      case icu:InnerComputeUnit =>
         icu.mems.foreach { mem =>
           mem match { case mem:SRAMOnRead => if (mem.readAddr.isConnected) addLiveOut(mem.readAddr); case _ => }
           mem match { case mem:SRAMOnWrite => if (mem.writeAddr.isConnected) addLiveOut(mem.writeAddr); case _ => }

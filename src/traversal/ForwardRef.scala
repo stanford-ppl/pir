@@ -2,6 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
+import pir.graph.enums._
 import pir.graph.mapper.PIRException
 
 import scala.collection.mutable.Set
@@ -23,7 +24,6 @@ class ForwardRef(implicit val design: Design) extends Traversal{
     ForwardRef.collectOuters
   } 
 
-  // Collect outer controllers that are in the same CU
   def addName(n:Node):Unit = n.name.foreach { name => 
     n match {
       case c:Controller => 
@@ -57,11 +57,26 @@ class ForwardRef(implicit val design: Design) extends Traversal{
 object ForwardRef {
   def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
   def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
+  // Collect outer controllers that are in the same CU
   def collectOuters(implicit design:Design) = {
     design.top.innerCUs.foreach { inner =>
+      //TODO: hack add dep and parent of MemoryController here
+      inner match {
+        case mc:MemoryController =>
+          val addrUnitPipe = mc.saddr.writer.ctrler.asInstanceOf[UnitPipeline]
+          mc.addDep(addrUnitPipe)
+          mc.addDep(mc.ssize.writer.ctrler.asInstanceOf[UnitPipeline])
+          mc.parent(addrUnitPipe.parent)
+          mc.parent.addChildren(mc)
+          mc.mctpe match {
+            case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
+            case TileStore => mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+          }
+        case icu:InnerComputeUnit =>
+      }
       val outers = ListBuffer[OuterController]()
       var child:ComputeUnit = inner
-      while (child.isTail && !child.parent.isInstanceOf[Top]) {
+      while (child.isLast && !child.parent.isInstanceOf[Top]) {
         val parent = child.parent.asInstanceOf[OuterController]
         outers += parent
         parent.inner = inner

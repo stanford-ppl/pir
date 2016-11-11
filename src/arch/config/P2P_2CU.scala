@@ -31,11 +31,11 @@ object P2P_2CU extends PointToPointNetwork {
   override val top = Top(numArgIns, numArgOuts)
 
   override val rcus = List.tabulate(numRCUs) { i =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).index(i)
+    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).addVins(2, numLanes).addVouts(1, numLanes).index(i)
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   } 
-  override val ttcus = Nil 
+  override val mcs = Nil 
 
   /* Network Constrain */ 
   rcus(1).vins(0) <== rcus(0).vout 

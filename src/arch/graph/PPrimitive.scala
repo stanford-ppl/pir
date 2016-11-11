@@ -206,23 +206,23 @@ object UDCounter extends Metadata {
 }
 
 class CtrlBox(numCtrs:Int, numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
-(implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive {
+(implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive with GridIO[ComputeUnit]{
   //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
   //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
   assert(numTokenIns % 8 == 0)
   assert((numTokenOutLUTs + numTokenDownLUTs) % 8 == 0)
+  def inBuses(num:Int, width:Int):List[InBus[ComputeUnit]] = InBuses(ctrler, num, width)
+  def outBuses(num:Int, width:Int):List[OutBus[ComputeUnit]] = OutBuses(ctrler, num, width)
   val inBandwidth = numTokenIns / 8
   val outBandwidth = (numTokenOutLUTs + numTokenDownLUTs) / 8 
-  var cinMap = Map[String, List[InBus[ComputeUnit]]]()
-  var coutMap = Map[String, List[OutBus[ComputeUnit]]]()
-  SwitchBox.eightDirections.foreach { dir => cinMap += dir -> InBuses(ctrler, inBandwidth, 1) } 
-  SwitchBox.eightDirections.foreach { dir => coutMap += dir -> OutBuses(ctrler, outBandwidth, 1) } 
-  val ctrlIns:List[InBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => cinMap(dir) }
-  val ctrlOuts:List[OutBus[ComputeUnit]] = SwitchBox.eightDirections.flatMap { dir => coutMap(dir) }  
+  SwitchBox.eightDirections.foreach { dir => addVinAt(dir, inBandwidth, 1) } 
+  SwitchBox.eightDirections.foreach { dir => addVoutAt(dir, outBandwidth, 1) }
+  val ctrlIns:List[InBus[ComputeUnit]] = vins 
+  val ctrlOuts:List[OutBus[ComputeUnit]] = vouts 
   ctrlIns.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
   ctrlOuts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
-  def cinAt(dir:String):List[InBus[ComputeUnit]] = cinMap(dir)
-  def coutAt(dir:String):List[OutBus[ComputeUnit]] = coutMap(dir)
+  def cinAt(dir:String):List[InBus[ComputeUnit]] = vinAt(dir) 
+  def coutAt(dir:String):List[OutBus[ComputeUnit]] = voutAt(dir) 
 
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs

@@ -111,23 +111,17 @@ object DoneOutPort {
 
 trait CtrlInPort extends InPort { 
   def isCtrlIn = {
-    val ctrler = src match {
-      case p:Primitive =>
-        p.ctrler match {
-          case cl:ComputeUnit => cl.inner
-          case mc:MemoryController => mc
-        }
+    val self = src match {
+      case p:Primitive => p.ctrler.asInstanceOf[ComputeUnit].inner
       case top:Top => top
+      case mc:MemoryController => mc
     }
-    from.src match { 
-      case p:Primitive =>
-        val inner = p.ctrler match {
-          case cl:ComputeUnit => cl.inner
-          case mc:MemoryController => mc
-        }
-        inner != ctrler
-      case top:Top => top!=ctrler
+    val fromCU = from.src match { 
+      case p:Primitive => p.ctrler.asInstanceOf[ComputeUnit].inner
+      case top:Top => top
+      case mc:MemoryController => mc
     } 
+    self!=fromCU
   }
 }
 object CtrlInPort extends Metadata {
@@ -137,24 +131,18 @@ object CtrlInPort extends Metadata {
 }
 trait CtrlOutPort extends OutPort { 
   def isCtrlOut = {
-    val ctrler = src match {
-      case p:Primitive =>
-        p.ctrler match {
-          case cl:ComputeUnit => cl.inner
-          case mc:MemoryController => mc
-        }
+    val self = src match {
+      case p:Primitive => p.ctrler.asInstanceOf[ComputeUnit].inner
       case top:Top => top
+      case mc:MemoryController => mc
     }
-    to.exists{
-      _.src match { 
-        case p:Primitive =>
-          val inner = p.ctrler match {
-            case cl:ComputeUnit => cl.inner
-            case mc:MemoryController => mc
-          }
-          inner != ctrler
-        case top:Top => top!=ctrler
+    to.exists{ ip =>
+      val toCU = ip.src match { 
+        case p:Primitive => p.ctrler.asInstanceOf[ComputeUnit].inner
+        case top:Top => top
+        case mc:MemoryController => mc
       } 
+      self!=toCU
     }
   }
 }

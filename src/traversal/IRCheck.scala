@@ -30,6 +30,10 @@ class IRCheck(implicit val design: Design) extends Traversal {
             if (reader == cu)
               throw PIRException(s"Ctrl Reader $reader same as writer $cu")
           }
+          cu match {
+            case mc:MemoryController => if (!mc.isLast) throw PIRException(s"MemoryController need to be the last stage $mc ${mc.dependeds}")
+            case _ =>
+          }
         case n:CtrlBox =>
           n.udcounters.foreach { case (_, udc) => assert(udc.ctrler==n.ctrler) }
           n.luts.foreach { lut => assert(lut.ctrler==n.ctrler) }

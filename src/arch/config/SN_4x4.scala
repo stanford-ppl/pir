@@ -26,7 +26,7 @@ object SN_4x4 extends SwitchNetwork {
   override val wordWidth = 32
   override val numLanes = 16
   override val scalarBandwidth = 2 // BO, how many scalar value can be transmitted on bus 
-  override val numScalarInReg = 2 // BO, how many scalar registers connected to the crossbar 
+  override val numScalarInReg = 4 // BO, how many scalar registers connected to the crossbar 
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
@@ -38,64 +38,47 @@ object SN_4x4 extends SwitchNetwork {
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
     val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).coord(i, j)
-    spade match {
-      case sn:SwitchNetwork =>
-        List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, 1) }
-        List("E").foreach { dir => cu.addVoutAt(dir, 1) }
-      case pn:PointToPointNetwork =>
-    }
+    val bandWidth = 1
+    List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, bandWidth, numLanes) }
+    List("E").foreach { dir => cu.addVoutAt(dir, bandWidth, numLanes) }
+    cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
+    cu.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     cu
   }
   override val rcus = cuArray.flatten 
-  override val ttcus = List.tabulate(numRowCUs) { i =>
-    val cu = ConfigFactory.genTT(numSRAMs = 0, numCtrs = 8, numRegs = 16).coord(-1, i)
-    spade match {
-      case sn:SwitchNetwork =>
-        List("SE").foreach { dir => cu.addVinAt(dir, 2) }
-        List("E").foreach { dir => cu.addVoutAt(dir, 1) }
-      case pn:PointToPointNetwork =>
-    }
+  override val mcs = List.tabulate(numRowCUs) { i =>
+    val cu = ConfigFactory.genMC(numCtrs = 8, numRegs = 16).coord(-1, i)
+    List("E").foreach { dir => cu.addVinAt(dir, 4, numLanes) }
+    List("E").foreach { dir => cu.addVoutAt(dir, 1, numLanes) }
+    cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
+    cu.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     cu
   } 
 
   override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
     var map = IMap[String, Int]()
+    val sb = SwitchBox().coord(i,j)
     SwitchBox.fourDirections.foreach { dir =>
-      map += s"i$dir" -> 1 
-      map += s"o$dir" -> 1 
+      sb.addVinAt(dir, 1, numLanes)
+      sb.addVoutAt(dir, 1, numLanes)
     }
-    if (i!=0) {
-      map += s"iNW" -> 1
-      map += s"iSW" -> 1
-      map += s"oNE" -> 1
-      map += s"oSE" -> 1
-    } else { // Switch box attached to TileTransfer CU
-      map += s"iNW" -> 1
-      map += s"oNW" -> 2
-      map += s"oNE" -> 1
-      map += s"oSE" -> 1
-    }
-    if (i==0) SwitchBox(map, numLanes).coord(i,j) // extra for tileload
-    else SwitchBox(map, numLanes).coord(i,j)
+    sb.addVinAt("NW", 1, numLanes)
+    sb.addVinAt("SW", 1, numLanes)
+    sb.addVoutAt("NE", 1, numLanes)
+    sb.addVoutAt("SE", 1, numLanes)
+    if (i==0) sb.addVoutAt("W", 3, numLanes)
+    sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
+    sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+    sb
   }
   override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
     SwitchBox.full(bw=2, width=1).coord(i,j)
   }
 
-  for (i <- 0 until sbs.size) {
-    for (j <- 0 until sbs.head.size) {
-      coordOf(sbs(i)(j)) = (i,j) 
-      if (i==0 && j<numRowCUs) {
-        sbs(i)(j).voutAt("NW").zip(ttcus(j).vinAt("SE")).foreach { case(o, i) => o ==> i}
-        ttcus(j).vout ==> sbs(i)(j).vinAt("NW")
-      }
-    }
-  }
-
-  ConfigFactory.genSwitchNetwork(cuArray, sbs)
-  ConfigFactory.genCtrlSwitchNetwork(cuArray, ttcus, csbs)
+  ConfigFactory.genSwitchNetwork(cuArray, mcs, sbs)
+  ConfigFactory.genCtrlSwitchNetwork(cuArray, mcs, csbs)
 
   ConfigFactory.genArgIOConnection
 

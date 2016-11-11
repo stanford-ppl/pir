@@ -159,7 +159,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val ins = ListBuffer[String]()
     sb.vouts.foreach { pvout =>
       if (fpmap.contains(pvout.voport)) {
-        ins += s""""${indexOf(fpmap(pvout.voport).src)}""""
+        val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
+        ins += s""""${sb.io(vin)}""""
       } else {
         ins += s""""x""""
       }
@@ -282,20 +283,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def localWADelay(pcu:PCU, ctr:Ctr):Int = {
     val cu = ctr.ctrler.asInstanceOf[ICL]
-    val wasrams = cu.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
-    val wastages = pcu.stages.filter { pstage =>
-      if (stmap.pmap.contains(pstage)) {
-        val stage = stmap.pmap(pstage)
-        stage match {
-          case wast:WAST =>
-            if (wasrams.forall(wasram => wast.srams.right.get.contains(wasram))) {
-              true
-            } else false
-          case _ =>false 
+    cu match {
+      case icu:ICU =>
+        val wasrams = icu.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
+        val wastages = pcu.stages.filter { pstage =>
+          if (stmap.pmap.contains(pstage)) {
+            val stage = stmap.pmap(pstage)
+            stage match {
+              case wast:WAST =>
+                if (wasrams.forall(wasram => wast.srams.right.get.contains(wasram))) {
+                  true
+                } else false
+              case _ =>false 
+            }
+          } else false
         }
-      } else false
+        if (wastages.size==0) 0 else indexOf(wastages.last) - indexOf(wastages.head)
+      case mc:MC => 0
+      case ocl:OCL => 0
     }
-    if (wastages.size==0) 0 else indexOf(wastages.last) - indexOf(wastages.head)
   }
 
   //TODO

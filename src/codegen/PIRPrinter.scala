@@ -52,15 +52,19 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
     }
   def regMapToStrs(c:InnerController):Map[String, String] = {
     var m = HashMap[String, String]()
-    toStr(m, "reduceReg" , c.reduceReg  )
-    toStr(m, "vecIns"    , c.vecIns      )
-    toStr(m, "vecOut"    , c.vecOut     )
     toStr(m, "scalarIns" , c.scalarIns  )
-    toStr(m, "scalarOuts", c.scalarOuts )
-    toStr(m, "loadRegs"  , c.loadRegs   )
-    toStr(m, "storeRegs" , c.storeRegs  )
-    toStr(m, "ctrRegs"   , c.ctrRegs    )
-    toStr(m, "tempRegs"  , c.tempRegs   )
+    c match {
+      case c:InnerComputeUnit =>
+        toStr(m, "reduceReg" , c.reduceReg  )
+        toStr(m, "vecIns"    , c.vecIns      )
+        toStr(m, "vecOut"    , c.vecOut     )
+        toStr(m, "scalarOuts", c.scalarOuts )
+        toStr(m, "loadRegs"  , c.loadRegs   )
+        toStr(m, "storeRegs" , c.storeRegs  )
+        toStr(m, "ctrRegs"   , c.ctrRegs    )
+        toStr(m, "tempRegs"  , c.tempRegs   )
+      case _ =>
+    }
     m
   }
 
@@ -132,7 +136,12 @@ object PIRPrinter extends Metadata {
         n match {
           case n:InnerController =>
             fields += s"outers=[${n.outers.mkString(s",")}]"
-            fields += s"writtenMem=[${n.writtenMem}]"
+            n match {
+              case n:InnerComputeUnit =>
+                fields += s"writtenMem=[${n.writtenMem}]"
+              case n:MemoryController =>
+                fields += s"mctpe=${n.mctpe}"
+            }
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
         }
@@ -141,8 +150,6 @@ object PIRPrinter extends Metadata {
             fields += s"mctpe=${c.mctpe}"
           case _ =>
         }
-      case p:MemoryController =>
-        fields += s"mctpe=${p.mctpe}"
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
         fields += s"copied=[${p.copied.mkString(",")}]"

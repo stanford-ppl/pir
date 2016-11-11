@@ -37,7 +37,7 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
     mp
   }
 
-  def map(cu:ICL, pirMap:M):M = {
+  def map(cu:ICU, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val cons = List(mapSRAM(pirMap.vimap) _)

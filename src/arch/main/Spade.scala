@@ -15,10 +15,10 @@ trait Spade extends Metadata with ImplicitConversion { self =>
 
   val top:Top
   val rcus:List[ComputeUnit]
-  val ttcus:List[TileTransfer]
+  val mcs:List[MemoryController]
 
-  def ctrlers = top :: rcus ++ ttcus
-  def cus = rcus ++ ttcus
+  def ctrlers = top :: rcus ++ mcs 
+  def cus = rcus ++ mcs 
 
   def numCUs = rcus.size
 

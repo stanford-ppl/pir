@@ -23,9 +23,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
   // Try to bundle scalar outs that going into the same set of readers into a single
   // VecOut as much as possible
   def bundleScalarOuts = {
-    design.top.spadeCtrlers.foreach { cl =>
-      if (!cl.isInstanceOf[TileTransfer] && !cl.isInstanceOf[MemoryController]) bundleScalarOut(cl)
-    }
+    design.top.spadeCtrlers.foreach { cl => bundleScalarOut(cl) }
   }
 
   def bundleScalarOut(cl:SpadeController) = {
@@ -56,9 +54,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
   }
 
   def bundleScalarIns = {
-    design.top.spadeCtrlers.foreach { cl =>
-      if (!cl.isInstanceOf[MemoryController]) bundleScalarIn(cl)
-    }
+    design.top.spadeCtrlers.foreach { cl => bundleScalarIn(cl) }
   }
 
   def bundleScalarIn(cl:SpadeController) = {

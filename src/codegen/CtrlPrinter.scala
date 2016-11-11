@@ -29,7 +29,7 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
         }
       }
       cu match {
-        case cu:InnerController =>
+        case cu:InnerComputeUnit =>
           cu.mems.foreach { mem =>
             val info = ListBuffer[String]()
             mem match { case mem:FIFOOnWrite => info += s"notFull=${mem.notFull}, enqEn=${mem.enqueueEnable.from}"; case _ => }

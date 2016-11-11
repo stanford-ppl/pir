@@ -80,17 +80,11 @@ object PIRNetworkDotGen {
           cu.children.foreach { cu => emitController(cu) }
         }
       case cu:InnerController =>
-        cu match {
-          case tt:TileTransfer => emitController(tt.memctrl)
-          case _ =>
-        }
         emitSubGraph(cu, DotAttr().label(cu).style(rounded)) {
           cu.locals.foreach { cu =>
             emitNode(cu, cu, DotAttr().shape(box).style(dashed))
           }
         }
-      case mc:MemoryController => 
-        emitNode(mc, mc, DotAttr().shape(box).style(dashed))
     }
   }
 }
@@ -122,7 +116,6 @@ class PIRCtrlNetworkDotGen(fileName:String)(implicit design:Design) extends Trav
     val cins = cl match {
       case top:Top => top.ctrlIns
       case cu:ComputeUnit => cu.ctrlBox.ctrlIns
-      case mc:MemoryController => mc.ctrlIns
     }
     cins.foreach { ci =>
       val fromcu = ci.from.src match {

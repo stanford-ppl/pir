@@ -92,7 +92,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           cu.mems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
         case cu:StreamController =>
           val en = cb.innerCtrEn
-          val lasts = cu.children.filter(_.isTail)
+          val lasts = cu.children.filter(_.isLast)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           lasts.head match {
             case child:StreamPipeline => // StreamPipe doesn't have counterchain 
@@ -100,10 +100,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           }
         case cu:OuterController =>
           val en = cb.innerCtrEn
-          val lasts = cu.children.filter(_.isTail)
+          val lasts = cu.children.filter(_.isLast)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           // Assume OuterController is in the same CU as last stage children 
           en.connect(lasts.head.ctrlBox.outerCtrDone)
+        case mc:MemoryController =>
       }
       cb.tokenBuffers.foreach { case (dep, t) => t.dec.connect(cb.outerCtrDone) }
       cb.creditBuffers.foreach { case (dep, c) => c.dec.connect(cb.outerCtrDone) }
@@ -119,7 +120,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       } else {
         cu.parent match {
           case parent @ (_:Sequential | _:MetaPipeline) =>
-            if (!cu.isTail) {
+            if (!cu.isLast) {
               val done = cb.outerCtrDone
               val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
               cb.tokenOut = Some(TokenOutLUT(cu, done::Nil, tf))
@@ -183,7 +184,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       val cb = cu.ctrlBox
       if (cu.isHead) {
         val tk = cb.tokenBuffers.head._2
-        val lasts = cu.parent.children.filter(_.isTail)
+        val lasts = cu.parent.children.filter(_.isLast)
         assert(lasts.size==1) // TODO: Assume a single last stage, which means a single tokenbuffer for first stage
         val last = lasts.head
         cu match {
@@ -229,6 +230,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     while (ancestors(iter)!=outer) {
       ancestors(iter) match {
         case cu:StreamPipeline => // No local CounterChain
+        case cu:MemoryController => // No local CounterChain
         case cu =>
           val ccc = ancestors(iter) match {
             //TODO: should this be changed with stream counter or normal counter?
@@ -259,17 +261,22 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               chainCounterChains(inner, inner, cu)
             // Copy outer controller of the writer for write addr calculation
             case cu:OuterController =>
-              val srams = inner.srams.filter { sram =>
-                sram.writer.ancestors.contains(cu)
+              inner match {
+                case inner:InnerComputeUnit =>
+                  val srams = inner.srams.filter { sram =>
+                    sram.writer.ancestors.contains(cu)
+                  }
+                  if (srams.size==0)
+                    throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
+                  val usrams = srams.groupBy {_.writer} 
+                  if (usrams.size!=1) {
+                    throw PIRException(s"Currently don't support if more than one sram use a single copy")
+                  }
+                  val (writer, sram::_) = usrams.head
+                  chainCounterChains(inner, writer, cu)
+                case mc:MemoryController =>
+                  throw PIRException(s"MemoryController shouldn't copy counter for write addr calculation ${mc}:${cc}")
               }
-              if (srams.size==0)
-                throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
-              val usrams = srams.groupBy {_.writer} 
-              if (usrams.size!=1) {
-                throw PIRException(s"Currently don't support if more than one sram use a single copy")
-              }
-              val (writer, sram::_) = usrams.head
-              chainCounterChains(inner, writer, cu)
           }
         }
       }

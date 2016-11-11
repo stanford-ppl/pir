@@ -46,20 +46,24 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
   }
 
   override def traverse = {
-    design.top.innerCUs.foreach { icu =>
-      emitSubGraph(s"inner_$icu", DotAttr().label(icu)) {
-        icu.mems.collect{ case mem:FIFOOnRead => mem; case mem:FIFOOnWrite => mem}.foreach { mem =>
-          emitNode(mem, mem, DotAttr().shape(box).style(filled).fillcolor(cyan))
-          mem match {
-            case mem:FIFOOnRead => emitEdge(mem.dequeueEnable.from.src, mem, s"${mem.dequeueEnable}")
-            case _ =>
-          }
-          mem match {
-            case mem:FIFOOnWrite => emitEdge(mem.enqueueEnable.from.src, mem, s"${mem.enqueueEnable}")
-            case _ =>
-          }
+    design.top.innerCUs.foreach { icl =>
+      emitSubGraph(s"inner_$icl", DotAttr().label(icl)) {
+        icl match {
+          case icu:InnerComputeUnit =>
+            icu.mems.collect{ case mem:FIFOOnRead => mem; case mem:FIFOOnWrite => mem}.foreach { mem =>
+              emitNode(mem, mem, DotAttr().shape(box).style(filled).fillcolor(cyan))
+              mem match {
+                case mem:FIFOOnRead => emitEdge(mem.dequeueEnable.from.src, mem, s"${mem.dequeueEnable}")
+                case _ =>
+              }
+              mem match {
+                case mem:FIFOOnWrite => emitEdge(mem.enqueueEnable.from.src, mem, s"${mem.enqueueEnable}")
+                case _ =>
+              }
+            }
+          case mc:MemoryController =>
         }
-        icu.cchains.foreach { cchain =>
+        icl.cchains.foreach { cchain =>
           emitSubGraph(cchain, DotAttr().label(cchain).color(black).style(dashed)) {
             cchain.counters.foreach { c =>
               emitNode(c, c, DotAttr().shape(circle).color(indianred).style(filled))
@@ -67,7 +71,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
             }
           }
         }
-        icu.locals.foreach { cu =>
+        icl.locals.foreach { cu =>
           /* Emit nodes in cluster */
 			    emitSubGraph(cu, DotAttr().label(cu).style(filled).color(lightgrey)) {
           	emitNode(cu, cu.ctrlBox, DotAttr().shape(Mrecord).style(filled).fillcolor(white))

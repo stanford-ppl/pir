@@ -30,12 +30,12 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         }
         n match {
         case c:Top => 
-          c.memCtrls.foreach(n => visitNode(n))
           c.compUnits.foreach(n => visitNode(n))
         case c:ComputeUnit => {
           c.cchains.foreach { cc => visitNode(cc) }
           c match {
-            case ic:InnerController => ic.mems.foreach { s => visitNode(s) }
+            case ic:InnerComputeUnit => ic.mems.foreach { s => visitNode(s) }
+            case c:MemoryController =>
             case _ =>
           }
           c.stages.foreach { s => visitNode(s) }
@@ -46,7 +46,6 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
             case _ =>
           }
         }
-        case c:MemoryController =>
       } 
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
