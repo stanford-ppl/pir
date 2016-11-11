@@ -17,8 +17,8 @@ class SpadeTest extends UnitTest { self =>
   "SN_4x4" should "fail" taggedAs(ARCH) in {
     val design = new Design { self =>
       override val arch = SN_4x4 
-      val printer = new CUCtrlDotPrinter()
-      printer.print
+      new CUCtrlDotPrinter().print
+      new CUDotPrinter().print
     }
     design.arch match {
       case sn:SwitchNetwork =>

@@ -13,7 +13,7 @@ import scala.language.reflectiveCalls
 
 class ScalarBundleTest extends UnitTest { self =>
 
-  "ScalarBundleTest Test1" should "success" in {
+  "ScalarBundleTest Test1" should "success"  taggedAs(WIP) in {
     new Design {
       top = Top()
       // Nodes
@@ -49,7 +49,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls, Nil)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -82,7 +82,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(ais(6))
       }
       val cus = c0::c1::Nil
-      top.updateFields(cus, outer::Nil, sls ++ ais, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls ++ ais, Nil)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -120,7 +120,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(ais(2))
       }
       val cus = c0::c1::c2::Nil
-      top.updateFields(cus, outer::Nil, sls ++ ais, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls ++ ais, Nil)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -157,7 +157,7 @@ class ScalarBundleTest extends UnitTest { self =>
       }
       val cus = c0::c1::Nil
       val outers = s0::Nil 
-      top.updateFields(cus, outers, sls ++ ais, Nil, Nil)
+      top.updateFields(cus, outers, sls ++ ais, Nil)
 
       // PNodes
       override val arch = P2P_2CU  

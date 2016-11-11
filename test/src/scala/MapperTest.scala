@@ -39,7 +39,7 @@ class MapperTest extends UnitTest { self =>
     }
   }
 
-  "InOrderBind Test2" should "success" taggedAs(WIP) in {
+  "InOrderBind Test2" should "success" in {
     new Design { self =>
       implicit val ctrler:CU = null 
       // Nodes

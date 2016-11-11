@@ -18,7 +18,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUMapperTest extends UnitTest with Metadata {
 
-  "Point-to-point connection mapping" should "success" taggedAs(WIP) in {
+  "Point-to-point connection mapping" should "success" in {
     new Design {
       top = Top()
       // Nodes
@@ -61,7 +61,7 @@ class CUMapperTest extends UnitTest with Metadata {
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls, Nil, Nil)
+      top.updateFields(cus, outer::Nil, sls, Nil)
 
       // PNodes
       override val arch = new Spade with PointToPointNetwork {
@@ -72,9 +72,9 @@ class CUMapperTest extends UnitTest with Metadata {
         val numVins = 2
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
-          ConfigFactory.genRCU(numSRAMs=numVins, numCtrs=0, numRegs=numRegs)
+          ConfigFactory.genRCU(numSRAMs=numVins, numCtrs=0, numRegs=numRegs).addVins(numVins, numLanes).addVouts(1, numLanes)
         } 
-        val ttcus = Nil
+        val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
         val wordWidth = 32

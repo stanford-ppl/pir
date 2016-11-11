@@ -25,30 +25,38 @@ object DotProduct extends PIRApp {
       val es = CU.emptyStage
       val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
     }
+    val tileLoadA = MetaPipeline(name="tileLoadA", parent=outer, deps=Nil){ implicit CU =>
+      val es = CU.emptyStage
+      val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
+    }
     // b1 := v1(i::i+tileSize)
-    val tileLoadA = UnitPipeline(name="tileLoadA", parent=outer, deps=Nil){ implicit CU =>
+    val addrCalcA = UnitPipeline(name="addrCalcA", parent=tileLoadA, deps=Nil){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("1i"))
       val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
       Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
-      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, A.saddr))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, A.ssize))
+    }
+    val tileLoadB = MetaPipeline(name="tileLoadB", parent=outer, deps=Nil){ implicit CU =>
+      val es = CU.emptyStage
+      val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
     }
     // b2 := v2(i::i+tileSize)
-    val tileLoadB = UnitPipeline(name="tileLoadB", parent=outer, deps=Nil){ implicit CU =>
+    val addrCalcB = UnitPipeline(name="addrCalcB", parent=tileLoadB, deps=Nil){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("0i"))
       val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
       Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
-      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, B.saddr))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, B.ssize))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     val inner = Pipeline(name="inner", parent=outer, deps=List(tileLoadA, tileLoadB)) { implicit CU =>
       // StateMachines / CounterChain
       val ii = CounterChain(tileSize by Const("1i")) //Local
-      val itA = CounterChain.copy(tileLoadA, "it")
-      val itB = CounterChain.copy(tileLoadB, "it")
+      val itA = CounterChain.copy(addrCalcA, "it")
+      val itB = CounterChain.copy(addrCalcB, "it")
 
       val s0::s1::_ = Stages(2)
       // SRAMs

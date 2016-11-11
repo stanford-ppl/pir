@@ -49,7 +49,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     new CUDotPrinter("TestSwitch.dot").print
   }
 
-  "SwitchBox Connection 1 hop" should "success" in {
+  "SwitchBox Connection 1 hop" should "success" taggedAs(WIP) in {
     val arr = design.arch.cuArray
     val shouldContain = List(arr(2)(1), arr(1)(2));
     design.checkRange(arr(1)(1), 1, 2, shouldContain, design.arch.cus.diff(shouldContain))
@@ -120,7 +120,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, Nil, vts, Nil)
+      top.updateFields(cus, outer::Nil, Nil, vts)
       // PNodes
       override val arch = SN_4x4 
       // Mapping
@@ -199,7 +199,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.scalarOut(aos(0))
       }
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls ++ aos, vts, Nil)
+      top.updateFields(cus, outer::Nil, sls ++ aos, vts)
       // PNodes
       implicit override val arch = SN_4x4 
 
@@ -250,7 +250,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = (c0::c1::c2::c3::c4::Nil).reverse
-      top.updateFields(cus, outer::Nil, Nil, vts, Nil)
+      top.updateFields(cus, outer::Nil, Nil, vts)
       // PNodes
       implicit override val arch = SN_4x4 
       // Mapping
@@ -268,7 +268,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
-  "SwitchNetwork Connection" should "success" taggedAs(WIP) in {
+  "SwitchNetwork Connection" should "success" in {
     new Design {
       top = Top()
       val aos = Nil 
@@ -276,7 +276,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // Nodes
       val vts = Nil 
       val cus = Nil 
-      top.updateFields(cus, Nil, sls ++ aos, vts, Nil)
+      top.updateFields(cus, Nil, sls ++ aos, vts)
       // PNodes
       implicit override val arch = SN_4x4 
 
@@ -297,7 +297,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         assert(paths.size>0)
       }
       {
-        val start = arch.ttcus(3) 
+        val start = arch.mcs(3) 
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
           to == arch.top &&
@@ -307,7 +307,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         assert(paths.size>0)
       }
       {
-        val start = arch.ttcus(3) 
+        val start = arch.mcs(3) 
         val target = arch.cuArray(1)(1) 
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
@@ -319,7 +319,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       }
       {
         val start = arch.cuArray(1)(1) 
-        val target = arch.ttcus(3)  
+        val target = arch.mcs(3)  
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
           to == target &&
@@ -329,7 +329,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         assert(paths.size>0)
       }
       {
-        val start = arch.ttcus(3) 
+        val start = arch.mcs(3) 
         val target = arch.cuArray(0)(1) 
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
@@ -341,7 +341,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       }
       {
         val start = arch.cuArray(0)(1) 
-        val target = arch.ttcus(3)  
+        val target = arch.mcs(3)  
         def validCons(toVin:PIB, path:Path) = {
           val to = toVin.src
           to == target &&
