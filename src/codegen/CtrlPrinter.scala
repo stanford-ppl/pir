@@ -58,7 +58,7 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
         cu.ctrlBox.luts.foreach { lut =>
           val ins = lut.ins.map(_.from).mkString(",")
           val out = lut.out.to.mkString(",")
-          emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}]")
+          emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
         }
         val fifoat = cu.ctrlBox.fifoAndTree
         emitln(s"$fifoat(${fifoat.ins.map(_.from).mkString(",")})")
