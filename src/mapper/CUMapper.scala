@@ -91,7 +91,7 @@ object CUMapper {
         cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))
         design.arch match {
           case sn:SwitchNetwork =>
-            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected), pcl.cins.filter(_.fanIns.size>0))))
+            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, pcl.cins.filter(_.fanIns.size>0))))
             cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pcl.couts.filter(_.fanOuts.size>0))))
           case pn:PointToPointNetwork =>
         }

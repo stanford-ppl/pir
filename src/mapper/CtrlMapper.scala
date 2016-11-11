@@ -43,17 +43,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     }
   }
 
-  def getCoutSrc(co:OP) = {
-    co.src match {
-      case prim:PRIM=> prim.ctrler.asInstanceOf[CU].inner
-      case top:Top => top 
-    }
-  }
-
   def getCins(cl:SCL, mp:M) = {
-    cl.ctrlIns.filter{ cin =>
-      !mp.vimap.contains(cin) && mp.clmap.contains(getCoutSrc(cin.from))
-    }
+    cl.ctrlIns.map(_.from.asInstanceOf[COP]).filter{ cin =>
+      !mp.vimap.contains(cin) && mp.clmap.contains(cin.ctrler.asInstanceOf[SCL])
+    }.toSet.toList
   }
 
   def mapCtrlIOs(cl:SCL)(fp:M => M)(pmap:M)(implicit cuMapper:CUSwitchMapper):M = {
@@ -61,32 +54,30 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     //new CUCtrlDotPrinter()(design).print(mp)
   }
 
-  def getRoute(cl:SCL, ci:IP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
-    val co = ci.from
-    val fromcl = getCoutSrc(co)
+  def getRoute(cl:SCL, co:COP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
+    val fromcl = co.ctrler.asInstanceOf[SCL]
     val pfromcl = map.clmap(fromcl)
     def validCons(vin: PIB, path: Path) = {
       // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
-      // current path starts from that pco //TODO why would it possible that co has already been
-      // mapped
+      // current path starts from that pco 
       val pco = path.head._1
       val toCU = vin.src.asInstanceOf[PCL]
       map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
         _ == pco
       } &&
-        // If cl has been mapped, valid path reaches current pcl
-        map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
-          _ == toCU
-        } &&
-        // path is with required hops
-        (path.size >= minHop) &&
-        (path.size < maxHop)
+      // If cl has been mapped, valid path reaches current pcl
+      map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
+        _ == toCU
+      } &&
+      // path is with required hops
+      (path.size >= minHop) &&
+      (path.size < maxHop)
     }
     def advanceCons(sb: PSB, path: Path) = {
       // If co is mapped, make sure start from that pco
       if (path.size == 1) map.vomap.get(co).fold(true) { pco => path.head._1 == pco } else true &&
-        // path is within maximum hop to continue
-        (path.size < maxHop)
+      // path is within maximum hop to continue
+      (path.size < maxHop)
     }
     val routes = advance(pfromcl, validCons _, advanceCons _)
     if (routes.size == 0) {
@@ -96,7 +87,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   }
 
   def mapCtrlIns(cl:SCL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
-    type N = IP
+    type N = COP
     type R = (PCL, Path)
     val remainCtrlIns = getCins(cl, map)
     if (remainCtrlIns.size==0) return fp(map)
@@ -105,7 +96,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       val (reachedCU, path) = r
       val pcin = path.last._2
       val pcout = path.head._1
-      var mp = m.setVI(n, pcin).setVO(n.from, pcout).setRT(n, path.size)
+      var mp = m.setVI(n, pcin).setVO(n, pcout).setRT(n, path.size)
       mp = cuMapper.bindCU(cl, reachedCU, mp, es)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
@@ -128,8 +119,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
         }
       }
     }
-    val fromCU = getCoutSrc(ci.from)
-    log(s"Mapping $ci in $cl from $fromCU") {
+    val fromCU = ci.ctrler 
+    log(s"Mapping $ci(${ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")}) in $cl from $fromCU") {
       recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
     }
   }

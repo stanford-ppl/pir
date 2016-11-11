@@ -159,16 +159,18 @@ object CUDotPrinter extends Metadata {
                 vin match {
                   case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
                   case vi:VI => s"${vi.vector}"
-                  case ip:IP => ""
+                  case op:OP => ""
                 }
               case top:PTop =>
                 val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
                 s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
               case s => ""
             }
+            val cl = m.clmap.pmap(pcl)
             vin match {
-              case ip:IP =>
-                label += s"to: ${ip} \nfrom:${ip.from}" 
+              case op:OP =>
+                val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
+                label += s"to:[${to.mkString(",\n")}]\nfrom:${op}" 
               case _ =>
             }
             attr.label(label)

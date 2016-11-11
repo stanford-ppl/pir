@@ -110,7 +110,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   def mappingCheck = {
     design.top.innerCUs.foreach { inner =>
       inner.ctrlIns.foreach { cin =>
-        assert(mapping.vimap.contains(cin), s"${cin} in ${cin.src} wasn't mapped")
+        assert(mapping.vimap.contains(cin.from), s"${cin} in ${cin.src} wasn't mapped")
       }
     }
   }
