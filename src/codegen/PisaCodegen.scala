@@ -78,7 +78,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val ib = vimap(design.top.status)
+          val ib = vimap(design.top.status.from)
           val (x,y) = coordOf(fbmap(ib).src)
           val idx = if (y==0) x else x + sn.numCols
           emitPair(s"done", s"$idx")
@@ -405,7 +405,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                   emitPair("end", s"${lookUp(mem.end.get.src)}")
                 else
                   emitPair("end", s"x")
-                emitPair(s"enqEn", s"${indexOf(vimap(mem.enqueueEnable))}")
+                emitPair(s"enqEn", s"${indexOf(vimap(mem.enqueueEnable.from))}")
                 emitComment("writeType", "FIFOOnWrite")
             }
             val wd = mem.writePort.from.src match {
@@ -590,7 +590,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitPair("syncTokenMux", "x")
               } else {
                 val init = inits.head
-                val pcin = vimap(init)
+                val pcin = vimap(init.from)
                 emitPair("syncTokenMux", s"${indexOf(pcin)}")
                 map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
               }
@@ -656,7 +656,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           // inc
           val udc = ucmap.pmap(pudc)
           val inc = if (udc.inc.isConnected) {
-            val pcin = vimap(udc.inc)
+            val pcin = vimap(udc.inc.from)
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
           incs += inc 
@@ -706,7 +706,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 assert(indexOf(penlut) == i)
                 s""""0""""
               } else { // from token in
-                tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
+                tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
                 s""""1""""
               }
             case c:Ctr => //Chained
