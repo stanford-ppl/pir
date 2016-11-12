@@ -282,6 +282,27 @@ object CUSwitchMapper {
     }
     result.toList
   }
+  def searchDFS[M](vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
+    def rec(pne:PNE, path:Path, finPass:M => M):PathMap = {
+      val visited = path.map{ case (f,t) => f.src }
+      if (visited.contains(pne)) return map
+      //Prioritize visiting PCU to finish faster on hit
+      val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
+      vos.foldLeft(map) { case (preMap, vout) =>
+        vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
+          val newPath = path :+ (vout, vin)
+          vin.src match {
+            case cl:PCU if validCons(vin, newPath) => pm :+ (cl, newPath)
+            case cl:PTop if validCons(vin, newPath) => pm :+ (cl, newPath)
+            case sb:PSB if advanceCons(sb, newPath) => rec(vin.src, newPath, pm)
+            case _ =>  pm 
+          }
+        }
+      }
+    }
+    rec(start, Nil, Nil)
+  }
+
 
   def filterUsedRoutes(routes:PathMap, map:PIRMap):PathMap = {
     routes.filterNot { case r@(reached, path) =>
