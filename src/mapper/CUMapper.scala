@@ -111,8 +111,8 @@ object CUMapper {
 case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:CUMapper, design:Design) extends MappingException {
   override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
 } 
-case class OutOfPTT(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough TileTransfers in ${design.arch} to map application."
+case class OutOfPMC(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+  override val msg = s"Not enough MemoryController in ${design.arch} to map application."
 } 
 case class OutOfPCU(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."

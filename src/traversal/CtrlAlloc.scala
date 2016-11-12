@@ -66,13 +66,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             ins.map(in =>inputs(map(in))).reduce(_ && _)
           }
           EnLUT(cu, ins, tf, en)
-          //TODO: remove folling after apps are rewritten
-          cu match {
-            case tt:TileTransfer if tt.mctpe==TileLoad => 
-              val streamcc = tt.streamCChain // TODO: this won't behave correctly
-              EnLUT(cu, ins, tf, streamcc.inner.en)
-            case _ =>
-          }
         case cu:StreamPipeline =>
           val en = cb.innerCtrEn 
           cb.tokInAndTree.addInputs(cu.writtenMem.map(_.notFull))
@@ -253,14 +246,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu:StreamPipeline => // No local CounterChain
         case cu:MemoryController => // No local CounterChain
         case cu =>
-          val ccc = ancestors(iter) match {
-            //TODO: should this be changed with stream counter or normal counter?
-            case tt:TileTransfer if (!current.isInstanceOf[TileTransfer] && tt.mctpe==TileLoad) =>
-              val streamCopy = current.getCopy(tt.streamCChain)
-              streamCopy.inner.en.connect(tt.streamCChain.inner.en.from)
-              streamCopy
-            case cu => current.getCopy(cu.localCChain)
-          }
+          val ccc = current.getCopy(cu.localCChain)
           val pcc = current.getCopy(ancestors(iter+1).localCChain)
           pcc.inner.en.connect(ccc.outer.done)
           assert(!pcc.inner.en.isConnected || pcc.inner.en.isConnectedTo(ccc.outer.done))

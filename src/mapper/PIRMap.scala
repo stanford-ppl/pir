@@ -68,10 +68,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
           if (clmap.map.contains(cl)) {
             val pcl = clmap.map(cl)
             p.emitBlock( s"$cl -> $pcl" ) {
-              if (!cl.isInstanceOf[TT]) { //TODO
-                simap.printMap(cl.sins)
-                somap.printMap(cl.souts)
-              }
+              simap.printMap(cl.sins)
+              somap.printMap(cl.souts)
               vimap.printMap(cl.vins)
               cl match {
                 case cu:CU =>
@@ -101,10 +99,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
       if (clmap.pmap.contains(pcl)) {
         val cl = clmap.pmap(pcl)
         p.emitBlock( s"$pcl <- $cl" ) {
-          if (!cl.isInstanceOf[TT]) { //TODO
-            simap.printMap(cl.sins)
-            somap.printMap(cl.souts)
-          }
+          simap.printMap(cl.sins)
+          somap.printMap(cl.souts)
           vimap.printMap(cl.vins)
           pcl match {
             case pcu:PCU =>

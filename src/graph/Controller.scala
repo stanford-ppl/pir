@@ -361,12 +361,8 @@ object Pipeline {
 class UnitPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) { self =>
   override val typeStr = "UnitCompUnit"
   def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
-    val (cchains, mems) = 
-      design.addBlock[CounterChain, OnChipMem](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[OnChipMem]
-                            ) 
-    super.updateFields(cchains, mems)
+    val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
+    super.updateFields(cchains, Nil)
     this
   }
 }
@@ -381,45 +377,21 @@ object UnitPipeline {
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends Pipeline(name)  {
-
-  /* Fields */
-  val dataIn:VecIn = if (mctpe==TileLoad) newVin(memctrl.vdata) else newVin(vec) 
-  val dataOut:VecOut = if (mctpe==TileStore) newVout(memctrl.vdata) else newVout(vec)
-
-  override def vins = mctpe match {
-    case TileLoad => super.vins.filterNot( vin => vin==dataIn )
-    case _ => super.vins
-  }
-
-  override def vouts = mctpe match {
-    case TileStore => super.vouts.filterNot( vout => vout==dataOut )
-    case _ => super.vouts
-  }
-
-  def in:Vector = dataIn.vector
-  def out:Vector = dataOut.vector
-
+  (implicit design:Design) extends UnitPipeline(name)  {
   override val typeStr = s"${mctpe}"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
     val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
     super.updateFields(cchains, Nil)
+    this
   }
-
-  def streamCChain:CounterChain = {
-    val ccs = cchains.filter(cc => cc.streaming)
-    assert(mctpe==TileLoad, s"Only TileLoad has streaming CounterChain")
-    assert(ccs.size==1, s"streaming CounterChain in ${this}: ${ccs}")
-    ccs.head
-  }
-
 } 
 object TileTransfer extends {
   /* Sugar API */
   def apply[P,D](name:Option[String], parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)
                 (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).addDeps(deps).updateBlock(block)
-  def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)               (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
+  def apply[P,D](name:String, parent:P, deps:List[D], memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)             
+                (implicit design:Design, dtp:TypeTag[D]):TileTransfer =
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).addDeps(deps).updateBlock(block)
 }
 

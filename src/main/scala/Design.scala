@@ -244,7 +244,7 @@ trait Design extends Metadata { self =>
 }
 
 trait PIRApp extends Design{
-  override val arch:Spade = P2P_2CU_2TT 
+  override val arch:Spade = SN_4x4 
   override def toString = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 

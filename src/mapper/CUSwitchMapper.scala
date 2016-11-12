@@ -33,17 +33,8 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val pcus = design.arch.cus
     val cus = design.top.innerCUs
-    val grp = cus.groupBy(_.isInstanceOf[TT]) 
-    val pgrp = pcus.groupBy(_.isInstanceOf[PTT])
-    val tts = grp.getOrElse(true, Nil)
-    val ptts = pgrp.getOrElse(true, Nil)
-    val rcus = grp.getOrElse(false, Nil)
-    val prcus = pgrp.getOrElse(false, Nil)
-    if (tts.size > ptts.size) throw OutOfPTT(ptts.size, tts.size)
-    if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
-
+    val pcus = design.arch.cus
     val nodes = design.top::cus
     val reses = design.arch.top::pcus
     CUMapper.qualifyCheck(reses, nodes, resMap)
