@@ -109,7 +109,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitComment("CUName", comment)
             //emitInterconnect(pcu)
-            emitSIXbar(pcu)
+            emitScalar(pcu)
             emitOnChipMems(pcu)
             emitCounterChains(pcu)
             emitStages(pcu)
@@ -136,7 +136,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
-  def emitSIXbar(pcu:PCU)(implicit ms:CollectionStatus) = {
+  def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
     var siXbar = ListBuffer[String]() 
     pcu.etstage.prs.foreach { case (preg, ppr) =>
       val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
@@ -153,6 +153,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
     }
     emitXbar("scalarInXbar", siXbar.toList)
+    val cu = clmap.pmap(pcu)
+    cu match {
+      case cu:UnitPipeline =>
+        
+      case _ =>
+    }
   }
 
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
@@ -559,6 +565,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+  def emitXbar(outSelect:List[String])(implicit ms:CollectionStatus) = {
+    emitMap { implicit ms =>
+      emitList("outSelect", outSelect)
+    }
+  }
   def emitXbar(name:String, outSelect:List[String])(implicit ms:CollectionStatus) = {
     emitMap(name) { implicit ms =>
       emitList("outSelect", outSelect)

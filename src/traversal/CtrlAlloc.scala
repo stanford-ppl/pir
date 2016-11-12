@@ -67,6 +67,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           }
           val enlut = EnLUT(cu, ins, tf, en)
           cu.writtenMem.collect{ case fr:FIFOOnWrite => fr}.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
+          cu.parent match {
+            case p:StreamController =>
+              cu.mems.collect{ case f:FIFOOnRead => f }.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
+            case _ =>
+          }
         case cu:StreamPipeline =>
           cu match {
             case mc:MemoryController =>
@@ -88,6 +93,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               }
               val enlut = EnLUT(cu, ins.toList, tf, en)
               cu.writtenMem.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
+              cu.mems.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
           }
         case cu:StreamController => // enable should be connected during connection in last children
         case cu:OuterController =>

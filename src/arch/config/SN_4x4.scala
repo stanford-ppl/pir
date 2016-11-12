@@ -17,7 +17,7 @@ import scala.util.{Try, Success, Failure}
 // Assume no scalarIn and scalarOut buffer are before and after pipeline stages.
 // Still have scalarIn and scalarOut as node but make sure # scalarIn and # scalarOut always equal
 // to outports and inports of inbus and outbus
-object SN_4x4 extends SwitchNetwork {
+class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -30,8 +30,6 @@ object SN_4x4 extends SwitchNetwork {
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
-  private val numRowCUs = 4
-  private val numColCUs = 4
   private val ctrlBandWidth = 8
 
   // Top level controller ~= Host
@@ -98,3 +96,6 @@ object SN_4x4 extends SwitchNetwork {
   ConfigFactory.genArgIOConnection
 
 }
+
+object SN_4x4 extends SwitchNetworkInst(4, 4)
+object SN_2x2 extends SwitchNetworkInst(2, 2)
