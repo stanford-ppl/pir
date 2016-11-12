@@ -54,7 +54,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
     var m = HashMap[String, String]()
     toStr(m, "scalarIns" , c.scalarIns  )
     c match {
-      case c:InnerComputeUnit =>
+      case c:InnerController =>
         toStr(m, "reduceReg" , c.reduceReg  )
         toStr(m, "vecIns"    , c.vecIns      )
         toStr(m, "vecOut"    , c.vecOut     )
@@ -137,13 +137,14 @@ object PIRPrinter extends Metadata {
           case n:InnerController =>
             fields += s"outers=[${n.outers.mkString(s",")}]"
             n match {
-              case n:InnerComputeUnit =>
-                fields += s"writtenMem=[${n.writtenMem}]"
               case n:MemoryController =>
                 fields += s"mctpe=${n.mctpe}"
+              case _ =>
             }
+            fields += s"writtenMem=[${n.writtenMem}]"
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
+            fields += s"height=${n.height}"
         }
         n match {
           case c:TileTransfer =>

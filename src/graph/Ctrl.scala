@@ -21,10 +21,19 @@ abstract class UDCounter(implicit ctrler:Controller, design: Design) extends Pri
   val init = CtrlInPort(this, s"${this}.init")
   val out = CtrlOutPort(this, s"${this}.o")
 }
-case class TokenBuffer(dep:ComputeUnit, initVal:Int)
+/* TokenBuffer represents the forward data dependency.
+ * @param dep depended compute unit where data is from. None if if allocated in first stage, in
+ * which case used for handling token from parent and collect token from last stage. */
+case class TokenBuffer(dep:Option[ComputeUnit], initVal:Int)
   (implicit ctrler:Controller, design: Design) extends UDCounter{
   override val name = None
   override val typeStr = "TokBuf"
+}
+object TokenBuffer {
+  def apply(dep:ComputeUnit, initVal:Int)
+  (implicit ctrler:Controller, design: Design):TokenBuffer = {
+    TokenBuffer(Some(dep), initVal)
+  }
 }
 case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: Design) 
   extends UDCounter{
@@ -136,7 +145,6 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).inner.en
     //OuterController's inner most counter's enable
     case cu:OuterController => cu.inner.getCopy(cu.localCChain).inner.en
-    case cu:MemoryController => cu.getCopy(cu.parent.localCChain).inner.en
   }
   def outerCtrDone:CtrlOutPort = cu match {
     case cu:Pipeline => cu.localCChain.outer.done 
@@ -162,7 +170,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
       cins ++= tdl.ins.filter { _.isCtrlIn }
     }
     cu match {
-      case cu:InnerComputeUnit =>
+      case cu:InnerController =>
         cu.mems.foreach { 
           case mem:FIFOOnWrite => cins += mem.enqueueEnable
           case _ =>
@@ -176,7 +184,7 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
   lazy val ctrlOuts:List[CtrlOutPort] = { 
     cu.ctrlBox.luts.map(_.out).filter(_.isCtrlOut) ++
     (cu match {
-      case cu:InnerComputeUnit =>
+      case cu:InnerController =>
         cu.mems.collect{ case mem:FIFOOnWrite => mem }.filter{_.readPort.isConnected}.map(_.notFull)
       case _ => Nil
     })

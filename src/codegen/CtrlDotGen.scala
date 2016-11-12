@@ -49,7 +49,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
     design.top.innerCUs.foreach { icl =>
       emitSubGraph(s"inner_$icl", DotAttr().label(icl)) {
         icl match {
-          case icu:InnerComputeUnit =>
+          case icu:InnerController =>
             icu.mems.collect{ case mem:FIFOOnRead => mem; case mem:FIFOOnWrite => mem}.foreach { mem =>
               emitNode(mem, mem, DotAttr().shape(box).style(filled).fillcolor(cyan))
               mem match {
@@ -61,7 +61,6 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
                 case _ =>
               }
             }
-          case mc:MemoryController =>
         }
         icl.cchains.foreach { cchain =>
           emitSubGraph(cchain, DotAttr().label(cchain).color(black).style(dashed)) {

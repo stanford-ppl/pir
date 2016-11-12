@@ -16,7 +16,6 @@ class FusionTransform(implicit val design: Design) extends Traversal{
       if (pcu.children.size==1) {
         pcu.children.head match {
           case sp:StreamPipeline =>
-          case mc:MemoryController =>
           case _ =>
             implicit val ccu:ComputeUnit = pcu.children.head 
             assert(ccu.isHead && ccu.isLast)

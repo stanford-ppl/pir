@@ -23,7 +23,7 @@ trait InPort extends Port {
   var from:OutPort = _
   def isConnected = from!=null
   def connect(o:OutPort) = { 
-    if (isConnected) assert(from == o, s"${this} is already connected but trying to reconnect to $o")
+    if (isConnected) assert(from == o, s"${this}(id=$id) is already connected to ${from} but trying to reconnect to $o")
     from = o; 
     if (!o.to.contains(this)) o.to += this
   }

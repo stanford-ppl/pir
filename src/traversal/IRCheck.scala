@@ -25,13 +25,30 @@ class IRCheck(implicit val design: Design) extends Traversal {
         case cu:OuterController =>
           if (cu.children.size==1)
             warn(s"Nested Single Stage. Control won't be correctly generated at the moment! ${cu} children:[${cu.children.mkString(",")}]")
+          cu match {
+            case cu:StreamController =>
+              cu.children.foreach { c =>
+                if (!c.isHead && !c.isInstanceOf[StreamPipeline])
+                  throw PIRException("Only first stage in StreamController can be non-StreamPipeline")
+                if (c.isHead) {
+                  assert(c.mems.collect{ case mem:FIFOOnRead => mem}.size==0, 
+                    s"First stage of StreamController shouldn't have FIFOOnRead")
+                } else {
+                  if (!c.ctrlBox.tokenBuffers.isEmpty) throw PIRException(s"StreamController's children other than the first stage shouldn't have tokenBuffer")
+                }
+                if (!c.ctrlBox.creditBuffers.isEmpty) throw PIRException(s"StreamController's children shouldn't have creditBuffer")
+              }
+            case _ =>
+          }
         case cu:SpadeController =>
           cu.ctrlReaders.foreach { reader =>
             if (reader == cu)
               throw PIRException(s"Ctrl Reader $reader same as writer $cu")
           }
           cu match {
-            case mc:MemoryController => if (!mc.isLast) throw PIRException(s"MemoryController need to be the last stage $mc ${mc.dependeds}")
+            case mc:MemoryController => 
+              if (mc.isHead) throw PIRException(s"MemoryController cannot be the first stage")
+              if (!mc.isLast) throw PIRException(s"MemoryController need to be the last stage $mc ${mc.dependeds}")
             case _ =>
           }
         case n:CtrlBox =>

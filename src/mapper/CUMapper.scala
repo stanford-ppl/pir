@@ -78,9 +78,9 @@ object CUMapper {
             cons += (("tokDownLut", (cu.tokDownLUTs, pcu.ctrlBox.tokenDownLUTs)))
             cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokenOutLUTs)))
             cu match {
-              case cu:ICU => 
+              case mc:MemoryController => 
+              case _ => 
                 cons += (("onchipmem"	, (cu.mems, pcu.srams)))
-              case mc:MC =>
             }
           case _ =>
             cons += (("tpe"       , false))

@@ -32,7 +32,7 @@ object SN_4x4 extends SwitchNetwork {
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
   private val numRowCUs = 4
   private val numColCUs = 4
-  private val ctrlBandWidth = 6
+  private val ctrlBandWidth = 8
 
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)

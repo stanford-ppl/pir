@@ -6,6 +6,24 @@ import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 
 package object misc extends Logger {
+  var startTime:Long = _
+  var endTime:Long = _
+  def tic = {
+    startTime = System.nanoTime()
+  }
+  def toc(info:String, unit:String) = {
+    endTime = System.nanoTime()
+    val timeUnit = unit match {
+      case "ns" => 1
+      case "us" => 1000
+      case "ms" => 1000000
+      case "s" => 1000000000
+      case _ => throw PIRException(s"Unknown time unit!")
+    }
+    val time = (endTime - startTime) / timeUnit
+    println(s"$info elapsed time: $time $unit")
+  }
+
   implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
   implicit def pr_to_outport(pr:PipeReg):OutPort = pr.out
   implicit def sram_to_outport(sram:SRAM):OutPort = sram.readPort
@@ -22,7 +40,6 @@ package object typealias {
   type Node  = pir.graph.Node
   type CL    = pir.graph.Controller
   type ICL   = pir.graph.InnerController
-  type ICU   = pir.graph.InnerComputeUnit
   type OCL   = pir.graph.OuterController
   type CU    = pir.graph.ComputeUnit
   type SCL   = pir.graph.SpadeController

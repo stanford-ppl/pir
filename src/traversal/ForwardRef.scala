@@ -72,7 +72,7 @@ object ForwardRef {
             case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
             case TileStore => mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
           }
-        case icu:InnerComputeUnit =>
+        case icu:InnerController =>
       }
       val outers = ListBuffer[OuterController]()
       var child:ComputeUnit = inner

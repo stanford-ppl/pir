@@ -28,14 +28,14 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       val cb = cu.ctrlBox
       if (cu.isHead) {
         // no dep, buffer for parent (all types of controller)
-        cb.tokenBuffers += design.top -> TokenBuffer(null, 1)(cu, design)
+        cb.tokenBuffers += design.top -> TokenBuffer(None, 1)(cu, design)
       } else {
         cu match {
           case cu:StreamPipeline =>
           case cu =>
             /* Allocate tokenBuffer for pipelined inputs */
             val tokenInit = cu.parent match {
-              case p:MetaPipeline => p.children.size
+              case p:MetaPipeline => p.height 
               case p:Sequential => 1
             }
             cu.dependencies.foreach { dep =>
@@ -55,86 +55,80 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   // Generate logic on control I/Os
   private def genEnDec:Unit = {
     design.top.compUnits.foreach { implicit cu =>
+      val en = cu.ctrlBox.innerCtrEn
       val cb = cu.ctrlBox
       cu match {
         case cu:Pipeline =>
-          val en = cb.innerCtrEn
           val tks = cb.tokenBuffers.map(_._2.out).toList
           val cds = cb.creditBuffers.map(_._2.out).toList
           val ins = tks ++ cds
           val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
             ins.map(in =>inputs(map(in))).reduce(_ && _)
           }
-          EnLUT(cu, ins, tf, en)
-        case cu:StreamPipeline =>
-          val en = cb.innerCtrEn 
-          cb.tokInAndTree.addInputs(cu.writtenMem.map(_.notFull))
-          var ins = cb.andTree.out::Nil
-          if (cu.isHead) {
-            val tks = cb.tokenBuffers.map(_._2.out).toList
-            assert(tks.size==1)
-            ins ++= tks
-          } else {
-            cb.fifoAndTree.addInputs(cu.mems.map(_.notEmpty))
-          }
-          val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
-            ins.map(in =>inputs(map(in))).reduce(_ && _)
-          }
           val enlut = EnLUT(cu, ins, tf, en)
-          cu.writtenMem.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
-          cu.mems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
-        case cu:StreamController =>
-          val en = cb.innerCtrEn
-          val lasts = cu.children.filter(_.isLast)
-          if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
-          lasts.head match {
-            case child:StreamPipeline => // StreamPipe doesn't have counterchain 
-            case child:StreamController => en.connect(child.ctrlBox.outerCtrDone)
+          cu.writtenMem.collect{ case fr:FIFOOnWrite => fr}.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
+        case cu:StreamPipeline =>
+          cu match {
+            case mc:MemoryController =>
+              en.connect(mc.done)
+              mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
+            case cu =>
+              val ins = ListBuffer[CtrlOutPort]()
+              cb.tokInAndTree.addInputs(cu.writtenMem.map(_.notFull))
+              ins += cb.andTree.out
+              if (cu.isHead) {
+                val tks = cb.tokenBuffers.map(_._2.out).toList
+                assert(tks.size==1)
+                ins ++= tks
+              } else {
+                cb.fifoAndTree.addInputs(cu.mems.map(_.notEmpty))
+              }
+              val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
+                ins.map(in => inputs(map(in))).reduce(_ && _)
+              }
+              val enlut = EnLUT(cu, ins.toList, tf, en)
+              cu.writtenMem.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
           }
+        case cu:StreamController => // enable should be connected during connection in last children
         case cu:OuterController =>
-          val en = cb.innerCtrEn
           val lasts = cu.children.filter(_.isLast)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           // Assume OuterController is in the same CU as last stage children 
           val child = lasts.head
           child match {
             case mc:MemoryController => en.connect(mc.dataValid)
-            case _ => en.connect(child.ctrlBox.outerCtrDone)
+            case _ => en.connect(child.ctrlBox.outerCtrDone) 
           }
-        case mc:MemoryController =>
-          //TODO not correct
-          mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
       }
-      cb.tokenBuffers.foreach { case (dep, t) => 
-        val done = cu match {
-          case mc:MemoryController => mc.ready
-          case _ => cb.outerCtrDone
-        }
-        t.dec.connect(done)
-      }
+
+      // MC and StreamPipeline other than the first stage shouldn't have tokenBuffer
+      cb.tokenBuffers.foreach { case (dep, t) => t.dec.connect(cb.outerCtrDone) }
+      // MC and StreamPipeline shouldn't have creditBuffer 
       cb.creditBuffers.foreach { case (dep, c) => c.dec.connect(cb.outerCtrDone) }
     }
+    val lasts = design.top.children.filter(_.isLast)
+    if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
+    // Assume OuterController is in the same CU as last stage children 
+    val child = lasts.head
+    design.top.status.connect(TokenOutLUT.passThrough(child, child.ctrlBox.outerCtrDone))
   }
+
   private def genTokenOut:Unit = {
     design.top.compUnits.foreach { implicit cu =>
       val cb = cu.ctrlBox
       if (cu.isUnitStage) {
         cb.tokenOut = None 
-      } else if (cu.isInstanceOf[StreamPipeline]) {
-        cb.tokenOut = None
       } else {
         cu.parent match {
-          case parent @ (_:Sequential | _:MetaPipeline) =>
+          case p:StreamController =>
+            cb.tokenOut = None
+          case parent:OuterController =>
             if (!cu.isLast) {
               val done = cb.outerCtrDone
               cb.tokenOut = Some(TokenOutLUT.passThrough(cu, done))
             } else {
-              //TODO: don't need this tokenout if cu.parent is unit controller
-              val c = cu match {
-                case mc:MemoryController => mc.ready
-                case _ => cb.outerCtrDone
-              } 
-              val p = parent.asInstanceOf[OuterController].ctrlBox.outerCtrDone
+              val c = cb.outerCtrDone
+              val p = parent.ctrlBox.outerCtrDone
               val ins = c::p::Nil
               val tf = TransferFunction(s"!${p} && ${c}") { case (map, ins) =>
                 !ins(map(p)) && ins(map(c))
@@ -145,15 +139,9 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           case _ =>
         }
       }
-      // Generate status event when cu is UnitStage 
-      cu.parent match {
-        case t:Top =>
-          val done = cb.outerCtrDone
-          t.status.connect(TokenOutLUT.passThrough(cu, done))
-        case _ =>
-      }
     }
   }
+
   private def genTokenDown:Unit = {
     val queue = Queue[ComputeUnit]() 
     queue ++= design.top.children
@@ -184,10 +172,12 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       queue ++= cu.children
     }
   }
+
   /* Connect inputs of UpdownCounters */
   private def connectInputs = {
     design.top.compUnits.foreach { cu =>
       val cb = cu.ctrlBox
+      // TokenBuffer
       if (cu.isHead) {
         val tk = cb.tokenBuffers.head._2
         val lasts = cu.parent.children.filter(_.isLast)
@@ -195,6 +185,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         val last = lasts.head
         cu match {
           case cu:StreamPipeline => // StreamPipeline has no inc on TokenBuffer
+          case cu:Pipeline if (cu.parent.isInstanceOf[StreamController]) =>
           case cu =>
             if (cu!=last) { // Avoid single stage case
               tk.inc.connect(last.ctrlBox.tokenOut.get)
@@ -203,7 +194,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         val tokenDown = cu.parent match {
           case t:Top => t.command
           case c:ComputeUnit => c.ctrlBox.tokenDown.get
-          case _ => throw PIRException(s"unknown parent type")
         }
         tk.init.connect(tokenDown)
       } else {
@@ -213,24 +203,15 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             cb.tokenBuffers.foreach { case (dep, tk) =>
               tk.inc.connect(dep.asInstanceOf[ComputeUnit].ctrlBox.tokenOut.get)
             }
-            cu match {
-              case mc:MemoryController =>
-                val unitPipe = mc.saddr.writer.ctrler.asInstanceOf[ComputeUnit]
-                mc.issue.connect(unitPipe.ctrlBox.tokenOut.get)
-              case _ =>
-            }
         }
       }
+      // CreditBuffer 
       cu match {
         case cu:StreamPipeline => // StreamPipe doesn't have creditBuffer
         case cu =>
           cb.creditBuffers.foreach { case (deped, cd) =>
             implicit val depedCU = deped.asInstanceOf[ComputeUnit]
-            val done = depedCU match {
-              case mc:MemoryController => mc.ready
-              case _ => depedCU.ctrlBox.outerCtrDone
-            }
-            cd.inc.connect(TokenOutLUT.passThrough(deped, done)) 
+            cd.inc.connect(TokenOutLUT.passThrough(deped, depedCU.ctrlBox.outerCtrDone)) 
           }
       }
     }
@@ -244,7 +225,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     while (ancestors(iter)!=outer) {
       ancestors(iter) match {
         case cu:StreamPipeline => // No local CounterChain
-        case cu:MemoryController => // No local CounterChain
         case cu =>
           val ccc = current.getCopy(cu.localCChain)
           val pcc = current.getCopy(ancestors(iter+1).localCChain)
@@ -268,22 +248,17 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               chainCounterChains(inner, inner, cu)
             // Copy outer controller of the writer for write addr calculation
             case cu:OuterController =>
-              inner match {
-                case inner:InnerComputeUnit =>
-                  val srams = inner.srams.filter { sram =>
-                    sram.writer.ancestors.contains(cu)
-                  }
-                  if (srams.size==0)
-                    throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
-                  val usrams = srams.groupBy {_.writer} 
-                  if (usrams.size!=1) {
-                    throw PIRException(s"Currently don't support if more than one sram use a single copy")
-                  }
-                  val (writer, sram::_) = usrams.head
-                  chainCounterChains(inner, writer, cu)
-                case mc:MemoryController =>
-                  throw PIRException(s"MemoryController shouldn't copy counter for write addr calculation ${mc}:${cc}")
+              val srams = inner.srams.filter { sram =>
+                sram.writer.ancestors.contains(cu)
               }
+              if (srams.size==0)
+                throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
+              val usrams = srams.groupBy {_.writer} 
+              if (usrams.size!=1) {
+                throw PIRException(s"Currently don't support if more than one sram use a single copy")
+              }
+              val (writer, sram::_) = usrams.head
+              chainCounterChains(inner, writer, cu)
           }
         }
       }

@@ -308,15 +308,15 @@ object SRAM {
     = SRAM(Some(name), size, banking, buffering)
 }
 
-case class FIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
+class FIFO(val name: Option[String], val size: Int, val banking:Banking, val buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
   extends OnChipMem with FIFOOnRead with FIFOOnWrite {
   override val typeStr = "FIFO"
 }
 object FIFO {
   def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
-    = FIFO(None, size, banking, buffering)
+    = new FIFO(None, size, banking, buffering)
   def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
-    = FIFO(Some(name), size, banking, buffering)
+    = new FIFO(Some(name), size, banking, buffering)
 }
 
 case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
@@ -329,6 +329,8 @@ object SemiFIFO {
   def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
     = SemiFIFO(Some(name), size, banking, buffering)
 }
+case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: Design) 
+  extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking(), SingleBuffer())
 
 trait IO extends Primitive
 trait Input extends IO {
@@ -494,19 +496,19 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
 object Stage {
   /* No Sugar API */
   def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
-            (implicit ctrler:InnerComputeUnit, design:Design):Unit= {
+            (implicit ctrler:InnerController, design:Design):Unit= {
     stage.fu = Some(new FuncUnit(stage, operands, op, results))
     ctrler.addStage(stage)
   }
   /* Sugar API */
-  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit = 
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit = 
     Stage(stage, List(op1, op2), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerComputeUnit, design:Design):Unit =
+  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
 
-  def reduce(op:Op, init:Const)(implicit ctrler:InnerComputeUnit, design:Design):(AccumStage, PipeReg) = {
+  def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(AccumStage, PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
@@ -514,10 +516,10 @@ object Stage {
   }
 }
 object Stages {
-  def apply(n:Int) (implicit ctrler:InnerComputeUnit, design: Design):List[LocalStage] = {
+  def apply(n:Int) (implicit ctrler:InnerController, design: Design):List[LocalStage] = {
     List.tabulate(n) { i => LocalStage(None) }
   }
-  def reduce(n:Int, op:Op) (implicit ctrler:InnerComputeUnit, design: Design):List[ReduceStage] = {
+  def reduce(n:Int, op:Op) (implicit ctrler:InnerController, design: Design):List[ReduceStage] = {
     val preStage = ctrler.stages.last
     val rdStages = List.tabulate(n) {i => 
       new { override val idx = i } with Stage(None) with ReduceStage
@@ -536,7 +538,7 @@ object Stages {
    * @op accumulation operand
    * Returns the accumulation stage and PipeReg of the accumulator
    * */
-  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerComputeUnit, design: Design):
+  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerController, design: Design):
     (AccumStage, PipeReg) = {
     val s = AccumStage(acc)
     val areg = ctrler.accum(s, acc)
@@ -590,10 +592,10 @@ class WAStage (override val name:Option[String])
 
 }
 object WAStage {
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design)  = new WAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 object WAStages {
-  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerComputeUnit, design: Design):List[WAStage] = {
+  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[WAStage] = {
     val was = List.tabulate(n) { i => WAStage(srams) }
     ctrler.addWAStages(was)
     was

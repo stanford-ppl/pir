@@ -27,7 +27,7 @@ abstract class Controller(implicit design:Design) extends Node { self =>
 
   //TODO inner controller shouldn't have children
   val _children = ListBuffer[ComputeUnit]()
-  def children = _children.toList
+  def children:List[ComputeUnit] = _children.toList
   def removeChildren(c:ComputeUnit) = { _children -= c }
   def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
 }
@@ -182,6 +182,17 @@ class OuterController(name:Option[String])(implicit design:Design) extends Compu
     assert(!cc.isCopy)
     _cchains.filterNot( _.original == cc)
   }
+
+  /* Size of longest depended children */
+  def height:Int = {
+    var count = 1
+    var heads = children.filter{!_.isHead}
+    while(heads.size!=0) {
+      heads = heads.flatMap{_.dependeds}
+      count +=1
+    }
+    count
+  }
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -220,6 +231,9 @@ object MetaPipeline {
 
 class StreamController(name:Option[String])(implicit design:Design) extends OuterController(name) {
   override val typeStr = "StreamCtrler"
+  override def children:List[InnerController] = {
+    super.children.asInstanceOf[List[InnerController]]
+  }
 }
 object StreamController {
   def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: StreamController => Any)
@@ -235,7 +249,8 @@ object StreamController {
     StreamController(Some(name), parent, deps)(block)
 }
 
-trait InnerController extends ComputeUnit with SpadeController with InnerRegBlock {
+abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name)
+  with SpadeController with InnerRegBlock {
   implicit val icu:InnerController = this 
 
   /* CounterChains */
@@ -268,6 +283,25 @@ trait InnerController extends ComputeUnit with SpadeController with InnerRegBloc
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
   }
 
+  /* Stages */
+  val wtAddrStages = ListBuffer[List[WAStage]]()
+  val localStages = ListBuffer[LocalStage]()
+
+  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+
+  def addWAStages(was:List[WAStage]) = {
+    wtAddrStages += was
+    was.foreach { wa => indexOf(wa) = nextIndex }
+  }
+
+  def addStage(s:Stage):Unit = { s match {
+      case ss:LocalStage =>
+        localStages += ss
+        indexOf(ss) = nextIndex
+      case ss:WAStage => // WAstages are added in addWAStages 
+    }
+  }
+
   /* Controller Hierarchy */
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/
@@ -293,30 +327,8 @@ trait InnerController extends ComputeUnit with SpadeController with InnerRegBloc
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
   def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
-}
 
-abstract class InnerComputeUnit(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerController 
-{ self =>
-  override val typeStr = "PipeCU"
-
-  val wtAddrStages = ListBuffer[List[WAStage]]()
-  val localStages = ListBuffer[LocalStage]()
-
-  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
-
-  def addWAStages(was:List[WAStage]) = {
-    wtAddrStages += was
-    was.foreach { wa => indexOf(wa) = nextIndex }
-  }
-
-  def addStage(s:Stage):Unit = { s match {
-      case ss:LocalStage =>
-        localStages += ss
-        indexOf(ss) = nextIndex
-      case ss:WAStage => // WAstages are added in addWAStages 
-    }
-  }
-
+  /* Block updates */
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
 
   def updateFields(cchains:List[CounterChain], mems:List[OnChipMem]):this.type = {
@@ -334,10 +346,10 @@ abstract class InnerComputeUnit(name:Option[String])(implicit design:Design) ext
     updateFields(cchains, mems)
   }
 }
-class Pipeline(name:Option[String])(implicit design:Design) extends InnerComputeUnit(name) { self =>
-  override def writtenMem:List[SRAMOnWrite] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[SRAMOnWrite]) }.toList
-  }
+
+class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
+  override val typeStr = "PipeCU"
+
   val _mems = ListBuffer[SRAMOnRead]()
   override def mems:List[SRAMOnRead] = _mems.toList
   def mems(ms:List[OnChipMem]) = {
@@ -364,6 +376,9 @@ class UnitPipeline(override val name: Option[String])(implicit design: Design) e
     val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
     super.updateFields(cchains, Nil)
     this
+  }
+  override def writtenMem:List[CommandFIFO] = souts.flatMap { sout =>
+    sout.scalar.readers.flatMap { sout => sout.out.to.map(_.src.asInstanceOf[CommandFIFO]) }.toList
   }
 }
 object UnitPipeline {
@@ -395,7 +410,7 @@ object TileTransfer extends {
     TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).addDeps(deps).updateBlock(block)
 }
 
-class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerComputeUnit(name) { self =>
+class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "StreamPipe"
   private var _parent:StreamController = _
   override def parent:StreamController = _parent
@@ -432,18 +447,8 @@ object StreamPipeline {
     StreamPipeline(Some(name), parent, deps)(block)
 }
 
-class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends ComputeUnit(name)
-  with InnerController with SpadeController { self =>
+class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
-
-  private var _parent:OuterController = _
-  override def parent:OuterController = _parent
-  override def parent(p:Controller) = { 
-    p match {
-      case p:OuterController => _parent = p
-      case _ => throw PIRException(s"MemoryController's parent must be OuterController $this.parent=$p")
-    }
-  }
 
   val vdata = Vector()
   val saddr = Scalar()
@@ -458,34 +463,24 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     sinMap += ssize -> si 
     si
   }
-  //TODO
   val dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
   val dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
 
-  val ready = CtrlOutPort(this, s"${this}.ready")
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
-  val issue = CtrlInPort(this, s"${this}.issue")
+  val done = CtrlOutPort(this, s"${this}.done")
   val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
 
-  val _mems = ListBuffer[FIFO]()
-  override def mems:List[FIFO] = _mems.toList
-  def mems(ms:List[OnChipMem]) = {
-    ms.foreach { m =>
-      _mems += m.asInstanceOf[FIFO]
-    }
-  }
-  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
-  }
-  //TODO
-  mctpe match {
+  val commandFIFO = CommandFIFO(this) 
+  commandFIFO.wtPort(addr.out)
+  commandFIFO.dequeueEnable.connect(dummyCtrl)
+  val dataFIFO = mctpe match {
     case TileStore => 
-      val buffer = FIFO(30, NoBanking(), SingleBuffer()) 
-      buffer.enqueueEnable.connect(dummyCtrl)
-      buffer.dequeueEnable.connect(dummyCtrl)
-      mems(buffer::Nil) 
-    case _ =>
+      val fifo = FIFO(s"${this}DataFIFO", 100, NoBanking(), SingleBuffer()).wtPort(vdata)
+      fifo.dequeueEnable.connect(dummyCtrl)
+      Some(fifo)
+    case _ => None
   }
+  mems(commandFIFO::dataFIFO.toList) 
 }
 object MemoryController {
   def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 

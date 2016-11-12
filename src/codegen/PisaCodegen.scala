@@ -284,8 +284,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def localWADelay(pcu:PCU, ctr:Ctr):Int = {
     val cu = ctr.ctrler.asInstanceOf[ICL]
     cu match {
-      case icu:ICU =>
-        val wasrams = icu.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
+      case mc:MC => 0
+      case icl:ICL =>
+        val wasrams = icl.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
         val wastages = pcu.stages.filter { pstage =>
           if (stmap.pmap.contains(pstage)) {
             val stage = stmap.pmap(pstage)
@@ -299,8 +300,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           } else false
         }
         if (wastages.size==0) 0 else indexOf(wastages.last) - indexOf(wastages.head)
-      case mc:MC => 0
-      case ocl:OCL => 0
     }
   }
 
@@ -330,7 +329,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val delays = ctr.ctrler.vins.map { vin =>
         vin.tokenIn.fold(0) { cin =>
           val dataInterConnectDelay = rtmap(vin)
-          val ctrlInterConnectDelay = rtmap(cin)
+          val ctrlInterConnectDelay = rtmap(cin.from)
           assert(dataInterConnectDelay==ctrlInterConnectDelay)
           0 //TODO: assume data delay matches control delay for all inputs for now
         }
@@ -347,7 +346,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin)
-        val ctrlInterConnectDelay = rtmap(ctr.en)
+        val ctrlInterConnectDelay = rtmap(ctr.en.from)
         //TODO: assume data delay matches control delay for all inputs for now
         val delay = numLocalStages(pFromCU) + dataInterConnectDelay - ctrlInterConnectDelay 
         s"${delay}"
