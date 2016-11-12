@@ -396,14 +396,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   def tokenIn:Option[InPort] = {
     ctrler match {
       case c:SpadeController =>
-        val cins = c.ctrlIns.filter { cin => 
-          cin.from.src match { // Only expected ctrlIn associated with data for a local counter
-            case tklut:TokenOutLUT => tklut.ctrler == ctrler
-            case top:Top => top == ctrler
-            case tdlut:TokenDownLUT => false
-            case enlut:EnLUT => false // copied writer counter delay
-          }
-        }
+        val cins = c.ctrlIns.filter{_.asInstanceOf[CtrlInPort].isCtrlIn}
         if (cins.size==0) None
         else {
           assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")

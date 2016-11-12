@@ -32,11 +32,16 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
         case cu:InnerComputeUnit =>
           cu.mems.foreach { mem =>
             val info = ListBuffer[String]()
-            mem match { case mem:FIFOOnWrite => info += s"notFull=${mem.notFull}, enqEn=${mem.enqueueEnable.from}"; case _ => }
-            mem match { case mem:FIFOOnRead => info += s"notEmpty=${mem.notEmpty}, deqEn=${mem.dequeueEnable.from}"; case _ => }
+            mem match { case mem:FIFOOnWrite => info += s"notFull=[${mem.notFull.to.mkString(",")}], enqEn=${mem.enqueueEnable.from}"; case _ => }
+            mem match { case mem:FIFOOnRead => info += s"notEmpty=[${mem.notEmpty.to.mkString(",")}], deqEn=${mem.dequeueEnable.from}"; case _ => }
             emitln(s"$mem(${info.mkString(",")})")
           }
-        case _ =>
+        case mc:MemoryController =>
+          val info = ListBuffer[String]()
+          emitln(s"ready=[${mc.ready.to.mkString(",")}]")
+          emitln(s"dataValid=[${mc.dataValid.to.mkString(",")}]")
+          emitln(s"issue=[${mc.issue.from}]")
+        case cu:OuterController =>
       }
       val (tins, touts) = cu match {
         case inner:InnerController =>
@@ -52,6 +57,7 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
           info += s"inc=${tb.inc.from}"
           info += s"dec=${tb.dec.from}"
           info += s"init=${tb.init.from}"
+          info += s"initVal=${tb.initVal}"
           info += s"out=[${tb.out.to.mkString(",")}]"
           emitln(s"${tb} (${info.mkString(",")})")
         }

@@ -119,7 +119,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
         }
       }
     }
-    val fromCU = ci.ctrler 
+    val fromCU = ci.ctrler
+    //fromCU match {
+      //case mc:MC =>
+        //new CUCtrlDotPrinter()(design).print(map)
+        //println(s"$mc $ci")
+      //case _ =>
+    //}
     log(s"Mapping $ci(${ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")}) in $cl from $fromCU") {
       recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
     }

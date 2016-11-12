@@ -14,6 +14,7 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
+  var mapping = getProperty("pir.mapping", "false") == "true"
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
@@ -30,7 +31,6 @@ object Config {
   var ctrlFile = getProperty("pir.ctrl_file", "Ctrl.txt")
   var spadeCtr = getProperty("pir.spade_ctr", "PCtr.dot")
   var mapFile = getProperty("pir.mapfile", "Mapping.txt")
-  var mapping = getProperty("pir.mapping", "true") == "true"
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
   var debugLog = getProperty("pir.debugLog", "Debug.log")
 
@@ -39,10 +39,10 @@ object Config {
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugVIMapper = debugMapper && true
-  var debugSMMapper = debugMapper && true 
-  var debugCTMapper = debugMapper && true 
-  var debugRAMapper = debugMapper && true 
-  var debugSTMapper = debugMapper && true 
+  var debugSMMapper = debugMapper && false 
+  var debugCTMapper = debugMapper && false 
+  var debugRAMapper = debugMapper && false 
+  var debugSTMapper = debugMapper && false 
   var debugSIMapper = debugMapper && true 
   var debugCtrlMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"

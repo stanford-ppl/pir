@@ -64,6 +64,12 @@ case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
   override val typeStr = "TokOutLUT"
 }
 object TokenOutLUT {
+  def passThrough(cu:ComputeUnit, done:CtrlOutPort)(implicit design:Design):CtrlOutPort = {
+    cu.ctrlBox.tokOutLUTs.filter { to => to.ins.map(_.from) == List(done) }.headOption.fold {
+      val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
+      TokenOutLUT(cu, done::Nil, tf)
+    } { tolut => tolut.out }
+  }
   def apply(cu:ComputeUnit, outs:List[CtrlOutPort], transFunc:TransferFunction)
   (implicit design: Design):CtrlOutPort = {
     val lut = TokenOutLUT(outs.size, transFunc)(cu, design)
@@ -136,7 +142,6 @@ case class CtrlBox()(implicit cu:ComputeUnit, design: Design) extends Primitive 
     case cu:Pipeline => cu.localCChain.outer.done 
     case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).outer.done
     case cu:OuterController => cu.inner.getCopy(cu.localCChain).outer.done
-    case cu:MemoryController => cu.ready
   }
   var tokenOut:Option[CtrlOutPort] = None 
   // only outer controller have token down, which is the init signal first child stage

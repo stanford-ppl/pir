@@ -103,10 +103,22 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           val lasts = cu.children.filter(_.isLast)
           if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
           // Assume OuterController is in the same CU as last stage children 
-          en.connect(lasts.head.ctrlBox.outerCtrDone)
+          val child = lasts.head
+          child match {
+            case mc:MemoryController => en.connect(mc.dataValid)
+            case _ => en.connect(child.ctrlBox.outerCtrDone)
+          }
         case mc:MemoryController =>
+          //TODO not correct
+          mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
       }
-      cb.tokenBuffers.foreach { case (dep, t) => t.dec.connect(cb.outerCtrDone) }
+      cb.tokenBuffers.foreach { case (dep, t) => 
+        val done = cu match {
+          case mc:MemoryController => mc.ready
+          case _ => cb.outerCtrDone
+        }
+        t.dec.connect(done)
+      }
       cb.creditBuffers.foreach { case (dep, c) => c.dec.connect(cb.outerCtrDone) }
     }
   }
@@ -122,11 +134,13 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           case parent @ (_:Sequential | _:MetaPipeline) =>
             if (!cu.isLast) {
               val done = cb.outerCtrDone
-              val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-              cb.tokenOut = Some(TokenOutLUT(cu, done::Nil, tf))
+              cb.tokenOut = Some(TokenOutLUT.passThrough(cu, done))
             } else {
               //TODO: don't need this tokenout if cu.parent is unit controller
-              val c = cb.outerCtrDone
+              val c = cu match {
+                case mc:MemoryController => mc.ready
+                case _ => cb.outerCtrDone
+              } 
               val p = parent.asInstanceOf[OuterController].ctrlBox.outerCtrDone
               val ins = c::p::Nil
               val tf = TransferFunction(s"!${p} && ${c}") { case (map, ins) =>
@@ -142,8 +156,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       cu.parent match {
         case t:Top =>
           val done = cb.outerCtrDone
-          val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-          t.status.connect(TokenOutLUT(cu, done::Nil, tf))
+          t.status.connect(TokenOutLUT.passThrough(cu, done))
         case _ =>
       }
     }
@@ -207,6 +220,12 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             cb.tokenBuffers.foreach { case (dep, tk) =>
               tk.inc.connect(dep.asInstanceOf[ComputeUnit].ctrlBox.tokenOut.get)
             }
+            cu match {
+              case mc:MemoryController =>
+                val unitPipe = mc.saddr.writer.ctrler.asInstanceOf[ComputeUnit]
+                mc.issue.connect(unitPipe.ctrlBox.tokenOut.get)
+              case _ =>
+            }
         }
       }
       cu match {
@@ -214,9 +233,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu =>
           cb.creditBuffers.foreach { case (deped, cd) =>
             implicit val depedCU = deped.asInstanceOf[ComputeUnit]
-            val done = depedCU.ctrlBox.outerCtrDone
-            val tf = TransferFunction(s"${done}") { case (map, ins) => ins(map(done)) }
-            cd.inc.connect(TokenOutLUT(deped, done::Nil, tf)) 
+            val done = depedCU match {
+              case mc:MemoryController => mc.ready
+              case _ => depedCU.ctrlBox.outerCtrDone
+            }
+            cd.inc.connect(TokenOutLUT.passThrough(deped, done)) 
           }
       }
     }

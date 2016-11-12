@@ -67,7 +67,7 @@ object CUMapper {
           case top:Top if pcl.isInstanceOf[PTop] =>
           case cu:ICL if pcl.isInstanceOf[PCU] =>
             val pcu = pcl.asInstanceOf[PCU]
-            cons += (("tttpe"       , cu.isInstanceOf[TT] == pcu.isInstanceOf[PTT]))
+            cons += (("mctpe"       , cu.isInstanceOf[MC] == pcu.isInstanceOf[PMC]))
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))

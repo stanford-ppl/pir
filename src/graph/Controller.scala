@@ -57,12 +57,7 @@ trait SpadeController extends Controller { self =>
       }
     }
   }.toList
-  def ctrlReaders:List[SpadeController] = ctrlOuts.flatMap { _.to  }.map { cin => 
-    cin.src match {
-      case prim:Primitive => prim.ctrler.asInstanceOf[ComputeUnit].inner
-      case top:Top => top
-    }
-  }.filter { _ != this }
+  def ctrlReaders:List[SpadeController] = ctrlOuts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
 
   def writers:List[SpadeController] = vinMap.keys.map(_.writer.ctrler).toList
 } 
@@ -243,6 +238,7 @@ object StreamController {
 trait InnerController extends ComputeUnit with SpadeController with InnerRegBlock {
   implicit val icu:InnerController = this 
 
+  /* CounterChains */
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
   def cchains = cchainMap.values.toList
   def addCChain(cc:CounterChain):Unit = {
@@ -264,12 +260,21 @@ trait InnerController extends ComputeUnit with SpadeController with InnerRegBloc
     cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
   }
 
+  /* Memories */
+  def mems:List[OnChipMem]
+  def mems(ms:List[OnChipMem])
+  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
+  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
+  }
+
+  /* Controller Hierarchy */
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/
   var outers:List[OuterController] = Nil
   def inner:InnerController = this
 
-  /* Including current CU. From current to top */
+  // Including current CU. From current to top
   def ancestors: List[ComputeUnit] = {
     val list = ListBuffer[ComputeUnit]()
     var child:Controller = this 
@@ -281,6 +286,7 @@ trait InnerController extends ComputeUnit with SpadeController with InnerRegBloc
     list.toList
   }
 
+  /* Control Signals */
   def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.ctrlIns)
   def ctrlOuts:List[OutPort] = locals.flatMap(_.ctrlBox.ctrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
@@ -292,13 +298,6 @@ trait InnerController extends ComputeUnit with SpadeController with InnerRegBloc
 abstract class InnerComputeUnit(name:Option[String])(implicit design:Design) extends ComputeUnit(name) with InnerController 
 { self =>
   override val typeStr = "PipeCU"
-
-  def mems:List[OnChipMem]
-  def mems(ms:List[OnChipMem])
-  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
-  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
-  }
 
   val wtAddrStages = ListBuffer[List[WAStage]]()
   val localStages = ListBuffer[LocalStage]()
@@ -435,15 +434,16 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
     }
   }
   override def removeParent:Unit = _parent = null
-  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
-  }
+
   val _mems = ListBuffer[FIFOOnRead]()
   override def mems:List[FIFOOnRead] = _mems.toList
   def mems(ms:List[OnChipMem]) = {
     ms.foreach { m =>
       _mems += m.asInstanceOf[FIFOOnRead]
     }
+  }
+  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
   }
 }
 object StreamPipeline {
@@ -481,26 +481,39 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     sinMap += saddr -> si 
     si
   }
-  val offset = {
+  val size = {
     val si = newSin(ssize)
     sinMap += ssize -> si 
     si
   }
   //TODO
-  val dataIn  = if (mctpe==TileStore) {
-    val vi = newVin(vdata)
-    vinMap += vdata -> vi
-    Some(vi)
-  } else None
-  val dataOut = if (mctpe==TileLoad) {
-    val vi = newVout(vdata)
-    voutMap += vdata -> vi 
-    Some(vi)
-  } else None
+  val dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
+  val dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
 
   val ready = CtrlOutPort(this, s"${this}.ready")
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val issue = CtrlInPort(this, s"${this}.issue")
+  val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
+
+  val _mems = ListBuffer[FIFO]()
+  override def mems:List[FIFO] = _mems.toList
+  def mems(ms:List[OnChipMem]) = {
+    ms.foreach { m =>
+      _mems += m.asInstanceOf[FIFO]
+    }
+  }
+  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
+    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
+  }
+  //TODO
+  mctpe match {
+    case TileStore => 
+      val buffer = FIFO(30, NoBanking(), SingleBuffer()) 
+      buffer.enqueueEnable.connect(dummyCtrl)
+      buffer.dequeueEnable.connect(dummyCtrl)
+      mems(buffer::Nil) 
+    case _ =>
+  }
 }
 object MemoryController {
   def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 

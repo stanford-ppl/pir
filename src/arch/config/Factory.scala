@@ -18,7 +18,7 @@ object ConfigFactory extends ImplicitConversion {
   
   def genRCU(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
     val cu = new ComputeUnit().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(16, 8, 8)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=4, outBandwidth=4)
     /* Pipeline Stages */
     cu.addWAstages(List.fill(4) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
     cu.addRAstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
@@ -31,7 +31,7 @@ object ConfigFactory extends ImplicitConversion {
 
   def genTT(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
     val cu = new TileTransfer().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      .ctrlBox(16, 8, 8)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=4, outBandwidth=4)
     /* Pipeline Stages */
     cu.addWAstages(List.fill(3) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
     cu.addRAstages(List.fill(1) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
@@ -40,7 +40,8 @@ object ConfigFactory extends ImplicitConversion {
   }
 
   def genMC(numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(0).ctrlBox(16, 8, 8)
+    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(0)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=8, outBandwidth=8)
     genConnections(cu)
     cu
   }
@@ -286,15 +287,15 @@ object ConfigFactory extends ImplicitConversion {
       }
     }
     for (j <- 0 until mcs.size) {
-      // TT and SB (SE <-> NW) (bottom right)
-      mcs(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
-      mcs(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
-      // TT and SB (E <-> W) (right)
+      // MC and SB (SE <-> NW) (bottom right)
+      //mcs(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
+      //mcs(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
+      // MC and SB (E <-> W) (right)
       mcs(j).coutAt("E").zip(csbs(0)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
       mcs(j).cinAt("E").zip(csbs(0)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
-      // TT and SB (NE <-> SW) (top right)
-      mcs(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
-      mcs(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
+      // MC and SB (NE <-> SW) (top right)
+      //mcs(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
+      //mcs(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
     }
 
   }

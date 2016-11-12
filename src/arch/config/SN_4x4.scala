@@ -32,6 +32,7 @@ object SN_4x4 extends SwitchNetwork {
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
   private val numRowCUs = 4
   private val numColCUs = 4
+  private val ctrlBandWidth = 6
 
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)
@@ -74,7 +75,21 @@ object SN_4x4 extends SwitchNetwork {
     sb
   }
   override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    SwitchBox.full(bw=2, width=1).coord(i,j)
+    val sb = if (i==0) {
+      val sb = SwitchBox().coord(i,j)
+      sb.addVioAt("N", ctrlBandWidth, numLanes)
+      sb.addVioAt("NE", ctrlBandWidth, numLanes)
+      sb.addVioAt("E", ctrlBandWidth, numLanes)
+      sb.addVioAt("S", ctrlBandWidth, numLanes)
+      sb.addVioAt("SE", ctrlBandWidth, numLanes)
+      sb.addVioAt("W", 8, numLanes)
+      sb
+    } else {
+      SwitchBox.full(bw=ctrlBandWidth, width=1).coord(i,j)
+    }
+    sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
+    sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+    sb
   }
 
   ConfigFactory.genSwitchNetwork(cuArray, mcs, sbs)

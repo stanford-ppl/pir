@@ -28,7 +28,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   var mapping:PIRMap = _
   var success = false
 
-  def fail = !success
+  def fail = !success && Config.mapping
 
   val siMapper = new ScalarInMapper()
   val sramMapper = new SRAMMapper()

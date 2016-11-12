@@ -34,7 +34,7 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
     }
   }
 
-  val scale = 13
+  val scale = 30
   def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
     //emitln(s"splines=ortho;")
     val bandWidth = spade match {
@@ -65,7 +65,11 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
       }
       val label = s"{${recs.mkString("|")}}"
       var attr = DotAttr().shape(Mrecord)
-      coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
+      pcl match {
+        case pmc:PMC => coordOf.get(pmc).foreach { case (x,y) => attr.pos((x*scale, y*scale-scale/2)) }
+        case pcu:PCU => coordOf.get(pcu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
+        case _ =>
+      }
       mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
       val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
       val nc = design.arch.asInstanceOf[SwitchNetwork].numCols

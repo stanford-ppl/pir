@@ -97,12 +97,30 @@ class PIRCtrlNetworkDotGen(fileName:String)(implicit design:Design) extends Trav
 
   def traverse:Unit = {
     emitBlock("digraph G") {
-      emitNodes
+      emitConcise
     }
   }
 
   def finPass = {
     close
+  }
+
+  def emitConcise:Unit = {
+    design.top.ctrlers.foreach {
+      case cu:SpadeController =>
+        emitNode(cu, cu, DotAttr().shape(box).style(rounded))
+        val cos = cu.ctrlIns.map { _.from.asInstanceOf[CtrlOutPort] }.toSet.toList
+        cos.foreach { co =>
+          val cins = co.to.filter{_.asInstanceOf[CtrlInPort].ctrler==cu}
+          val label = s"from:${co}\nto:[${cins.mkString(",\n")}]"
+          emitEdge(co.ctrler, cu, label)
+        }
+      case _ =>
+    }
+  }
+
+  def emitFull:Unit = {
+    emitNodes
   }
 
   def emitNodes:Unit = {

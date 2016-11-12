@@ -72,6 +72,10 @@ trait GridIO[+NE<:NetworkElement] {
     obs.zipWithIndex.foreach { case (ob, i) => ob }
     voutMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
   }
+  def addVioAt(dir:String, num:Int, width:Int)(implicit spade:Spade):Unit = {
+    addVinAt(dir,num, width)
+    addVoutAt(dir,num, width)
+  }
   def addVins(num:Int, width:Int)(implicit spade:Spade):this.type = { 
     addVinAt("N", num, width)
     this
@@ -182,8 +186,8 @@ class ComputeUnit()(implicit spade:Spade) extends Controller with GridIO[Compute
   }
   def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter().index(ic) }; this }
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM().index(is) }; this }
-  def ctrlBox(numTokenIns:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int):this.type = { 
-    ctrlBox = new CtrlBox(ctrs.size, numTokenIns, numTokenOutLUTs, numTokenDownLUTs); this
+  def ctrlBox(numTokenOutLUTs:Int, numTokenDownLUTs:Int, inBandwidth:Int, outBandwidth:Int):this.type = { 
+    ctrlBox = new CtrlBox(ctrs.size, numTokenOutLUTs, numTokenDownLUTs, inBandwidth, outBandwidth); this
   }
 
   def cins = ctrlBox.ctrlIns

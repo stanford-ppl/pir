@@ -27,7 +27,7 @@ case class NoSolFound(mapper:Mapper, exceps:List[MappingException])(implicit des
 }
 
 case class FailToMapNode[M](mapper:Mapper, n:Any, exceps:List[MappingException], mapping:M)(implicit design:Design) extends MappingException {
-  override def toString = s"[$mapper] $typeStr $n"
+  //override def toString = s"[$mapper] $typeStr $n"
   val s = if (n.isInstanceOf[PRIM]) s"${n} in ${n.asInstanceOf[PRIM].ctrler}" else s"$n"
   //override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
   override val msg = s"No resource can map ${s}. Exceptions: {\n ${exceps.map(e => s"$e ${e.msg}").mkString("\n")}\n}"
