@@ -45,7 +45,7 @@ object Config {
   var debugSTMapper = debugMapper && false 
   var debugSIMapper = debugMapper && true 
   var debugCtrlMapper = debugMapper && true 
-  var debugCodegen = debug && getProperty("pir.debugCodegen", "false") == "true"
+  var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
 
   var dse = false
 

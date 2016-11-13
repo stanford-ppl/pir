@@ -1,5 +1,4 @@
 import pir.graph._
-import pir.graph.{MetaPipeline => MetaPipe}
 import pir.graph
 import pir.codegen._
 import pir.Design
@@ -19,7 +18,7 @@ object DotProductLite extends PIRApp {
     val innerScalar = Scalar("innerScalar")
 
     // Pipe.fold(dataSize by tileSize par outerPar)(out){ i =>
-    val outer = MetaPipeline(name="outer", parent=top, deps=Nil){ implicit CU =>
+    val outer = Sequential(name="outer", parent=top, deps=Nil){ implicit CU =>
       CounterChain(name="i", dataSize by tileSize)
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}

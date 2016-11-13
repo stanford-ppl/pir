@@ -16,7 +16,7 @@ class SpadeTest extends UnitTest { self =>
 
   "SN_4x4" should "fail" taggedAs(ARCH) in {
     val design = new Design { self =>
-      override val arch = SN_4x4 
+      override val arch = SN_2x2
       new CUCtrlDotPrinter().print
       new CUDotPrinter().print
     }

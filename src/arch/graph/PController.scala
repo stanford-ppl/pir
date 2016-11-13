@@ -89,7 +89,9 @@ trait GridIO[+NE<:NetworkElement] {
   def vins:List[InBus[NE]] = SwitchBox.eightDirections.flatMap { dir => vinAt(dir) } 
   def vouts:List[OutBus[NE]] = SwitchBox.eightDirections.flatMap { dir => voutAt(dir) }  
   def io(vin:InBus[NetworkElement]) = {
-    val (dir, list) = vinMap.filter{ case (dir, l) => l.contains(vin) }.head
+    val dirs = vinMap.filter{ case (dir, l) => l.contains(vin) }
+    assert(dirs.size==1)
+    val (dir, list) = dirs.head
     s"${dir.toLowerCase}_${list.indexOf(vin)}"
   }
 }

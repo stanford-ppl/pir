@@ -40,7 +40,7 @@ object ConfigFactory extends ImplicitConversion {
   }
 
   def genMC(numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(0)
+    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(2)
       .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=8, outBandwidth=8)
     genConnections(cu)
     cu
@@ -93,7 +93,7 @@ object ConfigFactory extends ImplicitConversion {
       // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
       cu match {
         case cu:TileTransfer => assert(cu.srams.size==0) // TileTransfer has no sram
-        case cu:MemoryController => assert(cu.srams.size==0)
+        case cu:MemoryController => 
         case cu:ComputeUnit => cu.srams(is).writePort <== reg.out
       }
     }

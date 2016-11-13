@@ -30,7 +30,12 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
-  private val ctrlBandWidth = 8
+  private val ctrlBandWidth = 4
+
+  val memCtrlCommandFIFOEnqBusIdx:Int = 0
+  val memCtrlDataFIFOEnqBusIdx:Int = 1
+  val memCtrlCommandFIFONotFullBusIdx:Int = 0
+  val memCtrlDataFIFONotFullBusIdx:Int = 1
 
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)

@@ -176,6 +176,9 @@ object PIRPrinter extends Metadata {
         fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
         vecOf.get(p).foreach { vecIn =>
           fields += s"vecIn=${vecIn}"
+          if (design.fusionTransform.isTraversed && p.ctrler.isInstanceOf[InnerController]) {
+            fields += s"fifoBufferSize=${design.multiBufferAnalysis.bufSizeMap(vecIn.asInstanceOf[DummyVecIn])}"
+          }
         }
       case p:ScalarOut =>
         fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
