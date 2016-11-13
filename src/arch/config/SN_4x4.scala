@@ -30,7 +30,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
-  private val ctrlBandWidth = 4
+  private val ctrlBandWidth = 8
 
   val memCtrlCommandFIFOEnqBusIdx:Int = 0
   val memCtrlDataFIFOEnqBusIdx:Int = 1
@@ -42,6 +42,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
     val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).coord(i, j)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=1, outBandwidth=1)
     val bandWidth = 1
     List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, bandWidth, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, bandWidth, numLanes) }
@@ -53,6 +54,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   override val rcus = cuArray.flatten 
   override val mcs = List.tabulate(numRowCUs) { i =>
     val cu = ConfigFactory.genMC(numCtrs = 8, numRegs = 16).coord(-1, i)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=8, outBandwidth=8)
     List("E").foreach { dir => cu.addVinAt(dir, 4, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, 1, numLanes) }
     cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }

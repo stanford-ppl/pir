@@ -18,7 +18,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUMapperTest extends UnitTest with Metadata {
 
-  "Point-to-point connection mapping" should "success" in {
+  "Point-to-point connection mapping" should "success" taggedAs(WIP) in {
     new Design {
       top = Top()
       // Nodes
@@ -68,11 +68,17 @@ class CUMapperTest extends UnitTest with Metadata {
         val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = 6 
+        val memCtrlCommandFIFOEnqBusIdx:Int = 0
+        val memCtrlDataFIFOEnqBusIdx:Int = 1
+        val memCtrlCommandFIFONotFullBusIdx:Int = 0
+        val memCtrlDataFIFONotFullBusIdx:Int = 1
+
         val numRCUs = 5
         val numVins = 2
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
           ConfigFactory.genRCU(numSRAMs=numVins, numCtrs=0, numRegs=numRegs).addVins(numVins, numLanes).addVouts(1, numLanes)
+            .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=1, outBandwidth=1)
         } 
         val mcs = Nil
         val sbs = Nil 

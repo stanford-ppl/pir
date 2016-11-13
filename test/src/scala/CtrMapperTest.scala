@@ -29,6 +29,11 @@ class CtrMapperTest extends UnitTest { self =>
         val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
+        val memCtrlCommandFIFOEnqBusIdx:Int = 0
+        val memCtrlDataFIFOEnqBusIdx:Int = 1
+        val memCtrlCommandFIFONotFullBusIdx:Int = 0
+        val memCtrlDataFIFONotFullBusIdx:Int = 1
+
         val rcus = Nil
         val mcs = Nil
         val sbs = Nil 
@@ -68,6 +73,11 @@ class CtrMapperTest extends UnitTest { self =>
         val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
+        val memCtrlCommandFIFOEnqBusIdx:Int = 0
+        val memCtrlDataFIFOEnqBusIdx:Int = 1
+        val memCtrlCommandFIFONotFullBusIdx:Int = 0
+        val memCtrlDataFIFONotFullBusIdx:Int = 1
+
         val rcus = Nil
         val mcs = Nil
         val sbs = Nil 
@@ -109,6 +119,11 @@ class CtrMapperTest extends UnitTest { self =>
         val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
+        val memCtrlCommandFIFOEnqBusIdx:Int = 0
+        val memCtrlDataFIFOEnqBusIdx:Int = 1
+        val memCtrlCommandFIFONotFullBusIdx:Int = 0
+        val memCtrlDataFIFONotFullBusIdx:Int = 1
+
         val rcus = Nil
         val mcs = Nil
         val sbs = Nil 
