@@ -85,15 +85,17 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val ib = vimap(design.top.status.from)
-          val (x,y) = coordOf(fbmap(ib).src)
+          val status = vimap(design.top.status.from)
+          val (x,y) = coordOf(fbmap(status).src)
           val idx = if (y==0) x else x + sn.numCols
           emitPair(s"done", s"$idx")
           // ArgOutBus
+          val ao = vimap(design.top.status.from)
           assert(design.arch.top.vins.size==1)
           if (!design.top.vins.isEmpty) {
             val aob = vimap(design.top.vins.head) 
-            val (x,y) = coordOf(fbmap(ib).src)
+            val (x,y) = coordOf(fbmap(aob).src)
+            println(s"${fbmap(aob).src} ${x} ${y}")
             val idx = if (y==0) x else x + sn.numCols
             emitPair(s"argOut", s"$idx")
           }
