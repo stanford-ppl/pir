@@ -8,7 +8,6 @@ import pir.misc._
 import pir.PIRApp
 
 object NiterDesign extends PIRApp {
-  override val arch = SN_4x4 
   def main(args: String*)(top:Top) = {
     val x419_argin = ArgIn()
     val x420_argout = ArgOut()

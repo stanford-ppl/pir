@@ -64,6 +64,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitMain(implicit ms:CollectionStatus) = {
+    emitTop
+    emitCUs
+    emitNetwork
+    emitMCs
+  }
+
+  def emitTop(implicit ms:CollectionStatus) = {
     val argOuts = ListBuffer[String]()
     design.top.sins.foreach { sin =>
       argOuts += s"${sin.scalar} -> ${indexOf(simap(sin).outport.get)}"
@@ -93,6 +100,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         case pn:PointToPointNetwork =>
       }
     }
+  }
+
+  def emitCUs(implicit ms:CollectionStatus) = {
     emitList("cu") { implicit ms =>
       design.arch.rcus.foreach { pcu =>
         if (clmap.pmap.contains(pcu)) {
@@ -109,7 +119,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitComment("CUName", comment)
             //emitInterconnect(pcu)
-            emitSIXbar(pcu)
+            emitScalar(pcu)
             emitOnChipMems(pcu)
             emitCounterChains(pcu)
             emitStages(pcu)
@@ -120,6 +130,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
     }
+  }
+
+  def emitNetwork(implicit ms:CollectionStatus) = {
     design.arch match {
       case sn:SwitchNetwork =>
         emitList("dataSwitch") { implicit ms =>
@@ -136,7 +149,34 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
-  def emitSIXbar(pcu:PCU)(implicit ms:CollectionStatus) = {
+  def emitMCs(implicit ms:CollectionStatus) = {
+    emitList("mu") { implicit ms:CollectionStatus =>
+      design.arch.mcs.foreach { pmc =>
+        if (clmap.pmap.contains(pmc)) {
+          val mc = clmap.pmap(pmc).asInstanceOf[MC]
+          emitMap { implicit ms:CollectionStatus =>
+            val isWr = mc.mctpe match {
+              case TileLoad => "0" 
+              case TileStore => "1"
+            }
+            emitPair("isWr", s"${isWr}")
+            emitPair("scatterGatter", "0")
+            emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable.from))}")
+            mc.dataFIFO.foreach { dataFIFO =>
+              emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable.from))}")
+              emitComment("DataFIFO-notFull", s"${indexOf(vomap(dataFIFO.notFull))}")
+            }
+            emitComment("CommandFIFO-notFull", s"${indexOf(vomap(mc.commandFIFO.notFull))}")
+          }
+          emitCounterChains(pmc)
+        } else {
+          emitElem("x")
+        }
+      }
+    }
+  }
+
+  def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
     var siXbar = ListBuffer[String]() 
     pcu.etstage.prs.foreach { case (preg, ppr) =>
       val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
@@ -153,20 +193,34 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
     }
     emitXbar("scalarInXbar", siXbar.toList)
+    val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
+    cu match {
+      case cu:UnitPipeline => emitPair("scalarOutMux", "1")
+      case cu => emitPair("scalarOutMux", "0")
+    }
+    val simux = ListBuffer[String]()
+    pcu.regs.foreach { reg => 
+      if (pcu.etstage.prs(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
+        simux += "0" //TODO
+      }
+    }
+    emitXbar("scalarInMux", simux.toList)
   }
 
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
     sb.vouts.foreach { pvout =>
-      if (fpmap.contains(pvout.voport)) {
-        val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
-        ins += s""""${sb.io(vin)}""""
-      } else {
-        ins += s""""x""""
+      if (pvout.isConnected) {
+        if (fpmap.contains(pvout.voport)) {
+          val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
+          ins += s""""${sb.io(vin)}""""
+        } else {
+          ins += s""""x""""
+        }
       }
     }
     emitComment(s"sb", DotCodegen.quote(sb))
-    emitList("outSelect", ins.toList)
+    emitXbar(ins.toList)
   }
 
   def lookUp(op:Op):String = {
@@ -379,12 +433,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               case mem:SOR =>
                 emitPair("ra", lookUp(mem.readAddr))
                 emitPair("deqEn", "x")
-                emitComment("readType", "SRAMOnRead")
+                emitPair("isReadFifo", "0")
               case mem:FOR =>
                 emitPair("ra", "x")
                 val enlut = mem.dequeueEnable.from.src.asInstanceOf[EnLUT]
                 emitPair("deqEn", s"${indexOf(lumap(enlut))}")
-                emitComment("readType", "FIFOOnRead")
+                emitPair("isReadFifo", "1")
             }
             mem match {
               case mem:SOW =>
@@ -394,11 +448,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                   case _ => 
                     emitPair("wa", lookUp(mem.writeAddr))
                 }
-                emitPair("wen",lookUp(mem.writeCtr))
-                emitPair("start", s"x")
-                emitPair("end", s"x")
-                emitPair(s"enqEn", s"x")
-                emitComment("writeType", "SRAMOnWrite")
+                emitPair("wen", lookUp(mem.writeCtr))
+                emitPair("start", "x")
+                emitPair("end", "x")
+                emitPair("enqEn", "x")
+                emitPair("isWriteFifo", "0")
               case mem:FOW =>
                 emitPair("wa", "x")
                 emitPair("wen", "x")
@@ -410,8 +464,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                   emitPair("end", s"${lookUp(mem.end.get.src)}")
                 else
                   emitPair("end", s"x")
+                //emitPair(s"enqEn", s"${pcu.ctrlBox.io(vimap(mem.enqueueEnable.from))}")
                 emitPair(s"enqEn", s"${indexOf(vimap(mem.enqueueEnable.from))}")
-                emitComment("writeType", "FIFOOnWrite")
+                emitPair("isWriteFifo", "1")
             }
             val wd = mem.writePort.from.src match {
               case v:VI => lookUp(vimap(v))
@@ -559,6 +614,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
   }
 
+  def emitXbar(outSelect:List[String])(implicit ms:CollectionStatus) = {
+    emitMap { implicit ms =>
+      emitList("outSelect", outSelect)
+    }
+  }
   def emitXbar(name:String, outSelect:List[String])(implicit ms:CollectionStatus) = {
     emitMap(name) { implicit ms =>
       emitList("outSelect", outSelect)
@@ -655,6 +715,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitXbar("doneXbar", doneXbar.toList)
       val incs = ListBuffer[String]() 
       val decs = ListBuffer[String]() 
+      val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
@@ -664,7 +725,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             val pcin = vimap(udc.inc.from)
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
-          incs += inc 
+          incs += inc
+          val init = if (udc.init.isConnected) {
+            val pcin = vimap(udc.init.from)
+            s""""${indexOf(pcin)}""""
+          } else { s""""x"""" }
+          inits += init
           // dec
           val ctr = udc.dec.from.src.asInstanceOf[Ctr]
           val pctr = ctmap(ctr)
@@ -673,10 +739,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         } else {
           incs += s""""x""""
           decs += s""""x""""
+          inits += s""""x""""
           initVals += s""""x""""
         }
       }
-      emitXbar("incXbar", incs.toList)
+      emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)
       emitList("enableLUT") { implicit ms =>

@@ -10,7 +10,6 @@ import pir.plasticine.config._
 
 /* Examp0ile PIR using block (User facing PIR)*/
 object StreamPipe extends PIRApp {
-  override val arch = SN_4x4 
 
   def main(args: String*)(top:Top) = {
     val tileSize = Const("4i")

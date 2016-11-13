@@ -31,6 +31,11 @@ object P2P_4CU_4TT extends PointToPointNetwork {
   private val numArgIns = scalarBandwidth  // need to be multiple of scalarBandwith 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwith 
 
+  val memCtrlCommandFIFOEnqBusIdx:Int = 0
+  val memCtrlDataFIFOEnqBusIdx:Int = 1
+  val memCtrlCommandFIFONotFullBusIdx:Int = 0
+  val memCtrlDataFIFONotFullBusIdx:Int = 1
+
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts).index(-1)
 

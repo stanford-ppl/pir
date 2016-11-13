@@ -4,6 +4,7 @@ import pir.Design
 import pir.misc._
 import pir.typealias._
 import pir.plasticine.main._
+import pir.graph.enums._
 import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
 
 import scala.collection.mutable.ListBuffer
@@ -61,17 +62,51 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
       // current path starts from that pco 
       val pco = path.head._1
+      var valid = true
       val toCU = vin.src.asInstanceOf[PCL]
-      map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
+      valid &&= map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
         _ == pco
-      } &&
+      }
       // If cl has been mapped, valid path reaches current pcl
-      map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
+      valid &&= map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
         _ == toCU
-      } &&
+      }
       // path is with required hops
-      (path.size >= minHop) &&
-      (path.size < maxHop)
+      valid &&= (path.size >= minHop)
+      valid &&= (path.size < maxHop)
+
+      /* Constrain on routing for hardwried connection in memory controller */
+      //fromcl match {
+        //case mc:MC =>
+          //if (co==mc.commandFIFO.enqueueEnable.from) 
+            //valid &&= (indexOf(vin) == spade.memCtrlCommandFIFOEnqBusIdx)
+          //else if (mc.mctpe==TileStore && co==mc.dataFIFO.get.enqueueEnable.from) 
+            //valid &&= (indexOf(vin) == spade.memCtrlDataFIFOEnqBusIdx)
+          //else {
+            //valid &&= (indexOf(vin) != spade.memCtrlCommandFIFOEnqBusIdx)
+            //if (mc.mctpe==TileStore) {
+              //valid &&= (indexOf(vin) != spade.memCtrlDataFIFOEnqBusIdx)
+            //}
+          //}
+        //case _ =>
+      //}
+      //cl match {
+        //case mc:MC =>
+          //val cout = path.head
+          //if (co == mc.commandFIFO.notFull) 
+            //valid &&= (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
+          //else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
+            //valid &&= (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
+          //else {
+            //valid &&= (indexOf(pco) != spade.memCtrlCommandFIFONotFullBusIdx)
+            //if (mc.mctpe==TileStore) {
+              //valid &&= (indexOf(pco) != spade.memCtrlDataFIFONotFullBusIdx)
+            //}
+          //}
+        //case _ =>
+      //}
+
+      valid
     }
     def advanceCons(sb: PSB, path: Path) = {
       // If co is mapped, make sure start from that pco

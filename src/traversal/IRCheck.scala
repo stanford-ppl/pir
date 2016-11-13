@@ -2,7 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
-import pir.graph.mapper.PIRException
+import pir.graph.mapper.{PIRException, TODOException}
 import pir.plasticine.main._
 import pir.typealias._
 
@@ -49,6 +49,10 @@ class IRCheck(implicit val design: Design) extends Traversal {
             case mc:MemoryController => 
               if (mc.isHead) throw PIRException(s"MemoryController cannot be the first stage")
               if (!mc.isLast) throw PIRException(s"MemoryController need to be the last stage $mc ${mc.dependeds}")
+              mc.cchains.flatMap{_.counters}.foreach { ctr =>
+                if (!ctr.min.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.min.from}")
+                if (!ctr.step.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.step.from}")
+              }
             case _ =>
           }
         case n:CtrlBox =>

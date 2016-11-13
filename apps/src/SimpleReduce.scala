@@ -8,7 +8,6 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleReduceDesign extends PIRApp {
-  override val arch = SN_4x4 
   def main(args: String*)(top:Top) = {
     val x382_argin = ArgIn()
     val x383_argout = ArgOut()

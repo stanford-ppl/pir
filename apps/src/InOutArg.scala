@@ -8,7 +8,6 @@ import pir.misc._
 import pir.PIRApp
 
 object InOutArgDesign extends PIRApp {
-  override val arch = SN_4x4 
   def main(args: String*)(top:Top) = {
     val x103_argin = ArgIn()
     val x104_argout = ArgOut()

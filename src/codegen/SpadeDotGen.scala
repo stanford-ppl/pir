@@ -45,18 +45,22 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
       val recs = ListBuffer[String]()
       pcl match {
         case pcu:PCU => 
-          assert(pcu.cins.size==pcu.couts.size)
           val qpcu = quote(pcu)
           val culabel = mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
             val icl = cu.asInstanceOf[ICL]
             s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
           }
           def ports(dir:String) = {
-            val ios = pcu.cinAt(dir).zip(pcu.coutAt(dir)).flatMap{case (i,o) => 
+            var cins = pcu.cinAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            var couts = pcu.coutAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            val maxLength = Math.max(cins.size, couts.size)
+            cins = cins ++ List.fill(maxLength-cins.size){""}
+            couts = couts ++ List.fill(maxLength-couts.size){""}
+            val ios = cins.zip(couts).flatMap{case (i,o) => 
               if (dir=="S" || dir=="E") List(o,i)
               else List(i,o)
             }
-            ios.map{io => s"<$io> $io"}.mkString("|")
+            ios.mkString("|")
           }
           recs += s"{${ports("NW")}  | ${ports("N")} | ${ports("NE")}}"
           recs += s"{{${ports("W")}} | ${culabel}    | {${ports("E")}}}"

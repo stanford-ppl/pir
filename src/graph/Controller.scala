@@ -30,6 +30,18 @@ abstract class Controller(implicit design:Design) extends Node { self =>
   def children:List[ComputeUnit] = _children.toList
   def removeChildren(c:ComputeUnit) = { _children -= c }
   def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
+
+  // Including current CU. From current to top
+  def ancestors: List[ComputeUnit] = {
+    val list = ListBuffer[ComputeUnit]()
+    var child:Controller = this 
+    while (!child.isInstanceOf[Top]) {
+      val temp = child.asInstanceOf[ComputeUnit]
+      list += temp 
+      child = temp.parent
+    }
+    list.toList
+  }
 }
 
 /* Controller that can be binded with a controler in spade. Including InnerController and Top and
@@ -282,6 +294,11 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
   }
+  private val _scalarMem = ListBuffer[ScalarMem]()
+  def scalarMems = _scalarMem.toList
+  def addScalarMem(sm: ScalarMem):Unit = {
+    _scalarMem += (sm)
+  }
 
   /* Stages */
   val wtAddrStages = ListBuffer[List[WAStage]]()
@@ -307,18 +324,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   /* List of outer controllers reside in current inner*/
   var outers:List[OuterController] = Nil
   def inner:InnerController = this
-
-  // Including current CU. From current to top
-  def ancestors: List[ComputeUnit] = {
-    val list = ListBuffer[ComputeUnit]()
-    var child:Controller = this 
-    while (!child.isInstanceOf[Top]) {
-      val temp = child.asInstanceOf[ComputeUnit]
-      list += temp 
-      child = temp.parent
-    }
-    list.toList
-  }
 
   /* Control Signals */
   def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.ctrlIns)
@@ -352,14 +357,10 @@ class Pipeline(name:Option[String])(implicit design:Design) extends InnerControl
 
   val _mems = ListBuffer[SRAMOnRead]()
   override def mems:List[SRAMOnRead] = _mems.toList
-  def mems(ms:List[OnChipMem]) = {
-    ms.foreach { m =>
-      _mems += m.asInstanceOf[SRAMOnRead]
-    }
-  }
+  def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m.asInstanceOf[SRAMOnRead] } }
 }
 object Pipeline {
-  def apply[P,D](name: Option[String], parent:P, deps:List[D]) (block: Pipeline => Any)  (implicit design: Design, dtp:TypeTag[D]):Pipeline = {
+  def apply[P,D](name: Option[String], parent:P, deps:List[D])(block: Pipeline => Any)(implicit design: Design, dtp:TypeTag[D]):Pipeline = {
     new Pipeline(name).updateParent(parent).addDeps(deps).updateBlock(block)
   }
   /* Sugar API */
@@ -372,11 +373,12 @@ object Pipeline {
 /* Inner Unit Pipe */
 class UnitPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) { self =>
   override val typeStr = "UnitCompUnit"
-  def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
-    val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
-    super.updateFields(cchains, Nil)
-    this
-  }
+  // UnitPipeline can also have SRAM
+  //def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
+    //val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
+    //super.updateFields(cchains, Nil)
+    //this
+  //}
   override def writtenMem:List[CommandFIFO] = souts.flatMap { sout =>
     sout.scalar.readers.flatMap { sout => sout.out.to.map(_.src.asInstanceOf[CommandFIFO]) }.toList
   }

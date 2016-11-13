@@ -62,19 +62,22 @@ trait GridIO[+NE<:NetworkElement] {
 
   def inBuses(num:Int, width:Int):List[InBus[NE]]
   def outBuses(num:Int, width:Int):List[OutBus[NE]]
-  def addVinAt(dir:String, num:Int, width:Int)(implicit spade:Spade):Unit = { 
+  def addVinAt(dir:String, num:Int, width:Int)(implicit spade:Spade):this.type = { 
     val ibs = inBuses(num, width)
     ibs.zipWithIndex.foreach { case (ib, i) => ib }
     vinMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
+    this
   }
-  def addVoutAt(dir:String, num:Int, width:Int)(implicit spade:Spade):Unit = {
+  def addVoutAt(dir:String, num:Int, width:Int)(implicit spade:Spade):this.type = {
     val obs = outBuses(num, width)
     obs.zipWithIndex.foreach { case (ob, i) => ob }
     voutMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
+    this
   }
-  def addVioAt(dir:String, num:Int, width:Int)(implicit spade:Spade):Unit = {
+  def addVioAt(dir:String, num:Int, width:Int)(implicit spade:Spade):this.type = {
     addVinAt(dir,num, width)
     addVoutAt(dir,num, width)
+    this
   }
   def addVins(num:Int, width:Int)(implicit spade:Spade):this.type = { 
     addVinAt("N", num, width)
@@ -89,7 +92,9 @@ trait GridIO[+NE<:NetworkElement] {
   def vins:List[InBus[NE]] = SwitchBox.eightDirections.flatMap { dir => vinAt(dir) } 
   def vouts:List[OutBus[NE]] = SwitchBox.eightDirections.flatMap { dir => voutAt(dir) }  
   def io(vin:InBus[NetworkElement]) = {
-    val (dir, list) = vinMap.filter{ case (dir, l) => l.contains(vin) }.head
+    val dirs = vinMap.filter{ case (dir, l) => l.contains(vin) }
+    assert(dirs.size==1)
+    val (dir, list) = dirs.head
     s"${dir.toLowerCase}_${list.indexOf(vin)}"
   }
 }

@@ -230,7 +230,7 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   def writer:InnerController = {
     writePort.from.src match {
       case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
-      case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last => ctrler
+      case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last=> ctrler
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
   }
@@ -321,7 +321,7 @@ object FIFO {
 
 case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
   extends OnChipMem with SRAMOnRead with FIFOOnWrite {
-  override val typeStr = "FIFO"
+  override val typeStr = "SemiFIFO"
 }
 object SemiFIFO {
   def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
@@ -331,6 +331,17 @@ object SemiFIFO {
 }
 case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: Design) 
   extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking(), SingleBuffer())
+
+case class ScalarMem(vecIn:DummyVecIn)(implicit design: Design) 
+  extends OnChipMem()(vecIn.ctrler.asInstanceOf[ComputeUnit].inner, design) with SRAMOnRead with SRAMOnWrite {
+  val size:Int = 100
+  val banking:Banking = NoBanking()
+  val buffering:Buffering = SingleBuffer()
+
+  override val typeStr = "DataFIFO"
+  override val name = Some(s"${vecIn}")
+  this.wtPort(vecIn.vector)
+}
 
 trait IO extends Primitive
 trait Input extends IO {
@@ -373,6 +384,7 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val 
     case _ => super.equals(that)
   }
   val in = InPort(this, s"${this}.in")
+  def readers = scalar.readers
 }
 object ScalarOut {
   def apply(scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
@@ -398,7 +410,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   def tokenIn:Option[InPort] = {
     ctrler match {
       case c:SpadeController =>
-        val cins = c.ctrlIns.filter{_.asInstanceOf[CtrlInPort].isCtrlIn}
+        val cins = c.ctrlIns.filter{_.asInstanceOf[CtrlInPort].ctrler==writer.ctrler}
         if (cins.size==0) None
         else {
           assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")
@@ -429,6 +441,7 @@ class VecOut(val name: Option[String], val vector:Vector)(implicit override val 
   }
   val in = InPort(this, s"${this}.in")
   def isConnected = vector.readers.size!=0
+  def readers = vector.readers
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 
@@ -440,6 +453,7 @@ object VecOut {
 class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:SpadeController, design: Design) extends VecOut(name, vector) {
   override val typeStr = "DVecOut"
   def scalarOuts = vector.scalars.map(_.writer)
+  override def readers:List[DummyVecIn] = vector.readers
 }
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {

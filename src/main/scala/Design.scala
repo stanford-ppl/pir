@@ -186,6 +186,8 @@ trait Design extends Metadata { self =>
   val arch:Spade
   var top:Top = _
 
+  lazy val multiBufferAnalysis = new MultiBufferAnalysis()
+  lazy val fusionTransform = new FusionTransform()
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
   lazy val pirNetworkDotGen = new PIRNetworkDotGen()
@@ -206,8 +208,9 @@ trait Design extends Metadata { self =>
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
-    traversals += new FusionTransform()
+    traversals += fusionTransform 
     traversals += new ScalarBundling()
+    traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()
     traversals += new CtrlAlloc()
@@ -244,7 +247,7 @@ trait Design extends Metadata { self =>
 }
 
 trait PIRApp extends Design{
-  override val arch:Spade = SN_4x4 
+  override val arch:Spade = SN_2x2 
   override def toString = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 

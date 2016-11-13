@@ -13,20 +13,22 @@ import scala.language.reflectiveCalls
 class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
-  "DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
+  // No offchip access 
+  "ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
   "DotProductLite" should "success" taggedAs(WIP) in { DotProductLite.main(Array("DotProductLite")) }
   "StreamPipe" should "success" in { StreamPipe.main(Array("StreamPipe")) }
-  "ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
-  "BlockReduce1DDesign" should "success" in { BlockReduce1DDesign.main(Array("BlockReduce1DDesign")) }
-  "DeviceMemcpyDesign" should "success" in { DeviceMemcpyDesign.main(Array("DeviceMemcpyDesign")) }
-  "DotProductDesign" should "success" in { DotProductDesign.main(Array("DotProductDesign")) }
   "InOutArgDesign" should "success" in { InOutArgDesign.main(Array("InOutArgDesign")) }
-  "Memcpy2DDesign" should "success" in { Memcpy2DDesign.main(Array("Memcpy2DDesign")) }
   "NiterDesign" should "success" in { NiterDesign.main(Array("NiterDesign")) }
-  "SimpleFoldDesign" should "success" in { SimpleFoldDesign.main(Array("SimpleFoldDesign")) }
   "SimpleReduceDesign" should "success" in { SimpleReduceDesign.main(Array("SimpleReduceDesign")) }
   "SimpleSequentialDesign" should "success" in { SimpleSequentialDesign.main(Array("SimpleSequentialDesign")) }
-  // Sometimes fail
-  "SimpleTileLoadStoreDesign" should "success" in { SimpleTileLoadStoreDesign.main(Array("SimpleTileLoadStoreDesign")) }
-}
 
+  //// With offchip access
+  //"DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
+  //"BlockReduce1DDesign" should "success" in { BlockReduce1DDesign.main(Array("BlockReduce1DDesign")) }
+  //"DeviceMemcpyDesign" should "success" in { DeviceMemcpyDesign.main(Array("DeviceMemcpyDesign")) }
+  //"DotProductDesign" should "success" in { DotProductDesign.main(Array("DotProductDesign")) }
+  //"Memcpy2DDesign" should "success" in { Memcpy2DDesign.main(Array("Memcpy2DDesign")) }
+  //"SimpleFoldDesign" should "success" in { SimpleFoldDesign.main(Array("SimpleFoldDesign")) }
+  //// Sometimes fail
+  //"SimpleTileLoadStoreDesign" should "success" in { SimpleTileLoadStoreDesign.main(Array("SimpleTileLoadStoreDesign")) }
+}
