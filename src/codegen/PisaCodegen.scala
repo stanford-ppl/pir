@@ -85,18 +85,27 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val status = vimap(design.top.status.from)
-          val (x,y) = coordOf(fbmap(status).src)
-          val idx = if (y==0) x else x + sn.numCols
+          val status = fbmap(vimap(design.top.status.from))
+          println(status)
+          //var idx = if (y==0) x else x + sn.numCols
+          val bottomRow = sn.csbs.map{_.head}
+          val topRow = sn.csbs.map{_.last}
+          val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
+          println(s"obs:${obs}")
+          val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
           val ao = vimap(design.top.status.from)
           assert(design.arch.top.vins.size==1)
           if (!design.top.vins.isEmpty) {
-            val aob = vimap(design.top.vins.head) 
-            val (x,y) = coordOf(fbmap(aob).src)
-            println(s"${fbmap(aob).src} ${x} ${y}")
-            val idx = if (y==0) x else x + sn.numCols
+            assert(design.top.vins.size==1)
+            val aob = fbmap(vimap(design.top.vins.head))
+            println(aob)
+            val bottomRow = sn.sbs.map{_.head}
+            val topRow = sn.sbs.map{_.last}
+            val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
+            println(s"obs:${obs}")
+            val idx = obs.indexOf(aob)
             emitPair(s"argOut", s"$idx")
           }
         case pn:PointToPointNetwork =>
@@ -705,10 +714,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
-            case l:TokenDownLUT => indexOf(lumap(l)) 
-            case l:TokenOutLUT => pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
-            case l:EnLUT => pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
-            case l:FOW => pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + pcb.enLUTs.size + indexOf(smmap(l))
+            case l:FOW => indexOf(smmap(l))
+            case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
+            case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
+            case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
           }
           s""""$idx""""
         }
