@@ -210,11 +210,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
     sb.vouts.foreach { pvout =>
-      if (fpmap.contains(pvout.voport)) {
-        val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
-        ins += s""""${sb.io(vin)}""""
-      } else {
-        ins += s""""x""""
+      if (pvout.isConnected) {
+        if (fpmap.contains(pvout.voport)) {
+          val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
+          ins += s""""${sb.io(vin)}""""
+        } else {
+          ins += s""""x""""
+        }
       }
     }
     emitComment(s"sb", DotCodegen.quote(sb))
