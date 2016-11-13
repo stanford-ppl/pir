@@ -219,7 +219,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
     }
-    emitComment(s"sb", DotCodegen.quote(sb))
+    //emitComment(s"sb", DotCodegen.quote(sb))
     emitXbar(ins.toList)
   }
 
