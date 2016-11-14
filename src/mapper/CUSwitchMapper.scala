@@ -96,7 +96,19 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       //if (debug) { new CUDotPrinter().print(m) }
       mapCUs(restNodes)(m)
     }
-    log(s"Mapping $cl") {
+    val info = s"Mapping $cl"
+    log(info
+    // Debug
+    //, ((m:M) => ()),
+      //{
+        //case e@FailToMapNode(_,_,_,mp) =>
+          //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+          //println(info)
+        //case e:Throwable =>
+          //println(e)
+      //}
+    // Debug --
+    ) {
       recResWithExcept[R,N,M](cl, List(constrain _), resFilter _, next _, map)
     }
   }
@@ -167,7 +179,19 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       }
     }
     val (vin, pdepcu) = pdep
-    log(s"Mapping $vin in $cl from $pdepcu"){
+    val info = s"Mapping $vin in $cl from $pdepcu"
+    log( info
+      // Debug
+      //, ((m:M) => ()),
+        //{
+          //case e@FailToMapNode(_,_,_,mp) =>
+            //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+            //println(info)
+          //case e:Throwable =>
+            //println(e)
+        //}
+      // Debug --
+    ){
       recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
     }
   }
@@ -287,7 +311,6 @@ object CUSwitchMapper {
     routes.filterNot { case r@(reached, path) =>
       path.zipWithIndex.exists { case ((vout, vin), i) =>
         val vinTaken = map.vimap.pmap.contains(vin)
-        val voutTaken = map.vomap.pmap.contains(vout)
         if (vinTaken) assert(vin.src.isInstanceOf[PCL])
         //val edgeTaken = map.fbmap.get(vin).fold(false) { vo =>
           //(vo != vout) //TODO edge consider not taken if have the same mapping. Potential risk here?
@@ -304,7 +327,7 @@ object CUSwitchMapper {
             //}
           } else false
         } // no edge has been taken
-        vinTaken || voutTaken || edgeTaken || switchTaken
+        vinTaken || edgeTaken || switchTaken
       }
     }
   }

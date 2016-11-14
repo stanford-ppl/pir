@@ -386,10 +386,13 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       {
         val start = arch.cuArray(0)(0) 
         val target = arch.cuArray(1)(1)  
-        def validCons(reached:PCL, path:FatPath) = {
+        def validCons(reached:PCL, path:FatPath):Option[FatPath] = {
+          var valid = true
           val to = reached 
-          to == target &&
-          (to!=start) // path doesn't end at depended CU
+          valid &&= (to == target)
+          valid &&= (to!=start) // path doesn't end at depended CU
+          if (valid) Some(path)
+          else None
         }
         val fatpaths = CtrlMapper.advanceBFS(vouts _)(start, validCons _, advanceCons _)
 

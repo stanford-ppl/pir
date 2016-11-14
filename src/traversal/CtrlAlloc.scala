@@ -58,6 +58,31 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       val en = cu.ctrlBox.innerCtrEn
       val cb = cu.ctrlBox
       cu match {
+        case cu:InnerController if (cu.parent.isInstanceOf[StreamController]) => 
+          cu match {
+            case mc:MemoryController =>
+              en.connect(mc.done)
+              mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
+            case cu =>
+              val ins = ListBuffer[CtrlOutPort]()
+              val readMems = cu.mems.collect{ case f:FIFOOnRead => f }
+              val writtenMems = cu.writtenMem.collect{ case f:FIFOOnWrite => f}
+              ins += cb.andTree.out
+              if (cu.isHead) {
+                val tks = cb.tokenBuffers.map(_._2.out).toList
+                assert(tks.size==1)
+                ins ++= tks
+              } else {
+                cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
+              }
+              val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
+                ins.map(in => inputs(map(in))).reduce(_ && _)
+              }
+              val enlut = EnLUT(cu, ins.toList, tf, en)
+              writtenMems.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
+              readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
+              cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
+          }
         case cu:Pipeline =>
           val tks = cb.tokenBuffers.map(_._2.out).toList
           val cds = cb.creditBuffers.map(_._2.out).toList
@@ -66,35 +91,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             ins.map(in =>inputs(map(in))).reduce(_ && _)
           }
           val enlut = EnLUT(cu, ins, tf, en)
-          cu.writtenMem.collect{ case fr:FIFOOnWrite => fr}.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
-          cu.parent match {
-            case p:StreamController =>
-              cu.mems.collect{ case f:FIFOOnRead => f }.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
-            case _ =>
-          }
-        case cu:StreamPipeline =>
-          cu match {
-            case mc:MemoryController =>
-              en.connect(mc.done)
-              mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
-            case cu =>
-              val ins = ListBuffer[CtrlOutPort]()
-              cb.tokInAndTree.addInputs(cu.writtenMem.map(_.notFull))
-              ins += cb.andTree.out
-              if (cu.isHead) {
-                val tks = cb.tokenBuffers.map(_._2.out).toList
-                assert(tks.size==1)
-                ins ++= tks
-              } else {
-                cb.fifoAndTree.addInputs(cu.mems.map(_.notEmpty))
-              }
-              val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
-                ins.map(in => inputs(map(in))).reduce(_ && _)
-              }
-              val enlut = EnLUT(cu, ins.toList, tf, en)
-              cu.writtenMem.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
-              cu.mems.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
-          }
         case cu:StreamController => // enable should be connected during connection in last children
         case cu:OuterController =>
           val lasts = cu.children.filter(_.isLast)

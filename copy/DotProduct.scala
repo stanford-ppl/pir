@@ -10,7 +10,6 @@ import pir.plasticine.config._
 
 /* Examp0ile PIR using block (User facing PIR)*/
 object DotProduct extends PIRApp {
-  override val arch = Config0 
 
   def main(args: String*)(top:Top) = {
     val tileSize = Const("4i")

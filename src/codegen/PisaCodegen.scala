@@ -86,12 +86,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         case sn:SwitchNetwork =>
           // Status
           val status = fbmap(vimap(design.top.status.from))
-          println(status)
           //var idx = if (y==0) x else x + sn.numCols
           val bottomRow = sn.csbs.map{_.head}
           val topRow = sn.csbs.map{_.last}
           val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
-          println(s"obs:${obs}")
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
@@ -100,11 +98,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
             val aob = fbmap(vimap(design.top.vins.head))
-            println(aob)
             val bottomRow = sn.sbs.map{_.head}
             val topRow = sn.sbs.map{_.last}
             val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
-            println(s"obs:${obs}")
             val idx = obs.indexOf(aob)
             emitPair(s"argOut", s"$idx")
           }
