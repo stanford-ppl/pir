@@ -54,7 +54,7 @@ object Memcpy2DDesign extends PIRApp {
       val x998 = CounterChain(name = "x998", x997).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x988_scalar), CU.ctr(stage(0), x996_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x996_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x988_scalar), CU.ctr(stage(0), x996_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x996_mc_mc.ofs)))
     }
     val x1039 = MetaPipeline(name="x1039", parent=x1041, deps=List(x1010)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -100,7 +100,7 @@ object Memcpy2DDesign extends PIRApp {
       val x1037_cc = CounterChain(name = "x1037_cc", x1037_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x1029_scalar), CU.ctr(stage(0), x1037_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1037_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x1029_scalar), CU.ctr(stage(0), x1037_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1037_mc_mc.ofs)))
     }
     
   }

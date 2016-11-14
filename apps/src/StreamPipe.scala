@@ -42,8 +42,8 @@ object StreamPipe extends PIRApp {
       Stage(s0, op1=CU.ctr(et, ii(0)), op=Bypass, result=CU.vecOut(s0, vecB))
     }
     StreamPipeline (name="accum", parent=outer, deps=List(cuA, cuB)) { implicit CU =>
-      val sA = FIFO(name="sA", size=32, banking=Strided(1), buffering=SingleBuffer()).wtPort(vecA)
-      val sB = FIFO(name="sB", size=32, banking=Strided(1), buffering=SingleBuffer()).wtPort(vecB)
+      val sA = FIFO(name="sA", size=32, banking=Strided(1)).wtPort(vecA)
+      val sB = FIFO(name="sB", size=32, banking=Strided(1)).wtPort(vecB)
       val es = CU.emptyStage
       val s0::_ = Stages(1)
       Stage(s0, op1=sA.load, op2=sB.load, op=Bypass, CU.scalarOut(s0, output))

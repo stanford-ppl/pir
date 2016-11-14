@@ -31,8 +31,8 @@ class IRCheck(implicit val design: Design) extends Traversal {
                 if (!c.isHead && !c.isInstanceOf[StreamPipeline])
                   throw PIRException("Only first stage in StreamController can be non-StreamPipeline")
                 if (c.isHead) {
-                  assert(c.mems.collect{ case mem:FIFOOnRead => mem}.size==0, 
-                    s"First stage of StreamController shouldn't have FIFOOnRead")
+                  //assert(c.mems.collect{ case mem:FIFOOnRead => mem}.size==0, 
+                    //s"First stage of StreamController shouldn't have FIFOOnRead: ${c}")
                 } else {
                   if (!c.ctrlBox.tokenBuffers.isEmpty) throw PIRException(s"StreamController's children other than the first stage shouldn't have tokenBuffer")
                 }

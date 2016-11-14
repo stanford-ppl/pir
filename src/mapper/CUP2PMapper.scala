@@ -32,14 +32,6 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     dprintln(s"Datapath placement & routing ")
     val pcus = design.arch.cus
     val cus = design.top.innerCUs
-    val grp = cus.groupBy(_.isInstanceOf[MC]) 
-    val pgrp = pcus.groupBy(_.isInstanceOf[PMC])
-    val mcs = grp.getOrElse(true, Nil)
-    val pmcs = pgrp.getOrElse(true, Nil)
-    val rcus = grp.getOrElse(false, Nil)
-    val prcus = pgrp.getOrElse(false, Nil)
-    if (mcs.size > pmcs.size) throw OutOfPMC(pmcs.size, mcs.size)
-    if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
     val nodes:List[SCL] = design.top::cus
     val reses = design.arch.top::pcus
     CUMapper.qualifyCheck(reses, nodes, resMap)

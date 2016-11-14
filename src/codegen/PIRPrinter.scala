@@ -160,7 +160,7 @@ object PIRPrinter extends Metadata {
         fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
         p match { case p:SRAMOnRead => fields += s"RA=${p.readAddr.from}"; case _ => }
         p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}, writeCtr=${p.writeCtr}"; case _ => }
-        p match { case p:FIFOOnWrite => fields += s"start=${p.start}, end=${p.end}"; case _ => }
+        p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
       case p:Stage =>
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"

@@ -41,7 +41,7 @@ object SimpleTileLoadStoreDesign extends PIRApp {
       val x1108 = CounterChain(name = "x1108", x1107).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1106_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1106_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1106_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1106_mc_mc.ofs)))
     }
     val x1131 = Pipeline(name="x1131", parent=x1149, deps=List(x1118)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -74,7 +74,7 @@ object SimpleTileLoadStoreDesign extends PIRApp {
       val x1145_cc = CounterChain(name = "x1145_cc", x1145_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1145_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1145_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x1041(0)), CU.ctr(stage(0), x1145_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x1145_mc_mc.ofs)))
     }
     
   }

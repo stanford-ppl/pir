@@ -380,7 +380,7 @@ class UnitPipeline(override val name: Option[String])(implicit design: Design) e
     //this
   //}
   override def writtenMem:List[CommandFIFO] = souts.flatMap { sout =>
-    sout.scalar.readers.flatMap { sout => sout.out.to.map(_.src.asInstanceOf[CommandFIFO]) }.toList
+    sout.scalar.readers.flatMap { sin => sin.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList
   }
 }
 object UnitPipeline {
@@ -431,8 +431,10 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
       _mems += m.asInstanceOf[FIFOOnRead]
     }
   }
-  override def writtenMem:List[FIFOOnWrite] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList
+  override def writtenMem:List[FIFOOnWrite] = {
+    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList }
+    val smems = souts.flatMap{ _.scalar.readers.flatMap { sout => sout.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList }
+    vmems ++ smems
   }
 }
 object StreamPipeline {
@@ -453,16 +455,16 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   override val typeStr = "MemoryController"
 
   val vdata = Vector()
-  val saddr = Scalar()
-  val ssize = Scalar()
+  val ofs = Scalar()
+  val len = Scalar()
   val addr = {
-    val si = newSin(saddr)
-    sinMap += saddr -> si 
+    val si = newSin(ofs)
+    sinMap += ofs -> si 
     si
   }
   val size = {
-    val si = newSin(ssize)
-    sinMap += ssize -> si 
+    val si = newSin(len)
+    sinMap += len -> si 
     si
   }
   val dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
@@ -477,7 +479,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   commandFIFO.dequeueEnable.connect(dummyCtrl)
   val dataFIFO = mctpe match {
     case TileStore => 
-      val fifo = FIFO(s"${this}DataFIFO", 100, NoBanking(), SingleBuffer()).wtPort(vdata)
+      val fifo = FIFO(s"${this}DataFIFO", 100, NoBanking()).wtPort(vdata)
       fifo.dequeueEnable.connect(dummyCtrl)
       Some(fifo)
     case _ => None

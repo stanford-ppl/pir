@@ -59,6 +59,14 @@ object CUMapper {
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
   def qualifyCheck(pcls:List[PCL], cls:List[SCL], map:MMap[SCL, List[PCL]])(implicit mapper:CUMapper, design:Design):Unit = {
+    val pcus = design.arch.cus
+    val cus = design.top.innerCUs
+    val grp = cus.groupBy(_.isInstanceOf[MC]) 
+    val pgrp = pcus.groupBy(_.isInstanceOf[PMC])
+    val mcs = grp.getOrElse(true, Nil)
+    val pmcs = pgrp.getOrElse(true, Nil)
+    val rcus = grp.getOrElse(false, Nil)
+    val prcus = pgrp.getOrElse(false, Nil)
     cls.foreach { cl => 
       val failureInfo = MMap[PCL, ListBuffer[String]]()
       map += cl -> pcls.filter { pcl =>

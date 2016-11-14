@@ -39,7 +39,7 @@ object OffChipLoad extends PIRApp {
       stream.isStreaming(true)
       val s0::_ = Stages(1)
       val es = CU.emptyStage 
-      val output = CU.scalarOut(s0, A.saddr)
+      val output = CU.scalarOut(s0, A.ofs)
       Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=output)
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}

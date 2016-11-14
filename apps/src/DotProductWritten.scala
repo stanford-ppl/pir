@@ -35,8 +35,8 @@ object DotProduct extends PIRApp {
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("1i"))
       val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
-      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, A.saddr))
-      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, A.ssize))
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, A.ofs))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, A.len))
     }
     val tileLoadB = StreamController(name="tileLoadB", parent=outer, deps=Nil){ implicit CU =>
       val es = CU.emptyStage
@@ -48,8 +48,8 @@ object DotProduct extends PIRApp {
       val it = CounterChain(name="it", Const("0i") until tileSize by Const("0i"))
       val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
-      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, B.saddr))
-      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, B.ssize))
+      Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, B.ofs))
+      Stage(s1, op1=tileSize, op=Bypass, result=CU.scalarOut(s1, B.len))
     }
     //Pipe.reduce(tileSize par innerPar)(Reg[T]){ii => b1(ii) * b2(ii) }{_+_}
     val inner = Pipeline(name="inner", parent=outer, deps=List(tileLoadA, tileLoadB)) { implicit CU =>

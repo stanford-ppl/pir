@@ -43,7 +43,7 @@ object SimpleFoldDesign extends PIRApp {
       val x648 = CounterChain(name = "x648", x647).isStreaming(true)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x588(0)), CU.ctr(stage(0), x646_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x646_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x588(0)), CU.ctr(stage(0), x646_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x646_mc_mc.ofs)))
     }
     val x674 = Pipeline(name="x674", parent=x687, deps=List(x658)) { implicit CU => 
       val stage0 = CU.emptyStage

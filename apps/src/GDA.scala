@@ -81,7 +81,7 @@ object GDADesign extends PIRApp {
       val x6861_cc = CounterChain(name = "x6861_cc", x6861_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6843_scalar), CU.ctr(stage(0), x6861_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6861_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6843_scalar), CU.ctr(stage(0), x6861_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6861_mc_mc.ofs)))
     }
     val x6879 = Pipeline(name="x6879", parent=x6881, deps=List(x6861)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -124,7 +124,7 @@ object GDADesign extends PIRApp {
       val x6903_cc = CounterChain(name = "x6903_cc", x6903_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6885_scalar), CU.ctr(stage(0), x6903_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6903_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6885_scalar), CU.ctr(stage(0), x6903_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6903_mc_mc.ofs)))
     }
     val x6921 = Pipeline(name="x6921", parent=x6923, deps=List(x6903)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -175,7 +175,7 @@ object GDADesign extends PIRApp {
       val x6959_cc = CounterChain(name = "x6959_cc", x6959_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6939_scalar), CU.ctr(stage(0), x6959_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6959_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6939_scalar), CU.ctr(stage(0), x6959_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x6959_mc_mc.ofs)))
     }
     val x6978 = Pipeline(name="x6978", parent=x6980, deps=List(x6959)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -227,7 +227,7 @@ object GDADesign extends PIRApp {
       val x7009_cc = CounterChain(name = "x7009_cc", x7009_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6987_scalar), CU.ctr(stage(0), x7009_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x7009_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x6987_scalar), CU.ctr(stage(0), x7009_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x7009_mc_mc.ofs)))
     }
     val x7028 = Pipeline(name="x7028", parent=x7030, deps=List(x7009)) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -395,7 +395,7 @@ object GDADesign extends PIRApp {
       val x7159_cc = CounterChain(name = "x7159_cc", x7159_ctr)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x7142_scalar), CU.ctr(stage(0), x7159_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x7159_mc_mc.saddr)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x7142_scalar), CU.ctr(stage(0), x7159_cc(0))), op=FixAdd, results=List(CU.scalarOut(stage(1), x7159_mc_mc.ofs)))
     }
     
   }

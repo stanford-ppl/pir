@@ -474,12 +474,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               case mem:FOW =>
                 emitPair("wa", "x")
                 emitPair("wen", "x")
-                if (mem.start.isDefined)
-                  emitPair("start", s"${lookUp(mem.start.get.src)}")
+                if (mem.wtStart.isDefined)
+                  emitPair("start", s"${lookUp(mem.wtStart.get.src)}")
                 else
                   emitPair("start", s"x")
-                if (mem.end.isDefined)
-                  emitPair("end", s"${lookUp(mem.end.get.src)}")
+                if (mem.wtEnd.isDefined)
+                  emitPair("end", s"${lookUp(mem.wtEnd.get.src)}")
                 else
                   emitPair("end", s"x")
                 //emitPair(s"enqEn", s"${pcu.ctrlBox.io(vimap(mem.enqueueEnable.from))}")

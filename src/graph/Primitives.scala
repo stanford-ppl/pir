@@ -267,12 +267,12 @@ trait SRAMOnWrite extends OnChipMem {
   override def toUpdate = super.toUpdate || writeCtr == null
 }
 trait FIFOOnWrite extends OnChipMem {
-  var _start:Option[OutPort] = None
-  var _end:Option[OutPort] = None 
-  def start(op:OutPort):this.type = { _start = Some(op); this }
-  def end(op:OutPort):this.type = { _end = Some(op); this }
-  def start:Option[OutPort] = _start
-  def end:Option[OutPort] = _end 
+  var _wtStart:Option[OutPort] = None
+  var _wtEnd:Option[OutPort] = None 
+  def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
+  def wtEnd(op:OutPort):this.type = { _wtEnd = Some(op); this }
+  def wtStart:Option[OutPort] = _wtStart
+  def wtEnd:Option[OutPort] = _wtEnd 
 
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
@@ -304,15 +304,16 @@ object SRAM {
     = SRAM(Some(name), size, banking, buffering)
 }
 
-class FIFO(val name: Option[String], val size: Int, val banking:Banking, val buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
+class FIFO(val name: Option[String], val size: Int, val banking:Banking)(implicit ctrler:InnerController, design: Design) 
   extends OnChipMem with FIFOOnRead with FIFOOnWrite {
   override val typeStr = "FIFO"
+  val buffering:Buffering = SingleBuffer()
 }
 object FIFO {
-  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
-    = new FIFO(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): FIFO
-    = new FIFO(Some(name), size, banking, buffering)
+  def apply(size:Int, banking:Banking)(implicit ctrler:InnerController, design: Design): FIFO
+    = new FIFO(None, size, banking)
+  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:InnerController, design: Design): FIFO
+    = new FIFO(Some(name), size, banking)
 }
 
 case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
@@ -326,7 +327,7 @@ object SemiFIFO {
     = SemiFIFO(Some(name), size, banking, buffering)
 }
 case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: Design) 
-  extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking(), SingleBuffer())
+  extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking())
 
 case class ScalarMem(vecIn:DummyVecIn)(implicit design: Design) 
   extends OnChipMem()(vecIn.ctrler.asInstanceOf[ComputeUnit].inner, design) with SRAMOnRead with SRAMOnWrite {
