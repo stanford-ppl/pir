@@ -478,7 +478,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitPair("isWriteFifo", "1")
             }
             val wd = mem.writePort.from.src match {
-              case v:VI => lookUp(vimap(v))
+              case v:VI => "remote" //lookUp(vimap(v))
               case s:PR => "local"
             }
             emitPair("wd", wd)
