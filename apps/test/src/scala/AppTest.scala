@@ -23,7 +23,7 @@ class AppTests extends UnitTest { self =>
   "SimpleSequentialDesign" should "success" in { SimpleSequentialDesign.main(Array("SimpleSequentialDesign")) }
 
   //// With offchip access
-  //"DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
+  "DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
   //"BlockReduce1DDesign" should "success" in { BlockReduce1DDesign.main(Array("BlockReduce1DDesign")) }
   //"DeviceMemcpyDesign" should "success" in { DeviceMemcpyDesign.main(Array("DeviceMemcpyDesign")) }
   //"DotProductDesign" should "success" in { DotProductDesign.main(Array("DotProductDesign")) }
