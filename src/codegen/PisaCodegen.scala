@@ -86,12 +86,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         case sn:SwitchNetwork =>
           // Status
           val status = fbmap(vimap(design.top.status.from))
-          println(status)
-          //var idx = if (y==0) x else x + sn.numCols
           val bottomRow = sn.csbs.map{_.head}
           val topRow = sn.csbs.map{_.last}
           val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
-          println(s"obs:${obs}")
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
@@ -100,11 +97,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
             val aob = fbmap(vimap(design.top.vins.head))
-            println(aob)
             val bottomRow = sn.sbs.map{_.head}
             val topRow = sn.sbs.map{_.last}
             val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
-            println(s"obs:${obs}")
             val idx = obs.indexOf(aob)
             emitPair(s"argOut", s"$idx")
           }
@@ -230,8 +225,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
     }
-    //emitComment(s"sb", DotCodegen.quote(sb))
-    emitXbar(ins.toList)
+    //emitXbar(ins.toList)
+    emitMap { implicit ms =>
+      emitComment(s"sb", DotCodegen.quote(sb))
+      emitList("outSelect", ins.toList)
+    }
   }
 
   def lookUp(op:Op):String = {
@@ -728,6 +726,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val decs = ListBuffer[String]() 
       val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
+      val udcComment = ListBuffer[String]()
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
@@ -747,6 +746,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           val pctr = ctmap(ctr)
           decs += s""""${indexOf(pctr)}""""
           initVals += s""""${udc.initVal}""""
+          udcComment += s"${udc} -> ${pudc}"
         } else {
           incs += s""""x""""
           decs += s""""x""""
@@ -754,6 +754,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           initVals += s""""x""""
         }
       }
+      emitComment("udc", udcComment.mkString(","))
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)

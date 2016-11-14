@@ -208,14 +208,14 @@ object ConfigFactory extends ImplicitConversion {
     }
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
-        // SB to CU (NW -> SE)
-        sbs(i)(j+1).voutAt("SE").zip(cus(i)(j).vinAt("NW")).foreach { case (o, i) => o ==> i } 
-        // SB to CU (SW -> NE)
-        sbs(i)(j).voutAt("NE").zip(cus(i)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
-        // CU to SB (SW -> NE)
-        cus(i)(j).vout ==> sbs(i+1)(j).vinAt("SW")
-        // CU to SB (NW -> SE)
-        cus(i)(j).vout ==> sbs(i+1)(j+1).vinAt("NW")
+        // CU and SB (NW <-> SE) (top left)
+        cus(i)(j).vinAt("NW").zip(sbs(i)(j+1).voutAt("SE")).foreach { case (i, o) => o ==> i }
+        // CU and SB (NE <-> SW) (top right)
+        cus(i)(j).vout ==> sbs(i+1)(j+1).vinAt("SW")
+        // CU and SB (SW <-> NE) (bottom left)
+        cus(i)(j).vinAt("SW").zip(sbs(i)(j).voutAt("NE")).foreach { case (i, o) => o ==> i }
+        // CU and SB (SE <-> NW) (bottom right)
+        cus(i)(j).vout ==> sbs(i+1)(j).vinAt("NW")
       }
     }
     for (j <- 0 until sbs.head.size) {
