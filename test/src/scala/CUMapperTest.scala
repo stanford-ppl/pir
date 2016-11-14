@@ -18,7 +18,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUMapperTest extends UnitTest with Metadata {
 
-  "Point-to-point connection mapping" should "success" taggedAs(WIP) in {
+  "Point-to-point connection mapping" should "success" in {
     new Design {
       top = Top()
       // Nodes

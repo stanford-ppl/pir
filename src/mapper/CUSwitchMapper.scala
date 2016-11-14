@@ -96,7 +96,19 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       //if (debug) { new CUDotPrinter().print(m) }
       mapCUs(restNodes)(m)
     }
-    log(s"Mapping $cl") {
+    val info = s"Mapping $cl"
+    log(info
+    // Debug
+    //, ((m:M) => ()),
+      //{
+        //case e@FailToMapNode(_,_,_,mp) =>
+          //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+          //println(info)
+        //case e:Throwable =>
+          //println(e)
+      //}
+    // Debug --
+    ) {
       recResWithExcept[R,N,M](cl, List(constrain _), resFilter _, next _, map)
     }
   }
@@ -167,7 +179,19 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       }
     }
     val (vin, pdepcu) = pdep
-    log(s"Mapping $vin in $cl from $pdepcu"){
+    val info = s"Mapping $vin in $cl from $pdepcu"
+    log( info
+      // Debug
+      //, ((m:M) => ()),
+        //{
+          //case e@FailToMapNode(_,_,_,mp) =>
+            //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+            //println(info)
+          //case e:Throwable =>
+            //println(e)
+        //}
+      // Debug --
+    ){
       recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
     }
   }
@@ -288,17 +312,19 @@ object CUSwitchMapper {
       path.zipWithIndex.exists { case ((vout, vin), i) =>
         val vinTaken = map.vimap.pmap.contains(vin)
         if (vinTaken) assert(vin.src.isInstanceOf[PCL])
-        val edgeTaken = map.fbmap.get(vin).fold(false) { vo =>
-          (vo != vout)
-        }
+        //val edgeTaken = map.fbmap.get(vin).fold(false) { vo =>
+          //(vo != vout) //TODO edge consider not taken if have the same mapping. Potential risk here?
+        //}
+        val edgeTaken = map.fbmap.contains(vin)
         val switchTaken = {
           if (vout.src.isInstanceOf[PSB]) {
             // Check switch box
             val to = vout.voport
             val from = path(i - 1)._2.viport
-            map.fpmap.get(to).fold(false) {
-              _ != from
-            }
+            map.fpmap.contains(to)
+            //map.fpmap.get(to).fold(false) {
+              //_ != from
+            //}
           } else false
         } // no edge has been taken
         vinTaken || edgeTaken || switchTaken

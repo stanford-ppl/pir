@@ -8,6 +8,7 @@ import pir.graph.enums._
 import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
 
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Queue
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
@@ -22,8 +23,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     warn("debugCtrlMapper is on, could be slow!")
   }
 
-  type Edge = CUSwitchMapper.Edge 
-  type Path = CUSwitchMapper.Path 
+  type Edge = CUSwitchMapper.Edge
+  type Path = CUSwitchMapper.Path
+  type FatEdge = List[Edge] 
+  type FatPaths = List[(PCL, FatPath)]
+  type FatPath = List[FatEdge]
   type PathMap = CUSwitchMapper.PathMap 
   
   override val exceptLimit = 200
@@ -58,22 +62,22 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   def getRoute(cl:SCL, co:COP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
     val fromcl = co.ctrler.asInstanceOf[SCL]
     val pfromcl = map.clmap(fromcl)
-    def validCons(vin: PIB, path: Path) = {
-      // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
-      // current path starts from that pco 
-      val pco = path.head._1
+    def validCons(toCU:PCL, fatpath: FatPath):Option[FatPath] = {
       var valid = true
-      val toCU = vin.src.asInstanceOf[PCL]
-      valid &&= map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
-        _ == pco
-      }
-      // If cl has been mapped, valid path reaches current pcl
+      //TODO
+      // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
+      // current fatpath starts from that pco 
+      //val pco = fatpath.head._1
+      //valid &&= map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
+        //_ == pco
+      //}
+      // If cl has been mapped, valid fatpath reaches current pcl
       valid &&= map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
         _ == toCU
       }
-      // path is with required hops
-      valid &&= (path.size >= minHop)
-      valid &&= (path.size < maxHop)
+      // fatpath is with required hops
+      valid &&= (fatpath.size >= minHop)
+      valid &&= (fatpath.size < maxHop)
 
       /* Constrain on routing for hardwried connection in memory controller */
       //fromcl match {
@@ -92,7 +96,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       //}
       //cl match {
         //case mc:MC =>
-          //val cout = path.head
+          //val cout = fatpath.head
           //if (co == mc.commandFIFO.notFull) 
             //valid &&= (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
           //else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
@@ -105,20 +109,30 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
           //}
         //case _ =>
       //}
-
-      valid
+      if (valid) {
+        var fatedge::rest = fatpath
+        fatedge = fatedge.filter { case (pco, pci) =>
+          map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) { _ == pco }
+        }
+        if (fatedge.size==0) None
+        else Some(fatedge::rest)
+      } else {
+        None
+      }
     }
-    def advanceCons(sb: PSB, path: Path) = {
+    def advanceCons(sb: PSB, fatpath: FatPath):Boolean = {
+      var valid = true
       // If co is mapped, make sure start from that pco
-      if (path.size == 1) map.vomap.get(co).fold(true) { pco => path.head._1 == pco } else true &&
+      //if (path.size == 1) map.vomap.get(co).fold(true) { pco => path.head._1 == pco } else true
       // path is within maximum hop to continue
-      (path.size < maxHop)
+      valid &&= (fatpath.size < maxHop)
+      valid
     }
     val routes = advance(pfromcl, validCons _, advanceCons _)
     if (routes.size == 0) {
       throw NotReachable(fromcl, pfromcl, cl, map.clmap.get(cl))
     }
-    CUSwitchMapper.filterUsedRoutes(routes, map)
+    filterUsedRoutes(routes, map)
   }
 
   def mapCtrlIns(cl:SCL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
@@ -161,7 +175,19 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
         //println(s"$mc $ci")
       //case _ =>
     //}
-    log(s"Mapping $ci(${ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")}) in $cl from $fromCU") {
+    val info = s"Mapping $ci(${ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")}) in $cl from $fromCU" 
+    log(info
+    // Debug
+    //, ((m:M) => ()),
+      //{
+        //case e@FailToMapNode(_,_,_,mp) =>
+          //new CUCtrlDotPrinter()(design).print(mp.asInstanceOf[M])
+          //println(info)
+        //case e:Throwable =>
+          //println(e)
+      //}
+    // Debug --
+    ) {
       recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
     }
   }
@@ -221,14 +247,86 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     pmap.set(ucmap).set(lumap)
   }
 
-  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap = {
+  def advance(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], advanceCons:(PSB, FatPath) => Boolean):FatPaths = {
     def vouts(pne:PNE) = {
       pne match {
         case cu:PCL => cu.couts
         case sb:PSB => sb.vouts
       }
     }
-    CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
+    //CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
+    CtrlMapper.advance(vouts _)(start, validCons, advanceCons)
+    //advanceBFS(vouts _)(start, validCons, advanceCons)
+  }
+  def filterUsedRoutes(routes:FatPaths, map:PIRMap)(implicit design:Design):PathMap
+    = CtrlMapper.filterUsedRoutes(routes, map)
+
+}
+object CtrlMapper {
+  type Edge = CUSwitchMapper.Edge
+  type Path = CUSwitchMapper.Path
+  type FatEdge = List[Edge] 
+  type FatPaths = List[(PCL, FatPath)]
+  type FatPath = List[FatEdge]
+  type PathMap = CUSwitchMapper.PathMap 
+
+  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], 
+      advanceCons:(PSB, FatPath) => Boolean)(implicit design:Design):FatPaths
+    = advanceBFS(vouts)(start, validCons, advanceCons)
+
+  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], 
+      advanceCons:(PSB, FatPath) => Boolean)(implicit design:Design):FatPaths = {
+    val result = ListBuffer[(PCL, FatPath)]()
+    val fatpaths = Queue[FatPath]()
+    fatpaths += Nil
+    while (fatpaths.size!=0) {
+      val fatpath =  fatpaths.dequeue
+      //fatpath.reduce { case ((i1, o1), (i2, o2)) => assert((i1==i2) && (o1==o2)) }
+      val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
+      val visited = fatpath.map{_.head}.map{ case (f,t) => f.src }
+      if (!visited.contains(pne)) {
+        val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
+        val edges = vos.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+        val bundle = edges.groupBy { case (vo, vi) => (vo.src, vi.src) }
+        bundle.foreach { case ((fpne, tpne), fatEdge) =>
+          val newPath = fatpath :+ fatEdge 
+          tpne match {
+            case cl:PCU => 
+              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
+            case cl:PTop =>
+              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
+            case sb:PSB if advanceCons(sb, newPath) => fatpaths += newPath
+            case _ =>
+          }
+        }
+      }
+    }
+    result.toList
+  }
+
+  def filterUsedRoutes(routes:FatPaths, map:PIRMap)(implicit design:Design):PathMap = {
+    val availableRoutes = routes.flatMap { case (reached, fatpath) =>
+      val filteredFatpath = fatpath.map { fatedge => // Find fatpath that has empty fatEdge after filter
+        fatedge.filterNot { case (vout, vin) => // available edges
+          val vinTaken = map.vimap.pmap.contains(vin)
+          if (vinTaken) assert(vin.src.isInstanceOf[PCL])
+          val voutTaken = map.vomap.pmap.contains(vout)
+          val edgeTaken = map.fbmap.contains(vin)
+          val switchTaken = {
+            if (vout.src.isInstanceOf[PSB]) {
+              val to = vout.voport // Check switch box
+              map.fpmap.contains(to) // Conservative here
+            } else false
+          }
+          vinTaken || voutTaken || edgeTaken || switchTaken
+        }
+      }
+      if (filteredFatpath.exists{_.size==0}) None
+      else Some((reached, filteredFatpath))
+    }
+    availableRoutes.map { case (reachedCU, fatpath) =>
+      (reachedCU, fatpath.map{ fatedge => fatedge.head }) // For any fatpath, pick the first avalable edge
+    }
   }
 
 }

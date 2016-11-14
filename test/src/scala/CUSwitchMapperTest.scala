@@ -353,5 +353,111 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
     }
   }
 
+  "SwitchNetwork FatPaths" should "success" taggedAs(WIP) in {
+    new Design {
+      top = Top()
+      val aos = Nil 
+      val sls = Nil
+      // Nodes
+      val vts = Nil 
+      val cus = Nil 
+      top.updateFields(cus, Nil, sls ++ aos, vts)
+      // PNodes
+      implicit override val arch = SN_2x2 
+
+      val csbs = arch.csbs
+      val cuArray = arch.cuArray
+
+      def vouts(pne:PNE):List[POB] = {
+        pne match {
+          case cu:PCL => cu.couts
+          case sb:PSB => sb.vouts
+        }
+      }
+      type FatPath = CtrlMapper.FatPath
+      type FatPaths = CtrlMapper.FatPaths
+      type FatEdge = CtrlMapper.FatEdge
+      type Edge = CtrlMapper.Edge
+
+      def advanceCons(psb:PSB, fatpath:FatPath) = { 
+        (fatpath.size < 5) // path is within maximum hop to continue
+      }
+
+      {
+        val start = arch.cuArray(0)(0) 
+        val target = arch.cuArray(1)(1)  
+        def validCons(reached:PCL, path:FatPath):Option[FatPath] = {
+          var valid = true
+          val to = reached 
+          valid &&= (to == target)
+          valid &&= (to!=start) // path doesn't end at depended CU
+          if (valid) Some(path)
+          else None
+        }
+        val fatpaths = CtrlMapper.advanceBFS(vouts _)(start, validCons _, advanceCons _)
+
+      
+        // Plot fatedge
+        //var mp = PIRMap.empty
+        //fatpath.foreach { fatedge => fatedge.foreach { case ( vo, vi) => mp = mp.setFB(vi, vo) } }
+        //new CUCtrlDotPrinter().print(mp)
+        
+        assert(fatpaths.forall(_._1 == target))
+        fatpaths.foreach { case (to, fatpath) =>
+          fatpath.foreach { case fatedge:FatEdge =>
+            assert(fatedge.map(_._1.src).toSet.size==1) // Make sure fatEdge have same start PNE
+            assert(fatedge.map(_._2.src).toSet.size==1) // Make sure fatEdge have same end PNE
+          }
+        }
+
+        assert(fatpaths.size==35)
+
+        //var mp = PIRMap.empty
+        //val paths = CtrlMapper.filterUsedRoutes(fatpaths, mp)
+        //println(paths.size)
+        //paths.foreach { path =>
+          //var mp = PIRMap.empty; path._2.foreach { case ( vo, vi) => mp = mp.setFB(vi, vo) }
+          //new CUCtrlDotPrinter().print(mp);System.in.read()
+        //}
+        
+        // Take edges between csb(1)(1) => csb(1)(2) but leave one available. Then shouldn't reduce
+        // number of result
+        var mp = PIRMap.empty
+        var edges = csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+                    .filter{ case (vo, vi) => vi.src==csbs(1)(2)}
+        edges.tail.foreach { case (vo, vi) =>
+          mp = mp.setFB(vi, vo)
+        }
+        val paths = CtrlMapper.filterUsedRoutes(fatpaths, mp)
+        assert(paths.size==35)
+        //paths.foreach { path =>
+          //var mp = PIRMap.empty; path._2.foreach { case ( vo, vi) => mp = mp.setFB(vi, vo) }
+          //new CUCtrlDotPrinter().print(mp);System.in.read()
+        //}
+
+        // Take all edges between csb(1)(1) => csb(1)(2)
+        //                        csb(1)(1) => csb(2)(1)
+        //                        csb(1)(1) => pcus(1)(1)
+        // Should reduce number of valid results
+        //var edges = csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+                    //.filter{ case (vo, vi) => vi.src==csbs(1)(2)}
+        //edges ++= csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+                  //.filter{ case (vo, vi) => vi.src==csbs(2)(1)}
+        //edges ++= csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+                  //.filter{ case (vo, vi) => vi.src==cuArray(1)(1)}
+        //edges.foreach { case (vo, vi) =>
+          //mp = mp.setFB(vi, vo)
+        //}
+        ////new CUCtrlDotPrinter().print(mp)
+        //val paths = CtrlMapper.filterUsedRoutes(fatpaths, mp)
+        ////paths.foreach { path =>
+          ////var mp = PIRMap.empty; path._2.foreach { case ( vo, vi) => mp = mp.setFB(vi, vo) }
+          ////new CUCtrlDotPrinter().print(mp);System.in.read()
+        ////}
+        //assert(paths.size==8)
+      }
+    }
+  }
+
 }
 
