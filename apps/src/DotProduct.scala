@@ -8,7 +8,7 @@ import pir.misc._
 import pir.PIRApp
 
 object DotProductDesign extends PIRApp {
-  override val arch = SN_4x4
+  override val arch = SN_2x2
   def main(args: String*)(top:Top) = {
     val x1722_x1823_data_vector = Vector("x1722_x1823_data")
     val x1715_scalar = Scalar("x1715")

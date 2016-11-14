@@ -182,14 +182,14 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     val info = s"Mapping $vin in $cl from $pdepcu"
     log( info
        //Debug
-      , ((m:M) => ()),
-        {
-          case e@FailToMapNode(_,_,exceps,mp) =>
-            new CUDotPrinter()(design).print(mp.asInstanceOf[M])
-            println(info)
-          case e:Throwable =>
-            println(e)
-        }
+      //, ((m:M) => ()),
+        //{
+          //case e@FailToMapNode(_,_,exceps,mp) =>
+            //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+            //println(info)
+          //case e:Throwable =>
+            //println(e)
+        //}
       // Debug --
     ){
       recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
