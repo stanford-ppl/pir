@@ -65,6 +65,7 @@ object CUMapper {
         val cons = ListBuffer[(String, Any)]()
         cl match {
           case top:Top if pcl.isInstanceOf[PTop] =>
+            cons += (("sin"	      , (cl.sins.size, design.arch.scalarBandwidth*pcl.vins.size)))
           case cu:ICL if pcl.isInstanceOf[PCU] =>
             val pcu = pcl.asInstanceOf[PCU]
             cons += (("mctpe"       , cu.isInstanceOf[MC] == pcu.isInstanceOf[PMC]))
@@ -77,6 +78,7 @@ object CUMapper {
             cons += (("enLut"	    , (cu.enLUTs, pcu.ctrlBox.enLUTs)))
             cons += (("tokDownLut", (cu.tokDownLUTs, pcu.ctrlBox.tokenDownLUTs)))
             cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokenOutLUTs)))
+            cons += (("sin"	      , (cl.sins.size, Math.min(design.arch.scalarBandwidth*pcu.vins.size, pcu.numSinReg))))
             cu match {
               case mc:MemoryController => 
               case _ => 
@@ -85,7 +87,6 @@ object CUMapper {
           case _ =>
             cons += (("tpe"       , false))
         }
-        cons += (("sin"	      , (cl.sins.size, Math.min(design.arch.scalarBandwidth*pcl.vins.size, design.arch.numScalarInReg))))
         cons += (("sout"	    , (cl.souts, pcl.souts)))
         cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcl.vins.filter(_.fanIns.size>0))))
         cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))

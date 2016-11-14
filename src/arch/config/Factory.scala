@@ -97,7 +97,7 @@ object ConfigFactory extends ImplicitConversion {
     }
     // Bus output is connected to 1 register in last stage
     cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
-    (0 until spade.numScalarInReg).foreach { is =>
+    (0 until cu.numSinReg).foreach { is =>
       val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
       cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
       // ScalarInXbar

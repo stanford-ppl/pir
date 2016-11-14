@@ -79,8 +79,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     design.top.souts.foreach { sout =>
       argIns += s"${sout.scalar} -> ${indexOf(somap(sout).inport.get)}"
     }
-    emitComment("argIns", argIns.mkString(","))
-    emitComment("argOuts", argOuts.mkString(","))
+    emitComment("argIns-busIdx", argIns.mkString(","))
+    emitComment("argOuts-busIdx", argOuts.mkString(","))
     emitMap("top") { implicit ms =>
       design.arch match {
         case sn:SwitchNetwork =>
@@ -183,7 +183,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
-    var siXbar = ListBuffer[String]() 
+    val siXbar = ListBuffer[String]() 
+    val siComment = ListBuffer[String]() 
     pcu.etstage.prs.foreach { case (preg, ppr) =>
       val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
       if (psins.size!=0) { // Is scalarIn Register
@@ -194,10 +195,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           }
         }
         if (mpsins.size==0) siXbar += s""""x""""
-        else if(mpsins.size==1) siXbar += s""""${indexOf(mpsins.head)}""""
-        else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
+        else if(mpsins.size==1) {
+          siXbar += s""""${indexOf(mpsins.head.inBus)}""""
+          siComment += s"$preg[${indexOf(mpsins.head)}] -> ${mpsins.head.inBus} ${indexOf(mpsins.head.inBus)}"
+        } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
       }
     }
+    emitComment(s"scalarIn", siComment.mkString(","))
     emitXbar("scalarInXbar", siXbar.toList)
     val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
     cu match {
@@ -383,7 +387,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   /* Calculate amount of delay to start the inner counter */
-  def startDelay(pcu:PCU, ctr:Ctr):String = {
+  def startDelay(pcu:PCU, ctr:Ctr)(implicit ms:CollectionStatus):String = {
     val cchain = ctr.cchain
     if (!ctr.isInner) { "0" }
     else if (cchain.isLocal) {
@@ -401,16 +405,20 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       else s"${delays.max}"
     } else if (!cchain.isCopy) { "0" }
     else { // Write Address Start Delay
-      if (ctr.cchain.wasrams.size==0) { "0" } else {
-        assert(ctr.cchain.wasrams.size==1)
-        val sram = ctr.cchain.wasrams.head
+      val srams = ctr.ctrler.asInstanceOf[InnerController].srams.filter{_.writeCtr == ctr}
+      if (srams.size==0) "0" 
+      else {
+        assert(srams.size==1)
+        val sram = srams.head 
         assert(sram.isRemoteWrite)
         val vin = sram.writePort.from.src.asInstanceOf[VecIn]
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
-        val dataInterConnectDelay = rtmap(vin)
+        val dataInterConnectDelay = rtmap(vin) + 1 // Implicit data delay in hardware
         val ctrlInterConnectDelay = rtmap(ctr.en.from)
-        //TODO: assume data delay matches control delay for all inputs for now
+        emitComment(s"numLocalStages", numLocalStages(pFromCU))
+        emitComment(s"numDataHop", dataInterConnectDelay)
+        emitComment(s"numCtrlHop", ctrlInterConnectDelay)
         val delay = numLocalStages(pFromCU) + dataInterConnectDelay - ctrlInterConnectDelay 
         s"${delay}"
       }

@@ -57,10 +57,6 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * */
   lazy val original = copy.fold(this) { e => e.right.get}
 
-  val wasrams = ListBuffer[SRAMOnWrite]()
-  def addWASram(sram:SRAMOnWrite):Unit = {
-    wasrams += sram
-  }
   var streaming = false
   def isStreaming(s:Boolean) = streaming = s
 
@@ -460,15 +456,6 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InP
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => 
-    stage match {
-      case wast:WAStage =>
-        oprds(i).src match {
-          case PipeReg(_, CtrPR(_, ctr)) => wast.srams.right.get.foreach { sram => ctr.cchain.addWASram(sram) }
-          case c:Counter => wast.srams.right.get.foreach { sram => c.cchain.addWASram(sram) }
-          case _ =>
-        }
-      case _ =>
-    }
     InPort(this, oprds(i), s"${oprds(i)}")
   }
   val out = OutPort(this, s"${this}.out")

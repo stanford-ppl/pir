@@ -154,7 +154,6 @@ object PIRPrinter extends Metadata {
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
         fields += s"copied=[${p.copied.mkString(",")}]"
-        fields += s"wasrams=[${p.wasrams.mkString(",")}]"
       case p:OnChipMem =>
         fields += s"size=${p.size}"
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"

@@ -26,7 +26,6 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   override val wordWidth = 32
   override val numLanes = 16
   override val scalarBandwidth = 2 // BO, how many scalar value can be transmitted on bus 
-  override val numScalarInReg = 4 // BO, how many scalar registers connected to the crossbar 
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
@@ -44,19 +43,19 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   override val top = Top(numArgIns, numArgOuts)
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).coord(i, j)
+    val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).numSinReg(8).coord(i, j)
       .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=ctrlSwitchCUInBandwidth, outBandwidth=ctrlSwitchCUOutBandwidth)
     val bandWidth = 1
     List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, bandWidth, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, bandWidth, numLanes) }
     cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     cu.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     cu
   }
   override val rcus = cuArray.flatten 
   override val mcs = List.tabulate(numRowCUs) { i =>
-    val cu = ConfigFactory.genMC(numCtrs = 6, numRegs = 6).coord(-1, i)
+    val cu = ConfigFactory.genMC(numCtrs = 6, numRegs = 6).coord(-1, i).numSinReg(6)
       .ctrlBox(numTokenOutLUTs=6, numTokenDownLUTs=6, inBandwidth=8, outBandwidth=9)
     List("E").foreach { dir => cu.addVinAt(dir, 4, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, 1, numLanes) }

@@ -23,7 +23,6 @@ object P2P_4CU_4TT extends PointToPointNetwork {
   override val wordWidth = 32
   override val numLanes = 4
   override val scalarBandwidth = numLanes // BO, how many scalar registers can be read from each bus
-  override val numScalarInReg = numLanes // BO, how many scalar registers can be read from each bus
   
   private val numRCUs = 4
   private val numMCs = 4
@@ -40,13 +39,13 @@ object P2P_4CU_4TT extends PointToPointNetwork {
   override val top = Top(numArgIns, numArgOuts).index(-1)
 
   override val rcus = List.tabulate(numRCUs) { i =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).addVins(4, numLanes).addVouts(1, numLanes).index(i)
+    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).numSinReg(6).addVins(2, numLanes).addVouts(1, numLanes).index(i)
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   } 
 
   override val mcs = List.tabulate(numMCs) { i =>
-    val cu = ConfigFactory.genMC(numCtrs = 4, numRegs = 20).addVins(4, numLanes).addVouts(1, numLanes).index(i+rcus.size)
+    val cu = ConfigFactory.genMC(numCtrs = 4, numRegs = 20).addVins(2, numLanes).numSinReg(6).addVouts(1, numLanes).index(i+rcus.size)
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   }

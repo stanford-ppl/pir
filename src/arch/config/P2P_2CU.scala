@@ -21,7 +21,6 @@ object P2P_2CU extends PointToPointNetwork {
   override val wordWidth = 32
   override val numLanes = 4
   override val scalarBandwidth = numLanes // BO, how many scalar registers can be read from each bus
-  override val numScalarInReg = numLanes // BO, how many scalar registers can be read from each bus
   
   private val numRCUs = 2
   private val numArgIns = scalarBandwidth  // need to be multiple of numLanes
@@ -36,7 +35,7 @@ object P2P_2CU extends PointToPointNetwork {
   override val top = Top(numArgIns, numArgOuts)
 
   override val rcus = List.tabulate(numRCUs) { i =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).addVins(2, numLanes).addVouts(1, numLanes).index(i)
+    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).numSinReg(6).addVins(2, numLanes).addVouts(1, numLanes).index(i)
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
     cu
   } 
