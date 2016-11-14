@@ -25,7 +25,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 16
-  override val scalarBandwidth = 2 // BO, how many scalar value can be transmitted on bus 
+  override val scalarBandwidth = 4 // BO, how many scalar value can be transmitted on bus 
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
