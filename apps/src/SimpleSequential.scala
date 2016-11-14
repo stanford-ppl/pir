@@ -14,7 +14,7 @@ object SimpleSequentialDesign extends PIRApp {
     val x524_argin = ArgIn("x524")
     val x525_argin = ArgIn("x525")
     val x526_argout = ArgOut("x526")
-    val x548 = UnitPipeline(name = "x548", parent=top, deps=List()) { implicit CU => 
+    val x548 = Sequential(name = "x548", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x548_unitcc = CounterChain(name = "x548_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil

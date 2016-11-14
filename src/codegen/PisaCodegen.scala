@@ -816,6 +816,27 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           s""""x""""
         }
       }
+      val fifoAndTree = ListBuffer[String]()
+      pcu.srams.foreach { psram =>
+        smmap.pmap.get(psram).fold(fifoAndTree += "0"){ sram =>
+          val used = sram match {
+            case f:FOR => "1"
+            case _ => "0"
+          }
+          fifoAndTree += used 
+        }
+      }
+      val tokInAndTree = Array.fill(pcu.cins.size)(s""""x"""") 
+      pcu.cins.zipWithIndex.foreach { case (cin, i) =>
+        vimap.pmap.get(cin).foreach { co =>
+          co.asInstanceOf[COP].src match {
+            case f:FOW => tokInAndTree(i) = s""""1""""
+            case _ =>
+          }
+        }
+      }
+      emitList(s"fifoAndTree", fifoAndTree.toList)
+      emitList(s"tokInAndTree", tokInAndTree.toList)
       emitList(s"enableMux", emuxs)
       emitXbar(s"tokenInXbar", tokIns.toList)
       val tokInComment = ListBuffer[String]()

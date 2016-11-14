@@ -12,7 +12,7 @@ object InOutArgDesign extends PIRApp {
   def main(args: String*)(top:Top) = {
     val x142_argin = ArgIn("x142")
     val x143_argout = ArgOut("x143")
-    val x151 = UnitPipeline(name = "x151", parent=top, deps=List()) { implicit CU => 
+    val x151 = Sequential(name = "x151", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x151_unitcc = CounterChain(name = "x151_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
