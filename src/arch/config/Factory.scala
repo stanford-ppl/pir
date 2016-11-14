@@ -91,7 +91,7 @@ object ConfigFactory extends ImplicitConversion {
       // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
       cu match {
         case cu:TileTransfer => assert(cu.srams.size==0) // TileTransfer has no sram
-        case cu:MemoryController => 
+        case cu:MemoryController => //TODO
         case cu:ComputeUnit => cu.srams(is).writePort <== reg.out
       }
     }

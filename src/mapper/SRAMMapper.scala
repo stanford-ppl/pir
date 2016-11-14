@@ -1,26 +1,29 @@
 package pir.graph.mapper
-import pir._
+import pir.{Design, Config}
 import pir.typealias._
 import pir.graph.traversal.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR}
 import pir.plasticine.graph.{PipeReg => PPR}
+import pir.plasticine.main._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class SRAMMapper(implicit val design:Design) extends Mapper {
+class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
   type N = OnMem 
   type R = PSRAM 
   val typeStr = "SramMapper"
   override def debug = Config.debugSMMapper
+  implicit val spade:Spade = design.arch
 
   def finPass(cu:ICL)(m:M):M = m 
 
+  // Not Used
   private def mapSRAM(vimap:VIMap)(s:N, p:R, map:M):M = {
     s.writePort.from.src match {
-      case PR(stage, VecInPR(_, vi)) if stage.isInstanceOf[EST] =>
+      case vi:VI =>
         val ib = vimap(vi)
         val ibpregs = ib.viport.fanOuts.map(_.src).collect{case PPR(s,r) => r}
         // Regsiter mapped in empty stage
@@ -40,8 +43,28 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
-      val cons = List(mapSRAM(pirMap.vimap) _)
-      bind(pcu.srams, cu.mems, pirMap, cons, finPass(cu) _)
+      //val cons = List(mapSRAM(pirMap.vimap) _)
+      //bind(pcu.srams, cu.mems, pirMap, cons, finPass(cu) _)
+      
+      //One to one mapping. No need to map
+      var mp = pirMap
+      cu.mems.filter{_.isRemoteWrite}.foreach { s =>
+        val vi = s.writePort.from.src
+        val ib = mp.vimap(vi)
+        val ps = pcu.srams(indexOf(mp.vimap(vi)))
+        mp = mp.setSM(s, ps).setOP(s.readPort, ps.readPort).setIP(s.writePort, ps.writePort)
+        s match { case s:SOW => mp = mp.setIP(s.writeAddr, ps.writeAddr); case _ => }
+        s match { case s:SOR => mp = mp.setIP(s.readAddr, ps.readAddr); case _ => }
+        mp
+      }
+      cu.mems.filter{!_.isRemoteWrite}.foreach { s =>
+        val ps = pcu.srams.filter { p => !mp.smmap.pmap.contains(p) }.head
+        mp = mp.setSM(s, ps).setOP(s.readPort, ps.readPort).setIP(s.writePort, ps.writePort)
+        s match { case s:SOW => mp = mp.setIP(s.writeAddr, ps.writeAddr); case _ => }
+        s match { case s:SOR => mp = mp.setIP(s.readAddr, ps.readAddr); case _ => }
+        mp
+      }
+      mp
     }
   }
 }

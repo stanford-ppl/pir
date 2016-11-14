@@ -438,6 +438,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         if (smmap.pmap.contains(psram)) {
           emitMap { implicit ms =>
             val mem = smmap.pmap(psram)
+            emitComment(s"$mem", s"$psram")
             mem match {
               case mem:SOR =>
                 emitPair("ra", lookUp(mem.readAddr))
@@ -727,6 +728,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
       val udcComment = ListBuffer[String]()
+      val incComment = ListBuffer[String]()
+      val decComment = ListBuffer[String]()
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
@@ -736,6 +739,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
           incs += inc
+          incComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           val init = if (udc.init.isConnected) {
             val pcin = vimap(udc.init.from)
             s""""${indexOf(pcin)}""""
@@ -744,7 +748,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           // dec
           val ctr = udc.dec.from.src.asInstanceOf[Ctr]
           val pctr = ctmap(ctr)
-          decs += s""""${indexOf(pctr)}""""
+          val dec = indexOf(pctr)
+          decs += s""""${dec}""""
+          decComment += s"${udc}.inc -> ${dec}"
           initVals += s""""${udc.initVal}""""
           udcComment += s"${udc} -> ${pudc}"
         } else {
@@ -755,6 +761,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
       emitComment("udc", udcComment.mkString(","))
+      emitComment("inc", incComment.mkString(","))
+      emitComment("dec", decComment.mkString(","))
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)
@@ -771,13 +779,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 case at:AT => map += (at.out -> 0) 
               }
               val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
-              emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map}")
+              emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map} idx:${indexOf(penlut)}")
               val table = CtrlCodegen.lookUp(penlut.numIns, tf)
               emitList("table", table)
             }
           }
         }
       }
+      val cu = clmap.pmap(pcu)
       val tokIns = Array.fill(pcu.ctrs.size)(s""""x"""")
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
         if (ctmap.pmap.contains(pctr)) {
@@ -785,7 +794,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           ctr.en.from.src match {
             case e:EnLUT =>
               val penlut = lumap(e).asInstanceOf[PEnLUT]
-              val cu = clmap.pmap(pcu)
               if (e.ctrler==cu) {
                 assert(indexOf(penlut) == i)
                 s""""0""""
@@ -802,6 +810,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       emitList(s"enableMux", emuxs)
       emitXbar(s"tokenInXbar", tokIns.toList)
+      val tokInComment = ListBuffer[String]()
+      emitMap("comment-tokenIn") { implicit ms:CollectionStatus =>
+        cu.ctrlIns.foreach { ci =>
+          emitPair(s"$ci(${vimap(ci.from)})", s"from ${ci.from}(${vomap(ci.from)})")
+        }
+      }
     }
   }
 
