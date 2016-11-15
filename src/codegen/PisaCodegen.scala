@@ -199,8 +199,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         if (mpsins.size==0) siXbar += s""""x""""
         else if(mpsins.size==1) {
           val psin = mpsins.head
-          siXbar += s""""${indexOf(psin)}""""
-          siComment += s" inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(psin)}]"
+          siComment += s"$preg -> inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(psin)}]"
         } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
       }
     }
