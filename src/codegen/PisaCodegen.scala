@@ -41,6 +41,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val somap:SOMap = mapping.somap
   lazy val rcmap:RCMap = mapping.rcmap
 
+  def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
+
   override def traverse:Unit = {
     if (pirMapping.fail) return
     implicit val ms = new CollectionStatus(false)
@@ -196,8 +198,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
         if (mpsins.size==0) siXbar += s""""x""""
         else if(mpsins.size==1) {
-          siXbar += s""""${indexOf(mpsins.head.inBus)}""""
-          siComment += s"$preg[${indexOf(mpsins.head)}] -> ${mpsins.head.inBus} ${indexOf(mpsins.head.inBus)}"
+          val psin = mpsins.head
+          siXbar += s""""${indexOf(psin)}""""
+          siComment += s" inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(psin)}]"
         } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
       }
     }
@@ -211,7 +214,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
       if (pcu.etstage.prs(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
-        simux += s""""0"""" //TODO scalar retiming mux 
+        //simux += s""""0"""" //TODO scalar retiming mux 
+        simux += s"0" //TODO scalar retiming mux 
       }
     }
     emitXbar("scalarInMux", simux.toList)
@@ -219,10 +223,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
+    val xbarComment = ListBuffer[String]()
     sb.vouts.foreach { pvout =>
       if (pvout.isConnected) {
         if (fpmap.contains(pvout.voport)) {
           val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
+          xbarComment += s"${quote(fpmap(pvout.voport))} -> ${quote(vin)}"
           ins += s""""${sb.io(vin)}""""
         } else {
           ins += s""""x""""
@@ -231,7 +237,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
     //emitXbar(ins.toList)
     emitMap { implicit ms =>
-      emitComment(s"sb", DotCodegen.quote(sb))
+      emitComment(s"sb", s"${quote(sb)} ${xbarComment.mkString(",")}")
       emitList("outSelect", ins.toList)
     }
   }
