@@ -17,7 +17,10 @@ import scala.util.{Failure, Success, Try}
 class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper {
 
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
-    this(outputMapper, Some(ctrlMapper))
+    this(outputMapper, 
+      None
+      //Some(ctrlMapper)
+     )
   }
 
   type Edge = CUSwitchMapper.Edge 
@@ -48,7 +51,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     } else {
       val cl::rest = remainNodes 
       mapDep(cl) {
-        ctrlMapper.fold((m:M) => m) { _.mapCtrlIOs(cl) {
+        ctrlMapper.fold(mapCU(cl, rest) _) { _.mapCtrlIOs(cl) {
             mapCU(cl, rest) _
           } _
         }
@@ -98,23 +101,23 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
     val info = s"Mapping $cl"
     log(info
-    // Debug
+    // DEBUG
     //, ((m:M) => ()),
       //{
         //case e@FailToMapNode(_,_,_,mp) =>
-          //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+          //new CUDotPrinter(true)(design).print(mp.asInstanceOf[M])
           //println(info)
         //case e:Throwable =>
           //println(e)
       //}
-    // Debug --
+    // DEBUG --
     ) {
       recResWithExcept[R,N,M](cl, List(constrain _), resFilter _, next _, map)
     }
   }
 
   val minHop = 1
-  val maxHop = 6
+  val maxHop = 7
 
   def getRoute(cl:SCL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
@@ -181,16 +184,16 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     val (vin, pdepcu) = pdep
     val info = s"Mapping $vin in $cl from $pdepcu"
     log( info
-       //Debug
+       //DEBUG
       //, ((m:M) => ()),
         //{
           //case e@FailToMapNode(_,_,exceps,mp) =>
-            //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
+            //new CUDotPrinter(true)(design).print(mp.asInstanceOf[M])
             //println(info)
           //case e:Throwable =>
             //println(e)
         //}
-      // Debug --
+      // DEBUG --
     ){
       recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
     }

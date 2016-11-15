@@ -108,6 +108,7 @@ case class SwitchBox()(implicit spade:Spade) extends NetworkElement with GridIO[
 object SwitchBox {
   def fourDirections = { "W" :: "N" :: "E" :: "S" ::Nil }
   def eightDirections = { "W" :: "NW" :: "N" :: "NE" :: "E" ::  "SE" :: "S" :: "SW" ::Nil }
+  def diagDirections = {"NW":: "NE":: "SE":: "SW" :: Nil}
   def full(bw:Int, width:Int)(implicit spade:Spade) = {
     val sb = SwitchBox()
     eightDirections.foreach { dir =>

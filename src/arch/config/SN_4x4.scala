@@ -29,15 +29,19 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   
   private val numArgIns = scalarBandwidth  // need to be a multiple of scalarBandwidth 
   private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwidth 
-  private val ctrlBandWidth = 8
-
+  
   val memCtrlCommandFIFOEnqBusIdx:Int = 0
   val memCtrlDataFIFOEnqBusIdx:Int = 1
   val memCtrlCommandFIFONotFullBusIdx:Int = 0
   val memCtrlDataFIFONotFullBusIdx:Int = 1
 
+  val ctrlBandWidth = 8
   val ctrlSwitchCUInBandwidth = 1
   val ctrlSwitchCUOutBandwidth = 1
+
+  //TODO: CHANGED 1 -> 2
+  val dataBandWidth = 3
+  val dataSwitchCUBandwidth = 1
 
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)
@@ -68,31 +72,30 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   override val sbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
     var map = IMap[String, Int]()
     val sb = SwitchBox().coord(i,j)
-    SwitchBox.fourDirections.foreach { dir =>
-      sb.addVinAt(dir, 1, numLanes)
-      sb.addVoutAt(dir, 1, numLanes)
-    }
-    sb.addVinAt("NW", 1, numLanes)
-    sb.addVinAt("SW", 1, numLanes)
-    sb.addVoutAt("NE", 1, numLanes)
-    sb.addVoutAt("SE", 1, numLanes)
-    if (i==0) sb.addVoutAt("W", 3, numLanes)
+    SwitchBox.fourDirections.foreach { dir => sb.addVioAt(dir, dataBandWidth, numLanes) }
+    if (i==0) sb.addVoutAt("W", 3, numLanes) // Additional links to MC
+    List("NW", "SW").foreach { dir => sb.addVinAt(dir, dataSwitchCUBandwidth, numLanes) }
+    List("NE", "SE").foreach { dir => sb.addVoutAt(dir, dataSwitchCUBandwidth, numLanes) }
     sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
     sb
   }
   override val csbs = List.tabulate(numRowCUs+1, numColCUs+1) { case (i, j) =>
-    val sb = if (i==0) {
-      val sb = SwitchBox().coord(i,j)
+    val sb = SwitchBox().coord(i,j)
+    if (i==0) {
       sb.addVioAt("N", ctrlBandWidth, 1)
-      sb.addVioAt("NE", ctrlBandWidth, ctrlSwitchCUInBandwidth)
       sb.addVioAt("E", ctrlBandWidth, 1)
       sb.addVioAt("S", ctrlBandWidth, 1)
-      sb.addVioAt("SE", ctrlBandWidth, ctrlSwitchCUOutBandwidth)
       sb.addVinAt("W", 9, 1).addVoutAt("W",8, 1)
-      sb
+      sb.addVinAt("NE", ctrlSwitchCUInBandwidth, 1).addVoutAt("NE", ctrlSwitchCUOutBandwidth, 1)
+      sb.addVinAt("SE", ctrlSwitchCUInBandwidth, 1).addVoutAt("SE", ctrlSwitchCUOutBandwidth, 1)
     } else {
-      SwitchBox.full(bw=ctrlBandWidth, width=1).coord(i,j)
+      SwitchBox.fourDirections.foreach { dir =>
+        sb.addVioAt(dir, ctrlBandWidth, 1)
+      }
+      SwitchBox.diagDirections.foreach { dir =>
+        sb.addVinAt(dir, ctrlSwitchCUInBandwidth, 1).addVoutAt(dir, ctrlSwitchCUOutBandwidth, 1)
+      }
     }
     sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }

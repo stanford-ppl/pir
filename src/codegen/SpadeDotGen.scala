@@ -207,12 +207,16 @@ object CUDotPrinter extends Metadata {
   }
 }
 
-class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+import sys.process._
+import scala.language.postfixOps
+class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
-  def this()(implicit design:Design) = this(Config.spadeNetwork)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeNetwork, open)
+  def this()(implicit design:Design) = this(false)
 
-  override val stream = newStream(fileName) 
+  override val stream = newStream(file) 
   
   val scale = 4
 
@@ -285,6 +289,7 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       }
     }
     close
+    if (open) { s"out/bin/run -c out/${file}".replace(".dot", "") ! }
   }
 
   def print(pcls:List[PCL]):Unit = {
