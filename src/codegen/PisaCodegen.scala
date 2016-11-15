@@ -187,7 +187,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
     val siXbar = ListBuffer[String]() 
     val siComment = ListBuffer[String]() 
-    pcu.etstage.prs.foreach { case (preg, ppr) =>
+    pcu.etstage.prs.toList.sortWith{ case ((r1,ppr1), (r2, ppr2)) => indexOf(r1) < indexOf(r2)}
+      .foreach { case (preg, ppr) =>
       val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
       if (psins.size!=0) { // Is scalarIn Register
         val mpsins = psins.filter { psin =>
@@ -200,7 +201,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         else if(mpsins.size==1) {
           val psin = mpsins.head
           siXbar += s""""${indexOf(psin)}""""
-          siComment += s" inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(psin)}]"
+            //println(s"--$pcu $preg $ppr")
+          siComment += s"ppr:$ppr inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(preg)}]" 
         } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
       }
     }
@@ -743,8 +745,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
       val udcComment = ListBuffer[String]()
-      val incComment = ListBuffer[String]()
-      val decComment = ListBuffer[String]()
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
@@ -754,7 +754,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
           incs += inc
-          incComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           val init = if (udc.init.isConnected) {
             val pcin = vimap(udc.init.from)
             s""""${indexOf(pcin)}""""
@@ -765,9 +764,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           val pctr = ctmap(ctr)
           val dec = indexOf(pctr)
           decs += s""""${dec}""""
-          decComment += s"${udc}.inc -> ${dec}"
           initVals += s""""${udc.initVal}""""
           udcComment += s"${udc} -> ${pudc}"
+          udcComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
+          udcComment += s"${udc}.dec -> ${dec}"
+          udcComment += s"${udc}.init -> ${vimap(udc.init.from)}"
         } else {
           incs += s""""x""""
           decs += s""""x""""
@@ -775,11 +776,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           initVals += s""""x""""
         }
       }
-      emitComment("udc", udcComment.mkString(","))
-      emitComment("inc", incComment.mkString(","))
-      emitComment("dec", decComment.mkString(","))
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
+      emitComment("udc", udcComment.mkString(","))
       emitList("udcInit", initVals.toList)
       val fifoMux = ListBuffer[String]()
       emitList("enableLUT") { implicit ms =>
@@ -852,6 +851,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         }
       }
       emitList(s"fifoAndTree", fifoAndTree.toList)
+      emitList(s"fifoMux", fifoMux.toList)
       emitList(s"tokInAndTree", tokInAndTree.toList)
       emitList(s"enableMux", emuxs)
       emitXbar(s"tokenInXbar", tokIns.toList)
