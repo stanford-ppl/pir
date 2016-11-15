@@ -68,8 +68,13 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               val readMems = cu.mems.collect{ case f:FIFOOnRead => f }
               val writtenMems = cu.writtenMem.collect{ case f:FIFOOnWrite => f}
               if (readMems.size!=0) {
-                ins += cb.andTree.out
                 cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
+              }
+              if (writtenMems.size!=0) {
+                cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
+              }
+              if ((cb.fifoAndTree.ins.size!=0) || (cb.tokInAndTree.ins.size!=0)) {
+                ins += cb.andTree.out
               }
               if (cu.isHead) {
                 val tks = cb.tokenBuffers.map(_._2.out).toList
@@ -82,7 +87,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               val enlut = EnLUT(cu, ins.toList, tf, en)
               writtenMems.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
               readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
-              cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
           }
         case cu:Pipeline =>
           val tks = cb.tokenBuffers.map(_._2.out).toList
