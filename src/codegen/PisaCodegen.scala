@@ -211,7 +211,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
       if (pcu.etstage.prs(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
-        simux += "0" //TODO
+        simux += s""""0"""" //TODO scalar retiming mux 
       }
     }
     emitXbar("scalarInMux", simux.toList)
@@ -645,6 +645,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def emitCtrl(pcu:PCU)(implicit ms:CollectionStatus) {
     val pcb = pcu.ctrlBox
+    val cu = clmap.pmap(pcu)
     emitMap(s"control") { implicit ms =>
       emitList("tokenDownLUT") { implicit ms =>
         pcb.tokenDownLUTs.foreach { ptdlut =>
@@ -774,18 +775,28 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitList("udcInit", initVals.toList)
+      val fifoMux = ListBuffer[String]()
       emitList("enableLUT") { implicit ms =>
         pcb.enLUTs.foreach { penlut => 
           emitMap { implicit ms =>
             if (!lumap.pmap.contains(penlut)) {
               emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
+              fifoMux += s""""x""""
             } else {
               val enlut = lumap.pmap(penlut)
               val map:Map[COP, Int] = Map.empty
+              var toAndTree = false
               enlut.ins.map(_.from.src).foreach { 
-                case udc:UC => map += (udc.out -> indexOf(ucmap(udc)))
+                case udc:UC => 
+                  map += (udc.out -> indexOf(ucmap(udc)))
                 case at:AT => map += (at.out -> 0) 
+                toAndTree = true
               }
+              if (toAndTree)
+                fifoMux += s""""1""""
+              else
+                fifoMux += s""""0""""
+              assert(map.map { case (op, i) => i}.toSet.size== map.size) // No duplicate in index
               val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
               emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map} idx:${indexOf(penlut)}")
               val table = CtrlCodegen.lookUp(penlut.numIns, tf)
@@ -794,7 +805,6 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           }
         }
       }
-      val cu = clmap.pmap(pcu)
       val tokIns = Array.fill(pcu.ctrs.size)(s""""x"""")
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
         if (ctmap.pmap.contains(pctr)) {

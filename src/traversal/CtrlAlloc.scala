@@ -67,13 +67,14 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               val ins = ListBuffer[CtrlOutPort]()
               val readMems = cu.mems.collect{ case f:FIFOOnRead => f }
               val writtenMems = cu.writtenMem.collect{ case f:FIFOOnWrite => f}
-              ins += cb.andTree.out
+              if (readMems.size!=0) {
+                ins += cb.andTree.out
+                cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
+              }
               if (cu.isHead) {
                 val tks = cb.tokenBuffers.map(_._2.out).toList
                 assert(tks.size==1)
                 ins ++= tks
-              } else {
-                cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
               }
               val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
                 ins.map(in => inputs(map(in))).reduce(_ && _)
