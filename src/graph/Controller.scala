@@ -467,8 +467,10 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     sinMap += len -> si 
     si
   }
-  val dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
-  val dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
+  private val _dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
+  private val _dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
+  def dataIn = _dataIn.get
+  def dataOut = _dataOut.get
 
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val done = CtrlOutPort(this, s"${this}.done")

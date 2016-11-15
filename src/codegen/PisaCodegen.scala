@@ -768,7 +768,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           udcComment += s"${udc} -> ${pudc}"
           udcComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           udcComment += s"${udc}.dec -> ${dec}"
-          udcComment += s"${udc}.init -> ${vimap(udc.init.from)}"
+          udcComment += s"${udc}.init -> ${vimap.get(udc.init.from)}"
         } else {
           incs += s""""x""""
           decs += s""""x""""

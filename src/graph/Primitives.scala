@@ -232,7 +232,7 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   }
 
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
-  def wtPort(vecIn:VecIn):this.type = { wtPort(vecIn.vector) }
+  def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
   def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
   def load = readPort
 }
