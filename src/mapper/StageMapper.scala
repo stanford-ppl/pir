@@ -1,6 +1,7 @@
 package pir.graph.mapper
 import pir._
 import pir.typealias._
+import pir.graph.enums._
 import pir.graph.{Const, PipeReg}
 import pir.plasticine.graph.{ConstVal}
 import pir.graph.traversal.{PIRMapping, MapPrinter}
@@ -79,9 +80,16 @@ class StageMapper(implicit val design:Design) extends Mapper {
     // Check Operand 
     val oprds = fu.operands
     val poprds = pfu.operands
-    val oprdCons = List(mapInPort _)
-    log(s"$n bind FU Inputs") {
-      bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+    fu.op match {
+      case Mux =>
+        fu.operands.zipWithIndex.foldLeft(map){ case (map, (oprd, i)) =>
+          mapInPort(oprd, pfu.operands(i), map)
+        }
+      case _ =>
+        val oprdCons = List(mapInPort _)
+        log(s"$n bind FU Inputs") {
+          bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+        }
     }
   }
 

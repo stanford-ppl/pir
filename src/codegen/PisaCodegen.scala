@@ -16,7 +16,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with DebugLogger {
+class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with pir.VecOf with DebugLogger {
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override val stream = newStream(dir, s"${design}.json") 
   
@@ -256,6 +256,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case FixEql => s"==" 
       case FixNeq => s"!=" 
       case FixMod => s"%" 
+      case FixSra => s">>" 
       // Floating Point Operations
       case FltAdd => s"f+"
       case FltSub => s"f-"
@@ -267,6 +268,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case FltNeq => s"f!=" 
       // Others
       case Bypass => "passA" 
+      case Mux => "mux" 
       case _ => throw TODOException(s"Op ${op} is not supported at the moment")
     }
   }
@@ -420,8 +422,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       else {
         assert(mems.size==1)
         val sram = mems.head 
-        assert(sram.isRemoteWrite)
-        val vin = sram.writePort.from.src.asInstanceOf[VecIn]
+        assert(sram.isRemoteWrite, s"${sram}")
+        val vin = sram.writePort.from.src match {
+          case vi:VI => vi
+          case si:SI => vecOf(si).asInstanceOf[VI]
+        }
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin) + 1 // Implicit data delay in hardware
@@ -582,8 +587,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               val pfu = s.fu
               if (stmap.pmap.contains(pstage)) { //Physical stage have corresponding pir stage
                 val fu = stmap.pmap(pstage).fu.get
-                if (fu.operands.size>2)
-                  throw PIRException(s"Don't support any operation with more than 2 operands at the moment ${fu.operands}")
+                if (fu.operands.size>3)
+                  throw PIRException(s"Don't support any operation with more than 3 operands at the moment ${fu.operands}")
                 val stage = stmap.pmap(pstage)
                 stage match {
                   case wast:WAST => 

@@ -51,7 +51,10 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     cmap = siMapper.map(ctrler, cmap)
     ctrler match {
       case cu:InnerController => 
-        cmap = sramMapper.map(cu, cmap)
+        cu match {
+          case mc:MemoryController =>
+          case _ => cmap = sramMapper.map(cu, cmap)
+        }
         cmap = ctrMapper.map(cu, cmap)
       case t:Top => cmap = ctrlMapper.map(t, cmap)
       case _ => assert(false, s"Unknown ctrler:$ctrler")
