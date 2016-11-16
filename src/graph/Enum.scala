@@ -18,6 +18,7 @@ package object enums {
   case object FixEql extends FixOp
   case object FixNeq extends FixOp
   case object FixMod extends FixOp
+  case object FixSra extends FixOp
   
   sealed trait FltOp extends Op 
   case object FltAdd extends FltOp 
@@ -39,7 +40,7 @@ package object enums {
 
   val fixOps:List[FixOp] = 
     List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixEql,
-        FixNeq)
+        FixNeq, FixMod, FixSra)
   val fltOps:List[FltOp] = 
     List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltEql,
       FltNeq, FltExp, FltAbs)

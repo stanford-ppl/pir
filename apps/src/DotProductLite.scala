@@ -29,11 +29,6 @@ object DotProductLite extends PIRApp {
       val et = CU.emptyStage
       val s0::s1::_ = Stages(2)
       // SRAMs
-      // SingleBuffer = no DoubleBuffer
-      //val sA = SRAM(name="sA", size=32, readAddr=ii(0), writeAddr=ii(0), 
-        //banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
-      //val sB = SRAM(name="sB", size=32, readAddr=ii(0), writeAddr=ii(0),
-        //banking=Strided(1), buffering=SingleBuffer(), writeCtr=ii(0))
       // Pipeline Stages 
       Stage(s0, op1=CU.ctr(et, ii(0)), op2=CU.ctr(et, ii(0)), op=FixMul, result=CU.reduce(s0))
       // Writing some random constant to sA and sB locally to avoid no connection to sram write port

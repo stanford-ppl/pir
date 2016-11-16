@@ -143,7 +143,7 @@ object CounterChain {
   }
 }
 
-case class Counter(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -204,7 +204,7 @@ case class Counter(name:Option[String])(implicit override val ctrler:ComputeUnit
 }
 object Counter {
   def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
-    Counter(name).cchain(cc)
+    new Counter(name).cchain(cc)
   }
   def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(None, cchain); c.update(min, max, step); c }
@@ -212,6 +212,16 @@ object Counter {
     { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
     Counter(None, cchain)
+}
+
+case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
+  extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
+  this.min.connect(Const(s"-1i").out)
+  this.max.connect(Const(s"-1i").out)
+  this.step.connect(Const(s"-1i").out)
+  //val dummyCtrl = CtrlOutPort(this, s"${this}.dummyEn")
+  //this.en.connect(dummyCtrl)
+  override def toUpdate = false
 }
 
 abstract class OnChipMem(implicit override val ctrler:InnerController, design:Design) extends Primitive {
@@ -222,7 +232,10 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
 
-  def isRemoteWrite = writePort.from.src.isInstanceOf[VecIn] 
+  def isRemoteWrite = this match {
+    case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
+    case _ => writePort.from.src.isInstanceOf[VecIn]
+  } 
   def writer:InnerController = {
     writePort.from.src match {
       case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
@@ -232,6 +245,7 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   }
 
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
+  def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
   def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
   def load = readPort
 }
@@ -266,7 +280,7 @@ trait SRAMOnWrite extends OnChipMem {
 
   override def toUpdate = super.toUpdate || writeCtr == null
 }
-trait FIFOOnWrite extends OnChipMem {
+trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
   var _wtStart:Option[OutPort] = None
   var _wtEnd:Option[OutPort] = None 
   def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
@@ -277,6 +291,7 @@ trait FIFOOnWrite extends OnChipMem {
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
   val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
+  val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
   override def toUpdate = super.toUpdate
 }
 /** SRAM 
@@ -453,11 +468,35 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
   override def readers:List[DummyVecIn] = vector.readers
 }
 
-class FuncUnit(val stage:Stage, oprds:List[OutPort], val op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
+class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => 
-    InPort(this, oprds(i), s"${oprds(i)}")
+    if (i==1) {
+      //TODO: HACK on mod operation
+      op match {
+        case FixMod =>
+          assert(oprds.size==2)
+          val opB = oprds(i)
+          opB.src match {
+            case Const(_, str) =>
+              val (num, tpe) = str.splitAt(str.length-1)
+              if (tpe!="i") throw PIRException(s"Do not support mod of non integer value")
+              val numInt = num.toInt
+              val log = Math.log(numInt) / Math.log(2)
+              if (Math.round(log)==log) {
+                val const = Const(s"${Math.round(log)}i")
+                op = FixSra
+                InPort(this, const.out, s"$const")
+              } else
+                throw PIRException(s"Do not support mod of non power of 2 number")
+            case _ => throw PIRException(s"Do not support mod of non constant!")
+          }
+        case _ => InPort(this, oprds(i), s"${oprds(i)}")
+      }
+    } else {
+      InPort(this, oprds(i), s"${oprds(i)}")
+    }
   }
   val out = OutPort(this, s"${this}.out")
   results.foreach { res => 

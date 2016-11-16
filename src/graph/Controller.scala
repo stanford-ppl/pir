@@ -291,6 +291,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def mems:List[OnChipMem]
   def mems(ms:List[OnChipMem])
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
+  def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
   def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
   }
@@ -467,8 +468,10 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     sinMap += len -> si 
     si
   }
-  val dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
-  val dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
+  private val _dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
+  private val _dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
+  def dataIn = _dataIn.get
+  def dataOut = _dataOut.get
 
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val done = CtrlOutPort(this, s"${this}.done")

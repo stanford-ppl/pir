@@ -38,6 +38,7 @@ class OutputMapper(implicit val design:Design) extends Mapper {
         bind(pcl.vouts, scl.vouts, cuMap, cons, finPass(scl) _)
       case c:SCL if (c.vouts.size==1) => 
         mapVecOut(c)(c.vouts.head, pcl.vouts.head, cuMap)
+      case c:SCL if (c.vouts.size==0) => cuMap
     }
   }
 }

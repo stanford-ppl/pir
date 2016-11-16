@@ -9,21 +9,22 @@ import pir.PIRApp
 
 object SimpleReduceDesign extends PIRApp {
   def main(args: String*)(top:Top) = {
-    val x382_argin = ArgIn()
-    val x383_argout = ArgOut()
-    val x415 = Sequential(name="x415", parent=top, deps=List()) { implicit CU => 
+    val x467_argin = ArgIn("x467")
+    val x468_argout = ArgOut("x468")
+    val x485 = Sequential(name = "x485", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x415_unitCC = CounterChain(name = "x415_unitCC", (Const("0i"), Const("1i"), Const("1i")))
+      val x485_unitcc = CounterChain(name = "x485_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
-    val x408 = Pipeline(name="x408", parent=x415, deps=List()) { implicit CU => 
+    val x479_0 = Pipeline(name = "x479_0", parent=x485, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x385 = (Const("0i").out, Const("96i").out, Const("1i").out) // Counter
-      val x386 = CounterChain(name = "x386", x385)
+      val ctr1 = (Const("0i").out, Const("96i").out, Const("16i").out) // Counter
+      val x472 = CounterChain(name = "x472", ctr1)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x382_argin), CU.ctr(stage(0), x386(0))), op=FixMul, results=List(CU.reduce(stage(1))))
-      val (rs1, rr9) = Stage.reduce(op=FixAdd, init=Const("0i"))
-      Stage(stage(2), operands=List(rr9), op=Bypass, results=List(CU.scalarOut(stage(2), x383_argout)))
+      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x467_argin), CU.ctr(stage(0), x472(0))), op=FixMul, results=List(CU.reduce(stage(1))))
+      val (rs1, rr10) = Stage.reduce(op=FixAdd, init=Const("0i"))
+      Stage(stage(2), operands=List(rr10), op=Bypass, results=List(CU.scalarOut(stage(2), x468_argout)))
     }
     
   }

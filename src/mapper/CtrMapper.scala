@@ -39,7 +39,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster
-      val ctrs = sortCChains(cu.cchains)
+      val ctrs = sortCChains(cu.cchains) ++ cu.mems.collect{case f:FOW => f.dummyCtr}
       val pctrs = pcu.ctrs
       map(ctrs, pctrs, pirMap, finPass(cu) _)
     }
@@ -66,9 +66,11 @@ class CtrMapper(implicit val design:Design) extends Mapper {
         m.ctmap.get(dep).fold(remainRes) { pdep =>
           pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
-      case _:EnLUT => // Inner most counter or copied inner most counter whose enable is routed 
-                      // fron network
+      // Inner most counter or copied inner most counter whose enable is routed fron network
+      case _:EnLUT => 
         remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO
+      case _:MC => // Dummy Counter
+        remainRes
       case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")
     }
     val doneCtrs = n.done.to.map { done =>
