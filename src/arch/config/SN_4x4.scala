@@ -40,7 +40,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   val ctrlSwitchCUOutBandwidth = 1
 
   //TODO: CHANGED 1 -> 2
-  val dataBandWidth = 3
+  val dataBandWidth = 1
   val dataSwitchCUBandwidth = 1
 
   // Top level controller ~= Host
