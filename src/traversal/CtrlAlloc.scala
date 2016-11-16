@@ -64,7 +64,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               en.connect(mc.done)
               mc.writtenMem.foreach{ mem => 
                 mem.enqueueEnable.connect(mc.dataValid)
-                mem.dummyCtr.en.connect(mc.dataValid)
               }
             case cu =>
               val ins = ListBuffer[CtrlOutPort]()
@@ -90,7 +89,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               val enlut = EnLUT(cu, ins.toList, tf, en)
               writtenMems.foreach{ mem => 
                 mem.enqueueEnable.connect(enlut.out)
-                mem.dummyCtr.en.connect(enlut.out)
               }
               readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
           }

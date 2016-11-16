@@ -43,11 +43,11 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
-    val pdvout:POB = pirMap.vomap(n.vector.writer)
+    val pdvouts:List[POB] = pirMap.vomap(n.vector.writer).filter { pdvout => p.canFrom(pdvout) }.toList
 
     /* Find vins that connects to the depended ctrler */
-    if (p.canFrom(pdvout)) {
-      pirMap.setVI(n, p).setFB(p, pdvout).setOP(n.out, p.viport)
+    if (pdvouts.size!=0) {
+      pirMap.setVI(n, p).setFB(p, pdvouts.head).setOP(n.out, p.viport)
     } else {
       throw InterConnct(cl, pcl)
     }

@@ -216,6 +216,7 @@ object Counter {
 
 case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
   extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
+  override val en:EnInPort = EnInPort(this, s"${this}.enqEn")
   this.min.connect(Const(s"-1i").out)
   this.max.connect(Const(s"-1i").out)
   this.step.connect(Const(s"-1i").out)
@@ -290,8 +291,8 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
 
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
-  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
   val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
+  val enqueueEnable = dummyCtr.en 
   override def toUpdate = super.toUpdate
 }
 /** SRAM 
