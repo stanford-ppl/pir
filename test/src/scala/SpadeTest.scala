@@ -14,7 +14,7 @@ import scala.collection.mutable.ListBuffer
 
 class SpadeTest extends UnitTest { self =>
 
-  "SN_4x4" should "fail" taggedAs(ARCH) in {
+  "SN_2x2" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
       override val arch = SN_2x2
       new CUCtrlDotPrinter().print

@@ -18,6 +18,7 @@ case class Scalar(name:Option[String])(implicit design: Design) extends Node wit
     assert(writer == null, s"Already set ${this}'s writer to ${writer}, but trying to reset to ${w}")
     writer = w; this 
   }
+  var dummyVector:DummyVector = _
   override def toUpdate = super.toUpdate || writer==null
 }
 object Scalar {

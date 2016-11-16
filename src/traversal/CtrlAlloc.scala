@@ -62,26 +62,37 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           cu match {
             case mc:MemoryController =>
               en.connect(mc.done)
-              mc.writtenMem.foreach{ mem => mem.enqueueEnable.connect(mc.dataValid) }
+              mc.writtenMem.foreach{ mem => 
+                mem.enqueueEnable.connect(mc.dataValid)
+                mem.dummyCtr.en.connect(mc.dataValid)
+              }
             case cu =>
               val ins = ListBuffer[CtrlOutPort]()
               val readMems = cu.mems.collect{ case f:FIFOOnRead => f }
               val writtenMems = cu.writtenMem.collect{ case f:FIFOOnWrite => f}
-              ins += cb.andTree.out
+              if (readMems.size!=0) {
+                cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
+              }
+              if (writtenMems.size!=0) {
+                cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
+              }
+              if ((cb.fifoAndTree.ins.size!=0) || (cb.tokInAndTree.ins.size!=0)) {
+                ins += cb.andTree.out
+              }
               if (cu.isHead) {
                 val tks = cb.tokenBuffers.map(_._2.out).toList
                 assert(tks.size==1)
                 ins ++= tks
-              } else {
-                cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
               }
               val tf = TransferFunction(s"${ins.mkString(s" && ")}") { case (map, inputs) =>
                 ins.map(in => inputs(map(in))).reduce(_ && _)
               }
               val enlut = EnLUT(cu, ins.toList, tf, en)
-              writtenMems.foreach{ mem => mem.enqueueEnable.connect(enlut.out) }
-              readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out)}
-              cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
+              writtenMems.foreach{ mem => 
+                mem.enqueueEnable.connect(enlut.out)
+                mem.dummyCtr.en.connect(enlut.out)
+              }
+              readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
           }
         case cu:Pipeline =>
           val tks = cb.tokenBuffers.map(_._2.out).toList

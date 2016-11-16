@@ -8,7 +8,6 @@ import pir.misc._
 import pir.PIRApp
 
 object SimpleSequentialDesign extends PIRApp {
-  override val arch = SN_4x4
   def main(args: String*)(top:Top) = {
     val x529_vector = Vector("x529")
     val x524_argin = ArgIn("x524")

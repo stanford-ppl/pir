@@ -260,23 +260,27 @@ trait PIRApp extends Design{
   }
 }
 
-trait Metadata {
-  trait Metadata {
-    type V
-    type M = Map[Node, V]
-    def map(implicit design:Design):M
-    def update(n:Node, v:V)(implicit design:Design):Unit = map += (n -> v)
-    def apply(n:Node)(implicit design:Design):V = { val m = map; m(n) }
-    def get(n:Node)(implicit design:Design):Option[V] =  { val m = map; m.get(n) }
-  }
+trait Metadata extends IndexOf with VecOf {}
 
+trait MetadataMap {
+  type V
+  type M = Map[Node, V]
+  def map(implicit design:Design):M
+  def update(n:Node, v:V)(implicit design:Design):Unit = map += (n -> v)
+  def apply(n:Node)(implicit design:Design):V = { val m = map; m(n) }
+  def get(n:Node)(implicit design:Design):Option[V] =  { val m = map; m.get(n) }
+}
+
+trait IndexOf {
   /* Index of a spade node. Used for pisa codegen */
-  object indexOf extends Metadata {
+  object indexOf extends MetadataMap {
     type V = Int
     def map(implicit design:Design) = design.indexMap
   }
+}
+trait VecOf {
   /* Index of a spade node. Used for pisa codegen */
-  object vecOf extends Metadata {
+  object vecOf extends MetadataMap {
     type V = VectorIO[_]
     def map(implicit design:Design) = design.vecMap
   }

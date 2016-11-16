@@ -84,11 +84,11 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
     val sb = SwitchBox().coord(i,j)
     if (i==0) {
       sb.addVioAt("N", ctrlBandWidth, 1)
+      sb.addVinAt("NE", ctrlSwitchCUInBandwidth, 1).addVoutAt("NE", ctrlSwitchCUOutBandwidth, 1)
       sb.addVioAt("E", ctrlBandWidth, 1)
       sb.addVioAt("S", ctrlBandWidth, 1)
-      sb.addVinAt("W", 9, 1).addVoutAt("W",8, 1)
-      sb.addVinAt("NE", ctrlSwitchCUInBandwidth, 1).addVoutAt("NE", ctrlSwitchCUOutBandwidth, 1)
       sb.addVinAt("SE", ctrlSwitchCUInBandwidth, 1).addVoutAt("SE", ctrlSwitchCUOutBandwidth, 1)
+      sb.addVinAt("W", 9, 1).addVoutAt("W",8, 1)
     } else {
       SwitchBox.fourDirections.foreach { dir =>
         sb.addVioAt(dir, ctrlBandWidth, 1)

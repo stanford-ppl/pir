@@ -38,13 +38,13 @@ object Config {
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
-  var debugSIMapper = debugMapper && false 
-  var debugVIMapper = debugMapper && false 
-  var debugCtrlMapper = debugMapper && false 
-  var debugSMMapper = debugMapper && false 
-  var debugCTMapper = debugMapper && false 
-  var debugRAMapper = debugMapper && false 
-  var debugSTMapper = debugMapper && false 
+  var debugSIMapper = debugMapper && true 
+  var debugVIMapper = debugMapper && true 
+  var debugCtrlMapper = debugMapper && true 
+  var debugSMMapper = debugMapper && true 
+  var debugCTMapper = debugMapper && true 
+  var debugRAMapper = debugMapper && true 
+  var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
 
   var dse = false
