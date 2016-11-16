@@ -16,12 +16,9 @@ import scala.util.{Failure, Success, Try}
 
 class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper {
 
-  var debugRouting = true
+  var debugRouting = false 
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
-    this(outputMapper, 
-      None
-      //Some(ctrlMapper)
-     )
+    this(outputMapper, Some(ctrlMapper))
   }
 
   type Edge = CUSwitchMapper.Edge 

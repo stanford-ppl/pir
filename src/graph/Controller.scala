@@ -59,8 +59,8 @@ trait SpadeController extends Controller { self =>
       case _ => voutMap.getOrElseUpdate(v, VecOut(v))
     }
   }
-  def ctrlIns:List[InPort]
-  def ctrlOuts:List[OutPort]
+  def ctrlIns:List[CtrlInPort]
+  def ctrlOuts:List[CtrlOutPort]
   // No need to consider scalar after bundling
   def readers:List[SpadeController] = voutMap.keys.flatMap {
     _.readers.map{ _.ctrler match {
@@ -327,8 +327,8 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def inner:InnerController = this
 
   /* Control Signals */
-  def ctrlIns:List[InPort] = locals.flatMap(_.ctrlBox.ctrlIns)
-  def ctrlOuts:List[OutPort] = locals.flatMap(_.ctrlBox.ctrlOuts)
+  def ctrlIns:List[CtrlInPort] = locals.flatMap(_.ctrlBox.ctrlIns)
+  def ctrlOuts:List[CtrlOutPort] = locals.flatMap(_.ctrlBox.ctrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
@@ -523,8 +523,8 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   var scalars:List[Scalar] = _
   var vectors:List[Vector] = _
 
-  def ctrlIns:List[InPort] = status::Nil 
-  def ctrlOuts:List[OutPort] = command::Nil 
+  def ctrlIns:List[CtrlInPort] = status::Nil 
+  def ctrlOuts:List[CtrlOutPort] = command::Nil 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _

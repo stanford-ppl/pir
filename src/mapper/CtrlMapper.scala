@@ -19,7 +19,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
 
-  var debugRouting = false 
+  var debugRouting = true 
   val minHop = 1
   val maxHop = 7
 
@@ -39,7 +39,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   val failPass:Throwable=>Unit = if (debugRouting) {
     {
       case e@FailToMapNode(_,n,es,mp) =>
-        println(s"Fail to map ${n} $es")
+        println(s"Fail to map ${n}")
+        println(s"${es.mkString("\n")}")
         new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
       case e:Throwable =>
         println(e)
@@ -62,10 +63,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     }
   }
 
-  def getCins(cl:SCL, mp:M) = {
-    cl.ctrlIns.map(_.from.asInstanceOf[COP]).filter{ cin =>
-      !mp.vimap.contains(cin) && mp.clmap.contains(cin.ctrler.asInstanceOf[SCL])
-    }.toSet.toList
+  def getCins(cl:SCL, mp:M):List[CIP] = {
+    val sameSrcMap = cl.ctrlIns.groupBy{ ci => ci.from.asInstanceOf[COP] }
+    sameSrcMap.flatMap { case (co, cins) =>
+      val mapped = cins.exists{ ci => mp.vimap.contains(ci) }
+      if (mp.clmap.contains(co.ctrler) && !mapped) cins else Nil
+    }.toList
   }
 
   def mapCtrlIOs(cl:SCL)(fp:M => M)(pmap:M)(implicit cuMapper:CUSwitchMapper):M = {
@@ -73,7 +76,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     //new CUCtrlDotPrinter()(design).print(mp)
   }
 
-  def getRoute(cl:SCL, co:COP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
+  def getRoute(cl:SCL, ci:CIP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
+    val co = ci.from.asInstanceOf[COP]
     val fromcl = co.ctrler.asInstanceOf[SCL]
     val pfromcl = map.clmap(fromcl)
     def validCons(toCU:PCL, fatpath: FatPath):Option[FatPath] = {
@@ -104,9 +108,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
             var fatedge = last.head
             fatedge = fatedge.filter { edge =>
               val (pco, pci) = edge
-              if (co==mc.commandFIFO.enqueueEnable.from) 
+              if (ci==mc.commandFIFO.enqueueEnable) 
                 (indexOf(pci) == spade.memCtrlCommandFIFOEnqBusIdx)
-              else if (mc.mctpe==TileStore && co==mc.dataFIFO.get.enqueueEnable.from) 
+              else if (mc.mctpe==TileStore && ci==mc.dataFIFO.get.enqueueEnable) 
                 (indexOf(pci) == spade.memCtrlDataFIFOEnqBusIdx)
               else {
                 var vld = (indexOf(pci) != spade.memCtrlCommandFIFOEnqBusIdx)
@@ -162,7 +166,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   }
 
   def mapCtrlIns(cl:SCL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
-    type N = COP
+    type N = CIP
     type R = (PCL, Path)
     val remainCtrlIns = getCins(cl, map)
     if (remainCtrlIns.size==0) return fp(map)
@@ -171,7 +175,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       val (reachedCU, path) = r
       val pcin = path.last._2
       val pcout = path.head._1
-      var mp = m.setVI(n, pcin).setVO(n, pcout).setRT(n, path.size)
+      // Map all cin with the same source
+      val sameSrcMap = cl.ctrlIns.groupBy{ ci => ci.from }
+      var mp = sameSrcMap(n.from).foldLeft(m) { case (pm, n) =>
+        pm.setVI(n, pcin).setVO(n.from, pcout).setRT(n, path.size)
+      }
       mp = cuMapper.bindCU(cl, reachedCU, mp, es)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
@@ -195,8 +203,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       }
     }
     val fromCU = ci.ctrler
-    val cins = ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")
-    val info = s"Mapping $ci(${cins}) in $cl from $fromCU" 
+    val info = s"Mapping $ci in $cl from ${ci.from} in $fromCU" 
     log(info, ((m:M) => ()), failPass) {
       recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
     }
