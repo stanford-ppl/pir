@@ -576,6 +576,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitMap { implicit ms =>
                   cu.parent match {
                     case sc:SC if (cu.isLast) =>
+                      //TODO HACK: change last stage of stream controller's counter max to be max-1
                       ctr.max.from.src match {
                         case Const(_, str) =>
                           val (num, tpe) = str.splitAt(str.length-1)
@@ -586,6 +587,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                           emitPair("max", lookUp(const))
                         case _ => throw PIRException(s"HACK: the last stage of the StreamController's counter maximum has to be a constant")
                       }
+                      // ---
                     case _ => emitPair("max", lookUp(ctr.max))
                   }
                   emitPair("min", lookUp(ctr.min))
