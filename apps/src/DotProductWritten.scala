@@ -26,12 +26,12 @@ object DotProduct extends PIRApp {
     }
     val tileLoadA = StreamController(name="tileLoadA", parent=outer, deps=Nil){ implicit CU =>
       val es = CU.emptyStage
-      val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
+      val cc = CounterChain(name="i", Const(s"10i") by tileSize)
     }
     // b1 := v1(i::i+tileSize)
     val addrCalcA = UnitPipeline(name="addrCalcA", parent=tileLoadA, deps=Nil){ implicit CU =>
       val ic = CounterChain.copy(outer, "i")
-      val it = CounterChain(name="it", Const("0i") until tileSize by Const("1i"))
+      val it = CounterChain(name="it", Const("10i") until tileSize by Const("1i"))
       val s0::s1::_ = Stages(2)
       val es = CU.emptyStage 
       Stage(s0, op1=CU.ctr(es, it(0)), op2=CU.ctr(es, ic(0)), op=FixAdd, result=CU.scalarOut(s0, A.ofs))
@@ -39,7 +39,7 @@ object DotProduct extends PIRApp {
     }
     val tileLoadB = StreamController(name="tileLoadB", parent=outer, deps=Nil){ implicit CU =>
       val es = CU.emptyStage
-      val cc = CounterChain(name="i", CU.scalarIn(es, dataSize) by tileSize)
+      val cc = CounterChain(name="i", Const("10i") by tileSize)
     }
     // b2 := v2(i::i+tileSize)
     val addrCalcB = UnitPipeline(name="addrCalcB", parent=tileLoadB, deps=Nil){ implicit CU =>
