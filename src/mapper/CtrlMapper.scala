@@ -124,6 +124,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
                 (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
               else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
                 (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
+              else if (co==mc.dataValid)
+                (indexOf(pco) == spade.memCtrlDataValidBusIdx)
               else {
                 var vld = (indexOf(pco) != spade.memCtrlCommandFIFONotFullBusIdx)
                 if (mc.mctpe==TileStore) {

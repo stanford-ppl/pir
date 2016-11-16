@@ -29,6 +29,7 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   val memCtrlDataFIFOEnqBusIdx:Int
   val memCtrlCommandFIFONotFullBusIdx:Int
   val memCtrlDataFIFONotFullBusIdx:Int
+  val memCtrlDataValidBusIdx:Int
 
   // Metadata Maps 
   val coordMap:coordOf.M = Map.empty
