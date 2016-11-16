@@ -19,8 +19,8 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   var debugRouting = true
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
     this(outputMapper, 
-      None
-      //Some(ctrlMapper)
+      //None
+      Some(ctrlMapper)
      )
   }
 

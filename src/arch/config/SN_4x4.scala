@@ -36,8 +36,9 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   val memCtrlDataFIFONotFullBusIdx:Int = 1
 
   val ctrlBandWidth = 8
-  val ctrlSwitchCUInBandwidth = 1
-  val ctrlSwitchCUOutBandwidth = 1
+  val ctrlSwitchCUInBandwidth = 3
+  val ctrlSwitchCUOutBandwidth = 3
+  val ctrlCU2CUBandwidth = 0
 
   //TODO: CHANGED 1 -> 2
   val dataBandWidth = 1
@@ -48,23 +49,36 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
 
   val cuArray = List.tabulate(numRowCUs, numColCUs) { case (i, j) =>
     val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).numSinReg(8).coord(i, j)
-      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=ctrlSwitchCUInBandwidth, outBandwidth=ctrlSwitchCUOutBandwidth)
+      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8)
     val bandWidth = 1
     List("W", "NW", "S", "SW").foreach { dir => cu.addVinAt(dir, bandWidth, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, bandWidth, numLanes) }
     cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     cu.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+
+    SwitchBox.diagDirections.foreach { dir => 
+      cu.ctrlBox.addVinAt(dir, ctrlSwitchCUInBandwidth, 1).addVoutAt(dir, ctrlSwitchCUOutBandwidth, 1)
+    } 
+    cu.cins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    cu.couts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+
     ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     cu
   }
   override val rcus = cuArray.flatten 
   override val mcs = List.tabulate(numRowCUs) { i =>
     val cu = ConfigFactory.genMC(numCtrs = 6, numRegs = 6).coord(-1, i).numSinReg(6)
-      .ctrlBox(numTokenOutLUTs=6, numTokenDownLUTs=6, inBandwidth=8, outBandwidth=9)
+      .ctrlBox(numTokenOutLUTs=6, numTokenDownLUTs=6)
+
     List("E").foreach { dir => cu.addVinAt(dir, 4, numLanes) }
     List("E").foreach { dir => cu.addVoutAt(dir, 1, numLanes) }
     cu.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     cu.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+
+    List("E").foreach { dir => cu.ctrlBox.addVinAt(dir, 8, 1).addVoutAt(dir, 9, 1) } 
+    cu.cins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    cu.couts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+
     ConfigFactory.genMapping(cu, vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
     cu
   } 
@@ -74,7 +88,8 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
     val sb = SwitchBox().coord(i,j)
     SwitchBox.fourDirections.foreach { dir => sb.addVioAt(dir, dataBandWidth, numLanes) }
     if (i==0) sb.addVoutAt("W", 3, numLanes) // Additional links to MC
-    List("NW", "SW").foreach { dir => sb.addVinAt(dir, dataSwitchCUBandwidth, numLanes) }
+    //TODO changed from List("NW", "SW").foreach { dir => sb.addVinAt(dir, dataSwitchCUBandwidth, numLanes) }
+    List("NW", "SW").foreach { dir => sb.addVioAt(dir, dataSwitchCUBandwidth, numLanes) }
     List("NE", "SE").foreach { dir => sb.addVoutAt(dir, dataSwitchCUBandwidth, numLanes) }
     sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
     sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }

@@ -78,7 +78,6 @@ class CUMapperTest extends UnitTest with Metadata {
         val numRegs = 10
         val rcus = List.tabulate(numRCUs) { i =>
           ConfigFactory.genRCU(numSRAMs=numVins, numCtrs=0, numRegs=numRegs).addVins(numVins, numLanes).addVouts(1, numLanes)
-            .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=1, outBandwidth=1)
         } 
         val mcs = Nil
         val sbs = Nil 

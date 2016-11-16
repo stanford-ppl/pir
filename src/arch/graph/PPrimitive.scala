@@ -205,22 +205,14 @@ object UDCounter extends Metadata {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numCtrs:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int, inBandwidth:Int, outBandwidth:Int)
+class CtrlBox(numCtrs:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
 (implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive with GridIO[ComputeUnit]{
   //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
   //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
   def inBuses(num:Int, width:Int):List[InBus[ComputeUnit]] = InBuses(ctrler, num, width)
   def outBuses(num:Int, width:Int):List[OutBus[ComputeUnit]] = OutBuses(ctrler, num, width)
-  val dirs = ctrler match {
-    case mc:MemoryController => List("E")
-    case cu:ComputeUnit => SwitchBox.eightDirections
-  } 
-  dirs.foreach { dir => addVinAt(dir, inBandwidth, 1) } 
-  dirs.foreach { dir => addVoutAt(dir, outBandwidth, 1) }
-  val ctrlIns:List[InBus[ComputeUnit]] = vins 
-  val ctrlOuts:List[OutBus[ComputeUnit]] = vouts 
-  ctrlIns.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-  ctrlOuts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+  def ctrlIns:List[InBus[ComputeUnit]] = vins 
+  def ctrlOuts:List[OutBus[ComputeUnit]] = vouts 
   def cinAt(dir:String):List[InBus[ComputeUnit]] = vinAt(dir) 
   def coutAt(dir:String):List[OutBus[ComputeUnit]] = voutAt(dir) 
 

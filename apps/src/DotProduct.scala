@@ -90,7 +90,7 @@ object DotProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), x1633_argin), CU.ctr(stage(0), x1718(0))), op=FixSub, results=List(CU.temp(stage(1), tr102)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr102), Const("64i")), op=FltMin, results=List(CU.scalarOut(stage(2), x1723_scalar)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr102), Const("64i")), op=FixAdd, results=List(CU.scalarOut(stage(2), x1723_scalar)))
     }
     val x1831_0 = Pipeline(name = "x1831_0", parent=x1839, deps=List(x1765, x1807, x1813_0)) { implicit CU => 
       val stage0 = CU.emptyStage
