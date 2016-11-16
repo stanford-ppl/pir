@@ -10,6 +10,7 @@ import pir.plasticine.graph.{SwitchBox, Node}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
+import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
@@ -182,6 +183,7 @@ object CUDotPrinter extends Metadata {
                   case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
                   case vi:VI => s"${vi.vector}"
                   case op:OP => ""
+                  case vis:ISet[_] => s"${vis.mkString(",")}"
                 }
               case top:PTop =>
                 val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 

@@ -87,14 +87,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val status = fbmap(vimap(design.top.status.from))
+          val status = fbmap(vimap(design.top.status))
           val bottomRow = sn.csbs.map{_.head}
           val topRow = sn.csbs.map{_.last}
           val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
-          val ao = vimap(design.top.status.from)
+          val ao = vimap(design.top.status)
           assert(design.arch.top.vins.size==1)
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
@@ -169,9 +169,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitPair("isWr", s"${isWr}")
             emitPair("scatterGatter", "0")
-            emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable.from))}")
+            emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
-              emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable.from))}")
+              emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
               emitComment("DataFIFO-notFull", s"${indexOf(vomap(dataFIFO.notFull))}")
             }
             emitComment("CommandFIFO-notFull", s"${indexOf(vomap(mc.commandFIFO.notFull))}")
@@ -209,7 +209,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     emitComment(s"scalarIn", siComment.mkString(","))
     emitXbar("scalarInXbar", siXbar.toList)
     val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
-    cu match {
+    cu  {
       case cu:UnitPipeline => emitPair("scalarOutMux", "1")
       case cu => emitPair("scalarOutMux", "0")
     }
@@ -406,7 +406,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         //TODO is this needed?
         vin.tokenIn.fold(0) { cin =>
           val dataInterConnectDelay = rtmap(vin) + 1
-          val ctrlInterConnectDelay = rtmap(cin.from)
+          val ctrlInterConnectDelay = rtmap(cin)
           assert(dataInterConnectDelay==ctrlInterConnectDelay)
           0 //TODO: assume data delay matches control delay for all inputs for now
         }
@@ -431,7 +431,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         val fromCU = vin.writer.ctrler
         val pFromCU = clmap(fromCU).asInstanceOf[PCU]
         val dataInterConnectDelay = rtmap(vin) + 1 // Implicit data delay in hardware
-        val ctrlInterConnectDelay = rtmap(ctr.en.from)
+        val ctrlInterConnectDelay = rtmap(ctr.en)
         emitComment(s"numLocalStages", numLocalStages(pFromCU))
         emitComment(s"numDataHop", dataInterConnectDelay)
         emitComment(s"numCtrlHop", ctrlInterConnectDelay)
@@ -702,7 +702,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitPair("syncTokenMux", "x")
               } else {
                 val init = inits.head
-                val pcin = vimap(init.from)
+                val pcin = vimap(init)
                 emitPair("syncTokenMux", s"${indexOf(pcin)}")
                 map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
               }
@@ -770,12 +770,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           // inc
           val udc = ucmap.pmap(pudc)
           val inc = if (udc.inc.isConnected) {
-            val pcin = vimap(udc.inc.from)
+            val pcin = vimap(udc.inc)
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
           incs += inc
           val init = if (udc.init.isConnected) {
-            val pcin = vimap(udc.init.from)
+            val pcin = vimap(udc.init)
             s""""${indexOf(pcin)}""""
           } else { s""""x"""" }
           inits += init
@@ -788,7 +788,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           udcComment += s"${udc} -> ${pudc}"
           udcComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           udcComment += s"${udc}.dec -> ${dec}"
-          udcComment += s"${udc}.init -> ${vimap.get(udc.init.from)}"
+          udcComment += s"${udc}.init -> ${vimap.get(udc.init)}"
         } else {
           incs += s""""x""""
           decs += s""""x""""
@@ -837,7 +837,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           if (!ctr.en.isCtrlIn) {
             s""""0""""
           } else {
-            tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
+            tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
             s""""1""""
           }
           //ctr.en.from.src match {
@@ -847,7 +847,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 //assert(indexOf(penlut) == i)
                 //s""""0""""
               //} else { // from token in
-                //tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
+                //tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
                 //s""""1""""
               //}
             //case c:Ctr => //Chained
@@ -869,8 +869,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       val tokInAndTree = Array.fill(pcu.cins.size)(s""""x"""") 
       pcu.cins.zipWithIndex.foreach { case (cin, i) =>
-        vimap.pmap.get(cin).foreach { co =>
-          co.asInstanceOf[COP].src match {
+        vimap.pmap.get(cin).foreach { ci =>
+          ci.asInstanceOf[CIP].from.src match {
             case f:FOW => tokInAndTree(i) = s""""1""""
             case _ =>
           }
@@ -884,7 +884,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val tokInComment = ListBuffer[String]()
       emitMap("comment-tokenIn") { implicit ms:CollectionStatus =>
         cu.ctrlIns.foreach { ci =>
-          emitPair(s"$ci(${vimap(ci.from)})", s"from ${ci.from}(${vomap(ci.from)})")
+          emitPair(s"$ci(${vimap(ci)})", s"from ${ci.from}(${vomap(ci.from)})")
         }
       }
     }
