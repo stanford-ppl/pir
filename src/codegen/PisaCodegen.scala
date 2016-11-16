@@ -557,6 +557,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           else s""""0""""
         } else s""""0""""
       }
+      val cu = clmap.pmap(pcu).asInstanceOf[CU]
       emitList("chain", chain)
       emitList("counters") { implicit ms =>
         pcu.ctrs.foreach { pctr =>
@@ -573,7 +574,20 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 }
               case ctr =>
                 emitMap { implicit ms =>
-                  emitPair("max", lookUp(ctr.max))
+                  cu.parent match {
+                    case sc:SC if (cu.isLast) =>
+                      ctr.max.from.src match {
+                        case Const(_, str) =>
+                          val (num, tpe) = str.splitAt(str.length-1)
+                          if (tpe!="i") throw PIRException(s"Do not support max of non Int type")
+                          val numInt = num.toInt
+                          val const = Const(s"${numInt-1}i")
+                          emitComment("ctrMaxHACK", s"original=$numInt")
+                          emitPair("max", lookUp(const))
+                        case _ => throw PIRException(s"HACK: the last stage of the StreamController's counter maximum has to be a constant")
+                      }
+                    case _ => emitPair("max", lookUp(ctr.max))
+                  }
                   emitPair("min", lookUp(ctr.min))
                   emitPair("stride", lookUp(ctr.step))
                   emitPair("startDelay", startDelay(pcu, ctr))
