@@ -575,7 +575,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               case ctr =>
                 emitMap { implicit ms =>
                   cu.parent match {
-                    case sc:SC if (cu.isLast) =>
+                    case sc:SC if (cu.isLast && ctr.isOuter) =>
                       //TODO HACK: change last stage of stream controller's counter max to be max-1
                       ctr.max.from.src match {
                         case Const(_, str) =>
