@@ -12,8 +12,8 @@ import pir.plasticine.config._
 object StreamPipe extends PIRApp {
 
   def main(args: String*)(top:Top) = {
-    val tileSize = Const("4i")
-    val dataSize = Const("8i")
+    val tileSize = Const("1i")
+    val dataSize = Const("128i")
     val output = ArgOut()
     val vecA = Vector("vecA")
     val vecB = Vector("vecB")
