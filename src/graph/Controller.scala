@@ -291,6 +291,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def mems:List[OnChipMem]
   def mems(ms:List[OnChipMem])
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
+  def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
   def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
   }

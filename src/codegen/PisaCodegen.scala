@@ -396,9 +396,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   /* Calculate amount of delay to start the inner counter */
   def startDelay(pcu:PCU, ctr:Ctr)(implicit ms:CollectionStatus):String = {
-    val cchain = ctr.cchain
     if (!ctr.isInner) { "0" }
-    else if (cchain.isLocal) {
+    else if (!ctr.isInstanceOf[DummyCounter] && ctr.cchain.isLocal) {
       assert(ctr.ctrler.isInstanceOf[ICL])
       val icl = ctr.ctrler.asInstanceOf[ICL]
       val delays = ctr.ctrler.vins.map { vin =>
@@ -411,13 +410,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       } 
       if (delays.size==0) "0"
       else s"${delays.max}"
-    } else if (!cchain.isCopy) { "0" }
+    } else if (!ctr.isInstanceOf[DummyCounter] && !ctr.cchain.isCopy) { "0" }
     else { // Write Address Start Delay
-      val srams = ctr.ctrler.asInstanceOf[InnerController].srams.filter{_.writeCtr == ctr}
-      if (srams.size==0) "0" 
+      val icl = ctr.ctrler.asInstanceOf[InnerController]
+      val srams = icl.srams.filter{_.writeCtr == ctr}
+      val fows = icl.fows.filter(_.dummyCtr==ctr)
+      val mems = srams ++ fows
+      if (mems.size==0) "0" 
       else {
-        assert(srams.size==1)
-        val sram = srams.head 
+        assert(mems.size==1)
+        val sram = mems.head 
         assert(sram.isRemoteWrite)
         val vin = sram.writePort.from.src.asInstanceOf[VecIn]
         val fromCU = vin.writer.ctrler
@@ -547,6 +549,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             val ctr = ctmap.pmap(pctr)
             ctr match {
               case ctr:DummyCounter =>
+                emitMap { implicit ms =>
+                  emitPair("max", "x")
+                  emitPair("min", "x")
+                  emitPair("stride", "x")
+                  emitPair("startDelay", startDelay(pcu, ctr))
+                  emitPair("endDelay",  "x")
+                }
               case ctr =>
                 emitMap { implicit ms =>
                   emitPair("max", lookUp(ctr.max))
