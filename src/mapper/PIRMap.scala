@@ -252,12 +252,16 @@ object CLMap extends BMapObj {
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus */
-case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends BMap {
+case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends SMap {
   type K = VIMap.K
   type V = VIMap.V
-  override def + (rec:(K,V)) = { super.check(rec); VIMap(map + rec, pmap + rec.swap) }
+  override def + (rec:(K,V)) = { super.check(rec); 
+    val set = pmap.getOrElse(rec._2, Set.empty) + rec._1
+    val newpmap = pmap + (rec._2 -> set)
+    VIMap(map + rec, newpmap)
+  }
 }
-object VIMap extends BMapObj {
+object VIMap extends SMapObj {
   type K = Node //InPort or VecIn
   type V = PIB
   def empty:VIMap = VIMap(Map.empty, Map.empty)
