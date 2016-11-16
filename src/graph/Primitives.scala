@@ -168,7 +168,13 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
     step.connect(s)
   }
 
-  def isInner = { en.isConnected && en.from.src.isInstanceOf[EnLUT] }
+  def isInner = { 
+    ctrler match {
+      case mc:MemoryController =>
+        en.isConnected && en.from.src.isInstanceOf[EnLUT] || en.isConnectedTo(mc.done)
+      case _ => en.isConnected && en.from.src.isInstanceOf[EnLUT]
+    }
+  }
   def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
   def next:Counter = {
     val ns = done.to.map(_.src).collect{ case c:Counter => c}
@@ -216,6 +222,7 @@ object Counter {
 
 case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
   extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
+  override val en:EnInPort = EnInPort(this, s"${this}.enqEn")
   this.min.connect(Const(s"-1i").out)
   this.max.connect(Const(s"-1i").out)
   this.step.connect(Const(s"-1i").out)
@@ -290,8 +297,8 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
 
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
-  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
   val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
+  val enqueueEnable = dummyCtr.en 
   override def toUpdate = super.toUpdate
 }
 /** SRAM 

@@ -232,11 +232,38 @@ trait BMapObj extends PMapObj {
   type PM = Map[V, K]
 }
 
-trait SMap extends PMap {
+trait One2Many {
+  type K
+  type V
+  type M = Map[K, Set[V]]
+  type PM = Map[V, K] // TODO
+  val pmap:PM
+  def + (rec:(K,V)):One2Many
+
+  val map:M
+  def contains(k:K) = map.contains(k)
+  def apply(k:K):Set[V] = map(k)
+  val name:String = this.getClass().getSimpleName() 
+  def keys = map.keys
+  def get(k:K) = map.get(k)
+
+  def check(rec:(K,V)):Unit =  {
+    if (pmap.contains(rec._2) && pmap(rec._2)!=rec._1)
+      throw PIRException(s"${name} already contains key ${rec._2} -> ${pmap(rec._2)} but try to rebind to ${rec._1}")
+  }
+}
+trait One2ManyObj {
+  type K
+  type V
+  type M = Map[K,Set[V]]
+  type PM = Map[V, K]
+}
+
+trait Many2One extends PMap {
   type PM = Map[V,Set[K]]
   val pmap:PM
 }
-trait SMapObj extends PMapObj {
+trait Many2OneObj extends PMapObj {
   type PM = Map[V,Set[K]]
 }
 
@@ -252,7 +279,7 @@ object CLMap extends BMapObj {
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus */
-case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends SMap {
+case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends Many2One {
   type K = VIMap.K
   type V = VIMap.V
   override def + (rec:(K,V)) = { super.check(rec); 
@@ -261,19 +288,25 @@ case class VIMap(map:VIMap.M, pmap:VIMap.PM) extends SMap {
     VIMap(map + rec, newpmap)
   }
 }
-object VIMap extends SMapObj {
+object VIMap extends Many2OneObj {
   type K = Node //InPort or VecIn
   type V = PIB
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus */
-case class VOMap(map:VOMap.M, pmap:VOMap.PM) extends BMap {
+case class VOMap(map:VOMap.M, pmap:VOMap.PM) extends One2Many {
   type K = VOMap.K
   type V = VOMap.V
-  override def + (rec:(K,V)) = { super.check(rec); VOMap(map + rec, pmap + rec.swap) }
+  override def + (rec:(K,V)) = { 
+    super.check(rec)
+    val os:Set[V] = map.getOrElse(rec._1, Set.empty)
+    val set:Set[V] = os + rec._2
+    val newmap = map + (rec._1 -> set)
+    VOMap(newmap, pmap + rec.swap)
+  }
 }
-object VOMap extends BMapObj {
+object VOMap extends One2ManyObj {
   type K = Node //OutPort or VecOut
   type V = POB
   def empty:VOMap = VOMap(Map.empty, Map.empty)

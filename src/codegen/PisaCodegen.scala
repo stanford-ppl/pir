@@ -172,11 +172,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
               emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
-              emitComment("DataFIFO-notFull", s"${indexOf(vomap(dataFIFO.notFull))}")
+              emitComment("DataFIFO-notFull", s"${vomap.get(dataFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",")}}")
             }
-            emitComment("CommandFIFO-notFull", s"${indexOf(vomap(mc.commandFIFO.notFull))}")
+            emitComment("CommandFIFO-notFull", s"${vomap.get(mc.commandFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
+            emitCounterChains(pmc)
+            emitCtrl(pmc)
           }
-          emitCounterChains(pmc)
         } else {
           emitElem("x")
         }
@@ -444,9 +445,17 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   /* amount of delay to decalre done of the counter */
   def doneDelay(pcu:PCU, ctr:Ctr):String = {
     val cchain = ctr.cchain
-    if (!cchain.isLocal) { "0" }
-    else if (ctr.isInner) { s"${numLocalStages(pcu)}" }
-    else { "0" }
+    val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
+    cu.parent match {
+      case sc:SC =>
+        if (!cu.isHead) { "0" }
+        else if (ctr.isOuter) { s"${numLocalStages(pcu)}" } // Outer most including parent's copy
+        else { "0" }
+      case _ => 
+        if (!cchain.isLocal) { "0" }
+        else if (ctr==cu.localCChain.outer) { s"${numLocalStages(pcu)}" } // Local outer most
+        else { "0" }
+    }
   }
 
   def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {
@@ -548,6 +557,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           else s""""0""""
         } else s""""0""""
       }
+      val cu = clmap.pmap(pcu).asInstanceOf[CU]
       emitList("chain", chain)
       emitList("counters") { implicit ms =>
         pcu.ctrs.foreach { pctr =>
@@ -564,7 +574,22 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 }
               case ctr =>
                 emitMap { implicit ms =>
-                  emitPair("max", lookUp(ctr.max))
+                  cu.parent match {
+                    case sc:SC if (cu.isLast) =>
+                      //TODO HACK: change last stage of stream controller's counter max to be max-1
+                      ctr.max.from.src match {
+                        case Const(_, str) =>
+                          val (num, tpe) = str.splitAt(str.length-1)
+                          if (tpe!="i") throw PIRException(s"Do not support max of non Int type")
+                          val numInt = num.toInt
+                          val const = Const(s"${numInt-1}i")
+                          emitComment("ctrMaxHACK", s"original=$numInt")
+                          emitPair("max", lookUp(const))
+                        case _ => throw PIRException(s"HACK: the last stage of the StreamController's counter maximum has to be a constant")
+                      }
+                      // ---
+                    case _ => emitPair("max", lookUp(ctr.max))
+                  }
                   emitPair("min", lookUp(ctr.min))
                   emitPair("stride", lookUp(ctr.step))
                   emitPair("startDelay", startDelay(pcu, ctr))
@@ -732,7 +757,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               assert(ctrs.size<=2)
               val map:Map[COP, Int] = Map.empty
               doneXbar ++= List.tabulate(2) { i => // sel for Xbar
-                if (i<ctrs.size) s""""${indexOf(ctmap(ctrs(i)))}"""" 
+                if (i<ctrs.size) {
+                val pct = ctmap(ctrs(i))
+                  s""""${indexOf(pct)}"""" 
+                }
                 else s""""x""""
               }
               ctrs.zipWithIndex.foreach { case (ctr,i) =>
@@ -750,10 +778,20 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
-            case l:FOW => indexOf(smmap(l))
+            case l:FOW => 
+              cu match {
+                case mc:MC =>
+                  l match {
+                    case l:CommandFIFO => spade.memCtrlCommandFIFONotFullBusIdx
+                    case l if (mc.dataFIFO==Some(l)) => spade.memCtrlDataFIFONotFullBusIdx
+                    case _ => indexOf(smmap(l))
+                  }
+                case _ => indexOf(smmap(l))
+              }
             case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
             case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
             case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
+            case l if (l.isInstanceOf[MC] && l.asInstanceOf[MC].dataValid==to) => spade.memCtrlDataValidBusIdx
           }
           s""""$idx""""
         }
@@ -765,6 +803,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
       val udcComment = ListBuffer[String]()
+      val initOnStart = ListBuffer[String]()
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
@@ -789,17 +828,21 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           udcComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           udcComment += s"${udc}.dec -> ${dec}"
           udcComment += s"${udc}.init -> ${vimap.get(udc.init)}"
+          if (udc.initOnStart) initOnStart += s""""1"""" 
+          else initOnStart += s""""0""""
         } else {
           incs += s""""x""""
           decs += s""""x""""
           inits += s""""x""""
           initVals += s""""x""""
+          initOnStart += s""""x""""
         }
       }
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitComment("udc", udcComment.mkString(","))
       emitList("udcInit", initVals.toList)
+      emitList("udcSet", initOnStart.toList)
       val fifoMux = ListBuffer[String]()
       emitList("enableLUT") { implicit ms =>
         pcb.enLUTs.foreach { penlut => 
@@ -869,8 +912,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       val tokInAndTree = Array.fill(pcu.cins.size)(s""""x"""") 
       pcu.cins.zipWithIndex.foreach { case (cin, i) =>
-        vimap.pmap.get(cin).foreach { ci =>
-          ci.asInstanceOf[CIP].from.src match {
+        vimap.pmap.get(cin).foreach { cis =>
+          // cis should have the same source
+          assert(cis.map(_.asInstanceOf[CIP].from).toSet.size==1)
+          cis.head.asInstanceOf[CIP].from.src match {
             case f:FOW => tokInAndTree(i) = s""""1""""
             case _ =>
           }

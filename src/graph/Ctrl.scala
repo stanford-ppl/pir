@@ -16,6 +16,7 @@ import pir.graph.traversal.ForwardRef
 
 abstract class UDCounter(implicit ctrler:Controller, design: Design) extends Primitive {
   val initVal:Int
+  def initOnStart:Boolean
   val inc = CtrlInPort(this, s"${this}.inc")
   val dec = CtrlInPort(this, s"${this}.dec")
   val init = CtrlInPort(this, s"${this}.init")
@@ -28,6 +29,7 @@ case class TokenBuffer(dep:Option[ComputeUnit], initVal:Int)
   (implicit ctrler:Controller, design: Design) extends UDCounter{
   override val name = None
   override val typeStr = "TokBuf"
+  def initOnStart = false
 }
 object TokenBuffer {
   def apply(dep:ComputeUnit, initVal:Int)
@@ -40,6 +42,7 @@ case class CreditBuffer(deped:ComputeUnit)(implicit ctrler:Controller, design: D
   override val initVal = 2
   override val name = None
   override val typeStr = "CredBuf"
+  def initOnStart = true 
 }
 
 case class TransferFunction(tf:(Map[CtrlOutPort, Int], List[Boolean]) => Boolean, info:String)
