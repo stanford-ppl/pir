@@ -16,8 +16,12 @@ import scala.util.{Failure, Success, Try}
 
 class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper {
 
+  var debugRouting = true
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
-    this(outputMapper, Some(ctrlMapper))
+    this(outputMapper, 
+      None
+      //Some(ctrlMapper)
+     )
   }
 
   type Edge = CUSwitchMapper.Edge 
@@ -28,6 +32,23 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   override implicit val mapper:CUSwitchMapper = this
 
   override val exceptLimit = 200
+  // DEBUG
+  val failPass:Throwable=>Unit = if (debugRouting) {
+    {
+      case e@FailToMapNode(_,n,es,mp) =>
+        val node = n match {
+          case (vi, cu) => (vi.asInstanceOf[VI].vector, cu)
+          case n => n
+        }
+        println(s"Fail to map ${node} $es")
+        new CUDotPrinter(true)(design).print(mp.asInstanceOf[M])
+      case e:Throwable =>
+        println(e)
+    }
+  } else {
+    (e:Throwable) => ()
+  }
+  // DEBUG --
 
   val resMap:MMap[SCL, List[PCL]] = MMap.empty
 
@@ -48,7 +69,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     } else {
       val cl::rest = remainNodes 
       mapDep(cl) {
-        ctrlMapper.fold((m:M) => m) { _.mapCtrlIOs(cl) {
+        ctrlMapper.fold(mapCU(cl, rest) _) { _.mapCtrlIOs(cl) {
             mapCU(cl, rest) _
           } _
         }
@@ -97,24 +118,13 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       mapCUs(restNodes)(m)
     }
     val info = s"Mapping $cl"
-    log(info
-    // Debug
-    //, ((m:M) => ()),
-      //{
-        //case e@FailToMapNode(_,_,_,mp) =>
-          //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
-          //println(info)
-        //case e:Throwable =>
-          //println(e)
-      //}
-    // Debug --
-    ) {
+    log(info, ((m:M) => ()), failPass) {
       recResWithExcept[R,N,M](cl, List(constrain _), resFilter _, next _, map)
     }
   }
 
   val minHop = 1
-  val maxHop = 6
+  val maxHop = 7
 
   def getRoute(cl:SCL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
@@ -180,18 +190,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
     val (vin, pdepcu) = pdep
     val info = s"Mapping $vin in $cl from $pdepcu"
-    log( info
-       //Debug
-      //, ((m:M) => ()),
-        //{
-          //case e@FailToMapNode(_,_,exceps,mp) =>
-            //new CUDotPrinter()(design).print(mp.asInstanceOf[M])
-            //println(info)
-          //case e:Throwable =>
-            //println(e)
-        //}
-      // Debug --
-    ){
+    log(info, ((m:M) => ()), failPass){
       recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
     }
   }

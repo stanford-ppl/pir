@@ -118,9 +118,11 @@ trait Mapper { self =>
         case Failure(e) => 
           //dbeln(s"(failed) ${e}")
           e match {
-          case me:MappingException => exceps += me// constrains failed
-          case _ => throw e
-        }
+            case NoSolFound(_, es) => exceps ++= es
+            case FailToMapNode(_, n, es, mp) => exceps ++= es 
+            case me:MappingException => exceps += me// constrains failed
+            case _ => throw e
+          }
       }
       triedRes += res
       reses = resFilter(triedRes.toList, exceps.toList)
@@ -188,7 +190,8 @@ trait Mapper { self =>
         log(s"Mapping $n", { (m:M) => return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
-            case fe:FailToMapNode[_] => exceps += fe; dprintln(flattenExceptions(fe.exceps)) // recRes failed
+            case FailToMapNode(_, n, es, mp) => exceps ++= es
+            //case fe:FailToMapNode[_] => exceps += fe//; dprintln(flattenExceptions(fe.exceps)) // recRes failed
             case _ => throw e // Unknown exception
           }
         }) { // Block
@@ -249,6 +252,8 @@ trait Mapper { self =>
         } match {
           case Success(m) => return m 
           case Failure(e) => e match {
+            case NoSolFound(_, es) => exceps ++= es
+            case FailToMapNode(_, n, es, mp) => exceps ++= es 
             case me:MappingException => exceps += me // constrains failed
             case _ => throw e // Unknown exception
           }

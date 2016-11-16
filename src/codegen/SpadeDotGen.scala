@@ -14,13 +14,17 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
+import sys.process._
+import scala.language.postfixOps
 
-class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
-  def this()(implicit design:Design) = this(Config.spadeCtrlNetwork)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
+  def this()(implicit design:Design) = this(false)
 
-  override val stream = newStream(fileName) 
+  override val stream = newStream(file) 
 
   override def quote(n:Any)(implicit design:Design):String = {
     n match {
@@ -108,6 +112,16 @@ class CUCtrlDotPrinter(fileName:String)(implicit design:Design) extends DotCodeg
       }
     }
     close
+    if (open) { 
+        println(s"Waiting for input ...")
+        val command = scala.io.StdIn.readLine()
+        if (command=="n") {
+          s"out/bin/run -c out/${file}".replace(".dot", "") !
+        } else {
+          println(s"Stop debugging control routing ...")
+          System.exit(-1)
+        }
+    }
   }
 
 }
@@ -207,12 +221,14 @@ object CUDotPrinter extends Metadata {
   }
 }
 
-class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen with Metadata { 
+class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata { 
   implicit lazy val spade:Spade = design.arch
 
-  def this()(implicit design:Design) = this(Config.spadeNetwork)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeNetwork, open)
+  def this()(implicit design:Design) = this(false)
 
-  override val stream = newStream(fileName) 
+  override val stream = newStream(file) 
   
   val scale = 4
 
@@ -285,6 +301,15 @@ class CUDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen w
       }
     }
     close
+    if (open) { 
+        println(s"Waiting for input ...")
+        s"out/bin/run -c out/${file}".replace(".dot", "") !
+        val command = scala.io.StdIn.readLine()
+        if (command!="n") {
+          println(s"Stop debugging data routing ...")
+          System.exit(-1)
+        }
+    }
   }
 
   def print(pcls:List[PCL]):Unit = {
