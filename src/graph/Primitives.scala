@@ -168,7 +168,13 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
     step.connect(s)
   }
 
-  def isInner = { en.isConnected && en.from.src.isInstanceOf[EnLUT] }
+  def isInner = { 
+    ctrler match {
+      case mc:MemoryController =>
+        en.isConnected && en.from.src.isInstanceOf[EnLUT] || en.isConnectedTo(mc.done)
+      case _ => en.isConnected && en.from.src.isInstanceOf[EnLUT]
+    }
+  }
   def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
   def next:Counter = {
     val ns = done.to.map(_.src).collect{ case c:Counter => c}

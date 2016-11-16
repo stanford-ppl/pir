@@ -172,12 +172,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
               emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
-              emitComment("DataFIFO-notFull", s"${vomap(dataFIFO.notFull).foreach{ co => indexOf(co)}}")
+              emitComment("DataFIFO-notFull", s"${vomap.get(dataFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",")}}")
             }
-            emitComment("CommandFIFO-notFull", s"${vomap(mc.commandFIFO.notFull).foreach { co => indexOf(co) }}")
+            emitComment("CommandFIFO-notFull", s"${vomap.get(mc.commandFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
+            emitCounterChains(pmc)
+            emitCtrl(pmc)
           }
-          emitCounterChains(pmc)
-          //emitCtrl(pmc)
         } else {
           emitElem("x")
         }
@@ -741,7 +741,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               assert(ctrs.size<=2)
               val map:Map[COP, Int] = Map.empty
               doneXbar ++= List.tabulate(2) { i => // sel for Xbar
-                if (i<ctrs.size) s""""${indexOf(ctmap(ctrs(i)))}"""" 
+                if (i<ctrs.size) {
+                val pct = ctmap(ctrs(i))
+                  s""""${indexOf(pct)}"""" 
+                }
                 else s""""x""""
               }
               ctrs.zipWithIndex.foreach { case (ctr,i) =>
@@ -759,10 +762,20 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
-            case l:FOW => indexOf(smmap(l))
+            case l:FOW => 
+              cu match {
+                case mc:MC =>
+                  l match {
+                    case l:CommandFIFO => spade.memCtrlCommandFIFONotFullBusIdx
+                    case l if (mc.dataFIFO==Some(l)) => spade.memCtrlDataFIFONotFullBusIdx
+                    case _ => indexOf(smmap(l))
+                  }
+                case _ => indexOf(smmap(l))
+              }
             case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
             case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
             case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
+            case l if (l.isInstanceOf[MC] && l.asInstanceOf[MC].dataValid==to) => spade.memCtrlDataValidBusIdx
           }
           s""""$idx""""
         }

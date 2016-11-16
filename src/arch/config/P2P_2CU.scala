@@ -30,6 +30,7 @@ object P2P_2CU extends PointToPointNetwork {
   val memCtrlDataFIFOEnqBusIdx:Int = 1
   val memCtrlCommandFIFONotFullBusIdx:Int = 0
   val memCtrlDataFIFONotFullBusIdx:Int = 1
+  val memCtrlDataValidBusIdx:Int = 2
 
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)

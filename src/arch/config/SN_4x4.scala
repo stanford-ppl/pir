@@ -35,6 +35,7 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   val memCtrlDataFIFOEnqBusIdx:Int = 1
   val memCtrlCommandFIFONotFullBusIdx:Int = 0
   val memCtrlDataFIFONotFullBusIdx:Int = 1
+  val memCtrlDataValidBusIdx:Int = 2
 
   val ctrlSwitchCUInBandwidth = 1
   val ctrlSwitchCUOutBandwidth = 1
