@@ -47,8 +47,6 @@ object Config {
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
 
-  var dse = false
-
   if (quick) {
     genPisa = false
     genDot = false

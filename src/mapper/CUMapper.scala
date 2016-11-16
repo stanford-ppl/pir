@@ -67,6 +67,8 @@ object CUMapper {
     val pmcs = pgrp.getOrElse(true, Nil)
     val rcus = grp.getOrElse(false, Nil)
     val prcus = pgrp.getOrElse(false, Nil)
+    if (mcs.size > pmcs.size) throw OutOfPMC(pmcs.size, mcs.size)
+    if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
     cls.foreach { cl => 
       val failureInfo = MMap[PCL, ListBuffer[String]]()
       map += cl -> pcls.filter { pcl =>

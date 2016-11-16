@@ -7,7 +7,7 @@ import pir.graph.mapper._
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 
-abstract class MappingException(implicit design:Design) extends PIRException {
+abstract class MappingException(implicit design:Design) extends PIRException with util.control.NoStackTrace {
   val msg:String
   val mapper:Mapper
   val typeStr = this.getClass().getSimpleName() 

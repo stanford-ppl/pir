@@ -81,6 +81,7 @@ trait Logger extends Printer {
 
   def info(s:String) = emitln(s"[pir] ${s}")
   def warn(s:String) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
+  def err(s:String) = emitln(s"${Console.RED}[error]${s}${Console.RESET}")
 }
 
 trait DebugLogger {

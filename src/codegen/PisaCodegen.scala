@@ -403,8 +403,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       assert(ctr.ctrler.isInstanceOf[ICL])
       val icl = ctr.ctrler.asInstanceOf[ICL]
       val delays = ctr.ctrler.vins.map { vin =>
+        //TODO is this needed?
         vin.tokenIn.fold(0) { cin =>
-          val dataInterConnectDelay = rtmap(vin)
+          val dataInterConnectDelay = rtmap(vin) + 1
           val ctrlInterConnectDelay = rtmap(cin.from)
           assert(dataInterConnectDelay==ctrlInterConnectDelay)
           0 //TODO: assume data delay matches control delay for all inputs for now

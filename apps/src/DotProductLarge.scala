@@ -7,7 +7,7 @@ import pir.Design
 import pir.misc._
 import pir.PIRApp
 
-object DotProductDesign extends PIRApp {
+object DotProductLarge extends PIRApp {
   def main(args: String*)(top:Top) = {
     val x1715_scalar = Scalar("x1715")
     val x1638_oc = OffChip("x1638")
@@ -95,8 +95,8 @@ object DotProductDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val ctr5 = (Const("0i").out, CU.scalarIn(stage0, x1723_scalar).out, Const("16i").out) // Counter
       val x1819 = CounterChain(name = "x1819", ctr5)
-      val x1721_x1821 = FIFO(size = 96, banking = Strided(1)).wtPort(x1747_mc.dataIn)
-      val x1722_x1823 = FIFO(size = 96, banking = Strided(1)).wtPort(x1789_mc.dataIn)
+      val x1721_x1821 = FIFO(size = 96, banking = Strided(1)).wtPort(x1747_mc.vdata)
+      val x1722_x1823 = FIFO(size = 96, banking = Strided(1)).wtPort(x1789_mc.vdata)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(x1721_x1821.load, x1722_x1823.load), op=FixMul, results=List(CU.reduce(stage(1))))

@@ -90,6 +90,9 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         success = false
         info(s"Mapping failed")
         e match {
+          case e:OutOfResource =>
+            err(e)
+            MapPrinter.printException(e)
           case PassThroughException(mapper, e, m) =>
             mapping = m
             MapPrinter.printMap(mapping)

@@ -19,6 +19,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
 
+  var debugRouting = false 
+  val minHop = 1
+  val maxHop = 7
+
+  override val exceptLimit = 200
   if (Config.debugCtrlMapper) {
     warn("debugCtrlMapper is on, could be slow!")
   }
@@ -30,12 +35,21 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   type FatPath = List[FatEdge]
   type PathMap = CUSwitchMapper.PathMap 
   
-  override val exceptLimit = 200
+  // DEBUG
+  val failPass:Throwable=>Unit = if (debugRouting) {
+    {
+      case e@FailToMapNode(_,n,es,mp) =>
+        println(s"Fail to map ${n} $es")
+        new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
+      case e:Throwable =>
+        println(e)
+    }
+  } else {
+    (e:Throwable) => ()
+  }
+  // DEBUG --
 
   def finPass(cu:SCL)(m:M):M = m
-
-  val minHop = 1
-  val maxHop = 5
 
   def map(cu:SCL, pirMap:M):M = {
     log(cu) {
@@ -181,25 +195,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       }
     }
     val fromCU = ci.ctrler
-    //fromCU match {
-      //case mc:MC =>
-        //new CUCtrlDotPrinter()(design).print(map)
-        //println(s"$mc $ci")
-      //case _ =>
-    //}
-    val info = s"Mapping $ci(${ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")}) in $cl from $fromCU" 
-    log(info
-    // Debug
-    //, ((m:M) => ()),
-      //{
-        //case e@FailToMapNode(_,_,_,mp) =>
-          //new CUCtrlDotPrinter()(design).print(mp.asInstanceOf[M])
-          //println(info)
-        //case e:Throwable =>
-          //println(e)
-      //}
-    // Debug --
-    ) {
+    val cins = ci.to.filter{_.asInstanceOf[CIP].ctrler==cl}.mkString(",")
+    val info = s"Mapping $ci(${cins}) in $cl from $fromCU" 
+    log(info, ((m:M) => ()), failPass) {
       recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
     }
   }
