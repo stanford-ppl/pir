@@ -7,7 +7,7 @@ import pir.Design
 import pir.misc._
 import pir.PIRApp
 
-object Tileload extends PIRApp {
+object SimpleTileLoad extends PIRApp {
   override val arch = SN_2x2
   def main(args: String*)(top:Top) = {
     val x1638_oc = OffChip("x1638")
