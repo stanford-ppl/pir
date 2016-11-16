@@ -172,9 +172,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
               emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
-              emitComment("DataFIFO-notFull", s"${indexOf(vomap(dataFIFO.notFull))}")
+              emitComment("DataFIFO-notFull", s"${vomap(dataFIFO.notFull).foreach{ co => indexOf(co)}}")
             }
-            emitComment("CommandFIFO-notFull", s"${indexOf(vomap(mc.commandFIFO.notFull))}")
+            emitComment("CommandFIFO-notFull", s"${vomap(mc.commandFIFO.notFull).foreach { co => indexOf(co) }}")
           }
           emitCounterChains(pmc)
         } else {
@@ -869,8 +869,10 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       val tokInAndTree = Array.fill(pcu.cins.size)(s""""x"""") 
       pcu.cins.zipWithIndex.foreach { case (cin, i) =>
-        vimap.pmap.get(cin).foreach { ci =>
-          ci.asInstanceOf[CIP].from.src match {
+        vimap.pmap.get(cin).foreach { cis =>
+          // cis should have the same source
+          assert(cis.map(_.asInstanceOf[CIP].from).toSet.size==1)
+          cis.head.asInstanceOf[CIP].from.src match {
             case f:FOW => tokInAndTree(i) = s""""1""""
             case _ =>
           }

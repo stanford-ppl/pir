@@ -19,7 +19,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
 
-  var debugRouting = true 
+  var debugRouting = false 
   val minHop = 1
   val maxHop = 7
 
@@ -92,15 +92,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
 
       /* Constrain on routing for hardwried connection in memory controller */
       if (valid) {
-        // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
-        // current fatpath starts from that pco 
         var fp = fatpath
-        var fatedge::rest = fp 
-        fatedge = fatedge.filter { case (pco, pci) =>
-          map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) { _ == pco }
-        }
-        fp = fatedge::rest
-
         /* Constrian on MC's inputs */
         cl match {
           case mc:MC =>
@@ -145,7 +137,18 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
           case _ =>
         }
 
-        if (CtrlMapper.isFatPathValid(fp)) Some(fp) else None
+        // Make sure picked pco is not already used
+        var fatedge::rest = fp 
+        fatedge = fatedge.filter { case (pco, pci) => !map.vomap.pmap.contains(pco) }
+        // If co is already placed, check if current fatpath can start from that pco, if not pick
+        // any unused pco
+        val optfatedge = fatedge.filter { case (pco, pci) =>
+          map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) { _ == pco }
+        }
+        if (optfatedge.size!=0) fatedge = optfatedge
+        fp = fatedge::rest
+
+        if (isFatPathValid(fp)) Some(fp) else None
       } else {
         None
       }
@@ -277,7 +280,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   }
   def filterUsedRoutes(routes:FatPaths, map:PIRMap)(implicit design:Design):PathMap
     = CtrlMapper.filterUsedRoutes(routes, map)
-
+  def isFatPathValid(fatpath:FatPath) = CtrlMapper.isFatPathValid(fatpath) 
 }
 object CtrlMapper {
   type Edge = CUSwitchMapper.Edge
