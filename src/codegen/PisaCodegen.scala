@@ -177,6 +177,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             emitComment("CommandFIFO-notFull", s"${vomap(mc.commandFIFO.notFull).foreach { co => indexOf(co) }}")
           }
           emitCounterChains(pmc)
+          //emitCtrl(pmc)
         } else {
           emitElem("x")
         }
@@ -773,6 +774,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val inits = ListBuffer[String]() 
       val initVals = ListBuffer[String]() 
       val udcComment = ListBuffer[String]()
+      val initOnStart = ListBuffer[String]()
       pcb.udcs.map { pudc =>
         if (ucmap.pmap.contains(pudc)) {
           // inc
@@ -797,17 +799,21 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           udcComment += s"${udc}.inc -> ${inc.replace(s""""""","")}"
           udcComment += s"${udc}.dec -> ${dec}"
           udcComment += s"${udc}.init -> ${vimap.get(udc.init)}"
+          if (udc.initOnStart) initOnStart += s""""1"""" 
+          else initOnStart += s""""0""""
         } else {
           incs += s""""x""""
           decs += s""""x""""
           inits += s""""x""""
           initVals += s""""x""""
+          initOnStart += s""""x""""
         }
       }
       emitXbar("incXbar", (incs ++ inits).toList)
       emitXbar("decXbar", decs.toList)
       emitComment("udc", udcComment.mkString(","))
       emitList("udcInit", initVals.toList)
+      emitList("udcSet", initOnStart.toList)
       val fifoMux = ListBuffer[String]()
       emitList("enableLUT") { implicit ms =>
         pcb.enLUTs.foreach { penlut => 
