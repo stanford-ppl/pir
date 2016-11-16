@@ -64,13 +64,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     val pfromcl = map.clmap(fromcl)
     def validCons(toCU:PCL, fatpath: FatPath):Option[FatPath] = {
       var valid = true
-      //TODO
-      // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
-      // current fatpath starts from that pco 
-      //val pco = fatpath.head._1
-      //valid &&= map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) {
-        //_ == pco
-      //}
       // If cl has been mapped, valid fatpath reaches current pcl
       valid &&= map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
         _ == toCU
@@ -80,42 +73,61 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       valid &&= (fatpath.size < maxHop)
 
       /* Constrain on routing for hardwried connection in memory controller */
-      //fromcl match {
-        //case mc:MC =>
-          //if (co==mc.commandFIFO.enqueueEnable.from) 
-            //valid &&= (indexOf(vin) == spade.memCtrlCommandFIFOEnqBusIdx)
-          //else if (mc.mctpe==TileStore && co==mc.dataFIFO.get.enqueueEnable.from) 
-            //valid &&= (indexOf(vin) == spade.memCtrlDataFIFOEnqBusIdx)
-          //else {
-            //valid &&= (indexOf(vin) != spade.memCtrlCommandFIFOEnqBusIdx)
-            //if (mc.mctpe==TileStore) {
-              //valid &&= (indexOf(vin) != spade.memCtrlDataFIFOEnqBusIdx)
-            //}
-          //}
-        //case _ =>
-      //}
-      //cl match {
-        //case mc:MC =>
-          //val cout = fatpath.head
-          //if (co == mc.commandFIFO.notFull) 
-            //valid &&= (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
-          //else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
-            //valid &&= (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
-          //else {
-            //valid &&= (indexOf(pco) != spade.memCtrlCommandFIFONotFullBusIdx)
-            //if (mc.mctpe==TileStore) {
-              //valid &&= (indexOf(pco) != spade.memCtrlDataFIFONotFullBusIdx)
-            //}
-          //}
-        //case _ =>
-      //}
       if (valid) {
-        var fatedge::rest = fatpath
+        // If co haven't been mapped, make sure pco is not used. If it's already placed, make sure
+        // current fatpath starts from that pco 
+        var fp = fatpath
+        var fatedge::rest = fp 
         fatedge = fatedge.filter { case (pco, pci) =>
           map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) { _ == pco }
         }
-        if (fatedge.size==0) None
-        else Some(fatedge::rest)
+        fp = fatedge::rest
+
+        /* Constrian on MC's inputs */
+        cl match {
+          case mc:MC =>
+            var (rest, last) = fp.splitAt(fp.size-1)
+            var fatedge = last.head
+            fatedge = fatedge.filter { edge =>
+              val (pco, pci) = edge
+              if (co==mc.commandFIFO.enqueueEnable.from) 
+                (indexOf(pci) == spade.memCtrlCommandFIFOEnqBusIdx)
+              else if (mc.mctpe==TileStore && co==mc.dataFIFO.get.enqueueEnable.from) 
+                (indexOf(pci) == spade.memCtrlDataFIFOEnqBusIdx)
+              else {
+                var vld = (indexOf(pci) != spade.memCtrlCommandFIFOEnqBusIdx)
+                if (mc.mctpe==TileStore) {
+                  vld &&= (indexOf(pci) != spade.memCtrlDataFIFOEnqBusIdx)
+                }
+                vld
+              }
+            }
+            fp = rest :+ fatedge
+          case _ =>
+        }
+        /* Constrian on MC's output */
+        fromcl match {
+          case mc:MC =>
+            var fatedge::rest = fp
+            fatedge = fatedge.filter { edge =>
+              val (pco, pci) = edge
+              if (co == mc.commandFIFO.notFull) 
+                (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
+              else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
+                (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
+              else {
+                var vld = (indexOf(pco) != spade.memCtrlCommandFIFONotFullBusIdx)
+                if (mc.mctpe==TileStore) {
+                  vld &&= (indexOf(pco) != spade.memCtrlDataFIFONotFullBusIdx)
+                }
+                vld
+              }
+            }
+            fp = fatedge::rest 
+          case _ =>
+        }
+
+        if (CtrlMapper.isFatPathValid(fp)) Some(fp) else None
       } else {
         None
       }
@@ -321,13 +333,14 @@ object CtrlMapper {
           vinTaken || voutTaken || edgeTaken || switchTaken
         }
       }
-      if (filteredFatpath.exists{_.size==0}) None
-      else Some((reached, filteredFatpath))
+      if (isFatPathValid(filteredFatpath)) Some((reached, filteredFatpath)) else None
     }
     availableRoutes.map { case (reachedCU, fatpath) =>
       (reachedCU, fatpath.map{ fatedge => fatedge.head }) // For any fatpath, pick the first avalable edge
     }
   }
+
+  def isFatPathValid(fatpath:FatPath) = { !fatpath.exists{_.size==0} }
 
 }
 
