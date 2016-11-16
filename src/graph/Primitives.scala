@@ -143,7 +143,7 @@ object CounterChain {
   }
 }
 
-case class Counter(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -204,7 +204,7 @@ case class Counter(name:Option[String])(implicit override val ctrler:ComputeUnit
 }
 object Counter {
   def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
-    Counter(name).cchain(cc)
+    new Counter(name).cchain(cc)
   }
   def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
     { val c = Counter(None, cchain); c.update(min, max, step); c }
@@ -212,6 +212,16 @@ object Counter {
     { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
     Counter(None, cchain)
+}
+
+case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
+  extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
+  this.min.connect(Const(s"-1i").out)
+  this.max.connect(Const(s"-1i").out)
+  this.step.connect(Const(s"-1i").out)
+  //val dummyCtrl = CtrlOutPort(this, s"${this}.dummyEn")
+  //this.en.connect(dummyCtrl)
+  override def toUpdate = false
 }
 
 abstract class OnChipMem(implicit override val ctrler:InnerController, design:Design) extends Primitive {
@@ -267,7 +277,7 @@ trait SRAMOnWrite extends OnChipMem {
 
   override def toUpdate = super.toUpdate || writeCtr == null
 }
-trait FIFOOnWrite extends OnChipMem {
+trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
   var _wtStart:Option[OutPort] = None
   var _wtEnd:Option[OutPort] = None 
   def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
@@ -278,6 +288,7 @@ trait FIFOOnWrite extends OnChipMem {
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
   val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
+  val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
   override def toUpdate = super.toUpdate
 }
 /** SRAM 

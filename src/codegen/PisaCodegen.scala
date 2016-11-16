@@ -491,7 +491,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 else
                   emitPair("end", s"x")
                 //emitPair(s"enqEn", s"${pcu.ctrlBox.io(vimap(mem.enqueueEnable.from))}")
-                emitPair(s"enqEn", s"${indexOf(vimap(mem.enqueueEnable.from))}")
+                val pdmCtr = ctmap(mem.dummyCtr)
+                emitPair(s"enqEn", s"${indexOf(pdmCtr)}")
                 emitPair("isWriteFifo", "1")
             }
             val wd = mem.writePort.from.src match {
@@ -532,7 +533,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       }
       emitComment("ctrs", s"[${ctrs.mkString(",")}]")
       val chain = List.tabulate(pctrs.size-1) { i =>
-        if (ctmap.pmap.contains(pctrs(i))&&ctmap.pmap.contains(pctrs(i+1))) {
+        if (ctmap.pmap.contains(pctrs(i)) && ctmap.pmap.contains(pctrs(i+1))) {
           val ctr = ctmap.pmap(pctrs(i))
           val ctrp1 = ctmap.pmap(pctrs(i+1)) 
           if (ctrp1.en.from == ctr.done) s""""1""""
@@ -544,12 +545,16 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         pcu.ctrs.foreach { pctr =>
           if (ctmap.pmap.contains(pctr)) {
             val ctr = ctmap.pmap(pctr)
-            emitMap { implicit ms =>
-              emitPair("max", lookUp(ctr.max))
-              emitPair("min", lookUp(ctr.min))
-              emitPair("stride", lookUp(ctr.step))
-              emitPair("startDelay", startDelay(pcu, ctr))
-              emitPair("endDelay",  doneDelay(pcu, ctr))
+            ctr match {
+              case ctr:DummyCounter =>
+              case ctr =>
+                emitMap { implicit ms =>
+                  emitPair("max", lookUp(ctr.max))
+                  emitPair("min", lookUp(ctr.min))
+                  emitPair("stride", lookUp(ctr.step))
+                  emitPair("startDelay", startDelay(pcu, ctr))
+                  emitPair("endDelay",  doneDelay(pcu, ctr))
+                }
             }
           } else {
             emitElem("x")
@@ -814,19 +819,25 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
         if (ctmap.pmap.contains(pctr)) {
           val ctr = ctmap.pmap(pctr)
-          ctr.en.from.src match {
-            case e:EnLUT =>
-              val penlut = lumap(e).asInstanceOf[PEnLUT]
-              if (e.ctrler==cu) {
-                assert(indexOf(penlut) == i)
-                s""""0""""
-              } else { // from token in
-                tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
-                s""""1""""
-              }
-            case c:Ctr => //Chained
-              s""""x""""
+          if (!ctr.en.isCtrlIn) {
+            s""""0""""
+          } else {
+            tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
+            s""""1""""
           }
+          //ctr.en.from.src match {
+            //case e:EnLUT =>
+              //val penlut = lumap(e).asInstanceOf[PEnLUT]
+              //if (e.ctrler==cu) {
+                //assert(indexOf(penlut) == i)
+                //s""""0""""
+              //} else { // from token in
+                //tokIns(i) = s""""${indexOf(vimap(ctr.en.from))}""""
+                //s""""1""""
+              //}
+            //case c:Ctr => //Chained
+              //s""""x""""
+          //}
         } else {
           s""""x""""
         }

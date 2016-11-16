@@ -108,6 +108,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
       case n:Stage => emitBlock(s"${DotCodegen.quote(node)}${genFields(node)}", node)
       case n:UDCounter => // printed in Ctrl.txt
+      case n:FIFOOnWrite => emitBlock(s"${node}${genFields(node)}", node)
       case _ => emitln(s"${node}${genFields(node)}")
     }
   }
