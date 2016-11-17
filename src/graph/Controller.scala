@@ -121,7 +121,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         cchains.head // Should be the copy of StreamController
       case cu =>
         val locals = cchains.filter{cc => !cc.isCopy && !cc.streaming}
-        assert(locals.size==1, "Currently assume each ComputeUnit only have a single local Counterchain")
+        assert(locals.size==1, 
+          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} ${locals.mkString(",")}")
         locals.head
     }
   }
@@ -295,6 +296,9 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
     vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
   }
+  def writtenFIFO:List[FIFOOnWrite] = {
+    writtenMem.collect { case mem:FIFOOnWrite => mem }
+  }
   private val _scalarMem = ListBuffer[ScalarMem]()
   def scalarMems = _scalarMem.toList
   def addScalarMem(sm: ScalarMem):Unit = {
@@ -425,15 +429,22 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
   }
   override def removeParent:Unit = _parent = null
 
-  val _mems = ListBuffer[FIFOOnRead]()
-  override def mems:List[FIFOOnRead] = _mems.toList
+  val _mems = ListBuffer[OnChipMem]()
+  override def mems:List[OnChipMem] = _mems.toList
   def mems(ms:List[OnChipMem]) = {
     ms.foreach { m =>
-      _mems += m.asInstanceOf[FIFOOnRead]
+      _mems += m.asInstanceOf[OnChipMem]
     }
   }
-  override def writtenMem:List[FIFOOnWrite] = {
-    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList }
+  //val _mems = ListBuffer[FIFOOnRead]()
+  //override def mems:List[FIFOOnRead] = _mems.toList
+  //def mems(ms:List[OnChipMem]) = {
+    //ms.foreach { m =>
+      //_mems += m.asInstanceOf[FIFOOnRead]
+    //}
+  //}
+  override def writtenMem:List[OnChipMem] = {
+    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList }
     val smems = souts.flatMap{ _.scalar.readers.flatMap { sout => sout.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList }
     vmems ++ smems
   }

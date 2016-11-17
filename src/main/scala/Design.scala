@@ -208,7 +208,7 @@ trait Design extends Metadata { self =>
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
-    //traversals += fusionTransform 
+    traversals += fusionTransform 
     traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
@@ -226,18 +226,18 @@ trait Design extends Metadata { self =>
   }
 
   def run = {
-    try {
+    //try {
       traversals.foreach(_.run)
       if (pirMapping.fail) throw PIRException(s"Mapping Failed")
-    } catch {
-      case e:PIRException => 
-        if (!pirPrinter.isTraversed) pirPrinter.run
-        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        if (!spadeDotGen.isTraversed) spadeDotGen.run
-        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        throw e
-      case e:Throwable => throw e
-    }
+    //} catch {
+      //case e:PIRException => 
+        //if (!pirPrinter.isTraversed) pirPrinter.run
+        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        //if (!spadeDotGen.isTraversed) spadeDotGen.run
+        //if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        //throw e
+      //case e:Throwable => throw e
+    //}
     if (Config.debug) DebugLogger.close
   }
 

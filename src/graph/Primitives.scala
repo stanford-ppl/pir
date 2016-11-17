@@ -44,7 +44,7 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * Whether CounterChain is a copy of other CounterChain
    * */
   def isCopy = copy.isDefined
-  def isLocal = (!isCopy) && (ctrler match { 
+  def isLocal = (!isCopy) && (ctrler match {
     case tt:TileTransfer => tt.mctpe==TileLoad && streaming==false
     case _ => true 
   }) 
