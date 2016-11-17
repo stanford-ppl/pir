@@ -26,10 +26,13 @@ object Scalar {
   def apply()(implicit design: Design):Scalar = Scalar(None) 
 }
 
-trait ArgIn extends Scalar{ override val typeStr = "ArgIn" }
+trait ArgIn extends Scalar{ override val typeStr = "ArgIn"; val const:Option[Int] }
 object ArgIn {
-  def apply() (implicit design: Design):Scalar = new Scalar(None) with ArgIn
-  def apply(name:String) (implicit design: Design):Scalar = new Scalar(Some(name)) with ArgIn
+  def apply(name:Option[String], c:Option[Int]) (implicit design: Design):Scalar = new { val const = c } with Scalar(name) with ArgIn
+  def apply(name:String) (implicit design: Design):Scalar = ArgIn(Some(name), None) 
+  def apply() (implicit design: Design):Scalar = ArgIn(None, None) 
+  def apply(name:String, c:Int) (implicit design: Design):Scalar = ArgIn(Some(name), Some(c)) 
+  def apply(c:Int) (implicit design: Design):Scalar = ArgIn(None, Some(c)) 
 }
 
 trait ArgOut extends Scalar{ override val typeStr = "ArgOut" }

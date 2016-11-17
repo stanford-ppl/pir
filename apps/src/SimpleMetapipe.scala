@@ -13,7 +13,7 @@ object SimpleMetaPipe extends PIRApp {
     val x1634_argout = ArgOut("x1634")
     val x1816_scalar = Scalar("x1816")
     val v0 = Vector("v0")
-    val x1633_argin = ArgIn("x1633")
+    val x1633_argin = ArgIn("x1633", 64*10)
     val x1839 = MetaPipeline(name = "x1839", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr1 = (Const("0i").out, CU.scalarIn(stage0, x1633_argin).out, Const("64i").out) // Counter

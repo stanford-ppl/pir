@@ -10,7 +10,7 @@ import pir.PIRApp
 object DotProductDesign extends PIRApp {
   def main(args: String*)(top:Top) = {
     val x1859_scalar = Scalar("x1859")
-    val x1670_argin = ArgIn("x1670")
+    val x1670_argin = ArgIn("x1670", 8000*2)
     val x1671_argout = ArgOut("x1671")
     val x1674_oc = OffChip("x1674")
     val x1760_scalar = Scalar("x1760")
@@ -93,7 +93,7 @@ object DotProductDesign extends PIRApp {
     val x1876_0 = Pipeline(name = "x1876_0", parent=x1884, deps=List(x1805, x1850, x1856_0)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x1755 = CounterChain.copy(x1884, "x1755")
-      val ctr5 = (Const("0i").out, CU.scalarIn(stage0, x1760_scalar).out, Const("16i").out) // Counter
+      val ctr5 = (Const("0i").out, Const("8000i").out, Const("16i").out) // Counter
       val x1862 = CounterChain(name = "x1862", ctr5)
       val x1758_x1865 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1862(0), swapWrite = x1755(0))).wtPort(x1784_mc.vdata).rdAddr(x1862(0))
       val x1759_x1868 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1862(0), swapWrite = x1755(0))).wtPort(x1829_mc.vdata).rdAddr(x1862(0))

@@ -48,6 +48,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
       } 
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
+        case p:Counter =>
         case p:OnChipMem => 
           p match {
             case f:FIFOOnWrite => visitNode(f.dummyCtr)

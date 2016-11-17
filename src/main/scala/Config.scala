@@ -14,12 +14,14 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
-  var mapping = getProperty("pir.mapping", "true") == "true"
+  var mapping = getProperty("pir.mapping", "false") == "true"
+  var modeling = getProperty("pir.modeling", "true") == "true"
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
+  var pirStat = getProperty("pir.pirstat", "Stat.txt")
   var pirNetworkDot = getProperty("pir.pir_network", "PIRNetwork.dot")
   var pirCtrlNetworkDot = getProperty("pir.pir_ctrl_network", "PIRCtrlNetwork.dot")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")

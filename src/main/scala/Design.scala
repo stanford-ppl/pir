@@ -188,6 +188,8 @@ trait Design extends Metadata { self =>
 
   lazy val multiBufferAnalysis = new MultiBufferAnalysis()
   lazy val fusionTransform = new FusionTransform()
+  lazy val contentionAnalysis = new ContentionAnalysis()
+  lazy val latencyAnalysis = new LatencyAnalysis()
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
   lazy val pirNetworkDotGen = new PIRNetworkDotGen()
@@ -209,6 +211,9 @@ trait Design extends Metadata { self =>
     traversals += new ForwardRef()
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     traversals += fusionTransform 
+    traversals += contentionAnalysis 
+    traversals += latencyAnalysis
+    traversals += new PIRStat()
     traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
@@ -226,24 +231,27 @@ trait Design extends Metadata { self =>
   }
 
   def run = {
-    try {
+    //try {
       traversals.foreach(_.run)
-      if (pirMapping.fail) throw PIRException(s"Mapping Failed")
-    } catch {
-      case e:PIRException => 
-        if (!pirPrinter.isTraversed) pirPrinter.run
-        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        if (!spadeDotGen.isTraversed) spadeDotGen.run
-        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        throw e
-      case e:Throwable => throw e
-    }
+      //if (pirMapping.fail) throw PIRException(s"Mapping Failed")
+    //} catch {
+      //case e:PIRException => 
+        //if (!pirPrinter.isTraversed) pirPrinter.run
+        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        //if (!spadeDotGen.isTraversed) spadeDotGen.run
+        //if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        //throw e
+      //case e:Throwable => throw e
+    //}
     if (Config.debug) DebugLogger.close
   }
 
   // Metadata Maps
   val indexMap:indexOf.M = Map.empty
   val vecMap:vecOf.M = Map.empty
+  val constMap:constOf.M = Map.empty
+  val contentionMap:contentionOf.M = Map.empty
+  val cycleMap:cycleOf.M = Map.empty
 }
 
 trait PIRApp extends Design{
@@ -260,7 +268,7 @@ trait PIRApp extends Design{
   }
 }
 
-trait Metadata extends IndexOf with VecOf {}
+trait Metadata extends IndexOf with VecOf with ContentionOf with ConstOf with CycleOf {}
 
 trait MetadataMap {
   type V
@@ -269,6 +277,7 @@ trait MetadataMap {
   def update(n:Node, v:V)(implicit design:Design):Unit = map += (n -> v)
   def apply(n:Node)(implicit design:Design):V = { val m = map; m(n) }
   def get(n:Node)(implicit design:Design):Option[V] =  { val m = map; m.get(n) }
+  def getOrElseUpdate(n:Node, v:V)(implicit design:Design):V =  { val m = map; m.getOrElseUpdate(n, v) }
 }
 
 trait IndexOf {
@@ -283,5 +292,26 @@ trait VecOf {
   object vecOf extends MetadataMap {
     type V = VectorIO[_]
     def map(implicit design:Design) = design.vecMap
+  }
+}
+trait ConstOf {
+  /* Constant propogagion of the counter values */
+  object constOf extends MetadataMap {
+    type V = Int 
+    def map(implicit design:Design) = design.constMap
+  }
+}
+trait ContentionOf {
+  /* Contention of offchip accesses of controller */
+  object contentionOf extends MetadataMap {
+    type V = Int 
+    def map(implicit design:Design) = design.contentionMap
+  }
+}
+trait CycleOf {
+  /* Cycle estimates of each Controller */
+  object cycleOf extends MetadataMap {
+    type V = Int 
+    def map(implicit design:Design) = design.cycleMap
   }
 }
