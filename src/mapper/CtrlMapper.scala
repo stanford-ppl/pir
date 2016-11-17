@@ -6,6 +6,7 @@ import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
+import pir.codegen.{DotCodegen, Printer}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
@@ -35,10 +36,17 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   type FatPath = List[FatEdge]
   type PathMap = CUSwitchMapper.PathMap 
   
+  def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
   // DEBUG
   val failPass:Throwable=>Unit = if (debugRouting) {
     {
-      case e@FailToMapNode(_,n,es,mp) =>
+      case e@FailToMapNode(_,n,es,m) =>
+        val mp = m.asInstanceOf[M]
+        val ci = n.asInstanceOf[CIP]
+        val pfromCU = mp.clmap(ci.from.asInstanceOf[COP].ctrler)
+        val pcl = mp.clmap(ci.ctrler)
+        val info = s"fail to map ${ci} in ${quote(pcl)} from ${ci.from} in ${quote(pcl)}" 
+        println(s"$info")
         println(s"${es.mkString("\n")}")
         new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
       case e:Throwable =>

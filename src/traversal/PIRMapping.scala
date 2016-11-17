@@ -84,6 +84,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Success(_) =>
         success = true
         info(s"Mapping succeeded") 
+        //new CUDotPrinter().print(mapping)
         mappingCheck
         MapPrinter.printMap(mapping)
       case Failure(e) =>
