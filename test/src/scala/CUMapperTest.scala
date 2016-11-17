@@ -65,6 +65,7 @@ class CUMapperTest extends UnitTest with Metadata {
 
       // PNodes
       override val arch = new Spade with PointToPointNetwork {
+        val memCtrlDataValidBusIdx:Int = 2
         val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = 6 
