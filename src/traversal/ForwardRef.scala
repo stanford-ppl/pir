@@ -65,9 +65,10 @@ object ForwardRef {
         case mc:MemoryController =>
           val addrPipe = mc.ofs.writer.ctrler.asInstanceOf[InnerController]
           mc.addDep(addrPipe)
-          mc.addDep(mc.len.writer.ctrler.asInstanceOf[InnerController])
           mc.parent(addrPipe.parent)
           mc.parent.addChildren(mc)
+          val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
+          if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
           mc.mctpe match {
             case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
             case TileStore => mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])

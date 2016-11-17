@@ -471,7 +471,10 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   private val _dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
   private val _dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
   def dataIn = _dataIn.get
-  def dataOut = _dataOut.get
+  def dataOut = {
+    println(this)
+    _dataOut.get
+  }
 
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val done = CtrlOutPort(this, s"${this}.done")
@@ -482,7 +485,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   commandFIFO.dequeueEnable.connect(dummyCtrl)
   val dataFIFO = mctpe match {
     case TileStore => 
-      val fifo = FIFO(s"${this}DataFIFO", 100, NoBanking()).wtPort(vdata)
+      val fifo = FIFO(s"${this}MCDataFIFO", 100, NoBanking()).wtPort(vdata)
       fifo.dequeueEnable.connect(dummyCtrl)
       Some(fifo)
     case _ => None
