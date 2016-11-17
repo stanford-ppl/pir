@@ -47,10 +47,10 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal{
                 }
               }
               bufSizeMap += dvin -> size 
-              if (size!=1) {
-                val sm = ScalarMem(dvin) 
-                reader.inner.addScalarMem(sm)
-              }
+              //if (size!=1) {
+                //val sm = ScalarMem(dvin) 
+                //reader.inner.addScalarMem(sm)
+              //}
             case _ =>
           }
         }
