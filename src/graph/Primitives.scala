@@ -357,7 +357,7 @@ case class ScalarMem(vecIn:DummyVecIn)(implicit design: Design)
   val banking:Banking = NoBanking()
   val buffering:Buffering = SingleBuffer()
 
-  override val typeStr = "DataFIFO"
+  override val typeStr = "ScalarFIFO"
   override val name = Some(s"${vecIn}")
   this.wtPort(vecIn.vector)
 }
