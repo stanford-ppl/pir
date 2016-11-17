@@ -37,8 +37,8 @@ class SwitchNetworkInst(numRowCUs:Int, numColCUs:Int) extends SwitchNetwork {
   val memCtrlDataValidBusIdx:Int = 2
 
   val ctrlBandWidth = 8
-  val ctrlSwitchCUInBandwidth = 3
-  val ctrlSwitchCUOutBandwidth = 2
+  val ctrlSwitchCUInBandwidth = 4
+  val ctrlSwitchCUOutBandwidth = 4
   val ctrlCU2CUBandwidth = 0
 
   //TODO: CHANGED 1 -> 2

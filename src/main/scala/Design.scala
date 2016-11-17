@@ -226,18 +226,18 @@ trait Design extends Metadata { self =>
   }
 
   def run = {
-    //try {
+    try {
       traversals.foreach(_.run)
       if (pirMapping.fail) throw PIRException(s"Mapping Failed")
-    //} catch {
-      //case e:PIRException => 
-        //if (!pirPrinter.isTraversed) pirPrinter.run
-        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        //if (!spadeDotGen.isTraversed) spadeDotGen.run
-        //if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        //throw e
-      //case e:Throwable => throw e
-    //}
+    } catch {
+      case e:PIRException => 
+        if (!pirPrinter.isTraversed) pirPrinter.run
+        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        if (!spadeDotGen.isTraversed) spadeDotGen.run
+        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        throw e
+      case e:Throwable => throw e
+    }
     if (Config.debug) DebugLogger.close
   }
 
