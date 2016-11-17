@@ -18,7 +18,10 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
 
   var debugRouting = false 
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
-    this(outputMapper, Some(ctrlMapper))
+    this(outputMapper, 
+      //None
+      Some(ctrlMapper)
+     )
   }
 
   type Edge = CUSwitchMapper.Edge 

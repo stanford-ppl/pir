@@ -39,7 +39,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   val failPass:Throwable=>Unit = if (debugRouting) {
     {
       case e@FailToMapNode(_,n,es,mp) =>
-        println(s"Fail to map ${n}")
         println(s"${es.mkString("\n")}")
         new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
       case e:Throwable =>

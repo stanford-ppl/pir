@@ -184,12 +184,12 @@ object ConfigFactory extends ImplicitConversion {
     for (i <- 0 until numRowCUs) {
       for (j <- 0 until numColCUs) {
         // CU to CU (Horizontal W -> E)
-        if (i!=numRowCUs-1)
-          cus(i)(j).vout ==> cus(i+1)(j).vinAt("W")
+        //if (i!=numRowCUs-1)
+          //cus(i)(j).vout ==> cus(i+1)(j).vinAt("W")
         // CU to CU (Vertical S -> N)
-        if (j!=numColCUs-1) {
-          cus(i)(j).vout ==> cus(i)(j+1).vinAt("S")
-        }
+        //if (j!=numColCUs-1) {
+          //cus(i)(j).vout ==> cus(i)(j+1).vinAt("S")
+        //}
       }
     }
     for (i <- 0 until numRowCUs+1) {
@@ -216,6 +216,10 @@ object ConfigFactory extends ImplicitConversion {
         cus(i)(j).vinAt("SW").zip(sbs(i)(j).voutAt("NE")).foreach { case (i, o) => o ==> i }
         // CU and SB (SE <-> NW) (bottom right)
         cus(i)(j).vout ==> sbs(i+1)(j).vinAt("NW")
+
+        //TODO change
+        cus(i)(j).vinAt("W").zip(sbs(i+1)(j+1).voutAt("SW")).foreach { case (i, o) => o ==> i }
+        cus(i)(j).vinAt("S").zip(sbs(i+1)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
       }
     }
     for (j <- 0 until sbs.head.size) {
