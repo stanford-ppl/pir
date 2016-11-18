@@ -50,7 +50,7 @@ trait Printer {
       pw.close()
   }
 
-  def newStream(dp:String, fname:String):FileOutputStream = { 
+  def newStream(dp:String, fname:String, append:Boolean):FileOutputStream = { 
     fileName = fname
     dirPath = dp
     val dir = new File(dirPath)
@@ -58,9 +58,11 @@ trait Printer {
       println(s"[info] creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
       dir.mkdir();
     }
-    new FileOutputStream(new File(s"${getPath}"))
+    new FileOutputStream(new File(s"${getPath}"), append)
   }
-  def newStream(fname:String):FileOutputStream = { newStream(Config.outDir, fname) }
+  def newStream(dp:String, fname:String):FileOutputStream = { newStream(dp, fname, false) }
+  def newStream(fname:String, append:Boolean):FileOutputStream = { newStream(Config.outDir, fname, append) }
+  def newStream(fname:String):FileOutputStream = { newStream(fname, false) }
 }
 
 trait Logger extends Printer {

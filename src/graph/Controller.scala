@@ -120,9 +120,9 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         assert(cchains.size==1)
         cchains.head // Should be the copy of StreamController
       case cu =>
-        val locals = cchains.filter{cc => !cc.isCopy && !cc.streaming}
+        val locals = cchains.filter{_.isLocal}
         assert(locals.size==1, 
-          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} ${locals.mkString(",")}")
+          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
         locals.head
     }
   }
@@ -467,20 +467,23 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   override val typeStr = "MemoryController"
 
   val vdata = Vector()
-  val ofs = Scalar()
-  val len = Scalar()
-  val addr = {
-    val si = newSin(ofs)
-    sinMap += ofs -> si 
-    si
+  val sofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar()) else None
+  val slen = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar()) else None
+  val saddrs = if (mctpe==Gatter || mctpe==Scatter) Some(Vector()) else None
+  def addrs = saddrs.get
+  def ofs = sofs.get
+  def len = slen.get
+  val siofs = {
+    sofs.map { ofs => newSin(ofs) }
   }
-  val size = {
-    val si = newSin(len)
-    sinMap += len -> si 
-    si
+  val silen = {
+    slen.map { len => newSin(len) }
   }
-  private val _dataIn  = if (mctpe==TileStore) { Some(newVin(vdata)) } else None
-  private val _dataOut = if (mctpe==TileLoad) { Some(newVout(vdata)) } else None
+  val viaddrs = {
+    saddrs.map { addrs => newVin(addrs) }
+  }
+  private val _dataIn  = if (mctpe==TileStore || mctpe==Scatter) { Some(newVin(vdata)) } else None
+  private val _dataOut = if (mctpe==TileLoad || mctpe==Gatter) { Some(newVout(vdata)) } else None
   def dataIn = _dataIn.get
   def dataOut = {
     println(this)
@@ -492,7 +495,10 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
 
   val commandFIFO = CommandFIFO(this) 
-  commandFIFO.wtPort(addr.out)
+  mctpe match {
+    case (TileLoad | TileStore) => commandFIFO.wtPort(siofs.get.out)
+    case (Gatter | Scatter) => commandFIFO.wtPort(viaddrs.get.out)
+  }
   commandFIFO.dequeueEnable.connect(dummyCtrl)
   val dataFIFO = mctpe match {
     case TileStore => 

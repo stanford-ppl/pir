@@ -44,10 +44,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * Whether CounterChain is a copy of other CounterChain
    * */
   def isCopy = copy.isDefined
-  def isLocal = (!isCopy) && (ctrler match {
-    case tt:TileTransfer => tt.mctpe==TileLoad && streaming==false
-    case _ => true 
-  }) 
+  def isLocal = !isCopy
+    
   /*
    * Whether CounterChain is not a copy or is a copy and has been updated
    * */
@@ -56,9 +54,6 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * The original copy of this CounterChain
    * */
   lazy val original = copy.fold(this) { e => e.right.get}
-
-  var streaming = false
-  def isStreaming(s:Boolean) = streaming = s
 
   override def toUpdate = super.toUpdate
 
@@ -254,6 +249,8 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
   def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
   def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
+  //TODO: shouldn't allowed. Added for modeling
+  def wtPort(s:Scalar):this.type = { wtPort(ctrler.newSin(s).out) }
   def load = readPort
 }
 

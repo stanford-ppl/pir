@@ -11,14 +11,12 @@ object TPCHQ6Design extends PIRApp {
   def main(args: String*)(top:Top) = {
     val x3272_oc = OffChip("x3272")
     val x3470_scalar = Scalar("x3470")
-    val bus_213_vector = Vector("bus_213")
     val x3271_oc = OffChip("x3271")
     val x3270_oc = OffChip("x3270")
-    val x3286_x3478_data_vector = Vector("x3286_x3478_data")
+    val bus_216_vector = Vector("bus_216")
     val x3269_oc = OffChip("x3269")
     val x3273_argout = ArgOut("x3273")
     val x3264_argin = ArgIn("x3264")
-    val bus_205_vector = Vector("bus_205")
     val x3446_mc = MemoryController(TileLoad, x3272_oc)
     val x3311_mc = MemoryController(TileLoad, x3269_oc)
     val x3356_mc = MemoryController(TileLoad, x3270_oc)
@@ -146,61 +144,44 @@ object TPCHQ6Design extends PIRApp {
     }
     val x3504_0 = StreamPipeline(name = "x3504_0", parent=x3504, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr204 = CU.temp
-      val tr202 = CU.temp
-      val x3472 = CounterChain.copy(x3504, "x3472")
-      val x3281 = CounterChain.copy(x3512, "x3281")
-      val x3284_x3475 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0), swapWrite = x3281(0))).wtPort(x3311_mc.vdata).rdAddr(x3472(0))
-      var stage: List[Stage] = Nil
-      stage = stage0 +: Stages(3)
-      Stage(stage(1), operands=List(Const("0i"), x3284_x3475.load), op=FixLt, results=List(CU.temp(stage(1), tr202)))
-      Stage(stage(2), operands=List(CU.load(stage(1), x3284_x3475), Const("9999i")), op=FixLt, results=List(CU.temp(stage(2), tr204)))
-      Stage(stage(3), operands=List(CU.temp(stage(2), tr202), CU.temp(stage(2), tr204)), op=BitAnd, results=List(CU.vecOut(stage(3), bus_205_vector)))
-    }
-    val x3504_1 = StreamPipeline(name = "x3504_1", parent=x3504, deps=List()) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x3472 = CounterChain.copy(x3504, "x3472")
-      val x3281 = CounterChain.copy(x3512, "x3281")
-      val x3286_x3478 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0), swapWrite = x3281(0))).wtPort(x3401_mc.vdata).rdAddr(x3472(0))
-      var stage: List[Stage] = Nil
-      stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(x3286_x3478.load), op=Bypass, results=List(CU.vecOut(stage(1), x3286_x3478_data_vector)))
-    }
-    val x3504_2 = StreamPipeline(name = "x3504_2", parent=x3504, deps=List(x3504_1, x3504_0)) { implicit CU => 
-      val stage0 = CU.emptyStage
+      val tr214 = CU.temp
+      val tr213 = CU.temp
       val tr212 = CU.temp
       val tr210 = CU.temp
       val tr209 = CU.temp
       val tr207 = CU.temp
       val tr206 = CU.temp
+      val tr205 = CU.temp
+      val tr204 = CU.temp
+      val tr202 = CU.temp
       val x3472 = CounterChain.copy(x3504, "x3472")
-      val x3281 = CounterChain.copy(x3512, "x3281")
-      val x3285_x3481 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0), swapWrite = x3281(0))).wtPort(x3356_mc.vdata).rdAddr(x3472(0))
-      val x3286_x3478_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x3286_x3478_data_vector)
-      val bus_205_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_205_vector)
+      val x3285_x3481 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0))).wtPort(x3356_mc.vdata).rdAddr(x3472(0))
+      val x3286_x3478 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0))).wtPort(x3401_mc.vdata).rdAddr(x3472(0))
+      val x3287_x3484 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0))).wtPort(x3446_mc.vdata).rdAddr(x3472(0))
+      val x3284_x3475 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0))).wtPort(x3311_mc.vdata).rdAddr(x3472(0))
       var stage: List[Stage] = Nil
-      stage = stage0 +: Stages(6)
-      Stage(stage(1), operands=List(Const("0i"), x3286_x3478_data_fifo.load), op=FixLeq, results=List(CU.temp(stage(1), tr206)))
-      Stage(stage(2), operands=List(bus_205_fifo.load, CU.temp(stage(1), tr206)), op=BitAnd, results=List(CU.temp(stage(2), tr207)))
-      Stage(stage(3), operands=List(x3286_x3478_data_fifo.load, Const("9999i")), op=FixLeq, results=List(CU.temp(stage(3), tr209)))
-      Stage(stage(4), operands=List(CU.temp(stage(3), tr207), CU.temp(stage(3), tr209)), op=BitAnd, results=List(CU.temp(stage(4), tr210)))
-      Stage(stage(5), operands=List(CU.load(stage(4), x3285_x3481), Const("24i")), op=FixLt, results=List(CU.temp(stage(5), tr212)))
-      Stage(stage(6), operands=List(CU.temp(stage(5), tr210), CU.temp(stage(5), tr212)), op=BitAnd, results=List(CU.vecOut(stage(6), bus_213_vector)))
+      stage = stage0 +: Stages(11)
+      Stage(stage(1), operands=List(Const("0i"), x3284_x3475.load), op=FixLt, results=List(CU.temp(stage(1), tr202)))
+      Stage(stage(2), operands=List(CU.load(stage(1), x3284_x3475), Const("9999i")), op=FixLt, results=List(CU.temp(stage(2), tr204)))
+      Stage(stage(3), operands=List(CU.temp(stage(2), tr202), CU.temp(stage(2), tr204)), op=BitAnd, results=List(CU.temp(stage(3), tr205)))
+      Stage(stage(4), operands=List(Const("0i"), CU.load(stage(3), x3286_x3478)), op=FixLeq, results=List(CU.temp(stage(4), tr206)))
+      Stage(stage(5), operands=List(CU.temp(stage(4), tr205), CU.temp(stage(4), tr206)), op=BitAnd, results=List(CU.temp(stage(5), tr207)))
+      Stage(stage(6), operands=List(CU.load(stage(5), x3286_x3478), Const("9999i")), op=FixLeq, results=List(CU.temp(stage(6), tr209)))
+      Stage(stage(7), operands=List(CU.temp(stage(6), tr207), CU.temp(stage(6), tr209)), op=BitAnd, results=List(CU.temp(stage(7), tr210)))
+      Stage(stage(8), operands=List(CU.load(stage(7), x3285_x3481), Const("24i")), op=FixLt, results=List(CU.temp(stage(8), tr212)))
+      Stage(stage(9), operands=List(CU.temp(stage(8), tr210), CU.temp(stage(8), tr212)), op=BitAnd, results=List(CU.temp(stage(9), tr213)))
+      Stage(stage(10), operands=List(CU.load(stage(9), x3287_x3484), CU.load(stage(9), x3286_x3478)), op=FixMul, results=List(CU.temp(stage(10), tr214)))
+      Stage(stage(11), operands=List(CU.temp(stage(10), tr213), CU.temp(stage(10), tr214), Const("0i")), op=Mux, results=List(CU.vecOut(stage(11), bus_216_vector)))
     }
-    val x3504_3 = StreamPipeline(name = "x3504_3", parent=x3504, deps=List(x3504_1, x3504_2)) { implicit CU => 
+    val x3504_1 = StreamPipeline(name = "x3504_1", parent=x3504, deps=List(x3504_0)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr214 = CU.temp
       val x3472 = CounterChain.copy(x3504, "x3472")
-      val x3281 = CounterChain.copy(x3512, "x3281")
-      val x3287_x3484 = SemiFIFO(size = 8000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3472(0), swapWrite = x3281(0))).wtPort(x3446_mc.vdata).rdAddr(x3472(0))
-      val x3286_x3478_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x3286_x3478_data_vector)
-      val bus_213_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_213_vector)
+      val bus_216_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_216_vector)
       var stage: List[Stage] = Nil
-      stage = stage0 +: Stages(3)
-      Stage(stage(1), operands=List(x3287_x3484.load, x3286_x3478_data_fifo.load), op=FixMul, results=List(CU.temp(stage(1), tr214)))
-      Stage(stage(2), operands=List(bus_213_fifo.load, CU.temp(stage(1), tr214), Const("0i")), op=Mux, results=List(CU.reduce(stage(2))))
+      stage = stage0 +: Stages(2)
+      Stage(stage(1), operands=List(bus_216_fifo.load), op=Bypass, results=List(CU.reduce(stage(1))))
       val (rs1, rr218) = Stage.reduce(op=FixAdd, init=Const("0i"))
-      Stage(stage(3), operands=List(rr218), op=Bypass, results=List(CU.scalarOut(stage(3), x3470_scalar)))
+      Stage(stage(2), operands=List(rr218), op=Bypass, results=List(CU.scalarOut(stage(2), x3470_scalar)))
     }
     val x3510_0 = UnitPipeline(name = "x3510_0", parent=x3512, deps=List(x3504)) { implicit CU => 
       val stage0 = CU.emptyStage

@@ -16,4 +16,6 @@
     addCommandAlias("pir", "; project apps; run-main")
     addCommandAlias("wip", s"""test-only -- -n "WIP"""")
     addCommandAlias("arch", s"""test-only -- -n "ARCH"""")
+    addCommandAlias("unit", s"""test-only UnitCodegenTest""")
+    addCommandAlias("apps", s"""test-only AppTest""")
     cancelable in Global := true

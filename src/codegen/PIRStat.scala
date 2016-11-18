@@ -4,6 +4,7 @@ import pir.graph._
 import pir._
 import pir.codegen.{Printer, DotCodegen}
 import pir.misc._
+import java.util.Calendar
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -12,10 +13,17 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class PIRStat(fileName:String)(implicit design: Design) extends DFSTraversal with Printer with Metadata {
+object PIRStat extends Printer {
+  override val stream:OutputStream = newStream(s"PIRStat.txt", append=true) 
+  def cycle(cycle:Int)(implicit design: Design) = {
+    val latency = cycle / Math.pow(10,9)
+    emit(s"[${design}]${Calendar.getInstance()} cycle:$cycle, latency$latency")
+  }
+}
+class PIRStatLog(fileName:String)(implicit design: Design) extends DFSTraversal with Printer with Metadata {
 
   def this()(implicit design: Design) = {
-    this(Config.pirStat)
+    this(s"${design}.stat")
   }
   override val stream:OutputStream = newStream(fileName) 
 

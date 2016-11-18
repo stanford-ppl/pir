@@ -126,12 +126,14 @@ class IRCheck(implicit val design: Design) extends Traversal {
             if (vins.size > dbw)
               warn(s"Data Connectivity from $fromcu to $cu: ${vins.size}. Data Bandwidth:$dbw")
           }
-          cu.ctrlIns.groupBy { cin =>
-            if (!cin.isConnected) throw PIRException(s"$cin is not connected")
-            cin.from.asInstanceOf[CtrlOutPort].ctrler
-          }.foreach { case (fromcu, cins) =>
-            if (cins.size > cbw)
-              warn(s"Ctrl Connectivity from $fromcu to $cu: ${cins.size}. Ctrl Bandwidth:$cbw")
+          if (design.ctrlAlloc.isTraversed) {
+            cu.ctrlIns.groupBy { cin =>
+              if (!cin.isConnected) throw PIRException(s"$cin is not connected")
+              cin.from.asInstanceOf[CtrlOutPort].ctrler
+            }.foreach { case (fromcu, cins) =>
+              if (cins.size > cbw)
+                warn(s"Ctrl Connectivity from $fromcu to $cu: ${cins.size}. Ctrl Bandwidth:$cbw")
+            }
           }
         }
       case pn:PointToPointNetwork =>
