@@ -28,28 +28,82 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
     }.reduce[Long]{ case (a,b) => max(a,b) }
   }
 
-  val sizeSet = Set[(Long, Long, MCType)]()
-  val offchipLat = Map[(Long, Long, MCType), Long]()
-  offchipLat += (1,125,TileLoad)  -> 100
-  offchipLat += (1,1,TileLoad)    -> 100
-  offchipLat += (48,3,TileStore)  -> 100
-  offchipLat += (1,125,TileLoad)  -> 100
-  offchipLat += (1,125,TileLoad)  -> 100
-  offchipLat += (1,125,TileStore) -> 100
-  offchipLat += (16,1,TileLoad)   -> 100
-  offchipLat += (48,1,TileLoad)   -> 100
-  offchipLat += (16,3,TileStore)  -> 100
+  val sizeSet = Set[(Int, Int, MCType)]()
+  //val offchipLat = Map[(Int, Int, MCType), Long]()
+  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
+  //offchipLat += (1  , 1   , TileLoad)    -> 100.toLong
+  //offchipLat += (48 , 3   , TileStore)  -> 100.toLong
+  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
+  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
+  //offchipLat += (1  , 125 , TileStore) -> 100.toLong
+  //offchipLat += (16 , 1   , TileLoad)   -> 100.toLong
+  //offchipLat += (48 , 1   , TileLoad)   -> 100.toLong
+  //offchipLat += (16 , 3   , TileStore)  -> 100.toLong
 
+  //val sizeSet = Set[(Int, String, MCType)]()
+  val offchipLat = Map[(Int, String, MCType), Long]()
+  offchipLat += (1  , "DotProductDesign", TileLoad)  -> 788.toLong
+  offchipLat += (1  , "OuterProductDesign", TileLoad)    -> 56.toLong
+  offchipLat += (48 , "OuterProductDesign", TileStore)  -> 1324.toLong
+  offchipLat += (1  , "TPCHQ6Design", TileLoad)  -> 788.toLong
+  offchipLat += (1  , "BlackScholesDesign", TileLoad)  -> 788.toLong
+  offchipLat += (1  , "BlackScholesDesign", TileStore) -> 847.toLong
+  offchipLat += (16 , "MatMult_innerDesign", TileLoad)   -> 385.toLong
+  offchipLat += (48 , "MatMult_innerDesign", TileLoad)   -> 1078.toLong
+  offchipLat += (16 , "MatMult_innerDesign", TileStore)  -> 469.toLong
+
+  offchipLat += (16 , "MatMult_outerDesign", TileLoad)   -> 385.toLong
+  offchipLat += (48 , "MatMult_outerDesign", TileLoad)   -> 1078.toLong
+  offchipLat += (16 , "MatMult_outerDesign", TileStore)  -> 469.toLong
+
+  offchipLat += (1, "LogRegDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "LogRegDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "LogRegDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "LogRegDesign", TileStore)  -> 469.toLong
+
+  offchipLat += (1, "SGDDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "SGDDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "SGDDesign", TileStore)  -> 469.toLong
+
+  offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469.toLong
+
+  offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
+  offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
   def offchipLatency(mc:MemoryController) = {
     val len = constOf.getOrElseUpdate(mc.len, constProp(mc.len))
     val numRow = iter(mc.parent.localCChain)
-    val numBurst = ceil(len.toDouble / 16).toLong
-    val comb = (numRow, numBurst, mc.mctpe)
+    val numBytes = ceil(len.toDouble * 4).toLong
+    val comb = (numRow.toInt, numBytes.toInt, mc.mctpe)
     if (!sizeSet.contains(comb)) {
-      println(s"OffChip Access: $design numRow=$numRow numBurst=$numBurst len=$len tpe=${mc.mctpe}")
+      println(s"OffChip Access: $design numRow=$numRow numBytes=$numBytes len=$len tpe=${mc.mctpe}")
       sizeSet += comb
     }
-    contentionOf(mc) * numBurst * 40 //TODO
+    //contentionOf(mc) * numBytes / 64 * 40 //TODO
+    if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+
+    } else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileStore)) { 
+    } else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 64  , "ConvolutionDesign", TileLoad)) { 
+    } else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileLoad)) { 
+    }
+    //val comb = (numRow.toInt, s"$design", mc.mctpe)
+    //offchipLat(comb)
+    10
   }
 
   def constProp(node:Node):Long = {
