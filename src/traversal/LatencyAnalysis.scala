@@ -76,6 +76,7 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
   offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
   offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
   offchipLat += (1, "GDADesign", TileStore)  -> 469.toLong
+
   def offchipLatency(mc:MemoryController) = {
     val len = constOf.getOrElseUpdate(mc.len, constProp(mc.len))
     val numRow = iter(mc.parent.localCChain)
