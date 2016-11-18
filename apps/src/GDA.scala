@@ -69,17 +69,17 @@ object GDADesign extends PIRApp {
     val x4585_mc = MemoryController(TileLoad, x4215_oc)
     val x4391_mc = MemoryController(TileLoad, x4215_oc)
     val x4285_mc = MemoryController(TileLoad, x4216_oc)
-    val x5120 = Sequential(name = "x5120", parent=top, deps=List()) { implicit CU => 
+    val x5120 = Sequential(name = "x5120", parent=top, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x5120_unitcc = CounterChain(name = "x5120_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4305 = StreamController(name = "x4305", parent=x5120, deps=List()) { implicit CU => 
+    val x4305 = StreamController(name = "x4305", parent=x5120, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4305_unitcc = CounterChain(name = "x4305_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4281_0 = UnitPipeline(name = "x4281_0", parent=x4305, deps=List()) { implicit CU => 
+    val x4281_0 = UnitPipeline(name = "x4281_0", parent=x4305, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1304 = CU.temp
       val tr1303 = CU.temp
@@ -95,12 +95,12 @@ object GDADesign extends PIRApp {
       Stage(stage(5), operands=List(CU.temp(stage(4), tr1302), CU.temp(stage(4), tr1304)), op=FixAdd, results=List(CU.scalarOut(stage(5), x4285_mc.len)))
       Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x4285_mc.ofs)))
     }
-    val x4347 = StreamController(name = "x4347", parent=x5120, deps=List()) { implicit CU => 
+    val x4347 = StreamController(name = "x4347", parent=x5120, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4347_unitcc = CounterChain(name = "x4347_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4323_0 = UnitPipeline(name = "x4323_0", parent=x4347, deps=List()) { implicit CU => 
+    val x4323_0 = UnitPipeline(name = "x4323_0", parent=x4347, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1325 = CU.temp
       val tr1324 = CU.temp
@@ -116,21 +116,21 @@ object GDADesign extends PIRApp {
       Stage(stage(5), operands=List(CU.temp(stage(4), tr1323), CU.temp(stage(4), tr1325)), op=FixAdd, results=List(CU.scalarOut(stage(5), x4327_mc.len)))
       Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x4327_mc.ofs)))
     }
-    val x5096 = MetaPipeline(name = "x5096", parent=x5120, deps=List(x4305, x4347)) { implicit CU => 
+    val x5096 = MetaPipeline(name = "x5096", parent=x5120, deps=List(x4305, x4347)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr3 = (Const("0i").out, Const("3840000i").out, Const("20i").out) // Counter
       val x4352 = CounterChain(name = "x4352", ctr3)
-      val ctr5 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
-      val ctr6 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
-      val x4355 = CounterChain(name = "x4355", ctr5, ctr6)
+      //val ctr5 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      //val ctr6 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      //val x4355 = CounterChain(name = "x4355", ctr5, ctr6)
       var stage: List[Stage] = Nil
     }
-    val x4412 = StreamController(name = "x4412", parent=x5096, deps=List()) { implicit CU => 
+    val x4412 = StreamController(name = "x4412", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4412_unitcc = CounterChain(name = "x4412_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4387_0 = UnitPipeline(name = "x4387_0", parent=x4412, deps=List()) { implicit CU => 
+    val x4387_0 = UnitPipeline(name = "x4387_0", parent=x4412, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1350 = CU.temp
       val tr1349 = CU.temp
@@ -151,18 +151,18 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1349), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr1350)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1347), CU.temp(stage(7), tr1350)), op=FixAdd, results=List(CU.scalarOut(stage(8), x4391_mc.len)))
     }
-    val x4459 = MetaPipeline(name = "x4459", parent=x5096, deps=List()) { implicit CU => 
+    val x4459 = MetaPipeline(name = "x4459", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr23 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val x4415 = CounterChain(name = "x4415", ctr23)
       var stage: List[Stage] = Nil
     }
-    val x4434 = StreamController(name = "x4434", parent=x4459, deps=List()) { implicit CU => 
+    val x4434 = StreamController(name = "x4434", parent=x4459, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4434_unitcc = CounterChain(name = "x4434_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4434_0 = StreamPipeline(name = "x4434_0", parent=x4434, deps=List()) { implicit CU => 
+    val x4434_0 = StreamPipeline(name = "x4434_0", parent=x4434, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1373 = CU.temp
       val tr1371 = CU.temp
@@ -183,7 +183,7 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1371), CU.temp(stage(6), tr1373)), op=FixSub, results=List(CU.scalarOut(stage(7), bus_1374_scalar)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1373), Const("0i")), op=FixNeq, results=List(CU.scalarOut(stage(8), bus_1376_scalar)))
     }
-    val x4434_1 = StreamPipeline(name = "x4434_1", parent=x4434, deps=List(x4434_0)) { implicit CU => 
+    val x4434_1 = StreamPipeline(name = "x4434_1", parent=x4434, deps=List(x4434_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1377 = CU.temp
       val x4434_unitcc = CounterChain.copy(x4434, "x4434_unitcc")
@@ -192,7 +192,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), bus_1376_scalar), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(1), tr1377)))
       Stage(stage(2), operands=List(CU.scalarIn(stage(1), bus_1374_scalar), CU.temp(stage(1), tr1377)), op=FixAdd, results=List(CU.scalarOut(stage(2), x4438_mc.len)))
     }
-    val x4462_0 = UnitPipeline(name = "x4462_0", parent=x5096, deps=List()) { implicit CU => 
+    val x4462_0 = UnitPipeline(name = "x4462_0", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1391 = CU.temp
       val x4352 = CounterChain.copy(x5096, "x4352")
@@ -202,12 +202,12 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(Const("3840000i"), CU.ctr(stage(0), x4352(0))), op=FixSub, results=List(CU.temp(stage(1), tr1391)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1391), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4364_scalar)))
     }
-    val x4509 = StreamController(name = "x4509", parent=x5096, deps=List()) { implicit CU => 
+    val x4509 = StreamController(name = "x4509", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4509_unitcc = CounterChain(name = "x4509_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4484_0 = UnitPipeline(name = "x4484_0", parent=x4509, deps=List()) { implicit CU => 
+    val x4484_0 = UnitPipeline(name = "x4484_0", parent=x4509, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1409 = CU.temp
       val tr1408 = CU.temp
@@ -228,18 +228,18 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1408), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr1409)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1406), CU.temp(stage(7), tr1409)), op=FixAdd, results=List(CU.scalarOut(stage(8), x4488_mc.len)))
     }
-    val x4556 = MetaPipeline(name = "x4556", parent=x5096, deps=List()) { implicit CU => 
+    val x4556 = MetaPipeline(name = "x4556", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr29 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val x4512 = CounterChain(name = "x4512", ctr29)
       var stage: List[Stage] = Nil
     }
-    val x4531 = StreamController(name = "x4531", parent=x4556, deps=List()) { implicit CU => 
+    val x4531 = StreamController(name = "x4531", parent=x4556, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4531_unitcc = CounterChain(name = "x4531_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4531_0 = StreamPipeline(name = "x4531_0", parent=x4531, deps=List()) { implicit CU => 
+    val x4531_0 = StreamPipeline(name = "x4531_0", parent=x4531, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1432 = CU.temp
       val tr1430 = CU.temp
@@ -260,7 +260,7 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1430), CU.temp(stage(6), tr1432)), op=FixSub, results=List(CU.scalarOut(stage(7), bus_1433_scalar)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1432), Const("0i")), op=FixNeq, results=List(CU.scalarOut(stage(8), bus_1435_scalar)))
     }
-    val x4531_1 = StreamPipeline(name = "x4531_1", parent=x4531, deps=List(x4531_0)) { implicit CU => 
+    val x4531_1 = StreamPipeline(name = "x4531_1", parent=x4531, deps=List(x4531_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1436 = CU.temp
       val x4531_unitcc = CounterChain.copy(x4531, "x4531_unitcc")
@@ -269,7 +269,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), bus_1435_scalar), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(1), tr1436)))
       Stage(stage(2), operands=List(CU.scalarIn(stage(1), bus_1433_scalar), CU.temp(stage(1), tr1436)), op=FixAdd, results=List(CU.scalarOut(stage(2), x4535_mc.len)))
     }
-    val x4559_0 = UnitPipeline(name = "x4559_0", parent=x5096, deps=List()) { implicit CU => 
+    val x4559_0 = UnitPipeline(name = "x4559_0", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1450 = CU.temp
       val x4352 = CounterChain.copy(x5096, "x4352")
@@ -279,12 +279,12 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(Const("3840000i"), CU.ctr(stage(0), x4352(0))), op=FixSub, results=List(CU.temp(stage(1), tr1450)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1450), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4365_scalar)))
     }
-    val x4606 = StreamController(name = "x4606", parent=x5096, deps=List()) { implicit CU => 
+    val x4606 = StreamController(name = "x4606", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4606_unitcc = CounterChain(name = "x4606_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4581_0 = UnitPipeline(name = "x4581_0", parent=x4606, deps=List()) { implicit CU => 
+    val x4581_0 = UnitPipeline(name = "x4581_0", parent=x4606, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1468 = CU.temp
       val tr1467 = CU.temp
@@ -305,18 +305,18 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1467), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr1468)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1465), CU.temp(stage(7), tr1468)), op=FixAdd, results=List(CU.scalarOut(stage(8), x4585_mc.len)))
     }
-    val x4653 = MetaPipeline(name = "x4653", parent=x5096, deps=List()) { implicit CU => 
+    val x4653 = MetaPipeline(name = "x4653", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr35 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val x4609 = CounterChain(name = "x4609", ctr35)
       var stage: List[Stage] = Nil
     }
-    val x4628 = StreamController(name = "x4628", parent=x4653, deps=List()) { implicit CU => 
+    val x4628 = StreamController(name = "x4628", parent=x4653, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4628_unitcc = CounterChain(name = "x4628_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4628_0 = StreamPipeline(name = "x4628_0", parent=x4628, deps=List()) { implicit CU => 
+    val x4628_0 = StreamPipeline(name = "x4628_0", parent=x4628, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1491 = CU.temp
       val tr1489 = CU.temp
@@ -337,7 +337,7 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1489), CU.temp(stage(6), tr1491)), op=FixSub, results=List(CU.scalarOut(stage(7), bus_1492_scalar)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1491), Const("0i")), op=FixNeq, results=List(CU.scalarOut(stage(8), bus_1494_scalar)))
     }
-    val x4628_1 = StreamPipeline(name = "x4628_1", parent=x4628, deps=List(x4628_0)) { implicit CU => 
+    val x4628_1 = StreamPipeline(name = "x4628_1", parent=x4628, deps=List(x4628_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1495 = CU.temp
       val x4628_unitcc = CounterChain.copy(x4628, "x4628_unitcc")
@@ -346,7 +346,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), bus_1494_scalar), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(1), tr1495)))
       Stage(stage(2), operands=List(CU.scalarIn(stage(1), bus_1492_scalar), CU.temp(stage(1), tr1495)), op=FixAdd, results=List(CU.scalarOut(stage(2), x4632_mc.len)))
     }
-    val x4656_0 = UnitPipeline(name = "x4656_0", parent=x5096, deps=List()) { implicit CU => 
+    val x4656_0 = UnitPipeline(name = "x4656_0", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1509 = CU.temp
       val x4352 = CounterChain.copy(x5096, "x4352")
@@ -356,12 +356,12 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(Const("3840000i"), CU.ctr(stage(0), x4352(0))), op=FixSub, results=List(CU.temp(stage(1), tr1509)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1509), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4366_scalar)))
     }
-    val x4703 = StreamController(name = "x4703", parent=x5096, deps=List()) { implicit CU => 
+    val x4703 = StreamController(name = "x4703", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4703_unitcc = CounterChain(name = "x4703_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4678_0 = UnitPipeline(name = "x4678_0", parent=x4703, deps=List()) { implicit CU => 
+    val x4678_0 = UnitPipeline(name = "x4678_0", parent=x4703, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1527 = CU.temp
       val tr1526 = CU.temp
@@ -382,18 +382,18 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1526), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr1527)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1524), CU.temp(stage(7), tr1527)), op=FixAdd, results=List(CU.scalarOut(stage(8), x4682_mc.len)))
     }
-    val x4750 = MetaPipeline(name = "x4750", parent=x5096, deps=List()) { implicit CU => 
+    val x4750 = MetaPipeline(name = "x4750", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr41 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val x4706 = CounterChain(name = "x4706", ctr41)
       var stage: List[Stage] = Nil
     }
-    val x4725 = StreamController(name = "x4725", parent=x4750, deps=List()) { implicit CU => 
+    val x4725 = StreamController(name = "x4725", parent=x4750, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4725_unitcc = CounterChain(name = "x4725_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4725_0 = StreamPipeline(name = "x4725_0", parent=x4725, deps=List()) { implicit CU => 
+    val x4725_0 = StreamPipeline(name = "x4725_0", parent=x4725, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1550 = CU.temp
       val tr1548 = CU.temp
@@ -414,7 +414,7 @@ object GDADesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1548), CU.temp(stage(6), tr1550)), op=FixSub, results=List(CU.scalarOut(stage(7), bus_1551_scalar)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr1550), Const("0i")), op=FixNeq, results=List(CU.scalarOut(stage(8), bus_1553_scalar)))
     }
-    val x4725_1 = StreamPipeline(name = "x4725_1", parent=x4725, deps=List(x4725_0)) { implicit CU => 
+    val x4725_1 = StreamPipeline(name = "x4725_1", parent=x4725, deps=List(x4725_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1554 = CU.temp
       val x4725_unitcc = CounterChain.copy(x4725, "x4725_unitcc")
@@ -423,7 +423,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), bus_1553_scalar), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(1), tr1554)))
       Stage(stage(2), operands=List(CU.scalarIn(stage(1), bus_1551_scalar), CU.temp(stage(1), tr1554)), op=FixAdd, results=List(CU.scalarOut(stage(2), x4729_mc.len)))
     }
-    val x4753_0 = UnitPipeline(name = "x4753_0", parent=x5096, deps=List()) { implicit CU => 
+    val x4753_0 = UnitPipeline(name = "x4753_0", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1568 = CU.temp
       val x4352 = CounterChain.copy(x5096, "x4352")
@@ -433,19 +433,19 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(Const("3840000i"), CU.ctr(stage(0), x4352(0))), op=FixSub, results=List(CU.temp(stage(1), tr1568)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1568), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4367_scalar)))
     }
-    val x4853 = MetaPipeline(name = "x4853", parent=x5096, deps=List()) { implicit CU => 
+    val x4853 = MetaPipeline(name = "x4853", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr7 = (Const("0i").out, CU.scalarIn(stage0, x4364_scalar).out, Const("1i").out) // Counter
       val x4770 = CounterChain(name = "x4770", ctr7)
       var stage: List[Stage] = Nil
     }
-    val x4815 = StreamController(name = "x4815", parent=x4853, deps=List()) { implicit CU => 
+    val x4815 = StreamController(name = "x4815", parent=x4853, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr8 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x4789 = CounterChain(name = "x4789", ctr8)
       var stage: List[Stage] = Nil
     }
-    val x4815_0 = StreamPipeline(name = "x4815_0", parent=x4815, deps=List()) { implicit CU => 
+    val x4815_0 = StreamPipeline(name = "x4815_0", parent=x4815, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1591 = CU.temp
       val tr1581 = CU.temp
@@ -461,7 +461,7 @@ object GDADesign extends PIRApp {
       Stage(stage(3), operands=List(CU.load(stage(2), x4356_x4795), Const("1i")), op=FixEql, results=List(CU.temp(stage(3), tr1591)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1591), CU.load(stage(3), x4263_x4798), CU.load(stage(3), x4262_x4801)), op=Mux, results=List(CU.vecOut(stage(4), bus_1592_vector)))
     }
-    val x4815_1 = StreamPipeline(name = "x4815_1", parent=x4815, deps=List(x4815_0)) { implicit CU => 
+    val x4815_1 = StreamPipeline(name = "x4815_1", parent=x4815, deps=List(x4815_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4770 = CounterChain.copy(x4853, "x4770")
       val x4789 = CounterChain.copy(x4815, "x4789")
@@ -473,7 +473,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4360_x4792_addr_fifo.load), op=Bypass, results=List(x4360_x4792.readAddr))
       Stage(stage(2), operands=List(x4360_x4792.load, bus_1592_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x4786_vector)))
     }
-    val x4834_0 = Pipeline(name = "x4834_0", parent=x4853, deps=List(x4815)) { implicit CU => 
+    val x4834_0 = Pipeline(name = "x4834_0", parent=x4853, deps=List(x4815)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr45 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val ctr46 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
@@ -485,7 +485,7 @@ object GDADesign extends PIRApp {
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x4786_x4821.load, x4786_x4824.load), op=FltMul, results=List(CU.vecOut(stage(1), x4787_vector)))
     }
-    val x4851_0 = Pipeline(name = "x4851_0", parent=x4853, deps=List(x4834_0)) { implicit CU => 
+    val x4851_0 = Pipeline(name = "x4851_0", parent=x4853, deps=List(x4834_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1625 = CU.temp
       val tr1615 = CU.temp
@@ -512,19 +512,19 @@ object GDADesign extends PIRApp {
       Stage(stage(6), operands=List(CU.ctr(stage(5), x4782(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr1625)))
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1625), CU.ctr(stage(6), x4782(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr1627)))
     }
-    val x4921 = MetaPipeline(name = "x4921", parent=x5096, deps=List()) { implicit CU => 
+    val x4921 = MetaPipeline(name = "x4921", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr10 = (Const("0i").out, CU.scalarIn(stage0, x4365_scalar).out, Const("1i").out) // Counter
       val x4771 = CounterChain(name = "x4771", ctr10)
       var stage: List[Stage] = Nil
     }
-    val x4883 = StreamController(name = "x4883", parent=x4921, deps=List()) { implicit CU => 
+    val x4883 = StreamController(name = "x4883", parent=x4921, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr11 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x4857 = CounterChain(name = "x4857", ctr11)
       var stage: List[Stage] = Nil
     }
-    val x4883_0 = StreamPipeline(name = "x4883_0", parent=x4883, deps=List()) { implicit CU => 
+    val x4883_0 = StreamPipeline(name = "x4883_0", parent=x4883, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1649 = CU.temp
       val tr1639 = CU.temp
@@ -540,7 +540,7 @@ object GDADesign extends PIRApp {
       Stage(stage(3), operands=List(CU.load(stage(2), x4357_x4863), Const("1i")), op=FixEql, results=List(CU.temp(stage(3), tr1649)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1649), CU.load(stage(3), x4263_x4866), CU.load(stage(3), x4262_x4869)), op=Mux, results=List(CU.vecOut(stage(4), bus_1650_vector)))
     }
-    val x4883_1 = StreamPipeline(name = "x4883_1", parent=x4883, deps=List(x4883_0)) { implicit CU => 
+    val x4883_1 = StreamPipeline(name = "x4883_1", parent=x4883, deps=List(x4883_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4857 = CounterChain.copy(x4883, "x4857")
       val x4771 = CounterChain.copy(x4921, "x4771")
@@ -552,7 +552,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4361_x4860_addr_fifo.load), op=Bypass, results=List(x4361_x4860.readAddr))
       Stage(stage(2), operands=List(x4361_x4860.load, bus_1650_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x4854_vector)))
     }
-    val x4902_0 = Pipeline(name = "x4902_0", parent=x4921, deps=List(x4883)) { implicit CU => 
+    val x4902_0 = Pipeline(name = "x4902_0", parent=x4921, deps=List(x4883)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr53 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val ctr54 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
@@ -564,7 +564,7 @@ object GDADesign extends PIRApp {
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x4854_x4889.load, x4854_x4892.load), op=FltMul, results=List(CU.vecOut(stage(1), x4855_vector)))
     }
-    val x4919_0 = Pipeline(name = "x4919_0", parent=x4921, deps=List(x4902_0)) { implicit CU => 
+    val x4919_0 = Pipeline(name = "x4919_0", parent=x4921, deps=List(x4902_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1683 = CU.temp
       val tr1673 = CU.temp
@@ -591,19 +591,19 @@ object GDADesign extends PIRApp {
       Stage(stage(6), operands=List(CU.ctr(stage(5), x4783(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr1683)))
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1683), CU.ctr(stage(6), x4783(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr1685)))
     }
-    val x4989 = MetaPipeline(name = "x4989", parent=x5096, deps=List()) { implicit CU => 
+    val x4989 = MetaPipeline(name = "x4989", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr13 = (Const("0i").out, CU.scalarIn(stage0, x4366_scalar).out, Const("1i").out) // Counter
       val x4772 = CounterChain(name = "x4772", ctr13)
       var stage: List[Stage] = Nil
     }
-    val x4951 = StreamController(name = "x4951", parent=x4989, deps=List()) { implicit CU => 
+    val x4951 = StreamController(name = "x4951", parent=x4989, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr14 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x4925 = CounterChain(name = "x4925", ctr14)
       var stage: List[Stage] = Nil
     }
-    val x4951_0 = StreamPipeline(name = "x4951_0", parent=x4951, deps=List()) { implicit CU => 
+    val x4951_0 = StreamPipeline(name = "x4951_0", parent=x4951, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1707 = CU.temp
       val tr1697 = CU.temp
@@ -619,7 +619,7 @@ object GDADesign extends PIRApp {
       Stage(stage(3), operands=List(CU.load(stage(2), x4358_x4931), Const("1i")), op=FixEql, results=List(CU.temp(stage(3), tr1707)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1707), CU.load(stage(3), x4263_x4934), CU.load(stage(3), x4262_x4937)), op=Mux, results=List(CU.vecOut(stage(4), bus_1708_vector)))
     }
-    val x4951_1 = StreamPipeline(name = "x4951_1", parent=x4951, deps=List(x4951_0)) { implicit CU => 
+    val x4951_1 = StreamPipeline(name = "x4951_1", parent=x4951, deps=List(x4951_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4772 = CounterChain.copy(x4989, "x4772")
       val x4925 = CounterChain.copy(x4951, "x4925")
@@ -631,7 +631,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4362_x4928_addr_fifo.load), op=Bypass, results=List(x4362_x4928.readAddr))
       Stage(stage(2), operands=List(x4362_x4928.load, bus_1708_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x4922_vector)))
     }
-    val x4970_0 = Pipeline(name = "x4970_0", parent=x4989, deps=List(x4951)) { implicit CU => 
+    val x4970_0 = Pipeline(name = "x4970_0", parent=x4989, deps=List(x4951)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr59 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val ctr60 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
@@ -643,7 +643,7 @@ object GDADesign extends PIRApp {
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x4922_x4957.load, x4922_x4960.load), op=FltMul, results=List(CU.vecOut(stage(1), x4923_vector)))
     }
-    val x4987_0 = Pipeline(name = "x4987_0", parent=x4989, deps=List(x4970_0)) { implicit CU => 
+    val x4987_0 = Pipeline(name = "x4987_0", parent=x4989, deps=List(x4970_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1741 = CU.temp
       val tr1731 = CU.temp
@@ -670,19 +670,19 @@ object GDADesign extends PIRApp {
       Stage(stage(6), operands=List(CU.ctr(stage(5), x4784(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr1741)))
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1741), CU.ctr(stage(6), x4784(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr1743)))
     }
-    val x5057 = MetaPipeline(name = "x5057", parent=x5096, deps=List()) { implicit CU => 
+    val x5057 = MetaPipeline(name = "x5057", parent=x5096, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr16 = (Const("0i").out, CU.scalarIn(stage0, x4367_scalar).out, Const("1i").out) // Counter
       val x4773 = CounterChain(name = "x4773", ctr16)
       var stage: List[Stage] = Nil
     }
-    val x5019 = StreamController(name = "x5019", parent=x5057, deps=List()) { implicit CU => 
+    val x5019 = StreamController(name = "x5019", parent=x5057, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr17 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x4993 = CounterChain(name = "x4993", ctr17)
       var stage: List[Stage] = Nil
     }
-    val x5019_0 = StreamPipeline(name = "x5019_0", parent=x5019, deps=List()) { implicit CU => 
+    val x5019_0 = StreamPipeline(name = "x5019_0", parent=x5019, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1765 = CU.temp
       val tr1755 = CU.temp
@@ -698,7 +698,7 @@ object GDADesign extends PIRApp {
       Stage(stage(3), operands=List(CU.load(stage(2), x4359_x4999), Const("1i")), op=FixEql, results=List(CU.temp(stage(3), tr1765)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1765), CU.load(stage(3), x4263_x5002), CU.load(stage(3), x4262_x5005)), op=Mux, results=List(CU.vecOut(stage(4), bus_1766_vector)))
     }
-    val x5019_1 = StreamPipeline(name = "x5019_1", parent=x5019, deps=List(x5019_0)) { implicit CU => 
+    val x5019_1 = StreamPipeline(name = "x5019_1", parent=x5019, deps=List(x5019_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4993 = CounterChain.copy(x5019, "x4993")
       val x4773 = CounterChain.copy(x5057, "x4773")
@@ -710,7 +710,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4363_x4996_addr_fifo.load), op=Bypass, results=List(x4363_x4996.readAddr))
       Stage(stage(2), operands=List(x4363_x4996.load, bus_1766_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x4990_vector)))
     }
-    val x5038_0 = Pipeline(name = "x5038_0", parent=x5057, deps=List(x5019)) { implicit CU => 
+    val x5038_0 = Pipeline(name = "x5038_0", parent=x5057, deps=List(x5019)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr65 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val ctr66 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
@@ -722,7 +722,7 @@ object GDADesign extends PIRApp {
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x4990_x5025.load, x4990_x5028.load), op=FltMul, results=List(CU.vecOut(stage(1), x4991_vector)))
     }
-    val x5055_0 = Pipeline(name = "x5055_0", parent=x5057, deps=List(x5038_0)) { implicit CU => 
+    val x5055_0 = Pipeline(name = "x5055_0", parent=x5057, deps=List(x5038_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1799 = CU.temp
       val tr1789 = CU.temp
@@ -749,14 +749,14 @@ object GDADesign extends PIRApp {
       Stage(stage(6), operands=List(CU.ctr(stage(5), x4785(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr1799)))
       Stage(stage(7), operands=List(CU.temp(stage(6), tr1799), CU.ctr(stage(6), x4785(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr1801)))
     }
-    val x5094 = StreamController(name = "x5094", parent=x5096, deps=List(x4853, x4921, x4989, x5057)) { implicit CU => 
+    val x5094 = StreamController(name = "x5094", parent=x5096, deps=List(x4853, x4921, x4989, x5057)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr51 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val ctr52 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x4355 = CounterChain(name = "x4355", ctr51, ctr52)
       var stage: List[Stage] = Nil
     }
-    val x5094_0 = StreamPipeline(name = "x5094_0", parent=x5094, deps=List()) { implicit CU => 
+    val x5094_0 = StreamPipeline(name = "x5094_0", parent=x5094, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1820 = CU.temp
       val tr1816 = CU.temp
@@ -769,10 +769,10 @@ object GDADesign extends PIRApp {
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1820), CU.ctr(stage(3), x4355(1))), op=FixAdd, results=List(CU.vecOut(stage(4), x4759_x5065_addr_vector)))
       Stage(stage(5), operands=List(CU.ctr(stage(4), x4355(0)), Const("48i")), op=FixMul, results=List(CU.vecOut(stage(5), bus_1824_vector)))
     }
-    val x5094_1 = StreamPipeline(name = "x5094_1", parent=x5094, deps=List(x5094_0)) { implicit CU => 
+    val x5094_1 = StreamPipeline(name = "x5094_1", parent=x5094, deps=List(x5094_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1828 = CU.temp
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val bus_1824_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_1824_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -781,7 +781,7 @@ object GDADesign extends PIRApp {
       Stage(stage(3), operands=List(CU.temp(stage(2), tr1828), CU.ctr(stage(2), x4355(1))), op=FixAdd, results=List(CU.vecOut(stage(3), x4761_x5071_addr_vector)))
       Stage(stage(4), operands=List(CU.ctr(stage(3), x4355(0)), Const("48i")), op=FixMul, results=List(CU.vecOut(stage(4), bus_1832_vector)))
     }
-    val x5094_2 = StreamPipeline(name = "x5094_2", parent=x5094, deps=List(x5094_1)) { implicit CU => 
+    val x5094_2 = StreamPipeline(name = "x5094_2", parent=x5094, deps=List(x5094_1)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4355 = CounterChain.copy(x5096, "x4355")
       val bus_1832_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_1832_vector)
@@ -789,13 +789,13 @@ object GDADesign extends PIRApp {
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(bus_1832_fifo.load, CU.ctr(stage(0), x4355(1))), op=FixAdd, results=List(CU.vecOut(stage(1), x4350_x5074_addr_vector)))
     }
-    val x5094_3 = StreamPipeline(name = "x5094_3", parent=x5094, deps=List(x5094_0)) { implicit CU => 
+    val x5094_3 = StreamPipeline(name = "x5094_3", parent=x5094, deps=List(x5094_0)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1805 = CU.temp
       val tr1804 = CU.temp
       val x4782 = CounterChain.copy(x4851_0, "x4782")
       val x4770 = CounterChain.copy(x4853, "x4770")
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4758_x5062 = SRAM(size = 2304, writeCtr = x4782(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4770(0))).wtPort(x4758_vector)
       val x4758_x5062_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4758_x5062_addr_vector)
       var stage: List[Stage] = Nil
@@ -806,13 +806,13 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4758_x5062_addr_fifo.load), op=Bypass, results=List(x4758_x5062.readAddr))
       Stage(stage(2), operands=List(x4758_x5062.load), op=Bypass, results=List(CU.vecOut(stage(2), x4758_x5062_data_vector)))
     }
-    val x5094_4 = StreamPipeline(name = "x5094_4", parent=x5094, deps=List(x5094_0, x5094_3)) { implicit CU => 
+    val x5094_4 = StreamPipeline(name = "x5094_4", parent=x5094, deps=List(x5094_0, x5094_3)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1808 = CU.temp
       val tr1807 = CU.temp
       val x4783 = CounterChain.copy(x4919_0, "x4783")
       val x4771 = CounterChain.copy(x4921, "x4771")
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4759_x5065 = SRAM(size = 2304, writeCtr = x4783(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4771(0))).wtPort(x4759_vector)
       val x4759_x5065_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4759_x5065_addr_vector)
       val x4758_x5062_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4758_x5062_data_vector)
@@ -824,13 +824,13 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4759_x5065_addr_fifo.load), op=Bypass, results=List(x4759_x5065.readAddr))
       Stage(stage(2), operands=List(x4758_x5062_data_fifo.load, x4759_x5065.load), op=FltAdd, results=List(CU.vecOut(stage(2), bus_1840_vector)))
     }
-    val x5094_5 = StreamPipeline(name = "x5094_5", parent=x5094, deps=List(x5094_1)) { implicit CU => 
+    val x5094_5 = StreamPipeline(name = "x5094_5", parent=x5094, deps=List(x5094_1)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1811 = CU.temp
       val tr1810 = CU.temp
       val x4772 = CounterChain.copy(x4989, "x4772")
       val x4784 = CounterChain.copy(x4987_0, "x4784")
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4760_x5068 = SRAM(size = 2304, writeCtr = x4784(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4772(0))).wtPort(x4760_vector)
       val x4760_x5068_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4760_x5068_addr_vector)
       var stage: List[Stage] = Nil
@@ -841,13 +841,13 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4760_x5068_addr_fifo.load), op=Bypass, results=List(x4760_x5068.readAddr))
       Stage(stage(2), operands=List(x4760_x5068.load), op=Bypass, results=List(CU.vecOut(stage(2), x4760_x5068_data_vector)))
     }
-    val x5094_6 = StreamPipeline(name = "x5094_6", parent=x5094, deps=List(x5094_1, x5094_5)) { implicit CU => 
+    val x5094_6 = StreamPipeline(name = "x5094_6", parent=x5094, deps=List(x5094_1, x5094_5)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1814 = CU.temp
       val tr1813 = CU.temp
       val x4785 = CounterChain.copy(x5055_0, "x4785")
       val x4773 = CounterChain.copy(x5057, "x4773")
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4761_x5071 = SRAM(size = 2304, writeCtr = x4785(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4773(0))).wtPort(x4761_vector)
       val x4761_x5071_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4761_x5071_addr_vector)
       val x4760_x5068_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4760_x5068_data_vector)
@@ -859,7 +859,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(x4761_x5071_addr_fifo.load), op=Bypass, results=List(x4761_x5071.readAddr))
       Stage(stage(2), operands=List(x4760_x5068_data_fifo.load, x4761_x5071.load), op=FltAdd, results=List(CU.vecOut(stage(2), bus_1843_vector)))
     }
-    val x5094_7 = StreamPipeline(name = "x5094_7", parent=x5094, deps=List(x5094_2, x5094_4, x5094_6)) { implicit CU => 
+    val x5094_7 = StreamPipeline(name = "x5094_7", parent=x5094, deps=List(x5094_2, x5094_4, x5094_6)) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1846 = CU.temp
       val tr1844 = CU.temp
@@ -877,18 +877,18 @@ object GDADesign extends PIRApp {
       Stage(stage(4), operands=List(CU.ctr(stage(3), x4355(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(4), tr1846)))
       Stage(stage(5), operands=List(CU.temp(stage(4), tr1846), CU.ctr(stage(4), x4355(1))), op=FixAdd, results=List(CU.wtAddr(stage(5), wr1848)))
     }
-    val x5118 = StreamController(name = "x5118", parent=x5120, deps=List(x5096)) { implicit CU => 
+    val x5118 = StreamController(name = "x5118", parent=x5120, deps=List(x5096)) { implicit CU =>
       val stage0 = CU.emptyStage
       val ctr71 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x5099 = CounterChain(name = "x5099", ctr71)
       var stage: List[Stage] = Nil
     }
-    val x5120_leafX = UnitPipeline(name = "x5120_leafX", parent=x5120, deps=List(x5118)) { implicit CU => 
+    val x5120_leafX = UnitPipeline(name = "x5120_leafX", parent=x5120, deps=List(x5118)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x5120_unitcc = CounterChain(name = "x5120_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x5103_0 = UnitPipeline(name = "x5103_0", parent=x5118, deps=List()) { implicit CU => 
+    val x5103_0 = UnitPipeline(name = "x5103_0", parent=x5118, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val x5099 = CounterChain.copy(x5118, "x5099")
       val x5103_unitcc = CounterChain(name = "x5103_unitcc", (Const("0i"), Const("1i"), Const("1i")))
@@ -897,7 +897,7 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.ctr(stage(0), x5099(0)), Const("48i")), op=FixMul, results=List(CU.scalarOut(stage(1), x5116_mc.ofs)))
       Stage(stage(2), operands=List(Const("48i")), op=Bypass, results=List(CU.scalarOut(stage(2), x5116_mc.len)))
     }
-    val x5114_0 = Pipeline(name = "x5114_0", parent=x5118, deps=List()) { implicit CU => 
+    val x5114_0 = Pipeline(name = "x5114_0", parent=x5118, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
       val tr1858 = CU.temp
       val tr1856 = CU.temp
@@ -916,13 +916,13 @@ object GDADesign extends PIRApp {
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1858), CU.ctr(stage(1), x5105(0))), op=FixAdd, results=List(x4350_x5108.readAddr))
       Stage(stage(3), operands=List(x4350_x5108.load), op=Bypass, results=List(CU.vecOut(stage(3), x5116_mc.vdata)))
     }
-    val x5096_leaf = UnitPipeline(name = "x5096_leaf", parent=x5096, deps=List(x5094, x4462_0, x4509, x4459, x4753_0, x4606, x4559_0, x4412, x4656_0, x4556, x4750, x4653, x4703)) { implicit CU => 
+    val x5096_leaf = UnitPipeline(name = "x5096_leaf", parent=x5096, deps=List(x5094, x4462_0, x4509, x4459, x4753_0, x4606, x4559_0, x4412, x4656_0, x4556, x4750, x4653, x4703)) { implicit CU =>
       val stage0 = CU.emptyStage
       val x4352 = CounterChain.copy(x5096, "x4352")
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094, "x4355")
       val x5096_unitcc = CounterChain(name = "x5096_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    
+
   }
 }
