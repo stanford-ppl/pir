@@ -16,9 +16,17 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
 
   val latency = Map[Controller,List[Int]]()
 
+  def hackLen(mc:MemoryController) = {
+    mc.len.writer.ctrler.asInstanceOf[UnitPipeline].stages.flatMap{ 
+      _.fu.fold(List[Node]())(_.operands.map(_.from.src)) }.collect { case Const(_, str) =>
+        val (num, tpe) = str.splitAt(str.length-1)
+      num.toInt
+    }.reduce[Int]{ case (a,b) => max(a,b) }
+  }
+
   def offchipLatency(mc:MemoryController) = {
-    val len = mc.len
-    contentionOf(mc) * 1000//TODO
+    val len = constOf.getOrElseUpdate(mc.len, hackLen(mc))
+    contentionOf(mc) * 40//TODO
   }
 
   def constProp(node:Node):Int = {
@@ -53,34 +61,45 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
   }
 
   def iter(cchain:CounterChain):Int = {
-    cchain.counters.map { ctr => iter(ctr) }.reduce{_*_}
+    val it = cchain.counters.map { ctr => iter(ctr) }.reduce{_*_}
+    iterOf(cchain.ctrler) = it
+    it
+  }
+
+  /* Latency of the outer controller if only run 1 iteration */
+  def singleIterLat(cl:Controller):Int = {
+    def accumLat(cl:ComputeUnit):Int = {
+      val pres = cl.dependencies
+      val myLat = cycleOf.getOrElseUpdate(cl, calcLatency(cl))
+      if (pres.size==0) myLat 
+      else myLat + pres.map{ dep => accumLat(dep) }.reduce[Int]{ case (a,b) => max(a,b) }
+    }
+    val lasts = cl.children.filter {_.isLast}
+    lasts.map { child => accumLat(child) }.reduce[Int]{ case (a,b) => max(a,b) }
   }
 
   def calcLatency(cl:Controller):Int = {
     cl match {
       case mc:MemoryController => cycleOf(mc) =  offchipLatency(mc)
-      case cl:UnitPipeline => cycleOf(cl) = numPStage 
-      case cl:Pipeline => cycleOf(cl) = iter(cl.localCChain) + (numPStage-1)
+      case cl:UnitPipeline => cycleOf(cl) = iter(cl.localCChain); numPStage 
+      case cl:Pipeline => cycleOf(cl) = (iter(cl.localCChain)-1) + numPStage 
+      case cl:StreamPipeline => cycleOf(cl) = numPStage 
       case cl:StreamController =>
-        val heads = cl.children.filter{ case (c:ComputeUnit) => c.isHead && c.isInstanceOf[Pipeline] }
-        val singLat = heads.map { child => 
-          cycleOf.getOrElseUpdate(child, calcLatency(child))
-        }.reduceOption[Int] { case (a,b) => max(a,b) }.getOrElse(1)
-        cycleOf(cl) = iter(cl.localCChain) + (singLat-1) //TODO this is not right
-      case cl:Sequential => 
-        def accumLat(cl:ComputeUnit):Int = {
-          val pres = cl.dependencies
-          val myLat = cycleOf.getOrElseUpdate(cl, calcLatency(cl))
-          if (pres.size==0) myLat 
-          else myLat + pres.map{ dep => accumLat(dep) }.reduce[Int]{ case (a,b) => max(a,b) }
+        val mcs = cl.children.collect { case mc:MemoryController => mc }
+        cl.children.foreach { cl => 
+          cl match { // Assert children of StreamController doesn't have a counter
+            case mc:MemoryController =>
+            case sp:StreamPipeline =>
+            case cu:UnitPipeline =>
+          }
         }
-        val lasts = cl.children.filter {_.isLast}
-        val singLat = lasts.map { child => accumLat(child) }.reduce[Int]{ case (a,b) => max(a,b) }
-        cycleOf(cl) = iter(cl.localCChain) * singLat 
+        cycleOf(cl) = (iter(cl.localCChain)-1) + singleIterLat(cl)
+      case cl:Sequential => 
+        cycleOf(cl) = iter(cl.localCChain) * singleIterLat(cl) 
       case cl:MetaPipeline => 
-        val singLat = cl.children.map { child => cycleOf.getOrElseUpdate(child, calcLatency(child)) }
+        val maxLat = cl.children.map { child => cycleOf.getOrElseUpdate(child, calcLatency(child)) }
           .reduce[Int]{ case (a,b) => max(a,b) }
-        cycleOf(cl) = iter(cl.localCChain) * singLat
+        cycleOf(cl) = (iter(cl.localCChain)-1)*maxLat + singleIterLat(cl) 
       case cl:Top =>
         assert(cl.children.size==1)
         val child = cl.children.head
@@ -90,7 +109,11 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
   }
 
   override def run = {
-    if (design.contentionAnalysis.isTraversed) super.run
+    if (design.contentionAnalysis.isTraversed) {
+      super.run
+      PIRStat.cycle(cycleOf(design.top))
+      iterOf(design.top) = 1
+    }
   }
 
   override def traverse:Unit = {

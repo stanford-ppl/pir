@@ -62,12 +62,6 @@ object DotProductDesign extends PIRApp {
       val x3235 = CounterChain(name = "x3235", ctr1)
       var stage: List[Stage] = Nil
     }
-    val x4603_leaf = UnitPipeline(name = "x4603_leaf", parent=x4603, deps=List(x3766, x3535, x3995, x4179, x4318, x3490, x4601, x3811, x3306, x3443, x4226, x3398, x3351, x4042, x3903, x3950, x4363, x3719, x4271, x3582, x3858, x4087, x3627, x3674, x4134)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x3235 = CounterChain.copy(x4603, "x3235")
-      val x4603_unitcc = CounterChain(name = "x4603_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x3306 = StreamController(name = "x3306", parent=x4603, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x3306_unitcc = CounterChain(name = "x3306_unitcc", (Const("0i"), Const("1i"), Const("1i")))
@@ -883,6 +877,12 @@ object DotProductDesign extends PIRApp {
       Stage(stage(1), operands=List(CU.scalarIn(stage(0), bus_4223_scalar), CU.scalarIn(stage(0), bus_4226_scalar)), op=FixAdd, results=List(CU.temp(stage(1), tr4227)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr4227), CU.scalarIn(stage(1), bus_4220_scalar)), op=FixAdd, results=List(CU.temp(stage(2), tr4228)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr4228), CU.accum(stage(3), ar4217)), op=FixAdd, results=List(CU.scalarOut(stage(3), x3154_argout), CU.accum(stage(3), ar4217)))
+    }
+    val x4603_leaf = UnitPipeline(name = "x4603_leaf", parent=x4603, deps=List(x3766, x3535, x3995, x4179, x4318, x3490, x4601, x3811, x3306, x3443, x4226, x3398, x3351, x4042, x3903, x3950, x4363, x3719, x4271, x3582, x3858, x4087, x3627, x3674, x4134)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x3235 = CounterChain.copy(x4603, "x3235")
+      val x4603_unitcc = CounterChain(name = "x4603_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

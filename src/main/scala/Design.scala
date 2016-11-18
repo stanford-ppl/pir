@@ -190,6 +190,7 @@ trait Design extends Metadata { self =>
   lazy val fusionTransform = new FusionTransform()
   lazy val contentionAnalysis = new ContentionAnalysis()
   lazy val latencyAnalysis = new LatencyAnalysis()
+  lazy val resourceAnalysis = new ResourceAnalysis()
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
   lazy val pirNetworkDotGen = new PIRNetworkDotGen()
@@ -214,11 +215,12 @@ trait Design extends Metadata { self =>
     traversals += fusionTransform 
     if (Config.modeling) traversals += contentionAnalysis 
     if (Config.modeling) traversals += latencyAnalysis
-    if (Config.modeling) traversals += new PIRStatLog()
     traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()
+    if (Config.modeling) traversals += resourceAnalysis
+    if (Config.modeling) traversals += new PIRStatLog()
     if (Config.ctrl) traversals += ctrlAlloc 
     traversals += new IRCheck()
     if (Config.debug && ctrlAlloc.isTraversed) traversals += ctrlDotPrinter 
@@ -253,6 +255,7 @@ trait Design extends Metadata { self =>
   val constMap:constOf.M = Map.empty
   val contentionMap:contentionOf.M = Map.empty
   val cycleMap:cycleOf.M = Map.empty
+  val iterMap:cycleOf.M = Map.empty
 }
 
 trait PIRApp extends Design{
@@ -269,7 +272,7 @@ trait PIRApp extends Design{
   }
 }
 
-trait Metadata extends IndexOf with VecOf with ContentionOf with ConstOf with CycleOf {}
+trait Metadata extends IndexOf with VecOf with ContentionOf with ConstOf with CycleOf with IterOf {}
 
 trait MetadataMap {
   type V
@@ -314,5 +317,12 @@ trait CycleOf {
   object cycleOf extends MetadataMap {
     type V = Int 
     def map(implicit design:Design) = design.cycleMap
+  }
+}
+trait IterOf {
+  /* Iteration estimates of each Controller */
+  object iterOf extends MetadataMap {
+    type V = Int 
+    def map(implicit design:Design) = design.iterMap
   }
 }

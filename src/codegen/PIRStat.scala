@@ -4,7 +4,7 @@ import pir.graph._
 import pir._
 import pir.codegen.{Printer, DotCodegen}
 import pir.misc._
-import java.util.Calendar
+import pir.graph.enums._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -17,7 +17,11 @@ object PIRStat extends Printer {
   override val stream:OutputStream = newStream(s"PIRStat.txt", append=true) 
   def cycle(cycle:Int)(implicit design: Design) = {
     val latency = cycle / Math.pow(10,9)
-    emitln(s"[${design}]${Calendar.getInstance().get(Calendar.HOUR_OF_DAY)} cycle:$cycle, latency:${latency}ns")
+    emit(s"[${design}] ${new java.sql.Timestamp(System.currentTimeMillis())} cycle:$cycle, latency:${latency}s, ")
+    flush
+  }
+  def numCUs(cu:Int, mc:Int) = {
+    emitln(s"cu:$cu, mc:$mc")
     flush
   }
 }
@@ -43,15 +47,28 @@ class PIRStatLog(fileName:String)(implicit design: Design) extends DFSTraversal 
     node match {
       case n:Controller =>
         n match {
+          case n:MemoryController => fields += s"cycles=${cycleOf(n)}"
           case n:StreamPipeline =>
           case n => fields += s"cycles=${cycleOf(n)}"
         }
         n match {
           case n:MemoryController =>
-            if (design.contentionAnalysis.isTraversed) {
-              fields += s"contention=${contentionOf(n)}"
+            fields += s"contention=${contentionOf(n)}"
+            n.mctpe match {
+              case (TileLoad | TileStore) => fields += s"len=${constOf(n.len)}"
+              case _ =>
             }
           case _ =>
+        }
+        n match {
+          case n:InnerController =>
+            val active = design.resourceAnalysis.activeCycle(n)
+            fields += s"active=${active}"
+          case _ =>
+        }
+        n match {
+          case n:StreamPipeline =>
+          case _ => fields += s"iter=${iterOf(n)}"
         }
       case p:Counter =>
         fields += s"min=${constOf.get(p.min)}, max=${constOf.get(p.max)}, step=${constOf.get(p.step)}"
@@ -72,7 +89,6 @@ class PIRStatLog(fileName:String)(implicit design: Design) extends DFSTraversal 
   override def run = {
     if (design.latencyAnalysis.isTraversed) {
       super.run
-      PIRStat.cycle(cycleOf(design.top))
     }
   }
   override def visitNode(node: Node) : Unit = {
