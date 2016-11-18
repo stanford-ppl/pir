@@ -57,12 +57,6 @@ object TPCHQ6Design extends PIRApp {
       val x4021 = CounterChain(name = "x4021", ctr1)
       var stage: List[Stage] = Nil
     }
-    val x4925_leaf = UnitPipeline(name = "x4925_leaf", parent=x4925, deps=List(x4448, x4538, x4356, x4311, x4630, x4583, x4129, x4401, x4923_0, x4266, x4174, x4219, x4675, x4765, x4493, x4084, x4720)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x4021 = CounterChain.copy(x4925, "x4021")
-      val x4925_unitcc = CounterChain(name = "x4925_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x4084 = StreamController(name = "x4084", parent=x4925, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x4084_unitcc = CounterChain(name = "x4084_unitcc", (Const("0i"), Const("1i"), Const("1i")))
@@ -712,6 +706,12 @@ object TPCHQ6Design extends PIRApp {
       Stage(stage(2), operands=List(CU.scalarIn(stage(1), x4772_scalar), CU.scalarIn(stage(1), x4773_scalar)), op=FixAdd, results=List(CU.temp(stage(2), tr1371)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr1370), CU.temp(stage(2), tr1371)), op=FixAdd, results=List(CU.temp(stage(3), tr1372)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr1372), CU.accum(stage(4), ar1369)), op=FixAdd, results=List(CU.scalarOut(stage(4), x4014_argout), CU.accum(stage(4), ar1369)))
+    }
+    val x4925_leaf = UnitPipeline(name = "x4925_leaf", parent=x4925, deps=List(x4448, x4538, x4356, x4311, x4630, x4583, x4129, x4401, x4923_0, x4266, x4174, x4219, x4675, x4765, x4493, x4084, x4720)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x4021 = CounterChain.copy(x4925, "x4021")
+      val x4925_unitcc = CounterChain(name = "x4925_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

@@ -340,13 +340,6 @@ object Kmeans_fissionDesign extends PIRApp {
       val x7300 = CounterChain(name = "x7300", ctr9)
       var stage: List[Stage] = Nil
     }
-    val x8360_leaf = UnitPipeline(name = "x8360_leaf", parent=x8360, deps=List(x7475, x7403, x7907, x7799, x7583, x7439, x7871, x7655, x7727, x7691, x7763, x8358, x7943, x7835, x7619, x7547, x7511)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x7303 = CounterChain.copy(x8360, "x7303")
-      val x7300 = CounterChain.copy(x8360, "x7300")
-      val x8360_unitcc = CounterChain(name = "x8360_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x7403 = MetaPipeline(name = "x7403", parent=x8360, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr15 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
@@ -397,7 +390,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6299 = CU.temp
       val tr6298 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7376 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7376_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7376_addr_vector)
       val bus_6313_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6313_vector)
@@ -413,7 +406,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7390_4 = StreamPipeline(name = "x7390_4", parent=x7390, deps=List(x7390_1, x7390_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6315 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7379 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7379_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7379_addr_vector)
       val bus_6314_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6314_vector)
@@ -496,7 +489,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6335 = CU.temp
       val tr6334 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7412 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7412_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7412_addr_vector)
       val bus_6349_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6349_vector)
@@ -512,7 +505,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7426_4 = StreamPipeline(name = "x7426_4", parent=x7426, deps=List(x7426_1, x7426_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6351 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7415 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7415_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7415_addr_vector)
       val bus_6350_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6350_vector)
@@ -595,7 +588,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6367 = CU.temp
       val tr6366 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7448 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7448_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7448_addr_vector)
       val bus_6385_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6385_vector)
@@ -611,7 +604,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7462_4 = StreamPipeline(name = "x7462_4", parent=x7462, deps=List(x7462_1, x7462_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6387 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7451 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7451_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7451_addr_vector)
       val bus_6386_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6386_vector)
@@ -694,7 +687,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6405 = CU.temp
       val tr6404 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7484 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7484_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7484_addr_vector)
       val bus_6421_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6421_vector)
@@ -710,7 +703,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7498_4 = StreamPipeline(name = "x7498_4", parent=x7498, deps=List(x7498_1, x7498_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6423 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7487 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7487_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7487_addr_vector)
       val bus_6422_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6422_vector)
@@ -793,7 +786,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6439 = CU.temp
       val tr6438 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7520 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7520_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7520_addr_vector)
       val bus_6457_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6457_vector)
@@ -809,7 +802,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7534_4 = StreamPipeline(name = "x7534_4", parent=x7534, deps=List(x7534_1, x7534_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6459 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7523 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7523_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7523_addr_vector)
       val bus_6458_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6458_vector)
@@ -892,7 +885,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6475 = CU.temp
       val tr6474 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7556 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7556_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7556_addr_vector)
       val bus_6493_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6493_vector)
@@ -908,7 +901,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7570_4 = StreamPipeline(name = "x7570_4", parent=x7570, deps=List(x7570_1, x7570_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6495 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7559 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7559_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7559_addr_vector)
       val bus_6494_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6494_vector)
@@ -991,7 +984,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6511 = CU.temp
       val tr6510 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7592 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7592_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7592_addr_vector)
       val bus_6529_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6529_vector)
@@ -1007,7 +1000,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7606_4 = StreamPipeline(name = "x7606_4", parent=x7606, deps=List(x7606_1, x7606_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6531 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7595 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7595_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7595_addr_vector)
       val bus_6530_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6530_vector)
@@ -1090,7 +1083,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6549 = CU.temp
       val tr6548 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7628 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7628_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7628_addr_vector)
       val bus_6565_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6565_vector)
@@ -1106,7 +1099,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7642_4 = StreamPipeline(name = "x7642_4", parent=x7642, deps=List(x7642_1, x7642_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6567 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7631 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7631_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7631_addr_vector)
       val bus_6566_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6566_vector)
@@ -1189,7 +1182,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6587 = CU.temp
       val tr6586 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7664 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7664_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7664_addr_vector)
       val bus_6601_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6601_vector)
@@ -1205,7 +1198,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7678_4 = StreamPipeline(name = "x7678_4", parent=x7678, deps=List(x7678_1, x7678_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6603 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7667 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7667_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7667_addr_vector)
       val bus_6602_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6602_vector)
@@ -1288,7 +1281,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6621 = CU.temp
       val tr6620 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7700 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7700_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7700_addr_vector)
       val bus_6637_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6637_vector)
@@ -1304,7 +1297,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7714_4 = StreamPipeline(name = "x7714_4", parent=x7714, deps=List(x7714_1, x7714_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6639 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7703 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7703_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7703_addr_vector)
       val bus_6638_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6638_vector)
@@ -1387,7 +1380,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6659 = CU.temp
       val tr6658 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7736 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7736_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7736_addr_vector)
       val bus_6673_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6673_vector)
@@ -1403,7 +1396,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7750_4 = StreamPipeline(name = "x7750_4", parent=x7750, deps=List(x7750_1, x7750_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6675 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7739 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7739_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7739_addr_vector)
       val bus_6674_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6674_vector)
@@ -1486,7 +1479,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6693 = CU.temp
       val tr6692 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7772 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7772_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7772_addr_vector)
       val bus_6709_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6709_vector)
@@ -1502,7 +1495,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7786_4 = StreamPipeline(name = "x7786_4", parent=x7786, deps=List(x7786_1, x7786_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6711 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7775 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7775_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7775_addr_vector)
       val bus_6710_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6710_vector)
@@ -1585,7 +1578,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6729 = CU.temp
       val tr6728 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7808 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7808_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7808_addr_vector)
       val bus_6745_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6745_vector)
@@ -1601,7 +1594,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7822_4 = StreamPipeline(name = "x7822_4", parent=x7822, deps=List(x7822_1, x7822_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6747 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7811 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7811_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7811_addr_vector)
       val bus_6746_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6746_vector)
@@ -1684,7 +1677,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6765 = CU.temp
       val tr6764 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7844 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7844_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7844_addr_vector)
       val bus_6781_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6781_vector)
@@ -1700,7 +1693,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7858_4 = StreamPipeline(name = "x7858_4", parent=x7858, deps=List(x7858_1, x7858_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6783 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7847 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7847_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7847_addr_vector)
       val bus_6782_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6782_vector)
@@ -1783,7 +1776,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6799 = CU.temp
       val tr6798 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7880 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7880_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7880_addr_vector)
       val bus_6817_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6817_vector)
@@ -1799,7 +1792,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7894_4 = StreamPipeline(name = "x7894_4", parent=x7894, deps=List(x7894_1, x7894_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6819 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7883 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7883_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7883_addr_vector)
       val bus_6818_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6818_vector)
@@ -1882,7 +1875,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr6835 = CU.temp
       val tr6834 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val x7245_x7916 = SRAM(size = 1920, writeCtr = x8379(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x7245_vector)
       val x7245_x7916_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7245_x7916_addr_vector)
       val bus_6853_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6853_vector)
@@ -1898,7 +1891,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x7930_4 = StreamPipeline(name = "x7930_4", parent=x7930, deps=List(x7930_1, x7930_3)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr6855 = CU.temp
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val x7251_x7919 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x7303(0))).wtPort(x7277_mc.vdata)
       val x7251_x7919_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x7251_x7919_addr_vector)
       val bus_6854_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_6854_vector)
@@ -2659,7 +2652,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val tr7360 = CU.temp
       val tr7359 = CU.temp
       val x8365 = CounterChain.copy(x8376_0, "x8365")
-      val x7303 = CounterChain.copy(x8358, "x7303")
+      val x7303 = CounterChain.copy("x8358", "x7303")
       val ctr101 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val ctr102 = (Const("0i").out, Const("96i").out, Const("16i").out) // Counter
       val x8379 = CounterChain(name = "x8379", ctr101, ctr102)
@@ -2680,7 +2673,7 @@ object Kmeans_fissionDesign extends PIRApp {
       val tr7375 = CU.temp
       val tr7373 = CU.temp
       val tr7372 = CU.temp
-      val x8379 = CounterChain.copy(x8395_0, "x8379")
+      val x8379 = CounterChain.copy("x8395_0", "x8379")
       val ctr105 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
       val ctr106 = (Const("0i").out, Const("96i").out, Const("16i").out) // Counter
       val x8401 = CounterChain(name = "x8401", ctr105, ctr106)
@@ -2704,7 +2697,6 @@ object Kmeans_fissionDesign extends PIRApp {
     val x8434_leafX = UnitPipeline(name = "x8434_leafX", parent=x8434, deps=List(x8432)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x8434_unitcc = CounterChain.copy(x8434, "x8434_unitcc")
-      val x8434_unitcc = CounterChain(name = "x8434_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
     val x8417_0 = UnitPipeline(name = "x8417_0", parent=x8432, deps=List()) { implicit CU => 
@@ -2729,6 +2721,13 @@ object Kmeans_fissionDesign extends PIRApp {
       Stage(stage(2), operands=List(CU.temp(stage(1), tr7387), CU.ctr(stage(1), x8401(1))), op=FixAdd, results=List(x8398_x8422.writeAddr, CU.temp(stage(2), tr7388)))
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x8398_x8422.load), op=Bypass, results=List(CU.vecOut(stage(1), x8430_mc.vdata)))
+    }
+    val x8360_leaf = UnitPipeline(name = "x8360_leaf", parent=x8360, deps=List(x7475, x7403, x7907, x7799, x7583, x7439, x7871, x7655, x7727, x7691, x7763, x8358, x7943, x7835, x7619, x7547, x7511)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x7303 = CounterChain.copy(x8360, "x7303")
+      val x7300 = CounterChain.copy(x8360, "x7300")
+      val x8360_unitcc = CounterChain(name = "x8360_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

@@ -34,15 +34,15 @@ class UnitCodegenTest extends UnitTest { self =>
 }
 
 class AppTest extends UnitTest { self =>
-  "DotProductDesign"    should "success" in { ArgInOutDesign.main(Array("DotProductDesign")) }
-  "OuterProductDesign"  should "success" in { ArgInOutDesign.main(Array("OuterProductDesign")) }
-  "TPCHQ6Design"        should "success" in { ArgInOutDesign.main(Array("TPCHQ6Design")) }
-  "BlackScholesDesign"  should "success" in { ArgInOutDesign.main(Array("BlackScholesDesign")) }
-  "MatMult_innerDesign" should "success" in { ArgInOutDesign.main(Array("MatMult_innerDesign")) }
-  "MatMult_outerDesign" should "success" in { ArgInOutDesign.main(Array("MatMult_outerDesign")) }
-  "LogRegDesign"        should "success" in { ArgInOutDesign.main(Array("LogRegDesign")) }
-  "SGDDesign"           should "success" in { ArgInOutDesign.main(Array("SGDDesign")) }
-  "KmeansDesign"        should "success" in { ArgInOutDesign.main(Array("KmeansDesign")) }
-  "GDADesign"           should "success" in { ArgInOutDesign.main(Array("GDADesign")) }
-  "PageRankDesign"      should "success" in { ArgInOutDesign.main(Array("PageRankDesign")) }
+  "DotProductDesign"    should "success" in { DotProductDesign.main(Array("DotProductDesign")) }
+  "OuterProductDesign"  should "success" in { OuterProductDesign.main(Array("OuterProductDesign")) }
+  "TPCHQ6Design"        should "success" in { TPCHQ6Design.main(Array("TPCHQ6Design")) }
+  "BlackScholesDesign"  should "success" in { BlackScholesDesign.main(Array("BlackScholesDesign")) }
+  "MatMult_innerDesign" should "success" in { MatMult_innerDesign.main(Array("MatMult_innerDesign")) }
+  //"MatMult_outerDesign" should "success" in { MatMult_outerDesign.main(Array("MatMult_outerDesign")) }
+  //"LogRegDesign"        should "success" in { LogRegDesign.main(Array("LogRegDesign")) }
+  //"SGDDesign"           should "success" in { SGDDesign.main(Array("SGDDesign")) }
+  //"KmeansDesign"        should "success" in { KmeansDesign.main(Array("KmeansDesign")) }
+  //"GDADesign"           should "success" in { GDADesign.main(Array("GDADesign")) }
+  //"PageRankDesign"      should "success" in { PageRankDesign.main(Array("PageRankDesign")) }
 }

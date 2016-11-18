@@ -102,8 +102,6 @@ object LogRegDesign extends PIRApp {
     }
     val x6531 = Sequential(name = "x6531", parent=x6533, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr3 = (Const("0i").out, Const("1i").out, Const("1i").out) // Counter
-      val x5569 = CounterChain(name = "x5569", ctr3)
       val ctr5 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
       val x5571 = CounterChain(name = "x5571", ctr5)
       var stage: List[Stage] = Nil
@@ -189,13 +187,6 @@ object LogRegDesign extends PIRApp {
       val x5672 = CounterChain(name = "x5672", ctr12)
       var stage: List[Stage] = Nil
     }
-    val x6509_leaf = UnitPipeline(name = "x6509_leaf", parent=x6509, deps=List(x6101_0, x5824, x6046_0, x5908, x5936, x5894, x6024_0, x5782, x6068_0, x5810, x6145_0, x6090_0, x5922, x6013_0, x6057_0, x5852, x6079_0, x5978, x6123_0, x6156_0, x5838, x5991_0, x5796, x5768, x6035_0, x6002_0, x6507, x5880, x5866, x6134_0, x5950, x5964, x6112_0)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x5674 = CounterChain.copy(x6509, "x5674")
-      val x5672 = CounterChain.copy(x6509, "x5672")
-      val x6509_unitcc = CounterChain(name = "x6509_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x5768 = StreamController(name = "x5768", parent=x6509, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr15 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
@@ -209,7 +200,6 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
       val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
       val x5575_x5757 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5760 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5739(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -240,8 +230,7 @@ object LogRegDesign extends PIRApp {
       val x5740 = CounterChain.copy(x5782, "x5740")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5771 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5774 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5740(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -271,8 +260,7 @@ object LogRegDesign extends PIRApp {
       val tr4818 = CU.temp
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5741 = CounterChain.copy(x5796, "x5741")
       val x5575_x5785 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5788 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5741(0)).wtAddr(x5571(0))
@@ -304,8 +292,7 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5742 = CounterChain.copy(x5810, "x5742")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5565_x5802 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5742(0)).wtAddr(x5571(0))
       val x5575_x5799 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       var stage: List[Stage] = Nil
@@ -336,8 +323,7 @@ object LogRegDesign extends PIRApp {
       val x5743 = CounterChain.copy(x5824, "x5743")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5565_x5816 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5743(0)).wtAddr(x5571(0))
       val x5575_x5813 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       var stage: List[Stage] = Nil
@@ -368,8 +354,7 @@ object LogRegDesign extends PIRApp {
       val x5744 = CounterChain.copy(x5838, "x5744")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5827 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5830 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5744(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -400,8 +385,7 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5745 = CounterChain.copy(x5852, "x5745")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5841 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5844 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5745(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -431,8 +415,7 @@ object LogRegDesign extends PIRApp {
       val tr4888 = CU.temp
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5746 = CounterChain.copy(x5866, "x5746")
       val x5565_x5858 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5746(0)).wtAddr(x5571(0))
       val x5575_x5855 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
@@ -464,8 +447,7 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5747 = CounterChain.copy(x5880, "x5747")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5869 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5872 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5747(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -496,8 +478,7 @@ object LogRegDesign extends PIRApp {
       val x5748 = CounterChain.copy(x5894, "x5748")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5883 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5886 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5748(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -528,8 +509,7 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5749 = CounterChain.copy(x5908, "x5749")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5565_x5900 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5749(0)).wtAddr(x5571(0))
       val x5575_x5897 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       var stage: List[Stage] = Nil
@@ -560,8 +540,7 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5750 = CounterChain.copy(x5922, "x5750")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5911 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5914 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5750(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -592,8 +571,7 @@ object LogRegDesign extends PIRApp {
       val x5751 = CounterChain.copy(x5936, "x5751")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5565_x5928 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5751(0)).wtAddr(x5571(0))
       val x5575_x5925 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       var stage: List[Stage] = Nil
@@ -624,8 +602,7 @@ object LogRegDesign extends PIRApp {
       val x5752 = CounterChain.copy(x5950, "x5752")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5939 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5942 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5752(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -656,8 +633,7 @@ object LogRegDesign extends PIRApp {
       val x5753 = CounterChain.copy(x5964, "x5753")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5575_x5953 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       val x5565_x5956 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5753(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
@@ -688,8 +664,7 @@ object LogRegDesign extends PIRApp {
       val x5754 = CounterChain.copy(x5978, "x5754")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5672 = CounterChain.copy(x6509, "x5672")
-      val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
+      val x5571 = CounterChain.copy("x6529_0", "x5571")
       val x5565_x5970 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x5754(0)).wtAddr(x5571(0))
       val x5575_x5967 = SemiFIFO(size = 1920, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0))).wtPort(x5602_mc.vdata)
       var stage: List[Stage] = Nil
@@ -1230,7 +1205,6 @@ object LogRegDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr5490 = CU.temp
       val tr5485 = CU.temp
-      val x5674 = CounterChain.copy(x6507, "x5674")
       val x6177 = CounterChain.copy(x6229_0, "x6177")
       val x6176 = CounterChain.copy(x6216_0, "x6176")
       val x6178 = CounterChain.copy(x6242_0, "x6178")
@@ -1253,7 +1227,6 @@ object LogRegDesign extends PIRApp {
       val x5674 = CounterChain.copy(x6507, "x5674")
       val x6180 = CounterChain.copy(x6268_0, "x6180")
       val x6182 = CounterChain.copy(x6294_0, "x6182")
-      val x5674 = CounterChain.copy(x6509, "x5674")
       val x6179 = CounterChain.copy(x6255_0, "x6179")
       val x6181 = CounterChain.copy(x6281_0, "x6181")
       val x5695_x6415 = SRAM(size = 192, writeCtr = x6179(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0), swapWrite = x6179(0))).wtPort(x5695_vector).rdAddr(x5674(0)).wtAddr(x6179(0))
@@ -1270,7 +1243,6 @@ object LogRegDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val x5674 = CounterChain.copy(x6507, "x5674")
       val x6184 = CounterChain.copy(x6320_0, "x6184")
-      val x5674 = CounterChain.copy(x6509, "x5674")
       val x6183 = CounterChain.copy(x6307_0, "x6183")
       val x5699_x6427 = SRAM(size = 192, writeCtr = x6183(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0), swapWrite = x6183(0))).wtPort(x5699_vector).rdAddr(x5674(0)).wtAddr(x6183(0))
       val x5700_x6430 = SRAM(size = 192, writeCtr = x6184(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0), swapWrite = x6184(0))).wtPort(x5700_vector).rdAddr(x5674(0)).wtAddr(x6184(0))
@@ -1286,7 +1258,6 @@ object LogRegDesign extends PIRApp {
       val tr5513 = CU.temp
       val x5674 = CounterChain.copy(x6507, "x5674")
       val x6185 = CounterChain.copy(x6333_0, "x6185")
-      val x5674 = CounterChain.copy(x6509, "x5674")
       val x6186 = CounterChain.copy(x6346_0, "x6186")
       val x5701_x6433 = SRAM(size = 192, writeCtr = x6185(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0), swapWrite = x6185(0))).wtPort(x5701_vector).rdAddr(x5674(0)).wtAddr(x6185(0))
       val x5702_x6436 = SRAM(size = 192, writeCtr = x6186(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x5674(0), swapWrite = x6186(0))).wtPort(x5702_vector).rdAddr(x5674(0)).wtAddr(x6186(0))
@@ -1302,7 +1273,6 @@ object LogRegDesign extends PIRApp {
       val tr5519 = CU.temp
       val x5674 = CounterChain.copy(x6507, "x5674")
       val x6189 = CounterChain.copy(x6385_0, "x6189")
-      val x5674 = CounterChain.copy(x6509, "x5674")
       val x6190 = CounterChain.copy(x6398_0, "x6190")
       val x6187 = CounterChain.copy(x6359_0, "x6187")
       val x6188 = CounterChain.copy(x6372_0, "x6188")
@@ -1320,7 +1290,6 @@ object LogRegDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr5527 = CU.temp
       val tr5526 = CU.temp
-      val x5674 = CounterChain.copy(x6507, "x5674")
       val x5674 = CounterChain.copy(x6509, "x5674")
       val x5572_x6451 = SRAM(size = 192, writeCtr = x5674(0), banking = Strided(1), buffering = SingleBuffer()).rdAddr(x5674(0))
       val bus_5514_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_5514_vector)
@@ -1354,12 +1323,6 @@ object LogRegDesign extends PIRApp {
       val x6553_unitcc = CounterChain(name = "x6553_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x6555_leafX = UnitPipeline(name = "x6555_leafX", parent=x6555, deps=List(x6553)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x6555_unitcc = CounterChain.copy(x6555, "x6555_unitcc")
-      val x6555_unitcc = CounterChain(name = "x6555_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x6538_0 = UnitPipeline(name = "x6538_0", parent=x6553, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x6538_unitcc = CounterChain(name = "x6538_unitcc", (Const("0i"), Const("1i"), Const("1i")))
@@ -1373,11 +1336,22 @@ object LogRegDesign extends PIRApp {
       val ctr51 = (Const("0i").out, Const("192i").out, Const("16i").out) // Counter
       val x6540 = CounterChain(name = "x6540", ctr51)
       val x5571 = CounterChain.copy(x6531, "x5571")
-      val x5571 = CounterChain.copy(x6529_0, "x5571")
       val x5565_x6543 = SRAM(size = 192, writeCtr = x5571(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x5565_vector).rdAddr(x6540(0)).wtAddr(x5571(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
       Stage(stage(1), operands=List(x5565_x6543.load), op=Bypass, results=List(CU.vecOut(stage(1), x6551_mc.vdata)))
+    }
+    val x6555_leafX = UnitPipeline(name = "x6555_leafX", parent=x6555, deps=List(x6553)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x6555_unitcc = CounterChain(name = "x6555_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
+    }
+    val x6509_leaf = UnitPipeline(name = "x6509_leaf", parent=x6509, deps=List(x6101_0, x5824, x6046_0, x5908, x5936, x5894, x6024_0, x5782, x6068_0, x5810, x6145_0, x6090_0, x5922, x6013_0, x6057_0, x5852, x6079_0, x5978, x6123_0, x6156_0, x5838, x5991_0, x5796, x5768, x6035_0, x6002_0, x6507, x5880, x5866, x6134_0, x5950, x5964, x6112_0)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x5674 = CounterChain.copy(x6509, "x5674")
+      val x5672 = CounterChain.copy(x6509, "x5672")
+      val x6509_unitcc = CounterChain(name = "x6509_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

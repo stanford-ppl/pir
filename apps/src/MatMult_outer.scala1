@@ -187,7 +187,7 @@ object MatMult_outerDesign extends PIRApp {
       val ctr14 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       val x6499 = CounterChain(name = "x6499", ctr13, ctr14)
       val ctr11 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
-      val x6496 = CounterChain(name = "x6496", ctr11)
+      val x6499 = CounterChain(name = "x6499", ctr11)
       var stage: List[Stage] = Nil
     }
     val x6579_0 = Pipeline(name = "x6579_0", parent=x6930, deps=List()) { implicit CU => 
@@ -506,7 +506,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2610 = CU.temp
       val tr2606 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(5)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x6499(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr2606)))
@@ -518,7 +517,6 @@ object MatMult_outerDesign extends PIRApp {
     val x6928_1 = StreamPipeline(name = "x6928_1", parent=x6928, deps=List(x6928_0)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr2618 = CU.temp
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2614_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2614_vector)
       var stage: List[Stage] = Nil
@@ -531,7 +529,6 @@ object MatMult_outerDesign extends PIRApp {
     val x6928_2 = StreamPipeline(name = "x6928_2", parent=x6928, deps=List(x6928_1)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr2626 = CU.temp
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2622_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2622_vector)
       var stage: List[Stage] = Nil
@@ -545,7 +542,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr2634 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2630_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2630_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -558,7 +554,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr2642 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2638_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2638_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -571,7 +566,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr2650 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2646_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2646_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -583,7 +577,6 @@ object MatMult_outerDesign extends PIRApp {
     val x6928_6 = StreamPipeline(name = "x6928_6", parent=x6928, deps=List(x6928_5)) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr2658 = CU.temp
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2654_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2654_vector)
       var stage: List[Stage] = Nil
@@ -597,7 +590,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr2666 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2662_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2662_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -609,7 +601,6 @@ object MatMult_outerDesign extends PIRApp {
     val x6928_8 = StreamPipeline(name = "x6928_8", parent=x6928, deps=List(x6928_7)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val bus_2670_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2670_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
@@ -622,7 +613,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2565 = CU.temp
       val tr2564 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6549 = CounterChain.copy(x6595_0, "x6549")
       val x6548 = CounterChain.copy(x6579_0, "x6548")
       val x6500_x6824 = SRAM(size = 768, writeCtr = x6548(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6548(0))).wtPort(x6500_vector)
@@ -648,7 +638,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2586 = CU.temp
       val tr2585 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6551 = CounterChain.copy(x6627_0, "x6551")
       val x6550 = CounterChain.copy(x6611_0, "x6550")
       val x6502_x6830 = SRAM(size = 768, writeCtr = x6550(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6550(0))).wtPort(x6502_vector)
@@ -682,7 +671,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2559 = CU.temp
       val tr2558 = CU.temp
       val x6552 = CounterChain.copy(x6643_0, "x6552")
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val x6553 = CounterChain.copy(x6659_0, "x6553")
       val x6505_x6839 = SRAM(size = 768, writeCtr = x6553(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6553(0))).wtPort(x6505_vector)
@@ -709,7 +697,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2561 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
       val x6555 = CounterChain.copy(x6691_0, "x6555")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6554 = CounterChain.copy(x6675_0, "x6554")
       val x6507_x6845 = SRAM(size = 768, writeCtr = x6555(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6555(0))).wtPort(x6507_vector)
       val x6506_x6842 = SRAM(size = 768, writeCtr = x6554(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6554(0))).wtPort(x6506_vector)
@@ -746,7 +733,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2594 = CU.temp
       val x6556 = CounterChain.copy(x6707_0, "x6556")
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6557 = CounterChain.copy(x6723_0, "x6557")
       val x6509_x6851 = SRAM(size = 768, writeCtr = x6557(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6557(0))).wtPort(x6509_vector)
       val x6508_x6848 = SRAM(size = 768, writeCtr = x6556(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6556(0))).wtPort(x6508_vector)
@@ -772,7 +758,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2576 = CU.temp
       val x6559 = CounterChain.copy(x6755_0, "x6559")
       val x6558 = CounterChain.copy(x6739_0, "x6558")
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val x6511_x6857 = SRAM(size = 768, writeCtr = x6559(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6559(0))).wtPort(x6511_vector)
       val x6510_x6854 = SRAM(size = 768, writeCtr = x6558(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6558(0))).wtPort(x6510_vector)
@@ -806,7 +791,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2570 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
       val x6560 = CounterChain.copy(x6771_0, "x6560")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6561 = CounterChain.copy(x6787_0, "x6561")
       val x6512_x6860 = SRAM(size = 768, writeCtr = x6560(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6560(0))).wtPort(x6512_vector)
       val x6513_x6863 = SRAM(size = 768, writeCtr = x6561(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6561(0))).wtPort(x6513_vector)
@@ -830,7 +814,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2588 = CU.temp
       val tr2580 = CU.temp
       val tr2579 = CU.temp
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val x6562 = CounterChain.copy(x6803_0, "x6562")
       val x6563 = CounterChain.copy(x6819_0, "x6563")
@@ -868,7 +851,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr2726 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6394_x6872 = SRAM(size = 768, writeCtr = x6499(0), banking = Strided(1), buffering = SingleBuffer())
       val x6394_x6872_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x6394_x6872_addr_vector)
       val bus_2724_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_2724_vector)
@@ -884,12 +866,6 @@ object MatMult_outerDesign extends PIRApp {
       val stage0 = CU.emptyStage
       val ctr53 = (Const("0i").out, Const("16i").out, Const("1i").out) // Counter
       val x6935 = CounterChain(name = "x6935", ctr53)
-      var stage: List[Stage] = Nil
-    }
-    val x6956_leafX = UnitPipeline(name = "x6956_leafX", parent=x6956, deps=List(x6954)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x6393 = CounterChain.copy(x6956, "x6393")
-      val x6956_unitcc = CounterChain(name = "x6956_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
     val x6939_0 = UnitPipeline(name = "x6939_0", parent=x6954, deps=List()) { implicit CU => 
@@ -912,7 +888,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2738 = CU.temp
       val tr2737 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6396 = CounterChain.copy(x6932, "x6396")
       val ctr55 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
       val x6941 = CounterChain(name = "x6941", ctr55)
@@ -926,6 +901,12 @@ object MatMult_outerDesign extends PIRApp {
       Stage(stage(1), operands=List(CU.ctr(stage(0), x6935(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr2740)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2740), CU.ctr(stage(1), x6941(0))), op=FixAdd, results=List(x6394_x6944.readAddr))
       Stage(stage(3), operands=List(x6394_x6944.load), op=Bypass, results=List(CU.vecOut(stage(3), x6952_mc.vdata)))
+    }
+    val x6956_leafX = UnitPipeline(name = "x6956_leafX", parent=x6956, deps=List(x6954)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x6393 = CounterChain.copy(x6956, "x6393")
+      val x6956_unitcc = CounterChain(name = "x6956_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

@@ -125,13 +125,6 @@ object GDADesign extends PIRApp {
       val x4355 = CounterChain(name = "x4355", ctr5, ctr6)
       var stage: List[Stage] = Nil
     }
-    val x5096_leaf = UnitPipeline(name = "x5096_leaf", parent=x5096, deps=List(x5094, x4462_0, x4509, x4459, x4753_0, x4606, x4559_0, x4412, x4656_0, x4556, x4750, x4653, x4703)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x4352 = CounterChain.copy(x5096, "x4352")
-      val x4355 = CounterChain.copy(x5096, "x4355")
-      val x5096_unitcc = CounterChain(name = "x5096_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x4412 = StreamController(name = "x4412", parent=x5096, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x4412_unitcc = CounterChain(name = "x4412_unitcc", (Const("0i"), Const("1i"), Const("1i")))
@@ -767,7 +760,6 @@ object GDADesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr1820 = CU.temp
       val tr1816 = CU.temp
-      val x4355 = CounterChain.copy(x5096, "x4355")
       val x4355 = CounterChain.copy(x5094, "x4355")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(5)
@@ -781,7 +773,6 @@ object GDADesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr1828 = CU.temp
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val bus_1824_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_1824_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
@@ -793,7 +784,6 @@ object GDADesign extends PIRApp {
     val x5094_2 = StreamPipeline(name = "x5094_2", parent=x5094, deps=List(x5094_1)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val bus_1832_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_1832_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
@@ -806,7 +796,6 @@ object GDADesign extends PIRApp {
       val x4782 = CounterChain.copy(x4851_0, "x4782")
       val x4770 = CounterChain.copy(x4853, "x4770")
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4758_x5062 = SRAM(size = 2304, writeCtr = x4782(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4770(0))).wtPort(x4758_vector)
       val x4758_x5062_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4758_x5062_addr_vector)
       var stage: List[Stage] = Nil
@@ -824,7 +813,6 @@ object GDADesign extends PIRApp {
       val x4783 = CounterChain.copy(x4919_0, "x4783")
       val x4771 = CounterChain.copy(x4921, "x4771")
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4759_x5065 = SRAM(size = 2304, writeCtr = x4783(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4771(0))).wtPort(x4759_vector)
       val x4759_x5065_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4759_x5065_addr_vector)
       val x4758_x5062_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4758_x5062_data_vector)
@@ -843,7 +831,6 @@ object GDADesign extends PIRApp {
       val x4772 = CounterChain.copy(x4989, "x4772")
       val x4784 = CounterChain.copy(x4987_0, "x4784")
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4760_x5068 = SRAM(size = 2304, writeCtr = x4784(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4772(0))).wtPort(x4760_vector)
       val x4760_x5068_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4760_x5068_addr_vector)
       var stage: List[Stage] = Nil
@@ -861,7 +848,6 @@ object GDADesign extends PIRApp {
       val x4785 = CounterChain.copy(x5055_0, "x4785")
       val x4773 = CounterChain.copy(x5057, "x4773")
       val x4355 = CounterChain.copy(x5096, "x4355")
-      val x4355 = CounterChain.copy(x5094, "x4355")
       val x4761_x5071 = SRAM(size = 2304, writeCtr = x4785(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x4355(0), swapWrite = x4773(0))).wtPort(x4761_vector)
       val x4761_x5071_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4761_x5071_addr_vector)
       val x4760_x5068_data_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4760_x5068_data_vector)
@@ -877,7 +863,6 @@ object GDADesign extends PIRApp {
       val stage0 = CU.emptyStage
       val tr1846 = CU.temp
       val tr1844 = CU.temp
-      val x4355 = CounterChain.copy(x5096, "x4355")
       val x4355 = CounterChain.copy(x5094, "x4355")
       val x4350_x5074 = SRAM(size = 2304, writeCtr = x4355(0), banking = Strided(1), buffering = SingleBuffer())
       val x4350_x5074_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x4350_x5074_addr_vector)
@@ -900,7 +885,6 @@ object GDADesign extends PIRApp {
     }
     val x5120_leafX = UnitPipeline(name = "x5120_leafX", parent=x5120, deps=List(x5118)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x5120_unitcc = CounterChain.copy(x5120, "x5120_unitcc")
       val x5120_unitcc = CounterChain(name = "x5120_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
@@ -922,7 +906,6 @@ object GDADesign extends PIRApp {
       val x5099 = CounterChain.copy(x5118, "x5099")
       val ctr73 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
       val x5105 = CounterChain(name = "x5105", ctr73)
-      val x4355 = CounterChain.copy(x5096, "x4355")
       val x4350_x5108 = SRAM(size = 2304, writeCtr = x4355(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x4350_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: WAStages(2, List(x4350_x5108))
@@ -932,6 +915,13 @@ object GDADesign extends PIRApp {
       Stage(stage(1), operands=List(CU.ctr(stage(0), x5099(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr1858)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1858), CU.ctr(stage(1), x5105(0))), op=FixAdd, results=List(x4350_x5108.readAddr))
       Stage(stage(3), operands=List(x4350_x5108.load), op=Bypass, results=List(CU.vecOut(stage(3), x5116_mc.vdata)))
+    }
+    val x5096_leaf = UnitPipeline(name = "x5096_leaf", parent=x5096, deps=List(x5094, x4462_0, x4509, x4459, x4753_0, x4606, x4559_0, x4412, x4656_0, x4556, x4750, x4653, x4703)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x4352 = CounterChain.copy(x5096, "x4352")
+      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x5096_unitcc = CounterChain(name = "x5096_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }

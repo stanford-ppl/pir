@@ -84,12 +84,6 @@ object MatMult_innerDesign extends PIRApp {
       val x5972 = CounterChain(name = "x5972", ctr1, ctr2)
       var stage: List[Stage] = Nil
     }
-    val x6920_leaf = UnitPipeline(name = "x6920_leaf", parent=x6920, deps=List(x6254, x6782, x6916, x6518, x6821, x6897, x6859, x6650, x6122, x6386, x6878, x6840)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x5972 = CounterChain.copy(x6920, "x5972")
-      val x6920_unitcc = CounterChain(name = "x6920_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x6122 = MetaPipeline(name = "x6122", parent=x6920, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr5 = (Const("0i").out, Const("3840i").out, Const("48i").out) // Counter
@@ -1271,6 +1265,12 @@ object MatMult_innerDesign extends PIRApp {
       Stage(stage(1), operands=List(CU.ctr(stage(0), x6802(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr2986)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2986), CU.ctr(stage(1), x6903(0))), op=FixAdd, results=List(x5978_x6906.readAddr))
       Stage(stage(3), operands=List(x5978_x6906.load), op=Bypass, results=List(CU.vecOut(stage(3), x6914_mc.vdata)))
+    }
+    val x6920_leaf = UnitPipeline(name = "x6920_leaf", parent=x6920, deps=List(x6254, x6782, x6916, x6518, x6821, x6897, x6859, x6650, x6122, x6386, x6878, x6840)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val x5972 = CounterChain.copy(x6920, "x5972")
+      val x6920_unitcc = CounterChain(name = "x6920_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      var stage: List[Stage] = Nil
     }
     
   }
