@@ -222,14 +222,14 @@ trait Design extends Metadata { self =>
     if (Config.modeling) traversals += resourceAnalysis
     if (Config.modeling) traversals += new PIRStatLog()
     if (Config.ctrl) traversals += ctrlAlloc 
-    traversals += new IRCheck()
-    if (Config.debug && ctrlAlloc.isTraversed) traversals += ctrlDotPrinter 
-    if (Config.debug && ctrlAlloc.isTraversed) traversals += pirCtrlNetworkDotGen
-    if (Config.debug && ctrlAlloc.isTraversed) traversals += ctrlPrinter 
-    if (Config.debug) traversals += pirPrinter 
-    if (Config.mapping) traversals += pirMapping 
-    if (Config.debug) traversals += spadeDotGen 
-    if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
+    //traversals += new IRCheck()
+    //if (Config.debug && ctrlAlloc.isTraversed) traversals += ctrlDotPrinter 
+    //if (Config.debug && ctrlAlloc.isTraversed) traversals += pirCtrlNetworkDotGen
+    //if (Config.debug && ctrlAlloc.isTraversed) traversals += ctrlPrinter 
+    //if (Config.debug) traversals += pirPrinter 
+    //if (Config.mapping) traversals += pirMapping 
+    //if (Config.debug) traversals += spadeDotGen 
+    //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals
   }
 

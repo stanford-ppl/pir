@@ -88,10 +88,11 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
     //contentionOf(mc) * numBytes / 64 * 40 //TODO
     if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
     } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
-    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
-    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
-    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
-    } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "LogRegDesign", TileStore)) {
+
+    } else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegDesign"*/ 768, TileLoad)) { 758
+    } else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 4, TileLoad)) {
+    } else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 768, TileStore)) {
+
     } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
     } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
     } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 

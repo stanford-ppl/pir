@@ -783,7 +783,7 @@ object GDADesign extends PIRApp {
     }
     val x5094_2 = StreamPipeline(name = "x5094_2", parent=x5094, deps=List(x5094_1)) { implicit CU =>
       val stage0 = CU.emptyStage
-      val x4355 = CounterChain.copy(x5096, "x4355")
+      val x4355 = CounterChain.copy(x5094_1, "x4355")
       val bus_1832_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_1832_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
