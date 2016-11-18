@@ -30,27 +30,9 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
 
   val sizeSet = Set[(Int, Int, MCType)]()
   //val offchipLat = Map[(Int, Int, MCType), Long]()
-  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
-  //offchipLat += (1  , 1   , TileLoad)    -> 100.toLong
-  //offchipLat += (48 , 3   , TileStore)  -> 100.toLong
-  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
-  //offchipLat += (1  , 125 , TileLoad)  -> 100.toLong
-  //offchipLat += (1  , 125 , TileStore) -> 100.toLong
-  //offchipLat += (16 , 1   , TileLoad)   -> 100.toLong
-  //offchipLat += (48 , 1   , TileLoad)   -> 100.toLong
-  //offchipLat += (16 , 3   , TileStore)  -> 100.toLong
 
   //val sizeSet = Set[(Int, String, MCType)]()
   val offchipLat = Map[(Int, String, MCType), Long]()
-  offchipLat += (1  , "DotProductDesign", TileLoad)  -> 788.toLong
-  offchipLat += (1  , "OuterProductDesign", TileLoad)    -> 56.toLong
-  offchipLat += (48 , "OuterProductDesign", TileStore)  -> 1324.toLong
-  offchipLat += (1  , "TPCHQ6Design", TileLoad)  -> 788.toLong
-  offchipLat += (1  , "BlackScholesDesign", TileLoad)  -> 788.toLong
-  offchipLat += (1  , "BlackScholesDesign", TileStore) -> 847.toLong
-  offchipLat += (16 , "MatMult_innerDesign", TileLoad)   -> 385.toLong
-  offchipLat += (48 , "MatMult_innerDesign", TileLoad)   -> 1078.toLong
-  offchipLat += (16 , "MatMult_innerDesign", TileStore)  -> 469.toLong
 
   offchipLat += (16 , "MatMult_outerDesign", TileLoad)   -> 385.toLong
   offchipLat += (48 , "MatMult_outerDesign", TileLoad)   -> 1078.toLong
@@ -87,7 +69,17 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
       sizeSet += comb
     }
     //contentionOf(mc) * numBytes / 64 * 40 //TODO
-    if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
+    if        ((numRow.toInt, s"$design", mc.mctpe) == (1,  "DotProductDesign", TileLoad)  ) { 788.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(1  , "OuterProductDesign", TileLoad)    ) { 56.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(48 , "OuterProductDesign", TileStore)  ) { 1324.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(1  , "TPCHQ6Design", TileLoad)  ) { 788.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(1  , "BlackScholesDesign", TileLoad)  ) { 788.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(1  , "BlackScholesDesign", TileStore) ) { 847.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(16 , "MatMult_innerDesign", TileLoad)   ) { 385.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(48 , "MatMult_innerDesign", TileLoad)   ) { 1078.toLong
+    } else if ((numRow.toInt, s"$design", mc.mctpe) ==(16 , "MatMult_innerDesign", TileStore)  ) { 469.toLong
+
+    } else if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
     } else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
 
     } else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegDesign"*/ 768, TileLoad)) { 758
