@@ -12,11 +12,13 @@ import Math._
 
 class LatencyAnalysis(implicit val design: Design) extends Traversal with Metadata {
 
+  val numPStage = 10 // Number of stages per CU 
+
   val latency = Map[Controller,List[Int]]()
 
   def offchipLatency(mc:MemoryController) = {
     val len = mc.len
-    contentionOf(mc) //TODO
+    contentionOf(mc) * 1000//TODO
   }
 
   def constProp(node:Node):Int = {
@@ -53,8 +55,6 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
   def iter(cchain:CounterChain):Int = {
     cchain.counters.map { ctr => iter(ctr) }.reduce{_*_}
   }
-
-  val numPStage = 10 // Number of stages per CU 
 
   def calcLatency(cl:Controller):Int = {
     cl match {

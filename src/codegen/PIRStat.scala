@@ -17,7 +17,8 @@ object PIRStat extends Printer {
   override val stream:OutputStream = newStream(s"PIRStat.txt", append=true) 
   def cycle(cycle:Int)(implicit design: Design) = {
     val latency = cycle / Math.pow(10,9)
-    emit(s"[${design}]${Calendar.getInstance()} cycle:$cycle, latency$latency")
+    emitln(s"[${design}]${Calendar.getInstance().get(Calendar.HOUR_OF_DAY)} cycle:$cycle, latency:${latency}ns")
+    flush
   }
 }
 class PIRStatLog(fileName:String)(implicit design: Design) extends DFSTraversal with Printer with Metadata {
@@ -69,7 +70,10 @@ class PIRStatLog(fileName:String)(implicit design: Design) extends DFSTraversal 
   }
 
   override def run = {
-    if (design.latencyAnalysis.isTraversed) super.run
+    if (design.latencyAnalysis.isTraversed) {
+      super.run
+      PIRStat.cycle(cycleOf(design.top))
+    }
   }
   override def visitNode(node: Node) : Unit = {
     node match {
