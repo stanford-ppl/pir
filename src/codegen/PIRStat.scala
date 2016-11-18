@@ -15,7 +15,7 @@ import java.io.File
 
 object PIRStat extends Printer {
   override val stream:OutputStream = newStream(s"PIRStat.txt", append=true) 
-  def cycle(cycle:Int)(implicit design: Design) = {
+  def cycle(cycle:Long)(implicit design: Design) = {
     val latency = cycle / Math.pow(10,9)
     emit(s"[${design}] ${new java.sql.Timestamp(System.currentTimeMillis())} cycle:$cycle, latency:${latency}s, ")
     flush

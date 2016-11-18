@@ -33,6 +33,8 @@ package object enums {
   case object FltNeq extends FltOp
   case object FltExp extends FltOp
   case object FltAbs extends FltOp
+  case object FltLog extends FltOp
+  case object FltSqrt extends FltOp
 
   sealed trait BitOp extends Op 
   case object BitAnd extends BitOp // &

@@ -16,7 +16,7 @@ class ResourceAnalysis(implicit val design: Design) extends Traversal with Metad
 
   val numPStage = 10 // Number of stages per CU 
 
-  val activeCycle = Map[Node, Int]()
+  val activeCycle = Map[Node, Long]()
 
   override def run = {
     if (design.contentionAnalysis.isTraversed && design.latencyAnalysis.isTraversed) super.run

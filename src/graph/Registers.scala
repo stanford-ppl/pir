@@ -125,7 +125,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = pipeReg(stage, scalarOutPR(s))
+  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = { pipeReg(stage, scalarOutPR(s)) }
  /** Create a pipeline register and a scalar buffer for a stage. 
   *  The pipeline register connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 

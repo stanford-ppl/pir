@@ -486,7 +486,6 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   private val _dataOut = if (mctpe==TileLoad || mctpe==Gatter) { Some(newVout(vdata)) } else None
   def dataIn = _dataIn.get
   def dataOut = {
-    println(this)
     _dataOut.get
   }
 

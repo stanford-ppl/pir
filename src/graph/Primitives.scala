@@ -7,7 +7,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
 import scala.reflect.runtime.universe._
-import pir.Design
+import pir.{Design, Config}
 import pir.graph._
 import pir.graph.enums._
 import pir.graph.mapper.PIRException
@@ -472,31 +472,36 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
   override def readers:List[DummyVecIn] = vector.readers
 }
 
-class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
+class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design)
+  extends Primitive {
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => 
     if (i==1) {
       //TODO: HACK on mod operation
-      op match {
-        case FixMod =>
-          assert(oprds.size==2)
-          val opB = oprds(i)
-          opB.src match {
-            case Const(_, str) =>
-              val (num, tpe) = str.splitAt(str.length-1)
-              if (tpe!="i") throw PIRException(s"Do not support mod of non integer value")
-              val numInt = num.toInt
-              val log = Math.log(numInt) / Math.log(2)
-              if (Math.round(log)==log) {
-                val const = Const(s"${Math.round(log)}i")
-                op = FixSra
-                InPort(this, const.out, s"$const")
-              } else
-                throw PIRException(s"Do not support mod of non power of 2 number")
-            case _ => throw PIRException(s"Do not support mod of non constant!")
-          }
-        case _ => InPort(this, oprds(i), s"${oprds(i)}")
+      if (!Config.modeling) {
+        op match {
+          case FixMod =>
+            assert(oprds.size==2)
+            val opB = oprds(i)
+            opB.src match {
+              case Const(_, str) =>
+                val (num, tpe) = str.splitAt(str.length-1)
+                if (tpe!="i") throw PIRException(s"Do not support mod of non integer value")
+                val numInt = num.toInt
+                val log = Math.log(numInt) / Math.log(2)
+                if (Math.round(log)==log) {
+                  val const = Const(s"${Math.round(log)}i")
+                  op = FixSra
+                  InPort(this, const.out, s"$const")
+                } else
+                  throw PIRException(s"Do not support mod of non power of 2 number")
+              case _ => throw PIRException(s"Do not support mod of non constant!")
+            }
+          case _ => InPort(this, oprds(i), s"${oprds(i)}")
+        }
+      } else {
+        InPort(this, oprds(i), s"${oprds(i)}")
       }
     } else {
       InPort(this, oprds(i), s"${oprds(i)}")

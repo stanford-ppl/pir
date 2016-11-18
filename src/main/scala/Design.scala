@@ -213,12 +213,12 @@ trait Design extends Metadata { self =>
     traversals += new ForwardRef()
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     traversals += fusionTransform 
-    if (Config.modeling) traversals += contentionAnalysis 
-    if (Config.modeling) traversals += latencyAnalysis
     traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()
+    if (Config.modeling) traversals += contentionAnalysis 
+    if (Config.modeling) traversals += latencyAnalysis
     if (Config.modeling) traversals += resourceAnalysis
     if (Config.modeling) traversals += new PIRStatLog()
     if (Config.ctrl) traversals += ctrlAlloc 
@@ -301,7 +301,7 @@ trait VecOf {
 trait ConstOf {
   /* Constant propogagion of the counter values */
   object constOf extends MetadataMap {
-    type V = Int 
+    type V = Long 
     def map(implicit design:Design) = design.constMap
   }
 }
@@ -315,14 +315,14 @@ trait ContentionOf {
 trait CycleOf {
   /* Cycle estimates of each Controller */
   object cycleOf extends MetadataMap {
-    type V = Int 
+    type V = Long 
     def map(implicit design:Design) = design.cycleMap
   }
 }
 trait IterOf {
   /* Iteration estimates of each Controller */
   object iterOf extends MetadataMap {
-    type V = Int 
+    type V = Long 
     def map(implicit design:Design) = design.iterMap
   }
 }
