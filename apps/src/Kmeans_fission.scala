@@ -2694,11 +2694,6 @@ object Kmeans_fissionDesign extends PIRApp {
       val x8432_unitcc = CounterChain(name = "x8432_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x8434_leafX = UnitPipeline(name = "x8434_leafX", parent=x8434, deps=List(x8432)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x8434_unitcc = CounterChain.copy(x8434, "x8434_unitcc")
-      var stage: List[Stage] = Nil
-    }
     val x8417_0 = UnitPipeline(name = "x8417_0", parent=x8432, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x8417_unitcc = CounterChain(name = "x8417_unitcc", (Const("0i"), Const("1i"), Const("1i")))
