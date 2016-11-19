@@ -118,7 +118,7 @@ object GDADesign extends PIRApp {
     }
     val x5096 = MetaPipeline(name = "x5096", parent=x5120, deps=List(x4305, x4347)) { implicit CU =>
       val stage0 = CU.emptyStage
-      val ctr3 = (Const("0i").out, Const("3840000i").out, Const("20i").out) // Counter
+      val ctr3 = (Const("0i").out, Const(s"${3840000/4}i").out, Const("20i").out) // Counter
       val x4352 = CounterChain(name = "x4352", ctr3)
       //val ctr5 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       //val ctr6 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter

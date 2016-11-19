@@ -103,7 +103,7 @@ object SGDDesign extends PIRApp {
     }
     val x7488 = Sequential(name = "x7488", parent=x7490, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
-      val ctr3 = (Const("0i").out, Const("38400i").out, Const("192i").out) // Counter
+      val ctr3 = (Const("0i").out, Const(s"${38400/12}i").out, Const("192i").out) // Counter
       val x6218 = CounterChain(name = "x6218", ctr3)
       var stage: List[Stage] = Nil
     }

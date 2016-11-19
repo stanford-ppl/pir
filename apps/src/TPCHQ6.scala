@@ -53,7 +53,7 @@ object TPCHQ6Design extends PIRApp {
     }
     val x4925 = MetaPipeline(name = "x4925", parent=x4931, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr1 = (Const("0i").out, Const("960000000i").out, Const("2000i").out) // Counter
+      val ctr1 = (Const("0i").out, Const(s"${960000000/4}i").out, Const("2000i").out) // Counter
       val x4021 = CounterChain(name = "x4021", ctr1)
       var stage: List[Stage] = Nil
     }

@@ -55,8 +55,8 @@ object OuterProductDesign extends PIRApp {
     }
     val x4974 = MetaPipeline(name = "x4974", parent=x4976, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr1 = (Const("0i").out, Const("38400i").out, Const("48i").out) // Counter
-      val ctr2 = (Const("0i").out, Const("38400i").out, Const("48i").out) // Counter
+      val ctr1 = (Const("0i").out, Const(s"${76800/6}i").out, Const("48i").out) // Counter
+      val ctr2 = (Const("0i").out, Const("76800i").out, Const("48i").out) // Counter
       val x4072 = CounterChain(name = "x4072", ctr1, ctr2)
       var stage: List[Stage] = Nil
     }
@@ -119,7 +119,7 @@ object OuterProductDesign extends PIRApp {
       val x4195_unitcc = CounterChain(name = "x4195_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr1891)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr1891)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1891), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4091_scalar)))
     }
     val x4198_0 = UnitPipeline(name = "x4198_0", parent=x4974, deps=List()) { implicit CU => 
@@ -129,7 +129,7 @@ object OuterProductDesign extends PIRApp {
       val x4198_unitcc = CounterChain(name = "x4198_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr1896)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr1896)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1896), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4873_mc.len), CU.scalarOut(stage(2), x4097_scalar)))
     }
     val x4245 = StreamController(name = "x4245", parent=x4974, deps=List()) { implicit CU => 
@@ -191,7 +191,7 @@ object OuterProductDesign extends PIRApp {
       val x4293_unitcc = CounterChain(name = "x4293_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr1949)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr1949)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1949), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4092_scalar)))
     }
     val x4296_0 = UnitPipeline(name = "x4296_0", parent=x4974, deps=List()) { implicit CU => 
@@ -201,7 +201,7 @@ object OuterProductDesign extends PIRApp {
       val x4296_unitcc = CounterChain(name = "x4296_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr1954)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr1954)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr1954), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4892_mc.len), CU.scalarOut(stage(2), x4098_scalar)))
     }
     val x4343 = StreamController(name = "x4343", parent=x4974, deps=List()) { implicit CU => 
@@ -263,7 +263,7 @@ object OuterProductDesign extends PIRApp {
       val x4391_unitcc = CounterChain(name = "x4391_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2007)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2007)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2007), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4093_scalar)))
     }
     val x4394_0 = UnitPipeline(name = "x4394_0", parent=x4974, deps=List()) { implicit CU => 
@@ -273,7 +273,7 @@ object OuterProductDesign extends PIRApp {
       val x4394_unitcc = CounterChain(name = "x4394_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2012)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2012)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2012), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4911_mc.len), CU.scalarOut(stage(2), x4099_scalar)))
     }
     val x4441 = StreamController(name = "x4441", parent=x4974, deps=List()) { implicit CU => 
@@ -335,7 +335,7 @@ object OuterProductDesign extends PIRApp {
       val x4489_unitcc = CounterChain(name = "x4489_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2065)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2065)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2065), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4094_scalar)))
     }
     val x4492_0 = UnitPipeline(name = "x4492_0", parent=x4974, deps=List()) { implicit CU => 
@@ -345,7 +345,7 @@ object OuterProductDesign extends PIRApp {
       val x4492_unitcc = CounterChain(name = "x4492_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2070)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2070)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2070), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4930_mc.len), CU.scalarOut(stage(2), x4100_scalar)))
     }
     val x4539 = StreamController(name = "x4539", parent=x4974, deps=List()) { implicit CU => 
@@ -407,7 +407,7 @@ object OuterProductDesign extends PIRApp {
       val x4587_unitcc = CounterChain(name = "x4587_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2123)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2123)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2123), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4095_scalar)))
     }
     val x4590_0 = UnitPipeline(name = "x4590_0", parent=x4974, deps=List()) { implicit CU => 
@@ -417,7 +417,7 @@ object OuterProductDesign extends PIRApp {
       val x4590_unitcc = CounterChain(name = "x4590_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2128)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2128)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2128), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4949_mc.len), CU.scalarOut(stage(2), x4101_scalar)))
     }
     val x4637 = StreamController(name = "x4637", parent=x4974, deps=List()) { implicit CU => 
@@ -479,7 +479,7 @@ object OuterProductDesign extends PIRApp {
       val x4685_unitcc = CounterChain(name = "x4685_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2181)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(0))), op=FixSub, results=List(CU.temp(stage(1), tr2181)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2181), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4096_scalar)))
     }
     val x4688_0 = UnitPipeline(name = "x4688_0", parent=x4974, deps=List()) { implicit CU => 
@@ -489,7 +489,7 @@ object OuterProductDesign extends PIRApp {
       val x4688_unitcc = CounterChain(name = "x4688_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(Const("38400i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2186)))
+      Stage(stage(1), operands=List(Const("76800i"), CU.ctr(stage(0), x4072(1))), op=FixSub, results=List(CU.temp(stage(1), tr2186)))
       Stage(stage(2), operands=List(CU.temp(stage(1), tr2186), Const("48i")), op=FixMin, results=List(CU.scalarOut(stage(2), x4968_mc.len), CU.scalarOut(stage(2), x4102_scalar)))
     }
     val x4756_0 = Pipeline(name = "x4756_0", parent=x4974, deps=List()) { implicit CU => 
@@ -574,7 +574,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4851(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2281)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2281), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2283)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2281), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2283)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2283), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4873_mc.ofs)))
     }
     val x4871_0 = Pipeline(name = "x4871_0", parent=x4875, deps=List()) { implicit CU => 
@@ -612,7 +612,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4852(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2302)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2302), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2304)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2302), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2304)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2304), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4892_mc.ofs)))
     }
     val x4890_0 = Pipeline(name = "x4890_0", parent=x4894, deps=List()) { implicit CU => 
@@ -650,7 +650,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4853(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2323)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2323), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2325)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2323), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2325)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2325), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4911_mc.ofs)))
     }
     val x4909_0 = Pipeline(name = "x4909_0", parent=x4913, deps=List()) { implicit CU => 
@@ -688,7 +688,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4854(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2344)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2344), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2346)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2344), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2346)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2346), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4930_mc.ofs)))
     }
     val x4928_0 = Pipeline(name = "x4928_0", parent=x4932, deps=List()) { implicit CU => 
@@ -726,7 +726,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4855(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2365)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2365), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2367)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2365), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2367)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2367), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4949_mc.ofs)))
     }
     val x4947_0 = Pipeline(name = "x4947_0", parent=x4951, deps=List()) { implicit CU => 
@@ -764,7 +764,7 @@ object OuterProductDesign extends PIRApp {
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x4072(0)), CU.ctr(stage(0), x4856(0))), op=FixAdd, results=List(CU.temp(stage(1), tr2386)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr2386), Const("38400i")), op=FixMul, results=List(CU.temp(stage(2), tr2388)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr2386), Const("76800i")), op=FixMul, results=List(CU.temp(stage(2), tr2388)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr2388), CU.ctr(stage(2), x4072(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x4968_mc.ofs)))
     }
     val x4966_0 = Pipeline(name = "x4966_0", parent=x4970, deps=List()) { implicit CU => 

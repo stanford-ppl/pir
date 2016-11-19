@@ -71,7 +71,7 @@ object BlackScholesDesign extends PIRApp {
     }
     val x4578 = MetaPipeline(name = "x4578", parent=x4580, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr1 = (Const("0i").out, Const("96000000i").out, Const("2000i").out) // Counter
+      val ctr1 = (Const("0i").out, Const(s"${96000000}i").out, Const("2000i").out) // Counter
       val x4164 = CounterChain(name = "x4164", ctr1)
       var stage: List[Stage] = Nil
     }

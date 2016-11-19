@@ -108,7 +108,7 @@ object LogRegDesign extends PIRApp {
     }
     val x6511 = MetaPipeline(name = "x6511", parent=x6531, deps=List()) { implicit CU =>
       val stage0 = CU.emptyStage
-      val ctr6 = (Const("0i").out, Const("384000i").out, Const("10i").out) // Counter
+      val ctr6 = (Const("0i").out, Const(s"${384000/16}i").out, Const("10i").out) // Counter
       val x5574 = CounterChain(name = "x5574", ctr6)
       var stage: List[Stage] = Nil
     }
