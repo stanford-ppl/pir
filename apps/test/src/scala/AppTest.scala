@@ -39,10 +39,11 @@ class AppTest extends UnitTest { self =>
   "TPCHQ6Design"        should "success" in { TPCHQ6Design.main(Array("TPCHQ6Design")) }
   "BlackScholesDesign"  should "success" in { BlackScholesDesign.main(Array("BlackScholesDesign")) }
   "MatMult_innerDesign" should "success" in { MatMult_innerDesign.main(Array("MatMult_innerDesign")) }
-  //"MatMult_outerDesign" should "success" in { MatMult_outerDesign.main(Array("MatMult_outerDesign")) }
-  //"LogRegDesign"        should "success" in { LogRegDesign.main(Array("LogRegDesign")) }
-  //"SGDDesign"           should "success" in { SGDDesign.main(Array("SGDDesign")) }
-  //"KmeansDesign"        should "success" in { KmeansDesign.main(Array("KmeansDesign")) }
-  //"GDADesign"           should "success" in { GDADesign.main(Array("GDADesign")) }
+  "MatMult_outerDesign" should "success" in { MatMult_outerDesign.main(Array("MatMult_outerDesign")) }
+  "LogRegDesign"        should "success" in { LogRegDesign.main(Array("LogRegDesign")) }
+  "SGDDesign"           should "success" in { SGDDesign.main(Array("SGDDesign")) }
+  "KmeansDesign"        should "success" in { Kmeans_fissionDesign.main(Array("KmeansDesign")) }
+  "GDADesign"           should "success" in { GDADesign.main(Array("GDADesign")) }
+  "Convolution"         should "success" in { Convolution.main(Array("ConvolutionDesign")) }
   //"PageRankDesign"      should "success" in { PageRankDesign.main(Array("PageRankDesign")) }
 }
