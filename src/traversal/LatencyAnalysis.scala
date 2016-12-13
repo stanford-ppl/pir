@@ -196,7 +196,7 @@ class LatencyAnalysis(implicit val design: Design) extends Traversal with Metada
     //} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileLoad)) { 
     //}
     //val comb = (numRow.toInt, s"$design", mc.mctpe)
-    offchipLat(comb)
+    offchipLat(comb) / 4 
   }
 
   def constProp(node:Node):Long = {

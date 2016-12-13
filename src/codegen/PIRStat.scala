@@ -21,7 +21,19 @@ object PIRStat extends Printer {
     flush
   }
   def numCUs(cu:Int, mc:Int) = {
-    emitln(s"cu:$cu, mc:$mc")
+    emit(s"cu:$cu, mc:$mc, ")
+    flush
+  }
+  def numRegs(reg:Int, totReg:Int) = {
+    emit(s"reg=${reg.toDouble / totReg.toDouble * 100}%, ")
+    flush
+  }
+  def numStages(alu:Int, totAlus:Int) = {
+    emitln(s"alu=${alu.toDouble / totAlus.toDouble}, ")
+    flush
+  }
+  def numSrams(srams:Int, totSrams:Int) = {
+    emitln(s"srams=${srams.toDouble / totSrams.toDouble}, ")
     flush
   }
 }
