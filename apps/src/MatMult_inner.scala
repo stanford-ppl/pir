@@ -80,13 +80,13 @@ object MatMult_innerDesign extends PIRApp {
     val x6920 = MetaPipeline(name = "x6920", parent=x6922, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr1 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
-      val ctr2 = (Const("0i").out, Const("7680i").out, Const("48i").out) // Counter
+      val ctr2 = (Const("0i").out, Const(s"${7680/6}i").out, Const("48i").out) // Counter
       val x5972 = CounterChain(name = "x5972", ctr1, ctr2)
       var stage: List[Stage] = Nil
     }
     val x6122 = MetaPipeline(name = "x6122", parent=x6920, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr5 = (Const("0i").out, Const(s"${3840/6}i").out, Const("48i").out) // Counter
+      val ctr5 = (Const("0i").out, Const("3840i").out, Const("48i").out) // Counter
       val x5985 = CounterChain(name = "x5985", ctr5)
       var stage: List[Stage] = Nil
     }

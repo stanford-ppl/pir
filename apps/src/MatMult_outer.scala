@@ -186,7 +186,7 @@ object MatMult_outerDesign extends PIRApp {
       //val ctr13 = (Const("0i").out, Const("16i").out, Const("1i").out) // Counter
       //val ctr14 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
       //val x6499 = CounterChain(name = "x6499", ctr13, ctr14)
-      val ctr11 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr11 = (Const("0i").out, Const("3i").out, Const("1i").out) // Counter
       val x6496 = CounterChain(name = "x6496", ctr11)
       var stage: List[Stage] = Nil
     }
