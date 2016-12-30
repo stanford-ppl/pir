@@ -63,15 +63,24 @@ object ForwardRef {
       //TODO: hack add dep and parent of MemoryController here
       inner match {
         case mc:MemoryController =>
-          val addrPipe = mc.ofs.writer.ctrler.asInstanceOf[InnerController]
+          val addrPipe = mc.mctpe match {
+            case (TileLoad | TileStore) => mc.ofs.writer.ctrler.asInstanceOf[InnerController]
+            case (Gatter | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
+          }
           mc.addDep(addrPipe)
           mc.parent(addrPipe.parent)
           mc.parent.addChildren(mc)
-          val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
-          if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
           mc.mctpe match {
             case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
-            case TileStore => mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+              val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
+              if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+            case TileStore =>
+              mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+              val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
+              if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+            case Gatter =>
+            case Scatter =>
+              mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
           }
         case icu:InnerController =>
       }

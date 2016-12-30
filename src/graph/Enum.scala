@@ -33,6 +33,8 @@ package object enums {
   case object FltNeq extends FltOp
   case object FltExp extends FltOp
   case object FltAbs extends FltOp
+  case object FltLog extends FltOp
+  case object FltSqrt extends FltOp
 
   sealed trait BitOp extends Op 
   case object BitAnd extends BitOp // &
@@ -57,6 +59,8 @@ package object enums {
   sealed trait MCType 
   case object TileLoad extends MCType 
   case object TileStore extends MCType 
+  case object Scatter extends MCType 
+  case object Gatter extends MCType 
   
   sealed trait Banking
   case class Strided(stride:Int) extends Banking
@@ -65,7 +69,12 @@ package object enums {
   case class NoBanking() extends Banking
 
   sealed trait Buffering 
-  case class MultiBuffer(depth:Int, swapRead:Counter, swapWrite:Counter) extends Buffering
+  case class MultiBuffer(depth:Int, swapRead:Counter, var swapWrite:Counter) extends Buffering
+  object MultiBuffer {
+    def apply(depth:Int, swapRead:Counter):MultiBuffer = {
+      MultiBuffer(depth, swapRead, null) // Updated later
+    }
+  }
   case class DoubleBuffer(swapRead:Counter, swapWrite:Counter) extends Buffering
   case class SingleBuffer() extends Buffering
 

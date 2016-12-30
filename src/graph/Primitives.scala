@@ -7,7 +7,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
 import scala.reflect.runtime.universe._
-import pir.Design
+import pir.{Design, Config}
 import pir.graph._
 import pir.graph.enums._
 import pir.graph.mapper.PIRException
@@ -44,10 +44,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * Whether CounterChain is a copy of other CounterChain
    * */
   def isCopy = copy.isDefined
-  def isLocal = (!isCopy) && (ctrler match { 
-    case tt:TileTransfer => tt.mctpe==TileLoad && streaming==false
-    case _ => true 
-  }) 
+  def isLocal = !isCopy
+    
   /*
    * Whether CounterChain is not a copy or is a copy and has been updated
    * */
@@ -56,9 +54,6 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * The original copy of this CounterChain
    * */
   lazy val original = copy.fold(this) { e => e.right.get}
-
-  var streaming = false
-  def isStreaming(s:Boolean) = streaming = s
 
   override def toUpdate = super.toUpdate
 
