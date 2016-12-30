@@ -15,11 +15,11 @@ object Config {
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
   var mapping = getProperty("pir.mapping", "false") == "true"
-  var modeling = getProperty("pir.modeling", "true") == "true"
+  var modeling = getProperty("pir.modeling", "true") == "false"
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = false
+  var ctrl = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var pirStat = getProperty("pir.pirstat", "Stat.txt")
