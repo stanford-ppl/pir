@@ -14,7 +14,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import scala.util.{Failure, Success, Try}
 
-class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper {
+class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(implicit val design:Design) extends CUMapper with PlaceAndRoute {
 
   var debugRouting = false 
   def this (outputMapper:OutputMapper, ctrlMapper:CtrlMapper)(implicit design:Design) = {
@@ -24,14 +24,14 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
      )
   }
 
-  type Edge = CUSwitchMapper.Edge 
-  type Path = CUSwitchMapper.Path 
-  type PathMap = CUSwitchMapper.PathMap 
-
   val typeStr = "CUSwitchMapper"
   override implicit val mapper:CUSwitchMapper = this
 
   override val exceptLimit = 200
+
+  val minHop = 1
+  val maxHop = 7
+
   // DEBUG
   val failPass:Throwable=>Unit = if (debugRouting) {
     {
@@ -123,8 +123,8 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
   }
 
-  val minHop = 1
-  val maxHop = 7
+  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
+    advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
 
   def getRoute(cl:SCL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
@@ -145,7 +145,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
       val scu = m.clmap.pmap(start)
       throw NotReachable(scu, start, cl, m.clmap.get(cl))
     }
-    CUSwitchMapper.filterUsedRoutes(routes, m)
+    filterUsedRoutes(routes, m)
   }
   // Map inputs of the current cu. If source of the input is not mapped, postpond mapping of the
   // input until the source is mapped.
@@ -226,108 +226,5 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
   }
 
-  def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
-    CUSwitchMapper.advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
 }
-object CUSwitchMapper {
-  type Edge = (POB, PIB)
-  type Path = List[Edge]
-  type PathMap = List[(PCL, Path)]
-  def quote(io:PIO[PNE])(implicit design:Design):String = {
-    io.src match {
-      case cu:PCU => io.toString
-      case sb:PSB => DotCodegen.quote(sb) 
-      case top:PTop => top.toString
-    }
-  }
-  def quote(path:CUSwitchMapper.Path)(implicit design:Design):String = {
-    path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
-  }
 
-  /* 
-   * Traverse interconnection graph to find qualified neighbor PCUs recursively that's within hop
-   * count range minHop and maxHop (exclusive) around the starting CU. Return a list of  
-   * reachable pcu and corresponding path to reach pcu based sorted by hop count
-   * Returns a list of [reachedCU, path from start to reachedCU]
-   * @param start starting Spade cu of traversal 
-   * @param validCons condition on whether the path is valid based on the last CU encountered and the
-   * current path 
-   * @param advanceCons condition on whether continue advancing based on the current switchbox
-   * encountered and path went through so far 
-   * */
-  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
-    advanceDFS(vouts)(start, validCons, advanceCons)
-  }
-
-  def advanceDFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
-    def rec(pne:PNE, path:Path, map:PathMap):PathMap = {
-      val visited = path.map{ case (f,t) => f.src }
-      if (visited.contains(pne)) return map
-      //Prioritize visiting PCU to finish faster on hit
-      val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
-      vos.foldLeft(map) { case (preMap, vout) =>
-        vout.fanOuts.foldLeft(preMap) { case (pm, vin) =>
-          val newPath = path :+ (vout, vin)
-          vin.src match {
-            case cl:PCU if validCons(vin, newPath) => pm :+ (cl, newPath)
-            case cl:PTop if validCons(vin, newPath) => pm :+ (cl, newPath)
-            case sb:PSB if advanceCons(sb, newPath) => rec(vin.src, newPath, pm)
-            case _ =>  pm 
-          }
-        }
-      }
-    }
-    rec(start, Nil, Nil).sortWith(_._2.size < _._2.size)
-  }
-
-  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean)(implicit design:Design):PathMap = {
-    val result = ListBuffer[(PCL, Path)]()
-    val paths = Queue[Path]()
-    paths += Nil
-    while (paths.size!=0) {
-      val path =  paths.dequeue
-      val pne:PNE = path.lastOption.fold[PNE](start) { _._2.src }
-      val visited = path.map{ case (f,t) => f.src }
-      if (!visited.contains(pne)) {
-        val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
-        vos.foreach { vout =>
-          vout.fanOuts.foreach { vin =>
-            val newPath = path :+ (vout, vin)
-            vin.src match {
-              case cl:PCU if validCons(vin, newPath) => result += (cl ->newPath)
-              case cl:PTop if validCons(vin, newPath) => result += (cl ->newPath)
-              case sb:PSB if advanceCons(sb, newPath) => paths += newPath
-              case _ =>
-            }
-          }
-        }
-      }
-    }
-    result.toList
-  }
-
-  def filterUsedRoutes(routes:PathMap, map:PIRMap):PathMap = {
-    routes.filterNot { case r@(reached, path) =>
-      path.zipWithIndex.exists { case ((vout, vin), i) =>
-        val vinTaken = map.vimap.pmap.contains(vin)
-        if (vinTaken) assert(vin.src.isInstanceOf[PCL])
-        //val edgeTaken = map.fbmap.get(vin).fold(false) { vo =>
-          //(vo != vout) //TODO edge consider not taken if have the same mapping. Potential risk here?
-        //}
-        val edgeTaken = map.fbmap.contains(vin)
-        val switchTaken = {
-          if (vout.src.isInstanceOf[PSB]) {
-            // Check switch box
-            val to = vout.voport
-            val from = path(i - 1)._2.viport
-            map.fpmap.contains(to)
-            //map.fpmap.get(to).fold(false) {
-              //_ != from
-            //}
-          } else false
-        } // no edge has been taken
-        vinTaken || edgeTaken || switchTaken
-      }
-    }
-  }
-}

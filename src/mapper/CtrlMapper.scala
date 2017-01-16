@@ -14,7 +14,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 
-class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
+class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRoute with Metadata {
   implicit lazy val spade:Spade = design.arch
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
@@ -28,13 +28,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
     warn("debugCtrlMapper is on, could be slow!")
   }
 
-  type Edge = CUSwitchMapper.Edge
-  type Path = CUSwitchMapper.Path
-  type FatEdge = List[Edge] 
-  type FatPaths = List[(PCL, FatPath)]
-  type FatPath = List[FatEdge]
-  type PathMap = CUSwitchMapper.PathMap 
-  
   // DEBUG
   val failPass:Throwable=>Unit = if (debugRouting) {
     {
@@ -276,81 +269,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
       }
     }
     //CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
-    CtrlMapper.advance(vouts _)(start, validCons, advanceCons)
+    advance(vouts _)(start, validCons, advanceCons)
     //advanceBFS(vouts _)(start, validCons, advanceCons)
   }
-  def filterUsedRoutes(routes:FatPaths, map:PIRMap)(implicit design:Design):PathMap
-    = CtrlMapper.filterUsedRoutes(routes, map)
-  def isFatPathValid(fatpath:FatPath) = CtrlMapper.isFatPathValid(fatpath) 
-}
-object CtrlMapper {
-  type Edge = CUSwitchMapper.Edge
-  type Path = CUSwitchMapper.Path
-  type FatEdge = List[Edge] 
-  type FatPaths = List[(PCL, FatPath)]
-  type FatPath = List[FatEdge]
-  type PathMap = CUSwitchMapper.PathMap 
-
-  def advance(vouts:PNE => List[POB])(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], 
-      advanceCons:(PSB, FatPath) => Boolean)(implicit design:Design):FatPaths
-    = advanceBFS(vouts)(start, validCons, advanceCons)
-
-  def advanceBFS(vouts:PNE => List[POB])(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], 
-      advanceCons:(PSB, FatPath) => Boolean)(implicit design:Design):FatPaths = {
-    val result = ListBuffer[(PCL, FatPath)]()
-    val fatpaths = Queue[FatPath]()
-    fatpaths += Nil
-    while (fatpaths.size!=0) {
-      val fatpath =  fatpaths.dequeue
-      //fatpath.reduce { case ((i1, o1), (i2, o2)) => assert((i1==i2) && (o1==o2)) }
-      val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
-      val visited = fatpath.map{_.head}.map{ case (f,t) => f.src }
-      if (!visited.contains(pne)) {
-        val vos = vouts(pne).sortWith{ case (vo1, vo2) => vo1.src.isInstanceOf[PCU] || !vo2.src.isInstanceOf[PCU] }
-        val edges = vos.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
-        val bundle = edges.groupBy { case (vo, vi) => (vo.src, vi.src) }
-        bundle.foreach { case ((fpne, tpne), fatEdge) =>
-          val newPath = fatpath :+ fatEdge 
-          tpne match {
-            case cl:PCU => 
-              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
-            case cl:PTop =>
-              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
-            case sb:PSB if advanceCons(sb, newPath) => fatpaths += newPath
-            case _ =>
-          }
-        }
-      }
-    }
-    result.toList
-  }
-
-  def filterUsedRoutes(routes:FatPaths, map:PIRMap)(implicit design:Design):PathMap = {
-    val availableRoutes = routes.flatMap { case (reached, fatpath) =>
-      val filteredFatpath = fatpath.map { fatedge => // Find fatpath that has empty fatEdge after filter
-        fatedge.filterNot { case (vout, vin) => // available edges
-          val vinTaken = map.vimap.pmap.contains(vin)
-          if (vinTaken) assert(vin.src.isInstanceOf[PCL])
-          val voutTaken = map.vomap.pmap.contains(vout)
-          val edgeTaken = map.fbmap.contains(vin)
-          val switchTaken = {
-            if (vout.src.isInstanceOf[PSB]) {
-              val to = vout.voport // Check switch box
-              map.fpmap.contains(to) // Conservative here
-            } else false
-          }
-          vinTaken || voutTaken || edgeTaken || switchTaken
-        }
-      }
-      if (isFatPathValid(filteredFatpath)) Some((reached, filteredFatpath)) else None
-    }
-    availableRoutes.map { case (reachedCU, fatpath) =>
-      (reachedCU, fatpath.map{ fatedge => fatedge.head }) // For any fatpath, pick the first avalable edge
-    }
-  }
-
-  def isFatPathValid(fatpath:FatPath) = { !fatpath.exists{_.size==0} }
-
 }
 
 case class BindingException(cl:SCL, pcl:PCL, except:NotReachable)(implicit val mapper:Mapper, design:Design) extends MappingException {
