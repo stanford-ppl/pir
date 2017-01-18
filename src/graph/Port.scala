@@ -117,7 +117,9 @@ trait CtrlPort extends Port {
   }
 }
 trait CtrlInPort extends InPort with CtrlPort { 
-  def isCtrlIn = { from.asInstanceOf[CtrlOutPort].ctrler != ctrler }
+  def isCtrlIn = { 
+    isConnected && from.asInstanceOf[CtrlOutPort].ctrler != ctrler
+  }
 }
 object CtrlInPort extends Metadata {
   def apply[S<:Node](s:S, toStr: => String)(implicit design:Design):CtrlInPort = {

@@ -191,6 +191,7 @@ trait Design extends Metadata { self =>
   lazy val ctrlDotPrinter = new CtrlDotGen()
   lazy val pirPrinter = new PIRPrinter()
   lazy val pirNetworkDotGen = new PIRNetworkDotGen()
+  lazy val ctrlAlloc = new CtrlAlloc()
   lazy val pirCtrlNetworkDotGen = new PIRCtrlNetworkDotGen()
   lazy val pirMapping = new PIRMapping()
   lazy val cuDotPrinter = new CUDotPrinter()
@@ -209,35 +210,35 @@ trait Design extends Metadata { self =>
     traversals += new ForwardRef()
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     //traversals += fusionTransform 
-    traversals += new ScalarBundling()
+    //traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
     if (Config.debug) traversals += pirNetworkDotGen
     traversals += new LiveAnalysis()
-    traversals += new CtrlAlloc()
-    traversals += new IRCheck()
-    if (Config.debug) traversals += ctrlDotPrinter 
-    if (Config.debug) traversals += pirCtrlNetworkDotGen
-    if (Config.debug) traversals += ctrlPrinter 
-    if (Config.debug) traversals += pirPrinter 
-    if (Config.mapping) traversals += pirMapping 
-    if (Config.debug) traversals += spadeDotGen 
-    if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
+    if (Config.ctrl) traversals += ctrlAlloc 
+    //traversals += new IRCheck()
+    if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
+    if (Config.debug && Config.ctrl) traversals += pirCtrlNetworkDotGen
+    if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
+    //if (Config.debug) traversals += pirPrinter 
+    //if (Config.mapping) traversals += pirMapping 
+    //if (Config.debug) traversals += spadeDotGen 
+    //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals
   }
 
   def run = {
-    try {
+    //try {
       traversals.foreach(_.run)
-      if (pirMapping.fail) throw PIRException(s"Mapping Failed")
-    } catch {
-      case e:PIRException => 
-        if (!pirPrinter.isTraversed) pirPrinter.run
-        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        if (!spadeDotGen.isTraversed) spadeDotGen.run
-        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        throw e
-      case e:Throwable => throw e
-    }
+      //if (pirMapping.fail) throw PIRException(s"Mapping Failed")
+    //} catch {
+      //case e:PIRException => 
+        //if (!pirPrinter.isTraversed) pirPrinter.run
+        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        //if (!spadeDotGen.isTraversed) spadeDotGen.run
+        //if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        //throw e
+      //case e:Throwable => throw e
+    //}
     if (Config.debug) DebugLogger.close
   }
 

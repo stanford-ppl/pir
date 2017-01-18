@@ -259,12 +259,17 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               chainCounterChains(inner, inner, cu)
             // Copy outer controller of the writer for write addr calculation
             case cu:OuterController =>
-              val srams = inner.srams.filter { sram =>
+              val mems = inner.srams.filter { sram =>
                 sram.writer.ancestors.contains(cu)
+              } ++ inner.fows.filter { fow =>
+                fow.buffering match {
+                  case MultiBuffer(d, sr, sw) => sw.cchain == cc
+                  case _ => false
+                }
               }
-              if (srams.size==0)
+              if (mems.size==0)
                 throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
-              val usrams = srams.groupBy {_.writer} 
+              val usrams = mems.groupBy {_.writer} 
               if (usrams.size!=1) {
                 throw PIRException(s"Currently don't support if more than one sram use a single copy")
               }

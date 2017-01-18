@@ -202,9 +202,11 @@ object PIRPrinter extends Metadata {
         case r:ArgOut =>
       }
       case s:Scalar =>
-        fields += s"writer=${s.writer.ctrler} readers=[${s.readers.map(_.ctrler).mkString(",")}]"
+        val writer = if (s.writer==null) "null" else s.writer.ctrler
+        fields += s"writer=${writer} readers=[${s.readers.map(_.ctrler).mkString(",")}]"
       case v:Vector =>
-        fields += s"writer=${v.writer.ctrler} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 
+        val writer = if (v.writer==null) "null" else v.writer.ctrler
+        fields += s"writer=${writer} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 
         v match {
           case n:DummyVector => fields += s"scalars=(${n.scalars.mkString(",")})" 
           case _ =>

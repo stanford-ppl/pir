@@ -429,11 +429,11 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
   }
   override def removeParent:Unit = _parent = null
 
-  val _mems = ListBuffer[FIFOOnRead]()
-  override def mems:List[FIFOOnRead] = _mems.toList
+  val _mems = ListBuffer[OnChipMem]()
+  override def mems:List[OnChipMem] = _mems.toList
   def mems(ms:List[OnChipMem]) = {
     ms.foreach { m =>
-      _mems += m.asInstanceOf[FIFOOnRead]
+      _mems += m.asInstanceOf[OnChipMem]
     }
   }
   override def writtenMem:List[FIFOOnWrite] = {
@@ -460,8 +460,8 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   override val typeStr = "MemoryController"
 
   val vdata = Vector()
-  val sofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar()) else None
-  val slen = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar()) else None
+  val sofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("ofs")) else None
+  val slen = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("len")) else None
   val saddrs = if (mctpe==Gatter || mctpe==Scatter) Some(Vector()) else None
   def addrs = saddrs.get
   def ofs = sofs.get

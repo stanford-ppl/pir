@@ -30,13 +30,18 @@ class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversa
   }
 
   def emitInputs(cl:Controller) = {
-    //cl.sinMap.foreach { case (s, sin) => emitEdge(s.writer.ctrler, cl, s"$s")}
+    cl.sinMap.foreach { case (s, sin) => 
+      s.writer.ctrler match {
+        case top:Top =>
+        case w => emitEdge(w, cl, DotAttr().label(s"$s"))
+      }
+    }
     cl.vinMap.foreach { case (v, vin) => 
       val label = v match {
         case dv:DummyVector => s"$v[\n${dv.scalars.mkString(",\n")}]"
         case _ => s"$v"
       }
-      emitEdge(v.writer.ctrler, cl, label)
+      emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
     }
   }
 
@@ -46,6 +51,7 @@ class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversa
   }
 
   def emitController(cl:Controller):Unit = PIRNetworkDotGen.emitController(cl)(this)
+
   // Not used
   def emitNodes(cus:List[ComputeUnit]) = {
     cus.foreach { _ match {
