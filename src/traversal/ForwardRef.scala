@@ -86,11 +86,12 @@ object ForwardRef {
       }
       val outers = ListBuffer[OuterController]()
       var child:ComputeUnit = inner
+      // Make a copy of ancestors' CounterChains 
       while (child.isLast && !child.parent.isInstanceOf[Top]) {
         val parent = child.parent.asInstanceOf[OuterController]
         outers += parent
         parent.inner = inner
-        parent.cchains.foreach { cc => inner.getCopy(cc.original) }
+        //parent.cchains.foreach { cc => inner.getCopy(cc.original) }
         child = child.parent.asInstanceOf[ComputeUnit]
       }
       inner.outers = outers.toList
