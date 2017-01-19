@@ -65,7 +65,7 @@ object ForwardRef {
         case mc:MemoryController =>
           val addrPipe = mc.mctpe match {
             case (TileLoad | TileStore) => mc.ofs.writer.ctrler.asInstanceOf[InnerController]
-            case (Gatter | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
+            case (Gather | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
           }
           mc.addDep(addrPipe)
           mc.parent(addrPipe.parent)
@@ -78,7 +78,7 @@ object ForwardRef {
               mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
               val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
               if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
-            case Gatter =>
+            case Gather =>
             case Scatter =>
               mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
           }
