@@ -167,7 +167,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               case TileLoad => "0" 
               case TileStore => "1"
               case Scatter => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
-              case Gatter => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
+              case Gather => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
             }
             emitPair("isWr", s"${isWr}")
             emitPair("scatterGatter", "0")

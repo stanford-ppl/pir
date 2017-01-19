@@ -60,7 +60,7 @@ package object enums {
   case object TileLoad extends MCType 
   case object TileStore extends MCType 
   case object Scatter extends MCType 
-  case object Gatter extends MCType 
+  case object Gather extends MCType 
   
   sealed trait Banking
   case class Strided(stride:Int) extends Banking

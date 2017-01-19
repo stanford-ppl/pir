@@ -469,7 +469,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val vdata = Vector()
   val sofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("ofs")) else None
   val slen = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("len")) else None
-  val saddrs = if (mctpe==Gatter || mctpe==Scatter) Some(Vector()) else None
+  val saddrs = if (mctpe==Gather || mctpe==Scatter) Some(Vector()) else None
   def addrs = saddrs.get
   def ofs = sofs.get
   def len = slen.get
@@ -483,7 +483,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     saddrs.map { addrs => newVin(addrs) }
   }
   private val _dataIn  = if (mctpe==TileStore || mctpe==Scatter) { Some(newVin(vdata)) } else None
-  private val _dataOut = if (mctpe==TileLoad || mctpe==Gatter) { Some(newVout(vdata)) } else None
+  private val _dataOut = if (mctpe==TileLoad || mctpe==Gather) { Some(newVout(vdata)) } else None
   def dataIn = _dataIn.get
   def dataOut = {
     _dataOut.get
@@ -496,7 +496,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val commandFIFO = CommandFIFO(this) 
   mctpe match {
     case (TileLoad | TileStore) => commandFIFO.wtPort(siofs.get.out)
-    case (Gatter | Scatter) => commandFIFO.wtPort(viaddrs.get.out)
+    case (Gather | Scatter) => commandFIFO.wtPort(viaddrs.get.out)
   }
   commandFIFO.dequeueEnable.connect(dummyCtrl)
   val dataFIFO = mctpe match {
