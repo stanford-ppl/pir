@@ -119,12 +119,6 @@ object OuterProductDesign extends PIRApp {
       val x3285 = CounterChain(name = "x3285", ctr13)
       var stage: List[Stage] = Nil
     }
-    val x3306_leafX = UnitPipeline(name = "x3306_leafX", parent=x3306, deps=List(x3304)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x3155 = CounterChain.copy(x3306, "x3155")
-      val x3306_unitcc = CounterChain(name = "x3306_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x3289_0 = UnitPipeline(name = "x3289_0", parent=x3304, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr208 = CU.temp
