@@ -170,7 +170,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               case Gather => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
             }
             emitPair("isWr", s"${isWr}")
-            emitPair("scatterGatter", "0")
+            emitPair("scatterGather", "0")
             emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
               emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
