@@ -711,7 +711,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2573 = CU.temp
       val tr2562 = CU.temp
       val tr2561 = CU.temp
-      val x6499 = CounterChain.copy(x6928, "x6499")
       val x6555 = CounterChain.copy(x6691_0, "x6555")
       val x6499 = CounterChain.copy(x6930, "x6499")
       val x6554 = CounterChain.copy(x6675_0, "x6554")
@@ -750,7 +749,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2594 = CU.temp
       val x6556 = CounterChain.copy(x6707_0, "x6556")
       val x6499 = CounterChain.copy(x6928, "x6499")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6557 = CounterChain.copy(x6723_0, "x6557")
       val x6509_x6851 = SRAM(size = 768, writeCtr = x6557(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6557(0))).wtPort(x6509_vector)
       val x6508_x6848 = SRAM(size = 768, writeCtr = x6556(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6556(0))).wtPort(x6508_vector)
@@ -809,7 +807,6 @@ object MatMult_outerDesign extends PIRApp {
       val tr2570 = CU.temp
       val x6499 = CounterChain.copy(x6928, "x6499")
       val x6560 = CounterChain.copy(x6771_0, "x6560")
-      val x6499 = CounterChain.copy(x6930, "x6499")
       val x6561 = CounterChain.copy(x6787_0, "x6561")
       val x6512_x6860 = SRAM(size = 768, writeCtr = x6560(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6560(0))).wtPort(x6512_vector)
       val x6513_x6863 = SRAM(size = 768, writeCtr = x6561(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x6499(0), swapWrite = x6561(0))).wtPort(x6513_vector)

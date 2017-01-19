@@ -436,8 +436,15 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
       _mems += m.asInstanceOf[OnChipMem]
     }
   }
-  override def writtenMem:List[FIFOOnWrite] = {
-    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[FIFOOnWrite]) }.toList }
+  //val _mems = ListBuffer[FIFOOnRead]()
+  //override def mems:List[FIFOOnRead] = _mems.toList
+  //def mems(ms:List[OnChipMem]) = {
+    //ms.foreach { m =>
+      //_mems += m.asInstanceOf[FIFOOnRead]
+    //}
+  //}
+  override def writtenMem:List[OnChipMem] = {
+    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList }
     val smems = souts.flatMap{ _.scalar.readers.flatMap { sout => sout.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList }
     vmems ++ smems
   }

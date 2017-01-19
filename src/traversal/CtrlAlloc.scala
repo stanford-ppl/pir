@@ -62,18 +62,18 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           cu match {
             case mc:MemoryController =>
               en.connect(mc.done)
-              mc.writtenMem.foreach{ mem => 
+              mc.writtenFIFO.foreach{ mem => 
                 mem.enqueueEnable.connect(mc.dataValid)
               }
             case cu =>
               val ins = ListBuffer[CtrlOutPort]()
               val readMems = cu.mems.collect{ case f:FIFOOnRead => f }
-              val writtenMems = cu.writtenMem.collect{ case f:FIFOOnWrite => f}
+              val writtenFIFOs = cu.writtenFIFO
               if (readMems.size!=0) {
                 cb.fifoAndTree.addInputs(readMems.map(_.notEmpty))
               }
-              if (writtenMems.size!=0) {
-                cb.tokInAndTree.addInputs(writtenMems.map(_.notFull))
+              if (writtenFIFOs.size!=0) {
+                cb.tokInAndTree.addInputs(writtenFIFOs.map(_.notFull))
               }
               if ((cb.fifoAndTree.ins.size!=0) || (cb.tokInAndTree.ins.size!=0)) {
                 ins += cb.andTree.out
@@ -87,7 +87,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
                 ins.map(in => inputs(map(in))).reduce(_ && _)
               }
               val enlut = EnLUT(cu, ins.toList, tf, en)
-              writtenMems.foreach{ mem => 
+              writtenFIFOs.foreach{ mem => 
                 mem.enqueueEnable.connect(enlut.out)
               }
               readMems.foreach { mem => mem.dequeueEnable.connect(enlut.out) }
@@ -103,7 +103,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu:StreamController => // enable should be connected during connection in last children
         case cu:OuterController =>
           val lasts = cu.children.filter(_.isLast)
-          if (lasts.size!=1) throw PIRException("Currently only support a single last stage")
+          if (lasts.size!=1) throw PIRException(s"Currently only support a single last stage ${cu} lasts=${lasts.mkString(",")}")
           // Assume OuterController is in the same CU as last stage children 
           val child = lasts.head
           child match {
@@ -254,26 +254,23 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
             // Copy of inner controller for write addr calculation
             case cu:InnerController => 
               cc.inner.en.connect(cc.original.inner.en.from)
+            case cu:StreamController if (!inner.ancestors.contains(cu)) =>
+              cc.inner.en.connect(cu.inner.getCopy(cc.original).inner.en.from)
             // Copy ancesstor outer controller because used in datapath 
             case cu:OuterController if inner.ancestors.contains(cu) => 
               chainCounterChains(inner, inner, cu)
             // Copy outer controller of the writer for write addr calculation
             case cu:OuterController =>
-              val mems = inner.srams.filter { sram =>
-                sram.writer.ancestors.contains(cu)
-              } ++ inner.fows.filter { fow =>
-                fow.buffering match {
-                  case MultiBuffer(d, sr, sw) => sw.cchain == cc
-                  case _ => false
-                }
+              val mems = inner.mems.filter { mem =>
+                mem.writer.ancestors.contains(cu)
               }
               if (mems.size==0)
-                throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation ${cc}")
-              val usrams = mems.groupBy {_.writer} 
-              if (usrams.size!=1) {
+                throw PIRException(s"Copyiing non ancestor OuterController CounterChain that's not used for write address calculation or writeSwap ${cc}")
+              val umems = mems.groupBy {_.writer} 
+              if (umems.size!=1) {
                 throw PIRException(s"Currently don't support if more than one sram use a single copy")
               }
-              val (writer, sram::_) = usrams.head
+              val (writer, sram::_) = umems.head
               chainCounterChains(inner, writer, cu)
           }
         }

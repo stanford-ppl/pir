@@ -9,303 +9,297 @@ import pir.PIRApp
 
 object GDADesign extends PIRApp {
   def main(args: String*)(top:Top) = {
-    val x3696_x3811_addr_vector = Vector("x3696_x3811_addr")
-    val x3798_vector = Vector("x3798")
-    val x3552_oc = OffChip("x3552")
-    val x3554_oc = OffChip("x3554")
-    val x3688_vector = Vector("x3688")
-    val x3546_argin = ArgIn("x3546")
-    val x3556_oc = OffChip("x3556")
-    val x3805_vector = Vector("x3805")
-    val x3697_scalar = Scalar("x3697")
-    val bus_376_vector = Vector("bus_376")
-    val x3806_vector = Vector("x3806")
-    val x3553_oc = OffChip("x3553")
-    val x3555_oc = OffChip("x3555")
-    val x3665_mc = MemoryController(TileLoad, x3555_oc)
-    val x3721_mc = MemoryController(TileLoad, x3553_oc)
-    val x3911_mc = MemoryController(TileStore, x3556_oc)
-    val x3623_mc = MemoryController(TileLoad, x3554_oc)
-    val x3768_mc = MemoryController(TileLoad, x3552_oc)
-    val x3915 = Sequential(name = "x3915", parent=top, deps=List()) { implicit CU => 
+    val x3640_scalar = Scalar("x3640")
+    val x3499_oc = OffChip("x3499")
+    val x3500_oc = OffChip("x3500")
+    val x3497_oc = OffChip("x3497")
+    val x3632_vector = Vector("x3632")
+    val x3745_vector = Vector("x3745")
+    val x3498_oc = OffChip("x3498")
+    val x3738_vector = Vector("x3738")
+    val x3746_vector = Vector("x3746")
+    val bus_375_vector = Vector("bus_375")
+    val x3639_x3751_addr_vector = Vector("x3639_x3751_addr")
+    val x3496_oc = OffChip("x3496")
+    val x3609_mc = MemoryController(TileLoad, x3499_oc)
+    val x3711_mc = MemoryController(TileLoad, x3496_oc)
+    val x3567_mc = MemoryController(TileLoad, x3498_oc)
+    val x3664_mc = MemoryController(TileLoad, x3497_oc)
+    val x3851_mc = MemoryController(TileStore, x3500_oc)
+    val x3855 = Sequential(name = "x3855", parent=top, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3915_unitcc = CounterChain(name = "x3915_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3855_unitcc = CounterChain(name = "x3855_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x3643 = StreamController(name = "x3643", parent=x3915, deps=List()) { implicit CU => 
+    val x3587 = StreamController(name = "x3587", parent=x3855, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3643_unitcc = CounterChain(name = "x3643_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3587_unitcc = CounterChain(name = "x3587_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x3619_0 = UnitPipeline(name = "x3619_0", parent=x3643, deps=List()) { implicit CU => 
+    val x3563_0 = UnitPipeline(name = "x3563_0", parent=x3587, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr264 = CU.temp
       val tr263 = CU.temp
       val tr262 = CU.temp
       val tr261 = CU.temp
-      val x3619_unitcc = CounterChain(name = "x3619_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3563_unitcc = CounterChain(name = "x3563_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(6)
-      Stage(stage(1), operands=List(Const("192i"), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr261)))
-      Stage(stage(2), operands=List(Const("192i"), CU.temp(stage(1), tr261)), op=FixSub, results=List(CU.temp(stage(2), tr262)))
+      Stage(stage(1), operands=List(Const("48i"), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr261)))
+      Stage(stage(2), operands=List(Const("48i"), CU.temp(stage(1), tr261)), op=FixSub, results=List(CU.temp(stage(2), tr262)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr261), Const("0i")), op=FixNeq, results=List(CU.temp(stage(3), tr263)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr263), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(4), tr264)))
-      Stage(stage(5), operands=List(CU.temp(stage(4), tr262), CU.temp(stage(4), tr264)), op=FixAdd, results=List(CU.scalarOut(stage(5), x3623_mc.len)))
-      Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x3623_mc.ofs)))
+      Stage(stage(5), operands=List(CU.temp(stage(4), tr262), CU.temp(stage(4), tr264)), op=FixAdd, results=List(CU.scalarOut(stage(5), x3567_mc.len)))
+      Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x3567_mc.ofs)))
     }
-    val x3685 = StreamController(name = "x3685", parent=x3915, deps=List()) { implicit CU => 
+    val x3629 = StreamController(name = "x3629", parent=x3855, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3685_unitcc = CounterChain(name = "x3685_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3629_unitcc = CounterChain(name = "x3629_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x3661_0 = UnitPipeline(name = "x3661_0", parent=x3685, deps=List()) { implicit CU => 
+    val x3605_0 = UnitPipeline(name = "x3605_0", parent=x3629, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr285 = CU.temp
       val tr284 = CU.temp
       val tr283 = CU.temp
       val tr282 = CU.temp
-      val x3661_unitcc = CounterChain(name = "x3661_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3605_unitcc = CounterChain(name = "x3605_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(6)
-      Stage(stage(1), operands=List(Const("192i"), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr282)))
-      Stage(stage(2), operands=List(Const("192i"), CU.temp(stage(1), tr282)), op=FixSub, results=List(CU.temp(stage(2), tr283)))
+      Stage(stage(1), operands=List(Const("48i"), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr282)))
+      Stage(stage(2), operands=List(Const("48i"), CU.temp(stage(1), tr282)), op=FixSub, results=List(CU.temp(stage(2), tr283)))
       Stage(stage(3), operands=List(CU.temp(stage(2), tr282), Const("0i")), op=FixNeq, results=List(CU.temp(stage(3), tr284)))
       Stage(stage(4), operands=List(CU.temp(stage(3), tr284), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(4), tr285)))
-      Stage(stage(5), operands=List(CU.temp(stage(4), tr283), CU.temp(stage(4), tr285)), op=FixAdd, results=List(CU.scalarOut(stage(5), x3665_mc.len)))
-      Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x3665_mc.ofs)))
+      Stage(stage(5), operands=List(CU.temp(stage(4), tr283), CU.temp(stage(4), tr285)), op=FixAdd, results=List(CU.scalarOut(stage(5), x3609_mc.len)))
+      Stage(stage(6), operands=List(Const("0i")), op=Bypass, results=List(CU.scalarOut(stage(6), x3609_mc.ofs)))
     }
-    val x3891 = MetaPipeline(name = "x3891", parent=x3915, deps=List(x3643, x3685)) { implicit CU => 
+    val x3831 = MetaPipeline(name = "x3831", parent=x3855, deps=List(x3587, x3629)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr3 = (Const("0i").out, CU.scalarIn(stage0, x3546_argin).out, Const("20i").out) // Counter
-      val x3691 = CounterChain(name = "x3691", ctr3)
-      val ctr5 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val ctr6 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val x3694 = CounterChain(name = "x3694", ctr5, ctr6)
+      val ctr3 = (Const("0i").out, Const("3840000i").out, Const("20i").out) // Counter
+      val x3634 = CounterChain(name = "x3634", ctr3)
+      val ctr5 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr6 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val x3637 = CounterChain(name = "x3637", ctr5, ctr6)
       var stage: List[Stage] = Nil
     }
-    val x3742 = StreamController(name = "x3742", parent=x3891, deps=List()) { implicit CU => 
+    val x3685 = StreamController(name = "x3685", parent=x3831, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3742_unitcc = CounterChain(name = "x3742_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3685_unitcc = CounterChain(name = "x3685_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x3717_0 = UnitPipeline(name = "x3717_0", parent=x3742, deps=List()) { implicit CU => 
+    val x3660_0 = UnitPipeline(name = "x3660_0", parent=x3685, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr311 = CU.temp
       val tr310 = CU.temp
-      val tr308 = CU.temp
+      val tr309 = CU.temp
       val tr307 = CU.temp
-      val tr305 = CU.temp
-      val tr300 = CU.temp
-      val x3717_unitcc = CounterChain(name = "x3717_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      val x3691 = CounterChain.copy(x3891, "x3691")
+      val tr306 = CU.temp
+      val tr304 = CU.temp
+      val tr299 = CU.temp
+      val x3660_unitcc = CounterChain(name = "x3660_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3634 = CounterChain.copy(x3831, "x3634")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(8)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3691(0)), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr300)))
-      Stage(stage(2), operands=List(CU.ctr(stage(1), x3691(0)), CU.temp(stage(1), tr300)), op=FixSub, results=List(CU.scalarOut(stage(2), x3721_mc.ofs)))
-      Stage(stage(3), operands=List(CU.temp(stage(2), tr300), Const("20i")), op=FixAdd, results=List(CU.temp(stage(3), tr305)))
-      Stage(stage(4), operands=List(CU.temp(stage(3), tr305), Const("64i")), op=FixMod, results=List(CU.temp(stage(4), tr307)))
-      Stage(stage(5), operands=List(CU.temp(stage(4), tr305), CU.temp(stage(4), tr307)), op=FixSub, results=List(CU.temp(stage(5), tr308)))
-      Stage(stage(6), operands=List(CU.temp(stage(5), tr307), Const("0i")), op=FixNeq, results=List(CU.temp(stage(6), tr310)))
-      Stage(stage(7), operands=List(CU.temp(stage(6), tr310), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr311)))
-      Stage(stage(8), operands=List(CU.temp(stage(7), tr308), CU.temp(stage(7), tr311)), op=FixAdd, results=List(CU.scalarOut(stage(8), x3721_mc.len)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3634(0)), Const("64i")), op=FixMod, results=List(CU.temp(stage(1), tr299)))
+      Stage(stage(2), operands=List(CU.ctr(stage(1), x3634(0)), CU.temp(stage(1), tr299)), op=FixSub, results=List(CU.scalarOut(stage(2), x3664_mc.ofs)))
+      Stage(stage(3), operands=List(CU.temp(stage(2), tr299), Const("20i")), op=FixAdd, results=List(CU.temp(stage(3), tr304)))
+      Stage(stage(4), operands=List(CU.temp(stage(3), tr304), Const("64i")), op=FixMod, results=List(CU.temp(stage(4), tr306)))
+      Stage(stage(5), operands=List(CU.temp(stage(4), tr304), CU.temp(stage(4), tr306)), op=FixSub, results=List(CU.temp(stage(5), tr307)))
+      Stage(stage(6), operands=List(CU.temp(stage(5), tr306), Const("0i")), op=FixNeq, results=List(CU.temp(stage(6), tr309)))
+      Stage(stage(7), operands=List(CU.temp(stage(6), tr309), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr310)))
+      Stage(stage(8), operands=List(CU.temp(stage(7), tr307), CU.temp(stage(7), tr310)), op=FixAdd, results=List(CU.scalarOut(stage(8), x3664_mc.len)))
     }
-    val x3789 = StreamController(name = "x3789", parent=x3891, deps=List()) { implicit CU => 
+    val x3732 = StreamController(name = "x3732", parent=x3831, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr11 = (Const("0i").out, Const("20i").out, Const("1i").out) // Counter
-      val x3745 = CounterChain(name = "x3745", ctr11)
+      val x3688 = CounterChain(name = "x3688", ctr11)
       var stage: List[Stage] = Nil
     }
-    val x3764_0 = UnitPipeline(name = "x3764_0", parent=x3789, deps=List()) { implicit CU => 
+    val x3707_0 = UnitPipeline(name = "x3707_0", parent=x3732, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr338 = CU.temp
       val tr337 = CU.temp
-      val tr335 = CU.temp
+      val tr336 = CU.temp
       val tr334 = CU.temp
-      val tr332 = CU.temp
-      val tr328 = CU.temp
+      val tr333 = CU.temp
+      val tr331 = CU.temp
       val tr327 = CU.temp
-      val tr325 = CU.temp
-      val x3745 = CounterChain.copy(x3789, "x3745")
-      val x3764_unitcc = CounterChain(name = "x3764_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      val x3691 = CounterChain.copy(x3891, "x3691")
+      val tr326 = CU.temp
+      val tr324 = CU.temp
+      val x3707_unitcc = CounterChain(name = "x3707_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3688 = CounterChain.copy(x3732, "x3688")
+      val x3634 = CounterChain.copy(x3831, "x3634")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(10)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3691(0)), CU.ctr(stage(0), x3745(0))), op=FixAdd, results=List(CU.temp(stage(1), tr325)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr325), Const("192i")), op=FixMul, results=List(CU.temp(stage(2), tr327)))
-      Stage(stage(3), operands=List(CU.temp(stage(2), tr327), Const("64i")), op=FixMod, results=List(CU.temp(stage(3), tr328)))
-      Stage(stage(4), operands=List(CU.temp(stage(3), tr327), CU.temp(stage(3), tr328)), op=FixSub, results=List(CU.scalarOut(stage(4), x3768_mc.ofs)))
-      Stage(stage(5), operands=List(CU.temp(stage(4), tr328), Const("192i")), op=FixAdd, results=List(CU.temp(stage(5), tr332)))
-      Stage(stage(6), operands=List(CU.temp(stage(5), tr332), Const("64i")), op=FixMod, results=List(CU.temp(stage(6), tr334)))
-      Stage(stage(7), operands=List(CU.temp(stage(6), tr332), CU.temp(stage(6), tr334)), op=FixSub, results=List(CU.temp(stage(7), tr335)))
-      Stage(stage(8), operands=List(CU.temp(stage(7), tr334), Const("0i")), op=FixNeq, results=List(CU.temp(stage(8), tr337)))
-      Stage(stage(9), operands=List(CU.temp(stage(8), tr337), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(9), tr338)))
-      Stage(stage(10), operands=List(CU.temp(stage(9), tr335), CU.temp(stage(9), tr338)), op=FixAdd, results=List(CU.scalarOut(stage(10), x3768_mc.len)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3634(0)), CU.ctr(stage(0), x3688(0))), op=FixAdd, results=List(CU.temp(stage(1), tr324)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr324), Const("48i")), op=FixMul, results=List(CU.temp(stage(2), tr326)))
+      Stage(stage(3), operands=List(CU.temp(stage(2), tr326), Const("64i")), op=FixMod, results=List(CU.temp(stage(3), tr327)))
+      Stage(stage(4), operands=List(CU.temp(stage(3), tr326), CU.temp(stage(3), tr327)), op=FixSub, results=List(CU.scalarOut(stage(4), x3711_mc.ofs)))
+      Stage(stage(5), operands=List(CU.temp(stage(4), tr327), Const("48i")), op=FixAdd, results=List(CU.temp(stage(5), tr331)))
+      Stage(stage(6), operands=List(CU.temp(stage(5), tr331), Const("64i")), op=FixMod, results=List(CU.temp(stage(6), tr333)))
+      Stage(stage(7), operands=List(CU.temp(stage(6), tr331), CU.temp(stage(6), tr333)), op=FixSub, results=List(CU.temp(stage(7), tr334)))
+      Stage(stage(8), operands=List(CU.temp(stage(7), tr333), Const("0i")), op=FixNeq, results=List(CU.temp(stage(8), tr336)))
+      Stage(stage(9), operands=List(CU.temp(stage(8), tr336), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(9), tr337)))
+      Stage(stage(10), operands=List(CU.temp(stage(9), tr334), CU.temp(stage(9), tr337)), op=FixAdd, results=List(CU.scalarOut(stage(10), x3711_mc.len)))
     }
-    val x3795_0 = UnitPipeline(name = "x3795_0", parent=x3891, deps=List()) { implicit CU => 
+    val x3735_0 = UnitPipeline(name = "x3735_0", parent=x3831, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr352 = CU.temp
-      val x3691 = CounterChain.copy(x3891, "x3691")
-      val x3795_unitcc = CounterChain(name = "x3795_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val tr351 = CU.temp
+      val x3634 = CounterChain.copy(x3831, "x3634")
+      val x3735_unitcc = CounterChain(name = "x3735_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(CU.scalarIn(stage(0), x3546_argin), CU.ctr(stage(0), x3691(0))), op=FixSub, results=List(CU.temp(stage(1), tr352)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr352), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x3697_scalar)))
+      Stage(stage(1), operands=List(Const("3840000i"), CU.ctr(stage(0), x3634(0))), op=FixSub, results=List(CU.temp(stage(1), tr351)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr351), Const("20i")), op=FixMin, results=List(CU.scalarOut(stage(2), x3640_scalar)))
     }
-    val x3872 = MetaPipeline(name = "x3872", parent=x3891, deps=List(x3742, x3789, x3795_0)) { implicit CU => 
+    val x3812 = MetaPipeline(name = "x3812", parent=x3831, deps=List(x3685, x3732, x3735_0)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr9 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val ctr10 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val x3804 = CounterChain(name = "x3804", ctr9, ctr10)
-      val ctr7 = (Const("0i").out, CU.scalarIn(stage0, x3697_scalar).out, Const("1i").out) // Counter
-      val x3801 = CounterChain(name = "x3801", ctr7)
+      val ctr9 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr10 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val x3744 = CounterChain(name = "x3744", ctr9, ctr10)
+      val ctr7 = (Const("0i").out, CU.scalarIn(stage0, x3640_scalar).out, Const("1i").out) // Counter
+      val x3741 = CounterChain(name = "x3741", ctr7)
       var stage: List[Stage] = Nil
     }
-    val x3834 = StreamController(name = "x3834", parent=x3872, deps=List()) { implicit CU => 
+    val x3774 = StreamController(name = "x3774", parent=x3812, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr13 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val x3808 = CounterChain(name = "x3808", ctr13)
+      val ctr13 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val x3748 = CounterChain(name = "x3748", ctr13)
       var stage: List[Stage] = Nil
     }
-    val x3834_0 = StreamPipeline(name = "x3834_0", parent=x3834, deps=List()) { implicit CU => 
+    val x3774_0 = StreamPipeline(name = "x3774_0", parent=x3774, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr365 = CU.temp
-      val x3808 = CounterChain.copy(x3834, "x3808")
-      val x3801 = CounterChain.copy(x3872, "x3801")
-      var stage: List[Stage] = Nil
-      stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3801(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr365)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr365), CU.ctr(stage(1), x3808(0))), op=FixAdd, results=List(CU.vecOut(stage(2), x3696_x3811_addr_vector)))
-    }
-    val x3834_1 = StreamPipeline(name = "x3834_1", parent=x3834, deps=List()) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val tr375 = CU.temp
-      val x3808 = CounterChain.copy(x3834, "x3808")
-      val x3804 = CounterChain.copy(x3872, "x3804")
-      val x3801 = CounterChain.copy(x3872, "x3801")
-      val x3600_x3820 = SemiFIFO(size = 192, banking = Strided(1), buffering = SingleBuffer()).wtPort(x3623_mc.vdata).rdAddr(x3808(0))
-      val x3695_x3814 = SemiFIFO(size = 20, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3804(0))).wtPort(x3721_mc.vdata).rdAddr(x3801(0))
-      val x3601_x3817 = SemiFIFO(size = 192, banking = Strided(1), buffering = SingleBuffer()).wtPort(x3665_mc.vdata).rdAddr(x3808(0))
+      val tr364 = CU.temp
+      val x3748 = CounterChain.copy(x3774, "x3748")
+      val x3741 = CounterChain.copy(x3812, "x3741")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(x3695_x3814.load, Const("1i")), op=FixEql, results=List(CU.temp(stage(1), tr375)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr375), CU.load(stage(1), x3601_x3817), CU.load(stage(1), x3600_x3820)), op=Mux, results=List(CU.vecOut(stage(2), bus_376_vector)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3741(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr364)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr364), CU.ctr(stage(1), x3748(0))), op=FixAdd, results=List(CU.vecOut(stage(2), x3639_x3751_addr_vector)))
     }
-    val x3834_2 = StreamPipeline(name = "x3834_2", parent=x3834, deps=List(x3834_0, x3834_1)) { implicit CU => 
+    val x3774_1 = StreamPipeline(name = "x3774_1", parent=x3774, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3808 = CounterChain.copy(x3834, "x3808")
-      val x3804 = CounterChain.copy(x3872, "x3804")
-      val x3696_x3811 = SemiFIFO(size = 3840, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3804(0))).wtPort(x3768_mc.vdata)
-      val x3696_x3811_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x3696_x3811_addr_vector)
-      val bus_376_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_376_vector)
+      val tr374 = CU.temp
+      val x3744 = CounterChain.copy(x3812, "x3744")
+      val x3748 = CounterChain.copy(x3774, "x3748")
+      val x3741 = CounterChain.copy(x3812, "x3741")
+      val x3544_x3760 = SemiFIFO(size = 48, banking = Strided(1), buffering = SingleBuffer()).wtPort(x3567_mc.vdata).rdAddr(x3748(0))
+      val x3545_x3757 = SemiFIFO(size = 48, banking = Strided(1), buffering = SingleBuffer()).wtPort(x3609_mc.vdata).rdAddr(x3748(0))
+      val x3638_x3754 = SemiFIFO(size = 20, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3744(0))).wtPort(x3664_mc.vdata).rdAddr(x3741(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(x3696_x3811_addr_fifo.load), op=Bypass, results=List(x3696_x3811.readAddr))
-      Stage(stage(2), operands=List(x3696_x3811.load, bus_376_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x3805_vector)))
+      Stage(stage(1), operands=List(x3638_x3754.load, Const("1i")), op=FixEql, results=List(CU.temp(stage(1), tr374)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr374), CU.load(stage(1), x3545_x3757), CU.load(stage(1), x3544_x3760)), op=Mux, results=List(CU.vecOut(stage(2), bus_375_vector)))
     }
-    val x3853_0 = Pipeline(name = "x3853_0", parent=x3872, deps=List(x3834)) { implicit CU => 
+    val x3774_2 = StreamPipeline(name = "x3774_2", parent=x3774, deps=List(x3774_0, x3774_1)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3808 = CounterChain.copy(x3834, "x3808")
-      val ctr21 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val ctr22 = (Const("0i").out, Const("192i").out, Const("16i").out) // Counter
-      val x3837 = CounterChain(name = "x3837", ctr21, ctr22)
-      val x3805_x3840 = SRAM(size = 192, writeCtr = x3808(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3837(0), swapWrite = x3808(0))).wtPort(x3805_vector).rdAddr(x3837(0)).wtAddr(x3808(0))
-      val x3805_x3843 = SRAM(size = 192, writeCtr = x3808(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3837(0), swapWrite = x3808(0))).wtPort(x3805_vector).rdAddr(x3837(1)).wtAddr(x3808(0))
+      val x3744 = CounterChain.copy(x3812, "x3744")
+      val x3748 = CounterChain.copy(x3774, "x3748")
+      val x3639_x3751 = SemiFIFO(size = 960, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3744(0))).wtPort(x3711_mc.vdata)
+      val x3639_x3751_addr_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(x3639_x3751_addr_vector)
+      val bus_375_fifo = FIFO(size = 4096, banking = Strided(1)).wtPort(bus_375_vector)
+      var stage: List[Stage] = Nil
+      stage = stage0 +: Stages(2)
+      Stage(stage(1), operands=List(x3639_x3751_addr_fifo.load), op=Bypass, results=List(x3639_x3751.readAddr))
+      Stage(stage(2), operands=List(x3639_x3751.load, bus_375_fifo.load), op=FltSub, results=List(CU.vecOut(stage(2), x3745_vector)))
+    }
+    val x3793_0 = Pipeline(name = "x3793_0", parent=x3812, deps=List(x3774)) { implicit CU => 
+      val stage0 = CU.emptyStage
+      val ctr21 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr22 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
+      val x3777 = CounterChain(name = "x3777", ctr21, ctr22)
+      val x3748 = CounterChain.copy(x3774, "x3748")
+      val x3745_x3780 = SRAM(size = 48, writeCtr = x3748(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3777(0), swapWrite = x3748(0))).wtPort(x3745_vector).rdAddr(x3777(0)).wtAddr(x3748(0))
+      val x3745_x3783 = SRAM(size = 48, writeCtr = x3748(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3777(0), swapWrite = x3748(0))).wtPort(x3745_vector).rdAddr(x3777(1)).wtAddr(x3748(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(x3805_x3840.load, x3805_x3843.load), op=FltMul, results=List(CU.vecOut(stage(1), x3806_vector)))
+      Stage(stage(1), operands=List(x3745_x3780.load, x3745_x3783.load), op=FltMul, results=List(CU.vecOut(stage(1), x3746_vector)))
     }
-    val x3870_0 = Pipeline(name = "x3870_0", parent=x3872, deps=List(x3853_0)) { implicit CU => 
+    val x3810_0 = Pipeline(name = "x3810_0", parent=x3812, deps=List(x3793_0)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr409 = CU.temp
-      val tr399 = CU.temp
-      val tr395 = CU.temp
-      val tr393 = CU.temp
+      val tr408 = CU.temp
+      val tr398 = CU.temp
+      val tr394 = CU.temp
       val tr392 = CU.temp
-      val ctr25 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val ctr26 = (Const("0i").out, Const("192i").out, Const("16i").out) // Counter
-      val x3804 = CounterChain(name = "x3804", ctr25, ctr26)
-      val x3837 = CounterChain.copy(x3853_0, "x3837")
-      val x3806_x3856 = SRAM(size = 36864, writeCtr = x3837(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3804(0), swapWrite = x3837(0))).wtPort(x3806_vector)
-      val x3798_x3859 = SRAM(size = 36864, writeCtr = x3804(0), banking = Strided(1), buffering = SingleBuffer())
-      val wr411 = CU.wtAddr(x3798_x3859)
+      val tr391 = CU.temp
+      val x3744 = CounterChain.copy(x3812, "x3744")
+      val x3777 = CounterChain.copy(x3793_0, "x3777")
+      val ctr25 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr26 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
+      val x3746_x3796 = SRAM(size = 2304, writeCtr = x3777(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3744(0), swapWrite = x3777(0))).wtPort(x3746_vector)
+      val x3738_x3799 = SRAM(size = 2304, writeCtr = x3744(0), banking = Strided(1), buffering = SingleBuffer())
+      val wr410 = CU.wtAddr(x3738_x3799)
       var stage: List[Stage] = Nil
-      stage = stage0 +: WAStages(2, List(x3806_x3856))
-      Stage(stage(1), operands=List(x3837(0), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr392)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr392), CU.ctr(stage(1), x3837(1))), op=FixAdd, results=List(x3806_x3856.writeAddr, CU.temp(stage(2), tr393)))
+      stage = stage0 +: WAStages(2, List(x3746_x3796))
+      Stage(stage(1), operands=List(x3777(0), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr391)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr391), CU.ctr(stage(1), x3777(1))), op=FixAdd, results=List(x3746_x3796.writeAddr, CU.temp(stage(2), tr392)))
       stage = stage0 +: Stages(7)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3804(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr395)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr395), CU.ctr(stage(1), x3804(1))), op=FixAdd, results=List(x3806_x3856.readAddr))
-      Stage(stage(3), operands=List(CU.ctr(stage(2), x3804(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(3), tr399)))
-      Stage(stage(4), operands=List(CU.temp(stage(3), tr399), CU.ctr(stage(3), x3804(1))), op=FixAdd, results=List(x3798_x3859.readAddr))
-      Stage(stage(5), operands=List(CU.load(stage(4), x3806_x3856), x3798_x3859.load), op=FltAdd, results=List(CU.vecOut(stage(5), x3798_vector), CU.store(stage(5), x3798_x3859)))
-      Stage(stage(6), operands=List(CU.ctr(stage(5), x3804(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(6), tr409)))
-      Stage(stage(7), operands=List(CU.temp(stage(6), tr409), CU.ctr(stage(6), x3804(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr411)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3744(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr394)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr394), CU.ctr(stage(1), x3744(1))), op=FixAdd, results=List(x3746_x3796.readAddr))
+      Stage(stage(3), operands=List(CU.ctr(stage(2), x3744(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(3), tr398)))
+      Stage(stage(4), operands=List(CU.temp(stage(3), tr398), CU.ctr(stage(3), x3744(1))), op=FixAdd, results=List(x3738_x3799.readAddr))
+      Stage(stage(5), operands=List(CU.load(stage(4), x3746_x3796), x3738_x3799.load), op=FltAdd, results=List(CU.vecOut(stage(5), x3738_vector), CU.store(stage(5), x3738_x3799)))
+      Stage(stage(6), operands=List(CU.ctr(stage(5), x3744(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr408)))
+      Stage(stage(7), operands=List(CU.temp(stage(6), tr408), CU.ctr(stage(6), x3744(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr410)))
     }
-    val x3889_0 = Pipeline(name = "x3889_0", parent=x3891, deps=List(x3872)) { implicit CU => 
+    val x3829_0 = Pipeline(name = "x3829_0", parent=x3831, deps=List(x3812)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr429 = CU.temp
-      val tr421 = CU.temp
-      val tr417 = CU.temp
-      val tr415 = CU.temp
+      val tr428 = CU.temp
+      val tr420 = CU.temp
+      val tr416 = CU.temp
       val tr414 = CU.temp
-      val x3804 = CounterChain.copy(x3870_0, "x3804")
-      val ctr27 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val ctr28 = (Const("0i").out, Const("192i").out, Const("16i").out) // Counter
-      val x3694 = CounterChain(name = "x3694", ctr27, ctr28)
-      val x3798_x3875 = SRAM(size = 36864, writeCtr = x3804(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3694(0), swapWrite = x3804(0))).wtPort(x3798_vector)
-      val x3688_x3878 = SRAM(size = 36864, writeCtr = x3694(0), banking = Strided(1), buffering = SingleBuffer())
-      val wr431 = CU.wtAddr(x3688_x3878)
+      val tr413 = CU.temp
+      val x3744 = CounterChain.copy(x3812, "x3744")
+      val ctr27 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val ctr28 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
+      val x3637 = CounterChain(name = "x3637", ctr27, ctr28)
+      val x3738_x3815 = SRAM(size = 2304, writeCtr = x3744(0), banking = Strided(1), buffering = MultiBuffer(2, swapRead = x3637(0), swapWrite = x3744(0))).wtPort(x3738_vector)
+      val x3632_x3818 = SRAM(size = 2304, writeCtr = x3637(0), banking = Strided(1), buffering = SingleBuffer())
+      val wr430 = CU.wtAddr(x3632_x3818)
       var stage: List[Stage] = Nil
-      stage = stage0 +: WAStages(2, List(x3798_x3875))
-      Stage(stage(1), operands=List(x3804(0), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr414)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr414), CU.ctr(stage(1), x3804(1))), op=FixAdd, results=List(x3798_x3875.writeAddr, CU.temp(stage(2), tr415)))
+      stage = stage0 +: WAStages(2, List(x3738_x3815))
+      Stage(stage(1), operands=List(x3744(0), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr413)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr413), CU.ctr(stage(1), x3744(1))), op=FixAdd, results=List(x3738_x3815.writeAddr, CU.temp(stage(2), tr414)))
       stage = stage0 +: Stages(7)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3694(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr417)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr417), CU.ctr(stage(1), x3694(1))), op=FixAdd, results=List(x3798_x3875.readAddr))
-      Stage(stage(3), operands=List(CU.ctr(stage(2), x3694(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(3), tr421)))
-      Stage(stage(4), operands=List(CU.temp(stage(3), tr421), CU.ctr(stage(3), x3694(1))), op=FixAdd, results=List(x3688_x3878.readAddr))
-      Stage(stage(5), operands=List(CU.load(stage(4), x3798_x3875), x3688_x3878.load), op=FltAdd, results=List(CU.vecOut(stage(5), x3688_vector), CU.store(stage(5), x3688_x3878)))
-      Stage(stage(6), operands=List(CU.ctr(stage(5), x3694(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(6), tr429)))
-      Stage(stage(7), operands=List(CU.temp(stage(6), tr429), CU.ctr(stage(6), x3694(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr431)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3637(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr416)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr416), CU.ctr(stage(1), x3637(1))), op=FixAdd, results=List(x3738_x3815.readAddr))
+      Stage(stage(3), operands=List(CU.ctr(stage(2), x3637(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(3), tr420)))
+      Stage(stage(4), operands=List(CU.temp(stage(3), tr420), CU.ctr(stage(3), x3637(1))), op=FixAdd, results=List(x3632_x3818.readAddr))
+      Stage(stage(5), operands=List(CU.load(stage(4), x3738_x3815), x3632_x3818.load), op=FltAdd, results=List(CU.vecOut(stage(5), x3632_vector), CU.store(stage(5), x3632_x3818)))
+      Stage(stage(6), operands=List(CU.ctr(stage(5), x3637(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(6), tr428)))
+      Stage(stage(7), operands=List(CU.temp(stage(6), tr428), CU.ctr(stage(6), x3637(1))), op=FixAdd, results=List(CU.wtAddr(stage(7), wr430)))
     }
-    val x3913 = StreamController(name = "x3913", parent=x3915, deps=List(x3891)) { implicit CU => 
+    val x3853 = StreamController(name = "x3853", parent=x3855, deps=List(x3831)) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr29 = (Const("0i").out, Const("192i").out, Const("1i").out) // Counter
-      val x3894 = CounterChain(name = "x3894", ctr29)
+      val ctr29 = (Const("0i").out, Const("48i").out, Const("1i").out) // Counter
+      val x3834 = CounterChain(name = "x3834", ctr29)
       var stage: List[Stage] = Nil
     }
-    val x3915_leafX = Pipeline(name = "x3915_leafX", parent=x3915, deps=List(x3913)) { implicit CU => 
+    val x3838_0 = UnitPipeline(name = "x3838_0", parent=x3853, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x3915_unitcc = CounterChain.copy(x3915, "x3915_unitcc")
-      var stage: List[Stage] = Nil
-    }
-    val x3898_0 = UnitPipeline(name = "x3898_0", parent=x3913, deps=List()) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x3894 = CounterChain.copy(x3913, "x3894")
-      val x3898_unitcc = CounterChain(name = "x3898_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x3834 = CounterChain.copy(x3853, "x3834")
+      val x3838_unitcc = CounterChain(name = "x3838_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3894(0)), Const("192i")), op=FixMul, results=List(CU.scalarOut(stage(1), x3911_mc.ofs)))
-      Stage(stage(2), operands=List(Const("192i")), op=Bypass, results=List(CU.scalarOut(stage(2), x3911_mc.len)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3834(0)), Const("48i")), op=FixMul, results=List(CU.scalarOut(stage(1), x3851_mc.ofs)))
+      Stage(stage(2), operands=List(Const("48i")), op=Bypass, results=List(CU.scalarOut(stage(2), x3851_mc.len)))
     }
-    val x3909_0 = Pipeline(name = "x3909_0", parent=x3913, deps=List()) { implicit CU => 
+    val x3849_0 = Pipeline(name = "x3849_0", parent=x3853, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr441 = CU.temp
-      val tr439 = CU.temp
+      val tr440 = CU.temp
       val tr438 = CU.temp
-      val x3694 = CounterChain.copy(x3891, "x3694")
-      val ctr31 = (Const("0i").out, Const("192i").out, Const("16i").out) // Counter
-      val x3900 = CounterChain(name = "x3900", ctr31)
-      val x3894 = CounterChain.copy(x3913, "x3894")
-      val x3688_x3903 = SRAM(size = 36864, writeCtr = x3694(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x3688_vector)
+      val tr437 = CU.temp
+      val x3834 = CounterChain.copy(x3853, "x3834")
+      val ctr31 = (Const("0i").out, Const("48i").out, Const("16i").out) // Counter
+      val x3840 = CounterChain(name = "x3840", ctr31)
+      val x3637 = CounterChain.copy(x3829_0, "x3637")
+      val x3632_x3843 = SRAM(size = 2304, writeCtr = x3637(0), banking = Strided(1), buffering = SingleBuffer()).wtPort(x3632_vector)
       var stage: List[Stage] = Nil
-      stage = stage0 +: WAStages(2, List(x3688_x3903))
-      Stage(stage(1), operands=List(x3694(0), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr438)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr438), CU.ctr(stage(1), x3694(1))), op=FixAdd, results=List(x3688_x3903.writeAddr, CU.temp(stage(2), tr439)))
+      stage = stage0 +: WAStages(2, List(x3632_x3843))
+      Stage(stage(1), operands=List(x3637(0), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr437)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr437), CU.ctr(stage(1), x3637(1))), op=FixAdd, results=List(x3632_x3843.writeAddr, CU.temp(stage(2), tr438)))
       stage = stage0 +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x3894(0)), Const("192i")), op=FixMul, results=List(CU.temp(stage(1), tr441)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr441), CU.ctr(stage(1), x3900(0))), op=FixAdd, results=List(x3688_x3903.readAddr))
-      Stage(stage(3), operands=List(x3688_x3903.load), op=Bypass, results=List(CU.vecOut(stage(3), x3911_mc.vdata)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x3834(0)), Const("48i")), op=FixMul, results=List(CU.temp(stage(1), tr440)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr440), CU.ctr(stage(1), x3840(0))), op=FixAdd, results=List(x3632_x3843.readAddr))
+      Stage(stage(3), operands=List(x3632_x3843.load), op=Bypass, results=List(CU.vecOut(stage(3), x3851_mc.vdata)))
     }
     
   }
