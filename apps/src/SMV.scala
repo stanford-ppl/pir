@@ -173,12 +173,6 @@ object SMVDesign extends PIRApp {
       val x4705_unitcc = CounterChain(name = "x4705_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x4707_leafX = UnitPipeline(name = "x4707_leafX", parent=x4707, deps=List(x4705)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x4502 = CounterChain.copy(x4707, "x4502")
-      val x4707_unitcc = CounterChain(name = "x4707_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
     val x4690_0 = UnitPipeline(name = "x4690_0", parent=x4705, deps=List()) { implicit CU => 
       val stage0 = CU.emptyStage
       val x4502 = CounterChain.copy(x4707, "x4502")

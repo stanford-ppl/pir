@@ -18,22 +18,7 @@ trait CUMapper extends Mapper {
   def finPass(m:M):M = m
   def map(m:M):M
   override def debug = Config.debugCUMapper
-}
-object CUMapper {
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper, fp:PIRMap => PIRMap)(implicit design:Design):CUMapper = {
-    design.arch match {
-      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper) { override def finPass(m:M):M = fp(m) }
-      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper) { override def finPass(m:M):M = fp(m) }
-      case _ => throw PIRException("Unknown network type")
-    }
-  }
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper)(implicit design:Design):CUMapper = {
-    design.arch match {
-      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper)
-      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper)
-      case _ => throw PIRException("Unknown network type")
-    }
-  }
+
   def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
         case cond:Boolean => 
@@ -115,6 +100,23 @@ object CUMapper {
         throw CUOutOfSize(cl, info)
       }
       mapper.dprintln(s"qualified resource: $cl -> ${map(cl)}")
+    }
+  }
+}
+
+object CUMapper {
+  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper, fp:PIRMap => PIRMap)(implicit design:Design):CUMapper = {
+    design.arch match {
+      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper) { override def finPass(m:M):M = fp(m) }
+      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper) { override def finPass(m:M):M = fp(m) }
+      case _ => throw PIRException("Unknown network type")
+    }
+  }
+  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper)(implicit design:Design):CUMapper = {
+    design.arch match {
+      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper)
+      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper)
+      case _ => throw PIRException("Unknown network type")
     }
   }
 }

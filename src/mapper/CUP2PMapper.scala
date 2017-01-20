@@ -34,7 +34,7 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     val cus = design.top.innerCUs
     val nodes:List[SCL] = design.top::cus
     val reses = design.arch.top::pcus
-    CUMapper.qualifyCheck(reses, nodes, resMap)
+    qualifyCheck(reses, nodes, resMap)
     def resFunc(cu:N, m:M, triedRes:List[R]):List[R] = {
       (resMap(cu).diff(triedRes)).filter { pcu => !m.clmap.pmap.contains(pcu)}
     }

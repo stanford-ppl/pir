@@ -12,7 +12,7 @@ object Kmeans_fissionDesign extends PIRApp {
     val x5830_scalar = Scalar("x5830")
     val x5771_vector = Vector("x5771")
     val x5681_oc = OffChip("x5681")
-    val x5834_scalar = Scalar("x5834")
+    val x5834_scalar = Scalar("x5834_dist")
     val x5774_vector = Vector("x5774")
     val x5945_vector = Vector("x5945")
     val bus_407_vector = Vector("bus_407")
@@ -301,11 +301,6 @@ object Kmeans_fissionDesign extends PIRApp {
     val x5979 = StreamController(name = "x5979", parent=x5981, deps=List(x5959_0)) { implicit CU => 
       val stage0 = CU.emptyStage
       val x5979_unitcc = CounterChain(name = "x5979_unitcc", (Const("0i"), Const("1i"), Const("1i")))
-      var stage: List[Stage] = Nil
-    }
-    val x5981_leafX = UnitPipeline(name = "x5981_leafX", parent=x5981, deps=List(x5979)) { implicit CU => 
-      val stage0 = CU.emptyStage
-      val x5981_unitcc = CounterChain.copy(x5981, "x5981_unitcc")
       var stage: List[Stage] = Nil
     }
     val x5964_0 = UnitPipeline(name = "x5964_0", parent=x5979, deps=List()) { implicit CU => 

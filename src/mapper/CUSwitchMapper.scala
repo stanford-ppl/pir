@@ -58,7 +58,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     val pcus = design.arch.cus
     val nodes = design.top::cus
     val reses = design.arch.top::pcus
-    CUMapper.qualifyCheck(reses, nodes, resMap)
+    qualifyCheck(reses, nodes, resMap)
     val cu::restNodes = nodes 
     mapCUs(nodes)(m)
   }
