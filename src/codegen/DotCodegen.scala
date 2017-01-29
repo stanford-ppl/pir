@@ -17,7 +17,7 @@ class DotAttr() {
   def color(s:Color) = { attrMap += "color" -> s.field; this }
   def fillcolor(s:Color) = { attrMap += "fillcolor" -> s.field; this }
   def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
-  def style(s:Style) = { attrMap += "style" -> s.field; this }
+  def style(ss:Style*) = { attrMap += "style" -> ss.map(_.field).mkString(","); this }
   def graphStyle(s:Style) = { graphAttrMap += "style" -> s"${s.field}"; this }
   def label(s:Any) = { attrMap += "label" -> s.toString; this }
   def label = { attrMap.get("label") }

@@ -520,20 +520,17 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitPair("wd", wd)
             emitPair("banking", lookUp(mem.banking))
-            mem.buffering match {
-              case MultiBuffer(n, swapRead, swapWrite) =>
-                emitPair("numBufs", n)
-                emitPair("rswap", lookUp(swapRead))
-                emitPair("wswap", lookUp(swapWrite))
-              case DoubleBuffer(swapRead, swapWrite) =>
-                emitPair("numBufs", 2)
-                emitPair("rswap", lookUp(swapRead))
-                emitPair("wswap", lookUp(swapWrite))
-              case SingleBuffer() =>
-                emitPair("numBufs", 1)
-                emitPair("rswap", "x")
-                emitPair("wswap", "x")
-            }
+            //mem.buffering match {
+              //case MultiBuffer(n) =>
+                //emitPair("numBufs", n)
+                ////TODO
+                ////emitPair("rswap", lookUp(swapRead))
+                ////emitPair("wswap", lookUp(swapWrite))
+              //case SingleBuffer() =>
+                //emitPair("numBufs", 1)
+                //emitPair("rswap", "x")
+                //emitPair("wswap", "x")
+            //}
           }
         } else {
           emitElem("x")
@@ -718,7 +715,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 in.from.src match {
                   case t:Top => inits += in
                   case p:PRIM => 
-                    if (p.ctrler==tdlut.ctrler.parent) inits += in
+                    if (p.ctrler==tdlut.ctrler.asInstanceOf[ComputeUnit].parent) inits += in
                     else tos += in.from.asInstanceOf[COP]
                   case c => emitln(s"${c}") //TODO?
                 }

@@ -13,15 +13,14 @@ import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
 
-class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversal with DotCodegen { 
-  override val stream = newStream(fileName)
-  def this()(implicit design:Design) = {
-    this(Config.pirNetworkDot)
-  }
+trait PIRDotGen extends Traversal with DotCodegen {
+
+  val design:Design
 
   def traverse:Unit = {
     emitBlock("digraph G") {
-      emitNodes
+      emitNode(design.top)
+      design.top.ctrlers.foreach { cl => emitInputs (cl) }
     }
   }
 
@@ -29,7 +28,28 @@ class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversa
     close
   }
 
-  def emitInputs(cl:Controller) = {
+  def emitNode(cl:Controller):Unit = {
+    cl match {
+      case top:Top => 
+        emitSubGraph(top, top) {
+          emitNode(top, top, DotAttr().shape(box).style(dashed))
+          top.children.foreach { cu => emitNode(cu) }
+        }
+      case cu:OuterController =>
+        emitSubGraph(cu, cu) {
+          emitNode(cu, cu, DotAttr().shape(box).style(dashed))
+          cu.children.foreach { cu => emitNode(cu) }
+        }
+      case cu:MemoryPipeline =>
+        emitNode(cu, cu, DotAttr().shape(box).style(filled).fillcolor(cyan))
+      case cu:InnerController =>
+        emitNode(cu, cu, DotAttr().shape(box).style(rounded))
+    }
+  }
+
+  def emitInputs(cl:Controller):Unit
+
+  def emitDataInputs(cl:Controller) = {
     cl.sinMap.foreach { case (s, sin) => 
       s.writer.ctrler match {
         case top:Top =>
@@ -45,70 +65,66 @@ class PIRNetworkDotGen(fileName:String)(implicit design:Design) extends Traversa
     }
   }
 
-  def emitNodes:Unit = {
-    emitController(design.top)
-    design.top.ctrlers.foreach { cl => emitInputs (cl) }
-  }
-
-  def emitController(cl:Controller):Unit = PIRNetworkDotGen.emitController(cl)(this)
-
-  // Not used
-  def emitNodes(cus:List[ComputeUnit]) = {
-    cus.foreach { _ match {
-        case cu:InnerController =>
-          emitNode(cu, cu, DotAttr().shape(box).style(rounded))
-          cu.sinMap.foreach { case (s, sin) => emitEdge(s.writer.ctrler, cu, s"$s")}
-          cu.vinMap.foreach { case (v, vin) => emitEdge(v.writer.ctrler, cu, s"$v")}
-        case cu:OuterController =>
-          cu.sinMap.foreach { case (s, sin) => 
-            emitEdge(s.writer.ctrler, cu.inner, s"$s")
-          }
-        //TODO
-        //case top:Top => emitNode(top, top, DotAttr().shape(box).style(rounded))
-        //case mc:MemoryController => emitNode(mc, mc, DotAttr().shape(box).style(rounded))
-      } 
+  def emitCtrlInputs(cl:Controller):Unit = {
+    def q(cp:CtrlPort) = cp.src match {
+      case cb:CtrlBox => 
+        val attrs = s"${cp}".split("\\.")
+        if (attrs.size==2)
+          s"${cb.ctrler.name.getOrElse(cb.ctrler.toString)}.${attrs(1)}"
+        else
+          s"${cp}"
+      case _ => s"${cp}"
+    }
+    val cins = cl.ctrlBox.ctrlIns
+    cins.foreach { ci =>
+      if (ci.isConnected) {
+        val fromcu = ci.from.src match {
+          case p:Primitive => p.ctrler
+          case cu => cu
+        }
+        val from = ci.from.src match {
+          case ctr:Counter => s"${fromcu.name.getOrElse(fromcu.toString)}.done"
+          case cb:CtrlBox => q(ci.from.asInstanceOf[CtrlPort])
+          //case at:SiblingAndTree => q(ci)
+          case _ => s"${ci.from}"
+        }
+        val to = s"${ci}"
+        val label = s"from:$from\nto:$to"
+        emitEdge(fromcu, cl, DotAttr().label(label).style(dashed))
+      }
     }
   }
 
 }
 
-object PIRNetworkDotGen {
-  def emitController(cl:Controller)(implicit printer:DotCodegen):Unit = {
-    import printer._
-    cl match {
-      case top:Top => 
-        emitSubGraph(top, top) {
-          emitNode(top, top, DotAttr().shape(box).style(dashed))
-          top.children.foreach { cu => emitController(cu) }
-        }
-      case cu:OuterController =>
-        emitSubGraph(cu, cu) {
-          cu.children.foreach { cu => emitController(cu) }
-        }
-      case cu:InnerController =>
-        emitSubGraph(cu, DotAttr().label(cu).style(rounded)) {
-          cu.locals.foreach { cu =>
-            emitNode(cu, cu, DotAttr().shape(box).style(dashed))
-          }
-        }
-    }
-  }
-}
+class PIRDataDotGen(fileName:String)(implicit val design:Design) extends PIRDotGen { 
 
-class PIRCtrlNetworkDotGen(fileName:String)(implicit design:Design) extends Traversal with DotCodegen { 
   override val stream = newStream(fileName)
+
   def this()(implicit design:Design) = {
-    this(Config.pirCtrlNetworkDot)
+    this(Config.pirDot)
   }
 
-  def traverse:Unit = {
+  def emitInputs(cl:Controller):Unit = {
+    emitDataInputs(cl)
+    emitCtrlInputs(cl)
+  }
+
+}
+
+
+class PIRCtrlDotGen(fileName:String)(implicit val design:Design) extends PIRDotGen { 
+
+  override val stream = newStream(fileName)
+
+  def this()(implicit design:Design) = {
+    this(Config.pirCtrlDot)
+  }
+
+  override def traverse:Unit = {
     emitBlock("digraph G") {
       emitConcise
     }
-  }
-
-  def finPass = {
-    close
   }
 
   def emitConcise:Unit = {
@@ -125,30 +141,8 @@ class PIRCtrlNetworkDotGen(fileName:String)(implicit design:Design) extends Trav
     }
   }
 
-  def emitFull:Unit = {
-    emitNodes
-  }
-
-  def emitNodes:Unit = {
-    emitController(design.top)
-    design.top.ctrlers.foreach { cl => emitInputs (cl) }
-  }
-
-  def emitController(cl:Controller):Unit = PIRNetworkDotGen.emitController(cl)(this)
-
-  def emitInputs(cl:Controller) = {
-    val cins = cl match {
-      case top:Top => top.ctrlIns
-      case cu:ComputeUnit => cu.ctrlBox.ctrlIns
-    }
-    cins.foreach { ci =>
-      val fromcu = ci.from.src match {
-        case p:Primitive => p.ctrler
-        case cu => cu
-      }
-      val label = s"from:${ci.from}\nto:$ci"
-      emitEdge(fromcu, cl, label)
-    }
+  def emitInputs(cl:Controller):Unit = {
+    emitCtrlInputs(cl)
   }
 
 }

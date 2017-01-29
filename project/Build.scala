@@ -22,9 +22,19 @@ object PIRBuild extends Build {
     retrieveManaged := true,
     javaOptions in (Test) += "-Xdebug",
     javaOptions in (Test) += "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-    scalacOptions += "-Yno-generic-signatures",
+    //scalacOptions += "-Yno-generic-signatures",
     scalacOptions += "-feature",
+    scalacOptions += "-unchecked",
     scalacOptions += "-deprecation",
+    autoAPIMappings := true,
+    scalacOptions in (Compile, doc) ++= Seq(
+      "-doc-root-content", 
+      baseDirectory.value+"/root-doc.txt",
+      "-diagrams",
+      "-diagrams-debug",
+      //"-diagrams-dot-timeout", "20", "-diagrams-debug",
+      "-doc-title", name.value
+    ),
 
     parallelExecution in Test := false,
     concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)

@@ -36,10 +36,14 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal{
                     val anc2 = ancestors2.intersect(ca.children)
                     assert(anc1.size==1)
                     assert(anc2.size==1)
-                    var next = anc1.head.dependeds 
+                    var next = anc1.head.produced.map{_.consumer} 
                     var dist = 1
                     while (next.size!=0 && !next.contains(anc2.head)) {
-                      next = next.flatMap{_.dependeds} 
+                      next = next.flatMap{ _ match {
+                          case cu:ComputeUnit => cu.produced.map{_.consumer}
+                          case top:Top => Nil //TODO
+                        }
+                      } 
                       dist +=1
                     }
                     dist
@@ -47,10 +51,6 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal{
                 }
               }
               bufSizeMap += dvin -> size 
-              //if (size!=1) {
-                //val sm = ScalarMem(dvin) 
-                //reader.inner.addScalarMem(sm)
-              //}
             case _ =>
           }
         }

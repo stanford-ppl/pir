@@ -18,11 +18,11 @@ object Config {
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = false
+  var ctrl = true 
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
-  var pirNetworkDot = getProperty("pir.pir_network", "PIRNetwork.dot")
-  var pirCtrlNetworkDot = getProperty("pir.pir_ctrl_network", "PIRCtrlNetwork.dot")
+  var pirDot = getProperty("pir.pir_network", "PIR.dot")
+  var pirCtrlDot = getProperty("pir.pir_ctrl_network", "PIRCtrl.dot")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
   //var pisaFile = getProperty("pir.pisafile", "pisa.json")
   var spadeNetwork = getProperty("pir.spade_network", "Network.dot")

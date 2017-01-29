@@ -21,7 +21,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear
-    ForwardRef.collectOuters
+    ForwardRef.collectMCParent
   } 
 
   def addName(n:Node):Unit = n.name.foreach { name => 
@@ -58,7 +58,8 @@ object ForwardRef {
   def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
   def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
   // Collect outer controllers that are in the same CU
-  def collectOuters(implicit design:Design) = {
+  
+  def collectMCParent(implicit design:Design) = {
     design.top.innerCUs.foreach { inner =>
       //TODO: hack add dep and parent of MemoryController here
       inner match {
@@ -67,23 +68,28 @@ object ForwardRef {
             case (TileLoad | TileStore) => mc.ofs.writer.ctrler.asInstanceOf[InnerController]
             case (Gather | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
           }
-          mc.addDep(addrPipe)
+          //mc.addDep(addrPipe)
           mc.parent(addrPipe.parent)
           mc.parent.addChildren(mc)
           mc.mctpe match {
             case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
               val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
-              if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+              //if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
             case TileStore =>
-              mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+              //mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
               val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
-              if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+              //if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
             case Gather =>
             case Scatter =>
-              mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+              //mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
           }
         case icu:InnerController =>
       }
+    }
+  }
+
+  def collectOuters(implicit design:Design) = {
+    design.top.innerCUs.foreach { inner =>
       val outers = ListBuffer[OuterController]()
       var child:ComputeUnit = inner
       // Make a copy of ancestors' CounterChains 
@@ -91,7 +97,7 @@ object ForwardRef {
         val parent = child.parent.asInstanceOf[OuterController]
         outers += parent
         parent.inner = inner
-        //parent.cchains.foreach { cc => inner.getCopy(cc.original) }
+        parent.cchains.foreach { cc => inner.getCopy(cc.original) }
         child = child.parent.asInstanceOf[ComputeUnit]
       }
       inner.outers = outers.toList

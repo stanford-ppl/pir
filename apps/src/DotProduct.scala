@@ -11,27 +11,27 @@ object DotProductDesign extends PIRApp {
   def main(args: String*)(top:Top) = {
     val x1600_oc = OffChip("x1600")
     val x1599_argout = ArgOut("x1599")
-    val x1777_scalar = Scalar("x1777")
+    val x1777_scalar = Scalar("x1777").producer("x1793_0").consumer("x1799_0", true).buffering(DoubleBuffer())
     val x1601_oc = OffChip("x1601")
     val x1753_mc = MemoryController(TileLoad, x1601_oc)
     val x1708_mc = MemoryController(TileLoad, x1600_oc)
-    val x1807 = Sequential(name = "x1807", parent=top, deps=List()) { implicit CU => 
+    val x1807 = Sequential(name = "x1807", parent=top) { implicit CU => 
       val stage0 = CU.emptyStage
       val x1807_unitcc = CounterChain(name = "x1807_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x1801 = MetaPipeline(name = "x1801", parent=x1807, deps=List()) { implicit CU => 
+    val x1801 = MetaPipeline(name = "x1801", parent=x1807) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr1 = (Const("0i").out, Const("768000000i").out, Const("2000i").out) // Counter
       val x1680 = CounterChain(name = "x1680", ctr1)
       var stage: List[Stage] = Nil
     }
-    val x1729 = StreamController(name = "x1729", parent=x1801, deps=List()) { implicit CU => 
+    val x1729 = StreamController(name = "x1729", parent=x1801) { implicit CU => 
       val stage0 = CU.emptyStage
       val x1729_unitcc = CounterChain(name = "x1729_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x1704_0 = UnitPipeline(name = "x1704_0", parent=x1729, deps=List()) { implicit CU => 
+    val x1704_0 = UnitPipeline(name = "x1704_0", parent=x1729) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr65 = CU.temp
       val tr64 = CU.temp
@@ -52,12 +52,12 @@ object DotProductDesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr64), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr65)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr62), CU.temp(stage(7), tr65)), op=FixAdd, results=List(CU.scalarOut(stage(8), x1708_mc.len)))
     }
-    val x1774 = StreamController(name = "x1774", parent=x1801, deps=List()) { implicit CU => 
+    val x1774 = StreamController(name = "x1774", parent=x1801) { implicit CU => 
       val stage0 = CU.emptyStage
       val x1774_unitcc = CounterChain(name = "x1774_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
     }
-    val x1749_0 = UnitPipeline(name = "x1749_0", parent=x1774, deps=List()) { implicit CU => 
+    val x1749_0 = UnitPipeline(name = "x1749_0", parent=x1774) { implicit CU => 
       val stage0 = CU.emptyStage
       val tr88 = CU.temp
       val tr87 = CU.temp
@@ -78,19 +78,29 @@ object DotProductDesign extends PIRApp {
       Stage(stage(7), operands=List(CU.temp(stage(6), tr87), Const("64i"), Const("0i")), op=Mux, results=List(CU.temp(stage(7), tr88)))
       Stage(stage(8), operands=List(CU.temp(stage(7), tr85), CU.temp(stage(7), tr88)), op=FixAdd, results=List(CU.scalarOut(stage(8), x1753_mc.len)))
     }
-    val x1793_0 = Pipeline(name = "x1793_0", parent=x1801, deps=List(x1729, x1774)) { implicit CU => 
+
+    val semiA = MemoryPipeline(name="semiA", parent=x1801){ implicit CU =>
+      val x1779 = CounterChain.copy("x1793_0", "x1779")
+      val x1683_x1782 = SemiFIFO(size = 2000, banking = Strided(1), buffering = MultiBuffer(2)).wtPort(x1708_mc.vdata).rdAddr(x1779(0)).consumer("x1793_0", true).producer("x1729")
+    }
+
+    val semiB = MemoryPipeline(name="semiB", parent=x1801){ implicit CU =>
+      val x1779 = CounterChain.copy("x1793_0", "x1779")
+      val x1684_x1785 = SemiFIFO(size = 2000, banking = Strided(1), buffering = MultiBuffer(2)).wtPort(x1753_mc.vdata).rdAddr(x1779(0)).consumer("x1793_0", true).producer("x1774")
+    }
+
+    val x1793_0 = Pipeline(name = "x1793_0", parent=x1801) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr5 = (Const("0i").out, Const("2000i").out, Const("16i").out) // Counter
       val x1779 = CounterChain(name = "x1779", ctr5)
-      val x1683_x1782 = SemiFIFO(size = 2000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1779(0))).wtPort(x1708_mc.vdata).rdAddr(x1779(0))
-      val x1684_x1785 = SemiFIFO(size = 2000, banking = Strided(1), buffering = MultiBuffer(2, swapRead = x1779(0))).wtPort(x1753_mc.vdata).rdAddr(x1779(0))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
-      Stage(stage(1), operands=List(x1683_x1782.load, x1684_x1785.load), op=FixMul, results=List(CU.reduce(stage(1))))
+      Stage(stage(1), operands=List(CU.vecIn(stage(0), semiA.data), CU.vecIn(stage(0), semiB.data)), op=FixMul, results=List(CU.reduce(stage(1))))
       val (rs1, rr110) = Stage.reduce(op=FixAdd, init=Const("0i"))
       Stage(stage(2), operands=List(rr110), op=Bypass, results=List(CU.scalarOut(stage(2), x1777_scalar)))
     }
-    val x1799_0 = UnitPipeline(name = "x1799_0", parent=x1801, deps=List(x1793_0)) { implicit CU => 
+
+    val x1799_0 = UnitPipeline(name = "x1799_0", parent=x1801) { implicit CU => 
       val stage0 = CU.emptyStage
       val ar114 = CU.accum(init = Const("0i"))
       val x1799_unitcc = CounterChain(name = "x1799_unitcc", (Const("0i"), Const("1i"), Const("1i")))

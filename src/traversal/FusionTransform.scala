@@ -75,10 +75,6 @@ class FusionTransform(implicit val design: Design) extends Traversal{
             pcu.parent.removeChildren(pcu)
             pcu.removeChildren(ccu)
             pcu.parent(null)
-            ccu.addDeps(pcu.dependencies)
-            pcu.dependeds.foreach { _.addDep(ccu) }
-            pcu.removeDeps
-            pcu.removeDepeds
             design.removeNode(pcu)
         }
       }

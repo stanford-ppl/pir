@@ -229,8 +229,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     }
 
     /* Enable LUT mapping */
-    inner.enLUTs.foreach { case (en, enLut) =>
-      val ctr = en.src
+    inner.enLUTs.foreach { enLut =>
+      val ctr = enLut.out.to.flatMap{ _.src match {
+          case ctr:Ctr if ctr.ctrler == enLut.ctrler => Some(ctr)
+          case _ => None 
+        }
+      }.head
       val pctr = pmap.ctmap(ctr)
       val penLut = pcb.enLUTs(indexOf(pctr))
       assert(enLut.ins.size <= penLut.numIns)

@@ -132,8 +132,8 @@ object PIRPrinter extends Metadata {
     node match {
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
-        fields += s"dep=[${n.dependencies.mkString(",")}]"
-        fields += s"deped=[${n.dependeds.mkString(",")}]"
+        fields += s"consumed=[${n.consumed.mkString(",")}]"
+        fields += s"produced=[${n.produced.mkString(",")}]"
         n match {
           case n:InnerController =>
             fields += s"outers=[${n.outers.mkString(s",")}]"
@@ -145,7 +145,7 @@ object PIRPrinter extends Metadata {
             fields += s"writtenMem=[${n.writtenMem}]"
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
-            fields += s"height=${n.height}"
+            fields += s"length=${n.length}"
         }
         n match {
           case c:TileTransfer =>
@@ -158,10 +158,11 @@ object PIRPrinter extends Metadata {
       case p:OnChipMem =>
         fields += s"size=${p.size}"
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
-        fields += s"banking=${p.banking}, dblBuf=${p.buffering}"
+        fields += s"banking=${p.banking}"
         p match { case p:SRAMOnRead => fields += s"RA=${p.readAddr.from}"; case _ => }
         p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}, writeCtr=${p.writeCtr}"; case _ => }
         p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
+        p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
       case p:Stage =>
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
@@ -204,6 +205,7 @@ object PIRPrinter extends Metadata {
       case s:Scalar =>
         val writer = if (s.writer==null) "null" else s.writer.ctrler
         fields += s"writer=${writer} readers=[${s.readers.map(_.ctrler).mkString(",")}]"
+        s match { case s:MultiBuffering => fields += s"multiBuffer=${s.buffering}"; case _ => }
       case v:Vector =>
         val writer = if (v.writer==null) "null" else v.writer.ctrler
         fields += s"writer=${writer} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 

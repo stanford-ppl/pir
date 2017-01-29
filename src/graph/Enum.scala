@@ -69,13 +69,10 @@ package object enums {
   case class NoBanking() extends Banking
 
   sealed trait Buffering 
-  case class MultiBuffer(depth:Int, swapRead:Counter, var swapWrite:Counter) extends Buffering
-  object MultiBuffer {
-    def apply(depth:Int, swapRead:Counter):MultiBuffer = {
-      MultiBuffer(depth, swapRead, null) // Updated later
-    }
+  case class MultiBuffer(depth:Int) extends Buffering
+  object DoubleBuffer {
+    def apply():MultiBuffer = MultiBuffer(2)
   }
-  case class DoubleBuffer(swapRead:Counter, swapWrite:Counter) extends Buffering
   case class SingleBuffer() extends Buffering
 
   //sealed trait SramMode

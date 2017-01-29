@@ -50,7 +50,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
       //println(s"vec:$vec, readers:${readers} bundle:$bundle vec.scalars:${vec.scalars}")
       if (!vec.isFull) freeVecs.push(vec)
     }
-    design.top.vectors = design.top.vectors ++ vecs.toList
+    design.top.vectors(design.top.vectors ++ vecs.toList)
   }
 
   def bundleScalarIns = {

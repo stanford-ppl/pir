@@ -47,8 +47,6 @@ class IRCheck(implicit val design: Design) extends Traversal {
           }
           cu match {
             case mc:MemoryController => 
-              if (mc.isHead) throw PIRException(s"MemoryController cannot be the first stage")
-              if (!mc.isLast) throw PIRException(s"MemoryController need to be the last stage $mc ${mc.dependeds}")
               mc.cchains.flatMap{_.counters}.foreach { ctr =>
                 if (!ctr.min.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.min.from}")
                 if (!ctr.step.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.step.from}")

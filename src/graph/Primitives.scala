@@ -229,7 +229,6 @@ case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:Co
 abstract class OnChipMem(implicit override val ctrler:InnerController, design:Design) extends Primitive {
   val size:Int
   val banking:Banking
-  val buffering:Buffering
 
   val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
   val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
@@ -238,13 +237,6 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
     case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
     case _ => writePort.from.src.isInstanceOf[VecIn]
   } 
-  def writer:InnerController = {
-    writePort.from.src match {
-      case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
-      case PipeReg(stage, StorePR(_,_)) if stage==ctrler.stages.last=> ctrler
-      case p => throw PIRException(s"Unknown SRAM write port ${p}")
-    }
-  }
 
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
   def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
@@ -252,6 +244,21 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
   //TODO: shouldn't allowed. Added as a hack
   def wtPort(s:Scalar):this.type = { wtPort(ctrler.newSin(s).out) }
   def load = readPort
+
+  def writer:InnerController = {
+    writePort.from.src match {
+      case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
+      case p => throw PIRException(s"Unknown SRAM write port ${p}")
+    }
+  }
+
+  def readers:List[InnerController] = {
+    assert(readPort.to.size==1)
+    readPort.to.head.src match {
+      case vo:VecOut => vo.vector.readers.map{ _.ctrler.asInstanceOf[InnerController] }
+      case p => throw PIRException(s"Unknown SRAM read port ${p}")
+    }
+  }
 }
 
 trait SRAMOnRead extends OnChipMem {
@@ -298,6 +305,52 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
   val enqueueEnable = dummyCtr.en 
   override def toUpdate = super.toUpdate
 }
+
+abstract class RemoteMem(implicit override val ctrler:MemoryPipeline, design: Design) extends OnChipMem with MultiBuffering {
+}
+trait LocalMem extends OnChipMem {
+}
+
+trait MultiBuffering {
+  val design:Design
+  var _producer:Controller = _
+  var _consumer:Controller = _
+  def producer:Controller = _producer
+  def consumer:Controller = _consumer
+  var trueDep:Boolean = _
+  def producer[T](pd:T):this.type = {
+    pd match {
+      case pd:String =>
+        design.updateLater(pd, (n:Node) => producer(n.asInstanceOf[Controller]))
+      case pd:Controller =>
+        this._producer = pd
+        pd match {
+          case cu:ComputeUnit => cu.produce(this)
+          case _ =>
+        }
+    }
+    this
+  }
+  def consumer[T](cs:T, trueDep:Boolean):this.type = {
+    cs match {
+      case cs:String =>
+        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller], trueDep))
+      case cs:Controller =>
+        this._consumer = cs
+        this.trueDep = trueDep
+        cs match {
+          case cu:ComputeUnit => cu.consume(this)
+          case _ =>
+        }
+    }
+    this
+  }
+
+  var _buffering:Buffering = _
+  def buffering = _buffering
+  def buffering(buf:Buffering):this.type = { _buffering = buf; this }
+}
+
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
  *  @param size: size of SRAM in all dimensions 
@@ -306,27 +359,33 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
  *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
  *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
-  extends OnChipMem with SRAMOnRead with SRAMOnWrite {
+case class SRAM(name: Option[String], size: Int, banking:Banking, buf:Buffering)(implicit ctrler:MemoryPipeline, design: Design) 
+  extends RemoteMem with SRAMOnRead with SRAMOnWrite {
   override val typeStr = "SRAM"
+  this.buffering(buf)
 }
 object SRAM {
   //TODO remove after apps are regenerated
-  def apply(size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(None, size, banking, buffering).wtCtr(writeCtr)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering, writeCtr:Counter)(implicit ctrler:InnerController, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering).wtCtr(writeCtr)
-
-  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SRAM
+  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SRAM
     = SRAM(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SRAM
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SRAM
     = SRAM(Some(name), size, banking, buffering)
+}
+case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buf:Buffering)(implicit ctrler:MemoryPipeline, design: Design) 
+  extends RemoteMem with SRAMOnRead with FIFOOnWrite {
+  override val typeStr = "SemiFIFO"
+  this.buffering(buf)
+}
+object SemiFIFO {
+  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
+    = SemiFIFO(None, size, banking, buffering)
+  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
+    = SemiFIFO(Some(name), size, banking, buffering)
 }
 
 class FIFO(val name: Option[String], val size: Int, val banking:Banking)(implicit ctrler:InnerController, design: Design) 
-  extends OnChipMem with FIFOOnRead with FIFOOnWrite {
+  extends LocalMem with FIFOOnRead with FIFOOnWrite {
   override val typeStr = "FIFO"
-  val buffering:Buffering = SingleBuffer()
 }
 object FIFO {
   def apply(size:Int, banking:Banking)(implicit ctrler:InnerController, design: Design): FIFO
@@ -335,24 +394,13 @@ object FIFO {
     = new FIFO(Some(name), size, banking)
 }
 
-case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design) 
-  extends OnChipMem with SRAMOnRead with FIFOOnWrite {
-  override val typeStr = "SemiFIFO"
-}
-object SemiFIFO {
-  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
-    = SemiFIFO(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:InnerController, design: Design): SemiFIFO
-    = SemiFIFO(Some(name), size, banking, buffering)
-}
 case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: Design) 
   extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking())
 
 case class ScalarMem(vecIn:DummyVecIn)(implicit design: Design) 
-  extends OnChipMem()(vecIn.ctrler.asInstanceOf[ComputeUnit].inner, design) with SRAMOnRead with SRAMOnWrite {
+  extends OnChipMem()(vecIn.ctrler.asInstanceOf[MemoryPipeline].inner, design) with SRAMOnRead with SRAMOnWrite {
   val size:Int = 100
   val banking:Banking = NoBanking()
-  val buffering:Buffering = SingleBuffer()
 
   override val typeStr = "ScalarFIFO"
   override val name = Some(s"${vecIn}")

@@ -110,7 +110,6 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
         }.foreach { in => emitEdge(in.from.src, lut, s"${in.from}") }
       }
       //emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
-      cu.dependencies.foreach { dep => emitEdge(dep, cu, DotAttr().style(dashed)) }
     }
     emitNode(design.top, design.top)
     val command = design.top.command 

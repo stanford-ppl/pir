@@ -176,7 +176,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
   private def checkLiveness(stages:List[Stage]) = {
     stages.foreach { s =>
       if ((s.liveIns -- s.liveOuts).size!=0) {
-        throw PIRException(s"liveIn is not contained by liveOut! stage:${s} liveIns:${s.liveIns} liveOuts:${s.liveOuts}")
+        throw PIRException(s"ctrler: ${s.ctrler}, liveIn is not contained by liveOut! stage:${s} liveIns:${s.liveIns} liveOuts:${s.liveOuts}")
       }
     }
   }
