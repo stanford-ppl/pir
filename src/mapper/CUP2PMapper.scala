@@ -8,7 +8,7 @@ import scala.util.{Try, Success, Failure}
 
 class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends CUMapper {
   type R = PCL
-  type N = SCL
+  type N = CL
   val typeStr = "CUP2PMapper"
 
   val resMap:MMap[N, List[R]] = MMap.empty
@@ -32,7 +32,7 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     dprintln(s"Datapath placement & routing ")
     val pcus = design.arch.cus
     val cus = design.top.innerCUs
-    val nodes:List[SCL] = design.top::cus
+    val nodes:List[CL] = design.top::cus
     val reses = design.arch.top::pcus
     qualifyCheck(reses, nodes, resMap)
     def resFunc(cu:N, m:M, triedRes:List[R]):List[R] = {

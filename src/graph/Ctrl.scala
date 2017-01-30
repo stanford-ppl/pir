@@ -145,6 +145,28 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
   val tokInAndTree = TokenInAndTree()
   val andTree = AndTree(fifoAndTree.out, tokInAndTree.out)
   var tokenOut:Option[CtrlOutPort] = None 
+  val swapReads = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
+  val swapWrites = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
+  def swapRead(mem:MultiBuffering, sr:CtrlOutPort) = {
+    val ci = CtrlInPort(this, s"$mem.swapRead")
+    val co = CtrlOutPort(this, s"$mem.credit")
+    ci.connect(sr)
+    swapReads += mem -> (ci,co)
+    ci
+  }
+  def swapWrite(mem:MultiBuffering, sw:CtrlOutPort) = {
+    val ci = CtrlInPort(this, s"$mem.swapWrite")
+    val co = CtrlOutPort(this, s"$mem.token")
+    ci.connect(sw)
+    swapWrites += mem -> (ci,co)
+    ci
+  }
+  def swapRead(mem:MultiBuffering):CtrlOutPort = {
+    swapReads(mem)._2
+  }
+  def swapWrite(mem:MultiBuffering):CtrlOutPort = {
+    swapWrites(mem)._2
+  }
   // only outer controller have token down, which is the init signal first child stage
 
   def tokenBuffer(dep:Any):TokenBuffer = {
@@ -192,13 +214,7 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
 
   def ctrlIns:List[CtrlInPort] = {
     val cins = ListBuffer[CtrlInPort]()
-    udcounters.foreach { case (ctrler, udc) =>
-      if (udc.inc.isConnected)
-        cins += udc.inc
-      //TODO
-      if (udc.init.isConnected)
-        cins += udc.init
-    }
+    cins ++= udcounters.values.map(_.inc).filter{ _.isCtrlIn }
     //cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
     cu.ctrlBox.tokDownLUTs.foreach { tdl => 
       cins ++= tdl.ins.filter { _.isCtrlIn }
@@ -212,6 +228,8 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
         cins ++= tokInAndTree.ins
       case _ =>
     }
+    cins ++= swapReads.values.map(_._1).filter{ _.isCtrlIn }
+    cins ++= swapWrites.values.map(_._1).filter{ _.isCtrlIn }
     cins.toList
   }
 
@@ -221,7 +239,9 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
       case cu:InnerController =>
         cu.mems.collect{ case mem:FIFOOnWrite => mem }.filter{_.readPort.isConnected}.map(_.notFull)
       case _ => Nil
-    })
+    }) ++ 
+    swapReads.values.map(_._2).filter{ _.isCtrlOut } ++ 
+    swapWrites.values.map(_._2).filter{ _.isCtrlOut }
   }
 
   override def toUpdate = super.toUpdate || tokenOut == null
@@ -260,14 +280,8 @@ case class MemCtrlBox()(implicit cu:MemoryPipeline, design: Design) extends Inne
   val readEn:CtrlInPort = CtrlInPort(this, s"$cu.readEn")
   val writeEn:CtrlInPort = CtrlInPort(this, s"$cu.writeEn")
 
-  val swapRead:CtrlInPort = CtrlInPort(this, s"$cu.swapRead")
-  val credit:CtrlOutPort = CtrlOutPort(this, s"${cu.mem.consumer}.credit")
-
-  val swapWrite:CtrlInPort = CtrlInPort(this, s"$cu.swapWrite")
-  val token:CtrlOutPort = CtrlOutPort(this, s"${cu.mem.producer}.token")
-
   override def ctrlIns:List[CtrlInPort] = {
-    super.ctrlIns ++ (readEn :: writeEn :: swapRead :: swapWrite :: Nil).filter{_.isCtrlIn}
+    super.ctrlIns ++ (readEn :: writeEn :: Nil).filter{_.isCtrlIn}
   }
 }
 

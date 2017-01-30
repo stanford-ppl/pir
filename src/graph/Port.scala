@@ -110,8 +110,8 @@ object DoneOutPort {
 }
 
 trait CtrlPort extends Port {
-  def ctrler:SpadeController = src match {
-    case p:Primitive => p.ctrler match { case cu:ComputeUnit => cu.inner }
+  def ctrler:Controller = src match {
+    case p:Primitive => p.ctrler
     case top:Top => top
     case mc:MemoryController => mc
   }

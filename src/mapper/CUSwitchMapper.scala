@@ -50,7 +50,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   }
   // DEBUG --
 
-  val resMap:MMap[SCL, List[PCL]] = MMap.empty
+  val resMap:MMap[CL, List[PCL]] = MMap.empty
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
@@ -63,7 +63,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     mapCUs(nodes)(m)
   }
 
-  def mapCUs(remainNodes:List[SCL])(map:M) = {
+  def mapCUs(remainNodes:List[CL])(map:M) = {
     if (remainNodes.size==0) {
       finPass(map)
     } else {
@@ -77,9 +77,9 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
   }
 
-  def mapCU(cl:SCL, restNodes:List[SCL])(map:M):M = {
+  def mapCU(cl:CL, restNodes:List[CL])(map:M):M = {
     type R = PCL
-    type N = SCL
+    type N = CL
     def constrain(cl:N, pcl:R, m:M, es:List[MappingException]):M = {
       val mp = cl.readers.foldLeft(bindCU(cl, pcl, m, es)) { case (pm, reader) =>
         if (pm.clmap.contains(reader)) {
@@ -126,7 +126,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
     advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
 
-  def getRoute(cl:SCL, pdep:(VI, PCL), m:M):PathMap = {
+  def getRoute(cl:CL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
     def validCons(toVin:PIB, path:Path) = {
       val to = toVin.src.asInstanceOf[PCL]
@@ -149,7 +149,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   }
   // Map inputs of the current cu. If source of the input is not mapped, postpond mapping of the
   // input until the source is mapped.
-  def mapDep(cl:SCL)(fp:M => M)(map:M):M = {
+  def mapDep(cl:CL)(fp:M => M)(map:M):M = {
     type N = (VI, PCL)
     type R = (PCL, Path)
     val pdeps = getDeps(cl.vins, map) // returns unmapped vins whose depended cu are mapped
@@ -195,7 +195,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
   }
 
-  def bindCU(cl:SCL, pcl:PCL, map:M, es:List[MappingException]):M = {
+  def bindCU(cl:CL, pcl:PCL, map:M, es:List[MappingException]):M = {
     dprintln(s"Try $cl -> $pcl")
     flattenExceptions(es).collect { case e@NotReachable(to, topcu, _, _) =>
       if (to == cl && pcl == topcu) {

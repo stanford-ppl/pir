@@ -13,14 +13,14 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   type N = VI
   val typeStr = "VIMapper"
 
-  def finPass(cl:SCL)(m:M):M = m
+  def finPass(cl:CL)(m:M):M = m
   override def debug = Config.debugVIMapper
 
   private def getOB(sin:SI, pirMap:M):POB = {
     pirMap.somap(sin.scalar.writer).outBus
   }
 
-  def map(cl:SCL, pirMap:M):M = {
+  def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
    // Assume sin and vin have only one writer
     val cons = List(mapVec(cl, pcl) _) 
@@ -36,10 +36,10 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     }
   }
 
-  def mapVec(cl:SCL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
+  def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     assert(!pirMap.vimap.contains(n))
     assert(!pirMap.vimap.pmap.contains(p))
-    val dep:SCL = n.vector.writer.ctrler // ctrler that writes n
+    val dep:CL = n.vector.writer.ctrler // ctrler that writes n
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 

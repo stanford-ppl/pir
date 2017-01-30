@@ -42,7 +42,6 @@ package object typealias {
   type ICL   = pir.graph.InnerController
   type OCL   = pir.graph.OuterController
   type CU    = pir.graph.ComputeUnit
-  type SCL   = pir.graph.SpadeController
   type SC    = pir.graph.StreamController
   type SP    = pir.graph.StreamPipeline
   type TT    = pir.graph.TileTransfer

@@ -76,20 +76,20 @@ trait PIRDotGen extends Traversal with DotCodegen {
       case _ => s"${cp}"
     }
     val cins = cl.ctrlBox.ctrlIns
-    cins.foreach { ci =>
-      if (ci.isConnected) {
-        val fromcu = ci.from.src match {
+    cins.groupBy(_.from).foreach { case (from, cis) =>
+      if (from != null) {
+        val fromcu = from.src match {
           case p:Primitive => p.ctrler
           case cu => cu
         }
-        val from = ci.from.src match {
+        val fromlb = from.src match {
           case ctr:Counter => s"${fromcu.name.getOrElse(fromcu.toString)}.done"
-          case cb:CtrlBox => q(ci.from.asInstanceOf[CtrlPort])
+          case cb:CtrlBox => q(from.asInstanceOf[CtrlPort])
           //case at:SiblingAndTree => q(ci)
-          case _ => s"${ci.from}"
+          case _ => s"${from}"
         }
-        val to = s"${ci}"
-        val label = s"from:$from\nto:$to"
+        val tolb = cis.mkString(",\n")
+        val label = s"from:$fromlb\nto:$tolb"
         emitEdge(fromcu, cl, DotAttr().label(label).style(dashed))
       }
     }
@@ -128,16 +128,14 @@ class PIRCtrlDotGen(fileName:String)(implicit val design:Design) extends PIRDotG
   }
 
   def emitConcise:Unit = {
-    design.top.ctrlers.foreach {
-      case cu:SpadeController =>
-        emitNode(cu, cu, DotAttr().shape(box).style(rounded))
-        val cos = cu.ctrlIns.map { _.from.asInstanceOf[CtrlOutPort] }.toSet.toList
-        cos.foreach { co =>
-          val cins = co.to.filter{_.asInstanceOf[CtrlInPort].ctrler==cu}
-          val label = s"from:${co}\nto:[${cins.mkString(",\n")}]"
-          emitEdge(co.ctrler, cu, label)
-        }
-      case _ =>
+    design.top.ctrlers.foreach { cu =>
+      emitNode(cu, cu, DotAttr().shape(box).style(rounded))
+      val cos = cu.ctrlIns.map { _.from.asInstanceOf[CtrlOutPort] }.toSet.toList
+      cos.foreach { co =>
+        val cins = co.to.filter{_.asInstanceOf[CtrlInPort].ctrler==cu}
+        val label = s"from:${co}\nto:[${cins.mkString(",\n")}]"
+        emitEdge(co.ctrler, cu, label)
+      }
     }
   }
 

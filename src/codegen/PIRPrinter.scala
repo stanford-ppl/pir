@@ -142,7 +142,6 @@ object PIRPrinter extends Metadata {
                 fields += s"mctpe=${n.mctpe}"
               case _ =>
             }
-            fields += s"writtenMem=[${n.writtenMem}]"
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
             fields += s"length=${n.length}"
@@ -160,7 +159,7 @@ object PIRPrinter extends Metadata {
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}"
         p match { case p:SRAMOnRead => fields += s"RA=${p.readAddr.from}"; case _ => }
-        p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}, writeCtr=${p.writeCtr}"; case _ => }
+        p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}"; case _ => }
         p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
         p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
       case p:Stage =>

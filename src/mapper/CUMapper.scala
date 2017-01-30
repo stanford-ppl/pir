@@ -14,7 +14,7 @@ import scala.util.{Try, Success, Failure}
 
 trait CUMapper extends Mapper {
   override implicit val mapper:CUMapper = this
-  def resMap:MMap[SCL, List[PCL]]
+  def resMap:MMap[CL, List[PCL]]
   def finPass(m:M):M = m
   def map(m:M):M
   override def debug = Config.debugCUMapper
@@ -43,7 +43,7 @@ trait CUMapper extends Mapper {
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck(pcls:List[PCL], cls:List[SCL], map:MMap[SCL, List[PCL]])(implicit mapper:CUMapper, design:Design):Unit = {
+  def qualifyCheck(pcls:List[PCL], cls:List[CL], map:MMap[CL, List[PCL]])(implicit mapper:CUMapper, design:Design):Unit = {
     val pcus = design.arch.cus
     val cus = design.top.innerCUs
     val grp = cus.groupBy(_.isInstanceOf[MC]) 

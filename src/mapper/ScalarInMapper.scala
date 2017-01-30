@@ -32,7 +32,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
     }.toList
   }
 
-  def map(cl:SCL, pirMap:M):M = {
+  def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
     val sins = cl.sins
     val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)

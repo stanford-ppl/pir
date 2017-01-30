@@ -46,7 +46,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     }
   }
 
-  def mapPrim(ctrler:SpadeController)(m:PIRMap):PIRMap = {
+  def mapPrim(ctrler:Controller)(m:PIRMap):PIRMap = {
     var cmap = m
     cmap = siMapper.map(ctrler, cmap)
     ctrler match {

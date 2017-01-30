@@ -66,7 +66,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
     fbmap.printMap
     design.top.ctrlers.foreach { cl => 
       cl match {
-        case cl:SCL =>
+        case cl:CL =>
           if (clmap.map.contains(cl)) {
             val pcl = clmap.map(cl)
             p.emitBlock( s"$cl -> ${quote(pcl)}" ) {
@@ -273,7 +273,7 @@ case class CLMap(map:CLMap.M, pmap:CLMap.PM) extends BMap {
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmap + rec.swap) }
 }
 object CLMap extends BMapObj {
-  type K = SCL
+  type K = CL
   type V = PCL
   def empty:CLMap = CLMap(Map.empty, Map.empty)
 }

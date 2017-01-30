@@ -42,9 +42,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
   }
   // DEBUG --
 
-  def finPass(cu:SCL)(m:M):M = m
+  def finPass(cu:CL)(m:M):M = m
 
-  def map(cu:SCL, pirMap:M):M = {
+  def map(cu:CL, pirMap:M):M = {
     log(cu) {
       var pmap = pirMap
       pmap = cu match {
@@ -55,7 +55,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     }
   }
 
-  def getCins(cl:SCL, mp:M):List[CIP] = {
+  def getCins(cl:CL, mp:M):List[CIP] = {
     val sameSrcMap = cl.ctrlIns.groupBy{ ci => ci.from.asInstanceOf[COP] }
     sameSrcMap.flatMap { case (co, cins) =>
       val mapped = cins.exists{ ci => mp.vimap.contains(ci) }
@@ -63,14 +63,14 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     }.toList
   }
 
-  def mapCtrlIOs(cl:SCL)(fp:M => M)(pmap:M)(implicit cuMapper:CUSwitchMapper):M = {
+  def mapCtrlIOs(cl:CL)(fp:M => M)(pmap:M)(implicit cuMapper:CUSwitchMapper):M = {
     mapCtrlIns(cl, fp)(pmap)
     //new CUCtrlDotPrinter()(design).print(mp)
   }
 
-  def getRoute(cl:SCL, ci:CIP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
+  def getRoute(cl:CL, ci:CIP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
     val co = ci.from.asInstanceOf[COP]
-    val fromcl = co.ctrler.asInstanceOf[SCL]
+    val fromcl = co.ctrler.asInstanceOf[CL]
     val pfromcl = map.clmap(fromcl)
     def validCons(toCU:PCL, fatpath: FatPath):Option[FatPath] = {
       var valid = true
@@ -92,7 +92,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
             var fatedge = last.head
             fatedge = fatedge.filter { edge =>
               val (pco, pci) = edge
-              if (ci==mc.commandFIFO.enqueueEnable) 
+              if (ci==mc.ofsFIFO.get.enqueueEnable) 
                 (indexOf(pci) == spade.memCtrlCommandFIFOEnqBusIdx)
               else if (mc.mctpe==TileStore && ci==mc.dataFIFO.get.enqueueEnable) 
                 (indexOf(pci) == spade.memCtrlDataFIFOEnqBusIdx)
@@ -113,7 +113,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
             var fatedge::rest = fp
             fatedge = fatedge.filter { edge =>
               val (pco, pci) = edge
-              if (co == mc.commandFIFO.notFull) 
+              if (co == mc.ofsFIFO.get.notFull) 
                 (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
               else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
                 (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
@@ -162,7 +162,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     filterUsedRoutes(routes, map)
   }
 
-  def mapCtrlIns(cl:SCL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
+  def mapCtrlIns(cl:CL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
     type N = CIP
     type R = (PCL, Path)
     val remainCtrlIns = getCins(cl, map)
@@ -278,13 +278,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
   }
 }
 
-case class BindingException(cl:SCL, pcl:PCL, except:NotReachable)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class BindingException(cl:CL, pcl:PCL, except:NotReachable)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Not mapping $cl to $pcl due to $except"
 }
-case class NotReachable(to:SCL, topcu:PCL, fromcu:SCL, frompcu:Option[PCL])(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL])(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Cannot map $to to $topcu because due to incapable of reaching from $fromcu at $frompcu"
 }
-case class CtrlRouting(cu:SCL, e:MappingException)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class CtrlRouting(cu:CL, e:MappingException)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ctrl for ${cu} due to $e"
 }
 case class OutOfUDC(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {

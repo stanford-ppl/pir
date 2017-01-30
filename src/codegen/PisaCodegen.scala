@@ -171,12 +171,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             }
             emitPair("isWr", s"${isWr}")
             emitPair("scatterGather", "0")
-            emitComment("CommandFIFO-enqueueEnable", s"${indexOf(vimap(mc.commandFIFO.enqueueEnable))}")
+            emitComment("ofsFIFO-enqueueEnable", s"${indexOf(vimap(mc.ofsFIFO.get.enqueueEnable))}")
             mc.dataFIFO.foreach { dataFIFO =>
               emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
               emitComment("DataFIFO-notFull", s"${vomap.get(dataFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",")}}")
             }
-            emitComment("CommandFIFO-notFull", s"${vomap.get(mc.commandFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
+            emitComment("ofsFIFO-notFull", s"${vomap.get(mc.ofsFIFO.get.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
             emitCounterChains(pmc)
             emitCtrl(pmc)
           }
@@ -212,7 +212,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     emitComment(s"scalarIn", siComment.mkString(","))
     emitXbar("scalarInXbar", siXbar.toList)
     val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
-    cu  {
+    cu match {
       case cu:UnitPipeline => emitPair("scalarOutMux", "1")
       case cu => emitPair("scalarOutMux", "0")
     }

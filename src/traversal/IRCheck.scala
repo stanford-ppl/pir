@@ -40,7 +40,7 @@ class IRCheck(implicit val design: Design) extends Traversal {
               }
             case _ =>
           }
-        case cu:SpadeController =>
+        case cu:Controller =>
           cu.ctrlReaders.foreach { reader =>
             if (reader == cu)
               throw PIRException(s"Ctrl Reader $reader same as writer $cu")

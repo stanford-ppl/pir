@@ -14,7 +14,27 @@ import pir.graph.traversal.ForwardRef
 abstract class Controller(implicit design:Design) extends Node { self =>
   implicit val ctrler = self 
   val sinMap = Map[Scalar, ScalarIn]()
+  val soutMap = Map[Scalar, ScalarOut]()
+  def souts = soutMap.values.toList
   val vinMap = Map[Vector, VecIn]()
+  val voutMap = Map[Vector, VecOut]()
+  def vouts = voutMap.values.toList
+  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
+  def newVout(v:Vector):VecOut = {
+    v match {
+      case v:DummyVector => voutMap.getOrElseUpdate(v, new DummyVecOut(None, v))
+      case _ => voutMap.getOrElseUpdate(v, VecOut(v))
+    }
+  }
+  def ctrlIns:List[CtrlInPort] = ctrlBox.ctrlIns
+  def ctrlOuts:List[CtrlOutPort] = ctrlBox.ctrlOuts 
+  // No need to consider scalar after bundling
+  def readers:List[Controller] = voutMap.keys.flatMap {
+    _.readers.map{ _.ctrler }
+  }.toList
+  def writers:List[Controller] = vinMap.keys.map(_.writer.ctrler).toList
+  def ctrlReaders:List[Controller] = ctrlOuts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
+
   def sins = sinMap.values.toList
   def vins = vinMap.values.toList 
   def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
@@ -31,6 +51,17 @@ abstract class Controller(implicit design:Design) extends Node { self =>
   def children:List[ComputeUnit] = _children.toList
   def removeChildren(c:ComputeUnit) = { _children -= c }
   def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
+
+  private val _consumed = ListBuffer[MultiBuffering]()
+  private val _produced = ListBuffer[MultiBuffering]()
+  def consume(mem:MultiBuffering) = _consumed += mem
+  def produce(mem:MultiBuffering) = _produced += mem
+  def consumed = _consumed.toList
+  def produced = _produced.toList
+
+  def isHead = (consumed.filterNot{_.producer == design.top}.size==0)
+  def isLast = (produced.filterNot{_.consumer == design.top}.size==0)
+  def isUnitStage = isHead && isLast
 
   /* Number of children stages on the critical path */
   def length:Int = {
@@ -58,36 +89,6 @@ abstract class Controller(implicit design:Design) extends Node { self =>
 
 }
 
-/* Controller that can be binded with a controler in spade. Including InnerController and Top and
- * MemoryController */
-trait SpadeController extends Controller { self =>
-  override implicit val ctrler:SpadeController = self 
-  val soutMap = Map[Scalar, ScalarOut]()
-  def souts = soutMap.values.toList
-  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
-  val voutMap = Map[Vector, VecOut]()
-  def vouts = voutMap.values.toList
-  def newVout(v:Vector):VecOut = {
-    v match {
-      case v:DummyVector => voutMap.getOrElseUpdate(v, new DummyVecOut(None, v))
-      case _ => voutMap.getOrElseUpdate(v, VecOut(v))
-    }
-  }
-  def ctrlIns:List[CtrlInPort]
-  def ctrlOuts:List[CtrlOutPort]
-  // No need to consider scalar after bundling
-  def readers:List[SpadeController] = voutMap.keys.flatMap {
-    _.readers.map{ _.ctrler match {
-        case top:Top => top
-        case cu:ComputeUnit => cu.inner
-      }
-    }
-  }.toList
-  def ctrlReaders:List[SpadeController] = ctrlOuts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
-
-  def writers:List[SpadeController] = vinMap.keys.map(_.writer.ctrler).toList
-} 
-
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
   implicit val cu:ComputeUnit = self 
   override val typeStr = "CU"
@@ -97,33 +98,37 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def parent(p:Controller) = { _parent = p }
   def removeParent:Unit = _parent = null
 
-  private val _consumed = ListBuffer[MultiBuffering]()
-  private val _produced = ListBuffer[MultiBuffering]()
-  def consume(mem:MultiBuffering) = _consumed += mem
-  def produce(mem:MultiBuffering) = _produced += mem
-  def consumed = _consumed.toList
-  def produced = _produced.toList
-
-  def isHead = (consumed.filterNot{_.producer == design.top}.size==0)
-  def isLast = (produced.filterNot{_.consumer == design.top}.size==0)
-  def isUnitStage = isHead && isLast
-
   /* Fields */
-  def cchains:List[CounterChain]
-  def addCChain(cc:CounterChain):Unit
-  def removeCChain(cc:CounterChain):Unit
-  def removeCChainCopy(cc:CounterChain):Unit
+  /* CounterChains */
+  val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
+  def cchains = cchainMap.values.toList
+  def addCChain(cc:CounterChain):Unit = {
+    if (!cc.isDefined) return // If cc is a copy but haven't been updated, addCChain during update 
+    if (cchainMap.contains(cc.original))
+      throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
+    else cchainMap += (cc.original -> cc)
+  }
+  def removeCChain(cc:CounterChain):Unit = {
+    cchainMap.get(cc.original).foreach { cp => if (cp== cc) cchainMap -= cc.original }
+  }
+  def removeCChainCopy(cc:CounterChain):Unit = { 
+    assert(!cc.isCopy)
+    cchainMap -= cc
+  }
+
+  def getCopy(cchain:CounterChain):CounterChain = {
+    assert(cchain.isDefined)
+    cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
+  }
+
+  def containsCopy(cchain:CounterChain):Boolean = {
+    cchainMap.contains(cchain.original)
+  }
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
   def inner:InnerController
 
-  var index = -1
-  def nextIndex = { val temp = index; index +=1 ; temp}
-
-  val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
-  def stages:List[Stage] = emptyStage :: Nil 
-  
   lazy val localCChain:CounterChain = {
     this match {
       case cu:StreamPipeline =>
@@ -140,18 +145,20 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     }
   }
 
-  override def toUpdate = { super.toUpdate }
-
-  def updateFields(cchains:List[CounterChain]):this.type = {
-    cchains.foreach { cc => addCChain(cc) }
-    this
+  def writtenMem:List[OnChipMem] = {
+    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
   }
 
+  override def toUpdate = { super.toUpdate }
+
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
-    val cchains = design.addBlock[CounterChain](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain] 
+    val (cchains, mems) = design.addBlock[CounterChain, OnChipMem](block(this), 
+                            (n:Node) => n.isInstanceOf[CounterChain],
+                            (n:Node) => n.isInstanceOf[OnChipMem] 
                             ) 
-    updateFields(cchains)
+    cchains.foreach { cc => addCChain(cc) }
+    this.mems(mems)
+    this
   }
 
   def updateParent[T](parent:T):this.type = {
@@ -165,33 +172,36 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     this
   }
 
-  def apply(block:this.type => Any) (implicit design:Design):this.type =
-    updateBlock(block)
+  var index = -1
+  def nextIndex = { val temp = index; index +=1 ; temp}
+
+  val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
+  def stages:List[Stage] = emptyStage :: Nil 
+
+  /* Memories */
+  val _mems = ListBuffer[OnChipMem]()
+  def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m } }
+  def mems:List[OnChipMem] = _mems.toList
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) { self =>
   override implicit val ctrler:OuterController = self 
-  //var _parent:Controller = _
-  //def parent:Controller = { _parent }
-  //def parent(p:Controller) = { _parent = p }
-  //def removeParent:Unit = _parent = null
+
   var inner:InnerController = _
+
   override def toUpdate = super.toUpdate || inner == null 
 
-  private val _cchains = ListBuffer[CounterChain]()
-  def cchains:List[CounterChain] = _cchains.toList 
-  def addCChain(cc:CounterChain):Unit = {
+  override def addCChain(cc:CounterChain):Unit = {
     assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
-    _cchains += cc
+    super.addCChain(cc)
   }
-  def removeCChain(cc:CounterChain):Unit = { _cchains -= cc }
-  def removeCChainCopy(cc:CounterChain):Unit = { 
-    assert(!cc.isCopy)
-    _cchains.filterNot( _.original == cc)
+  override def getCopy(cchain:CounterChain):CounterChain = {
+    if (cchain.ctrler!=ctrler)
+      throw PIRException(s"OuterController cannot make copy of other CounterChain")
+    else cchain
   }
 
   val ctrlBox:OuterCtrlBox = OuterCtrlBox()
-
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -203,7 +213,7 @@ object Sequential {
     new Sequential(name).updateParent(parent).updateBlock(block)
   }
   /* Sugar API */
-  def apply [P](parent:P) (block: Sequential => Any)
+  def apply[P](parent:P) (block: Sequential => Any)
                  (implicit design:Design):Sequential =
     Sequential(None, parent)(block)
   def apply[P](name:String, parent:P) (block:Sequential => Any)
@@ -249,51 +259,11 @@ object StreamController {
 }
 
 abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name)
-  with SpadeController with InnerRegBlock {
+ with InnerRegBlock {
   implicit val icu:InnerController = this 
 
-  /* CounterChains */
-  val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
-  def cchains = cchainMap.values.toList
-  def addCChain(cc:CounterChain):Unit = {
-    if (!cc.isDefined) return // If cc is a copy but haven't been updated, addCChain during update 
-    if (cchainMap.contains(cc.original))
-      throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
-    else cchainMap += (cc.original -> cc)
-  }
-  def removeCChain(cc:CounterChain):Unit = {
-    cchainMap.get(cc.original).foreach { cp => if (cp== cc) cchainMap -= cc.original }
-  }
-  def removeCChainCopy(cc:CounterChain):Unit = { 
-    assert(!cc.isCopy)
-    cchainMap -= cc
-  }
-
-  def getCopy(cchain:CounterChain):CounterChain = {
-    assert(cchain.isDefined)
-    cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
-  }
-
-  def containsCopy(cchain:CounterChain):Boolean = {
-    cchainMap.contains(cchain.original)
-  }
-
-  /* Memories */
-  def mems:List[OnChipMem]
-  def mems(ms:List[OnChipMem])
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
-  def writtenMem:List[OnChipMem] = vouts.flatMap { vout =>
-    vout.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList
-  }
-  def writtenFIFO:List[FIFOOnWrite] = {
-    writtenMem.collect { case mem:FIFOOnWrite => mem }
-  }
-  private val _scalarMem = ListBuffer[ScalarMem]()
-  def scalarMems = _scalarMem.toList
-  def addScalarMem(sm: ScalarMem):Unit = {
-    _scalarMem += (sm)
-  }
 
   /* Stages */
   val wtAddrStages = ListBuffer[List[WAStage]]()
@@ -323,8 +293,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   /* Control Signals */
   val ctrlBox:InnerCtrlBox = InnerCtrlBox()
   
-  def ctrlIns:List[CtrlInPort] = locals.flatMap(_.ctrlBox.ctrlIns)
-  def ctrlOuts:List[CtrlOutPort] = locals.flatMap(_.ctrlBox.ctrlOuts)
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs:List[EnLUT] = locals.flatMap(_.ctrlBox.enLUTs)
   def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
@@ -333,28 +301,11 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   /* Block updates */
   override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
 
-  def updateFields(cchains:List[CounterChain], mems:List[OnChipMem]):this.type = {
-    super.updateFields(cchains)
-    this.mems(mems)
-    this
-  }
-
-  override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
-    val (cchains, mems) = 
-      design.addBlock[CounterChain, OnChipMem](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain], 
-                            (n:Node) => n.isInstanceOf[OnChipMem]
-                            ) 
-    updateFields(cchains, mems)
-  }
 }
 
 class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "PipeCU"
 
-  val _mems = ListBuffer[SRAMOnRead]()
-  override def mems:List[SRAMOnRead] = _mems.toList
-  def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m.asInstanceOf[SRAMOnRead] } }
 }
 object Pipeline {
   def apply[P](name: Option[String], parent:P)(block: Pipeline => Any)(implicit design: Design):Pipeline = {
@@ -370,15 +321,6 @@ object Pipeline {
 /* Inner Unit Pipe */
 class UnitPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) { self =>
   override val typeStr = "UnitPipe"
-  // UnitPipeline can also have SRAM
-  //def updateBlock(block: UnitPipeline => Any)(implicit design: Design):UnitPipeline = {
-    //val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
-    //super.updateFields(cchains, Nil)
-    //this
-  //}
-  override def writtenMem:List[CommandFIFO] = souts.flatMap { sout =>
-    sout.scalar.readers.flatMap { sin => sin.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList
-  }
 }
 object UnitPipeline {
   def apply[P](name: Option[String], parent:P)(implicit design: Design):UnitPipeline =
@@ -401,8 +343,8 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
 
   val data = Vector()
   val dataOut = VecOut(data)
-  lazy val mem:RemoteMem = {
-    val rms = mems.collect{ case m:RemoteMem => m}
+  lazy val mem:MultiBuffering = {
+    val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
     assert(rms.size==1)
     val m = rms.head
     dataOut.in.connect(m.load)
@@ -424,7 +366,7 @@ case class TileTransfer(override val name:Option[String], memctrl:MemoryControll
   override val typeStr = s"${mctpe}"
   def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
     val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
-    super.updateFields(cchains, Nil)
+    cchains.foreach { cc => addCChain(cc) }
     this
   }
 } 
@@ -450,25 +392,8 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
   }
   override def removeParent:Unit = _parent = null
 
-  val _mems = ListBuffer[OnChipMem]()
-  override def mems:List[OnChipMem] = _mems.toList
-  def mems(ms:List[OnChipMem]) = {
-    ms.foreach { m =>
-      _mems += m.asInstanceOf[OnChipMem]
-    }
-  }
-  //val _mems = ListBuffer[FIFOOnRead]()
-  //override def mems:List[FIFOOnRead] = _mems.toList
-  //def mems(ms:List[OnChipMem]) = {
-    //ms.foreach { m =>
-      //_mems += m.asInstanceOf[FIFOOnRead]
-    //}
-  //}
-  override def writtenMem:List[OnChipMem] = {
-    val vmems = vouts.flatMap { _.vector.readers.flatMap { vin => vin.out.to.map(_.src.asInstanceOf[OnChipMem]) }.toList }
-    val smems = souts.flatMap{ _.scalar.readers.flatMap { sout => sout.out.to.map(_.src).collect { case mem:CommandFIFO => mem} }.toList }
-    vmems ++ smems
-  }
+  override def isHead = mems.collect { case fifo:FIFO => fifo }.size==0
+  override def isLast = writtenMem.collect { case fifo:FIFO => fifo }.filter{_.ctrler.parent==parent}.size==0
 }
 object StreamPipeline {
   def apply[P](name: Option[String], parent:P) (block: StreamPipeline => Any)
@@ -487,45 +412,37 @@ object StreamPipeline {
 class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
 
-  val vdata = Vector()
-  val sofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("ofs").consumer(this, true)) else None
-  val slen = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("len").consumer(this, true)) else None
-  val saddrs = if (mctpe==Gather || mctpe==Scatter) Some(Vector()) else None
-  def addrs = saddrs.get
-  def ofs:Scalar = sofs.get
-  def len:Scalar = slen.get
-  val siofs = {
-    sofs.map { ofs => newSin(ofs) }
-  }
-  val silen = {
-    slen.map { len => newSin(len) }
-  }
-  val viaddrs = {
-    saddrs.map { addrs => newVin(addrs) }
-  }
-  private val _dataIn  = if (mctpe==TileStore || mctpe==Scatter) { Some(newVin(vdata)) } else None
-  private val _dataOut = if (mctpe==TileLoad || mctpe==Gather) { Some(newVout(vdata)) } else None
+  val _ofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("ofs")) else None
+  def ofs:Scalar = _ofs.get
+  val siofs = { _ofs.map { ofs => newSin(ofs) } }
+  val ofsFIFO = _ofs.map { ofs => ScalarFIFO(100).wtPort(ofs) }
+
+  val _len = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("len")) else None
+  def len:Scalar = _len.get
+  val silen = { _len.map { len => newSin(len) } }
+  val lenFIFO = _len.map { len => ScalarFIFO(100).wtPort(len) }
+
+  val data = Vector()
+  private val _dataIn  = if (mctpe==TileStore || mctpe==Scatter) { Some(newVin(data)) } else None
+  private val _dataOut = if (mctpe==TileLoad || mctpe==Gather) { Some(newVout(data)) } else None
   def dataIn = _dataIn.get
   def dataOut = _dataOut.get
+  val dataFIFO = mctpe match {
+    case TileStore | Scatter => 
+      Some(VectorFIFO(s"${this}DataFIFO", 100).wtPort(data))
+    case _ => None
+  }
+
+  val _addrs = if (mctpe==Gather || mctpe==Scatter) Some(Vector()) else None
+  def addrs = _addrs.get
+  val viaddrs = { _addrs.map { addrs => newVin(addrs) } }
+  val addrFIFO = _addrs.map { addrs => VectorFIFO(s"${this}AddrFIFO", 100) }
 
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val done = CtrlOutPort(this, s"${this}.done")
   val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
 
-  val commandFIFO = CommandFIFO(this) 
-  mctpe match {
-    case (TileLoad | TileStore) => commandFIFO.wtPort(siofs.get.out)
-    case (Gather | Scatter) => commandFIFO.wtPort(viaddrs.get.out)
-  }
-  commandFIFO.dequeueEnable.connect(dummyCtrl)
-  val dataFIFO = mctpe match {
-    case TileStore => 
-      val fifo = FIFO(s"${this}MCDataFIFO", 100, NoBanking()).wtPort(vdata)
-      fifo.dequeueEnable.connect(dummyCtrl)
-      Some(fifo)
-    case _ => None
-  }
-  mems(commandFIFO::dataFIFO.toList) 
+  mems((ofsFIFO ++ lenFIFO ++ addrFIFO ++ dataFIFO).toList)
 }
 object MemoryController {
   def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
@@ -534,7 +451,7 @@ object MemoryController {
     = new MemoryController(Some(name), mctpe, offchip)
 }
 
-case class Top()(implicit design: Design) extends SpadeController { self =>
+case class Top()(implicit design: Design) extends Controller { self =>
   implicit val top:Controller = self
 
   override val name = Some("Top")
@@ -554,7 +471,7 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
   def memCUs = _memCUs
 
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
-  def spadeCtrlers:List[SpadeController] = this :: innerCUs
+  def spadeCtrlers:List[Controller] = this :: innerCUs
   def ctrlers = this :: compUnits
 
   def removeCtrler(ctrler:Controller) = {
@@ -578,8 +495,6 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
 
   override val ctrlBox:OuterCtrlBox = OuterCtrlBox()(this, design)
 
-  def ctrlIns:List[CtrlInPort] = status::Nil 
-  def ctrlOuts:List[CtrlOutPort] = command::Nil 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   //  vins:List[VecIn] = _
@@ -603,12 +518,8 @@ case class Top()(implicit design: Design) extends SpadeController { self =>
     scalars.foreach { s => s match {
         case a:ArgIn => 
           super.newSout(a)
-          a.producer(this).consumer(this.children.head, true)
-          a.buffering(SingleBuffer())
         case a:ArgOut => 
           super.newSin(a)
-          a.producer(this.children.head).consumer(this, true)
-          a.buffering(SingleBuffer())
         case _ => 
       }
     }

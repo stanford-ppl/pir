@@ -26,7 +26,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
     design.top.spadeCtrlers.foreach { cl => bundleScalarOut(cl) }
   }
 
-  def bundleScalarOut(cl:SpadeController) = {
+  def bundleScalarOut(cl:Controller) = {
     val grps = cl.souts.groupBy(_.scalar.readers.map(_.ctrler).toSet).to[Stack]
     val vecs = ListBuffer[DummyVector]()
     val freeVecs = Stack[DummyVector]()
@@ -57,7 +57,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
     design.top.spadeCtrlers.foreach { cl => bundleScalarIn(cl) }
   }
 
-  def bundleScalarIn(cl:SpadeController) = {
+  def bundleScalarIn(cl:Controller) = {
     val grps = cl.sins.groupBy { sin => vecOf(sin.scalar.writer) }
     grps.foreach { case (dvout, sins) =>
       val vi = cl.newVin(dvout.vector)

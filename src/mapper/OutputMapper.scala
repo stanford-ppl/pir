@@ -14,9 +14,9 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   val typeStr = "SOMapper"
   override def debug = Config.debugSOMapper
 
-  def finPass(scl:SCL)(m:M):M = m
+  def finPass(scl:CL)(m:M):M = m
 
-  private def mapVecOut(scl:SCL)(n:N, p:R, cuMap:M):M = {
+  private def mapVecOut(scl:CL)(n:N, p:R, cuMap:M):M = {
     val mp = cuMap.setVO(n,p)
     n match {
       case dvo:DVO =>
@@ -30,15 +30,15 @@ class OutputMapper(implicit val design:Design) extends Mapper {
     } 
   }
 
-  def map(scl:SCL, cuMap:M):M = {
+  def map(scl:CL, cuMap:M):M = {
     val pcl = cuMap.clmap(scl)
     scl match {
       case top:Top =>
         val cons = List(mapVecOut(scl) _)
         bind(pcl.vouts, scl.vouts, cuMap, cons, finPass(scl) _)
-      case c:SCL if (c.vouts.size==1) => 
+      case c:CL if (c.vouts.size==1) => 
         mapVecOut(c)(c.vouts.head, pcl.vouts.head, cuMap)
-      case c:SCL if (c.vouts.size==0) => cuMap
+      case c:CL if (c.vouts.size==0) => cuMap
     }
   }
 }

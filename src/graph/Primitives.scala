@@ -22,397 +22,16 @@ abstract class Primitive(implicit val ctrler:Controller, design:Design) extends 
  *  Each tuple represents the (max, stride) for one level in the loop.
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
-case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {
-  override val typeStr = "CC"
-  /* Fields */
-  val _counters = ListBuffer[Counter]()
-  def counters:List[Counter] = _counters.toList
-
-  /* Pointers */
-  // Pointer to the original copy
-  private var _copy:Option[Either[String, CounterChain]] = None
-  def copy:Option[Either[String, CounterChain]] = _copy
-  def setCopy(cc:String) = { _copy = Some(Left(cc)) }
-  def setCopy(cc:CounterChain) = { _copy = Some(Right(cc)); cc.addCopied(this) }
-
-  // List of copies to this original Counterchain 
-  private val _copied = ListBuffer[CounterChain]()
-  def addCopied(cc:CounterChain) = _copied += cc
-  def copied = _copied.toList
-
-  /*
-   * Whether CounterChain is a copy of other CounterChain
-   * */
-  def isCopy = copy.isDefined
-  def isLocal = !isCopy
-    
-  /*
-   * Whether CounterChain is not a copy or is a copy and has been updated
-   * */
-  def isDefined = copy.fold(true) { e => e.isRight }
-  /*
-   * The original copy of this CounterChain
-   * */
-  lazy val original = copy.fold(this) { e => e.right.get}
-
-  override def toUpdate = super.toUpdate
-
-  def outer:Counter = counters.head
-  def inner:Counter = counters.last
-
-  def addCounter(ctr:Counter):Unit = {
-    _counters.lastOption.foreach { pre =>
-      pre.setDep(ctr)
-    }
-    _counters += ctr
-  }
-
-  def addCounters(ctrs:List[Counter]):Unit = {ctrs.foreach { ctr => addCounter(ctr) } }
-  def addOuterCounter(ctr:Counter):Unit = {
-    _counters.headOption.foreach { next =>
-      ctr.setDep(next)
-    }
-    _counters.insert(0, ctr)
-  }
-
-  def this(name:Option[String], bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design) = {
-    this(name)
-    bds.zipWithIndex.foreach {case ((mi, ma, s),i) => addCounter(Counter(this, mi, ma, s)(ctrler, design)) }
-  }
-
-  def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
-    if (isCopy) {
-      // Speculatively create extra counters base on need and check bound during update
-      addCounters(List.fill(num+1-counters.size)(Counter(this)))
-    }
-    counters(num)
-  }
-
-  def copy(cp:CounterChain):Unit = {
-    // Check whether speculative wire allocation was correct
-    assert(counters.size <= cp.counters.size, 
-      s"Accessed counter ${counters.size-1} of ${this} is out of bound")
-    assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
-    val addiCtrs = List.fill(cp.counters.size-counters.size)(Counter(this))
-    addCounters(addiCtrs)
-    counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
-    this.setCopy(cp)
-    ctrler.addCChain(this)
-  }
-
-}
-object CounterChain {
-  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    new CounterChain(None, bds:_*)
-  }
-  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
-    new CounterChain(Some(name), bds:_*)
-  /*
-   * @param from: User defined name for Controller of the copying CounterChain 
-   * @param name: User defined name for Primitive 
-   * */
-  def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    copy(ForwardRef.getPrimName(from, name))
-  }
-  /*
-   * @param from: Controller of the copying CounterChain 
-   * @param name: User defined name for Primitive 
-   * */
-  def copy(from:ComputeUnit, name:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    copy(ForwardRef.getPrimName(from, name))
-  }
-  /*
-   * @param from: full name of Primitive 
-   * */
-  def copy(from:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(Some(s"${from}_copy"))
-    cc.setCopy(from)
-    def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
-    design.updateLater(from, updateFunc _ )
-    cc
-  }
-  def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(Some(s"${from}_copy"))
-    cc.copy(from)
-    cc
-  }
-}
-
-class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
-  override val typeStr = "Ctr"
-  /* Fields */
-  val min:InPort = InPort(this, s"${this}.min")
-  val max:InPort = InPort(this, s"${this}.max")
-  val step:InPort = InPort(this, s"${this}.step")
-  val out:OutPort = OutPort(this, {s"${this}.out"}) 
-  val en:EnInPort = EnInPort(this, s"${this}.en")
-  val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
-  var _cchain:CounterChain = _
-  def cchain:CounterChain = _cchain
-  def cchain(cc:CounterChain):Counter = {
-    en.disconnect
-    done.disconnect
-    _cchain = cc
-    this
-  }
-  override def toUpdate = super.toUpdate || cchain==null
-
-  def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {
-    min.connect(mi)
-    max.connect(ma)
-    step.connect(s)
-  }
-
-  def isInner = { 
-    ctrler match {
-      case mc:MemoryController =>
-        en.isConnected && en.from.src.isInstanceOf[EnLUT] || en.isConnectedTo(mc.done)
-      case _ => en.isConnected && en.from.src.isInstanceOf[EnLUT]
-    }
-  }
-  def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
-  def next:Counter = {
-    val ns = done.to.map(_.src).collect{ case c:Counter => c}
-    assert(ns.size==1, s"$this has not exactly 1 next counter ${done.to} ${ns}")
-    ns.head
-  }
-  def prev:Counter = en.from.src.asInstanceOf[Counter]
-
-  def setDep(c:Counter) = { en.connect(c.done) }
-
-  def copy(c:Counter) = {
-    assert(min.from==null, 
-      s"Overriding existing counter ${this} with min ${c.min}")
-    assert(max.from==null, 
-      s"Overriding existing counter ${this} with min ${c.max}")
-    assert(step.from==null, 
-      s"Overriding existing counter ${this} with min ${c.step}")
-    def copyOutPort(p:OutPort):OutPort = {
-      p.src match {
-        case s:Const => s.out
-        case s:PipeReg => 
-          assert(s.stage.isInstanceOf[EmptyStage])
-          assert(s.reg.isInstanceOf[ScalarInPR])
-          val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
-          val cu = ctrler.asInstanceOf[ComputeUnit]
-          val pr = cu.scalarIn(cu.emptyStage, scalar)
-          pr.out
-        case _ => throw new Exception(s"Don't know how to copy port")
-      }
-    }
-    update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from))
-  } 
-}
-object Counter {
-  def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
-    new Counter(name).cchain(cc)
-  }
-  def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
-    { val c = Counter(None, cchain); c.update(min, max, step); c }
-  def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
-    { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
-  def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
-    Counter(None, cchain)
-}
-
-case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
-  extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
-  override val en:EnInPort = EnInPort(this, s"${this}.enqEn")
-  this.min.connect(Const(s"-1i").out)
-  this.max.connect(Const(s"-1i").out)
-  this.step.connect(Const(s"-1i").out)
-  //val dummyCtrl = CtrlOutPort(this, s"${this}.dummyEn")
-  //this.en.connect(dummyCtrl)
-  override def toUpdate = false
-}
-
-abstract class OnChipMem(implicit override val ctrler:InnerController, design:Design) extends Primitive {
-  val size:Int
-  val banking:Banking
-
-  val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
-  val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
-
-  def isRemoteWrite = this match {
-    case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
-    case _ => writePort.from.src.isInstanceOf[VecIn]
-  } 
-
-  def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
-  def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
-  def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
-  //TODO: shouldn't allowed. Added as a hack
-  def wtPort(s:Scalar):this.type = { wtPort(ctrler.newSin(s).out) }
-  def load = readPort
-
-  def writer:InnerController = {
-    writePort.from.src match {
-      case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
-      case p => throw PIRException(s"Unknown SRAM write port ${p}")
-    }
-  }
-
-  def readers:List[InnerController] = {
-    assert(readPort.to.size==1)
-    readPort.to.head.src match {
-      case vo:VecOut => vo.vector.readers.map{ _.ctrler.asInstanceOf[InnerController] }
-      case p => throw PIRException(s"Unknown SRAM read port ${p}")
-    }
-  }
-}
-
-trait SRAMOnRead extends OnChipMem {
-  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
-  def rdAddr(ra:OutPort):this.type = { 
-    readAddr.connect(ra); 
-    ra.src match {
-      case PipeReg(stage,r) =>
-        throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
-      case _ =>
-    }
-    this
-  } 
-}
-trait FIFOOnRead extends OnChipMem {
-  /* Control Signals */
-  val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
-  val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
-  //val counter = Counter()
-}
-
-trait SRAMOnWrite extends OnChipMem {
-  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
-  var writeCtr:Counter = _
-  def wtAddr(wa:OutPort):this.type = { 
-    writeAddr.connect(wa)
-    this 
-  }
-  def wtCtr(ct:Counter):this.type = { writeCtr = ct; this }
-
-  override def toUpdate = super.toUpdate || writeCtr == null
-}
-trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
-  var _wtStart:Option[OutPort] = None
-  var _wtEnd:Option[OutPort] = None 
-  def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
-  def wtEnd(op:OutPort):this.type = { _wtEnd = Some(op); this }
-  def wtStart:Option[OutPort] = _wtStart
-  def wtEnd:Option[OutPort] = _wtEnd 
-
-  /* Control Signals */
-  val notFull = CtrlOutPort(this, s"$this.notFull")
-  val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
-  val enqueueEnable = dummyCtr.en 
-  override def toUpdate = super.toUpdate
-}
-
-abstract class RemoteMem(implicit override val ctrler:MemoryPipeline, design: Design) extends OnChipMem with MultiBuffering {
-}
-trait LocalMem extends OnChipMem {
-}
-
-trait MultiBuffering {
-  val design:Design
-  var _producer:Controller = _
-  var _consumer:Controller = _
-  def producer:Controller = _producer
-  def consumer:Controller = _consumer
-  var trueDep:Boolean = _
-  def producer[T](pd:T):this.type = {
-    pd match {
-      case pd:String =>
-        design.updateLater(pd, (n:Node) => producer(n.asInstanceOf[Controller]))
-      case pd:Controller =>
-        this._producer = pd
-        pd match {
-          case cu:ComputeUnit => cu.produce(this)
-          case _ =>
-        }
-    }
-    this
-  }
-  def consumer[T](cs:T, trueDep:Boolean):this.type = {
-    cs match {
-      case cs:String =>
-        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller], trueDep))
-      case cs:Controller =>
-        this._consumer = cs
-        this.trueDep = trueDep
-        cs match {
-          case cu:ComputeUnit => cu.consume(this)
-          case _ =>
-        }
-    }
-    this
-  }
-
-  var _buffering:Buffering = _
-  def buffering = _buffering
-  def buffering(buf:Buffering):this.type = { _buffering = buf; this }
-}
-
-/** SRAM 
- *  @param name: user defined optional name of SRAM 
- *  @param size: size of SRAM in all dimensions 
- *  @param banking: Banking mode of SRAM
- *  @param buffering: Double buffer mode of sram 
- *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
- *  calculate write address?
- */
-case class SRAM(name: Option[String], size: Int, banking:Banking, buf:Buffering)(implicit ctrler:MemoryPipeline, design: Design) 
-  extends RemoteMem with SRAMOnRead with SRAMOnWrite {
-  override val typeStr = "SRAM"
-  this.buffering(buf)
-}
-object SRAM {
-  //TODO remove after apps are regenerated
-  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SRAM
-    = SRAM(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering)
-}
-case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buf:Buffering)(implicit ctrler:MemoryPipeline, design: Design) 
-  extends RemoteMem with SRAMOnRead with FIFOOnWrite {
-  override val typeStr = "SemiFIFO"
-  this.buffering(buf)
-}
-object SemiFIFO {
-  def apply(size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Buffering)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(Some(name), size, banking, buffering)
-}
-
-class FIFO(val name: Option[String], val size: Int, val banking:Banking)(implicit ctrler:InnerController, design: Design) 
-  extends LocalMem with FIFOOnRead with FIFOOnWrite {
-  override val typeStr = "FIFO"
-}
-object FIFO {
-  def apply(size:Int, banking:Banking)(implicit ctrler:InnerController, design: Design): FIFO
-    = new FIFO(None, size, banking)
-  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:InnerController, design: Design): FIFO
-    = new FIFO(Some(name), size, banking)
-}
-
-case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: Design) 
-  extends FIFO(Some(s"${mc}CommandFIFO"), 1000, NoBanking())
-
-case class ScalarMem(vecIn:DummyVecIn)(implicit design: Design) 
-  extends OnChipMem()(vecIn.ctrler.asInstanceOf[MemoryPipeline].inner, design) with SRAMOnRead with SRAMOnWrite {
-  val size:Int = 100
-  val banking:Banking = NoBanking()
-
-  override val typeStr = "ScalarFIFO"
-  override val name = Some(s"${vecIn}")
-  this.wtPort(vecIn.vector)
-}
 
 trait IO extends Primitive
 trait Input extends IO {
   def writer:Output
   def variable:Variable
+  def out:OutPort
 }
-trait Output extends IO 
+trait Output extends IO {
+  def readers:List[Input]
+}
 trait VectorIO[T <: IO] { self:T => 
   def vector:Vector
   def isConnected:Boolean
@@ -439,7 +58,7 @@ object ScalarIn {
     ScalarIn(Some(name), scalar)
 }
 
-case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val ctrler:SpadeController, design: Design) extends Output{
+case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val ctrler:Controller, design: Design) extends Output{
   scalar.setWriter(this)
   override val typeStr = "ScalOut"
   override def toString = s"${super.toString}($scalar)"
@@ -448,12 +67,12 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val 
     case _ => super.equals(that)
   }
   val in = InPort(this, s"${this}.in")
-  def readers = scalar.readers
+  def readers = scalar.readers.toList
 }
 object ScalarOut {
-  def apply(scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
+  def apply(scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
     ScalarOut(None, scalar)
-  def apply(name:String, scalar:Scalar)(implicit ctrler:SpadeController, design: Design):ScalarOut = 
+  def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: Design):ScalarOut = 
     ScalarOut(Some(name), scalar)
 }
 
@@ -473,7 +92,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   /* Associated TokenIn for this VecIn */
   def tokenIn:Option[InPort] = {
     ctrler match {
-      case c:SpadeController =>
+      case c:Controller =>
         val cins = c.ctrlIns.filter{_.asInstanceOf[CtrlInPort].ctrler==writer.ctrler}
         if (cins.size==0) None
         else {
@@ -496,7 +115,7 @@ class DummyVecIn(name: Option[String], override val vector:DummyVector)(implicit
   override def writer:DummyVecOut = vector.writer
 }
 
-class VecOut(val name: Option[String], val vector:Vector)(implicit override val ctrler:SpadeController, design: Design) extends Output with VectorIO[Output] {
+class VecOut(val name: Option[String], val vector:Vector)(implicit override val ctrler:Controller, design: Design) extends Output with VectorIO[Output] {
   vector.setWriter(this)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
@@ -508,16 +127,16 @@ class VecOut(val name: Option[String], val vector:Vector)(implicit override val 
   def readers = vector.readers
 }
 object VecOut {
-  def apply(vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 
+  def apply(vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
     new VecOut(None, vector)
-  def apply(name:String, vector:Vector)(implicit ctrler:SpadeController, design: Design):VecOut = 
+  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: Design):VecOut = 
     new VecOut(Some(name), vector)
 }
 
-class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:SpadeController, design: Design) extends VecOut(name, vector) {
+class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: Design) extends VecOut(name, vector) {
   override val typeStr = "DVecOut"
   def scalarOuts = vector.scalars.map(_.writer)
-  override def readers:List[DummyVecIn] = vector.readers
+  override def readers:List[DummyVecIn] = vector.readers.toList
 }
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {

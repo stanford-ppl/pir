@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 trait Variable
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-case class Scalar(name:Option[String])(implicit design: Design) extends Node with Variable with MultiBuffering {
+case class Scalar(name:Option[String])(implicit design: Design) extends Node with Variable {
   override val typeStr = "Scalar"
   var writer:ScalarOut = _ 
   val readers:Set[ScalarIn] = Set[ScalarIn]() 

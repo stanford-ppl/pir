@@ -68,13 +68,6 @@ package object enums {
   case class Duplicated() extends Banking
   case class NoBanking() extends Banking
 
-  sealed trait Buffering 
-  case class MultiBuffer(depth:Int) extends Buffering
-  object DoubleBuffer {
-    def apply():MultiBuffer = MultiBuffer(2)
-  }
-  case class SingleBuffer() extends Buffering
-
   //sealed trait SramMode
   //case object Fifo extends SramMode
   //case object FifoOnWrite extends SramMode 
