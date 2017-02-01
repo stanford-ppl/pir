@@ -13,7 +13,7 @@ import scala.collection.mutable.{ Map => MMap }
 
 class ScalarBundling(implicit val design: Design) extends Traversal with Metadata {
 
-  val par = design.arch.scalarBandwidth
+  val par = design.arch.numLanes
 
   override def traverse:Unit = {
     bundleScalarOuts

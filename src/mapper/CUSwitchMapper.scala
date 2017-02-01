@@ -3,7 +3,7 @@ import pir.graph._
 import pir.{Config, Design}
 import pir.typealias._
 import pir.codegen.{DotCodegen, Printer}
-import pir.graph.traversal.{CUCtrlDotPrinter, CUDotPrinter, MapPrinter, PIRMapping}
+import pir.graph.traversal.{CUCtrlDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 
@@ -41,7 +41,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
           case n => n
         }
         println(s"Fail to map ${node} $es")
-        new CUDotPrinter(true)(design).print(mp.asInstanceOf[M])
+        new CUVectorDotPrinter(true)(design).print(mp.asInstanceOf[M])
       case e:Throwable =>
         println(e)
     }
@@ -114,7 +114,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
 
     def next(m:M):M = {
-      //if (debug) { new CUDotPrinter().print(m) }
+      //if (debug) { new CUVectorDotPrinter().print(m) }
       mapCUs(restNodes)(m)
     }
     val info = s"Mapping $cl"

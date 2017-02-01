@@ -8,13 +8,12 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   implicit val spade:Spade = self
 
   override def toString = getClass().getSimpleName()
-  val wordWidth:Int
-  val numLanes:Int
-  val scalarBandwidth:Int
+  val wordWidth = 32
+  val numLanes = 16
 
-  val top:Top
-  val rcus:List[ComputeUnit]
-  val mcs:List[MemoryController]
+  def top:Top
+  def rcus:List[ComputeUnit]
+  def mcs:List[MemoryController]
 
   def ctrlers = top :: rcus ++ mcs 
   def cus = rcus ++ mcs 
@@ -37,27 +36,6 @@ trait Spade extends Metadata with ImplicitConversion { self =>
 }
 
 trait PointToPointNetwork extends Spade
-trait SwitchNetwork extends Spade {
-  val cuArray:List[List[ComputeUnit]]
-  def numRows = cuArray.size
-  def numCols = cuArray.head.size
-  val sbs:List[List[SwitchBox]]
-  val csbs:List[List[SwitchBox]]
-  def switchNetworkDataBandwidth:Int = {
-    sbs.flatten.map{ sb =>
-      sb.vins.filter(_.isConnected).flatMap { vin =>
-        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
-      }.groupBy( k => k ).map{case (k, l)  => l.size}.max
-    }.max
-  }
-  def switchNetworkCtrlBandwidth:Int = {
-    csbs.flatten.map{ sb =>
-      sb.vins.filter(_.isConnected).flatMap { vin =>
-        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
-      }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
-    }.max
-  }
-}
 
 trait ImplicitConversion {
   implicit def ib_to_rmp[S<:NetworkElement](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport

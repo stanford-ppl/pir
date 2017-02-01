@@ -11,6 +11,8 @@ import org.scalatest._
 import scala.language.reflectiveCalls
 import scala.util.Random
 import scala.collection.mutable.ListBuffer
+import sys.process._
+import scala.language.postfixOps
 
 class SpadeTest extends UnitTest { self =>
 
@@ -18,7 +20,10 @@ class SpadeTest extends UnitTest { self =>
     val design = new Design { self =>
       override val arch = SN_2x2
       new CUCtrlDotPrinter().print
-      new CUDotPrinter().print
+      s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
+
+      new CUVectorDotPrinter().print
+      s"out/bin/run -c out/Network".replace(".dot", "") !
     }
     design.arch match {
       case sn:SwitchNetwork =>

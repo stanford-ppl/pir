@@ -6,7 +6,7 @@ import pir.misc._
 import pir.typealias._
 import pir.graph.mapper.{PIRMap, PIRException}
 import pir.plasticine.main._
-import pir.plasticine.graph.{SwitchBox, Node}
+import pir.plasticine.graph._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -18,12 +18,13 @@ import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
 
-class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata { 
+abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata {
   implicit lazy val spade:Spade = design.arch
 
-  def this(file:String)(implicit design:Design) = this(file, false)
-  def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
-  def this()(implicit design:Design) = this(false)
+  val scale:Int
+
+  def sbs(sn:SwitchNetwork):List[List[SwitchBox]]
+  def grid(cu:Controller):GridIO[Controller]
 
   override val stream = newStream(file) 
 
@@ -39,13 +40,39 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
     }
   }
 
-  val scale = 30
+  def print:Unit = { print(design.mapping) }
+
+  def print(mapping:PIRMap):Unit = {
+    emitBlock("digraph G") {
+      design.arch match {
+        case pn:PointToPointNetwork =>
+        case sn:SwitchNetwork if (mapping!=null) =>
+          emitSwitchBoxes(sbs(sn).flatten, Some(mapping))
+          emitPCLs(sn.cus :+ sn.top, Some(mapping))
+        case sn:SwitchNetwork if (mapping==null) =>
+          emitSwitchBoxes(sbs(sn).flatten, None)
+          emitPCLs(sn.cus :+ sn.top, None)
+      }
+    }
+    close
+    if (open) { 
+        println(s"Waiting for input ...")
+        val command = scala.io.StdIn.readLine()
+        if (command=="n") {
+          s"out/bin/run -c out/${file}".replace(".dot", "") !
+        } else {
+          println(s"Stop debugging control routing ...")
+          System.exit(-1)
+        }
+    }
+  }
+
   def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
     //emitln(s"splines=ortho;")
-    val bandWidth = spade match {
-      case sb:SwitchNetwork => sb.switchNetworkCtrlBandwidth
-      case pn:PointToPointNetwork => 1
-    }
+    //val bandWidth = spade match {
+      //case sb:SwitchNetwork => sb.switchNetworkCtrlBandwidth
+      //case pn:PointToPointNetwork => 1
+    //}
     pcls.foreach { pcl =>
       val recs = ListBuffer[String]()
       pcl match {
@@ -56,12 +83,12 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
             s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
           }
           def ports(dir:String) = {
-            var cins = pcu.cinAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
-            var couts = pcu.coutAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
-            val maxLength = Math.max(cins.size, couts.size)
-            cins = cins ++ List.fill(maxLength-cins.size){""}
-            couts = couts ++ List.fill(maxLength-couts.size){""}
-            val ios = cins.zip(couts).flatMap{case (i,o) => 
+            var ins = grid(pcu).vinAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            var outs = grid(pcu).voutAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            val maxLength = Math.max(ins.size, outs.size)
+            ins = ins ++ List.fill(maxLength-ins.size){""}
+            outs = outs ++ List.fill(maxLength-outs.size){""}
+            val ios = ins.zip(outs).flatMap{case (i,o) => 
               if (dir=="S" || dir=="E") List(o,i)
               else List(i,o)
             }
@@ -89,48 +116,12 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
           emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
           emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
       }
-      pcl.cins.foreach { cin =>
-        emitInput(pcl, cin, mapping)
+      grid(pcl).vins.foreach { in =>
+        emitInput(pcl, in, mapping)
       }
     }
   }
-
-  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = CUDotPrinter.emitSwitchBoxes(sbs, mapping, scale)(this)
-  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = CUDotPrinter.emitInput(pcl, pvin, mapping, scale)(this)
-
-  def print:Unit = { print(design.mapping) }
-
-  def print(mapping:PIRMap):Unit = {
-    emitBlock("digraph G") {
-      design.arch match {
-        case pn:PointToPointNetwork =>
-        case sn:SwitchNetwork if (mapping!=null) =>
-          emitPCLs(sn.cus :+ sn.top, Some(mapping))
-          emitSwitchBoxes(sn.csbs.flatten, Some(mapping))
-        case sn:SwitchNetwork if (mapping==null) =>
-          emitPCLs(sn.cus :+ sn.top, None)
-          emitSwitchBoxes(sn.csbs.flatten, None)
-      }
-    }
-    close
-    if (open) { 
-        println(s"Waiting for input ...")
-        val command = scala.io.StdIn.readLine()
-        if (command=="n") {
-          s"out/bin/run -c out/${file}".replace(".dot", "") !
-        } else {
-          println(s"Stop debugging control routing ...")
-          System.exit(-1)
-        }
-    }
-  }
-
-}
-
-object CUDotPrinter extends Metadata {
-  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap], scale:Int)(printer:DotCodegen)(implicit design:Design) = {
-    import printer._
-    implicit val spade = design.arch
+  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap])(implicit design:Design) = {
     sbs.foreach { sb =>
       val (x,y) = coordOf(sb)
       val attr = DotAttr().shape(Mrecord)
@@ -168,9 +159,8 @@ object CUDotPrinter extends Metadata {
       }
     }
   }
-  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap], scale:Int)(printer:DotCodegen)(implicit design:Design) = {
-    import printer._
-    implicit val spade = design.arch
+
+  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
     pvin.fanIns.foreach { pvout =>
       val attr = DotAttr()
       mapping.foreach { m => 
@@ -223,115 +213,28 @@ object CUDotPrinter extends Metadata {
   }
 }
 
-class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata { 
-  implicit lazy val spade:Spade = design.arch
+class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
+
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
+  def this()(implicit design:Design) = this(false)
+
+  val scale = 12
+
+  def sbs(sn:SwitchNetwork):List[List[SwitchBox]] = sn.csbs
+  def grid(cu:Controller):GridIO[Controller] = cu.ctrlBox
+}
+
+class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
 
   def this(file:String)(implicit design:Design) = this(file, false)
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeNetwork, open)
   def this()(implicit design:Design) = this(false)
-
-  override val stream = newStream(file) 
   
-  val scale = 4
+  val scale = 12
 
-  override def quote(n:Any)(implicit design:Design):String = {
-    n match {
-      case (n,b) =>
-        val bottom = b.asInstanceOf[Boolean]
-        n match {
-          case ptop:PTop if (bottom) => s"""${quote(ptop)}_bottom"""
-          case ptop:PTop if (!bottom) => s"""${quote(ptop)}_top"""
-        }
-      case n => super.quote(n)
-    }
-  }
-
-  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap]) = CUDotPrinter.emitSwitchBoxes(sbs, mapping, scale)(this)
-  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap]) = CUDotPrinter.emitInput(pcl, pvin, mapping, scale)(this)
-
-  def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
-    //emitln(s"splines=ortho;")
-    pcls.foreach { pcl =>
-      val recs = ListBuffer[String]()
-      pcl match {
-        case pcu:PCU => 
-          recs += s"{${pcu.vins.map(vin => s"<${vin}> ${vin}").mkString(s"|")}}" 
-          val qpcu = s"${quote(pcu)}"
-          recs += mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
-            val icl = cu.asInstanceOf[ICL]
-            s"{$qpcu|{${(icl +: icl.outers).mkString(s"|")}}}"} 
-          }
-          recs += s"<${pcu.vout}> ${pcu.vout}"
-        case ptop:PTop => recs += s"$ptop" 
-      }
-      val label = s"{${recs.mkString("|")}}"
-      var attr = DotAttr().shape(Mrecord)
-      coordOf.get(pcl).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
-      mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
-      pcl match {
-        case pcu:PCU =>
-          emitNode(pcl, label, attr)
-        case ptop:PTop => s"$ptop" 
-          design.arch match {
-            case sn:SwitchNetwork =>
-              val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
-              val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
-              emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
-              emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
-            case pn:PointToPointNetwork =>
-          }
-      }
-      pcl.vins.foreach { pvin =>
-        emitInput(pcl, pvin, mapping)
-      }
-    }
-  }
-
-  def print:Unit = { print(design.mapping) }
-
-  def print(mapping:PIRMap):Unit = {
-    emitBlock("digraph G") {
-      design.arch match {
-        case pn:PointToPointNetwork if (mapping!=null) =>
-          print(pn.cus :+ pn.top, mapping)
-        case sn:SwitchNetwork if (mapping!=null) =>
-          print((sn.cus :+ sn.top, sn.sbs.flatten), mapping)
-        case pn:PointToPointNetwork if (mapping==null) =>
-          print(pn.cus :+ pn.top)
-        case sn:SwitchNetwork if (mapping==null) =>
-          print((sn.cus :+ sn.top, sn.sbs.flatten))
-      }
-    }
-    close
-    if (open) { 
-        println(s"Waiting for input ...")
-        s"out/bin/run -c out/${file}".replace(".dot", "") !
-        val command = scala.io.StdIn.readLine()
-        if (command!="n") {
-          println(s"Stop debugging data routing ...")
-          System.exit(-1)
-        }
-    }
-  }
-
-  def print(pcls:List[PCL]):Unit = {
-    emitPCLs(pcls, None)
-  }
-
-  def print(res:(List[PCL], List[SwitchBox])):Unit = {
-    val (pcls, sbs) = res
-    emitPCLs(pcls, None); emitSwitchBoxes(sbs, None)
-  }
-
-  def print(pcls:List[PCL], mapping:PIRMap):Unit = {
-    emitPCLs(pcls, Some(mapping))
-  }
-
-  def print(res:(List[PCL], List[SwitchBox]), mapping:PIRMap):Unit = {
-    val (pcls, sbs) = res
-    emitPCLs(pcls, Some(mapping))
-    emitSwitchBoxes(sbs, Some(mapping))
-  }
+  def sbs(sn:SwitchNetwork):List[List[SwitchBox]] = sn.sbs
+  def grid(cu:Controller):GridIO[Controller] = cu
 }
 
 object ArgDotPrinter extends Metadata{
@@ -446,7 +349,7 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class SpadeDotGen(cuPrinter:CUDotPrinter, cuCtrlPrinter:CUCtrlDotPrinter, argInOutPrinter:ArgDotPrinter,
+class SpadeDotGen(cuPrinter:CUVectorDotPrinter, cuCtrlPrinter:CUCtrlDotPrinter, argInOutPrinter:ArgDotPrinter,
   ctrPrinter:CtrDotPrinter, pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
 
   override def traverse = {

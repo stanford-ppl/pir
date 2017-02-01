@@ -132,9 +132,26 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   lazy val localCChain:CounterChain = {
     this match {
       case cu:StreamPipeline =>
-        //TODO
-        assert(cchains.size==1)
-        cchains.head // Should be the copy of StreamController
+        if (cu.isHead) {
+          cu.getCopy(cu.parent.localCChain)
+        } else if (cu.isLast) {
+          cu match {
+            case mc:MemoryController => throw PIRException(s"MemoryController doesn't have localCChain")
+            case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
+          }
+        } else { // middle stages
+          if (cu.containsCopy(cu.parent.localCChain)) {
+            cu.getCopy(cu.parent.localCChain)
+          } else if (cchains.size==0) {
+            val dc = CounterChain.dummy(cu, design)
+            cu.addCChain(dc)
+            dc
+          } else {
+            val dcs = cchains.filter{_.isDummy}
+            assert(dcs.size==1)
+            dcs.head
+          }
+        }
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline doesn't have local counter chain")
       case cu =>
@@ -182,6 +199,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   val _mems = ListBuffer[OnChipMem]()
   def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m } }
   def mems:List[OnChipMem] = _mems.toList
+
+  def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) { self =>
@@ -364,11 +383,6 @@ object MemoryPipeline {
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
   (implicit design:Design) extends MemoryPipeline(name)  {
   override val typeStr = s"${mctpe}"
-  def updateBlock(block: TileTransfer => Any)(implicit design: Design):TileTransfer = {
-    val cchains = design.addBlock[CounterChain](block(this), (n:Node) => n.isInstanceOf[CounterChain]) 
-    cchains.foreach { cc => addCChain(cc) }
-    this
-  }
 } 
 object TileTransfer extends {
   /* Sugar API */
@@ -392,8 +406,10 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
   }
   override def removeParent:Unit = _parent = null
 
+  def writtenFIFO:List[FIFO] = writtenMem.collect { case fifo:FIFO => fifo }
+
   override def isHead = mems.collect { case fifo:FIFO => fifo }.size==0
-  override def isLast = writtenMem.collect { case fifo:FIFO => fifo }.filter{_.ctrler.parent==parent}.size==0
+  override def isLast = writtenFIFO.filter{_.ctrler.parent==parent}.size==0
 }
 object StreamPipeline {
   def apply[P](name: Option[String], parent:P) (block: StreamPipeline => Any)
@@ -458,15 +474,15 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  private var _innerCUs:List[InnerController] = _ 
+  private var _innerCUs:List[InnerController] = Nil
   def innerCUs(innerCUs:List[InnerController]) = _innerCUs = innerCUs
   def innerCUs = _innerCUs
 
-  private var _outerCUs:List[OuterController] = _
+  private var _outerCUs:List[OuterController] = Nil
   def outerCUs(outerCUs:List[OuterController]) = _outerCUs = outerCUs 
   def outerCUs = _outerCUs
 
-  private var _memCUs:List[MemoryPipeline] = _
+  private var _memCUs:List[MemoryPipeline] = Nil
   def memCUs(memCUs:List[MemoryPipeline]) = _memCUs = memCUs
   def memCUs = _memCUs
 
@@ -485,11 +501,11 @@ case class Top()(implicit design: Design) extends Controller { self =>
   val command = CtrlOutPort(this, s"${this}.command")
   val status = CtrlInPort(this, s"${this}.status")
 
-  private var _scalars:List[Scalar] = _
+  private var _scalars:List[Scalar] = Nil
   def scalars:List[Scalar] = _scalars
   def scalars(scalars:List[Scalar]) = _scalars = scalars
 
-  private var _vectors:List[Vector] = _
+  private var _vectors:List[Vector] = Nil
   def vectors:List[Vector] = _vectors
   def vectors(vectors:List[Vector]) = _vectors = vectors
 

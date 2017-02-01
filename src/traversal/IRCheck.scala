@@ -105,8 +105,6 @@ class IRCheck(implicit val design: Design) extends Traversal {
         if (stage!=cu.stages.last) assert(stage.next==Some(cu.stages(i+1)))
         else assert(stage.next==None)
       }
-      assert(cu.souts.size==(design.arch.scalarBandwidth*cu.vouts.size), 
-        s"cu:$cu cu.souts.size=${cu.souts.size}, scalarBandwidth=${design.arch.scalarBandwidth}")
     }
   } 
 

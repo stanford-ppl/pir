@@ -130,7 +130,7 @@ case class SiblingAndTree()(implicit ctrler:Controller, design:Design) extends A
   override val typeStr = "SiblingAndTree"
 }
 
-class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
+class CtrlBox()(implicit ctrler:Controller, design: Design) extends Primitive {
   override val name = None
   override val typeStr = "CtrlBox"
 
@@ -181,48 +181,47 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
     cd
   }
   def enLut(outs:List[CtrlOutPort], transFunc:TransferFunction) = {
-    val lut = EnLUT(outs.size, transFunc)(cu, design)
-    cu.ctrlBox.enLUTs += lut
+    val lut = EnLUT(outs.size, transFunc)(ctrler, design)
+    ctrler.ctrlBox.enLUTs += lut
     lut
   }
 
-  def innerCtrEn:EnInPort = cu match {
-    case cu:Pipeline => cu.localCChain.inner.en //Local CChain Enable
-    case cu:OuterController => cu.localCChain.inner.en //Local CChain Enable
+  def innerCtrEn:EnInPort = ctrler match {
+    case ctrler:Pipeline => ctrler.localCChain.inner.en //Local CChain Enable
+    case ctrler:OuterController => ctrler.localCChain.inner.en //Local CChain Enable
     //Make a copy of parent's CounterChain and becomes local CounterChain
-    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).inner.en
+    case ctrler:StreamPipeline => ctrler.getCopy(ctrler.parent.localCChain).inner.en
   }
 
-  def outerCtrDone:CtrlOutPort = cu match {
-    case cu:Pipeline => cu.localCChain.outer.done 
-    case cu:OuterController => cu.localCChain.outer.done 
-    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).outer.done
+  def outerCtrDone:CtrlOutPort = ctrler match {
+    case ctrler:Pipeline => ctrler.localCChain.outer.done 
+    case ctrler:OuterController => ctrler.localCChain.outer.done 
+    case ctrler:StreamPipeline => ctrler.getCopy(ctrler.parent.localCChain).outer.done
   }
 
-  def enable:EnInPort = cu match {
-    case cu:Pipeline => cu.localCChain.inner.en //Local CChain Enable
-    case cu:OuterController => cu.localCChain.inner.en //Local CChain Enable
-    //Make a copy of parent's CounterChain and becomes local CounterChain
-    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).inner.en
+  def enable:EnInPort = ctrler match {
+    case mc:MemoryController => throw PIRException(s"MemoryController doesn't have enable")
+    case ctrler:ComputeUnit => ctrler.localCChain.inner.en
   }
 
-  def done:CtrlOutPort = cu match {
-    case cu:Pipeline => cu.localCChain.outer.done 
-    case cu:OuterController => cu.localCChain.outer.done 
-    case cu:StreamPipeline => cu.getCopy(cu.parent.localCChain).outer.done
+  def done:CtrlOutPort = ctrler match {
+    case ctrler:Pipeline => ctrler.localCChain.outer.done 
+    case ctrler:OuterController => ctrler.localCChain.outer.done 
+    case ctrler:StreamPipeline if (ctrler.isLast) => ctrler.getCopy(ctrler.parent.localCChain).outer.done
+    case ctrler:StreamPipeline => ctrler.localCChain.outer.done 
   }
 
   def ctrlIns:List[CtrlInPort] = {
     val cins = ListBuffer[CtrlInPort]()
     cins ++= udcounters.values.map(_.inc).filter{ _.isCtrlIn }
-    //cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
-    cu.ctrlBox.tokDownLUTs.foreach { tdl => 
-      cins ++= tdl.ins.filter { _.isCtrlIn }
+    ctrler match {
+      case top:Top =>
+      case cu:ComputeUnit => cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
     }
-    cu match {
-      case cu:InnerController =>
-        cu.mems.foreach { 
-          case mem:FIFOOnWrite => cins += mem.enqueueEnable
+    ctrler match {
+      case ctrler:InnerController =>
+        ctrler.mems.foreach { 
+          case mem:ScalarFIFO => cins += mem.enqueueEnable
           case _ =>
         }
         cins ++= tokInAndTree.ins
@@ -233,56 +232,57 @@ class CtrlBox()(implicit cu:Controller, design: Design) extends Primitive {
     cins.toList
   }
 
-  lazy val ctrlOuts:List[CtrlOutPort] = { 
-    cu.ctrlBox.luts.map(_.out).filter(_.isCtrlOut) ++
-    (cu match {
-      case cu:InnerController =>
-        cu.mems.collect{ case mem:FIFOOnWrite => mem }.filter{_.readPort.isConnected}.map(_.notFull)
+  def ctrlOuts:List[CtrlOutPort] = { 
+    val couts = ListBuffer[CtrlOutPort]()
+    //couts ++= ctrler.ctrlBox.luts.map(_.out).filter(_.isCtrlOut)
+    couts ++= (ctrler match {
+      case ctrler:InnerController =>
+        ctrler.mems.collect{ case mem:FIFOOnWrite => mem }.map(_.notFull).filter{_.isCtrlOut}
       case _ => Nil
-    }) ++ 
-    swapReads.values.map(_._2).filter{ _.isCtrlOut } ++ 
-    swapWrites.values.map(_._2).filter{ _.isCtrlOut }
+    })
+    //TODO
+    couts ++= swapReads.values.map(_._2).filter{ _.isCtrlOut }
+    couts ++= swapWrites.values.map(_._2).filter{ _.isCtrlOut }
+    couts.toList
   }
 
   override def toUpdate = super.toUpdate || tokenOut == null
 }
 
 trait StageCtrlBox extends CtrlBox {
-  def siblingAndTree:SiblingAndTree
+  def siblingAndTree:SiblingAndTree = SiblingAndTree()
+  override def ctrlOuts:List[CtrlOutPort] = {
+    if (siblingAndTree.out.isCtrlOut) super.ctrlOuts :+ siblingAndTree.out
+    else super.ctrlOuts
+  }
 }
 
-class InnerCtrlBox()(implicit cu:InnerController, design: Design) extends CtrlBox() with StageCtrlBox {
-  override val ctrler:InnerController = cu
-  val siblingAndTree = SiblingAndTree()
+class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
+  extends CtrlBox() with StageCtrlBox {
+  val enableOut = CtrlOutPort(this, s"$this.enable")
 }
 object InnerCtrlBox {
-  def apply()(implicit cu:InnerController, design: Design) = new InnerCtrlBox()
+  def apply()(implicit ctrler:InnerController, design: Design) = new InnerCtrlBox()
 } 
 
-class OuterCtrlBox()(implicit cu:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
-  override val ctrler:Controller = cu
-  val tokenDown:CtrlOutPort = CtrlOutPort(this, s"$cu.tokenDown")
+class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
+  // Connect to pulser SM if pipelining, connect to sibling and tree if streamming
+  val tokenDown:CtrlOutPort = CtrlOutPort(this, s"$ctrler.tokenDown")
   val childrenAndTree = ChildrenAndTree()
-  val siblingAndTree = SiblingAndTree()
 
   override def toUpdate = super.toUpdate || tokenDown == null
 }
 object OuterCtrlBox {
-  def apply()(implicit cu:Controller, design: Design) = {
+  def apply()(implicit ctrler:Controller, design: Design) = {
     new OuterCtrlBox()
   }
 }
 
-case class MemCtrlBox()(implicit cu:MemoryPipeline, design: Design) extends InnerCtrlBox() {
-  override val ctrler:MemoryPipeline = cu
+case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends InnerCtrlBox() {
   
-  //TODO
-  val readEn:CtrlInPort = CtrlInPort(this, s"$cu.readEn")
-  val writeEn:CtrlInPort = CtrlInPort(this, s"$cu.writeEn")
-
-  override def ctrlIns:List[CtrlInPort] = {
-    super.ctrlIns ++ (readEn :: writeEn :: Nil).filter{_.isCtrlIn}
-  }
+  def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.localCChain).inner.en
+  //def writeEn:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.localCChain).inner.en //goes along
+  //with data path
 }
 
 

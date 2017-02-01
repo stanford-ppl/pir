@@ -39,7 +39,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster
-      val ctrs = sortCChains(cu.cchains) ++ cu.mems.collect{case f:FOW => f.dummyCtr}
+      val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
       val pctrs = pcu.ctrs
       map(ctrs, pctrs, pirMap, finPass(cu) _)
     }

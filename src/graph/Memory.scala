@@ -30,15 +30,20 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
 
   def writer:InnerController = {
     writePort.from.src match {
+      case fifo:VectorFIFO => fifo.writer
       case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
+      case ScalarIn(_, scalar) => scalar.writer.ctrler.asInstanceOf[InnerController]
       case p => throw PIRException(s"Unknown SRAM write port ${p}")
     }
   }
 
-  def readers:List[InnerController] = {
+  def reader:ComputeUnit = {
     assert(readPort.to.size==1)
     readPort.to.head.src match {
-      case vo:VecOut => vo.vector.readers.map{ _.ctrler.asInstanceOf[InnerController] }
+      case vo:VecOut => 
+        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem can only have remote reader")
+        vo.vector.readers.head.ctrler.asInstanceOf[ComputeUnit]
+      case pr:PipeReg => pr.ctrler.asInstanceOf[ComputeUnit]
       case p => throw PIRException(s"Unknown SRAM read port ${p}")
     }
   }
@@ -80,8 +85,7 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
 
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
-  val dummyCtr = DummyCounter(this)(ocm.ctrler, ocm.design)
-  val enqueueEnable = dummyCtr.en 
+  val enqueueEnable = CtrlInPort(this, s"$this.enqueueEnable")
   override def toUpdate = super.toUpdate
 }
 

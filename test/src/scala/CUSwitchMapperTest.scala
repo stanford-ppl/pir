@@ -17,21 +17,19 @@ import org.scalatest.{Sequential => _, _}
 import scala.util.{Try, Success, Failure}
 
 class CUSwitchMapperTest extends UnitTest with Metadata {
-  type Path = CUSwitchMapper.Path 
-  type PathMap = CUSwitchMapper.PathMap 
 
   def quote(pne:PNE)(implicit design:Design) = DotCodegen.quote(pne)
 
-  lazy val design = new Design {
+  lazy val design = new Design with PlaceAndRoute {
     // PNodes
     override val arch = SN_4x4 
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
-      def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
+      def cuCons(toVin:PIB, path:Path) = { 
         val pcu = toVin.src
         (path.size >= min) && (path.size < max) && (pcu!=start)
       }
-      def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
+      def sbCons(psb:PSB, path:Path) = (path.size < max)
       val result = mapper.advance(start, cuCons _, sbCons _)
       // println(s"start: ${quote(start)}")
       //result.foreach { case (to, path) =>
@@ -46,7 +44,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         assert(!neighbors.contains(c))
       }
     }
-    new CUDotPrinter("TestSwitch.dot").print
+    new CUVectorDotPrinter("TestSwitch.dot").print
   }
 
   "SwitchBox Connection 1 hop" should "success" taggedAs(WIP) in {
@@ -82,13 +80,13 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   "SwitchBox Connection 5 Compare BFS advance with DFS advance" should "success" in {
     val arr = design.arch.cuArray
     val start = arr(1)(1); val min = 1; val max = 7
-    def cuCons(toVin:PIB, path:CUSwitchMapper.Path) = { 
+    def cuCons(toVin:PIB, path:design.Path) = { 
       val pcu = toVin.src
       (path.size >= min) && (path.size < max) && (pcu!=start)
     }
-    def sbCons(psb:PSB, path:CUSwitchMapper.Path) = (path.size < max)
-    val result1 = CUSwitchMapper.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
-    val result2 = CUSwitchMapper.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
+    def sbCons(psb:PSB, path:design.Path) = (path.size < max)
+    val result1 = design.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
+    val result2 = design.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
     result1 should equal (result2)
   }
 
@@ -120,21 +118,23 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, Nil, vts)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.vectors(vts)
       // PNodes
       override val arch = SN_4x4 
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
 
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestSwitchMapping.dot").print
+          new CUVectorDotPrinter("TestSwitchMapping.dot").print
         case Failure(e) =>
           println(e)
-          new CUDotPrinter("TestSwitchMapping.dot").print; throw e
+          new CUVectorDotPrinter("TestSwitchMapping.dot").print; throw e
       }
     }
   }
@@ -199,7 +199,10 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.scalarOut(aos(0))
       }
       val cus = c00::c01::c0::c10::c11::c1::c20::c21::c2::c30::c31::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls ++ aos, vts)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.scalars(sls ++ aos)
+      top.vectors(vts)
       // PNodes
       implicit override val arch = SN_4x4 
 
@@ -208,16 +211,16 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
 
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestDotProduct.dot").print(mapping)
+          new CUVectorDotPrinter("TestDotProduct.dot").print(mapping)
         case Failure(e) => 
           MapperLogger.dprintln(e)
           MapperLogger.close
-          new CUDotPrinter("TestDotProduct.dot").print; throw e
+          new CUVectorDotPrinter("TestDotProduct.dot").print; throw e
       }
     }
   }
@@ -250,38 +253,42 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         CU.vecIn(vts(3))
       }
       val cus = (c0::c1::c2::c3::c4::Nil).reverse
-      top.updateFields(cus, outer::Nil, Nil, vts)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.vectors(vts)
       // PNodes
       implicit override val arch = SN_4x4 
       // Mapping
       val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          new CUDotPrinter("TestOODependency.dot").print
+          new CUVectorDotPrinter("TestOODependency.dot").print
         case Failure(e) => 
-          new CUDotPrinter("TestOODependency.dot").print; throw e
+          new CUVectorDotPrinter("TestOODependency.dot").print; throw e
       }
       MapperLogger.close
     }
   }
 
   "SwitchNetwork Connection" should "success" in {
-    new Design {
+    new Design with PlaceAndRoute {
       top = Top()
       val aos = Nil 
       val sls = Nil
       // Nodes
       val vts = Nil 
       val cus = Nil 
-      top.updateFields(cus, Nil, sls ++ aos, vts)
+      top.innerCUs(cus)
+      top.scalars(sls ++ aos)
+      top.vectors(vts)
       // PNodes
       implicit override val arch = SN_4x4 
 
       def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
-        CUSwitchMapper.advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
+        advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
 
       def advanceCons(psb:PSB, path:Path) = { 
         (path.size < 5) // path is within maximum hop to continue
@@ -354,14 +361,16 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   }
 
   "SwitchNetwork FatPaths" should "success" taggedAs(WIP) in {
-    new Design {
+    new Design with FatPlaceAndRoute{
       top = Top()
       val aos = Nil 
       val sls = Nil
       // Nodes
       val vts = Nil 
       val cus = Nil 
-      top.updateFields(cus, Nil, sls ++ aos, vts)
+      top.innerCUs(cus)
+      top.scalars(sls ++ aos)
+      top.vectors(vts)
       // PNodes
       implicit override val arch = SN_2x2 
 
@@ -374,10 +383,6 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
           case sb:PSB => sb.vouts
         }
       }
-      type FatPath = CtrlMapper.FatPath
-      type FatPaths = CtrlMapper.FatPaths
-      type FatEdge = CtrlMapper.FatEdge
-      type Edge = CtrlMapper.Edge
 
       def advanceCons(psb:PSB, fatpath:FatPath) = { 
         (fatpath.size < 5) // path is within maximum hop to continue
@@ -394,7 +399,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
           if (valid) Some(path)
           else None
         }
-        val fatpaths = CtrlMapper.advanceBFS(vouts _)(start, validCons _, advanceCons _)
+        val fatpaths = advanceBFS(vouts _)(start, validCons _, advanceCons _)
 
       
         // Plot fatedge
@@ -428,7 +433,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         edges.tail.foreach { case (vo, vi) =>
           mp = mp.setFB(vi, vo)
         }
-        val paths = CtrlMapper.filterUsedRoutes(fatpaths, mp)
+        val paths = filterUsedRoutes(fatpaths, mp)
         assert(paths.size==35)
         //paths.foreach { path =>
           //var mp = PIRMap.empty; path._2.foreach { case ( vo, vi) => mp = mp.setFB(vi, vo) }

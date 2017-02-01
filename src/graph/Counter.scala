@@ -35,6 +35,7 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
    * Whether CounterChain is a copy of other CounterChain
    * */
   def isCopy = copy.isDefined
+  def isDummy = counters.forall{_.isInstanceOf[DummyCounter]}
   def isLocal = !isCopy
     
   /*
@@ -127,6 +128,11 @@ object CounterChain {
     cc.copy(from)
     cc
   }
+  def dummy(implicit ctrler:ComputeUnit, design: Design) = {
+    val cc = CounterChain(Some(s"dummy"))
+    cc.addCounter(DummyCounter(cc))
+    cc
+  }
 }
 
 class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
@@ -206,9 +212,9 @@ object Counter {
     Counter(None, cchain)
 }
 
-case class DummyCounter(fifoOnWrite:FIFOOnWrite)(implicit override val ctrler:ComputeUnit, design: Design)
-  extends Counter(Some(s"${fifoOnWrite}_dummyCtr")) {
-  override val en:EnInPort = EnInPort(this, s"${this}.enqEn")
+case class DummyCounter(cc:CounterChain)(implicit override val ctrler:ComputeUnit, design: Design)
+  extends Counter(Some(s"dummyCtr")) {
+  this.cchain(cc)
   this.min.connect(Const(s"-1i").out)
   this.max.connect(Const(s"-1i").out)
   this.step.connect(Const(s"-1i").out)

@@ -61,12 +61,14 @@ class CUMapperTest extends UnitTest with Metadata {
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls, Nil)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.scalars(sls)
 
       // PNodes
       override val arch = new Spade with PointToPointNetwork {
         val memCtrlDataValidBusIdx:Int = 2
-        val numLanes = 4
+        override val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = 6 
         val memCtrlCommandFIFOEnqBusIdx:Int = 0
@@ -83,7 +85,6 @@ class CUMapperTest extends UnitTest with Metadata {
         val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
-        val wordWidth = 32
 
         /* Network Constrain */ 
         rcus(1).vins(0) <== rcus(0).vout 
@@ -103,16 +104,16 @@ class CUMapperTest extends UnitTest with Metadata {
       val ctrlMapper = new CtrlMapper()
       val mapper = CUMapper(outputMapper, viMapper, ctrlMapper)
 
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
       Try {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
           MapperLogger.close
-          new CUDotPrinter("TestP2P.dot").print(pcus, mapping)
+          new CUVectorDotPrinter("TestP2P.dot").print
         case Failure(e) => 
           MapperLogger.close
-          new CUDotPrinter("TestP2P.dot").print(pcus); throw e
+          new CUVectorDotPrinter("TestP2P.dot").print; throw e
       }
       // Printer
     }

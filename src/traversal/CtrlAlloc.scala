@@ -15,7 +15,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   override def traverse:Unit = {
     swapAlloc 
     ctrlAlloc
-    enableRouting
   } 
 
   /*
@@ -44,16 +43,27 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
     design.top.ctrlers.foreach { cu =>
       cu match {
         case cu:MemoryPipeline =>  // handled ahead and after
+        case mc:MemoryController =>
+          mc.getCopy(mc.parent.localCChain).inner.en.connect(mc.done)
+          if (!mc.isHead) {
+            mc.fifos.foreach {
+              case sf:ScalarFIFO => sf.enqueueEnable.connect(sf.writer.ctrlBox.asInstanceOf[InnerCtrlBox].enableOut)
+              case vf:VectorFIFO =>
+            }
+          }
         case cu:StreamPipeline =>
-          val cb = cu.ctrlBox.asInstanceOf[StageCtrlBox]
+          val cb = cu.ctrlBox
           cu.parent match {
             case parent:StreamController =>
               if (cu.isHead) {
-                //TODO
-                val tk = cb.tokenBuffer(cu.parent)
-                tk.inc.connect(parent.ctrler.ctrlBox.asInstanceOf[OuterCtrlBox].tokenDown)
-                cb.siblingAndTree.addInput(tk.out)
+                val td = parent.ctrler.ctrlBox.asInstanceOf[OuterCtrlBox].tokenDown
+                cb.enable.connect(td)
               } else {
+                cb.enable.connect(cb.andTree.out)
+                cu.fifos.foreach {
+                  case sf:ScalarFIFO => sf.enqueueEnable.connect(sf.writer.ctrlBox.asInstanceOf[InnerCtrlBox].enableOut)
+                  case vf:VectorFIFO =>
+                }
               }
           }
         case cu:ComputeUnit=>
@@ -66,6 +76,11 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
                 tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
                 cb.siblingAndTree.addInput(tk.out)
               case top:Top => // No synchronization needed
+            }
+            mem match {
+              case mem:SRAMOnRead =>
+                mem.ctrler.ctrlBox.asInstanceOf[MemCtrlBox].readEn.connect(cb.siblingAndTree.out)
+              case _ =>
             }
           }
           cu.produced.foreach { mem =>
@@ -87,6 +102,10 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
                 }
               case n =>
                 throw PIRException(s"$cu's parent is ${parent} but produced mem:$mem is $n")
+            }
+            mem match {
+              case mem:SRAMOnWrite => // TODO: writeEn is from databus
+              case _ =>
             }
           }
           if (cu.isHead) {
@@ -110,24 +129,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       }
     }
   } 
-
-  def enableRouting = {
-    design.top.memCUs.foreach { cu =>
-      cu.mem match {
-        case mem:SRAMOnRead =>
-          assert(mem.readers.size==1)
-          cu.ctrlBox.readEn.connect(mem.readers.head.ctrlBox.enable.from)
-        case mem:FIFOOnRead =>
-          throw PIRException(s"Currently no support for MCU being FIFO")
-      }
-      cu.mem match {
-        case mem:SRAMOnWrite =>
-          cu.ctrlBox.writeEn.connect(mem.writer.ctrlBox.enable.from)
-        case mem:FIFOOnWrite =>
-      }
-    }
-  }
-
 
   override def finPass = {
     //design.top.compUnits.foreach { cu =>

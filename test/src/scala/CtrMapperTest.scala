@@ -26,7 +26,7 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 4
+        override val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
         val memCtrlCommandFIFOEnqBusIdx:Int = 0
@@ -39,7 +39,6 @@ class CtrMapperTest extends UnitTest { self =>
         val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
-        val wordWidth = 32
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
@@ -71,7 +70,7 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 4
+        override val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
         val memCtrlCommandFIFOEnqBusIdx:Int = 0
@@ -84,7 +83,6 @@ class CtrMapperTest extends UnitTest { self =>
         val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
-        val wordWidth = 32
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 
@@ -118,7 +116,7 @@ class CtrMapperTest extends UnitTest { self =>
       val ctrs = cc0.counters ++ cc1.counters
       // PNodes
       override val arch = new Spade {
-        val numLanes = 4
+        override val numLanes = 4
         val scalarBandwidth = numLanes 
         val numScalarInReg = numLanes 
         val memCtrlCommandFIFOEnqBusIdx:Int = 0
@@ -131,7 +129,6 @@ class CtrMapperTest extends UnitTest { self =>
         val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
-        val wordWidth = 32
         val numCtrs = 3
         implicit val ctrler:PCU = null
         val pctrs = List.tabulate(numCtrs) { ic => 

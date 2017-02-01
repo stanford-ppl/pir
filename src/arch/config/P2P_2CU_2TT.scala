@@ -22,13 +22,12 @@ object P2P_2CU_2TT extends PointToPointNetwork {
   // Inner CU Specs
   override val wordWidth = 32
   override val numLanes = 4
-  override val scalarBandwidth = numLanes // BO, how many scalar registers can be read from each bus
   
   private val numRCUs = 2
   private val numMCs = 2 
 
-  private val numArgIns = scalarBandwidth  // need to be multiple of scalarBandwith 
-  private val numArgOuts = scalarBandwidth // need to be multiple of scalarBandwith 
+  private val numArgIns = numLanes
+  private val numArgOuts = numLanes
 
   val memCtrlCommandFIFOEnqBusIdx:Int = 0
   val memCtrlDataFIFOEnqBusIdx:Int = 1
@@ -57,5 +56,4 @@ object P2P_2CU_2TT extends PointToPointNetwork {
   rcus(1).vins(0) <== rcus(0).vout 
   rcus(1).vins(1) <== rcus(0).vout
 
-  ConfigFactory.genArgIOConnection
 }

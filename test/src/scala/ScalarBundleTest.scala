@@ -49,7 +49,9 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarOut(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.updateFields(cus, outer::Nil, sls, Nil)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.scalars(sls)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -58,7 +60,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
     }
   }
 
@@ -82,7 +84,9 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(ais(6))
       }
       val cus = c0::c1::Nil
-      top.updateFields(cus, outer::Nil, sls ++ ais, Nil)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.scalars(sls ++ ais)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -91,7 +95,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
 
       c0.vins should have size 1
       c1.vins should have size 2
@@ -120,7 +124,9 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.scalarIn(ais(2))
       }
       val cus = c0::c1::c2::Nil
-      top.updateFields(cus, outer::Nil, sls ++ ais, Nil)
+      top.innerCUs(cus)
+      top.outerCUs(outer::Nil)
+      top.scalars(sls ++ ais)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -129,7 +135,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
 
       top.vouts should have size 1
     }
@@ -157,7 +163,9 @@ class ScalarBundleTest extends UnitTest { self =>
       }
       val cus = c0::c1::Nil
       val outers = s0::Nil 
-      top.updateFields(cus, outers, sls ++ ais, Nil)
+      top.innerCUs(cus)
+      top.outerCUs(outers)
+      top.scalars(sls ++ ais)
 
       // PNodes
       override val arch = P2P_2CU  
@@ -166,7 +174,7 @@ class ScalarBundleTest extends UnitTest { self =>
       sb.run
       // Printer
       new PIRPrinter().run
-      new PIRNetworkDotGen().run
+      new PIRDataDotGen().run
 
       top.vouts should have size 1
     }

@@ -44,38 +44,6 @@ object ConfigFactory extends ImplicitConversion {
     cu
   }
 
-  /* Connnect all ArgIns to scalarIns of all CUs and all ArgOuts to souts of all CUs*/
-  def genArgIOConnection(implicit spade:Spade) = {
-    val top = spade.top
-    spade match {
-      case s:PointToPointNetwork =>
-        val cus = spade.cus
-        cus.foreach { cu =>
-          top.vouts.foreach { aib =>
-            cu.vins.foreach { vin =>
-              vin <== aib
-            }
-          }
-          top.vins.foreach { aob => 
-            aob <== cu.vout
-          }
-        }
-      case s:SwitchNetwork =>
-        for (i <- 0 until s.sbs.size) {
-          for (j <- 0 until s.sbs.head.size) {
-            if (j==s.sbs.head.size-1) {
-              top.vins.foreach { _ <== s.sbs(i)(j).voutAt("N") }
-              top.vouts.foreach { _ ==> s.sbs(i)(j).vinAt("N") }
-            }
-            if (j==0) {
-              top.vins.foreach { _ <== s.sbs(i)(j).voutAt("S") }
-              top.vouts.foreach { _ ==> s.sbs(i)(j).vinAt("S") }
-            }
-          }
-        }
-    }
-  }
-
   /* Generate connections relates to register mapping of a cu */
   def genMapping(cu:ComputeUnit, vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
     /* Register Constrain */
@@ -96,7 +64,8 @@ object ConfigFactory extends ImplicitConversion {
       }
     }
     // Bus output is connected to 1 register in last stage
-    cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
+    // TODO
+    //cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
     (0 until cu.numSinReg).foreach { is =>
       val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
       cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
@@ -175,131 +144,6 @@ object ConfigFactory extends ImplicitConversion {
       }
     }
     
-  }
-
-  // Generate interconnection network with switch boxes
-  def genSwitchNetwork(cus:List[List[ComputeUnit]], mcs:List[MemoryController], sbs:List[List[SwitchBox]]) = {
-    val numRowCUs = cus.size
-    val numColCUs = cus.head.size
-    for (i <- 0 until numRowCUs) {
-      for (j <- 0 until numColCUs) {
-        // CU to CU (Horizontal W -> E)
-        //if (i!=numRowCUs-1)
-          //cus(i)(j).vout ==> cus(i+1)(j).vinAt("W")
-        // CU to CU (Vertical S -> N)
-        //if (j!=numColCUs-1) {
-          //cus(i)(j).vout ==> cus(i)(j+1).vinAt("S")
-        //}
-      }
-    }
-    for (i <- 0 until numRowCUs+1) {
-      for (j <- 0 until numColCUs+1) {
-        // SB to SB (Horizontal)
-        if (i!=numRowCUs) {
-          sbs(i)(j).voutAt("E").zip(sbs(i+1)(j).vinAt("W")).foreach{ case (o,i) => o ==> i } // W -> E
-          sbs(i)(j).vinAt("E").zip(sbs(i+1)(j).voutAt("W")).foreach{ case (i,o) => i <== o } // E -> W
-        }
-        // SB to SB (Vertical)
-        if (j!=numColCUs) {
-          sbs(i)(j).voutAt("N").zip(sbs(i)(j+1).vinAt("S")).foreach{ case (o,i) => o ==> i } // S -> N
-          sbs(i)(j).vinAt("N").zip(sbs(i)(j+1).voutAt("S")).foreach{ case (i,o) => i <== o } // N -> S
-        }
-      }
-    }
-    for (i <- 0 until numRowCUs) {
-      for (j <- 0 until numColCUs) {
-        // CU and SB (NW <-> SE) (top left)
-        cus(i)(j).vinAt("NW").zip(sbs(i)(j+1).voutAt("SE")).foreach { case (i, o) => o ==> i }
-        // CU and SB (NE <-> SW) (top right)
-        cus(i)(j).vout ==> sbs(i+1)(j+1).vinAt("SW")
-        // CU and SB (SW <-> NE) (bottom left)
-        cus(i)(j).vinAt("SW").zip(sbs(i)(j).voutAt("NE")).foreach { case (i, o) => o ==> i }
-        // CU and SB (SE <-> NW) (bottom right)
-        cus(i)(j).vout ==> sbs(i+1)(j).vinAt("NW")
-
-        //TODO change
-        cus(i)(j).vinAt("W").zip(sbs(i+1)(j+1).voutAt("SW")).foreach { case (i, o) => o ==> i }
-        cus(i)(j).vinAt("S").zip(sbs(i+1)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
-      }
-    }
-    for (j <- 0 until sbs.head.size) {
-      if (j<numRowCUs) {
-        sbs(0)(j).voutAt("W").zip(mcs(j).vinAt("E")).foreach { case(o, i) => o ==> i}
-        mcs(j).vout ==> sbs(0)(j).vinAt("W")
-      }
-    }
-  }
-
-  def genCtrlSwitchNetwork(cus:List[List[ComputeUnit]], mcs:List[MemoryController], csbs:List[List[SwitchBox]])(implicit spade:Spade) = {
-    val top = spade.top
-    val numRowCUs = cus.size
-    val numColCUs = cus.head.size
-    val bandWidth = 2
-    for (i <- 0 until numRowCUs) {
-      for (j <- 0 until numColCUs) {
-        // CU to CU (Horizontal)
-        if (i!=numRowCUs-1) {
-          cus(i)(j).coutAt("E").zip(cus(i+1)(j).cinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
-          cus(i)(j).cinAt("E").zip(cus(i+1)(j).coutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
-        }
-        // CU to CU (Vertical)
-        if (j!=numColCUs-1) {
-          cus(i)(j).coutAt("N").zip(cus(i)(j+1).cinAt("S")).foreach { case (o, i) => o ==> i } // S -> N
-          cus(i)(j).cinAt("N").zip(cus(i)(j+1).coutAt("S")).foreach { case (i, o) => o ==> i } // N -> S 
-        }
-      }
-    }
-    for (i <- 0 until numRowCUs+1) {
-      for (j <- 0 until numColCUs+1) {
-        // SB to SB (Horizontal)
-        if (i!=numRowCUs) {
-          csbs(i)(j).voutAt("E").zip(csbs(i+1)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
-          csbs(i)(j).vinAt("E").zip(csbs(i+1)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
-        }
-        // SB to SB (Vertical)
-        if (j!=numColCUs) {
-          csbs(i)(j).voutAt("N").zip(csbs(i)(j+1).vinAt("S")).foreach { case (o, i) => o ==> i } // S -> N
-          csbs(i)(j).vinAt("N").zip(csbs(i)(j+1).voutAt("S")).foreach { case (i, o) => o ==> i } // N -> S 
-        }
-        // Top to SB
-        if (j==numColCUs) {
-          top.cin <== csbs(i)(j).voutAt("N") // bottom up 
-          top.cout ==> csbs(i)(j).vinAt("N") // top down
-        }
-        if (j==0) {
-          top.cin <== csbs(i)(j).voutAt("S") // top down
-          top.cout ==> csbs(i)(j).vinAt("S") // bottom up 
-        }
-      }
-    }
-    for (i <- 0 until numRowCUs) {
-      for (j <- 0 until numColCUs) {
-        // CU and SB (NW <-> SE) (top left)
-        cus(i)(j).coutAt("NW").zip(csbs(i)(j+1).vinAt("SE")).foreach { case (o, i) => o ==> i }
-        cus(i)(j).cinAt("NW").zip(csbs(i)(j+1).voutAt("SE")).foreach { case (i, o) => o ==> i }
-        // CU and SB (NE <-> SW) (top right)
-        cus(i)(j).coutAt("NE").zip(csbs(i+1)(j+1).vinAt("SW")).foreach { case (o, i) => o ==> i }
-        cus(i)(j).cinAt("NE").zip(csbs(i+1)(j+1).voutAt("SW")).foreach { case (i, o) => o ==> i }
-        // CU and SB (SW <-> NE) (bottom left)
-        cus(i)(j).coutAt("SW").zip(csbs(i)(j).vinAt("NE")).foreach { case (o, i) => o ==> i }
-        cus(i)(j).cinAt("SW").zip(csbs(i)(j).voutAt("NE")).foreach { case (i, o) => o ==> i }
-        // CU and SB (SE <-> NW) (bottom right)
-        cus(i)(j).coutAt("SE").zip(csbs(i+1)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
-        cus(i)(j).cinAt("SE").zip(csbs(i+1)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
-      }
-    }
-    for (j <- 0 until mcs.size) {
-      // MC and SB (SE <-> NW) (bottom right)
-      //mcs(j).coutAt("SE").zip(csbs(0)(j).vinAt("NW")).foreach { case (o, i) => o ==> i }
-      //mcs(j).cinAt("SE").zip(csbs(0)(j).voutAt("NW")).foreach { case (i, o) => o ==> i }
-      // MC and SB (E <-> W) (right)
-      mcs(j).coutAt("E").zip(csbs(0)(j).vinAt("W")).foreach { case (o, i) => o ==> i } // W -> E 
-      mcs(j).cinAt("E").zip(csbs(0)(j).voutAt("W")).foreach { case (i, o) => o ==> i } // E -> W
-      // MC and SB (NE <-> SW) (top right)
-      //mcs(j).coutAt("NE").zip(csbs(0)(j).vinAt("SW")).foreach { case (o, i) => o ==> i }
-      //mcs(j).cinAt("NE").zip(csbs(0)(j).voutAt("SW")).foreach { case (i, o) => o ==> i }
-    }
-
   }
 
 }

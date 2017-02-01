@@ -206,15 +206,15 @@ object UDCounter extends Metadata {
 }
 
 class CtrlBox(numCtrs:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
-(implicit spade:Spade, override val ctrler:ComputeUnit) extends Primitive with GridIO[ComputeUnit]{
+(implicit spade:Spade, override val ctrler:Controller) extends Primitive with GridIO[Controller]{
   //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
   //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
-  def inBuses(num:Int, width:Int):List[InBus[ComputeUnit]] = InBuses(ctrler, num, width)
-  def outBuses(num:Int, width:Int):List[OutBus[ComputeUnit]] = OutBuses(ctrler, num, width)
-  def ctrlIns:List[InBus[ComputeUnit]] = vins 
-  def ctrlOuts:List[OutBus[ComputeUnit]] = vouts 
-  def cinAt(dir:String):List[InBus[ComputeUnit]] = vinAt(dir) 
-  def coutAt(dir:String):List[OutBus[ComputeUnit]] = voutAt(dir) 
+  def inBuses(num:Int, width:Int):List[InBus[Controller]] = InBuses(ctrler, num, width)
+  def outBuses(num:Int, width:Int):List[OutBus[Controller]] = OutBuses(ctrler, num, width)
+  def ctrlIns:List[InBus[Controller]] = vins 
+  def ctrlOuts:List[OutBus[Controller]] = vouts 
+  def cinAt(dir:String):List[InBus[Controller]] = vinAt(dir) 
+  def coutAt(dir:String):List[OutBus[Controller]] = voutAt(dir) 
 
   val numEnLUTs = numCtrs
   val numUDCs = numEnLUTs

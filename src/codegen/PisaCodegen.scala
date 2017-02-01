@@ -420,7 +420,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     else { // Write Address Start Delay
       val icl = ctr.ctrler.asInstanceOf[InnerController]
       val srams = icl.srams.filter{_.writeCtr == ctr}
-      val fows = icl.fows.filter(_.dummyCtr==ctr)
+      //val fows = icl.fows.filter(_.dummyCtr==ctr)
+      val fows = Nil
       val mems = srams ++ fows
       if (mems.size==0) "0" 
       else {
@@ -510,9 +511,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 else
                   emitPair("end", s"x")
                 //emitPair(s"enqEn", s"${pcu.ctrlBox.io(vimap(mem.enqueueEnable.from))}")
-                val pdmCtr = ctmap(mem.dummyCtr)
-                emitPair(s"enqEn", s"${indexOf(pdmCtr)}")
-                emitPair("isWriteFifo", "1")
+                //val pdmCtr = ctmap(mem.dummyCtr)
+                //emitPair(s"enqEn", s"${indexOf(pdmCtr)}")
+                //emitPair("isWriteFifo", "1")
             }
             val wd = mem.writePort.from.src match {
               case v:VI => "remote" //lookUp(vimap(v))

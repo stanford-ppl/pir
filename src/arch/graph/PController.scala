@@ -14,48 +14,6 @@ trait NetworkElement extends Node {
   def vouts:List[OutBus[NetworkElement]] // Output Buses
 }
 
-/* Controller */
-trait Controller extends NetworkElement {
-  implicit val ctrler:Controller = this 
-  def sins:List[ScalarIn] // Scalar Inputs
-  def souts:List[ScalarOut] // Scalar Outputs
-  def vins:List[InBus[Controller]] // Input Buses/Vector inputs
-  def vouts:List[OutBus[Controller]] // Output Buses/Vector outputs
-
-  def cins:List[InBus[Controller]] // Control inputs 
-  def couts:List[OutBus[Controller]] // Control outputs 
-}
-
-/* Top-level controller (host)
- * @param argIns argument inputs. scalar inputs to the accelerator
- * @param argOuts argument outputs. scalar outputs to the accelerator
- * @param argInBuses output buses argIns are mapped to
- * @param argOutBuses input buses argOuts are mapped to
- * */
-case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller {
-  val sbw = spade.scalarBandwidth
-  assert(numArgIns % sbw == 0)
-  assert(numArgOuts % sbw == 0)
-  val numVouts = numArgIns / sbw 
-  val numVins = numArgOuts / sbw 
-  val vins:List[InBus[Top]] = InBuses(this, numVins, sbw)
-  vins.zipWithIndex.foreach{ case (ib, i) => ib.index(i) }
-  val vouts:List[OutBus[Top]] = OutBuses(this, numVouts, sbw)
-  vouts.zipWithIndex.foreach {case (ob,i) => ob.index(i) }
-  val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
-    ScalarIn(vins(ib).outports(ia)).index(sbw*ib + ia)
-  }.flatten
-  val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
-    ScalarOut(vouts(ib).inports(ia))
-  }.flatten
-  val clk = OutWire(this, s"clk")
-
-  val cin = InBus(this, 1).index(0)
-  val cout = OutBus(this, 1).index(0)
-  def cins = cin::Nil
-  def couts = cout::Nil 
-}
-
 trait GridIO[+NE<:NetworkElement] {
   private val vinMap = MMap[String, ListBuffer[InBus[NetworkElement]]]()
   private val voutMap = MMap[String, ListBuffer[OutBus[NetworkElement]]]()
@@ -97,6 +55,53 @@ trait GridIO[+NE<:NetworkElement] {
     val (dir, list) = dirs.head
     s"${dir.toLowerCase}_${list.indexOf(vin)}"
   }
+  def clearIO:Unit = {
+    vinMap.clear
+    voutMap.clear
+  }
+}
+
+/* Controller */
+trait Controller extends NetworkElement with GridIO[Controller] {
+  implicit val ctrler:Controller = this 
+  def sins:List[ScalarIn] // Scalar Inputs
+  def souts:List[ScalarOut] // Scalar Outputs
+  def vins:List[InBus[Controller]] // Input Buses/Vector inputs
+  def vouts:List[OutBus[Controller]] // Output Buses/Vector outputs
+
+  def ctrlBox:CtrlBox
+  def cins:List[InBus[Controller]] = ctrlBox.ctrlIns // Control inputs 
+  def couts:List[OutBus[Controller]] = ctrlBox.ctrlOuts // Control outputs 
+  def cinAt(dir:String):List[InBus[Controller]] = ctrlBox.cinAt(dir) 
+  def coutAt(dir:String):List[OutBus[Controller]] = ctrlBox.coutAt(dir) 
+}
+
+/* Top-level controller (host)
+ * @param argIns argument inputs. scalar inputs to the accelerator
+ * @param argOuts argument outputs. scalar outputs to the accelerator
+ * @param argInBuses output buses argIns are mapped to
+ * @param argOutBuses input buses argOuts are mapped to
+ * */
+case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller with GridIO[Top] {
+
+  override def inBuses(num:Int, width:Int):List[InBus[Top]] = InBuses(this, num, width)
+  override def outBuses(num:Int, width:Int):List[OutBus[Top]] = OutBuses(this, num, width)
+
+  //TODO
+  val sbw = spade.numLanes
+  //assert(numArgIns % sbw == 0)
+  //assert(numArgOuts % sbw == 0)
+  val numVouts = numArgIns / sbw 
+  val numVins = numArgOuts / sbw 
+  lazy val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
+    ScalarIn(vins(ib).outports(ia)).index(sbw*ib + ia)
+  }.flatten
+  lazy val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
+    ScalarOut(vouts(ib).inports(ia))
+  }.flatten
+  val clk = OutWire(this, s"clk")
+
+  val ctrlBox = new CtrlBox(0, 0, 0)
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -137,11 +142,11 @@ class ComputeUnit()(implicit spade:Spade) extends Controller with GridIO[Compute
   def vout = vouts.head
   
  // Scalar inputs. 1 per word in bus input 
-  lazy val _sins:List[ScalarIn] = List.tabulate(vins.size, spade.scalarBandwidth) { case (ib, is) =>
-      ScalarIn(vins(ib).outports(is)).index(spade.scalarBandwidth*ib + is)
+  lazy val _sins:List[ScalarIn] = List.tabulate(vins.size, spade.numLanes) { case (ib, is) =>
+      ScalarIn(vins(ib).outports(is)).index(spade.numLanes*ib + is)
   }.flatten
   def sins = _sins
-  lazy val _souts:List[ScalarOut] = List.tabulate(spade.scalarBandwidth) { is => ScalarOut(vout.inports(is)) }
+  lazy val _souts:List[ScalarOut] = List.tabulate(spade.numLanes) { is => ScalarOut(None) }
   def souts = _souts
   private var _etstage:EmptyStage = _ // Empty Stage
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
@@ -197,11 +202,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller with GridIO[Compute
   def ctrlBox(numTokenOutLUTs:Int, numTokenDownLUTs:Int):this.type = { 
     ctrlBox = new CtrlBox(ctrs.size, numTokenOutLUTs, numTokenDownLUTs); this
   }
-
-  def cins = ctrlBox.ctrlIns
-  def couts = ctrlBox.ctrlOuts
-  def cinAt(dir:String):List[InBus[ComputeUnit]] = ctrlBox.cinAt(dir) 
-  def coutAt(dir:String):List[OutBus[ComputeUnit]] = ctrlBox.coutAt(dir) 
 }
 
 /* A spetial type of CU used for memory loader/storer */

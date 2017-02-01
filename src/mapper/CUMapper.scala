@@ -60,7 +60,7 @@ trait CUMapper extends Mapper {
         val cons = ListBuffer[(String, Any)]()
         cl match {
           case top:Top if pcl.isInstanceOf[PTop] =>
-            cons += (("sin"	      , (cl.sins.size, design.arch.scalarBandwidth*pcl.vins.size)))
+            cons += (("sin"	      , (cl.sins.size, pcl.vins.size))) //TODO
           case cu:ICL if pcl.isInstanceOf[PCU] =>
             val pcu = pcl.asInstanceOf[PCU]
             cons += (("mctpe"       , cu.isInstanceOf[MC] == pcu.isInstanceOf[PMC]))
@@ -73,7 +73,7 @@ trait CUMapper extends Mapper {
             cons += (("enLut"	    , (cu.enLUTs, pcu.ctrlBox.enLUTs)))
             cons += (("tokDownLut", (cu.tokDownLUTs, pcu.ctrlBox.tokenDownLUTs)))
             cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokenOutLUTs)))
-            cons += (("sin"	      , (cl.sins.size, Math.min(design.arch.scalarBandwidth*pcu.vins.size, pcu.numSinReg))))
+            cons += (("sin"	      , (cl.sins.size, Math.min(pcu.vins.size, pcu.numSinReg)))) //TODO
             cu match {
               case mc:MemoryController => 
               case _ => 
