@@ -111,7 +111,7 @@ r       case VecInPR(regId, vecIn) =>
       val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map))
       val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
       val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-      bind(pcu.regs, remainRegs, cmap, List(regColor(cu) _), finPass(cu) _)
+      bind(pcu.regs, remainRegs, cmap, regColor(cu) _, finPass(cu) _)
     }
   } 
 }
@@ -125,7 +125,4 @@ case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg)(implicit val mapper:Mapper,
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg)(implicit val mapper:Mapper, design:Design) extends MappingException{
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "
-}
-case class OutOfReg(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource{
-  override val msg = s"Not enough pipeline registers in ${pcu} to map application."
 }

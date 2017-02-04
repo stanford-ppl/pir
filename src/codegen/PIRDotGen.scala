@@ -75,8 +75,8 @@ trait PIRDotGen extends Traversal with DotCodegen {
           s"${cp}"
       case _ => s"${cp}"
     }
-    val cins = cl.ctrlBox.ctrlIns
-    cins.groupBy(_.from).foreach { case (from, cis) =>
+    val ins = cl.ctrlBox.ctrlIns
+    ins.groupBy(_.from).foreach { case (from, cis) =>
       if (from != null) {
         val fromcu = from.src match {
           case p:Primitive => p.ctrler
@@ -106,7 +106,7 @@ class PIRDataDotGen(fileName:String)(implicit val design:Design) extends PIRDotG
 
   def emitInputs(cl:Controller):Unit = {
     emitDataInputs(cl)
-    emitCtrlInputs(cl)
+    //emitCtrlInputs(cl)
   }
 
 }
@@ -118,24 +118,6 @@ class PIRCtrlDotGen(fileName:String)(implicit val design:Design) extends PIRDotG
 
   def this()(implicit design:Design) = {
     this(Config.pirCtrlDot)
-  }
-
-  override def traverse:Unit = {
-    emitBlock("digraph G") {
-      emitConcise
-    }
-  }
-
-  def emitConcise:Unit = {
-    design.top.ctrlers.foreach { cu =>
-      emitNode(cu, cu, DotAttr().shape(box).style(rounded))
-      val cos = cu.ctrlIns.map { _.from.asInstanceOf[CtrlOutPort] }.toSet.toList
-      cos.foreach { co =>
-        val cins = co.to.filter{_.asInstanceOf[CtrlInPort].ctrler==cu}
-        val label = s"from:${co}\nto:[${cins.mkString(",\n")}]"
-        emitEdge(co.ctrler, cu, label)
-      }
-    }
   }
 
   def emitInputs(cl:Controller):Unit = {

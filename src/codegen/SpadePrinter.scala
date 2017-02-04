@@ -19,60 +19,46 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
 
   override val stream = newStream(Config.spadeFile) 
   
-  def emitVecIOs(pne:NetworkElement) = {
-    emitBlock(s"vecins") {
-      pne.vins.foreach { vi =>
-        emitln(s"${vi.ms}")
-        vi.outports.foreach { op =>
+  def emitIO(pne:GridIO[NetworkElement]):Unit = {
+    emitBlock(s"ins") {
+      pne.ins.foreach { in =>
+        emitln(s"${in.ms}")
+        in.outports.foreach { op =>
           emitln(s"${op.mt}")
         }
       }
     }
-    emitBlock(s"vecouts: ") {
-      pne.vouts.foreach { vout =>
-        emitln(s"${vout.mt}")
-        vout.inports.foreach { ip =>
+    emitBlock(s"outs: ") {
+      pne.outs.foreach { out =>
+        emitln(s"${out.mt}")
+        out.inports.foreach { ip =>
           emitln(s"${ip.ms}")
         }
       }
     }
-    pne match {
-      case pne:Controller =>
-        emitBlock(s"ctrlins") {
-          pne.cins.foreach { ci =>
-            emitln(s"${ci.ms}")
-            ci.outports.foreach { op =>
-              emitln(s"${op.mt}")
-            }
-          }
-        }
-        emitBlock(s"vecouts: ") {
-          pne.couts.foreach { cout =>
-            emitln(s"${cout.mt}")
-            cout.inports.foreach { ip =>
-              emitln(s"${ip.ms}")
-            }
-          }
-        }
-      case _ =>
-    }
+  }
+
+  def emitIO(pne:NetworkElement):Unit = {
+    emitBlock(s"${quote(pne)}.vectorIO") { emitIO(pne.vectorIO) } 
+    emitBlock(s"${quote(pne)}.scalarIO") { emitIO(pne.scalarIO) } 
+    emitBlock(s"${quote(pne)}.ctrlIO") { emitIO(pne.ctrlIO) } 
   }
 
   override def traverse = {
     design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
-      emitBlock(s"scalarins") {
-        ctrler.sins.foreach { si => 
-          emitln(s"${si.in.ms}")
-          emitln(s"${si.out.mt}")
-        }
-      }
-      emitBlock(s"scalarouts") {
-        ctrler.souts.foreach { so =>
-          emitln(s"${so.in.ms}")
-          emitln(s"${so.out.mt}")
-        }
-      }
-      emitVecIOs(ctrler)
+      emitIO(ctrler)
+      //emitBlock(s"scalarins") {
+        //ctrler.sins.foreach { si => 
+          //emitln(s"${si.in.ms}")
+          //emitln(s"${si.out.mt}")
+        //}
+      //}
+      //emitBlock(s"scalarouts") {
+        //ctrler.souts.foreach { so =>
+          //emitln(s"${so.in.ms}")
+          //emitln(s"${so.out.mt}")
+        //}
+      //}
       ctrler match {
         case top:Top =>
         case cu:ComputeUnit =>
@@ -122,8 +108,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        sn.sbs.flatten.foreach { sb => emitBlock(quote(sb)) { emitVecIOs(sb) } }
-        sn.csbs.flatten.foreach { sb => emitBlock(s"c${quote(sb)}") { emitVecIOs(sb) } }
+        sn.sbs.flatten.foreach { sb => emitIO(sb) }
       case pn:PointToPointNetwork =>
     }
   }

@@ -121,7 +121,7 @@ object DotCodegen extends Metadata {
     quote(n, design.arch)
   }
   def quote(n:Any, s:Spade):String = {
-    implicit val spade = s
+    implicit def spade = s
     n match {
       case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
       case vin:PIB =>

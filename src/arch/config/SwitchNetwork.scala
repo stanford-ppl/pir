@@ -5,8 +5,10 @@ import scala.language.implicitConversions
 import scala.collection.mutable.Map
 import pir.plasticine.config._
 import scala.collection.immutable.{Map => IMap}
+import pir.graph.enums._
 
 abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int, val numArgOuts:Int) extends Spade {
+  implicit override def spade:SwitchNetwork = this
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
@@ -17,47 +19,102 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val memCtrlDataFIFONotFullBusIdx:Int = 1
   val memCtrlDataValidBusIdx:Int = 2
 
+  override def pnes = ctrlers ++ Nil
+
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)
 
-  val cuArray = List.tabulate(numRows, numCols) { case (i, j) =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 4, numCtrs = 8, numRegs = 16).numSinReg(8).coord(i, j)
-      .ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8)
-
-    //ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    cu
+  def cuAt(i:Int, j:Int) = {
+    if ((i+j) % 2 == 0) {
+      new ComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=4)
+        .coord(i, j)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    } else {
+      new MemoryComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addWAstages(numStage=3, numOprds=3, ops)
+        .addRAstages(numStage=3, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=4)
+        .coord(i, j)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    }
   }
 
-  val mcs = List.tabulate((numRows+1)*2) { i =>
-    val cu = ConfigFactory.genMC(numCtrs = 6, numRegs = 6).numSinReg(6)
-      .ctrlBox(numTokenOutLUTs=6, numTokenDownLUTs=6)
-    if (i < numRows+1) {
-      cu.coord(-1, i)
-    } else {
-      cu.coord(numCols, i-numRows-1)
-    }
-    //ConfigFactory.genMapping(cu, vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
-    cu
+  def scuAt(c:Int, r:Int):ScalarComputeUnit = {
+    new ScalarComputeUnit()
+        .numRegs(6)
+        .numCtrs(6)
+        .numSRAMs(4)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .numSinReg(6)
+        .ctrlBox(numUDCs=4)
+        .genConnections
+        //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
   } 
 
-  def rcus = cuArray.flatten
+  def mcAt(c:Int, r:Int):MemoryController = {
+    new MemoryController()
+        .ctrlBox(numUDCs=0)
+  }
 
-  val ctrlNetwork = new CtrlNetwork(cuArray, mcs)
-  def csbs = ctrlNetwork.sbs
+  val cuArray = List.tabulate(numRows, numCols) { case (i, j) => cuAt(i,j) }
 
-  val vectorNetwork = new VectorNetwork(cuArray, mcs)
-  def sbs = vectorNetwork.sbs
+  val scus = List.tabulate(2, numRows+1) { case (c, r) =>
+    val cu = scuAt(c,r)
+    if (c==0) {
+      cu.coord(-1, r)
+    } else {
+      cu.coord(numCols, r)
+    }
+    cu
+  }.flatten
+
+  val mcs = List.tabulate(2, numRows+1) { case (c, r) =>
+    val cu = mcAt(c,r)
+    if (c==0) {
+      cu.coord(-2, r)
+    } else {
+      cu.coord(numCols + 1, r)
+    }
+    cu
+  }.flatten
+
+  def pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
+  def mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
+
+  val sbs = List.tabulate(numRows+1, numCols+1) { case (i, j) => SwitchBox().coord(i,j) }
+
+  val ctrlNetwork = new CtrlNetwork()
+
+  val vectorNetwork = new VectorNetwork()
+
+  val scalarNetwork = new ScalarNetwork()
 
   def switchNetworkDataBandwidth:Int = {
     sbs.flatten.map{ sb =>
-      sb.vins.filter(_.isConnected).flatMap { vin =>
+      sb.vectorIO.ins.filter(_.isConnected).flatMap { vin =>
         vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
       }.groupBy( k => k ).map{case (k, l)  => l.size}.max
     }.max
   }
   def switchNetworkCtrlBandwidth:Int = {
-    csbs.flatten.map{ sb =>
-      sb.vins.filter(_.isConnected).flatMap { vin =>
+    sbs.flatten.map{ sb =>
+      sb.ctrlIO.ins.filter(_.isConnected).flatMap { vin =>
         vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
       }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
     }.max
@@ -65,9 +122,13 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
 }
 
-abstract class ConnectionNetwork(cuArray:List[List[ComputeUnit]], mcs:List[MemoryController], linkWidth:Int)(implicit spade:Spade) {
+abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 
-  def grid(cu:Controller):GridIO[Controller]
+  def grid(cu:NetworkElement):GridIO[NetworkElement]
+
+  def cuArray:List[List[ComputeUnit]] = spade.cuArray
+  def mcs:List[MemoryController] = spade.mcs
+  def sbs:List[List[SwitchBox]] = spade.sbs
 
   // switch to switch channel width
   val sbChannelWidth = 4
@@ -107,26 +168,16 @@ abstract class ConnectionNetwork(cuArray:List[List[ComputeUnit]], mcs:List[Memor
 
   val top = spade.top
   
-  val sbs = List.tabulate(numRows+1, numCols+1) { case (i, j) => SwitchBox().coord(i,j) }
-
-  spade.ctrlers.foreach { ctrler =>
-    grid(ctrler).vins.foreach { _.disconnect }
-    grid(ctrler).vouts.foreach { _.disconnect }
-    grid(ctrler).clearIO
+  spade.pnes.foreach { pne =>
+    grid(pne).ins.foreach { _.disconnect }
+    grid(pne).outs.foreach { _.disconnect }
+    grid(pne).clearIO
   }
 
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
-    val outNode = out match {
-      case cu:Controller => grid(cu)
-      case sb:SwitchBox => sb
-    }
-    val inNode = in match {
-      case cu:Controller => grid(cu)
-      case sb:SwitchBox => sb
-    }
-    outNode.addVoutAt(outDir, channelWidth, linkWidth)
-    inNode.addVinAt(inDir, channelWidth, linkWidth)
-    outNode.voutAt(outDir).zip(inNode.vinAt(inDir)).foreach { case (o, i) => o ==> i }
+    grid(out).addOutAt(outDir, channelWidth, linkWidth)
+    grid(in).addInAt(inDir, channelWidth, linkWidth)
+    grid(out).outAt(outDir).zip(grid(in).inAt(inDir)).foreach { case (o, i) => o ==> i }
   }
 
   // CU to CU Connection
@@ -222,34 +273,32 @@ abstract class ConnectionNetwork(cuArray:List[List[ComputeUnit]], mcs:List[Memor
 
   sbs.foreach { row =>
     row.foreach { sb =>
-      sb.vins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
-      sb.vouts.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+      grid(sb).ins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
+      grid(sb).outs.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
     }
   }
   cuArray.foreach { row =>
     row.zipWithIndex.foreach { case (cu, j) =>
-      grid(cu).vins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-      grid(cu).vouts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+      grid(cu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+      grid(cu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
     }
   }
   mcs.foreach { mc =>
-    grid(mc).vins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-    grid(mc).vouts.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+    grid(mc).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    grid(mc).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
   }
 
 }
 
-class VectorNetwork(cuArray:List[List[ComputeUnit]], mcs:List[MemoryController])(implicit spade:Spade)
-extends ConnectionNetwork(cuArray, mcs, linkWidth=spade.numLanes) {
-  def grid(cu:Controller):GridIO[Controller] = cu
+class VectorNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=spade.numLanes) {
+  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
 }
 
-//class ScalarDataNetwork(cuArray:List[List[ComputeUnit]], mcs:List[MemoryController])(implicit spade:Spade)
-//extends ConnectionNetwork(cuArray, mcs, 1) {
-//}
+class ScalarNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
+  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+}
 
-class CtrlNetwork(cuArray:List[List[ComputeUnit]], mcs:List[MemoryController])(implicit spade:Spade)
-extends ConnectionNetwork(cuArray, mcs, 1) {
-  def grid(cu:Controller):GridIO[Controller] = cu.ctrlBox
+class CtrlNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
+  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
 }
 

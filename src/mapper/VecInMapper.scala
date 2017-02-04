@@ -21,13 +21,11 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   }
 
   def map(cl:CL, pirMap:M):M = {
-    val pcl = pirMap.clmap(cl)
+    val pcl = pirMap.clmap(cl).asInstanceOf[PCL]
    // Assume sin and vin have only one writer
-    val cons = List(mapVec(cl, pcl) _) 
-
     val pvins = pcl.vins.filter( pvin => !pirMap.vimap.pmap.contains(pvin) )
 
-    val pmap = bind(pvins, cl.vins, pirMap, cons, finPass(cl) _)
+    val pmap = bind(pvins, cl.vins, pirMap, mapVec(cl, pcl) _, finPass(cl) _)
 
     cl.readers.foldLeft(pmap) { case (pm, reader) =>
       if (pm.clmap.contains(reader)) {
@@ -59,7 +57,4 @@ case class UsedInBus(pib:PIB)(implicit val mapper:Mapper, design:Design) extends
 }
 case class InterConnct(cl:CL, pcl:PCL)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
-}
-case class OutOfVec(cl:CL, pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough InBus IO in ${pcl} to map ${cl}."
 }

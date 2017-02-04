@@ -27,7 +27,8 @@ class StageMapper(implicit val design:Design) extends Mapper {
       val est :: fusts = cu.stages.toList
       var cmap = mapStage(est, pest, cuMap)
       log(s"$cu bindStages") {
-        cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _,OutOfStage(pcu, cu, _, _))
+        def oor(pnodes:List[PST], nodes:List[ST]) = OutOfStage(pcu, cu, pnodes, nodes)
+        cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, oor _)
       }
       stageFowarding(pcu, cmap)
     }
@@ -86,9 +87,9 @@ class StageMapper(implicit val design:Design) extends Mapper {
           mapInPort(oprd, pfu.operands(i), map)
         }
       case _ =>
-        val oprdCons = List(mapInPort _)
         log(s"$n bind FU Inputs") {
-          bind(poprds, oprds, map, oprdCons, (m:M) => m, OutOfOperand(p, n, _, _))
+          def oor(pnodes:List[PIP], nodes:List[IP]) = OutOfOperand(p, n, pnodes, nodes)
+          bind(poprds, oprds, map, mapInPort _, (m:M) => m, oor _)
         }
     }
   }
@@ -114,7 +115,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   def mapPROut(stage:ST, pstage:PST, map:M):M = {
     val nres = pstage.prs.size
     val nnode = stage.prs.size
-    if (nnode > nres) throw OutOfPipeReg(pstage, stage, nres, nnode)
+    if (nnode > nres) throw OutOfPipeReg(pstage, stage, pstage.prs.values.toList, stage.prs.values.toList)
 
     val rcmap = map.rcmap
     stage.prs.foldLeft(map) { case (pmap, (reg, pr)) =>
@@ -203,16 +204,16 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class OutOfStage(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
 case class OpNotSupported(ps:PST, s:ST)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
 }
-case class OutOfPipeReg(ps:PST, s:ST, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."
 }
-case class OutOfOperand(ps:PST, s:ST, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfOperand(ps:PST, s:ST, pnodes:List[PIP], nodes:List[IP])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough operands in ${ps} to map ${s}."
 }
 case class StageRouting(n:ST, p:PST)(implicit val mapper:Mapper, design:Design) extends MappingException {

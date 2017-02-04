@@ -14,7 +14,7 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
-  var mapping = getProperty("pir.mapping", "false") == "true"
+  var mapping = getProperty("pir.mapping", "true") == "true"
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
@@ -25,7 +25,8 @@ object Config {
   var pirCtrlDot = getProperty("pir.pir_ctrl_network", "PIRCtrl.dot")
   var spadeFile = getProperty("pir.spadefile", "Spade.txt")
   //var pisaFile = getProperty("pir.pisafile", "pisa.json")
-  var spadeNetwork = getProperty("pir.spade_network", "Network.dot")
+  var spadeVectorNetwork = getProperty("pir.spade_vector_network", "VecNetwork.dot")
+  var spadeScalarNetwork = getProperty("pir.spade_scalar_network", "ScalNetwork.dot")
   var spadeCtrlNetwork = getProperty("pir.spade_ctrl_network", "CtrlNetwork.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
   var ctrlDot = getProperty("pir.ctrl_dot", "Ctrl.dot")

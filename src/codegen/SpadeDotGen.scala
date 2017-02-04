@@ -19,12 +19,11 @@ import sys.process._
 import scala.language.postfixOps
 
 abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata {
-  implicit lazy val spade:Spade = design.arch
+  implicit def spade:Spade = design.arch
 
   val scale:Int
 
-  def sbs(sn:SwitchNetwork):List[List[SwitchBox]]
-  def grid(cu:Controller):GridIO[Controller]
+  def pne(pne:NetworkElement):GridIO[NetworkElement]
 
   override val stream = newStream(file) 
 
@@ -47,11 +46,11 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       design.arch match {
         case pn:PointToPointNetwork =>
         case sn:SwitchNetwork if (mapping!=null) =>
-          emitSwitchBoxes(sbs(sn).flatten, Some(mapping))
-          emitPCLs(sn.cus :+ sn.top, Some(mapping))
+          emitSwitchBoxes(sn.sbs.flatten, Some(mapping))
+          emitPCLs(sn.ctrlers, Some(mapping))
         case sn:SwitchNetwork if (mapping==null) =>
-          emitSwitchBoxes(sbs(sn).flatten, None)
-          emitPCLs(sn.cus :+ sn.top, None)
+          emitSwitchBoxes(sn.sbs.flatten, None)
+          emitPCLs(sn.ctrlers, None)
       }
     }
     close
@@ -83,8 +82,8 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
             s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
           }
           def ports(dir:String) = {
-            var ins = grid(pcu).vinAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
-            var outs = grid(pcu).voutAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            var ins = pne(pcu).inAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+            var outs = pne(pcu).outAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
             val maxLength = Math.max(ins.size, outs.size)
             ins = ins ++ List.fill(maxLength-ins.size){""}
             outs = outs ++ List.fill(maxLength-outs.size){""}
@@ -116,7 +115,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
           emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
           emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
       }
-      grid(pcl).vins.foreach { in =>
+      pne(pcl).ins.foreach { in =>
         emitInput(pcl, in, mapping)
       }
     }
@@ -127,11 +126,11 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       val attr = DotAttr().shape(Mrecord)
       coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
       val label = mapping.flatMap { mp => 
-        if (sb.vins.exists( vi => mp.fbmap.contains(vi))) { 
+        if (pne(sb).ins.exists( in => mp.fbmap.contains(in))) { 
           attr.style(filled).fillcolor(indianred) 
-          val xbar = sb.vouts.flatMap { vout => 
-            mp.fpmap.get(vout.voport).map{ fp =>
-              s"i-${indexOf(fp.src)} -\\> o-${indexOf(vout)}"
+          val xbar = pne(sb).outs.flatMap { out => 
+            mp.fpmap.get(out.voport).map{ fp =>
+              s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
             }
           }.mkString(s"|") 
           Some(s"{${quote(sb)}|${xbar}}")
@@ -140,19 +139,19 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         }
       }.getOrElse(quote(sb))
       emitNode(sb, label, attr)
-      sb.vins.foreach { pvin =>
-        pvin.fanIns.foreach { pvout =>
+      pne(sb).ins.foreach { pin =>
+        pin.fanIns.foreach { pout =>
           val attr = DotAttr()
           mapping.foreach { mp => 
-            if (mp.fbmap.get(pvin).fold(false) { _ == pvout}) { 
-              var label = s"(i-${indexOf(pvin)})"
-              if (pvout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pvout)})"
+            if (mp.fbmap.get(pin).fold(false) { _ == pout}) { 
+              var label = s"(i-${indexOf(pin)})"
+              if (pout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pout)})"
               attr.color(indianred).style(bold).label(label)
             } 
           }
-          pvout.src match {
+          pout.src match {
             case from:PSB => emitEdge(s"$from", sb, attr)
-            case from:PCU => emitEdge(s"$from:$pvout", sb, attr)
+            case from:PCU => emitEdge(s"$from:$pout", sb, attr)
             case from:PTop => emitEdge(quote(from, coordOf(sb)._2==0), sb, attr)
           }
         }
@@ -160,28 +159,28 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
   }
 
-  def emitInput(pcl:PCL, pvin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
-    pvin.fanIns.foreach { pvout =>
+  def emitInput(pcl:PCL, pin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
+    pin.fanIns.foreach { pout =>
       val attr = DotAttr()
       mapping.foreach { m => 
-        if (m.fbmap.get(pvin).fold(false){ pvo => pvo == pvout }) {
+        if (m.fbmap.get(pin).fold(false){ pvo => pvo == pout }) {
           attr.color(indianred).style(bold)
-          m.vimap.pmap.get(pvin).foreach { vin =>
-            var label = pvout.src match {
+          m.vimap.pmap.get(pin).foreach { in =>
+            var label = pout.src match {
               case cu:PCU if m.clmap.pmap.contains(cu) =>
-                vin match {
+                in match {
                   case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
                   case vi:VI => s"${vi.vector}"
                   case op:OP => ""
                   case vis:ISet[_] => s"${vis.mkString(",")}"
                 }
               case top:PTop =>
-                val dvo = m.vomap.pmap(pvout).asInstanceOf[DVO] 
+                val dvo = m.vomap.pmap(pout).asInstanceOf[DVO] 
                 s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
               case s => ""
             }
             val cl = m.clmap.pmap(pcl)
-            vin match {
+            in match {
               case op:OP =>
                 val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
                 label += s"to:[${to.mkString(",\n")}]\nfrom:${op}" 
@@ -191,22 +190,22 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
           }
         }
       }
-      pvout.src match {
+      pout.src match {
         case from:PSB =>
-          attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pvout)})") }
+          attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pout)})") }
           pcl match {
             case ptop:PTop => emitEdge(from, quote(ptop, coordOf(from)._2==0), attr)
-            case _ => emitEdge(from, s"$pcl:$pvin", attr)
+            case _ => emitEdge(from, s"$pcl:$pin", attr)
           }
         case from:PCU =>
-          emitEdge(from, pvout, pcl, pvin, attr)
+          emitEdge(from, pout, pcl, pin, attr)
         case from:PTop =>
           spade match {
             case sn:SwitchNetwork =>
-              val bottom = coordOf(pvin.src)._2==0 
-              emitEdge(quote(from, bottom), s"$pcl:$pvin", attr)
+              val bottom = coordOf(pin.src)._2==0 
+              emitEdge(quote(from, bottom), s"$pcl:$pin", attr)
             case pn:PointToPointNetwork =>
-              emitEdge(quote(from), s"$pcl:$pvin", attr)
+              emitEdge(quote(from), s"$pcl:$pin", attr)
           }
       }
     }
@@ -221,25 +220,34 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
 
   val scale = 12
 
-  def sbs(sn:SwitchNetwork):List[List[SwitchBox]] = sn.csbs
-  def grid(cu:Controller):GridIO[Controller] = cu.ctrlBox
+  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
+}
+
+class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
+
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open)
+  def this()(implicit design:Design) = this(false)
+  
+  val scale = 12
+
+  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
 }
 
 class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
 
   def this(file:String)(implicit design:Design) = this(file, false)
-  def this(open:Boolean)(implicit design:Design) = this(Config.spadeNetwork, open)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open)
   def this()(implicit design:Design) = this(false)
   
   val scale = 12
 
-  def sbs(sn:SwitchNetwork):List[List[SwitchBox]] = sn.sbs
-  def grid(cu:Controller):GridIO[Controller] = cu
+  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
 }
 
 object ArgDotPrinter extends Metadata{
   def print(ptop:PTop)(printer:DotCodegen)(implicit design:Design) = {
-    implicit val spade = design.arch
+    implicit def spade = design.arch
     def quote(n:Any) = printer.quote(n)
     ptop.vins.foreach { vin =>
       vin.fanIns.foreach { vout =>
@@ -349,17 +357,16 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class SpadeDotGen(cuPrinter:CUVectorDotPrinter, cuCtrlPrinter:CUCtrlDotPrinter, argInOutPrinter:ArgDotPrinter,
-  ctrPrinter:CtrDotPrinter, pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
+class SpadeDotGen(vecPrinter:CUVectorDotPrinter, scalPrinter:CUScalarDotPrinter, ctrlPrinter:CUCtrlDotPrinter, 
+  pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
 
   override def traverse = {
-    cuPrinter.print
-    cuCtrlPrinter.print
-    //ctrPrinter.print(design.arch.rcus.head.ctrs)
-    argInOutPrinter.print(design.arch.cus, design.arch.top)
+    vecPrinter.print
+    scalPrinter.print
+    ctrlPrinter.print
   }
 
   override def finPass = {
-    info(s"Finishing Spade Dot Printing in ${cuPrinter.getPath} ${argInOutPrinter.getPath} ${ctrPrinter.getPath}")
+    info(s"Finishing Spade Printing in ${vecPrinter.getPath} ${scalPrinter.getPath} ${ctrlPrinter.getPath}")
   }
 }

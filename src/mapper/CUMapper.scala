@@ -14,7 +14,7 @@ import scala.util.{Try, Success, Failure}
 
 trait CUMapper extends Mapper {
   override implicit val mapper:CUMapper = this
-  def resMap:MMap[CL, List[PCL]]
+  def resMap:MMap[CL, List[PNE]]
   def finPass(m:M):M = m
   def map(m:M):M
   override def debug = Config.debugCUMapper
@@ -43,59 +43,64 @@ trait CUMapper extends Mapper {
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck(pcls:List[PCL], cls:List[CL], map:MMap[CL, List[PCL]])(implicit mapper:CUMapper, design:Design):Unit = {
-    val pcus = design.arch.cus
-    val cus = design.top.innerCUs
-    val grp = cus.groupBy(_.isInstanceOf[MC]) 
-    val pgrp = pcus.groupBy(_.isInstanceOf[PMC])
-    val mcs = grp.getOrElse(true, Nil)
-    val pmcs = pgrp.getOrElse(true, Nil)
-    val rcus = grp.getOrElse(false, Nil)
-    val prcus = pgrp.getOrElse(false, Nil)
-    if (mcs.size > pmcs.size) throw OutOfPMC(pmcs.size, mcs.size)
-    if (rcus.size > prcus.size) throw OutOfPCU(prcus.size, rcus.size)
+  def qualifyCheck(pnes:List[PNE], cls:List[CL], map:MMap[CL, List[PNE]])(implicit mapper:CUMapper, design:Design):Unit = {
+    val mcs = cls.collect { case mc:MC => mc }
+    val pmcs = pnes.collect { case pmc:PMC => pmc }
+    val scus = mcs.filter { _.mctpe.isDense }.map { _.ofs.writer.ctrler.asInstanceOf[StreamPipeline] }
+    val pscus = pnes.collect { case pscu:PSCU => pscu }
+    val ocus = cls.collect { case ocu:OCL => ocu }
+    val psbs = pnes.collect { case sb:PSB => sb }
+    val rcus = cls.collect { case pcu:CU => pcu }.diff(scus).diff(mcs).diff(ocus)
+    val pcus = pnes.collect { case ppcu:PCU => ppcu }.diff(pscus).diff(psbs)
+    if (mcs.size > pmcs.size) throw OutOfPMC(pmcs, mcs)
+    if (ocus.size > psbs.size) throw OutOfPSB(psbs, ocus)
+    if (scus.size > pscus.size) throw OutOfSCU(pscus, scus)
+    if (rcus.size > pcus.size) throw OutOfPCU(pcus, rcus)
     cls.foreach { cl => 
-      val failureInfo = MMap[PCL, ListBuffer[String]]()
-      map += cl -> pcls.filter { pcl =>
+      val failureInfo = MMap[PNE, ListBuffer[String]]()
+      map += cl -> pnes.filter { pne =>
         val cons = ListBuffer[(String, Any)]()
         cl match {
-          case top:Top if pcl.isInstanceOf[PTop] =>
-            cons += (("sin"	      , (cl.sins.size, pcl.vins.size))) //TODO
-          case cu:ICL if pcl.isInstanceOf[PCU] =>
-            val pcu = pcl.asInstanceOf[PCU]
-            cons += (("mctpe"       , cu.isInstanceOf[MC] == pcu.isInstanceOf[PMC]))
+          case top:Top if pne.isInstanceOf[PTop] =>
+            //cons += (("sin"	      , (cl.sins.size, pne.vins.size))) //TODO
+          case mc:MC if pne.isInstanceOf[PMC] =>
+          case scu:SP if scus.contains(scu) & pne.isInstanceOf[PSCU] =>
+          case cu:ICL if pne.isInstanceOf[PCU] =>
+            val pcu = pne.asInstanceOf[PCU]
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
-            cons += (("tokOut"	  , (cu.ctrlOuts, pcu.ctrlBox.ctrlOuts)))
-            cons += (("tokIn"	    , (cu.ctrlIns, pcu.ctrlBox.ctrlIns)))
+            cons += (("tokOut"	  , (cu.ctrlOuts, pcu.ctrlIO.outs)))
+            cons += (("tokIn"	    , (cu.ctrlIns, pcu.ctrlIO.ins)))
             cons += (("udc"	      , (cu.udcounters, pcu.ctrlBox.udcs)))
-            cons += (("enLut"	    , (cu.enLUTs, pcu.ctrlBox.enLUTs)))
-            cons += (("tokDownLut", (cu.tokDownLUTs, pcu.ctrlBox.tokenDownLUTs)))
-            cons += (("tokOutLut" , (cu.tokOutLUTs, pcu.ctrlBox.tokenOutLUTs)))
-            cons += (("sin"	      , (cl.sins.size, Math.min(pcu.vins.size, pcu.numSinReg)))) //TODO
+            cons += (("sin"	      , (cl.sins, pcu.sins)))
+            cons += (("sout"	    , (cl.souts, pcu.souts)))
+            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.fanIns.size>0))))
+            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.fanOuts.size>0))))
+            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pcu.couts.filter(_.fanOuts.size>0))))
             cu match {
               case mc:MemoryController => 
               case _ => 
                 cons += (("onchipmem"	, (cu.mems, pcu.srams)))
             }
+          case cu:OCL if pne.isInstanceOf[PSB] =>
+            val psb = pne.asInstanceOf[PSB]
+            cons += (("sin"	      , (cl.sins, psb.scalarIO.ins)))
+            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, psb.ctrlIO.ins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), psb.ctrlIO.outs.filter(_.fanOuts.size>0))))
           case _ =>
             cons += (("tpe"       , false))
         }
-        cons += (("sout"	    , (cl.souts, pcl.souts)))
-        cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcl.vins.filter(_.fanIns.size>0))))
-        cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcl.vouts.filter(_.fanOuts.size>0))))
         design.arch match {
           case sn:SwitchNetwork =>
-            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, pcl.cins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pcl.couts.filter(_.fanOuts.size>0))))
           case pn:PointToPointNetwork =>
         }
-        failureInfo += pcl -> ListBuffer[String]()
-        check(cons.toList, failureInfo(pcl))
+        failureInfo += pne -> ListBuffer[String]()
+        check(cons.toList, failureInfo(pne))
       }
       if (map(cl).size==0) {
-        val info = failureInfo.map{ case (pcl, info) => s"$pcl: [${info.mkString(",")}] \n"}.mkString(",")
+        val info = failureInfo.map{ case (pne, info) => s"$pne: [${info.mkString(",")}] \n"}.mkString(",")
         println(info)
         throw CUOutOfSize(cl, info)
       }
@@ -124,9 +129,15 @@ object CUMapper {
 case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:CUMapper, design:Design) extends MappingException {
   override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
 } 
-case class OutOfPMC(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfPMC(pnodes:List[PMC], nodes:List[MC]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough MemoryController in ${design.arch} to map application."
 } 
-case class OutOfPCU(nres:Int, nnode:Int) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfPCU(pnodes:List[PCU], nodes:List[CU]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
+} 
+case class OutOfSCU(pnodes:List[PSCU], nodes:List[SP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+  override val msg = s"Not enough ScalarComputeUnits in ${design.arch} to map application."
+} 
+case class OutOfPSB(pnodes:List[PSB], nodes:List[OCL]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+  override val msg = s"Not enough SwitchBox in ${design.arch} to map application."
 } 

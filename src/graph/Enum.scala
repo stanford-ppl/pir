@@ -56,7 +56,32 @@ package object enums {
   //case object Sequential extends CtrlType
   //case object MetaPipeline extends CtrlType
   
-  sealed trait MCType 
+  sealed trait MCType {
+    def isDense:Boolean = {
+      this match {
+        case TileLoad | TileStore => true
+        case Gather | Scatter => false
+      }
+    }
+    def isSparse:Boolean = {
+      this match {
+        case Gather | Scatter => true
+        case TileLoad | TileStore => false
+      }
+    }
+    def isLoad:Boolean = {
+      this match {
+        case TileLoad | Gather => true
+        case TileStore | Scatter => false
+      }
+    }
+    def isStore:Boolean = {
+      this match {
+        case TileStore | Scatter => true 
+        case TileLoad | Gather => false
+      }
+    }
+  }
   case object TileLoad extends MCType 
   case object TileStore extends MCType 
   case object Scatter extends MCType 

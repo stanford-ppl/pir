@@ -205,22 +205,7 @@ object UDCounter extends Metadata {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numCtrs:Int, numTokenOutLUTs:Int, numTokenDownLUTs:Int)
-(implicit spade:Spade, override val ctrler:Controller) extends Primitive with GridIO[Controller]{
-  //val ctrlIns = List.tabulate(numIns) { i => InPort(this).index(i) }
-  //val ctrlOuts = List.tabulate(numTokenOutLUTs + numTokenDownLUTs) { i => OutPort(this).index(i) }
-  def inBuses(num:Int, width:Int):List[InBus[Controller]] = InBuses(ctrler, num, width)
-  def outBuses(num:Int, width:Int):List[OutBus[Controller]] = OutBuses(ctrler, num, width)
-  def ctrlIns:List[InBus[Controller]] = vins 
-  def ctrlOuts:List[OutBus[Controller]] = vouts 
-  def cinAt(dir:String):List[InBus[Controller]] = vinAt(dir) 
-  def coutAt(dir:String):List[OutBus[Controller]] = voutAt(dir) 
-
-  val numEnLUTs = numCtrs
-  val numUDCs = numEnLUTs
+class CtrlBox[+C<:Controller](numUDCs:Int) (implicit spade:Spade, override val ctrler:C) extends Primitive {
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
-  val tokenDownLUTs = List.tabulate(numTokenDownLUTs) { i => TokenDownLUT(1 + numUDCs).index(i) }
-  val tokenOutLUTs = List.tabulate(numTokenOutLUTs) { i => TokenOutLUT().index(i) }
-  val enLUTs = List.tabulate(numEnLUTs) { i => EnLUT(numUDCs).index(i) }
-  def luts:List[LUT] = enLUTs ++ tokenOutLUTs ++ tokenDownLUTs
 }
+

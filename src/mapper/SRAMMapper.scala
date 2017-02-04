@@ -16,7 +16,7 @@ class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
   type R = PSRAM 
   val typeStr = "SramMapper"
   override def debug = Config.debugSMMapper
-  implicit val spade:Spade = design.arch
+  implicit def spade:Spade = design.arch
 
   def finPass(cu:ICL)(m:M):M = m 
 
@@ -69,9 +69,6 @@ class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
   }
 }
 
-case class OutOfSram(pcu:PCU, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough SRAMs in ${pcu} to map application."
-}
 case class SRAMRouting(n:OnMem, p:PSRAM)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }

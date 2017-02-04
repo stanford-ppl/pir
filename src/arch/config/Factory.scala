@@ -16,34 +16,6 @@ object ConfigFactory extends ImplicitConversion {
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
-  def genRCU(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new ComputeUnit().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-    /* Pipeline Stages */
-    cu.addWAstages(List.fill(4) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
-    cu.addRAstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
-    cu.addRegstages(List.fill(0) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
-    cu.addRdstages(List.fill(4) { ReduceStage(numOprds=3, cu.regs, ops)}) // Reduction stage 
-    cu.addRegstages(List.fill(2) { FUStage(numOprds=3, cu.regs, ops) }) // Regular stages
-    genConnections(cu)
-    cu
-  }
-
-  def genTT(numSRAMs:Int, numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new TileTransfer().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(numSRAMs)
-      //.ctrlBox(numTokenOutLUTs=8, numTokenDownLUTs=8, inBandwidth=1, outBandwidth=1)
-    /* Pipeline Stages */
-    cu.addWAstages(List.fill(3) { WAStage(numOprds=3, cu.regs, ops) }) // Write/read addr calculation stages
-    cu.addRAstages(List.fill(1) { FUStage(numOprds=3, cu.regs, ops) }) // Additional read addr only calculation stages 
-    genConnections(cu)
-    cu
-  }
-
-  def genMC(numCtrs:Int, numRegs:Int)(implicit spade:Spade) = {
-    val cu = new MemoryController().numRegs(numRegs).numCtrs(numCtrs).numSRAMs(2)
-    genConnections(cu)
-    cu
-  }
-
   /* Generate connections relates to register mapping of a cu */
   def genMapping(cu:ComputeUnit, vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
     /* Register Constrain */
@@ -58,8 +30,7 @@ object ConfigFactory extends ImplicitConversion {
       reg.in <== (vin.viport)
       // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
       cu match {
-        case cu:TileTransfer => assert(cu.srams.size==0) // TileTransfer has no sram
-        case cu:MemoryController => //TODO
+        case cu:ScalarComputeUnit => assert(cu.srams.size==0) // TileTransfer has no sram
         case cu:ComputeUnit => cu.srams(is).writePort <== reg.out
       }
     }
@@ -70,25 +41,35 @@ object ConfigFactory extends ImplicitConversion {
       val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
       cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
       // ScalarInXbar
-      cu.sins.foreach { sin => sireg <== sin.out}
+      //cu.sins.foreach { sin => sireg <== sin.out}
     }
     // Scalar outputs is connected to 1 register in last stage
-    cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
-      souts.zipWithIndex.foreach { case (so, is) =>
-        so.in <== cu.stages.last.prs(cu.regs(soutsPtr + is))
-      }
-    }
+    //cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
+      //souts.zipWithIndex.foreach { case (so, is) =>
+        //so.in <== cu.stages.last.prs(cu.regs(soutsPtr + is))
+      //}
+    //}
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-      (cu.etstage :: cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(ctrsPtr + ic)) <== c.out) 
+      cu.etstage.prs(cu.regs(ctrsPtr + ic)) <== c.out
+    }
+    cu match {
+      case cu:MemoryComputeUnit =>
+        cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
+          (cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(ctrsPtr + ic)) <== c.out) 
+        }
+        cu.srams.zipWithIndex.foreach { case (s, is) => 
+          (cu.wastages ++ cu.rastages).foreach(s.readAddr <== _.fu.out)
+          (cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
+        }
+      case _ =>
     }
     // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
     // only write to 1 sram)
     cu.srams.zipWithIndex.foreach { case (s, is) => 
-      (cu.wastages ++ cu.rastages).foreach(s.readAddr <== _.fu.out)
       s.writeAddr <== cu.stages.last.prs(cu.regs(waPtr))
       s.writePort <== cu.stages.last.prs(cu.regs(wpPtr)) // Sram write port is connected to 1 register of last stage
-      (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
+      cu.regstages.headOption.foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
     }
     cu.rdstages.foreach( _.prs(cu.regs(rdPtr)) <== cu.reduce)
   }
@@ -127,17 +108,26 @@ object ConfigFactory extends ImplicitConversion {
       cu.regs.foreach{ reg => stage.prs(reg) <== stage.fu.out }
     }
 
-    cu.wastages.foreach { stage =>
-      stage.fu.operands.foreach { oprd => 
-        // Creating forwarding path from counter outputs to all operands of the FUs in write 
-        // addr stages
-        cu.ctrs.foreach{ oprd <== _.out } 
-      }
-      // Connect all cu.srams's write addr to writeAddr stages
-      cu.srams.foreach { _.writeAddr <== stage.fu.out }
+    cu match {
+      case cu:MemoryComputeUnit =>
+        cu.wastages.foreach { stage =>
+          stage.fu.operands.foreach { oprd => 
+            // Creating forwarding path from counter outputs to all operands of the FUs in write 
+            // addr stages
+            cu.ctrs.foreach{ oprd <== _.out } 
+          }
+          // Connect all cu.srams's write addr to writeAddr stages
+          cu.srams.foreach { _.writeAddr <== stage.fu.out }
+        }
+        (cu.wastages ++ cu.rastages).foreach { stage =>
+          stage.fu.operands.foreach { oprd =>
+            // Creating forwarding path from cu.srams loads to all operands of the FUs
+            cu.srams.foreach{ oprd <== _.readPort }
+          }
+        }
+      case _ =>
     }
-
-    (cu.wastages ++ cu.rastages ++ cu.regstages.headOption).foreach { stage =>
+    cu.regstages.headOption.foreach { stage =>
       stage.fu.operands.foreach { oprd =>
         // Creating forwarding path from cu.srams loads to all operands of the FUs
         cu.srams.foreach{ oprd <== _.readPort }

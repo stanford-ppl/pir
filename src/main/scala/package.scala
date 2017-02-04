@@ -88,10 +88,11 @@ package object typealias {
   type PNode     = pir.plasticine.graph.Node
   type PCL       = pir.plasticine.graph.Controller
   type PCU       = pir.plasticine.graph.ComputeUnit
-  type PTT       = pir.plasticine.graph.TileTransfer
+  type PSCU      = pir.plasticine.graph.ScalarComputeUnit
   type PMC       = pir.plasticine.graph.MemoryController
   type PTop      = pir.plasticine.graph.Top
   type PNE       = pir.plasticine.graph.NetworkElement
+  type PGIO[+NE<:PNE] = pir.plasticine.graph.GridIO[NE]
   type PReg      = pir.plasticine.graph.Reg
   type PPR       = pir.plasticine.graph.PipeReg
   type PCtr      = pir.plasticine.graph.Counter
@@ -112,7 +113,7 @@ package object typealias {
   type PBS       = pir.plasticine.graph.Bus
   type PIB       = pir.plasticine.graph.InBus[PNE]
   type POB       = pir.plasticine.graph.OutBus[PNE]
-  type PCB       = pir.plasticine.graph.CtrlBox
+  type PCB[+C<:PCL] = pir.plasticine.graph.CtrlBox[C]
   type PLUT      = pir.plasticine.graph.LUT
   type PEnLUT    = pir.plasticine.graph.EnLUT
   type PTDLUT     = pir.plasticine.graph.TokenDownLUT

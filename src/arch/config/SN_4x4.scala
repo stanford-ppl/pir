@@ -57,7 +57,7 @@ object SN_2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=5, numArgOut
   // switch to MC channel width
   override val smChannelWidth = 4
     
-  } with CtrlNetwork(cuArray, mcs)
+  } with CtrlNetwork()
 
   override val vectorNetwork = new {
 
@@ -93,5 +93,49 @@ object SN_2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=5, numArgOut
   // switch to MC channel width
   override val smChannelWidth = 8
     
-  } with VectorNetwork(cuArray, mcs)
+  } with VectorNetwork()
+
+  override def cuAt(i:Int, j:Int) = {
+    if ((i+j) % 2 == 0) {
+      new ComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=4)
+        .coord(i, j)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    } else {
+      new MemoryComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addWAstages(numStage=3, numOprds=3, ops)
+        .addRAstages(numStage=3, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=4)
+        .coord(i, j)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    }
+  }
+
+  override def scuAt(c:Int, r:Int) = {
+    new ScalarComputeUnit()
+        .numRegs(6)
+        .numCtrs(6)
+        .numSRAMs(4)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .numSinReg(6)
+        .ctrlBox(numUDCs=4)
+        .genConnections
+        //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
+  } 
+
 }

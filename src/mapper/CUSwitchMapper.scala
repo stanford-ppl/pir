@@ -50,7 +50,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   }
   // DEBUG --
 
-  val resMap:MMap[CL, List[PCL]] = MMap.empty
+  val resMap:MMap[CL, List[PNE]] = MMap.empty
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
@@ -59,7 +59,6 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     val nodes = design.top::cus
     val reses = design.arch.top::pcus
     qualifyCheck(reses, nodes, resMap)
-    val cu::restNodes = nodes 
     mapCUs(nodes)(m)
   }
 
@@ -78,10 +77,10 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   }
 
   def mapCU(cl:CL, restNodes:List[CL])(map:M):M = {
-    type R = PCL
+    type R = PNE
     type N = CL
     def constrain(cl:N, pcl:R, m:M, es:List[MappingException]):M = {
-      val mp = cl.readers.foldLeft(bindCU(cl, pcl, m, es)) { case (pm, reader) =>
+      val mp = cl.readers.foldLeft(bindCU(cl, pcl.asInstanceOf[PCL], m, es)) { case (pm, reader) =>
         if (pm.clmap.contains(reader)) {
           mapDep(reader)((m:M) => m)(pm) 
         } else { 
@@ -119,12 +118,12 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     }
     val info = s"Mapping $cl"
     log(info, ((m:M) => ()), failPass) {
-      recResWithExcept[R,N,M](cl, List(constrain _), resFilter _, next _, map)
+      recResWithExcept[R,N,M](cl, constrain _, resFilter _, next _, map)
     }
   }
 
   def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
-    advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
+    advance((pne:PNE) => pne.vectorIO.outs)(start, validCons, advanceCons)
 
   def getRoute(cl:CL, pdep:(VI, PCL), m:M):PathMap = {
     val (vin, start) = pdep
@@ -143,7 +142,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     //dprintln(s"from $cl to $start routes:${routes.size} ${routes.map(_._1)}")
     if (routes.size==0) {
       val scu = m.clmap.pmap(start)
-      throw NotReachable(scu, start, cl, m.clmap.get(cl))
+      throw NotReachable(scu, start, cl, m.clmap.get(cl).asInstanceOf[Option[PCL]])
     }
     filterUsedRoutes(routes, m)
   }
@@ -191,7 +190,7 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
     val (vin, pdepcu) = pdep
     val info = s"Mapping $vin in $cl from $pdepcu"
     log(info, ((m:M) => ()), failPass){
-      recResWithExcept[R, N, M](pdep, List(constrain _), resFilter _, mapDep(cl)(fp) _, map)
+      recResWithExcept[R, N, M](pdep, constrain _, resFilter _, mapDep(cl)(fp) _, map)
     }
   }
 

@@ -10,7 +10,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
 class IRCheck(implicit val design: Design) extends Traversal {
-  implicit val spade = design.arch
+  implicit def spade = design.arch
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
@@ -75,22 +75,22 @@ class IRCheck(implicit val design: Design) extends Traversal {
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        (sn.sbs ++ sn.csbs).flatten.foreach { sb => 
-          sb.vins.foreach { vin => 
-            if(vin.fanIns.size>1) 
-              throw PIRException(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
+        sn.sbs.flatten.foreach { sb => 
+          (sb.vectorIO.ins ++ sb.scalarIO.ins ++ sb.ctrlIO.ins).foreach { in => 
+            if(in.fanIns.size>1) 
+              throw PIRException(s"Switchbox $sb has $in with fanIns > 1 ${in.fanIns}")
           }
-          sb.vouts.foreach { vout => 
-            if(vout.fanOuts.size>1) 
-              throw PIRException(s"Switchbox $sb has $vout with fanOuts > 1 ${vout.fanOuts}")
+          (sb.vectorIO.outs ++ sb.scalarIO.outs ++ sb.ctrlIO.outs).foreach { out => 
+            if(out.fanOuts.size>1) 
+              throw PIRException(s"Switchbox $sb has $out with fanOuts > 1 ${out.fanOuts}")
           }
         }
         sn.cus.foreach { pcu =>
-          (pcu.vins ++ pcu.cins).foreach { in => 
+          (pcu.vectorIO.ins ++ pcu.scalarIO.ins ++ pcu.ctrlIO.ins).foreach { in => 
             if(in.fanIns.size>1) 
               throw PIRException(s"ComputeUnit $pcu has $in with fanIns > 1 ${in.fanIns}")
           }
-          pcu.couts.foreach { out => 
+          pcu.ctrlIO.outs.foreach { out => 
             if(out.fanOuts.size>1) 
               throw PIRException(s"ComputeUnit $pcu has $out with fanOuts > 1 ${out.fanOuts}")
           }

@@ -17,12 +17,13 @@ object MapperLogger extends Logger {
   override val stream = newStream(Config.mapperLog)
 }
 trait Mapper { self =>
+  type M = PIRMap 
+  type E = MappingException
+
   implicit val mapper = self
   val exceptLimit:Int = -1
   lazy val mapExceps = ListBuffer[MappingException]()
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
-
-  type M = PIRMap 
 
   val a:CU = null
   implicit val design:Design
@@ -77,33 +78,30 @@ trait Mapper { self =>
 
   def recRes[R,N,M](
     n:N,
-    constrains:List[(N, R, M) => M],
+    constrain:(N, R, M) => M,
     resFilter:List[R] => List[R], // triedRes => reses 
     finPass:M => M,
     map:M
   ):M = {
-    val conses = constrains.map { constrain =>
-      def cons(n:N, r:R, m:M, es:List[MappingException]) = constrain(n, r, m)
-      cons _
-    }
-    def rf(triedRes:List[R], exceps:List[MappingException]) = resFilter(triedRes) 
-    recResWithExcept(n, conses, rf _, finPass, map)
+    def cons(n:N, r:R, m:M, es:List[E]) = constrain(n, r, m)
+    def rf(triedRes:List[R], exceps:List[E]) = resFilter(triedRes) 
+    recResWithExcept(n, cons _, rf _, finPass, map)
   }
 
   def recResWithExcept[R,N,M](
     n:N,
-    constrains:List[(N, R, M, List[MappingException]) => M],
-    resFilter:(List[R], List[MappingException]) => List[R], // triedRes => reses 
+    constrain:(N, R, M, List[E]) => M,
+    resFilter:(List[R], List[E]) => List[R], // triedRes => reses 
     finPass:M => M,
     map:M
   ):M = {
-    val exceps = ListBuffer[MappingException]()
+    val exceps = ListBuffer[E]()
     val triedRes = ListBuffer[R]()
     var reses = resFilter(triedRes.toList, exceps.toList)
     while (reses.size!=0) {
       val res = reses.head
       (Try {
-        constrains.foldLeft(map) { case (pm, cons) => cons(n, res, pm, exceps.toList) }
+        constrain(n, res, map, exceps.toList)
       } match {
         case Success(m) => 
           //dbsln(s"Try $n -> ${quote(res)(design.arch)} (success) remain:[${remainNodes.mkString(",")}]") 
@@ -120,7 +118,7 @@ trait Mapper { self =>
           e match {
             case NoSolFound(_, es) => exceps ++= es
             case FailToMapNode(_, n, es, mp) => exceps ++= es 
-            case me:MappingException => exceps += me// constrains failed
+            case me:E => exceps += me// constrain failed
             case _ => throw e
           }
       }
@@ -130,23 +128,23 @@ trait Mapper { self =>
     throw FailToMapNode(this, n, exceps.toList, map)
   }
 
-  def bind[R,N,M](
+  def bind[R<:PNode,N<:Node,M](
     allRes:List[R], 
     allNodes:List[N], 
     initMap:M, 
-    constrains:List[(N, R, M) => M],
+    constrain:(N, R, M) => M,
     finPass: M => M,
-    oor:(Int, Int) => OutOfResource
+    oor:(List[R], List[N]) => OutOfResource
   ):M = {
-    checkOOR(allRes.size, allNodes.size, oor)
-    bind(allRes, allNodes, initMap, constrains, finPass)
+    checkOOR(allRes, allNodes, oor)
+    bind(allRes, allNodes, initMap, constrain, finPass)
   }
 
   def bind[R,N,M](
     allRes:List[R], 
     allNodes:List[N], 
     initMap:M, 
-    constrains:List[(N, R, M) => M],
+    constrain:(N, R, M) => M,
     finPass: M => M
   ):M = {
     type MP = (M, List[R])
@@ -156,25 +154,19 @@ trait Mapper { self =>
       allRes.diff(usedRes).diff(triedRes)
     }
     // Add a list to map to keep track of mappedRes/usedRes
-    val conses:List[(N,R,MP) => MP] = constrains.map{ cons =>
-      (n:N, r:R, mp:MP) => {
-        val (m, urs) = mp
-        if (cons==constrains.last) {
-          (cons(n, r, m), urs :+ r) 
-        } else {
-          (cons(n, r, m), urs) 
-        }
-      }
+    def cons(n:N, r:R, mp:MP):MP = {
+      val (m, urs) = mp
+      (constrain(n, r, m), urs :+ r) 
     }
     val (map,_) = 
-      bind[R,N,MP](allNodes, (initMap, Nil), conses, rf _, (mp:MP) => (finPass(mp._1),Nil))
+      bind[R,N,MP](allNodes, (initMap, Nil), cons _, rf _, (mp:MP) => (finPass(mp._1),Nil))
     map
   }
 
   def bind[R,N,M](
     allNodes:List[N],
     initMap:M, 
-    constrains:List[(N, R, M) => M],
+    constrain:(N, R, M) => M,
     resFunc:(N,M,List[R]) => List[R], //(n, m, triedRes) => List[R]
     finPass: M => M
   ):M = {
@@ -183,7 +175,7 @@ trait Mapper { self =>
       if (remainNodes.size==0) { //Successfully mapped all nodes
         return finPass(map) // throw MappingException
       }
-      val exceps = ListBuffer[MappingException]()
+      val exceps = ListBuffer[E]()
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
@@ -197,7 +189,7 @@ trait Mapper { self =>
         }) { // Block
           def rn(m:M): M = recNode(restNodes, m)
           def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
-          recRes[R,N,M](n, constrains, rf _, rn _, map)
+          recRes[R,N,M](n, constrain, rf _, rn _, map)
         } 
       }
       throw NoSolFound(this, exceps.toList) 
@@ -211,16 +203,17 @@ trait Mapper { self =>
    * @param allRes list of resource
    * @param allNodes list of nodes
    * @param initMap initial mapping
-   * @param constrains constrains to map a node to a resource. Throw Mapping exceptio if failed 
+   * @param constrain constrain to map a node to a resource. Throw Mapping exceptio if failed 
    * @param finPass Additional mapping or map transformation after all nodes are successfully mapped
    * before return in recursive mapping. If finPass throws an exception, previous mapping of all
    * nodes was considered failed and continues trying
    * */
 
-  def bindInOrder[R,N,M](allRes:List[R], allNodes:List[N], initMap:M, 
-    constrains:List[(N, R, M) => M], finPass: M => M, 
-    oor:(Int, Int) => OutOfResource):M = {
-    checkOOR(allRes.size, allNodes.size, oor)
+  def bindInOrder[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
+    constrains:List[(N, R, M) => M],
+    finPass: M => M, 
+    oor:(List[R], List[N]) => OutOfResource):M = {
+    checkOOR(allRes, allNodes, oor)
     bindInOrder(allRes, allNodes, initMap, constrains, finPass)
   }
 
@@ -242,7 +235,7 @@ trait Mapper { self =>
 
     /* Recursively try a node on a list of resource */
     def recRes(remainRes:List[R], n:N, remainNodes:List[N], map:M):M = {
-      val exceps = ListBuffer[MappingException]()
+      val exceps = ListBuffer[E]()
       for (ir <- 0 until remainRes.size) {
         val (_, res::rt) = remainRes.splitAt(ir)
         val restRes = rt
@@ -254,7 +247,7 @@ trait Mapper { self =>
           case Failure(e) => e match {
             case NoSolFound(_, es) => exceps ++= es
             case FailToMapNode(_, n, es, mp) => exceps ++= es 
-            case me:MappingException => exceps += me // constrains failed
+            case me:E => exceps += me // constrains failed
             case _ => throw e // Unknown exception
           }
         }
@@ -288,12 +281,11 @@ trait Mapper { self =>
     recMap(allRes, allNodes, initMap)
   }
   
-  private def checkOOR(nres:Int, nnodes:Int, oor:(Int, Int) => OutOfResource) = {
-    if (nres < nnodes)
-      throw oor(nres, nnodes)
+  private def checkOOR[R<:PNode,N<:Node](pnodes:List[R], nodes:List[N], oor:(List[R], List[N]) => OutOfResource) = {
+    if (pnodes.size < nodes.size) throw oor(pnodes, nodes)
   }
 
-  def flattenExceptions(es:List[MappingException]):Set[MappingException] = {
+  def flattenExceptions(es:List[E]):Set[E] = {
     es.flatMap { e =>
       e match {
         case FailToMapNode(mapper, n, exceps, m) => flattenExceptions(exceps)

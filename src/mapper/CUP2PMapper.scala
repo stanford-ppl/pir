@@ -7,7 +7,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success, Failure}
 
 class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends CUMapper {
-  type R = PCL
+  type R = PNE
   type N = CL
   val typeStr = "CUP2PMapper"
 
@@ -26,8 +26,6 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     }
   }
 
-  val cons = List(mapCU _)
-
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
     val pcus = design.arch.cus
@@ -36,8 +34,8 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     val reses = design.arch.top::pcus
     qualifyCheck(reses, nodes, resMap)
     def resFunc(cu:N, m:M, triedRes:List[R]):List[R] = {
-      (resMap(cu).diff(triedRes)).filter { pcu => !m.clmap.pmap.contains(pcu)}
+      (resMap(cu).diff(triedRes)).filter { pne => !m.clmap.pmap.contains(pne)}
     }
-    bind(nodes, m, cons, resFunc _, finPass _)
+    bind(nodes, m, mapCU _, resFunc _, finPass _)
   }
 }

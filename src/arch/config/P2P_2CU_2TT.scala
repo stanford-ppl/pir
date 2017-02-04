@@ -23,7 +23,7 @@ object P2P_2CU_2TT extends PointToPointNetwork {
   override val wordWidth = 32
   override val numLanes = 4
   
-  private val numRCUs = 2
+  private val numPCUs = 2
   private val numMCs = 2 
 
   private val numArgIns = numLanes
@@ -38,22 +38,48 @@ object P2P_2CU_2TT extends PointToPointNetwork {
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts).index(-1)
 
-  override val rcus = List.tabulate(numRCUs) { i =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).numSinReg(6).addVins(2, numLanes).addVouts(1, numLanes).index(i)
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
-    cu
+  override val pcus = List.tabulate(numPCUs) { i =>
+    new ComputeUnit()
+        .numSRAMs(2)
+        .numCtrs(8)
+        .numRegs(20)
+        .numSinReg(6)
+        .vectorIO.addIns(2, numLanes)
+        .vectorIO.addOuts(1, numLanes)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .ctrlBox(numUDCs=4)
+        .index(i)
+        .genConnections
+        .genMapping(vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
   } 
 
-  override val mcs = List.tabulate(numMCs) { i =>
-    val cu = ConfigFactory.genMC(numCtrs = 4, numRegs = 20).addVins(2, numLanes).numSinReg(6).addVouts(1, numLanes).index(i+rcus.size)
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
-    cu
+  override val mcus = Nil
+
+  override val mcs = Nil
+
+  override val scus = List.tabulate(numMCs) { i =>
+    new ScalarComputeUnit()
+        .numSRAMs(2)
+        .numCtrs(4)
+        .numRegs(20)
+        .numSinReg(6)
+        .vectorIO.addIns(2, numLanes)
+        .vectorIO.addOuts(1, numLanes)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .ctrlBox(numUDCs=4)
+        .index(i+pcus.size)
+        .genConnections
+        .genMapping(vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
   }
 
   /* Network Constrain */ 
-  rcus(0).vins(0) <== mcs(0).vout 
-  rcus(0).vins(1) <== mcs(1).vout
-  rcus(1).vins(0) <== rcus(0).vout 
-  rcus(1).vins(1) <== rcus(0).vout
+  pcus(0).vins(0) <== scus(0).vout 
+  pcus(0).vins(1) <== scus(1).vout
+  pcus(1).vins(0) <== pcus(0).vout 
+  pcus(1).vins(1) <== pcus(0).vout
 
 }

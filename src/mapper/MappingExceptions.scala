@@ -39,9 +39,9 @@ case class ResourceNotUsed[M](mapper:Mapper, n:Node, r:PNode, m:M)(implicit desi
 }
 
 trait OutOfResource extends MappingException {
-  val nres:Int
-  val nnode:Int
-  override def toString = s"${super.toString}. numRes:${nres}, numNode:${nnode}."
+  val pnodes:List[PNode]
+  val nodes:List[Node]
+  override def toString = s"${super.toString}. numRes:${pnodes.size}, numNode:${nodes.size}."
 }
 
 /* Constrain exceptions */

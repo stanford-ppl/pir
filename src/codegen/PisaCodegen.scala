@@ -8,7 +8,7 @@ import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
-import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst}
+import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst, GridIO}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -20,7 +20,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override val stream = newStream(dir, s"${design}.json") 
   
-  implicit lazy val spade:Spade = design.arch
+  implicit def spade:Spade = design.arch
 
   // Mapping results
   lazy val mapping:PIRMap = pirMapping.mapping
@@ -88,9 +88,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         case sn:SwitchNetwork =>
           // Status
           val status = fbmap(vimap(design.top.status))
-          val bottomRow = sn.csbs.map{_.head}
-          val topRow = sn.csbs.map{_.last}
-          val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
+          val bottomRow = sn.sbs.map{_.head}
+          val topRow = sn.sbs.map{_.last}
+          val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
@@ -101,7 +101,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             val aob = fbmap(vimap(design.top.vins.head))
             val bottomRow = sn.sbs.map{_.head}
             val topRow = sn.sbs.map{_.last}
-            val obs = bottomRow.flatMap{_.voutAt("S")} ++ topRow.flatMap{_.voutAt("N")}
+            val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
             val idx = obs.indexOf(aob)
             emitPair(s"argOut", s"$idx")
           }
@@ -112,7 +112,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def emitCUs(implicit ms:CollectionStatus) = {
     emitList("cu") { implicit ms =>
-      design.arch.rcus.foreach { pcu =>
+      (design.arch.pcus++design.arch.mcus).foreach { pcu =>
         if (clmap.pmap.contains(pcu)) {
           emitMap { implicit ms =>
             var comment = design.arch match {
@@ -145,12 +145,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case sn:SwitchNetwork =>
         emitList("dataSwitch") { implicit ms =>
           sn.sbs.flatten.foreach { sb =>
-            emitSwitch(sb)
+            emitSwitch(sb.vectorIO)
           }
         }
         emitList("controlSwitch") { implicit ms =>
-          sn.csbs.flatten.foreach { sb =>
-            emitSwitch(sb)
+          sn.sbs.flatten.foreach { sb =>
+            emitSwitch(sb.ctrlIO)
           }
         }
       case _ =>
@@ -158,33 +158,33 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   }
 
   def emitMCs(implicit ms:CollectionStatus) = {
-    emitList("mu") { implicit ms:CollectionStatus =>
-      design.arch.mcs.foreach { pmc =>
-        if (clmap.pmap.contains(pmc)) {
-          val mc = clmap.pmap(pmc).asInstanceOf[MC]
-          emitMap { implicit ms:CollectionStatus =>
-            val isWr = mc.mctpe match {
-              case TileLoad => "0" 
-              case TileStore => "1"
-              case Scatter => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
-              case Gather => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
-            }
-            emitPair("isWr", s"${isWr}")
-            emitPair("scatterGather", "0")
-            emitComment("ofsFIFO-enqueueEnable", s"${indexOf(vimap(mc.ofsFIFO.get.enqueueEnable))}")
-            mc.dataFIFO.foreach { dataFIFO =>
-              emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
-              emitComment("DataFIFO-notFull", s"${vomap.get(dataFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",")}}")
-            }
-            emitComment("ofsFIFO-notFull", s"${vomap.get(mc.ofsFIFO.get.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
-            emitCounterChains(pmc)
-            emitCtrl(pmc)
-          }
-        } else {
-          emitElem("x")
-        }
-      }
-    }
+    //emitList("mu") { implicit ms:CollectionStatus =>
+      //design.arch.mcs.foreach { pmc =>
+        //if (clmap.pmap.contains(pmc)) {
+          //val mc = clmap.pmap(pmc).asInstanceOf[MC]
+          //emitMap { implicit ms:CollectionStatus =>
+            //val isWr = mc.mctpe match {
+              //case TileLoad => "0" 
+              //case TileStore => "1"
+              //case Scatter => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
+              //case Gather => throw PIRException(s"Dont know opcode for ${mc.mctpe}") 
+            //}
+            //emitPair("isWr", s"${isWr}")
+            //emitPair("scatterGather", "0")
+            //emitComment("ofsFIFO-enqueueEnable", s"${indexOf(vimap(mc.ofsFIFO.get.enqueueEnable))}")
+            //mc.dataFIFO.foreach { dataFIFO =>
+              //emitComment("DataFIFO-enqueueEnable", s"${indexOf(vimap(dataFIFO.enqueueEnable))}")
+              //emitComment("DataFIFO-notFull", s"${vomap.get(dataFIFO.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",")}}")
+            //}
+            //emitComment("ofsFIFO-notFull", s"${vomap.get(mc.ofsFIFO.get.notFull).fold("x"){ cos => cos.map(co => indexOf(co)).mkString(",") }}")
+            //emitCounterChains(pmc)
+            //emitCtrl(pmc)
+          //}
+        //} else {
+          //emitElem("x")
+        //}
+      //}
+    //}
   }
 
   def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
@@ -226,15 +226,15 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     emitXbar("scalarInMux", simux.toList)
   }
 
-  def emitSwitch(sb:PSB)(implicit ms:CollectionStatus) = {
+  def emitSwitch(sbio:GridIO[PSB])(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
     val xbarComment = ListBuffer[String]()
-    sb.vouts.foreach { pvout =>
+    sbio.outs.foreach { pvout =>
       if (pvout.isConnected) {
         if (fpmap.contains(pvout.voport)) {
           val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
           xbarComment += s"${quote(fpmap(pvout.voport))} -> ${quote(vin)}"
-          ins += s""""${sb.io(vin)}""""
+          ins += s""""${sbio.io(vin)}""""
         } else {
           ins += s""""x""""
         }
@@ -242,7 +242,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
     //emitXbar(ins.toList)
     emitMap { implicit ms =>
-      emitComment(s"sb", s"${quote(sb)} ${xbarComment.mkString(",")}")
+      emitComment(s"sb", s"${quote(sbio.src)} ${xbarComment.mkString(",")}")
       emitList("outSelect", ins.toList)
     }
   }
@@ -701,80 +701,80 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val cu = clmap.pmap(pcu)
     emitMap(s"control") { implicit ms =>
       emitList("tokenDownLUT") { implicit ms =>
-        pcb.tokenDownLUTs.foreach { ptdlut =>
-          emitMap { implicit ms =>
-            if (!lumap.pmap.contains(ptdlut)) {
-              CtrlCodegen.lookUpX(ptdlut.numIns)
-              emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
-              emitPair("syncTokenMux", "x")
-            } else {
-              val tdlut = lumap.pmap(ptdlut)
-              val inits = ListBuffer[CIP]()
-              val tos = ListBuffer[COP]()
-              val map:Map[COP, Int] = Map.empty
-              tdlut.ins.foreach { in =>
-                in.from.src match {
-                  case t:Top => inits += in
-                  case p:PRIM => 
-                    if (p.ctrler==tdlut.ctrler.asInstanceOf[ComputeUnit].parent) inits += in
-                    else tos += in.from.asInstanceOf[COP]
-                  case c => emitln(s"${c}") //TODO?
-                }
-              }
-              assert(inits.size <= 1, s"inits:${inits}")
-              emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
-              if (inits.size==0) {
-                emitPair("syncTokenMux", "x")
-              } else {
-                val init = inits.head
-                val pcin = vimap(init)
-                emitPair("syncTokenMux", s"${indexOf(pcin)}")
-                map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
-              }
-              tos.foreach { to =>
-                map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
-              }
-              val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
-              emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
-              val table = CtrlCodegen.lookUp(ptdlut.numIns, tf)
-              //CtrlCodegen.printTable(ptdlut.numIns, tdlut.transFunc, map)
-              emitList("table", table)
-            }
-          }
-        }
+        //pcb.tokenDownLUTs.foreach { ptdlut =>
+          //emitMap { implicit ms =>
+            //if (!lumap.pmap.contains(ptdlut)) {
+              //CtrlCodegen.lookUpX(ptdlut.numIns)
+              //emitPair("table", CtrlCodegen.lookUpX(ptdlut.numIns))
+              //emitPair("syncTokenMux", "x")
+            //} else {
+              //val tdlut = lumap.pmap(ptdlut)
+              //val inits = ListBuffer[CIP]()
+              //val tos = ListBuffer[COP]()
+              //val map:Map[COP, Int] = Map.empty
+              //tdlut.ins.foreach { in =>
+                //in.from.src match {
+                  //case t:Top => inits += in
+                  //case p:PRIM => 
+                    //if (p.ctrler==tdlut.ctrler.asInstanceOf[ComputeUnit].parent) inits += in
+                    //else tos += in.from.asInstanceOf[COP]
+                  //case c => emitln(s"${c}") //TODO?
+                //}
+              //}
+              //assert(inits.size <= 1, s"inits:${inits}")
+              //emitComment("IO", s"tdlut.ins:${tdlut.ins.map(_.from)} init:${inits.head} tos:${tos}")
+              //if (inits.size==0) {
+                //emitPair("syncTokenMux", "x")
+              //} else {
+                //val init = inits.head
+                //val pcin = vimap(init)
+                //emitPair("syncTokenMux", s"${indexOf(pcin)}")
+                //map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
+              //}
+              //tos.foreach { to =>
+                //map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
+              //}
+              //val tf:List[Boolean] => Boolean = tdlut.transFunc.tf(map, _)
+              //emitComment(s"${tdlut}", s"TransferFunction: ${tdlut.transFunc.info}, ${map}")
+              //val table = CtrlCodegen.lookUp(ptdlut.numIns, tf)
+              ////CtrlCodegen.printTable(ptdlut.numIns, tdlut.transFunc, map)
+              //emitList("table", table)
+            //}
+          //}
+        //}
       }
       val doneXbar = ListBuffer[String]()
       emitList("tokenOutLUT") { implicit ms =>
-        pcb.tokenOutLUTs.foreach { ptolut =>
-          emitMap { implicit ms =>
-            if (!lumap.pmap.contains(ptolut)) {
-              CtrlCodegen.lookUpX(ptolut.numIns)
-              emitPair("table", CtrlCodegen.lookUpX(ptolut.numIns))
-              doneXbar ++= List.tabulate(2) { i => s""""x"""" }
-            } else {
-              val tolut = lumap.pmap(ptolut)
-              val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
-              assert(ctrs.size<=2)
-              val map:Map[COP, Int] = Map.empty
-              doneXbar ++= List.tabulate(2) { i => // sel for Xbar
-                if (i<ctrs.size) {
-                val pct = ctmap(ctrs(i))
-                  s""""${indexOf(pct)}"""" 
-                }
-                else s""""x""""
-              }
-              ctrs.zipWithIndex.foreach { case (ctr,i) =>
-                map += (ctr.done -> i)
-              }
-              val tf:List[Boolean] => Boolean = tolut.transFunc.tf(map, _)
-              emitComment(s"${tolut}", s"TransferFunction: ${tolut.transFunc.info}, ${map}")
-              val table = CtrlCodegen.lookUp(ptolut.numIns, tf)
-              emitList("table", table)
-            }
-          }
-        }
+        //pcb.tokenOutLUTs.foreach { ptolut =>
+          //emitMap { implicit ms =>
+            //if (!lumap.pmap.contains(ptolut)) {
+              //CtrlCodegen.lookUpX(ptolut.numIns)
+              //emitPair("table", CtrlCodegen.lookUpX(ptolut.numIns))
+              //doneXbar ++= List.tabulate(2) { i => s""""x"""" }
+            //} else {
+              //val tolut = lumap.pmap(ptolut)
+              //val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
+              //assert(ctrs.size<=2)
+              //val map:Map[COP, Int] = Map.empty
+              //doneXbar ++= List.tabulate(2) { i => // sel for Xbar
+                //if (i<ctrs.size) {
+                //val pct = ctmap(ctrs(i))
+                  //s""""${indexOf(pct)}"""" 
+                //}
+                //else s""""x""""
+              //}
+              //ctrs.zipWithIndex.foreach { case (ctr,i) =>
+                //map += (ctr.done -> i)
+              //}
+              //val tf:List[Boolean] => Boolean = tolut.transFunc.tf(map, _)
+              //emitComment(s"${tolut}", s"TransferFunction: ${tolut.transFunc.info}, ${map}")
+              //val table = CtrlCodegen.lookUp(ptolut.numIns, tf)
+              //emitList("table", table)
+            //}
+          //}
+        //}
       }
-      val tom = pcb.ctrlOuts.map { pto =>
+      val tom = pcu.ctrlIO.outs.map { pto =>
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
@@ -788,9 +788,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                   }
                 case _ => indexOf(smmap(l))
               }
-            case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
-            case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
-            case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
+            //case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
+            //case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
+            //case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
             case l if (l.isInstanceOf[MC] && l.asInstanceOf[MC].dataValid==to) => spade.memCtrlDataValidBusIdx
           }
           s""""$idx""""
@@ -845,33 +845,33 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       emitList("udcSet", initOnStart.toList)
       val fifoMux = ListBuffer[String]()
       emitList("enableLUT") { implicit ms =>
-        pcb.enLUTs.foreach { penlut => 
-          emitMap { implicit ms =>
-            if (!lumap.pmap.contains(penlut)) {
-              emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
-              fifoMux += s""""x""""
-            } else {
-              val enlut = lumap.pmap(penlut)
-              val map:Map[COP, Int] = Map.empty
-              var toAndTree = false
-              enlut.ins.map(_.from.src).foreach { 
-                case udc:UC => 
-                  map += (udc.out -> indexOf(ucmap(udc)))
-                case at:AT => map += (at.out -> 0) 
-                toAndTree = true
-              }
-              if (toAndTree)
-                fifoMux += s""""1""""
-              else
-                fifoMux += s""""0""""
-              assert(map.map { case (op, i) => i}.toSet.size== map.size) // No duplicate in index
-              val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
-              emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map} idx:${indexOf(penlut)}")
-              val table = CtrlCodegen.lookUp(penlut.numIns, tf)
-              emitList("table", table)
-            }
-          }
-        }
+        //pcb.enLUTs.foreach { penlut => 
+          //emitMap { implicit ms =>
+            //if (!lumap.pmap.contains(penlut)) {
+              //emitPair("table", CtrlCodegen.lookUpX(penlut.numIns))
+              //fifoMux += s""""x""""
+            //} else {
+              //val enlut = lumap.pmap(penlut)
+              //val map:Map[COP, Int] = Map.empty
+              //var toAndTree = false
+              //enlut.ins.map(_.from.src).foreach { 
+                //case udc:UC => 
+                  //map += (udc.out -> indexOf(ucmap(udc)))
+                //case at:AT => map += (at.out -> 0) 
+                //toAndTree = true
+              //}
+              //if (toAndTree)
+                //fifoMux += s""""1""""
+              //else
+                //fifoMux += s""""0""""
+              //assert(map.map { case (op, i) => i}.toSet.size== map.size) // No duplicate in index
+              //val tf:List[Boolean] => Boolean = enlut.transFunc.tf(map, _)
+              //emitComment(s"${enlut}", s"TransferFunction: ${enlut.transFunc.info}, ${map} idx:${indexOf(penlut)}")
+              //val table = CtrlCodegen.lookUp(penlut.numIns, tf)
+              //emitList("table", table)
+            //}
+          //}
+        //}
       }
       val tokIns = Array.fill(pcu.ctrs.size)(s""""x"""")
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
@@ -910,8 +910,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           fifoAndTree += used 
         }
       }
-      val tokInAndTree = Array.fill(pcu.cins.size)(s""""x"""") 
-      pcu.cins.zipWithIndex.foreach { case (cin, i) =>
+      val tokInAndTree = Array.fill(pcu.ctrlIO.ins.size)(s""""x"""") 
+      pcu.ctrlIO.ins.zipWithIndex.foreach { case (cin, i) =>
         vimap.pmap.get(cin).foreach { cis =>
           // cis should have the same source
           assert(cis.map(_.asInstanceOf[CIP].from).toSet.size==1)

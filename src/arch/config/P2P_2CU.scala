@@ -21,7 +21,7 @@ object P2P_2CU extends PointToPointNetwork {
   override val wordWidth = 32
   override val numLanes = 4
   
-  private val numRCUs = 2
+  private val numPCUs = 2
   private val numArgIns = 4 
   private val numArgOuts = 4 
 
@@ -34,14 +34,27 @@ object P2P_2CU extends PointToPointNetwork {
   // Top level controller ~= Host
   override val top = Top(numArgIns, numArgOuts)
 
-  override val rcus = List.tabulate(numRCUs) { i =>
-    val cu = ConfigFactory.genRCU(numSRAMs = 2, numCtrs = 8, numRegs = 20).numSinReg(6).addVins(2, numLanes).addVouts(1, numLanes).index(i)
-    ConfigFactory.genMapping(cu, vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
-    cu
+  override val pcus = List.tabulate(numPCUs) { i =>
+    new ComputeUnit()
+        .numSRAMs(2)
+        .numCtrs(8)
+        .numRegs(20)
+        .numSinReg(8)
+        .vectorIO.addIns(2, numLanes)
+        .vectorIO.addOuts(1, numLanes)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .ctrlBox(numUDCs=4)
+        .index(i)
+        .genConnections
+        .genMapping(vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
   } 
+  override val mcus = Nil
+  override val scus = Nil 
   override val mcs = Nil 
 
   /* Network Constrain */ 
-  rcus(1).vins(0) <== rcus(0).vout 
+  pcus(1).vins(0) <== pcus(0).vout 
 
 }

@@ -183,3 +183,63 @@ object OutBuses {
   def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
     List.tabulate(num) { is => OutBus[S](src, numLanes) }
 }
+
+trait GridIO[+NE<:NetworkElement] extends Node {
+  private val inMap = Map[String, ListBuffer[InBus[NetworkElement]]]()
+  private val outMap = Map[String, ListBuffer[OutBus[NetworkElement]]]()
+
+  def src:NE
+  def inBuses(num:Int, width:Int)(implicit spade:Spade):List[InBus[NE]] = InBuses(src, num, width)
+  def outBuses(num:Int, width:Int)(implicit spade:Spade):List[OutBus[NE]] = OutBuses(src, num, width)
+  def addInAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = { 
+    val ibs = inBuses(num, width)
+    ibs.zipWithIndex.foreach { case (ib, i) => ib }
+    inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
+    src
+  }
+  def addOutAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = {
+    val obs = outBuses(num, width)
+    obs.zipWithIndex.foreach { case (ob, i) => ob }
+    outMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
+    src
+  }
+  def addIOAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = {
+    addInAt(dir,num, width)
+    addOutAt(dir,num, width)
+    src
+  }
+  def addIns(num:Int, width:Int)(implicit spade:Spade):NE = { 
+    addInAt("N", num, width)
+    src
+  }
+  def addOuts(num:Int, width:Int)(implicit spade:Spade):NE = {
+    addOutAt("N", num, width)
+    src
+  }
+  def inAt(dir:String):List[InBus[NE]] = { inMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[InBus[NE]]] }
+  def outAt(dir:String):List[OutBus[NE]] = { outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[OutBus[NE]]] }
+  def ins:List[InBus[NE]] = SwitchBox.eightDirections.flatMap { dir => inAt(dir) } 
+  def outs:List[OutBus[NE]] = SwitchBox.eightDirections.flatMap { dir => outAt(dir) }  
+  def io(in:InBus[NetworkElement]) = {
+    val dirs = inMap.filter{ case (dir, l) => l.contains(in) }
+    assert(dirs.size==1)
+    val (dir, list) = dirs.head
+    s"${dir.toLowerCase}_${list.indexOf(in)}"
+  }
+  def clearIO:Unit = {
+    inMap.clear
+    outMap.clear
+  }
+}
+
+case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
+  override def toString = s"${src}.scalarIO"
+}
+
+case class VectorIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
+  override def toString = s"${src}.vectorIO"
+}
+
+case class ControlIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
+  override def toString = s"${src}.ctrlIO"
+}

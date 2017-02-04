@@ -31,11 +31,10 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   }
 
   def map(scl:CL, cuMap:M):M = {
-    val pcl = cuMap.clmap(scl)
+    val pcl = cuMap.clmap(scl).asInstanceOf[PCL]
     scl match {
       case top:Top =>
-        val cons = List(mapVecOut(scl) _)
-        bind(pcl.vouts, scl.vouts, cuMap, cons, finPass(scl) _)
+        bind(pcl.vouts, scl.vouts, cuMap, mapVecOut(scl) _, finPass(scl) _)
       case c:CL if (c.vouts.size==1) => 
         mapVecOut(c)(c.vouts.head, pcl.vouts.head, cuMap)
       case c:CL if (c.vouts.size==0) => cuMap
@@ -43,6 +42,3 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   }
 }
 
-case class OutOfScalarOut(pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough Scalar Outputs Buffer in ${pcl} to map application."
-}

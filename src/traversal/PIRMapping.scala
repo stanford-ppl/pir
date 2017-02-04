@@ -34,7 +34,6 @@ class PIRMapping(implicit val design: Design) extends Traversal{
   val sramMapper = new SRAMMapper()
   val stageMapper = new StageMapper()
   val outputMapper = new OutputMapper()
-  val viMapper = new VecInMapper()
   val ctrlMapper = new CtrlMapper()
   val regAlloc = new RegAlloc() {
     override def finPass(cu:InnerController)(m:M):M = { stageMapper.map(cu, m) }
@@ -62,16 +61,19 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     cmap
   }
 
-  val cuMapper:CUMapper = CUMapper(outputMapper, viMapper, ctrlMapper, { case (m:PIRMap) =>
-    try {
-      m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
-        mapPrim(ctrler)(pm)
-      }
-    } catch {
-      case e:MappingException => throw PassThroughException(cuMapper, e, m)
-      case e:Throwable => throw e 
-    } 
-  })
+  val cuMapper:CUMapper = new CUMapper1() {
+    override def finPass(m:PIRMap) = {
+      //try {
+        //m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
+          //mapPrim(ctrler)(pm)
+        //}
+      //} catch {
+        //case e:MappingException => throw PassThroughException(cuMapper, e, m)
+        //case e:Throwable => throw e 
+      //} 
+      m
+    }
+  }
 
   override def reset = {
     mapping = null
@@ -84,7 +86,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
       case Success(_) =>
         success = true
         info(s"Mapping succeeded") 
-        mappingCheck
+        //mappingCheck
         MapPrinter.printMap(mapping)
       case Failure(e) =>
         success = false

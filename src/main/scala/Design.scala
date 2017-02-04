@@ -21,9 +21,9 @@ import scala.collection.mutable.{Set,Map}
 import java.nio.file.{Paths, Files}
 import scala.io.Source
 
-trait Design extends Metadata { self =>
+trait Design extends Metadata {
 
-  implicit val design: Design = self
+  implicit def design: Design = this
 
   private var nextSym = 0
   def nextId = {nextSym += 1; nextSym }
@@ -194,11 +194,9 @@ trait Design extends Metadata { self =>
   lazy val ctrlAlloc = new CtrlAlloc()
   lazy val pirCtrlDotGen = new PIRCtrlDotGen()
   lazy val pirMapping = new PIRMapping()
-  lazy val cuDotPrinter = new CUVectorDotPrinter()
-  lazy val cuCtrlDotPrinter = new CUCtrlDotPrinter()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
-  lazy val spadeDotGen = new SpadeDotGen(cuDotPrinter, cuCtrlDotPrinter, argDotPrinter, ctrDotPrinter, pirMapping)
+  lazy val spadeDotGen = new SpadeDotGen(new CUVectorDotPrinter(), new CUScalarDotPrinter(), new CUCtrlDotPrinter(), pirMapping)
   lazy val ctrlPrinter = new CtrlPrinter()
 
   def mapping = pirMapping.mapping
@@ -217,10 +215,10 @@ trait Design extends Metadata { self =>
     if (Config.ctrl) traversals += ctrlAlloc 
     if (Config.debug) traversals += pirDataDotGen
     //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
-    //if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
+    if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
     //if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
     //if (Config.debug) traversals += pirPrinter 
-    //if (Config.mapping) traversals += pirMapping 
+    if (Config.mapping) traversals += pirMapping 
     //if (Config.debug) traversals += spadeDotGen 
     //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals

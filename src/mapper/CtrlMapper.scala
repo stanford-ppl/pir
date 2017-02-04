@@ -15,7 +15,7 @@ import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 
 class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRoute with Metadata {
-  implicit lazy val spade:Spade = design.arch
+  implicit def spade:Spade = design.arch
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
 
@@ -157,7 +157,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     }
     val routes = advance(pfromcl, validCons _, advanceCons _)
     if (routes.size == 0) {
-      throw NotReachable(fromcl, pfromcl, cl, map.clmap.get(cl))
+      throw NotReachable(fromcl, pfromcl.asInstanceOf[PCL], cl, map.clmap.get(cl).asInstanceOf[Option[PCL]])
     }
     filterUsedRoutes(routes, map)
   }
@@ -202,7 +202,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     val fromCU = ci.ctrler
     val info = s"Mapping $ci in $cl from ${ci.from} in $fromCU" 
     log(info, ((m:M) => ()), failPass) {
-      recResWithExcept[R,N,M](ci, List(cons _), resFilter _, mapCtrlIns(cl, fp) _, map)
+      recResWithExcept[R,N,M](ci, cons _, resFilter _, mapCtrlIns(cl, fp) _, map)
     }
   }
 
@@ -210,12 +210,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     var pmap = pirMap
     val pcu = pmap.clmap(inner).asInstanceOf[PCU]
     val pcb = pcu.ctrlBox
-    assert(inner.ctrlOuts.size <= pcb.ctrlOuts.size)
-    assert(inner.ctrlIns.size <= pcb.ctrlIns.size)
-    assert(inner.udcounters.size <= pcb.udcs.size)
-    assert(inner.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
-    assert(inner.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
-    assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
+    assert(inner.ctrlOuts.size <= pcu.ctrlIO.outs.size)
+    assert(inner.ctrlIns.size <= pcu.ctrlIO.ins.size)
+    assert(inner.udcounters.size <= pcu.ctrlBox.udcs.size)
+    //assert(inner.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
+    //assert(inner.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
+    //assert(inner.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
 
     var ucmap = pmap.ucmap
     var lumap = pmap.lumap
@@ -236,9 +236,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
         }
       }.head
       val pctr = pmap.ctmap(ctr)
-      val penLut = pcb.enLUTs(indexOf(pctr))
-      assert(enLut.ins.size <= penLut.numIns)
-      lumap += (enLut -> penLut)
+      //val penLut = pcb.enLUTs(indexOf(pctr))
+      //assert(enLut.ins.size <= penLut.numIns)
+      //lumap += (enLut -> penLut)
     }
 
     def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
@@ -253,27 +253,21 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     }
 
     /* TokenDown LUT mapping */
-    inner.tokDownLUTs.foreach { tdlut => 
-      findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !lumap.pmap.contains(plut)))
-    }
+    //inner.tokDownLUTs.foreach { tdlut => 
+      //findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !lumap.pmap.contains(plut)))
+    //}
 
     /* TokenOut LUT mapping */
-    inner.tokOutLUTs.foreach { tolut => 
-      findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))
-    }
+    //inner.tokOutLUTs.foreach { tolut => 
+      //findPto(tolut, pcb.tokenOutLUTs.filter(plut => !lumap.pmap.contains(plut)))
+    //}
 
     pmap.set(ucmap).set(lumap)
   }
 
   def advance(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], advanceCons:(PSB, FatPath) => Boolean):FatPaths = {
-    def vouts(pne:PNE) = {
-      pne match {
-        case cu:PCL => cu.couts
-        case sb:PSB => sb.vouts
-      }
-    }
     //CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
-    advance(vouts _)(start, validCons, advanceCons)
+    advance((pne:PNE) => pne.ctrlIO.outs)(start, validCons, advanceCons)
     //advanceBFS(vouts _)(start, validCons, advanceCons)
   }
 }
@@ -286,24 +280,6 @@ case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL])(implic
 }
 case class CtrlRouting(cu:CL, e:MappingException)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ctrl for ${cu} due to $e"
-}
-case class OutOfUDC(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough UDC in ${pcu} to map ${cu}."
-}
-case class OutOfEnLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough EnLUT in ${pcu} to map ${cu}."
-}
-case class OutOfTokenIn(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough TokenIn in ${pcu} to map ${cu}."
-}
-case class OutOfTokenOut(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough TokenOut in ${pcu} to map ${cu}."
-}
-case class OutOfTokenOutLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough TokenOutLUT in ${pcu} to map ${cu}."
-}
-case class OutOfTokenDownLUT(pcu:PCU, cu:ICL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough TokenDownLUT in ${pcu} to map ${cu}."
 }
 //case class CtrRouting(n:Ctr, p:PCtr)(implicit val mapper:Mapper, design:Design) extends MappingException {
 //  override val msg = s"Fail to map ${n} to ${p}"

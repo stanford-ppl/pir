@@ -111,7 +111,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
               ctmap.printPMap(pcu.ctrs)
               rcmap.printMap(rcmap.keys.filter(k => k.ctrler==cu).toList)
               stmap.printPMap(pcu.stages)
-              lumap.printPMap(pcu.ctrlBox.luts)
+              //lumap.printPMap(pcu.ctrlBox.luts)
             case _ =>
           }
         }
@@ -274,7 +274,7 @@ case class CLMap(map:CLMap.M, pmap:CLMap.PM) extends BMap {
 }
 object CLMap extends BMapObj {
   type K = CL
-  type V = PCL
+  type V = PNE
   def empty:CLMap = CLMap(Map.empty, Map.empty)
 }
 

@@ -5,20 +5,24 @@ import scala.language.implicitConversions
 import scala.collection.mutable.Map
 
 trait Spade extends Metadata with ImplicitConversion { self =>
-  implicit val spade:Spade = self
+  implicit def spade:Spade = self
 
   override def toString = getClass().getSimpleName()
   val wordWidth = 32
   val numLanes = 16
 
   def top:Top
-  def rcus:List[ComputeUnit]
+  def pcus:List[ComputeUnit]
+  def mcus:List[MemoryComputeUnit]
+  def scus:List[ScalarComputeUnit]
   def mcs:List[MemoryController]
 
-  def ctrlers = top :: rcus ++ mcs 
-  def cus = rcus ++ mcs 
+  def cus = pcus ++ mcus ++ scus 
+  def ctrlers = top :: cus
 
-  def numCUs = rcus.size
+  def pnes = ctrlers
+
+  def numCUs = (pcus ++ mcus).size
 
   var nextSym = 0
   def nextId = {val temp = nextSym; nextSym +=1; temp}

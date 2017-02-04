@@ -35,17 +35,13 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
   def map(cl:CL, pirMap:M):M = {
     val pcl = pirMap.clmap(cl)
     val sins = cl.sins
-    val cons = List(mapScalarIns(pirMap.vimap, pirMap.somap) _)
     log(s"$cl($pcl) $sins") {
-      bind(sins, pirMap, cons, resFunc _, finPass(cl) _)
+      bind(sins, pirMap, mapScalarIns(pirMap.vimap, pirMap.somap) _, resFunc _, finPass(cl) _)
     }
   }
 
 }
 
-case class OutOfScalarIn(pcl:PCL, nres:Int, nnode:Int)(implicit val mapper:Mapper, design:Design) extends OutOfResource {
-  override val msg = s"Not enough Scalar Input Buffer in ${pcl} to map application."
-}
 case class ScalarInRouting(n:SI, p:PSI)(implicit val mapper:Mapper, design:Design) extends MappingException {
   override val msg = s"Fail to map ${n} to ${p}"
 }

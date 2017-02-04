@@ -11,8 +11,8 @@ import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
 
-abstract class Controller(implicit design:Design) extends Node { self =>
-  implicit val ctrler = self 
+abstract class Controller(implicit design:Design) extends Node {
+  implicit def ctrler:this.type = this
   val sinMap = Map[Scalar, ScalarIn]()
   val soutMap = Map[Scalar, ScalarOut]()
   def souts = soutMap.values.toList
@@ -89,8 +89,7 @@ abstract class Controller(implicit design:Design) extends Node { self =>
 
 }
 
-abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock { self => 
-  implicit val cu:ComputeUnit = self 
+abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock {
   override val typeStr = "CU"
 
   private var _parent:Controller = _
@@ -203,8 +202,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
 }
 
-class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) { self =>
-  override implicit val ctrler:OuterController = self 
+class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
 
   var inner:InnerController = _
 
@@ -279,7 +277,6 @@ object StreamController {
 
 abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name)
  with InnerRegBlock {
-  implicit val icu:InnerController = this 
 
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
@@ -352,8 +349,7 @@ object UnitPipeline {
 }
 
 /* Memory Pipeline */
-class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) { self =>
-  override implicit val ctrler:MemoryPipeline = self 
+class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) {
 
   override val typeStr = "MemPipe"
   override val ctrlBox:MemCtrlBox = MemCtrlBox()
@@ -410,6 +406,7 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
 
   override def isHead = mems.collect { case fifo:FIFO => fifo }.size==0
   override def isLast = writtenFIFO.filter{_.ctrler.parent==parent}.size==0
+
 }
 object StreamPipeline {
   def apply[P](name: Option[String], parent:P) (block: StreamPipeline => Any)
@@ -428,28 +425,24 @@ object StreamPipeline {
 class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
 
-  val _ofs = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("ofs")) else None
+  val _ofs = if (mctpe.isDense) Some(Scalar("ofs")) else None
   def ofs:Scalar = _ofs.get
   val siofs = { _ofs.map { ofs => newSin(ofs) } }
   val ofsFIFO = _ofs.map { ofs => ScalarFIFO(100).wtPort(ofs) }
 
-  val _len = if (mctpe==TileLoad || mctpe==TileStore) Some(Scalar("len")) else None
+  val _len = if (mctpe.isDense) Some(Scalar("len")) else None
   def len:Scalar = _len.get
   val silen = { _len.map { len => newSin(len) } }
   val lenFIFO = _len.map { len => ScalarFIFO(100).wtPort(len) }
 
   val data = Vector()
-  private val _dataIn  = if (mctpe==TileStore || mctpe==Scatter) { Some(newVin(data)) } else None
-  private val _dataOut = if (mctpe==TileLoad || mctpe==Gather) { Some(newVout(data)) } else None
+  private val _dataIn  = if (mctpe.isStore) { Some(newVin(data)) } else None
+  private val _dataOut = if (mctpe.isLoad) { Some(newVout(data)) } else None
   def dataIn = _dataIn.get
   def dataOut = _dataOut.get
-  val dataFIFO = mctpe match {
-    case TileStore | Scatter => 
-      Some(VectorFIFO(s"${this}DataFIFO", 100).wtPort(data))
-    case _ => None
-  }
+  val dataFIFO = if (mctpe.isStore) Some(VectorFIFO(s"${this}DataFIFO", 100).wtPort(data)) else None
 
-  val _addrs = if (mctpe==Gather || mctpe==Scatter) Some(Vector()) else None
+  val _addrs = if (mctpe.isSparse) Some(Vector()) else None
   def addrs = _addrs.get
   val viaddrs = { _addrs.map { addrs => newVin(addrs) } }
   val addrFIFO = _addrs.map { addrs => VectorFIFO(s"${this}AddrFIFO", 100) }
