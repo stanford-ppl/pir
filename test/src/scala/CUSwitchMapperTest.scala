@@ -68,7 +68,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   "SwitchBox Connection 4 hop" should "success" taggedAs(WIP) in {
     val arr = design.arch.cuArray
     val shouldNotContain = List(arr(0)(3), arr(1)(1), arr(2)(1))
-    design.checkRange(arr(1)(1), 4, 5, design.arch.rcus.diff(shouldNotContain), shouldNotContain)
+    design.checkRange(arr(1)(1), 4, 5, design.arch.cus.diff(shouldNotContain), shouldNotContain)
   }
 
   "SwitchBox Connection 5 hop" should "success" in {
@@ -85,8 +85,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       (path.size >= min) && (path.size < max) && (pcu!=start)
     }
     def sbCons(psb:PSB, path:design.Path) = (path.size < max)
-    val result1 = design.advanceBFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
-    val result2 = design.advanceDFS((pne:PNE) => pne.vouts)(start, cuCons _, sbCons _)(design)
+    val result1 = design.advanceBFS((pne:PNE) => pne.vectorIO.outs)(start, cuCons _, sbCons _)(design)
+    val result2 = design.advanceDFS((pne:PNE) => pne.vectorIO.outs)(start, cuCons _, sbCons _)(design)
     result1 should equal (result2)
   }
 
@@ -288,7 +288,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       implicit override val arch = SN_4x4 
 
       def advance(start:PNE, validCons:(PIB, Path) => Boolean, advanceCons:(PSB, Path) => Boolean):PathMap =
-        advance((pne:PNE) => pne.vouts)(start, validCons, advanceCons)
+        advance((pne:PNE) => pne.vectorIO.outs)(start, validCons, advanceCons)
 
       def advanceCons(psb:PSB, path:Path) = { 
         (path.size < 5) // path is within maximum hop to continue
@@ -374,15 +374,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = SN_2x2 
 
-      val csbs = arch.csbs
+      val sbs = arch.sbArray
       val cuArray = arch.cuArray
-
-      def vouts(pne:PNE):List[POB] = {
-        pne match {
-          case cu:PCL => cu.couts
-          case sb:PSB => sb.vouts
-        }
-      }
 
       def advanceCons(psb:PSB, fatpath:FatPath) = { 
         (fatpath.size < 5) // path is within maximum hop to continue
@@ -399,7 +392,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
           if (valid) Some(path)
           else None
         }
-        val fatpaths = advanceBFS(vouts _)(start, validCons _, advanceCons _)
+        val fatpaths = advanceBFS((pne:PNE) => pne.vectorIO.outs)(start, validCons _, advanceCons _)
 
       
         // Plot fatedge
@@ -428,8 +421,8 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         // Take edges between csb(1)(1) => csb(1)(2) but leave one available. Then shouldn't reduce
         // number of result
         var mp = PIRMap.empty
-        var edges = csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
-                    .filter{ case (vo, vi) => vi.src==csbs(1)(2)}
+        var edges = sbs(1)(1).ctrlIO.outs.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+                    .filter{ case (vo, vi) => vi.src==sbs(1)(2)}
         edges.tail.foreach { case (vo, vi) =>
           mp = mp.setFB(vi, vo)
         }
@@ -444,11 +437,11 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
         //                        csb(1)(1) => csb(2)(1)
         //                        csb(1)(1) => pcus(1)(1)
         // Should reduce number of valid results
-        //var edges = csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+        //var edges = csbs(1)(1).outs.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
                     //.filter{ case (vo, vi) => vi.src==csbs(1)(2)}
-        //edges ++= csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+        //edges ++= csbs(1)(1).outs.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
                   //.filter{ case (vo, vi) => vi.src==csbs(2)(1)}
-        //edges ++= csbs(1)(1).vouts.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
+        //edges ++= csbs(1)(1).outs.flatMap { vout => vout.fanOuts.map { vin => (vout, vin) } }
                   //.filter{ case (vo, vi) => vi.src==cuArray(1)(1)}
         //edges.foreach { case (vo, vi) =>
           //mp = mp.setFB(vi, vo)

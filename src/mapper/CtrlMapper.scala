@@ -72,7 +72,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     val co = ci.from.asInstanceOf[COP]
     val fromcl = co.ctrler.asInstanceOf[CL]
     val pfromcl = map.clmap(fromcl)
-    def validCons(toCU:PCL, fatpath: FatPath):Option[FatPath] = {
+    def validCons(toCU:PNE, fatpath: FatPath):Option[FatPath] = {
       var valid = true
       // If cl has been mapped, valid fatpath reaches current pcl
       valid &&= map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
@@ -164,7 +164,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
 
   def mapCtrlIns(cl:CL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
     type N = CIP
-    type R = (PCL, Path)
+    type R = (PNE, Path)
     val remainCtrlIns = getCins(cl, map)
     if (remainCtrlIns.size==0) return fp(map)
     val ci = remainCtrlIns.head
@@ -177,7 +177,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
       var mp = sameSrcMap(n.from).foldLeft(m) { case (pm, n) =>
         pm.setVI(n, pcin).setVO(n.from, pcout).setRT(n, path.size)
       }
-      mp = cuMapper.bindCU(cl, reachedCU, mp, es)
+      mp = cuMapper.bindCU(cl, reachedCU.asInstanceOf[PCL], mp, es)
       path.zipWithIndex.foreach { case ((vout, vin), i) => 
         mp = mp.setFB(vin, vout)
         if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox
@@ -265,7 +265,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     pmap.set(ucmap).set(lumap)
   }
 
-  def advance(start:PNE, validCons:(PCL, FatPath) => Option[FatPath], advanceCons:(PSB, FatPath) => Boolean):FatPaths = {
+  def advance(start:PNE, validCons:(PNE, FatPath) => Option[FatPath], advanceCons:(PSB, FatPath) => Boolean):FatPaths = {
     //CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
     advance((pne:PNE) => pne.ctrlIO.outs)(start, validCons, advanceCons)
     //advanceBFS(vouts _)(start, validCons, advanceCons)

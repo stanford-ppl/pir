@@ -50,15 +50,12 @@ class CUSwitchMapper(outputMapper:OutputMapper, ctrlMapper:Option[CtrlMapper])(i
   }
   // DEBUG --
 
-  val resMap:MMap[CL, List[PNE]] = MMap.empty
-
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
     val cus = design.top.innerCUs
     val pcus = design.arch.cus
     val nodes = design.top::cus
     val reses = design.arch.top::pcus
-    qualifyCheck(reses, nodes, resMap)
     mapCUs(nodes)(m)
   }
 

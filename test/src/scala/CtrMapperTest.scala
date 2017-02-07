@@ -35,7 +35,10 @@ class CtrMapperTest extends UnitTest { self =>
         val memCtrlDataFIFONotFullBusIdx:Int = 1
         val memCtrlDataValidBusIdx:Int = 2
 
-        val rcus = Nil
+        val pcus = Nil
+        val mcus = Nil
+        val scus = Nil
+        val ocus = Nil 
         val mcs = Nil
         val sbs = Nil 
         val top = PTop(0, 0)
@@ -79,8 +82,11 @@ class CtrMapperTest extends UnitTest { self =>
         val memCtrlDataFIFONotFullBusIdx:Int = 1
         val memCtrlDataValidBusIdx:Int = 2
 
-        val rcus = Nil
+        val pcus = Nil
+        val mcus = Nil
+        val scus = Nil
         val mcs = Nil
+        val ocus = Nil 
         val sbs = Nil 
         val top = PTop(0, 0)
         val numCtrs = 3
@@ -125,8 +131,11 @@ class CtrMapperTest extends UnitTest { self =>
         val memCtrlDataFIFONotFullBusIdx:Int = 1
         val memCtrlDataValidBusIdx:Int = 2
 
-        val rcus = Nil
+        val pcus = Nil
+        val mcus = Nil
+        val scus = Nil
         val mcs = Nil
+        val ocus = Nil 
         val sbs = Nil 
         val top = PTop(0, 0)
         val numCtrs = 3

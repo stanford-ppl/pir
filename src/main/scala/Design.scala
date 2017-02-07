@@ -201,6 +201,8 @@ trait Design extends Metadata {
 
   def mapping = pirMapping.mapping
 
+  val mappers = ListBuffer[Mapper]()
+
   /* Traversals */
   lazy val traversals = {
     val traversals = ListBuffer[Traversal]()
@@ -219,24 +221,24 @@ trait Design extends Metadata {
     //if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
     //if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
-    //if (Config.debug) traversals += spadeDotGen 
+    if (Config.debug) traversals += spadeDotGen 
     //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals
   }
 
   def run = {
-    //try {
+    try {
       traversals.foreach(_.run)
-      //if (pirMapping.fail) throw PIRException(s"Mapping Failed")
-    //} catch {
-      //case e:PIRException => 
-        //if (!pirPrinter.isTraversed) pirPrinter.run
-        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        //if (!spadeDotGen.isTraversed) spadeDotGen.run
-        //if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        //throw e
-      //case e:Throwable => throw e
-    //}
+      if (pirMapping.fail) throw PIRException(s"Mapping Failed")
+    } catch {
+      case e:PIRException => 
+        if (!pirPrinter.isTraversed) pirPrinter.run
+        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        if (!spadeDotGen.isTraversed) spadeDotGen.run
+        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+        throw e
+      case e:Throwable => throw e
+    }
     if (Config.debug) DebugLogger.close
   }
 

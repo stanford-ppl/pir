@@ -44,6 +44,7 @@ package object typealias {
   type CU    = pir.graph.ComputeUnit
   type SC    = pir.graph.StreamController
   type SP    = pir.graph.StreamPipeline
+  type MP    = pir.graph.MemoryPipeline
   type TT    = pir.graph.TileTransfer
   type MC    = pir.graph.MemoryController
   type PRIM  = pir.graph.Primitive
@@ -88,7 +89,9 @@ package object typealias {
   type PNode     = pir.plasticine.graph.Node
   type PCL       = pir.plasticine.graph.Controller
   type PCU       = pir.plasticine.graph.ComputeUnit
+  type PMCU      = pir.plasticine.graph.MemoryComputeUnit
   type PSCU      = pir.plasticine.graph.ScalarComputeUnit
+  type POCU       = pir.plasticine.graph.OuterComputeUnit
   type PMC       = pir.plasticine.graph.MemoryController
   type PTop      = pir.plasticine.graph.Top
   type PNE       = pir.plasticine.graph.NetworkElement

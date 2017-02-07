@@ -19,7 +19,7 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val memCtrlDataFIFONotFullBusIdx:Int = 1
   val memCtrlDataValidBusIdx:Int = 2
 
-  override def pnes = ctrlers ++ Nil
+  override def pnes = super.pnes ++ sbs
 
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)
@@ -35,7 +35,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
         .addRegstages(numStage=2, numOprds=3, ops)
         .numSinReg(8)
         .ctrlBox(numUDCs=4)
-        .coord(i, j)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     } else {
@@ -47,7 +46,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
         .addRAstages(numStage=3, numOprds=3, ops)
         .numSinReg(8)
         .ctrlBox(numUDCs=4)
-        .coord(i, j)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     }
@@ -68,36 +66,44 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   } 
 
   def mcAt(c:Int, r:Int):MemoryController = {
-    new MemoryController()
+    val mc = new MemoryController()
         .ctrlBox(numUDCs=0)
+    mc
   }
 
-  val cuArray = List.tabulate(numRows, numCols) { case (i, j) => cuAt(i,j) }
+  def ocuAt(c:Int, r:Int):OuterComputeUnit = {
+    new OuterComputeUnit()
+      .numCtrs(6)
+      .ctrlBox(numUDCs=4)
+      .genConnections
+  }
 
-  val scus = List.tabulate(2, numRows+1) { case (c, r) =>
-    val cu = scuAt(c,r)
+  val cuArray = List.tabulate(numRows, numCols) { case (c,r) => cuAt(c,r).coord(c,r) }
+  val scus = List.tabulate(2, numRows+1) { case (c, r) => 
+    val scu = scuAt(c,r)
     if (c==0) {
-      cu.coord(-1, r)
+      scu.coord(-1, r)
     } else {
-      cu.coord(numCols, r)
+      scu.coord(numCols, r)
     }
-    cu
+    scu
   }.flatten
-
-  val mcs = List.tabulate(2, numRows+1) { case (c, r) =>
-    val cu = mcAt(c,r)
+  val mcs = List.tabulate(2, numRows+1) { case (c, r) => 
+    val mc = mcAt(c,r)
     if (c==0) {
-      cu.coord(-2, r)
+      mc.coord(-1, r)
     } else {
-      cu.coord(numCols + 1, r)
+      mc.coord(numCols, r)
     }
-    cu
+    mc
   }.flatten
-
-  def pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
   def mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
+  def pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
+  val ocuArray = List.tabulate(numRows+1, numCols+1) { case (c, r) => ocuAt(c,r).coord(c,r) }
+  def ocus:List[OuterComputeUnit] = ocuArray.flatten
 
-  val sbs = List.tabulate(numRows+1, numCols+1) { case (i, j) => SwitchBox().coord(i,j) }
+  val sbArray:List[List[SwitchBox]] = List.tabulate(numRows+1, numCols+1) { case (i, j) => SwitchBox().coord(i,j) }
+  def sbs:List[SwitchBox] = sbArray.flatten
 
   val ctrlNetwork = new CtrlNetwork()
 
@@ -106,14 +112,14 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val scalarNetwork = new ScalarNetwork()
 
   def switchNetworkDataBandwidth:Int = {
-    sbs.flatten.map{ sb =>
+    sbs.map{ sb =>
       sb.vectorIO.ins.filter(_.isConnected).flatMap { vin =>
         vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
       }.groupBy( k => k ).map{case (k, l)  => l.size}.max
     }.max
   }
   def switchNetworkCtrlBandwidth:Int = {
-    sbs.flatten.map{ sb =>
+    sbs.map{ sb =>
       sb.ctrlIO.ins.filter(_.isConnected).flatMap { vin =>
         vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
       }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
@@ -128,7 +134,9 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 
   def cuArray:List[List[ComputeUnit]] = spade.cuArray
   def mcs:List[MemoryController] = spade.mcs
-  def sbs:List[List[SwitchBox]] = spade.sbs
+  def scus:List[ScalarComputeUnit] = spade.scus
+  def ocuArray:List[List[OuterComputeUnit]] = spade.ocuArray
+  def sbs:List[List[SwitchBox]] = spade.sbArray
 
   // switch to switch channel width
   val sbChannelWidth = 4
@@ -138,30 +146,45 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
   val sbChannelWidthSN = sbChannelWidth
 
   // CU to CU channel width
-  val cuChannelWidth = 1
+  val cuChannelWidth = 0
   val cuChannelWidthWE = cuChannelWidth
   val cuChannelWidthEW = cuChannelWidth
   val cuChannelWidthNS = cuChannelWidth
   val cuChannelWidthSN = cuChannelWidth
 
   // switch to CU channel width
-  val scChannelWidth = 1
-  val scChannelWidthNW = scChannelWidth
-  val scChannelWidthNE = scChannelWidth
-  val scChannelWidthSW = scChannelWidth
-  val scChannelWidthSE = scChannelWidth
+  val sbcuChannelWidth = 1
+  val sbcuChannelWidthNW = sbcuChannelWidth
+  val sbcuChannelWidthNE = sbcuChannelWidth
+  val sbcuChannelWidthSW = sbcuChannelWidth
+  val sbcuChannelWidthSE = sbcuChannelWidth
 
   // CU to Switch channel width
-  val csChannelWidth = 1
-  val csChannelWidthNW = csChannelWidth
-  val csChannelWidthNE = csChannelWidth
-  val csChannelWidthSW = csChannelWidth
-  val csChannelWidthSE = csChannelWidth
+  val cusbChannelWidth = 1
+  val cusbChannelWidthNW = cusbChannelWidth
+  val cusbChannelWidthNE = cusbChannelWidth
+  val cusbChannelWidthSW = cusbChannelWidth
+  val cusbChannelWidthSE = cusbChannelWidth
+
+  // SCU to switch channel width
+  val scsbChannelWidth = 4
+  // switch to SCU channel width
+  val sbscChannelWidth = 4
 
   // MC to switch channel width
-  val msChannelWidth = 8
+  val mcsbChannelWidth = 4
   // switch to MC channel width
-  val smChannelWidth = 8
+  val sbmcChannelWidth = 4
+
+  // MC to SCU channel width
+  val mcscChannelWidth = 2
+  // SCU to MC channel width
+  val scmcChannelWidth = 2
+
+  // OCU to switch channel width
+  val ocsbChannelWidth = 2
+  // switch to OCU channel width
+  val sbocChannelWidth = 4
 
   val numRows = cuArray.length
   val numCols = cuArray.head.length
@@ -175,9 +198,9 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
   }
 
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
-    grid(out).addOutAt(outDir, channelWidth, linkWidth)
-    grid(in).addInAt(inDir, channelWidth, linkWidth)
-    grid(out).outAt(outDir).zip(grid(in).inAt(inDir)).foreach { case (o, i) => o ==> i }
+    val outs = grid(out).addOutAt(outDir, channelWidth, linkWidth)
+    val ins = grid(in).addInAt(inDir, channelWidth, linkWidth)
+    outs.zip(ins).foreach { case (o, i) => o ==> i }
   }
 
   // CU to CU Connection
@@ -237,38 +260,71 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
     for (j <- 0 until numCols) {
       // CU to SB 
       // NW (top left)
-      connect(cuArray(i)(j), "NW", sbs(i)(j+1), "SE", csChannelWidthNW)
+      connect(cuArray(i)(j), "NW", sbs(i)(j+1), "SE", cusbChannelWidthNW)
       // NE (top right)
-      connect(cuArray(i)(j), "NE", sbs(i+1)(j+1), "SW", csChannelWidthNE)
+      connect(cuArray(i)(j), "NE", sbs(i+1)(j+1), "SW", cusbChannelWidthNE)
       // SW (bottom left)
-      connect(cuArray(i)(j), "SW", sbs(i)(j), "NE", csChannelWidthSW)
+      connect(cuArray(i)(j), "SW", sbs(i)(j), "NE", cusbChannelWidthSW)
       // SE (bottom right)
-      connect(cuArray(i)(j), "SE", sbs(i+1)(j), "NW", csChannelWidthSE)
+      connect(cuArray(i)(j), "SE", sbs(i+1)(j), "NW", cusbChannelWidthSE)
 
       // SB to CU
       // NW (top left)
-      connect(sbs(i)(j+1), "SE", cuArray(i)(j), "NW", scChannelWidthNW)
+      connect(sbs(i)(j+1), "SE", cuArray(i)(j), "NW", sbcuChannelWidthNW)
       // NE (top right)
-      connect(sbs(i+1)(j+1), "SW", cuArray(i)(j), "NE", scChannelWidthNE)
+      connect(sbs(i+1)(j+1), "SW", cuArray(i)(j), "NE", sbcuChannelWidthNE)
       // SW (bottom left)
-      connect(sbs(i)(j), "NE", cuArray(i)(j), "SW", scChannelWidthSW)
+      connect(sbs(i)(j), "NE", cuArray(i)(j), "SW", sbcuChannelWidthSW)
       // SE (bottom right)
-      connect(sbs(i+1)(j), "NW", cuArray(i)(j), "SE", scChannelWidthSE)
+      connect(sbs(i+1)(j), "NW", cuArray(i)(j), "SE", sbcuChannelWidthSE)
     }
+  }
+
+  // OCU and SB connection
+  for (i <- 0 until numRows+1) {
+    for (j <- 0 until numCols+1) {
+      // OCU to SB 
+      connect(ocuArray(i)(j), "W", sbs(i)(j), "E", ocsbChannelWidth)
+
+      // SB to OCU
+      connect(sbs(i)(j), "E", ocuArray(i)(j), "W", sbocChannelWidth)
+    }
+  }
+
+  //// SCU and SB connection
+  for (j <- 0 until scus.size/2) {
+    // SCU to SB (W -> E) (left side)
+    connect(scus(j), "E", sbs(0)(j), "W", scsbChannelWidth)
+    // SB to SCU (E -> W) (left side)
+    connect(sbs(0)(j), "W", scus(j), "E", sbscChannelWidth)
+  }
+  for (j <- scus.size/2 until scus.size) {
+    // SCU to SB (E -> W) (right side)
+    connect(scus(j), "W", sbs(numCols)(j-scus.size/2), "E", scsbChannelWidth)
+    // SB to SCU (W -> E) (right side)
+    connect(sbs(numCols)(j-scus.size/2), "E", scus(j), "W", sbscChannelWidth)
   }
 
   //// MC and SB connection
   for (j <- 0 until mcs.size/2) {
     // MC to SB (W -> E) (left side)
-    connect(mcs(j), "E", sbs(0)(j), "W", msChannelWidth)
+    connect(mcs(j), "E", sbs(0)(j), "W", mcsbChannelWidth)
     // SB to MC (E -> W) (left side)
-    connect(sbs(0)(j), "W", mcs(j), "E", smChannelWidth)
+    connect(sbs(0)(j), "W", mcs(j), "E", sbmcChannelWidth)
   }
   for (j <- mcs.size/2 until mcs.size) {
     // MC to SB (E -> W) (right side)
-    connect(mcs(j), "W", sbs(numCols)(j-mcs.size/2), "E", msChannelWidth)
+    connect(mcs(j), "W", sbs(numCols)(j-mcs.size/2), "E", mcsbChannelWidth)
     // SB to MC (W -> E) (right side)
-    connect(sbs(numCols)(j-mcs.size/2), "E", mcs(j), "W", smChannelWidth)
+    connect(sbs(numCols)(j-mcs.size/2), "E", mcs(j), "W", sbmcChannelWidth)
+  }
+
+  //// MC and SCU connection
+  for (j <- 0 until mcs.size) {
+    // MC to SCU (S -> N)
+    connect(mcs(j), "N", scus(j), "S", mcscChannelWidth)
+    // SCU to MC (N -> S)
+    connect(scus(j), "S", mcs(j), "N", scmcChannelWidth)
   }
 
   sbs.foreach { row =>
@@ -277,11 +333,17 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
       grid(sb).outs.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
     }
   }
-  cuArray.foreach { row =>
-    row.zipWithIndex.foreach { case (cu, j) =>
-      grid(cu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-      grid(cu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
-    }
+  cuArray.flatten.foreach { cu =>
+    grid(cu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    grid(cu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+  }
+  scus.foreach { scu =>
+    grid(scu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    grid(scu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+  }
+  ocuArray.flatten.foreach { ocu =>
+    grid(ocu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
+    grid(ocu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
   }
   mcs.foreach { mc =>
     grid(mc).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }

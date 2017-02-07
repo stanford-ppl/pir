@@ -83,7 +83,7 @@ trait PIRDotGen extends Traversal with DotCodegen {
           case cu => cu
         }
         val fromlb = from.src match {
-          case ctr:Counter => s"${fromcu.name.getOrElse(fromcu.toString)}.done"
+          //case ctr:Counter => s"${fromcu.name.getOrElse(fromcu.toString)}.done"
           case cb:CtrlBox => q(from.asInstanceOf[CtrlPort])
           case _ => s"${from}"
         }

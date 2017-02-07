@@ -22,7 +22,7 @@ class DotAttr() {
   def label(s:Any) = { attrMap += "label" -> s.toString; this }
   def label = { attrMap.get("label") }
   def dir(s:Direction) = { attrMap += "dir" -> s.field; this }
-  def pos(coord:(Int,Int)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
+  def pos(coord:(Double,Double)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
 
   def elements:List[String] = {
     var elems = attrMap.map{case (k,v) => s"""$k="$v""""}.toList

@@ -25,10 +25,10 @@ trait Mapper { self =>
   lazy val mapExceps = ListBuffer[MappingException]()
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
-  val a:CU = null
-  implicit val design:Design
+  implicit def design:Design
+  design.mappers += this
   
-  val typeStr:String
+  def typeStr:String
   override def toString = s"$typeStr"
 
   def debug = Config.debugMapper
@@ -65,6 +65,8 @@ trait Mapper { self =>
     Thread.currentThread().getStackTrace().slice(start,end).map("" + _).mkString("\n")
   }
 
+  def mappingCheck(mapping:PIRMap):Unit = {
+  }
   //def recRes[R,N,M](
   //  n:N,
   //  allRes:List[R],

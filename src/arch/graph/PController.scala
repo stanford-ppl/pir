@@ -60,11 +60,6 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   val vectorIO:GridIO[this.type] = VectorIO(this)
   val ctrlIO:GridIO[this.type] = ControlIO(this)
 }
-object SwitchBox {
-  def fourDirections = { "W" :: "N" :: "E" :: "S" ::Nil }
-  def eightDirections = { "W" :: "NW" :: "N" :: "NE" :: "E" ::  "SE" :: "S" :: "SW" ::Nil }
-  def diagDirections = {"NW":: "NE":: "SE":: "SW" :: Nil}
-}
 /*
  * ComputeUnit
  * */
@@ -145,6 +140,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     this
   }
 
+}
+
+class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
+  override val typeStr = "ocu"
+  this.numRegs(0)
+  this.numSRAMs(0)
+  this.addRegstages(numStage=0, numOprds=0, ops)
+  this.numSinReg(0)
 }
 
 class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {

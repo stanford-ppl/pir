@@ -88,8 +88,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
         case sn:SwitchNetwork =>
           // Status
           val status = fbmap(vimap(design.top.status))
-          val bottomRow = sn.sbs.map{_.head}
-          val topRow = sn.sbs.map{_.last}
+          val bottomRow = sn.sbArray.map{_.head}
+          val topRow = sn.sbArray.map{_.last}
           val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
@@ -99,8 +99,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
             val aob = fbmap(vimap(design.top.vins.head))
-            val bottomRow = sn.sbs.map{_.head}
-            val topRow = sn.sbs.map{_.last}
+            val bottomRow = sn.sbArray.map{_.head}
+            val topRow = sn.sbArray.map{_.last}
             val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
             val idx = obs.indexOf(aob)
             emitPair(s"argOut", s"$idx")
@@ -144,12 +144,12 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     design.arch match {
       case sn:SwitchNetwork =>
         emitList("dataSwitch") { implicit ms =>
-          sn.sbs.flatten.foreach { sb =>
+          sn.sbs.foreach { sb =>
             emitSwitch(sb.vectorIO)
           }
         }
         emitList("controlSwitch") { implicit ms =>
-          sn.sbs.flatten.foreach { sb =>
+          sn.sbs.foreach { sb =>
             emitSwitch(sb.ctrlIO)
           }
         }

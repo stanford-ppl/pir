@@ -76,27 +76,42 @@ class CUMapperTest extends UnitTest with Metadata {
         val memCtrlCommandFIFONotFullBusIdx:Int = 0
         val memCtrlDataFIFONotFullBusIdx:Int = 1
 
-        val numRCUs = 5
+        val numPCUs = 5
         val numVins = 2
         val numRegs = 10
-        val rcus = List.tabulate(numRCUs) { i =>
-          ConfigFactory.genRCU(numSRAMs=numVins, numCtrs=0, numRegs=numRegs).addVins(numVins, numLanes).addVouts(1, numLanes)
+        val pcus = List.tabulate(numPCUs) { i =>
+          new PCU()
+              .numSRAMs(numVins)
+              .numCtrs(0)
+              .numRegs(numRegs)
+              .numSinReg(0)
+              .vectorIO.addIns(numVins, numLanes)
+              .vectorIO.addOuts(1, numLanes)
+              .addRegstages(numStage=4, numOprds=3, ops)
+              .addRdstages(numStage=4, numOprds=3, ops)
+              .ctrlBox(numUDCs=4)
+              .index(i)
+              //.genConnections
+              //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=12, soutsPtr=0, ctrsPtr=0, waPtr=1, wpPtr=1, loadsPtr=8, rdPtr=0)
         } 
+        val mcus = Nil
+        val scus = Nil
         val mcs = Nil
         val sbs = Nil 
+        val ocus = Nil 
         val top = PTop(0, 0)
 
         /* Network Constrain */ 
-        rcus(1).vins(0) <== rcus(0).vout 
-        rcus(1).vins(1) <== rcus(0).vout
-        rcus(2).vins(0) <== rcus(1).vout 
-        rcus(2).vins(1) <== rcus(4).vout
-        rcus(3).vins(0) <== rcus(0).vout 
-        rcus(3).vins(1) <== rcus(1).vout
-        rcus(4).vins(0) <== rcus(0).vout 
-        rcus(4).vins(1) <== rcus(0).vout
+        pcus(1).vins(0) <== pcus(0).vout 
+        pcus(1).vins(1) <== pcus(0).vout
+        pcus(2).vins(0) <== pcus(1).vout 
+        pcus(2).vins(1) <== pcus(4).vout
+        pcus(3).vins(0) <== pcus(0).vout 
+        pcus(3).vins(1) <== pcus(1).vout
+        pcus(4).vins(0) <== pcus(0).vout 
+        pcus(4).vins(1) <== pcus(0).vout
       }
-      val pcus = arch.rcus
+      val pcus = arch.pcus
 
       // Mapping
       val outputMapper = new OutputMapper()

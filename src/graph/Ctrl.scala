@@ -216,17 +216,11 @@ class CtrlBox()(implicit ctrler:Controller, design: Design) extends Primitive {
     cins ++= udcounters.values.map(_.inc).filter{ _.isCtrlIn }
     ctrler match {
       case top:Top =>
-      case cu:ComputeUnit => cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
+      case cu:ComputeUnit => 
+        cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
+        cins ++= cu.fifos.map { _.enqueueEnable }.filter{_.isCtrlIn}
     }
-    ctrler match {
-      case ctrler:InnerController =>
-        ctrler.mems.foreach { 
-          case mem:ScalarFIFO => cins += mem.enqueueEnable
-          case _ =>
-        }
-        cins ++= tokInAndTree.ins
-      case _ =>
-    }
+    cins ++= tokInAndTree.ins
     cins ++= swapReads.values.map(_._1).filter{ _.isCtrlIn }
     cins ++= swapWrites.values.map(_._1).filter{ _.isCtrlIn }
     cins.toList
@@ -234,15 +228,14 @@ class CtrlBox()(implicit ctrler:Controller, design: Design) extends Primitive {
 
   def ctrlOuts:List[CtrlOutPort] = { 
     val couts = ListBuffer[CtrlOutPort]()
-    //couts ++= ctrler.ctrlBox.luts.map(_.out).filter(_.isCtrlOut)
-    couts ++= (ctrler match {
-      case ctrler:InnerController =>
-        ctrler.mems.collect{ case mem:FIFOOnWrite => mem }.map(_.notFull).filter{_.isCtrlOut}
-      case _ => Nil
-    })
-    //TODO
     couts ++= swapReads.values.map(_._2).filter{ _.isCtrlOut }
     couts ++= swapWrites.values.map(_._2).filter{ _.isCtrlOut }
+    ctrler match {
+      case cu:ComputeUnit => 
+        couts ++= cu.fifos.map { _.notFull }.filter{_.isCtrlOut}
+        couts ++= cu.cchains.map(_.outer.done).filter{ _.isCtrlOut }
+      case _ =>
+    }
     couts.toList
   }
 
@@ -260,6 +253,9 @@ trait StageCtrlBox extends CtrlBox {
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
   extends CtrlBox() with StageCtrlBox {
   val enableOut = CtrlOutPort(this, s"$this.enable")
+  override def ctrlOuts:List[CtrlOutPort] = { 
+    super.ctrlOuts ++ List(enableOut).filter { _.isCtrlOut }
+  }
 }
 object InnerCtrlBox {
   def apply()(implicit ctrler:InnerController, design: Design) = new InnerCtrlBox()
@@ -271,6 +267,9 @@ class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) ex
   val childrenAndTree = ChildrenAndTree()
 
   override def toUpdate = super.toUpdate || tokenDown == null
+  override def ctrlOuts:List[CtrlOutPort] = { 
+    super.ctrlOuts ++ List(tokenDown, childrenAndTree.out).filter { _.isCtrlOut }
+  }
 }
 object OuterCtrlBox {
   def apply()(implicit ctrler:Controller, design: Design) = {

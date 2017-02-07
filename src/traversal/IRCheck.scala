@@ -75,7 +75,7 @@ class IRCheck(implicit val design: Design) extends Traversal {
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        sn.sbs.flatten.foreach { sb => 
+        sn.sbs.foreach { sb => 
           (sb.vectorIO.ins ++ sb.scalarIO.ins ++ sb.ctrlIO.ins).foreach { in => 
             if(in.fanIns.size>1) 
               throw PIRException(s"Switchbox $sb has $in with fanIns > 1 ${in.fanIns}")

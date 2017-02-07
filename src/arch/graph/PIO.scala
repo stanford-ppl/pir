@@ -191,17 +191,17 @@ trait GridIO[+NE<:NetworkElement] extends Node {
   def src:NE
   def inBuses(num:Int, width:Int)(implicit spade:Spade):List[InBus[NE]] = InBuses(src, num, width)
   def outBuses(num:Int, width:Int)(implicit spade:Spade):List[OutBus[NE]] = OutBuses(src, num, width)
-  def addInAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = { 
+  def addInAt(dir:String, num:Int, width:Int)(implicit spade:Spade):List[InBus[NE]] = { 
     val ibs = inBuses(num, width)
     ibs.zipWithIndex.foreach { case (ib, i) => ib }
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
-    src
+    ibs
   }
-  def addOutAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = {
+  def addOutAt(dir:String, num:Int, width:Int)(implicit spade:Spade):List[OutBus[NE]] = {
     val obs = outBuses(num, width)
     obs.zipWithIndex.foreach { case (ob, i) => ob }
     outMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
-    src
+    obs
   }
   def addIOAt(dir:String, num:Int, width:Int)(implicit spade:Spade):NE = {
     addInAt(dir,num, width)
@@ -218,8 +218,8 @@ trait GridIO[+NE<:NetworkElement] extends Node {
   }
   def inAt(dir:String):List[InBus[NE]] = { inMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[InBus[NE]]] }
   def outAt(dir:String):List[OutBus[NE]] = { outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[OutBus[NE]]] }
-  def ins:List[InBus[NE]] = SwitchBox.eightDirections.flatMap { dir => inAt(dir) } 
-  def outs:List[OutBus[NE]] = SwitchBox.eightDirections.flatMap { dir => outAt(dir) }  
+  def ins:List[InBus[NE]] = GridIO.eightDirections.flatMap { dir => inAt(dir) } 
+  def outs:List[OutBus[NE]] = GridIO.eightDirections.flatMap { dir => outAt(dir) }  
   def io(in:InBus[NetworkElement]) = {
     val dirs = inMap.filter{ case (dir, l) => l.contains(in) }
     assert(dirs.size==1)
@@ -230,6 +230,11 @@ trait GridIO[+NE<:NetworkElement] extends Node {
     inMap.clear
     outMap.clear
   }
+}
+object GridIO {
+  def fourDirections = { "W" :: "N" :: "E" :: "S" ::Nil }
+  def eightDirections = { "W" :: "NW" :: "N" :: "NE" :: "E" ::  "SE" :: "S" :: "SW" ::Nil }
+  def diagDirections = {"NW":: "NE":: "SE":: "SW" :: Nil}
 }
 
 case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {

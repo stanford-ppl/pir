@@ -59,6 +59,8 @@ object P2P_4CU_4TT extends PointToPointNetwork {
 
   override val mcs = Nil
 
+  override val ocus = Nil 
+
   override val scus = List.tabulate(numMCs) { i =>
     new ScalarComputeUnit()
         .numSRAMs(2)

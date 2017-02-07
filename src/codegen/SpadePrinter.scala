@@ -108,7 +108,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        sn.sbs.flatten.foreach { sb => emitIO(sb) }
+        sn.sbs.foreach { sb => emitIO(sb) }
       case pn:PointToPointNetwork =>
     }
   }

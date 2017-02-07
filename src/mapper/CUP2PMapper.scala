@@ -11,8 +11,6 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
   type N = CL
   val typeStr = "CUP2PMapper"
 
-  val resMap:MMap[N, List[R]] = MMap.empty
-
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
     val cmap = pirMap.setCL(cu, pcu) 
     /* Map CU */
@@ -32,7 +30,6 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     val cus = design.top.innerCUs
     val nodes:List[CL] = design.top::cus
     val reses = design.arch.top::pcus
-    qualifyCheck(reses, nodes, resMap)
     def resFunc(cu:N, m:M, triedRes:List[R]):List[R] = {
       (resMap(cu).diff(triedRes)).filter { pne => !m.clmap.pmap.contains(pne)}
     }

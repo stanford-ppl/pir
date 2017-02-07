@@ -357,7 +357,7 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
   override def isLast = false
 
   val data = Vector()
-  val dataOut = VecOut(data)
+  val dataOut = newVout(data)
   lazy val mem:MultiBuffering = {
     val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
     assert(rms.size==1)

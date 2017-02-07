@@ -53,6 +53,7 @@ object P2P_2CU extends PointToPointNetwork {
   override val mcus = Nil
   override val scus = Nil 
   override val mcs = Nil 
+  override val ocus = Nil 
 
   /* Network Constrain */ 
   pcus(1).vins(0) <== pcus(0).vout 

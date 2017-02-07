@@ -15,12 +15,13 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   def pcus:List[ComputeUnit]
   def mcus:List[MemoryComputeUnit]
   def scus:List[ScalarComputeUnit]
+  def ocus:List[OuterComputeUnit]
   def mcs:List[MemoryController]
 
-  def cus = pcus ++ mcus ++ scus 
+  def cus = pcus ++ mcus ++ scus ++ ocus
   def ctrlers = top :: cus
 
-  def pnes = ctrlers
+  def pnes:List[NetworkElement] = ctrlers ++ mcs
 
   def numCUs = (pcus ++ mcus).size
 

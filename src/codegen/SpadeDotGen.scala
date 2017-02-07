@@ -23,9 +23,17 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   val scale:Int
 
-  def pne(pne:NetworkElement):GridIO[NetworkElement]
+  def io(pne:NetworkElement):GridIO[NetworkElement]
 
   override val stream = newStream(file) 
+
+  trait Mode
+  object OnlyOCU extends Mode
+  object AllCU extends Mode
+  object NoOCU extends Mode
+
+  val mode:Mode = AllCU 
+  //val mode:Mode = OnlyOCU 
 
   override def quote(n:Any)(implicit design:Design):String = {
     n match {
@@ -45,12 +53,28 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     emitBlock("digraph G") {
       design.arch match {
         case pn:PointToPointNetwork =>
-        case sn:SwitchNetwork if (mapping!=null) =>
-          emitSwitchBoxes(sn.sbs.flatten, Some(mapping))
-          emitPCLs(sn.ctrlers, Some(mapping))
-        case sn:SwitchNetwork if (mapping==null) =>
-          emitSwitchBoxes(sn.sbs.flatten, None)
-          emitPCLs(sn.ctrlers, None)
+        case sn:SwitchNetwork =>
+          //emitln(s"splines=ortho;")
+          val pnes = mode match {
+            case NoOCU =>
+              sn.pnes.filterNot{_.isInstanceOf[OuterComputeUnit]}
+            case OnlyOCU =>
+              sn.pnes.filter{ pne => pne.isInstanceOf[ScalarComputeUnit] && pne.isInstanceOf[OuterComputeUnit]}
+            case AllCU =>
+              sn.pnes
+          }
+          pnes.foreach { pne =>
+            emitPNEs(pne, if (mapping==null) None else Some(mapping) )
+            val ins =  mode match {
+              case NoOCU =>
+                io(pne).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+              case OnlyOCU =>
+                io(pne).ins.filter{ in => in.fanIns.head.src.isInstanceOf[ScalarComputeUnit] && in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+              case AllCU =>
+                io(pne).ins
+            }
+            ins.foreach { in => emitInput(in, if (mapping==null) None else Some(mapping)) }
+          }
       }
     }
     close
@@ -66,58 +90,74 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
   }
 
-  def emitPCLs(pcls:List[PCL], mapping:Option[PIRMap]) = {
-    //emitln(s"splines=ortho;")
-    //val bandWidth = spade match {
-      //case sb:SwitchNetwork => sb.switchNetworkCtrlBandwidth
-      //case pn:PointToPointNetwork => 1
-    //}
-    pcls.foreach { pcl =>
-      val recs = ListBuffer[String]()
-      pcl match {
-        case pcu:PCU => 
-          val qpcu = quote(pcu)
-          val culabel = mapping.fold(qpcu) { mp => mp.clmap.pmap.get(pcu).fold(qpcu) { cu => 
-            val icl = cu.asInstanceOf[ICL]
-            s"{$qpcu|${(icl +: icl.outers).mkString(s"|")}}"} 
+  def emitPNEs(pne:PNE, mapping:Option[PIRMap]) = {
+    var attr = DotAttr().shape(Mrecord)
+    def mappedLabel(pne:PNE):String = {
+      mapping.fold(quote(pne)) { mp => mp.clmap.pmap.get(pne).fold(quote(pne)) { cl => s"${quote(pne)}|$cl"} }
+    }
+    val recs = ListBuffer[String]()
+    pne match {
+      case pcl@(_:PCU | _:PMC) => 
+        def ports(dir:String) = {
+          var ins = io(pcl).inAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+          var outs = io(pcl).outAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
+          val maxLength = Math.max(ins.size, outs.size)
+          ins = ins ++ List.fill(maxLength-ins.size){""}
+          outs = outs ++ List.fill(maxLength-outs.size){""}
+          val ios = ins.zip(outs).flatMap{case (i,o) => 
+            if (dir=="S" || dir=="E") List(o,i)
+            else List(i,o)
           }
-          def ports(dir:String) = {
-            var ins = pne(pcu).inAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
-            var outs = pne(pcu).outAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
-            val maxLength = Math.max(ins.size, outs.size)
-            ins = ins ++ List.fill(maxLength-ins.size){""}
-            outs = outs ++ List.fill(maxLength-outs.size){""}
-            val ios = ins.zip(outs).flatMap{case (i,o) => 
-              if (dir=="S" || dir=="E") List(o,i)
-              else List(i,o)
-            }
-            ios.mkString("|")
+          ios.mkString("|")
+        }
+        recs += s"{${ports("NW")}  | ${ports("N")}          | ${ports("NE")}}"
+        recs += s"{{${ports("W")}} | {${mappedLabel(pcl)}}  | {${ports("E")}}}"
+        recs += s"{${ports("SW")}  | ${ports("S")}          | ${ports("SE")}}"
+      case ptop:PTop => recs += s"$ptop" 
+      case psb:PSB => 
+        recs += mapping.flatMap { mp => 
+          if (io(psb).ins.exists( in => mp.fbmap.contains(in))) { 
+            attr.style(filled).fillcolor(indianred) 
+            val xbar = io(psb).outs.flatMap { out => 
+              mp.fpmap.get(out.voport).map{ fp =>
+                s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
+              }
+            }.mkString(s"|") 
+            Some(s"${quote(psb)}|${xbar}")
+          } else {
+            None
           }
-          recs += s"{${ports("NW")}  | ${ports("N")} | ${ports("NE")}}"
-          recs += s"{{${ports("W")}} | ${culabel}    | {${ports("E")}}}"
-          recs += s"{${ports("SW")}  | ${ports("S")} | ${ports("SE")}}"
-        case ptop:PTop => recs += s"$ptop" 
+        }.getOrElse(quote(psb))
+    }
+    val label = s"{${recs.mkString("|")}}"
+    pne match {
+      case pscu:PSCU => coordOf.get(pscu).foreach { case (x,y) => attr.pos((x*scale, (y-0.3)*scale)) }
+      case pmc:PMC => coordOf.get(pmc).foreach { case (x,y) => attr.pos((x*scale, (y-0.7)*scale)) }
+      case pocu:POCU => coordOf.get(pocu).foreach { case (x,y) => attr.pos(((x-0.3)*scale, (y-0.3)*scale)) }
+      case pcu:PCU => coordOf.get(pcu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
+      case psb:PSB => coordOf.get(psb).foreach { case (x,y) => attr.pos(((x-0.5)*scale, (y-0.5)*scale)) }
+      case _ =>
+    }
+    mapping.foreach { mp => 
+      if (mp.clmap.pmap.contains(pne)) attr.style(filled).fillcolor(indianred)
+      if (io(pne).ins.exists( in => mp.fbmap.contains(in))) { 
+        attr.style(filled).fillcolor(indianred) 
+        val xbar = io(pne).outs.flatMap { out => 
+          mp.fpmap.get(out.voport).map{ fp =>
+            s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
+          }
+        }.mkString(s"|") 
+        recs += xbar
       }
-      val label = s"{${recs.mkString("|")}}"
-      var attr = DotAttr().shape(Mrecord)
-      pcl match {
-        case pmc:PMC => coordOf.get(pmc).foreach { case (x,y) => attr.pos((x*scale, y*scale-scale/2)) }
-        case pcu:PCU => coordOf.get(pcu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
-        case _ =>
-      }
-      mapping.foreach { mp => if (mp.clmap.pmap.contains(pcl)) attr.style(filled).fillcolor(indianred) }
-      val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
-      val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
-      pcl match {
-        case pcu:PCU =>
-          emitNode(pcl, label, attr)
-        case ptop:PTop => s"$ptop" 
-          emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
-          emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
-      }
-      pne(pcl).ins.foreach { in =>
-        emitInput(pcl, in, mapping)
-      }
+    }
+    val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
+    val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
+    pne match {
+      case ptop:PTop => s"$ptop" 
+        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
+        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
+      case _ =>
+        emitNode(pne, label, attr)
     }
   }
   def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap])(implicit design:Design) = {
@@ -126,9 +166,9 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       val attr = DotAttr().shape(Mrecord)
       coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
       val label = mapping.flatMap { mp => 
-        if (pne(sb).ins.exists( in => mp.fbmap.contains(in))) { 
+        if (io(sb).ins.exists( in => mp.fbmap.contains(in))) { 
           attr.style(filled).fillcolor(indianred) 
-          val xbar = pne(sb).outs.flatMap { out => 
+          val xbar = io(sb).outs.flatMap { out => 
             mp.fpmap.get(out.voport).map{ fp =>
               s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
             }
@@ -139,7 +179,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         }
       }.getOrElse(quote(sb))
       emitNode(sb, label, attr)
-      pne(sb).ins.foreach { pin =>
+      io(sb).ins.foreach { pin =>
         pin.fanIns.foreach { pout =>
           val attr = DotAttr()
           mapping.foreach { mp => 
@@ -152,6 +192,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
           pout.src match {
             case from:PSB => emitEdge(s"$from", sb, attr)
             case from:PCU => emitEdge(s"$from:$pout", sb, attr)
+            case from:PMC => emitEdge(s"$from:$pout", sb, attr)
             case from:PTop => emitEdge(quote(from, coordOf(sb)._2==0), sb, attr)
           }
         }
@@ -159,55 +200,66 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
   }
 
-  def emitInput(pcl:PCL, pin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
+  def emitInput(pin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
+    val pne:PNE = pin.src
     pin.fanIns.foreach { pout =>
       val attr = DotAttr()
       mapping.foreach { m => 
-        if (m.fbmap.get(pin).fold(false){ pvo => pvo == pout }) {
+        if (m.fbmap.get(pin).fold(false){ _ == pout }) {
           attr.color(indianred).style(bold)
-          m.vimap.pmap.get(pin).foreach { in =>
-            var label = pout.src match {
-              case cu:PCU if m.clmap.pmap.contains(cu) =>
-                in match {
-                  case dvi:DVI => s"${dvi.vector}[\n${dvi.vector.scalars.mkString(",\n")}]"
-                  case vi:VI => s"${vi.vector}"
-                  case op:OP => ""
-                  case vis:ISet[_] => s"${vis.mkString(",")}"
-                }
-              case top:PTop =>
-                val dvo = m.vomap.pmap(pout).asInstanceOf[DVO] 
-                s"${dvo.vector}[\n${dvo.vector.scalars.mkString(",\n")}]"
-              case s => ""
+          val label = ListBuffer[String]()
+          m.vimap.pmap.get(pin).foreach { ins =>
+            ins.foreach {
+              case vi:VI => label += s"${vi.vector}"
+              case si:SI => label += s"${si.scalar}"
+              case ip:IP => label += s"${ip}"
             }
-            val cl = m.clmap.pmap(pcl)
-            in match {
-              case op:OP =>
-                val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
-                label += s"to:[${to.mkString(",\n")}]\nfrom:${op}" 
-              case _ =>
-            }
-            attr.label(label)
+            //pout.src match {
+              //case cl@(_:PCU | _:PTop | _:PMC) if m.clmap.pmap.contains(cl) =>
+                //in match {
+                  //case vi:VI => s"${vi.vector}"
+                  //case si:SI => s"${si.vector}"
+                  ////case op:OP => ""
+                //}
+              //case psb:PSB => s"\n(o-${indexOf(pout)})"
+            //}
+            //val cl = m.clmap.pmap(pne)
+            //in match {
+              //case op:OP =>
+                //val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
+                //label += s"to:[${to.mkString(",\n")}]\nfrom:${op}" 
+              //case _ =>
+            //}
           }
+          m.vomap.pmap.get(pout).foreach { out =>
+            out match {
+              case vo:VO => label += s"${vo.vector}"
+              case so:SO => label += s"${so.scalar}"
+              case op:OP => label += s"${op}"
+            }
+          }
+          attr.label(label.mkString("\n"))
         }
       }
-      pout.src match {
+      val to = pin.src match {
+        case psb:PSB => s"$psb"
+        case ptop:PTop => quote(ptop, coordOf(pout.src)._2==0)
+        case _ => s"$pne:$pin"
+      }
+      val from = pout.src match {
         case from:PSB =>
           attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pout)})") }
-          pcl match {
-            case ptop:PTop => emitEdge(from, quote(ptop, coordOf(from)._2==0), attr)
-            case _ => emitEdge(from, s"$pcl:$pin", attr)
-          }
-        case from:PCU =>
-          emitEdge(from, pout, pcl, pin, attr)
+          s"$from"
         case from:PTop =>
           spade match {
             case sn:SwitchNetwork =>
               val bottom = coordOf(pin.src)._2==0 
-              emitEdge(quote(from, bottom), s"$pcl:$pin", attr)
-            case pn:PointToPointNetwork =>
-              emitEdge(quote(from), s"$pcl:$pin", attr)
+              quote(from, bottom)
+            case pn:PointToPointNetwork => quote(from)
           }
+        case from => s"$from:$pout"
       }
+      emitEdge(from, to, attr)
     }
   }
 }
@@ -218,9 +270,9 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
   def this()(implicit design:Design) = this(false)
 
-  val scale = 12
+  val scale = 15
 
-  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
 }
 
 class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
@@ -229,9 +281,9 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open)
   def this()(implicit design:Design) = this(false)
   
-  val scale = 12
+  val scale = 15
 
-  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
 }
 
 class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
@@ -240,9 +292,9 @@ class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open)
   def this()(implicit design:Design) = this(false)
   
-  val scale = 12
+  val scale = 15
 
-  def pne(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
 }
 
 object ArgDotPrinter extends Metadata{

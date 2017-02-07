@@ -19,33 +19,36 @@ class SpadeTest extends UnitTest { self =>
   "SN_2x2" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
       override val arch = SN_2x2
-      new CUCtrlDotPrinter().print
-      s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
+      //new CUCtrlDotPrinter().print
+      //s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
+
+      //new CUScalarDotPrinter().print
+      //s"out/bin/run -c out/ScalNetwork".replace(".dot", "") !
 
       new CUVectorDotPrinter().print
-      s"out/bin/run -c out/Network".replace(".dot", "") !
+      s"out/bin/run -c out/VecNetwork".replace(".dot", "") !
     }
     design.arch match {
       case sn:SwitchNetwork =>
-        (sn.sbs ++ sn.csbs).flatten.foreach { sb => 
-          sb.vins.foreach { vin => 
-            if (vin.fanIns.size>1) { 
-              println(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
-              throw PIRException(s"Switchbox $sb has $vin with fanIns > 1 ${vin.fanIns}")
+        sn.sbs.foreach { sb => 
+          (sb.vectorIO.ins ++ sb.scalarIO.ins ++ sb.ctrlIO.ins).foreach { in => 
+            if (in.fanIns.size>1) { 
+              println(s"Switchbox $sb has $in with fanIns > 1 ${in.fanIns}")
+              throw PIRException(s"Switchbox $sb has $in with fanIns > 1 ${in.fanIns}")
             }
           }
-          sb.vouts.foreach { vout => 
-            if (vout.fanOuts.size>1) {
-              throw PIRException(s"Switchbox $sb has $vout with fanOuts > 1 ${vout.fanOuts}")
+          (sb.vectorIO.outs ++ sb.scalarIO.outs ++ sb.ctrlIO.outs).foreach { out => 
+            if (out.fanOuts.size>1) {
+              throw PIRException(s"Switchbox $sb has $out with fanOuts > 1 ${out.fanOuts}")
             }
           }
         }
         sn.cus.foreach { pcu =>
-          (pcu.vins ++ pcu.cins).foreach { in => 
+          (pcu.vectorIO.ins ++ pcu.scalarIO.ins ++ pcu.ctrlIO.ins).foreach { in => 
             if (in.fanIns.size>1) 
               throw PIRException(s"ComputeUnit $pcu has $in with fanIns > 1 ${in.fanIns}")
           }
-          pcu.couts.foreach { out => 
+          pcu.ctrlIO.outs.foreach { out => 
             if (out.fanOuts.size>1) 
               throw PIRException(s"ComputeUnit $pcu has $out with fanOuts > 1 ${out.fanOuts}")
           }
