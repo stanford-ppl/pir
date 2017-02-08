@@ -47,14 +47,11 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     if (pdvouts.size!=0) {
       pirMap.setVI(n, p).setFB(p, pdvouts.head).setOP(n.out, p.viport)
     } else {
-      throw InterConnct(cl, pcl)
+      throw InterConnct(cl, pcl, pirMap)
     }
   }
 }
 
-case class UsedInBus(pib:PIB)(implicit val mapper:Mapper, design:Design) extends MappingException {
-  override val msg = s"Resource ${pib} has already been used"
-}
-case class InterConnct(cl:CL, pcl:PCL)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class InterConnct(cl:CL, pcl:PCL, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${cl} on ${pcl} due to interconnection constrain"
 }

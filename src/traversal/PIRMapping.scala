@@ -61,7 +61,7 @@ class PIRMapping(implicit val design: Design) extends Traversal{
     cmap
   }
 
-  val cuMapper:CUMapper = new CUMapper1() {
+  val cuMapper:CUMapper = new CUMapper() {
     override def finPass(m:PIRMap) = {
       //try {
         //m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
@@ -94,15 +94,20 @@ class PIRMapping(implicit val design: Design) extends Traversal{
         success = false
         info(s"Mapping failed")
         e match {
-          case e:OutOfResource =>
+          case e:OutOfResource[_] =>
             err(e)
             MapPrinter.printException(e)
+            mapping = e.mapping.asInstanceOf[PIRMap]
+          case ExceedExceptionLimit(mapper, m) =>
+            err(s"$e")
+            mapping = m.asInstanceOf[PIRMap]
           case PassThroughException(mapper, e, m) =>
             MapPrinter.printMap(m)
             MapPrinter.printException(e)
             mapping = m
-          case e:MappingException =>
+          case e:MappingException[_] =>
             MapPrinter.printException(e)
+            mapping = e.mapping.asInstanceOf[PIRMap]
           case e:PIRException => 
             MapPrinter.printException(e)
           case e => throw e 

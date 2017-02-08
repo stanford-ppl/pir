@@ -14,33 +14,10 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 
-class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRoute with Metadata {
+class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
   implicit def spade:Spade = design.arch
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
-
-  var debugRouting = false 
-  val minHop = 1
-  val maxHop = 7
-
-  override val exceptLimit = 200
-  if (Config.debugCtrlMapper) {
-    warn("debugCtrlMapper is on, could be slow!")
-  }
-
-  // DEBUG
-  val failPass:Throwable=>Unit = if (debugRouting) {
-    {
-      case e@FailToMapNode(_,n,es,mp) =>
-        println(s"${es.mkString("\n")}")
-        new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
-      case e:Throwable =>
-        println(e)
-    }
-  } else {
-    (e:Throwable) => ()
-  }
-  // DEBUG --
 
   def finPass(cu:CL)(m:M):M = m
 
@@ -52,157 +29,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
         case top:Top => pirMap
       }
       pmap
-    }
-  }
-
-  def getCins(cl:CL, mp:M):List[CIP] = {
-    val sameSrcMap = cl.ctrlIns.groupBy{ ci => ci.from.asInstanceOf[COP] }
-    sameSrcMap.flatMap { case (co, cins) =>
-      val mapped = cins.exists{ ci => mp.vimap.contains(ci) }
-      if (mp.clmap.contains(co.ctrler) && !mapped) cins else Nil
-    }.toList
-  }
-
-  def mapCtrlIOs(cl:CL)(fp:M => M)(pmap:M)(implicit cuMapper:CUSwitchMapper):M = {
-    mapCtrlIns(cl, fp)(pmap)
-    //new CUCtrlDotPrinter()(design).print(mp)
-  }
-
-  def getRoute(cl:CL, ci:CIP, map:M)(implicit cuMapper:CUSwitchMapper):PathMap = {
-    val co = ci.from.asInstanceOf[COP]
-    val fromcl = co.ctrler.asInstanceOf[CL]
-    val pfromcl = map.clmap(fromcl)
-    def validCons(toCU:PNE, fatpath: FatPath):Option[FatPath] = {
-      var valid = true
-      // If cl has been mapped, valid fatpath reaches current pcl
-      valid &&= map.clmap.get(cl).fold(cuMapper.resMap(cl).contains(toCU) && !map.clmap.pmap.contains(toCU)) {
-        _ == toCU
-      }
-      // fatpath is with required hops
-      valid &&= (fatpath.size >= minHop)
-      valid &&= (fatpath.size < maxHop)
-
-      /* Constrain on routing for hardwried connection in memory controller */
-      if (valid) {
-        var fp = fatpath
-        /* Constrian on MC's inputs */
-        cl match {
-          case mc:MC =>
-            var (rest, last) = fp.splitAt(fp.size-1)
-            var fatedge = last.head
-            fatedge = fatedge.filter { edge =>
-              val (pco, pci) = edge
-              if (ci==mc.ofsFIFO.get.enqueueEnable) 
-                (indexOf(pci) == spade.memCtrlCommandFIFOEnqBusIdx)
-              else if (mc.mctpe==TileStore && ci==mc.dataFIFO.get.enqueueEnable) 
-                (indexOf(pci) == spade.memCtrlDataFIFOEnqBusIdx)
-              else {
-                var vld = (indexOf(pci) != spade.memCtrlCommandFIFOEnqBusIdx)
-                if (mc.mctpe==TileStore) {
-                  vld &&= (indexOf(pci) != spade.memCtrlDataFIFOEnqBusIdx)
-                }
-                vld
-              }
-            }
-            fp = rest :+ fatedge
-          case _ =>
-        }
-        /* Constrian on MC's output */
-        fromcl match {
-          case mc:MC =>
-            var fatedge::rest = fp
-            fatedge = fatedge.filter { edge =>
-              val (pco, pci) = edge
-              if (co == mc.ofsFIFO.get.notFull) 
-                (indexOf(pco) == spade.memCtrlCommandFIFONotFullBusIdx)
-              else if (mc.mctpe==TileStore && co == mc.dataFIFO.get.notFull) 
-                (indexOf(pco) == spade.memCtrlDataFIFONotFullBusIdx)
-              else if (co==mc.dataValid)
-                (indexOf(pco) == spade.memCtrlDataValidBusIdx)
-              else {
-                var vld = (indexOf(pco) != spade.memCtrlCommandFIFONotFullBusIdx)
-                if (mc.mctpe==TileStore) {
-                  vld &&= (indexOf(pco) != spade.memCtrlDataFIFONotFullBusIdx)
-                }
-                vld
-              }
-            }
-            fp = fatedge::rest 
-          case _ =>
-        }
-
-        // Make sure picked pco is not already used
-        var fatedge::rest = fp 
-        fatedge = fatedge.filter { case (pco, pci) => !map.vomap.pmap.contains(pco) }
-        // If co is already placed, check if current fatpath can start from that pco, if not pick
-        // any unused pco
-        val optfatedge = fatedge.filter { case (pco, pci) =>
-          map.vomap.get(co).fold(!map.vomap.pmap.contains(pco)) { _ == pco }
-        }
-        if (optfatedge.size!=0) fatedge = optfatedge
-        fp = fatedge::rest
-
-        if (isFatPathValid(fp)) Some(fp) else None
-      } else {
-        None
-      }
-    }
-    def advanceCons(sb: PSB, fatpath: FatPath):Boolean = {
-      var valid = true
-      // If co is mapped, make sure start from that pco
-      //if (path.size == 1) map.vomap.get(co).fold(true) { pco => path.head._1 == pco } else true
-      // path is within maximum hop to continue
-      valid &&= (fatpath.size < maxHop)
-      valid
-    }
-    val routes = advance(pfromcl, validCons _, advanceCons _)
-    if (routes.size == 0) {
-      throw NotReachable(fromcl, pfromcl.asInstanceOf[PCL], cl, map.clmap.get(cl).asInstanceOf[Option[PCL]])
-    }
-    filterUsedRoutes(routes, map)
-  }
-
-  def mapCtrlIns(cl:CL, fp:M => M)(map:M)(implicit cuMapper:CUSwitchMapper):M = {
-    type N = CIP
-    type R = (PNE, Path)
-    val remainCtrlIns = getCins(cl, map)
-    if (remainCtrlIns.size==0) return fp(map)
-    val ci = remainCtrlIns.head
-    def cons(n:N, r:R, m:M, es:List[MappingException]):M = {
-      val (reachedCU, path) = r
-      val pcin = path.last._2
-      val pcout = path.head._1
-      // Map all cin with the same source
-      val sameSrcMap = cl.ctrlIns.groupBy{ ci => ci.from }
-      var mp = sameSrcMap(n.from).foldLeft(m) { case (pm, n) =>
-        pm.setVI(n, pcin).setVO(n.from, pcout).setRT(n, path.size)
-      }
-      mp = cuMapper.bindCU(cl, reachedCU.asInstanceOf[PCL], mp, es)
-      path.zipWithIndex.foreach { case ((vout, vin), i) => 
-        mp = mp.setFB(vin, vout)
-        if (vout.src.isInstanceOf[PSB]) { // Config SwitchBox
-          val to = vout.voport
-          val from = path(i-1)._2.viport
-          mp = mp.setFP(to, from)
-        }
-      }
-      mp
-    }
-    val allRoutes = getRoute(cl, ci, map)
-    def resFilter(triedRes:List[R], es:List[MappingException]) = {
-      val remainRoutes = allRoutes.diff(triedRes)
-      flattenExceptions(es).foldLeft(remainRoutes) { case (remainRoutes, except) =>
-        except match {
-          case NotReachable(target, ptarget, _, _) if (cl == target) => 
-            remainRoutes.filterNot { case (reachedCU, path) => reachedCU == ptarget }
-          case _ => remainRoutes 
-        }
-      }
-    }
-    val fromCU = ci.ctrler
-    val info = s"Mapping $ci in $cl from ${ci.from} in $fromCU" 
-    log(info, ((m:M) => ()), failPass) {
-      recResWithExcept[R,N,M](ci, cons _, resFilter _, mapCtrlIns(cl, fp) _, map)
     }
   }
 
@@ -265,22 +91,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with FatPlaceAndRout
     pmap.set(ucmap).set(lumap)
   }
 
-  def advance(start:PNE, validCons:(PNE, FatPath) => Option[FatPath], advanceCons:(PSB, FatPath) => Boolean):FatPaths = {
-    //CUSwitchMapper.advance(vouts _)(start, validCons, advanceCons)
-    advance((pne:PNE) => pne.ctrlIO.outs)(start, validCons, advanceCons)
-    //advanceBFS(vouts _)(start, validCons, advanceCons)
-  }
 }
 
-case class BindingException(cl:CL, pcl:PCL, except:NotReachable)(implicit val mapper:Mapper, design:Design) extends MappingException {
-  override val msg = s"Not mapping $cl to $pcl due to $except"
-}
-case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL])(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Cannot map $to to $topcu because due to incapable of reaching from $fromcu at $frompcu"
 }
-case class CtrlRouting(cu:CL, e:MappingException)(implicit val mapper:Mapper, design:Design) extends MappingException {
-  override val msg = s"Fail to map ctrl for ${cu} due to $e"
-}
-//case class CtrRouting(n:Ctr, p:PCtr)(implicit val mapper:Mapper, design:Design) extends MappingException {
-//  override val msg = s"Fail to map ${n} to ${p}"
-//}

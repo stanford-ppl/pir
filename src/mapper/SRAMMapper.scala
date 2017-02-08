@@ -31,7 +31,7 @@ class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
           val PPR(pstage, _) = fi.src
           pstage == p.ctrler.stages.head
         }.map(_.src.asInstanceOf[PPR].reg).toList
-        if ((ibpregs intersect srampregs).size == 0) throw SRAMRouting(s,p)
+        if ((ibpregs intersect srampregs).size == 0) throw new SRAMRouting(s,p,map)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
     }
     var mp = map.setSM(s, p).setOP(s.readPort, p.readPort).setIP(s.writePort, p.writePort)
@@ -69,6 +69,6 @@ class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
   }
 }
 
-case class SRAMRouting(n:OnMem, p:PSRAM)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class SRAMRouting(n:OnMem, p:PSRAM, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}"
 }

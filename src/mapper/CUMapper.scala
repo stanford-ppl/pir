@@ -12,10 +12,20 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-abstract class CUMapper(implicit design:Design) extends Mapper {
+class CUMapper(implicit ds:Design) extends Mapper {
+  def design:Design = ds 
+  def typeStr = "CUMapper"
+
   override implicit val mapper:CUMapper = this
+
+  override val exceptLimit = 200
+
+  val routers = ListBuffer[Router]()
+  routers += new VectorRouter()
+  routers += new ScalarRouter()
+  routers += new ControlRouter()
+
   def finPass(m:M):M = m
-  def map(m:M):M
   override def debug = Config.debugCUMapper
 
   lazy val resMap:Map[CL, List[PNE]] = qualifyCheck
@@ -115,55 +125,6 @@ abstract class CUMapper(implicit design:Design) extends Mapper {
     }
     map.toMap
   }
-}
-
-object CUMapper {
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper, fp:PIRMap => PIRMap)(implicit design:Design):CUMapper = {
-    design.arch match {
-      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper) { override def finPass(m:M):M = fp(m) }
-      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper) { override def finPass(m:M):M = fp(m) }
-      case _ => throw PIRException("Unknown network type")
-    }
-  }
-  def apply(outputMapper:OutputMapper, viMapper:VecInMapper, ctrlMapper:CtrlMapper)(implicit design:Design):CUMapper = {
-    design.arch match {
-      case sn:SwitchNetwork => new CUSwitchMapper(outputMapper, ctrlMapper)
-      case pn:PointToPointNetwork => new CUP2PMapper(outputMapper, viMapper)
-      case _ => throw PIRException("Unknown network type")
-    }
-  }
-}
-
-class CUMapper1()(implicit val design:Design) extends CUMapper {
-  var debugRouting = false 
-  val typeStr = "CUMapper"
-
-  override implicit val mapper:CUMapper1 = this
-
-  override val exceptLimit = 200
-
-  val routers = ListBuffer[Router]()
-  routers += new VectorRouter()
-  routers += new ScalarRouter()
-  routers += new ControlRouter()
-
-  // DEBUG
-  val failPass:Throwable=>Unit = if (debugRouting) {
-    {
-      case e@FailToMapNode(_,n,es,mp) =>
-        val node = n match {
-          case (vi, cu) => (vi.asInstanceOf[VI].vector, cu)
-          case n => n
-        }
-        println(s"Fail to map ${node} $es")
-        new CUVectorDotPrinter(true)(design).print(mp.asInstanceOf[M])
-      case e:Throwable =>
-        println(e)
-    }
-  } else {
-    (e:Throwable) => ()
-  }
-  // DEBUG --
 
   def place(cl:CL, pne:PNE, m:M):M = {
     dprintln(s"Try $cl -> $pne")
@@ -230,21 +191,21 @@ class CUMapper1()(implicit val design:Design) extends CUMapper {
 
 }
 
-case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:CUMapper, design:Design) extends MappingException {
+case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:CUMapper, design:Design) extends MappingException(PIRMap.empty) {
   override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
 } 
-case class OutOfPMC(pnodes:List[PMC], nodes:List[MC]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfPMC(pnodes:List[PMC], nodes:List[MC]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough MemoryController in ${design.arch} to map application."
 } 
-case class OutOfPCU(pnodes:List[PCU], nodes:List[CU]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfPCU(pnodes:List[PCU], nodes:List[CU]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
 } 
-case class OutOfSCU(pnodes:List[PSCU], nodes:List[SP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfSCU(pnodes:List[PSCU], nodes:List[SP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough ScalarComputeUnits in ${design.arch} to map application."
 } 
-case class OutOfMCU(pnodes:List[PMCU], nodes:List[MP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfMCU(pnodes:List[PMCU], nodes:List[MP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough MemoryComputeUnits in ${design.arch} to map application."
 } 
-case class OutOfOCU(pnodes:List[POCU], nodes:List[OCL]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource {
+case class OutOfOCU(pnodes:List[POCU], nodes:List[OCL]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough OuterComputeUnit in ${design.arch} to map application."
 } 

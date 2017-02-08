@@ -116,8 +116,7 @@ class CUMapperTest extends UnitTest with Metadata {
       // Mapping
       val outputMapper = new OutputMapper()
       val viMapper = new VecInMapper()
-      val ctrlMapper = new CtrlMapper()
-      val mapper = CUMapper(outputMapper, viMapper, ctrlMapper)
+      val mapper = new CUP2PMapper(outputMapper, viMapper)
 
       new PIRDataDotGen().run
       Try {

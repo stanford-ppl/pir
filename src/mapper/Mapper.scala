@@ -18,11 +18,11 @@ object MapperLogger extends Logger {
 }
 trait Mapper { self =>
   type M = PIRMap 
-  type E = MappingException
+  type E = MappingException[_]
 
   implicit val mapper = self
   val exceptLimit:Int = -1
-  lazy val mapExceps = ListBuffer[MappingException]()
+  lazy val mapExceps = ListBuffer[MappingException[_]]()
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
   implicit def design:Design
@@ -118,7 +118,7 @@ trait Mapper { self =>
         case Failure(e) => 
           //dbeln(s"(failed) ${e}")
           e match {
-            case NoSolFound(_, es) => exceps ++= es
+            case NoSolFound(_, es, mp) => exceps ++= es
             case FailToMapNode(_, n, es, mp) => exceps ++= es 
             case me:E => exceps += me// constrain failed
             case _ => throw e
@@ -136,9 +136,9 @@ trait Mapper { self =>
     initMap:M, 
     constrain:(N, R, M) => M,
     finPass: M => M,
-    oor:(List[R], List[N]) => OutOfResource
+    oor:(List[R], List[N], M) => OutOfResource[M]
   ):M = {
-    checkOOR(allRes, allNodes, oor)
+    checkOOR(allRes, allNodes, initMap, oor)
     bind(allRes, allNodes, initMap, constrain, finPass)
   }
 
@@ -194,7 +194,7 @@ trait Mapper { self =>
           recRes[R,N,M](n, constrain, rf _, rn _, map)
         } 
       }
-      throw NoSolFound(this, exceps.toList) 
+      throw NoSolFound(this, exceps.toList, map) 
     }
 
     recNode(allNodes, initMap)
@@ -214,8 +214,8 @@ trait Mapper { self =>
   def bindInOrder[R<:PNode,N<:Node,M](allRes:List[R], allNodes:List[N], initMap:M, 
     constrains:List[(N, R, M) => M],
     finPass: M => M, 
-    oor:(List[R], List[N]) => OutOfResource):M = {
-    checkOOR(allRes, allNodes, oor)
+    oor:(List[R], List[N], M) => OutOfResource[M]):M = {
+    checkOOR(allRes, allNodes, initMap, oor)
     bindInOrder(allRes, allNodes, initMap, constrains, finPass)
   }
 
@@ -247,7 +247,7 @@ trait Mapper { self =>
         } match {
           case Success(m) => return m 
           case Failure(e) => e match {
-            case NoSolFound(_, es) => exceps ++= es
+            case NoSolFound(_, es, mp) => exceps ++= es
             case FailToMapNode(_, n, es, mp) => exceps ++= es 
             case me:E => exceps += me // constrains failed
             case _ => throw e // Unknown exception
@@ -274,7 +274,7 @@ trait Mapper { self =>
         case Success(m) => return m
         case Failure(e) => e match { 
           case fe:FailToMapNode[_] => 
-            throw NoSolFound(this, List(fe)) // recRes failed
+            throw NoSolFound(this, List(fe), fe.mapping) // recRes failed
           case _ => throw e // Unknown exception
         }
       }
@@ -283,15 +283,16 @@ trait Mapper { self =>
     recMap(allRes, allNodes, initMap)
   }
   
-  private def checkOOR[R<:PNode,N<:Node](pnodes:List[R], nodes:List[N], oor:(List[R], List[N]) => OutOfResource) = {
-    if (pnodes.size < nodes.size) throw oor(pnodes, nodes)
+  private def checkOOR[R<:PNode,N<:Node, M](pnodes:List[R], nodes:List[N], mp:M, 
+    oor:(List[R], List[N], M) => OutOfResource[M]) = {
+    if (pnodes.size < nodes.size) throw oor(pnodes, nodes, mp)
   }
 
   def flattenExceptions(es:List[E]):Set[E] = {
     es.flatMap { e =>
       e match {
         case FailToMapNode(mapper, n, exceps, m) => flattenExceptions(exceps)
-        case NoSolFound(mapper, exceps) => flattenExceptions(exceps)
+        case NoSolFound(mapper, exceps, m) => flattenExceptions(exceps)
         case e => e::Nil
       }
     }.toSet

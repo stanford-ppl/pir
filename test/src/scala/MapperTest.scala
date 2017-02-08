@@ -15,6 +15,10 @@ import scala.collection.mutable.ListBuffer
 
 class MapperTest extends UnitTest { self =>
 
+  type R = Int
+  type N = Int
+  type M = Map[N,R]
+
   "InOrderBind Test1" should "fail" in {
     new Design { self =>
       implicit val ctrler:CU = null 
@@ -29,12 +33,14 @@ class MapperTest extends UnitTest { self =>
       val nodes = List.tabulate(5){i => i}; 
       val pnodes = List.tabulate(10){i => i}
       // Printer
-      def cons(n:Int, r:Int, m:Map[Int,Int]):Map[Int, Int] = {
+      def cons(n:R, r:R, m:M):M = {
         if (r > pnodes.size/2 - n) m + (n -> r )
-        else throw new { val mapper = testMapper; val msg = "Constrain failed" } with MappingException
+        else throw new { 
+          val mapper = testMapper; val msg = "Constrain failed"
+        } with MappingException[M](m)
       }
-      intercept[MappingException] {
-        val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:Map[Int,Int]) => m)
+      intercept[MappingException[M]] {
+        val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:M) => m)
       }
     }
   }
@@ -58,12 +64,14 @@ class MapperTest extends UnitTest { self =>
         resMap += n -> (pnodes.size/2-i until pnodes.size).toList
       }
       // Printer
-      def cons(n:Int, r:Int, m:Map[Int,Int]):Map[Int, Int] = {
+      def cons(n:Int, r:Int, m:M):M = {
         if (resMap(n).contains(r)) {
           m + (n -> r )
-        } else throw new { val mapper = testMapper; val msg = "Constrain failed" } with MappingException
+        } else throw new {
+          val mapper = testMapper; val msg = "Constrain failed"
+        } with MappingException[M](m)
       }
-      val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:Map[Int,Int]) => m)
+      val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:M) => m)
       var curRes = -1;
       nodes.foreach { n =>
         assert(mp(n) > curRes)

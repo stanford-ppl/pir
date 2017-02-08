@@ -112,6 +112,3 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class CtrRouting(n:Ctr, p:PCtr)(implicit val mapper:Mapper, design:Design) extends MappingException {
-  override val msg = s"Fail to map ${n} to ${p}"
-}

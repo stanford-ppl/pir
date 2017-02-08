@@ -29,7 +29,7 @@ package object misc extends Logger {
   implicit def sram_to_outport(sram:SRAM):OutPort = sram.readPort
   implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
   implicit def const_to_port(const:Const):OutPort = const.out
-  implicit def mExcep_to_string(e:MappingException):String = e.toString
+  implicit def mExcep_to_string(e:MappingException[_]):String = e.toString
   implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
   implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
     (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)

@@ -23,13 +23,15 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
   lazy val design = new Design with PlaceAndRoute {
     // PNodes
     override val arch = SN_4x4 
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
+    val mapper = new CUMapper().routers.collect{case vr:VectorRouter => vr}.head
     def checkRange(start:PCU, min:Int, max:Int, shouldContain:List[PCU], shouldNotContain:List[PCU]) = {
-      def cuCons(toVin:PIB, path:Path) = { 
-        val pcu = toVin.src
-        (path.size >= min) && (path.size < max) && (pcu!=start)
+      def cuCons(pcu:PCL, path:mapper.FatPath) = { 
+        if ((path.size >= min) && (path.size < max) && (pcu!=start))
+          Some(path)
+        else
+          None
       }
-      def sbCons(psb:PSB, path:Path) = (path.size < max)
+      def sbCons(psb:PSB, path:mapper.FatPath) = if (path.size < max) Some(path) else None
       val result = mapper.advance(start, cuCons _, sbCons _)
       // println(s"start: ${quote(start)}")
       //result.foreach { case (to, path) =>
@@ -124,7 +126,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       override val arch = SN_4x4 
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
+      val mapper = new CUMapper()
 
       new PIRDataDotGen().run
       Try {
@@ -209,7 +211,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       new ScalarBundling().run
       new PIRPrinter().run
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
+      val mapper = new CUMapper()
 
       new PIRDataDotGen().run
       Try {
@@ -259,7 +261,7 @@ class CUSwitchMapperTest extends UnitTest with Metadata {
       // PNodes
       implicit override val arch = SN_4x4 
       // Mapping
-      val mapper:CUSwitchMapper = new CUSwitchMapper(new OutputMapper(), None)
+      val mapper = new CUMapper()
       new PIRDataDotGen().run
       Try {
         mapper.map(PIRMap.empty)

@@ -34,6 +34,17 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   val mode:Mode = AllCU 
   //val mode:Mode = OnlyOCU 
+  
+  def linkColor = Color("indianred1") 
+  def color(pne:PNE):Color = pne match {
+    case pscu:PSCU => Color("palevioletred1")
+    case pmcu:PMCU => Color("lightseagreen")
+    case pocu:POCU => Color("orange")
+    case pcu:PCU => Color("dodgerblue")
+    case pmc:PMC => Color("forestgreen")
+    case psb:PSB => linkColor 
+    case ptop:PTop => Color("indianred1")
+  }
 
   override def quote(n:Any)(implicit design:Design):String = {
     n match {
@@ -117,7 +128,6 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       case psb:PSB => 
         recs += mapping.flatMap { mp => 
           if (io(psb).ins.exists( in => mp.fbmap.contains(in))) { 
-            attr.style(filled).fillcolor(indianred) 
             val xbar = io(psb).outs.flatMap { out => 
               mp.fpmap.get(out.voport).map{ fp =>
                 s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
@@ -139,9 +149,9 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       case _ =>
     }
     mapping.foreach { mp => 
-      if (mp.clmap.pmap.contains(pne)) attr.style(filled).fillcolor(indianred)
+      if (mp.clmap.pmap.contains(pne)) attr.style(filled).fillcolor(color(pne))
       if (io(pne).ins.exists( in => mp.fbmap.contains(in))) { 
-        attr.style(filled).fillcolor(indianred) 
+        attr.style(filled).fillcolor(color(pne)) 
         val xbar = io(pne).outs.flatMap { out => 
           mp.fpmap.get(out.voport).map{ fp =>
             s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
@@ -206,7 +216,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       val attr = DotAttr()
       mapping.foreach { m => 
         if (m.fbmap.get(pin).fold(false){ _ == pout }) {
-          attr.color(indianred).style(bold)
+          attr.color(linkColor).style(bold)
           val label = ListBuffer[String]()
           m.vimap.pmap.get(pin).foreach { ins =>
             ins.foreach {
@@ -284,6 +294,7 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   val scale = 15
 
   def io(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+
 }
 
 class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 

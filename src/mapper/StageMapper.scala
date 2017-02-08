@@ -27,7 +27,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
       val est :: fusts = cu.stages.toList
       var cmap = mapStage(est, pest, cuMap)
       log(s"$cu bindStages") {
-        def oor(pnodes:List[PST], nodes:List[ST]) = OutOfStage(pcu, cu, pnodes, nodes)
+        def oor(pnodes:List[PST], nodes:List[ST], mapping:PIRMap) = OutOfStage(pcu, cu, pnodes, nodes, mapping)
         cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, oor _)
       }
       stageFowarding(pcu, cmap)
@@ -58,13 +58,13 @@ class StageMapper(implicit val design:Design) extends Mapper {
       var cmap = map.setST(n, p)
       n match {
         case s:EST => 
-          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p)
+          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, cmap)
           cmap = mapPROut(n, p, cmap)
           cmap = mapPRIn(n, p, cmap)
         case fs => fs match {
-            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p)
-            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p)
-            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p)
+            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p, cmap)
+            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p, cmap)
+            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p, cmap)
           }
           cmap = mapPROut(n, p, cmap)
           cmap = mapFUOut(n, p, cmap)
@@ -88,7 +88,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
         }
       case _ =>
         log(s"$n bind FU Inputs") {
-          def oor(pnodes:List[PIP], nodes:List[IP]) = OutOfOperand(p, n, pnodes, nodes)
+          def oor(pnodes:List[PIP], nodes:List[IP], mapping:M) = OutOfOperand(p, n, pnodes, nodes, mapping)
           bind(poprds, oprds, map, mapInPort _, (m:M) => m, oor _)
         }
     }
@@ -98,7 +98,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val fu = n.fu.get
     val pfu = p.asInstanceOf[PFUST].fu
     // Check Operation 
-    if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n)
+    if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, map)
     // Check Result 
     mapOutPort(p)(fu.out, pfu.out, map)
   }
@@ -115,7 +115,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   def mapPROut(stage:ST, pstage:PST, map:M):M = {
     val nres = pstage.prs.size
     val nnode = stage.prs.size
-    if (nnode > nres) throw OutOfPipeReg(pstage, stage, pstage.prs.values.toList, stage.prs.values.toList)
+    if (nnode > nres) throw OutOfPipeReg(pstage, stage, pstage.prs.values.toList, stage.prs.values.toList, map)
 
     val rcmap = map.rcmap
     stage.prs.foldLeft(map) { case (pmap, (reg, pr)) =>
@@ -135,7 +135,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
       case Const(_, c) =>
         if (!r.canFrom(design.arch.const.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
-          throw InPortRouting(n, r, info)
+          throw InPortRouting(n, r, info, map)
         } else ConstVal(c)(design.arch).out
       case pr@PipeReg(stage, reg) => 
         val preg = rcmap(reg)
@@ -146,7 +146,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
             val rmp = r.asInstanceOf[PRMPT] 
             if (!rmp.isMappedTo(preg)) { // inport doens't map to logical reg
               val info = s"${n} connects to PipeReg ${pr}. Mapped to PipeReg: ${ppr}. r's mappedReg:${rmp.mappedRegs}"
-              throw InPortRouting(n, r, info) 
+              throw InPortRouting(n, r, info, map) 
             } else { // inport map to logical reg but have some slack to reach pr
               var info = "" 
               val pcurStage = rp.stage
@@ -155,13 +155,13 @@ class StageMapper(implicit val design:Design) extends Mapper {
               } else if (pstage == pcurStage) {
                 if (!rp.canFrom(ppr.out)) {
                   info = s"Cannot find connection to ${ppr}: " 
-                  throw InPortRouting(n, r, info)
+                  throw InPortRouting(n, r, info, map)
                 } else {
                   ppr.out
                 }
               } else {
                 info = s"Cannot read later stage. reader:${pcurStage} to:${pstage}"
-                throw InPortRouting(n, r, info)
+                throw InPortRouting(n, r, info, map)
               }
             } 
           case rp => // src of the inport doesn't belong to a stage. e.g. counter max
@@ -176,7 +176,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
               }
               if (r.canFrom(curppr.out)) pop = ppr.out
             } while (!curppr.stage.isLast) 
-            if (pop==null) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}")
+            if (pop==null) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}", map)
             else pop
         }
       case s => // src of the inport doesn't belong to a stage
@@ -185,7 +185,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
         val info = s"${n} connects to ${n.from}. Mapped OutPort:${pport}"
         if (!r.canFrom(pport)) {
           dprintln(s"Fail mapping $n because $r can't from $pport. ${r.fanIns}")
-          throw InPortRouting(n, r, info)
+          throw InPortRouting(n, r, info, map)
         }
         else pport
     }
@@ -204,21 +204,21 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
 }
-case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
-case class OpNotSupported(ps:PST, s:ST)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
 }
-case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."
 }
-case class OutOfOperand(ps:PST, s:ST, pnodes:List[PIP], nodes:List[IP])(implicit val mapper:Mapper, design:Design) extends OutOfResource {
+case class OutOfOperand(ps:PST, s:ST, pnodes:List[PIP], nodes:List[IP], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough operands in ${ps} to map ${s}."
 }
-case class StageRouting(n:ST, p:PST)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}"
 }
-case class InPortRouting(n:IP, p:PIP, info:String)(implicit val mapper:Mapper, design:Design) extends MappingException {
+case class InPortRouting(n:IP, p:PIP, info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }

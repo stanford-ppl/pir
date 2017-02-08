@@ -6,10 +6,10 @@ import pir.typealias._
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success, Failure}
 
-class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val design:Design) extends CUMapper {
+class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit design:Design) extends CUMapper {
   type R = PNE
   type N = CL
-  val typeStr = "CUP2PMapper"
+  override def typeStr = "CUP2PMapper"
 
   def mapCU(cu:N, pcu:R, pirMap:M):M = {
     val cmap = pirMap.setCL(cu, pcu) 
@@ -24,7 +24,7 @@ class CUP2PMapper(outputMapper:OutputMapper, viMapper:VecInMapper)(implicit val 
     }
   }
 
-  def map(m:M):M = {
+  override def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
     val pcus = design.arch.cus
     val cus = design.top.innerCUs

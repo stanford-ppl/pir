@@ -42,7 +42,3 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
 
 }
 
-case class ScalarInRouting(n:SI, p:PSI)(implicit val mapper:Mapper, design:Design) extends MappingException {
-  override val msg = s"Fail to map ${n} to ${p}"
-}
-
