@@ -7,7 +7,7 @@ import scala.collection.mutable.Map
 trait Spade extends Metadata with ImplicitConversion { self =>
   implicit def spade:Spade = self
 
-  override def toString = getClass().getSimpleName()
+  override def toString = getClass().getSimpleName().replace("$", "")
   val wordWidth = 32
   val numLanes = 16
 
@@ -29,12 +29,6 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   def nextId = {val temp = nextSym; nextSym +=1; temp}
   val const = Const()
   
-  val memCtrlCommandFIFOEnqBusIdx:Int
-  val memCtrlDataFIFOEnqBusIdx:Int
-  val memCtrlCommandFIFONotFullBusIdx:Int
-  val memCtrlDataFIFONotFullBusIdx:Int
-  val memCtrlDataValidBusIdx:Int
-
   // Metadata Maps 
   val coordMap:coordOf.M = Map.empty
   val indexMap:indexOf.M = Map.empty

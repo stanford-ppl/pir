@@ -222,6 +222,7 @@ trait Design extends Metadata {
     //if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
     if (Config.debug) traversals += spadeDotGen 
+    traversals += new SpadeCodegen()
     //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
     traversals
   }

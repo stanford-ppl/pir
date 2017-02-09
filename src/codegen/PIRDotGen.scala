@@ -24,7 +24,7 @@ trait PIRDotGen extends Traversal with DotCodegen {
     }
   }
 
-  def finPass = {
+  override def finPass = {
     close
   }
 

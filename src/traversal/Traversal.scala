@@ -20,6 +20,7 @@ trait Traversal {
   
   def run = {
     initPass
+    isInit = true
     traverse
     finPass
     isTraversed = true
@@ -27,9 +28,7 @@ trait Traversal {
 
   def traverse:Unit
 
-  def initPass = {
-    isInit = true
-  }
+  def initPass:Unit = {}
 
-  def finPass:Unit
+  def finPass:Unit = {}
 }

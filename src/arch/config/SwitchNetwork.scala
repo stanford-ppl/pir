@@ -12,13 +12,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
-  // Inner CU Specs
-  val memCtrlCommandFIFOEnqBusIdx:Int = 0
-  val memCtrlDataFIFOEnqBusIdx:Int = 1
-  val memCtrlCommandFIFONotFullBusIdx:Int = 0
-  val memCtrlDataFIFONotFullBusIdx:Int = 1
-  val memCtrlDataValidBusIdx:Int = 2
-
   override def pnes = super.pnes ++ sbs
 
   // Top level controller ~= Host
@@ -29,7 +22,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
       new ComputeUnit()
         .numRegs(16)
         .numCtrs(8)
-        .numSRAMs(4)
         .addRegstages(numStage=0, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
@@ -41,7 +33,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
       new MemoryComputeUnit()
         .numRegs(16)
         .numCtrs(8)
-        .numSRAMs(4)
         .addWAstages(numStage=3, numOprds=3, ops)
         .addRAstages(numStage=3, numOprds=3, ops)
         .numSinReg(8)
@@ -55,7 +46,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
     new ScalarComputeUnit()
         .numRegs(6)
         .numCtrs(6)
-        .numSRAMs(4)
         .addRegstages(numStage=0, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
@@ -110,27 +100,11 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val vectorNetwork = new VectorNetwork()
 
   val scalarNetwork = new ScalarNetwork()
-
-  def switchNetworkDataBandwidth:Int = {
-    sbs.map{ sb =>
-      sb.vectorIO.ins.filter(_.isConnected).flatMap { vin =>
-        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
-      }.groupBy( k => k ).map{case (k, l)  => l.size}.max
-    }.max
-  }
-  def switchNetworkCtrlBandwidth:Int = {
-    sbs.map{ sb =>
-      sb.ctrlIO.ins.filter(_.isConnected).flatMap { vin =>
-        vin.fanIns.filter{_.src.isInstanceOf[SwitchBox]}.headOption.map{ _.src }
-      }.groupBy( k => k ).map{ case (k, l)  => l.size}.max
-    }.max
-  }
-
 }
 
 abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 
-  def grid(cu:NetworkElement):GridIO[NetworkElement]
+  def io(cu:NetworkElement):GridIO[NetworkElement]
 
   def cuArray:List[List[ComputeUnit]] = spade.cuArray
   def mcs:List[MemoryController] = spade.mcs
@@ -192,14 +166,14 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
   val top = spade.top
   
   spade.pnes.foreach { pne =>
-    grid(pne).ins.foreach { _.disconnect }
-    grid(pne).outs.foreach { _.disconnect }
-    grid(pne).clearIO
+    io(pne).ins.foreach { _.disconnect }
+    io(pne).outs.foreach { _.disconnect }
+    io(pne).clearIO
   }
 
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
-    val outs = grid(out).addOutAt(outDir, channelWidth, linkWidth)
-    val ins = grid(in).addInAt(inDir, channelWidth, linkWidth)
+    val outs = io(out).addOutAt(outDir, channelWidth, linkWidth)
+    val ins = io(in).addInAt(inDir, channelWidth, linkWidth)
     outs.zip(ins).foreach { case (o, i) => o ==> i }
   }
 
@@ -329,38 +303,40 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 
   sbs.foreach { row =>
     row.foreach { sb =>
-      grid(sb).ins.zipWithIndex.foreach { case (vi, idx) => vi.index(idx) }
-      grid(sb).outs.zipWithIndex.foreach { case (vo, idx) => vo.index(idx) }
+      io(sb).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+      io(sb).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
     }
   }
   cuArray.flatten.foreach { cu =>
-    grid(cu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-    grid(cu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+    io(cu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+    io(cu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
   }
   scus.foreach { scu =>
-    grid(scu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-    grid(scu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+    io(scu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+    io(scu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
   }
   ocuArray.flatten.foreach { ocu =>
-    grid(ocu).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-    grid(ocu).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+    io(ocu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+    io(ocu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
   }
   mcs.foreach { mc =>
-    grid(mc).ins.zipWithIndex.foreach { case (ci, idx) => ci.index(idx) }
-    grid(mc).outs.zipWithIndex.foreach { case (co, idx) => co.index(idx) }
+    io(mc).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+    io(mc).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
   }
+  io(top).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+  io(top).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
 
 }
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=spade.numLanes) {
-  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
 }
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
-  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
 }
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
-  def grid(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
+  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
 }
 

@@ -50,9 +50,9 @@ trait SN_temp extends SwitchNetwork {
   //override val sbscChannelWidth = 4
 
   // MC to switch channel width
-  //override val mcsbChannelWidth = 4
+  override val mcsbChannelWidth = 1
   // switch to MC channel width
-  //override val sbmcChannelWidth = 4
+  override val sbmcChannelWidth = 1
 
   // MC to SCU channel width
   // override val mcscChannelWidth = 4
@@ -102,9 +102,9 @@ trait SN_temp extends SwitchNetwork {
   //override val sbscChannelWidth = 4
 
   // MC to switch channel width
-  //override val mcsbChannelWidth = 4
+  override val mcsbChannelWidth = 1
   // switch to MC channel width
-  //override val sbmcChannelWidth = 4
+  override val sbmcChannelWidth = 1
     
   // MC to SCU channel width
   // override val mcscChannelWidth = 4

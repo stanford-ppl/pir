@@ -27,12 +27,19 @@ abstract class Router(implicit design:Design) extends Mapper {
   type I<:Node
   type O<:Node
   type R = (PCL, Path)
-  type FatEdge = List[Edge] 
-  type FatPaths = List[(PCL, FatPath)]
-  type FatPath = List[FatEdge]
   type Edge = (POB, PIB)
   type Path = List[Edge]
   type Paths = List[(PCL, Path)]
+  type FatEdge = List[Edge] 
+  type FatPaths = List[(PCL, FatPath)]
+  type FatPath = List[FatEdge]
+  type REdge = (PIB, POB)
+  type RPath = List[REdge]
+  type RPaths = List[(PCL, RPath)]
+  type RFatEdge = List[REdge] 
+  type RFatPaths = List[(PCL, RFatPath)]
+  type RFatPath = List[RFatEdge]
+
   def quote(io:PIO[PNE]):String = {
     io.src match {
       case cu:PCU => io.toString
@@ -75,7 +82,47 @@ abstract class Router(implicit design:Design) extends Mapper {
     // DEBUG --
 
   def filterPNE(cl:CL, pnes:List[PNE], m:PIRMap):List[PNE] = {
-    pnes
+    var reses = pnes 
+    val outins:List[I] = outs(cl).flatMap { out =>
+      to(out).filter { in => 
+        !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
+      }
+    }
+    reses = outins.foldLeft(reses) { case (reses, in) =>
+      def validCons(reached:PCL, fatpath:RFatPath):Option[RFatPath] = {
+        var valid = true
+        valid &&= (reses.contains(reached) && !m.clmap.pmap.contains(reached))
+        valid &&= (fatpath.size >= minHop)
+        valid &&= (fatpath.size < maxHop)
+        if (valid) Some(fatpath) else None
+      }
+      def advanceCons(psb:PSB, fatpath:RFatPath):Option[RFatPath] = {
+        var valid = true
+        valid &&= (fatpath.size < maxHop)
+        if (valid) Some(fatpath) else None
+      }
+      revAdvance(m.clmap(ctrler(in)), validCons _, advanceCons _).map { _._1 }
+    }
+    val inputs:List[I] = ins(cl).filter { in =>
+      !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
+    }
+    reses = inputs.foldLeft(reses) { case (reses, in) =>
+      val fromCU = ctrler(from(in))
+      def validCons(reached:PCL, fatpath:FatPath):Option[FatPath] = {
+        var valid = true
+        valid &&= (reses.contains(reached) && !m.clmap.pmap.contains(reached))
+        valid &&= (fatpath.size >= minHop)
+        valid &&= (fatpath.size < maxHop)
+        if (valid) Some(fatpath) else None
+      }
+      def advanceCons(psb:PSB, fatpath:FatPath):Option[FatPath] = {
+        var valid = true
+        valid &&= (fatpath.size < maxHop)
+        if (valid) Some(fatpath) else None
+      }
+      advance(m.clmap(fromCU), validCons _, advanceCons _).map { _._1 }
+    }
+    reses
   }
 
   def quote(path:Path):String = {
@@ -100,7 +147,36 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         val os = io(pne).outs.sortWith{ case (o1, o2) => o1.src.isInstanceOf[PCU] || !o2.src.isInstanceOf[PCU] }
         val edges = os.flatMap { out => out.fanOuts.map { in => (out, in) } }
-        val bundle = edges.groupBy { case (o, vi) => (o.src, vi.src) }
+        val bundle = edges.groupBy { case (o, i) => (o.src, i.src) }
+        bundle.foreach { case ((fpne, tpne), fatEdge) =>
+          val newPath = fatpath :+ fatEdge 
+          tpne match {
+            case cl:PCL => 
+              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
+            case sb:PSB =>
+              advanceCons(sb, newPath).foreach { newPath => fatpaths += newPath }
+            case _ =>
+          }
+        }
+      }
+    }
+    result.toList
+  }
+
+  def revAdvance(start:PNE, validCons:(PCL, RFatPath) => Option[RFatPath], 
+      advanceCons:(PSB, RFatPath) => Option[RFatPath]):RFatPaths = {
+    val result = ListBuffer[(PCL, RFatPath)]()
+    val fatpaths = Queue[RFatPath]()
+    fatpaths += Nil
+    while (fatpaths.size!=0) {
+      val fatpath =  fatpaths.dequeue
+      //fatpath.reduce { case ((i1, o1), (i2, o2)) => assert((i1==i2) && (o1==o2)) }
+      val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
+      val visited = fatpath.map{_.head}.map{ case (f,t) => f.src }
+      if (!visited.contains(pne)) {
+        val is = io(pne).ins.sortWith{ case (i1, i2) => i1.src.isInstanceOf[PCU] || !i2.src.isInstanceOf[PCU] }
+        val edges = is.flatMap { in => in.fanIns.map { out => (in, out) } }
+        val bundle = edges.groupBy { case (i, o) => (i.src, o.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
           tpne match {
@@ -117,7 +193,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def filterUsedPaths(in:I, out:O, fatpath:FatPath, map:PIRMap):Option[FatPath] = {
-      // If out is already placed, use the mapped pout. Otherwise use an unused pout
+      // If out is already placed, use the mapped pout if possible. Otherwise use an unused pout
       val pouts = map.vomap.get(out)
       val filteredFatpath = fatpath.map { fe => // Find fatpath that has empty fatEdge after filter
         var fatedge = fe

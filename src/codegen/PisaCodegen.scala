@@ -782,8 +782,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               cu match {
                 case mc:MC =>
                   l match {
-                    case l:CommandFIFO => spade.memCtrlCommandFIFONotFullBusIdx
-                    case l if (mc.dataFIFO==Some(l)) => spade.memCtrlDataFIFONotFullBusIdx
+                    //case l:CommandFIFO => spade.memCtrlCommandFIFONotFullBusIdx
+                    //case l if (mc.dataFIFO==Some(l)) => spade.memCtrlDataFIFONotFullBusIdx
                     case _ => indexOf(smmap(l))
                   }
                 case _ => indexOf(smmap(l))
@@ -791,7 +791,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
             //case l:TokenDownLUT => pcu.srams.size + indexOf(lumap(l)) 
             //case l:TokenOutLUT => pcu.srams.size + pcb.tokenDownLUTs.size + indexOf(lumap(l)) 
             //case l:EnLUT => pcu.srams.size + pcb.tokenDownLUTs.size + pcb.tokenOutLUTs.size + indexOf(lumap(l))
-            case l if (l.isInstanceOf[MC] && l.asInstanceOf[MC].dataValid==to) => spade.memCtrlDataValidBusIdx
+            //case l if (l.isInstanceOf[MC] && l.asInstanceOf[MC].dataValid==to) => spade.memCtrlDataValidBusIdx
           }
           s""""$idx""""
         }

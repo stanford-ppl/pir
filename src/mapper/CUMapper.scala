@@ -58,15 +58,15 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val pnes = design.arch.pnes
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
-    val pmcs = pnes.collect { case pmc:PMC => pmc }
+    val pmcs = design.arch.mcs 
     val scus = mcs.filter { _.mctpe.isDense }.map { _.ofs.writer.ctrler.asInstanceOf[StreamPipeline] }
-    val pscus = pnes.collect { case pscu:PSCU => pscu }
+    val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
-    val pmcus = pnes.collect { case pmcu:PMCU => pmcu }
+    val pmcus = design.arch.mcus 
     val ocus = cls.collect { case ocu:OCL => ocu }
-    val pocus = pnes.collect { case pocu:POCU => pocu }
+    val pocus = design.arch.ocus 
     val rcus = cls.collect { case pcu:CU => pcu }.diff(scus).diff(mcs).diff(ocus).diff(mcus)
-    val pcus = pnes.collect { case ppcu:PCU => ppcu }.diff(pscus).diff(pocus).diff(pmcus)
+    val pcus = design.arch.pcus 
     if (mcs.size > pmcs.size) throw OutOfPMC(pmcs, mcs)
     if (ocus.size > pocus.size) throw OutOfOCU(pocus, ocus)
     if (mcus.size > pmcus.size) throw OutOfMCU(pmcus, mcus)

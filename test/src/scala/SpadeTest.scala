@@ -19,6 +19,8 @@ class SpadeTest extends UnitTest { self =>
   "SN_2x2" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
       override val arch = SN_2x2
+      new SpadeCodegen().run
+
       //new CUCtrlDotPrinter().print
       //s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
 

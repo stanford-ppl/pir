@@ -60,7 +60,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal{
     ForwardRef.collectOuters
   } 
 
-  def finPass = {
+  override def finPass = {
     info("Finishing multiBuffer analysis")
   }
 

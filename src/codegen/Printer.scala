@@ -31,8 +31,11 @@ trait Printer {
   def emit:Unit = emit("") 
   def emitln(s:String):Unit = pprintln(s"${tab*level}${s}")
   def emitln:Unit = pprintln
+  def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
   def emitBSln(s:String):Unit = { emit(s); emitBSln }
   def emitBSln:Unit = { pprintln(s"{"); level += 1 }
+  def emitBS(s:String):Unit = { emit(s); emitBS }
+  def emitBS:Unit = { pprint(s"{"); level += 1 }
   def emitBEln(s:String):Unit = { emitBE; pprintln(s) }
   def emitBEln = { emitBE; pprintln }
   def emitBE = { level -= 1; emit(s"}") }

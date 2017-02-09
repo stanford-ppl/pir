@@ -112,24 +112,24 @@ class IRCheck(implicit val design: Design) extends Traversal {
     info("Finishing checking mutable fields")
     design.arch match {
       case sn:SwitchNetwork =>
-        val dbw = sn.switchNetworkDataBandwidth
-        val cbw = sn.switchNetworkCtrlBandwidth
-        dprint(s"Switch Network Data Bandwidth:${dbw} Ctrl Bandwidth:${cbw}")
-        design.top.spadeCtrlers.foreach { cu =>
-          cu.vins.groupBy { vin =>
-            vin.writer
-          }.foreach { case (fromcu, vins) =>
-            if (vins.size > dbw)
-              warn(s"Data Connectivity from $fromcu to $cu: ${vins.size}. Data Bandwidth:$dbw")
-          }
-          cu.ctrlIns.groupBy { cin =>
-            if (!cin.isConnected) throw PIRException(s"$cin is not connected")
-            cin.from.asInstanceOf[CtrlOutPort].ctrler
-          }.foreach { case (fromcu, cins) =>
-            if (cins.size > cbw)
-              warn(s"Ctrl Connectivity from $fromcu to $cu: ${cins.size}. Ctrl Bandwidth:$cbw")
-          }
-        }
+        //val dbw = sn.switchNetworkDataBandwidth
+        //val cbw = sn.switchNetworkCtrlBandwidth
+        //dprint(s"Switch Network Data Bandwidth:${dbw} Ctrl Bandwidth:${cbw}")
+        //design.top.spadeCtrlers.foreach { cu =>
+          //cu.vins.groupBy { vin =>
+            //vin.writer
+          //}.foreach { case (fromcu, vins) =>
+            //if (vins.size > dbw)
+              //warn(s"Data Connectivity from $fromcu to $cu: ${vins.size}. Data Bandwidth:$dbw")
+          //}
+          //cu.ctrlIns.groupBy { cin =>
+            //if (!cin.isConnected) throw PIRException(s"$cin is not connected")
+            //cin.from.asInstanceOf[CtrlOutPort].ctrler
+          //}.foreach { case (fromcu, cins) =>
+            //if (cins.size > cbw)
+              //warn(s"Ctrl Connectivity from $fromcu to $cu: ${cins.size}. Ctrl Bandwidth:$cbw")
+          //}
+        //}
       case pn:PointToPointNetwork =>
     }
   }

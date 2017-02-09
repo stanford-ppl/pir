@@ -82,7 +82,7 @@ class FusionTransform(implicit val design: Design) extends Traversal{
     ForwardRef.collectOuters
   } 
 
-  def finPass = {
+  override def finPass = {
     info("Finishing fusion transformation")
   }
 
