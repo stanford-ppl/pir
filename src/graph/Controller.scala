@@ -10,6 +10,7 @@ import pir.graph.enums._
 import pir.graph.mapper.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
+import pir.misc._
 
 abstract class Controller(implicit design:Design) extends Node {
   implicit def ctrler:this.type = this
@@ -76,13 +77,13 @@ abstract class Controller(implicit design:Design) extends Node {
   }
 
   // Including current CU. From current to top
-  def ancestors: List[ComputeUnit] = {
-    val list = ListBuffer[ComputeUnit]()
+  def ancestors: List[Controller] = {
+    val list = ListBuffer[Controller]()
     var child:Controller = this 
+    list += child
     while (!child.isInstanceOf[Top]) {
-      val temp = child.asInstanceOf[ComputeUnit]
-      list += temp 
-      child = temp.parent
+      child = child.asInstanceOf[ComputeUnit].parent
+      list += child
     }
     list.toList
   }
@@ -170,10 +171,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     }
   }
 
-  def writtenMem:List[OnChipMem] = {
-    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
-  }
-
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
@@ -194,10 +191,33 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 
   /* Memories */
   val _mems = ListBuffer[OnChipMem]()
-  def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m } }
+  def mems(ms:List[OnChipMem]) = { ms.foreach { m => if (!_mems.contains(m)) _mems += m } }
   def mems:List[OnChipMem] = _mems.toList
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
   def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
+  def writtenMem:List[OnChipMem] = {
+    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
+  }
+
+  val retiming:Map[Variable, FIFO] = Map.empty
+  def getRetimingFIFO(variable:Variable):FIFO = {
+    retiming.getOrElseUpdate(variable, {
+      val fifo = variable match {
+        case v:Vector => VectorFIFO(size = 10)
+        case v:Scalar => ScalarFIFO(size = 10)
+      }
+      mems(List(fifo))
+      fifo
+    })
+  }
+  val scalarBuf:Map[Variable, ScalarBuffer] = Map.empty
+  def getScalarBuffer(scalar:Scalar):ScalarBuffer = {
+    scalarBuf.getOrElseUpdate(scalar, {
+      val buf = ScalarBuffer(s"${scalar}_buf")
+      mems(List(buf))
+      buf 
+    })
+  }
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
@@ -278,8 +298,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
 
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
-  val retiming:Map[VecIn, VectorFIFO] = Map.empty
-  def getRetimingFIFO(vecIn:VecIn):VectorFIFO = retiming.getOrElseUpdate(vecIn, VectorFIFO(size = 10).wtPort(vecIn))
 
   /* Stages */
   val wtAddrStages = ListBuffer[List[WAStage]]()
@@ -289,15 +307,18 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
 
   def addWAStages(was:List[WAStage]) = {
     wtAddrStages += was
-    was.foreach { wa => indexOf(wa) = nextIndex }
+    was.foreach { wa => addStage(wa) }
   }
 
   def addStage(s:Stage):Unit = { s match {
       case ss:LocalStage =>
         localStages += ss
-        indexOf(ss) = nextIndex
       case ss:WAStage => // WAstages are added in addWAStages 
     }
+    indexOf(s) = nextIndex
+    val prev = stages.last
+    s.prev = Some(prev)
+    prev.next = Some(s)
   }
 
   /* Controller Hierarchy */
@@ -431,13 +452,17 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
 
   val _ofs = if (mctpe.isDense) Some(Scalar("ofs")) else None
   def ofs:Scalar = _ofs.get
+  val ofsPort = _ofs.map { ofs => InPort(this, s"$this.ofsIn") }
   val siofs = { _ofs.map { ofs => newSin(ofs) } }
-  val ofsFIFO = _ofs.map { ofs => ScalarFIFO(100).wtPort(ofs) }
+  siofs.foreach { si => ofsPort.get.connect(si.out) } // Needed for fifo insertion
+  //val ofsFIFO = _ofs.map { ofs => ScalarFIFO(100).wtPort(ofs) }
 
   val _len = if (mctpe.isDense) Some(Scalar("len")) else None
   def len:Scalar = _len.get
+  val lenPort = _len.map { ofs => InPort(this, s"$this.lenIn") }
   val silen = { _len.map { len => newSin(len) } }
-  val lenFIFO = _len.map { len => ScalarFIFO(100).wtPort(len) }
+  silen.foreach { si => lenPort.get.connect(si.out) } // Needed for fifo insertion
+  //val lenFIFO = _len.map { len => ScalarFIFO(100).wtPort(len) }
 
   val data = Vector()
   private val _dataIn  = if (mctpe.isStore) { Some(newVin(data)) } else None
@@ -455,7 +480,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val done = CtrlOutPort(this, s"${this}.done")
   val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
 
-  mems((ofsFIFO ++ lenFIFO ++ addrFIFO ++ dataFIFO).toList)
+  mems((addrFIFO ++ dataFIFO).toList)
 }
 object MemoryController {
   def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 

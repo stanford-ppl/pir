@@ -14,8 +14,14 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
 
   override val stream = newStream(s"MultiBufferAnalysis.log")
 
-  def leastCommonAncestor(reader:ComputeUnit, writer:ComputeUnit):Controller = {
-    reader.ancestors.intersect(writer.ancestors).head
+  def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
+    val ra = reader.ancestors
+    val wa = writer.ancestors
+    val ca = ra.intersect(wa)
+    ca.size match {
+      case 0 => throw new Exception(s"$reader and $writer doesn't have common ancestors. \nreader ancestors:$ra \nwriter ancestors: $wa")
+      case _ => ca.head
+    }
   }
 
   def setProducerConsumer:Unit = {
@@ -28,12 +34,16 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
           val lca = leastCommonAncestor(reader, writer)
           val producers = writer.ancestors.intersect(lca.children)
           val consumers = reader.ancestors.intersect(lca.children)
-          assert(producers.size==1)
-          assert(consumers.size==1)
-          val producer = producers.head
-          val consumer = consumers.head
+          val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
+            (lca, lca)
+          } else {
+            (producers.head, consumers.head)
+          }
           buf.producer(producer)
           buf.consumer(consumer, true) //TODO: how to detect back edge?
+          emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
+          emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
+          emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
           emitln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
         }
       }

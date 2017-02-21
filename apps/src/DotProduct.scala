@@ -25,7 +25,7 @@ object DotProduct extends PIRApp {
     }
     val x794 = MetaPipeline(name = "x794", parent=x798) { implicit CU => 
       val stage0 = CU.emptyStage
-      val ctr1 = (Const("0i").out, CU.scalarIn(stage0, x727_argin).out, Const("640i").out) // Counter
+      val ctr1 = (Const("0i").out, CU.scalarIn(stage0, x727_argin), Const("640i").out) // Counter
       val x740 = CounterChain(name = "x740", ctr1)
       var stage: List[Stage] = Nil
     }

@@ -186,6 +186,7 @@ trait Design extends Metadata {
   val arch:Spade
   var top:Top = _
 
+  lazy val scalMemInsertion = new ScalarMemInsertion()
   lazy val multiBufferAnalysis = new MultiBufferAnalysis()
   lazy val fusionTransform = new FusionTransform()
   lazy val ctrlDotPrinter = new CtrlDotGen()
@@ -208,6 +209,7 @@ trait Design extends Metadata {
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
+    traversals += scalMemInsertion
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     //traversals += fusionTransform 
     //traversals += new ScalarBundling()

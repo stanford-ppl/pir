@@ -26,9 +26,9 @@ class FusionTransform(implicit val design: Design) extends Traversal{
               val cpccu = pcp.ctrler.asInstanceOf[InnerController]
               pcu match {
                 // Copy ancesstor outer controller because used in datapath 
-                case cu:OuterController if cpccu.ancestors.contains(cu) && (cu.inner!=cpccu)=> 
+                case pcu:OuterController if cpccu.ancestors.contains(pcu) => 
                   val ancestors = cpccu.ancestors
-                  val pcuPre = ancestors(ancestors.indexOf(pcu)-1)
+                  val pcuPre = ancestors(ancestors.indexOf(pcu)-1).asInstanceOf[ComputeUnit]
                   val icc = cpccu.getCopy(pcuPre.localCChain)
                   pcp.counters.reverseIterator.foreach { ctr =>
                     ctr.cchain(icc)

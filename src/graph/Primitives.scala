@@ -196,6 +196,8 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
   val uses:Set[Reg] = Set.empty
   var liveIns:ISet[Reg] = ISet.empty
   var liveOuts:ISet[Reg] = ISet.empty
+  var prev:Option[Stage] = None
+  var next:Option[Stage] = None
   override def toUpdate = super.toUpdate || fu==null || (fu.isDefined && fu.get.toUpdate) 
 
   def addUse(reg:Reg):Unit = { uses += reg }
@@ -338,7 +340,7 @@ trait Reg extends Primitive {
 object Reg {
   def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
 }
-case class LoadPR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regld"}
+case class LoadPR(override val regId:Int, mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)         extends Reg {override val typeStr = "regld"}
 case class StorePR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
 //case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
 case class WtAddrPR(override val regId:Int, waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}

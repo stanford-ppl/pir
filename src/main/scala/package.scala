@@ -4,6 +4,7 @@ import pir.graph._
 import graph.mapper._
 import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
+import java.lang.Thread
 
 package object misc extends Logger {
   var startTime:Long = _
@@ -33,6 +34,13 @@ package object misc extends Logger {
   implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
   implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
     (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)
+
+  def getStackTrace:String = {
+    getStackTrace(1, 5)
+  }
+  def getStackTrace(start:Int, end:Int):String = {
+    Thread.currentThread().getStackTrace().slice(start,end).map("" + _).mkString("\n")
+  }
 }
 
 package object typealias {

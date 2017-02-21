@@ -12,24 +12,42 @@ trait OuterRegBlock { self:ComputeUnit =>
   var infGraph:Map[Reg, Set[Reg]] = Map.empty
 
   val scalarIns  = Map[ScalarIn, ScalarInPR]()
+  val loadRegs   = Map[OnChipMem, LoadPR]()
+  def reset      = { regId = 0; loadRegs.clear; scalarIns.clear }
 
   def scalarInPR(s:ScalarIn):ScalarInPR = scalarIns.getOrElseUpdate(s, ScalarInPR(newTemp, s))
+  def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
 
   def pipeReg(stage:Stage, reg:Reg) = stage.prs.getOrElseUpdate(reg, PipeReg(stage,reg))
+
+ /** Create a pipeline register for a stage corresponding to 
+  *  the register that loads from the sram
+  * @param stage: Stage of the pipeline register 
+  * @param s: sram to load from 
+  */
+ def load(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, loadPR(s))
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
   * @param s: ScalarIn buffer 
   */
-  def scalarIn(stage:Stage, s:ScalarIn):PipeReg = pipeReg(stage, scalarInPR(s))
+  def scalarIn(stage:Stage, s:ScalarIn):OutPort = {
+    //val fifo = getRetimingFIFO(s.scalar) 
+    //fifo.wtPort(s.out)
+    //stage match {
+      //case stage:EmptyStage => fifo.load
+      //case stage => load(stage, fifo).out
+    //}
+    s.out // ScalarBuffer or ScalarFIFO should be inserted here
+  }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
-  def scalarIn(s:Scalar):PipeReg = scalarIn(emptyStage, newSin(s))
+  def scalarIn(stage:Stage, s:Scalar):OutPort = scalarIn(stage, newSin(s))
+  def scalarIn(s:Scalar):OutPort = scalarIn(emptyStage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -42,16 +60,13 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val scalarOuts = Map[ScalarOut, ScalarOutPR]()
   val vecIns     = Map[VecIn, VecInPR]()
   lazy val vecOut     = VecOutPR(newTemp)
-  val loadRegs   = Map[OnChipMem, LoadPR]()
   val storeRegs  = Map[OnChipMem, StorePR]()
   val wtAddrRegs = Map[SRAMOnWrite, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
   val accumRegs  = Set[AccumPR]()
-  def reset      = { regId = 0; loadRegs.clear; storeRegs.clear; ctrRegs.clear}
-
-  def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
+  override def reset      = { super.reset; storeRegs.clear; ctrRegs.clear}
 
   def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s))
 
@@ -77,12 +92,6 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
     reg
   }
 
- /** Create a pipeline register for a stage corresponding to 
-  *  the register that loads from the sram
-  * @param stage: Stage of the pipeline register 
-  * @param s: sram to load from 
-  */
- def load(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, loadPR(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that stores to the sram
   * @param stage: Stage of the pipeline register 
@@ -137,7 +146,8 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   */
   def vecIn(stage:Stage, v:VecIn):OutPort = {
-    val fifo = getRetimingFIFO(v) 
+    val fifo = getRetimingFIFO(v.vector) 
+    fifo.wtPort(v.out)
     stage match {
       case stage:EmptyStage => fifo.load
       case stage => load(stage, fifo).out

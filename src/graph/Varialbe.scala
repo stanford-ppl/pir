@@ -6,10 +6,10 @@ import pir.graph._
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 
-trait Variable
+trait Variable extends Node
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-case class Scalar(name:Option[String])(implicit design: Design) extends Node with Variable {
+case class Scalar(name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Scalar"
   var writer:ScalarOut = _ 
   val readers:Set[ScalarIn] = Set[ScalarIn]() 
@@ -38,7 +38,7 @@ object ArgOut {
   def apply(name:String) (implicit design: Design):Scalar = new Scalar(Some(name)) with ArgOut
 }
 
-class Vector(val name:Option[String])(implicit design: Design) extends Node with Variable {
+class Vector(val name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Vector"
   private var _writer:VecOut = _
   def writer:VecOut = _writer

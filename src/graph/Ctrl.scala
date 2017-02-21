@@ -279,7 +279,7 @@ object OuterCtrlBox {
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends InnerCtrlBox() {
   
-  def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.localCChain).inner.en
+  def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
   //def writeEn:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.localCChain).inner.en //goes along
   //with data path
 }

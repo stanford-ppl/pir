@@ -163,6 +163,8 @@ object PIRPrinter extends Metadata {
         p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
         p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
       case p:Stage =>
+        fields += s"prev=${p.prev}"
+        fields += s"next=${p.next}"
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
           fields += s"op=${fu.op}"
