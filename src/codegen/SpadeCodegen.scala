@@ -52,23 +52,23 @@ class SpadeCodegen(implicit design: Design) extends Traversal with Printer with 
     emitln(s"import plasticine.templete.dummy._")
     emitln(3)
 
-    emitBlock(s"object ${design.arch}") {
+    emitBlock(s"object ${design.arch} extends Plasticine") {
   
       emitBlock(s"val archParam = new ArchParam") {
         emitln(s"val wordWidth = ${spade.wordWidth}")
         emitln(s"val numLanes = ${spade.numLanes}")
         emitln(s"val numRows = ${spade.numRows}")
         emitln(s"val numCols = ${spade.numCols}")
-        emitln(s"val numMCs = TODO")
+        emitComment(s"val numMCs = TODO")
       }
 
       val pcu = spade.pcus.head
       emitBlock(s"val pcuParam = new CUParam") {
         emitln(s"val numCtrs = ${pcu.ctrs.size}")
-        emitln(s"val numScalarReg = ${}")
+        emitComment(s"val numScalarReg = ${}")
       }
     
-      emitln(s"val ${spade.top} = Module(new Plasticine(archParam))")
+      emitln(s"val ${spade.top} = this.top")
 
       val cuArray = spade.cuArray
       cuArray.zipWithIndex.foreach { case (row, i) =>
