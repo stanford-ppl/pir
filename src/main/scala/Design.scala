@@ -211,7 +211,7 @@ trait Design extends Metadata {
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     //traversals += fusionTransform 
     //traversals += new ScalarBundling()
-    //traversals += multiBufferAnalysis 
+    traversals += multiBufferAnalysis 
     traversals += new LiveAnalysis()
     //traversals += new IRCheck()
     if (Config.ctrl) traversals += ctrlAlloc 
@@ -219,7 +219,7 @@ trait Design extends Metadata {
     //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
     if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
     //if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
-    //if (Config.debug) traversals += pirPrinter 
+    if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
     if (Config.debug) traversals += spadeDotGen 
     traversals += new SpadeCodegen()
@@ -234,7 +234,7 @@ trait Design extends Metadata {
     } catch {
       case e:PIRException => 
         if (!pirPrinter.isTraversed) pirPrinter.run
-        if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
         if (!spadeDotGen.isTraversed) spadeDotGen.run
         if (!ctrlPrinter.isTraversed) ctrlPrinter.run
         throw e

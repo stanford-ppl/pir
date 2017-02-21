@@ -21,7 +21,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       f(n)
     }
     design.toUpdate.clear
-    ForwardRef.collectMCParent
+    //ForwardRef.collectMCParent
   } 
 
   def addName(n:Node):Unit = n.name.foreach { name => 

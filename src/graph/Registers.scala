@@ -136,13 +136,19 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, v:VecIn):PipeReg = pipeReg(stage, vecInPR(v))
+  def vecIn(stage:Stage, v:VecIn):OutPort = {
+    val fifo = getRetimingFIFO(v) 
+    stage match {
+      case stage:EmptyStage => fifo.load
+      case stage => load(stage, fifo).out
+    }
+  }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
-  def vecIn(vec:Vector):PipeReg = vecIn(emptyStage, newVin(vec))
+  def vecIn(stage:Stage, vec:Vector):OutPort = vecIn(stage, newVin(vec))
+  def vecIn(vec:Vector):OutPort = vecIn(emptyStage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 

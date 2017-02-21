@@ -94,7 +94,16 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 
   private var _parent:Controller = _
   def parent:Controller = { _parent }
-  def parent(p:Controller) = { _parent = p }
+  def parent[T](parent:T):this.type = {
+    parent match {
+      case p:String =>
+        design.updateLater(p, (n:Node) => this.parent(n.asInstanceOf[Controller]))
+      case p:Controller =>
+        _parent = p
+        p.addChildren(this)
+    }
+    this
+  }
   def removeParent:Unit = _parent = null
 
   /* Fields */
@@ -177,17 +186,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     this
   }
 
-  def updateParent[T](parent:T):this.type = {
-    parent match {
-      case p:String =>
-        design.updateLater(p, (n:Node) => updateParent(n.asInstanceOf[Controller]))
-      case p:Controller =>
-        this.parent(p)
-        p.addChildren(this)
-    }
-    this
-  }
-
   var index = -1
   def nextIndex = { val temp = index; index +=1 ; temp}
 
@@ -198,8 +196,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   val _mems = ListBuffer[OnChipMem]()
   def mems(ms:List[OnChipMem]) = { ms.foreach { m => _mems += m } }
   def mems:List[OnChipMem] = _mems.toList
-
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
+  def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
 }
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
@@ -227,7 +225,7 @@ class Sequential(name:Option[String])(implicit design:Design) extends OuterContr
 object Sequential {
   def apply[P](name: Option[String], parent:P) (block: Sequential => Any)
                 (implicit design: Design):Sequential = {
-    new Sequential(name).updateParent(parent).updateBlock(block)
+    new Sequential(name).parent(parent).updateBlock(block)
   }
   /* Sugar API */
   def apply[P](parent:P) (block: Sequential => Any)
@@ -244,7 +242,7 @@ class MetaPipeline(name:Option[String])(implicit design:Design) extends OuterCon
 object MetaPipeline {
   def apply[P](name: Option[String], parent:P) (block: MetaPipeline => Any)
                 (implicit design: Design):MetaPipeline = {
-    new MetaPipeline(name).updateParent(parent).updateBlock(block)
+    new MetaPipeline(name).parent(parent).updateBlock(block)
   }
   /* Sugar API */
   def apply [P](parent:P) (block: MetaPipeline => Any)
@@ -264,7 +262,7 @@ class StreamController(name:Option[String])(implicit design:Design) extends Oute
 object StreamController {
   def apply[P](name: Option[String], parent:P) (block: StreamController => Any)
                 (implicit design: Design):StreamController = {
-    new StreamController(name).updateParent(parent).updateBlock(block)
+    new StreamController(name).parent(parent).updateBlock(block)
   }
   /* Sugar API */
   def apply [P](parent:P) (block: StreamController => Any)
@@ -280,6 +278,8 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
 
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
+  val retiming:Map[VecIn, VectorFIFO] = Map.empty
+  def getRetimingFIFO(vecIn:VecIn):VectorFIFO = retiming.getOrElseUpdate(vecIn, VectorFIFO(size = 10).wtPort(vecIn))
 
   /* Stages */
   val wtAddrStages = ListBuffer[List[WAStage]]()
@@ -325,7 +325,7 @@ class Pipeline(name:Option[String])(implicit design:Design) extends InnerControl
 }
 object Pipeline {
   def apply[P](name: Option[String], parent:P)(block: Pipeline => Any)(implicit design: Design):Pipeline = {
-    new Pipeline(name).updateParent(parent).updateBlock(block)
+    new Pipeline(name).parent(parent).updateBlock(block)
   }
   /* Sugar API */
   def apply [P](parent:P) (block: Pipeline => Any) (implicit design:Design):Pipeline =
@@ -340,7 +340,7 @@ class UnitPipeline(override val name: Option[String])(implicit design: Design) e
 }
 object UnitPipeline {
   def apply[P](name: Option[String], parent:P)(implicit design: Design):UnitPipeline =
-    new UnitPipeline(name).updateParent(parent)
+    new UnitPipeline(name).parent(parent)
   /* Sugar API */
   def apply[P](parent:P) (block: UnitPipeline => Any) (implicit design:Design):UnitPipeline =
     UnitPipeline(None, parent).updateBlock(block)
@@ -356,19 +356,21 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
   override def isHead = false
   override def isLast = false
 
-  val data = Vector()
-  val dataOut = newVout(data)
   lazy val mem:MultiBuffering = {
     val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
     assert(rms.size==1)
-    val m = rms.head
-    dataOut.in.connect(m.load)
-    m
+    rms.head
   }
+  lazy val dataOut = {
+    val dout = mem.readPort.to.map{_.src}.collect{ case vo:VecOut => vo}.head
+    dout.in.connect(mem.load)
+    dout
+  }
+  def data = dataOut.vector
 }
 object MemoryPipeline {
   def apply[P](name: Option[String], parent:P)(implicit design: Design):MemoryPipeline =
-    new MemoryPipeline(name).updateParent(parent)
+    new MemoryPipeline(name).parent(parent)
   /* Sugar API */
   def apply[P](parent:P) (block: MemoryPipeline => Any) (implicit design:Design):MemoryPipeline =
     MemoryPipeline(None, parent).updateBlock(block)
@@ -384,21 +386,23 @@ object TileTransfer extends {
   /* Sugar API */
   def apply[P](name:Option[String], parent:P, memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)
                 (implicit design:Design):TileTransfer =
-    TileTransfer(name, memctrl, mctpe, vec).updateParent(parent).updateBlock(block)
+    TileTransfer(name, memctrl, mctpe, vec).parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P, memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)             
                 (implicit design:Design):TileTransfer =
-    TileTransfer(Some(name), memctrl, mctpe, vec:Vector).updateParent(parent).updateBlock(block)
+    TileTransfer(Some(name), memctrl, mctpe, vec:Vector).parent(parent).updateBlock(block)
 }
 
 class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "StreamPipe"
   private var _parent:StreamController = _
   override def parent:StreamController = _parent
-  override def parent(p:Controller) = { 
-    p match {
-      case p:StreamController => _parent = p
-      case _ => throw PIRException(s"StreamPipeline's parent must be StreamController $this.parent=$p")
+  override def parent[T](parent:T):this.type = {
+    parent match {
+      case p:StreamController => _parent = p; p.addChildren(this)
+      case p:String => super.parent(parent)
+      case p => throw PIRException(s"StreamPipeline's parent must be StreamController $this.parent=$p")
     }
+    this
   }
   override def removeParent:Unit = _parent = null
 
@@ -411,7 +415,7 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
 object StreamPipeline {
   def apply[P](name: Option[String], parent:P) (block: StreamPipeline => Any)
                 (implicit design: Design):StreamPipeline = {
-    new StreamPipeline(name).updateParent(parent).updateBlock(block)
+    new StreamPipeline(name).parent(parent).updateBlock(block)
   }
   /* Sugar API */
   def apply [P](parent:P) (block: StreamPipeline => Any)

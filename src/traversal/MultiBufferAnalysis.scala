@@ -3,65 +3,81 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper.PIRException
+import pir.codegen.Logger
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalysis(implicit val design: Design) extends Traversal{
+class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Logger {
 
-  val bufSizeMap = Map[DummyVecIn, Int]()
+  override val stream = newStream(s"MultiBufferAnalysis.log")
 
-  override def traverse:Unit = {
-    design.top.spadeCtrlers.foreach { cu =>
-      cu.vouts.collect{ case v:DummyVecOut => v }.foreach { dvout =>
-        dvout.readers.foreach { dvin =>
-          val writer = cu
-          val reader = dvin.ctrler
-          reader match {
-            case reader:InnerController =>
-              val size = if (writer.isInstanceOf[Top]) {
-                1
-              } else {
-                val reader = dvin.ctrler
-                val ancestors1 = cu.ancestors
-                val ancestors2 = reader.ancestors
-                val ca = ancestors1.intersect(ancestors2).head
-                if (ca==reader)
-                  throw PIRException(s"Ancesstor shouldn't read descendent's ScalarOut CommonAncesstor:$ca writer:$cu reader:$reader")
-                ca match {
-                  case m:MetaPipeline =>
-                    val anc1 = ancestors1.intersect(ca.children)
-                    val anc2 = ancestors2.intersect(ca.children)
-                    assert(anc1.size==1)
-                    assert(anc2.size==1)
-                    var next = anc1.head.produced.map{_.consumer} 
-                    var dist = 1
-                    while (next.size!=0 && !next.contains(anc2.head)) {
-                      next = next.flatMap{ _ match {
-                          case cu:ComputeUnit => cu.produced.map{_.consumer}
-                          case top:Top => Nil //TODO
-                        }
-                      } 
-                      dist +=1
-                    }
-                    dist
-                  case _ => 1
-                }
-              }
-              bufSizeMap += dvin -> size 
-            case _ =>
-          }
+  def leastCommonAncestor(reader:ComputeUnit, writer:ComputeUnit):Controller = {
+    reader.ancestors.intersect(writer.ancestors).head
+  }
+
+  def setProducerConsumer:Unit = {
+    emitln(s"Set producer consumer ...")
+    design.top.compUnits.foreach { cu =>
+      emitBlock(s"$cu") {
+        cu.mbuffers.foreach { buf =>
+          val reader = buf.reader
+          val writer = buf.writer
+          val lca = leastCommonAncestor(reader, writer)
+          val producers = writer.ancestors.intersect(lca.children)
+          val consumers = reader.ancestors.intersect(lca.children)
+          assert(producers.size==1)
+          assert(consumers.size==1)
+          val producer = producers.head
+          val consumer = consumers.head
+          buf.producer(producer)
+          buf.consumer(consumer, true) //TODO: how to detect back edge?
+          emitln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
         }
       }
     }
+  }
 
-    ForwardRef.collectOuters
+  def setBufferSize:Unit = {
+    emitln(s"Set BufferSize ...")
+    design.top.compUnits.foreach { cu =>
+      emitBlock(s"$cu") {
+        cu.mbuffers.foreach { buf =>
+          val bufSize = buf.producer match {
+            case top:Top => 1
+            case cu:ComputeUnit => cu.parent match {
+              case m:MetaPipeline =>
+                var next = List(buf.producer)
+                var dist = 1
+                while (next.size!=0 && !next.contains(buf.consumer)) {
+                  next = next.flatMap{ _ match {
+                      case cu:ComputeUnit => cu.produced.map{_.consumer}
+                      case top:Top => Nil //TODO
+                    }
+                  } 
+                  dist +=1
+                }
+                dist
+              case _:Sequential | _:Top => 1
+            }
+          }
+          buf.buffering(bufSize)
+          emitln(s"$buf buffering=${bufSize}")
+        }
+      }
+    }
+  }
+
+  override def traverse:Unit = {
+    setProducerConsumer
+    setBufferSize
+    //ForwardRef.collectOuters
   } 
 
   override def finPass = {
-    info("Finishing multiBuffer analysis")
+    misc.info("Finishing multiBuffer analysis")
   }
 
 }

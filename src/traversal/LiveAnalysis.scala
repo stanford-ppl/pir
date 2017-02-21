@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata{
+class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata {
 
   override def traverse = {
     design.top.innerCUs.foreach { implicit cu =>

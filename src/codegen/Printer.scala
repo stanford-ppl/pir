@@ -70,6 +70,8 @@ trait Logger extends Printer {
   override def emitBSln(s:String):Unit = { super.emitBSln(s); flush }
   override def emitBEln(s:String):Unit = { super.emitBEln(s); flush }
   override def emitln(s:String):Unit = { super.emitln(s); flush } 
+  override def emitBlock(block: =>Any) = { if (Config.debug) { super.emitBlock(block); flush } }
+  override def emitBlock(s:String)(block: =>Any) = { if (Config.debug) { super.emitBlock(s)(block); flush } }
   def promp(header:Option[String], s:Any) = s"[debug${header.fold("") { h => s"-$h"}}] $s"
   def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitln(promp(header, s))
   def dprint(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emit(promp(header, s))

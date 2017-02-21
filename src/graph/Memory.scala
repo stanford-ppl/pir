@@ -33,7 +33,7 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
       case fifo:VectorFIFO => fifo.writer
       case VecIn(_, vector) => vector.writer.ctrler.asInstanceOf[InnerController]
       case ScalarIn(_, scalar) => scalar.writer.ctrler.asInstanceOf[InnerController]
-      case p => throw PIRException(s"Unknown SRAM write port ${p}")
+      case p => throw PIRException(s"Unknown OnChipMem write port ${p}")
     }
   }
 
@@ -41,10 +41,13 @@ abstract class OnChipMem(implicit override val ctrler:InnerController, design:De
     assert(readPort.to.size==1)
     readPort.to.head.src match {
       case vo:VecOut => 
-        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem can only have remote reader")
+        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem can only have 1 remote reader ${vo.vector.readers}")
         vo.vector.readers.head.ctrler.asInstanceOf[ComputeUnit]
+      case so:ScalarOut =>
+        assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem can only have 1 remote reader ${so.scalar.readers}")
+        so.scalar.readers.head.ctrler.asInstanceOf[ComputeUnit]
       case pr:PipeReg => pr.ctrler.asInstanceOf[ComputeUnit]
-      case p => throw PIRException(s"Unknown SRAM read port ${p}")
+      case p => throw PIRException(s"Unknown OnChipMem read port ${p}")
     }
   }
 }
@@ -124,52 +127,62 @@ trait MultiBuffering extends OnChipMem {
     this
   }
 
-  def buffering:Int
-  //var _buffering:Int = _
-  //def buffering = _buffering
-  //def buffering(buf:Int):this.type = { _buffering = buf; this }
+  var _buffering:Int = _
+  def buffering = _buffering
+  def buffering(buf:Int):this.type = { _buffering = buf; this }
 }
 trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
 }
 
+trait LocalMem extends OnChipMem {
+}
+trait RemoteMem extends OnChipMem { self:VectorMem =>
+  def rdPort(vec:Vector):this.type = { rdPort(ctrler.newVout(vec)) }
+  def rdPort(vecOut:VecOut):this.type = { vecOut.in.connect(readPort); this }
+  override def wtPort(vecIn:VecIn):this.type = { 
+    val fifo = ctrler.getRetimingFIFO(vecIn)
+    wtPort(fifo.load)
+  }
+}
+
 trait VectorMem extends OnChipMem {
+  def wtPort(vecIn:VecIn):this.type = { wtPort(vecIn.out) }
+  def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec)) }
   def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
-  def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec).out) }
 }
 
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
  *  @param size: size of SRAM in all dimensions 
  *  @param banking: Banking mode of SRAM
- *  @param buffering: Double buffer mode of sram 
  *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
  *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design) 
-  extends VectorMem with SRAMOnRead with SRAMOnWrite {
+case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design) 
+  extends VectorMem with RemoteMem with SRAMOnRead with SRAMOnWrite {
   override val typeStr = "SRAM"
 }
 object SRAM {
-  def apply(size:Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design): SRAM
-    = SRAM(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design): SRAM
-    = SRAM(Some(name), size, banking, buffering)
+  def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SRAM
+    = SRAM(None, size, banking)
+  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SRAM
+    = SRAM(Some(name), size, banking)
 }
-case class SemiFIFO(name: Option[String], size: Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design) 
-  extends VectorMem with SRAMOnRead with FIFOOnWrite {
+case class SemiFIFO(name: Option[String], size: Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design) 
+  extends VectorMem with RemoteMem with SRAMOnRead with FIFOOnWrite {
   override val typeStr = "SemiFIFO"
 }
 object SemiFIFO {
-  def apply(size:Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(None, size, banking, buffering)
-  def apply(name:String, size:Int, banking:Banking, buffering:Int)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(Some(name), size, banking, buffering)
+  def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
+    = SemiFIFO(None, size, banking)
+  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
+    = SemiFIFO(Some(name), size, banking)
 }
 
 class VectorFIFO(val name: Option[String], val size: Int)(implicit ctrler:InnerController, design: Design) 
-  extends VectorMem with FIFO {
+  extends VectorMem with LocalMem with FIFO {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {
@@ -179,21 +192,21 @@ object VectorFIFO {
     = new VectorFIFO(Some(name), size)
 }
 
-trait ScalarMem extends OnChipMem {
+trait ScalarMem extends OnChipMem with LocalMem {
   def wtPort(s:Scalar):this.type = { wtPort(ctrler.newSin(s).out) }
 }
 
-case class ScalarBuffer(name:Option[String], buffering:Int)(implicit ctrler:InnerController, design: Design) 
+case class ScalarBuffer(name:Option[String])(implicit ctrler:InnerController, design: Design) 
   extends ScalarMem with MultiBuffering {
   override val typeStr = "ScalBuf"
   override val size = 1
   override val banking = NoBanking()
 }
 object ScalarBuffer {
-  def apply(buffering:Int)(implicit ctrler:InnerController, design: Design):ScalarBuffer
-    = ScalarBuffer(None, buffering)
-  def apply(name:String, buffering:Int)(implicit ctrler:InnerController, design: Design):ScalarBuffer
-    = ScalarBuffer(Some(name), buffering)
+  def apply()(implicit ctrler:InnerController, design: Design):ScalarBuffer
+    = ScalarBuffer(None)
+  def apply(name:String)(implicit ctrler:InnerController, design: Design):ScalarBuffer
+    = ScalarBuffer(Some(name))
 }
 
 class ScalarFIFO(val name: Option[String], val size: Int)(implicit ctrler:InnerController, design: Design) 

@@ -18,7 +18,7 @@ object Config {
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = true 
+  var ctrl = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")

@@ -19,6 +19,7 @@ package object enums {
   case object FixNeq extends FixOp
   case object FixMod extends FixOp
   case object FixSra extends FixOp
+  case object FixNeg extends FixOp
   
   sealed trait FltOp extends Op 
   case object FltAdd extends FltOp 
@@ -35,6 +36,7 @@ package object enums {
   case object FltAbs extends FltOp
   case object FltLog extends FltOp
   case object FltSqrt extends FltOp
+  case object FltNeg extends FltOp 
 
   sealed trait BitOp extends Op 
   case object BitAnd extends BitOp // &
