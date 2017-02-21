@@ -25,6 +25,7 @@ trait PIRDotGen extends Traversal with DotCodegen {
   }
 
   override def finPass = {
+    dprintln(s"Finishing ${this.getClass.getSimpleName}")
     close
   }
 

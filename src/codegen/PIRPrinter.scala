@@ -124,6 +124,7 @@ object PIRPrinter extends Metadata {
     node match {
       case n:Controller =>
         fields += s"children=[${n.children.mkString(",")}]"
+        fields += s"isHead=${n.isHead}, isLast=${n.isLast}"
       case n:Primitive => {
         //fields += s"ctrler=${n.ctrler}"
       }

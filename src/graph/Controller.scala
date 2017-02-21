@@ -157,7 +157,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
             dc
           } else {
             val dcs = cchains.filter{_.isDummy}
-            assert(dcs.size==1)
+            assert(dcs.size==1, s"${cu} is not head and has non dummy counter chain $cchains")
             dcs.head
           }
         }
@@ -300,20 +300,27 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
 
   /* Stages */
+  val rdAddrStages = ListBuffer[List[RAStage]]()
   val wtAddrStages = ListBuffer[List[WAStage]]()
   val localStages = ListBuffer[LocalStage]()
 
-  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ localStages).toList
+  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ rdAddrStages.flatMap(l => l) ++ localStages).toList
 
   def addWAStages(was:List[WAStage]) = {
     wtAddrStages += was
     was.foreach { wa => addStage(wa) }
   }
 
+  def addRAStages(ras:List[RAStage]) = {
+    rdAddrStages += ras
+    ras.foreach { ra => addStage(ra) }
+  }
+
   def addStage(s:Stage):Unit = { s match {
       case ss:LocalStage =>
         localStages += ss
       case ss:WAStage => // WAstages are added in addWAStages 
+      case ss:RAStage => // RAstages are added in addRAStages 
     }
     indexOf(s) = nextIndex
     val prev = stages.last
@@ -429,7 +436,13 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
 
   def writtenFIFO:List[FIFO] = writtenMem.collect { case fifo:FIFO => fifo }
 
-  override def isHead = mems.collect { case fifo:FIFO => fifo }.size==0
+  override def isHead = { fifos.filter {
+      _.writer match {
+        case cu:ComputeUnit => cu.parent == this.parent 
+        case top:Top => false
+      }
+    }.size==0
+  }
   override def isLast = writtenFIFO.filter{_.ctrler.parent==parent}.size==0
 
 }

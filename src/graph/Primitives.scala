@@ -158,12 +158,12 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
               if (Math.round(log)==log) {
                 val const = Const(s"${Math.round(log)}i")
                 op = FixSra
-                InPort(this, const.out, s"$const")
+                InPort(this, const.out, s"oprd(${const.out})")
               } else
                 throw PIRException(s"Do not support mod of non power of 2 number")
             case _ => throw PIRException(s"Do not support mod of non constant!")
           }
-        case _ => InPort(this, oprds(i), s"${oprds(i)}")
+        case _ => InPort(this, oprds(i), s"oprd(${oprds(i)})")
       }
     } else {
       InPort(this, oprds(i), s"${oprds(i)}")
@@ -280,8 +280,8 @@ object AccumStage {
 }
 class WAStage (override val name:Option[String])
   (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
-  var srams:Either[List[String], ListBuffer[SRAMOnWrite]] = _
   override val typeStr = "WAStage"
+  var srams:Either[List[String], ListBuffer[SRAMOnWrite]] = _
   override def toUpdate = super.toUpdate || srams==null
 
   def updateSRAM(n:Node) = {
@@ -303,8 +303,34 @@ class WAStage (override val name:Option[String])
     }
     this
   }
-
 }
+class RAStage (override val name:Option[String])
+  (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
+  override val typeStr = "RAStage"
+  var srams:Either[List[String], ListBuffer[SRAMOnRead]] = _
+  override def toUpdate = super.toUpdate || srams==null
+
+  def updateSRAM(n:Node) = {
+    srams match {
+      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAMOnRead]))
+      case Right(l) => l += n.asInstanceOf[SRAMOnRead]
+    }
+  }
+
+  def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):RAStage = {
+    typeOf[T] match {
+      case t if t =:= typeOf[String] => 
+        this.srams = Left(srams.asInstanceOf[List[String]])
+        srams.asInstanceOf[List[String]].foreach { s =>
+          design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
+        }
+      case t if t <:< typeOf[SRAMOnRead] => 
+        this.srams = Right(srams.asInstanceOf[List[SRAMOnRead]].to[ListBuffer])
+    }
+    this
+  }
+}
+
 object WAStage {
   def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
@@ -313,6 +339,16 @@ object WAStages {
     val was = List.tabulate(n) { i => WAStage(srams) }
     ctrler.addWAStages(was)
     was
+  }
+}
+object RAStage {
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new RAStage(None).updateSRAMs(srams)
+}
+object RAStages {
+  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[RAStage] = {
+    val ras = List.tabulate(n) { i => RAStage(srams) }
+    ctrler.addRAStages(ras)
+    ras
   }
 }
 trait EmptyStage extends Stage {

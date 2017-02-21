@@ -216,8 +216,8 @@ trait Design extends Metadata {
     traversals += multiBufferAnalysis 
     traversals += new LiveAnalysis()
     //traversals += new IRCheck()
-    if (Config.ctrl) traversals += ctrlAlloc 
     if (Config.debug) traversals += pirDataDotGen
+    if (Config.ctrl) traversals += ctrlAlloc 
     //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
     if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
     //if (Config.debug && Config.ctrl) traversals += ctrlPrinter 

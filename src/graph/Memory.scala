@@ -38,7 +38,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   }
 
   def reader:Controller = {
-    assert(readPort.to.size==1)
+    assert(readPort.to.size>=1, s"$this's readPort is connected to ${readPort.to}")
     readPort.to.head.src match {
       case vo:VecOut => 
         assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem can only have 1 remote reader ${vo.vector.readers}")
