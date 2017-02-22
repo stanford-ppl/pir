@@ -15,18 +15,19 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
 
   override val stream = newStream(Config.ctrlFile) 
   
-  def emitCU(cu:ComputeUnit)(block: => Any) = {
-    val fields = cu match {
-      case cu:InnerController => s"(ancestors=${cu.ancestors})"
-      case cu:OuterController => s""
-    }
+  def emitCU(cu:Controller) = {
+    val fields = s"(ancestors=${cu.ancestors})"
     emitBlock(s"${cu} $fields") {
-      cu.cchains.foreach { cc =>
-        emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
-          cc.counters.foreach { ctr =>
-            emitln(s"${ctr} ${PIRPrinter.genFields(ctr)}")
-          } 
-        }
+      cu match {
+        case cu:ComputeUnit =>
+          cu.cchains.foreach { cc =>
+            emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
+              cc.counters.foreach { ctr =>
+                emitln(s"${ctr} ${PIRPrinter.genFields(ctr)}")
+              } 
+            }
+          }
+        case top:Top =>
       }
       cu match {
         case mc:MemoryController =>
@@ -41,15 +42,9 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
             emitln(s"$mem(${info.mkString(",")})")
           }
         case cu:OuterController =>
+        case cu:Top =>
       }
-      val (tins, touts) = cu match {
-        case inner:InnerController =>
-          (s"tokenIns=[${inner.ctrlIns.map(_.from).toSet.mkString(",")}]", s"tokenOuts=[${inner.ctrlOuts.mkString(",")}]")
-        case outer:OuterController => 
-          (s"tokenIns=[${outer.ctrlBox.ctrlIns.map(_.from).toSet.mkString(",")}]", 
-            s"tokenOuts=[${outer.ctrlBox.ctrlOuts.mkString(",")}]")
-      }
-      emitBlock(s"CtrlBox(${PIRPrinter.genFields(cu.ctrlBox)}) ${tins} ${touts}") {
+      emitBlock(s"CtrlBox(${PIRPrinter.genFields(cu.ctrlBox)})") {
         cu.ctrlBox.udcounters.foreach { case (ctrler, tb) =>
           val info = ListBuffer[String]()
           info += s"ctrler=${tb.ctrler}"
@@ -65,24 +60,25 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
           val out = lut.out.to.mkString(",")
           emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
         }
-        val fifoat = cu.ctrlBox.fifoAndTree
-        emitln(s"$fifoat(${fifoat.ins.map(_.from).mkString(",")})")
-        val tiat = cu.ctrlBox.tokInAndTree
-        emitln(s"$tiat(${tiat.ins.map(_.from).mkString(",")})")
+        cu.ctrlBox.andTrees.foreach { at =>
+          emitln(s"$at(ins=[${at.ins.map(_.from).mkString(",")}] outs=[${at.out.to.mkString(",")}])")
+        }
       }
-      block
+      emitBlock(s"ctrlIns") {
+        cu.ctrlIns.foreach{ in =>
+          emitln(s"$in from:${in.from}")
+        }
+      }
+      emitBlock(s"ctrlOuts") {
+        cu.ctrlOuts.foreach{ out =>
+          emitln(s"$out to:[${out.to.mkString(",")}]")
+        }
+      }
     }
   }
   override def traverse = {
-    design.top.innerCUs.foreach { cu =>
-      def block = {
-        emitBlock(s"outerCUs") {
-          cu.outers.foreach { outer =>
-            emitCU(outer){}
-          }
-        }
-      }
-      emitCU(cu)(block)
+    design.top.ctrlers.foreach { cu =>
+      emitCU(cu)
     }
   }
 

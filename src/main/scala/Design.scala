@@ -220,7 +220,7 @@ trait Design extends Metadata {
     if (Config.ctrl) traversals += ctrlAlloc 
     //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
     if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
-    //if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
+    if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
     if (Config.debug) traversals += pirPrinter 
     if (Config.mapping) traversals += pirMapping 
     if (Config.debug) traversals += spadeDotGen 

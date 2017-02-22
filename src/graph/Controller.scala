@@ -236,7 +236,7 @@ class OuterController(name:Option[String])(implicit design:Design) extends Compu
     else cchain
   }
 
-  val ctrlBox:OuterCtrlBox = OuterCtrlBox()
+  lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -335,7 +335,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def inner:InnerController = this
 
   /* Control Signals */
-  val ctrlBox:InnerCtrlBox = InnerCtrlBox()
+  lazy val ctrlBox:InnerCtrlBox = InnerCtrlBox()
   
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs:List[EnLUT] = locals.flatMap(_.ctrlBox.enLUTs)
@@ -380,7 +380,7 @@ object UnitPipeline {
 class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) {
 
   override val typeStr = "MemPipe"
-  override val ctrlBox:MemCtrlBox = MemCtrlBox()
+  override lazy val ctrlBox:MemCtrlBox = MemCtrlBox()
   override def isHead = false
   override def isLast = false
 
@@ -544,7 +544,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def vectors:List[Vector] = _vectors
   def vectors(vectors:List[Vector]) = _vectors = vectors
 
-  override val ctrlBox:OuterCtrlBox = OuterCtrlBox()(this, design)
+  override lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()(this, design)
 
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _

@@ -23,8 +23,6 @@ abstract class Router(implicit design:Design) extends Mapper {
   val maxHop = 7
   override val exceptLimit = 100
 
-  def debugRouting:Boolean
-
   type I<:Node
   type O<:Node
   type R = (PCL, Path[Edge])
@@ -70,8 +68,8 @@ abstract class Router(implicit design:Design) extends Mapper {
   def io(pne:PNE):PGIO[PNE]
 
     // DEBUG
-  def failPass(mp:M, info:String):Unit = if (debugRouting) {
-    err(info)
+  def breakPoint(mp:M, info:String):Unit = if (debug) {
+    bp(info)
     dprintln(info)
     this match {
       case router:VectorRouter =>
@@ -82,10 +80,10 @@ abstract class Router(implicit design:Design) extends Mapper {
         new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
     }
   }
-  def failPass(e:Throwable):Unit = if (debugRouting) {
+  def failPass(e:Throwable):Unit = if (debug) {
     e match {
       case e:MappingException[_] =>
-        failPass(e.mapping.asInstanceOf[PIRMap], s"$e")
+        breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e")
       case e:Throwable =>
         println(e)
     }
@@ -292,17 +290,18 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
     val fcl = ctrler(from(in))
     val pfcl = m.clmap(fcl)
-    emitBlock(s"$in resFunc: $in of $cl(${quote(pcl)}) from $out of $fcl(${quote(pfcl)})") {
+    log((s"$in resFunc", true)) {
       val routes = advance(pfcl, validCons _, advanceCons _)
       val remain = routes.diff(triedRes)
       if (remain.isEmpty) {
         dprintln(s"advanced routes:${routes.mkString("\n")}")
         dprintln(s"not tried routes:${remain.mkString("\n")}")
+        throw MappingException(this, m, s"No route available for $in of $cl(${quote(pcl)}) from $out of $fcl(${quote(pfcl)})")
       }
       head(remain)
     }
     //val froutes = filterUsedFatMaps(in, out, routes, m)
-    //if (froutes.isEmpty) { failPass(m, s"resFunc: $in of $fcl -> routes:${routes.size} froutes:${froutes.size}") }
+    //if (froutes.isEmpty) { breakPoint(m, s"resFunc: $in of $fcl -> routes:${routes.size} froutes:${froutes.size}") }
     //froutes
   }
 
@@ -337,7 +336,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     }.toList
 
 
-    log((info, true), ((m:M) => ()), failPass) {
+    log((info, false), ((m:M) => ()), failPass) {
       bind[R,I,M](
         allNodes=uniqueIns, 
         initMap=m, 
@@ -355,10 +354,13 @@ abstract class Router(implicit design:Design) extends Mapper {
         !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
       }
     }
+    dprintln(s"$cl outs:${outs(cl).mkString(",")} outIns:${outins.mkString(",")}")
     var mp = mapIns(s"Routing outIns of $cl")(outins, m)
     val inputs = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
+    dprintln(s"$cl ins:${ins(cl).mkString(",")} inputs:${inputs.mkString(",")}")
+    //if (cl.id==421) breakPoint(mp, s"$cl(${quote(pcl)}) inputs:$inputs")
     mp = mapIns(s"Routing ins of $cl")(inputs, mp)
     mp
   }
@@ -383,7 +385,7 @@ class VectorRouter()(implicit val design:Design) extends Router {
   type I = VI
   type O = VO
 
-  def debugRouting:Boolean = Config.debug && true
+  override def debug:Boolean = Config.debugVecRouter
 
   def io(pne:PNE):PGIO[PNE] = pne.vectorIO
 
@@ -406,7 +408,7 @@ class ScalarRouter()(implicit val design:Design) extends Router {
   type I = SI
   type O = SO
 
-  def debugRouting:Boolean = Config.debug && true
+  override def debug:Boolean = Config.debugScalRouter 
 
   def io(pne:PNE):PGIO[PNE] = pne.scalarIO
 
@@ -428,7 +430,7 @@ class ControlRouter()(implicit val design:Design) extends Router {
   type I = IP
   type O = OP
 
-  def debugRouting:Boolean = Config.debug && true
+  override def debug:Boolean = Config.debugCtrlRouter
 
   def io(pne:PNE):PGIO[PNE] = pne.ctrlIO
 
