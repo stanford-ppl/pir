@@ -3,6 +3,7 @@ import pir.graph._
 import pir.misc._
 import pir.{Config, Design}
 import pir.typealias._
+import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
 import pir.graph.traversal.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
@@ -35,16 +36,29 @@ abstract class Router(implicit design:Design) extends Mapper {
   type FatPaths[E] = List[(PCL, FatPath[E])]
   type FatPath[E] = List[FatEdge[E]]
 
-  override def quote(n:Any)(implicit spade:Spade):String = {
+  def quote[T](n:T)(implicit spade:Spade, ev:TypeTag[T]):String = {
     n match {
       case io:PIO[_] =>
         io.src match {
-          case cu:PCU => io.toString
-          case sb:PSB => super.quote(sb) 
-          case top:PTop => top.toString
+          case cu:PCU => s"${super.quote(cu)}.${io}"
+          case sb:PSB => s"${super.quote(sb)}.${io}" 
+          case top:PTop => s"${super.quote(top)}.${io}" 
         }
+      case edge if typeOf[T] =:= typeOf[Edge] =>
+        val (from, to) = edge; s"${quote(from)} -> ${quote(to)}"
+      case edge if typeOf[T] =:= typeOf[REdge] =>
+        val (to, from) = edge; s"${quote(to)} <- ${quote(from)}"
       case n => super.quote(n)
     }
+  }
+  def quote(fe:FatEdge[_]):String = { fe.map(quote).mkString(" | ") }
+  def quote[T](path:FatPath[T])(implicit ev:TypeTag[T]):String = path match {
+    case path:FatPath[_] if typeOf[T] =:= typeOf[Edge] =>
+      path.map(quote).mkString("\n=>\n")
+    case path:FatPath[_] if typeOf[T] =:= typeOf[REdge] =>
+      path.map(quote).mkString("\n<=\n")
+    case path:Path[_] =>
+      path.map(quote).mkString(", ")
   }
 
   def ctrler(io:Node):CL
@@ -132,13 +146,9 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def filterPNE(cl:CL, pnes:List[PNE], m:PIRMap):List[PNE] = {
     var reses = pnes 
-    reses = emitBlock(s"filterOutIns") { filterOutIns(cl, reses, m) }
-    reses = emitBlock(s"filterIns") { filterIns(cl, reses, m) }
+    reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
+    reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
     reses
-  }
-
-  def quote(path:Path[Edge]):String = {
-    path.map { case (from, to) => s"${quote(from)} -> ${quote(to)}"}.mkString(", ")
   }
 
   type AdvanceFunc[E] = (PNE, (PCL, FatPath[E]) => Option[FatPath[E]], (PSB, FatPath[E]) => Option[FatPath[E]]) =>FatPaths[E] 
@@ -232,7 +242,11 @@ abstract class Router(implicit design:Design) extends Mapper {
         }
         fatedge
       }
-      if (isFatPathValid(filteredFatpath)) Some(filteredFatpath) else None
+      if (isFatPathValid(filteredFatpath)) Some(filteredFatpath) else {
+        dprintln(s"fatpath:\n${quote(fatpath)}")
+        dprintln(s"filteredFathpath:\n${quote(filteredFatpath)}")
+        None
+      }
   }
 
   //def filterUsedFatMaps(in:I, out:O, routes:FatPaths[Edge], map:PIRMap):Paths[Edge] = {
@@ -323,7 +337,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     }.toList
 
 
-    log(info, ((m:M) => ()), failPass) {
+    log((info, true), ((m:M) => ()), failPass) {
       bind[R,I,M](
         allNodes=uniqueIns, 
         initMap=m, 
@@ -353,11 +367,11 @@ abstract class Router(implicit design:Design) extends Mapper {
     design.top.ctrlers.foreach { ctrler =>
       ins(ctrler).foreach { in =>
         if(!mapping.vimap.contains(in))
-          throw PIRException(s"${in} in ${ctrler} wasn't mapped")
+          throw PIRException(s"${in} in ${ctrler} from ${from(in)} wasn't mapped")
       }
       outs(ctrler).foreach { out =>
         if(!mapping.vomap.contains(out))
-          throw PIRException(s"${out} in ${ctrler} wasn't mapped")
+          throw PIRException(s"${out} in ${ctrler} to [${to(out).mkString(",")}] wasn't mapped")
       }
     }
   }

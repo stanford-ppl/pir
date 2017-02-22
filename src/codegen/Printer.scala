@@ -7,6 +7,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
 import java.io.ByteArrayOutputStream
+import scala.collection.mutable.Stack
 
 trait Printer {
   var fileName:String = "System.out"
@@ -21,7 +22,7 @@ trait Printer {
 
   lazy val writer = new PrintWriter(stream)
   //lazy val pw = new PrintWriter(stream)
-  def pw:PrintWriter = { bufferWriter.getOrElse(writer) }
+  def pw:PrintWriter = { bufferWriters.headOption.getOrElse(writer) }
   val tab = "  "
   var level = 0
 
@@ -69,27 +70,31 @@ trait Printer {
   def newStream(fname:String):FileOutputStream = { newStream(Config.outDir, fname) }
 
   /* A temporary stream to write all data */
-  var buffer:Option[ByteArrayOutputStream] = None
-  var bufferWriter:Option[PrintWriter] = None
+  val buffers = Stack[ByteArrayOutputStream]()
+  val bufferWriters = Stack[PrintWriter]()
   def openBuffer = {
-    buffer = Some(new ByteArrayOutputStream())
-    bufferWriter = Some(new PrintWriter(buffer.get))
+    pw.flush
+    buffers.push(new ByteArrayOutputStream())
+    bufferWriters.push(new PrintWriter(buffers.top))
   }
   /*
    * Close the temporary stream and write all content in the temp stream to actual file
    * */
   def closeAndWriteBuffer = {
-    buffer.foreach { bufStream =>
-      stream.write(bufStream.toByteArray())
-      stream.flush
-    }
+    val bufStream = buffers.pop
+    val nextStream = buffers.headOption.getOrElse(stream)
+    nextStream.write(bufStream.toByteArray())
+    nextStream.flush
+    buffers.push(bufStream)
     closeBuffer
   }
+
   /* Close the temporary stream */
   def closeBuffer = {
-    bufferWriter.foreach { pw => pw.flush(); pw.close() }
-    bufferWriter = None
-    buffer = None
+    val pw = bufferWriters.pop
+    pw.flush()
+    pw.close()
+    buffers.pop
   }
 }
 

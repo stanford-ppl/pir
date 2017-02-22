@@ -46,12 +46,27 @@ trait Mapper { self =>
   def quote(pne:Any)(implicit spade:Spade):String = DotCodegen.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
-    dbsln(mapper, s"$info")
+    val (infoStr, buffer) = info match {
+      case (infoStr:String, buffer:Boolean) => (infoStr, buffer)
+      case info => (s"$info", false)
+    }
+    dbsln(mapper, s"$infoStr")
+    //if (s"$info".contains(s"VecIn98"))
+      //System.exit(0)
     //printCaller 
     MapperLogger.openBuffer
     Try(block) match {
-      case Success(m) => dbeln(mapper, s"$info (succeeded)"); MapperLogger.closeBuffer; finPass(m); m
-      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); MapperLogger.closeAndWriteBuffer; failPass(e); throw e
+      case Success(m) => 
+        if (buffer)
+          MapperLogger.closeBuffer
+        else
+          MapperLogger.closeAndWriteBuffer
+        dbeln(mapper, s"$infoStr (succeeded)")
+        finPass(m); m
+      case Failure(e) => 
+        MapperLogger.closeAndWriteBuffer
+        dbeln(mapper, s"$infoStr (failed) $e")
+        failPass(e); throw e
     }
   }
   def log[M](info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = log(this, info, finPass, failPass)(block)
@@ -69,8 +84,7 @@ trait Mapper { self =>
     Thread.currentThread().getStackTrace().slice(start,end).map("" + _).mkString("\n")
   }
 
-  def mappingCheck(mapping:PIRMap):Unit = {
-  }
+  def mappingCheck(mapping:PIRMap):Unit = {}
   //def recRes[R,N,M](
   //  n:N,
   //  allRes:List[R],
@@ -108,28 +122,21 @@ trait Mapper { self =>
       val res = reses.head
       (Try {
         constrain(n, res, map, exceps.toList)
-      } match {
-        case Success(m) => 
-          //dbsln(s"Try $n -> ${quote(res)(design.arch)} (success) remain:[${remainNodes.mkString(",")}]") 
-          Try(finPass(m))
-        case Failure(e) => 
-          //dbeln(s"Try $n -> ${quote(res)(design.arch)} (failed) ${e}")
-          Failure(e)
-      }) match {
-        case Success(m) => 
-          //dbeln(s"(success)")
-          return m
-        case Failure(e) => 
-          //dbeln(s"(failed) ${e}")
-          e match {
-            case NoSolFound(_, es, mp) => exceps ++= es
-            case FailToMapNode(_, n, es, mp) => exceps ++= es 
-            case me:E => exceps += me// constrain failed
-            case _ => throw e
-          }
+      }.flatMap { m => Try(finPass(m)) }) match {
+        case Success(m) => return m
+        case Failure(e@NoSolFound(_, es, mp)) => exceps ++= es
+        case Failure(e@FailToMapNode(_, n, es, mp)) => exceps ++= es
+        case Failure(me:E) => exceps += me // constrain failed
+        case Failure(e) => throw e
       }
       triedRes += res
-      reses = resFilter(triedRes.toList, exceps.toList)
+      reses = Try {
+        resFilter(triedRes.toList, exceps.toList)
+      } match {
+        case Success(rs) => rs
+        case Failure(e:MappingException[_]) => exceps += e; Nil
+        case Failure(e) => throw e
+      }
     }
     throw FailToMapNode(this, n, exceps.toList, map)
   }
@@ -250,12 +257,10 @@ trait Mapper { self =>
           recMap(restRes, remainNodes, mp)
         } match {
           case Success(m) => return m 
-          case Failure(e) => e match {
-            case NoSolFound(_, es, mp) => exceps ++= es
-            case FailToMapNode(_, n, es, mp) => exceps ++= es 
-            case me:E => exceps += me // constrains failed
-            case _ => throw e // Unknown exception
-          }
+          case Failure(e@NoSolFound(_, es, mp)) => exceps ++= es
+          case Failure(e@FailToMapNode(_, n, es, mp)) => exceps ++= es
+          case Failure(me:E) => exceps += me // constrains failed
+          case Failure(e) => throw e // Unknown exception
         }
       }
       map match {
@@ -276,11 +281,9 @@ trait Mapper { self =>
         recRes(remainRes, n, restNodes, recmap)
       } match {
         case Success(m) => return m
-        case Failure(e) => e match { 
-          case fe:FailToMapNode[_] => 
-            throw NoSolFound(this, List(fe), fe.mapping) // recRes failed
-          case _ => throw e // Unknown exception
-        }
+        case Failure(fe@FailToMapNode(_, n, es, mp)) => 
+          throw NoSolFound(this, List(fe), fe.mapping) // recRes failed
+        case Failure(e) => throw e // Unknown exception
       }
     }
 

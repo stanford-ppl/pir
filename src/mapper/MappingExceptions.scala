@@ -26,6 +26,15 @@ abstract class MappingException[M](val mapping:M)(implicit design:Design) extend
     mapper.mapExceps += this
   }
 }
+object MappingException {
+  def apply[M](mper:Mapper, mp:M, info:String)(implicit design:Design):MappingException[M] = {
+    new MappingException(mp)(design) {
+      def msg = info
+      def mapper = mper
+      override def typeStr = s"MappingException"
+    }
+  }
+}
 
 case class NoSolFound[M](mapper:Mapper, exceps:List[MappingException[_]], mp:M)(implicit design:Design) extends MappingException(mp) {
   override def toString = s"[$mapper] $typeStr"

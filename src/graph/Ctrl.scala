@@ -263,7 +263,11 @@ object InnerCtrlBox {
 
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
   // Connect to pulser SM if pipelining, connect to sibling and tree if streamming
-  val tokenDown:CtrlOutPort = CtrlOutPort(this, s"$ctrler.tokenDown")
+  val pulserSMOut = CtrlOutPort(this, s"$ctrler.pulserSM")
+  def tokenDown:CtrlOutPort = ctrler match {
+    case ctrler:StreamController => siblingAndTree.out
+    case ctrler => pulserSMOut
+  }
   val childrenAndTree = ChildrenAndTree()
 
   override def toUpdate = super.toUpdate || tokenDown == null
