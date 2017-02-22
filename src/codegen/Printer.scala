@@ -6,6 +6,7 @@ import java.io.PrintWriter
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.io.ByteArrayOutputStream
 
 trait Printer {
   var fileName:String = "System.out"
@@ -18,7 +19,9 @@ trait Printer {
     else s"${dirPath}${File.separator}${fileName}"
   }
 
-  lazy val pw = new PrintWriter(stream)
+  lazy val writer = new PrintWriter(stream)
+  //lazy val pw = new PrintWriter(stream)
+  def pw:PrintWriter = { bufferWriter.getOrElse(writer) }
   val tab = "  "
   var level = 0
 
@@ -42,8 +45,8 @@ trait Printer {
   def emitCSln(s:String):Unit = { emit(s); emitCSln }
   def emitCSln:Unit = { pprintln(s"["); level += 1 }
   def emitCE = { level -= 1; emit(s"]") }
-  def emitBlock(block: =>Any) = { emitBSln; block; emitBEln }
-  def emitBlock(s:String)(block: =>Any) = { emitBSln(s"$s "); block; emitBEln }
+  def emitBlock[T](block: =>T):T = { emitBSln; val res = block; emitBEln; res }
+  def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
   def emitTitleComment(title:String) = 
     emitln(s"/*****************************${title}****************************/")
   def flush = pw.flush()
@@ -64,14 +67,39 @@ trait Printer {
     new FileOutputStream(new File(s"${getPath}"))
   }
   def newStream(fname:String):FileOutputStream = { newStream(Config.outDir, fname) }
+
+  /* A temporary stream to write all data */
+  var buffer:Option[ByteArrayOutputStream] = None
+  var bufferWriter:Option[PrintWriter] = None
+  def openBuffer = {
+    buffer = Some(new ByteArrayOutputStream())
+    bufferWriter = Some(new PrintWriter(buffer.get))
+  }
+  /*
+   * Close the temporary stream and write all content in the temp stream to actual file
+   * */
+  def closeAndWriteBuffer = {
+    buffer.foreach { bufStream =>
+      stream.write(bufStream.toByteArray())
+      stream.flush
+    }
+    closeBuffer
+  }
+  /* Close the temporary stream */
+  def closeBuffer = {
+    bufferWriter.foreach { pw => pw.flush(); pw.close() }
+    bufferWriter = None
+    buffer = None
+  }
 }
 
 trait Logger extends Printer {
   override def emitBSln(s:String):Unit = { super.emitBSln(s); flush }
   override def emitBEln(s:String):Unit = { super.emitBEln(s); flush }
   override def emitln(s:String):Unit = { super.emitln(s); flush } 
-  override def emitBlock(block: =>Any) = { if (Config.debug) { super.emitBlock(block); flush } }
-  override def emitBlock(s:String)(block: =>Any) = { if (Config.debug) { super.emitBlock(s)(block); flush } }
+  override def emitBlock[T](block: =>T):T = { if (Config.debug) { val res = super.emitBlock(block); flush; res } else { block } }
+  override def emitBlock[T](s:String)(block: =>T):T = { if (Config.debug) { val res = super.emitBlock(s)(block); flush; res } else { block } }
+  def emitBlock[T](header:String, s:String)(block: =>T):T = { if (Config.debug) { val res = super.emitBlock(promp(Some(header), s))(block); flush; res } else { block } }
   def promp(header:Option[String], s:Any) = s"[debug${header.fold("") { h => s"-$h"}}] $s"
   def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitln(promp(header, s))
   def dprint(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emit(promp(header, s))

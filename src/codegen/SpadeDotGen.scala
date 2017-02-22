@@ -89,12 +89,12 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       }
     }
     close
-    if (open) { 
+    if (open && Config.debug) { 
+        s"out/bin/run -c out/${file}".replace(".dot", "") !
+
         println(s"Waiting for input ...")
         val command = scala.io.StdIn.readLine()
-        if (command=="n") {
-          s"out/bin/run -c out/${file}".replace(".dot", "") !
-        } else {
+        if (command!="n") {
           println(s"Stop debugging control routing ...")
           System.exit(-1)
         }

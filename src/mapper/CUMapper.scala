@@ -1,6 +1,6 @@
 package pir.graph.mapper
 import pir.graph._
-import pir._
+import pir.{Design, Config}
 import pir.typealias._
 import pir.codegen.Printer
 import pir.graph.traversal.{CUCtrlDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
@@ -15,6 +15,7 @@ import scala.util.{Try, Success, Failure}
 class CUMapper(implicit ds:Design) extends Mapper {
   def design:Design = ds 
   def typeStr = "CUMapper"
+  implicit def spade:Spade = ds.arch
 
   override implicit val mapper:CUMapper = this
 
@@ -121,13 +122,13 @@ class CUMapper(implicit ds:Design) extends Mapper {
         println(info)
         throw CUOutOfSize(cl, info)
       }
-      mapper.dprintln(s"qualified resource: $cl -> ${map(cl)}")
+      mapper.dprintln(s"qualified resource: $cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
     }
     map.toMap
   }
 
   def place(cl:CL, pne:PNE, m:M):M = {
-    dprintln(s"Try $cl -> $pne")
+    dprintln(s"Try $cl -> ${quote(pne)}")
     routers.foldLeft(m.setCL(cl, pne)) { case (pm, router) =>
       router.route(cl, pm)
     }
@@ -135,7 +136,10 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def resFunc(cl:CL, m:M, triedRes:List[PNE]):List[PNE] = {
     implicit val spade:Spade = design.arch
+    dprintln(s"$cl resFunc:")
+    dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
     var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
+    dprintln(s"--not mapped and tried:[${pnes.mkString(",")}]")
     cl match {
       case cl:MC if cl.mctpe.isDense => 
         val sp = cl.ofs.writer.ctrler
@@ -143,15 +147,17 @@ class CUMapper(implicit ds:Design) extends Mapper {
           pnes = pnes.filter{ pne => pne.coord == m.clmap(sp).coord }
         }
       case sp:SP =>
-        val mcs = sp.writtenFIFO.filter{_.ctrler.isInstanceOf[MC] }
+        val mcs = sp.writtenFIFO.filter{ _.isOfsFIFO }
         if (!mcs.isEmpty && m.clmap.contains(mcs.head.ctrler)) {
           pnes = pnes.filter{ pne => pne.coord == m.clmap(mcs.head.ctrler).coord }
         }
       case _ =>
     }
+    dprintln(s"--mc filtered:[${pnes.mkString(",")}]")
     pnes = routers.foldLeft(pnes) { case (pnes, router) =>
       router.filterPNE(cl, pnes, m)
     }
+    dprintln(s"--routers filtered:[${pnes.mkString(",")}] ")
     pnes
   }
 

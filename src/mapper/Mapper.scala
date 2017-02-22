@@ -1,6 +1,6 @@
 package pir.graph.mapper
 
-import pir._
+import pir.{Design, Config}
 import pir.typealias._
 import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
@@ -35,19 +35,23 @@ trait Mapper { self =>
   def dprintln(s:Any):Unit = MapperLogger.dprintln(debug, s"$this", s)
   def dprint(s:Any):Unit = MapperLogger.dprint(debug, s"$this", s)
   def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(debug, s"$mapper", s)
+  def dprintln(header:String, s:Any):Unit = MapperLogger.dprintln(header, s) 
   def dbsln(mapper:Mapper, s:Any):Unit = MapperLogger.dbsln(debug, Some(s"$mapper"), s) 
   def dbeln(mapper:Mapper, s:Any):Unit = MapperLogger.dbeln(debug, Some(s"$mapper"), s) 
   def dbsln(s:Any):Unit = dbsln(this, s) 
   def dbeln(s:Any):Unit = dbeln(this, s) 
+  def emitBlock[T](block: =>T):T = MapperLogger.emitBlock(block) 
+  def emitBlock[T](s:String)(block: =>T):T = MapperLogger.emitBlock(s"$mapper", s)(block) 
 
-  def quote(pne:Any)(implicit spade:Spade) = DotCodegen.quote(pne) 
+  def quote(pne:Any)(implicit spade:Spade):String = DotCodegen.quote(pne) 
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
     dbsln(mapper, s"$info")
     //printCaller 
+    MapperLogger.openBuffer
     Try(block) match {
-      case Success(m) => dbeln(mapper, s"$info (succeeded)"); finPass(m); m
-      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); failPass(e); throw e
+      case Success(m) => dbeln(mapper, s"$info (succeeded)"); MapperLogger.closeBuffer; finPass(m); m
+      case Failure(e) => dbeln(mapper, s"$info (failed) $e"); MapperLogger.closeAndWriteBuffer; failPass(e); throw e
     }
   }
   def log[M](info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = log(this, info, finPass, failPass)(block)

@@ -91,6 +91,16 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
   val notFull = CtrlOutPort(this, s"$this.notFull")
   val enqueueEnable = CtrlInPort(this, s"$this.enqueueEnable")
   override def toUpdate = super.toUpdate
+
+  def isOfsFIFO:Boolean = {
+    ocm.ctrler match {
+      case mc:MemoryController =>
+        mc.siofs.fold(false) { siofs =>
+          writePort.isConnectedTo(siofs.out)
+        }
+      case _ => false
+    }
+  }
 }
 
 trait MultiBuffering extends OnChipMem {
