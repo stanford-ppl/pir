@@ -64,13 +64,17 @@ abstract class Router(implicit design:Design) extends Mapper {
   def to(out:O):List[I]
   def ins(cl:CL):List[I]
   def outs(cl:CL):List[O]
-
   def io(pne:PNE):PGIO[PNE]
+  def isExtern(in:I):Boolean = { ctrler(in)!=ctrler(from(in)) }
 
     // DEBUG
   def breakPoint(mp:M, info:String):Unit = if (debug) {
     bp(info)
-    dprintln(info)
+    //val arch = design.arch.asInstanceOf[SwitchNetwork]
+    //val ocu = arch.ocuArray(0)(4)
+    //ocu.ctrlIO.ins.foreach { pin =>
+      //println(s"$ocu $pin -> ${mp.vimap.pmap.get(pin)}")
+    //}
     this match {
       case router:VectorRouter =>
         new CUVectorDotPrinter(true)(design).print(mp.asInstanceOf[M])
@@ -266,13 +270,15 @@ abstract class Router(implicit design:Design) extends Mapper {
     val cl = ctrler(in)
     val pcl = m.clmap(cl)
     val out = from(in) 
+    val fcl = ctrler(from(in))
+    val pfcl = m.clmap(fcl)
     def validCons(reached:PCL, fatpath:FatPath[Edge]):Option[FatPath[Edge]] = {
       val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
       var valid = true
-      valid = logCond(header, valid, reached == pcl, s"reached:${reached} != pcl:${pcl}")
+      valid &&= (reached == pcl)
+      //valid = logCond(header, valid, reached == pcl, s"reached:${reached} != pcl:${pcl}")
       valid = logCond(header, valid, fatpath.size >= minHop, s"path ${fatpath.size} less than minHop $minHop")
       valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
-      //valid &&= (reached == pcl)
       //valid &&= (fatpath.size >= minHop)
       //valid &&= (fatpath.size < maxHop)
       val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
@@ -288,9 +294,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
       filtered
     }
-    val fcl = ctrler(from(in))
-    val pfcl = m.clmap(fcl)
-    log((s"$in resFunc", true)) {
+    log((s"$in resFunc", true), (r:Paths[Edge]) => (), failPass) {
       val routes = advance(pfcl, validCons _, advanceCons _)
       val remain = routes.diff(triedRes)
       if (remain.isEmpty) {
@@ -335,7 +339,6 @@ abstract class Router(implicit design:Design) extends Mapper {
       srcMap.map { case (out, ins) => ins.head }
     }.toList
 
-
     log((info, false), ((m:M) => ()), failPass) {
       bind[R,I,M](
         allNodes=uniqueIns, 
@@ -351,7 +354,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     val pcl = m.clmap(cl)
     val outins = outs(cl).flatMap { out =>
       to(out).filter { in => 
-        !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
+        isExtern(in) && !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
       }
     }
     dprintln(s"$cl outs:${outs(cl).mkString(",")} outIns:${outins.mkString(",")}")
