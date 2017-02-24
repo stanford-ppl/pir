@@ -114,7 +114,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
   }
 
   override def finPass() = {
-    info(s"Finishing PIR Printing in ${getPath}")
+    endInfo(s"Finishing PIR Printing in ${getPath}")
     close
   }
 }
@@ -134,6 +134,7 @@ object PIRPrinter extends Metadata {
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
         fields += s"consumed=[${n.consumed.mkString(",")}]"
+        fields += s"trueConsumed=[${n.trueConsumed.mkString(",")}]"
         fields += s"produced=[${n.produced.mkString(",")}]"
         n match {
           case n:InnerController =>

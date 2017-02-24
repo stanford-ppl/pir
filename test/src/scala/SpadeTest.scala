@@ -16,19 +16,19 @@ import scala.language.postfixOps
 
 class SpadeTest extends UnitTest { self =>
 
-  "SN_2x2" should "success" taggedAs(ARCH) in {
+  "SN_4x4" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
-      override val arch = SN_2x2
+      override val arch = SN_4x4
       new SpadeCodegen().run
 
-      //new CUCtrlDotPrinter().print
-      //s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
+      new CUCtrlDotPrinter().print
+      s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
 
       //new CUScalarDotPrinter().print
       //s"out/bin/run -c out/ScalNetwork".replace(".dot", "") !
 
-      new CUVectorDotPrinter().print
-      s"out/bin/run -c out/VecNetwork".replace(".dot", "") !
+      //new CUVectorDotPrinter().print
+      //s"out/bin/run -c out/VecNetwork".replace(".dot", "") !
     }
     design.arch match {
       case sn:SwitchNetwork =>

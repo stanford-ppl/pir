@@ -430,6 +430,6 @@ class SpadeDotGen(vecPrinter:CUVectorDotPrinter, scalPrinter:CUScalarDotPrinter,
   }
 
   override def finPass = {
-    info(s"Finishing Spade Printing in ${vecPrinter.getPath} ${scalPrinter.getPath} ${ctrlPrinter.getPath}")
+    endInfo(s"Finishing Spade Printing in ${vecPrinter.getPath} ${scalPrinter.getPath} ${ctrlPrinter.getPath}")
   }
 }

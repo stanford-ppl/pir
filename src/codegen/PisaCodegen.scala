@@ -62,7 +62,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   override def finPass = {
     close
-    info(s"Finishing PisaCodegen in ${getPath}")
+    endInfo(s"Finishing PisaCodegen in ${getPath}")
   }
 
   def emitMain(implicit ms:CollectionStatus) = {

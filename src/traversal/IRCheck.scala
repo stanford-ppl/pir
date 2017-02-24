@@ -109,7 +109,7 @@ class IRCheck(implicit val design: Design) extends Traversal {
   } 
 
   override def finPass = {
-    info("Finishing checking mutable fields")
+    endInfo("Finishing checking mutable fields")
     design.arch match {
       case sn:SwitchNetwork =>
         //val dbw = sn.switchNetworkDataBandwidth

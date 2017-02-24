@@ -113,13 +113,17 @@ class PIRMapping(implicit val design: Design) extends Traversal{
           case e => throw e 
         }
     }
-    toc(s"Mapping", "ms")
-    MapperLogger.close
+    toc(s"Mapping", "s")
+    design.mapperLogger.close
     MapPrinter.close
   } 
 
+  override def initPass:Unit = {
+    info(s"Start mapping...")
+  }
+
   override def finPass = {
-    MapperLogger.close
+    design.mapperLogger.close
     info("Finishing PIR Mapping")
   }
 }

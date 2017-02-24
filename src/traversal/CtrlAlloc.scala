@@ -69,7 +69,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu:ComputeUnit=>
           val cb = cu.ctrlBox.asInstanceOf[StageCtrlBox]
           val parent = cu.parent
-          cu.consumed.foreach { mem =>
+          cu.trueConsumed.foreach { mem =>
             mem.producer match {
               case cu:ComputeUnit =>
                 val tk = cb.tokenBuffer(mem)
@@ -83,7 +83,7 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
               case _ =>
             }
           }
-          cu.produced.foreach { mem =>
+          cu.trueProduced.foreach { mem =>
             mem.buffering match {
               case 1 if parent.isInstanceOf[Sequential] | parent.isInstanceOf[Top] =>
               case n if parent.isInstanceOf[MetaPipeline] =>
@@ -145,6 +145,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
           //}
       //}
     //}
-    info("Finishing control logic allocation")
+    endInfo("Finishing control logic allocation")
   }
 }

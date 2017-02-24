@@ -84,7 +84,7 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
 
   override def finPass = {
     close
-    info(s"Finishing Control Printing in ${getPath}")
+    endInfo(s"Finishing Control Printing in ${getPath}")
   }
 
 }

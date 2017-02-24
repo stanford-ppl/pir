@@ -40,7 +40,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
             (producers.head, consumers.head)
           }
           buf.producer(producer)
-          buf.consumer(consumer, true) //TODO: how to detect back edge?
+          buf.consumer(consumer, true) // detect back edge later
           emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
           emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
           emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
@@ -48,6 +48,37 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
         }
       }
     }
+  }
+
+  def findCycle(ctrlers:List[Controller]):Unit = {
+    val visited = ListBuffer[Controller]()
+    val toVisit = Queue[Controller]()
+    val heads = ctrlers.filter{_.consumed.isEmpty}
+    //Hack: if there's a loop without entry point, assume the first ctrler is the entry point in the
+    //program order
+    toVisit ++= (if (heads.isEmpty) List(ctrlers.head) else heads)
+    while(toVisit.nonEmpty) {
+      val node = toVisit.dequeue
+      visited += node
+      emitln(s"Visiting $node produced:${node.produced}")
+      node.produced.foreach { mem =>
+        if (visited.contains(mem.consumer)) {
+          mem.trueDep = false
+          emitln(s"Set $mem.trueDep=false in ${mem.ctrler}")
+        } else {
+          if (!toVisit.contains(mem.consumer))
+            toVisit += mem.consumer
+        }
+      }
+    }
+    emitln(s"----")
+    visited.foreach{c => if (c.children.nonEmpty) findCycle(c.children) }
+  }
+
+  def findBackEdge:Unit = {
+    emitln(s"Finding back edge in dependencies")
+    
+    findCycle(List(design.top))
   }
 
   def setBufferSize:Unit = {
@@ -63,7 +94,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
                 var dist = 1
                 while (next.size!=0 && !next.contains(buf.consumer)) {
                   next = next.flatMap{ _ match {
-                      case cu:ComputeUnit => cu.produced.map{_.consumer}
+                      case cu:ComputeUnit => cu.trueProduced.map{_.consumer}
                       case top:Top => Nil //TODO
                     }
                   } 
@@ -82,12 +113,13 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
 
   override def traverse:Unit = {
     setProducerConsumer
+    findBackEdge
     setBufferSize
     //ForwardRef.collectOuters
   } 
 
   override def finPass = {
-    misc.info("Finishing multiBuffer analysis")
+    misc.endInfo("Finishing multiBuffer analysis")
   }
 
 }

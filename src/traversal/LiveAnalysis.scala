@@ -252,7 +252,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata 
   }
 
   override def finPass = {
-    info("Finishing Liveness Analysis")
+    endInfo("Finishing Liveness Analysis")
   }
 
 }

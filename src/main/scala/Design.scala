@@ -203,6 +203,9 @@ trait Design extends Metadata {
   def mapping = pirMapping.mapping
 
   val mappers = ListBuffer[Mapper]()
+  val mapperLogger = new Logger {
+    override val stream = newStream(Config.mapperLog)
+  }
 
   /* Traversals */
   lazy val traversals = {
@@ -259,7 +262,7 @@ trait PIRApp extends Design{
     println(args.mkString(", "))
     reset()
     top = Top().updateBlock(main(args:_*)) 
-    info(s"Finishing graph construction for ${this}")
+    endInfo(s"Finishing graph construction for ${this}")
     run
   }
 }

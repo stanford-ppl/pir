@@ -109,17 +109,15 @@ trait MultiBuffering extends OnChipMem {
   var _consumer:Controller = _
   def producer:Controller = _producer
   def consumer:Controller = _consumer
-  var trueDep:Boolean = _
+  var trueDep:Boolean = _ // Whether the consumer is a true dependency
+
   def producer[T](pd:T):this.type = {
     pd match {
       case pd:String =>
         design.updateLater(pd, (n:Node) => producer(n.asInstanceOf[Controller]))
       case pd:Controller =>
         this._producer = pd
-        pd match {
-          case cu:ComputeUnit => cu.produce(this)
-          case _ =>
-        }
+        pd.produce(this)
     }
     this
   }
@@ -130,10 +128,7 @@ trait MultiBuffering extends OnChipMem {
       case cs:Controller =>
         this._consumer = cs
         this.trueDep = trueDep
-        cs match {
-          case cu:ComputeUnit => cu.consume(this)
-          case _ =>
-        }
+        cs.consume(this)
     }
     this
   }
@@ -148,6 +143,11 @@ trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
 }
 
 trait LocalMem extends OnChipMem {
+  override def reader:Controller = {
+    val reader = super.reader
+    assert(reader == this.ctrler)
+    reader
+  }
 }
 trait RemoteMem extends OnChipMem { self:VectorMem =>
   def rdPort(vec:Vector):this.type = { rdPort(ctrler.newVout(vec)) }

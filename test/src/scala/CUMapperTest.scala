@@ -123,10 +123,10 @@ class CUMapperTest extends UnitTest with Metadata {
         mapper.map(PIRMap.empty)
       } match {
         case Success(mapping) => 
-          MapperLogger.close
+          design.mapperLogger.close
           new CUVectorDotPrinter("TestP2P.dot").print
         case Failure(e) => 
-          MapperLogger.close
+          design.mapperLogger.close
           new CUVectorDotPrinter("TestP2P.dot").print; throw e
       }
       // Printer

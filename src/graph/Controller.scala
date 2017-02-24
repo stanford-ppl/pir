@@ -59,18 +59,23 @@ abstract class Controller(implicit design:Design) extends Node {
   def produce(mem:MultiBuffering) = _produced += mem
   def consumed = _consumed.toList
   def produced = _produced.toList
+  def trueConsumed = consumed.filter { _.trueDep }
+  def trueProduced = produced.filter { _.trueDep }
+  def writtenMem:List[OnChipMem] = {
+    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
+  }
 
-  def isHead = (consumed.filterNot{_.producer == design.top}.size==0)
-  def isLast = (produced.filterNot{_.consumer == design.top}.size==0)
+  def isHead = (trueConsumed.size==0)
+  def isLast = (trueProduced.size==0)
   def isUnitStage = isHead && isLast
 
   /* Number of children stages on the critical path */
   def length:Int = {
     var count = 1
-    var heads = children.filter{!_.isHead}
+    var heads:List[Controller] = children.filter{!_.isHead}
     while(heads.size!=0) {
       // Collect consumers that are not Top
-      heads = heads.flatMap { _.produced.map { _.consumer } }.collect{case cu:ComputeUnit => cu }.toSet.toList
+      heads = heads.flatMap { _.trueProduced.map { _.consumer } }.toSet.toList
       count +=1
     }
     count
@@ -195,9 +200,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def mems:List[OnChipMem] = _mems.toList
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
   def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
-  def writtenMem:List[OnChipMem] = {
-    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
-  }
 
   val retiming:Map[Variable, FIFO] = Map.empty
   def getRetimingFIFO(variable:Variable):FIFO = {
@@ -316,16 +318,29 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     ras.foreach { ra => addStage(ra) }
   }
 
-  def addStage(s:Stage):Unit = { s match {
+  def addStage(s:Stage):Unit = { 
+    indexOf(s) = nextIndex
+    val prev = stages.last
+    s.prev = Some(prev)
+    prev.next = Some(s)
+    s match {
       case ss:LocalStage =>
         localStages += ss
       case ss:WAStage => // WAstages are added in addWAStages 
       case ss:RAStage => // RAstages are added in addRAStages 
     }
-    indexOf(s) = nextIndex
-    val prev = stages.last
-    s.prev = Some(prev)
-    prev.next = Some(s)
+  }
+
+  def stage:LocalStage = { 
+    val stage = LocalStage(None)
+    ctrler.addStage(stage)
+    stage
+  }
+
+  def reduceStage:ReduceStage = {
+    val stage = ReduceStage(None)
+    ctrler.addStage(stage)
+    stage
   }
 
   /* Controller Hierarchy */
@@ -533,6 +548,28 @@ case class Top()(implicit design: Design) extends Controller { self =>
         _outerCUs = _outerCUs.filterNot(_==ctrler)
     }
   }
+
+  def topoSort = {
+    val list = ListBuffer[Controller]()
+    def isDepFree(cl:Controller) = {
+      cl.isHead || cl.trueConsumed.forall { csm => list.contains(csm.producer) }
+    }
+    def addCtrler(cl:Controller):Unit = {
+      list += cl
+      var children = cl.children
+      while (!children.isEmpty) {
+        children = children.filter { child =>
+          if (isDepFree(child)) {
+            addCtrler(child)
+            false
+          } else { true }
+        }
+      }
+    }
+    addCtrler(top)
+    list.toList.reverse
+  }
+
   val command = CtrlOutPort(this, s"${this}.command")
   val status = CtrlInPort(this, s"${this}.status")
 

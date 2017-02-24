@@ -50,7 +50,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
   }
 
   override def finPass = {
-    info("Finishing updating forward referenced nodes")
+    endInfo("Finishing updating forward referenced nodes")
   }
 
 }

@@ -31,7 +31,7 @@ trait SN_temp extends SwitchNetwork {
   //override val cuChannelWidthSN = 1
 
   // switch to CU channel width
-  //override val sbcuChannelWidth = 0
+  override val sbcuChannelWidth = 2
   //override val sbcuChannelWidthNW = 1
   //override val sbcuChannelWidthNE = 1
   //override val sbcuChannelWidthSW = 1
@@ -60,9 +60,9 @@ trait SN_temp extends SwitchNetwork {
   // override val scmcChannelWidth = 4
     
   // OCU to switch channel width
-  //val ocsbChannelWidth = 2
+  override val ocsbChannelWidth = 3
   // switch to OCU channel width
-  //val sbocChannelWidth = 2
+  override val sbocChannelWidth = 3
 
   } with CtrlNetwork()
 
@@ -174,11 +174,11 @@ trait SN_temp extends SwitchNetwork {
         .numRegs(16)
         .numCtrs(8)
         .numSRAMs(4)
-        .addRegstages(numStage=2, numOprds=3, ops)
+        .addRegstages(numStage=14, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
         .numSinReg(8)
-        .ctrlBox(numUDCs=4)
+        .ctrlBox(numUDCs=5)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     } else {

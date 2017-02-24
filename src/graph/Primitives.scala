@@ -12,6 +12,7 @@ import pir.graph._
 import pir.graph.enums._
 import pir.graph.mapper.PIRException
 import pir.graph.traversal.ForwardRef
+import pir.misc._
 
 
 abstract class Primitive(implicit val ctrler:Controller, design:Design) extends Node 
@@ -173,7 +174,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
   results.foreach { res => 
     res.src match {
       case PipeReg(s, r) if (s!=stage) => 
-        throw PIRException(s"Function Unit can only write to current stage")
+        throw PIRException(s"Function Unit can only write to current stage ($stage) but writes to $s")
       case _ =>
     }
     res.connect(out) 
@@ -188,7 +189,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
   def defines(reg:Reg) = defs.contains(reg) 
 }
 
-case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+class Stage(override val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Stage"
   var fu:Option[FuncUnit] = _
   val prs:Map[Reg, PipeReg] = Map.empty
@@ -209,11 +210,32 @@ case class Stage(name:Option[String])(implicit override val ctrler:ComputeUnit, 
 } 
 object Stage {
   /* No Sugar API */
-  def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
+  def apply(operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:Design):Unit= {
-    stage.fu = Some(new FuncUnit(stage, operands, op, results))
-    ctrler.addStage(stage)
+    val stage = ctrler.stage
+    Stage(stage, operands, op, results)
   }
+  def apply(stage:Stage, operands:List[Any], op:Op, results:List[Any])
+            (implicit ctrler:InnerController, design:Design):Unit= {
+    val oprds = operands.map { 
+      case o:OutPort => o
+      case r:Reg => PipeReg(stage.prev.get, r).out
+      case pr:PipeReg => pr.out
+      case c:Const => c.out
+      case c:Counter => c.out
+    }
+    val res = results.map {
+      case i:InPort => i
+      case r:Reg => PipeReg(stage, r).in
+      case pr:PipeReg => pr.in
+    }
+    stage.fu = Some(new FuncUnit(stage, oprds, op, res))
+  }
+  //def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
+            //(implicit ctrler:InnerController, design:Design):Unit= {
+    //stage.fu = Some(new FuncUnit(stage, operands, op, results))
+    ////ctrler.addStage(stage)
+  //}
   /* Sugar API */
   def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1), op, List(result))
@@ -222,27 +244,25 @@ object Stage {
   def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
 
-  def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(AccumStage, PipeReg) = {
+  def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
-    Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
+    val (accstage, reg) = Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
+    (rdstages :+ accstage, reg)
   }
 }
 object Stages {
   def apply(n:Int) (implicit ctrler:InnerController, design: Design):List[LocalStage] = {
-    List.tabulate(n) { i => LocalStage(None) }
+    //List.tabulate(n) { i => LocalStage(None) }
+    List.tabulate(n) { i => ctrler.stage }
   }
   def reduce(n:Int, op:Op) (implicit ctrler:InnerController, design: Design):List[ReduceStage] = {
-    val preStage = ctrler.stages.last
-    val rdStages = List.tabulate(n) {i => 
-      new { override val idx = i } with Stage(None) with ReduceStage
-    }
-    val stages = preStage :: rdStages
-    for ( i <- 1 until stages.size ) {
-      val preg = ctrler.reduce(stages(i-1))
-      val creg = ctrler.reduce(stages(i))
-      Stage(stages(i), op1=preg.out, op2=preg.out, op, result=creg.in)
+    val rdStages = List.tabulate(n) {i => ctrler.reduceStage }
+    rdStages.foreach { stage =>
+      val preg = ctrler.reduce(stage.prev.get)
+      val creg = ctrler.reduce(stage)
+      Stage(stage, op1=preg.out, op2=preg.out, op, result=creg.in)
     }
     rdStages
   }
@@ -265,10 +285,12 @@ object LocalStage {
   def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) =
     new Stage(name) with LocalStage
 }
-trait ReduceStage extends LocalStage {
-  val idx:Int
+case class ReduceStage(override val name:Option[String])(implicit ctrler:ComputeUnit, design: Design)
+ extends Stage(name) with LocalStage {
+  lazy val idx:Int = ctrler.stages.collect{ case rs:ReduceStage => rs }.indexOf(this)
   override val typeStr = s"RedStage"
 }
+
 trait AccumStage extends LocalStage {
   val accReg:AccumPR
   override def toUpdate = super.toUpdate || accReg==null

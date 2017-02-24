@@ -21,8 +21,8 @@ package object misc extends Logger {
       case "s" => 1000000000
       case _ => throw PIRException(s"Unknown time unit!")
     }
-    val time = (endTime - startTime) / timeUnit
-    println(s"$info elapsed time: $time $unit")
+    val time = (endTime - startTime) * 1.0 / timeUnit
+    println(s"$info elapsed time: ${f"$time%1.3f"}$unit")
   }
 
   implicit def pr_to_inport(pr:PipeReg):InPort = pr.in

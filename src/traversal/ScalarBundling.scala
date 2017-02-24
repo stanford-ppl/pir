@@ -66,7 +66,7 @@ class ScalarBundling(implicit val design: Design) extends Traversal with Metadat
   }
 
   override def finPass = {
-    info("Finishing Scalar Bundling")
+    endInfo("Finishing Scalar Bundling")
   }
 
 }

@@ -122,7 +122,7 @@ class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
   override def finPass = {
     emitBEln
     close
-    info(s"Finishing Ctrl Dot Printing in ${getPath}")
+    endInfo(s"Finishing Ctrl Dot Printing in ${getPath}")
   }
 
 }

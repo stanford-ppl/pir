@@ -53,7 +53,7 @@ class ScalarMemInsertion(implicit val design: Design) extends Traversal with Log
   } 
 
   override def finPass = {
-    misc.info("Finishing scalar buffer insertion")
+    misc.endInfo("Finishing scalar buffer insertion")
   }
 
 }

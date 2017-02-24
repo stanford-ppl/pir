@@ -13,9 +13,6 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-object MapperLogger extends Logger {
-  override val stream = newStream(Config.mapperLog)
-}
 trait Mapper { self =>
   type M = PIRMap 
   type E = MappingException[_]
@@ -26,22 +23,23 @@ trait Mapper { self =>
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
   implicit def design:Design
+  def logger = design.mapperLogger
   design.mappers += this
   
   def typeStr:String
   override def toString = s"$typeStr"
 
   def debug = Config.debugMapper
-  def dprintln(s:Any):Unit = MapperLogger.dprintln(debug, s"$this", s)
-  def dprint(s:Any):Unit = MapperLogger.dprint(debug, s"$this", s)
-  def dprintln(mapper:Mapper, s:Any):Unit = MapperLogger.dprintln(debug, s"$mapper", s)
-  def dprintln(header:String, s:Any):Unit = MapperLogger.dprintln(header, s) 
-  def dbsln(mapper:Mapper, s:Any):Unit = MapperLogger.dbsln(debug, Some(s"$mapper"), s) 
-  def dbeln(mapper:Mapper, s:Any):Unit = MapperLogger.dbeln(debug, Some(s"$mapper"), s) 
+  def dprintln(s:Any):Unit = logger.dprintln(debug, s"$this", s)
+  def dprint(s:Any):Unit = logger.dprint(debug, s"$this", s)
+  def dprintln(mapper:Mapper, s:Any):Unit = logger.dprintln(debug, s"$mapper", s)
+  def dprintln(header:String, s:Any):Unit = logger.dprintln(header, s) 
+  def dbsln(mapper:Mapper, s:Any):Unit = logger.dbsln(debug, Some(s"$mapper"), s) 
+  def dbeln(mapper:Mapper, s:Any):Unit = logger.dbeln(debug, Some(s"$mapper"), s) 
   def dbsln(s:Any):Unit = dbsln(this, s) 
   def dbeln(s:Any):Unit = dbeln(this, s) 
-  def emitBlock[T](block: =>T):T = MapperLogger.emitBlock(block) 
-  def emitBlock[T](s:String)(block: =>T):T = MapperLogger.emitBlock(s"$mapper", s)(block) 
+  def emitBlock[T](block: =>T):T = logger.emitBlock(block) 
+  def emitBlock[T](s:String)(block: =>T):T = logger.emitBlock(s"$mapper", s)(block) 
 
   def quote(pne:Any)(implicit spade:Spade):String = DotCodegen.quote(pne) 
 
@@ -54,17 +52,17 @@ trait Mapper { self =>
     //if (s"$info".contains(s"VecIn98"))
       //System.exit(0)
     //printCaller 
-    MapperLogger.openBuffer
+    logger.openBuffer
     Try(block) match {
       case Success(m) => 
         if (buffer)
-          MapperLogger.closeBuffer
+          logger.closeBuffer
         else
-          MapperLogger.closeAndWriteBuffer
+          logger.closeAndWriteBuffer
         dbeln(mapper, s"$infoStr (succeeded)")
         finPass(m); m
       case Failure(e) => 
-        MapperLogger.closeAndWriteBuffer
+        logger.closeAndWriteBuffer
         dbeln(mapper, s"$infoStr (failed) $e")
         failPass(e); throw e
     }
@@ -75,7 +73,7 @@ trait Mapper { self =>
   def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
   def printCaller:Unit = {
-    if (Config.debug) MapperLogger.pprintln(getStackTrace(7,10))
+    if (Config.debug) logger.pprintln(getStackTrace(7,10))
   }
   def getStackTrace:String = {
     getStackTrace(1, 5)

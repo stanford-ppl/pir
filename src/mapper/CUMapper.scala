@@ -94,8 +94,6 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
-            cons += (("tokOut"	  , (cu.ctrlOuts, pcu.ctrlIO.outs)))
-            cons += (("tokIn"	    , (cu.ctrlIns, pcu.ctrlIO.ins)))
             cons += (("udc"	      , (cu.udcounters, pcu.ctrlBox.udcs)))
             cons += (("sin"	      , (cl.sins, pcu.sins)))
             cons += (("sout"	    , (cl.souts, pcu.souts)))
@@ -119,7 +117,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
       }
       if (map(cl).size==0) {
         val info = failureInfo.map{ case (pne, info) => s"$pne: [${info.mkString(",")}] \n"}.mkString(",")
-        println(info)
+        println(s"info:${info}")
         throw CUOutOfSize(cl, info)
       }
       mapper.dprintln(s"qualified resource: $cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
@@ -166,7 +164,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val nodes = topoSort(design.top)
+    val nodes = design.top.topoSort
     val reses = design.arch.pnes
     bind(
       allNodes = nodes,
@@ -175,27 +173,6 @@ class CUMapper(implicit ds:Design) extends Mapper {
       resFunc = resFunc _,
       finPass = finPass _ 
     )
-  }
-
-  def topoSort(top:Top) = {
-    val list = ListBuffer[CL]()
-    def isDepFree(cl:CL) = {
-      cl.isHead || cl.consumed.forall { csm => list.contains(csm.producer) }
-    }
-    def addCtrler(cl:CL):Unit = {
-      list += cl
-      var children = cl.children
-      while (!children.isEmpty) {
-        children = children.filter { child =>
-          if (isDepFree(child)) {
-            addCtrler(child)
-            false
-          } else { true }
-        }
-      }
-    }
-    addCtrler(top)
-    list.toList.reverse
   }
 
 }
