@@ -41,6 +41,11 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
           }
           buf.producer(producer)
           buf.consumer(consumer, true) // detect back edge later
+          cu match {
+            case cu:MemoryPipeline if (buf.isInstanceOf[RemoteMem]) => cu.parent(lca)
+            case _ =>
+          }
+          emitln(s"$cu parent:$lca")
           emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
           emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
           emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")

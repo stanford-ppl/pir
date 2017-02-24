@@ -31,6 +31,7 @@ class SpadeCodegen(implicit design: Design) extends Traversal with Printer with 
   }
   
   override def finPass = {
+    super.finPass
     close
   }
 

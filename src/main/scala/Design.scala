@@ -217,9 +217,9 @@ trait Design extends Metadata {
     //traversals += fusionTransform 
     //traversals += new ScalarBundling()
     traversals += multiBufferAnalysis 
+    if (Config.debug) traversals += pirDataDotGen
     traversals += new LiveAnalysis()
     //traversals += new IRCheck()
-    if (Config.debug) traversals += pirDataDotGen
     if (Config.ctrl) traversals += ctrlAlloc 
     //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
     if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen

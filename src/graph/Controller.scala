@@ -412,13 +412,15 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
   def data = dataOut.vector
 }
 object MemoryPipeline {
-  def apply[P](name: Option[String], parent:P)(implicit design: Design):MemoryPipeline =
-    new MemoryPipeline(name).parent(parent)
+  def apply(name: Option[String])(implicit design: Design):MemoryPipeline =
+    new MemoryPipeline(name)
   /* Sugar API */
   def apply[P](parent:P) (block: MemoryPipeline => Any) (implicit design:Design):MemoryPipeline =
-    MemoryPipeline(None, parent).updateBlock(block)
+    MemoryPipeline(None).parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P) (block:MemoryPipeline => Any) (implicit design:Design):MemoryPipeline =
-    MemoryPipeline(Some(name), parent).updateBlock(block)
+    MemoryPipeline(Some(name)).parent(parent).updateBlock(block)
+  def apply[P](name:String) (block:MemoryPipeline => Any) (implicit design:Design):MemoryPipeline =
+    MemoryPipeline(Some(name)).updateBlock(block)
 }
 
 case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
