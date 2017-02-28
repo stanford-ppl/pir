@@ -52,17 +52,14 @@ trait Mapper { self =>
     //if (s"$info".contains(s"VecIn98"))
       //System.exit(0)
     //printCaller 
-    logger.openBuffer
+    if (buffer) logger.openBuffer
     Try(block) match {
       case Success(m) => 
-        if (buffer)
-          logger.closeBuffer
-        else
-          logger.closeAndWriteBuffer
+        if (buffer) logger.closeBuffer
         dbeln(mapper, s"$infoStr (succeeded)")
         finPass(m); m
       case Failure(e) => 
-        logger.closeAndWriteBuffer
+        if (buffer) logger.closeAndWriteBuffer
         dbeln(mapper, s"$infoStr (failed) $e")
         failPass(e); throw e
     }

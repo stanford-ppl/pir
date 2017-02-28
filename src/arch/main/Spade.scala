@@ -18,6 +18,8 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   def ocus:List[OuterComputeUnit]
   def mcs:List[MemoryController]
 
+  def diameter:Int
+
   def cus = pcus ++ mcus ++ scus ++ ocus
   def ctrlers = top :: cus
 
@@ -34,7 +36,9 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   val indexMap:indexOf.M = Map.empty
 }
 
-trait PointToPointNetwork extends Spade
+trait PointToPointNetwork extends Spade {
+  def diameter = (pcus ++ mcus).length
+}
 
 trait ImplicitConversion {
   implicit def ib_to_rmp[S<:NetworkElement](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport

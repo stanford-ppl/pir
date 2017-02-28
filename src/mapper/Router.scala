@@ -20,7 +20,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   implicit def spade:Spade = design.arch
 
   val minHop = 1
-  val maxHop = 7
+  val maxHop = design.arch.diameter
   override val exceptLimit = 100
 
   type I<:Node
@@ -157,7 +157,10 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def advance(start:PNE, validCons:(PCL, FatPath[Edge]) => Option[FatPath[Edge]], 
       advanceCons:(PSB, FatPath[Edge]) => Option[FatPath[Edge]]):FatPaths[Edge] = {
-    advanceBFS(start, validCons, advanceCons)
+    tic
+    val routes = advanceBFS(start, validCons, advanceCons)
+    toc("advance", "ms")
+    routes
   }
 
   def advanceBFS(start:PNE, validCons:(PCL, FatPath[Edge]) => Option[FatPath[Edge]], 

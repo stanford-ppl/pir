@@ -119,7 +119,7 @@ trait Logger extends Printer {
 
   def info(s:String) = emitln(s"[pir] ${s}")
   def startInfo(s:String) = emit(s"[pir] ${s}")
-  def endInfo(s:String) = emitln(s" ${s}")
+  def endInfo(s:String) = { emitln(s" ${s}") }
   def warn(s:String) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
   def err(s:String) = emitln(s"${Console.RED}[error]${s}${Console.RESET}")
   def bp(s:String) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")

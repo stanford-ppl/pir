@@ -3,16 +3,16 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.mapper.PIRException
-import pir.codegen.Logger
+import pir.codegen.Printer
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Logger {
+class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Printer {
 
-  override val stream = newStream(s"MultiBufferAnalysis.log")
+  override val stream = newStream(s"MultiBufferAnalysis.txt")
 
   def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
     val ra = reader.ancestors
@@ -42,7 +42,12 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
           buf.producer(producer)
           buf.consumer(consumer, true) // detect back edge later
           cu match {
-            case cu:MemoryPipeline if (buf.isInstanceOf[RemoteMem]) => cu.parent(lca)
+            case cu:MemoryPipeline if (buf.isInstanceOf[RemoteMem]) => 
+              val parent = lca match {
+                case icu:InnerController => icu.parent
+                case ocu => ocu
+              }
+              cu.parent(parent)
             case _ =>
           }
           emitln(s"$cu parent:$lca")
@@ -58,7 +63,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
   def findCycle(ctrlers:List[Controller]):Unit = {
     val visited = ListBuffer[Controller]()
     val toVisit = Queue[Controller]()
-    val heads = ctrlers.filter{_.consumed.isEmpty}
+    val heads = ctrlers.filter{_.consumed.isEmpty}.filterNot{ c => c.isInstanceOf[MemoryPipeline]}
     //Hack: if there's a loop without entry point, assume the first ctrler is the entry point in the
     //program order
     toVisit ++= (if (heads.isEmpty) List(ctrlers.head) else heads)
@@ -124,7 +129,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Lo
   } 
 
   override def finPass = {
-    misc.endInfo("Finishing multiBuffer analysis")
+    endInfo("Finishing multiBuffer analysis")
   }
 
 }

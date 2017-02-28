@@ -2,6 +2,7 @@ package pir.graph.mapper
 import pir.graph._
 import pir.{Design, Config}
 import pir.typealias._
+import pir.misc._
 import pir.codegen.Printer
 import pir.graph.traversal.{CUCtrlDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.main._
@@ -23,8 +24,8 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   val routers = ListBuffer[Router]()
   routers += new VectorRouter()
-  routers += new ScalarRouter()
-  routers += new ControlRouter()
+  //routers += new ScalarRouter()
+  //routers += new ControlRouter()
 
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
@@ -135,7 +136,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def resFunc(cl:CL, m:M, triedRes:List[PNE]):List[PNE] = {
     implicit val spade:Spade = design.arch
-    log((s"$cl resFunc:", true)) {
+    log((s"$cl resFunc:", false)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
       dprintln(s"--not mapped and tried:[${pnes.mkString(",")}]")
@@ -166,6 +167,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     dprintln(s"Datapath placement & routing ")
     val nodes = design.top.topoSort
     val reses = design.arch.pnes
+    info(s"Number of cus:${nodes.size}")
     bind(
       allNodes = nodes,
       initMap = m,

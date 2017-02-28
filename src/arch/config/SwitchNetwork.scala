@@ -14,6 +14,8 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   
   override def pnes = super.pnes ++ sbs
 
+  def diameter = (numRows + numCols - 1)
+
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)
 

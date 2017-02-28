@@ -37,4 +37,5 @@ class AppTests extends UnitTest { self =>
   "TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
   "MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
   "MatMult_outer" should "success" in { MatMult_outer.main(Array("MatMult_outer")) }
+  "LogReg" should "success" in { LogReg.main(Array("LogReg")) }
 }

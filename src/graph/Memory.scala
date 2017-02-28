@@ -41,10 +41,10 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
     assert(readPort.to.size>=1, s"$this's readPort is connected to ${readPort.to}")
     readPort.to.head.src match {
       case vo:VecOut => 
-        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem can only have 1 remote reader ${vo.vector.readers}")
+        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 remote reader ${vo.vector.readers}")
         vo.vector.readers.head.ctrler
       case so:ScalarOut =>
-        assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem can only have 1 remote reader ${so.scalar.readers}")
+        assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 remote reader ${so.scalar.readers}")
         so.scalar.readers.head.ctrler
       case cu:Controller => cu
       case p:Primitive => p.ctrler

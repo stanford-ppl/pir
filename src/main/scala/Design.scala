@@ -238,11 +238,15 @@ trait Design extends Metadata {
       if (pirMapping.fail) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 
-        if (!pirPrinter.isTraversed) pirPrinter.run
-        //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-        if (!spadeDotGen.isTraversed) spadeDotGen.run
-        if (!ctrlPrinter.isTraversed) ctrlPrinter.run
-        throw e
+        try {
+          if (!pirPrinter.isTraversed) pirPrinter.run
+          //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
+          if (!spadeDotGen.isTraversed) spadeDotGen.run
+          if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+          throw e
+        } catch {
+          case ne:Throwable => throw e
+        }
       case e:Throwable => throw e
     }
     if (Config.debug) DebugLogger.close

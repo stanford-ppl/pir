@@ -4,13 +4,16 @@ import pir._
 import pir.misc._
 import pir.graph.enums._
 import pir.graph.mapper.PIRException
+import pir.codegen.Printer
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
-class CtrlAlloc(implicit val design: Design) extends Traversal{
+class CtrlAlloc(implicit val design: Design) extends Traversal with Printer {
+
+  override val stream = newStream(s"CtrlAlloc.txt")
 
   override def traverse:Unit = {
     swapAlloc 
@@ -29,13 +32,24 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
   }
 
   def swapAlloc = {
-    design.top.compUnits.foreach { cu =>
-      cu.mems.foreach {
-        case mem:MultiBuffering if mem.buffering > 1 =>
-          cu.ctrlBox.swapRead(mem, getDone(cu, mem.consumer.asInstanceOf[ComputeUnit].localCChain))
-          cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
-        case mem =>
-      }
+    design.top.compUnits.foreach { 
+      case cu =>
+        cu.mems.foreach {
+          case mem:MultiBuffering if mem.buffering > 1 =>
+            val swapReadDones = mem.consumer match {
+              case ccu:MemoryPipeline if (mem.isInstanceOf[ScalarMem]) => // Check used in read or write addr calculation
+                val cchains = mem.readPort.to.map{_.src}.collect{ case c:Counter => c.cchain }.toSet
+                emitln(s"$mem consumer:${mem.consumer}, mem.readPort(${mem.readPort.to.mkString(",")}), cchains:${cchains.mkString(",")}")
+                cchains
+              case cu:ComputeUnit => List(cu.localCChain)
+              case top:Top => throw PIRException(s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
+            }
+            swapReadDones.foreach { swapReadDone =>
+              cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
+            }
+            cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
+          case mem =>
+        }
     }
   }
 
@@ -69,13 +83,20 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
         case cu:ComputeUnit=>
           val cb = cu.ctrlBox.asInstanceOf[StageCtrlBox]
           val parent = cu.parent
+          //println(cu, cu.trueConsumed.map{ m => (m, m.ctrler) })
           cu.trueConsumed.foreach { mem =>
-            mem.producer match {
-              case cu:ComputeUnit =>
-                val tk = cb.tokenBuffer(mem)
-                tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
-                cb.siblingAndTree.addInput(tk.out)
-              case top:Top => // No synchronization needed
+            mem.buffering match {
+              case 1 if parent.isInstanceOf[Sequential] | parent.isInstanceOf[Top] =>
+              case n if parent.isInstanceOf[MetaPipeline] =>
+                if (n < parent.length) {  // less then number of tokens
+                  mem.producer match {
+                    case cu:ComputeUnit =>
+                      val tk = cb.tokenBuffer(mem)
+                      tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
+                      cb.siblingAndTree.addInput(tk.out)
+                    case top:Top => // No synchronization needed
+                  }
+                }
             }
             mem match {
               case mem:SRAMOnRead =>
@@ -146,5 +167,6 @@ class CtrlAlloc(implicit val design: Design) extends Traversal{
       //}
     //}
     endInfo("Finishing control logic allocation")
+    close
   }
 }

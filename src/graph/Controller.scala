@@ -150,7 +150,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
           cu.getCopy(cu.parent.localCChain)
         } else if (cu.isLast) {
           cu match {
-            case mc:MemoryController => throw PIRException(s"MemoryController doesn't have localCChain")
+            case mc:MemoryController => throw PIRException(s"MemoryController $this doesn't have localCChain")
             case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
           }
         } else { // middle stages
@@ -167,7 +167,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
           }
         }
       case cu:MemoryPipeline =>
-        throw PIRException(s"MemoryPipeline doesn't have local counter chain")
+        throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
       case cu =>
         val locals = cchains.filter{_.isLocal}
         assert(locals.size==1, 

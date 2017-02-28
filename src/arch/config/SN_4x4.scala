@@ -62,7 +62,7 @@ trait SN_temp extends SwitchNetwork {
   // OCU to switch channel width
   override val ocsbChannelWidth = 3
   // switch to OCU channel width
-  override val sbocChannelWidth = 3
+  override val sbocChannelWidth = 8
 
   } with CtrlNetwork()
 
@@ -209,6 +209,38 @@ trait SN_temp extends SwitchNetwork {
         //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
   } 
 
+}
+
+object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=5, numArgOuts=5) with SN_temp {
+  override def cuAt(i:Int, j:Int) = {
+    if ((i+j) % 2 == 0) {
+      new ComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addRegstages(numStage=14, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=6)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    } else {
+      new MemoryComputeUnit()
+        .numRegs(16)
+        .numCtrs(8)
+        .numSRAMs(4)
+        .addWAstages(numStage=3, numOprds=3, ops)
+        .addRAstages(numStage=3, numOprds=3, ops)
+        .numSinReg(8)
+        .ctrlBox(numUDCs=6)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    }
+  }
+}
+
+object SN_5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=5, numArgOuts=5) with SN_temp {
 }
 
 object SN_4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=5, numArgOuts=5) with SN_temp {
