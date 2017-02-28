@@ -24,8 +24,8 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   val routers = ListBuffer[Router]()
   routers += new VectorRouter()
-  //routers += new ScalarRouter()
-  //routers += new ControlRouter()
+  routers += new ScalarRouter()
+  routers += new ControlRouter()
 
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper

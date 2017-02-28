@@ -25,14 +25,15 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   type I<:Node
   type O<:Node
-  type R = (PCL, Path[Edge])
-  type Edge = (POB, PIB)
+  type R = (PCL, Path[FEdge])
+  type Edge = (PIO[PNE], PIO[PNE])
+  type FEdge = (POB, PIB)
   type REdge = (PIB, POB)
-  type Path[E] = List[E]
-  type Paths[E] = List[(PCL, Path[E])]
-  type FatEdge[E] = List[E] 
-  type FatPaths[E] = List[(PCL, FatPath[E])]
-  type FatPath[E] = List[FatEdge[E]]
+  type Path[E<:Edge] = List[E]
+  type Paths[E<:Edge] = List[(PCL, Path[E])]
+  type FatEdge[E<:Edge] = List[E] 
+  type FatPaths[E<:Edge] = List[(PCL, FatPath[E])]
+  type FatPath[E<:Edge] = List[FatEdge[E]]
 
   def quote[T](n:T)(implicit spade:Spade, ev:TypeTag[T]):String = {
     n match {
@@ -42,7 +43,7 @@ abstract class Router(implicit design:Design) extends Mapper {
           case sb:PSB => s"${super.quote(sb)}.${io}" 
           case top:PTop => s"${super.quote(top)}.${io}" 
         }
-      case edge if typeOf[T] =:= typeOf[Edge] =>
+      case edge if typeOf[T] =:= typeOf[FEdge] =>
         val (from, to) = edge; s"${quote(from)} -> ${quote(to)}"
       case edge if typeOf[T] =:= typeOf[REdge] =>
         val (to, from) = edge; s"${quote(to)} <- ${quote(from)}"
@@ -50,11 +51,11 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
   def quote(fe:FatEdge[_]):String = { fe.map(quote).mkString(" | ") }
-  def quote[T](path:FatPath[T])(implicit ev:TypeTag[T]):String = path match {
-    case path:FatPath[_] if typeOf[T] =:= typeOf[Edge] =>
-      path.map(quote).mkString("\n=>\n")
-    case path:FatPath[_] if typeOf[T] =:= typeOf[REdge] =>
-      path.map(quote).mkString("\n<=\n")
+  def quote[E<:Edge](path:FatPath[E])(implicit ev:TypeTag[E]):String = path match {
+    case path:FatPath[_] if typeOf[E] =:= typeOf[FEdge] =>
+      path.map(quote _).mkString("\n=>\n")
+    case path:FatPath[_] if typeOf[E] =:= typeOf[REdge] =>
+      path.map(quote _).mkString("\n<=\n")
     case path:Path[_] =>
       path.map(quote).mkString(", ")
   }
@@ -103,28 +104,16 @@ abstract class Router(implicit design:Design) extends Mapper {
     valid && cond
   }
 
-  def filterTraverse[E](start: I => CL, inputs:List[I], reses:List[PNE], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
+  def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PNE], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
     inputs.foldLeft(reses) { case (reses, in) =>
       def validCons(reached:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
         val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
         var valid = true
         valid = logCond(header, valid, reses.contains(reached), s"invalid res")
         valid = logCond(header, valid, !m.clmap.pmap.contains(reached), s"res $reached is used ")
-        valid = logCond(header, valid, fatpath.size >= minHop, s"path ${fatpath.size} less than minHop $minHop")
-        valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
-        //valid &&= (reses.contains(reached) && !m.clmap.pmap.contains(reached))
-        //valid &&= (fatpath.size >= minHop)
-        //valid &&= (fatpath.size < maxHop)
         if (valid) Some(fatpath) else None
       }
-      def advanceCons(psb:PSB, fatpath:FatPath[E]):Option[FatPath[E]] = {
-        val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
-        var valid = true
-        valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
-        //valid &&= (fatpath.size < maxHop)
-        if (valid) Some(fatpath) else None
-      }
-      advanceFunc(m.clmap(start(in)), validCons _, advanceCons _).map { _._1 }
+      advanceFunc(m.clmap(start(in)), Some(validCons _), None, None, minHop, maxHop).map { _._1 }
     }
   }
 
@@ -153,27 +142,67 @@ abstract class Router(implicit design:Design) extends Mapper {
     reses
   }
 
-  type AdvanceFunc[E] = (PNE, (PCL, FatPath[E]) => Option[FatPath[E]], (PSB, FatPath[E]) => Option[FatPath[E]]) =>FatPaths[E] 
+  type ValidCons[E<:Edge] = (PCL, FatPath[E]) => Option[FatPath[E]]
+  type AdvanceCons[E<:Edge] = (PSB, FatPath[E]) => Option[FatPath[E]]
+  //type AdvanceFunc[E<:Edge] = (PNE, ValidCons[E], AdvanceCons[E]) =>FatPaths[E] 
+  type AdvanceFunc[E<:Edge] = (PNE, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PNE], Int, Int) => FatPaths[E] 
 
-  def advance(start:PNE, validCons:(PCL, FatPath[Edge]) => Option[FatPath[Edge]], 
-      advanceCons:(PSB, FatPath[Edge]) => Option[FatPath[Edge]]):FatPaths[Edge] = {
-    tic
+  def vldCons[E<:Edge](validCons:Option[ValidCons[E]], reached:Option[PNE], minHop:Int, maxHop:Int)
+             (reachedCU:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
+    val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
+    var valid = true
+    //valid = logCond(header, valid, fatpath.size >= minHop, s"path ${fatpath.size} less than minHop $minHop")
+    //valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
+    //valid = logCond(header, valid, reached == pcl, s"reached:${reached} != pcl:${pcl}")
+    valid &&= (fatpath.size >= minHop)
+    valid &&= (fatpath.size < maxHop)
+    reached.foreach { reached => valid &&= (reached == reachedCU) }
+    if (valid) { validCons.fold[Option[FatPath[E]]](Some(fatpath)){ vc => vc(reachedCU, fatpath) } } else None
+  }
+
+  def advCons[E<:Edge](advanceCons:Option[AdvanceCons[E]], maxHop:Int)
+             (psb:PSB, fatpath:FatPath[E]):Option[FatPath[E]] = {
+    val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
+    var valid = true
+    //valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
+    valid &&= (fatpath.size < maxHop)
+    if (valid) { advanceCons.fold[Option[FatPath[E]]](Some(fatpath)){ av => av(psb, fatpath) } } else None
+  }
+
+  def advance(
+      start:PNE, 
+      validCons:Option[ValidCons[FEdge]] = None, 
+      advanceCons:Option[AdvanceCons[FEdge]] = None,
+      reached:Option[PNE] = None,
+      minHop:Int = this.minHop, 
+      maxHop:Int = this.maxHop
+    ):FatPaths[FEdge] = {
+    advance(start, vldCons(validCons, reached, minHop, maxHop) _, advCons(advanceCons, maxHop) _)
+  }
+
+  def advance(
+      start:PNE, 
+      validCons:ValidCons[FEdge], 
+      advanceCons:AdvanceCons[FEdge]
+    ):FatPaths[FEdge] = {
+    //tic
     val routes = advanceBFS(start, validCons, advanceCons)
-    toc("advance", "ms")
+    //toc("advance", "ms")
     routes
   }
 
-  def advanceBFS(start:PNE, validCons:(PCL, FatPath[Edge]) => Option[FatPath[Edge]], 
-      advanceCons:(PSB, FatPath[Edge]) => Option[FatPath[Edge]]):FatPaths[Edge] = {
-    val result = ListBuffer[(PCL, FatPath[Edge])]()
-    val fatpaths = Queue[FatPath[Edge]]()
+  def advanceBFS(start:PNE, validCons:ValidCons[FEdge], 
+      advanceCons:AdvanceCons[FEdge]):FatPaths[FEdge] = {
+    val result = ListBuffer[(PCL, FatPath[FEdge])]()
+    val fatpaths = Queue[FatPath[FEdge]]()
+    val visited = ListBuffer[PNE]()
     fatpaths += Nil
     while (fatpaths.size!=0) {
       val fatpath =  fatpaths.dequeue
       //fatpath.reduce { case ((i1, o1), (i2, o2)) => assert((i1==i2) && (o1==o2)) }
       val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
-      val visited = fatpath.map{_.head}.map{ case (f,t) => f.src }
       if (!visited.contains(pne)) {
+        visited += pne
         val os = io(pne).outs.sortWith{ case (o1, o2) => o1.src.isInstanceOf[PCU] || !o2.src.isInstanceOf[PCU] }
         val edges = os.flatMap { out => out.fanOuts.map { in => (out, in) } }
         val bundle = edges.groupBy { case (o, i) => (o.src, i.src) }
@@ -192,17 +221,29 @@ abstract class Router(implicit design:Design) extends Mapper {
     result.toList
   }
 
-  def revAdvance(start:PNE, validCons:(PCL, FatPath[REdge]) => Option[FatPath[REdge]], 
-      advanceCons:(PSB, FatPath[REdge]) => Option[FatPath[REdge]]):FatPaths[REdge] = {
+  def revAdvance(
+      start:PNE, 
+      validCons:Option[ValidCons[REdge]] = None, 
+      advanceCons:Option[AdvanceCons[REdge]] = None,
+      reached:Option[PNE] = None,
+      minHop:Int = this.minHop, 
+      maxHop:Int = this.maxHop
+    ):FatPaths[REdge] = {
+    revAdvance(start, vldCons(validCons, reached, minHop, maxHop) _, advCons(advanceCons, maxHop) _)
+  }
+
+  def revAdvance(start:PNE, validCons:ValidCons[REdge], 
+      advanceCons:AdvanceCons[REdge]):FatPaths[REdge] = {
     val result = ListBuffer[(PCL, FatPath[REdge])]()
     val fatpaths = Queue[FatPath[REdge]]()
+    val visited = ListBuffer[PNE]()
     fatpaths += Nil
     while (fatpaths.size!=0) {
       val fatpath =  fatpaths.dequeue
       //fatpath.reduce { case ((i1, o1), (i2, o2)) => assert((i1==i2) && (o1==o2)) }
       val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
-      val visited = fatpath.map{_.head}.map{ case (f,t) => f.src }
       if (!visited.contains(pne)) {
+        visited += pne
         val is = io(pne).ins.sortWith{ case (i1, i2) => i1.src.isInstanceOf[PCU] || !i2.src.isInstanceOf[PCU] }
         val edges = is.flatMap { in => in.fanIns.map { out => (in, out) } }
         val bundle = edges.groupBy { case (i, o) => (i.src, o.src) }
@@ -221,7 +262,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     result.toList
   }
 
-  def filterUsedPaths(in:I, out:O, fatpath:FatPath[Edge], map:PIRMap):Option[FatPath[Edge]] = {
+  def filterUsedPaths(in:I, out:O, fatpath:FatPath[FEdge], map:PIRMap):Option[FatPath[FEdge]] = {
       // If out is already placed, use the mapped pout if possible. Otherwise use an unused pout
       val pouts = map.vomap.get(out)
       val filteredFatpath = fatpath.map { fe => // Find fatpath that has empty fatEdge after filter
@@ -254,51 +295,50 @@ abstract class Router(implicit design:Design) extends Mapper {
       }
   }
 
-  //def filterUsedFatMaps(in:I, out:O, routes:FatPaths[Edge], map:PIRMap):Paths[Edge] = {
+  //def filterUsedFatMaps(in:I, out:O, routes:FatPaths[FEdge], map:PIRMap):Paths[FEdge] = {
     //val available = routes.flatMap { case (reached, fatpath) =>
       //filterUsedPaths(in, out, fatpath, map).map{ fatpath => (reached, fatpath) }
     //}
     //head(available)
   //}
 
-  def head(fatpaths:FatPaths[Edge]):Paths[Edge] = {
+  def head(fatpaths:FatPaths[FEdge]):Paths[FEdge] = {
     fatpaths.map { case (reachedCU, fatpath) =>
       (reachedCU, fatpath.map{ fatedge => fatedge.head }) // For any fatpath, pick the first avalable edge
     }
   }
 
-  def isFatPathValid(fatpath:FatPath[Edge]) = { !fatpath.exists{_.size==0} }
+  def isFatPathValid(fatpath:FatPath[FEdge]) = { !fatpath.exists{_.size==0} }
 
-  def resFilter(in:I, m:M, triedRes:Paths[Edge]):Paths[Edge] = {
+  def resFilter(in:I, m:M, triedRes:Paths[FEdge]):Paths[FEdge] = {
     val cl = ctrler(in)
     val pcl = m.clmap(cl)
     val out = from(in) 
     val fcl = ctrler(from(in))
     val pfcl = m.clmap(fcl)
-    def validCons(reached:PCL, fatpath:FatPath[Edge]):Option[FatPath[Edge]] = {
+    def validCons(reached:PCL, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
       val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
       var valid = true
-      valid &&= (reached == pcl)
-      //valid = logCond(header, valid, reached == pcl, s"reached:${reached} != pcl:${pcl}")
-      valid = logCond(header, valid, fatpath.size >= minHop, s"path ${fatpath.size} less than minHop $minHop")
-      valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
-      //valid &&= (fatpath.size >= minHop)
-      //valid &&= (fatpath.size < maxHop)
       val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
       valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
       filtered
     }
-    def advanceCons(psb:PSB, fatpath:FatPath[Edge]):Option[FatPath[Edge]] = {
+    def advanceCons(psb:PSB, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
       val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
       var valid = true
-      //valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
-      valid &&= (fatpath.size < maxHop)
       val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
       valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
       filtered
     }
-    log((s"$in resFunc", true), (r:Paths[Edge]) => (), failPass) {
-      val routes = advance(pfcl, validCons _, advanceCons _)
+    log((s"$in resFunc", true), (r:Paths[FEdge]) => (), failPass) {
+      val routes = advance(
+        start=pfcl, 
+        validCons=Some(validCons _), 
+        advanceCons=Some(advanceCons _),
+        reached=Some(pcl), 
+        minHop=minHop,
+        maxHop=maxHop
+      )
       val remain = routes.diff(triedRes)
       if (remain.isEmpty) {
         dprintln(s"advanced routes:${routes.mkString("\n")}")

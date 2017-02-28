@@ -13,7 +13,7 @@ import scala.language.reflectiveCalls
 
 class ScalarBundleTest extends UnitTest { self =>
 
-  "ScalarBundleTest Test1" should "success"  taggedAs(WIP) in {
+  "ScalarBundleTest Test1" should "success" in {
     new Design {
       top = Top()
       // Nodes
