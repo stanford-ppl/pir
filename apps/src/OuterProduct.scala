@@ -33,35 +33,35 @@ object OuterProduct extends PIRApp {
       val x902 = CounterChain(name = "x902", ctr1, ctr2)
       var stage: List[Stage] = Nil
     }
-    val x903_dsp0 = MemoryPipeline(name = "x903_dsp0") { implicit CU => 
+    val x903_dsp0 = MemoryPipeline(name = "x903_dsp0", parent="x968") { implicit CU => 
       val stage0 = CU.emptyStage
       val x939 = CounterChain.copy("x947", "x939")
       val x903_x940 = SemiFIFO(size = 64, banking = Strided(1)).wtPort(x912_mc.data).rdPort(x903_0_rd_vector).rdAddr(x939(0))
       var stage: List[Stage] = Nil
     }
-    val x904_dsp0 = MemoryPipeline(name = "x904_dsp0") { implicit CU => 
+    val x904_dsp0 = MemoryPipeline(name = "x904_dsp0", parent="x968") { implicit CU => 
       val stage0 = CU.emptyStage
       val x939 = CounterChain.copy("x947", "x939")
       val x904_x941 = SemiFIFO(size = 64, banking = Strided(1)).wtPort(x927_mc.data).rdPort(x904_0_rd_vector).rdAddr(x939(1))
       var stage: List[Stage] = Nil
     }
-    val x905_dsp0 = MemoryPipeline(name = "x905_dsp0") { implicit CU => 
+    val x905_dsp0 = MemoryPipeline(name = "x905_dsp0", parent="x968") { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr151 = CU.temp
-      val tr152 = CU.temp
-      val tr154 = CU.temp
-      val tr155 = CU.temp
+      val tr61 = CU.temp
+      val tr62 = CU.temp
+      val tr66 = CU.temp
+      val tr69 = CU.temp
+      val x939 = CounterChain.copy("x947", "x939")
       val x950 = CounterChain.copy("x967", "x950")
       val x958 = CounterChain.copy("x963", "x958")
-      val x939 = CounterChain.copy("x947", "x939")
       val x905_x959 = SRAM(size = 4096, banking = Strided(1)).wtPort(x905_0_wt_vector).rdPort(x905_0_rd_vector)
       var stage: List[Stage] = Nil
       stage = stage0 +: WAStages(2, List(x905_x959))
-      Stage(stage(1), operands=List(x939(0), Const("64i")), op=FixMul, results=List(CU.temp(stage(1), tr151)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr151), CU.ctr(stage(1), x939(1))), op=FixAdd, results=List(x905_x959.writeAddr, CU.temp(stage(2), tr152)))
+      Stage(stage(1), operands=List(x939(0), Const("64i")), op=FixMul, results=List(CU.temp(stage(1), tr61)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr61), CU.ctr(stage(1), x939(1))), op=FixAdd, results=List(x905_x959.writeAddr, CU.temp(stage(2), tr62)))
       stage = stage0 +: RAStages(2, List(x905_x959))
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x950(0)), Const("64i")), op=FixMul, results=List(CU.temp(stage(1), tr154)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr154), CU.ctr(stage(1), x958(0))), op=FixAdd, results=List(x905_x959.readAddr, CU.temp(stage(2), tr155)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x950(0)), Const("64i")), op=FixMul, results=List(CU.temp(stage(1), tr66)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr66), CU.ctr(stage(1), x958(0))), op=FixAdd, results=List(x905_x959.readAddr, CU.temp(stage(2), tr69)))
     }
     val x920 = StreamController(name = "x920", parent=x968) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -70,8 +70,8 @@ object OuterProduct extends PIRApp {
     }
     val x909 = StreamPipeline(name = "x909", parent=x920) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x902 = CounterChain.copy("x968", "x902")
       val x909_unitcc = CounterChain(name = "x909_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x902 = CounterChain.copy("x968", "x902")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x902(0))), op=Bypass, results=List(CU.scalarOut(stage(1), x912_mc.ofs)))
@@ -84,8 +84,8 @@ object OuterProduct extends PIRApp {
     }
     val x924 = StreamPipeline(name = "x924", parent=x935) { implicit CU => 
       val stage0 = CU.emptyStage
-      val x902 = CounterChain.copy("x968", "x902")
       val x924_unitcc = CounterChain(name = "x924_unitcc", (Const("0i"), Const("1i"), Const("1i")))
+      val x902 = CounterChain.copy("x968", "x902")
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(2)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x902(1))), op=Bypass, results=List(CU.scalarOut(stage(1), x927_mc.ofs)))
@@ -93,13 +93,13 @@ object OuterProduct extends PIRApp {
     }
     val x947 = Pipeline(name = "x947", parent=x968) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr176 = CU.temp
+      val tr110 = CU.temp
       val ctr5 = (Const("0i").out, Const("64i").out, Const("1i").out) // Counter
       val ctr6 = (Const("0i").out, Const("64i").out, Const("1i").out) // Counter
       val x939 = CounterChain(name = "x939", ctr5, ctr6)
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(1)
-      Stage(stage(1), operands=List(CU.vecIn(stage(0), x903_0_rd_vector), CU.vecIn(stage(0), x904_0_rd_vector)), op=FixMul, results=List(CU.vecOut(stage(1), x905_0_wt_vector), CU.temp(stage(1), tr176)))
+      Stage(stage(1), operands=List(CU.vecIn(stage(0), x903_0_rd_vector), CU.vecIn(stage(0), x904_0_rd_vector)), op=FixMul, results=List(CU.vecOut(stage(1), x905_0_wt_vector), CU.temp(stage(1), tr110)))
     }
     val x967 = StreamController(name = "x967", parent=x968) { implicit CU => 
       val stage0 = CU.emptyStage
@@ -109,20 +109,20 @@ object OuterProduct extends PIRApp {
     }
     val x956 = StreamPipeline(name = "x956", parent=x967) { implicit CU => 
       val stage0 = CU.emptyStage
-      val tr179 = CU.temp
-      val tr180 = CU.temp
-      val tr181 = CU.temp
+      val tr119 = CU.temp
+      val tr120 = CU.temp
+      val tr121 = CU.temp
+      val x956_unitcc = CounterChain(name = "x956_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       val x902 = CounterChain.copy("x968", "x902")
       val x950 = CounterChain.copy("x967", "x950")
-      val x956_unitcc = CounterChain(name = "x956_unitcc", (Const("0i"), Const("1i"), Const("1i")))
       var stage: List[Stage] = Nil
       stage = stage0 +: Stages(4)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x902(0)), CU.ctr(stage(0), x950(0))), op=FixAdd, results=List(CU.temp(stage(1), tr179)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), tr179), CU.scalarIn(stage(1), x886_argin)), op=FixMul, results=List(CU.temp(stage(2), tr180)))
-      Stage(stage(3), operands=List(CU.temp(stage(2), tr180), CU.ctr(stage(2), x902(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x966_mc.ofs), CU.temp(stage(3), tr181)))
+      Stage(stage(1), operands=List(CU.ctr(stage(0), x902(0)), CU.ctr(stage(0), x950(0))), op=FixAdd, results=List(CU.temp(stage(1), tr119)))
+      Stage(stage(2), operands=List(CU.temp(stage(1), tr119), CU.scalarIn(stage(1), x886_argin)), op=FixMul, results=List(CU.temp(stage(2), tr120)))
+      Stage(stage(3), operands=List(CU.temp(stage(2), tr120), CU.ctr(stage(2), x902(1))), op=FixAdd, results=List(CU.scalarOut(stage(3), x966_mc.ofs), CU.temp(stage(3), tr121)))
       Stage(stage(4), operands=List(Const("64i")), op=Bypass, results=List(CU.scalarOut(stage(4), x966_mc.len)))
     }
-    val x963 = Pipeline(name = "x963", parent=x967) { implicit CU => 
+    val x963 = StreamPipeline(name = "x963", parent=x967) { implicit CU => 
       val stage0 = CU.emptyStage
       val ctr8 = (Const("0i").out, Const("64i").out, Const("1i").out) // Counter
       val x958 = CounterChain(name = "x958", ctr8)
