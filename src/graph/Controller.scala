@@ -453,8 +453,8 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
 
   def writtenFIFO:List[FIFO] = writtenMem.collect { case fifo:FIFO => fifo }
 
-  override def isHead = { fifos.filter {
-      _.writer match {
+  override def isHead = { fifos.filter { fifo =>
+      fifo.writer match {
         case cu:ComputeUnit => cu.parent == this.parent 
         case top:Top => false
       }
@@ -504,7 +504,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val _addrs = if (mctpe.isSparse) Some(Vector()) else None
   def addrs = _addrs.get
   val viaddrs = { _addrs.map { addrs => newVin(addrs) } }
-  val addrFIFO = _addrs.map { addrs => VectorFIFO(s"${this}AddrFIFO", 100) }
+  val addrFIFO = _addrs.map { addrs => VectorFIFO(s"${this}AddrFIFO", 100).wtPort(addrs) }
 
   val dataValid = CtrlOutPort(this, s"${this}.dataValid")
   val done = CtrlOutPort(this, s"${this}.done")

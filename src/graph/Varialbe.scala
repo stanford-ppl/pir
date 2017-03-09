@@ -2,21 +2,30 @@ package pir.graph
 
 import pir.Design
 import pir.graph._
+import pir.graph.mapper.PIRException
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 
-trait Variable extends Node
+trait Variable extends Node {
+  def writer:Output
+  def readers:List[Input]
+}
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
 case class Scalar(name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Scalar"
-  var writer:ScalarOut = _ 
-  val readers:Set[ScalarIn] = Set[ScalarIn]() 
-  def addReader(r:ScalarIn) = { readers += r; this }
+  var _writer:ScalarOut = _ 
+  def writer:ScalarOut = {
+    assert(_writer != null, throw PIRException(s"$this has no writer"))
+    _writer
+  }
+  private val _readers:Set[ScalarIn] = Set[ScalarIn]() 
+  def readers:List[ScalarIn] = _readers.toList
+  def addReader(r:ScalarIn) = { _readers += r; this }
   def setWriter(w:ScalarOut) = { 
-    assert(writer == null, s"Already set ${this}'s writer to ${writer}, but trying to reset to ${w}")
-    writer = w; this 
+    assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")
+    _writer = w; this 
   }
   var dummyVector:DummyVector = _
   override def toUpdate = super.toUpdate || writer==null
@@ -41,7 +50,10 @@ object ArgOut {
 class Vector(val name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Vector"
   private var _writer:VecOut = _
-  def writer:VecOut = _writer
+  def writer:VecOut = {
+    assert(_writer!=null, throw PIRException(s"$this has no writer"))
+    _writer
+  }
   private val _readers:Set[VecIn] = Set.empty
   def readers:List[VecIn] = _readers.toList
   def addReader(r:VecIn) = { _readers += r; this }

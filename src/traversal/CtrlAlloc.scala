@@ -31,22 +31,24 @@ class CtrlAlloc(implicit val design: Design) extends Traversal with Printer {
     }
   }
 
+  def getOuterMostCChain(cchains:Iterable[CounterChain]) = {
+    cchains.minBy{_.ctrler.ancestors.size} // outer most CounterChain should have least ancesstors
+  }
+
   def swapAlloc = {
     design.top.compUnits.foreach { 
       case cu =>
         cu.mems.foreach {
           case mem:MultiBuffering if mem.buffering > 1 =>
-            val swapReadDones = mem.consumer match {
+            val swapReadDone = mem.consumer match {
               case ccu:MemoryPipeline if (mem.isInstanceOf[ScalarMem]) => // Check used in read or write addr calculation
                 val cchains = mem.readPort.to.map{_.src}.collect{ case c:Counter => c.cchain }.toSet
                 emitln(s"$mem consumer:${mem.consumer}, mem.readPort(${mem.readPort.to.mkString(",")}), cchains:${cchains.mkString(",")}")
-                cchains
-              case cu:ComputeUnit => List(cu.localCChain)
+                getOuterMostCChain(cchains)
+              case cu:ComputeUnit => cu.localCChain
               case top:Top => throw PIRException(s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
             }
-            swapReadDones.foreach { swapReadDone =>
-              cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
-            }
+            cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
             cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
           case mem =>
         }

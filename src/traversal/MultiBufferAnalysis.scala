@@ -24,37 +24,37 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Pr
     }
   }
 
+  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffering):Unit = {
+    if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
+    val reader = buf.reader
+    val writer = buf.writer
+    reader match {
+      case mp:MemoryPipeline => setProducerConsumer(mp, mp.mem)
+      case _ =>
+    }
+    val lca = leastCommonAncestor(reader, writer)
+    val producers = writer.ancestors.intersect(lca.children)
+    val consumers = reader.ancestors.intersect(lca.children)
+    val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
+      (lca, lca)
+    } else {
+      (producers.head, consumers.head)
+    }
+    buf.producer(producer)
+    buf.consumer(consumer, true) // detect back edge later
+    emitln(s"$cu parent:$lca")
+    emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
+    emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
+    emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
+    emitln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
+  }
+
   def setProducerConsumer:Unit = {
     emitln(s"Set producer consumer ...")
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {
         cu.mbuffers.foreach { buf =>
-          val reader = buf.reader
-          val writer = buf.writer
-          val lca = leastCommonAncestor(reader, writer)
-          val producers = writer.ancestors.intersect(lca.children)
-          val consumers = reader.ancestors.intersect(lca.children)
-          val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
-            (lca, lca)
-          } else {
-            (producers.head, consumers.head)
-          }
-          buf.producer(producer)
-          buf.consumer(consumer, true) // detect back edge later
-          cu match {
-            case cu:MemoryPipeline if (buf.isInstanceOf[RemoteMem]) => 
-              val parent = lca match {
-                case icu:InnerController => icu.parent
-                case ocu => ocu
-              }
-              cu.parent(parent)
-            case _ =>
-          }
-          emitln(s"$cu parent:$lca")
-          emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
-          emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
-          emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
-          emitln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
+          setProducerConsumer(cu, buf)
         }
       }
     }
@@ -112,6 +112,7 @@ class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Pr
                 }
                 dist
               case _:Sequential | _:Top => 1
+              case s:StreamController => 1 //TODO: fix this
             }
           }
           buf.buffering(bufSize)

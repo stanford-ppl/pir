@@ -154,14 +154,20 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   val tokInAndTree = TokenInAndTree()
   val andTree = AndTree(fifoAndTree.out, tokInAndTree.out)
   var tokenOut:Option[CtrlOutPort] = None 
-  val swapReads = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
+  val swapReads = Map[MultiBuffering, (Option[CtrlInPort], CtrlOutPort)]()
   val swapWrites = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
   def swapRead(mem:MultiBuffering, sr:CtrlOutPort) = {
-    val ci = CtrlInPort(this, s"$mem.swapRead")
-    val co = CtrlOutPort(this, s"$mem.credit")
-    ci.connect(sr)
-    swapReads += mem -> (ci,co)
-    ci
+    mem match {
+      case mem:LocalMem => 
+        val co = sr 
+        assert(sr.ctrler == ctrler)
+        swapReads += mem -> (None,co)
+      case mem:RemoteMem => 
+        val ci = CtrlInPort(this, s"$mem.swapRead")
+        val co = CtrlOutPort(this, s"$mem.credit")
+        ci.connect(sr)
+        swapReads += mem -> (Some(ci),co)
+    }
   }
   def swapWrite(mem:MultiBuffering, sw:CtrlOutPort) = {
     val ci = CtrlInPort(this, s"$mem.swapWrite")
@@ -217,9 +223,9 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
         cins ++= cu.fifos.map { _.enqueueEnable }.filter{_.isCtrlIn}
     }
     cins ++= tokInAndTree.ins
-    cins ++= swapReads.values.map(_._1).filter{ _.isCtrlIn }
+    cins ++= swapReads.values.flatMap(_._1).filter{ _.isCtrlIn }
     cins ++= swapWrites.values.map(_._1).filter{ _.isCtrlIn }
-    cins.toList
+    cins.toSet.toList
   }
 
   def ctrlOuts:List[CtrlOutPort] = { 
@@ -233,7 +239,7 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
       case _ =>
     }
     couts ++= andTrees.map{_.out}.filter{_.isCtrlOut}
-    couts.toList
+    couts.toSet.toList
   }
 
   override def toUpdate = super.toUpdate || tokenOut == null

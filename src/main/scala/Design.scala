@@ -258,7 +258,7 @@ trait Design extends Metadata {
 }
 
 trait PIRApp extends Design{
-  override val arch:Spade = SN_4x4 
+  override val arch:Spade = SN_8x8
   override def toString = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 
