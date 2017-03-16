@@ -212,7 +212,7 @@ trait Design extends Metadata {
     val traversals = ListBuffer[Traversal]()
     if (Config.debug) traversals += new SpadePrinter()
     traversals += new ForwardRef()
-    traversals += scalMemInsertion
+    //traversals += scalMemInsertion
     if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
     //traversals += fusionTransform 
     //traversals += new ScalarBundling()

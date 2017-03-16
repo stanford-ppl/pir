@@ -32,7 +32,6 @@ class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
       cu match {
         case mc:MemoryController =>
           val info = ListBuffer[String]()
-          emitln(s"dataValid=[${mc.dataValid.to.mkString(",")}]")
           emitln(s"done=[${mc.done.to.mkString(",")}]")
         case cu:InnerController =>
           cu.mems.foreach { mem =>

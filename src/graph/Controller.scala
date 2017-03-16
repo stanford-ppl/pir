@@ -480,43 +480,22 @@ object StreamPipeline {
 class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
 
-  val _ofs = if (mctpe.isDense) Some(Scalar("ofs")) else None
-  def ofs:Scalar = _ofs.get
-  val ofsPort = _ofs.map { ofs => InPort(this, s"$this.ofsIn") }
-  val siofs = { _ofs.map { ofs => newSin(ofs) } }
-  siofs.foreach { si => ofsPort.get.connect(si.out) } // Needed for fifo insertion
-  //val ofsFIFO = _ofs.map { ofs => ScalarFIFO(100).wtPort(ofs) }
-
-  val _len = if (mctpe.isDense) Some(Scalar("len")) else None
-  def len:Scalar = _len.get
-  val lenPort = _len.map { ofs => InPort(this, s"$this.lenIn") }
-  val silen = { _len.map { len => newSin(len) } }
-  silen.foreach { si => lenPort.get.connect(si.out) } // Needed for fifo insertion
-  //val lenFIFO = _len.map { len => ScalarFIFO(100).wtPort(len) }
-
-  val data = Vector()
-  private val _dataIn  = if (mctpe.isStore) { Some(newVin(data)) } else None
-  private val _dataOut = if (mctpe.isLoad) { Some(newVout(data)) } else None
-  def dataIn = _dataIn.get
-  def dataOut = _dataOut.get
-  val dataFIFO = if (mctpe.isStore) Some(VectorFIFO(s"${this}DataFIFO", 100).wtPort(data)) else None
-
-  val _addrs = if (mctpe.isSparse) Some(Vector()) else None
-  def addrs = _addrs.get
-  val viaddrs = { _addrs.map { addrs => newVin(addrs) } }
-  val addrFIFO = _addrs.map { addrs => VectorFIFO(s"${this}AddrFIFO", 100).wtPort(addrs) }
-
-  val dataValid = CtrlOutPort(this, s"${this}.dataValid")
+  val mcfifos = Map[String, FIFO]()
+  val mcvecs = Map[String, Vector]()
+  
   val done = CtrlOutPort(this, s"${this}.done")
   val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
-
-  mems((addrFIFO ++ dataFIFO).toList)
+  
+  override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
+    super.updateBlock(block)
+    mcvecs.foreach { case (field, vec) => newVout(vec) }
+    this
+  }
 }
 object MemoryController {
-  def apply(mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
-    = new MemoryController(None, mctpe, offchip)
-  def apply(name:String, mctpe:MCType, offchip:OffChip)(implicit design: Design): MemoryController 
-    = new MemoryController(Some(name), mctpe, offchip)
+  def apply[P](name:String, parent:P, mctpe:MCType, offchip:OffChip)(block: MemoryController => Any)
+    (implicit design: Design): MemoryController 
+    = new MemoryController(Some(name), mctpe, offchip).parent(parent).updateBlock(block)
 }
 
 case class Top()(implicit design: Design) extends Controller { self =>

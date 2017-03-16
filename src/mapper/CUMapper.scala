@@ -61,7 +61,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = mcs.filter { _.mctpe.isDense }.map { _.ofs.writer.ctrler.asInstanceOf[StreamPipeline] }
+    val scus = mcs.filter { _.mctpe.isDense }.map { mc => mc.mcfifos("offset").writer.ctrler.asInstanceOf[StreamPipeline] }
     val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
     val pmcus = design.arch.mcus 
@@ -142,7 +142,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
       dprintln(s"--not mapped and tried:[${pnes.mkString(",")}]")
       cl match {
         case cl:MC if cl.mctpe.isDense => 
-          val sp = cl.ofs.writer.ctrler
+          val sp = cl.mcfifos("offset").writer.ctrler
           if (m.clmap.contains(sp)) {
             pnes = pnes.filter{ pne => pne.coord == m.clmap(sp).coord }
           }

@@ -32,22 +32,22 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param stage: Stage of the pipeline register 
   * @param s: ScalarIn buffer 
   */
-  def scalarIn(stage:Stage, s:ScalarIn):OutPort = {
+  def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
     //val fifo = getRetimingFIFO(s.scalar) 
     //fifo.wtPort(s.out)
     //stage match {
       //case stage:EmptyStage => fifo.load
       //case stage => load(stage, fifo).out
     //}
-    s.out // ScalarBuffer or ScalarFIFO should be inserted here
+    pipeReg(stage, scalarInPR(s)) // ScalarBuffer or ScalarFIFO should be inserted here
   }
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarIn(stage:Stage, s:Scalar):OutPort = scalarIn(stage, newSin(s))
-  def scalarIn(s:Scalar):OutPort = scalarIn(emptyStage, newSin(s))
+  def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
+  def scalarIn(s:Scalar):PipeReg = scalarIn(emptyStage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -145,7 +145,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, v:VecIn):OutPort = {
+  def vecIn(stage:Stage, v:VecIn):PipeReg = {
     //val fifo = getRetimingFIFO(v.vector) 
     //fifo.wtPort(v.out)
     //stage match {
@@ -158,8 +158,8 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, vec:Vector):OutPort = vecIn(stage, newVin(vec))
-  def vecIn(vec:Vector):OutPort = vecIn(emptyStage, newVin(vec))
+  def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
+  def vecIn(vec:Vector):PipeReg= vecIn(emptyStage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 

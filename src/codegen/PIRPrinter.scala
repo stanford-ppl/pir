@@ -121,6 +121,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
 object PIRPrinter extends Metadata {
   def genFields(node:Node)(implicit design:Design):String = {
     val fields = ListBuffer[String]()
+    node.name.foreach { name => fields += s"name=$name" }
     node match {
       case n:Controller =>
         fields += s"children=[${n.children.mkString(",")}]"

@@ -145,30 +145,30 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size){ i => 
-    if (i==1) {
-      //TODO: HACK on mod operation
-      op match {
-        case FixMod =>
-          assert(oprds.size==2)
-          val opB = oprds(i)
-          opB.src match {
-            case Const(value) =>
-              if (value.isInstanceOf[Int]) throw PIRException(s"Do not support mod of non integer value")
-              val num = value.asInstanceOf[Int]
-              val log = Math.log(num) / Math.log(2)
-              if (Math.round(log)==log) {
-                val const = Const(Math.round(log).toInt)
-                op = FixSra
-                InPort(this, const.out, s"oprd(${const.out})")
-              } else
-                throw PIRException(s"Do not support mod of non power of 2 number")
-            case _ => throw PIRException(s"Do not support mod of non constant!")
-          }
-        case _ => InPort(this, oprds(i), s"oprd(${oprds(i)})")
-      }
-    } else {
+    //if (i==1) {
+      ////TODO: HACK on mod operation
+      //op match {
+        //case FixMod =>
+          //assert(oprds.size==2)
+          //val opB = oprds(i)
+          //opB.src match {
+            //case Const(value) =>
+              //if (value.isInstanceOf[Int]) throw PIRException(s"Do not support mod of non integer value")
+              //val num = value.asInstanceOf[Int]
+              //val log = Math.log(num) / Math.log(2)
+              //if (Math.round(log)==log) {
+                //val const = Const(Math.round(log).toInt)
+                //op = FixSra
+                //InPort(this, const.out, s"oprd(${const.out})")
+              //} else
+                //throw PIRException(s"Do not support mod of non power of 2 number")
+            //case _ => throw PIRException(s"Do not support mod of non constant!")
+          //}
+        //case _ => InPort(this, oprds(i), s"oprd(${oprds(i)})")
+      //}
+    //} else {
       InPort(this, oprds(i), s"${oprds(i)}")
-    }
+    //}
   }
   val out = OutPort(this, s"${this}.out")
   results.foreach { res => 

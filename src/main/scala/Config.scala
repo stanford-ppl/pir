@@ -14,7 +14,7 @@ object Config {
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
   var genDot = getProperty("pir.dot", "true") == "true"
-  var mapping = getProperty("pir.mapping", "true") == "true"
+  var mapping = getProperty("pir.mapping", "false") == "true"
   var genPisa = getProperty("pir.pisa", "true") == "true"
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")

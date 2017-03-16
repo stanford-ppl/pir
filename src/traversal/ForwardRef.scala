@@ -40,6 +40,7 @@ class ForwardRef(implicit val design: Design) extends Traversal{
       case w:Scalar =>
       case w:Vector =>
       case w:Port =>
+      case Const(c) =>
         //assert(false, "No support for adding name for wire yet!")
     }
   }
@@ -59,34 +60,34 @@ object ForwardRef {
   def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
   // Collect outer controllers that are in the same CU
   
-  def collectMCParent(implicit design:Design) = {
-    design.top.innerCUs.foreach { inner =>
-      //TODO: hack add dep and parent of MemoryController here
-      inner match {
-        case mc:MemoryController =>
-          val addrPipe = mc.mctpe match {
-            case (TileLoad | TileStore) => mc.ofs.writer.ctrler.asInstanceOf[InnerController]
-            case (Gather | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
-          }
-          //mc.addDep(addrPipe)
-          mc.parent(addrPipe.parent)
-          mc.parent.addChildren(mc)
-          mc.mctpe match {
-            case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
-              val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
-              //if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
-            case TileStore =>
-              //mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
-              val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
-              //if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
-            case Gather =>
-            case Scatter =>
-              //mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
-          }
-        case icu:InnerController =>
-      }
-    }
-  }
+  //def collectMCParent(implicit design:Design) = {
+    //design.top.innerCUs.foreach { inner =>
+      ////TODO: hack add dep and parent of MemoryController here
+      //inner match {
+        //case mc:MemoryController =>
+          //val addrPipe = mc.mctpe match {
+            //case (TileLoad | TileStore) => mc.ofs.writer.ctrler.asInstanceOf[InnerController]
+            //case (Gather | Scatter)=> mc.addrs.writer.ctrler.asInstanceOf[InnerController]
+          //}
+          ////mc.addDep(addrPipe)
+          //mc.parent(addrPipe.parent)
+          //mc.parent.addChildren(mc)
+          //mc.mctpe match {
+            //case TileLoad => //mc.vdata.readers.foreach { _.ctrler.asInstanceOf[ComputeUnit].addDep(mc) }
+              //val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
+              ////if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+            //case TileStore =>
+              ////mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+              //val lenPipe = mc.len.writer.ctrler.asInstanceOf[InnerController]
+              ////if (mc.parent==lenPipe.parent) mc.addDep(lenPipe)
+            //case Gather =>
+            //case Scatter =>
+              ////mc.addDep(mc.vdata.writer.ctrler.asInstanceOf[ComputeUnit])
+          //}
+        //case icu:InnerController =>
+      //}
+    //}
+  //}
 
   def collectOuters(implicit design:Design) = {
     design.top.innerCUs.foreach { inner =>

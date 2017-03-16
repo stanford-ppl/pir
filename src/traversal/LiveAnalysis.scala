@@ -157,6 +157,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata 
                   case r => throw PIRException(s"Unknown producer of ${mem} readAddr $r")
                 }
               case mem:FIFOOnRead => if (s == stages(1)) s.addDef(r)
+              case mem:ScalarMem => if (s == stages(1)) s.addDef(r)
             }
           case _ =>
         }

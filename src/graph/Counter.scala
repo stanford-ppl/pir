@@ -53,6 +53,7 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   def inner:Counter = counters.last
 
   def addCounter(ctr:Counter):Unit = {
+    ctr.cchain(this)
     _counters.lastOption.foreach { pre =>
       pre.setDep(ctr)
     }
@@ -67,9 +68,9 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
     _counters.insert(0, ctr)
   }
 
-  def this(name:Option[String], bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design) = {
+  def this(name:Option[String], ctrs:Counter*)(implicit ctrler:ComputeUnit, design: Design) = {
     this(name)
-    bds.zipWithIndex.foreach {case ((mi, ma, s),i) => addCounter(Counter(this, mi, ma, s)(ctrler, design)) }
+    ctrs.foreach { ctr => addCounter(ctr) }
   }
 
   def apply(num: Int)(implicit ctrler:ComputeUnit, design: Design):Counter = {
@@ -94,11 +95,8 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
 
 }
 object CounterChain {
-  def apply(bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    new CounterChain(None, bds:_*)
-  }
-  def apply(name:String, bds: (OutPort, OutPort, OutPort)*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
-    new CounterChain(Some(name), bds:_*)
+  def apply(name:String, ctrs: Counter*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
+    new CounterChain(Some(name), ctrs:_*)
   /*
    * @param from: User defined name for Controller of the copying CounterChain 
    * @param name: User defined name for Primitive 
@@ -144,6 +142,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
+  var par:Int = 0
   var _cchain:CounterChain = _
   def cchain:CounterChain = _cchain
   def cchain(cc:CounterChain):Counter = {
@@ -154,10 +153,11 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
   override def toUpdate = super.toUpdate || cchain==null
 
-  def update(mi:OutPort, ma:OutPort, s:OutPort):Unit = {
+  def update(mi:OutPort, ma:OutPort, s:OutPort, par:Int):Unit = {
     min.connect(mi)
     max.connect(ma)
     step.connect(s)
+    this.par = par
   }
 
   def isInner = { 
@@ -190,10 +190,9 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
         case s:ScalarBuffer =>
           val ScalarIn(n, scalar) = s.writePort.from.src
           val cu = ctrler.asInstanceOf[ComputeUnit]
-          val sin = cu.newSin(scalar)
-          cu.scalarIn(cu.emptyStage, sin)
-          val smem = design.scalMemInsertion.insertScalarMem(sin)
-          smem.load
+          val sb = ScalarBuffer()(cu, design).wtPort(scalar)
+          //val smem = design.scalMemInsertion.insertScalarMem(sin)
+          sb.load
         case s:ScalarIn => // Before scalar buffer/fifo insersion
           val cu = ctrler.asInstanceOf[ComputeUnit]
           val sin = cu.newSin(s.scalar)
@@ -203,21 +202,19 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
           assert(s.reg.isInstanceOf[ScalarInPR])
           val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
           val cu = ctrler.asInstanceOf[ComputeUnit]
-          cu.scalarIn(cu.emptyStage, scalar)
+          cu.scalarIn(cu.emptyStage, scalar).out
         case _ => throw new Exception(s"Don't know how to copy port")
       }
     }
-    update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from))
+    update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from), c.par)
   } 
 }
 object Counter {
   def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
     new Counter(name).cchain(cc)
   }
-  def apply(cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
-    { val c = Counter(None, cchain); c.update(min, max, step); c }
-  def apply(name:String, cchain:CounterChain, min:OutPort, max:OutPort, step:OutPort)(implicit ctrler:ComputeUnit, design: Design):Counter =
-    { val c = Counter(Some(name), cchain); c.update(min, max, step); c }
+  def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: Design):Counter =
+    { val c = new Counter(None); c.update(min, max, step, par); c }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
     Counter(None, cchain)
 }

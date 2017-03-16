@@ -1,5 +1,6 @@
 package pir.graph
 
+import pir.misc._
 import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.ListBuffer
@@ -33,7 +34,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
       case fifo:VectorFIFO => fifo.writer
       case VecIn(_, vector) => vector.writer.ctrler
       case ScalarIn(_, scalar) => scalar.writer.ctrler
-      case p => throw PIRException(s"Unknown OnChipMem write port ${p}")
+      case p => 
+        throw PIRException(s"Unknown OnChipMem write port ${p} for $this in $ctrler")
     }
   }
 
@@ -48,7 +50,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
         so.scalar.readers.head.ctrler
       case cu:Controller => cu
       case p:Primitive => p.ctrler
-      case p => throw new Exception(s"Unknown OnChipMem read port ${p}")
+      case p => throw new Exception(s"Unknown OnChipMem read port ${p} for $this in $ctrler")
     }
   }
 }
@@ -95,9 +97,8 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
   def isOfsFIFO:Boolean = {
     ocm.ctrler match {
       case mc:MemoryController =>
-        mc.siofs.fold(false) { siofs =>
-          writePort.isConnectedTo(siofs.out)
-        }
+        if (!mc.mctpe.isDense) false
+        else mc.mcfifos("offset") == this
       case _ => false
     }
   }
@@ -144,9 +145,7 @@ trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
 
 trait LocalMem extends OnChipMem {
   override def reader:Controller = {
-    val reader = super.reader
-    assert(reader == this.ctrler)
-    reader
+    this.ctrler
   }
 }
 trait RemoteMem extends OnChipMem { self:VectorMem =>
@@ -205,7 +204,9 @@ object VectorFIFO {
 }
 
 trait ScalarMem extends OnChipMem with LocalMem {
-  def wtPort(s:Scalar):this.type = { wtPort(ctrler.newSin(s).out) }
+  def wtPort(scalarIn:ScalarIn):this.type = { wtPort(scalarIn.out) }
+  def wtPort(scalar:Scalar):this.type = { wtPort(ctrler.newSin(scalar)) }
+  def wtPort(scalarOut:ScalarOut):this.type = { wtPort(scalarOut.scalar) }
 }
 
 case class ScalarBuffer(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) 
