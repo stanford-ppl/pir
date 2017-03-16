@@ -74,7 +74,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(newTemp, c))
 
-  def accumPR(init:Const):AccumPR = {
+  def accumPR(init:Const[_<:AnyVal]):AccumPR = {
     val acc = AccumPR(newTemp, init)
     accumRegs += acc 
     acc
@@ -111,13 +111,13 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   */
   def ctr(stage:Stage, c:Counter):PipeReg = pipeReg(stage, ctrPR(c))
   /* Create a new logical accumulator register */
-  def accum(init:Const):AccumPR = accumPR(init)
+  def accum(init:Const[_<:AnyVal]):AccumPR = accumPR(init)
   /* Create a new logical accumulator register and return a PipeReg for the stage and the created
    * accumulator 
   * @param stage: Stage of the pipeline register 
    * @param init initial value of the accumulator
    * */
-  def accum(stage:Stage, init:Const):PipeReg = pipeReg(stage, accum(init))
+  def accum(stage:Stage, init:Const[_<:AnyVal]):PipeReg = pipeReg(stage, accum(init))
   /* Create a pipeline register for a stage that connects to the accumulator reg 
    * @param stage
    * @param acc 

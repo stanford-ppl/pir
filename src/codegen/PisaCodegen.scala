@@ -3,7 +3,7 @@ package pir.graph.traversal
 import pir.Design
 import pir.codegen._
 import pir.misc._
-import pir.typealias._
+import pir.typealias.{Const => _, _}
 import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.mapper._
@@ -280,7 +280,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def lookUp(node:Node):String = {
     node match {
-      case Const(_, c) => s"c${c}"
+      case Const(c:Int) => s"c${c}i"
+      case Const(c:Float) => s"c${c}f"
+      case Const(c:Boolean) => s"c${c}b"
       case fu:FU => 
         val stage = fu.stage
         val pstage = stmap(stage)
@@ -578,13 +580,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                     case sc:SC if (cu.isLast && ctr.isOuter) =>
                       //TODO HACK: change last stage of stream controller's counter max to be max-1
                       ctr.max.from.src match {
-                        case Const(_, str) =>
-                          val (num, tpe) = str.splitAt(str.length-1)
-                          if (tpe!="i") throw PIRException(s"Do not support max of non Int type")
-                          val numInt = num.toInt
-                          val const = Const(s"${numInt-1}i")
-                          emitComment("ctrMaxHACK", s"original=$numInt")
+                        case Const(value:Int) =>
+                          val const = Const(value-1)
+                          emitComment("ctrMaxHACK", s"original=$value")
                           emitPair("max", lookUp(const))
+                        case c@Const(value) => throw PIRException(s"Do not support max of non Int type $c")
                         case _ => throw PIRException(s"HACK: the last stage of the StreamController's counter maximum has to be a constant")
                       }
                       // ---
@@ -648,7 +648,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 emitList("result", reses.map(r => s""""$r"""").toList)
                 val inits = results.map(_.src).collect { 
                   case PipeReg(s,r) => r }.collect {
-                    case AccumPR(_, Const(_, c)) => c 
+                    case AccumPR(_, Const(c)) => c 
                 }
                 if (inits.size>1)
                   throw PIRException(s"Currently assume writing to a single accum per stage ${inits}")

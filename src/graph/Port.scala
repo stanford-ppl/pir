@@ -52,7 +52,7 @@ trait OutPort extends Port {
   override val name=None
   override val typeStr = "OutPort"
   def width(implicit design:Design) = design.arch.wordWidth
-  def by(step:OutPort)(implicit design:Design) = (Const("0i").out, this, step)
+  def by(step:OutPort)(implicit design:Design) = (Const(0).out, this, step)
   def until(max:OutPort) = new Range(this, max)
 }
 object OutPort {

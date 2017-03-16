@@ -186,7 +186,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
       s"Overriding existing counter ${this} with min ${c.step}")
     def copyOutPort(p:OutPort):OutPort = {
       p.src match {
-        case s:Const => s.out
+        case s:Const[_] => s.out
         case s:ScalarBuffer =>
           val ScalarIn(n, scalar) = s.writePort.from.src
           val cu = ctrler.asInstanceOf[ComputeUnit]
@@ -225,9 +225,9 @@ object Counter {
 case class DummyCounter(cc:CounterChain)(implicit override val ctrler:ComputeUnit, design: Design)
   extends Counter(Some(s"dummyCtr")) {
   this.cchain(cc)
-  this.min.connect(Const(s"-1i").out)
-  this.max.connect(Const(s"-1i").out)
-  this.step.connect(Const(s"-1i").out)
+  this.min.connect(Const(-1).out)
+  this.max.connect(Const(-1).out)
+  this.step.connect(Const(-1).out)
   //val dummyCtrl = CtrlOutPort(this, s"${this}.dummyEn")
   //this.en.connect(dummyCtrl)
   override def toUpdate = false

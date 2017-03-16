@@ -198,7 +198,7 @@ object PIRPrinter extends Metadata {
       //  fields += s"init=${p.initVal}"
       case p:Reg => p match {
         case r:PipeReg =>
-        case r:Const => fields += s"${r.value}"
+        case r:Const[_] => fields += s"${r.value}"
         case r:ArgIn =>
         case r:ArgOut =>
       }

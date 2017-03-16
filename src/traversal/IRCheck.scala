@@ -1,5 +1,5 @@
 package pir.graph.traversal
-import pir.graph._
+import pir.graph.{Const => _, _}
 import pir._
 import pir.misc._
 import pir.graph.mapper.{PIRException, TODOException}

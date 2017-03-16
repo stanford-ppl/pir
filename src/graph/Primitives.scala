@@ -7,6 +7,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
 import scala.reflect.runtime.universe._
+import scala.language.existentials
 import pir.{Design, Config}
 import pir.graph._
 import pir.graph.enums._
@@ -151,13 +152,12 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
           assert(oprds.size==2)
           val opB = oprds(i)
           opB.src match {
-            case Const(_, str) =>
-              val (num, tpe) = str.splitAt(str.length-1)
-              if (tpe!="i") throw PIRException(s"Do not support mod of non integer value")
-              val numInt = num.toInt
-              val log = Math.log(numInt) / Math.log(2)
+            case Const(value) =>
+              if (value.isInstanceOf[Int]) throw PIRException(s"Do not support mod of non integer value")
+              val num = value.asInstanceOf[Int]
+              val log = Math.log(num) / Math.log(2)
               if (Math.round(log)==log) {
-                val const = Const(s"${Math.round(log)}i")
+                val const = Const(Math.round(log).toInt)
                 op = FixSra
                 InPort(this, const.out, s"oprd(${const.out})")
               } else
@@ -221,7 +221,7 @@ object Stage {
       case o:OutPort => o
       case r:Reg => PipeReg(stage.prev.get, r).out
       case pr:PipeReg => pr.out
-      case c:Const => c.out
+      case c:Const[_] => c.out
       case c:Counter => c.out
     }
     val res = results.map {
@@ -244,7 +244,8 @@ object Stage {
   def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
     Stage(stage, List(op1, op2, op3), op, List(result))
 
-  def reduce(op:Op, init:Const)(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
+  //TODO check init type matches with op type
+  def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
@@ -404,7 +405,7 @@ case class StorePR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerC
 case class WtAddrPR(override val regId:Int, waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
 case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                 extends Reg {override val typeStr = "regct"}
 case class ReducePR(override val regId:Int)(implicit ctrler:InnerController, design: Design)                           extends Reg {override val typeStr = "regrd"}
-case class AccumPR(override val regId:Int, init:Const)(implicit ctrler:InnerController, design: Design)                extends Reg {override val typeStr = "regac"}
+case class AccumPR(override val regId:Int, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)                extends Reg {override val typeStr = "regac"}
 case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "regvi"}
 case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regvo"; var vecOut:VecOut = _}
 case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "regsi"}
@@ -429,14 +430,8 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
   }
 }
 
-case class Const(name:Option[String], value:String)(implicit design: Design) extends Node {
+case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Node {
   override val typeStr = "Const"
-  override def toString = s"Const(${value})"
+  val name:Option[String] = Some(s"$value")
   val out = OutPort(this, s"Const(${value})")
 }
-object Const {
-  def apply(v:String)(implicit design: Design):Const = Const(None, v)
-  def apply(name:String, v:String)(implicit design: Design):Const =
-    Const(Some(name), v)
-}
-

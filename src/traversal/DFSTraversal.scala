@@ -54,7 +54,7 @@ abstract class DFSTraversal(implicit val design: Design) extends Traversal{
         case p:UDCounter =>
         case p:Reg => p match {
           case r:PipeReg =>
-          case r:Const =>
+          case r:Const[_] =>
           case r:ArgIn =>
           case r:ArgOut =>
         }

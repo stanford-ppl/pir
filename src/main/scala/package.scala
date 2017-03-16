@@ -29,11 +29,11 @@ package object misc extends Logger {
   implicit def pr_to_outport(pr:PipeReg):OutPort = pr.out
   implicit def sram_to_outport(sram:SRAM):OutPort = sram.readPort
   implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
-  implicit def const_to_port(const:Const):OutPort = const.out
+  implicit def const_to_port(const:Const[_<:AnyVal]):OutPort = const.out
   implicit def mExcep_to_string(e:MappingException[_]):String = e.toString
-  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const("1d") 
+  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const(1) 
   implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
-    (Const(s"${r.min}i").out, Const(s"${r.max+1}i").out, Const(s"${r.step}i").out)
+    (Const(r.min.toInt).out, Const(r.max.toInt+1).out, Const(r.step.toInt).out)
 
   def getStackTrace:String = {
     getStackTrace(1, 5)
@@ -91,7 +91,7 @@ package object typealias {
   type EnLUT = pir.graph.EnLUT
   type AT    = pir.graph.AndTree
   type UC    = pir.graph.UDCounter
-  type Const = pir.graph.Const
+  type Const = pir.graph.Const[_<:AnyVal]
   type Top   = pir.graph.Top
   // Spade Nodes
   type PNode     = pir.plasticine.graph.Node
@@ -133,5 +133,5 @@ package object typealias {
   type PSB       = pir.plasticine.graph.SwitchBox
   type Stagable  = pir.plasticine.graph.Stagable
   type PConst    = pir.plasticine.graph.Const
-  type PConstVal = pir.plasticine.graph.ConstVal
+  type PConstVal = pir.plasticine.graph.ConstVal[_<:AnyVal]
 }

@@ -97,7 +97,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     def mapInPort(n:IP, p:PIP):Unit = {
       ipmap += n -> p 
       n.from.src match {
-        case Const(_, v) => fpmap += p -> PConstVal(v)(design.arch).out
+        case Const(v) => fpmap += p -> PConstVal(v)(design.arch).out
         case _ =>
       }
     }

@@ -132,7 +132,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val opmap = map.opmap
     val ipmap = map.ipmap
     val pop:POP = n.from.src match {
-      case Const(_, c) =>
+      case Const(c) =>
         if (!r.canFrom(design.arch.const.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info, map)

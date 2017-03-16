@@ -168,8 +168,8 @@ object WAStage {
     new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 
-case class ConstVal(v:String)(implicit spade:Spade) extends Node {
-  val out = OutPort(this, s"Const")
+case class ConstVal[T](v:T)(implicit spade:Spade) extends Node {
+  val out = OutPort(this, s"Const($v)")
 }
 case class Const()(implicit spade:Spade) extends Node {
   val out = RMOutPort(this, s"Const")
