@@ -2,7 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.util._
 
 import scala.collection.mutable.Set
