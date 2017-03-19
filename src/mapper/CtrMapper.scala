@@ -1,4 +1,4 @@
-package pir.graph.mapper
+package pir.mapper
 import pir._
 import pir.typealias._
 import pir.graph.traversal.{PIRMapping, CtrDotPrinter}

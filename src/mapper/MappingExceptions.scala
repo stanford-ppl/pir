@@ -1,8 +1,8 @@
-package pir.graph.mapper
+package pir.mapper
 import pir._
 import pir.typealias._
 import pir.plasticine.config._
-import pir.graph.mapper._
+import pir.mapper._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

@@ -3,7 +3,7 @@ import pir.graph._
 import pir._
 import pir.codegen.Printer
 import pir.misc._
-import pir.graph.mapper._
+import pir.mapper._
 import scala.util.{Try, Success, Failure}
 
 object MapPrinter extends Printer { 

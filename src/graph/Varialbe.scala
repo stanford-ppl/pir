@@ -2,7 +2,7 @@ package pir.graph
 
 import pir.Design
 import pir.graph._
-import pir.graph.mapper.PIRException
+import pir.mapper.PIRException
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

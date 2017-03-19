@@ -11,7 +11,7 @@ import scala.reflect.runtime.universe._
 import pir.{Design, Config}
 import pir.graph._
 import pir.graph.enums._
-import pir.graph.mapper.PIRException
+import pir.mapper.PIRException
 import pir.graph.traversal.ForwardRef
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
@@ -43,8 +43,16 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
     assert(readPort.to.size>=1, s"$this's readPort is connected to ${readPort.to}")
     readPort.to.head.src match {
       case vo:VecOut => 
-        assert(vo.vector.readers.size==1, s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 remote reader ${vo.vector.readers}")
-        vo.vector.readers.head.ctrler
+        val vrds = vo.vector.readers
+        if(vrds.size!=1)
+          warn(s"OnChipMem=$this in ${this.ctrler} has more than 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
+        val rds = vrds.filterNot{_.ctrler.isInstanceOf[MemoryPipeline]}
+        if (rds.size>1)
+          err(s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 non-MCU remote reader [${rds.mkString(",")}], [${rds.map(_.ctrler).mkString(",")}]")
+        else if (rds.size==1)
+          rds.head.ctrler
+        else
+          vrds.head.ctrler
       case so:ScalarOut =>
         assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 remote reader ${so.scalar.readers}")
         so.scalar.readers.head.ctrler

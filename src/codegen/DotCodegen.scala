@@ -3,7 +3,7 @@ package pir.codegen
 import pir.Design
 import pir.plasticine.main._
 import pir.typealias._
-import pir.graph.mapper.PIRException
+import pir.mapper.PIRException
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 

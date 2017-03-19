@@ -1,7 +1,7 @@
 package pir
 
 import pir.graph._
-import graph.mapper._
+import mapper._
 import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import java.lang.Thread

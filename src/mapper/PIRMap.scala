@@ -1,4 +1,4 @@
-package pir.graph.mapper
+package pir.mapper
 import pir._
 import pir.codegen.{Printer, DotCodegen}
 import pir.typealias._

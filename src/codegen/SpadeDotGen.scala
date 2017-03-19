@@ -4,7 +4,7 @@ import pir.{Design, Config}
 import pir.codegen._
 import pir.misc._
 import pir.typealias._
-import pir.graph.mapper.{PIRMap, PIRException}
+import pir.mapper.{PIRMap, PIRException}
 import pir.plasticine.main._
 import pir.plasticine.graph._
 

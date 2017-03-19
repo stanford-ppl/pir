@@ -1,9 +1,8 @@
-package pir.graph.mapper
+package pir.mapper
 import pir.typealias._
 import pir.graph._
 import pir._
 import pir.misc._
-import pir.graph.mapper._
 import pir.codegen.DotCodegen
 import pir.plasticine.graph.{PipeReg}
 import pir.codegen.DotCodegen

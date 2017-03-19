@@ -1,6 +1,7 @@
 package pir.codegen
 
 import pir._
+import pir.mapper.PIRException
 
 import java.io.PrintWriter
 import java.io.File
@@ -121,7 +122,7 @@ trait Logger extends Printer {
   def startInfo(s:String) = emit(s"[pir] ${s}")
   def endInfo(s:String) = { emitln(s" ${s}") }
   def warn(s:String) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
-  def err(s:String) = emitln(s"${Console.RED}[error]${s}${Console.RESET}")
+  def err(s:String) = { emitln(s"${Console.RED}[error]${s}${Console.RESET}"); throw PIRException(s) }
   def bp(s:String) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")
 }
 

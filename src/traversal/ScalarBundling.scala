@@ -3,7 +3,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
-import pir.graph.mapper.PIRException
+import pir.mapper.PIRException
 
 import scala.collection.mutable.{ Set => MSet }
 import scala.collection.mutable.ListBuffer

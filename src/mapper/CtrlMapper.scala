@@ -1,4 +1,4 @@
-package pir.graph.mapper
+package pir.mapper
 import pir.{Config}
 import pir.Design
 import pir.misc._

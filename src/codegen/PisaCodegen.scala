@@ -6,7 +6,7 @@ import pir.misc._
 import pir.typealias.{Const => _, _}
 import pir.plasticine.main._
 import pir.graph.enums._
-import pir.graph.mapper._
+import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
 import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst, GridIO}
 

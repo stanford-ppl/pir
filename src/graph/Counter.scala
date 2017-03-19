@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
 import pir.{Design, Config}
 import pir.graph._
 import pir.graph.enums._
-import pir.graph.mapper.PIRException
+import pir.mapper.PIRException
 import pir.graph.traversal.ForwardRef
 
 case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {

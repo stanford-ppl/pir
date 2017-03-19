@@ -3,7 +3,7 @@ package pir
 import pir.misc._
 import graph._
 import graph.traversal._
-import graph.mapper._
+import mapper._
 import pir.codegen._
 import plasticine.config._
 import pir.plasticine.main._
