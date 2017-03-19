@@ -2,9 +2,9 @@ package pir.graph.traversal
 import pir.graph.{Const => _, _}
 import pir._
 import pir.misc._
-import pir.mapper.{PIRException, TODOException}
 import pir.plasticine.main._
 import pir.typealias._
+import pir.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap

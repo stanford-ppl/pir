@@ -5,6 +5,7 @@ import pir.graph.traversal.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR}
 import pir.plasticine.graph.{PipeReg => PPR}
 import pir.plasticine.main._
+import pir.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set

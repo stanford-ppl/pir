@@ -1,7 +1,7 @@
 package pir.codegen
 
 import pir._
-import pir.mapper.PIRException
+import pir.util.PIRException
 
 import java.io.PrintWriter
 import java.io.File

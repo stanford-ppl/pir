@@ -6,6 +6,7 @@ import pir.typealias._
 import pir.plasticine.main._
 import pir.graph.enums._
 import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
+import pir.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue

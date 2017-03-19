@@ -5,6 +5,7 @@ import pir.typealias._
 import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
+import pir.util._
 import pir.codegen.{Logger, DotCodegen}
 import java.lang.Thread
 

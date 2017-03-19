@@ -6,6 +6,7 @@ import pir.misc._
 import pir.codegen.DotCodegen
 import pir.plasticine.graph.{PipeReg}
 import pir.codegen.DotCodegen
+import pir.util._
 
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}

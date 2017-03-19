@@ -3,7 +3,7 @@ import pir.graph._
 import pir._
 import pir.misc._
 import pir.graph.enums._
-import pir.mapper.PIRException
+import pir.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

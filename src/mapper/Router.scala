@@ -8,6 +8,7 @@ import pir.codegen.{DotCodegen, Printer}
 import pir.graph.traversal.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
+import pir.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

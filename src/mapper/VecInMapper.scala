@@ -2,6 +2,7 @@ package pir.mapper
 import pir._
 import pir.typealias._
 import pir.graph.traversal.PIRMapping
+import pir.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

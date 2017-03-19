@@ -4,6 +4,7 @@ import pir.misc._
 import graph._
 import graph.traversal._
 import mapper._
+import pir.util.PIRException
 import pir.codegen._
 import plasticine.config._
 import pir.plasticine.main._

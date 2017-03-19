@@ -4,6 +4,7 @@ import pir._
 import pir.codegen.Printer
 import pir.misc._
 import pir.mapper._
+import pir.util._
 import scala.util.{Try, Success, Failure}
 
 object MapPrinter extends Printer { 

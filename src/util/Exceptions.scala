@@ -1,4 +1,4 @@
-package pir.mapper
+package pir.util
 import pir._
 import pir.typealias._
 import pir.plasticine.config._
@@ -15,7 +15,7 @@ object PIRException {
   def apply(s:String) = new {override val msg = s} with PIRException
 }
 
-abstract class MappingException[M](val mapping:M)(implicit design:Design) extends PIRException with util.control.NoStackTrace {
+abstract class MappingException[M](val mapping:M)(implicit design:Design) extends PIRException with scala.util.control.NoStackTrace {
   def msg:String
   def mapper:Mapper
   def typeStr = this.getClass().getSimpleName() 

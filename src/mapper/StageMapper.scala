@@ -5,6 +5,7 @@ import pir.graph.enums._
 import pir.graph.{Const, PipeReg}
 import pir.plasticine.graph.{ConstVal}
 import pir.graph.traversal.{PIRMapping, MapPrinter}
+import pir.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

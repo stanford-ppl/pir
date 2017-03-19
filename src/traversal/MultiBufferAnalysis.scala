@@ -2,7 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.misc._
-import pir.mapper.PIRException
+import pir.util._
 import pir.codegen.Printer
 
 import scala.collection.mutable.Set

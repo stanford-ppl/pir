@@ -2,6 +2,7 @@ package pir.mapper
 import pir._
 import pir.typealias._
 import pir.graph.traversal.{PIRMapping, CtrDotPrinter}
+import pir.util._
 import pir.graph.Const
 import pir.plasticine.graph.{ ConstVal => PConstVal }
 
