@@ -5,7 +5,7 @@ import scala.language.implicitConversions
 import scala.collection.mutable.Map
 import pir.plasticine.config._
 import scala.collection.immutable.{Map => IMap}
-import pir.graph.enums._
+import pir.util.enums._
 
 abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int, val numArgOuts:Int) extends Spade {
   implicit override def spade:SwitchNetwork = this

@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
 import scala.language.existentials
 import pir.{Design, Config}
 import pir.graph._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.util.PIRException
 import pir.graph.traversal.ForwardRef
 import pir.misc._

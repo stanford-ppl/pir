@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.immutable.{Map => IMap}
 import scala.reflect.runtime.universe._
-import pir.graph.enums._
+import pir.util.enums._
 import scala.util.{Try, Success, Failure}
 
 trait SN_temp extends SwitchNetwork {

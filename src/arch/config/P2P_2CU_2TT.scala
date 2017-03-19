@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
-import pir.graph.enums._
+import pir.util.enums._
 
 // 4 cu + 2 tt
 

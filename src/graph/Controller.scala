@@ -6,7 +6,7 @@ import scala.collection.mutable.Map
 import scala.math.max
 import pir.Design
 import pir.graph._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.util.PIRException
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef

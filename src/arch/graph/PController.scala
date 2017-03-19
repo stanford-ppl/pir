@@ -1,6 +1,6 @@
 package pir.plasticine.graph
 
-import pir.graph.enums._
+import pir.util.enums._
 import pir.plasticine.main._
 import pir.plasticine.config.ConfigFactory
 

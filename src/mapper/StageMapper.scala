@@ -1,7 +1,7 @@
 package pir.mapper
 import pir._
 import pir.typealias._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.graph.{Const, PipeReg}
 import pir.plasticine.graph.{ConstVal}
 import pir.graph.traversal.{PIRMapping, MapPrinter}

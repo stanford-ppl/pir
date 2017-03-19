@@ -1,7 +1,7 @@
 package pir.plasticine.graph
 
 import pir.graph._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.codegen._
 import pir.plasticine.main._
 
@@ -14,14 +14,14 @@ import scala.collection.mutable.Set
  * An input port of a module that can be recofigured to other's output ports
  * fanIns stores the list of ports the input port can configured to  
  * */
-trait IO[+S<:Node] extends Node {
+trait IO[P<:LinkType, +S<:Node] extends Node {
   val src:S
   def isConnected: Boolean
   def disconnect:Unit
 }
 
 /* Input pin. Can only connects to output of the same level */
-trait Input[P<:Link, +S<:Node] extends IO[S] { 
+trait Input[P<:LinkType, +S<:Node] extends IO[P, S] { 
   type O <: Output[P, Node]
   // List of connections that can map to
   val fanIns = ListBuffer[O]()
@@ -34,7 +34,7 @@ trait Input[P<:Link, +S<:Node] extends IO[S] {
   def disconnect = fanIns.clear
 }
 /* Output pin. Can only connects to input of the same level */
-trait Output[P<:Link, +S<:Node] extends IO[S] { 
+trait Output[P<:LinkType, +S<:Node] extends IO[P, S] { 
   type I <: Input[P, Node]
   val fanOuts = ListBuffer[I]()
   def connectedTo(n:I):Unit = fanOuts += n
@@ -46,14 +46,21 @@ trait Output[P<:Link, +S<:Node] extends IO[S] {
   def disconnect = fanOuts.clear
 } 
 
-trait Link extends Node
+trait LinkType extends Node
 /* Three types of pin */
 /* Bit level IO pin */
-trait Wire extends Link
+trait Wire extends LinkType
 /* Word level IO pin */
-trait Port extends Link
+trait Port extends LinkType {
+  def spade:Spade
+  lazy val wordWidth:Int = spade.wordWidth
+}
 /* Bus level IO pin */
-trait Bus extends Link
+trait Bus extends LinkType {
+  def spade:Spade
+  lazy val wordWidth:Int = spade.wordWidth
+  lazy val numLanes:Int = spade.numLanes
+}
 
 case class InWire[+S<:Node](src:S)(implicit spade:Spade) extends Wire with Input[Wire, S] {
   override type O = OutWire[Node]
@@ -75,7 +82,7 @@ object OutWire {
   }
 }
 
-class InPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Input[Port, S] {
+class InPort[+S<:Node](override val src:S)(implicit val spade:Spade) extends Port with Input[Port, S] {
   override type O = OutPort[Node]
   override val typeStr = "ip"
   def <==(r:PipeReg):Unit = connect(r.out)
@@ -92,7 +99,7 @@ object InPort {
  * An output port of a module.
  * src is a pointer to the module
  * */
-class OutPort[+S<:Node](override val src:S)(implicit spade:Spade) extends Port with Output[Port, S] { 
+class OutPort[+S<:Node](override val src:S)(implicit val spade:Spade) extends Port with Output[Port, S] { 
   override type I = InPort[Node]
   override val typeStr = "op"
 }
@@ -143,7 +150,7 @@ trait Stagable {
   val stage:Stage
 }
 
-class InBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Input[Bus, S] {
+class InBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit val spade:Spade) extends Bus with Input[Bus, S] {
   override type O = OutBus[NetworkElement]
   val outports = List.tabulate(numPort) { i => 
     (if (i==0) new RMOutPort[InBus[S]](this)
@@ -164,7 +171,7 @@ object InBuses {
     List.tabulate(num) { is => InBus[S](src, numPort) }
 }
 
-class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit spade:Spade) extends Bus with Output[Bus, S] {
+class OutBus[+S<:NetworkElement](override val src:S, numPort:Int)(implicit val spade:Spade) extends Bus with Output[Bus, S] {
   override type I = InBus[NetworkElement]
   val inports = List.tabulate(numPort) { i => 
     (if (i==0) new RMInPort[OutBus[S]](this)

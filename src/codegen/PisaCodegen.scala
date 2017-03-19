@@ -5,7 +5,7 @@ import pir.codegen._
 import pir.misc._
 import pir.typealias.{Const => _, _}
 import pir.plasticine.main._
-import pir.graph.enums._
+import pir.util.enums._
 import pir.util._
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
