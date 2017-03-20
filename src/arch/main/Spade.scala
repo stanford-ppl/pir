@@ -3,6 +3,8 @@ package pir.plasticine.main
 import pir.plasticine.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
+import scala.collection.mutable.ListBuffer
+import pir.plasticine.simulation._
 
 trait Spade extends Metadata with ImplicitConversion { self =>
   implicit def spade:Spade = self
@@ -34,6 +36,9 @@ trait Spade extends Metadata with ImplicitConversion { self =>
   // Metadata Maps 
   val coordMap:coordOf.M = Map.empty
   val indexMap:indexOf.M = Map.empty
+  val busMap:busOf.M = Map.empty
+
+  val simulatable = ListBuffer[Simulatable]()
 }
 
 trait PointToPointNetwork extends Spade {
@@ -41,10 +46,10 @@ trait PointToPointNetwork extends Spade {
 }
 
 trait ImplicitConversion {
-  implicit def ib_to_rmp[S<:NetworkElement](ib:InBus[S]):RMOutPort[InBus[S]] = ib.viport
-  implicit def ib_to_op[S<:NetworkElement](ib:InBus[S]):OutPort[InBus[S]] = ib.viport
-  implicit def ob_to_rmp[S<:NetworkElement](ob:OutBus[S]):RMInPort[OutBus[S]] = ob.voport
-  implicit def ob_to_ip[S<:NetworkElement](ob:OutBus[S]):InPort[OutBus[S]] = ob.voport
+  implicit def ib_to_rmp[S<:NetworkElement](ib:InBus[S]):RMOutPort[S] = ib.viport
+  implicit def ib_to_op[S<:NetworkElement](ib:InBus[S]):OutPort[S] = ib.viport
+  implicit def ob_to_rmp[S<:NetworkElement](ob:OutBus[S]):RMInPort[S] = ob.voport
+  implicit def ob_to_ip[S<:NetworkElement](ob:OutBus[S]):InPort[S] = ob.voport
   implicit def si_to_rmp(si:ScalarIn):RMOutPort[ScalarIn] = si.out
   implicit def so_to_rmp(so:ScalarOut):RMInPort[ScalarOut] = so.in
   implicit def pr_to_ip(pr:PipeReg):InPort[PipeReg] = pr.in
@@ -70,5 +75,11 @@ trait Metadata {
   object indexOf extends Metadata {
     type V = Int
     def map(implicit spade:Spade) = spade.indexMap
+  }
+
+  /* Bus of a port that belongs to a bus */
+  object busOf extends Metadata {
+    type V = Bus
+    def map(implicit spade:Spade) = spade.busMap
   }
 }

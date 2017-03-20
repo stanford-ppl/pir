@@ -3,6 +3,7 @@ package pir.plasticine.graph
 import pir.util.enums._
 import pir.plasticine.main._
 import pir.plasticine.config.ConfigFactory
+import pir.plasticine.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -10,7 +11,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
-trait NetworkElement extends Node {
+trait NetworkElement extends Module with Simulatable {
   def scalarIO:GridIO[this.type]
   def vectorIO:GridIO[this.type]
   def ctrlIO:GridIO[this.type]

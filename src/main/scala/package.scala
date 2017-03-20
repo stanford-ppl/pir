@@ -96,6 +96,7 @@ package object typealias {
   type Top   = pir.graph.Top
   // Spade Nodes
   type PNode     = pir.plasticine.graph.Node
+  type PModule     = pir.plasticine.graph.Module
   type PCL       = pir.plasticine.graph.Controller
   type PCU       = pir.plasticine.graph.ComputeUnit
   type PMCU      = pir.plasticine.graph.MemoryComputeUnit
@@ -118,9 +119,9 @@ package object typealias {
   type PSI       = pir.plasticine.graph.ScalarIn
   type PSO       = pir.plasticine.graph.ScalarOut
   type PPT       = pir.plasticine.graph.Port
-  type PIP       = pir.plasticine.graph.InPort[PNode]
-  type POP       = pir.plasticine.graph.OutPort[PNode]
-  type PIO[S<:PNode]       = pir.plasticine.graph.IO[_<:pir.plasticine.graph.LinkType,S]
+  type PIP       = pir.plasticine.graph.InPort[PModule]
+  type POP       = pir.plasticine.graph.OutPort[PModule]
+  type PIO[S<:PModule]       = pir.plasticine.graph.IO[_<:pir.plasticine.graph.LinkType,S]
   type PRMPT     = pir.plasticine.graph.RMPort
   type PBS       = pir.plasticine.graph.Bus
   type PIB       = pir.plasticine.graph.InBus[PNE]

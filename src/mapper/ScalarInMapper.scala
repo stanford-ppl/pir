@@ -20,7 +20,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
     val ib = vimap(vecOf(n).asInstanceOf[VI])
     val idx = somap(n.scalar.writer).idx
     dprintln(s"Try $n -> $p $ib")
-    assert(p.in.canFrom(ib.outports(idx)))
+    assert(p.in.canConnect(ib.outports(idx)))
     map.setSI(n,p).setOP(n.out, p.out)
   }
 

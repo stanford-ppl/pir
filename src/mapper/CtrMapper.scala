@@ -69,7 +69,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
         }
       // Inner most counter or copied inner most counter whose enable is routed fron network
       case _:EnLUT => 
-        remainRes.filter{ pc => pc.en.canFrom(ptop.clk) } //TODO
+        remainRes.filter{ pc => pc.en.canConnect(ptop.clk) } //TODO
       case _:MC => // Dummy Counter
         remainRes
       case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")

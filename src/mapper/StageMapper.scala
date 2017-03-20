@@ -134,7 +134,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val ipmap = map.ipmap
     val pop:POP = n.from.src match {
       case Const(c) =>
-        if (!r.canFrom(design.arch.const.out)) {
+        if (!r.canConnect(design.arch.const.out)) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info, map)
         } else ConstVal(c)(design.arch).out
@@ -154,7 +154,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
               if (pstage.before(pcurStage)) {
                 pcurStage.pre.get.prs(preg).out
               } else if (pstage == pcurStage) {
-                if (!rp.canFrom(ppr.out)) {
+                if (!rp.canConnect(ppr.out)) {
                   info = s"Cannot find connection to ${ppr}: " 
                   throw InPortRouting(n, r, info, map)
                 } else {
@@ -175,7 +175,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
               else {
                 curppr = curppr.stage.next.get.prs(curppr.reg) 
               }
-              if (r.canFrom(curppr.out)) pop = ppr.out
+              if (r.canConnect(curppr.out)) pop = ppr.out
             } while (!curppr.stage.isLast) 
             if (pop==null) throw InPortRouting(n, r, s"Cannot connect ${r} to ${ppr.out}", map)
             else pop
@@ -184,7 +184,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
                 // and inport is not from a PipeReg
         val pport = opmap(n.from)
         val info = s"${n} connects to ${n.from}. Mapped OutPort:${pport}"
-        if (!r.canFrom(pport)) {
+        if (!r.canConnect(pport)) {
           dprintln(s"Fail mapping $n because $r can't from $pport. ${r.fanIns}")
           throw InPortRouting(n, r, info, map)
         }
