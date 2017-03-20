@@ -277,11 +277,11 @@ abstract class Router(implicit design:Design) extends Mapper {
           map.vimap.pmap.get(pi).fold(true) { ins => from(ins.head.asInstanceOf[I])==from(in) }
         }
         fatedge = fatedge.filterNot { case (po, pi) => // available edges
-          val edgeTaken = map.fbmap.get(pi).fold(false) { _ != po }
+          val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
           val switchTaken = {
             if (po.src.isInstanceOf[PSB]) {
               val to = po.voport // Check switch box
-              map.fpmap.contains(to) // Conservative here
+              map.fimap.contains(to) // Conservative here
             } else false
           }
           val invalid = edgeTaken || switchTaken
@@ -368,11 +368,11 @@ abstract class Router(implicit design:Design) extends Mapper {
           pm.setVI(n, pin).setVO(from(n), pout).setRT(n, path.size)
         }
         path.zipWithIndex.foreach { case ((out, in), i) => 
-          mp = mp.setFB(in, out)
+          mp = mp.setFI(in, out)
           if (out.src.isInstanceOf[PSB]) { // Config SwitchBox
             val to = out.voport
             val from = path(i-1)._2.viport
-            mp = mp.setFP(to, from)
+            mp = mp.setFI(to, from)
           }
         }
         mp

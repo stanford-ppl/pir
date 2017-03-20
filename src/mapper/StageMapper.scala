@@ -38,7 +38,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   /* Forward liveOut regs in pstages that doesn't have stage corresponding to them */
   def stageFowarding(pcu:PCU, cuMap:M):M = {
     var preLiveOuts:Set[Reg] = Set.empty
-    var fpmap = cuMap.fpmap
+    var fimap = cuMap.fimap
     pcu.stages.foreach { pstage =>
       val ppregs:Set[PReg] = preLiveOuts.map {reg => cuMap.rcmap(reg) }
       if (cuMap.stmap.pmap.contains(pstage)) {
@@ -47,11 +47,11 @@ class StageMapper(implicit val design:Design) extends Mapper {
       } else {
         pstage.prs.foreach { case (preg, ppr) =>
           if (ppregs.contains(preg))
-            fpmap += ppr.in -> pstage.pre.get.prs(preg).out
+            fimap += ppr.in -> pstage.pre.get.prs(preg).out
         }
       }
     }
-    cuMap.set(fpmap)
+    cuMap.set(fimap)
   }
 
   def mapStage(n:N, p:R, map:M):M = {
@@ -127,7 +127,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   }
 
   def mapInPort(n:IP, r:PIP, map:M):M = {
-    if (map.fpmap.contains(r) && map.ipmap.contains(n)) return map
+    if (map.fimap.contains(r) && map.ipmap.contains(n)) return map
     val rcmap = map.rcmap
     val stmap = map.stmap
     val opmap = map.opmap
@@ -191,7 +191,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
         else pport
     }
     val cmap = if (map.ipmap.contains(n)) map else map.setIP(n,r)
-    cmap.setFP(r, pop)
+    cmap.setFI(r, pop)
   } 
 
   def mapOutPort(pcurStage:PST)(n:OP, r:POP, map:M):M = {

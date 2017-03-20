@@ -94,11 +94,11 @@ class CtrMapper(implicit val design:Design) extends Mapper {
 
   def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
     var ipmap = map.ipmap
-    var fpmap = map.fpmap
+    var fimap = map.fimap
     def mapInPort(n:IP, p:PIP):Unit = {
       ipmap += n -> p 
       n.from.src match {
-        case Const(v) => fpmap += p -> PConstVal(v)(design.arch).out
+        case Const(v) => fimap += p -> PConstVal(v)(design.arch).out
         case _ =>
       }
     }
@@ -106,7 +106,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     mapInPort(n.max, p.max)
     mapInPort(n.step, p.step)
     dprintln(s"mapping $n -> $p")
-    val mp = map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fpmap)
+    val mp = map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fimap)
     //if (n.ctrler.id==433)
       //new CtrDotPrinter().print(pctrs, mp)
     mp

@@ -62,10 +62,10 @@ trait Simulatable extends Module {
       case io:Port => portValueMap += io -> PortVal(io.asInstanceOf[IO[Port, Module]])
       case io:Wire => wireValueMap += io -> WireVal(io.asInstanceOf[IO[Wire, Module]])
     }
-    val fbmap = mapping.fbmap
+    val fimap = mapping.fimap
     ins.foreach {
       case in:InBus[_] => 
-        fbmap.get(in).foreach { ob =>
+        fimap.get(in).foreach { ob =>
           v(in).set{ sim => sim.ev(ob).value }
         }
       case _ =>

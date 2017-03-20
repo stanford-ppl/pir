@@ -119,6 +119,8 @@ package object typealias {
   type PSI       = pir.plasticine.graph.ScalarIn
   type PSO       = pir.plasticine.graph.ScalarOut
   type PPT       = pir.plasticine.graph.Port
+  type PI       = pir.plasticine.graph.Input[_<:pir.plasticine.graph.LinkType,_<:PModule]
+  type PO       = pir.plasticine.graph.Output[_<:pir.plasticine.graph.LinkType,_<:PModule]
   type PIP       = pir.plasticine.graph.InPort[PModule]
   type POP       = pir.plasticine.graph.OutPort[PModule]
   type PIO[S<:PModule]       = pir.plasticine.graph.IO[_<:pir.plasticine.graph.LinkType,S]

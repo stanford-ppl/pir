@@ -128,9 +128,9 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       case ptop:PTop => recs += s"$ptop" 
       case psb:PSB => 
         recs += mapping.flatMap { mp => 
-          if (io(psb).ins.exists( in => mp.fbmap.contains(in))) { 
+          if (io(psb).ins.exists( in => mp.fimap.contains(in))) { 
             val xbar = io(psb).outs.flatMap { out => 
-              mp.fpmap.get(out.voport).map{ fp =>
+              mp.fimap.get(out.voport).map{ fp =>
                 s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
               }
             }.mkString(s"|") 
@@ -151,10 +151,10 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
     mapping.foreach { mp => 
       if (mp.clmap.pmap.contains(pne)) attr.style(filled).fillcolor(color(pne))
-      if (io(pne).ins.exists( in => mp.fbmap.contains(in))) { 
+      if (io(pne).ins.exists( in => mp.fimap.contains(in))) { 
         attr.style(filled).fillcolor(color(pne)) 
         val xbar = io(pne).outs.flatMap { out => 
-          mp.fpmap.get(out.voport).map{ fp =>
+          mp.fimap.get(out.voport).map{ fp =>
             s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
           }
         }.mkString(s"|") 
@@ -177,10 +177,10 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       val attr = DotAttr().shape(Mrecord)
       coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
       val label = mapping.flatMap { mp => 
-        if (io(sb).ins.exists( in => mp.fbmap.contains(in))) { 
+        if (io(sb).ins.exists( in => mp.fimap.contains(in))) { 
           attr.style(filled).fillcolor(indianred) 
           val xbar = io(sb).outs.flatMap { out => 
-            mp.fpmap.get(out.voport).map{ fp =>
+            mp.fimap.get(out.voport).map{ fp =>
               s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
             }
           }.mkString(s"|") 
@@ -194,7 +194,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         pin.fanIns.foreach { pout =>
           val attr = DotAttr()
           mapping.foreach { mp => 
-            if (mp.fbmap.get(pin).fold(false) { _ == pout}) { 
+            if (mp.fimap.get(pin).fold(false) { _ == pout}) { 
               var label = s"(i-${indexOf(pin)})"
               if (pout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pout)})"
               attr.color(indianred).style(bold).label(label)
@@ -216,7 +216,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     pin.fanIns.foreach { pout =>
       val attr = DotAttr()
       mapping.foreach { m => 
-        if (m.fbmap.get(pin).fold(false){ _ == pout }) {
+        if (m.fimap.get(pin).fold(false){ _ == pout }) {
           attr.color(linkColor).style(bold)
           val label = ListBuffer[String]()
           m.vimap.pmap.get(pin).foreach { ins =>

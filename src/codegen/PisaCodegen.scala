@@ -29,12 +29,11 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val vomap:VOMap = mapping.vomap
   lazy val opmap:OPMap = mapping.opmap
   lazy val ipmap:IPMap = mapping.ipmap
-  lazy val fpmap:FPMap = mapping.fpmap
   lazy val stmap:STMap = mapping.stmap
   lazy val ctmap:CTMap = mapping.ctmap
   lazy val smmap:SMMap = mapping.smmap
   lazy val clmap:CLMap = mapping.clmap
-  lazy val fbmap:FBMap = mapping.fbmap
+  lazy val fimap:FIMap = mapping.fimap
   lazy val lumap:LUMap = mapping.lumap 
   lazy val ucmap:UCMap = mapping.ucmap
   lazy val rtmap:RTMap = mapping.rtmap
@@ -88,7 +87,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val status = fbmap(vimap(design.top.status))
+          val status = fimap(vimap(design.top.status))
           val bottomRow = sn.sbArray.map{_.head}
           val topRow = sn.sbArray.map{_.last}
           val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
@@ -99,7 +98,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           assert(design.arch.top.vins.size==1)
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
-            val aob = fbmap(vimap(design.top.vins.head))
+            val aob = fimap(vimap(design.top.vins.head))
             val bottomRow = sn.sbArray.map{_.head}
             val topRow = sn.sbArray.map{_.last}
             val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
@@ -232,9 +231,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val xbarComment = ListBuffer[String]()
     sbio.outs.foreach { pvout =>
       if (pvout.isConnected) {
-        if (fpmap.contains(pvout.voport)) {
-          val vin = fpmap(pvout.voport).src.asInstanceOf[PIB]
-          xbarComment += s"${quote(fpmap(pvout.voport))} -> ${quote(vin)}"
+        if (fimap.contains(pvout.voport)) {
+          val vin = fimap(pvout.voport).src.asInstanceOf[PIB]
+          xbarComment += s"${quote(fimap(pvout.voport))} -> ${quote(vin)}"
           ins += s""""${sbio.io(vin)}""""
         } else {
           ins += s""""x""""
@@ -466,7 +465,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
 
   def emitInterconnect(pcu:PCU)(implicit ms:CollectionStatus) = {
     val inputs = pcu.vins.map { pvin =>
-      fbmap.get(pvin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
+      fimap.get(pvin).fold(s""""x"""") { pob => s""""${indexOf(pob.src)}""""}
     }
     emitList("inputs", inputs)
   }
@@ -628,18 +627,18 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
                 }
                 emitComment("stage", s"${pstage} <- ${stage}${PIRPrinter.genFields(stage)}")
                 // Operand
-                val popA = fpmap(pfu.operands.head)
+                val popA = fimap(pfu.operands.head)
                 emitPair("opA", lookUp(pstage, popA.src))
                 if (fu.operands.size < 2)
                   emitPair("opB", "x")
                 else {
-                  val popB = fpmap(pfu.operands(1))
+                  val popB = fimap(pfu.operands(1))
                   emitPair("opB", lookUp(pstage, popB.src))
                 }
                 if (fu.operands.size < 3)
                   emitPair("opC", "x")
                 else {
-                  val popC = fpmap(pfu.operands(2))
+                  val popC = fimap(pfu.operands(2))
                   emitPair("opC", lookUp(pstage, popC.src))
                 }
                 emitPair("opcode", s"${lookUp(fu.op)}")
@@ -672,8 +671,8 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
           }
           val rstrs = pstage.prs.flatMap { case (preg, ppr) =>
             assert(pstage==ppr.stage)
-            if (fpmap.contains(ppr.in)) {
-              fpmap(ppr.in).src match {
+            if (fimap.contains(ppr.in)) {
+              fimap(ppr.in).src match {
                 case p:PFU => Some((s"r${indexOf(preg)}", "alu"))
                 case p:PSI => None
                 case p => Some((s"r${indexOf(preg)}", lookUp(pstage, p)))
