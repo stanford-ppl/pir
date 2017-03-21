@@ -9,6 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
 class FusionTransform(implicit val design: Design) extends Pass{
+  def shouldRun = true 
 
   override def traverse:Unit = {
     design.top.outerCUs.foreach { pcu =>

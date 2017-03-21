@@ -80,11 +80,11 @@ abstract class Router(implicit design:Design) extends Mapper {
     //}
     this match {
       case router:VectorRouter =>
-        new CUVectorDotPrinter(true)(design).print(mp.asInstanceOf[M])
+        new CUVectorDotPrinter(true)(design).print(Some(mp))
       case router:ScalarRouter =>
-        new CUScalarDotPrinter(true)(design).print(mp.asInstanceOf[M])
+        new CUScalarDotPrinter(true)(design).print(Some(mp))
       case router:ControlRouter =>
-        new CUCtrlDotPrinter(true)(design).print(mp.asInstanceOf[M])
+        new CUCtrlDotPrinter(true)(design).print(Some(mp))
     }
   }
   def failPass(e:Throwable):Unit = if (debug) {

@@ -12,6 +12,7 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class CtrlPrinter(implicit design: Design) extends Codegen {
+  def shouldRun = Config.debug && Config.ctrl
 
   override val stream = newStream(Config.ctrlFile) 
   

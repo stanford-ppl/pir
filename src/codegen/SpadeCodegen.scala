@@ -14,6 +14,8 @@ import java.io.OutputStream
 import java.io.File
 
 class SpadeCodegen(implicit design: Design) extends Codegen  {
+  def shouldRun = true
+
   lazy val dir = sys.env("PLASTICINE_HOME") + "/arch"
 
   override val stream:OutputStream = newStream(dir, s"Plasticine_${design.arch}.scala") 

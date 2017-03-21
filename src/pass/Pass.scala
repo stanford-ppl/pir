@@ -10,13 +10,14 @@ import scala.collection.mutable.Set
 trait Pass {
   var isInit = false
   val visited = Set[Node]()
-  var isTraversed = false
+  var hasRun = false
+  def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
 
   def reset {
     visited.clear()
     isInit = false
-    isTraversed = false
+    hasRun = false
   }
   
   def run = {
@@ -24,7 +25,7 @@ trait Pass {
     isInit = true
     traverse
     finPass
-    isTraversed = true
+    hasRun = true
   }
 
   def traverse:Unit

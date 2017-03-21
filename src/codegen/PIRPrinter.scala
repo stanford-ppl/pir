@@ -15,6 +15,7 @@ import java.io.File
 import pir.util._
 
 class PIRPrinter(fileName:String)(implicit design: Design) extends Traversal with Codegen {
+  def shouldRun = Config.debug
 
   def this()(implicit design: Design) = {
     this(Config.pirFile)

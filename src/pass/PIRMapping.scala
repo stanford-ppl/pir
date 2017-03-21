@@ -8,6 +8,8 @@ import scala.util.{Try, Success, Failure}
 import pir.util.misc._
 
 object MapPrinter extends Printer { 
+  def shouldRun = Config.debug
+
   override val stream = newStream(Config.mapFile)
   def printMap(mapping:PIRMap)(implicit design:Design) = {
     if (Config.debug) {
@@ -25,11 +27,12 @@ object MapPrinter extends Printer {
 }
 
 class PIRMapping(implicit val design: Design) extends Pass{
+  def shouldRun = Config.mapping
 
   var mapping:PIRMap = _
-  var success = false
+  var succeeded = false
 
-  def fail = !success && Config.mapping
+  def failed = !succeeded && Config.mapping
 
   val siMapper = new ScalarInMapper()
   val sramMapper = new SRAMMapper()
@@ -78,7 +81,7 @@ class PIRMapping(implicit val design: Design) extends Pass{
 
   override def reset = {
     mapping = null
-    success = false
+    succeeded = false
   }
 
   override def traverse = {
@@ -88,11 +91,11 @@ class PIRMapping(implicit val design: Design) extends Pass{
       design.mappers.foreach{ _.mappingCheck(m) }
     } match {
       case Success(_) =>
-        success = true
+        succeeded = true
         info(s"Mapping succeeded") 
         MapPrinter.printMap(mapping)
       case Failure(e) =>
-        success = false
+        succeeded = false
         info(s"Mapping failed")
         e match {
           case e:OutOfResource[_] =>

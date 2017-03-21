@@ -5,10 +5,11 @@ import pass._
 import mapper._
 import pir.codegen._
 import plasticine.config._
-import pir.plasticine.main._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
+import pir.plasticine.main._
+import pir.plasticine.simulation._
 
 //import analysis._
 
@@ -188,12 +189,16 @@ trait Design extends PIRMetadata {
   val arch:Spade
   var top:Top = _
 
+  lazy val spadePrinter = new SpadePrinter()
+  lazy val forwardRef = new ForwardRef()
   lazy val scalMemInsertion = new ScalarMemInsertion()
   lazy val multiBufferAnalysis = new MultiBufferAnalysis()
   lazy val fusionTransform = new FusionTransform()
   lazy val ctrlDotPrinter = new CtrlDotGen()
-  lazy val pirPrinter = new PIRPrinter()
+  lazy val pirPrinter1 = new PIRPrinter("PIR_orig.txt") 
+  lazy val pirPrinter2 = new PIRPrinter()
   lazy val pirDataDotGen = new PIRDataDotGen()
+  lazy val liveness = new LiveAnalysis()
   lazy val ctrlAlloc = new CtrlAlloc()
   lazy val pirCtrlDotGen = new PIRCtrlDotGen()
   lazy val pirMapping = new PIRMapping()
@@ -203,8 +208,10 @@ trait Design extends PIRMetadata {
   lazy val spadeScalDotPrinter = new CUScalarDotPrinter()
   lazy val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
   lazy val ctrlPrinter = new CtrlPrinter()
+  lazy val spadeCodegen = new SpadeCodegen()
+  lazy val simulator = new Simulator()
 
-  def mapping = pirMapping.mapping
+  lazy val mapping:Option[PIRMap] = if (pirMapping.hasRun && pirMapping.succeeded) Some(pirMapping.mapping) else None
 
   val mappers = ListBuffer[Mapper]()
   val mapperLogger = new Logger {
@@ -214,43 +221,52 @@ trait Design extends PIRMetadata {
   /* Compiler Passes */
   lazy val passes = {
     val passes = ListBuffer[Pass]()
-    if (Config.debug) passes += new SpadePrinter()
-    passes += new ForwardRef()
+
+    // Graph Construction
+    passes += spadePrinter 
+    passes += forwardRef
     //passes += scalMemInsertion
-    if (Config.debug) passes += new PIRPrinter("PIR_orig.txt") 
+    passes += pirPrinter1
     //passes += fusionTransform 
     //passes += new ScalarBundling()
     passes += multiBufferAnalysis 
-    if (Config.debug) passes += pirDataDotGen
-    passes += new LiveAnalysis()
+    passes += pirDataDotGen
+    passes += liveness 
     //passes += new IRCheck()
-    if (Config.ctrl) passes += ctrlAlloc 
+    passes += ctrlAlloc 
     //if (Config.debug && Config.ctrl) passes += ctrlDotPrinter 
-    if (Config.debug && Config.ctrl) passes += pirCtrlDotGen
-    if (Config.debug && Config.ctrl) passes += ctrlPrinter 
-    if (Config.debug) passes += pirPrinter 
-    if (Config.mapping) passes += pirMapping 
-    if (Config.debug) passes += spadeVecDotPrinter 
-    if (Config.debug) passes += spadeScalDotPrinter 
-    if (Config.debug) passes += spadeCtrlDotPrinter 
-    passes += new SpadeCodegen()
+    passes += pirCtrlDotGen
+    passes += ctrlPrinter 
+    passes += pirPrinter2
+
+    // Mapping
+    passes += pirMapping 
+    passes += spadeVecDotPrinter 
+    passes += spadeScalDotPrinter 
+    passes += spadeCtrlDotPrinter 
+
+    // Codegen
+    passes += spadeCodegen 
     //if (Config.mapping && Config.genPisa) passes += new PisaCodegen()
+    
+    // Simulation
+    passes += simulator
     passes
   }
 
   def run = {
     try {
-      passes.foreach(_.run)
-      if (pirMapping.fail) throw PIRException(s"Mapping Failed")
+      passes.foreach{ pass => if (pass.shouldRun) pass.run }
+      if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 
         try {
-          if (!pirPrinter.isTraversed) pirPrinter.run
-          //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-          if (!spadeVecDotPrinter.isTraversed) spadeVecDotPrinter.run
-          if (!spadeScalDotPrinter.isTraversed) spadeScalDotPrinter.run
-          if (!spadeCtrlDotPrinter.isTraversed) spadeCtrlDotPrinter.run
-          if (!ctrlPrinter.isTraversed) ctrlPrinter.run
+          if (!pirPrinter2.hasRun) pirPrinter2.run
+          //if (!ctrlDotPrinter.hasRun) ctrlDotPrinter.run
+          if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
+          if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
+          if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
+          if (!ctrlPrinter.hasRun) ctrlPrinter.run
           throw e
         } catch {
           case ne:Throwable => throw e

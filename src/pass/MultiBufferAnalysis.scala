@@ -11,6 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
 class MultiBufferAnalysis(implicit val design: Design) extends Pass with Printer {
+  def shouldRun = true 
 
   override val stream = newStream(s"MultiBufferAnalysis.txt")
 

@@ -10,6 +10,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
 class ScalarMemInsertion(implicit val design: Design) extends Pass with Logger {
+  def shouldRun = true 
 
   override val stream = newStream(s"ScalarMemInsertion.log")
 

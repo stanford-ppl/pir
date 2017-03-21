@@ -12,6 +12,7 @@ import java.io.File
 import scala.language.implicitConversions
 
 class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
+  def shouldRun = Config.debug && Config.ctrl
 
   override val stream = newStream(Config.ctrlDot)
 

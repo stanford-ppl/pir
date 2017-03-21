@@ -65,7 +65,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   def print:Unit = { print(design.mapping) }
 
-  def print(mapping:PIRMap):Unit = {
+  def print(mapping:Option[PIRMap]):Unit = {
     emitBlock("digraph G") {
       design.arch match {
         case pn:PointToPointNetwork =>
@@ -80,7 +80,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
               sn.pnes
           }
           pnes.foreach { pne =>
-            emitPNEs(pne, if (mapping==null) None else Some(mapping) )
+            emitPNEs(pne, mapping )
             val ins =  mode match {
               case NoOCU =>
                 io(pne).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
@@ -89,7 +89,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
               case AllCU =>
                 io(pne).ins
             }
-            ins.foreach { in => emitInput(in, if (mapping==null) None else Some(mapping)) }
+            ins.foreach { in => emitInput(in, mapping) }
           }
       }
     }
@@ -279,6 +279,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 }
 
 class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
+  def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
@@ -290,6 +291,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
 }
 
 class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
+  def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open)
@@ -302,6 +304,7 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
 }
 
 class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
+  def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open)

@@ -99,6 +99,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
 }
 
 class PIRDataDotGen(fileName:String)(implicit val design:Design) extends PIRDotGen { 
+  def shouldRun = Config.debug
 
   override val stream = newStream(fileName)
 
@@ -115,6 +116,7 @@ class PIRDataDotGen(fileName:String)(implicit val design:Design) extends PIRDotG
 
 
 class PIRCtrlDotGen(fileName:String)(implicit val design:Design) extends PIRDotGen { 
+  def shouldRun = Config.debug & Config.ctrl
 
   override val stream = newStream(fileName)
 

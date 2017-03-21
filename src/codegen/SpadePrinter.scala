@@ -14,6 +14,7 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class SpadePrinter(implicit design: Design) extends Codegen {
+  def shouldRun = Config.debug
   implicit def spade:Spade = design.arch
   val spademeta: SpadeMetadata = spade
 

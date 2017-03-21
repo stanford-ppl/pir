@@ -12,6 +12,8 @@ import scala.collection.mutable.Stack
 import scala.collection.mutable.{ Map => MMap }
 
 class ScalarBundling(implicit val design: Design) extends Pass {
+  def shouldRun = true 
+
   val pirmeta:PIRMetadata = design
   import pirmeta._
 

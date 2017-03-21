@@ -11,9 +11,10 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
 class Simulator(implicit design: Design) extends Pass with Printer {
+  def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
   lazy val spade = design.arch
-  lazy val mapping = design.mapping
+  lazy val mapping = design.mapping.get
 
   override val stream = newStream("sim.log") 
 
