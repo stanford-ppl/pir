@@ -1,7 +1,6 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir._
-import pir.codegen.Printer
 import pir.util._
 import pir.util.misc._
 import pir.graph._
@@ -12,7 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class CtrlPrinter(implicit design: Design) extends Traversal with Printer {
+class CtrlPrinter(implicit design: Design) extends Codegen {
 
   override val stream = newStream(Config.ctrlFile) 
   

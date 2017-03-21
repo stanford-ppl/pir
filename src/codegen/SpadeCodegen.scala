@@ -1,9 +1,8 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir.Design
 import pir.plasticine.main._
 import pir.plasticine.graph._
-import pir.codegen.{Printer, DotCodegen}
 import pir.util._
 import pir.plasticine.util._
 
@@ -14,7 +13,7 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class SpadeCodegen(implicit design: Design) extends Traversal with Printer  {
+class SpadeCodegen(implicit design: Design) extends Codegen  {
   lazy val dir = sys.env("PLASTICINE_HOME") + "/arch"
 
   override val stream:OutputStream = newStream(dir, s"Plasticine_${design.arch}.scala") 

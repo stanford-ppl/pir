@@ -2,7 +2,7 @@ package pir.mapper
 
 import pir.{Design, Config}
 import pir.util.typealias._
-import pir.graph.traversal.{CUDotPrinter}
+import pir.codegen.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
 import pir.codegen.{Logger}

@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 
 import pir.graph._
 import pir._
@@ -11,7 +11,7 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
 import scala.collection.mutable.{ Map => MMap }
 
-class ScalarBundling(implicit val design: Design) extends Traversal {
+class ScalarBundling(implicit val design: Design) extends Pass {
   val pirmeta:PIRMetadata = design
   import pirmeta._
 

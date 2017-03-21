@@ -1,8 +1,6 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir._
-import pir.codegen.Printer
-import pir.codegen.DotCodegen
 import pir.util._
 import pir.util.misc._
 import pir.plasticine.util._
@@ -15,7 +13,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class SpadePrinter(implicit design: Design) extends Traversal with Printer {
+class SpadePrinter(implicit design: Design) extends Codegen {
   implicit def spade:Spade = design.arch
   val spademeta: SpadeMetadata = spade
 

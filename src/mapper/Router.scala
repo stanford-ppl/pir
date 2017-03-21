@@ -4,7 +4,8 @@ import pir.{Config, Design}
 import pir.util.typealias._
 import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
-import pir.graph.traversal.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
+import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
+import pir.pass.{MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 import pir.exceptions._

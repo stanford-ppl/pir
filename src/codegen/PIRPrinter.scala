@@ -1,10 +1,10 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir.graph._
 import pir._
-import pir.codegen.{Printer, DotCodegen}
 import pir.util._
 import pir.util.misc._
+import pir.pass.Traversal
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -14,7 +14,7 @@ import java.io.OutputStream
 import java.io.File
 import pir.util._
 
-class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal with Printer {
+class PIRPrinter(fileName:String)(implicit design: Design) extends Traversal with Codegen {
 
   def this()(implicit design: Design) = {
     this(Config.pirFile)

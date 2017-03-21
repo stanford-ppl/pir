@@ -3,14 +3,14 @@ package pir.plasticine.simulation
 import pir._
 import pir.mapper.PIRMap
 import pir.codegen.Printer
-import pir.graph.traversal._
+import pir.pass._
 import pir.plasticine.main._
 import pir.plasticine.graph._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-class Simulator(implicit design: Design) extends Traversal with Printer {
+class Simulator(implicit design: Design) extends Pass with Printer {
   implicit val sim:Simulator = this
   lazy val spade = design.arch
   lazy val mapping = design.mapping

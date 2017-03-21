@@ -1,30 +1,15 @@
 package pir.codegen
 
 import pir.graph._
-import pir.graph.traversal.DFSTraversal
+import pir.pass.Traversal
 import pir.Design
+import pir.pass.Pass
 
 import scala.collection.mutable.Set
 import java.io.PrintWriter
 import java.io.{File, FileInputStream, FileOutputStream}
 
-abstract class Codegen(implicit design: Design) extends DFSTraversal {
-  val ext: String
-  val pwd = new File(".").getAbsolutePath().dropRight(2)
-  def clearOldFiles = true
-  def outdir = s"${pwd}/out/$ext"
-
-  override def initPass() = {
-    val file = new File(outdir)
-    if (clearOldFiles) {
-      if (file.exists) {
-        deleteFiles(file)
-      }
-    }
-    file.mkdirs()
-    isInit = true
-  }
-
+trait Codegen extends Pass with Printer {
   def deleteFiles(file: File): Unit = {
     if (file.isDirectory) {
       Option(file.listFiles).map(_.toList).getOrElse(Nil).foreach(deleteFiles(_))

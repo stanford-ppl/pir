@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir.{Design, Config}
 import pir.codegen._
@@ -14,7 +14,7 @@ import scala.collection.mutable.HashMap
 import java.io.File
 import scala.reflect.runtime.universe._
 
-trait PIRDotGen extends Traversal with DotCodegen {
+trait PIRDotGen extends Codegen with DotCodegen {
 
   val design:Design
 

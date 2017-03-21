@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir.{Design, Config}
 import pir.codegen._
@@ -21,7 +21,7 @@ import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
 
-abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen {
+abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
   implicit def spade:Spade = design.arch
   val spademeta: SpadeMetadata = spade
   import spademeta._
@@ -271,6 +271,11 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       emitEdge(from, to, attr)
     }
   }
+
+  override def traverse = {
+    print
+  }
+
 }
 
 class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
@@ -419,16 +424,3 @@ class CtrDotPrinter(fileName:String) extends DotCodegen {
   }
 }
 
-class SpadeDotGen(vecPrinter:CUVectorDotPrinter, scalPrinter:CUScalarDotPrinter, ctrlPrinter:CUCtrlDotPrinter, 
-  pirMapping:PIRMapping)(implicit design: Design) extends Traversal {
-
-  override def traverse = {
-    vecPrinter.print
-    scalPrinter.print
-    ctrlPrinter.print
-  }
-
-  override def finPass = {
-    endInfo(s"Finishing Spade Printing in ${vecPrinter.getPath} ${scalPrinter.getPath} ${ctrlPrinter.getPath}")
-  }
-}

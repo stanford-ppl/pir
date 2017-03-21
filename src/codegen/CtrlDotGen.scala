@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir._
 import pir.codegen._
@@ -11,7 +11,7 @@ import scala.collection.mutable.Map
 import java.io.File
 import scala.language.implicitConversions
 
-class CtrlDotGen(implicit design: Design) extends Traversal with DotCodegen {
+class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
 
   override val stream = newStream(Config.ctrlDot)
 

@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.util._
@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class FusionTransform(implicit val design: Design) extends Traversal{
+class FusionTransform(implicit val design: Design) extends Pass{
 
   override def traverse:Unit = {
     design.top.outerCUs.foreach { pcu =>

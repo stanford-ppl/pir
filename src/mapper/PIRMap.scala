@@ -4,7 +4,7 @@ import pir.codegen.{Printer}
 import pir.util.typealias._
 import pir.util.maps._
 
-import pir.graph.traversal.PIRMapping
+import pir.pass.PIRMapping
 import pir.exceptions._
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

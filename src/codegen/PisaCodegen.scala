@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.codegen
 
 import pir._
 import pir.codegen._
@@ -20,7 +20,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with DebugLogger {
+class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen with DebugLogger {
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override val stream = newStream(dir, s"${design}.json") 
   val pirmeta: PIRMetadata = design
@@ -31,7 +31,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   implicit def spade:Spade = design.arch
 
   // Mapping results
-  lazy val mapping:PIRMap = pirMapping.mapping
+  lazy val mapping:PIRMap = design.mapping
   lazy val vimap:VIMap = mapping.vimap
   lazy val vomap:VOMap = mapping.vomap
   lazy val opmap:OPMap = mapping.opmap
@@ -50,7 +50,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val xbmap:XBMap = mapping.xbmap
 
   override def traverse:Unit = {
-    if (pirMapping.fail) return
+    if (mapping == null) return
     implicit val ms = new CollectionStatus(false)
     emitBlock {
       emitMap("PISA") { implicit ms =>

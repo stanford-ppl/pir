@@ -1,7 +1,7 @@
 package pir.mapper
 import pir._
 import pir.util.typealias._
-import pir.graph.traversal.PIRMapping
+import pir.pass.PIRMapping
 import pir.plasticine.util.SpadeMetadata
 import scala.util.{Try, Success, Failure}
 import pir.util.PIRMetadata

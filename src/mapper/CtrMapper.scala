@@ -1,7 +1,8 @@
 package pir.mapper
 import pir._
 import pir.util.typealias._
-import pir.graph.traversal.{PIRMapping, CtrDotPrinter}
+import pir.pass.{PIRMapping}
+import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pir.exceptions._
 import pir.graph.Const

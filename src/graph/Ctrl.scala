@@ -11,7 +11,7 @@ import pir.Design
 import pir.graph._
 import pir.util.enums._
 import pir.exceptions._
-import pir.graph.traversal.ForwardRef
+import pir.pass.ForwardRef
 
 
 abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:Design) extends Primitive()(ctrlBox.ctrler, design) {

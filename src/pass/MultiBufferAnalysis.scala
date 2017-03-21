@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.exceptions._
@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalysis(implicit val design: Design) extends Traversal with Printer {
+class MultiBufferAnalysis(implicit val design: Design) extends Pass with Printer {
 
   override val stream = newStream(s"MultiBufferAnalysis.txt")
 

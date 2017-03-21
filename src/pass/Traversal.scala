@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir.Design
 import pir.Config
@@ -6,7 +6,7 @@ import pir.exceptions._
 
 import scala.collection.mutable.Set
 
-abstract class DFSTraversal(implicit val design: Design) extends Traversal{
+abstract class Traversal(implicit val design: Design) extends Pass{
   def traverse(node: Node) = {
     visitNode(node)
   }

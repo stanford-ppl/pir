@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.util.enums._
@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ForwardRef(implicit val design: Design) extends Traversal{
+class ForwardRef(implicit val design: Design) extends Pass{
 
   private val nameMap = Map[String, Node]()
 

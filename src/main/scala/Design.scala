@@ -1,7 +1,7 @@
 package pir
 
 import graph._
-import graph.traversal._
+import pass._
 import mapper._
 import pir.codegen._
 import plasticine.config._
@@ -43,7 +43,7 @@ trait Design extends PIRMetadata {
     toUpdate.clear()
     nextSym = 0
     top = null
-    traversals.foreach(_.reset)
+    passes.foreach(_.reset)
   }
 
   def addNode(n: Node) = { 
@@ -199,7 +199,9 @@ trait Design extends PIRMetadata {
   lazy val pirMapping = new PIRMapping()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
-  lazy val spadeDotGen = new SpadeDotGen(new CUVectorDotPrinter(), new CUScalarDotPrinter(), new CUCtrlDotPrinter(), pirMapping)
+  lazy val spadeVecDotPrinter = new CUVectorDotPrinter()
+  lazy val spadeScalDotPrinter = new CUScalarDotPrinter()
+  lazy val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
   lazy val ctrlPrinter = new CtrlPrinter()
 
   def mapping = pirMapping.mapping
@@ -209,41 +211,45 @@ trait Design extends PIRMetadata {
     override val stream = newStream(Config.mapperLog)
   }
 
-  /* Traversals */
-  lazy val traversals = {
-    val traversals = ListBuffer[Traversal]()
-    if (Config.debug) traversals += new SpadePrinter()
-    traversals += new ForwardRef()
-    //traversals += scalMemInsertion
-    if (Config.debug) traversals += new PIRPrinter("PIR_orig.txt") 
-    //traversals += fusionTransform 
-    //traversals += new ScalarBundling()
-    traversals += multiBufferAnalysis 
-    if (Config.debug) traversals += pirDataDotGen
-    traversals += new LiveAnalysis()
-    //traversals += new IRCheck()
-    if (Config.ctrl) traversals += ctrlAlloc 
-    //if (Config.debug && Config.ctrl) traversals += ctrlDotPrinter 
-    if (Config.debug && Config.ctrl) traversals += pirCtrlDotGen
-    if (Config.debug && Config.ctrl) traversals += ctrlPrinter 
-    if (Config.debug) traversals += pirPrinter 
-    if (Config.mapping) traversals += pirMapping 
-    if (Config.debug) traversals += spadeDotGen 
-    traversals += new SpadeCodegen()
-    //if (Config.mapping && Config.genPisa) traversals += new PisaCodegen(pirMapping)
-    traversals
+  /* Compiler Passes */
+  lazy val passes = {
+    val passes = ListBuffer[Pass]()
+    if (Config.debug) passes += new SpadePrinter()
+    passes += new ForwardRef()
+    //passes += scalMemInsertion
+    if (Config.debug) passes += new PIRPrinter("PIR_orig.txt") 
+    //passes += fusionTransform 
+    //passes += new ScalarBundling()
+    passes += multiBufferAnalysis 
+    if (Config.debug) passes += pirDataDotGen
+    passes += new LiveAnalysis()
+    //passes += new IRCheck()
+    if (Config.ctrl) passes += ctrlAlloc 
+    //if (Config.debug && Config.ctrl) passes += ctrlDotPrinter 
+    if (Config.debug && Config.ctrl) passes += pirCtrlDotGen
+    if (Config.debug && Config.ctrl) passes += ctrlPrinter 
+    if (Config.debug) passes += pirPrinter 
+    if (Config.mapping) passes += pirMapping 
+    if (Config.debug) passes += spadeVecDotPrinter 
+    if (Config.debug) passes += spadeScalDotPrinter 
+    if (Config.debug) passes += spadeCtrlDotPrinter 
+    passes += new SpadeCodegen()
+    //if (Config.mapping && Config.genPisa) passes += new PisaCodegen()
+    passes
   }
 
   def run = {
     try {
-      traversals.foreach(_.run)
+      passes.foreach(_.run)
       if (pirMapping.fail) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 
         try {
           if (!pirPrinter.isTraversed) pirPrinter.run
           //if (!ctrlDotPrinter.isTraversed) ctrlDotPrinter.run
-          if (!spadeDotGen.isTraversed) spadeDotGen.run
+          if (!spadeVecDotPrinter.isTraversed) spadeVecDotPrinter.run
+          if (!spadeScalDotPrinter.isTraversed) spadeScalDotPrinter.run
+          if (!spadeCtrlDotPrinter.isTraversed) spadeCtrlDotPrinter.run
           if (!ctrlPrinter.isTraversed) ctrlPrinter.run
           throw e
         } catch {

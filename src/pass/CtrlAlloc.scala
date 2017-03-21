@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.util.enums._
@@ -11,7 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
-class CtrlAlloc(implicit val design: Design) extends Traversal with Printer {
+class CtrlAlloc(implicit val design: Design) extends Pass with Printer {
 
   override val stream = newStream(s"CtrlAlloc.txt")
 

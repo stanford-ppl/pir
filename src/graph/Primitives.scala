@@ -12,7 +12,7 @@ import pir.{Design, Config}
 import pir.graph._
 import pir.util.enums._
 import pir.exceptions._
-import pir.graph.traversal.ForwardRef
+import pir.pass.ForwardRef
 import pir.util._
 
 

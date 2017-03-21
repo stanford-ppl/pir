@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.util._
@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class ScalarMemInsertion(implicit val design: Design) extends Traversal with Logger {
+class ScalarMemInsertion(implicit val design: Design) extends Pass with Logger {
 
   override val stream = newStream(s"ScalarMemInsertion.log")
 

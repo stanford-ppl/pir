@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.util._
@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalysis(implicit val design: Design) extends Traversal {
+class LiveAnalysis(implicit val design: Design) extends Pass {
   val pirmeta:PIRMetadata = design
   import pirmeta._
 

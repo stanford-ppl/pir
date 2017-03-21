@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph.{Const => _, _}
 import pir._
 import pir.plasticine.main._
@@ -6,11 +6,12 @@ import pir.util.typealias._
 import pir.util._
 import pir.util.misc._
 import pir.exceptions._
+import pir.codegen.PIRPrinter
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
-class IRCheck(implicit val design: Design) extends Traversal {
+class IRCheck(implicit val design: Design) extends Pass {
   implicit def spade = design.arch
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 

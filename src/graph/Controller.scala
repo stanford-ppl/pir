@@ -10,7 +10,7 @@ import pir.util.enums._
 import pir.exceptions._
 import pir.util._
 import scala.reflect.runtime.universe._
-import pir.graph.traversal.ForwardRef
+import pir.pass.ForwardRef
 import pir.util._
 
 abstract class Controller(implicit design:Design) extends Node {

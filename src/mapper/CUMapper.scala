@@ -4,7 +4,8 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
-import pir.graph.traversal.{CUCtrlDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
+import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
+import pir.pass.{PIRMapping, MapPrinter}
 import pir.plasticine.main._
 import pir.util.misc._
 

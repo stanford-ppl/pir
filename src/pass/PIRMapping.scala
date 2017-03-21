@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir._
 import pir.codegen.Printer
@@ -24,7 +24,7 @@ object MapPrinter extends Printer {
   }
 }
 
-class PIRMapping(implicit val design: Design) extends Traversal{
+class PIRMapping(implicit val design: Design) extends Pass{
 
   var mapping:PIRMap = _
   var success = false

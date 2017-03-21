@@ -4,7 +4,8 @@ import pir.Design
 import pir.util.typealias._
 import pir.plasticine.main._
 import pir.util.enums._
-import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
+import pir.pass.{PIRMapping}
+import pir.codegen.{CUCtrlDotPrinter}
 import pir.exceptions._
 
 import scala.collection.mutable.ListBuffer

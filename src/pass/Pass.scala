@@ -1,4 +1,4 @@
-package pir.graph.traversal
+package pir.pass
 import pir.graph._
 import pir.Design
 import pir.Config
@@ -7,7 +7,7 @@ import pir.util.misc._
 
 import scala.collection.mutable.Set
 
-trait Traversal {
+trait Pass {
   var isInit = false
   val visited = Set[Node]()
   var isTraversed = false

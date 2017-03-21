@@ -1,7 +1,7 @@
 package pir.mapper
 import pir.{Design, Config}
 import pir.util.typealias._
-import pir.graph.traversal.PIRMapping
+import pir.pass.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR}
 import pir.plasticine.graph.{PipeReg => PPR}
 import pir.plasticine.util._
