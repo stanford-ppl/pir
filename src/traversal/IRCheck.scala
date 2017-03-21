@@ -1,10 +1,11 @@
 package pir.graph.traversal
 import pir.graph.{Const => _, _}
 import pir._
-import pir.misc._
 import pir.plasticine.main._
-import pir.typealias._
+import pir.util.typealias._
 import pir.util._
+import pir.util.misc._
+import pir.exceptions._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap

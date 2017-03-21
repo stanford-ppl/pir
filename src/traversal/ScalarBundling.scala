@@ -2,8 +2,8 @@ package pir.graph.traversal
 
 import pir.graph._
 import pir._
-import pir.misc._
 import pir.util._
+import pir.util.misc._
 
 import scala.collection.mutable.{ Set => MSet }
 import scala.collection.mutable.ListBuffer
@@ -11,7 +11,9 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
 import scala.collection.mutable.{ Map => MMap }
 
-class ScalarBundling(implicit val design: Design) extends Traversal with Metadata {
+class ScalarBundling(implicit val design: Design) extends Traversal {
+  val pirmeta:PIRMetadata = design
+  import pirmeta._
 
   val par = design.arch.numLanes
 

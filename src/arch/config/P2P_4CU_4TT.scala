@@ -2,6 +2,7 @@ package pir.plasticine.config
                           
 import pir.plasticine.graph._
 import pir.plasticine.main._
+import pir.plasticine.util._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls

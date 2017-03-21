@@ -1,23 +1,29 @@
 package pir.mapper
 import pir.{Design, Config}
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph.traversal.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR}
 import pir.plasticine.graph.{PipeReg => PPR}
+import pir.plasticine.util._
 import pir.plasticine.main._
-import pir.util._
+import pir.exceptions._
+import pir.util.PIRMetadata
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
+class SRAMMapper(implicit val design:Design) extends Mapper {
   type N = OnMem 
   type R = PSRAM 
   val typeStr = "SramMapper"
   override def debug = Config.debugSMMapper
-  implicit def spade:Spade = design.arch
+  implicit val spade:Spade = design.arch
+  val pirmeta:PIRMetadata = design
+  val spademeta: SpadeMetadata = spade
+  import pirmeta.{indexOf => _, _}
+  import spademeta._
 
   def finPass(cu:ICL)(m:M):M = m 
 
@@ -26,13 +32,14 @@ class SRAMMapper(implicit val design:Design) extends Mapper with Metadata {
     s.writePort.from.src match {
       case vi:VI =>
         val ib = vimap(vi)
-        val ibpregs = ib.viport.fanOuts.map(_.src).collect{case PPR(s,r) => r}
+        val buf = { val bufs = bufsOf(ib); assert(bufs.size==1); bufs.head }
+        val vopregs = mappingOf(buf.in)
         // Regsiter mapped in empty stage
         val srampregs = p.writePort.fanIns.filter{ fi => 
           val PPR(pstage, _) = fi.src
           pstage == p.ctrler.stages.head
         }.map(_.src.asInstanceOf[PPR].reg).toList
-        if ((ibpregs intersect srampregs).size == 0) throw new SRAMRouting(s,p,map)
+        if ((vopregs intersect srampregs).size == 0) throw new SRAMRouting(s,p,map)
       case _ => () // Local write, assume always a reg mapped to write port of sram. Checked at RegAlloc
     }
     var mp = map.setSM(s, p).setOP(s.readPort, p.readPort).setIP(s.writePort, p.writePort)

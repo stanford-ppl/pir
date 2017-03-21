@@ -1,6 +1,6 @@
 package pir.graph
 
-import pir.misc._
+import pir.util._
 import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.ListBuffer
@@ -11,8 +11,9 @@ import scala.reflect.runtime.universe._
 import pir.{Design, Config}
 import pir.graph._
 import pir.util.enums._
-import pir.util.PIRException
+import pir.exceptions._
 import pir.graph.traversal.ForwardRef
+import pir.util.misc._
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
   val size:Int

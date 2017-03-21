@@ -1,6 +1,6 @@
-package pir.util
+package pir.exceptions
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 import pir.plasticine.config._
 import pir.mapper._
 

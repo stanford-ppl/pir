@@ -1,14 +1,17 @@
 package pir.graph.traversal
 import pir.graph._
 import pir._
-import pir.misc._
 import pir.util._
+import pir.exceptions._
+import pir.util.misc._
 
 import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata {
+class LiveAnalysis(implicit val design: Design) extends Traversal {
+  val pirmeta:PIRMetadata = design
+  import pirmeta._
 
   override def traverse = {
     design.top.innerCUs.foreach { implicit cu =>
@@ -124,6 +127,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata 
 
   private def compLiveIn(liveOuts:ISet[Reg], defs:ISet[Reg], uses:ISet[Reg]):ISet[Reg] = 
     (liveOuts -- defs ++ uses)
+
   private def liveness(stages:List[Stage]) = {
     for (i <- stages.size-1 to 0 by -1){
       val s = stages(i)
@@ -244,7 +248,7 @@ class LiveAnalysis(implicit val design: Design) extends Traversal with Metadata 
         // register doesn't interfere with co-def from the same source
         // e.g. FU writes to 2 registers
         val sameSrcDefs = s.liveOuts.filter { lo =>
-          if (s.prs(r).in.src == s.prs(lo).in.src) true
+          if (s.get(r).in.src == s.get(lo).in.src) true
           else false
         }
         cu.infGraph(r) ++= (s.liveOuts -- sameSrcDefs)

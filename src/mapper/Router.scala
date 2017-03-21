@@ -1,14 +1,14 @@
 package pir.mapper
 import pir.graph._
-import pir.misc._
 import pir.{Config, Design}
-import pir.typealias._
+import pir.util.typealias._
 import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
 import pir.graph.traversal.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
-import pir.util._
+import pir.exceptions._
+import pir.util.misc._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -205,7 +205,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val os = io(pne).outs.sortWith{ case (o1, o2) => o1.src.isInstanceOf[PCU] || !o2.src.isInstanceOf[PCU] }
-        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in) } }
+        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in.asInstanceOf[PIB]) } }
         val bundle = edges.groupBy { case (o, i) => (o.src, i.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
@@ -246,7 +246,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val is = io(pne).ins.sortWith{ case (i1, i2) => i1.src.isInstanceOf[PCU] || !i2.src.isInstanceOf[PCU] }
-        val edges = is.flatMap { in => in.fanIns.map { out => (in, out) } }
+        val edges = is.flatMap { in => in.fanIns.map { out => (in, out.asInstanceOf[POB]) } }
         val bundle = edges.groupBy { case (i, o) => (i.src, o.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
@@ -279,9 +279,8 @@ abstract class Router(implicit design:Design) extends Mapper {
         fatedge = fatedge.filterNot { case (po, pi) => // available edges
           val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
           val switchTaken = {
-            if (po.src.isInstanceOf[PSB]) {
-              val to = po.voport // Check switch box
-              map.fimap.contains(to) // Conservative here
+            if (po.src.isInstanceOf[PSB]) {  // Check switch box
+              map.xbmap.contains(po) // Conservative here
             } else false
           }
           val invalid = edgeTaken || switchTaken
@@ -370,9 +369,9 @@ abstract class Router(implicit design:Design) extends Mapper {
         path.zipWithIndex.foreach { case ((out, in), i) => 
           mp = mp.setFI(in, out)
           if (out.src.isInstanceOf[PSB]) { // Config SwitchBox
-            val to = out.voport
-            val from = path(i-1)._2.viport
-            mp = mp.setFI(to, from)
+            val to = out
+            val from = path(i-1)._2
+            mp = mp.setXB(to, from)
           }
         }
         mp

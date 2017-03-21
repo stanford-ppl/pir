@@ -10,8 +10,8 @@ import scala.reflect.runtime.universe._
 import pir.{Design, Config}
 import pir.graph._
 import pir.util.enums._
-import pir.util.PIRException
 import pir.graph.traversal.ForwardRef
+import pir.exceptions._
 
 case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "CC"
@@ -203,7 +203,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
           val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
           val cu = ctrler.asInstanceOf[ComputeUnit]
           cu.scalarIn(cu.emptyStage, scalar).out
-        case _ => throw new Exception(s"Don't know how to copy port")
+        case _ => throw new Exception(s"Don't know how to copy port") //TODO
       }
     }
     update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from), c.par)

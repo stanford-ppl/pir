@@ -1,12 +1,12 @@
 package pir.mapper
 import pir.graph._
 import pir.{Design, Config}
-import pir.typealias._
-import pir.misc._
+import pir.util.typealias._
 import pir.codegen.Printer
-import pir.util._
+import pir.exceptions._
 import pir.graph.traversal.{CUCtrlDotPrinter, CUVectorDotPrinter, MapPrinter, PIRMapping}
 import pir.plasticine.main._
+import pir.util.misc._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

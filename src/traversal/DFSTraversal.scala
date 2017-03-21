@@ -2,6 +2,7 @@ package pir.graph.traversal
 import pir.graph._
 import pir.Design
 import pir.Config
+import pir.exceptions._
 
 import scala.collection.mutable.Set
 

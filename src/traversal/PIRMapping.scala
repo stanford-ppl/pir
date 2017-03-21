@@ -2,10 +2,10 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.codegen.Printer
-import pir.misc._
 import pir.mapper._
-import pir.util._
+import pir.exceptions._
 import scala.util.{Try, Success, Failure}
+import pir.util.misc._
 
 object MapPrinter extends Printer { 
   override val stream = newStream(Config.mapFile)

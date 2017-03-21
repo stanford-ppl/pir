@@ -3,7 +3,9 @@ package pir.graph.traversal
 import pir._
 import pir.codegen.Printer
 import pir.codegen.DotCodegen
-import pir.misc._
+import pir.util._
+import pir.util.misc._
+import pir.plasticine.util._
 import pir.plasticine.graph._
 import pir.plasticine.main._
 
@@ -14,26 +16,22 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class SpadePrinter(implicit design: Design) extends Traversal with Printer {
+  implicit def spade:Spade = design.arch
+  val spademeta: SpadeMetadata = spade
 
-  def quote(n:Any)(implicit design:Design):String = { DotCodegen.quote(n) }
+  def quote(n:Any)(implicit design:Design):String = { quote(n) }
 
   override val stream = newStream(Config.spadeFile) 
   
-  def emitIO(pne:GridIO[NetworkElement]):Unit = {
+  def emitIO(pne:GridIO[_<:NetworkElement]):Unit = {
     emitBlock(s"ins") {
       pne.ins.foreach { in =>
         emitln(s"${in.ms}")
-        in.outports.foreach { op =>
-          emitln(s"${op.mt}")
-        }
       }
     }
     emitBlock(s"outs: ") {
       pne.outs.foreach { out =>
         emitln(s"${out.mt}")
-        out.inports.foreach { ip =>
-          emitln(s"${ip.ms}")
-        }
       }
     }
   }
@@ -98,7 +96,7 @@ class SpadePrinter(implicit design: Design) extends Traversal with Printer {
                     emitln(s"${res.mt}")
                 }
                 emitBlock(s"prs") {
-                  s.prs.foreach { case (k, v) => emitln(s"${v}($k) ${v.in.ms} ${v.out.mt}") }
+                  s.prs.foreach { pr => emitln(s"${pr}(${pr.reg}) ${pr.in.ms} ${pr.out.mt}") }
                 }
               }
             }

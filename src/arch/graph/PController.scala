@@ -4,6 +4,8 @@ import pir.util.enums._
 import pir.plasticine.main._
 import pir.plasticine.config.ConfigFactory
 import pir.plasticine.simulation._
+import pir.plasticine.util._
+import pir.exceptions._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -20,18 +22,19 @@ trait NetworkElement extends Module with Simulatable {
 /* Controller */
 abstract class Controller(implicit spade:Spade) extends NetworkElement {
   implicit val ctrler:this.type = this 
+  import spademeta._
 
   def ctrlBox:CtrlBox[Controller]
   val scalarIO:GridIO[this.type] = ScalarIO(this)
   val vectorIO:GridIO[this.type] = VectorIO(this)
   val ctrlIO:GridIO[this.type] = ControlIO(this)
 
-  def sins:List[InBus[Controller]] = scalarIO.ins // Scalar Inputs
-  def souts:List[OutBus[Controller]] = scalarIO.outs // Scalar Outputs
-  def vins:List[InBus[Controller]] = vectorIO.ins// Input Buses/Vector inputs
-  def vouts:List[OutBus[Controller]] = vectorIO.outs // Output Buses/Vector outputs
-  def cins:List[InBus[Controller]] = ctrlIO.ins // Control inputs
-  def couts:List[OutBus[Controller]] = ctrlIO.outs // Control outputs
+  def sins:List[Input[Bus, Controller]] = scalarIO.ins // Scalar Inputs
+  def souts:List[Output[Bus, Controller]] = scalarIO.outs // Scalar Outputs
+  def vins:List[Input[Bus, Controller]] = vectorIO.ins// Input Buses/Vector inputs
+  def vouts:List[Output[Bus, Controller]] = vectorIO.outs // Output Buses/Vector outputs
+  def cins:List[Input[Bus, Controller]] = ctrlIO.ins // Control inputs
+  def couts:List[Output[Bus, Controller]] = ctrlIO.outs // Control outputs
 }
 
 /* Top-level controller (host)
@@ -41,6 +44,7 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * @param argOutBuses input buses argOuts are mapped to
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
+  import spademeta._
   //implicit override val ctrler:Top = self
 
   //lazy val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
@@ -49,13 +53,14 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   //lazy val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
     //ScalarOut(vouts(ib).inports(ia))
   //}.flatten
-  val clk = OutWire(this, s"clk")
+  val clk = OutPort(this, s"clk")
 
   val ctrlBox:CtrlBox[Top] = new CtrlBox(0)
 }
 
 /* Switch box (6 inputs 6 outputs) */
 case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
+  import spademeta._
   override val typeStr = "sb"
   val scalarIO:GridIO[this.type] = ScalarIO(this)
   val vectorIO:GridIO[this.type] = VectorIO(this)
@@ -65,6 +70,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
  * ComputeUnit
  * */
 class ComputeUnit()(implicit spade:Spade) extends Controller {
+  import spademeta._
   //override implicit val ctrler:ComputeUnit = this 
   override val typeStr = "cu"
 
@@ -72,6 +78,10 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   var srams:List[SRAM] = _
   var ctrs:List[Counter] = _
   var numSinReg:Int = _
+  var scalarIns:List[ScalarIn] = _
+  var scalarOuts:List[ScalarOut] = _
+  var vectorIns:List[VectorIn] = _
+  var vectorOuts:List[VectorOut] = _
 
   def vout = vouts.head
   
@@ -118,7 +128,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   var _ctrlBox:CtrlBox[ComputeUnit] = _
   def ctrlBox:CtrlBox[ComputeUnit] = _ctrlBox
 
-  val reduce = RMOutPort(this, s"${this}.reduce")
+  val reduce = Output(Word(), this, s"${this}.reduce")
 
   def numRegs(num:Int):this.type = { 
     regs = List.tabulate(num) { ir => Reg().index(ir) }
@@ -128,6 +138,8 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter().index(ic) }; this }
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM().index(is) }; this }
   def numSinReg(num:Int):this.type = { numSinReg = num; this }
+  def numVecIns(num:Int):this.type = { vectorIns = List.tabulate(num) { vi => VectorIn().index(vi) }; this }
+  def numVecOuts(num:Int):this.type = { vectorOuts = List.tabulate(num) { vo => VectorOut().index(vo) }; this }
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
     addRegstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops) }); this // Regular stages
   }
@@ -135,6 +147,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     addRdstages(List.fill(numStage) { ReduceStage(numOprds=numOprds, regs, ops)}); this // Reduction stage 
   } 
   def ctrlBox(numUDCs:Int):this.type = { _ctrlBox = new CtrlBox(numUDCs); this }
+
+  def map(io:IO[Bus, ComputeUnit], buf:LocalBuffer) = {
+    (io.tp, buf) match {
+      case (Bus(_, _:Word), _:VectorBuffer) => bufsOf(io) += buf; busesOf(buf) += io
+      case (Bus(_,_:Bit), _:ScalarBuffer) => bufsOf(io) += buf; busesOf(buf) += io 
+      case _ => throw PIRException(s"Cannot map $io to $buf")
+    }
+  }
   def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
   def genMapping(vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int):this.type = {
     ConfigFactory.genMapping(this, vinsPtr, voutPtr, sinsPtr, soutsPtr, ctrsPtr, waPtr, wpPtr, loadsPtr, rdPtr)
@@ -144,6 +164,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 }
 
 class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
+  import spademeta._
   override val typeStr = "ocu"
   this.numRegs(0)
   this.numSRAMs(0)
@@ -153,6 +174,7 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 
 class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "mcu"
+  import spademeta._
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
   private val _rastages:ListBuffer[FUStage] = ListBuffer.empty // Read Addr Stages
   def wastages:List[WAStage] = _wastages.toList // Write Addr Stages
@@ -170,9 +192,11 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 /* A spetial type of CU used for memory loader/storer */
 class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "scu"
+  import spademeta._
 }
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
+  import spademeta._
   var _ctrlBox:CtrlBox[MemoryController] = _
   def ctrlBox:CtrlBox[MemoryController] = _ctrlBox
   def ctrlBox(numUDCs:Int):this.type = { _ctrlBox = new CtrlBox(numUDCs); this }

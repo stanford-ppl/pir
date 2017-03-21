@@ -2,12 +2,14 @@ package pir.graph.traversal
 
 import pir.{Design, Config}
 import pir.codegen._
-import pir.misc._
-import pir.typealias._
+import pir.util._
+import pir.util.typealias._
 import pir.mapper.{PIRMap}
-import pir.util.PIRException
+import pir.exceptions._
+import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.graph._
+import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -19,8 +21,10 @@ import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
 
-abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen with Metadata {
+abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends DotCodegen {
   implicit def spade:Spade = design.arch
+  val spademeta: SpadeMetadata = spade
+  import spademeta._
 
   val scale:Int
 
@@ -130,9 +134,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         recs += mapping.flatMap { mp => 
           if (io(psb).ins.exists( in => mp.fimap.contains(in))) { 
             val xbar = io(psb).outs.flatMap { out => 
-              mp.fimap.get(out.voport).map{ fp =>
-                s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
-              }
+              mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
             }.mkString(s"|") 
             Some(s"${quote(psb)}|${xbar}")
           } else {
@@ -154,9 +156,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       if (io(pne).ins.exists( in => mp.fimap.contains(in))) { 
         attr.style(filled).fillcolor(color(pne)) 
         val xbar = io(pne).outs.flatMap { out => 
-          mp.fimap.get(out.voport).map{ fp =>
-            s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
-          }
+          mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
         }.mkString(s"|") 
         recs += xbar
       }
@@ -180,9 +180,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         if (io(sb).ins.exists( in => mp.fimap.contains(in))) { 
           attr.style(filled).fillcolor(indianred) 
           val xbar = io(sb).outs.flatMap { out => 
-            mp.fimap.get(out.voport).map{ fp =>
-              s"i-${indexOf(fp.src)} -\\> o-${indexOf(out)}"
-            }
+            mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
           }.mkString(s"|") 
           Some(s"{${quote(sb)}|${xbar}}")
         } else {
@@ -283,7 +281,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
 
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.ctrlIO
 }
 
 class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
@@ -294,7 +292,7 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.scalarIO
 
 }
 
@@ -306,10 +304,10 @@ class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.vectorIO
 }
 
-object ArgDotPrinter extends Metadata{
+object ArgDotPrinter{
   def print(ptop:PTop)(printer:DotCodegen)(implicit design:Design) = {
     implicit def spade = design.arch
     def quote(n:Any) = printer.quote(n)

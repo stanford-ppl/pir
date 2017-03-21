@@ -1,8 +1,8 @@
 package pir.graph.traversal
 import pir.graph._
 import pir._
-import pir.misc._
 import pir.util._
+import pir.util.misc._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

@@ -1,13 +1,14 @@
 package pir
 
-import pir.misc._
 import graph._
 import graph.traversal._
 import mapper._
-import pir.util.PIRException
 import pir.codegen._
 import plasticine.config._
 import pir.plasticine.main._
+import pir.util._
+import pir.exceptions._
+import pir.util.misc._
 
 //import analysis._
 
@@ -22,7 +23,7 @@ import scala.collection.mutable.{Set,Map}
 import java.nio.file.{Paths, Files}
 import scala.io.Source
 
-trait Design extends Metadata {
+trait Design extends PIRMetadata {
 
   implicit def design: Design = this
 
@@ -253,9 +254,6 @@ trait Design extends Metadata {
     if (Config.debug) DebugLogger.close
   }
 
-  // Metadata Maps
-  val indexMap:indexOf.M = Map.empty
-  val vecMap:vecOf.M = Map.empty
 }
 
 trait PIRApp extends Design{
@@ -269,31 +267,5 @@ trait PIRApp extends Design{
     top = Top().updateBlock(main(args:_*)) 
     endInfo(s"Finishing graph construction for ${this}")
     run
-  }
-}
-
-trait Metadata extends IndexOf with VecOf {}
-
-trait MetadataMap {
-  type V
-  type M = Map[Node, V]
-  def map(implicit design:Design):M
-  def update(n:Node, v:V)(implicit design:Design):Unit = map += (n -> v)
-  def apply(n:Node)(implicit design:Design):V = { val m = map; m(n) }
-  def get(n:Node)(implicit design:Design):Option[V] =  { val m = map; m.get(n) }
-}
-
-trait IndexOf {
-  /* Index of a spade node. Used for pisa codegen */
-  object indexOf extends MetadataMap {
-    type V = Int
-    def map(implicit design:Design) = design.indexMap
-  }
-}
-trait VecOf {
-  /* Index of a spade node. Used for pisa codegen */
-  object vecOf extends MetadataMap {
-    type V = VectorIO[_]
-    def map(implicit design:Design) = design.vecMap
   }
 }

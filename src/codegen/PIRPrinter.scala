@@ -3,7 +3,8 @@ package pir.graph.traversal
 import pir.graph._
 import pir._
 import pir.codegen.{Printer, DotCodegen}
-import pir.misc._
+import pir.util._
+import pir.util.misc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -11,8 +12,9 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
+import pir.util._
 
-class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal with Printer with Metadata {
+class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal with Printer {
 
   def this()(implicit design: Design) = {
     this(Config.pirFile)
@@ -52,13 +54,13 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
     }
   def regMapToStrs(c:InnerController):Map[String, String] = {
     var m = HashMap[String, String]()
-    toStr(m, "scalarIns" , c.scalarIns  )
+    toStr(m, "scalarInRegs" , c.scalarInRegs  )
     c match {
       case c:InnerController =>
         toStr(m, "reduceReg" , c.reduceReg  )
-        toStr(m, "vecIns"    , c.vecIns      )
-        toStr(m, "vecOut"    , c.vecOut     )
-        toStr(m, "scalarOuts", c.scalarOuts )
+        toStr(m, "vecInRegs" , c.vecInRegs      )
+        toStr(m, "vecOutRegs" , c.vecOutRegs     )
+        toStr(m, "scalarOuts", c.scalarOutRegs )
         toStr(m, "loadRegs"  , c.loadRegs   )
         toStr(m, "storeRegs" , c.storeRegs  )
         toStr(m, "ctrRegs"   , c.ctrRegs    )
@@ -94,7 +96,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
           strs += s"liveIns:[${n.liveIns.mkString(",")}]"
           strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
           emitln(strs.mkString(" "))
-          n.prs.foreach { case (reg, pr) =>
+          n.prs.foreach { case pr =>
            emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
           }
         case _ => super.visitNode(node)
@@ -106,7 +108,7 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
     node match {
       case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
-      case n:Stage => emitBlock(s"${DotCodegen.quote(node)}${genFields(node)}", node)
+      case n:Stage => emitBlock(s"${quote(node)}${genFields(node)}", node)
       case n:UDCounter => // printed in Ctrl.txt
       case n:FIFOOnWrite => emitBlock(s"${node}${genFields(node)}", node)
       case _ => emitln(s"${node}${genFields(node)}")
@@ -118,8 +120,11 @@ class PIRPrinter(fileName:String)(implicit design: Design) extends DFSTraversal 
     close
   }
 }
-object PIRPrinter extends Metadata {
+object PIRPrinter {
   def genFields(node:Node)(implicit design:Design):String = {
+  val pirmeta:PIRMetadata = design
+  import pirmeta._
+
     val fields = ListBuffer[String]()
     node.name.foreach { name => fields += s"name=$name" }
     node match {

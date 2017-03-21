@@ -3,6 +3,7 @@ package pir.plasticine.config
 import pir._
 import pir.plasticine.graph._
 import pir.plasticine.main._
+import pir.plasticine.util._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
@@ -11,34 +12,48 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 
 // Common configuration generator 
-object ConfigFactory extends ImplicitConversion {
+object ConfigFactory {
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
+  def forwardStages(cu:ComputeUnit) = cu match {
+    case cu:MemoryComputeUnit => cu.wastages :+ cu.rastages.head
+    case cu:ComputeUnit => cu.fustages.head :: Nil 
+  }
+
   /* Generate connections relates to register mapping of a cu */
-  def genMapping(cu:ComputeUnit, vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
+  def genMapping(cu:ComputeUnit, vinsPtr:Int, voutsPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
     /* Register Constrain */
-    // All Pipeline Registers (PipeReg) connect to its previous stage ('stage.prs(reg)':Pipeline
+    // All Pipeline Registers (PipeReg) connect to its previous stage ('stage.get(reg)':Pipeline
     // Register 'reg' at stage 'stage')
     for (i <- 1 until cu.stages.size) {
-      cu.regs.foreach { reg => cu.stages(i).prs(reg).in <== cu.stages(i-1).prs(reg).out }
+      cu.regs.foreach { reg => cu.stages(i).get(reg).in <== cu.stages(i-1).get(reg).out }
     }
     // Bus input is forwarded to 1 register in empty stage
-    cu.vins.zipWithIndex.foreach { case (vin, is) => 
-      val reg = cu.etstage.prs(cu.regs(vinsPtr + is))
-      reg.in <== (vin.viport)
-      // Remote write. vecIn and sram 1 to 1 mapping. Doesn't have to be the case 
-      cu match {
-        case cu:ScalarComputeUnit => assert(cu.srams.size==0) // TileTransfer has no sram
-        case cu:ComputeUnit => cu.srams(is).writePort <== reg.out
-      }
+    assert(cu.vins.size == cu.vectorIns.size)
+    (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => busesOf(vin) += vi }
+    cu.vectorIns.zipWithIndex.foreach { case (vin, i) =>
+      forwardStages(cu).foreach { s => s.get(cu.regs(vinsPtr + i)).in <== vin.out }
     }
+    assert(cu.vouts.size == cu.vectorOuts.size)
+    (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => busesOf(vout) += vo }
+    cu.vectorOuts.zipWithIndex.foreach { case (vout, i) =>
+      cu.stages.last.get(cu.regs(voutsPtr + i)).in <== vout.out
+    }
+    val scalInPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
+    val gsis:List[List[Input[Bus, _]]] = cu.sins.grouped(scalInPerSin).toList
+    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) =>
+      //sis.foreach { si =>  }
+    }
+
     // Bus output is connected to 1 register in last stage
     // TODO
-    //cu.vout.voport <== cu.stages.last.prs(cu.regs(voutPtr))
+    //cu.vout.voport <== cu.stages.last.get(cu.regs(voutPtr))
     (0 until cu.numSinReg).foreach { is =>
-      val sireg = cu.etstage.prs(cu.regs(sinsPtr + is)) 
+      val sireg = cu.etstage.get(cu.regs(sinsPtr + is)) 
       cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
       // ScalarInXbar
       //cu.sins.foreach { sin => sireg <== sin.out}
@@ -46,32 +61,32 @@ object ConfigFactory extends ImplicitConversion {
     // Scalar outputs is connected to 1 register in last stage
     //cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
       //souts.zipWithIndex.foreach { case (so, is) =>
-        //so.in <== cu.stages.last.prs(cu.regs(soutsPtr + is))
+        //so.in <== cu.stages.last.get(cu.regs(soutsPtr + is))
       //}
     //}
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-      cu.etstage.prs(cu.regs(ctrsPtr + ic)) <== c.out
+      cu.etstage.get(cu.regs(ctrsPtr + ic)) <== c.out
     }
     cu match {
       case cu:MemoryComputeUnit =>
         cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-          (cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(ctrsPtr + ic)) <== c.out) 
+          (cu.wastages ++ cu.rastages).foreach(_.get(cu.regs(ctrsPtr + ic)) <== c.out) 
         }
         cu.srams.zipWithIndex.foreach { case (s, is) => 
           (cu.wastages ++ cu.rastages).foreach(s.readAddr <== _.fu.out)
-          (cu.wastages ++ cu.rastages).foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
+          (cu.wastages ++ cu.rastages).foreach(_.get(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
         }
       case _ =>
     }
     // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
     // only write to 1 sram)
     cu.srams.zipWithIndex.foreach { case (s, is) => 
-      s.writeAddr <== cu.stages.last.prs(cu.regs(waPtr))
-      s.writePort <== cu.stages.last.prs(cu.regs(wpPtr)) // Sram write port is connected to 1 register of last stage
-      cu.regstages.headOption.foreach(_.prs(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
+      s.writeAddr <== cu.stages.last.get(cu.regs(waPtr))
+      s.writePort <== cu.stages.last.get(cu.regs(wpPtr)) // Sram write port is connected to 1 register of last stage
+      cu.regstages.headOption.foreach(_.get(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
     }
-    cu.rdstages.foreach( _.prs(cu.regs(rdPtr)) <== cu.reduce)
+    cu.rdstages.foreach( _.get(cu.regs(rdPtr)) <== cu.reduce)
   }
 
   /* Generate primitive connections within a CU */ 
@@ -100,12 +115,12 @@ object ConfigFactory extends ImplicitConversion {
       stage.fu.operands.foreach{ oprd =>
         oprd <== const.out // operand is constant
         cu.regs.foreach{ reg =>
-          oprd <== stage.prs(reg) // operand is from current register block
-          oprd <== preStage.prs(reg) // operand is forwarded from previous register block
+          oprd <== stage.get(reg) // operand is from current register block
+          oprd <== preStage.get(reg) // operand is forwarded from previous register block
         }
       }
       // All stage can write to all regs of its stage
-      cu.regs.foreach{ reg => stage.prs(reg) <== stage.fu.out }
+      cu.regs.foreach{ reg => stage.get(reg) <== stage.fu.out }
     }
 
     cu match {

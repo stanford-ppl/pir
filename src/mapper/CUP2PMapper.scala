@@ -1,7 +1,7 @@
 package pir.mapper
 import pir.graph._
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 
 import scala.collection.mutable.{Map => MMap}
 import scala.util.{Try, Success, Failure}

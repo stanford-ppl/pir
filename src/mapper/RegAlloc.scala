@@ -1,12 +1,13 @@
 package pir.mapper
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph._
 import pir._
-import pir.misc._
 import pir.codegen.DotCodegen
 import pir.plasticine.graph.{PipeReg}
 import pir.codegen.DotCodegen
-import pir.util._
+import pir.exceptions._
+import pir.plasticine.util._
+import pir.plasticine.main.Spade
 
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}
@@ -18,6 +19,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type RC = RCMap
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
+  val spademeta: SpadeMetadata = spade
+  import spademeta._
+
+  implicit def spade:Spade = design.arch
 
   def finPass(cu:ICL)(m:M):M = m
 
@@ -40,7 +45,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
       r match {
         case LoadPR(regId, sram) =>
           val psram = pirMap.smmap(sram)
-          preColor(r, psram.readPort.mappedRegs.toList)
+          preColor(r, mappingOf(psram.readPort))
         case StorePR(regId, sram) =>
           val psram = pirMap.smmap(sram)
           val pregs = psram.writePort.fanIns.filter{ fi => 
@@ -52,21 +57,23 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val waPort = rr.waPort
           val sram = waPort.src
           val psram = pirMap.smmap(sram)
-          preColor(r, psram.writeAddr.mappedRegs.toList)
+          preColor(r, mappingOf(psram.writeAddr))
         case CtrPR(regId, ctr) =>
           val pctr = pirMap.ctmap(ctr)
-          preColor(r, pctr.out.mappedRegs.toList)
+          preColor(r, mappingOf(pctr.out))
         case ReducePR(regId) =>
-          preColor(r, pcu.reduce.mappedRegs.toList)
+          preColor(r, mappingOf(pcu.reduce))
 r       case VecInPR(regId, vecIn) =>
           val pvin = pirMap.vimap(vecIn)
-          preColor(r, pvin.viport.mappedRegs.toList)
-        case VecOutPR(regId) =>
-          val pvout = pcu.vout
-          preColor(r, pvout.voport.mappedRegs.toList)
+          val buf = { val bufs = bufsOf(pvin); assert(bufs.size==1); bufs.head }
+          preColor(r, mappingOf(buf.out))
+        case VecOutPR(regId, vecOut) =>
+          val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
+          val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
+          preColor(r, mappingOf(buf.in))
         case ScalarInPR(regId, scalarIn) =>
           val psi = pirMap.simap(scalarIn)
-          val pregs = psi.out.mappedRegs.toList
+          val pregs = mappingOf(psi.out)
           var info = s"$r connected to $pregs. Interference:"
           def mapReg:Unit = {
             pregs.foreach { pr =>
@@ -89,7 +96,7 @@ r       case VecInPR(regId, vecIn) =>
           mapReg
         case ScalarOutPR(regId, scalarOut) =>
           val pso = pirMap.somap(scalarOut)
-          preColor(r, pso.in.mappedRegs.toList)
+          preColor(r, mappingOf(pso.in))
         case _ => // No predefined color
       }
     }
@@ -117,7 +124,7 @@ r       case VecInPR(regId, vecIn) =>
 }
 
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
-  override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${DotCodegen.quote(c)}" 
+  override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${quote(c)(design.arch)}" 
 }
 case class InterfereException(r:Reg, itr:Reg, p:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp){
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "

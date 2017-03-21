@@ -7,10 +7,11 @@ import scala.math.max
 import pir.Design
 import pir.graph._
 import pir.util.enums._
-import pir.util.PIRException
+import pir.exceptions._
+import pir.util._
 import scala.reflect.runtime.universe._
 import pir.graph.traversal.ForwardRef
-import pir.misc._
+import pir.util._
 
 abstract class Controller(implicit design:Design) extends Node {
   implicit def ctrler:this.type = this
@@ -97,6 +98,7 @@ abstract class Controller(implicit design:Design) extends Node {
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock {
   override val typeStr = "CU"
+  import pirmeta._
 
   private var _parent:Controller = _
   def parent:Controller = { _parent }
@@ -297,6 +299,7 @@ object StreamController {
 
 abstract class InnerController(name:Option[String])(implicit design:Design) extends ComputeUnit(name)
  with InnerRegBlock {
+  import pirmeta._
 
   def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
@@ -439,6 +442,8 @@ object TileTransfer extends {
 
 class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "StreamPipe"
+  import pirmeta._
+
   private var _parent:StreamController = _
   override def parent:StreamController = _parent
   override def parent[T](parent:T):this.type = {
@@ -479,6 +484,7 @@ object StreamPipeline {
 
 class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
+  import pirmeta._
 
   val mcfifos = Map[String, FIFO]()
   val mcvecs = Map[String, Vector]()
@@ -500,6 +506,7 @@ object MemoryController {
 
 case class Top()(implicit design: Design) extends Controller { self =>
   implicit val top:Controller = self
+  import pirmeta._
 
   override val name = Some("Top")
   override val typeStr = "Top"

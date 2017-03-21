@@ -1,12 +1,11 @@
 package pir.mapper
 import pir.{Config}
 import pir.Design
-import pir.misc._
-import pir.typealias._
+import pir.util.typealias._
 import pir.plasticine.main._
 import pir.util.enums._
 import pir.graph.traversal.{PIRMapping, CUCtrlDotPrinter}
-import pir.util._
+import pir.exceptions._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
@@ -15,7 +14,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 
-class CtrlMapper(implicit val design:Design) extends Mapper with Metadata {
+class CtrlMapper(implicit val design:Design) extends Mapper {
   implicit def spade:Spade = design.arch
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper

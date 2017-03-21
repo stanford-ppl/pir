@@ -11,9 +11,9 @@ import scala.language.existentials
 import pir.{Design, Config}
 import pir.graph._
 import pir.util.enums._
-import pir.util.PIRException
+import pir.exceptions._
 import pir.graph.traversal.ForwardRef
-import pir.misc._
+import pir.util._
 
 
 abstract class Primitive(implicit val ctrler:Controller, design:Design) extends Node 
@@ -192,7 +192,10 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
 class Stage(override val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "Stage"
   var fu:Option[FuncUnit] = _
-  val prs:Map[Reg, PipeReg] = Map.empty
+  val _prs:Map[Reg, PipeReg] = Map.empty
+  def prs:List[PipeReg] = _prs.values.toList
+  def get(reg:Reg) = _prs(reg)
+  def getOrElseUpdate(reg:Reg, pipeReg:PipeReg) = _prs.getOrElseUpdate(reg, pipeReg)
   val defs:Set[Reg] = Set.empty
   val uses:Set[Reg] = Set.empty
   var liveIns:ISet[Reg] = ISet.empty
@@ -407,7 +410,7 @@ case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUni
 case class ReducePR(override val regId:Int)(implicit ctrler:InnerController, design: Design)                           extends Reg {override val typeStr = "regrd"}
 case class AccumPR(override val regId:Int, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)                extends Reg {override val typeStr = "regac"}
 case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "regvi"}
-case class VecOutPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regvo"; var vecOut:VecOut = _}
+case class VecOutPR(override val regId:Int, vecOut:VecOut)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regvo"}
 case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "regsi"}
 case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctrler:Controller, design: Design)   extends Reg {override val typeStr = "regso"}
 /*

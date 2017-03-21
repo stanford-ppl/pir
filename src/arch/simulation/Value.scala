@@ -2,17 +2,17 @@ package pir.plasticine.simulation
 
 import pir.plasticine.main._
 import pir.plasticine.graph._
-import pir.util._
 import pir.util.enums._
+import pir.exceptions._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.reflect.{ClassTag, classTag}
 
-trait Val[V, P<:LinkType] {
+trait Val[V] {
   implicit val ev:ClassTag[V] = classTag[V]
-  val io:IO[P, Module]
+  val io:IO[_<:PortType, Module]
   var value:Option[V]
 
   var func: Option[Simulator => Option[V]] = None 
@@ -24,21 +24,21 @@ trait Val[V, P<:LinkType] {
     sim.updated += this
   }
 
-  def + (v:Val[V, P]):Option[V] = eval(v, FixAdd)
-  def - (v:Val[V, P]):Option[V] = eval(v, FixSub)
+  def + (v:Val[V]):Option[V] = eval(v, FixAdd)
+  def - (v:Val[V]):Option[V] = eval(v, FixSub)
 
-  def eval(v:Val[V, P], op:Op):Option[V]
+  def eval(v:Val[V], op:Op):Option[V]
   def eval(op:Op):Option[V]
 
-  def toDecOp(op:Op):Any => BigDecimal = {
-    def func(ins:Any):BigDecimal = {
+  def toDecOp(op:Op):Any => Float = {
+    def func(ins:Any):Float = {
       (ins, op) match {
-        case ((a:BigDecimal, b:BigDecimal), FixAdd) => a.toInt + b.toInt
-        case ((a:BigDecimal, b:BigDecimal), FixSub) => a.toInt - b.toInt
-        case ((a:BigDecimal, b:BigDecimal), FltAdd) => a.toFloat + b.toFloat
-        case ((a:BigDecimal, b:BigDecimal), FltSub) => a.toFloat - b.toFloat
+        case ((a:Float, b:Float), FixAdd) => a.toInt + b.toInt
+        case ((a:Float, b:Float), FixSub) => a.toInt - b.toInt
+        case ((a:Float, b:Float), FltAdd) => a.toFloat + b.toFloat
+        case ((a:Float, b:Float), FltSub) => a.toFloat - b.toFloat
         case (_, _:BitOp) =>
-          throw PIRException(s"Boolean Op to BigDecimal type op=$op ins=$ins")
+          throw PIRException(s"Boolean Op to Float type op=$op ins=$ins")
         case (ins, op) =>
           throw PIRException(s"Don't know how to eval $op for ins=$ins")
       }
@@ -51,7 +51,7 @@ trait Val[V, P<:LinkType] {
         case ((a:Boolean, b:Boolean), BitAnd) => a && b 
         case ((a:Boolean, b:Boolean), BitOr) => a || b 
         case (_, (_:FixOp | _:FltOp)) =>
-          throw PIRException(s"BigDecimal Op to Boolean type op=$op ins=$ins")
+          throw PIRException(s"Float Op to Boolean type op=$op ins=$ins")
         case (ins, op) =>
           throw PIRException(s"Don't know how to eval $op for ins=$ins")
       }
@@ -61,11 +61,10 @@ trait Val[V, P<:LinkType] {
 
 }
 
-case class BusVal(io:IO[Bus, Module]) extends Val[Array[BigDecimal], Bus] {
-  type V = Array[BigDecimal]
-  type P = Bus 
+case class BusVal(io:IO[Bus, Module]) extends Val[Array[Float]] {
+  type V = Array[Float]
   var value:Option[V] = None
-  def eval(v:Val[V, P], op:Op):Option[V] = {
+  def eval(v:Val[V], op:Op):Option[V] = {
     val res = value.zip(v.value).map{ case (a,b) => (a,b).zipped.map{ case (ax,bx) => toDecOp(op)((ax,bx)) } }
     if (res.isEmpty) None
     else Some(res.head)
@@ -77,11 +76,10 @@ case class BusVal(io:IO[Bus, Module]) extends Val[Array[BigDecimal], Bus] {
   }
 }
 
-case class PortVal(io:IO[Port, Module]) extends Val[BigDecimal, Port] {
-  type V = BigDecimal 
-  type P = Port
+case class WordVal(io:IO[Word, Module]) extends Val[Float] {
+  type V = Float
   var value:Option[V] = None
-  def eval(v:Val[V, P], op:Op):Option[V] = {
+  def eval(v:Val[V], op:Op):Option[V] = {
     val res = value.zip(v.value).map{ case (a,b) => toDecOp(op)((a,b)) }
     if (res.isEmpty) None
     else Some(res.head)
@@ -93,11 +91,10 @@ case class PortVal(io:IO[Port, Module]) extends Val[BigDecimal, Port] {
   }
 }
 
-case class WireVal(io:IO[Wire, Module]) extends Val[Boolean, Wire] {
+case class BitVal(io:IO[Bit, Module]) extends Val[Boolean] {
   type V = Boolean 
-  type P = Wire
   var value:Option[V] = None
-  def eval(v:Val[V, P], op:Op):Option[V] = {
+  def eval(v:Val[V], op:Op):Option[V] = {
     val res = value.zip(v.value).map{ case (a,b) => toBoolOp(op)((a,b)) }
     if (res.isEmpty) None
     else Some(res.head)

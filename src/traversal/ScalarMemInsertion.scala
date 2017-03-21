@@ -1,7 +1,6 @@
 package pir.graph.traversal
 import pir.graph._
 import pir._
-import pir.misc._
 import pir.util._
 import pir.codegen.Logger
 
@@ -54,6 +53,7 @@ class ScalarMemInsertion(implicit val design: Design) extends Traversal with Log
 
   override def finPass = {
     misc.endInfo("Finishing scalar buffer insertion")
+    super.finPass
   }
 
 }

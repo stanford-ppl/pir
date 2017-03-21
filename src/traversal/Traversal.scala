@@ -3,7 +3,7 @@ import pir.graph._
 import pir.Design
 import pir.Config
 import pir.util._
-import pir.misc._
+import pir.util.misc._
 
 import scala.collection.mutable.Set
 

@@ -3,6 +3,7 @@ package pir.plasticine.graph
 import pir.graph._
 import pir.util.enums._
 import pir.plasticine.main._
+import pir.plasticine.util._
 import pir.codegen.DotCodegen
 
 import scala.language.reflectiveCalls
@@ -17,76 +18,82 @@ trait Primitive extends Module {
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
 case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
+  import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  val readPort = RMOutPort(this, s"${this}.rp")
-  val writePort = RMInPort(this, s"${this}.wp")
-  val readAddr = RMInPort(this, s"${this}.ra")
-  val writeAddr = RMInPort(this, s"${this}.wa")
+  val readPort = Output(Word(), this, s"${this}.rp")
+  val writePort = Input(Word(), this, s"${this}.wp")
+  val readAddr = Input(Word(), this, s"${this}.ra")
+  val writeAddr = Input(Word(), this, s"${this}.wa")
 }
 
 /** Physical Counter  */
 case class Counter()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
+  import spademeta._
   override val typeStr = "ctr"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  val min = InPort(this, s"${this}.min")
-  val max = InPort(this, s"${this}.max")
-  val step = InPort(this, s"${this}.step")
-  val out = RMOutPort(this, s"${this}.out")
-  val en = InWire(this, s"${this}.en")
-  val done = OutWire(this, s"${this}.done")
+  val min = Input(Word(), this, s"${this}.min")
+  val max = Input(Word(), this, s"${this}.max")
+  val step = Input(Word(), this, s"${this}.step")
+  val out = Output(Word(), this, s"${this}.out")
+  val en = Input(Word(), this, s"${this}.en")
+  val done = Output(Word(), this, s"${this}.done")
   def isDep(c:Counter) = en.canConnect(c.done)
 }
 
 /* Logical register (1 row of pipeline registers for all stages) */
 case class Reg()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
+  import spademeta._
   override val typeStr = "reg"
 }
 
 /* Phyiscal pipeline register */
 case class PipeReg(stage:Stage, reg:Reg)(implicit spade:Spade) extends Module {
+  import spademeta._
   override val typeStr = "pr"
-  override def toString = s"pr(${DotCodegen.quote(stage, spade)},${DotCodegen.quote(reg, spade)})"
-  val in = new RMInPort[this.type](this) with Stagable { 
-    override def toString = s"$src.i"
-    override val stage = PipeReg.this.stage
-  }
-  val out = new RMOutPort[this.type](this) with Stagable {
-    override def toString = s"$src.o"
-    override val stage = PipeReg.this.stage
-  } 
+  override def toString = s"pr(${quote(stage)},${quote(reg)})"
+  val in = Input(Word(), this, s"$this.i")
+  val out = Output(Word(), this, s"${this}.out")
 }
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-class ScalarBuffer(implicit spade:Spade) extends Module {
-  val in:InPort[this.type] = InPort(this, s"${this}.i") 
-  val out:OutPort[this.type] = OutPort(this, s"${this}.o")
+class LocalBuffer(implicit spade:Spade) extends Module {
+  import spademeta._
+  val in:Input[Word, this.type] = Input(Word(), this, s"${this}.i") 
+  val out:Output[Word, this.type] = Output(Word(), this, s"${this}.o")
 } 
+
+trait ScalarBuffer extends LocalBuffer
+trait VectorBuffer extends LocalBuffer
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarIn(outport:Option[OutPort[NetworkElement]])(implicit spade:Spade) extends ScalarBuffer {
+case class ScalarIn(outport:Option[Output[Word, NetworkElement]])(implicit spade:Spade) extends ScalarBuffer {
+  import spademeta._
   outport.foreach { this.in <== _ }
   override val typeStr = "si"
-  override val out:RMOutPort[this.type] = RMOutPort(this, s"${this}.o")
-  def inBus:InBus[NetworkElement] = busOf(outport.get).asInstanceOf[InBus[NetworkElement]]
+  def inBus:Input[Bus, NetworkElement] = busesOf(outport.get).head.asInstanceOf[Input[Bus, NetworkElement]]
   def idx = indexOf(outport.get)
 } 
 object ScalarIn {
-  def apply(outport:OutPort[NetworkElement])(implicit spade:Spade):ScalarIn = ScalarIn(Some(outport))
+  def apply(outport:Output[Word, NetworkElement])(implicit spade:Spade):ScalarIn = ScalarIn(Some(outport))
 }
 /* Scalar buffer between the last stage and the bus output. Output connects to 1 in port 
  * of the OutBus */
-case class ScalarOut(inport:Option[InPort[NetworkElement]])(implicit spade:Spade) extends ScalarBuffer {
+case class ScalarOut(inport:Option[Input[Word, NetworkElement]])(implicit spade:Spade) extends ScalarBuffer {
+  import spademeta._
   inport.foreach( _ <== this.out )
   override val typeStr = "so"
-  override val in:RMInPort[this.type] = RMInPort(this, s"${this}.i")
-  def outBus:OutBus[NetworkElement] = busOf(inport.get).asInstanceOf[OutBus[NetworkElement]]
+  def outBus:Output[Bus, NetworkElement] = busesOf(inport.get).head.asInstanceOf[Output[Bus, NetworkElement]]
   def idx = indexOf(inport.get)
 }
 object ScalarOut {
-  def apply(inport:InPort[NetworkElement])(implicit spade:Spade):ScalarOut = ScalarOut(Some(inport))
+  def apply(inport:Input[Word, NetworkElement])(implicit spade:Spade):ScalarOut = ScalarOut(Some(inport))
 }
-/* ScalarOut of TileTransfer CU, whos AddrOut has dedicated scalar network that goes to
+/* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
+ * exist). Input connects to 1 out port of the InBus */
+case class VectorIn()(implicit spade:Spade) extends VectorBuffer { override val typeStr = "vi" } 
+case class VectorOut()(implicit spade:Spade) extends VectorBuffer { override val typeStr = "vo" } 
+/* VectorOut of TileTransfer CU, whos AddrOut has dedicated scalar network that goes to
  * Memory Controller */
 trait AddrOut extends ScalarOut {
   override val typeStr = "ado"
@@ -101,17 +108,10 @@ object AddrOut {
  * @param stage which stage the FU locates
  * */
 case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade) extends Module {
+  import spademeta._
   override val typeStr = "fu"
-  val operands = List.fill(numOprds) (
-    new RMInPort[this.type](this) with Stagable { 
-      override def toString = s"$src.oprd${id}"
-      override val stage = FuncUnit.this.stage
-    }
-  ) 
-  val out = new RMOutPort[this.type](this) with Stagable {
-    override def toString = s"$src.out"
-    override val stage = FuncUnit.this.stage
-  } 
+  val operands = List.fill(numOprds) (Input(Word(), this, s"$this.oprd${id}")) 
+  val out = Output(Word(), this, s"$this.out")
 }
 
 /*
@@ -119,9 +119,12 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
  * @param reg Logical registers in current register block
  * */
 class Stage(regs:List[Reg])(implicit spade:Spade) extends Module {
+  import spademeta._
   val funcUnit:Option[FuncUnit] = None
-  val prs = Map[Reg, PipeReg]() // Mapping between logical register and physical register
-  regs.foreach { reg => prs += (reg -> PipeReg(this, reg)) }
+  val _prs = Map[Reg, PipeReg]() // Mapping between logical register and physical register
+  regs.foreach { reg => _prs += (reg -> PipeReg(this, reg)) }
+  def prs:List[PipeReg] = regs.map { r => _prs(r) }
+  def get(reg:Reg):PipeReg = _prs(reg)
   var pre:Option[Stage] = None // changed in addStage in PController
   var next:Option[Stage] = None 
   def isLast = next.isEmpty
@@ -169,20 +172,22 @@ object WAStage {
 }
 
 case class ConstVal[T](v:T)(implicit spade:Spade) extends Module {
-  val out = OutPort(this, s"Const($v)")
+  val out = Output(Word(), this, s"Const($v)")
 }
 case class Const()(implicit spade:Spade) extends Module {
-  val out = RMOutPort(this, s"Const")
+  val out = Output(Word(), this, s"Const")
 }
 
 trait LUT extends Node {
   val numIns:Int
 }
 case class EnLUT(numIns:Int)(implicit spade:Spade) extends LUT {
+  import spademeta._
   override val typeStr = "enlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
 case class TokenOutLUT()(implicit spade:Spade) extends LUT{
+  import spademeta._
   override val typeStr = "tolut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   override val numIns = 2 // Token out is a combination of two output
@@ -190,22 +195,24 @@ case class TokenOutLUT()(implicit spade:Spade) extends LUT{
 case class TokenDownLUT(numIns:Int)(implicit spade:Spade) extends LUT {
   override val typeStr = "tdlut"
 }
-object TokenDownLUT extends Metadata {
+object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade):TokenDownLUT = TokenDownLUT(numIns).index(idx)
 }
 case class UDCounter()(implicit spade:Spade) extends Node {
+  import spademeta._
   override val typeStr = "udlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  //val init = InPort(this, s"${this}.init")
-  //val inc = InPort(this, s"${this}.inc")
-  //val dec = InPort(this, s"${this}.dec")
-  //val out = OutPort(this, s"${this}.out")
+  //val init = Input(Word(), this, s"${this}.init")
+  //val inc = Input(Word(), this, s"${this}.inc")
+  //val dec = Input(Word(), this, s"${this}.dec")
+  //val out = Output(Word(), this, s"${this}.out")
 }
-object UDCounter extends Metadata {
+object UDCounter {
   def apply(idx:Int)(implicit spade:Spade):UDCounter = UDCounter().index(idx)
 }
 
 class CtrlBox[+C<:Controller](numUDCs:Int) (implicit spade:Spade, override val ctrler:C) extends Primitive {
+  import spademeta._
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
 }
 

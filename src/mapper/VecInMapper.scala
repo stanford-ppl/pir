@@ -1,8 +1,9 @@
 package pir.mapper
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph.traversal.PIRMapping
-import pir.util._
+import pir.exceptions._
+import pir.util.misc._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -17,7 +18,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   def finPass(cl:CL)(m:M):M = m
   override def debug = Config.debugVIMapper
 
-  private def getOB(sin:SI, pirMap:M):POB = {
+  private def getOB(sin:SI, pirMap:M):PO = {
     pirMap.somap(sin.scalar.writer).outBus
   }
 
@@ -35,6 +36,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     }
   }
 
+  //TODO Not used
   def mapVec(cl:CL, pcl:PCL)(n:N, p:R, pirMap:M):M = {
     assert(!pirMap.vimap.contains(n))
     assert(!pirMap.vimap.pmap.contains(p))
@@ -42,11 +44,11 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
-    val pdvouts:List[POB] = pirMap.vomap(n.vector.writer).filter { pdvout => p.canConnect(pdvout) }.toList
+    val pdvouts:List[PO] = pirMap.vomap(n.vector.writer).filter { pdvout => p.canConnect(pdvout) }.toList
 
     /* Find vins that connects to the depended ctrler */
     if (pdvouts.size!=0) {
-      pirMap.setVI(n, p).setFI(p, pdvouts.head).setOP(n.out, p.viport)
+      pirMap.setVI(n, p).setFI(p, pdvouts.head)//.setOP(n.out, p.viport)
     } else {
       throw InterConnct(cl, pcl, pirMap)
     }

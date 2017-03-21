@@ -10,7 +10,7 @@ import scala.reflect.runtime.universe._
 import pir.Design
 import pir.graph._
 import pir.util.enums._
-import pir.util.PIRException
+import pir.exceptions._
 import pir.graph.traversal.ForwardRef
 
 

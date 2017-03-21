@@ -11,14 +11,14 @@ trait OuterRegBlock { self:ComputeUnit =>
 
   var infGraph:Map[Reg, Set[Reg]] = Map.empty
 
-  val scalarIns  = Map[ScalarIn, ScalarInPR]()
+  val scalarInRegs  = Map[ScalarIn, ScalarInPR]()
   val loadRegs   = Map[OnChipMem, LoadPR]()
-  def reset      = { regId = 0; loadRegs.clear; scalarIns.clear }
+  def reset      = { regId = 0; loadRegs.clear; scalarInRegs.clear }
 
-  def scalarInPR(s:ScalarIn):ScalarInPR = scalarIns.getOrElseUpdate(s, ScalarInPR(newTemp, s))
+  def scalarInPR(s:ScalarIn):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(newTemp, s))
   def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
 
-  def pipeReg(stage:Stage, reg:Reg) = stage.prs.getOrElseUpdate(reg, PipeReg(stage,reg))
+  def pipeReg(stage:Stage, reg:Reg) = stage.getOrElseUpdate(reg, PipeReg(stage,reg))
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
@@ -57,9 +57,9 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
   lazy val reduceReg  = ReducePR(newTemp)
-  val scalarOuts = Map[ScalarOut, ScalarOutPR]()
-  val vecIns     = Map[VecIn, VecInPR]()
-  lazy val vecOut     = VecOutPR(newTemp)
+  val scalarOutRegs = Map[ScalarOut, ScalarOutPR]()
+  val vecInRegs     = Map[VecIn, VecInPR]()
+  val vecOutRegs     = Map[VecOut, VecOutPR]()
   val storeRegs  = Map[OnChipMem, StorePR]()
   val wtAddrRegs = Map[SRAMOnWrite, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
@@ -80,11 +80,11 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
     acc
   }
 
-  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOuts.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
+  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOutRegs.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
 
-  def vecInPR(v:VecIn):VecInPR = vecIns.getOrElseUpdate(v, VecInPR(newTemp, v))
+  def vecInPR(vo:VecIn):VecInPR = vecInRegs.getOrElseUpdate(vo, VecInPR(newTemp, vo))
 
-  def vecOutPR(vo:VecOut):VecOutPR = { vecOut.vecOut = vo; vecOut }
+  def vecOutPR(vo:VecOut):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(newTemp, vo))
 
   def tempPR():Reg = {
     val reg = Reg(newTemp)

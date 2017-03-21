@@ -2,9 +2,10 @@ package pir.graph.traversal
 
 import pir.{Design, Config}
 import pir.codegen._
-import pir.misc._
+import pir.util._
 import pir.graph._
 import pir.mapper.PIRMap
+import pir.util.misc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

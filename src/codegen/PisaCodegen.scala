@@ -1,15 +1,18 @@
 package pir.graph.traversal
 
-import pir.Design
+import pir._
 import pir.codegen._
-import pir.misc._
-import pir.typealias.{Const => _, _}
+import pir.util.typealias.{Const => _, _}
 import pir.plasticine.main._
+import pir.exceptions._
 import pir.util.enums._
-import pir.util._
+//import pir.util.{quote => _, _}
+import pir.util.misc._
+import pir.util.PIRMetadata
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
 import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst, GridIO}
+import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -17,9 +20,13 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with Metadata with pir.VecOf with DebugLogger {
+class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traversal with JsonCodegen with DebugLogger {
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override val stream = newStream(dir, s"${design}.json") 
+  val pirmeta: PIRMetadata = design
+  val spademeta: SpadeMetadata = design.arch
+  import pirmeta.{indexOf => _, _}
+  import spademeta._
   
   implicit def spade:Spade = design.arch
 
@@ -40,8 +47,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   lazy val simap:SIMap = mapping.simap
   lazy val somap:SOMap = mapping.somap
   lazy val rcmap:RCMap = mapping.rcmap
-
-  def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
+  lazy val xbmap:XBMap = mapping.xbmap
 
   override def traverse:Unit = {
     if (pirMapping.fail) return
@@ -190,14 +196,14 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
   def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
     val siXbar = ListBuffer[String]() 
     val siComment = ListBuffer[String]() 
-    pcu.etstage.prs.toList.sortWith{ case ((r1,ppr1), (r2, ppr2)) => indexOf(r1) < indexOf(r2)}
-      .foreach { case (preg, ppr) =>
+    pcu.etstage.prs.sortWith{ case (ppr1, ppr2) => indexOf(ppr1.reg) < indexOf(ppr2.reg)}.foreach { ppr =>
+      val preg = ppr.reg
       val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
       if (psins.size!=0) { // Is scalarIn Register
         val mpsins = psins.filter { psin =>
           simap.pmap.get(psin).fold(false) { sin => 
             val reg = sin.ctrler.asInstanceOf[CU].scalarInPR(sin)
-            rcmap(reg) == preg
+            rcmap(reg) == ppr.reg 
           }
         }
         if (mpsins.size==0) siXbar += s""""x""""
@@ -218,7 +224,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     }
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
-      if (pcu.etstage.prs(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
+      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
         //simux += s""""0"""" //TODO scalar retiming mux 
         simux += s"0" //TODO scalar retiming mux 
       }
@@ -231,9 +237,9 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
     val xbarComment = ListBuffer[String]()
     sbio.outs.foreach { pvout =>
       if (pvout.isConnected) {
-        if (fimap.contains(pvout.voport)) {
-          val vin = fimap(pvout.voport).src.asInstanceOf[PIB]
-          xbarComment += s"${quote(fimap(pvout.voport))} -> ${quote(vin)}"
+        if (xbmap.contains(pvout)) {
+          val vin = xbmap(pvout).asInstanceOf[PIB]
+          xbarComment += s"${quote(pvout)} -> ${quote(vin)}"
           ins += s""""${sbio.io(vin)}""""
         } else {
           ins += s""""x""""
@@ -309,7 +315,7 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
       case pst:PST => s"s${indexOf(pst)}"
       case pfu:PFU => lookUp(pfu.stage) 
       case pctr:PCtr => s"i${indexOf(pctr)}"
-      case pib:PIB => s"bus${indexOf(pib)}"
+      case pib:PI if pib.isBus => s"bus${indexOf(pib)}"
       case psm:PSRAM => s"m${indexOf(psm)}"
       case _ => throw new TODOException(s"Don't know how to lookUp ${pnode}"); "?"
     }
@@ -669,13 +675,13 @@ class PisaCodegen(pirMapping:PIRMapping)(implicit design: Design) extends Traver
               }
             case _ =>
           }
-          val rstrs = pstage.prs.flatMap { case (preg, ppr) =>
+          val rstrs = pstage.prs.flatMap { ppr =>
             assert(pstage==ppr.stage)
             if (fimap.contains(ppr.in)) {
               fimap(ppr.in).src match {
-                case p:PFU => Some((s"r${indexOf(preg)}", "alu"))
+                case p:PFU => Some((s"r${indexOf(ppr.reg)}", "alu"))
                 case p:PSI => None
-                case p => Some((s"r${indexOf(preg)}", lookUp(pstage, p)))
+                case p => Some((s"r${indexOf(ppr.reg)}", lookUp(pstage, p)))
               }
             } else None
           }

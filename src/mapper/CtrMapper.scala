@@ -1,8 +1,9 @@
 package pir.mapper
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph.traversal.{PIRMapping, CtrDotPrinter}
 import pir.util._
+import pir.exceptions._
 import pir.graph.Const
 import pir.plasticine.graph.{ ConstVal => PConstVal }
 
@@ -95,7 +96,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
     var ipmap = map.ipmap
     var fimap = map.fimap
-    def mapInPort(n:IP, p:PIP):Unit = {
+    def mapInPort(n:IP, p:PI):Unit = {
       ipmap += n -> p 
       n.from.src match {
         case Const(v) => fimap += p -> PConstVal(v)(design.arch).out

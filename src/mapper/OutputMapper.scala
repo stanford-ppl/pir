@@ -1,6 +1,6 @@
 package pir.mapper
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 import pir.util.enums._
 import pir.graph.traversal.PIRMapping
 
@@ -10,7 +10,7 @@ import scala.collection.immutable.Map
 
 class OutputMapper(implicit val design:Design) extends Mapper {
   type N = VO 
-  type R = POB 
+  type R = PO
   val typeStr = "SOMapper"
   override def debug = Config.debugSOMapper
 
@@ -19,13 +19,14 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   private def mapVecOut(scl:CL)(n:N, p:R, cuMap:M):M = {
     val mp = cuMap.setVO(n,p)
     n match {
-      case dvo:DVO =>
-        dvo.scalarOuts.zipWithIndex.foldLeft(mp) { case (pm, (so, i)) =>
-          val psos = p.inports(i).fanIns.map(_.src).collect{ case pso:PSO => pso }
-          assert(psos.size==1)
-          val pso = psos.head
-          pm.setSO(so, pso).setIP(so.in, pso.in)
-        }
+      case dvo:DVO => mp
+        //TODO
+        //dvo.scalarOuts.zipWithIndex.foldLeft(mp) { case (pm, (so, i)) =>
+          //val psos = p.inports(i).fanIns.map(_.src).collect{ case pso:PSO => pso }
+          //assert(psos.size==1)
+          //val pso = psos.head
+          //pm.setSO(so, pso).setIP(so.in, pso.in)
+        //}
       case _ => mp 
     } 
   }

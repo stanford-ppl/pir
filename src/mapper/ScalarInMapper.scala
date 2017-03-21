@@ -1,33 +1,40 @@
 package pir.mapper
 import pir._
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph.traversal.PIRMapping
+import pir.plasticine.util.SpadeMetadata
 import scala.util.{Try, Success, Failure}
+import pir.util.PIRMetadata
+import pir.plasticine.main._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class ScalarInMapper(implicit val design:Design) extends Mapper with Metadata {
+class ScalarInMapper(implicit val design:Design) extends Mapper {
   type N = SI
   type R = PSI 
   val typeStr = "SIMapper"
-
   override def debug = Config.debugSIMapper
+  implicit val spade:Spade = design.arch
+  val pirmeta:PIRMetadata = design
+  val spademeta: SpadeMetadata = spade 
+  import pirmeta.{indexOf => _, _}
+  import spademeta._
+
   def finPass(cl:CL)(m:M):M = m 
 
   private def mapScalarIns(vimap:VIMap, somap:SOMap)(n:N, p:R, map:M):M = {
-    val ib = vimap(vecOf(n).asInstanceOf[VI])
+    val ib = vimap(n)
     val idx = somap(n.scalar.writer).idx
     dprintln(s"Try $n -> $p $ib")
-    assert(p.in.canConnect(ib.outports(idx)))
+    assert(busesOf(p).contains(ib))
     map.setSI(n,p).setOP(n.out, p.out)
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
-    val ib = m.vimap(vecOf(n).asInstanceOf[VI])
-    val idx = m.somap(n.scalar.writer).idx
-    ib.outports(idx).fanOuts.map{_.src}.collect{ case psi:R => psi}.filter{ psi =>
+    val ib = m.vimap(n)
+    bufsOf(ib).collect{ case psi:PSI => psi }.filter { psi =>
       !triedRes.contains(psi) && !m.simap.pmap.contains(psi)
     }.toList
   }

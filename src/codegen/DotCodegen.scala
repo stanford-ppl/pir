@@ -2,8 +2,7 @@ package pir.codegen
 
 import pir.Design
 import pir.plasticine.main._
-import pir.typealias._
-import pir.util.PIRException
+import pir.util.typealias._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 
@@ -114,32 +113,25 @@ trait DotCodegen extends Printer with DotEnum {
 			block
 		}
   }
-  def quote(n:Any)(implicit design:Design) = DotCodegen.quote(n)
-}
-object DotCodegen extends Metadata {
-  def quote(n:Any)(implicit design:Design):String = {
-    quote(n, design.arch)
-  }
-  def quote(n:Any, s:Spade):String = {
-    implicit def spade = s
+  def quote(n:Any)(implicit design:Design) = {
+    implicit val spade:Spade = design.arch
     n match {
-      case pne:PNE => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
-      case vin:PIB =>
+      case vin:PI =>
         vin.src match {
           case cu:PCU => s"""${vin.src}:${vin}:n"""
           case sb:PSB => s"""${vin.src}"""
           case _ => vin.src.toString
         }
-      case vout:POB =>
+      case vout:PO =>
         vout.src match {
           case cu:PCU => s"""${vout.src}:${vout}:s"""
           case sb:PSB => s"""${vout.src}"""
           case _ => vout.src.toString
         }
-      case n:PNode =>
-        indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
-      case _ => n.toString
-    }
+      case n:Node => pir.util.quote(n)
+      case n:PNode => pir.plasticine.util.quote(n)
+      case _ => s"$n"
+    } 
   }
 }
 

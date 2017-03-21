@@ -23,7 +23,7 @@ class Simulator(implicit design: Design) extends Traversal with Printer {
     cycle == 10
   } 
 
-  val updated = ListBuffer[Val[_,_]]()
+  val updated = ListBuffer[Val[_]]()
   override def traverse = {
     spade.simulatable.foreach { _.register }
     while (finishSimulation) {
@@ -38,15 +38,9 @@ class Simulator(implicit design: Design) extends Traversal with Printer {
     super.finPass
   }
 
-  val busValueMap = Map[Bus, BusVal]()
-  val portValueMap = Map[Port, PortVal]()
-  val wireValueMap = Map[Wire, WireVal]()
-  def v(io:IO[_<:LinkType, _<:Module]) = io match {
-    case io:Bus => busValueMap(io)
-    case io:Port => portValueMap(io)
-    case io:Wire => wireValueMap(io)
-  }
-  def ev(io:IO[_<:LinkType, _<:Module]) = {
+  val valMap = Map[IO[_<:PortType,_<:Module], Val[_]]()
+  def v(io:IO[_<:PortType, _<:Module]):Val[_] = valMap(io)
+  def ev(io:IO[_<:PortType, _<:Module]):Val[_] = {
     val value = v(io)
     if (!updated.contains(io)) value.update
     value
@@ -58,17 +52,19 @@ trait Simulatable extends Module {
   def register(implicit sim:Simulator):Unit = {
     import sim._
     ios.foreach {
-      case io:Bus => busValueMap += io -> BusVal(io.asInstanceOf[IO[Bus, Module]])
-      case io:Port => portValueMap += io -> PortVal(io.asInstanceOf[IO[Port, Module]])
-      case io:Wire => wireValueMap += io -> WireVal(io.asInstanceOf[IO[Wire, Module]])
+      case io:Bus => valMap += io -> BusVal(io.asBus)
+      case io:Word => valMap += io-> WordVal(io.asWord)
+      case io:Bit => valMap += io -> BitVal(io.asBit)
     }
     val fimap = mapping.fimap
-    ins.foreach {
-      case in:InBus[_] => 
-        fimap.get(in).foreach { ob =>
-          v(in).set{ sim => sim.ev(ob).value }
-        }
-      case _ =>
+    ins.foreach { in =>
+      in.tp match {
+        case Bus(busWidth, elemTp) => 
+          fimap.get(in).foreach { ob =>
+            v(in).set{ sim => sim.ev(ob).value }
+          }
+        case _ =>
+      }
     }
   }
 }
@@ -100,10 +96,22 @@ class VcdPrinter(sim:Simulator) extends Printer {
     m.ios.foreach { io =>
       sim.v(io) match {
         case v@BusVal(io) =>
-          (0 until io.asInstanceOf[Bus].busWidth).foreach { i =>
+          io.tp match {
+            case Bus(busWidth, Word(wordWidth)) =>
+              (0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${io}_$i") }
+            case Bus(busWidth, Bit()) =>
+              emitVar("wire", busWidth, s"$io", s"$io")
           }
-        case v@PortVal(io) =>
-        case v@WireVal(io) =>
+        case v@WordVal(io) =>
+          io.tp match {
+            case Word(wordWidth) if wordWidth == 1 =>
+              emitVar("wire", wordWidth, s"$io", s"$io")
+            case Word(wordWidth) if wordWidth < 32 =>
+              emitVar("integer", wordWidth, s"$io", s"$io")
+          } 
+        case v@BitVal(io) =>
+          val Bit() = io.tp
+          emitVar("wire", 1, s"$io", s"$io")
       }
     }
     emitln(s"$$upscope $end")

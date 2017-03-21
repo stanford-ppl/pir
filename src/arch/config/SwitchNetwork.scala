@@ -331,14 +331,14 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 }
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=spade.numLanes) {
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.vectorIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.vectorIO
 }
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.scalarIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.scalarIO
 }
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
-  def io(pne:NetworkElement):GridIO[NetworkElement] = pne.ctrlIO
+  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.ctrlIO
 }
 

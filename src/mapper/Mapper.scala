@@ -1,18 +1,18 @@
 package pir.mapper
 
 import pir.{Design, Config}
-import pir.typealias._
+import pir.util.typealias._
 import pir.graph.traversal.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
-import pir.util._
-import pir.codegen.{Logger, DotCodegen}
+import pir.codegen.{Logger}
 import java.lang.Thread
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
+import pir.exceptions._
 
 trait Mapper { self =>
   type M = PIRMap 
@@ -42,7 +42,10 @@ trait Mapper { self =>
   def emitBlock[T](block: =>T):T = logger.emitBlock(block) 
   def emitBlock[T](s:String)(block: =>T):T = logger.emitBlock(s"$mapper", s)(block) 
 
-  def quote(pne:Any)(implicit spade:Spade):String = DotCodegen.quote(pne) 
+  def quote(n:Any)(implicit spade:Spade):String = n match {
+    case n:Node => pir.util.quote(n) 
+    case n:PNode => pir.plasticine.util.quote(n)
+  }
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
     val (infoStr, buffer) = info match {
