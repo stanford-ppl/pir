@@ -58,12 +58,8 @@ trait Simulatable extends Module {
     }
     val fimap = mapping.fimap
     ins.foreach { in =>
-      in.tp match {
-        case Bus(busWidth, elemTp) => 
-          fimap.get(in).foreach { ob =>
-            v(in).set{ sim => sim.ev(ob).value }
-          }
-        case _ =>
+      fimap.get(in).foreach { out =>
+        v(in).set{ sim => sim.ev(out).value }
       }
     }
   }
