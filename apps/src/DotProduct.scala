@@ -6,6 +6,7 @@ import pir.plasticine.config._
 import pir.Design
 import pir.misc._
 import pir.PIRApp
+import pir.util._
 
 object DotProduct extends PIRApp {
   def main(args: String*)(top:Top) = {
