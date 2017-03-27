@@ -20,7 +20,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
 
   def quote(n:Any)(implicit design:Design):String = { quote(n) }
 
-  override val stream = newStream(Config.spadeFile) 
+  override lazy val stream = newStream(Config.spadeFile) 
   
   def emitIO(pne:GridIO[_<:NetworkElement]):Unit = {
     emitBlock(s"ins") {

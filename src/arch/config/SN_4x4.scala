@@ -170,29 +170,27 @@ trait SN_temp extends SwitchNetwork {
 
   override def cuAt(i:Int, j:Int) = {
     if ((i+j) % 2 == 0) {
-      new ComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .numSRAMs(4)
+      val cu = new ComputeUnit()
+        cu.numRegs(16)
+        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
         .addRegstages(numStage=14, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numSinReg(8)
+        .numScalarIns(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarIns, ScalarInReg)
+        .numScalarOuts(scalarNetwork.io(cu).numOuts).color(0 until 0 + cu.numScalarOuts, ScalarOutReg)
+        .numVecIns(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecIns, VecInReg)
+        .numVecOuts(vectorNetwork.io(cu).numOuts).color(0 until 0 + cu.numVecOuts, VecOutReg)
+        .color(0, ReduceReg)
         .ctrlBox(numUDCs=5)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
     } else {
-      new MemoryComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .numSRAMs(4)
+      val cu = new MemoryComputeUnit()
+        cu.numRegs(16)
+        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
+        .numSRAMs(1).color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
         .addWAstages(numStage=3, numOprds=3, ops)
         .addRAstages(numStage=3, numOprds=3, ops)
-        .numSinReg(8)
         .ctrlBox(numUDCs=4)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    }
+    }.genConnections
   }
 
   override def scuAt(c:Int, r:Int) = {
@@ -203,7 +201,6 @@ trait SN_temp extends SwitchNetwork {
         .addRegstages(numStage=0, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numSinReg(6)
         .ctrlBox(numUDCs=4)
         .genConnections
         //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
@@ -221,7 +218,6 @@ object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=5, numArgOut
         .addRegstages(numStage=14, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numSinReg(8)
         .ctrlBox(numUDCs=6)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
@@ -232,7 +228,6 @@ object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=5, numArgOut
         .numSRAMs(4)
         .addWAstages(numStage=3, numOprds=3, ops)
         .addRAstages(numStage=3, numOprds=3, ops)
-        .numSinReg(8)
         .ctrlBox(numUDCs=6)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)

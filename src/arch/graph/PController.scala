@@ -24,7 +24,7 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
   implicit val ctrler:this.type = this 
   import spademeta._
 
-  def ctrlBox:CtrlBox[Controller]
+  def ctrlBox:CtrlBox
   val scalarIO:GridIO[this.type] = ScalarIO(this)
   val vectorIO:GridIO[this.type] = VectorIO(this)
   val ctrlIO:GridIO[this.type] = ControlIO(this)
@@ -45,17 +45,8 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
-  //implicit override val ctrler:Top = self
-
-  //lazy val sins:List[ScalarIn] = List.tabulate(numVins, sbw) { case (ib, ia) =>
-    //ScalarIn(vins(ib).outports(ia)).index(sbw*ib + ia)
-  //}.flatten
-  //lazy val souts:List[ScalarOut] = List.tabulate(numVouts, sbw) { case (ib, ia) =>
-    //ScalarOut(vouts(ib).inports(ia))
-  //}.flatten
-  val clk = OutPort(this, s"clk")
-
-  val ctrlBox:CtrlBox[Top] = new CtrlBox(0)
+  val clk = Output(Bit(), this, s"clk")
+  val ctrlBox:CtrlBox = new CtrlBox(0)
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -74,10 +65,9 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   //override implicit val ctrler:ComputeUnit = this 
   override val typeStr = "cu"
 
-  var regs:List[Reg] = _
+  var regs:List[ArchReg] = _
   var srams:List[SRAM] = _
   var ctrs:List[Counter] = _
-  var numSinReg:Int = _
   var scalarIns:List[ScalarIn] = _
   var scalarOuts:List[ScalarOut] = _
   var vectorIns:List[VectorIn] = _
@@ -125,21 +115,28 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     _stages ++= sts
   }
 
-  var _ctrlBox:CtrlBox[ComputeUnit] = _
-  def ctrlBox:CtrlBox[ComputeUnit] = _ctrlBox
+  var _ctrlBox:CtrlBox = _
+  def ctrlBox:CtrlBox = _ctrlBox
 
   val reduce = Output(Word(), this, s"${this}.reduce")
 
   def numRegs(num:Int):this.type = { 
-    regs = List.tabulate(num) { ir => Reg().index(ir) }
+    regs = List.tabulate(num) { ir => ArchReg().index(ir) }
     addETStage(EmptyStage(regs))
     this
   }
-  def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { ic => Counter().index(ic) }; this }
-  def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { is => SRAM().index(is) }; this }
-  def numSinReg(num:Int):this.type = { numSinReg = num; this }
-  def numVecIns(num:Int):this.type = { vectorIns = List.tabulate(num) { vi => VectorIn().index(vi) }; this }
-  def numVecOuts(num:Int):this.type = { vectorOuts = List.tabulate(num) { vo => VectorOut().index(vo) }; this }
+  def numCtrs(num:Int):this.type = { ctrs = List.tabulate(num) { i => Counter().index(i) }; this }
+  def numCtrs = ctrs.size
+  def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { i => SRAM().index(i) }; this }
+  def numSRAMs = srams.size
+  def numScalarIns(num:Int):this.type = { scalarIns = List.tabulate(num)  { i => ScalarIn().index(i) }; this }
+  def numScalarIns:Int = scalarIns.size
+  def numScalarOuts(num:Int):this.type = { scalarOuts = List.tabulate(num)  { i => ScalarOut().index(i) }; this }
+  def numScalarOuts:Int = scalarOuts.size
+  def numVecIns(num:Int):this.type = { vectorIns = List.tabulate(num) { i => VectorIn().index(i) }; this }
+  def numVecIns:Int = vectorIns.size
+  def numVecOuts(num:Int):this.type = { vectorOuts = List.tabulate(num) { o => VectorOut().index(o) }; this }
+  def numVecOuts:Int = vectorOuts.size
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
     addRegstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops) }); this // Regular stages
   }
@@ -156,8 +153,10 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     }
   }
   def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
-  def genMapping(vinsPtr:Int, voutPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int):this.type = {
-    ConfigFactory.genMapping(this, vinsPtr, voutPtr, sinsPtr, soutsPtr, ctrsPtr, waPtr, wpPtr, loadsPtr, rdPtr)
+  def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
+  def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
+  def genMapping(vins:Range, vouts:Range, sins:Range, souts:Range, ctrs:Range, wa:Int, ra:Int, loads:Range, rd:Int):this.type = {
+    //ConfigFactory.genMapping(this, vinsPtr, voutPtr, sinsPtr, soutsPtr, ctrsPtr, waPtr, wpPtr, loadsPtr, rdPtr)
     this
   }
 
@@ -169,7 +168,6 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   this.numRegs(0)
   this.numSRAMs(0)
   this.addRegstages(numStage=0, numOprds=0, ops)
-  this.numSinReg(0)
 }
 
 class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
@@ -197,7 +195,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
   import spademeta._
-  var _ctrlBox:CtrlBox[MemoryController] = _
-  def ctrlBox:CtrlBox[MemoryController] = _ctrlBox
+  var _ctrlBox:CtrlBox = _
+  def ctrlBox:CtrlBox = _ctrlBox
   def ctrlBox(numUDCs:Int):this.type = { _ctrlBox = new CtrlBox(numUDCs); this }
 }

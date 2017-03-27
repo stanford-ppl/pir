@@ -27,7 +27,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
         .addRegstages(numStage=0, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numSinReg(8)
         .ctrlBox(numUDCs=4)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
@@ -37,7 +36,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
         .numCtrs(8)
         .addWAstages(numStage=3, numOprds=3, ops)
         .addRAstages(numStage=3, numOprds=3, ops)
-        .numSinReg(8)
         .ctrlBox(numUDCs=4)
         .genConnections
         //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
@@ -51,7 +49,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
         .addRegstages(numStage=0, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numSinReg(6)
         .ctrlBox(numUDCs=4)
         .genConnections
         //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
@@ -59,8 +56,7 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
   def mcAt(c:Int, r:Int):MemoryController = {
     val mc = new MemoryController()
-        .ctrlBox(numUDCs=0)
-    mc
+      mc.ctrlBox(numUDCs=0)
   }
 
   def ocuAt(c:Int, r:Int):OuterComputeUnit = {
@@ -104,7 +100,7 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val scalarNetwork = new ScalarNetwork()
 }
 
-abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
+abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 
   def io(cu:NetworkElement):GridIO[NetworkElement]
 
@@ -174,8 +170,8 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
   }
 
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
-    val outs = io(out).addOutAt(outDir, channelWidth, linkWidth)
-    val ins = io(in).addInAt(inDir, channelWidth, linkWidth)
+    val outs = io(out).addOutAt(outDir, channelWidth)
+    val ins = io(in).addInAt(inDir, channelWidth)
     outs.zip(ins).foreach { case (o, i) => o ==> i }
   }
 
@@ -330,15 +326,15 @@ abstract class ConnectionNetwork(linkWidth:Int)(implicit spade:SwitchNetwork) {
 
 }
 
-class VectorNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=spade.numLanes) {
+class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.vectorIO
 }
 
-class ScalarNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
+class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.scalarIO
 }
 
-class CtrlNetwork()(implicit spade:SwitchNetwork) extends ConnectionNetwork(linkWidth=1) {
+class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.ctrlIO
 }
 

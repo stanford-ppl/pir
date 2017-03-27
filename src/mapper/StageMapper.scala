@@ -3,9 +3,10 @@ import pir._
 import pir.util.typealias._
 import pir.util.enums._
 import pir.graph.{Const, PipeReg}
-import pir.plasticine.graph.{ConstVal}
 import pir.pass.{PIRMapping, MapPrinter}
 import pir.util._
+import pir.plasticine.main._
+import pir.plasticine.graph.{Const => PConst}
 import pir.plasticine.util._
 import pir.exceptions._
 
@@ -22,6 +23,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
   val typeStr = "StageMapper"
   override def debug = Config.debugSTMapper
   override val exceptLimit = 200
+  implicit val spade:Spade = design.arch
 
   def finPass(cu:ICL)(m:M):M = m
 
@@ -137,10 +139,13 @@ class StageMapper(implicit val design:Design) extends Mapper {
     val ipmap = map.ipmap
     val pop:PO = n.from.src match {
       case Const(c) =>
-        if (!r.canConnect(design.arch.const.out)) {
+        val consts = r.fanIns.map(_.src).collect { case c:PConst => c }
+        if (consts.isEmpty) {
           val info = s"${n} is Const, but ${r} cannot be configured to constant"
           throw InPortRouting(n, r, info, map)
-        } else ConstVal(c)(design.arch).out
+        } else {
+          consts.head.out
+        }
       case pr@PipeReg(stage, reg) => 
         val preg = rcmap(reg)
         val pstage = stmap(stage)

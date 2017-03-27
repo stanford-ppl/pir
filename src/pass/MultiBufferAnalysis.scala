@@ -13,7 +13,7 @@ import scala.collection.mutable.Queue
 class MultiBufferAnalysis(implicit val design: Design) extends Pass with Printer {
   def shouldRun = true 
 
-  override val stream = newStream(s"MultiBufferAnalysis.txt")
+  override lazy val stream = newStream(s"MultiBufferAnalysis.txt")
 
   def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
     val ra = reader.ancestors

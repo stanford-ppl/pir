@@ -23,7 +23,7 @@ object ConfigFactory {
   }
 
   /* Generate connections relates to register mapping of a cu */
-  def genMapping(cu:ComputeUnit, vinsPtr:Int, voutsPtr:Int, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
+  def genMapping(cu:ComputeUnit, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     /* Register Constrain */
@@ -35,69 +35,54 @@ object ConfigFactory {
     // Bus input is forwarded to 1 register in empty stage
     assert(cu.vins.size == cu.vectorIns.size)
     (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => busesOf(vin) += vi }
-    cu.vectorIns.zipWithIndex.foreach { case (vin, i) =>
-      forwardStages(cu).foreach { s => s.get(cu.regs(vinsPtr + i)).in <== vin.out }
+    (cu.vectorIns, cu.regs.filter(_.is(VecInReg))).zipped.foreach { case (vin, reg) =>
+      forwardStages(cu).foreach { s => s.get(reg).in <== vin.out }
     }
     assert(cu.vouts.size == cu.vectorOuts.size)
     (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => busesOf(vout) += vo }
-    cu.vectorOuts.zipWithIndex.foreach { case (vout, i) =>
-      cu.stages.last.get(cu.regs(voutsPtr + i)).in <== vout.out
+    (cu.vectorOuts, cu.regs.filter(_.is(VecOutReg))).zipped.foreach { case (vout, reg) =>
+      cu.stages.last.get(reg).in <== vout.out
     }
-    val scalInPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
-    val gsis:List[List[Input[Bus, _]]] = cu.sins.grouped(scalInPerSin).toList
-    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) =>
-      //sis.foreach { si =>  }
+    val siPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
+    val gsis:List[List[Input[Bus, _]]] = cu.sins.grouped(siPerSin).toList
+    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => busesOf(sin) ++= sis }
+    (cu.scalarIns, cu.regs.filter(_.is(ScalarInReg))).zipped.foreach { case (sin, reg) =>
+      forwardStages(cu).foreach { s => s.get(reg).in <== sin.out }
     }
-
-    // Bus output is connected to 1 register in last stage
-    // TODO
-    //cu.vout.voport <== cu.stages.last.get(cu.regs(voutPtr))
-    (0 until cu.numSinReg).foreach { is =>
-      val sireg = cu.etstage.get(cu.regs(sinsPtr + is)) 
-      cu.ctrs.foreach { c => c.min <== sireg; c.max <== sireg ; c.step <== sireg } // Counter min, max, step can from scalarIn
-      // ScalarInXbar
-      //cu.sins.foreach { sin => sireg <== sin.out}
+    val soPerSout = Math.ceil( cu.souts.size * 1.0 / cu.scalarOuts.size ).toInt
+    val gsos:List[List[Output[Bus, _]]] = cu.souts.grouped(soPerSout).toList
+    (gsos, cu.scalarOuts).zipped.foreach { case (sos, sout) => busesOf(sout) ++= sos }
+    (cu.scalarOuts, cu.regs.filter(_.is(ScalarOutReg))).zipped.foreach { case (sout, reg) =>
+      cu.stages.last.get(reg).in <== sout.out
     }
-    // Scalar outputs is connected to 1 register in last stage
-    //cu.souts.groupBy(_.inport.map{_.src}).map { case (outBus, souts) =>
-      //souts.zipWithIndex.foreach { case (so, is) =>
-        //so.in <== cu.stages.last.get(cu.regs(soutsPtr + is))
-      //}
-    //}
+    cu.scalarIns.foreach { sin =>
+      // Counter min, max, step can from scalarIn
+      cu.ctrs.foreach { c => c.min <== sin.out; c.max <== sin.out ; c.step <== sin.out }
+    }
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
-    cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-      cu.etstage.get(cu.regs(ctrsPtr + ic)) <== c.out
+    (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
+      forwardStages(cu).foreach { s => s.get(reg) <== c.out }
     }
     cu match {
       case cu:MemoryComputeUnit =>
-        cu.ctrs.zipWithIndex.foreach { case (c, ic) => 
-          (cu.wastages ++ cu.rastages).foreach(_.get(cu.regs(ctrsPtr + ic)) <== c.out) 
-        }
-        cu.srams.zipWithIndex.foreach { case (s, is) => 
-          (cu.wastages ++ cu.rastages).foreach(s.readAddr <== _.fu.out)
-          (cu.wastages ++ cu.rastages).foreach(_.get(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
+        cu.srams.foreach { case sram => 
+          (cu.wastages ++ cu.rastages).foreach { s =>
+            sram.readAddr <== s.fu.out
+            sram.writeAddr <== s.fu.out
+          }
         }
       case _ =>
     }
-    // Sram read addr and write addr (probably don't need 1 reg per sram for write addr. Usually
-    // only write to 1 sram)
-    cu.srams.zipWithIndex.foreach { case (s, is) => 
-      s.writeAddr <== cu.stages.last.get(cu.regs(waPtr))
-      s.writePort <== cu.stages.last.get(cu.regs(wpPtr)) // Sram write port is connected to 1 register of last stage
-      cu.regstages.headOption.foreach(_.get(cu.regs(loadsPtr + is)) <== s.readPort) // Sram read port forwarding 
-    }
-    cu.rdstages.foreach( _.get(cu.regs(rdPtr)) <== cu.reduce)
   }
 
   /* Generate primitive connections within a CU */ 
   def genConnections(cu:ComputeUnit)(implicit spade:Spade) = {
     val top = spade.top
-    val const = spade.const
 
     cu.ctrs.foreach { c => 
-      c.min <== const.out // Counter max, min, step can be constant or scalarIn(specified later)
-      c.max <== const.out
-      c.step <== const.out
+      c.min <== Const().out // Counter max, min, step can be constant or scalarIn(specified later)
+      c.max <== Const().out
+      c.step <== Const().out
     }
     /* Chain counters together */
     for (i <- 1 until cu.ctrs.size) { cu.ctrs(i).en <== cu.ctrs(i-1).done } 
@@ -113,7 +98,7 @@ object ConfigFactory {
       // All stage can read from any regs of its own stage, previous stage, and Const
       val preStage = cu.stages(i) // == fustages(i-1)
       stage.fu.operands.foreach{ oprd =>
-        oprd <== const.out // operand is constant
+        oprd <== Const().out // operand is constant
         cu.regs.foreach{ reg =>
           oprd <== stage.get(reg) // operand is from current register block
           oprd <== preStage.get(reg) // operand is forwarded from previous register block

@@ -13,7 +13,7 @@ import scala.collection.mutable.Stack
 trait Printer {
   var fileName:String = "System.out"
   var dirPath:String = Config.outDir 
-  val stream:OutputStream = System.out
+  lazy val stream:OutputStream = System.out
   def stdOut = stream == System.out
 
   def getPath = {
@@ -131,5 +131,5 @@ trait DebugLogger {
   def dprint(s:Any):Unit = DebugLogger.dprint(s) 
 }
 object DebugLogger extends Logger {
-  override val stream = newStream(Config.debugLog)
+  override lazy val stream = newStream(Config.debugLog)
 }

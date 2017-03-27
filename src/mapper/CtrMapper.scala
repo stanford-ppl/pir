@@ -6,7 +6,6 @@ import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pir.exceptions._
 import pir.graph.Const
-import pir.plasticine.graph.{ ConstVal => PConstVal }
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -100,7 +99,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     def mapInPort(n:IP, p:PI):Unit = {
       ipmap += n -> p 
       n.from.src match {
-        case Const(v) => fimap += p -> PConstVal(v)(design.arch).out
+        case Const(v) => //fimap += p -> PConstVal(v)(design.arch).out
         case _ =>
       }
     }
@@ -108,10 +107,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     mapInPort(n.max, p.max)
     mapInPort(n.step, p.step)
     dprintln(s"mapping $n -> $p")
-    val mp = map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fimap)
-    //if (n.ctrler.id==433)
-      //new CtrDotPrinter().print(pctrs, mp)
-    mp
+    map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fimap)
   }
 
 }

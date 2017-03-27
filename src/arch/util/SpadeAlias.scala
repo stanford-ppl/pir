@@ -15,7 +15,7 @@ trait SpadeAlias {
   type PTop      = Top
   type PNE       = NetworkElement
   type PGIO[+NE<:PNE] = GridIO[NE]
-  type PReg      = pir.plasticine.graph.Reg
+  type PReg      = pir.plasticine.graph.ArchReg
   type PPR       = PipeReg
   type PCtr      = Counter
   type PSRAM     = pir.plasticine.graph.SRAM
@@ -33,7 +33,7 @@ trait SpadeAlias {
   type PBS       = Bus
   type PIB      = Input[PBS,PNE]
   type POB      = Output[PBS,PNE]
-  type PCB[+C<:PCL] = CtrlBox[C]
+  type PCB = CtrlBox
   type PLUT      = LUT
   type PEnLUT    = EnLUT
   type PTDLUT     = TokenDownLUT
@@ -41,5 +41,4 @@ trait SpadeAlias {
   type PUC       = UDCounter
   type PSB       = SwitchBox
   type PConst    = Const
-  type PConstVal = ConstVal[_<:AnyVal]
 }

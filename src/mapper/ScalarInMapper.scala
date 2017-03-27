@@ -26,7 +26,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
 
   private def mapScalarIns(vimap:VIMap, somap:SOMap)(n:N, p:R, map:M):M = {
     val ib = vimap(n)
-    val idx = somap(n.scalar.writer).idx
+    val idx = somap(n.scalar.writer).index
     dprintln(s"Try $n -> $p $ib")
     assert(busesOf(p).contains(ib))
     map.setSI(n,p).setOP(n.out, p.out)

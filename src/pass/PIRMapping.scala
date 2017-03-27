@@ -10,7 +10,7 @@ import pir.util.misc._
 object MapPrinter extends Printer { 
   def shouldRun = Config.debug
 
-  override val stream = newStream(Config.mapFile)
+  override lazy val stream = newStream(Config.mapFile)
   def printMap(mapping:PIRMap)(implicit design:Design) = {
     if (Config.debug) {
       emitTitleComment(s"Mapping")

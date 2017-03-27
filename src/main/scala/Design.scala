@@ -38,48 +38,51 @@ trait Design extends PIRMetadata with Collector {
 
   val mappers = ListBuffer[Mapper]()
   val mapperLogger = new Logger {
-    override val stream = newStream(Config.mapperLog)
+    override lazy val stream = newStream(Config.mapperLog)
   }
 
   /* Compiler Passes */
-  lazy val passes = ListBuffer[Pass]()
-  lazy val spadePrinter = new SpadePrinter()
-  lazy val forwardRef = new ForwardRef()
-  lazy val scalMemInsertion = new ScalarMemInsertion()
-  lazy val multiBufferAnalysis = new MultiBufferAnalysis()
-  lazy val fusionTransform = new FusionTransform()
-  lazy val ctrlDotPrinter = new CtrlDotGen()
-  lazy val pirPrinter1 = new PIRPrinter("PIR_orig.txt") 
-  lazy val pirPrinter2 = new PIRPrinter()
-  lazy val pirDataDotGen = new PIRDataDotGen()
-  lazy val liveness = new LiveAnalysis()
-  lazy val ctrlAlloc = new CtrlAlloc()
-  lazy val pirCtrlDotGen = new PIRCtrlDotGen()
-  lazy val pirMapping = new PIRMapping()
-  lazy val argDotPrinter = new ArgDotPrinter()
-  lazy val ctrDotPrinter = new CtrDotPrinter()
-  lazy val spadeVecDotPrinter = new CUVectorDotPrinter()
-  lazy val spadeScalDotPrinter = new CUScalarDotPrinter()
-  lazy val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
-  lazy val ctrlPrinter = new CtrlPrinter()
-  lazy val spadeCodegen = new SpadeCodegen()
-  lazy val simulator = new Simulator()
+  val passes = ListBuffer[Pass]()
+  val spadePrinter = new SpadePrinter()
+  val forwardRef = new ForwardRef()
+  val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
+  val multiBufferAnalysis = new MultiBufferAnalysis() 
+  val fusionTransform = new FusionTransform() { override def shouldRun = false }
+  val scalarBundling = new ScalarBundling() { override def shouldRun = false }
+  val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
+  val pirPrinter1 = new PIRPrinter("PIR_orig.txt") 
+  val pirPrinter2 = new PIRPrinter()
+  val irCheck = new IRCheck() { override def shouldRun = false }
+  val pirDataDotGen = new PIRDataDotGen()
+  val liveness = new LiveAnalysis()
+  val ctrlAlloc = new CtrlAlloc()
+  val pirCtrlDotGen = new PIRCtrlDotGen()
+  val pirMapping = new PIRMapping()
+  val argDotPrinter = new ArgDotPrinter()
+  val ctrDotPrinter = new CtrDotPrinter()
+  val spadeVecDotPrinter = new CUVectorDotPrinter()
+  val spadeScalDotPrinter = new CUScalarDotPrinter()
+  val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
+  val ctrlPrinter = new CtrlPrinter()
+  val spadeCodegen = new SpadeCodegen()
+  val pisaCodegen = new PisaCodegen()
+  val simulator = new Simulator()
 
   lazy val mapping:Option[PIRMap] = if (pirMapping.hasRun && pirMapping.succeeded) Some(pirMapping.mapping) else None
 
   // Graph Construction
   passes += spadePrinter 
   passes += forwardRef
-  //passes += scalMemInsertion
+  passes += scalMemInsertion
   passes += pirPrinter1
-  //passes += fusionTransform 
-  //passes += new ScalarBundling()
+  passes += fusionTransform 
+  passes += scalarBundling
   passes += multiBufferAnalysis 
   passes += pirDataDotGen
   passes += liveness 
-  //passes += new IRCheck()
+  passes += irCheck 
   passes += ctrlAlloc 
-  //if (Config.debug && Config.ctrl) passes += ctrlDotPrinter 
+  passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
   passes += ctrlPrinter 
   passes += pirPrinter2
@@ -92,7 +95,7 @@ trait Design extends PIRMetadata with Collector {
 
   // Codegen
   passes += spadeCodegen 
-  //if (Config.mapping && Config.genPisa) passes += new PisaCodegen()
+  passes += pisaCodegen 
 
   // Simulation
   passes += simulator

@@ -4,6 +4,7 @@ import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.exceptions._
 import pir.util.misc._
+import pir.plasticine.util.SpadeMetadata
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -14,12 +15,14 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   type R = PIB
   type N = VI
   val typeStr = "VIMapper"
+  val spademeta: SpadeMetadata = design.arch 
+  import spademeta._
 
   def finPass(cl:CL)(m:M):M = m
   override def debug = Config.debugVIMapper
 
   private def getOB(sin:SI, pirMap:M):PO = {
-    pirMap.somap(sin.scalar.writer).outBus
+    busesOf(pirMap.somap(sin.scalar.writer)).head.asInstanceOf[PO]
   }
 
   def map(cl:CL, pirMap:M):M = {

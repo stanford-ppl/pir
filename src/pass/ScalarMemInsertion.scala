@@ -12,7 +12,7 @@ import scala.collection.mutable.Queue
 class ScalarMemInsertion(implicit val design: Design) extends Pass with Logger {
   def shouldRun = true 
 
-  override val stream = newStream(s"ScalarMemInsertion.log")
+  override lazy val stream = newStream(s"ScalarMemInsertion.log")
 
   def leastCommonAncestor(reader:ComputeUnit, writer:ComputeUnit):Controller = {
     reader.ancestors.intersect(writer.ancestors).head

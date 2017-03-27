@@ -14,13 +14,13 @@ import java.io.OutputStream
 import java.io.File
 import pir.util._
 
-class PIRPrinter(fileName:String)(implicit design: Design) extends Traversal with Codegen {
+class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Codegen {
   def shouldRun = Config.debug
 
   def this()(implicit design: Design) = {
     this(Config.pirFile)
   }
-  override val stream:OutputStream = newStream(fileName) 
+  override lazy val stream:OutputStream = newStream(fn) 
 
   override def initPass() = {
     super.initPass

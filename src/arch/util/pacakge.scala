@@ -12,13 +12,13 @@ package object util {
   implicit def pr_to_ip(pr:PipeReg):Input[Word, PipeReg] = pr.in
   implicit def pr_to_op(pr:PipeReg):Output[Word, PipeReg] = pr.out
 
-  def mappingOf(io:IO[_,_]):List[Reg] = io match {
+  def mappingOf(io:IO[_,_]):List[ArchReg] = io match {
     case in:Input[_,_] => 
       in.fanIns.map(_.src).collect{ case pr:PipeReg => pr.reg }
     case out:Output[_,_] =>
       out.fanOuts.map(_.src).collect { case pr:PipeReg => pr.reg }
   }
-  def isMappedTo(io:IO[_,_], reg:Reg):Boolean = {
+  def isMappedTo(io:IO[_,_], reg:ArchReg):Boolean = {
     mappingOf(io).contains(reg)
   }
   def stageOf(io:IO[_,_]):Option[Stage] = {

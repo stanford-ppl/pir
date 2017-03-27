@@ -9,13 +9,11 @@ import scala.collection.mutable.Set
 
 trait Pass {
   var isInit = false
-  val visited = Set[Node]()
   var hasRun = false
   def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
 
   def reset {
-    visited.clear()
     isInit = false
     hasRun = false
   }

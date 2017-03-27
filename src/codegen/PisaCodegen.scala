@@ -11,7 +11,7 @@ import pir.util.misc._
 import pir.util.PIRMetadata
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
-import pir.plasticine.graph.{ ConstVal => PConstVal, Const => PConst, GridIO}
+import pir.plasticine.graph.{ Const => PConst, GridIO}
 import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
@@ -23,7 +23,7 @@ import java.io.File
 class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen with DebugLogger {
   def shouldRun = Config.genPisa && design.mapping.nonEmpty
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
-  override val stream = newStream(dir, s"${design}.json") 
+  override lazy val stream = newStream(dir, s"${design}.json") 
   val pirmeta: PIRMetadata = design
   val spademeta: SpadeMetadata = design.arch
   import pirmeta.{indexOf => _, _}
@@ -81,11 +81,11 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   def emitTop(implicit ms:CollectionStatus) = {
     val argOuts = ListBuffer[String]()
     design.top.sins.foreach { sin =>
-      argOuts += s"${sin.scalar} -> ${indexOf(simap(sin).outport.get)}"
+      argOuts += s"${sin.scalar} -> ${indexOf(simap(sin))}"
     }
     val argIns = ListBuffer[String]()
     design.top.souts.foreach { sout =>
-      argIns += s"${sout.scalar} -> ${indexOf(somap(sout).inport.get)}"
+      argIns += s"${sout.scalar} -> ${indexOf(somap(sout))}"
     }
     emitComment("argIns-busIdx", argIns.mkString(","))
     emitComment("argOuts-busIdx", argOuts.mkString(","))
@@ -211,7 +211,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
           val psin = mpsins.head
           siXbar += s""""${indexOf(psin)}""""
             //println(s"--$pcu $preg $ppr")
-          siComment += s"ppr:$ppr inBus:${quote(psin.inBus)} sin:${psin} -> $preg[${indexOf(preg)}]" 
+          siComment += s"ppr:$ppr inBus:${quote(busesOf(psin).head)} sin:${psin} -> $preg[${indexOf(preg)}]" 
         } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
       }
     }
@@ -310,8 +310,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
 
   def lookUp(pnode:PNode):String = {
     pnode match {
-      case PConstVal(c) => s"c${c}"
-      case PConst() => throw PIRException(s"don't know how to lookUp PConst")
+      case c:PConst => lookUp(opmap.pmap(c.out).src)
       case pst:PST => s"s${indexOf(pst)}"
       case pfu:PFU => lookUp(pfu.stage) 
       case pctr:PCtr => s"i${indexOf(pctr)}"

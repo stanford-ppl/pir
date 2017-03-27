@@ -14,7 +14,7 @@ import java.io.File
 class CtrlPrinter(implicit design: Design) extends Codegen {
   def shouldRun = Config.debug && Config.ctrl
 
-  override val stream = newStream(Config.ctrlFile) 
+  override lazy val stream = newStream(Config.ctrlFile) 
   
   def emitCU(cu:Controller) = {
     val fields = s"(ancestors=${cu.ancestors})"

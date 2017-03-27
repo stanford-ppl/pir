@@ -32,7 +32,6 @@ trait Spade extends SpadeMetadata { self =>
 
   var nextSym = 0
   def nextId = {val temp = nextSym; nextSym +=1; temp}
-  val const = Const()
   
   val simulatable = ListBuffer[Simulatable]()
 }

@@ -26,8 +26,9 @@ case class Bus(busWidth:Int, elemTp:PortType) extends PortType
  * */
 trait IO[P<:PortType, +S<:Module] extends Node {
   import spademeta._
-  val src:S
-  val tp:P
+  def src:S
+  def tp:P
+  src.addIO(this)
   override val typeStr = {
     var s = this match {
       case _:Input[_,_] => s"i"
@@ -113,38 +114,14 @@ object Output {
   }
 }
 
-object InWire {
-  def apply[S<:Module](s:S, sf: =>String)(implicit spade:Spade):Input[Bit, S] = Input(Bit(), s, sf)
-}
-object OutWire {
-  def apply[S<:Module](s:S, sf: =>String)(implicit spade:Spade):Output[Bit, S] = Output(Bit(), s, sf)
-}
-
-object InPort {
-  def apply[S<:Module](s:S, sf: =>String)(implicit spade:Spade):Input[Word, S] = 
-    Input(Word(spade.wordWidth), s, sf)
-}
-object OutPort {
-  def apply[S<:Module](s:S, sf: =>String)(implicit spade:Spade):Output[Word, S] = 
-    Output(Word(spade.wordWidth), s, sf)
-}
-object InBus {
-  def apply[S<:NetworkElement](src:S, busWidth:Int)(implicit spade:Spade):Input[Bus, S] = 
-    Input(Bus(busWidth, Word(spade.wordWidth)), src) //TODO
-}
 object InBuses {
-  def apply[S<:NetworkElement](src:S, num:Int, busWidth:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => InBus[S](src, busWidth) }
+  def apply[S<:NetworkElement](src:S, numBus:Int, busWidth:Int, tp:PortType)(implicit spade:Spade) = 
+    List.tabulate(numBus) { is => Input(Bus(busWidth, tp), src) }
 }
 
-object OutBus {
-  def apply[S<:NetworkElement](src:S, busWidth:Int)(implicit spade:Spade):Output[Bus, S] = {
-    Output(Bus(busWidth, Word(spade.wordWidth)), src) //TODO
-  }
-}
 object OutBuses {
-  def apply[S<:NetworkElement](src:S, num:Int, numLanes:Int)(implicit spade:Spade) = 
-    List.tabulate(num) { is => OutBus[S](src, numLanes) }
+  def apply[S<:NetworkElement](src:S, numBus:Int, busWidth:Int, tp:PortType)(implicit spade:Spade) = 
+    List.tabulate(numBus) { is => Output(Bus(busWidth, tp), src) }
 }
 
 trait GridIO[+NE<:NetworkElement] extends Node {
@@ -153,37 +130,43 @@ trait GridIO[+NE<:NetworkElement] extends Node {
   private val outMap = Map[String, ListBuffer[Output[Bus, _]]]()
 
   def src:NE
-  def inBuses(num:Int, busWidth:Int)(implicit spade:Spade):List[Input[Bus, NE]] = InBuses(src, num, busWidth)
-  def outBuses(num:Int, busWidth:Int)(implicit spade:Spade):List[Output[Bus, NE]] = OutBuses(src, num, busWidth)
-  def addInAt(dir:String, num:Int, busWidth:Int)(implicit spade:Spade):List[Input[Bus, NE]] = { 
-    val ibs = inBuses(num, busWidth)
+  def tp:PortType
+  def busWidth:Int
+  def inBuses(numBus:Int)(implicit spade:Spade):List[Input[Bus, NE]] = 
+    InBuses(src, numBus, busWidth, tp)
+  def outBuses(numBus:Int)(implicit spade:Spade):List[Output[Bus, NE]] = 
+    OutBuses(src, numBus, busWidth, tp)
+  def addInAt(dir:String, numBus:Int)(implicit spade:Spade):List[Input[Bus, NE]] = { 
+    val ibs = inBuses(numBus)
     ibs.zipWithIndex.foreach { case (ib, i) => ib }
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
     ibs
   }
-  def addOutAt(dir:String, num:Int, busWidth:Int)(implicit spade:Spade):List[Output[Bus, NE]] = {
-    val obs = outBuses(num, busWidth)
+  def addOutAt(dir:String, numBus:Int)(implicit spade:Spade):List[Output[Bus, NE]] = {
+    val obs = outBuses(numBus)
     obs.zipWithIndex.foreach { case (ob, i) => ob }
     outMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
     obs
   }
-  def addIOAt(dir:String, num:Int, busWidth:Int)(implicit spade:Spade):NE = {
-    addInAt(dir,num, busWidth)
-    addOutAt(dir,num, busWidth)
+  def addIOAt(dir:String, numBus:Int)(implicit spade:Spade):NE = {
+    addInAt(dir,numBus)
+    addOutAt(dir,numBus)
     src
   }
-  def addIns(num:Int, busWidth:Int)(implicit spade:Spade):NE = { 
-    addInAt("N", num, busWidth)
+  def addIns(numBus:Int)(implicit spade:Spade):NE = { 
+    addInAt("N", numBus)
     src
   }
-  def addOuts(num:Int, busWidth:Int)(implicit spade:Spade):NE = {
-    addOutAt("N", num, busWidth)
+  def addOuts(numBus:Int)(implicit spade:Spade):NE = {
+    addOutAt("N", numBus)
     src
   }
   def inAt(dir:String):List[Input[Bus, NE]] = { inMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[Input[Bus, NE]]] }
   def outAt(dir:String):List[Output[Bus, NE]] = { outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[Output[Bus, NE]]] }
   def ins:List[Input[Bus, NE]] = GridIO.eightDirections.flatMap { dir => inAt(dir) } 
   def outs:List[Output[Bus, NE]] = GridIO.eightDirections.flatMap { dir => outAt(dir) }  
+  def numIns:Int = inMap.values.map(_.size).sum
+  def numOuts:Int = outMap.values.map(_.size).sum
   def io(in:Input[Bus, NetworkElement]) = {
     val dirs = inMap.filter{ case (dir, l) => l.contains(in) }
     assert(dirs.size==1)
@@ -203,12 +186,18 @@ object GridIO {
 
 case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
   override def toString = s"${src}.scalarIO"
+  override val tp:PortType = Word()
+  override val busWidth:Int = 1
 }
 
 case class VectorIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
   override def toString = s"${src}.vectorIO"
+  override val tp:PortType = Word()
+  override val busWidth:Int = spade.numLanes
 }
 
 case class ControlIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[N] {
   override def toString = s"${src}.ctrlIO"
+  override val tp:PortType = Bit()
+  override val busWidth:Int = 1
 }

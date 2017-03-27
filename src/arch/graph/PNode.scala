@@ -28,9 +28,9 @@ class Node(implicit val spade:Spade) {
 
 class Module(implicit spade:Spade) extends Node {
   val _ins = ListBuffer[Input[_<:PortType, Module]]()
-  def ins = _ins.toList
+  def ins:List[Input[_<:PortType, Module]] = _ins.toList
   val _outs = ListBuffer[Output[_<:PortType, Module]]()
-  def outs = _outs.toList
+  def outs:List[Output[_<:PortType, Module]] = _outs.toList
   def addIO(io:IO[_, Module]) = io match {
     case input:Input[_,_] => _ins += input.asInstanceOf[Input[_<:PortType, Module]]
     case output:Output[_,_] => _outs += output.asInstanceOf[Output[_<:PortType, Module]]

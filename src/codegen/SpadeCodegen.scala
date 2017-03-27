@@ -18,7 +18,7 @@ class SpadeCodegen(implicit design: Design) extends Codegen  {
 
   lazy val dir = sys.env("PLASTICINE_HOME") + "/arch"
 
-  override val stream:OutputStream = newStream(dir, s"Plasticine_${design.arch}.scala") 
+  override lazy val stream:OutputStream = newStream(dir, s"Plasticine_${design.arch}.scala") 
   
   implicit def spade = design.arch.asInstanceOf[SwitchNetwork]
   def numRows = spade.numRows

@@ -30,7 +30,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   def io(pne:NetworkElement):GridIO[NetworkElement]
 
-  override val stream = newStream(file) 
+  override lazy val stream = newStream(file) 
 
   trait Mode
   object OnlyOCU extends Mode
@@ -341,8 +341,8 @@ object ArgDotPrinter{
     }
   }
 }
-class ArgDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen { 
-  override val stream = newStream(fileName)
+class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen { 
+  override lazy val stream = newStream(fn)
 
   def this()(implicit design:Design) = this(Config.spadeArgInOut)
 
@@ -363,11 +363,11 @@ class ArgDotPrinter(fileName:String)(implicit design:Design) extends DotCodegen 
   }
 }
 
-class CtrDotPrinter(fileName:String) extends DotCodegen { 
+class CtrDotPrinter(fn:String) extends DotCodegen { 
 
   def this() = this(Config.spadeCtr)
 
-  override val stream = newStream(fileName) 
+  override lazy val stream = newStream(fn) 
 
   def print(pctrs:List[PCtr]) {
     emitBlock(s"digraph G") {
