@@ -96,6 +96,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
+  override def quote(n:Any):String = super.quote(n)
 }
 
 class PIRDataDotGen(fn:String)(implicit val design:Design) extends PIRDotGen { 

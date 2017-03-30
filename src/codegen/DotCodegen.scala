@@ -75,6 +75,7 @@ trait DotEnum {
 }
 
 trait DotCodegen extends Printer with DotEnum {
+  implicit def design:Design
 
   val regex = "\\[[0-9]*\\]".r
   def q(s:Any) = regex.replaceAllIn(s.toString, "")
@@ -113,7 +114,7 @@ trait DotCodegen extends Printer with DotEnum {
 			block
 		}
   }
-  def quote(n:Any)(implicit design:Design) = {
+  def quote(n:Any) = {
     implicit val spade:Spade = design.arch
     n match {
       case vin:PI =>

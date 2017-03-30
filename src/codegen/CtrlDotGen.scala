@@ -11,7 +11,7 @@ import scala.collection.mutable.Map
 import java.io.File
 import scala.language.implicitConversions
 
-class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
+class CtrlDotGen(implicit val design: Design) extends Codegen with DotCodegen {
   def shouldRun = Config.debug && Config.ctrl
 
   override lazy val stream = newStream(Config.ctrlDot)
@@ -125,5 +125,7 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
     close
     endInfo(s"Finishing Ctrl Dot Printing in ${getPath}")
   }
+
+  override def quote(n:Any):String = super.quote(n)
 
 }

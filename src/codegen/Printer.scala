@@ -14,7 +14,7 @@ trait Printer {
   var fileName:String = "System.out"
   var dirPath:String = Config.outDir 
   lazy val stream:OutputStream = System.out
-  def stdOut = stream == System.out
+  def stdOut = fileName=="System.out" 
 
   def getPath = {
     if (stdOut) "console"

@@ -17,7 +17,7 @@ class ScalarBundling(implicit val design: Design) extends Pass {
   val pirmeta:PIRMetadata = design
   import pirmeta._
 
-  val par = design.arch.numLanes
+  lazy val par = design.arch.numLanes
 
   override def traverse:Unit = {
     bundleScalarOuts

@@ -6,7 +6,8 @@ import pir.exceptions._
 
 import scala.collection.mutable.Set
 
-abstract class Traversal(implicit val design: Design) extends Pass {
+trait Traversal extends Pass {
+  implicit def design: Design
 
   val visited = Set[Node]()
   override def reset {

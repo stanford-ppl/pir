@@ -21,9 +21,8 @@ import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
 
-abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
-  implicit def spade:Spade = design.arch
-  val spademeta: SpadeMetadata = spade
+abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Design) extends Codegen with DotCodegen {
+  lazy val spademeta:SpadeMetadata = design.arch 
   import spademeta._
 
   val scale:Int
@@ -51,7 +50,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     case ptop:PTop => Color("indianred1")
   }
 
-  override def quote(n:Any)(implicit design:Design):String = {
+  override def quote(n:Any):String = {
     n match {
       case (n,b) =>
         val bottom = b.asInstanceOf[Boolean]
@@ -341,7 +340,7 @@ object ArgDotPrinter{
     }
   }
 }
-class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen { 
+class ArgDotPrinter(fn:String)(implicit val design:Design) extends DotCodegen { 
   override lazy val stream = newStream(fn)
 
   def this()(implicit design:Design) = this(Config.spadeArgInOut)
@@ -363,9 +362,9 @@ class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen {
   }
 }
 
-class CtrDotPrinter(fn:String) extends DotCodegen { 
+class CtrDotPrinter(fn:String)(implicit val design:Design) extends DotCodegen { 
 
-  def this() = this(Config.spadeCtr)
+  def this()(implicit design:Design) = this(Config.spadeCtr)
 
   override lazy val stream = newStream(fn) 
 

@@ -24,10 +24,8 @@ case class Bus(busWidth:Int, elemTp:PortType) extends PortType
  * An input port of a module that can be recofigured to other's output ports
  * fanIns stores the list of ports the input port can configured to  
  * */
-trait IO[P<:PortType, +S<:Module] extends Node {
+abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:Spade) extends Node {
   import spademeta._
-  def src:S
-  def tp:P
   src.addIO(this)
   override val typeStr = {
     var s = this match {
@@ -55,7 +53,7 @@ trait IO[P<:PortType, +S<:Module] extends Node {
 }
 
 /* Input pin. Can only connects to output of the same level */
-trait Input[P<:PortType, +S<:Module] extends IO[P, S] { 
+class Input[P<:PortType, +S<:Module](tp:P, src:S)(implicit spade:Spade) extends IO[P, S](tp, src) { 
   import spademeta._
   type O = Output[P, Module]
   // List of connections that can map to
@@ -74,19 +72,14 @@ trait Input[P<:PortType, +S<:Module] extends IO[P, S] {
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
 }
 object Input {
-  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = new Input[P, S] {
-    override val src = s
-    override val tp = t
-  }
-  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Input[P, S] = new Input[P, S] {
-    override val src = s
-    override val tp = t
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = new Input[P, S](t, s)
+  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Input[P, S] = new Input[P, S](t,s) {
     override def toString = sf
   }
 } 
 
 /* Output pin. Can only connects to input of the same level */
-trait Output[P<:PortType, +S<:Module] extends IO[P, S] { 
+class Output[P<:PortType, +S<:Module](tp:P, src:S)(implicit spade:Spade) extends IO[P, S](tp, src) { 
   import spademeta._
   type I = Input[P, Module]
   val _fanOuts = ListBuffer[I]()
@@ -103,13 +96,8 @@ trait Output[P<:PortType, +S<:Module] extends IO[P, S] {
   override def asBit:Output[Bit, S] = this.asInstanceOf[Output[Bit, S]]
 } 
 object Output {
-  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = new Output[P,S] {
-    override val src = s
-    override val tp = t
-  }
-  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Output[P, S] = new Output[P, S]{
-    override val src = s
-    override val tp = t
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = new Output[P,S](t, s)
+  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Output[P, S] = new Output[P, S](t,s) {
     override def toString = sf
   }
 }

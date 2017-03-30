@@ -24,13 +24,11 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   def shouldRun = Config.genPisa && design.mapping.nonEmpty
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override lazy val stream = newStream(dir, s"${design}.json") 
-  val pirmeta: PIRMetadata = design
-  val spademeta: SpadeMetadata = design.arch
+  lazy val pirmeta: PIRMetadata = design
+  lazy val spademeta: SpadeMetadata = spade
   import pirmeta.{indexOf => _, _}
   import spademeta._
   
-  implicit def spade:Spade = design.arch
-
   // Mapping results
   lazy val mapping:PIRMap = design.mapping.get
   lazy val vimap:VIMap = mapping.vimap

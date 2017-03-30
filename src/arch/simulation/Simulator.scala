@@ -69,9 +69,9 @@ trait Simulatable extends Module {
   def register(implicit sim:Simulator):Unit = {
     import sim._
     ios.foreach {
-      case io:Bus => valMap += io -> BusVal(io.asBus)
-      case io:Word => valMap += io-> WordVal(io.asWord)
-      case io:Bit => valMap += io -> BitVal(io.asBit)
+      case io if io.isBus => valMap += io -> BusVal(io.asBus)
+      case io if io.isWord => valMap += io-> WordVal(io.asWord)
+      case io if io.isBit => valMap += io -> BitVal(io.asBit)
     }
     val fimap = mapping.fimap
     ins.foreach { in =>

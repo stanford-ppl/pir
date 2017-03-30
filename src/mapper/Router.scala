@@ -21,8 +21,8 @@ import scala.util.{Failure, Success, Try}
 abstract class Router(implicit design:Design) extends Mapper {
   implicit def spade:Spade = design.arch
 
-  val minHop = 1
-  val maxHop = design.arch.diameter
+  lazy val minHop = 1
+  lazy val maxHop = design.arch.diameter
   override val exceptLimit = 100
 
   type I<:Node
