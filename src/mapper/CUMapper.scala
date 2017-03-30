@@ -107,7 +107,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cu match {
               case mc:MemoryController => 
               case _ => 
-                cons += (("onchipmem"	, (cu.mems, pcu.srams)))
+                cons += (("srams"	, (cu.srams, pcu.srams)))
             }
           case cu:OCL =>
             val pocu = pne.asInstanceOf[POCU]

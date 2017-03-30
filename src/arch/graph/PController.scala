@@ -65,13 +65,13 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   //override implicit val ctrler:ComputeUnit = this 
   override val typeStr = "cu"
 
-  var regs:List[ArchReg] = _
-  var srams:List[SRAM] = _
-  var ctrs:List[Counter] = _
-  var scalarIns:List[ScalarIn] = _
-  var scalarOuts:List[ScalarOut] = _
-  var vectorIns:List[VectorIn] = _
-  var vectorOuts:List[VectorOut] = _
+  var regs:List[ArchReg] = Nil
+  var srams:List[SRAM] = Nil
+  var ctrs:List[Counter] = Nil
+  var scalarIns:List[ScalarIn] = Nil
+  var scalarOuts:List[ScalarOut] = Nil
+  var vectorIns:List[VectorIn] = Nil
+  var vectorOuts:List[VectorOut] = Nil
 
   def vout = vouts.head
   

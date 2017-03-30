@@ -19,52 +19,13 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)
 
-  def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) {
-      new ComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .addRegstages(numStage=0, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    } else {
-      new MemoryComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .addWAstages(numStage=3, numOprds=3, ops)
-        .addRAstages(numStage=3, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    }
-  }
+  def cuAt(i:Int, j:Int) = if ((i+j) % 2 == 0) new ComputeUnit() else new MemoryComputeUnit()
 
-  def scuAt(c:Int, r:Int):ScalarComputeUnit = {
-    new ScalarComputeUnit()
-        .numRegs(6)
-        .numCtrs(6)
-        .addRegstages(numStage=0, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
-  } 
+  def scuAt(c:Int, r:Int):ScalarComputeUnit = new ScalarComputeUnit()
 
-  def mcAt(c:Int, r:Int):MemoryController = {
-    val mc = new MemoryController()
-      mc.ctrlBox(numUDCs=0)
-  }
+  def mcAt(c:Int, r:Int):MemoryController = new MemoryController()
 
-  def ocuAt(c:Int, r:Int):OuterComputeUnit = {
-    new OuterComputeUnit()
-      .numCtrs(6)
-      .ctrlBox(numUDCs=4)
-      .genConnections
-  }
+  def ocuAt(c:Int, r:Int):OuterComputeUnit = new OuterComputeUnit()
 
   val cuArray = List.tabulate(numRows, numCols) { case (c,r) => cuAt(c,r).coord(c,r) }
   val scus = List.tabulate(2, numRows+1) { case (c, r) => 
@@ -85,19 +46,60 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
     }
     mc
   }.flatten
-  def mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
-  def pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
+  lazy val mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
+  lazy val pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
   val ocuArray = List.tabulate(numRows+1, numCols+1) { case (c, r) => ocuAt(c,r).coord(c,r) }
   def ocus:List[OuterComputeUnit] = ocuArray.flatten
 
   val sbArray:List[List[SwitchBox]] = List.tabulate(numRows+1, numCols+1) { case (i, j) => SwitchBox().coord(i,j) }
   def sbs:List[SwitchBox] = sbArray.flatten
 
-  val ctrlNetwork = new CtrlNetwork()
+  lazy val ctrlNetwork = new CtrlNetwork()
 
-  val vectorNetwork = new VectorNetwork()
+  lazy val vectorNetwork = new VectorNetwork()
 
-  val scalarNetwork = new ScalarNetwork()
+  lazy val scalarNetwork = new ScalarNetwork()
+
+  def config = {
+    pcus.foreach { pcu =>
+      pcu.numRegs(16)
+      .numCtrs(8)
+      .addRegstages(numStage=0, numOprds=3, ops)
+      .addRdstages(numStage=4, numOprds=3, ops)
+      .addRegstages(numStage=2, numOprds=3, ops)
+      .ctrlBox(numUDCs=4)
+      .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    }
+    mcus.foreach { mcu =>
+      mcu.numRegs(16)
+        .numCtrs(8)
+        .addWAstages(numStage=3, numOprds=3, ops)
+        .addRAstages(numStage=3, numOprds=3, ops)
+        .ctrlBox(numUDCs=4)
+        .genConnections
+        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
+    }
+    scus.foreach { scu =>
+      scu.numRegs(6)
+        .numCtrs(6)
+        .addRegstages(numStage=0, numOprds=3, ops)
+        .addRdstages(numStage=4, numOprds=3, ops)
+        .addRegstages(numStage=2, numOprds=3, ops)
+        .ctrlBox(numUDCs=4)
+        .genConnections
+        //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
+    }
+    mcs.foreach { mc =>
+      mc.ctrlBox(numUDCs=0)
+    }
+    ocus.foreach { ocu =>
+      ocu.numCtrs(6)
+      .ctrlBox(numUDCs=4)
+      .genConnections
+    }
+  }
+  config
 }
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
@@ -158,8 +160,8 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   // switch to OCU channel width
   val sbocChannelWidth = 4
 
-  val numRows = cuArray.length
-  val numCols = cuArray.head.length
+  lazy val numRows = cuArray.length
+  lazy val numCols = cuArray.head.length
 
   val top = spade.top
   

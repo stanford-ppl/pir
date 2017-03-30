@@ -14,7 +14,7 @@ import scala.util.{Try, Success, Failure}
 
 trait SN_temp extends SwitchNetwork {
 
-  override val ctrlNetwork = new {
+  override lazy val ctrlNetwork = new {
 
   // switch to switch channel width
   //override val sbChannelWidth = 0
@@ -66,7 +66,7 @@ trait SN_temp extends SwitchNetwork {
 
   } with CtrlNetwork()
 
-  override val vectorNetwork = new {
+  override lazy val vectorNetwork = new {
 
   // switch to switch channel width
   //override val sbChannelWidth = 0
@@ -117,7 +117,7 @@ trait SN_temp extends SwitchNetwork {
   //val sbocChannelWidth = 2
   } with VectorNetwork()
 
-  override val scalarNetwork = new {
+  override lazy val scalarNetwork = new {
 
   // switch to switch channel width
   //override val sbChannelWidth = 0
@@ -168,10 +168,9 @@ trait SN_temp extends SwitchNetwork {
   //val sbocChannelWidth = 2
   } with ScalarNetwork()
 
-  override def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) {
-      val cu = new ComputeUnit()
-        cu.numRegs(16)
+  override def config = {
+    pcus.foreach { cu =>
+      cu.numRegs(16)
         .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
         .addRegstages(numStage=14, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
@@ -182,20 +181,19 @@ trait SN_temp extends SwitchNetwork {
         .numVecOuts(vectorNetwork.io(cu).numOuts).color(0 until 0 + cu.numVecOuts, VecOutReg)
         .color(0, ReduceReg)
         .ctrlBox(numUDCs=5)
-    } else {
-      val cu = new MemoryComputeUnit()
-        cu.numRegs(16)
+        .genConnections
+    }
+    mcus.foreach { cu =>
+      cu.numRegs(16)
         .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
         .numSRAMs(1).color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
         .addWAstages(numStage=3, numOprds=3, ops)
         .addRAstages(numStage=3, numOprds=3, ops)
         .ctrlBox(numUDCs=4)
-    }.genConnections
-  }
-
-  override def scuAt(c:Int, r:Int) = {
-    new ScalarComputeUnit()
-        .numRegs(6)
+        .genConnections
+    }
+    scus.foreach { cu =>
+      cu.numRegs(6)
         .numCtrs(6)
         .numSRAMs(4)
         .addRegstages(numStage=0, numOprds=3, ops)
@@ -204,7 +202,19 @@ trait SN_temp extends SwitchNetwork {
         .ctrlBox(numUDCs=4)
         .genConnections
         //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
-  } 
+    }
+    mcs.foreach { mc =>
+      mc.ctrlBox(numUDCs=0)
+    }
+    ocus.foreach { cu =>
+      cu.numCtrs(6)
+      .ctrlBox(numUDCs=4)
+      .genConnections
+    }
+    scalarNetwork
+    ctrlNetwork
+    vectorNetwork
+  }
 
 }
 
