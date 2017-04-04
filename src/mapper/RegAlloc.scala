@@ -3,7 +3,7 @@ import pir.util.typealias._
 import pir.graph._
 import pir._
 import pir.codegen.DotCodegen
-import pir.plasticine.graph.{PipeReg}
+import pir.plasticine.graph.{PipeReg, ReduceReg}
 import pir.codegen.DotCodegen
 import pir.exceptions._
 import pir.plasticine.util._
@@ -62,7 +62,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pctr = pirMap.ctmap(ctr)
           preColor(r, mappingOf(pctr.out))
         case ReducePR(regId) =>
-          preColor(r, mappingOf(pcu.reduce))
+          preColor(r, pcu.regs.filter(_.is(ReduceReg)))
 r       case VecInPR(regId, vecIn) =>
           val pvin = pirMap.vimap(vecIn)
           val buf = { val bufs = bufsOf(pvin); assert(bufs.size==1); bufs.head }

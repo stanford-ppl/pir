@@ -19,7 +19,7 @@ object Config {
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
   var ctrl = true
-  var simulate = false
+  var simulate = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.txt")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")

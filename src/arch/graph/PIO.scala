@@ -153,6 +153,7 @@ trait GridIO[+NE<:NetworkElement] extends Node {
   def outAt(dir:String):List[Output[Bus, NE]] = { outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[Output[Bus, NE]]] }
   def ins:List[Input[Bus, NE]] = GridIO.eightDirections.flatMap { dir => inAt(dir) } 
   def outs:List[Output[Bus, NE]] = GridIO.eightDirections.flatMap { dir => outAt(dir) }  
+  def ios:List[IO[Bus, NE]] = ins ++ outs
   def numIns:Int = inMap.values.map(_.size).sum
   def numOuts:Int = outMap.values.map(_.size).sum
   def io(in:Input[Bus, NetworkElement]) = {

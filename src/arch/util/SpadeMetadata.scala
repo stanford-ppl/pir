@@ -31,4 +31,10 @@ trait SpadeMetadata { self:Spade =>
     type K = Node
     type V = LocalBuffer
   }
+
+  /* Can a counter be the inner most counter in a chain */
+  object isInnerCounter extends MOneToOneMap {
+    type K = Node
+    type V = Boolean 
+  }
 }

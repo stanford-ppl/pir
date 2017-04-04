@@ -18,7 +18,9 @@ trait UniMap {
   def contains(k:K) = map.contains(k)
   def quote(n:Any) = n.toString 
   def keys = map.keys
+  def values = map.values
   def check(rec:(K,V)):Unit = {}
+  def isMapped(v:V):Boolean
 
   def printMap(quote:Any => String)(implicit p:Printer):Unit = {
     if (map.size!=0) {
@@ -59,6 +61,7 @@ trait UniMap {
 
 trait OneToOneMap extends UniMap {
   type VV = V
+  def isMapped(v:V) = map.values.toList.contains(v)
   override def check(rec:(K,V)):Unit =  {
     if (map.contains(rec._1) && map(rec._1)!=rec._2)
       throw PIRException(s"${name} already contains key ${rec._1} -> ${map(rec._1)} but try to rebind to ${rec._2}")
@@ -67,4 +70,5 @@ trait OneToOneMap extends UniMap {
 
 trait OneToManyMap extends UniMap {
   type VV <: Set[V]
+  def isMapped(v:V) = map.values.toList.flatten.contains(v)
 }

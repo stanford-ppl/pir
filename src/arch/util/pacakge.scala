@@ -2,6 +2,8 @@ package pir.plasticine
 
 import pir.plasticine.main.Spade
 import pir.plasticine.graph._
+import pir.exceptions.PIRException
+import pir.Design
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
@@ -35,6 +37,22 @@ package object util {
     n match {
       case pne:NetworkElement => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
+    }
+  }
+
+  def isMapped(node:Node)(implicit design: Design):Boolean = {
+    val mp = design.mapping.getOrElse(return false)
+    node match {
+      case n:Controller => mp.clmap.isMapped(n)
+      case n:SRAM => mp.smmap.isMapped(n)
+      case n:Counter => mp.ctmap.isMapped(n)
+      case n:ScalarIn => mp.simap.isMapped(n)
+      case n:ScalarOut => mp.somap.isMapped(n)
+      case n:Stage => mp.stmap.isMapped(n)
+      case n:UDCounter => mp.ucmap.isMapped(n)
+      case n:Input[_,_] => mp.xbmap.isMapped(n)
+      case n:Output[_,_] => mp.fimap.isMapped(n)
+      case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }
 }

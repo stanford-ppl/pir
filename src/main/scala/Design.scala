@@ -98,7 +98,7 @@ trait Design extends PIRMetadata with Collector {
   passes += pisaCodegen 
 
   // Simulation
-  //passes += simulator
+  passes += simulator
 
   def run = {
     try {

@@ -77,6 +77,8 @@ object ConfigFactory {
 
   /* Generate primitive connections within a CU */ 
   def genConnections(cu:ComputeUnit)(implicit spade:Spade) = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
     val top = spade.top
 
     cu.ctrs.foreach { c => 
@@ -86,7 +88,7 @@ object ConfigFactory {
     }
     /* Chain counters together */
     for (i <- 1 until cu.ctrs.size) { cu.ctrs(i).en <== cu.ctrs(i-1).done } 
-    for (i <- 0 until cu.ctrs.size by 1) { cu.ctrs(i).en <== top.clk } // Allow group counter in chain in multiple of 2
+    for (i <- 0 until cu.ctrs.size by 1) { isInnerCounter(cu.ctrs(i)) = true  } // Allow group counter in chain in multiple of 2
 
     cu.srams.foreach { s =>
       s.readAddr <== cu.ctrs.map(_.out) // sram read/write addr can be from all counters

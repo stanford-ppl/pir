@@ -6,6 +6,7 @@ import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pir.exceptions._
 import pir.graph.Const
+import pir.plasticine.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -14,6 +15,8 @@ import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 class CtrMapper(implicit val design:Design) extends Mapper {
+  val spademeta: SpadeMetadata = design.arch
+  import spademeta._
   type R = PCtr
   type N = Ctr
   val typeStr = "CtrMapper"
@@ -70,7 +73,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
         }
       // Inner most counter or copied inner most counter whose enable is routed fron network
       case _:EnLUT => 
-        remainRes.filter{ pc => pc.en.canConnect(ptop.clk) } //TODO
+        remainRes.filter(pc => isInnerCounter(pc))
       case _:MC => // Dummy Counter
         remainRes
       case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")

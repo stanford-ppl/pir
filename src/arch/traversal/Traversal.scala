@@ -33,11 +33,16 @@ trait Traversal {
             n.vectorIns.foreach(visitNode)
             n.vectorOuts.foreach(visitNode)
             n.stages.foreach(visitNode)
+          case n:MemoryController =>
+          case n:Top =>
         }
       case n:SwitchBox =>
       case n:Stage =>
         n.funcUnit.foreach(visitNode)
         n.prs.foreach(visitNode)
+      case n:CtrlBox =>
+        n.udcs.foreach(visitNode)
+      case n =>
     }
     node match {
       case n:Module => n.ins.map(_.src).collect{case c:Const => c}.foreach(visitNode)

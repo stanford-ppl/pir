@@ -38,6 +38,7 @@ trait BiMap extends UniMap {
       }
     }
   }
+  override def isMapped(v:V) = pmap.contains(v)
 }
 
 trait BiOneToOneMap extends OneToOneMap with BiMap {

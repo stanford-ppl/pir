@@ -45,7 +45,6 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
-  val clk = Output(Bit(), this, s"clk")
   val ctrlBox:CtrlBox = new CtrlBox(0)
 }
 
@@ -56,6 +55,18 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   val scalarIO:GridIO[this.type] = ScalarIO(this)
   val vectorIO:GridIO[this.type] = VectorIO(this)
   val ctrlIO:GridIO[this.type] = ControlIO(this)
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    import sim._
+    val xbmap = mapping.xbmap
+    (scalarIO.outs ++ vectorIO.outs ++ ctrlIO.outs).foreach { out =>
+      xbmap.get(out).foreach { in =>
+        val vout = v(out)
+        if (!vout.isV(v(in))) throw PIRException(s"Cannot eval $out (tp=${v(out).tp}) to $in (tp=${v(in).tp})")
+        vout.set{ sim => sim.ev(in).value }
+      }
+    }
+  }
 }
 /*
  * ComputeUnit
@@ -117,8 +128,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   var _ctrlBox:CtrlBox = _
   def ctrlBox:CtrlBox = _ctrlBox
-
-  val reduce = Output(Word(), this, s"${this}.reduce")
 
   def numRegs(num:Int):this.type = { 
     regs = List.tabulate(num) { ir => ArchReg().index(ir) }
