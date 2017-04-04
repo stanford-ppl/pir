@@ -164,8 +164,8 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
     val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
     pne match {
       case ptop:PTop => s"$ptop" 
-        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, nc*scale))
-        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nr/2-1)*scale+scale/2, -scale))
+        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nc/2-1)*scale+scale/2, nr*scale))
+        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nc/2-1)*scale+scale/2, -scale))
       case _ =>
         emitNode(pne, label, attr)
     }

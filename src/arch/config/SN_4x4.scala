@@ -64,6 +64,10 @@ trait SN_temp extends SwitchNetwork {
   // switch to OCU channel width
   override val sbocChannelWidth = 8
 
+  // Top to switch channel width
+  //val tpsbChannelWidth = 1
+  // switch to Top channel width
+  //val sbtpChannelWidth = 1
   } with CtrlNetwork()
 
   override lazy val vectorNetwork = new {
@@ -99,7 +103,7 @@ trait SN_temp extends SwitchNetwork {
   // SCU to switch channel width
   //override val scsbChannelWidth = 4
   // switch to SCU channel width
-  //override val sbscChannelWidth = 4
+  //override val sbscchannelwidth = 4
 
   // MC to switch channel width
   override val mcsbChannelWidth = 1
@@ -115,6 +119,11 @@ trait SN_temp extends SwitchNetwork {
   //val ocsbChannelWidth = 2
   // switch to OCU channel width
   //val sbocChannelWidth = 2
+  
+  // Top to switch channel width
+  override val tpsbChannelWidth = 0
+  // switch to Top channel width
+  override val sbtpChannelWidth = 0
   } with VectorNetwork()
 
   override lazy val scalarNetwork = new {
@@ -166,6 +175,11 @@ trait SN_temp extends SwitchNetwork {
   //val ocsbChannelWidth = 2
   // switch to OCU channel width
   //val sbocChannelWidth = 2
+  
+  // Top to switch channel width
+  //val tpsbChannelWidth = 1
+  // switch to Top channel width
+  //val sbtpChannelWidth = 1
   } with ScalarNetwork()
 
   override def config = {
