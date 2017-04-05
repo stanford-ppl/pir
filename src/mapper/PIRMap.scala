@@ -45,22 +45,22 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, simap, somap, fimap, rcmap, stmap, ipmap, opmap, ucmap, lumap, cp   , xbmap)
   def set(cp:XBMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, simap, somap, fimap, rcmap, stmap, ipmap, opmap, ucmap, lumap, rtmap, cp   )
 
-  def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + (k -> v))
-  def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + (k -> v))
-  def setVO(k:VOMap.K, v:VOMap.V):PIRMap = set(vomap + (k -> v))
-  def setSM(k:SMMap.K, v:SMMap.V):PIRMap = set(smmap + (k -> v))
-  def setCt(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + (k -> v))
-  def setSI(k:SIMap.K, v:SIMap.V):PIRMap = set(simap + (k -> v))
-  def setSO(k:SOMap.K, v:SOMap.V):PIRMap = set(somap + (k -> v))
-  def setFI(k:FIMap.K, v:FIMap.V):PIRMap = set(fimap + (k -> v))
-  def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + (k -> v))
-  def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + (k -> v))
-  def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + (k -> v))
-  def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + (k -> v))
-  def setUC(k:UCMap.K, v:UCMap.V):PIRMap = set(ucmap + (k -> v))
-  def setLU(k:LUMap.K, v:LUMap.V):PIRMap = set(lumap + (k -> v))
-  def setRT(k:RTMap.K, v:RTMap.V):PIRMap = set(rtmap + (k -> v))
-  def setXB(k:XBMap.K, v:XBMap.V):PIRMap = set(xbmap + (k -> v))
+  def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + ((k, v)))
+  def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + ((k, v)))
+  def setVO(k:VOMap.K, v:VOMap.V):PIRMap = set(vomap + ((k, v)))
+  def setSM(k:SMMap.K, v:SMMap.V):PIRMap = set(smmap + ((k, v)))
+  def setCt(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + ((k, v)))
+  def setSI(k:SIMap.K, v:SIMap.V):PIRMap = set(simap + ((k, v)))
+  def setSO(k:SOMap.K, v:SOMap.V):PIRMap = set(somap + ((k, v)))
+  def setFI(k:FIMap.K, v:FIMap.V):PIRMap = set(fimap + ((k, v)))
+  def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + ((k, v)))
+  def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + ((k, v)))
+  def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + ((k, v)))
+  def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + ((k, v)))
+  def setUC(k:UCMap.K, v:UCMap.V):PIRMap = set(ucmap + ((k, v)))
+  def setLU(k:LUMap.K, v:LUMap.V):PIRMap = set(lumap + ((k, v)))
+  def setRT(k:RTMap.K, v:RTMap.V):PIRMap = set(rtmap + ((k, v)))
+  def setXB(k:XBMap.K, v:XBMap.V):PIRMap = set(xbmap + ((k, v)))
 
   def quote(n:Any)(implicit design:Design) = n match {
     case n:Node => pir.util.quote(n)
@@ -156,13 +156,14 @@ case class VIMap(map:VIMap.M, pmap:VIMap.IM) extends IBiManyToOneMap {
   override def + (rec:(K,V)) = { 
     super.check(rec)
     val set:Set[K] = (pmap.getOrElse(rec._2, Set.empty) + rec._1)
-    val npmap:IM = pmap + (rec._2 -> set)
+    val v:V = rec._2
+    val npmap:IM = pmap + ((v, set))
     VIMap(map + rec, npmap)
   }
 }
 object VIMap extends IBiManyToOneObj {
   type K = Node //InPort or VecIn
-  type V = PIB
+  type V = PI[_<:PModule]
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
 
@@ -182,7 +183,7 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
-  type V = PO
+  type V = PO[_]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }
 
@@ -274,8 +275,8 @@ case class FIMap(map:FIMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); FIMap(map + rec) }
 }
 object FIMap extends IOneToOneObj {
-  type K = PI
-  type V = PO
+  type K = PI[_<:PModule]
+  type V = PO[_<:PModule]
   def empty:FIMap = FIMap(Map.empty)
 }
 /* XbarMap: mapping between output and input of xbar */
@@ -286,8 +287,8 @@ case class XBMap(map:XBMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); XBMap(map + rec) }
 }
 object XBMap extends IOneToOneObj {
-  type K = PO
-  type V = PI
+  type K = PO[_<:PModule]
+  type V = PI[_<:PModule]
   def empty:XBMap = XBMap(Map.empty)
 }
 /* A mapping between InPort and PInPort */
@@ -328,7 +329,7 @@ case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {
 }
 object IPMap extends IBiOneToOneObj {
   type K = IP 
-  type V = PI
+  type V = PI[_]
   def empty:IPMap = IPMap(Map.empty, Map.empty)
 }
 /* A mapping between OutPort and the POutPort */
@@ -349,7 +350,7 @@ case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToOneMap {
       p.emitln(s"${op} -> failed")
     }
   }
-  def printOutPort(pop:PO)(implicit p:Printer, design:Design) = {
+  def printOutPort(pop:PO[_<:PModule])(implicit p:Printer, design:Design) = {
     if (pmap.contains(pop)) {
       p.emitln(s"${pop} <- ${pmap(pop)}")
     }// else {
@@ -359,7 +360,7 @@ case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToOneMap {
 }
 object OPMap extends IBiOneToOneObj {
   type K = OP
-  type V = PO
+  type V = PO[_]
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 

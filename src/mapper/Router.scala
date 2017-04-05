@@ -29,8 +29,8 @@ abstract class Router(implicit design:Design) extends Mapper {
   type O<:Node
   type R = (PCL, Path[FEdge])
   type Edge = (PIO[PNE], PIO[PNE])
-  type FEdge = (POB, PIB)
-  type REdge = (PIB, POB)
+  type FEdge = (PO[PNE], PI[PNE])
+  type REdge = (PI[PNE], PO[PNE])
   type Path[E<:Edge] = List[E]
   type Paths[E<:Edge] = List[(PCL, Path[E])]
   type FatEdge[E<:Edge] = List[E] 
@@ -206,7 +206,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val os = io(pne).outs.sortWith{ case (o1, o2) => o1.src.isInstanceOf[PCU] || !o2.src.isInstanceOf[PCU] }
-        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in.asInstanceOf[PIB]) } }
+        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in.asInstanceOf[PI[PNE]]) } }
         val bundle = edges.groupBy { case (o, i) => (o.src, i.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
@@ -247,7 +247,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val is = io(pne).ins.sortWith{ case (i1, i2) => i1.src.isInstanceOf[PCU] || !i2.src.isInstanceOf[PCU] }
-        val edges = is.flatMap { in => in.fanIns.map { out => (in, out.asInstanceOf[POB]) } }
+        val edges = is.flatMap { in => in.fanIns.map { out => (in, out.asInstanceOf[PO[PNE]]) } }
         val bundle = edges.groupBy { case (i, o) => (i.src, o.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
