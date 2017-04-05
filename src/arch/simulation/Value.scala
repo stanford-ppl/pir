@@ -19,11 +19,18 @@ abstract class Val[V](implicit val tp:ClassTag[V]) {
 
   var func: Option[Simulator => V] = None 
   def set(f:Simulator => Any):Unit = { func = Some(f.asInstanceOf[Simulator => V]) }
-  def update(implicit sim:Simulator) = { 
+  def update(implicit sim:Simulator):Unit = { 
+    if (updated) return
     prevValue = value
     func.foreach { f => value = f(sim) }
     sim.updated += this
   }
+  def updated(implicit sim:Simulator) = {
+    sim.updated.contains(this)
+  }
+
+  def vs:String = s"$value"
+  def pvs:String = s"$prevValue"
 
   def isV(x:Val[_]) = x.tp==tp
   def asV(x:Val[_]) = x.asInstanceOf[Val[V]] 
@@ -90,6 +97,12 @@ case class BusVal[W](io:IO[Bus, Module], busWidth:Int)(implicit ev:TypeTag[W]) e
       throw PIRException(s"Don't know how to evalue bus with type ${typeOf[W]}")
     }
   }
+  def mkstr(array:Any) = {
+    if (array==null) "null"
+    else array.asInstanceOf[Array[_]].mkString(",")
+  }
+  override def vs:String = mkstr(value)
+  override def pvs:String = mkstr(prevValue)
 }
 object BusVal {
   def apply(io:IO[Bus, Module]):BusVal[_] = {

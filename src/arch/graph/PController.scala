@@ -49,7 +49,9 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   override def register(implicit sim:Simulator):Unit = {
     super.register
     import sim._
-    ctrlIO.outs.foreach { o => v(o).set { sim => uv(o).value.map( v => Some(true) ) } }
+    ctrlIO.outs.foreach { o => v(o).set { sim => uv(o).value.map( v => 
+      Some(true)
+    ) } }
   }
 }
 

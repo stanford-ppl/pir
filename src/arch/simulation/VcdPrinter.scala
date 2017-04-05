@@ -157,7 +157,7 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   }
 
   def emitValue(v:Val[_]):Unit = {
-    //if (!v.changed) return
+    if (!v.changed) return
     v match {
       case v@BusVal(io, busWidth) =>
         io.tp match {

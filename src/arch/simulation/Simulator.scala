@@ -48,8 +48,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
       spade.simulatable.foreach { m => m.outs.foreach { o => v(o).update } }
       vcd.foreach { _.emitSignals }
       cycle += 1
+      updated.clear
     }
-    updated.clear
   }
 
   override def finPass = {
@@ -71,17 +71,17 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   }
   def euv(io:IO[Bus, _<:Module]):BusVal[_] = {
     val value = uvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    if (!updated.contains(io)) value.update
+    value.update
     value
   }
   def ewv(io:IO[Word, _<:Module]):WordVal = {
     val value = wvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    if (!updated.contains(io)) value.update
+    value.update
     value
   }
   def ebv(io:IO[Bit, _<:Module]):BitVal = {
     val value = bvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    if (!updated.contains(io)) value.update
+    value.update
     value
   }
   def ev(io:IO[_<:PortType, _<:Module]):Val[_] = io match {
