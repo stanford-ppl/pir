@@ -94,7 +94,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
         }
       case _ =>
         log(s"$n bind FU Inputs") {
-          def oor(pnodes:List[PI], nodes:List[IP], mapping:M) = OutOfOperand(p, n, pnodes, nodes, mapping)
+          def oor(pnodes:List[PI[_<:PModule]], nodes:List[IP], mapping:M) = OutOfOperand(p, n, pnodes, nodes, mapping)
           bind(poprds, oprds, map, mapInPort _, (m:M) => m, oor _)
         }
     }
@@ -131,13 +131,13 @@ class StageMapper(implicit val design:Design) extends Mapper {
     }
   }
 
-  def mapInPort(n:IP, r:PI, map:M):M = {
+  def mapInPort(n:IP, r:PI[_<:PModule], map:M):M = {
     if (map.fimap.contains(r) && map.ipmap.contains(n)) return map
     val rcmap = map.rcmap
     val stmap = map.stmap
     val opmap = map.opmap
     val ipmap = map.ipmap
-    val pop:PO = n.from.src match {
+    val pop:PO[_<:PModule] = n.from.src match {
       case Const(c) =>
         val consts = r.fanIns.map(_.src).collect { case c:PConst => c }
         if (consts.isEmpty) {
@@ -173,7 +173,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
             } 
           case None => // src of the inport doesn't belong to a stage. e.g. counter max
                      // and inport is from a PipeReg
-            var pop:PO = null
+            var pop:PO[_<:PModule] = null
             var curppr:PPR = null
             // Check if stretch the pipeline can inport reaches desired out reg
             do {
@@ -200,7 +200,7 @@ class StageMapper(implicit val design:Design) extends Mapper {
     cmap.setFI(r, pop)
   } 
 
-  def mapOutPort(pcurStage:PST)(n:OP, r:PO, map:M):M = {
+  def mapOutPort(pcurStage:PST)(n:OP, r:PO[_<:PModule], map:M):M = {
     val cmap = map.setOP(n,r)
     n.to.foldLeft(cmap) { case (pmap, ip) =>
       val ipmap = pmap.ipmap
@@ -220,12 +220,12 @@ case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit val mapper:Mapper, d
 case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."
 }
-case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI], nodes:List[IP], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
+case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough operands in ${ps} to map ${s}."
 }
 case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}"
 }
-case class InPortRouting(n:IP, p:PI, info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }

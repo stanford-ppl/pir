@@ -52,8 +52,8 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, val ctrler:Co
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
 class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends Primitive {
   import spademeta._
-  val in:Input[Word, this.type] = Input(Word(), this, s"${this}.i") 
-  val out:Output[Word, this.type] = Output(Word(), this, s"${this}.o")
+  val in:Input[Word, LocalBuffer] = Input(Word(), this, s"${this}.i") 
+  val out:Output[Word, LocalBuffer] = Output(Word(), this, s"${this}.o")
 } 
 
 trait ScalarBuffer extends LocalBuffer

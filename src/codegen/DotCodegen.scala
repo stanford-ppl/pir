@@ -117,13 +117,13 @@ trait DotCodegen extends Printer with DotEnum {
   def quote(n:Any) = {
     implicit val spade:Spade = design.arch
     n match {
-      case vin:PI =>
+      case vin:PI[_] =>
         vin.src match {
           case cu:PCU => s"""${vin.src}:${vin}:n"""
           case sb:PSB => s"""${vin.src}"""
           case _ => vin.src.toString
         }
-      case vout:PO =>
+      case vout:PO[_] =>
         vout.src match {
           case cu:PCU => s"""${vout.src}:${vout}:s"""
           case sb:PSB => s"""${vout.src}"""

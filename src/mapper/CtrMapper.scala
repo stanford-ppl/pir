@@ -99,7 +99,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
     var ipmap = map.ipmap
     var fimap = map.fimap
-    def mapInPort(n:IP, p:PI):Unit = {
+    def mapInPort(n:IP, p:PI[_<:PModule]):Unit = {
       ipmap += n -> p 
       n.from.src match {
         case Const(v) => //fimap += p -> PConstVal(v)(design.arch).out

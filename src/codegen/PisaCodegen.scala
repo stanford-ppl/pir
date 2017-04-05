@@ -11,7 +11,7 @@ import pir.util.misc._
 import pir.util.PIRMetadata
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
-import pir.plasticine.graph.{ Const => PConst, GridIO}
+import pir.plasticine.graph.{ Const => PConst, GridIO, PortType, Input}
 import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
@@ -230,13 +230,13 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     emitXbar("scalarInMux", simux.toList)
   }
 
-  def emitSwitch(sbio:GridIO[PSB])(implicit ms:CollectionStatus) = {
+  def emitSwitch[P<:PortType](sbio:GridIO[P, PSB])(implicit ms:CollectionStatus) = {
     val ins = ListBuffer[String]()
     val xbarComment = ListBuffer[String]()
     sbio.outs.foreach { pvout =>
       if (pvout.isConnected) {
         if (xbmap.contains(pvout)) {
-          val vin = xbmap(pvout).asInstanceOf[PIB]
+          val vin = xbmap(pvout).asInstanceOf[Input[P, PSB]]
           xbarComment += s"${quote(pvout)} -> ${quote(vin)}"
           ins += s""""${sbio.io(vin)}""""
         } else {
@@ -312,7 +312,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
       case pst:PST => s"s${indexOf(pst)}"
       case pfu:PFU => lookUp(pfu.stage) 
       case pctr:PCtr => s"i${indexOf(pctr)}"
-      case pib:PI if pib.isBus => s"bus${indexOf(pib)}"
+      case pib:PI[_] if pib.isBus => s"bus${indexOf(pib)}"
       case psm:PSRAM => s"m${indexOf(psm)}"
       case _ => throw new TODOException(s"Don't know how to lookUp ${pnode}"); "?"
     }
@@ -646,7 +646,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
                 }
                 emitPair("opcode", s"${lookUp(fu.op)}")
                 val results = fu.out.to
-                val pips= results.map(result => ipmap(result))
+                val pips = results.map(result => ipmap(result))
                 val reses = pips.map(pip => lookUp(pstage, pip.src)) 
                 emitList("result", reses.map(r => s""""$r"""").toList)
                 val inits = results.map(_.src).collect { 

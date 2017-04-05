@@ -10,6 +10,7 @@ import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 import pir.exceptions._
 import pir.util.misc._
+import scala.language.existentials
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

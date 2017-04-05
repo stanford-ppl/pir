@@ -6,6 +6,7 @@ import scala.collection.mutable.Map
 import pir.plasticine.config._
 import scala.collection.immutable.{Map => IMap}
 import pir.util.enums._
+import scala.language.existentials
 
 abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int, val numArgOuts:Int) extends Spade {
   implicit override def spade:SwitchNetwork = this
@@ -106,7 +107,8 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 
-  def io(cu:NetworkElement):GridIO[NetworkElement]
+  type P <: PortType
+  def io(cu:NetworkElement):GridIO[P, NetworkElement]
 
   def cuArray:List[List[ComputeUnit]] = spade.cuArray
   def mcArray:List[List[MemoryController]] = spade.mcArray
@@ -344,14 +346,17 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 }
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.vectorIO
+  type P = VectorIO.P
+  def io(pne:NetworkElement) = pne.vectorIO
 }
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.scalarIO
+  type P = ScalarIO.P
+  def io(pne:NetworkElement) = pne.scalarIO
 }
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.ctrlIO
+  type P = ControlIO.P
+  def io(pne:NetworkElement) = pne.ctrlIO
 }
 

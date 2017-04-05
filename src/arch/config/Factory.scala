@@ -44,13 +44,13 @@ object ConfigFactory {
       cu.stages.last.get(reg).in <== vout.out
     }
     val siPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
-    val gsis:List[List[Input[Bus, _]]] = cu.sins.grouped(siPerSin).toList
+    val gsis:List[List[Input[_, _]]] = cu.sins.grouped(siPerSin).toList
     (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => busesOf(sin) ++= sis }
     (cu.scalarIns, cu.regs.filter(_.is(ScalarInReg))).zipped.foreach { case (sin, reg) =>
       forwardStages(cu).foreach { s => s.get(reg).in <== sin.out }
     }
     val soPerSout = Math.ceil( cu.souts.size * 1.0 / cu.scalarOuts.size ).toInt
-    val gsos:List[List[Output[Bus, _]]] = cu.souts.grouped(soPerSout).toList
+    val gsos:List[List[Output[_, _]]] = cu.souts.grouped(soPerSout).toList
     (gsos, cu.scalarOuts).zipped.foreach { case (sos, sout) => busesOf(sout) ++= sos }
     (cu.scalarOuts, cu.regs.filter(_.is(ScalarOutReg))).zipped.foreach { case (sout, reg) =>
       cu.stages.last.get(reg).in <== sout.out

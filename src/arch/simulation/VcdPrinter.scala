@@ -123,25 +123,37 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   }
 
   def emitIO(io:IO[_<:PortType,_<:Module]) = {
-    sim.v(io) match {
-      case v@BusVal(io, busWidth) =>
-        io.tp match {
-          case Bus(busWidth, Word(wordWidth)) =>
-            (0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${name(io, Some(i))}") }
-          case Bus(busWidth, Bit()) =>
-            emitVar("wire", busWidth, s"$io", s"${name(io)}")
-        }
-      case v@WordVal(io) =>
-        io.tp match {
-          case Word(wordWidth) if wordWidth == 1 =>
-            emitVar("wire", wordWidth, s"$io", s"${name(io)}")
-          case Word(wordWidth) if wordWidth <= 32 =>
-            emitVar("integer", wordWidth, s"$io", s"${name(io)}")
-        } 
-      case v@BitVal(io) =>
-        val Bit() = io.tp
+    io.tp match {
+      case Bus(busWidth, Word(wordWidth)) =>
+        (0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${name(io, Some(i))}") }
+      case Bus(busWidth, Bit()) =>
+        emitVar("wire", busWidth, s"$io", s"${name(io)}")
+      case Word(wordWidth) if wordWidth == 1 =>
+        emitVar("wire", wordWidth, s"$io", s"${name(io)}")
+      case Word(wordWidth) if wordWidth <= 32 =>
+        emitVar("integer", wordWidth, s"$io", s"${name(io)}")
+      case Bit() =>
         emitVar("wire", 1, s"$io", s"${name(io)}")
     }
+    //sim.v(io) match {
+      //case v@BusVal(io, busWidth) =>
+        //io.tp match {
+          //case Bus(busWidth, Word(wordWidth)) =>
+            //(0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${name(io, Some(i))}") }
+          //case Bus(busWidth, Bit()) =>
+            //emitVar("wire", busWidth, s"$io", s"${name(io)}")
+        //}
+      //case v@WordVal(io) =>
+        //io.tp match {
+          //case Word(wordWidth) if wordWidth == 1 =>
+            //emitVar("wire", wordWidth, s"$io", s"${name(io)}")
+          //case Word(wordWidth) if wordWidth <= 32 =>
+            //emitVar("integer", wordWidth, s"$io", s"${name(io)}")
+        //} 
+      //case v@BitVal(io) =>
+        //val Bit() = io.tp
+        //emitVar("wire", 1, s"$io", s"${name(io)}")
+    //}
   }
 
   def emitTime = {
@@ -156,30 +168,41 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
     case None => "x"
   }
 
-  def emitValue(v:Val[_]):Unit = {
+  def emitValue(io:IO[_, _]):Unit = {
+    val v = io.v
     if (!v.changed) return
-    v match {
-      case v@BusVal(io, busWidth) =>
-        io.tp match {
-          case Bus(busWidth, Word(wordWidth)) =>
-            val value = v.value.asInstanceOf[Array[Option[Float]]]
-            value.zipWithIndex.foreach { case (vv, i) => emitln(s"${qV(vv)}${io}_$i") }
-          case Bus(busWidth, Bit()) =>
-            var value = "b"
-            v.value.foreach { vv => value += qV(vv) }
-            emitln(s"$value $io")
-        }
-      case v@WordVal(io) =>
-        emitln(s"${qV(v.value)}${io}")
-      case v@BitVal(io) =>
-        emitln(s"b${qV(v.value)} ${io}")
+    v.value match {
+      case p@Bus(busWidth, Word(wordWidth)) =>
+        p.value.zipWithIndex.foreach { case (vv, i) => emitln(s"${vv.s}${io}_$i") }
+      case p@Bus(busWidth, Bit()) =>
+        emitln(s"b${p.s} $io")
+      case p@Word(wordWidth) =>
+        emitln(s"${p.s}${io}")
+      case p@Bit() =>
+        emitln(s"b${p.s} ${io}")
     }
+    //v match {
+      //case v@BusVal(io, busWidth) =>
+        //io.tp match {
+          //case Bus(busWidth, Word(wordWidth)) =>
+            //val value = v.value.asInstanceOf[Array[Option[Float]]]
+            //value.zipWithIndex.foreach { case (vv, i) => emitln(s"${qV(vv)}${io}_$i") }
+          //case Bus(busWidth, Bit()) =>
+            //var value = "b"
+            //v.value.foreach { vv => value += qV(vv) }
+            //emitln(s"$value $io")
+        //}
+      //case v@WordVal(io) =>
+        //emitln(s"${qV(v.value)}${io}")
+      //case v@BitVal(io) =>
+        //emitln(s"b${qV(v.value)} ${io}")
+    //}
   }
 
   def emitSignals = {
     emitTime
     tracking.foreach { m =>
-      m.ios.foreach { io => emitValue(sim.v(io)) }
+      m.ios.foreach { io => emitValue(io) }
     }
   }
 

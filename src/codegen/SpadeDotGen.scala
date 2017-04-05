@@ -20,6 +20,7 @@ import java.io.File
 import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
+import scala.language.existentials
 
 abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Design) extends Codegen with DotCodegen {
   lazy val spademeta:SpadeMetadata = design.arch 
@@ -27,7 +28,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
 
   val scale:Int
 
-  def io(pne:NetworkElement):GridIO[NetworkElement]
+  def io(pne:NetworkElement):GridIO[_<:PortType, NetworkElement]
 
   override lazy val stream = newStream(file) 
 
@@ -208,7 +209,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
     }
   }
 
-  def emitInput(pin:PIB, mapping:Option[PIRMap])(implicit design:Design) = {
+  def emitInput(pin:PI[PNE], mapping:Option[PIRMap])(implicit design:Design) = {
     val pne:PNE = pin.src
     pin.fanIns.foreach { pout =>
       val attr = DotAttr()
@@ -286,7 +287,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
 
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.ctrlIO
+  def io(pne:NetworkElement) = pne.ctrlIO
 }
 
 class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 
@@ -298,7 +299,7 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.scalarIO
+  def io(pne:NetworkElement) = pne.scalarIO
 
 }
 
@@ -311,7 +312,7 @@ class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) exte
   
   val scale = 15
 
-  def io(pne:NetworkElement):GridIO[_<:NetworkElement] = pne.vectorIO
+  def io(pne:NetworkElement) = pne.vectorIO
 }
 
 object ArgDotPrinter{

@@ -37,7 +37,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     super.initPass
   }
 
-  val updated = ListBuffer[Val[_]]()
+  //val updated = ListBuffer[Val[_]]()
 
   override def traverse = {
     spade.simulatable.foreach { _.register }
@@ -45,10 +45,11 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     cycle += 1
     dprintln(s"Starting simulation ...")
     while (!finishSimulation) {
-      spade.simulatable.foreach { m => m.outs.foreach { o => v(o).update } }
+      spade.simulatable.foreach { m => m.outs.foreach { o => o.v.update } }
       vcd.foreach { _.emitSignals }
       cycle += 1
-      updated.clear
+      //updated.clear
+      spade.simulatable.foreach { m => m.outs.foreach { o => o.v.clearUpdate } }
     }
   }
 
@@ -58,37 +59,37 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     super.finPass
   }
 
-  val uvMap = Map[IO[Bus,_<:Module], BusVal[_]]()
-  val wvMap = Map[IO[Word,_<:Module], WordVal]()
-  val bvMap = Map[IO[Bit,_<:Module], BitVal]()
-  def uv(io:IO[Bus, _<:Module]):BusVal[_] = uvMap.getOrElseUpdate(io, BusVal(io))
-  def wv(io:IO[Word, _<:Module]):WordVal = wvMap.getOrElseUpdate(io, WordVal(io))
-  def bv(io:IO[Bit, _<:Module]):BitVal = bvMap.getOrElseUpdate(io, BitVal(io))
-  def v(io:IO[_<:PortType, _<:Module]):Val[_] = io match {
-    case io if io.isBus => uv(io.asBus) 
-    case io if io.isWord => wv(io.asWord) 
-    case io if io.isBit => bv(io.asBit) 
-  }
-  def euv(io:IO[Bus, _<:Module]):BusVal[_] = {
-    val value = uvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    value.update
-    value
-  }
-  def ewv(io:IO[Word, _<:Module]):WordVal = {
-    val value = wvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    value.update
-    value
-  }
-  def ebv(io:IO[Bit, _<:Module]):BitVal = {
-    val value = bvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
-    value.update
-    value
-  }
-  def ev(io:IO[_<:PortType, _<:Module]):Val[_] = io match {
-    case io if io.isBus => euv(io.asBus) 
-    case io if io.isWord => ewv(io.asWord) 
-    case io if io.isBit => ebv(io.asBit) 
-  }
+  //val uvMap = Map[IO[Bus,_<:Module], BusVal[_]]()
+  //val wvMap = Map[IO[Word,_<:Module], WordVal]()
+  //val bvMap = Map[IO[Bit,_<:Module], BitVal]()
+  //def uv(io:IO[Bus, _<:Module]):BusVal[_] = uvMap.getOrElseUpdate(io, BusVal(io))
+  //def wv(io:IO[Word, _<:Module]):WordVal = wvMap.getOrElseUpdate(io, WordVal(io))
+  //def bv(io:IO[Bit, _<:Module]):BitVal = bvMap.getOrElseUpdate(io, BitVal(io))
+  //def v(io:IO[_<:PortType, _<:Module]):Val[_] = io match {
+    //case io if io.isBus => uv(io.asBus) 
+    //case io if io.isWord => wv(io.asWord) 
+    //case io if io.isBit => bv(io.asBit) 
+  //}
+  //def euv(io:IO[Bus, _<:Module]):BusVal[_] = {
+    //val value = uvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
+    //value.update
+    //value
+  //}
+  //def ewv(io:IO[Word, _<:Module]):WordVal = {
+    //val value = wvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
+    //value.update
+    //value
+  //}
+  //def ebv(io:IO[Bit, _<:Module]):BitVal = {
+    //val value = bvMap.getOrElse(io, throw PIRException(s"io=${io} io.src=${io.src} doesn't have val"))
+    //value.update
+    //value
+  //}
+  //def ev(io:IO[_<:PortType, _<:Module]):Val[_] = io match {
+    //case io if io.isBus => euv(io.asBus) 
+    //case io if io.isWord => ewv(io.asWord) 
+    //case io if io.isBit => ebv(io.asBit) 
+  //}
 
 }
 
@@ -98,10 +99,7 @@ trait Simulatable extends Module {
     import sim._
     val fimap = mapping.fimap
     ins.foreach { in =>
-      fimap.get(in).foreach { out =>
-        val vin = v(in)
-        vin.set{ sim => sim.ev(out).value }
-      }
+      fimap.get(in).foreach { out => in.v <= out.ev }
     }
   }
 }

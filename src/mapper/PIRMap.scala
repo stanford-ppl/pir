@@ -183,7 +183,7 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
-  type V = PO[_]
+  type V = PO[_<:PModule]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }
 
@@ -329,7 +329,7 @@ case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {
 }
 object IPMap extends IBiOneToOneObj {
   type K = IP 
-  type V = PI[_]
+  type V = PI[_<:PModule]
   def empty:IPMap = IPMap(Map.empty, Map.empty)
 }
 /* A mapping between OutPort and the POutPort */
@@ -360,7 +360,7 @@ case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToOneMap {
 }
 object OPMap extends IBiOneToOneObj {
   type K = OP
-  type V = PO[_]
+  type V = PO[_<:PModule]
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 

@@ -14,9 +14,9 @@ import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
 trait NetworkElement extends Module with Simulatable {
-  def scalarIO:GridIO[this.type]
-  def vectorIO:GridIO[this.type]
-  def ctrlIO:GridIO[this.type]
+  def scalarIO:ScalarIO[this.type]
+  def vectorIO:VectorIO[this.type]
+  def ctrlIO:ControlIO[this.type]
 }
 
 /* Controller */
@@ -25,16 +25,16 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
   import spademeta._
 
   def ctrlBox:CtrlBox
-  val scalarIO:GridIO[this.type] = ScalarIO(this)
-  val vectorIO:GridIO[this.type] = VectorIO(this)
-  val ctrlIO:GridIO[this.type] = ControlIO(this)
+  val scalarIO:ScalarIO[this.type] = ScalarIO(this)
+  val vectorIO:VectorIO[this.type] = VectorIO(this)
+  val ctrlIO:ControlIO[this.type] = ControlIO(this)
 
-  def sins:List[Input[Bus, Controller]] = scalarIO.ins // Scalar Inputs
-  def souts:List[Output[Bus, Controller]] = scalarIO.outs // Scalar Outputs
-  def vins:List[Input[Bus, Controller]] = vectorIO.ins// Input Buses/Vector inputs
-  def vouts:List[Output[Bus, Controller]] = vectorIO.outs // Output Buses/Vector outputs
-  def cins:List[Input[Bus, Controller]] = ctrlIO.ins // Control inputs
-  def couts:List[Output[Bus, Controller]] = ctrlIO.outs // Control outputs
+  def sins:List[Input[ScalarIO.P, Controller]] = scalarIO.ins // Scalar Inputs
+  def souts:List[Output[ScalarIO.P, Controller]] = scalarIO.outs // Scalar Outputs
+  def vins:List[Input[VectorIO.P, Controller]] = vectorIO.ins// Input Buses/Vector inputs
+  def vouts:List[Output[VectorIO.P, Controller]] = vectorIO.outs // Output Buses/Vector outputs
+  def cins:List[Input[ControlIO.P, Controller]] = ctrlIO.ins // Control inputs
+  def couts:List[Output[ControlIO.P, Controller]] = ctrlIO.outs // Control outputs
 }
 
 /* Top-level controller (host)
@@ -48,10 +48,7 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   val ctrlBox:CtrlBox = new CtrlBox(0)
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    import sim._
-    ctrlIO.outs.foreach { o => v(o).set { sim => uv(o).value.map( v => 
-      Some(true)
-    ) } }
+    ctrlIO.outs.foreach { o => o.v.set { v => v.value.map( vv => vv.asInstanceOf[Bit].value = Some(true)) } } //TODO
   }
 }
 
@@ -59,19 +56,15 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
 case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   import spademeta._
   override val typeStr = "sb"
-  val scalarIO:GridIO[this.type] = ScalarIO(this)
-  val vectorIO:GridIO[this.type] = VectorIO(this)
-  val ctrlIO:GridIO[this.type] = ControlIO(this)
+  val scalarIO:ScalarIO[this.type] = ScalarIO(this)
+  val vectorIO:VectorIO[this.type] = VectorIO(this)
+  val ctrlIO:ControlIO[this.type] = ControlIO(this)
   override def register(implicit sim:Simulator):Unit = {
     super.register
     import sim._
     val xbmap = mapping.xbmap
     (scalarIO.outs ++ vectorIO.outs ++ ctrlIO.outs).foreach { out =>
-      xbmap.get(out).foreach { in =>
-        val vout = v(out)
-        if (!vout.isV(v(in))) throw PIRException(s"Cannot eval $out (tp=${v(out).tp}) to $in (tp=${v(in).tp})")
-        vout.set{ sim => sim.ev(in).value }
-      }
+      xbmap.get(out).foreach { in => out.v <= in.ev }
     }
   }
 }

@@ -12,7 +12,7 @@ import scala.collection.immutable.Map
 import scala.util.{Try, Success, Failure}
 
 class VecInMapper(implicit val design:Design) extends Mapper {
-  type R = PIB
+  type R = PI[_<:PModule]
   type N = VI
   val typeStr = "VIMapper"
   val spademeta: SpadeMetadata = design.arch 
@@ -21,8 +21,8 @@ class VecInMapper(implicit val design:Design) extends Mapper {
   def finPass(cl:CL)(m:M):M = m
   override def debug = Config.debugVIMapper
 
-  private def getOB(sin:SI, pirMap:M):PO = {
-    busesOf(pirMap.somap(sin.scalar.writer)).head.asInstanceOf[PO]
+  private def getOB(sin:SI, pirMap:M):PO[_<:PModule] = {
+    busesOf(pirMap.somap(sin.scalar.writer)).head.asInstanceOf[PO[_<:PModule]]
   }
 
   def map(cl:CL, pirMap:M):M = {
@@ -47,7 +47,7 @@ class VecInMapper(implicit val design:Design) extends Mapper {
     // If reader ctrler dep haven't been placed, postpone mapping
     if (!pirMap.clmap.contains(dep)) throw ResourceNotUsed(this, n, p, pirMap)
     // Get dep's output bus 
-    val pdvouts:List[PO] = pirMap.vomap(n.vector.writer).filter { pdvout => p.canConnect(pdvout) }.toList
+    val pdvouts:List[PO[_<:PModule]] = pirMap.vomap(n.vector.writer).filter { pdvout => p.canConnect(pdvout) }.toList
 
     /* Find vins that connects to the depended ctrler */
     if (pdvouts.size!=0) {

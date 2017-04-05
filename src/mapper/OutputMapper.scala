@@ -10,7 +10,7 @@ import scala.collection.immutable.Map
 
 class OutputMapper(implicit val design:Design) extends Mapper {
   type N = VO 
-  type R = PO
+  type R = PO[_<:PModule]
   val typeStr = "SOMapper"
   override def debug = Config.debugSOMapper
 

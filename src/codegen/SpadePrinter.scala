@@ -19,7 +19,7 @@ class SpadePrinter(implicit val design: Design) extends Codegen {
 
   override lazy val stream = newStream(Config.spadeFile) 
   
-  def emitIO(pne:GridIO[_<:NetworkElement]):Unit = {
+  def emitIO(pne:GridIO[_<:PortType, _<:NetworkElement]):Unit = {
     emitBlock(s"ins") {
       pne.ins.foreach { in =>
         emitln(s"${in.ms}")

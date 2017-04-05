@@ -23,7 +23,7 @@ trait SpadeMetadata { self:Spade =>
   /* Bus of a port that belongs to a bus */
   object busesOf extends MOneToManyMap {
     type K = Node
-    type V= IO[Bus, _]
+    type V= IO[_, _]
   }
   
   /* LocalBuffers of a bus. */
