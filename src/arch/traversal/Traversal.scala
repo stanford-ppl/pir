@@ -17,6 +17,10 @@ trait Traversal {
     spade.scus.foreach(visitNode)
     spade.ocus.foreach(visitNode)
     spade.mcs.foreach(visitNode)
+    spade match {
+      case spade:SwitchNetwork => spade.sbs.foreach(visitNode)
+      case _ =>
+    }
   } 
 
   def visitNode(node: Node) : Unit = {

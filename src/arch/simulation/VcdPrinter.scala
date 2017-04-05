@@ -17,6 +17,9 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   override lazy val stream = newStream("sim.vcd") 
   implicit lazy val spade:Spade = design.arch
 
+  lazy val fimap = sim.mapping.fimap
+  lazy val xbmap = sim.mapping.xbmap
+
   val tracking = ListBuffer[Simulatable]()
 
   def end = {
@@ -69,6 +72,13 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
       emitkv(s"scope module", "mcs")
       spade.mcs.foreach(visitNode)
       emitln(s"$$upscope $$end")
+      spade match {
+        case spade:SwitchNetwork => 
+          emitkv(s"scope module", "sbs")
+          spade.sbs.foreach(visitNode)
+          emitln(s"$$upscope $$end")
+        case _ =>
+      }
     } 
   } 
 
@@ -95,52 +105,81 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
     emitln(s"$$upscope $$end")
   }
 
+  def name(io:IO[_<:PortType,_<:Module], i:Option[Int] = None):String = {
+    val cm = ListBuffer[String]()
+    io match {
+      case io:Input[_, _] =>
+        if (fimap.contains(io)) cm += s"f:${quote(fimap(io).src)}"
+        val os = io.fanIns.filter(o => xbmap.contains(o))
+        if (os.nonEmpty) cm += s"t:${os.map(quote).mkString(",")}"
+      case io:Output[_, _] =>
+        if (xbmap.contains(io)) cm += s"f:${quote(xbmap(io))}"
+        val is = io.fanOuts.filter(i => fimap.contains(i)).map(_.src)
+        if (is.nonEmpty) cm += s"f:${is.map(quote).mkString(",")}"
+    }
+    val nm = s"${io}${i.map(i => s"_$i").getOrElse("")}"
+    if (cm.nonEmpty) s"${nm}_${cm.mkString("_")}"
+    else s"$nm"
+  }
+
   def emitIO(io:IO[_<:PortType,_<:Module]) = {
     sim.v(io) match {
-      case v@BusVal(io) =>
+      case v@BusVal(io, busWidth) =>
         io.tp match {
           case Bus(busWidth, Word(wordWidth)) =>
-            (0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${io}_$i") }
+            (0 until busWidth).foreach { i => emitVar("integer", wordWidth, s"${io}_$i", s"${name(io, Some(i))}") }
           case Bus(busWidth, Bit()) =>
-            emitVar("wire", busWidth, s"$io", s"$io")
+            emitVar("wire", busWidth, s"$io", s"${name(io)}")
         }
       case v@WordVal(io) =>
         io.tp match {
           case Word(wordWidth) if wordWidth == 1 =>
-            emitVar("wire", wordWidth, s"$io", s"$io")
+            emitVar("wire", wordWidth, s"$io", s"${name(io)}")
           case Word(wordWidth) if wordWidth <= 32 =>
-            emitVar("integer", wordWidth, s"$io", s"$io")
+            emitVar("integer", wordWidth, s"$io", s"${name(io)}")
         } 
       case v@BitVal(io) =>
         val Bit() = io.tp
-        emitVar("wire", 1, s"$io", s"$io")
+        emitVar("wire", 1, s"$io", s"${name(io)}")
     }
   }
 
   def emitTime = {
     emitln(s"#${sim.cycle}")
   }
+
+  def qV(x:Option[_]):String = x match {
+    case Some(true) => "1"
+    case Some(false) => "0"
+    case Some(f:Float) => s"${f.toInt}"
+    case Some(x) => s"$x"
+    case None => "x"
+  }
+
+  def emitValue(v:Val[_]):Unit = {
+    //if (!v.changed) return
+    v match {
+      case v@BusVal(io, busWidth) =>
+        io.tp match {
+          case Bus(busWidth, Word(wordWidth)) =>
+            val value = v.value.asInstanceOf[Array[Option[Float]]]
+            value.zipWithIndex.foreach { case (vv, i) => emitln(s"${qV(vv)}${io}_$i") }
+          case Bus(busWidth, Bit()) =>
+            var value = "b"
+            v.value.foreach { vv => value += qV(vv) }
+            emitln(s"$value $io")
+        }
+      case v@WordVal(io) =>
+        emitln(s"${qV(v.value)}${io}")
+      case v@BitVal(io) =>
+        emitln(s"b${qV(v.value)} ${io}")
+    }
+  }
+
   def emitSignals = {
     emitTime
     tracking.foreach { m =>
-      m.ios.foreach { io =>
-        sim.v(io) match {
-          case v@BusVal(io) =>
-            io.tp match {
-              case Bus(busWidth, Word(wordWidth)) =>
-                val value:Array[Option[Float]] = v.value
-                value.zipWithIndex.foreach { case (vv, i) => emitln(s"${vv.getOrElse("x")}${io}_$i") }
-              case Bus(busWidth, Bit()) =>
-                var value = "b"
-                v.value.foreach { vv => value += vv.getOrElse("x") }
-                emitln(s"$value $io")
-            }
-          case v@WordVal(io) =>
-            emitln(s"${v.value.getOrElse("x")}${io}")
-          case v@BitVal(io) =>
-            emitln(s"${v.value.getOrElse("bx")} ${io}")
-        }
-      }
+      m.ios.foreach { io => emitValue(sim.v(io)) }
     }
   }
 

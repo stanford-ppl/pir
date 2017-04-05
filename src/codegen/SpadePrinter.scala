@@ -78,7 +78,6 @@ class SpadePrinter(implicit val design: Design) extends Codegen {
               }
             }
           }
-          emitln(s"reduce: ${cu.reduce.mt}")
           emitBlock("stages") {
             cu.stages.foreach { s =>
               emitBlock(s"${quote(s)}") {

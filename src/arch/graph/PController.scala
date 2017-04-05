@@ -46,6 +46,11 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
   val ctrlBox:CtrlBox = new CtrlBox(0)
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    import sim._
+    ctrlIO.outs.foreach { o => v(o).set { sim => uv(o).value.map( v => Some(true) ) } }
+  }
 }
 
 /* Switch box (6 inputs 6 outputs) */

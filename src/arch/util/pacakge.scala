@@ -52,6 +52,7 @@ package object util {
       case n:UDCounter => mp.ucmap.isMapped(n)
       case n:Input[_,_] => mp.xbmap.isMapped(n)
       case n:Output[_,_] => mp.fimap.isMapped(n)
+      case n:SwitchBox => n.ios.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }
