@@ -3,7 +3,7 @@ import pir.util.typealias._
 import pir.graph._
 import pir._
 import pir.codegen.DotCodegen
-import pir.plasticine.graph.{PipeReg, ReduceReg}
+import pir.plasticine.graph._
 import pir.codegen.DotCodegen
 import pir.exceptions._
 import pir.plasticine.util._
@@ -13,10 +13,8 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{Set => MSet}
 
 class RegAlloc(implicit val design:Design) extends Mapper {
-  type R = PReg
   type N = Reg
-
-  type RC = RCMap
+  type R = PReg
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
   val spademeta: SpadeMetadata = spade
@@ -26,100 +24,73 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   def finPass(cu:ICL)(m:M):M = m
 
-  private def preColorAnalysis(cu:ICL, pirMap:M):RC = {
-    var rc:RC = RCMap.empty // Color Map
-    val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
-    def preColorReg(r:Reg, pr:PReg):Unit = {
-      cu.infGraph(r).foreach { ifr =>
-        if (rc.contains(ifr) && rc(ifr) == pr ) throw PreColorInterfere(r, ifr, pr, pirMap)
-      }
-      dprintln(s"preg mapping $r -> $pr")
-      rc = rc + (r -> pr)
+  def constrain(cu:ICL, pirMap:M)(n:N, r:R, m:RCMap):RCMap = {
+    cu.infGraph(n).foreach { ifr =>
+      if (m.contains(ifr) && m(ifr) == r ) throw InterfereException(n, ifr, r, pirMap.set(m))
     }
-    def preColor(r:Reg, prs:List[PReg]):Unit = {
-      assert(prs.size == 1, 
-        s"Current mapper assuming each PipeReg Mappable Port is mapped to 1 Register. Found $r -> ${prs}")
-      preColorReg(r, prs.head)
-    }
-    cu.infGraph.foreach { case (r, itfs)  =>
-      r match {
-        case LoadPR(regId, sram) =>
-          val psram = pirMap.smmap(sram)
-          preColor(r, mappingOf(psram.readPort))
-        case StorePR(regId, sram) =>
-          val psram = pirMap.smmap(sram)
-          val pregs = psram.writePort.fanIns.filter{ fi => 
-            val PipeReg(stage, reg) = fi.src
-            stage == psram.ctrler.stages.last
-          }.map(_.src.asInstanceOf[PipeReg].reg).toList
-          preColor(r, pregs)
-        case rr:WtAddrPR =>
-          val waPort = rr.waPort
-          val sram = waPort.src
-          val psram = pirMap.smmap(sram)
-          preColor(r, mappingOf(psram.writeAddr))
-        case CtrPR(regId, ctr) =>
+    dprintln(s"mapping $n -> $r")
+    m + (n -> r)
+  }
+
+  /* Register coloring for registers with predefined colors */
+  private def preColor(cu:ICL, pirMap:M):RCMap = {
+    type M = RCMap
+    val pcu = pirMap.clmap(cu).asPCU
+    def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
+      val pregs = n match {
+        case LoadPR(regId, mem) => 
+        val pmem = pirMap.smmap(mem)
+        mappingOf(pmem.readPort)
+        //case StorePR(regId, sram) =>
+        case WtAddrPR(regId, waPort) => 
+          val pmem = pirMap.smmap(waPort.src).asSRAM
+          mappingOf(pmem.writeAddr)
+        case CtrPR(regId, ctr) => 
           val pctr = pirMap.ctmap(ctr)
-          preColor(r, mappingOf(pctr.out))
-        case ReducePR(regId) =>
-          preColor(r, pcu.regs.filter(_.is(ReduceReg)))
-r       case VecInPR(regId, vecIn) =>
-          val pvin = pirMap.vimap(vecIn)
-          val buf = { val bufs = bufsOf(pvin); assert(bufs.size==1); bufs.head }
-          preColor(r, mappingOf(buf.out))
+          mappingOf(pctr.out)
+        case ReducePR(regId) => pcu.regs.filter(_.is(ReduceReg))
         case VecOutPR(regId, vecOut) =>
           val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
           val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
-          preColor(r, mappingOf(buf.in))
-        case ScalarInPR(regId, scalarIn) =>
-          val psi = pirMap.simap(scalarIn)
-          val pregs = mappingOf(psi.out)
-          var info = s"$r connected to $pregs. Interference:"
-          def mapReg:Unit = {
-            pregs.foreach { pr =>
-              if (cu.infGraph(r).size==0) {
-                rc += (r -> pr)
-                return
-              } else {
-                cu.infGraph(r).foreach { ifr =>
-                  if (!rc.contains(ifr) || rc(ifr) != pr ) {
-                    rc += (r -> pr)
-                    return
-                  } else {
-                    info += s"$ifr mapped ${rc.contains(ifr)} -> $pr" 
-                  }
-                }
-              }
-            }
-            throw PIRException(s"Cannot find non interfering register to map $scalarIn $psi $info" ) //TODO
-          }
-          mapReg
+          mappingOf(buf.writePort)
         case ScalarOutPR(regId, scalarOut) =>
           val pso = pirMap.somap(scalarOut)
-          preColor(r, mappingOf(pso.in))
-        case _ => // No predefined color
+          mappingOf(pso.writePort)
       }
+      pregs.diff(triedRes)
     }
-    rc
+    log(s"precolor $cu") {
+      bind(
+        allNodes=cu.regs,
+        initMap=RCMap.empty, 
+        constrain=constrain(cu, pirMap) _,
+        resFunc=resFunc _, //(n, m, triedRes) => List[R]
+        finPass=(m:M) => m
+      )
+    }
   }
 
-  private def regColor(cu:ICL)(n:N, p:R, pirMap:M):M = {
-    val rc = pirMap.rcmap.map
-    if (rc.contains(n)) return pirMap
-    cu.infGraph(n).foreach{ itf => 
-      if (rc.contains(itf) && rc(itf) == p) throw InterfereException(n, itf, p, pirMap)
+  private def color(cu:ICL, pirMap:M) = {
+    type M = RCMap
+    val pcu = pirMap.clmap(cu).asPCU
+    val regs:List[N] = (cu.regs diff (pirMap.rcmap.keys.toList)).toList
+    val pregs:List[R] = (pcu.regs diff (pirMap.rcmap.values.toList)).toList
+
+    log(s"color $cu") {
+      bind[R,N,M](
+        allRes=pregs,
+        allNodes=regs,
+        initMap=pirMap.rcmap,
+        constrain=constrain(cu, pirMap) _,
+        finPass=(m:M) => m
+      )
     }
-    pirMap.setRC(n, p)
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    log(cu) {
-      val prc = preColorAnalysis(cu, pirMap)
-      val cmap = pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map))
-      val remainRegs = (cu.infGraph.keys.toSet -- prc.keys.toSet).toList
-      val pcu = cmap.clmap(cu).asInstanceOf[PCU]
-      bind(pcu.regs, remainRegs, cmap, regColor(cu) _, finPass(cu) _)
-    }
+    var prc = preColor(cu, pirMap)
+    prc = color(cu, pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map)))
+    finPass(cu)(pirMap.set(prc))
   } 
 }
 

@@ -61,7 +61,6 @@ class PIRMapping(implicit val design: Design) extends Pass {
       case _ =>
     }
 
-
     //cmap = siMapper.map(ctrler, cmap)
     //ctrler match {
       //case cu:InnerController => 

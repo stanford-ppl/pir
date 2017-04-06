@@ -33,7 +33,7 @@ class SRAMMapper(implicit val design:Design) extends Mapper {
       case vi:VI =>
         val ib = vimap(vi)
         val buf = { val bufs = bufsOf(ib); assert(bufs.size==1); bufs.head }
-        val vopregs = mappingOf(buf.in)
+        val vopregs = mappingOf(buf.writePort)
         // Regsiter mapped in empty stage
         val srampregs = p.writePort.fanIns.filter{ fi => 
           val PPR(pstage, _) = fi.src

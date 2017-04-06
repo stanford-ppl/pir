@@ -15,10 +15,10 @@ import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 class CtrMapper(implicit val design:Design) extends Mapper {
-  val spademeta: SpadeMetadata = design.arch
-  import spademeta._
   type R = PCtr
   type N = Ctr
+  val spademeta: SpadeMetadata = design.arch
+  import spademeta._
   val typeStr = "CtrMapper"
   override def debug = Config.debugCTMapper
   override val exceptLimit = 200
@@ -42,8 +42,8 @@ class CtrMapper(implicit val design:Design) extends Mapper {
 
   def map(cu:CU, pirMap:M):M = {
     log(cu) {
-      val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster
+      val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
       val pctrs = pcu.ctrs
       map(ctrs, pctrs, pirMap, finPass(cu) _)

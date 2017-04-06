@@ -17,6 +17,8 @@ trait NetworkElement extends Module with Simulatable {
   def scalarIO:ScalarIO[this.type]
   def vectorIO:VectorIO[this.type]
   def ctrlIO:ControlIO[this.type]
+
+  def asPCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
 }
 
 /* Controller */

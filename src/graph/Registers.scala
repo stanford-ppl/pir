@@ -9,7 +9,8 @@ trait OuterRegBlock { self:ComputeUnit =>
   var regId = 0
   def newTemp = {val temp = regId; regId +=1; temp}
 
-  var infGraph:Map[Reg, Set[Reg]] = Map.empty
+  val infGraph:Map[Reg, Set[Reg]] = Map.empty
+  def regs = infGraph.keys.toList
 
   val scalarInRegs  = Map[ScalarIn, ScalarInPR]()
   val loadRegs   = Map[OnChipMem, LoadPR]()

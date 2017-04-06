@@ -15,18 +15,6 @@ trait Primitive extends Module {
   def ctrler:Controller
 }
 
-/** Physical SRAM 
- *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
-  import spademeta._
-  override val typeStr = "sram"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  val readPort = Output(Word(), this, s"${this}.rp")
-  val writePort = Input(Word(), this, s"${this}.wp")
-  val readAddr = Input(Word(), this, s"${this}.ra")
-  val writeAddr = Input(Word(), this, s"${this}.wa")
-}
-
 /** Physical Counter  */
 case class Counter()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
   import spademeta._
@@ -50,11 +38,29 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, val ctrler:Co
   val out = Output(Word(), this, s"${this}.out")
 }
 
-/* Scalar Buffer between the bus inputs/outputs and first/last stage */
-class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends Primitive {
+trait OnChipMem extends Primitive {
   import spademeta._
-  val in:Input[Word, LocalBuffer] = Input(Word(), this, s"${this}.i") 
-  val out:Output[Word, LocalBuffer] = Output(Word(), this, s"${this}.o")
+  val readPort = Output(Word(), this, s"${this}.rp")
+  val writePort = Input(Word(), this, s"${this}.wp")
+
+  def asSRAM = this.asInstanceOf[SRAM]
+}
+
+/** Physical SRAM 
+ *  @param numPort: number of banks. Usually equals to number of lanes in CU */
+case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends OnChipMem {
+  import spademeta._
+  override val typeStr = "sram"
+  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  val readAddr = Input(Word(), this, s"${this}.ra")
+  val writeAddr = Input(Word(), this, s"${this}.wa")
+}
+
+/* Scalar Buffer between the bus inputs/outputs and first/last stage */
+class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends OnChipMem {
+  //import spademeta._
+  //val in:Input[Word, LocalBuffer] = Input(Word(), this, s"${this}.i") 
+  //val out:Output[Word, LocalBuffer] = Output(Word(), this, s"${this}.o")
 } 
 
 trait ScalarBuffer extends LocalBuffer

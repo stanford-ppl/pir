@@ -36,28 +36,28 @@ object ConfigFactory {
     assert(cu.vins.size == cu.vectorIns.size)
     (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => busesOf(vin) += vi }
     (cu.vectorIns, cu.regs.filter(_.is(VecInReg))).zipped.foreach { case (vin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <== vin.out }
+      forwardStages(cu).foreach { s => s.get(reg).in <== vin.readPort }
     }
     assert(cu.vouts.size == cu.vectorOuts.size)
     (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => busesOf(vout) += vo }
     (cu.vectorOuts, cu.regs.filter(_.is(VecOutReg))).zipped.foreach { case (vout, reg) =>
-      cu.stages.last.get(reg).in <== vout.out
+      cu.stages.last.get(reg).in <== vout.readPort
     }
     val siPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
     val gsis:List[List[Input[_, _]]] = cu.sins.grouped(siPerSin).toList
     (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => busesOf(sin) ++= sis }
     (cu.scalarIns, cu.regs.filter(_.is(ScalarInReg))).zipped.foreach { case (sin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <== sin.out }
+      forwardStages(cu).foreach { s => s.get(reg).in <== sin.readPort }
     }
     val soPerSout = Math.ceil( cu.souts.size * 1.0 / cu.scalarOuts.size ).toInt
     val gsos:List[List[Output[_, _]]] = cu.souts.grouped(soPerSout).toList
     (gsos, cu.scalarOuts).zipped.foreach { case (sos, sout) => busesOf(sout) ++= sos }
     (cu.scalarOuts, cu.regs.filter(_.is(ScalarOutReg))).zipped.foreach { case (sout, reg) =>
-      cu.stages.last.get(reg).in <== sout.out
+      cu.stages.last.get(reg).in <== sout.readPort
     }
     cu.scalarIns.foreach { sin =>
       // Counter min, max, step can from scalarIn
-      cu.ctrs.foreach { c => c.min <== sin.out; c.max <== sin.out ; c.step <== sin.out }
+      cu.ctrs.foreach { c => c.min <== sin.readPort; c.max <== sin.readPort ; c.step <== sin.readPort }
     }
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
