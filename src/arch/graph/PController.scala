@@ -45,10 +45,10 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
-  val ctrlBox:CtrlBox = new CtrlBox(0)
+  override val ctrlBox:TopCtrlBox = TopCtrlBox()
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    ctrlIO.outs.foreach { o => o.v.set { v => v.value.map( vv => vv.asInstanceOf[Bit].value = Some(true)) } } //TODO
+    ctrlIO.outs.foreach { o => o.v <= ctrlBox.command }
   }
 }
 
@@ -61,10 +61,9 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   val ctrlIO:ControlIO[this.type] = ControlIO(this)
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    import sim._
-    val xbmap = mapping.xbmap
+    val xbmap = sim.mapping.xbmap
     (scalarIO.outs ++ vectorIO.outs ++ ctrlIO.outs).foreach { out =>
-      xbmap.get(out).foreach { in => out.v <= in.ev }
+      xbmap.get(out).foreach { in => out.v <== in }
     }
   }
 }

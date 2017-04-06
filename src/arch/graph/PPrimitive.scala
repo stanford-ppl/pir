@@ -4,6 +4,7 @@ import pir.graph._
 import pir.util.enums._
 import pir.plasticine.main._
 import pir.plasticine.util._
+import pir.plasticine.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -198,3 +199,21 @@ class CtrlBox(numUDCs:Int) (implicit spade:Spade, val ctrler:Controller) extends
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
 }
 
+case class TopCtrlBox()(implicit spade:Spade, override val ctrler:Top) extends CtrlBox(0) with Simulatable {
+  val command = Output(Bit(), this, s"command")
+  val status = Input(Bit(), this, s"status")
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    //sim.dprintln(s"setting $command")
+    command.v.set { case (sim, v) => 
+      if (sim.cycle == 1)
+        v.value.value = Some(false) 
+      else if (sim.cycle == 2)
+        v.value.value = Some(true) 
+      else if (v.prevValue.value==Some(true))
+        v.value.value = Some(false)
+      //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
+    }
+    sim.mapping.xbmap.get(status).foreach { in => status.v <= in }
+  }
+}

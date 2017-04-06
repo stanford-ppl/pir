@@ -287,8 +287,8 @@ case class XBMap(map:XBMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); XBMap(map + rec) }
 }
 object XBMap extends IOneToOneObj {
-  type K = PO[_<:PModule]
-  type V = PI[_<:PModule]
+  type K = PIO[_<:PModule]
+  type V = PIO[_<:PModule]
   def empty:XBMap = XBMap(Map.empty)
 }
 /* A mapping between InPort and PInPort */

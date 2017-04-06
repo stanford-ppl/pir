@@ -49,7 +49,7 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   val declarator = new Traversal {
     override def visitNode (node:Node): Unit = {
       node match {
-        case node:Primitive =>
+        case node:Primitive if (!tracking.contains(node)) =>
         case node:Module => emitModule(node)
         case _ =>
       }

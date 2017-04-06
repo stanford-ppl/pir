@@ -23,7 +23,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
   override def debug = Config.debugCTMapper
   override val exceptLimit = 200
   
-  def finPass(cu:ICL)(m:M):M = m
+  def finPass(cu:CU)(m:M):M = m
 
   /*Make sure counters that are chained are next to each other and the counter is order such that
    * inner counter */
@@ -40,7 +40,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     }
   }
 
-  def map(cu:ICL, pirMap:M):M = {
+  def map(cu:CU, pirMap:M):M = {
     log(cu) {
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       // Mapping inner counter first converges faster

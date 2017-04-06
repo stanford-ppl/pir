@@ -5,7 +5,7 @@ import pir.util.enums._
 import pir.codegen._
 import pir.plasticine.main._
 import pir.plasticine.util._
-import pir.plasticine.simulation.Val
+import pir.plasticine.simulation.{Val, Simulator}
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -108,7 +108,7 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asBit:IO[Bit, S]
 
   val v:Val[P] = Val(this)
-  def ev = { v.update; v }
+  def ev(implicit sim:Simulator) = { v.update; v }
 }
 
 /* Input pin. Can only connects to output of the same level */
@@ -155,6 +155,7 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asBus:Output[Bus, S] = this.asInstanceOf[Output[Bus, S]]
   override def asWord:Output[Word, S] = this.asInstanceOf[Output[Word, S]]
   override def asBit:Output[Bit, S] = this.asInstanceOf[Output[Bit, S]]
+  override def toString():String = sf.fold(super.toString) { sf => sf() }
 } 
 object Output {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = Output[P,S](t, s, None)

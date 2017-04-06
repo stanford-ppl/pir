@@ -4,6 +4,8 @@ import pir.plasticine.main._
 import pir.plasticine.graph._
 import pir.util.enums._
 import pir.exceptions._
+import pir.util.misc._
+import pir.Config
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
@@ -16,23 +18,34 @@ case class Val[P<:PortType](io:IO[P, Module]) {
   val prevValue:P = io.tp.clonetp
   def changed:Boolean = value != prevValue
 
-  var func: Option[P => Unit] = None 
-  def set(f: P => Unit):Unit = func = Some(f) 
+  var func: Option[(Simulator, this.type) => Unit] = None 
+  def set(f: (Simulator, this.type) => Unit):Unit = {
+    if (func!=None) warn(s"Reseting func for ${io}")
+    func = Some(f) 
+  }
   var _updated = false
   def updated = _updated
-  def clearUpdate = _updated = false 
-  def update:Unit = { 
+  def clearUpdate(implicit sim:Simulator) = {
+    if (_updated!=true) throw PIRException(s"${io} is not updated at #${sim.cycle}")
+    _updated = false 
+  }
+  def update(implicit sim:Simulator):Unit = { 
     if (updated) return
+    sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${io}")
     prevValue.copy(value)
-    func.foreach { f => f(value) }
+    func.foreach { f => f(sim, this) }
     _updated = true
   }
 
   def vs:String = s"${value.s}"
   def pvs:String = s"${prevValue.s}"
 
-  def <= (o:Val[_<:PortType]) = {
-    set{ v => v.copy(o.value) }
+  def <= (o: => IO[_<:PortType, Module]) = {
+    set{ case (sim, v) => v.value.copy(o.ev(sim).value) }
+  }
+
+  def <== (o: => IO[_<:PortType, Module]) = {
+    set{ case (sim, v) => v.value.copy(o.ev(sim).prevValue) }
   }
 
   //def isV(x:Val[_]) = x.tp==tp

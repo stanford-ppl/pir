@@ -26,7 +26,7 @@ object MapPrinter extends Printer {
   }
 }
 
-class PIRMapping(implicit val design: Design) extends Pass{
+class PIRMapping(implicit val design: Design) extends Pass {
   def shouldRun = Config.mapping
 
   var mapping:PIRMap = _
@@ -43,38 +43,50 @@ class PIRMapping(implicit val design: Design) extends Pass{
     override def finPass(cu:InnerController)(m:M):M = { stageMapper.map(cu, m) }
   }
   val ctrMapper = new CtrMapper() { 
-    override def finPass(cu:InnerController)(m:M):M = { 
+    override def finPass(cu:ComputeUnit)(m:M):M = { 
       var cmap = ctrlMapper.map(cu, m)
-      regAlloc.map(cu, cmap)
+      cu match {
+        case cu:InnerController => cmap = regAlloc.map(cu, cmap)
+        case _ =>
+      }
+      cmap
     }
   }
 
   def mapPrim(ctrler:Controller)(m:PIRMap):PIRMap = {
     var cmap = m
-    cmap = siMapper.map(ctrler, cmap)
     ctrler match {
-      case cu:InnerController => 
-        cu match {
-          case mc:MemoryController =>
-          case _ => cmap = sramMapper.map(cu, cmap)
-        }
-        cmap = ctrMapper.map(cu, cmap)
-      case t:Top => cmap = ctrlMapper.map(t, cmap)
-      case _ => assert(false, s"Unknown ctrler:$ctrler")
+      case ctrler:ComputeUnit =>
+        cmap = ctrMapper.map(ctrler, cmap)
+      case _ =>
     }
+
+
+    //cmap = siMapper.map(ctrler, cmap)
+    //ctrler match {
+      //case cu:InnerController => 
+        //cu match {
+          //case mc:MemoryController =>
+          //case _ => cmap = sramMapper.map(cu, cmap)
+        //}
+        //cmap = ctrMapper.map(cu, cmap)
+      //case t:Top => cmap = ctrlMapper.map(t, cmap)
+      //case _ => assert(false, s"Unknown ctrler:$ctrler")
+    //}
+
     cmap
   }
 
   val cuMapper:CUMapper = new CUMapper() {
     override def finPass(m:PIRMap) = {
-      //try {
-        //m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
-          //mapPrim(ctrler)(pm)
-        //}
-      //} catch {
-        //case e:MappingException => throw PassThroughException(cuMapper, e, m)
-        //case e:Throwable => throw e 
-      //} 
+      try {
+        m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
+          mapPrim(ctrler)(pm)
+        }
+      } catch {
+        case e:MappingException[_] => throw PassThroughException(cuMapper, e, m)(design)
+        case e:Throwable => throw e 
+      } 
       m
     }
   }
