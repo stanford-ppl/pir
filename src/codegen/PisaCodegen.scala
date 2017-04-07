@@ -196,7 +196,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     val siComment = ListBuffer[String]() 
     pcu.etstage.prs.sortWith{ case (ppr1, ppr2) => indexOf(ppr1.reg) < indexOf(ppr2.reg)}.foreach { ppr =>
       val preg = ppr.reg
-      val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSI => psi}
+      val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSBF => psi}
       if (psins.size!=0) { // Is scalarIn Register
         val mpsins = psins.filter { psin =>
           simap.pmap.get(psin).fold(false) { sin => 
@@ -222,7 +222,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     }
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
-      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSI])) {
+      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSBF])) {
         //simux += s""""0"""" //TODO scalar retiming mux 
         simux += s"0" //TODO scalar retiming mux 
       }
@@ -294,7 +294,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
       case ctr:Ctr => 
         val pctr = ctmap(ctr)
         lookUp(pctr)
-      case sm:OnMem =>
+      case sm:OCM =>
         val psram = smmap(sm)
         lookUp(psram)
       case pr@PipeReg(stage, reg) =>
@@ -677,7 +677,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
             if (fimap.contains(ppr.in)) {
               fimap(ppr.in).src match {
                 case p:PFU => Some((s"r${indexOf(ppr.reg)}", "alu"))
-                case p:PSI => None
+                case p:PSBF => None
                 case p => Some((s"r${indexOf(ppr.reg)}", lookUp(pstage, p)))
               }
             } else None

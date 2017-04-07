@@ -202,6 +202,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def mems:List[OnChipMem] = _mems.toList
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
   def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
+  def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
+  def smems = mems.collect { case smem:ScalarMem => smem }
 
   val retiming:Map[Variable, FIFO] = Map.empty
   def getRetimingFIFO(variable:Variable):FIFO = {
