@@ -52,10 +52,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case VecOutPR(regId, vecOut) =>
           val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
           val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
-          mappingOf(buf.writePort)
+          mappingOf(buf.in)
         case ScalarOutPR(regId, scalarOut) =>
           val pso = pirMap.somap(scalarOut)
-          mappingOf(pso.writePort)
+          mappingOf(pso.in)
       }
       pregs.diff(triedRes)
     }

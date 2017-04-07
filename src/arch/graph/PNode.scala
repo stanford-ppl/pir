@@ -26,7 +26,7 @@ class Node(implicit val spade:Spade) {
   def buses(implicit spade:Spade) = { busesOf(this) }
 }
 
-class Module(implicit spade:Spade) extends Node {
+trait Module extends Node {
   val _ins = ListBuffer[Input[_<:PortType, Module]]()
   def ins:List[Input[_<:PortType, Module]] = _ins.toList
   val _outs = ListBuffer[Output[_<:PortType, Module]]()

@@ -11,8 +11,8 @@ import scala.collection.mutable.Set
 import scala.language.implicitConversions
 
 package object util {
-  implicit def pr_to_ip(pr:PipeReg):Input[Word, PipeReg] = pr.in
-  implicit def pr_to_op(pr:PipeReg):Output[Word, PipeReg] = pr.out
+  implicit def pr_to_ip(pr:PipeReg):Input[Bus, PipeReg] = pr.in
+  implicit def pr_to_op(pr:PipeReg):Output[Bus, PipeReg] = pr.out
 
   def mappingOf(io:IO[_,_]):List[ArchReg] = io match {
     case in:Input[_,_] => 

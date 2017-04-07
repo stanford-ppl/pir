@@ -5,12 +5,13 @@ import pir.util.enums._
 import pir.codegen._
 import pir.plasticine.main._
 import pir.plasticine.util._
-import pir.plasticine.simulation.{Val, Simulator}
+import pir.plasticine.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
+import scala.language.existentials
 
 trait PortType {
   type V
@@ -75,6 +76,9 @@ case class Bus(busWidth:Int, elemTp:PortType) extends PortType {
   }
   def clonetp:this.type = Bus(busWidth, elemTp).asInstanceOf[this.type]
 }
+object Bus {
+  def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.wordWidth, elemTp)
+}
 
 /* 
  * An input port of a module that can be recofigured to other's output ports
@@ -121,7 +125,10 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   def connect(n:O):Unit = { _fanIns += n; n.connectedTo(this) }
   def <==(n:O) = { connect(n) }
   def <==(ns:List[O]) = ns.foreach(n => connect(n))
-  def <==(r:PipeReg):Unit = { this.asWord.connect(r.out) }
+  def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
+  def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
+  def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
+  def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=mp[${_fanIns.mkString(",")}]"
   def canConnect(n:Any):Boolean = _fanIns.contains(n)
   def isConnected = _fanIns.size!=0
@@ -132,11 +139,9 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 }
 object Input {
-  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = Input[P, S](t, s, None)
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = new Input[P, S](t, s, None)
   def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Input[P, S] = 
-    Input[P, S](t,s, Some(sf _))
-  def apply[P<:PortType, S<:Module](t:P, s:S, sf: Option[()=>String])(implicit spade:Spade):Input[P, S] = 
-    new Input[P, S](t,s, sf)
+    new Input[P, S](t,s, Some(sf _))
 } 
 
 /* Output pin. Can only connects to input of the same level */
@@ -156,13 +161,74 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asWord:Output[Word, S] = this.asInstanceOf[Output[Word, S]]
   override def asBit:Output[Bit, S] = this.asInstanceOf[Output[Bit, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
+
+  def slice(i:Int, in:Input[_<:PortType,Module]) = Slice(in, this.asBus, i)
+  def sliceHead(in:Input[_<:PortType,Module]) = slice(0, in)
+  def broadcast(in:Input[Bus, Module]) = BroadCast(this, in)
 } 
 object Output {
-  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = Output[P,S](t, s, None)
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = new Output[P,S](t, s, None)
   def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):Output[P, S] = 
-    Output[P, S](t,s, Some(sf _))
-  def apply[P<:PortType, S<:Module](t:P, s:S, sf: Option[()=>String])(implicit spade:Spade):Output[P, S] = {
-    new Output[P,S](t, s, sf)
+    new Output[P, S](t,s, Some(sf _))
+}
+
+trait GlobalIO[P<:PortType, +S<:Module] extends IO[P, S] with Simulatable {
+  val ic:IO[P, this.type]
+}
+
+/* Input pin of network element. Has an innernal output */
+class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade)
+  extends Input(tp, src, sf) with GlobalIO[P,S] { 
+  import spademeta._
+  override val ic:Output[P, this.type] = new Output(tp, this, sf)
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    ic.v <= this
+  }
+}
+object GlobalInput {
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalInput[P, S] = new GlobalInput[P, S](t, s, None)
+  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):GlobalInput[P, S] = 
+    new GlobalInput[P, S](t,s, Some(sf _))
+} 
+
+/* Output pin. Can only connects to input of the same level */
+class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade) 
+  extends Output(tp, src, sf) with GlobalIO[P, S] { 
+  import spademeta._
+  override val ic:Input[P, this.type] = new Input(tp, this, sf)
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    this.v <= ic
+  }
+} 
+object GlobalOutput {
+  def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalOutput[P, S] = new GlobalOutput[P,S](t, s, None)
+  def apply[P<:PortType, S<:Module](t:P, s:S, sf: =>String)(implicit spade:Spade):GlobalOutput[P, S] = 
+    new GlobalOutput[P, S](t,s, Some(sf _))
+}
+
+case class Slice[P<:PortType](in:Input[P,Module], fout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
+  override val typeStr = "slice"
+  val fin = Input(fout.tp, this, s"${this}.fin").asBus
+  val out = Output(in.tp, this, s"${this}.out")
+  fin <== fout
+  in <== out
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    out.v.set { case (sim, v) => v.value.copy(fin.ev(sim).value.value(i)) }
+  }
+}
+
+case class BroadCast[P<:PortType](out:Output[P,Module], fin:Input[Bus, Module])(implicit spade:Spade) extends Simulatable {
+  override val typeStr = "broadcast"
+  val in = Input(out.tp, this, s"${this}.in")
+  val fout = Output(fin.tp, this, s"${this}.fout")
+  in <== out
+  fin <== fout
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    fout.v.set { case (sim, v) => v.value.value.foreach{ _.copy(in.ev(sim).value) } }
   }
 }
 
@@ -173,39 +239,43 @@ trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
 
   def src:NE
   def tp:P
-  def inBuses(numBus:Int)(implicit spade:Spade):List[Input[P, NE]] = 
-    List.tabulate(numBus) { is => Input(tp, src) }
-  def outBuses(numBus:Int)(implicit spade:Spade):List[Output[P, NE]] = 
-    List.tabulate(numBus) { is => Output(tp, src) }
-  def addInAt(dir:String, numBus:Int)(implicit spade:Spade):List[Input[P, NE]] = { 
-    val ibs = inBuses(numBus)
+  def inputs(num:Int)(implicit spade:Spade):List[GlobalInput[P, NE]] = 
+    List.tabulate(num) { is => GlobalInput(tp, src) }
+  def outputs(num:Int)(implicit spade:Spade):List[GlobalOutput[P, NE]] = 
+    List.tabulate(num) { is => GlobalOutput(tp, src) }
+  def addInAt(dir:String, num:Int)(implicit spade:Spade):List[GlobalInput[P, NE]] = { 
+    val ibs = inputs(num)
     ibs.zipWithIndex.foreach { case (ib, i) => ib }
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
     ibs
   }
-  def addOutAt(dir:String, numBus:Int)(implicit spade:Spade):List[Output[P, NE]] = {
-    val obs = outBuses(numBus)
+  def addOutAt(dir:String, num:Int)(implicit spade:Spade):List[GlobalOutput[P, NE]] = {
+    val obs = outputs(num)
     obs.zipWithIndex.foreach { case (ob, i) => ob }
     outMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
     obs
   }
-  def addIOAt(dir:String, numBus:Int)(implicit spade:Spade):NE = {
-    addInAt(dir,numBus)
-    addOutAt(dir,numBus)
+  def addIOAt(dir:String, num:Int)(implicit spade:Spade):NE = {
+    addInAt(dir,num)
+    addOutAt(dir,num)
     src
   }
-  def addIns(numBus:Int)(implicit spade:Spade):NE = { 
-    addInAt("N", numBus)
+  def addIns(num:Int)(implicit spade:Spade):NE = { 
+    addInAt("N", num)
     src
   }
-  def addOuts(numBus:Int)(implicit spade:Spade):NE = {
-    addOutAt("N", numBus)
+  def addOuts(num:Int)(implicit spade:Spade):NE = {
+    addOutAt("N", num)
     src
   }
-  def inAt(dir:String):List[Input[P, NE]] = { inMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[Input[P, NE]]] }
-  def outAt(dir:String):List[Output[P, NE]] = { outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[Output[P, NE]]] }
-  def ins:List[Input[P, NE]] = GridIO.eightDirections.flatMap { dir => inAt(dir) } 
-  def outs:List[Output[P, NE]] = GridIO.eightDirections.flatMap { dir => outAt(dir) }  
+  def inAt(dir:String):List[GlobalInput[P, NE]] = { 
+    inMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[GlobalInput[P, NE]]]
+  }
+  def outAt(dir:String):List[GlobalOutput[P, NE]] = { 
+    outMap.getOrElse(dir, ListBuffer.empty).toList.asInstanceOf[List[GlobalOutput[P, NE]]]
+  }
+  def ins:List[GlobalInput[P, NE]] = GridIO.eightDirections.flatMap { dir => inAt(dir) } 
+  def outs:List[GlobalOutput[P, NE]] = GridIO.eightDirections.flatMap { dir => outAt(dir) }  
   def ios:List[IO[P, NE]] = ins ++ outs
   def numIns:Int = inMap.values.map(_.size).sum
   def numOuts:Int = outMap.values.map(_.size).sum

@@ -31,12 +31,12 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
   val vectorIO:VectorIO[this.type] = VectorIO(this)
   val ctrlIO:ControlIO[this.type] = ControlIO(this)
 
-  def sins:List[Input[ScalarIO.P, Controller]] = scalarIO.ins // Scalar Inputs
-  def souts:List[Output[ScalarIO.P, Controller]] = scalarIO.outs // Scalar Outputs
-  def vins:List[Input[VectorIO.P, Controller]] = vectorIO.ins// Input Buses/Vector inputs
-  def vouts:List[Output[VectorIO.P, Controller]] = vectorIO.outs // Output Buses/Vector outputs
-  def cins:List[Input[ControlIO.P, Controller]] = ctrlIO.ins // Control inputs
-  def couts:List[Output[ControlIO.P, Controller]] = ctrlIO.outs // Control outputs
+  def sins = scalarIO.ins // Scalar Inputs
+  def souts = scalarIO.outs // Scalar Outputs
+  def vins = vectorIO.ins// Input Buses/Vector inputs
+  def vouts = vectorIO.outs // Output Buses/Vector outputs
+  def cins = ctrlIO.ins // Control inputs
+  def couts = ctrlIO.outs // Control outputs
 }
 
 /* Top-level controller (host)

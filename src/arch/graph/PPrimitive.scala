@@ -23,7 +23,7 @@ case class Counter()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primi
   val min = Input(Word(), this, s"${this}.min")
   val max = Input(Word(), this, s"${this}.max")
   val step = Input(Word(), this, s"${this}.step")
-  val out = Output(Word(), this, s"${this}.out")
+  val out = Output(Bus(Word()), this, s"${this}.out")
   val en = Input(Bit(), this, s"${this}.en")
   val done = Output(Bit(), this, s"${this}.done")
   def isDep(c:Counter) = en.canConnect(c.done)
@@ -34,15 +34,12 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, val ctrler:Co
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
-  val in = Input(Word(), this, s"$this.i")
-  val out = Output(Word(), this, s"${this}.out")
+  val in = Input(Bus(Word()), this, s"$this.i")
+  val out = Output(Bus(Word()), this, s"${this}.out")
 }
 
 trait OnChipMem extends Primitive {
   import spademeta._
-  val readPort = Output(Word(), this, s"${this}.rp")
-  val writePort = Input(Word(), this, s"${this}.wp")
-
   def asSRAM = this.asInstanceOf[SRAM]
 }
 
@@ -54,17 +51,21 @@ case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends OnChipMe
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
+  val readPort:Output[Bus, this.type] = Output(Bus(Word()), this, s"${this}.rp")
+  val writePort:Input[Bus, this.type] = Input(Bus(Word()), this, s"${this}.wp")
 }
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends OnChipMem {
+abstract class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends OnChipMem {
   //import spademeta._
-  //val in:Input[Word, LocalBuffer] = Input(Word(), this, s"${this}.i") 
-  //val out:Output[Word, LocalBuffer] = Output(Word(), this, s"${this}.o")
+  val in:Input[_<:PortType, LocalBuffer]
+  val out:Output[_<:PortType, LocalBuffer]
 } 
 
-trait ScalarBuffer extends LocalBuffer
-trait VectorBuffer extends LocalBuffer
+trait ScalarBuffer extends LocalBuffer {
+  val in = Input(Word(), this, s"${this}.wp")
+  val out = Output(Word(), this, s"${this}.rp")
+}
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
 case class ScalarIn()(implicit spade:Spade, ctrler:Controller) extends ScalarBuffer {
@@ -75,15 +76,23 @@ case class ScalarIn()(implicit spade:Spade, ctrler:Controller) extends ScalarBuf
  * of the OutBus */
 class ScalarOut()(implicit spade:Spade, ctrler:Controller) extends ScalarBuffer {
   import spademeta._
-  override val typeStr = "so"
+
 }
 object ScalarOut {
   def apply()(implicit spade:Spade, ctrler:Controller):ScalarOut = new ScalarOut()
 }
+trait VectorBuffer extends LocalBuffer {
+  val in = Input(Bus(Word()), this, s"${this}.in")
+  val out = Output(Bus(Word()), this, s"${this}.out") 
+}
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorIn()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer { override val typeStr = "vi" } 
-case class VectorOut()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer { override val typeStr = "vo" } 
+case class VectorIn()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer { 
+  override val typeStr = "vi"
+} 
+case class VectorOut()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer {
+  override val typeStr = "vo"
+} 
 /* VectorOut of TileTransfer CU, whos AddrOut has dedicated scalar network that goes to
  * Memory Controller */
 trait AddrOut extends ScalarOut {
@@ -101,8 +110,8 @@ object AddrOut {
 case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, val ctrler:Controller) extends Primitive {
   import spademeta._
   override val typeStr = "fu"
-  val operands = List.fill(numOprds) (Input(Word(), this, s"$this.oprd${id}")) 
-  val out = Output(Word(), this, s"$this.out")
+  val operands = List.fill(numOprds) (Input(Bus(Word()), this, s"$this.oprd${id}")) 
+  val out = Output(Bus(Word()), this, s"$this.out")
 }
 
 /*

@@ -29,7 +29,7 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val idx = somap(n.scalar.writer).index
     dprintln(s"Try $n -> $p $ib")
     assert(busesOf(p).contains(ib))
-    map.setSI(n,p).setOP(n.out, p.readPort)
+    map.setSI(n,p).setOP(n.out, p.out)
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {

@@ -34,41 +34,41 @@ object ConfigFactory {
     }
     // Bus input is forwarded to 1 register in empty stage
     assert(cu.vins.size == cu.vectorIns.size)
-    (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => busesOf(vin) += vi }
+    (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => vin.in <== vi.ic }
     (cu.vectorIns, cu.regs.filter(_.is(VecInReg))).zipped.foreach { case (vin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <== vin.readPort }
+      forwardStages(cu).foreach { s => s.get(reg).in <== vin.out } //TODO
     }
     assert(cu.vouts.size == cu.vectorOuts.size)
-    (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => busesOf(vout) += vo }
+    (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => vo.ic <== vout.out }
     (cu.vectorOuts, cu.regs.filter(_.is(VecOutReg))).zipped.foreach { case (vout, reg) =>
-      cu.stages.last.get(reg).in <== vout.readPort
+      vout.in <== cu.stages.last.get(reg).out
     }
     val siPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
-    val gsis:List[List[Input[_, _]]] = cu.sins.grouped(siPerSin).toList
-    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => busesOf(sin) ++= sis }
+    val gsis:List[List[GlobalInput[Word, _]]] = cu.sins.grouped(siPerSin).toList
+    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => sin.in <== sis.map(_.ic) }
     (cu.scalarIns, cu.regs.filter(_.is(ScalarInReg))).zipped.foreach { case (sin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <== sin.readPort }
+      forwardStages(cu).foreach { s => s.get(reg).in <-- sin.out }
     }
     val soPerSout = Math.ceil( cu.souts.size * 1.0 / cu.scalarOuts.size ).toInt
-    val gsos:List[List[Output[_, _]]] = cu.souts.grouped(soPerSout).toList
+    val gsos:List[List[GlobalOutput[Word, _]]] = cu.souts.grouped(soPerSout).toList
     (gsos, cu.scalarOuts).zipped.foreach { case (sos, sout) => busesOf(sout) ++= sos }
     (cu.scalarOuts, cu.regs.filter(_.is(ScalarOutReg))).zipped.foreach { case (sout, reg) =>
-      cu.stages.last.get(reg).in <== sout.readPort
+      sout.in <== (cu.stages.last.get(reg).out, 0)
     }
     cu.scalarIns.foreach { sin =>
       // Counter min, max, step can from scalarIn
-      cu.ctrs.foreach { c => c.min <== sin.readPort; c.max <== sin.readPort ; c.step <== sin.readPort }
+      cu.ctrs.foreach { c => c.min <== sin.out; c.max <== sin.out ; c.step <== sin.out }
     }
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
-      forwardStages(cu).foreach { s => s.get(reg) <== c.out }
+      forwardStages(cu).foreach { s => s.get(reg).in <== c.out }
     }
     cu match {
       case cu:MemoryComputeUnit =>
         cu.srams.foreach { case sram => 
           (cu.wastages ++ cu.rastages).foreach { s =>
-            sram.readAddr <== s.fu.out
-            sram.writeAddr <== s.fu.out
+            sram.readAddr <== (s.fu.out, 0)
+            sram.writeAddr <== (s.fu.out, 0)
           }
         }
       case _ =>
@@ -91,8 +91,8 @@ object ConfigFactory {
     for (i <- 0 until cu.ctrs.size by 1) { isInnerCounter(cu.ctrs(i)) = true  } // Allow group counter in chain in multiple of 2
 
     cu.srams.foreach { s =>
-      s.readAddr <== cu.ctrs.map(_.out) // sram read/write addr can be from all counters
-      s.writeAddr <== cu.ctrs.map(_.out)
+      s.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
+      s.writeAddr <== (cu.ctrs.map(_.out), 0)
     } 
 
     /* FU Constrain  */
@@ -100,7 +100,7 @@ object ConfigFactory {
       // All stage can read from any regs of its own stage, previous stage, and Const
       val preStage = cu.stages(i) // == fustages(i-1)
       stage.fu.operands.foreach{ oprd =>
-        oprd <== Const().out // operand is constant
+        oprd <-- Const().out // operand is constant
         cu.regs.foreach{ reg =>
           oprd <== stage.get(reg) // operand is from current register block
           oprd <== preStage.get(reg) // operand is forwarded from previous register block
@@ -119,7 +119,7 @@ object ConfigFactory {
             cu.ctrs.foreach{ oprd <== _.out } 
           }
           // Connect all cu.srams's write addr to writeAddr stages
-          cu.srams.foreach { _.writeAddr <== stage.fu.out }
+          cu.srams.foreach { _.writeAddr <== (stage.fu.out, 0) }
         }
         (cu.wastages ++ cu.rastages).foreach { stage =>
           stage.fu.operands.foreach { oprd =>
