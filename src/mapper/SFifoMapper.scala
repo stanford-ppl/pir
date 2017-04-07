@@ -14,11 +14,11 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class SramMapper(implicit val design:Design) extends Mapper {
-  type N = SRAM
-  type R = PSRAM
-  val typeStr = "SramMapper"
-  override def debug = Config.debugSMMapper
+class SFifoMapper(implicit val design:Design) extends Mapper {
+  type N = SMem
+  type R = PSBF 
+  val typeStr = "ScalFifoMapper"
+  override def debug = Config.debugSMMapper //TODO
   implicit val spade:Spade = design.arch
   val pirmeta:PIRMetadata = design
   val spademeta: SpadeMetadata = spade
@@ -31,20 +31,24 @@ class SramMapper(implicit val design:Design) extends Mapper {
     m.setSM(n, r)
       .setOP(n.readPort, r.readPort)
       .setIP(n.writePort, r.writePort)
-      .setIP(n.writeAddr, r.writeAddr)
-      .setIP(n.readAddr, r.readAddr)
+  }
+
+  // After RegAlloc
+  def resFunc(cu:ICL)(n:N, m:M, triedRes:List[R]):List[R] = {
+    val reg = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }.head
+    val preg = m.rcmap(reg)
+    val ppr = m.clmap(cu).fustages.head.get(preg)
+    ppr.in.fanIns.map{_.src}.collect{ case sb:PSBF => sb }.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
   }
 
   def map(cu:ICL, pirMap:M):M = {
+    val pcu = pirMap.clmap(cu).asCU
     log(cu) {
-      val pcu = pirMap.clmap(cu).asCU
-      val srams = cu.srams
-      val psrams = pirMap.clmap(cu).asCU.srams
       bind(
-        allRes=psrams,
-        allNodes=srams,
-        initMap=pirMap,
+        allNodes=cu.smems,
+        initMap=pirMap, 
         constrain=constrain _,
+        resFunc=resFunc(cu) _, //(n, m, triedRes) => List[R]
         finPass=(m:M) => m
       )
     }
@@ -57,4 +61,3 @@ class SramMapper(implicit val design:Design) extends Mapper {
     }
   }
 }
-

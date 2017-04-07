@@ -32,10 +32,8 @@ trait Traversal {
           case n:ComputeUnit =>
             n.srams.foreach(visitNode)
             n.ctrs.foreach(visitNode)
-            n.scalarIns.foreach(visitNode)
-            n.scalarOuts.foreach(visitNode)
-            n.vectorIns.foreach(visitNode)
-            n.vectorOuts.foreach(visitNode)
+            n.sbufs.foreach(visitNode)
+            n.vbufs.foreach(visitNode)
             n.stages.foreach(visitNode)
           case n:MemoryController =>
           case n:Top =>

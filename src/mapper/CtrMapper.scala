@@ -40,24 +40,27 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     }
   }
 
+  def map(cu:CL, pirMap:M):M = {
+    cu match {
+      case cu:CU => map(cu, pirMap)
+      case cu => pirMap
+    }
+  }
+
   def map(cu:CU, pirMap:M):M = {
     log(cu) {
       // Mapping inner counter first converges faster
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
       val pctrs = pcu.ctrs
-      map(ctrs, pctrs, pirMap, finPass(cu) _)
+      bind(
+        allNodes=ctrs,
+        initMap=pirMap,
+        constrain=mapCtr(pctrs) _, 
+        resFunc=resFunc(pctrs) _, 
+        finPass=finPass(cu) _
+      )
     }
-  }
-
-  def map(ctrs:List[N], pctrs:List[R], initMap:M, finPass:M => M) = {
-    bind(
-      allNodes=ctrs,
-      initMap=initMap,
-      constrain=mapCtr(pctrs) _, 
-      resFunc=resFunc(pctrs) _, 
-      finPass=finPass
-    )
   }
 
   def resFunc(allRes:List[R])(n:N, m:M, triedRes:List[R]):List[R] = {

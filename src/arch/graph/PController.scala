@@ -18,7 +18,7 @@ trait NetworkElement extends Module with Simulatable {
   def vectorIO:VectorIO[this.type]
   def ctrlIO:ControlIO[this.type]
 
-  def asPCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
+  def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
 }
 
 /* Controller */
@@ -80,10 +80,8 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   var regs:List[ArchReg] = Nil
   var srams:List[SRAM] = Nil
   var ctrs:List[Counter] = Nil
-  var scalarIns:List[ScalarIn] = Nil
-  var scalarOuts:List[ScalarOut] = Nil
-  var vectorIns:List[VectorIn] = Nil
-  var vectorOuts:List[VectorOut] = Nil
+  var sbufs:List[ScalarBuffer] = Nil
+  var vbufs:List[VectorBuffer] = Nil
 
   def vout = vouts.head
   
@@ -139,14 +137,10 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numCtrs = ctrs.size
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { i => SRAM().index(i) }; this }
   def numSRAMs = srams.size
-  def numScalarIns(num:Int):this.type = { scalarIns = List.tabulate(num)  { i => ScalarIn().index(i) }; this }
-  def numScalarIns:Int = scalarIns.size
-  def numScalarOuts(num:Int):this.type = { scalarOuts = List.tabulate(num)  { i => ScalarOut().index(i) }; this }
-  def numScalarOuts:Int = scalarOuts.size
-  def numVecIns(num:Int):this.type = { vectorIns = List.tabulate(num) { i => VectorIn().index(i) }; this }
-  def numVecIns:Int = vectorIns.size
-  def numVecOuts(num:Int):this.type = { vectorOuts = List.tabulate(num) { o => VectorOut().index(o) }; this }
-  def numVecOuts:Int = vectorOuts.size
+  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarBuffer().index(i) }; this }
+  def numScalarBufs:Int = sbufs.size
+  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorBuffer().index(i) }; this }
+  def numVecBufs:Int = vbufs.size
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
     addRegstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops) }); this // Regular stages
   }

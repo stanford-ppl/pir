@@ -17,12 +17,14 @@ trait PIRAlias {
   type PRIM  = Primitive
   type Reg   = pir.graph.Reg
   type PR    = PipeReg
-  type OnMem = OnChipMem
+  type OCM   = OnChipMem
   type SRAM  = pir.graph.SRAM
   type SOR   = SRAMOnRead
   type SOW   = SRAMOnWrite
   type FOR   = FIFOOnRead
   type FOW   = FIFOOnWrite
+  type SMem  = ScalarMem
+  type VFIFO = VectorFIFO
   type CC    = CounterChain
   type Ctr   = Counter
   type FU    = FuncUnit

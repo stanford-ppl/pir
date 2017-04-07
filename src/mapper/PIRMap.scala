@@ -140,6 +140,7 @@ case class CLMap(map:CLMap.M, pmap:CLMap.IM) extends IBiOneToOneMap {
   override type M = CLMap.M
   override type IM = CLMap.IM
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmap + rec.swap) }
+  def apply(k:CU):PCU = { map(k).asCU }
 }
 object CLMap extends IBiOneToOneObj {
   type K = CL
@@ -160,6 +161,8 @@ case class VIMap(map:VIMap.M, pmap:VIMap.IM) extends IBiManyToOneMap {
     val npmap:IM = pmap + ((v, set))
     VIMap(map + rec, npmap)
   }
+  def apply(n:VI):PGI[PModule] = { map(n).asGlobal[PModule] }
+  def apply(n:SI):PGI[PModule] = { map(n).asGlobal[PModule] }
 }
 object VIMap extends IBiManyToOneObj {
   type K = Node //InPort or VecIn
@@ -180,6 +183,8 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     VOMap(newmap, pmap + rec.swap)
   }
+  def apply(n:VO):Set[PGO[PModule]] = { map(n).map(_.asGlobal[PModule]) }
+  def apply(n:SO):Set[PGO[PModule]] = { map(n).map(_.asGlobal[PModule]) }
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
@@ -194,10 +199,11 @@ case class SMMap(map:SMMap.M, pmap:SMMap.IM) extends IBiOneToOneMap {
   override type M = SMMap.M
   override type IM = SMMap.IM
   override def + (rec:(K,V)) = { super.check(rec); SMMap(map + rec, pmap + rec.swap) }
+  def apply(n:SRAM):PSRAM = { map(n).asSRAM }
 }
 object SMMap extends IBiOneToOneObj {
-  type K = OnMem 
-  type V = PSRAM 
+  type K = OCM
+  type V = POCM
   def empty:SMMap = SMMap(Map.empty, Map.empty)
 }
 
@@ -215,6 +221,7 @@ object CTMap extends IBiOneToOneObj {
   def empty:CTMap = CTMap(Map.empty, Map.empty)
 }
 
+//TODO remove
 /* A Map between PIR Counter to Spade Counter */
 case class SIMap(map:SIMap.M, pmap:SIMap.IM) extends IBiOneToOneMap {
   type K = SIMap.K
@@ -225,10 +232,11 @@ case class SIMap(map:SIMap.M, pmap:SIMap.IM) extends IBiOneToOneMap {
 }
 object SIMap extends IBiOneToOneObj {
   type K = SI
-  type V = PSI
+  type V = PNode
   def empty:SIMap = SIMap(Map.empty, Map.empty)
 }
 
+//TODO remove
 /* A Map between PIR ScalarOut to Spade ScalarOut */
 case class SOMap(map:SOMap.M) extends IOneToOneMap {
   type K = SOMap.K
@@ -238,7 +246,7 @@ case class SOMap(map:SOMap.M) extends IOneToOneMap {
 }
 object SOMap extends IOneToOneObj {
   type K = SO 
-  type V = PSO 
+  type V = PNode
   def empty:SOMap = SOMap(Map.empty)
 }
 

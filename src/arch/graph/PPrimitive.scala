@@ -11,12 +11,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-trait Primitive extends Module {
-  def ctrler:Controller
-}
+abstract class Primitive(implicit spade:Spade, val ctrler:Controller) extends Module
 
 /** Physical Counter  */
-case class Counter()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primitive {
+case class Counter()(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
   import spademeta._
   override val typeStr = "ctr"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -30,7 +28,7 @@ case class Counter()(implicit spade:Spade, val ctrler:ComputeUnit) extends Primi
 }
 
 /* Phyiscal pipeline register */
-case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, val ctrler:Controller) extends Primitive {
+case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, ctrler:Controller) extends Primitive {
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
@@ -40,12 +38,16 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, val ctrler:Co
 
 trait OnChipMem extends Primitive {
   import spademeta._
+  val readPort:Output[_<:PortType, OnChipMem]
+  val writePort:Input[_<:PortType, OnChipMem]
   def asSRAM = this.asInstanceOf[SRAM]
+  def asVBuf = this.asInstanceOf[VectorBuffer]
+  def asSBuf = this.asInstanceOf[ScalarBuffer]
 }
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends OnChipMem {
+case class SRAM()(implicit spade:Spade, ctrler:ComputeUnit) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -56,50 +58,21 @@ case class SRAM()(implicit spade:Spade, val ctrler:ComputeUnit) extends OnChipMe
 }
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-abstract class LocalBuffer(implicit spade:Spade, val ctrler:Controller) extends OnChipMem {
-  //import spademeta._
-  val in:Input[_<:PortType, LocalBuffer]
-  val out:Output[_<:PortType, LocalBuffer]
-} 
+trait LocalBuffer extends OnChipMem 
 
-trait ScalarBuffer extends LocalBuffer {
-  val in = Input(Word(), this, s"${this}.wp")
-  val out = Output(Word(), this, s"${this}.rp")
-}
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarIn()(implicit spade:Spade, ctrler:Controller) extends ScalarBuffer {
-  import spademeta._
+case class ScalarBuffer()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
   override val typeStr = "si"
-} 
-/* Scalar buffer between the last stage and the bus output. Output connects to 1 in port 
- * of the OutBus */
-class ScalarOut()(implicit spade:Spade, ctrler:Controller) extends ScalarBuffer {
-  import spademeta._
-
-}
-object ScalarOut {
-  def apply()(implicit spade:Spade, ctrler:Controller):ScalarOut = new ScalarOut()
-}
-trait VectorBuffer extends LocalBuffer {
-  val in = Input(Bus(Word()), this, s"${this}.in")
-  val out = Output(Bus(Word()), this, s"${this}.out") 
+  val writePort = Input(Word(), this, s"${this}.wp")
+  val readPort = Output(Word(), this, s"${this}.rp")
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorIn()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer { 
-  override val typeStr = "vi"
-} 
-case class VectorOut()(implicit spade:Spade, ctrler:Controller) extends VectorBuffer {
-  override val typeStr = "vo"
-} 
-/* VectorOut of TileTransfer CU, whos AddrOut has dedicated scalar network that goes to
- * Memory Controller */
-trait AddrOut extends ScalarOut {
-  override val typeStr = "ado"
-}
-object AddrOut {
-  def apply()(implicit spade:Spade, ctrler:Controller) = new AddrOut {}
+case class VectorBuffer()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
+  override val typeStr = "vb"
+  val writePort = Input(Bus(Word()), this, s"${this}.in")
+  val readPort = Output(Bus(Word()), this, s"${this}.out") 
 }
 
 /* Function unit. 
@@ -107,7 +80,7 @@ object AddrOut {
  * @param ops List of supported ops
  * @param stage which stage the FU locates
  * */
-case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, val ctrler:Controller) extends Primitive {
+case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, ctrler:Controller) extends Primitive {
   import spademeta._
   override val typeStr = "fu"
   val operands = List.fill(numOprds) (Input(Bus(Word()), this, s"$this.oprd${id}")) 
@@ -118,7 +91,7 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
  * Phyical stage. 1 column of FU and Pipeline Register block accross lanes. 
  * @param reg Logical registers in current register block
  * */
-class Stage(regs:List[ArchReg])(implicit spade:Spade, val ctrler:Controller) extends Primitive {
+class Stage(regs:List[ArchReg])(implicit spade:Spade, ctrler:Controller) extends Primitive {
   import spademeta._
   val funcUnit:Option[FuncUnit] = None
   val _prs = Map[ArchReg, PipeReg]() // Mapping between logical register and physical register
@@ -175,7 +148,7 @@ object Const {
   def apply()(implicit spade:Spade) = new Const()
 }
 
-abstract class LUT(implicit spade:Spade, val ctrler:Controller) extends Node {
+abstract class LUT(implicit spade:Spade, ctrler:Controller) extends Node {
   val numIns:Int
 }
 case class EnLUT(numIns:Int)(implicit spade:Spade, ctrler:Controller) extends LUT {
@@ -196,7 +169,7 @@ object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade, ctrler:Controller):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, val ctrler:Controller) extends Primitive {
+case class UDCounter()(implicit spade:Spade, ctrler:Controller) extends Primitive {
   import spademeta._
   override val typeStr = "udlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -209,7 +182,7 @@ object UDCounter {
   def apply(idx:Int)(implicit spade:Spade, ctrler:Controller):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numUDCs:Int) (implicit spade:Spade, val ctrler:Controller) extends Primitive {
+class CtrlBox(numUDCs:Int) (implicit spade:Spade, ctrler:Controller) extends Primitive {
   import spademeta._
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
 }

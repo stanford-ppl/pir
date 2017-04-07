@@ -13,7 +13,7 @@ import scala.collection.immutable.Map
 
 class ScalarInMapper(implicit val design:Design) extends Mapper {
   type N = SI
-  type R = PSI 
+  type R = PSBF
   val typeStr = "SIMapper"
   override def debug = Config.debugSIMapper
   implicit val spade:Spade = design.arch
@@ -29,12 +29,12 @@ class ScalarInMapper(implicit val design:Design) extends Mapper {
     val idx = somap(n.scalar.writer).index
     dprintln(s"Try $n -> $p $ib")
     assert(busesOf(p).contains(ib))
-    map.setSI(n,p).setOP(n.out, p.out)
+    map.setSI(n,p).setOP(n.out, p.readPort)
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
     val ib = m.vimap(n)
-    bufsOf(ib).collect{ case psi:PSI => psi }.filter { psi =>
+    bufsOf(ib).collect{ case psi:PSBF => psi }.filter { psi =>
       !triedRes.contains(psi) && !m.simap.pmap.contains(psi)
     }.toList
   }

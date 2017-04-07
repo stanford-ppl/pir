@@ -35,12 +35,14 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   /* Register coloring for registers with predefined colors */
   private def preColor(cu:ICL, pirMap:M):RCMap = {
     type M = RCMap
-    val pcu = pirMap.clmap(cu).asPCU
+    val pcu = pirMap.clmap(cu).asCU
     def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
       val pregs = n match {
+        case LoadPR(regId, mem:SMem) => 
+          pcu.regs.filter(_.is(LoadReg))
         case LoadPR(regId, mem) => 
-        val pmem = pirMap.smmap(mem)
-        mappingOf(pmem.readPort)
+          val pmem = pirMap.smmap(mem)
+          mappingOf(pmem.readPort)
         //case StorePR(regId, sram) =>
         case WtAddrPR(regId, waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM
@@ -52,10 +54,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case VecOutPR(regId, vecOut) =>
           val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
           val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
-          mappingOf(buf.in)
+          mappingOf(buf.writePort)
         case ScalarOutPR(regId, scalarOut) =>
-          val pso = pirMap.somap(scalarOut)
-          mappingOf(pso.in)
+          val psos = pirMap.vomap(scalarOut)
+          psos.flatMap(pso => mappingOf(pso.ic)).toList
       }
       pregs.diff(triedRes)
     }
@@ -72,7 +74,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   private def color(cu:ICL, pirMap:M) = {
     type M = RCMap
-    val pcu = pirMap.clmap(cu).asPCU
+    val pcu = pirMap.clmap(cu).asCU
     val regs:List[N] = (cu.regs diff (pirMap.rcmap.keys.toList)).toList
     val pregs:List[R] = (pcu.regs diff (pirMap.rcmap.values.toList)).toList
 
@@ -87,11 +89,18 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     }
   }
 
+  def map(cu:CL, pirMap:M):M = {
+    cu match {
+      case cu:ICL => map(cu, pirMap)
+      case cu => pirMap
+    }
+  } 
+
   def map(cu:ICL, pirMap:M):M = {
     var prc = preColor(cu, pirMap)
     prc = color(cu, pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map)))
     finPass(cu)(pirMap.set(prc))
-  } 
+  }
 }
 
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {

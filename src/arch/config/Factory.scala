@@ -32,33 +32,37 @@ object ConfigFactory {
     for (i <- 1 until cu.stages.size) {
       cu.regs.foreach { reg => cu.stages(i).get(reg).in <== cu.stages(i-1).get(reg).out }
     }
+
     // Bus input is forwarded to 1 register in empty stage
-    assert(cu.vins.size == cu.vectorIns.size)
-    (cu.vins, cu.vectorIns).zipped.foreach { case (vi, vin) => vin.in <== vi.ic }
-    (cu.vectorIns, cu.regs.filter(_.is(VecInReg))).zipped.foreach { case (vin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <== vin.out } //TODO
+    val viRegs = cu.regs.filter(_.is(VecInReg))
+    assert(cu.vins.size == cu.vbufs.size)
+    assert(cu.vbufs.size == viRegs.size)
+    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
+    (cu.vbufs, viRegs).zipped.foreach { case (vbuf, reg) =>
+      forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
-    assert(cu.vouts.size == cu.vectorOuts.size)
-    (cu.vouts, cu.vectorOuts).zipped.foreach { case (vo, vout) => vo.ic <== vout.out }
-    (cu.vectorOuts, cu.regs.filter(_.is(VecOutReg))).zipped.foreach { case (vout, reg) =>
-      vout.in <== cu.stages.last.get(reg).out
+
+    val voRegs = cu.regs.filter(_.is(VecOutReg))
+    assert(cu.vouts.size == voRegs.size)
+    (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+
+    val siRegs = cu.regs.filter(_.is(ScalarInReg))
+    val siPerSreg = Math.ceil( cu.sins.size * 1.0 / siRegs.size ).toInt
+    val gsis:List[List[GlobalInput[Word, _]]] = cu.sins.grouped(siPerSreg).toList
+    (gsis, cu.sbufs).zipped.foreach { case (sis, sbuf) => sbuf.writePort <== sis.map(_.ic) }
+    (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
+      forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
     }
-    val siPerSin = Math.ceil( cu.sins.size * 1.0 / cu.scalarIns.size ).toInt
-    val gsis:List[List[GlobalInput[Word, _]]] = cu.sins.grouped(siPerSin).toList
-    (gsis, cu.scalarIns).zipped.foreach { case (sis, sin) => sin.in <== sis.map(_.ic) }
-    (cu.scalarIns, cu.regs.filter(_.is(ScalarInReg))).zipped.foreach { case (sin, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <-- sin.out }
-    }
-    val soPerSout = Math.ceil( cu.souts.size * 1.0 / cu.scalarOuts.size ).toInt
-    val gsos:List[List[GlobalOutput[Word, _]]] = cu.souts.grouped(soPerSout).toList
-    (gsos, cu.scalarOuts).zipped.foreach { case (sos, sout) => busesOf(sout) ++= sos }
-    (cu.scalarOuts, cu.regs.filter(_.is(ScalarOutReg))).zipped.foreach { case (sout, reg) =>
-      sout.in <== (cu.stages.last.get(reg).out, 0)
-    }
-    cu.scalarIns.foreach { sin =>
+
+    val soRegs = cu.regs.filter(_.is(ScalarOutReg))
+    val soPerSreg = Math.ceil( cu.souts.size * 1.0 / soRegs.size ).toInt
+    val gsos:List[List[GlobalOutput[Word, _]]] = cu.souts.grouped(soPerSreg).toList
+    (gsos, soRegs).zipped.foreach { case (sos, reg) => sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) } }
+    cu.sbufs.foreach { sbuf =>
       // Counter min, max, step can from scalarIn
-      cu.ctrs.foreach { c => c.min <== sin.out; c.max <== sin.out ; c.step <== sin.out }
+      cu.ctrs.foreach { c => c.min <== sbuf.readPort; c.max <== sbuf.readPort ; c.step <== sbuf.readPort }
     }
+
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
       forwardStages(cu).foreach { s => s.get(reg).in <== c.out }

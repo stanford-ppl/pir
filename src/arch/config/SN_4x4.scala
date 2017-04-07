@@ -189,10 +189,8 @@ trait SN_temp extends SwitchNetwork {
         .addRegstages(numStage=14, numOprds=3, ops)
         .addRdstages(numStage=4, numOprds=3, ops)
         .addRegstages(numStage=2, numOprds=3, ops)
-        .numScalarIns(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarIns, ScalarInReg)
-        .numScalarOuts(scalarNetwork.io(cu).numOuts).color(0 until 0 + cu.numScalarOuts, ScalarOutReg)
-        .numVecIns(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecIns, VecInReg)
-        .numVecOuts(vectorNetwork.io(cu).numOuts).color(0 until 0 + cu.numVecOuts, VecOutReg)
+        .numScalarBufs(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarBufs, ScalarInReg)
+        .numVecBufs(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecBufs, VecInReg)
         .color(0, ReduceReg)
         .ctrlBox(numUDCs=5)
         .genConnections
