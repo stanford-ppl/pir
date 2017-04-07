@@ -651,7 +651,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
                 emitList("result", reses.map(r => s""""$r"""").toList)
                 val inits = results.map(_.src).collect { 
                   case PipeReg(s,r) => r }.collect {
-                    case AccumPR(_, Const(c)) => c 
+                    case AccumPR(Const(c)) => c 
                 }
                 if (inits.size>1)
                   throw PIRException(s"Currently assume writing to a single accum per stage ${inits}")

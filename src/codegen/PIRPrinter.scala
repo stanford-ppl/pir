@@ -203,12 +203,11 @@ object PIRPrinter {
         fields += s"isInner=${p.isInner}, isOuter=${p.isOuter}"
       //case p:UDCounter => 
       //  fields += s"init=${p.initVal}"
-      case p:Reg => p match {
-        case r:PipeReg =>
-        case r:Const[_] => fields += s"${r.value}"
-        case r:ArgIn =>
-        case r:ArgOut =>
-      }
+      case r:PipeReg =>
+      case r:Const[_] => fields += s"${r.value}"
+      case p:Reg => 
+      case r:ArgIn =>
+      case r:ArgOut =>
       case s:Scalar =>
         val writer = if (s.writer==null) "null" else s.writer.ctrler
         fields += s"writer=${writer} readers=[${s.readers.map(_.ctrler).mkString(",")}]"

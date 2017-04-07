@@ -61,13 +61,12 @@ trait Traversal extends Pass {
         case p:VecOut =>
         case p:Stage =>
         case p:UDCounter =>
-        case p:Reg => p match {
-          case r:PipeReg =>
-          case r:Const[_] =>
-          case r:ArgIn =>
-          case r:ArgOut =>
-        }
+        case r:PipeReg =>
+        case r:ArgIn =>
+        case r:ArgOut =>
+        case p:Reg => 
       }
+      case r:Const[_] =>
       case _ => throw new Exception(s"Don't know how to visit $node")
     }
     visited += node

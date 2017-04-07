@@ -16,8 +16,8 @@ trait OuterRegBlock { self:ComputeUnit =>
   val loadRegs   = Map[OnChipMem, LoadPR]()
   def reset      = { regId = 0; loadRegs.clear; scalarInRegs.clear }
 
-  def scalarInPR(s:ScalarIn):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(newTemp, s))
-  def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(newTemp, s))
+  def scalarInPR(s:ScalarIn):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(s))
+  def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(s))
 
   def pipeReg(stage:Stage, reg:Reg) = stage.getOrElseUpdate(reg, PipeReg(stage,reg))
 
@@ -57,7 +57,7 @@ trait OuterRegBlock { self:ComputeUnit =>
 trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
-  lazy val reduceReg  = ReducePR(newTemp)
+  lazy val reduceReg  = ReducePR()
   val scalarOutRegs = Map[ScalarOut, ScalarOutPR]()
   val vecInRegs     = Map[VecIn, VecInPR]()
   val vecOutRegs     = Map[VecOut, VecOutPR]()
@@ -69,26 +69,26 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val accumRegs  = Set[AccumPR]()
   override def reset      = { super.reset; storeRegs.clear; ctrRegs.clear}
 
-  def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(newTemp, s))
+  def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(s))
 
-  def wtAddrPR(s:SRAMOnWrite):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(newTemp, s.writeAddr))
+  def wtAddrPR(s:SRAMOnWrite):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(s.writeAddr))
 
-  def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(newTemp, c))
+  def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(c))
 
   def accumPR(init:Const[_<:AnyVal]):AccumPR = {
-    val acc = AccumPR(newTemp, init)
+    val acc = AccumPR(init)
     accumRegs += acc 
     acc
   }
 
-  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOutRegs.getOrElseUpdate(s, ScalarOutPR(newTemp, s))
+  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOutRegs.getOrElseUpdate(s, ScalarOutPR(s))
 
-  def vecInPR(vo:VecIn):VecInPR = vecInRegs.getOrElseUpdate(vo, VecInPR(newTemp, vo))
+  def vecInPR(vo:VecIn):VecInPR = vecInRegs.getOrElseUpdate(vo, VecInPR(vo))
 
-  def vecOutPR(vo:VecOut):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(newTemp, vo))
+  def vecOutPR(vo:VecOut):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(vo))
 
   def tempPR():Reg = {
-    val reg = Reg(newTemp)
+    val reg = TempPR()
     tempRegs += reg 
     reg
   }

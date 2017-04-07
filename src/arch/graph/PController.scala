@@ -18,6 +18,7 @@ trait NetworkElement extends Module with Simulatable {
   def vectorIO:VectorIO[this.type]
   def ctrlIO:ControlIO[this.type]
 
+  def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
 }
 
@@ -149,18 +150,11 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   } 
   def ctrlBox(numUDCs:Int):this.type = { _ctrlBox = new CtrlBox(numUDCs); this }
 
-  def map(io:IO[Bus, ComputeUnit], buf:LocalBuffer) = {
-    (io.tp, buf) match {
-      case (Bus(_, _:Word), _:VectorBuffer) => bufsOf(io) += buf; busesOf(buf) += io
-      case (Bus(_,_:Bit), _:ScalarBuffer) => bufsOf(io) += buf; busesOf(buf) += io 
-      case _ => throw PIRException(s"Cannot map $io to $buf")
-    }
-  }
   def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
   def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
   def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
-  def genMapping(vins:Range, vouts:Range, sins:Range, souts:Range, ctrs:Range, wa:Int, ra:Int, loads:Range, rd:Int):this.type = {
-    //ConfigFactory.genMapping(this, vinsPtr, voutPtr, sinsPtr, soutsPtr, ctrsPtr, waPtr, wpPtr, loadsPtr, rdPtr)
+  def genMapping:this.type = {
+    ConfigFactory.genMapping(this)
     this
   }
 

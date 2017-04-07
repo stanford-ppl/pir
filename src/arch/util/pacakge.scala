@@ -16,9 +16,17 @@ package object util {
 
   def mappingOf(io:IO[_,_]):List[ArchReg] = io match {
     case in:Input[_,_] => 
-      in.fanIns.map(_.src).collect{ case pr:PipeReg => pr.reg }
+      in.fanIns.map(_.src).flatMap {
+        case pr:PipeReg => List(pr.reg)
+        case sl:Slice[_] => mappingOf(sl.fin)
+        case bc:BroadCast[_] => mappingOf(bc.in)
+      }
     case out:Output[_,_] =>
-      out.fanOuts.map(_.src).collect { case pr:PipeReg => pr.reg }
+      out.fanOuts.map(_.src).flatMap { 
+        case pr:PipeReg => List(pr.reg)
+        case sl:Slice[_] => mappingOf(sl.out)
+        case bc:BroadCast[_] => mappingOf(bc.fout)
+      }
   }
   def isMappedTo(io:IO[_,_], reg:ArchReg):Boolean = {
     mappingOf(io).contains(reg)

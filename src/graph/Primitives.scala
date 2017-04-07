@@ -388,8 +388,8 @@ object EmptyStage {
     new Stage(None) with EmptyStage
 }
 
-trait Reg extends Primitive {
-  val regId:Int
+abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
+  lazy val regId:Int = ctrler.newTemp
   override val typeStr = "reg"
   override val name = None
   override def toString = s"${super.toString}_${regId}"
@@ -398,21 +398,21 @@ trait Reg extends Primitive {
     case _ => false 
   }
   override def hashCode:Int = { ctrler.hashCode *10 + regId }
+
+  def isTemp = this.isInstanceOf[TempPR]
 }
-object Reg {
-  def apply(rid:Int)(implicit ctrler:Controller, design:Design) = new Reg {override val regId = rid}
-}
-case class LoadPR(override val regId:Int, mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)         extends Reg {override val typeStr = "regld"}
-case class StorePR(override val regId:Int, mem:OnChipMem)(implicit ctrler:InnerController, design: Design)        extends Reg {override val typeStr = "regst"}
-//case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
-case class WtAddrPR(override val regId:Int, waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design)         extends Reg {override val typeStr = "regwa"}
-case class CtrPR(override val regId:Int, ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                 extends Reg {override val typeStr = "regct"}
-case class ReducePR(override val regId:Int)(implicit ctrler:InnerController, design: Design)                           extends Reg {override val typeStr = "regrd"}
-case class AccumPR(override val regId:Int, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)                extends Reg {override val typeStr = "regac"}
-case class VecInPR(override val regId:Int, vecIn:VecIn)(implicit ctrler:Controller, design: Design)               extends Reg {override val typeStr = "regvi"}
-case class VecOutPR(override val regId:Int, vecOut:VecOut)(implicit ctrler:Controller, design: Design)                           extends Reg {override val typeStr = "regvo"}
-case class ScalarInPR(override val regId:Int, scalarIn:ScalarIn)(implicit ctrler:Controller, design: Design)      extends Reg {override val typeStr = "regsi"}
-case class ScalarOutPR(override val regId:Int, scalarOut:ScalarOut)(implicit ctrler:Controller, design: Design)   extends Reg {override val typeStr = "regso"}
+case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
+case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}
+//case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)   extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
+case class WtAddrPR(waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
+case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                  extends Reg {override val typeStr = "regct"}
+case class ReducePR()(implicit ctrler:InnerController, design: Design)                      extends Reg {override val typeStr = "regrd"}
+case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)  extends Reg {override val typeStr = "regac"}
+case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: Design)                extends Reg {override val typeStr = "regvi"}
+case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: Design)             extends Reg {override val typeStr = "regvo"}
+case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: Design)       extends Reg {override val typeStr = "regsi"}
+case class ScalarOutPR(scalarOut:ScalarOut)(implicit ctrler:ComputeUnit, design: Design)    extends Reg {override val typeStr = "regso"}
+case class TempPR()(implicit ctrler:InnerController, design: Design)                        extends Reg {override val typeStr = "regtp"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
  * the PR belongs to

@@ -117,7 +117,7 @@ class LiveAnalysis(implicit val design: Design) extends Pass {
             val next = stages(i+1)
             next.addDef(icu.loadPR(sram))
             if (next.liveOuts.exists{ 
-              case LoadPR(_,sm) if sm==sram => true
+              case LoadPR(sm) if sm==sram => true
               case _ => false
             }) {
             }
@@ -150,7 +150,7 @@ class LiveAnalysis(implicit val design: Design) extends Pass {
         // If there's no def on loaded value, check if sram's readAddr is directly connected to 
         // the counter. If it is, forward loaded value to the first local stage
         r match {
-          case r@LoadPR(_,mem) =>
+          case r@LoadPR(mem) =>
             mem match {
               case mem:SRAMOnRead =>
                 mem.readAddr.from.src match {
@@ -202,15 +202,15 @@ class LiveAnalysis(implicit val design: Design) extends Pass {
           if (stage.defs.contains(reg)) {
             if (!stage.fu.isDefined || !stage.fu.get.defines(reg)) {
               reg match {
-                case CtrPR(_, ctr) => pr.in.connect(ctr.out) 
-                case LoadPR(_, sram) => pr.in.connect(sram.readPort) 
-                case VecInPR(_, vecIn) => 
+                case CtrPR(ctr) => pr.in.connect(ctr.out) 
+                case LoadPR(sram) => pr.in.connect(sram.readPort) 
+                case VecInPR(vecIn) => 
                   val head = cu.pipeReg(stages.head, reg)
                   if (stage!=stages.head) {
                     pr.in.connect(head)
                   }
                   if (!head.in.isConnected) head.in.connect(vecIn.out)
-                case ScalarInPR(_, scalarIn) =>
+                case ScalarInPR(scalarIn) =>
                   val head = cu.pipeReg(stages.head, reg)
                   if (stage!=stages.head) {
                     pr.in.connect(head)
@@ -230,9 +230,9 @@ class LiveAnalysis(implicit val design: Design) extends Pass {
         if (stage==stages.last) { // Last stage
           if (!pr.out.isConnected) {
             reg match {
-              case StorePR(_, sram) => sram.wtPort(pr.out)
+              case StorePR(sram) => sram.wtPort(pr.out)
               case p:VecOutPR => p.vecOut.in.connect(pr.out)
-              case ScalarOutPR(_, scalarOut) => scalarOut.in.connect(pr.out)
+              case ScalarOutPR(scalarOut) => scalarOut.in.connect(pr.out)
               case r:WtAddrPR => r.waPort.connect(pr.out)
               case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
             }
@@ -245,15 +245,12 @@ class LiveAnalysis(implicit val design: Design) extends Pass {
   private def infAnalysis(cu:ComputeUnit):Unit = {
     val stages = cu.stages
     stages.foreach { s =>
-      s.liveOuts.foreach { r =>
+      (s.liveOuts ++ s.defs).foreach { r =>
         if (!cu.infGraph.contains(r)) cu.infGraph += (r -> Set.empty)
         // register doesn't interfere with co-def from the same source
         // e.g. FU writes to 2 registers
-        val sameSrcDefs = s.liveOuts.filter { lo =>
-          if (s.get(r).in.src == s.get(lo).in.src) true
-          else false
-        }
-        cu.infGraph(r) ++= (s.liveOuts -- sameSrcDefs)
+        val sameDefLiveOuts = s.liveOuts.filter { lo => s.get(r).in.src == s.get(lo).in.src }
+        cu.infGraph(r) ++= (s.liveOuts -- sameDefLiveOuts)
       }
     }
   }

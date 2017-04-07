@@ -38,32 +38,35 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     val pcu = pirMap.clmap(cu).asCU
     def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
       val pregs = n match {
-        case LoadPR(regId, mem:SMem) => 
+        case LoadPR(mem:SMem) => 
           pcu.regs.filter(_.is(LoadReg))
-        case LoadPR(regId, mem) => 
+        case LoadPR(mem) => 
           val pmem = pirMap.smmap(mem)
           mappingOf(pmem.readPort)
-        //case StorePR(regId, sram) =>
-        case WtAddrPR(regId, waPort) => 
+        //case StorePR(sram) =>
+        case WtAddrPR(waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM
           mappingOf(pmem.writeAddr)
-        case CtrPR(regId, ctr) => 
+        case CtrPR(ctr) => 
           val pctr = pirMap.ctmap(ctr)
           mappingOf(pctr.out)
-        case ReducePR(regId) => pcu.regs.filter(_.is(ReduceReg))
-        case VecOutPR(regId, vecOut) =>
+        case ReducePR() => pcu.regs.filter(_.is(ReduceReg))
+        case VecOutPR(vecOut) =>
           val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
           val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
           mappingOf(buf.writePort)
-        case ScalarOutPR(regId, scalarOut) =>
+        case ScalarOutPR(scalarOut) =>
           val psos = pirMap.vomap(scalarOut)
-          psos.flatMap(pso => mappingOf(pso.ic)).toList
+          dprintln(s"sout:${scalarOut} -> psos:[${psos.mkString(",")}]")
+          val pregs = psos.flatMap(pso => mappingOf(pso.ic)).toList
+          dprintln(s"pregs:[${pregs.mkString(",")}]")
+          pregs
       }
       pregs.diff(triedRes)
     }
     log(s"precolor $cu") {
       bind(
-        allNodes=cu.regs,
+        allNodes=cu.regs.filterNot{_.isTemp},
         initMap=RCMap.empty, 
         constrain=constrain(cu, pirMap) _,
         resFunc=resFunc _, //(n, m, triedRes) => List[R]
@@ -75,7 +78,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   private def color(cu:ICL, pirMap:M) = {
     type M = RCMap
     val pcu = pirMap.clmap(cu).asCU
-    val regs:List[N] = (cu.regs diff (pirMap.rcmap.keys.toList)).toList
+    val regs:List[N] = cu.regs.filter{_.isTemp}
     val pregs:List[R] = (pcu.regs diff (pirMap.rcmap.values.toList)).toList
 
     log(s"color $cu") {

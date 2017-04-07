@@ -101,9 +101,9 @@ trait SN_temp extends SwitchNetwork {
   //override val cusbChannelWidthSE = 1
   
   // SCU to switch channel width
-  //override val scsbChannelWidth = 4
+  override val scsbChannelWidth = 0
   // switch to SCU channel width
-  //override val sbscchannelwidth = 4
+  override val sbscChannelWidth = 0
 
   // MC to switch channel width
   override val mcsbChannelWidth = 1
@@ -111,14 +111,14 @@ trait SN_temp extends SwitchNetwork {
   override val sbmcChannelWidth = 1
     
   // MC to SCU channel width
-  // override val mcscChannelWidth = 4
+  override val mcscChannelWidth = 0
   // SCU to MC channel width
-  // override val scmcChannelWidth = 4
+  override val scmcChannelWidth = 0
   
   // OCU to switch channel width
-  //val ocsbChannelWidth = 2
+  override val ocsbChannelWidth = 0
   // switch to OCU channel width
-  //val sbocChannelWidth = 2
+  override val sbocChannelWidth = 0
   
   // Top to switch channel width
   override val tpsbChannelWidth = 0
@@ -182,79 +182,9 @@ trait SN_temp extends SwitchNetwork {
   //val sbtpChannelWidth = 1
   } with ScalarNetwork()
 
-  override def config = {
-    pcus.foreach { cu =>
-      cu.numRegs(16)
-        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
-        .addRegstages(numStage=14, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .numScalarBufs(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarBufs, ScalarInReg)
-        .numVecBufs(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecBufs, VecInReg)
-        .color(0, ReduceReg)
-        .ctrlBox(numUDCs=5)
-        .genConnections
-    }
-    mcus.foreach { cu =>
-      cu.numRegs(16)
-        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
-        .numSRAMs(1).color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
-        .addWAstages(numStage=3, numOprds=3, ops)
-        .addRAstages(numStage=3, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-    }
-    scus.foreach { cu =>
-      cu.numRegs(6)
-        .numCtrs(6)
-        .numSRAMs(4)
-        .addRegstages(numStage=0, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        //.genMapping(vinsPtr=0, voutPtr=0, sinsPtr=0, soutsPtr=0, ctrsPtr=0, waPtr=0, wpPtr=0, loadsPtr=0, rdPtr=0)
-    }
-    mcs.foreach { mc =>
-      mc.ctrlBox(numUDCs=0)
-    }
-    ocus.foreach { cu =>
-      cu.numCtrs(6)
-      .ctrlBox(numUDCs=4)
-      .genConnections
-    }
-    scalarNetwork
-    ctrlNetwork
-    vectorNetwork
-  }
-
 }
 
 object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=5, numArgOuts=5) with SN_temp {
-  override def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) {
-      new ComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .numSRAMs(4)
-        .addRegstages(numStage=14, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .ctrlBox(numUDCs=6)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    } else {
-      new MemoryComputeUnit()
-        .numRegs(16)
-        .numCtrs(8)
-        .numSRAMs(4)
-        .addWAstages(numStage=3, numOprds=3, ops)
-        .addRAstages(numStage=3, numOprds=3, ops)
-        .ctrlBox(numUDCs=6)
-        .genConnections
-        //.genMapping(vinsPtr=12, voutPtr=0, sinsPtr=8, soutsPtr=0, ctrsPtr=0, waPtr=8, wpPtr=9, loadsPtr=8, rdPtr=0)
-    }
-  }
 }
 
 object SN_5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=5, numArgOuts=5) with SN_temp {

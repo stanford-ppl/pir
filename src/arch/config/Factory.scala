@@ -4,6 +4,7 @@ import pir._
 import pir.plasticine.graph._
 import pir.plasticine.main._
 import pir.plasticine.util._
+import pir.codegen.Logger
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
@@ -12,7 +13,8 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 
 // Common configuration generator 
-object ConfigFactory {
+object ConfigFactory extends Logger {
+    override lazy val stream = newStream("factory.log")
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -23,7 +25,7 @@ object ConfigFactory {
   }
 
   /* Generate connections relates to register mapping of a cu */
-  def genMapping(cu:ComputeUnit, sinsPtr:Int, soutsPtr:Int, ctrsPtr:Int, waPtr:Int, wpPtr:Int, loadsPtr:Int, rdPtr:Int)(implicit spade:Spade) = {
+  def genMapping(cu:ComputeUnit)(implicit spade:Spade) = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     /* Register Constrain */
@@ -35,16 +37,18 @@ object ConfigFactory {
 
     // Bus input is forwarded to 1 register in empty stage
     val viRegs = cu.regs.filter(_.is(VecInReg))
-    assert(cu.vins.size == cu.vbufs.size)
+    assert(cu.vins.size == cu.vbufs.size, s"cu:${cu} vins:${cu.vins.size} vbufs:${cu.vbufs.size}")
     assert(cu.vbufs.size == viRegs.size)
     (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
     (cu.vbufs, viRegs).zipped.foreach { case (vbuf, reg) =>
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
 
-    val voRegs = cu.regs.filter(_.is(VecOutReg))
-    assert(cu.vouts.size == voRegs.size)
-    (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+    if (!cu.isMCU) {
+      val voRegs = cu.regs.filter(_.is(VecOutReg))
+      assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+      (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+    }
 
     val siRegs = cu.regs.filter(_.is(ScalarInReg))
     val siPerSreg = Math.ceil( cu.sins.size * 1.0 / siRegs.size ).toInt
@@ -55,9 +59,12 @@ object ConfigFactory {
     }
 
     val soRegs = cu.regs.filter(_.is(ScalarOutReg))
+    dprintln(s"$cu souts:${cu.souts.size} soRregs:${soRegs.size}")
     val soPerSreg = Math.ceil( cu.souts.size * 1.0 / soRegs.size ).toInt
     val gsos:List[List[GlobalOutput[Word, _]]] = cu.souts.grouped(soPerSreg).toList
-    (gsos, soRegs).zipped.foreach { case (sos, reg) => sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) } }
+    (gsos, soRegs).zipped.foreach { case (sos, reg) => 
+      sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) }
+    }
     cu.sbufs.foreach { sbuf =>
       // Counter min, max, step can from scalarIn
       cu.ctrs.foreach { c => c.min <== sbuf.readPort; c.max <== sbuf.readPort ; c.step <== sbuf.readPort }
