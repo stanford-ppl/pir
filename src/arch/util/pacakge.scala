@@ -54,7 +54,7 @@ package object util {
       case n:Controller => mp.clmap.isMapped(n)
       case n:SRAM => mp.smmap.isMapped(n)
       case n:Counter => mp.ctmap.isMapped(n)
-      case n:ScalarBuffer => mp.smmap.isMapped(n)
+      case n:ScalarMem => mp.smmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)
       case n:UDCounter => mp.ucmap.isMapped(n)
       case n:Input[_,_] => mp.xbmap.isMapped(n)

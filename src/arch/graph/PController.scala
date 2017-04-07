@@ -81,8 +81,9 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   var regs:List[ArchReg] = Nil
   var srams:List[SRAM] = Nil
   var ctrs:List[Counter] = Nil
-  var sbufs:List[ScalarBuffer] = Nil
-  var vbufs:List[VectorBuffer] = Nil
+  var sbufs:List[ScalarMem] = Nil
+  var vbufs:List[VectorMem] = Nil
+  def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
   def vout = vouts.head
   
@@ -138,9 +139,9 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numCtrs = ctrs.size
   def numSRAMs(num:Int):this.type = { srams = List.tabulate(num) { i => SRAM().index(i) }; this }
   def numSRAMs = srams.size
-  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarBuffer().index(i) }; this }
+  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
   def numScalarBufs:Int = sbufs.size
-  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorBuffer().index(i) }; this }
+  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
   def numVecBufs:Int = vbufs.size
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
     addRegstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops) }); this // Regular stages

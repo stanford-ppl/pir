@@ -16,7 +16,7 @@ import scala.collection.immutable.Map
 
 class SFifoMapper(implicit val design:Design) extends Mapper {
   type N = SMem
-  type R = PSBF 
+  type R = PSMem
   val typeStr = "ScalFifoMapper"
   override def debug = Config.debugSMMapper //TODO
   implicit val spade:Spade = design.arch
@@ -35,10 +35,18 @@ class SFifoMapper(implicit val design:Design) extends Mapper {
 
   // After RegAlloc
   def resFunc(cu:ICL)(n:N, m:M, triedRes:List[R]):List[R] = {
-    val reg = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }.head
-    val preg = m.rcmap(reg)
-    val ppr = m.clmap(cu).fustages.head.get(preg)
-    ppr.in.fanIns.map{_.src}.collect{ case sb:PSBF => sb }.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
+    val pcu = m.clmap(cu)
+    val regs = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }
+    val reses = if (regs.isEmpty) { // scalarIn is not used in pipeline stages. Pick whichever is not used
+      pcu.sbufs
+    } else if (regs.size==1) {
+      val preg = m.rcmap(regs.head)
+      val ppr = pcu.fustages.head.get(preg)
+      ppr.in.fanIns.map{_.src}.collect{ case sb:R => sb }
+    } else {
+      throw PIRException(s"scalarIn:$n is connected to more than 1 pipeRegs: ${regs.mkString(",")}")
+    }
+    reses.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
   }
 
   def map(cu:ICL, pirMap:M):M = {

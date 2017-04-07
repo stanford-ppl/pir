@@ -21,6 +21,7 @@ object ConfigFactory extends Logger {
   
   def forwardStages(cu:ComputeUnit) = cu match {
     case cu:MemoryComputeUnit => cu.wastages :+ cu.rastages.head
+    case cu:OuterComputeUnit => Nil
     case cu:ComputeUnit => cu.fustages.head :: Nil 
   }
 
@@ -123,27 +124,18 @@ object ConfigFactory extends Logger {
 
     cu match {
       case cu:MemoryComputeUnit =>
-        cu.wastages.foreach { stage =>
-          stage.fu.operands.foreach { oprd => 
-            // Creating forwarding path from counter outputs to all operands of the FUs in write 
-            // addr stages
-            cu.ctrs.foreach{ oprd <== _.out } 
-          }
-          // Connect all cu.srams's write addr to writeAddr stages
-          cu.srams.foreach { _.writeAddr <== (stage.fu.out, 0) }
-        }
-        (cu.wastages ++ cu.rastages).foreach { stage =>
-          stage.fu.operands.foreach { oprd =>
-            // Creating forwarding path from cu.srams loads to all operands of the FUs
-            cu.srams.foreach{ oprd <== _.readPort }
-          }
+        cu.srams.foreach { sram =>
+          cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
+          cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
         }
       case _ =>
     }
-    cu.regstages.headOption.foreach { stage =>
-      stage.fu.operands.foreach { oprd =>
-        // Creating forwarding path from cu.srams loads to all operands of the FUs
-        cu.srams.foreach{ oprd <== _.readPort }
+    forwardStages(cu).foreach { stage =>
+      stage.fu.operands.foreach { oprd => 
+        cu.ctrs.foreach{ oprd <== _.out }
+        cu.srams.foreach { oprd <== _.readPort }
+        cu.vbufs.foreach { oprd <== _.readPort }
+        cu.sbufs.foreach { oprd <-- _.readPort }
       }
     }
     

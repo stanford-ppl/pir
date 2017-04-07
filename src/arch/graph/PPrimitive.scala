@@ -41,8 +41,8 @@ trait OnChipMem extends Primitive {
   val readPort:Output[_<:PortType, OnChipMem]
   val writePort:Input[_<:PortType, OnChipMem]
   def asSRAM = this.asInstanceOf[SRAM]
-  def asVBuf = this.asInstanceOf[VectorBuffer]
-  def asSBuf = this.asInstanceOf[ScalarBuffer]
+  def asVBuf = this.asInstanceOf[VectorMem]
+  def asSBuf = this.asInstanceOf[ScalarMem]
 }
 
 /** Physical SRAM 
@@ -62,15 +62,15 @@ trait LocalBuffer extends OnChipMem
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarBuffer()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
-  override val typeStr = "si"
+case class ScalarMem()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
+  override val typeStr = "sm"
   val writePort = Input(Word(), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorBuffer()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
-  override val typeStr = "vb"
+case class VectorMem()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
+  override val typeStr = "vm"
   val writePort = Input(Bus(Word()), this, s"${this}.in")
   val readPort = Output(Bus(Word()), this, s"${this}.out") 
 }

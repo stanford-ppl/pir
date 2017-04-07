@@ -26,8 +26,8 @@ trait SpadeAlias {
   type PFUST     = FUStage
   type PWAST     = WAStage
   type PRDST     = ReduceStage
-  type PSBF      = ScalarBuffer
-  type PVBF      = VectorBuffer
+  type PSMem     = ScalarMem
+  type PVMem     = VectorMem
   type PI[S<:PModule]       = Input[_<:PortType,S]
   type PO[S<:PModule]       = Output[_<:PortType,S]
   type PGI[S<:PModule] = GlobalInput[_<:PortType, S]

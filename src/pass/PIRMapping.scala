@@ -44,7 +44,8 @@ class PIRMapping(implicit val design: Design) extends Pass {
   val regAlloc = new RegAlloc() {
     override def finPass(ctrler:InnerController)(m:M):M = { 
       var mp = m
-      stageMapper.map(ctrler, m)
+      mp = sfifoMapper.map(ctrler, mp)
+      mp = stageMapper.map(ctrler, mp)
       mp
     }
   }
@@ -61,20 +62,6 @@ class PIRMapping(implicit val design: Design) extends Pass {
     mp = sramMapper.map(ctrler, mp)
     mp = vfifoMapper.map(ctrler, mp) 
     mp = ctrMapper.map(ctrler, mp)
-    mp = sfifoMapper.map(ctrler, mp)
-
-    //mp = siMapper.map(ctrler, mp)
-    //ctrler match {
-      //case ctrler:InnerController => 
-        //ctrler match {
-          //case mc:MemoryController =>
-          //case _ => mp = sramMapper.map(ctrler, mp)
-        //}
-        //mp = ctrMapper.map(ctrler, mp)
-      //case t:Top => mp = ctrlMapper.map(t, mp)
-      //case _ => assert(false, s"Unknown ctrler:$ctrler")
-    //}
-
     mp
   }
 

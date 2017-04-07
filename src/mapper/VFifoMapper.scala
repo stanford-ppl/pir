@@ -16,7 +16,7 @@ import scala.collection.immutable.Map
 
 class VFifoMapper(implicit val design:Design) extends Mapper {
   type N = VFIFO
-  type R = PVBF 
+  type R = PVMem
   val typeStr = "VecFifoMapper"
   override def debug = Config.debugSMMapper //TODO
   implicit val spade:Spade = design.arch
@@ -35,7 +35,7 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
     val vi = m.vimap(n.writePort.from.asInstanceOf[VI])
-    val r = vi.ic.fanOuts.head.src.asInstanceOf[PVBF]
+    val r = vi.ic.fanOuts.head.src.asInstanceOf[R]
     List(r)
   }
 
