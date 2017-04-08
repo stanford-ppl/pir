@@ -20,18 +20,6 @@ trait SpadeMetadata { self:Spade =>
     type V = Int
   }
   
-  /* Bus of a port that belongs to a bus */
-  object busesOf extends MOneToManyMap {
-    type K = Node
-    type V= IO[_, _]
-  }
-  
-  /* LocalBuffers of a bus. */
-  object bufsOf extends MOneToManyMap {
-    type K = Node
-    type V = LocalBuffer
-  }
-
   /* Can a counter be the inner most counter in a chain */
   object isInnerCounter extends MOneToOneMap {
     type K = Node

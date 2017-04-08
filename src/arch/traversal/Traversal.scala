@@ -26,19 +26,25 @@ trait Traversal {
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
     node match {
-      case n:Controller => 
-        visitNode(n.ctrlBox)
+      case n:NetworkElement =>
+        n.gridIOs.foreach{_.ios.foreach(visitNode)}
         n match {
-          case n:ComputeUnit =>
-            n.srams.foreach(visitNode)
-            n.ctrs.foreach(visitNode)
-            n.sbufs.foreach(visitNode)
-            n.vbufs.foreach(visitNode)
-            n.stages.foreach(visitNode)
-          case n:MemoryController =>
-          case n:Top =>
+          case n:Controller => 
+            visitNode(n.ctrlBox)
+            n match {
+              case n:ComputeUnit =>
+                n.srams.foreach(visitNode)
+                n.ctrs.foreach(visitNode)
+                n.sbufs.foreach(visitNode)
+                n.vbufs.foreach(visitNode)
+                n.stages.foreach(visitNode)
+              case n:MemoryController =>
+              case n:Top =>
+            }
+          case n:SwitchBox =>
+            n.regChains.foreach(visitNode)
         }
-      case n:SwitchBox =>
+      case n:GlobalIO[_,_] => visitNode(n.ic)
       case n:Stage =>
         n.funcUnit.foreach(visitNode)
         n.prs.foreach(visitNode)

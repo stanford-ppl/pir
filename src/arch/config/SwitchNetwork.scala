@@ -64,6 +64,11 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   lazy val scalarNetwork = new ScalarNetwork()
 
   def config = {
+    scalarNetwork
+    ctrlNetwork
+    vectorNetwork
+    top.genConnections
+    sbs.foreach { _.genConnections }
     pcus.foreach { cu =>
       cu.numRegs(16)
         .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
@@ -111,9 +116,6 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
       .genConnections
       .genMapping
     }
-    scalarNetwork
-    ctrlNetwork
-    vectorNetwork
   }
   config
 }

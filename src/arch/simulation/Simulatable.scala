@@ -17,7 +17,11 @@ trait Simulatable extends Module {
   def register(implicit sim:Simulator):Unit = {
     val fimap = sim.mapping.fimap
     ins.foreach { in =>
-      fimap.get(in).foreach { out => in.v <= out }
+      fimap.get(in).fold {
+        if (in.fanIns.size==1) in.v <= in.fanIns.head
+      } { 
+        out => in.v <= out
+      }
     }
   }
 }

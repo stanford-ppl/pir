@@ -11,10 +11,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-abstract class Primitive(implicit spade:Spade, val ctrler:Controller) extends Module
+abstract class Primitive(implicit spade:Spade, val pne:NetworkElement) extends Module
 
 /** Physical Counter  */
-case class Counter()(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive {
+case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive {
   import spademeta._
   override val typeStr = "ctr"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -28,7 +28,7 @@ case class Counter()(implicit spade:Spade, ctrler:ComputeUnit) extends Primitive
 }
 
 /* Phyiscal pipeline register */
-case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, ctrler:Controller) extends Primitive {
+case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
@@ -47,7 +47,7 @@ trait OnChipMem extends Primitive {
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM()(implicit spade:Spade, ctrler:ComputeUnit) extends OnChipMem {
+case class SRAM()(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -62,14 +62,14 @@ trait LocalBuffer extends OnChipMem
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarMem()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
+case class ScalarMem()(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
   override val typeStr = "sm"
   val writePort = Input(Word(), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorMem()(implicit spade:Spade, ctrler:Controller) extends LocalBuffer {
+case class VectorMem()(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
   override val typeStr = "vm"
   val writePort = Input(Bus(Word()), this, s"${this}.in")
   val readPort = Output(Bus(Word()), this, s"${this}.out") 
@@ -80,7 +80,7 @@ case class VectorMem()(implicit spade:Spade, ctrler:Controller) extends LocalBuf
  * @param ops List of supported ops
  * @param stage which stage the FU locates
  * */
-case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, ctrler:Controller) extends Primitive {
+case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   override val typeStr = "fu"
   val operands = List.fill(numOprds) (Input(Bus(Word()), this, s"$this.oprd${id}")) 
@@ -91,7 +91,7 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
  * Phyical stage. 1 column of FU and Pipeline Register block accross lanes. 
  * @param reg Logical registers in current register block
  * */
-class Stage(regs:List[ArchReg])(implicit spade:Spade, ctrler:Controller) extends Primitive {
+class Stage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   val funcUnit:Option[FuncUnit] = None
   val _prs = Map[ArchReg, PipeReg]() // Mapping between logical register and physical register
@@ -107,7 +107,7 @@ class Stage(regs:List[ArchReg])(implicit spade:Spade, ctrler:Controller) extends
   override val typeStr = "st"
 }
 /* Dummy stage that only has register block */
-case class EmptyStage(regs:List[ArchReg])(implicit spade:Spade, ctrler:Controller) extends Stage(regs) {
+case class EmptyStage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkElement) extends Stage(regs) {
   override val typeStr = "etst"
 }
 /* Stage with Function unit */
@@ -115,7 +115,7 @@ trait FUStage extends Stage {
   def fu:FuncUnit = funcUnit.get 
 }
 object FUStage {
-  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, ctrler:Controller):FUStage = 
+  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):FUStage = 
     new Stage(regs) with FUStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 /* Reduction stage */
@@ -129,7 +129,7 @@ object ReduceStage {
    * @param regs list of logical registers in the stage
    * @param ops reduction operations
    * */
-  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, ctrler:Controller):ReduceStage = 
+  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):ReduceStage = 
     new Stage(regs) with ReduceStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 /* WriteAddr calculation stage */
@@ -137,7 +137,7 @@ trait WAStage extends FUStage {
   override val typeStr = "wast"
 }
 object WAStage {
-  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, ctrler:Controller):WAStage = 
+  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):WAStage = 
     new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 
@@ -154,28 +154,28 @@ object Const {
   def apply()(implicit spade:Spade) = new Const()
 }
 
-abstract class LUT(implicit spade:Spade, ctrler:Controller) extends Node {
+abstract class LUT(implicit spade:Spade, pne:NetworkElement) extends Node {
   val numIns:Int
 }
-case class EnLUT(numIns:Int)(implicit spade:Spade, ctrler:Controller) extends LUT {
+case class EnLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
   import spademeta._
   override val typeStr = "enlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
-case class TokenOutLUT()(implicit spade:Spade, ctrler:Controller) extends LUT{
+case class TokenOutLUT()(implicit spade:Spade, pne:NetworkElement) extends LUT{
   import spademeta._
   override val typeStr = "tolut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   override val numIns = 2 // Token out is a combination of two output
 }
-case class TokenDownLUT(numIns:Int)(implicit spade:Spade, ctrler:Controller) extends LUT {
+case class TokenDownLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
   override val typeStr = "tdlut"
 }
 object TokenDownLUT {
-  def apply(idx:Int, numIns:Int)(implicit spade:Spade, ctrler:Controller):TokenDownLUT = 
+  def apply(idx:Int, numIns:Int)(implicit spade:Spade, pne:NetworkElement):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, ctrler:Controller) extends Primitive {
+case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   override val typeStr = "udlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -185,15 +185,15 @@ case class UDCounter()(implicit spade:Spade, ctrler:Controller) extends Primitiv
   //val out = Output(Word(), this, s"${this}.out")
 }
 object UDCounter {
-  def apply(idx:Int)(implicit spade:Spade, ctrler:Controller):UDCounter = UDCounter().index(idx)
+  def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
 }
 
-class CtrlBox(numUDCs:Int) (implicit spade:Spade, ctrler:Controller) extends Primitive {
+class CtrlBox(numUDCs:Int) (implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
 }
 
-case class TopCtrlBox()(implicit spade:Spade, override val ctrler:Top) extends CtrlBox(0) with Simulatable {
+case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")
   override def register(implicit sim:Simulator):Unit = {
@@ -208,5 +208,22 @@ case class TopCtrlBox()(implicit spade:Spade, override val ctrler:Top) extends C
         v.value.value = Some(false)
       //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
     }
+  }
+}
+
+case class RegChain[P<:PortType](din:Input[P,Module], numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+  val in = Input(din.tp, this, s"${this}.in")
+  val out = Output(din.tp, this, s"${this}.out")
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    //val prevValues = List.fill(numReg) { Val(in) }
+    //prevValues.zipWithIndex.foreach { case (pv,i) =>
+      //if (i==0) {
+        //pv <== in
+      //} else {
+        //pv :== prevValues(i-1).eval
+      //}
+    //}
+    //out.v :== prevValues.last.eval 
   }
 }

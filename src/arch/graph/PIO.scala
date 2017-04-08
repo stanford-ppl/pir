@@ -113,7 +113,7 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asGlobal[S<:Module]:GlobalIO[_<:PortType, S]
 
   val v:Val[P] = Val(this)
-  def ev(implicit sim:Simulator) = { v.update; v }
+  def ev(implicit sim:Simulator) = { v.eval }
 }
 
 /* Input pin. Can only connects to output of the same level */

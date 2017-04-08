@@ -31,21 +31,33 @@ case class Val[P<:PortType](io:IO[P, Module]) {
   }
   def update(implicit sim:Simulator):Unit = { 
     if (updated) return
-    sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${io}")
+    //sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${io}")
     prevValue.copy(value)
     func.foreach { f => f(this) }
     _updated = true
+  }
+  def eval(implicit sim:Simulator):this.type = {
+    update;
+    this
   }
 
   def vs:String = s"${value.s}"
   def pvs:String = s"${prevValue.s}"
 
-  def <= (o: => IO[_<:PortType, Module])(implicit sim:Simulator) = {
-    set{ v => v.value.copy(o.ev.value) }
+  def := (o: => Val[_<:PortType])(implicit sim:Simulator):Unit = {
+    set{ v => v.value.copy(o.value) }
   }
 
-  def <== (o: => IO[_<:PortType, Module])(implicit sim:Simulator) = {
-    set{ v => v.value.copy(o.ev.prevValue) }
+  def <= (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
+    := (o.ev)
+  }
+
+  def :== (o: => Val[_<:PortType])(implicit sim:Simulator):Unit = {
+    set{ v => v.value.copy(o.prevValue) }
+  }
+
+  def <== (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
+    :== (o.ev)
   }
 
   //def isV(x:Val[_]) = x.tp==tp

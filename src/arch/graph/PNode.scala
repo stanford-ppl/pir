@@ -22,8 +22,6 @@ class Node(implicit val spade:Spade) {
   def index(implicit spade:Spade):Int = { indexOf(this) }
   def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this} // Coordinate
   def coord(implicit spade:Spade):(Int, Int) = { coordOf(this) }
-  def buses(bus:IO[Bus, _])(implicit spade:Spade):this.type = { busesOf(this) += bus; this }
-  def buses(implicit spade:Spade) = { busesOf(this) }
 }
 
 trait Module extends Node {

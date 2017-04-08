@@ -52,9 +52,8 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           regsOf(pctr.out)
         case ReducePR() => pcu.regs.filter(_.is(ReduceReg))
         case VecOutPR(vecOut) =>
-          val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
-          val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
-          regsOf(buf.writePort)
+          val pvout = pirMap.vomap(vecOut).head
+          regsOf(pvout.ic)
         case ScalarOutPR(scalarOut) =>
           val psos = pirMap.vomap(scalarOut)
           dprintln(s"sout:${scalarOut} -> psos:[${psos.mkString(",")}]")

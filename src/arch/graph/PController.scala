@@ -14,23 +14,25 @@ import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
 trait NetworkElement extends Module with Simulatable {
+  implicit val ctrler:this.type = this 
   def scalarIO:ScalarIO[this.type]
   def vectorIO:VectorIO[this.type]
   def ctrlIO:ControlIO[this.type]
+  def gridIOs = scalarIO :: vectorIO :: ctrlIO :: Nil
 
   def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
+  def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
 }
 
 /* Controller */
 abstract class Controller(implicit spade:Spade) extends NetworkElement {
-  implicit val ctrler:this.type = this 
   import spademeta._
 
   def ctrlBox:CtrlBox
-  val scalarIO:ScalarIO[this.type] = ScalarIO(this)
-  val vectorIO:VectorIO[this.type] = VectorIO(this)
-  val ctrlIO:ControlIO[this.type] = ControlIO(this)
+  lazy val scalarIO:ScalarIO[this.type] = ScalarIO(this)
+  lazy val vectorIO:VectorIO[this.type] = VectorIO(this)
+  lazy val ctrlIO:ControlIO[this.type] = ControlIO(this)
 
   def sins = scalarIO.ins // Scalar Inputs
   def souts = scalarIO.outs // Scalar Outputs
@@ -49,8 +51,6 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
   override val ctrlBox:TopCtrlBox = TopCtrlBox()
-  ctrlIO.outs.foreach { _.ic <== ctrlBox.command }
-  ctrlIO.ins.foreach { _.ic ==> ctrlBox.status }
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -60,12 +60,21 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   val scalarIO:ScalarIO[this.type] = ScalarIO(this)
   val vectorIO:VectorIO[this.type] = VectorIO(this)
   val ctrlIO:ControlIO[this.type] = ControlIO(this)
+  val _regChains = ListBuffer[RegChain[_]]()
+  def regChains = _regChains.toList
   def connectXbar[P<:PortType](gio:GridIO[P, this.type]) = {
-    gio.ins.foreach { in => gio.outs.foreach { out => out.ic <== in.ic } }
+    gio.ins.foreach { in => gio.outs.foreach { out => 
+      //val rc = RegChain(in, 4)
+      //rc.in <== in.ic
+      //out.ic <== rc.out
+      //_regChains += rc
+    } }
   }
-  connectXbar(scalarIO)
-  connectXbar(vectorIO)
-  connectXbar(ctrlIO)
+  def connectXbars = {
+    connectXbar(scalarIO)
+    connectXbar(vectorIO)
+    connectXbar(ctrlIO)
+  }
 }
 /*
  * ComputeUnit
@@ -148,7 +157,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   } 
   def ctrlBox(numUDCs:Int):this.type = { _ctrlBox = new CtrlBox(numUDCs); this }
 
-  def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
   def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
   def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
   def genMapping:this.type = {

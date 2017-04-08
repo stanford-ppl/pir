@@ -88,7 +88,7 @@ object ConfigFactory extends Logger {
   }
 
   /* Generate primitive connections within a CU */ 
-  def genConnections(cu:ComputeUnit)(implicit spade:Spade) = {
+  def genConnections(cu:ComputeUnit)(implicit spade:Spade):Unit = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     val top = spade.top
@@ -138,7 +138,17 @@ object ConfigFactory extends Logger {
         cu.sbufs.foreach { oprd <-- _.readPort }
       }
     }
-    
+
+  }
+
+  def genConnections(pne:NetworkElement)(implicit spade:Spade):Unit = {
+    pne match {
+      case pne:Top =>
+        pne.couts.foreach { _.ic <== pne.ctrlBox.command}
+        pne.cins.foreach { _.ic ==> pne.ctrlBox.status }
+      case pne:ComputeUnit => genConnections(pne)
+      case pne:SwitchBox => pne.connectXbars
+    }
   }
 
 }
