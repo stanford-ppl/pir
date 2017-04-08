@@ -40,11 +40,9 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   lazy val smmap:SMMap = mapping.smmap
   lazy val clmap:CLMap = mapping.clmap
   lazy val fimap:FIMap = mapping.fimap
-  lazy val lumap:LUMap = mapping.lumap 
+  lazy val pmmap:PMMap = mapping.pmmap 
   lazy val ucmap:UCMap = mapping.ucmap
   lazy val rtmap:RTMap = mapping.rtmap
-  lazy val simap:SIMap = mapping.simap
-  lazy val somap:SOMap = mapping.somap
   lazy val rcmap:RCMap = mapping.rcmap
   lazy val xbmap:XBMap = mapping.xbmap
 
@@ -79,11 +77,11 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   def emitTop(implicit ms:CollectionStatus) = {
     val argOuts = ListBuffer[String]()
     design.top.sins.foreach { sin =>
-      argOuts += s"${sin.scalar} -> ${indexOf(simap(sin))}"
+      argOuts += s"${sin.scalar} -> ${indexOf(vimap(sin))}"
     }
     val argIns = ListBuffer[String]()
     design.top.souts.foreach { sout =>
-      argIns += s"${sout.scalar} -> ${indexOf(somap(sout))}"
+      argIns += s"${sout.scalar} -> ${vomap(sout).map(pso => indexOf(pso)).mkString(",")}"
     }
     emitComment("argIns-busIdx", argIns.mkString(","))
     emitComment("argOuts-busIdx", argOuts.mkString(","))
@@ -194,25 +192,25 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   def emitScalar(pcu:PCU)(implicit ms:CollectionStatus) = {
     val siXbar = ListBuffer[String]() 
     val siComment = ListBuffer[String]() 
-    pcu.etstage.prs.sortWith{ case (ppr1, ppr2) => indexOf(ppr1.reg) < indexOf(ppr2.reg)}.foreach { ppr =>
-      val preg = ppr.reg
-      val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSBF => psi}
-      if (psins.size!=0) { // Is scalarIn Register
-        val mpsins = psins.filter { psin =>
-          simap.pmap.get(psin).fold(false) { sin => 
-            val reg = sin.ctrler.asInstanceOf[CU].scalarInPR(sin)
-            rcmap(reg) == ppr.reg 
-          }
-        }
-        if (mpsins.size==0) siXbar += s""""x""""
-        else if(mpsins.size==1) {
-          val psin = mpsins.head
-          siXbar += s""""${indexOf(psin)}""""
-            //println(s"--$pcu $preg $ppr")
-          siComment += s"ppr:$ppr inBus:${quote(busesOf(psin).head)} sin:${psin} -> $preg[${indexOf(preg)}]" 
-        } else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
-      }
-    }
+    //pcu.etstage.prs.sortWith{ case (ppr1, ppr2) => indexOf(ppr1.reg) < indexOf(ppr2.reg)}.foreach { ppr =>
+      //val preg = ppr.reg
+      //val psins = ppr.in.fanIns.map(_.src).collect {case psi:PSMem => psi}
+      //if (psins.size!=0) { // Is scalarIn Register
+        //val mpsins = psins.filter { psin =>
+          //simap.pmap.get(psin).fold(false) { sin => 
+            //val reg = sin.ctrler.asInstanceOf[CU].scalarInPR(sin)
+            //rcmap(reg) == ppr.reg 
+          //}
+        //}
+        //if (mpsins.size==0) siXbar += s""""x""""
+        //else if(mpsins.size==1) {
+          //val psin = mpsins.head
+          //siXbar += s""""${indexOf(psin)}""""
+            ////println(s"--$pcu $preg $ppr")
+          //siComment += s"ppr:$ppr inBus:${quote(busesOf(psin).head)} sin:${psin} -> $preg[${indexOf(preg)}]" 
+        //} else throw PIRException(s"ScalarIn Register $ppr is mapped to two scalarIns $mpsins")
+      //}
+    //}
     emitComment(s"scalarIn", siComment.mkString(","))
     emitXbar("scalarInXbar", siXbar.toList)
     val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
@@ -222,7 +220,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     }
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
-      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSBF])) {
+      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSMem])) {
         //simux += s""""0"""" //TODO scalar retiming mux 
         simux += s"0" //TODO scalar retiming mux 
       }
@@ -488,7 +486,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
               case mem:FOR =>
                 emitPair("ra", "x")
                 val enlut = mem.dequeueEnable.from.src.asInstanceOf[EnLUT]
-                emitPair("deqEn", s"${indexOf(lumap(enlut))}")
+                emitPair("deqEn", s"${indexOf(pmmap(enlut))}")
                 emitPair("isReadFifo", "1")
             }
             mem match {
@@ -677,7 +675,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
             if (fimap.contains(ppr.in)) {
               fimap(ppr.in).src match {
                 case p:PFU => Some((s"r${indexOf(ppr.reg)}", "alu"))
-                case p:PSBF => None
+                case p:PSMem => None
                 case p => Some((s"r${indexOf(ppr.reg)}", lookUp(pstage, p)))
               }
             } else None
@@ -931,7 +929,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
       emitXbar(s"tokenInXbar", tokIns.toList)
       val tokInComment = ListBuffer[String]()
       emitMap("comment-tokenIn") { implicit ms:CollectionStatus =>
-        cu.ctrlIns.foreach { ci =>
+        cu.cins.foreach { ci =>
           emitPair(s"$ci(${vimap(ci)})", s"from ${ci.from}(${vomap(ci.from)})")
         }
       }

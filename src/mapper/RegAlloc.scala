@@ -42,23 +42,23 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           pcu.regs.filter(_.is(LoadReg))
         case LoadPR(mem) => 
           val pmem = pirMap.smmap(mem)
-          mappingOf(pmem.readPort)
+          regsOf(pmem.readPort)
         //case StorePR(sram) =>
         case WtAddrPR(waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM
-          mappingOf(pmem.writeAddr)
+          regsOf(pmem.writeAddr)
         case CtrPR(ctr) => 
           val pctr = pirMap.ctmap(ctr)
-          mappingOf(pctr.out)
+          regsOf(pctr.out)
         case ReducePR() => pcu.regs.filter(_.is(ReduceReg))
         case VecOutPR(vecOut) =>
           val pvout = pirMap.vomap(vecOut).head //FIXME need to map vecout
           val buf = { val bufs = bufsOf(pvout); assert(bufs.size==1); bufs.head }
-          mappingOf(buf.writePort)
+          regsOf(buf.writePort)
         case ScalarOutPR(scalarOut) =>
           val psos = pirMap.vomap(scalarOut)
           dprintln(s"sout:${scalarOut} -> psos:[${psos.mkString(",")}]")
-          val pregs = psos.flatMap(pso => mappingOf(pso.ic)).toList
+          val pregs = psos.flatMap(pso => regsOf(pso.ic)).toList
           dprintln(s"pregs:[${pregs.mkString(",")}]")
           pregs
       }

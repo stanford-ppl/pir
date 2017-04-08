@@ -17,35 +17,28 @@ abstract class Controller(implicit design:Design) extends Node {
   implicit def ctrler:this.type = this
   val sinMap = Map[Scalar, ScalarIn]()
   val soutMap = Map[Scalar, ScalarOut]()
-  def souts = soutMap.values.toList
   val vinMap = Map[Vector, VecIn]()
   val voutMap = Map[Vector, VecOut]()
+
+  def sins = sinMap.values.toList
+  def souts = soutMap.values.toList
+  def vins = vinMap.values.toList 
   def vouts = voutMap.values.toList
+
+  def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
   def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
-  def newVout(v:Vector):VecOut = {
-    v match {
-      case v:DummyVector => voutMap.getOrElseUpdate(v, new DummyVecOut(None, v))
-      case _ => voutMap.getOrElseUpdate(v, VecOut(v))
-    }
-  }
-  def ctrlIns:List[CtrlInPort] = ctrlBox.ctrlIns
-  def ctrlOuts:List[CtrlOutPort] = ctrlBox.ctrlOuts 
+  def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
+  def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
+
+  def cins:List[CtrlInPort] = ctrlBox.ctrlIns
+  def couts:List[CtrlOutPort] = ctrlBox.ctrlOuts 
+
   // No need to consider scalar after bundling
   def readers:List[Controller] = voutMap.keys.flatMap {
     _.readers.map{ _.ctrler }
   }.toList
   def writers:List[Controller] = vinMap.keys.map(_.writer.ctrler).toList
-  def ctrlReaders:List[Controller] = ctrlOuts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
-
-  def sins = sinMap.values.toList
-  def vins = vinMap.values.toList 
-  def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
-  def newVin(v:Vector):VecIn = {
-    v match {
-      case v:DummyVector => vinMap.getOrElseUpdate(v, new DummyVecIn(None, v))
-      case _ => vinMap.getOrElseUpdate(v,VecIn(v))
-    }
-  }
+  def ctrlReaders:List[Controller] = couts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
 
   def ctrlBox:CtrlBox
 
@@ -572,11 +565,6 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def vectors(vectors:List[Vector]) = _vectors = vectors
 
   override lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()(this, design)
-
-  //  sins:List[ScalarIn] = _
-  //  souts:List[ScalarOut] = _
-  //  vins:List[VecIn] = _
-  //  vouts:List[VecOut] = _
   
   override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null
 

@@ -65,12 +65,12 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
         }
       }
       emitBlock(s"ctrlIns") {
-        cu.ctrlIns.foreach{ in =>
+        cu.cins.foreach{ in =>
           emitln(s"$in from:${in.from}")
         }
       }
       emitBlock(s"ctrlOuts") {
-        cu.ctrlOuts.foreach{ out =>
+        cu.couts.foreach{ out =>
           emitln(s"$out to:[${out.to.mkString(",")}]")
         }
       }

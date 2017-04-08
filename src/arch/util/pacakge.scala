@@ -9,27 +9,29 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.language.implicitConversions
+import scala.reflect.{ClassTag, classTag}
 
 package object util {
   implicit def pr_to_ip(pr:PipeReg):Input[Bus, PipeReg] = pr.in
   implicit def pr_to_op(pr:PipeReg):Output[Bus, PipeReg] = pr.out
 
-  def mappingOf(io:IO[_,_]):List[ArchReg] = io match {
+  def regsOf(io:IO[_,_]):List[ArchReg] = mappingOf[PipeReg](io).map(_.reg)
+
+  def mappingOf[T](io:IO[_,_])(implicit ev:ClassTag[T]):List[T] = io match {
     case in:Input[_,_] => 
       in.fanIns.map(_.src).flatMap {
-        case pr:PipeReg => List(pr.reg)
-        case sl:Slice[_] => mappingOf(sl.fin)
-        case bc:BroadCast[_] => mappingOf(bc.in)
+        case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
+        case sl:Slice[_] => mappingOf[T](sl.in)
+        case bc:BroadCast[_] => mappingOf[T](bc.in)
+        case n => Nil
       }
     case out:Output[_,_] =>
       out.fanOuts.map(_.src).flatMap { 
-        case pr:PipeReg => List(pr.reg)
-        case sl:Slice[_] => mappingOf(sl.out)
-        case bc:BroadCast[_] => mappingOf(bc.fout)
+        case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
+        case sl:Slice[_] => mappingOf[T](sl.out)
+        case bc:BroadCast[_] => mappingOf[T](bc.out)
+        case n => Nil
       }
-  }
-  def isMappedTo(io:IO[_,_], reg:ArchReg):Boolean = {
-    mappingOf(io).contains(reg)
   }
   def stageOf(io:IO[_,_]):Option[Stage] = {
     io.src match {

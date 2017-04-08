@@ -34,7 +34,6 @@ class PIRMapping(implicit val design: Design) extends Pass {
 
   def failed = !succeeded && Config.mapping
 
-  val siMapper = new ScalarInMapper()
   val sramMapper = new SramMapper()
   val vfifoMapper = new VFifoMapper()
   val sfifoMapper = new SFifoMapper()

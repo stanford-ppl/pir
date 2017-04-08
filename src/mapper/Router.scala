@@ -490,6 +490,6 @@ class ControlRouter()(implicit val design:Design) extends Router {
   }
   def from(in:I):O = in.from
   def to(out:O) = out.to.toList
-  def ins(cl:CL):List[I] = cl.ctrlIns
-  def outs(cl:CL):List[O] = cl.ctrlOuts
+  def ins(cl:CL):List[I] = cl.cins
+  def outs(cl:CL):List[O] = cl.couts
 }

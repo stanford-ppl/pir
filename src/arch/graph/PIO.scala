@@ -131,7 +131,9 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
   def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=mp[${_fanIns.mkString(",")}]"
-  def canConnect(n:Any):Boolean = _fanIns.contains(n)
+  def canConnect(n:Any):Boolean = {
+    _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
+  }
   def isConnected = _fanIns.size!=0
   def disconnect = _fanIns.clear
   override def asBus:Input[Bus, S] = this.asInstanceOf[Input[Bus, S]]
@@ -156,7 +158,9 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
   def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=mt[${_fanOuts.mkString(",")}]" 
-  def canConnect(n:Any):Boolean = _fanOuts.contains(n)
+  def canConnect(n:Any):Boolean = {
+    _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
+  }
   def isConnected = _fanOuts.size!=0
   def disconnect = _fanOuts.clear
   override def asBus:Output[Bus, S] = this.asInstanceOf[Output[Bus, S]]
@@ -211,27 +215,27 @@ object GlobalOutput {
     new GlobalOutput[P, S](t,s, Some(sf _))
 }
 
-case class Slice[P<:PortType](in:Input[P,Module], fout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
+case class Slice[P<:PortType](din:Input[P,Module], dout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
   override val typeStr = "slice"
-  val fin = Input(fout.tp, this, s"${this}.fin").asBus
-  val out = Output(in.tp, this, s"${this}.out")
-  fin <== fout
-  in <== out
+  val in = Input(dout.tp, this, s"${this}.in").asBus
+  val out = Output(din.tp, this, s"${this}.out")
+  in <== dout
+  din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { case (sim, v) => v.value.copy(fin.ev(sim).value.value(i)) }
+    out.v.set { case (sim, v) => v.value.copy(in.ev(sim).value.value(i)) }
   }
 }
 
-case class BroadCast[P<:PortType](out:Output[P,Module], fin:Input[Bus, Module])(implicit spade:Spade) extends Simulatable {
+case class BroadCast[P<:PortType](dout:Output[P,Module], din:Input[Bus, Module])(implicit spade:Spade) extends Simulatable {
   override val typeStr = "broadcast"
-  val in = Input(out.tp, this, s"${this}.in")
-  val fout = Output(fin.tp, this, s"${this}.fout")
-  in <== out
-  fin <== fout
+  val in = Input(dout.tp, this, s"${this}.in")
+  val out = Output(din.tp, this, s"${this}.out")
+  in <== dout
+  din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    fout.v.set { case (sim, v) => v.value.value.foreach{ _.copy(in.ev(sim).value) } }
+    out.v.set { case (sim, v) => v.value.value.foreach{ _.copy(in.ev(sim).value) } }
   }
 }
 

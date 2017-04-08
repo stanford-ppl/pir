@@ -102,8 +102,8 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("sout"	    , (cl.souts, pcu.souts)))
             cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.fanIns.size>0))))
             cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.fanOuts.size>0))))
-            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pcu.couts.filter(_.fanOuts.size>0))))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pcu.couts.filter(_.fanOuts.size>0))))
             cu match {
               case mc:MemoryController => 
               case _ => 
@@ -112,8 +112,8 @@ class CUMapper(implicit ds:Design) extends Mapper {
           case cu:OCL =>
             val pocu = pne.asInstanceOf[POCU]
             cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
-            cons += (("cin"	      , (cl.ctrlIns.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.ctrlOuts.filter(_.isConnected), pocu.ctrlIO.outs.filter(_.fanOuts.size>0))))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pocu.ctrlIO.outs.filter(_.fanOuts.size>0))))
         }
         failureInfo += pne -> ListBuffer[String]()
         check(cons.toList, failureInfo(pne))

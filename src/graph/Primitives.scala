@@ -95,7 +95,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   def tokenIn:Option[InPort] = {
     ctrler match {
       case c:Controller =>
-        val cins = c.ctrlIns.filter{_.asInstanceOf[CtrlInPort].ctrler==writer.ctrler}
+        val cins = c.cins.filter{_.asInstanceOf[CtrlInPort].ctrler==writer.ctrler}
         if (cins.size==0) None
         else {
           assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")
