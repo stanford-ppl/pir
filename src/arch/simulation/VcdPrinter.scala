@@ -18,7 +18,6 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   implicit lazy val spade:Spade = design.arch
 
   lazy val fimap = sim.mapping.fimap
-  lazy val xbmap = sim.mapping.xbmap
 
   val tracking = ListBuffer[Simulatable]()
 
@@ -108,13 +107,18 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   def name(io:IO[_<:PortType,_<:Module], i:Option[Int] = None):String = {
     val cm = ListBuffer[String]()
     io match {
-      case io:Input[_, _] =>
-        if (fimap.contains(io)) cm += s"f:${quote(fimap(io).src)}"
-        val os = io.fanIns.filter(o => xbmap.contains(o))
+      case io:GlobalInput[_, _] =>
+        val os = io.fanIns.filter(o => fimap.get(o.asGlobal.ic).fold(false) { _ == io.ic} )
         if (os.nonEmpty) cm += s"t:${os.map(quote).mkString(",")}"
-      case io:Output[_, _] =>
-        if (xbmap.contains(io)) cm += s"f:${quote(xbmap(io))}"
-        val is = io.fanOuts.filter(i => fimap.contains(i)).map(_.src)
+      case io:GlobalOutput[_, _] =>
+        if (fimap.contains(io.ic)) cm += s"f:${quote(fimap(io.ic).src)}"
+      case _ =>
+    }
+    io match {
+      case io:Input[_,_] =>
+        if (fimap.contains(io)) cm += s"f:${quote(fimap(io).src)}"
+      case io:Output[_,_] =>
+        val is = io.fanOuts.filter(i => fimap.get(i).fold(false){ _ == io }).map(_.src)
         if (is.nonEmpty) cm += s"f:${is.map(quote).mkString(",")}"
     }
     val nm = s"${io}${i.map(i => s"_$i").getOrElse("")}"

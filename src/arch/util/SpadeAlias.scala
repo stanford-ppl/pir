@@ -14,7 +14,6 @@ trait SpadeAlias {
   type PMC       = MemoryController
   type PTop      = Top
   type PNE       = NetworkElement
-  type PGIO[+NE<:PNE] = GridIO[_<:PortType,NE]
   type PReg      = pir.plasticine.graph.ArchReg
   type PPR       = PipeReg
   type PCtr      = Counter
@@ -33,6 +32,8 @@ trait SpadeAlias {
   type PGI[S<:PModule] = GlobalInput[_<:PortType, S]
   type PGO[S<:PModule] = GlobalOutput[_<:PortType, S]
   type PIO[S<:PModule] = IO[_<:PortType,S]
+  type PGIO[S<:PModule] = GlobalIO[_<:PortType,S]
+  type PGrid[S<:NetworkElement] = GridIO[_<:PortType,S]
   type PBS       = Bus
   type PIB      = Input[PBS,PNE]
   type POB      = Output[PBS,PNE]

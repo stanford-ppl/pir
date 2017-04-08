@@ -59,7 +59,7 @@ package object util {
       case n:ScalarMem => mp.smmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)
       case n:UDCounter => mp.ucmap.isMapped(n)
-      case n:Input[_,_] => mp.xbmap.isMapped(n)
+      case n:Input[_,_] => mp.ipmap.isMapped(n)
       case n:Output[_,_] => mp.fimap.isMapped(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.ctrler)

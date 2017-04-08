@@ -223,7 +223,7 @@ case class Slice[P<:PortType](din:Input[P,Module], dout:Output[Bus,Module], i:In
   din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { case (sim, v) => v.value.copy(in.ev(sim).value.value(i)) }
+    out.v.set { v => v.value.copy(in.ev.value.value(i)) }
   }
 }
 
@@ -235,7 +235,7 @@ case class BroadCast[P<:PortType](dout:Output[P,Module], din:Input[Bus, Module])
   din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { case (sim, v) => v.value.value.foreach{ _.copy(in.ev(sim).value) } }
+    out.v.set { v => v.value.value.foreach{ _.copy(in.ev.value) } }
   }
 }
 

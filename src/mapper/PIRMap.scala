@@ -15,8 +15,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   smmap:SMMap, ctmap:CTMap,
   fimap:FIMap, rcmap:RCMap, stmap:STMap, 
   ipmap:IPMap, opmap:OPMap,
-  ucmap:UCMap, pmmap:PMMap, rtmap:RTMap,
-  xbmap:XBMap) {
+  ucmap:UCMap, pmmap:PMMap, rtmap:RTMap
+  ) {
   
   //stmap.pirMap = this
   //ipmap.pirMap = this
@@ -26,20 +26,19 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   //ucmap.pirMap = this
   //pmmap.pirMap = this
 
-  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:VOMap):PIRMap = PIRMap(clmap, vimap, cp   , smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, vomap, cp   , ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, cp   , fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:FIMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, cp   , rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, cp   , stmap, ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, cp   , ipmap, opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, cp   , opmap, ucmap, pmmap, rtmap, xbmap)
-  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, cp   , ucmap, pmmap, rtmap, xbmap)
-  def set(cp:UCMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, cp   , pmmap, rtmap, xbmap)
-  def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, cp   , rtmap, xbmap)
-  def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, cp   , xbmap)
-  def set(cp:XBMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap, cp   )
+  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:VOMap):PIRMap = PIRMap(clmap, vimap, cp   , smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, vomap, cp   , ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, cp   , fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:FIMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, cp   , rcmap, stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, cp   , stmap, ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, cp   , ipmap, opmap, ucmap, pmmap, rtmap)
+  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, cp   , opmap, ucmap, pmmap, rtmap)
+  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, cp   , ucmap, pmmap, rtmap)
+  def set(cp:UCMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, cp   , pmmap, rtmap)
+  def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, cp   , rtmap)
+  def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, ucmap, pmmap, cp   )
 
   def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + ((k, v)))
   def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + ((k, v)))
@@ -54,7 +53,6 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   def setUC(k:UCMap.K, v:UCMap.V):PIRMap = set(ucmap + ((k, v)))
   def setPM(k:PMMap.K, v:PMMap.V):PIRMap = set(pmmap + ((k, v)))
   def setRT(k:RTMap.K, v:RTMap.V):PIRMap = set(rtmap + ((k, v)))
-  def setXB(k:XBMap.K, v:XBMap.V):PIRMap = set(xbmap + ((k, v)))
 
   def quote(n:Any)(implicit design:Design) = n match {
     case n:Node => pir.util.quote(n)
@@ -121,7 +119,7 @@ object PIRMap {
     PIRMap(CLMap.empty, VIMap.empty, VOMap.empty, SMMap.empty, CTMap.empty, 
            FIMap.empty,
            RCMap.empty, STMap.empty, IPMap.empty, OPMap.empty,
-           UCMap.empty, PMMap.empty, RTMap.empty, XBMap.empty)
+           UCMap.empty, PMMap.empty, RTMap.empty)
 }
 
 case class CLMap(map:CLMap.M, pmap:CLMap.IM) extends IBiOneToOneMap {
@@ -248,18 +246,6 @@ object FIMap extends IOneToOneObj {
   type V = PO[_<:PModule]
   def empty:FIMap = FIMap(Map.empty)
 }
-/* XbarMap: mapping between output and input of xbar */
-case class XBMap(map:XBMap.M) extends IOneToOneMap {
-  type K = XBMap.K
-  type V = XBMap.V
-  override type M = XBMap.M
-  override def + (rec:(K,V)) = { super.check(rec); XBMap(map + rec) }
-}
-object XBMap extends IOneToOneObj {
-  type K = PIO[_<:PModule]
-  type V = PIO[_<:PModule]
-  def empty:XBMap = XBMap(Map.empty)
-}
 /* A mapping between InPort and PInPort */
 case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {
   type K = IPMap.K
@@ -343,14 +329,17 @@ object UCMap extends IBiOneToOneObj {
 }
 
 /* Primitive Node Mapping */
-case class PMMap(map:PMMap.M, pmap:PMMap.IM) extends IBiOneToOneMap {
+case class PMMap(map:PMMap.M, pmp:PMMap.IM) extends IBiOneToOneMap {
   type K = PMMap.K
   type V = PMMap.V
   override type M = PMMap.M
   override type IM = PMMap.IM
-  override def + (rec:(K,V)) = { super.check(rec); PMMap(map + rec, pmap + rec.swap) }
+  override def + (rec:(K,V)) = { super.check(rec); PMMap(map + rec, pmp + rec.swap) }
   def apply(k:LUT):PLUT = { map(k).asInstanceOf[PLUT] }
   def apply(k:Const):PConst = { map(k).asInstanceOf[PConst] }
+  def pmap(v:PConst):Const = { pmp(v).asInstanceOf[Const] }
+  def pmap:IM = pmp
+  def get(v:PConst):Option[Const] = { pmp.get(v).asInstanceOf[Option[Const]] }
 }
 object PMMap extends IBiOneToOneObj {
   type K = Node

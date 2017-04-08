@@ -49,10 +49,8 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
   override val ctrlBox:TopCtrlBox = TopCtrlBox()
-  override def register(implicit sim:Simulator):Unit = {
-    super.register
-    ctrlIO.outs.foreach { o => o.v <= ctrlBox.command }
-  }
+  ctrlIO.outs.foreach { _.ic <== ctrlBox.command }
+  ctrlIO.ins.foreach { _.ic ==> ctrlBox.status }
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -62,13 +60,12 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   val scalarIO:ScalarIO[this.type] = ScalarIO(this)
   val vectorIO:VectorIO[this.type] = VectorIO(this)
   val ctrlIO:ControlIO[this.type] = ControlIO(this)
-  override def register(implicit sim:Simulator):Unit = {
-    super.register
-    val xbmap = sim.mapping.xbmap
-    (scalarIO.outs ++ vectorIO.outs ++ ctrlIO.outs).foreach { out =>
-      xbmap.get(out).foreach { in => out.v <== in }
-    }
+  def connectXbar[P<:PortType](gio:GridIO[P, this.type]) = {
+    gio.ins.foreach { in => gio.outs.foreach { out => out.ic <== in.ic } }
   }
+  connectXbar(scalarIO)
+  connectXbar(vectorIO)
+  connectXbar(ctrlIO)
 }
 /*
  * ComputeUnit

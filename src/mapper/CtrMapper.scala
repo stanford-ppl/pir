@@ -14,7 +14,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class CtrMapper(implicit val design:Design) extends Mapper {
+class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type R = PCtr
   type N = Ctr
   val spademeta: SpadeMetadata = design.arch
@@ -56,7 +56,7 @@ class CtrMapper(implicit val design:Design) extends Mapper {
       bind(
         allNodes=ctrs,
         initMap=pirMap,
-        constrain=mapCtr(pctrs) _, 
+        constrain=mapCtr _, 
         resFunc=resFunc(pctrs) _, 
         finPass=finPass(cu) _
       )
@@ -99,20 +99,14 @@ class CtrMapper(implicit val design:Design) extends Mapper {
     resPool
   }
 
-  def mapCtr(pctrs:List[R])(n:N, p:R, map:M):M = {
+  def mapCtr(n:N, p:R, mp:M):M = {
+    dprintln(s"mapping $n -> $p")
+    var map = mp
     var ipmap = map.ipmap
     var fimap = map.fimap
-    def mapInPort(n:IP, p:PI[_<:PModule]):Unit = {
-      ipmap += n -> p 
-      n.from.src match {
-        case Const(v) => //fimap += p -> PConstVal(v)(design.arch).out
-        case _ =>
-      }
-    }
-    mapInPort(n.min, p.min)
-    mapInPort(n.max, p.max)
-    mapInPort(n.step, p.step)
-    dprintln(s"mapping $n -> $p")
+    map = mapInPort(n.min, p.min, map)
+    map = mapInPort(n.max, p.max, map)
+    map = mapInPort(n.step, p.step, map)
     map.setCt(n,p).setOP(n.out, p.out).set(ipmap).set(fimap)
   }
 

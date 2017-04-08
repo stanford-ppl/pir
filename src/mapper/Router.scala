@@ -29,9 +29,9 @@ abstract class Router(implicit design:Design) extends Mapper {
   type I<:Node
   type O<:Node
   type R = (PCL, Path[FEdge])
-  type Edge = (PIO[PNE], PIO[PNE])
-  type FEdge = (PO[PNE], PI[PNE])
-  type REdge = (PI[PNE], PO[PNE])
+  type Edge = (PGIO[PNE], PGIO[PNE])
+  type FEdge = (PGO[PNE], PGI[PNE])
+  type REdge = (PGI[PNE], PGO[PNE])
   type Path[E<:Edge] = List[E]
   type Paths[E<:Edge] = List[(PCL, Path[E])]
   type FatEdge[E<:Edge] = List[E] 
@@ -68,7 +68,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def to(out:O):List[I]
   def ins(cl:CL):List[I]
   def outs(cl:CL):List[O]
-  def io(pne:PNE):PGIO[PNE]
+  def io(pne:PNE):PGrid[PNE]
   def isExtern(in:I):Boolean = { ctrler(in)!=ctrler(from(in)) }
 
     // DEBUG
@@ -207,7 +207,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val os = io(pne).outs.sortWith{ case (o1, o2) => o1.src.isInstanceOf[PCU] || !o2.src.isInstanceOf[PCU] }
-        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in.asInstanceOf[PI[PNE]]) } }
+        val edges = os.flatMap { out => out.fanOuts.map { in => (out, in.asInstanceOf[PGI[PNE]]) } }
         val bundle = edges.groupBy { case (o, i) => (o.src, i.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
@@ -248,7 +248,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (!visited.contains(pne)) {
         visited += pne
         val is = io(pne).ins.sortWith{ case (i1, i2) => i1.src.isInstanceOf[PCU] || !i2.src.isInstanceOf[PCU] }
-        val edges = is.flatMap { in => in.fanIns.map { out => (in, out.asInstanceOf[PO[PNE]]) } }
+        val edges = is.flatMap { in => in.fanIns.map { out => (in, out.asInstanceOf[PGO[PNE]]) } }
         val bundle = edges.groupBy { case (i, o) => (i.src, o.src) }
         bundle.foreach { case ((fpne, tpne), fatEdge) =>
           val newPath = fatpath :+ fatEdge 
@@ -282,7 +282,7 @@ abstract class Router(implicit design:Design) extends Mapper {
           val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
           val switchTaken = {
             if (po.src.isInstanceOf[PSB]) {  // Check switch box
-              map.xbmap.contains(po) // Conservative here
+              map.fimap.contains(po.ic) // Conservative here
             } else false
           }
           val invalid = edgeTaken || switchTaken
@@ -373,7 +373,7 @@ abstract class Router(implicit design:Design) extends Mapper {
           if (out.src.isInstanceOf[PSB]) { // Config SwitchBox
             val to = out
             val from = path(i-1)._2
-            mp = mp.setXB(to, from)
+            mp = mp.setFI(to.ic, from.ic)
           }
         }
         mp
@@ -435,7 +435,7 @@ class VectorRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugVecRouter
 
-  def io(pne:PNE):PGIO[PNE] = pne.vectorIO
+  def io(pne:PNE):PGrid[PNE] = pne.vectorIO
 
   def ctrler(io:Node):CL = {
     io match {
@@ -458,7 +458,7 @@ class ScalarRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugScalRouter 
 
-  def io(pne:PNE):PGIO[PNE] = pne.scalarIO
+  def io(pne:PNE):PGrid[PNE] = pne.scalarIO
 
   def ctrler(io:Node):CL = {
     io match {
@@ -480,7 +480,7 @@ class ControlRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugCtrlRouter
 
-  def io(pne:PNE):PGIO[PNE] = pne.ctrlIO
+  def io(pne:PNE):PGrid[PNE] = pne.ctrlIO
 
   def ctrler(io:Node):CL = {
     io match {

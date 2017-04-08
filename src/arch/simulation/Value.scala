@@ -18,9 +18,9 @@ case class Val[P<:PortType](io:IO[P, Module]) {
   val prevValue:P = io.tp.clonetp
   def changed:Boolean = value != prevValue
 
-  var func: Option[(Simulator, this.type) => Unit] = None 
-  def set(f: (Simulator, this.type) => Unit):Unit = {
-    if (func!=None) warn(s"Reseting func for ${io}")
+  var func: Option[this.type => Unit] = None 
+  def set(f: this.type => Unit):Unit = {
+    if (func!=None) warn(s"Reseting func for ${io} of ${io.src} ${getStackTrace(4, 6)}")
     func = Some(f) 
   }
   var _updated = false
@@ -33,19 +33,19 @@ case class Val[P<:PortType](io:IO[P, Module]) {
     if (updated) return
     sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${io}")
     prevValue.copy(value)
-    func.foreach { f => f(sim, this) }
+    func.foreach { f => f(this) }
     _updated = true
   }
 
   def vs:String = s"${value.s}"
   def pvs:String = s"${prevValue.s}"
 
-  def <= (o: => IO[_<:PortType, Module]) = {
-    set{ case (sim, v) => v.value.copy(o.ev(sim).value) }
+  def <= (o: => IO[_<:PortType, Module])(implicit sim:Simulator) = {
+    set{ v => v.value.copy(o.ev.value) }
   }
 
-  def <== (o: => IO[_<:PortType, Module]) = {
-    set{ case (sim, v) => v.value.copy(o.ev(sim).prevValue) }
+  def <== (o: => IO[_<:PortType, Module])(implicit sim:Simulator) = {
+    set{ v => v.value.copy(o.ev.prevValue) }
   }
 
   //def isV(x:Val[_]) = x.tp==tp

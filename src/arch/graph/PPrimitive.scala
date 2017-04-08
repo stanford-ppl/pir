@@ -141,8 +141,14 @@ object WAStage {
     new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
 }
 
-class Const()(implicit spade:Spade) extends Module {
+class Const()(implicit spade:Spade) extends Simulatable {
   val out = Output(Word(), this, s"Const")
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    sim.mapping.pmmap.get(this).foreach { c => 
+      out.v.set { v => v.value.value = Some(c.toFloat.value) }
+    }
+  }
 }
 object Const {
   def apply()(implicit spade:Spade) = new Const()
@@ -193,7 +199,7 @@ case class TopCtrlBox()(implicit spade:Spade, override val ctrler:Top) extends C
   override def register(implicit sim:Simulator):Unit = {
     super.register
     //sim.dprintln(s"setting $command")
-    command.v.set { case (sim, v) => 
+    command.v.set { v => 
       if (sim.cycle == 1)
         v.value.value = Some(false) 
       else if (sim.cycle == 2)
@@ -202,6 +208,5 @@ case class TopCtrlBox()(implicit spade:Spade, override val ctrler:Top) extends C
         v.value.value = Some(false)
       //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
     }
-    sim.mapping.xbmap.get(status).foreach { in => status.v <= in }
   }
 }

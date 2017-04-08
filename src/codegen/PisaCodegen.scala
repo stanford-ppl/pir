@@ -44,7 +44,6 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   lazy val ucmap:UCMap = mapping.ucmap
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val rcmap:RCMap = mapping.rcmap
-  lazy val xbmap:XBMap = mapping.xbmap
 
   override def traverse:Unit = {
     implicit val ms = new CollectionStatus(false)
@@ -233,8 +232,8 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     val xbarComment = ListBuffer[String]()
     sbio.outs.foreach { pvout =>
       if (pvout.isConnected) {
-        if (xbmap.contains(pvout)) {
-          val vin = xbmap(pvout).asInstanceOf[Input[P, PSB]]
+        if (fimap.contains(pvout.ic)) {
+          val vin = fimap(pvout.ic).src.asInstanceOf[Input[P, PSB]]
           xbarComment += s"${quote(pvout)} -> ${quote(vin)}"
           ins += s""""${sbio.io(vin)}""""
         } else {

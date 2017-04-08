@@ -134,7 +134,9 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
         recs += mapping.flatMap { mp => 
           if (io(psb).ins.exists( in => mp.fimap.contains(in))) { 
             val xbar = io(psb).outs.flatMap { out => 
-              mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
+              mp.fimap.get(out.ic).map{ inic => 
+                val in = inic.src.asInstanceOf[PI[PModule]]; s"i-${indexOf(in)} -\\> o-${indexOf(out)}"
+              }
             }.mkString(s"|") 
             Some(s"${quote(psb)}|${xbar}")
           } else {
@@ -152,14 +154,8 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
       case _ =>
     }
     mapping.foreach { mp => 
-      if (mp.clmap.pmap.contains(pne)) attr.style(filled).fillcolor(color(pne))
-      if (io(pne).ins.exists( in => mp.fimap.contains(in))) { 
-        attr.style(filled).fillcolor(color(pne)) 
-        val xbar = io(pne).outs.flatMap { out => 
-          mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
-        }.mkString(s"|") 
-        recs += xbar
-      }
+      if (mp.clmap.pmap.contains(pne) || io(pne).ins.exists( in => mp.fimap.contains(in)))
+        attr.style(filled).fillcolor(color(pne))
     }
     val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
     val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
@@ -169,43 +165,6 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
         emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nc/2-1)*scale+scale/2, -scale))
       case _ =>
         emitNode(pne, label, attr)
-    }
-  }
-  def emitSwitchBoxes(sbs:List[PSB], mapping:Option[PIRMap])(implicit design:Design) = {
-    sbs.foreach { sb =>
-      val (x,y) = coordOf(sb)
-      val attr = DotAttr().shape(Mrecord)
-      coordOf.get(sb).foreach { case (x,y) => attr.pos((x*scale-scale/2, y*scale-scale/2)) }
-      val label = mapping.flatMap { mp => 
-        if (io(sb).ins.exists( in => mp.fimap.contains(in))) { 
-          attr.style(filled).fillcolor(indianred) 
-          val xbar = io(sb).outs.flatMap { out => 
-            mp.xbmap.get(out).map{ in => s"i-${indexOf(in)} -\\> o-${indexOf(out)}" }
-          }.mkString(s"|") 
-          Some(s"{${quote(sb)}|${xbar}}")
-        } else {
-          None
-        }
-      }.getOrElse(quote(sb))
-      emitNode(sb, label, attr)
-      io(sb).ins.foreach { pin =>
-        pin.fanIns.foreach { pout =>
-          val attr = DotAttr()
-          mapping.foreach { mp => 
-            if (mp.fimap.get(pin).fold(false) { _ == pout}) { 
-              var label = s"(i-${indexOf(pin)})"
-              if (pout.src.isInstanceOf[PSB]) label += s"\n(o-${indexOf(pout)})"
-              attr.color(indianred).style(bold).label(label)
-            } 
-          }
-          pout.src match {
-            case from:PSB => emitEdge(s"$from", sb, attr)
-            case from:PCU => emitEdge(s"$from:$pout", sb, attr)
-            case from:PMC => emitEdge(s"$from:$pout", sb, attr)
-            case from:PTop => emitEdge(quote(from, coordOf(sb)._2==0), sb, attr)
-          }
-        }
-      }
     }
   }
 

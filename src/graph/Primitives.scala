@@ -436,5 +436,12 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
 case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   val name:Option[String] = Some(s"$value")
-  val out = OutPort(this, s"Const(${value})")
+  val out = OutPort(this, s"Const${id}(${value})")
+
+  def toFloat:Const[Float] = {
+    this match {
+      case Const(value:Int) => Const(value.toFloat)
+      case Const(value:Float) => Const(value)
+    }
+  }
 }
