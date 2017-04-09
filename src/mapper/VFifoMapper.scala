@@ -7,7 +7,6 @@ import pir.plasticine.graph.{PipeReg => PPR}
 import pir.plasticine.util._
 import pir.plasticine.main._
 import pir.exceptions._
-import pir.util.PIRMetadata
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
@@ -18,10 +17,7 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
   type N = VFIFO
   type R = PVMem
   val typeStr = "VecFifoMapper"
-  override def debug = Config.debugSMMapper //TODO
-  implicit val spade:Spade = design.arch
-  val pirmeta:PIRMetadata = design
-  val spademeta: SpadeMetadata = spade
+  override def debug = Config.debugVFifoMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

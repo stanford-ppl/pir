@@ -17,7 +17,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type R = PReg
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
-  val spademeta: SpadeMetadata = spade
   import spademeta._
 
   implicit def spade:Spade = design.arch

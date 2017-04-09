@@ -60,11 +60,11 @@ package object util {
       case n:ScalarMem => mp.smmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)
       case n:UDCounter => mp.ucmap.isMapped(n)
-      case n:Input[_,_] => mp.ipmap.isMapped(n)
+      case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
       case n:Output[_,_] => mp.fimap.isMapped(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
-      case n:RegChain[_] => isMapped(n.din)
+      case n:Delay[_] => mp.fimap.contains(n.in) || isMapped(n.in.fanIns.head) || true //TODO
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }

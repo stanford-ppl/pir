@@ -17,10 +17,9 @@ import scala.util.{Try, Success, Failure}
 class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type R = PCtr
   type N = Ctr
-  val spademeta: SpadeMetadata = design.arch
   import spademeta._
   val typeStr = "CtrMapper"
-  override def debug = Config.debugCTMapper
+  override def debug = Config.debugCtrMapper
   override val exceptLimit = 200
   
   def finPass(cu:CU)(m:M):M = m
@@ -48,7 +47,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def map(cu:CU, pirMap:M):M = {
-    log(cu) {
+    log((cu, false)) {
       // Mapping inner counter first converges faster
       val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
@@ -75,11 +74,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
           pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
       // Inner most counter or copied inner most counter whose enable is routed fron network
-      case _:EnLUT => 
-        remainRes.filter(pc => isInnerCounter(pc))
-      case _:MC => // Dummy Counter
-        remainRes
-      case d => throw PIRException(s"unknown driver of ${n}'s enable ${d}")
+      case _ => remainRes.filter(pc => isInnerCounter(pc))
     }
     val doneCtrs = n.done.to.map { done =>
       done.src match {

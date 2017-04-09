@@ -131,7 +131,8 @@ object PIRPrinter {
     node match {
       case n:Controller =>
         fields += s"children=[${n.children.mkString(",")}]"
-        fields += s"isHead=${n.isHead}, isLast=${n.isLast}"
+        fields += s"isHead=${n.isHead}"
+        fields += s"isLast=${n.isLast}"
       case n:Primitive => {
         //fields += s"ctrler=${n.ctrler}"
       }

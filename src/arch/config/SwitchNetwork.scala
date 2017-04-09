@@ -9,7 +9,6 @@ import pir.util.enums._
 import scala.language.existentials
 
 abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int, val numArgOuts:Int) extends Spade {
-  implicit override def spade:SwitchNetwork = this
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
@@ -20,7 +19,10 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)
 
-  def cuAt(i:Int, j:Int) = if ((i+j) % 2 == 0) new ComputeUnit() else new MemoryComputeUnit()
+  def cuAt(i:Int, j:Int) = {
+    if ((i+j) % 2 == 0) new ComputeUnit()
+    else new MemoryComputeUnit()
+  }
 
   def scuAt(c:Int, r:Int):ScalarComputeUnit = new ScalarComputeUnit()
 
@@ -63,61 +65,16 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
   lazy val scalarNetwork = new ScalarNetwork()
 
-  def config = {
-    scalarNetwork
-    ctrlNetwork
-    vectorNetwork
-    top.genConnections
-    sbs.foreach { _.genConnections }
-    pcus.foreach { cu =>
-      cu.numRegs(16)
-        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
-        .addRegstages(numStage=14, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .numScalarBufs(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarBufs, ScalarInReg)
-        .numVecBufs(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecBufs, VecInReg)
-        .color(8 until 8 + scalarNetwork.io(cu).numIns, ScalarOutReg)
-        .color(12 until 12 + vectorNetwork.io(cu).numOuts, VecOutReg)
-        .color(0, ReduceReg)
-        .ctrlBox(numUDCs=5)
-        .genConnections
-        .genMapping
-    }
-    mcus.foreach { cu =>
-      cu.numRegs(16)
-        .numCtrs(8).color(0 until 0 + cu.numCtrs, CounterReg)
-        .numSRAMs(1).color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
-        .addWAstages(numStage=3, numOprds=3, ops)
-        .addRAstages(numStage=3, numOprds=3, ops)
-        .numScalarBufs(scalarNetwork.io(cu).numIns).color(8 until 8 + cu.numScalarBufs, ScalarInReg)
-        .numVecBufs(vectorNetwork.io(cu).numIns).color(12 until 12 + cu.numVecBufs, VecInReg)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        .genMapping
-    }
-    scus.foreach { cu =>
-      cu.numRegs(6)
-        .numCtrs(6)
-        .numSRAMs(4)
-        .addRegstages(numStage=0, numOprds=3, ops)
-        .addRdstages(numStage=4, numOprds=3, ops)
-        .addRegstages(numStage=2, numOprds=3, ops)
-        .ctrlBox(numUDCs=4)
-        .genConnections
-        .genMapping
-    }
-    mcs.foreach { mc =>
-      mc.ctrlBox(numUDCs=0)
-    }
-    ocus.foreach { cu =>
-      cu.numCtrs(6)
-      .ctrlBox(numUDCs=4)
-      .genConnections
-      .genMapping
-    }
-  }
-  config
+  scalarNetwork.config
+  ctrlNetwork.config
+  vectorNetwork.config
+  top.genConnections
+  sbs.foreach { _.genConnections }
+  pcus.foreach { _.config }
+  mcus.foreach { _.config }
+  scus.foreach { _.config }
+  mcs.foreach { _.config }
+  ocus.foreach { _.config }
 }
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
@@ -189,174 +146,176 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   lazy val numRows = cuArray.length
   lazy val numCols = cuArray.head.length
 
-  val top = spade.top
+  lazy val top = spade.top
   
-  spade.pnes.foreach { pne =>
-    io(pne).ins.foreach { _.disconnect }
-    io(pne).outs.foreach { _.disconnect }
-    io(pne).clearIO
-  }
-
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
     val outs = io(out).addOutAt(outDir, channelWidth)
     val ins = io(in).addInAt(inDir, channelWidth)
     outs.zip(ins).foreach { case (o, i) => o ==> i }
   }
 
-  // CU to CU Connection
-  for (y <- 0 until numRows) {
-    for (x <- 0 until numCols) {
-      // CU to CU (Horizontal)
-      if (y!=numRows-1) {
-        // W -> E
-        connect(cuArray(y)(x), "E", cuArray(y+1)(x), "W", cuChannelWidthWE)
-        // E -> W
-        connect(cuArray(y+1)(x), "W", cuArray(y)(x), "E", cuChannelWidthEW)
-      }
-      //// CU to CU (Vertical)
-      if (x!=numCols-1) {
-        // S -> N
-        connect(cuArray(y)(x), "N", cuArray(y)(x+1), "S", cuChannelWidthSN)
-        // N -> S 
-        connect(cuArray(y)(x+1), "S", cuArray(y)(x), "N", cuChannelWidthNS)
+  def config = {
+    spade.pnes.foreach { pne =>
+      io(pne).ins.foreach { _.disconnect }
+      io(pne).outs.foreach { _.disconnect }
+      io(pne).clearIO
+    }
+
+    // CU to CU Connection
+    for (y <- 0 until numRows) {
+      for (x <- 0 until numCols) {
+        // CU to CU (Horizontal)
+        if (y!=numRows-1) {
+          // W -> E
+          connect(cuArray(y)(x), "E", cuArray(y+1)(x), "W", cuChannelWidthWE)
+          // E -> W
+          connect(cuArray(y+1)(x), "W", cuArray(y)(x), "E", cuChannelWidthEW)
+        }
+        //// CU to CU (Vertical)
+        if (x!=numCols-1) {
+          // S -> N
+          connect(cuArray(y)(x), "N", cuArray(y)(x+1), "S", cuChannelWidthSN)
+          // N -> S 
+          connect(cuArray(y)(x+1), "S", cuArray(y)(x), "N", cuChannelWidthNS)
+        }
       }
     }
-  }
 
-  // Switch to Switch connections
-  for (y <- 0 until numRows+1) {
-    for (x <- 0 until numCols+1) {
-      // SB to SB (Horizontal)
-      if (y!=numRows) {
-        // W -> E 
-        connect(sbs(y)(x), "E", sbs(y+1)(x), "W", sbChannelWidthWE)
-        // E -> W
-        connect(sbs(y+1)(x), "W", sbs(y)(x), "E", sbChannelWidthEW)
-      }
-      // SB to SB (Vertical)
-      if (x!=numCols) {
-        // S -> N
-        connect(sbs(y)(x), "N", sbs(y)(x+1), "S", sbChannelWidthSN)
-        // N -> S 
-        connect(sbs(y)(x+1), "S", sbs(y)(x), "N", sbChannelWidthNS)
-      }
+    // Switch to Switch connections
+    for (y <- 0 until numRows+1) {
+      for (x <- 0 until numCols+1) {
+        // SB to SB (Horizontal)
+        if (y!=numRows) {
+          // W -> E 
+          connect(sbs(y)(x), "E", sbs(y+1)(x), "W", sbChannelWidthWE)
+          // E -> W
+          connect(sbs(y+1)(x), "W", sbs(y)(x), "E", sbChannelWidthEW)
+        }
+        // SB to SB (Vertical)
+        if (x!=numCols) {
+          // S -> N
+          connect(sbs(y)(x), "N", sbs(y)(x+1), "S", sbChannelWidthSN)
+          // N -> S 
+          connect(sbs(y)(x+1), "S", sbs(y)(x), "N", sbChannelWidthNS)
+        }
 
-      // Top to SB
-      // Top Switches
-      if (y==numRows) {
-        connect(sbs(y)(x), "N", top, "S", sbtpChannelWidth) // bottom up 
-        connect(top, "S", sbs(y)(x), "N", tpsbChannelWidth) // top down
-      }
-      // Bottom Switches
-      if (y==0) {
-        connect(sbs(y)(x), "S", top, "N", sbtpChannelWidth) // top down 
-        connect(top, "N", sbs(y)(x), "S", tpsbChannelWidth) // bottom up
-      }
-    }
-  }
-
-  // CU and SB connection
-  for (y <- 0 until numRows) {
-    for (x <- 0 until numCols) {
-      // CU to SB 
-      // NW (top left)
-      connect(cuArray(y)(x), "NW", sbs(y+1)(x), "SE", cusbChannelWidthNW)
-      // NE (top right)
-      connect(cuArray(y)(x), "NE", sbs(y+1)(x+1), "SW", cusbChannelWidthNE)
-      // SW (bottom left)
-      connect(cuArray(y)(x), "SW", sbs(y)(x), "NE", cusbChannelWidthSW)
-      // SE (bottom right)
-      connect(cuArray(y)(x), "SE", sbs(y)(x+1), "NW", cusbChannelWidthSE)
-
-      // SB to CU
-      // NW (top left)
-      connect(sbs(y+1)(x), "SE", cuArray(y)(x), "NW", sbcuChannelWidthNW)
-      // NE (top right)
-      connect(sbs(y+1)(x+1), "SW", cuArray(y)(x), "NE", sbcuChannelWidthNE)
-      // SW (bottom left)
-      connect(sbs(y)(x), "NE", cuArray(y)(x), "SW", sbcuChannelWidthSW)
-      // SE (bottom right)
-      connect(sbs(y)(x+1), "NW", cuArray(y)(x), "SE", sbcuChannelWidthSE)
-    }
-  }
-
-  // OCU and SB connection
-  for (y <- 0 until numRows+1) {
-    for (x <- 0 until numCols+1) {
-      // OCU to SB 
-      connect(ocuArray(y)(x), "W", sbs(y)(x), "E", ocsbChannelWidth)
-
-      // SB to OCU
-      connect(sbs(y)(x), "E", ocuArray(y)(x), "W", sbocChannelWidth)
-    }
-  }
-
-  //// SCU and SB connection
-  for (y <- 0 until scuArray.size) { //rows
-    for (x <- 0 until scuArray.headOption.map(_.size).getOrElse(0)) { //cols
-      if (x==0) {
-        // SCU to SB (W -> E) (left side)
-        connect(scuArray(y)(x), "E", sbs(y)(0), "W", scsbChannelWidth)
-        // SB to SCU (E -> W) (left side)
-        connect(sbs(y)(0), "W", scuArray(y)(x), "E", sbscChannelWidth)
-      } else {
-        // SCU to SB (E -> W) (right side)
-        connect(scuArray(y)(x), "W", sbs(y)(numCols), "E", scsbChannelWidth)
-        // SB to SCU (W -> E) (right side)
-        connect(sbs(y)(numCols), "E", scuArray(y)(x), "W", sbscChannelWidth)
+        // Top to SB
+        // Top Switches
+        if (y==numRows) {
+          connect(sbs(y)(x), "N", top, "S", sbtpChannelWidth) // bottom up 
+          connect(top, "S", sbs(y)(x), "N", tpsbChannelWidth) // top down
+        }
+        // Bottom Switches
+        if (y==0) {
+          connect(sbs(y)(x), "S", top, "N", sbtpChannelWidth) // top down 
+          connect(top, "N", sbs(y)(x), "S", tpsbChannelWidth) // bottom up
+        }
       }
     }
-  }
 
-  //// MC and SB connection
-  for (y <- 0 until mcArray.size) { //rows
-    for (x <- 0 until mcArray.headOption.map(_.size).getOrElse(0)) { //cols
-      if (x==0) {
-        // MC to SB (W -> E) (left side)
-        connect(mcArray(y)(x), "E", sbs(y)(0), "W", mcsbChannelWidth)
-        // SB to MC (E -> W) (left side)
-        connect(sbs(y)(0), "W", mcArray(y)(x), "E", sbmcChannelWidth)
-      } else {
-        // MC to SB (E -> W) (right side)
-        connect(mcArray(y)(x), "W", sbs(y)(numCols), "E", mcsbChannelWidth)
-        // SB to MC (W -> E) (right side)
-        connect(sbs(y)(numCols), "E", mcArray(y)(x), "W", sbmcChannelWidth)
+    // CU and SB connection
+    for (y <- 0 until numRows) {
+      for (x <- 0 until numCols) {
+        // CU to SB 
+        // NW (top left)
+        connect(cuArray(y)(x), "NW", sbs(y+1)(x), "SE", cusbChannelWidthNW)
+        // NE (top right)
+        connect(cuArray(y)(x), "NE", sbs(y+1)(x+1), "SW", cusbChannelWidthNE)
+        // SW (bottom left)
+        connect(cuArray(y)(x), "SW", sbs(y)(x), "NE", cusbChannelWidthSW)
+        // SE (bottom right)
+        connect(cuArray(y)(x), "SE", sbs(y)(x+1), "NW", cusbChannelWidthSE)
+
+        // SB to CU
+        // NW (top left)
+        connect(sbs(y+1)(x), "SE", cuArray(y)(x), "NW", sbcuChannelWidthNW)
+        // NE (top right)
+        connect(sbs(y+1)(x+1), "SW", cuArray(y)(x), "NE", sbcuChannelWidthNE)
+        // SW (bottom left)
+        connect(sbs(y)(x), "NE", cuArray(y)(x), "SW", sbcuChannelWidthSW)
+        // SE (bottom right)
+        connect(sbs(y)(x+1), "NW", cuArray(y)(x), "SE", sbcuChannelWidthSE)
       }
     }
-  }
 
-  //// MC and SCU connection
-  for (i <- 0 until mcs.size) {
-    // MC to SCU (S -> N)
-    connect(mcs(i), "N", scus(i), "S", mcscChannelWidth)
-    // SCU to MC (N -> S)
-    connect(scus(i), "S", mcs(i), "N", scmcChannelWidth)
-  }
+    // OCU and SB connection
+    for (y <- 0 until numRows+1) {
+      for (x <- 0 until numCols+1) {
+        // OCU to SB 
+        connect(ocuArray(y)(x), "W", sbs(y)(x), "E", ocsbChannelWidth)
 
-  sbs.foreach { row =>
-    row.foreach { sb =>
-      io(sb).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-      io(sb).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+        // SB to OCU
+        connect(sbs(y)(x), "E", ocuArray(y)(x), "W", sbocChannelWidth)
+      }
     }
+
+    //// SCU and SB connection
+    for (y <- 0 until scuArray.size) { //rows
+      for (x <- 0 until scuArray.headOption.map(_.size).getOrElse(0)) { //cols
+        if (x==0) {
+          // SCU to SB (W -> E) (left side)
+          connect(scuArray(y)(x), "E", sbs(y)(0), "W", scsbChannelWidth)
+          // SB to SCU (E -> W) (left side)
+          connect(sbs(y)(0), "W", scuArray(y)(x), "E", sbscChannelWidth)
+        } else {
+          // SCU to SB (E -> W) (right side)
+          connect(scuArray(y)(x), "W", sbs(y)(numCols), "E", scsbChannelWidth)
+          // SB to SCU (W -> E) (right side)
+          connect(sbs(y)(numCols), "E", scuArray(y)(x), "W", sbscChannelWidth)
+        }
+      }
+    }
+
+    //// MC and SB connection
+    for (y <- 0 until mcArray.size) { //rows
+      for (x <- 0 until mcArray.headOption.map(_.size).getOrElse(0)) { //cols
+        if (x==0) {
+          // MC to SB (W -> E) (left side)
+          connect(mcArray(y)(x), "E", sbs(y)(0), "W", mcsbChannelWidth)
+          // SB to MC (E -> W) (left side)
+          connect(sbs(y)(0), "W", mcArray(y)(x), "E", sbmcChannelWidth)
+        } else {
+          // MC to SB (E -> W) (right side)
+          connect(mcArray(y)(x), "W", sbs(y)(numCols), "E", mcsbChannelWidth)
+          // SB to MC (W -> E) (right side)
+          connect(sbs(y)(numCols), "E", mcArray(y)(x), "W", sbmcChannelWidth)
+        }
+      }
+    }
+
+    //// MC and SCU connection
+    for (i <- 0 until mcs.size) {
+      // MC to SCU (S -> N)
+      connect(mcs(i), "N", scus(i), "S", mcscChannelWidth)
+      // SCU to MC (N -> S)
+      connect(scus(i), "S", mcs(i), "N", scmcChannelWidth)
+    }
+
+    sbs.foreach { row =>
+      row.foreach { sb =>
+        io(sb).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+        io(sb).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+      }
+    }
+    cuArray.flatten.foreach { cu =>
+      io(cu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+      io(cu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+    }
+    scus.foreach { scu =>
+      io(scu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+      io(scu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+    }
+    ocuArray.flatten.foreach { ocu =>
+      io(ocu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+      io(ocu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+    }
+    mcs.foreach { mc =>
+      io(mc).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+      io(mc).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
+    }
+    io(top).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
+    io(top).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
   }
-  cuArray.flatten.foreach { cu =>
-    io(cu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-    io(cu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
-  }
-  scus.foreach { scu =>
-    io(scu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-    io(scu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
-  }
-  ocuArray.flatten.foreach { ocu =>
-    io(ocu).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-    io(ocu).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
-  }
-  mcs.foreach { mc =>
-    io(mc).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-    io(mc).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
-  }
-  io(top).ins.zipWithIndex.foreach { case (in, idx) => in.index(idx) }
-  io(top).outs.zipWithIndex.foreach { case (out, idx) => out.index(idx) }
 
 }
 

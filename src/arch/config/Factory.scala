@@ -141,6 +141,20 @@ object ConfigFactory extends Logger {
 
   }
 
+  def genConnections(ctrlBox:CtrlBox)(implicit spade:Spade):Unit = {
+    ctrlBox match {
+      case cb:InnerCtrlBox => 
+        cb.pne.ctrs.foreach { cb.done.in <== _.done }
+      case cb:OuterCtrlBox => 
+        cb.pne.ctrs.foreach { cb.done.in <== _.done }
+      case cb:MemoryCtrlBox => 
+        cb.pne.ctrs.foreach { cb.readDone.in <== _.done }
+        cb.pne.ctrs.foreach { cb.writeDone.in <== _.done }
+      case cb:TopCtrlBox =>
+      case cb:CtrlBox =>
+    }
+  }
+
   def genConnections(pne:NetworkElement)(implicit spade:Spade):Unit = {
     pne match {
       case pne:Top =>
@@ -148,6 +162,11 @@ object ConfigFactory extends Logger {
         pne.cins.foreach { _.ic ==> pne.ctrlBox.status }
       case pne:ComputeUnit => genConnections(pne)
       case pne:SwitchBox => pne.connectXbars
+    }
+    pne match {
+      case pne:Controller =>
+        genConnections(pne.ctrlBox)
+      case pne =>
     }
   }
 

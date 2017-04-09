@@ -176,7 +176,7 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   val adder = new Traversal {
     override def visitNode (node:Node): Unit = {
       node match {
-        //case node:GlobalIO[_,_] =>
+        case node:GlobalIO[_,_] =>
         case node:Simulatable if !tracking.contains(node) && isMapped(node) => 
           sim.dprintln(s"tracking $node")
           tracking += node
@@ -192,6 +192,8 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
 
   def addAll = {
     adder.traverse
+    val sb = spade.asInstanceOf[SwitchNetwork].sbs.head
+    val out = sb.ctrlIO.outs.head
   }
 
 }

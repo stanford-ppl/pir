@@ -7,8 +7,8 @@ import scala.collection.mutable.ListBuffer
 import pir.plasticine.simulation._
 import pir.plasticine.util._
 
-trait Spade extends SpadeMetadata { self =>
-  implicit def spade:Spade = self
+trait Spade extends SpadeMetadata {
+  implicit def spade:this.type = this
 
   override def toString = getClass().getSimpleName().replace("$", "")
   val wordWidth = 32

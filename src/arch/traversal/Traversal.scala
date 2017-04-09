@@ -42,12 +42,12 @@ trait Traversal {
               case n:Top =>
             }
           case n:SwitchBox =>
-            n.regChains.foreach(visitNode)
         }
       case n:GlobalIO[_,_] => visitNode(n.ic)
       case n:Stage =>
         n.funcUnit.foreach(visitNode)
         n.prs.foreach(visitNode)
+      case n:TopCtrlBox => 
       case n:CtrlBox =>
         n.udcs.foreach(visitNode)
       case n =>

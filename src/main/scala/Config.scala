@@ -47,8 +47,10 @@ object Config {
   var debugSIMapper = debugMapper && true 
   var debugVIMapper = debugMapper && true 
   var debugCtrlMapper = debugMapper && true 
-  var debugSMMapper = debugMapper && true 
-  var debugCTMapper = debugMapper && true 
+  var debugSramMapper = debugMapper && true 
+  var debugVFifoMapper = debugMapper && true 
+  var debugSFifoMapper = debugMapper && true 
+  var debugCtrMapper = debugMapper && true 
   var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"

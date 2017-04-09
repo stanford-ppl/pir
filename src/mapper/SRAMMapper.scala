@@ -18,10 +18,7 @@ class SramMapper(implicit val design:Design) extends Mapper {
   type N = SRAM
   type R = PSRAM
   val typeStr = "SramMapper"
-  override def debug = Config.debugSMMapper
-  implicit val spade:Spade = design.arch
-  val pirmeta:PIRMetadata = design
-  val spademeta: SpadeMetadata = spade
+  override def debug = Config.debugSramMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

@@ -18,10 +18,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper {
   type N = SMem
   type R = PSMem
   val typeStr = "ScalFifoMapper"
-  override def debug = Config.debugSMMapper //TODO
-  implicit val spade:Spade = design.arch
-  val pirmeta:PIRMetadata = design
-  val spademeta: SpadeMetadata = spade
+  override def debug = Config.debugSFifoMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

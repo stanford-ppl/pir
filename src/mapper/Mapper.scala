@@ -6,8 +6,10 @@ import pir.codegen.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
 import pir.codegen.{Logger}
-import java.lang.Thread
+import pir.plasticine.util.SpadeMetadata
+import pir.util.PIRMetadata
 
+import java.lang.Thread
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
@@ -24,6 +26,9 @@ trait Mapper { self =>
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
   implicit def design:Design
+  lazy val spademeta: SpadeMetadata = design.arch
+  lazy val pirmeta:PIRMetadata = design
+
   def logger = design.mapperLogger
   design.mappers += this
   
@@ -49,13 +54,10 @@ trait Mapper { self =>
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
     val (infoStr, buffer) = info match {
-      case (infoStr:String, buffer:Boolean) => (infoStr, buffer)
+      case (infoStr:Any, buffer:Boolean) => (infoStr, buffer)
       case info => (s"$info", false)
     }
     dbsln(mapper, s"$infoStr")
-    //if (s"$info".contains(s"VecIn98"))
-      //System.exit(0)
-    //printCaller 
     if (buffer) logger.openBuffer
     Try(block) match {
       case Success(m) => 

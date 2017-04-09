@@ -14,6 +14,8 @@ import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
 
 case class Val[P<:PortType](io:IO[P, Module]) {
+  override def toString:String = s"$io.v"
+
   val value:P = io.tp.clonetp
   val prevValue:P = io.tp.clonetp
   def changed:Boolean = value != prevValue
@@ -31,9 +33,9 @@ case class Val[P<:PortType](io:IO[P, Module]) {
   }
   def update(implicit sim:Simulator):Unit = { 
     if (updated) return
-    //sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${io}")
     prevValue.copy(value)
     func.foreach { f => f(this) }
+    //sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${this} val:${value.value}")
     _updated = true
   }
   def eval(implicit sim:Simulator):this.type = {

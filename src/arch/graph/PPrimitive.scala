@@ -14,7 +14,7 @@ import scala.collection.mutable.Set
 abstract class Primitive(implicit spade:Spade, val pne:NetworkElement) extends Module
 
 /** Physical Counter  */
-case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive {
+case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "ctr"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -154,76 +154,14 @@ object Const {
   def apply()(implicit spade:Spade) = new Const()
 }
 
-abstract class LUT(implicit spade:Spade, pne:NetworkElement) extends Node {
-  val numIns:Int
-}
-case class EnLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
-  import spademeta._
-  override val typeStr = "enlut"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-}
-case class TokenOutLUT()(implicit spade:Spade, pne:NetworkElement) extends LUT{
-  import spademeta._
-  override val typeStr = "tolut"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  override val numIns = 2 // Token out is a combination of two output
-}
-case class TokenDownLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
-  override val typeStr = "tdlut"
-}
-object TokenDownLUT {
-  def apply(idx:Int, numIns:Int)(implicit spade:Spade, pne:NetworkElement):TokenDownLUT = 
-    TokenDownLUT(numIns).index(idx)
-}
-case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
-  import spademeta._
-  override val typeStr = "udlut"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  //val init = Input(Word(), this, s"${this}.init")
-  //val inc = Input(Word(), this, s"${this}.inc")
-  //val dec = Input(Word(), this, s"${this}.dec")
-  //val out = Output(Word(), this, s"${this}.out")
-}
-object UDCounter {
-  def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
-}
-
-class CtrlBox(numUDCs:Int) (implicit spade:Spade, pne:NetworkElement) extends Primitive {
-  import spademeta._
-  val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
-}
-
-case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {
-  val command = Output(Bit(), this, s"command")
-  val status = Input(Bit(), this, s"status")
+case class Delay[P<:PortType](tp:P, numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+  val in = Input(tp, this, s"${this}_in(0)")
+  val out = Output(tp, this, s"${this}_out")
+  val prevValues = List.tabulate(numReg) { i => if (i==0) in else Input(tp, this, s"${this}_in($i)") }
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    //sim.dprintln(s"setting $command")
-    command.v.set { v => 
-      if (sim.cycle == 1)
-        v.value.value = Some(false) 
-      else if (sim.cycle == 2)
-        v.value.value = Some(true) 
-      else if (v.prevValue.value==Some(true))
-        v.value.value = Some(false)
-      //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
-    }
-  }
-}
-
-case class RegChain[P<:PortType](din:Input[P,Module], numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
-  val in = Input(din.tp, this, s"${this}.in")
-  val out = Output(din.tp, this, s"${this}.out")
-  override def register(implicit sim:Simulator):Unit = {
-    super.register
-    //val prevValues = List.fill(numReg) { Val(in) }
-    //prevValues.zipWithIndex.foreach { case (pv,i) =>
-      //if (i==0) {
-        //pv <== in
-      //} else {
-        //pv :== prevValues(i-1).eval
-      //}
-    //}
-    //out.v :== prevValues.last.eval 
+    prevValues.zipWithIndex.foreach { case (pv,i) => if (i!=0) { pv.v <== prevValues(i-1) } }
+    if (numReg==0) out.v <= in
+    else out.v <== prevValues.last
   }
 }
