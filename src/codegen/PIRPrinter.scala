@@ -14,7 +14,7 @@ import java.io.OutputStream
 import java.io.File
 import pir.util._
 
-class PIRPrinter(fn:String)(implicit val design: Design) extends Codegen with Traversal {
+class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traversal {
   def shouldRun = Config.debug
 
   def this()(implicit design: Design) = {
@@ -155,11 +155,6 @@ object PIRPrinter {
           case n:OuterController =>
             fields += s"inner=[${n.inner}]"
             fields += s"length=${n.length}"
-        }
-        n match {
-          case c:TileTransfer =>
-            fields += s"mctpe=${c.mctpe}"
-          case _ =>
         }
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"

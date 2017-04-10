@@ -13,7 +13,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class SpadePrinter(implicit val design: Design) extends Codegen {
+class SpadePrinter(implicit design: Design) extends Codegen {
   def shouldRun = Config.debug
   val spademeta: SpadeMetadata = spade
 

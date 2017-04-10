@@ -61,11 +61,30 @@ package object util {
       case n:Stage => mp.stmap.isMapped(n)
       case n:UDCounter => mp.ucmap.isMapped(n)
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
-      case n:Output[_,_] => mp.fimap.isMapped(n)
+      case n:Output[_,_] => mp.opmap.pmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
       case n:Delay[_] => mp.fimap.contains(n.in) || isMapped(n.in.fanIns.head) || true //TODO
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
+  }
+
+
+  def isHigh(v:Option[Boolean]) = v == Some(true)
+  def isHigh(v:Iterable[Boolean]) = v.nonEmpty && v.head // == true
+  def isLow(v:Option[Boolean]) = v == Some(false)
+  def isLow(v:Iterable[Boolean]) = v.nonEmpty && !v.head // == true
+
+  def zip[T1, T2, T](x1:Option[T1], x2:Option[T2])(lambda:(T1,T2) => T):Option[T] = (x1, x2) match {
+    case (Some(x1), Some(x2)) => Some(lambda(x1, x2))
+    case _ => None
+  }
+  def zip[T1, T2, T3, T](x1:Option[T1], x2:Option[T2], x3:Option[T3])(lambda:(T1,T2,T3) => T):Option[T] = (x1, x2, x3) match {
+    case (Some(x1), Some(x2), Some(x3)) => Some(lambda(x1, x2, x3))
+    case _ => None
+  }
+  def zip[T1, T2, T3, T4, T](x1:Option[T1], x2:Option[T2], x3:Option[T3], x4:Option[T4])(lambda:(T1,T2,T3,T4) => T):Option[T] = (x1, x2, x3, x4) match {
+    case (Some(x1), Some(x2), Some(x3), Some(x4)) => Some(lambda(x1, x2, x3, x4))
+    case _ => None
   }
 }

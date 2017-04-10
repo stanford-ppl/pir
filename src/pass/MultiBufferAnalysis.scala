@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalysis(implicit val design: Design) extends Pass with Printer {
+class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
   def shouldRun = true 
 
   override lazy val stream = newStream(s"MultiBufferAnalysis.txt")

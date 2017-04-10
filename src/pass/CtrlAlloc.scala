@@ -11,7 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
-class CtrlAlloc(implicit val design: Design) extends Pass with Printer {
+class CtrlAlloc(implicit design: Design) extends Pass with Printer {
   def shouldRun = Config.ctrl
 
   override lazy val stream = newStream(s"CtrlAlloc.txt")

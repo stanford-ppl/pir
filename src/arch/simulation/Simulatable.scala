@@ -28,13 +28,18 @@ trait Simulatable extends Module {
       }
     }
   }
-  def check(implicit design:Design):Unit = {
-    this match {
-      case n:Counter if isMapped(n) =>
-        println(n.out.v.func)
-      case _ =>
-    }
+  def check(implicit sim:Simulator):Unit = {
+    implicit val design:Design = sim.design
     ios.foreach { io =>
+      //this match {
+        //case n:Counter if isMapped(n) =>
+          //io match {
+            //case io:Output[_,_] =>
+              //println(s"${io} ${isMapped(io)} ${sim.mapping.opmap.pmap.contains(io)}")
+            //case _ =>
+          //}
+        //case _ =>
+      //}
       if (isMapped(io) && io.v.func.isEmpty) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
     }
   }

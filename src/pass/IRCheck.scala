@@ -11,7 +11,7 @@ import pir.codegen.PIRPrinter
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
-class IRCheck(implicit val design: Design) extends Pass {
+class IRCheck(implicit design: Design) extends Pass {
   def shouldRun = true 
 
   implicit def spade = design.arch

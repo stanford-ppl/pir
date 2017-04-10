@@ -42,10 +42,6 @@ trait Traversal extends Pass {
           c.stages.foreach { s => visitNode(s) }
           c.ctrlBox.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
           c.ctrlBox.creditBuffers.foreach { case (deped, c) => visitNode(c) }
-          c match {
-            case cu:TileTransfer =>
-            case _ =>
-          }
         }
       } 
       case n:Primitive => n match {

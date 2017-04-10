@@ -11,7 +11,7 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
 import scala.collection.mutable.{ Map => MMap }
 
-class ScalarBundling(implicit val design: Design) extends Pass {
+class ScalarBundling(implicit design: Design) extends Pass {
   def shouldRun = true 
 
   val pirmeta:PIRMetadata = design

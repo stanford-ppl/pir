@@ -6,12 +6,106 @@ import pir.util.enums._
 import pir.exceptions._
 import pir.util.misc._
 import pir.Config
+import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
+
+trait Value { self:PortType =>
+  type V
+  def value:V
+  def copy(other:Value):Unit
+  def clonetp:this.type
+  def s:String
+  def asBit:BitValue = this.asInstanceOf[BitValue]
+  def asWord:WordValue = this.asInstanceOf[WordValue]
+}
+
+trait SingleValue extends Value { self:PortType =>
+  type E
+  type V = Option[E]
+  var value:V = None
+  def := (v:V):Unit = { value = v}
+}
+
+trait BitValue extends SingleValue { self:Bit =>
+  type E = Boolean
+  override def copy(other:Value):Unit = { value = other.asInstanceOf[BitValue].value }
+  def s:String = value match {
+    case Some(true) => "1"
+    case Some(false) => "0"
+    case None => "x"
+  }
+  override def equals(that:Any):Boolean = {
+    that match {
+      case that: Bit => super.equals(that) && (this.value == that.value)
+      case that => false
+    }
+  }
+  def clonetp:this.type = Bit().asInstanceOf[this.type]
+
+  def isHigh = value == Some(true)
+  def isLow = value == Some(false)
+}
+
+trait WordValue extends SingleValue { self:Word =>
+  type E = Float
+  override def copy(other:Value):Unit = { value = other.asInstanceOf[WordValue].value }
+  def s:String = value match {
+    case Some(v) => s"$v"
+    case None => "x"
+  }
+  override def equals(that:Any):Boolean = {
+    that match {
+      case that: Bit => super.equals(that) && (this.value == that.value)
+      case that => false
+    }
+  }
+  def clonetp:this.type = Word(wordWidth).asInstanceOf[this.type]
+
+  def + (v:WordValue):V = eval(FltAdd)(value, v.value)
+  def + (vl:V):V = eval(FltAdd)(value, vl)
+
+  def eval(op:Op)(ins:Any):V = {
+    (ins, op) match {
+      case ((Some(a:Float), Some(b:Float)), FixAdd) => Some(a + b)
+      case ((Some(a:Float), Some(b:Float)), FixSub) => Some(a - b)
+      case ((Some(a:Float), Some(b:Float)), FltAdd) => Some(a + b)
+      case ((Some(a:Float), Some(b:Float)), FltSub) => Some(a - b)
+      case (None, op) => None
+      case ((None, _), op) => None
+      case ((_, None), op) => None
+      case (_, _:BitOp) =>
+        throw PIRException(s"Boolean Op to Float type op=$op ins=$ins")
+      case (ins, op) =>
+        throw PIRException(s"Don't know how to eval $op for ins=$ins")
+    }
+  }
+}
+
+trait BusValue extends Value { self:Bus =>
+  type V = List[Value] 
+  val value:V = List.fill(busWidth) (elemTp.clonetp)
+  def s:String = value.map(_.s).mkString
+  override def copy(other:Value):Unit = { 
+    (value, other.asInstanceOf[Bus].value).zipped.foreach { case (v, ov) =>
+      v.copy(ov)
+    }
+  }
+  override def equals(that:Any):Boolean = {
+    that match {
+      case that: Bit => super.equals(that) && (this.value == that.value)
+      case that => false
+    }
+  }
+  def clonetp:this.type = Bus(busWidth, elemTp).asInstanceOf[this.type]
+
+  def foreach(lambda:(Value, Int) => Unit):Unit = value.zipWithIndex.foreach { case (e, i) => lambda(e, i) }
+  def head:Value = value.head
+}
 
 case class Val[P<:PortType](io:IO[P, Module]) {
   override def toString:String = s"$io.v"
@@ -46,20 +140,12 @@ case class Val[P<:PortType](io:IO[P, Module]) {
   def vs:String = s"${value.s}"
   def pvs:String = s"${prevValue.s}"
 
-  def := (o: => Val[_<:PortType])(implicit sim:Simulator):Unit = {
-    set{ v => v.value.copy(o.value) }
-  }
-
   def <= (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
-    := (o.ev)
-  }
-
-  def :== (o: => Val[_<:PortType])(implicit sim:Simulator):Unit = {
-    set{ v => v.value.copy(o.prevValue) }
+    set{ v => v.value.copy(o.ev.value) }
   }
 
   def <== (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
-    :== (o.ev)
+    set{ v => v.value.copy(o.ev.prevValue) }
   }
 
   //def isV(x:Val[_]) = x.tp==tp

@@ -25,5 +25,6 @@ package object util {
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
   }
+
 }
 

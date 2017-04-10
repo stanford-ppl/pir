@@ -25,6 +25,39 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
   val en = Input(Bit(), this, s"${this}.en")
   val done = Output(Bit(), this, s"${this}.done")
   def isDep(c:Counter) = en.canConnect(c.done)
+
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
+    super.register
+    val outPar = sim.mapping.clmap.pmap(pne) match {
+      case cu if cu.isMP => 1
+      case cu => cu.parLanes
+    }
+    out.v.set { v =>
+      val head = v.value.head.asWord //TODO: Add type parameter to Bus
+      if (en.ev.value.isHigh) {
+        head := zip(step.ev.value.value, Some(outPar), head.value){ case (a, b, c) => a * b + c }
+        if (isHigh(zip(head.value, max.ev.value.value)(_ >= _)))
+          head := min.ev.value.value
+      } else if (en.ev.value.isLow) {
+        head := min.ev.value.value
+      }
+      v.value.foreach { 
+        case (vl, i) if i > 0 & i < outPar => 
+          val v = vl.asWord 
+          v := zip(head.value, Some(i.toFloat))(_+_)
+        case (vl, i) =>
+      }
+    }
+    done.v.set { v =>
+      val head:Option[Float] = out.ev.value.head.asWord.value
+      val isDone = zip(head, max.ev.value.value, Some(1.0), en.ev.value.value){ 
+        case (h, m, o, e) => e && (h == (m - o))
+      }
+      if (isHigh(isDone))
+        v.value := Some(true)
+    }
+  }
 }
 
 /* Phyiscal pipeline register */

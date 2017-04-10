@@ -22,7 +22,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Design) extends Codegen with DotCodegen {
+abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
   lazy val spademeta:SpadeMetadata = design.arch 
   import spademeta._
 
@@ -59,7 +59,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit val design:Desig
           case ptop:PTop if (bottom) => s"""${quote(ptop)}_bottom"""
           case ptop:PTop if (!bottom) => s"""${quote(ptop)}_top"""
         }
-      case n => super.quote(n)
+      case n => super[DotCodegen].quote(n)
     }
   }
 
@@ -300,7 +300,7 @@ object ArgDotPrinter{
     }
   }
 }
-class ArgDotPrinter(fn:String)(implicit val design:Design) extends DotCodegen { 
+class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen { 
   override lazy val stream = newStream(fn)
 
   def this()(implicit design:Design) = this(Config.spadeArgInOut)
@@ -322,7 +322,7 @@ class ArgDotPrinter(fn:String)(implicit val design:Design) extends DotCodegen {
   }
 }
 
-class CtrDotPrinter(fn:String)(implicit val design:Design) extends DotCodegen { 
+class CtrDotPrinter(fn:String)(implicit design:Design) extends DotCodegen { 
 
   def this()(implicit design:Design) = this(Config.spadeCtr)
 

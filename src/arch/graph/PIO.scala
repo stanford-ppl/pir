@@ -13,69 +13,14 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.language.existentials
 
-trait PortType {
-  type V
-  def value:V
-  def copy(other:PortType):Unit
-  def clonetp:this.type
-  def s:String
-  def asBit:Bit = this.asInstanceOf[Bit]
-  def asWord:Word = this.asInstanceOf[Word]
-}
+trait PortType extends Value
 /* Three types of pin */
-case class Bit() extends PortType {
-  type V = Option[Boolean]
-  var value:V = None
-  override def copy(other:PortType):Unit = { value = other.asInstanceOf[Bit].value }
-  def s:String = value match {
-    case Some(true) => "1"
-    case Some(false) => "0"
-    case None => "x"
-  }
-  override def equals(that:Any):Boolean = {
-    that match {
-      case that: Bit => super.equals(that) && (this.value == that.value)
-      case that => false
-    }
-  }
-  def clonetp:this.type = Bit().asInstanceOf[this.type]
-}
-case class Word(wordWidth:Int) extends PortType {
-  type V = Option[Float]
-  var value:V = None
-  override def copy(other:PortType):Unit = { value = other.asInstanceOf[Word].value }
-  def s:String = value match {
-    case Some(v) => s"$v"
-    case None => "x"
-  }
-  override def equals(that:Any):Boolean = {
-    that match {
-      case that: Bit => super.equals(that) && (this.value == that.value)
-      case that => false
-    }
-  }
-  def clonetp:this.type = Word(wordWidth).asInstanceOf[this.type]
-}
+case class Bit() extends PortType with BitValue
+case class Word(wordWidth:Int) extends PortType with WordValue
 object Word {
   def apply()(implicit spade:Spade):Word = Word(spade.wordWidth)
 }
-case class Bus(busWidth:Int, elemTp:PortType) extends PortType {
-  type V = List[PortType] 
-  val value:V = List.fill(busWidth) (elemTp.clonetp)
-  def s:String = value.map(_.s).mkString
-  override def copy(other:PortType):Unit = { 
-    (value, other.asInstanceOf[Bus].value).zipped.foreach { case (v, ov) =>
-      v.copy(ov)
-    }
-  }
-  override def equals(that:Any):Boolean = {
-    that match {
-      case that: Bit => super.equals(that) && (this.value == that.value)
-      case that => false
-    }
-  }
-  def clonetp:this.type = Bus(busWidth, elemTp).asInstanceOf[this.type]
-}
+case class Bus(busWidth:Int, elemTp:PortType) extends PortType with BusValue
 object Bus {
   def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.wordWidth, elemTp)
 }

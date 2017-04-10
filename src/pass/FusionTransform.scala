@@ -8,7 +8,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class FusionTransform(implicit val design: Design) extends Pass{
+class FusionTransform(implicit design: Design) extends Pass{
   def shouldRun = true 
 
   override def traverse:Unit = {

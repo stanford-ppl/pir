@@ -12,7 +12,6 @@ trait PIRAlias {
   type SC    = StreamController
   type SP    = StreamPipeline
   type MP    = MemoryPipeline
-  type TT    = TileTransfer
   type MC    = MemoryController
   type PRIM  = Primitive
   type Reg   = pir.graph.Reg

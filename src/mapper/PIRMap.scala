@@ -123,13 +123,15 @@ object PIRMap {
            UCMap.empty, PMMap.empty, RTMap.empty)
 }
 
-case class CLMap(map:CLMap.M, pmap:CLMap.IM) extends IBiOneToOneMap {
+case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
   type K = CLMap.K
   type V = CLMap.V
   override type M = CLMap.M
   override type IM = CLMap.IM
-  override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmap + rec.swap) }
+  override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmp + rec.swap) }
   def apply(k:CU):PCU = { map(k).asCU }
+  def pmap:IM = pmp
+  def pmap(v:PCU):CU = pmp(v).asInstanceOf[CU]
 }
 object CLMap extends IBiOneToOneObj {
   type K = CL

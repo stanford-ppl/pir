@@ -7,7 +7,7 @@ import pir.util.misc._
 
 import scala.collection.mutable.Set
 
-trait Pass {
+abstract class Pass(implicit val design:Design) {
   var isInit = false
   var hasRun = false
   def shouldRun:Boolean

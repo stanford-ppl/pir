@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ForwardRef(implicit val design: Design) extends Pass{
+class ForwardRef(implicit design: Design) extends Pass{
   def shouldRun = true 
 
   private val nameMap = Map[String, Node]()

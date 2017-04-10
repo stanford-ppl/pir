@@ -4,9 +4,11 @@ import pir._
 import pir.mapper.PIRMap
 import pir.codegen.Logger
 import pir.pass.Pass
+import pir.util.PIRMetadata
 import pir.plasticine.main._
 import pir.plasticine.graph._
 import pir.plasticine.traversal._
+import pir.plasticine.util.SpadeMetadata
 import pir.exceptions.PIRException
 
 import scala.collection.mutable.Map
@@ -17,6 +19,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
   val vcd = if (Config.simulate) Some(new VcdPrinter(this)) else None
+  lazy val pirmeta: PIRMetadata = design
+  lazy val spademeta: SpadeMetadata = design.arch
 
   lazy val spade = design.arch
   lazy val mapping = design.mapping.get

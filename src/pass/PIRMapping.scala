@@ -26,7 +26,7 @@ object MapPrinter extends Printer {
   }
 }
 
-class PIRMapping(implicit val design: Design) extends Pass {
+class PIRMapping(implicit design: Design) extends Pass {
   def shouldRun = Config.mapping
 
   var mapping:PIRMap = _
@@ -74,7 +74,6 @@ class PIRMapping(implicit val design: Design) extends Pass {
         case e:MappingException[_] => throw PassThroughException(cuMapper, e, m)(design)
         case e:Throwable => throw e 
       } 
-      m
     }
   }
 

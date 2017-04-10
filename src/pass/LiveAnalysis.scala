@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalysis(implicit val design: Design) extends Pass {
+class LiveAnalysis(implicit design: Design) extends Pass {
   def shouldRun = true 
 
   val pirmeta:PIRMetadata = design
