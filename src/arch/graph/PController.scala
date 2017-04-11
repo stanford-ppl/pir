@@ -19,6 +19,12 @@ trait NetworkElement extends Module with Simulatable {
   def vectorIO:VectorIO[this.type]
   def ctrlIO:ControlIO[this.type]
   def gridIOs = scalarIO :: vectorIO :: ctrlIO :: Nil
+  def sins = scalarIO.ins // Scalar Inputs
+  def souts = scalarIO.outs // Scalar Outputs
+  def vins = vectorIO.ins// Input Buses/Vector inputs
+  def vouts = vectorIO.outs // Output Buses/Vector outputs
+  def cins = ctrlIO.ins // Control inputs
+  def couts = ctrlIO.outs // Control outputs
 
   def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
@@ -34,13 +40,6 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
   lazy val scalarIO:ScalarIO[this.type] = ScalarIO(this)
   lazy val vectorIO:VectorIO[this.type] = VectorIO(this)
   lazy val ctrlIO:ControlIO[this.type] = ControlIO(this)
-
-  def sins = scalarIO.ins // Scalar Inputs
-  def souts = scalarIO.outs // Scalar Outputs
-  def vins = vectorIO.ins// Input Buses/Vector inputs
-  def vouts = vectorIO.outs // Output Buses/Vector outputs
-  def cins = ctrlIO.ins // Control inputs
-  def couts = ctrlIO.outs // Control outputs
 }
 
 /* Top-level controller (host)
@@ -72,7 +71,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
   override def register(implicit sim:Simulator):Unit = {
     super.register
     val fimap = sim.mapping.fimap
-    (scalarIO.outs ++ vectorIO.outs ++ ctrlIO.outs).foreach { out =>
+    (souts ++ vouts ++ couts).foreach { out =>
       fimap.get(out.ic).foreach { inic => out.ic.v <== inic }
     }
   }
@@ -90,6 +89,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   var sbufs:List[ScalarMem] = Nil
   var vbufs:List[VectorMem] = Nil
+  def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
   val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
@@ -155,13 +155,13 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=2, numOprds=3, ops)
     numScalarBufs(4)
-    numVecBufs(spade.vectorNetwork.io(this).numIns)
+    numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
     color(8 until 8 + 4, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
-    color(12 until 12 + spade.vectorNetwork.io(this).numOuts, VecOutReg)
+    color(12 until 12 + vouts.size, VecOutReg)
     genConnections
     genMapping
   }
@@ -193,16 +193,16 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val ctrlBox:CtrlBox = new MemoryCtrlBox(numUDCs)
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
-  private val _rastages:ListBuffer[FUStage] = ListBuffer.empty // Read Addr Stages
+  private val _rastages:ListBuffer[RAStage] = ListBuffer.empty // Read Addr Stages
   def wastages:List[WAStage] = _wastages.toList // Write Addr Stages
-  def rastages:List[FUStage] = _rastages.toList // Read Addr Stages
+  def rastages:List[RAStage] = _rastages.toList // Read Addr Stages
   def addWAstages(stages:List[WAStage]) = { _wastages ++= stages; _fustages ++= stages; addStages(stages) }
-  def addRAstages(stages:List[FUStage]) = { _rastages ++= stages; _fustages ++= stages; addStages(stages) }
+  def addRAstages(stages:List[RAStage]) = { _rastages ++= stages; _fustages ++= stages; addStages(stages) }
   def addWAstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = {
     addWAstages(List.fill(numStage) { WAStage(numOprds=numOprds, regs, ops)}); this // Write Addr stage 
   } 
   def addRAstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = {
-    addRAstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops)}); this // Read Addr stage 
+    addRAstages(List.fill(numStage) { RAStage(numOprds=numOprds, regs, ops)}); this // Read Addr stage 
   } 
 
   /* Parameters */
@@ -211,10 +211,10 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numSRAMs = 1
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
-    addWAstages(numStage=3, numOprds=3, ops)
-    addRAstages(numStage=3, numOprds=3, ops)
+    addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
+    addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     numScalarBufs(4)
-    numVecBufs(spade.vectorNetwork.io(this).numIns)
+    numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
@@ -235,9 +235,9 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numSRAMs = 0
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
-    addRegstages(numStage=5, numOprds=3, ops)
+    addRegstages(numStage=5, numOprds=3, fixOps ++ bitOps ++ otherOps)
     numScalarBufs(4)
-    numVecBufs(spade.vectorNetwork.io(this).numIns)
+    numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)

@@ -34,18 +34,32 @@ object TokenDownLUT {
 }
 case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
-  override val typeStr = "udlut"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  //val init = Input(Word(), this, s"${this}.init")
-  //val inc = Input(Word(), this, s"${this}.inc")
-  //val dec = Input(Word(), this, s"${this}.dec")
-  //val out = Output(Word(), this, s"${this}.out")
+  override val typeStr = "udc"
+  val inc = Input(Bit(), this, s"${this}.inc")
+  val dec = Input(Bit(), this, s"${this}.dec")
+  val out = Output(Bit(), this, s"${this}.out")
 }
 object UDCounter {
   def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
 }
 
-case class PulsesrSM()(implicit spade:Spade, pne:NetworkElement) {
+case class AndTree()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+  import spademeta._
+  override val typeStr = "at"
+  val out = Output(Bit(), this, s"${this}.out")
+  def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
+  def <== (out:Output[Bit, Module]):Unit = {
+    val i = ins.size
+    val in = Input(Bit(), this, s"${this}.in$i").index(i)
+    in <== out
+  }
+}
+
+case class PulserSM()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+  val done = Input(Bit(), this, s"${this}.done")
+  val en = Input(Bit(), this, s"${this}.en")
+  val init = Input(Bit(), this, s"${this}.init")
+  val out = Output(Bit(), this, s"${this}.out")
 }
 
 class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
@@ -54,15 +68,26 @@ class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) ex
 }
 
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val done = Delay(Bit(), 0)
+  val doneXbar = Delay(Bit(), 0)
+  val en = Delay(Bit(), 0)
+  val tokenInXbar = Delay(Bit(), 0)
+  val siblingAndTree = AndTree() 
 }
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val done = Delay(Bit(), 0)
-  //val puslerSM = PulserSM()
+  val doneXbar = Delay(Bit(), 0)
+  val en = Delay(Bit(), 0)
+  val childrenAndTree = AndTree() 
+  val siblingAndTree = AndTree() 
+  val pulserSM = PulserSM()
 }
 class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val readDone = Delay(Bit(), 0)
-  val writeDone = Delay(Bit(), 0)
+  val readDoneXbar = Delay(Bit(), 0)
+  val writeDoneXbar = Delay(Bit(), 0)
+  val tokenInXbar = Delay(Bit(), 0)
+  val writeFIFOAndTree = AndTree() 
+  val readFIFOAndTree = AndTree() 
+  val writeEn = Delay(Bit(), 0)
+  val readEn = Delay(Bit(),0) 
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {

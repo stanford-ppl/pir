@@ -88,7 +88,7 @@ object ConfigFactory extends Logger {
   }
 
   /* Generate primitive connections within a CU */ 
-  def genConnections(cu:ComputeUnit)(implicit spade:Spade):Unit = {
+  def connectData(cu:ComputeUnit)(implicit spade:Spade):Unit = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     val top = spade.top
@@ -141,17 +141,59 @@ object ConfigFactory extends Logger {
 
   }
 
-  def genConnections(ctrlBox:CtrlBox)(implicit spade:Spade):Unit = {
-    ctrlBox match {
+  def connectCtrl(cu:Controller)(implicit spade:Spade):Unit = {
+    cu.ctrlBox match {
       case cb:InnerCtrlBox => 
-        cb.pne.ctrs.foreach { cb.done.in <== _.done }
+        val cu = cb.pne
+        cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.bufs.foreach { _.swapRead <== cb.doneXbar.out }
+        cb.tokenInXbar.in <== cu.cins.map(_.ic)
+        cb.siblingAndTree <== cb.udcs.map(_.out)
+        cu.couts.foreach { cout => 
+          cout.ic <== cb.doneXbar.out
+          cout.ic <== cb.siblingAndTree.out
+          cout.ic <== cb.en.out
+        }
       case cb:OuterCtrlBox => 
-        cb.pne.ctrs.foreach { cb.done.in <== _.done }
+        val cu = cb.pne
+        cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.bufs.foreach { _.swapRead <== cb.doneXbar.out }
+        cb.childrenAndTree <== cb.udcs.map(_.out)
+        cb.siblingAndTree <== cb.udcs.map(_.out)
+        cb.udcs.foreach { udc =>
+          udc.inc <== cu.cins.map{_.ic}
+          udc.dec <== cb.doneXbar.out
+          udc.dec <== cb.childrenAndTree.out
+        }
+        cb.pulserSM.done <== cb.doneXbar.out
+        cb.pulserSM.en <== cb.childrenAndTree.out
+        cb.pulserSM.init <== cb.siblingAndTree.out
+        cu.couts.foreach { cout => 
+          cout.ic <== cb.doneXbar.out
+          cout.ic <== cb.pulserSM.out
+          cout.ic <== cb.siblingAndTree.out
+        }
       case cb:MemoryCtrlBox => 
-        cb.pne.ctrs.foreach { cb.readDone.in <== _.done }
-        cb.pne.ctrs.foreach { cb.writeDone.in <== _.done }
+        val cu = cb.pne
+        cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
+        cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
+        cu.bufs.foreach { buf => buf.swapRead <== cb.readDoneXbar.out; buf.swapRead <== cb.writeDoneXbar.out }
+        cb.tokenInXbar.in <== cu.cins.map(_.ic)
+        cb.writeFIFOAndTree <== cu.bufs.map(_.notEmpty) 
+        cb.readFIFOAndTree <== cu.bufs.map(_.notEmpty)
+        cu.couts.foreach { cout => cout.ic <== cb.writeDoneXbar.out; cout.ic <== cb.readDoneXbar.out }
+        cb.readEn.in <== cb.readFIFOAndTree.out
+        cb.readEn.in <== cb.tokenInXbar.out
+        cb.writeEn.in <== cb.writeFIFOAndTree.out
       case cb:TopCtrlBox =>
       case cb:CtrlBox =>
+    }
+    cu match {
+      case cu:ComputeUnit =>
+        cu.bufs.foreach { buf =>
+          buf.swapWrite <== cu.cins.map(_.ic)
+        }
+      case cu =>
     }
   }
 
@@ -160,13 +202,11 @@ object ConfigFactory extends Logger {
       case pne:Top =>
         pne.couts.foreach { _.ic <== pne.ctrlBox.command}
         pne.cins.foreach { _.ic ==> pne.ctrlBox.status }
-      case pne:ComputeUnit => genConnections(pne)
+        connectCtrl(pne)
+      case pne:ComputeUnit => 
+        connectData(pne)
+        connectCtrl(pne)
       case pne:SwitchBox => pne.connectXbars
-    }
-    pne match {
-      case pne:Controller =>
-        genConnections(pne.ctrlBox)
-      case pne =>
     }
   }
 

@@ -76,6 +76,8 @@ trait OnChipMem extends Primitive {
   def asSRAM = this.asInstanceOf[SRAM]
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
+  val swapRead = Input(Bit(), this, s"${this}.swapRead")
+  val swapWrite = Input(Bit(), this, s"${this}.swapWrite")
 }
 
 /** Physical SRAM 
@@ -86,12 +88,15 @@ case class SRAM()(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
-  val readPort:Output[Bus, this.type] = Output(Bus(Word()), this, s"${this}.rp")
-  val writePort:Input[Bus, this.type] = Input(Bus(Word()), this, s"${this}.wp")
+  val readPort = Output(Bus(Word()), this, s"${this}.rp")
+  val writePort = Input(Bus(Word()), this, s"${this}.wp")
 }
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-trait LocalBuffer extends OnChipMem 
+trait LocalBuffer extends OnChipMem {
+  val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
+  val notFull = Output(Bit(), this, s"${this}.notFull")
+}
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
@@ -144,34 +149,36 @@ case class EmptyStage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkEleme
   override val typeStr = "etst"
 }
 /* Stage with Function unit */
-trait FUStage extends Stage {
+class FUStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement) extends Stage(regs) {
   def fu:FuncUnit = funcUnit.get 
+  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 object FUStage {
   def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):FUStage = 
-    new Stage(regs) with FUStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
+    new FUStage(numOprds, regs, ops) 
 }
 /* Reduction stage */
-trait ReduceStage extends FUStage {
+/*
+ * Create a list of reduction stages
+ * @param numOprds number of operand
+ * @param regs list of logical registers in the stage
+ * @param ops reduction operations
+ * */
+case class ReduceStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement) 
+  extends FUStage(numOprds, regs, ops) {
   override val typeStr = "rdst"
-}
-object ReduceStage {
-  /*
-   * Create a list of reduction stages
-   * @param numOprds number of operand
-   * @param regs list of logical registers in the stage
-   * @param ops reduction operations
-   * */
-  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):ReduceStage = 
-    new Stage(regs) with ReduceStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
+  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 /* WriteAddr calculation stage */
-trait WAStage extends FUStage {
+case class WAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement) 
+  extends FUStage(numOprds, regs, ops) {
   override val typeStr = "wast"
+  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
-object WAStage {
-  def apply(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement):WAStage = 
-    new Stage(regs) with WAStage { override val funcUnit = Some(FuncUnit(numOprds, ops, this)) }
+case class RAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement) 
+  extends FUStage(numOprds, regs, ops) {
+  override val typeStr = "wast"
+  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 
 class Const()(implicit spade:Spade) extends Simulatable {
