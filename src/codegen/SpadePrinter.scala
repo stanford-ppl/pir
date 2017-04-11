@@ -15,7 +15,6 @@ import java.io.File
 
 class SpadePrinter(implicit design: Design) extends Codegen {
   def shouldRun = Config.debug
-  val spademeta: SpadeMetadata = spade
 
   override lazy val stream = newStream(Config.spadeFile) 
   

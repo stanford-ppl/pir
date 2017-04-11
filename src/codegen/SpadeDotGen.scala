@@ -23,7 +23,6 @@ import scala.language.postfixOps
 import scala.language.existentials
 
 abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
-  lazy val spademeta:SpadeMetadata = design.arch 
   import spademeta._
 
   val scale:Int

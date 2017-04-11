@@ -8,7 +8,6 @@ import pir.exceptions._
 import pir.util.enums._
 //import pir.util.{quote => _, _}
 import pir.util.misc._
-import pir.util.PIRMetadata
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
 import pir.plasticine.graph.{ Const => PConst, GridIO, PortType, Input}
@@ -24,8 +23,6 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   def shouldRun = Config.genPisa && design.mapping.nonEmpty
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override lazy val stream = newStream(dir, s"${design}.json") 
-  lazy val pirmeta: PIRMetadata = design
-  lazy val spademeta: SpadeMetadata = spade
   import pirmeta.{indexOf => _, _}
   import spademeta._
   

@@ -6,6 +6,8 @@ import pir.Design
 import pir.pass.Pass
 import pir.plasticine.main._
 import pir.util.typealias._
+import pir.plasticine.util.SpadeMetadata
+import pir.util.PIRMetadata
 
 import scala.collection.mutable.Set
 import java.io.PrintWriter
@@ -13,6 +15,8 @@ import java.io.{File, FileInputStream, FileOutputStream}
 
 abstract class Codegen(implicit design:Design) extends Pass with Printer {
   implicit def spade:Spade = design.arch
+  lazy val spademeta: SpadeMetadata = design.arch
+  lazy val pirmeta:PIRMetadata = design
 
   def deleteFiles(file: File): Unit = {
     if (file.isDirectory) {
