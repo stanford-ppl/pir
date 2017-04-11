@@ -50,8 +50,9 @@ package object enums {
       FltNeq, FltExp, FltAbs)
   val bitOps:List[BitOp] = 
     List(BitAnd, BitOr)
+  val otherOps:List[Op] = List(Mux, Bypass)
 
-  val ops:List[Op] = fixOps ++ fltOps ++ bitOps ++ List(Mux, Bypass) 
+  val ops:List[Op] = fixOps ++ fltOps ++ bitOps ++ otherOps 
 
   //sealed trait CtrlType 
   //case object Pipe extends CtrlType

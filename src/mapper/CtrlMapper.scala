@@ -15,7 +15,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 
-class CtrlMapper(implicit val design:Design) extends Mapper {
+class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   implicit def spade:Spade = design.arch
   val typeStr = "CtrlMapper"
   override def debug = Config.debugCtrlMapper
@@ -86,6 +86,21 @@ class CtrlMapper(implicit val design:Design) extends Mapper {
 
     pmap.set(ucmap).set(pmmap)
   }
+
+  def mapCtrl(cu:ICL, pirMap:M):M = {
+    var mp = pirMap
+    mapCtrl(cu, pirMap)
+    mp
+  }
+
+  def mapDone(cu:CU, pirMap:M):M = {
+    var mp = pirMap
+    val pcu = pirMap.clmap(cu)
+    val pcb = pcu.ctrlBox
+    //val pOCtr = pirMap.ctmap(cu.localCChain.outer)
+    //mp = mp.setFI(pcb.doneXbar.in, pOCtr.done)
+    mp
+  } 
 
 }
 

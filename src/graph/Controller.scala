@@ -87,6 +87,8 @@ abstract class Controller(implicit design:Design) extends Node {
     list.toList
   }
 
+  def isMP = this.isInstanceOf[MemoryPipeline]
+
 }
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock {
@@ -171,6 +173,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     }
   }
 
+  def parLanes:Int
+
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
@@ -236,6 +240,8 @@ class OuterController(name:Option[String])(implicit design:Design) extends Compu
   }
 
   lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()
+
+  def parLanes:Int = 1 
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -341,6 +347,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     stage
   }
 
+  def parLanes:Int = localCChain.inner.par
   /* Controller Hierarchy */
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/
@@ -408,6 +415,7 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
     dout
   }
   def data = dataOut.vector
+
 }
 object MemoryPipeline {
   def apply(name: Option[String])(implicit design: Design):MemoryPipeline =
@@ -419,20 +427,6 @@ object MemoryPipeline {
     MemoryPipeline(Some(name)).parent(parent).updateBlock(block)
   def apply[P](name:String) (block:MemoryPipeline => Any) (implicit design:Design):MemoryPipeline =
     MemoryPipeline(Some(name)).updateBlock(block)
-}
-
-case class TileTransfer(override val name:Option[String], memctrl:MemoryController, mctpe:MCType, vec:Vector)
-  (implicit design:Design) extends MemoryPipeline(name)  {
-  override val typeStr = s"${mctpe}"
-} 
-object TileTransfer extends {
-  /* Sugar API */
-  def apply[P](name:Option[String], parent:P, memctrl:MemoryController, mctpe:MCType, vec:Vector)(block:TileTransfer => Any)
-                (implicit design:Design):TileTransfer =
-    TileTransfer(name, memctrl, mctpe, vec).parent(parent).updateBlock(block)
-  def apply[P](name:String, parent:P, memctrl:MemoryController, mctpe:MCType, vec:Vector) (block:TileTransfer => Any)             
-                (implicit design:Design):TileTransfer =
-    TileTransfer(Some(name), memctrl, mctpe, vec:Vector).parent(parent).updateBlock(block)
 }
 
 class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>

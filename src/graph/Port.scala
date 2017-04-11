@@ -16,6 +16,10 @@ class Range (s:OutPort, e:OutPort) {
 
 trait Port extends Node {
   val src:Node
+  def isOutput = this.isInstanceOf[OutPort]
+  def isInput = this.isInstanceOf[InPort]
+  def asOutput = this.asInstanceOf[OutPort]
+  def asInput = this.asInstanceOf[InPort]
 }
 trait InPort extends Port {
   override val name=None
