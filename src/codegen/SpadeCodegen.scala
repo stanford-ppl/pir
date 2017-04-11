@@ -16,7 +16,7 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
   import spademeta._
 
   val traitName = s"PlasticineArch"
-  lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/generated"
+  lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
   override implicit def spade = design.arch.asInstanceOf[SwitchNetwork]
@@ -69,6 +69,7 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
     emitSplit
     printer.close
     printer = this
+    lineNumber = 0
     emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"$traitName$i").mkString(" with ")}") {
       emitln(s"self:Plasticine =>")
       emitDec
