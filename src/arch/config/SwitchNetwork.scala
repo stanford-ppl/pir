@@ -30,9 +30,9 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
   def ocuAt(c:Int, r:Int):OuterComputeUnit = new OuterComputeUnit()
 
-  val cuArray = List.tabulate(numRows, numCols) { case (y, x) => cuAt(y, x).coord(x, y) }
-  val scuArray = List.tabulate(numRows+1, 2) { case (y, x) => 
-    val scu = scuAt(y, x)
+  val cuArray = List.tabulate(numCols, numRows) { case (x, y) => cuAt(x, y).coord(x, y) }
+  val scuArray = List.tabulate(2, numRows+1) { case (x, y) => 
+    val scu = scuAt(x, y)
     if (x==0) {
       scu.coord(-1, y)
     } else {
@@ -41,8 +41,8 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
     scu
   }
   def scus = scuArray.flatten
-  val mcArray = List.tabulate(numRows+1, 2) { case (y, x) => 
-    val mc = mcAt(y, x)
+  val mcArray = List.tabulate(2, numRows+1) { case (x, y) => 
+    val mc = mcAt(x, y)
     if (x==0) {
       mc.coord(-1, y)
     } else {
@@ -53,10 +53,10 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   def mcs = mcArray.flatten
   lazy val mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
   lazy val pcus = cuArray.flatten.filterNot { _.isInstanceOf[MemoryComputeUnit] }
-  val ocuArray = List.tabulate(numRows+1, numCols+1) { case (y, x) => ocuAt(y, x).coord(x, y) }
+  val ocuArray = List.tabulate(numCols+1, numRows+1) { case (x, y) => ocuAt(x, y).coord(x, y) }
   def ocus:List[OuterComputeUnit] = ocuArray.flatten
 
-  val sbArray:List[List[SwitchBox]] = List.tabulate(numRows+1, numCols+1) { case (y, x) => SwitchBox().coord(x, y) }
+  val sbArray:List[List[SwitchBox]] = List.tabulate(numCols+1, numRows+1) { case (x, y) => SwitchBox().coord(x, y) }
   def sbs:List[SwitchBox] = sbArray.flatten
 
   lazy val ctrlNetwork = new CtrlNetwork()
@@ -143,8 +143,8 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   // switch to Top channel width
   val sbtpChannelWidth = 1
 
-  lazy val numRows = cuArray.length
-  lazy val numCols = cuArray.head.length
+  lazy val numRows = cuArray.head.length
+  lazy val numCols = cuArray.length
 
   lazy val top = spade.top
   
@@ -165,18 +165,18 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
     for (y <- 0 until numRows) {
       for (x <- 0 until numCols) {
         // CU to CU (Horizontal)
-        if (y!=numRows-1) {
+        if (x!=numCols-1) {
           // W -> E
-          connect(cuArray(y)(x), "E", cuArray(y+1)(x), "W", cuChannelWidthWE)
+          connect(cuArray(x)(y), "E", cuArray(x+1)(y), "W", cuChannelWidthWE)
           // E -> W
-          connect(cuArray(y+1)(x), "W", cuArray(y)(x), "E", cuChannelWidthEW)
+          connect(cuArray(x+1)(y), "W", cuArray(x)(y), "E", cuChannelWidthEW)
         }
         //// CU to CU (Vertical)
-        if (x!=numCols-1) {
+        if (y!=numRows-1) {
           // S -> N
-          connect(cuArray(y)(x), "N", cuArray(y)(x+1), "S", cuChannelWidthSN)
+          connect(cuArray(x)(y), "N", cuArray(x)(y+1), "S", cuChannelWidthSN)
           // N -> S 
-          connect(cuArray(y)(x+1), "S", cuArray(y)(x), "N", cuChannelWidthNS)
+          connect(cuArray(x)(y+1), "S", cuArray(x)(y), "N", cuChannelWidthNS)
         }
       }
     }
@@ -185,30 +185,30 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
     for (y <- 0 until numRows+1) {
       for (x <- 0 until numCols+1) {
         // SB to SB (Horizontal)
-        if (y!=numRows) {
+        if (x!=numCols) {
           // W -> E 
-          connect(sbs(y)(x), "E", sbs(y+1)(x), "W", sbChannelWidthWE)
+          connect(sbs(x)(y), "E", sbs(x+1)(y), "W", sbChannelWidthWE)
           // E -> W
-          connect(sbs(y+1)(x), "W", sbs(y)(x), "E", sbChannelWidthEW)
+          connect(sbs(x+1)(y), "W", sbs(x)(y), "E", sbChannelWidthEW)
         }
         // SB to SB (Vertical)
-        if (x!=numCols) {
+        if (y!=numRows) {
           // S -> N
-          connect(sbs(y)(x), "N", sbs(y)(x+1), "S", sbChannelWidthSN)
+          connect(sbs(x)(y), "N", sbs(x)(y+1), "S", sbChannelWidthSN)
           // N -> S 
-          connect(sbs(y)(x+1), "S", sbs(y)(x), "N", sbChannelWidthNS)
+          connect(sbs(x)(y+1), "S", sbs(x)(y), "N", sbChannelWidthNS)
         }
 
         // Top to SB
         // Top Switches
         if (y==numRows) {
-          connect(sbs(y)(x), "N", top, "S", sbtpChannelWidth) // bottom up 
-          connect(top, "S", sbs(y)(x), "N", tpsbChannelWidth) // top down
+          connect(sbs(x)(y), "N", top, "S", sbtpChannelWidth) // bottom up 
+          connect(top, "S", sbs(x)(y), "N", tpsbChannelWidth) // top down
         }
         // Bottom Switches
         if (y==0) {
-          connect(sbs(y)(x), "S", top, "N", sbtpChannelWidth) // top down 
-          connect(top, "N", sbs(y)(x), "S", tpsbChannelWidth) // bottom up
+          connect(sbs(x)(y), "S", top, "N", sbtpChannelWidth) // top down 
+          connect(top, "N", sbs(x)(y), "S", tpsbChannelWidth) // bottom up
         }
       }
     }
@@ -218,23 +218,23 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
       for (x <- 0 until numCols) {
         // CU to SB 
         // NW (top left)
-        connect(cuArray(y)(x), "NW", sbs(y+1)(x), "SE", cusbChannelWidthNW)
+        connect(cuArray(x)(y), "NW", sbs(x)(y+1), "SE", cusbChannelWidthNW)
         // NE (top right)
-        connect(cuArray(y)(x), "NE", sbs(y+1)(x+1), "SW", cusbChannelWidthNE)
+        connect(cuArray(x)(y), "NE", sbs(x+1)(y+1), "SW", cusbChannelWidthNE)
         // SW (bottom left)
-        connect(cuArray(y)(x), "SW", sbs(y)(x), "NE", cusbChannelWidthSW)
+        connect(cuArray(x)(y), "SW", sbs(x)(y), "NE", cusbChannelWidthSW)
         // SE (bottom right)
-        connect(cuArray(y)(x), "SE", sbs(y)(x+1), "NW", cusbChannelWidthSE)
+        connect(cuArray(x)(y), "SE", sbs(x+1)(y), "NW", cusbChannelWidthSE)
 
         // SB to CU
         // NW (top left)
-        connect(sbs(y+1)(x), "SE", cuArray(y)(x), "NW", sbcuChannelWidthNW)
+        connect(sbs(x)(y+1), "SE", cuArray(x)(y), "NW", sbcuChannelWidthNW)
         // NE (top right)
-        connect(sbs(y+1)(x+1), "SW", cuArray(y)(x), "NE", sbcuChannelWidthNE)
+        connect(sbs(x+1)(y+1), "SW", cuArray(x)(y), "NE", sbcuChannelWidthNE)
         // SW (bottom left)
-        connect(sbs(y)(x), "NE", cuArray(y)(x), "SW", sbcuChannelWidthSW)
+        connect(sbs(x)(y), "NE", cuArray(x)(y), "SW", sbcuChannelWidthSW)
         // SE (bottom right)
-        connect(sbs(y)(x+1), "NW", cuArray(y)(x), "SE", sbcuChannelWidthSE)
+        connect(sbs(x+1)(y), "NW", cuArray(x)(y), "SE", sbcuChannelWidthSE)
       }
     }
 
@@ -242,43 +242,43 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
     for (y <- 0 until numRows+1) {
       for (x <- 0 until numCols+1) {
         // OCU to SB 
-        connect(ocuArray(y)(x), "W", sbs(y)(x), "E", ocsbChannelWidth)
+        connect(ocuArray(x)(y), "W", sbs(x)(y), "E", ocsbChannelWidth)
 
         // SB to OCU
-        connect(sbs(y)(x), "E", ocuArray(y)(x), "W", sbocChannelWidth)
+        connect(sbs(x)(y), "E", ocuArray(x)(y), "W", sbocChannelWidth)
       }
     }
 
     //// SCU and SB connection
-    for (y <- 0 until scuArray.size) { //rows
-      for (x <- 0 until scuArray.headOption.map(_.size).getOrElse(0)) { //cols
+    for (y <- 0 until scuArray.headOption.map(_.size).getOrElse(0)) { //cols
+      for (x <- 0 until scuArray.size) { //rows
         if (x==0) {
           // SCU to SB (W -> E) (left side)
-          connect(scuArray(y)(x), "E", sbs(y)(0), "W", scsbChannelWidth)
+          connect(scuArray(x)(y), "E", sbs(0)(y), "W", scsbChannelWidth)
           // SB to SCU (E -> W) (left side)
-          connect(sbs(y)(0), "W", scuArray(y)(x), "E", sbscChannelWidth)
+          connect(sbs(0)(y), "W", scuArray(x)(y), "E", sbscChannelWidth)
         } else {
           // SCU to SB (E -> W) (right side)
-          connect(scuArray(y)(x), "W", sbs(y)(numCols), "E", scsbChannelWidth)
+          connect(scuArray(x)(y), "W", sbs(numCols)(y), "E", scsbChannelWidth)
           // SB to SCU (W -> E) (right side)
-          connect(sbs(y)(numCols), "E", scuArray(y)(x), "W", sbscChannelWidth)
+          connect(sbs(numCols)(y), "E", scuArray(x)(y), "W", sbscChannelWidth)
         }
       }
     }
 
     //// MC and SB connection
-    for (y <- 0 until mcArray.size) { //rows
-      for (x <- 0 until mcArray.headOption.map(_.size).getOrElse(0)) { //cols
+    for (y <- 0 until mcArray.headOption.map(_.size).getOrElse(0)) { //cols
+      for (x <- 0 until mcArray.size) { //rows
         if (x==0) {
           // MC to SB (W -> E) (left side)
-          connect(mcArray(y)(x), "E", sbs(y)(0), "W", mcsbChannelWidth)
+          connect(mcArray(x)(y), "E", sbs(0)(y), "W", mcsbChannelWidth)
           // SB to MC (E -> W) (left side)
-          connect(sbs(y)(0), "W", mcArray(y)(x), "E", sbmcChannelWidth)
+          connect(sbs(0)(y), "W", mcArray(x)(y), "E", sbmcChannelWidth)
         } else {
           // MC to SB (E -> W) (right side)
-          connect(mcArray(y)(x), "W", sbs(y)(numCols), "E", mcsbChannelWidth)
+          connect(mcArray(x)(y), "W", sbs(numCols)(y), "E", mcsbChannelWidth)
           // SB to MC (W -> E) (right side)
-          connect(sbs(y)(numCols), "E", mcArray(y)(x), "W", sbmcChannelWidth)
+          connect(sbs(numCols)(y), "E", mcArray(x)(y), "W", sbmcChannelWidth)
         }
       }
     }
