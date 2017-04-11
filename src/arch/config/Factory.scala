@@ -53,18 +53,22 @@ object ConfigFactory extends Logger {
 
     val siRegs = cu.regs.filter(_.is(ScalarInReg))
     val siPerSreg = Math.ceil( cu.sins.size * 1.0 / siRegs.size ).toInt
-    val gsis:List[List[GlobalInput[Word, _]]] = cu.sins.grouped(siPerSreg).toList
-    (gsis, cu.sbufs).zipped.foreach { case (sis, sbuf) => sbuf.writePort <== sis.map(_.ic) }
-    (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
-      forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
+    if (cu.sins.size!=0) {
+      val gsis = cu.sins.grouped(siPerSreg).toList
+      (gsis, cu.sbufs).zipped.foreach { case (sis, sbuf) => sbuf.writePort <== sis.map(_.ic) }
+      (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
+        forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
+      }
     }
 
     val soRegs = cu.regs.filter(_.is(ScalarOutReg))
     dprintln(s"$cu souts:${cu.souts.size} soRregs:${soRegs.size}")
     val soPerSreg = Math.ceil( cu.souts.size * 1.0 / soRegs.size ).toInt
-    val gsos:List[List[GlobalOutput[Word, _]]] = cu.souts.grouped(soPerSreg).toList
-    (gsos, soRegs).zipped.foreach { case (sos, reg) => 
-      sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) }
+    if (cu.souts.size!=0) {
+      val gsos = cu.souts.grouped(soPerSreg).toList
+      (gsos, soRegs).zipped.foreach { case (sos, reg) => 
+        sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) }
+      }
     }
     cu.sbufs.foreach { sbuf =>
       // Counter min, max, step can from scalarIn

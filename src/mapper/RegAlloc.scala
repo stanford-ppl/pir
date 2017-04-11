@@ -37,11 +37,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     val pcu = pirMap.clmap(cu).asCU
     def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
       val pregs = n match {
-        case LoadPR(mem:SMem) => 
-          pcu.regs.filter(_.is(LoadReg))
-        case LoadPR(mem) => 
-          val pmem = pirMap.smmap(mem)
-          regsOf(pmem.readPort)
+        //case LoadPR(mem) => 
+          //val pmem = pirMap.smmap(mem)
+          //regsOf(pmem.readPort)
         //case StorePR(sram) =>
         case WtAddrPR(waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM

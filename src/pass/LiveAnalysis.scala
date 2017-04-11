@@ -11,8 +11,6 @@ import scala.collection.mutable.Map
 
 class LiveAnalysis(implicit design: Design) extends Pass {
   def shouldRun = true 
-
-  val pirmeta:PIRMetadata = design
   import pirmeta._
 
   override def traverse = {

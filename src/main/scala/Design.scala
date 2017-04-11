@@ -102,6 +102,7 @@ trait Design extends PIRMetadata with Collector {
 
   def run = {
     try {
+      arch.config
       passes.foreach{ pass => if (pass.shouldRun) pass.run }
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {

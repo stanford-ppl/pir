@@ -65,16 +65,18 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
   lazy val scalarNetwork = new ScalarNetwork()
 
-  scalarNetwork.config
-  ctrlNetwork.config
-  vectorNetwork.config
-  top.genConnections
-  sbs.foreach { _.genConnections }
-  pcus.foreach { _.config }
-  mcus.foreach { _.config }
-  scus.foreach { _.config }
-  mcs.foreach { _.config }
-  ocus.foreach { _.config }
+  override def config:Unit = {
+    scalarNetwork.config
+    ctrlNetwork.config
+    vectorNetwork.config
+    top.genConnections
+    sbs.foreach { _.genConnections }
+    pcus.foreach { _.config }
+    mcus.foreach { _.config }
+    scus.foreach { _.config }
+    mcs.foreach { _.config }
+    ocus.foreach { _.config }
+  }
 }
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
@@ -91,57 +93,57 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   def sbs:List[List[SwitchBox]] = spade.sbArray
 
   // switch to switch channel width
-  val sbChannelWidth = 4
-  val sbChannelWidthWE = sbChannelWidth
-  val sbChannelWidthEW = sbChannelWidth
-  val sbChannelWidthNS = sbChannelWidth
-  val sbChannelWidthSN = sbChannelWidth
+  lazy val sbChannelWidth = 4
+  lazy val sbChannelWidthWE = sbChannelWidth
+  lazy val sbChannelWidthEW = sbChannelWidth
+  lazy val sbChannelWidthNS = sbChannelWidth
+  lazy val sbChannelWidthSN = sbChannelWidth
 
   // CU to CU channel width
-  val cuChannelWidth = 0
-  val cuChannelWidthWE = cuChannelWidth
-  val cuChannelWidthEW = cuChannelWidth
-  val cuChannelWidthNS = cuChannelWidth
-  val cuChannelWidthSN = cuChannelWidth
+  lazy val cuChannelWidth = 0
+  lazy val cuChannelWidthWE = cuChannelWidth
+  lazy val cuChannelWidthEW = cuChannelWidth
+  lazy val cuChannelWidthNS = cuChannelWidth
+  lazy val cuChannelWidthSN = cuChannelWidth
 
   // switch to CU channel width
-  val sbcuChannelWidth = 1
-  val sbcuChannelWidthNW = sbcuChannelWidth
-  val sbcuChannelWidthNE = sbcuChannelWidth
-  val sbcuChannelWidthSW = sbcuChannelWidth
-  val sbcuChannelWidthSE = sbcuChannelWidth
+  lazy val sbcuChannelWidth = 1
+  lazy val sbcuChannelWidthNW = sbcuChannelWidth
+  lazy val sbcuChannelWidthNE = sbcuChannelWidth
+  lazy val sbcuChannelWidthSW = sbcuChannelWidth
+  lazy val sbcuChannelWidthSE = sbcuChannelWidth
 
   // CU to Switch channel width
-  val cusbChannelWidth = 1
-  val cusbChannelWidthNW = cusbChannelWidth
-  val cusbChannelWidthNE = cusbChannelWidth
-  val cusbChannelWidthSW = cusbChannelWidth
-  val cusbChannelWidthSE = cusbChannelWidth
+  lazy val cusbChannelWidth = 1
+  lazy val cusbChannelWidthNW = cusbChannelWidth
+  lazy val cusbChannelWidthNE = cusbChannelWidth
+  lazy val cusbChannelWidthSW = cusbChannelWidth
+  lazy val cusbChannelWidthSE = cusbChannelWidth
 
   // SCU to switch channel width
-  val scsbChannelWidth = 4
+  lazy val scsbChannelWidth = 4
   // switch to SCU channel width
-  val sbscChannelWidth = 4
+  lazy val sbscChannelWidth = 4
 
   // MC to switch channel width
-  val mcsbChannelWidth = 4
+  lazy val mcsbChannelWidth = 4
   // switch to MC channel width
-  val sbmcChannelWidth = 4
+  lazy val sbmcChannelWidth = 4
 
   // MC to SCU channel width
-  val mcscChannelWidth = 2
+  lazy val mcscChannelWidth = 2
   // SCU to MC channel width
-  val scmcChannelWidth = 2
+  lazy val scmcChannelWidth = 2
 
   // OCU to switch channel width
-  val ocsbChannelWidth = 2
+  lazy val ocsbChannelWidth = 2
   // switch to OCU channel width
-  val sbocChannelWidth = 4
+  lazy val sbocChannelWidth = 4
 
   // Top to switch channel width
-  val tpsbChannelWidth = 1
+  lazy val tpsbChannelWidth = 1
   // switch to Top channel width
-  val sbtpChannelWidth = 1
+  lazy val sbtpChannelWidth = 1
 
   lazy val numRows = cuArray.head.length
   lazy val numCols = cuArray.length
@@ -322,15 +324,174 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = VectorIO.P
   def io(pne:NetworkElement) = pne.vectorIO
+
+  // switch to switch channel width
+  //override lazy val sbChannelWidth = 0
+  //override lazy val sbChannelWidthWE = 1
+  //override lazy val sbChannelWidthEW = 1
+  //override lazy val sbChannelWidthNS = 1
+  //override lazy val sbChannelWidthSN = 1
+
+  // CU to CU channel width
+  //override lazy val cuChannelWidth = 0
+  //override lazy val cuChannelWidthWE = 1
+  //override lazy val cuChannelWidthEW = 1
+  //override lazy val cuChannelWidthNS = 1
+  //override lazy val cuChannelWidthSN = 1
+
+  // switch to CU channel width
+  //override lazy val sbcuChannelWidth = 0
+  //override lazy val sbcuChannelWidthNW = 1
+  //override lazy val sbcuChannelWidthNE = 1
+  //override lazy val sbcuChannelWidthSW = 1
+  //override lazy val sbcuChannelWidthSE = 1
+
+  // CU to Switch channel width
+  //override lazy val cusbChannelWidth = 0
+  //override lazy val cusbChannelWidthNW = 1
+  //override lazy val cusbChannelWidthNE = 1
+  //override lazy val cusbChannelWidthSW = 1
+  //override lazy val cusbChannelWidthSE = 1
+  
+  // SCU to switch channel width
+  override lazy val scsbChannelWidth = 0
+  // switch to SCU channel width
+  override lazy val sbscChannelWidth = 0
+
+  // MC to switch channel width
+  override lazy val mcsbChannelWidth = 1
+  // switch to MC channel width
+  override lazy val sbmcChannelWidth = 1
+    
+  // MC to SCU channel width
+  override lazy val mcscChannelWidth = 0
+  // SCU to MC channel width
+  override lazy val scmcChannelWidth = 0
+  
+  // OCU to switch channel width
+  override lazy val ocsbChannelWidth = 0
+  // switch to OCU channel width
+  override lazy val sbocChannelWidth = 0
+  
+  // Top to switch channel width
+  override lazy val tpsbChannelWidth = 0
+  // switch to Top channel width
+  override lazy val sbtpChannelWidth = 0
 }
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ScalarIO.P
   def io(pne:NetworkElement) = pne.scalarIO
+
+  // switch to switch channel width
+  //override lazy val sbChannelWidth = 0
+  //override lazy val sbChannelWidthWE = 1
+  //override lazy val sbChannelWidthEW = 1
+  //override lazy val sbChannelWidthNS = 1
+  //override lazy val sbChannelWidthSN = 1
+
+  // CU to CU channel width
+  //override lazy val cuChannelWidth = 0
+  //override lazy val cuChannelWidthWE = 1
+  //override lazy val cuChannelWidthEW = 1
+  //override lazy val cuChannelWidthNS = 1
+  //override lazy val cuChannelWidthSN = 1
+
+  // switch to CU channel width
+  //override lazy val sbcuChannelWidth = 0
+  //override lazy val sbcuChannelWidthNW = 1
+  //override lazy val sbcuChannelWidthNE = 1
+  //override lazy val sbcuChannelWidthSW = 1
+  //override lazy val sbcuChannelWidthSE = 1
+
+  // CU to Switch channel width
+  //override lazy val cusbChannelWidth = 0
+  //override lazy val cusbChannelWidthNW = 1
+  //override lazy val cusbChannelWidthNE = 1
+  //override lazy val cusbChannelWidthSW = 1
+  //override lazy val cusbChannelWidthSE = 1
+  
+  // SCU to switch channel width
+  //override lazy val scsbChannelWidth = 4
+  // switch to SCU channel width
+  //override lazy val sbscChannelWidth = 4
+
+  // MC to switch channel width
+  //override lazy val mcsbChannelWidth = 4
+  // switch to MC channel width
+  //override lazy val sbmcChannelWidth = 4
+    
+  // MC to SCU channel width
+  // override lazy val mcscChannelWidth = 4
+  // SCU to MC channel width
+  // override lazy val scmcChannelWidth = 4
+  
+  // OCU to switch channel width
+  //lazy val ocsbChannelWidth = 2
+  // switch to OCU channel width
+  //lazy val sbocChannelWidth = 2
+  
+  // Top to switch channel width
+  //lazy val tpsbChannelWidth = 1
+  // switch to Top channel width
+  //lazy val sbtpChannelWidth = 1
 }
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ControlIO.P
   def io(pne:NetworkElement) = pne.ctrlIO
+
+  // switch to switch channel width
+  //override lazy val sbChannelWidth = 0
+  //override lazy val sbChannelWidthWE = 1
+  //override lazy val sbChannelWidthEW = 1
+  //override lazy val sbChannelWidthNS = 1
+  //override lazy val sbChannelWidthSN = 1
+
+  // CU to CU channel width
+  //override lazy val cuChannelWidth = 0
+  //override lazy val cuChannelWidthWE = 1
+  //override lazy val cuChannelWidthEW = 1
+  //override lazy val cuChannelWidthNS = 1
+  //override lazy val cuChannelWidthSN = 1
+
+  // switch to CU channel width
+  override lazy val sbcuChannelWidth = 2
+  //override lazy val sbcuChannelWidthNW = 1
+  //override lazy val sbcuChannelWidthNE = 1
+  //override lazy val sbcuChannelWidthSW = 1
+  //override lazy val sbcuChannelWidthSE = 1
+
+  // CU to Switch channel width
+  //override lazy val cusbChannelWidth = 0
+  //override lazy val cusbChannelWidthNW = 1
+  //override lazy val cusbChannelWidthNE = 1
+  //override lazy val cusbChannelWidthSW = 1
+  //override lazy val cusbChannelWidthSE = 1
+  
+  // SCU to switch channel width
+  //override lazy val scsbChannelWidth = 4
+  // switch to SCU channel width
+  //override lazy val sbscChannelWidth = 4
+
+  // MC to switch channel width
+  override lazy val mcsbChannelWidth = 1
+  // switch to MC channel width
+  override lazy val sbmcChannelWidth = 1
+
+  // MC to SCU channel width
+  // override lazy val mcscChannelWidth = 4
+  // SCU to MC channel width
+  // override lazy val scmcChannelWidth = 4
+    
+  // OCU to switch channel width
+  override lazy val ocsbChannelWidth = 3
+  // switch to OCU channel width
+  override lazy val sbocChannelWidth = 8
+
+  // Top to switch channel width
+  //lazy val tpsbChannelWidth = 1
+  // switch to Top channel width
+  //lazy val sbtpChannelWidth = 1
 }
 

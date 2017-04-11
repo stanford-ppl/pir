@@ -27,6 +27,7 @@ trait NetworkElement extends Module with Simulatable {
   def couts = ctrlIO.outs // Control outputs
 
   def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
+  def isSCU:Boolean = this.isInstanceOf[ScalarComputeUnit]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
   def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
@@ -216,7 +217,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     numScalarBufs(4)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
-    color(8, LoadReg).color(7, ReadAddrReg).color(8, WriteAddrReg).color(9, StoreReg)
+    color(7, ReadAddrReg).color(8, WriteAddrReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
     color(12 until 12 + numVecBufs, VecInReg)
     genConnections

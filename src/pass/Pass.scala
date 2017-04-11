@@ -4,10 +4,15 @@ import pir.Design
 import pir.Config
 import pir.util._
 import pir.util.misc._
+import pir.plasticine.util.SpadeMetadata
+import pir.util.PIRMetadata
 
 import scala.collection.mutable.Set
 
 abstract class Pass(implicit val design:Design) {
+  lazy val spademeta: SpadeMetadata = design.arch
+  lazy val pirmeta:PIRMetadata = design
+
   var isInit = false
   var hasRun = false
   def shouldRun:Boolean

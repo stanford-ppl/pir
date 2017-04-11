@@ -34,6 +34,7 @@ trait Spade extends SpadeMetadata {
   def nextId = {val temp = nextSym; nextSym +=1; temp}
   
   val simulatable = ListBuffer[Simulatable]()
+  def config:Unit = {}
 }
 
 trait PointToPointNetwork extends Spade {

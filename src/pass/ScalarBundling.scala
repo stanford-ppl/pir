@@ -13,8 +13,6 @@ import scala.collection.mutable.{ Map => MMap }
 
 class ScalarBundling(implicit design: Design) extends Pass {
   def shouldRun = true 
-
-  val pirmeta:PIRMetadata = design
   import pirmeta._
 
   lazy val par = design.arch.numLanes

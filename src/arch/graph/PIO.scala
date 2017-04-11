@@ -49,6 +49,8 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def disconnect:Unit
   def canConnect(n:Any):Boolean
 
+  def isIn:Boolean
+  def isOut:Boolean
   def isBus = tp.isInstanceOf[Bus]
   def isWord = tp.isInstanceOf[Word]
   def isBit = tp.isInstanceOf[Bit]
@@ -81,6 +83,8 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   }
   def isConnected = _fanIns.size!=0
   def disconnect = _fanIns.clear
+  def isIn:Boolean = true
+  def isOut:Boolean = false
   override def asBus:Input[Bus, S] = this.asInstanceOf[Input[Bus, S]]
   override def asWord:Input[Word, S] = this.asInstanceOf[Input[Word, S]]
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
@@ -108,6 +112,8 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   }
   def isConnected = _fanOuts.size!=0
   def disconnect = _fanOuts.clear
+  def isIn:Boolean = false
+  def isOut:Boolean = true
   override def asBus:Output[Bus, S] = this.asInstanceOf[Output[Bus, S]]
   override def asWord:Output[Word, S] = this.asInstanceOf[Output[Word, S]]
   override def asBit:Output[Bit, S] = this.asInstanceOf[Output[Bit, S]]

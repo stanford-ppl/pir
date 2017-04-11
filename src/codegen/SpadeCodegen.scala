@@ -15,112 +15,179 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
   def shouldRun = true
   import spademeta._
 
-  lazy val dir = sys.env("PLASTICINE_HOME") + "/arch"
-
-  override lazy val stream:OutputStream = newStream(dir, s"Plasticine.scala") 
+  val traitName = s"PlasticineArch"
+  lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/generated"
+  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
   override implicit def spade = design.arch.asInstanceOf[SwitchNetwork]
-  def numRows = spade.numRows
-  def numCols = spade.numCols
+  lazy val numRows = spade.numRows
+  lazy val numCols = spade.numCols
 
   override def initPass = {
     super.initPass
     emitHeader
   }
 
+  var lineNumber:Int = 0
+  var fileNumber:Int = 0
+  var printer:Printer = this
+
+  override def emitln(s:String):Unit = { 
+    if (lineNumber > 100) {
+      printer.emitBEln
+      printer.close
+      printer = new Printer {
+        override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
+      }
+      fileNumber += 1
+      lineNumber = 0
+      emitImport
+      printer.emitBSln(s"trait $traitName$fileNumber")
+      printer.emitln(s"self:$traitName with Plasticine =>")
+    }
+    if (printer == this)
+      super.emitln(s)
+    else
+      printer.emitln(s); lineNumber += 1
+  }
+
+  def emitImport = {
+    printer.emitln(s"package plasticine.arch")
+    printer.emitln(s"import chisel3._")
+    printer.emitln(s"import chisel3.util._")
+    printer.emitln(s"import scala.collection.mutable.ListBuffer")
+    printer.emitln(1)
+  }
+
   def emitHeader = {
-    emitln(s"package plasticine.arch")
-    //emitln(s"import Chisel._")
-    emitln(s"import plasticine.templete.dummy._")
-    emitln(s"import scala.collection.mutable.ListBuffer")
-    emitln(3)
+    emitImport
+    emitParam
+    emitln(1)
+  }
+
+  def traverse = {
+    emitSplit
+    printer.close
+    printer = this
+    emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"$traitName$i").mkString(" with ")}") {
+      emitln(s"self:Plasticine =>")
+      emitDec
+    }
+  }
+
+  def emitSplit = {
+    printer = new Printer {
+      override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
+    }
+    emitImport
+    printer.emitBSln(s"trait $traitName$fileNumber")
+    printer.emitln(s"self:$traitName with Plasticine =>")
+    emitAlloc
+    emitNetwork
+    printer.emitBEln
+  }
+  
+  override def finPass = {
+    super.finPass
+    close
+  }
+
+  def emitRegs(cu:ComputeUnit) = {
+    emitln(s"val regColors = ListBuffer[List[RegColor]]()")
+    cu.regs.foreach { reg =>
+      emitln(s"regColors += List(${reg.colors.mkString(",")})")
+    }
+  }
+  
+  def emitStages(cu:ComputeUnit) = {
+    //emitln(s"val stageTypes = ListBuffer[StageType]()")
+    //cu.stages.foreach { stage =>
+      //emitln(s"stageTypes += ${quote(stage)}")
+    //}
+    cu match {
+      case cu:MemoryComputeUnit =>
+        emitln(s"val d = ${cu.fustages.size}")
+        emitln(s"val wd = ${cu.wastages.size}")
+      case cu =>
+        emitln(s"val d = ${cu.fustages.size}")
+    }
+  }
+
+  def emitParam = {
+    val pcu = spade.pcus.head
+    emitBlock(s"case class MyPCUParams(numScalarIn:Int, numScalarOut:Int, numVectorIn:Int, numVectorOut:Int, numControlIn:Int, numControlOut:Int) extends PCUParams") {
+      emitln(s"val w = ${spade.wordWidth}")
+      emitln(s"val v = ${spade.numLanes}")
+      emitln(s"val numCounters = ${pcu.numCtrs}")
+      emitln(s"val numUDCs = ${pcu.numUDCs}")
+      emitRegs(pcu)
+      emitStages(pcu)
+      emitln(s"val r = regColors.size")
+    }
+    emitln(1)
+    val mcu = spade.mcus.head
+    emitBlock(s"case class MyPMUParams(numScalarIn:Int, numScalarOut:Int, numVectorIn:Int, numVectorOut:Int, numControlIn:Int, numControlOut:Int) extends PMUParams") {
+      emitln(s"val w = ${spade.wordWidth}")
+      emitln(s"val v = ${spade.numLanes}")
+      emitln(s"val numCounters = ${mcu.numCtrs}")
+      emitln(s"val numUDCs = ${mcu.numUDCs}")
+      emitRegs(mcu)
+      emitStages(mcu)
+      emitln(s"val r = regColors.size")
+    }
+  }
+
+  def emitDec = {
+    val cuArray = spade.cuArray
+    emitln(s"val cus = Array.fill(${cuArray.size})(Array.ofDim[CU](${cuArray.head.size}))")
+    val sbs = spade.sbArray
+    emitln(s"val csbs = Array.fill(${sbs.size})(Array.ofDim[ControlSwitch](${sbs.head.size}))")
+    emitln(s"val vsbs = Array.fill(${sbs.size})(Array.ofDim[VectorSwitch](${sbs.head.size}))")
+    emitln(s"val ssbs = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitch](${sbs.head.size}))")
   }
 
   def emitAlloc = {
-    emitBlock(s"val archParam = new ArchParam") {
-      emitln(s"val wordWidth = ${spade.wordWidth}")
-      emitln(s"val numLanes = ${spade.numLanes}")
-      emitln(s"val numRows = ${spade.numRows}")
-      emitln(s"val numCols = ${spade.numCols}")
-      emitComment(s"val numMCs = TODO")
-    }
-
-    val pcu = spade.pcus.head
-    emitBlock(s"val pcuParam = new PCUParam") {
-      emitln(s"val numCtrs = ${pcu.numCtrs}")
-      emitln(s"val regColors = ListBuffer[List[RegColor]]()")
-      pcu.regs.foreach { reg =>
-        emitln(s"regColors += List(${reg.colors.mkString(",")})")
-      }
-      emitln(s"val numUDCs = ${pcu.numUDCs}")
-      emitln(s"val stageTypes = ListBuffer[StageType]()")
-      pcu.stages.foreach { stage =>
-        emitln(s"stageTypes += ${quote(stage)}")
-      }
-    }
-
-    val mcu = spade.mcus.head
-    emitBlock(s"val pmuParam = new PMUParam") {
-      emitln(s"val numCtrs = ${mcu.numCtrs}")
-      emitln(s"val numSRAMs = ${mcu.numSRAMs}")
-      emitln(s"val regColors = ListBuffer[List[RegColor]]()")
-      mcu.regs.foreach { reg =>
-        emitln(s"regColors += List(${reg.colors.mkString(",")})")
-      }
-      emitln(s"val numUDCs = ${mcu.numUDCs}")
-      emitln(s"val stageTypes = ListBuffer[StageType]()")
-      mcu.stages.foreach { stage =>
-        emitln(s"stageTypes += ${quote(stage)}")
-      }
-    }
-
     val cuArray = spade.cuArray
-    emitln(s"val cus = Array.fill(${cuArray.size})(Array.ofDim[Module[CU]](${cuArray.head.size}))")
+    val sbs = spade.sbArray
     cuArray.foreach { case row =>
       row.foreach { case cu =>
         val temp = cu match {
-          case mcu:MemoryComputeUnit => s"new PCU(pcuParam)"
-          case cu:ComputeUnit => s"new PMU(pmuParam)"
+          case mcu:MemoryComputeUnit => s"new PCU(MyPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size}))"
+          case cu:ComputeUnit => s"new PMU(MyPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size}))"
         }
-        emitln(s"${quote(cu)} = Module($temp))")
+        emitln(s"${quote(cu)} = Module($temp)")
       }
     }
 
-    val scus = spade.scuArray
-    emitln(s"val scus = Array.fill(${cuArray.size})(Array.ofDim[Module[CU]](${cuArray.head.size}))")
-    scus.foreach { scu =>
-      emitln(s"${quote(scu)} = Module(new SCU(scuParam)))")
-    }
+    //val scus = spade.scuArray
+    //emitln(s"val scus = Array.fill(${cuArray.size})(Array.ofDim[Module](${cuArray.head.size}))")
+    //scus.foreach { scu =>
+      //emitln(s"${quote(scu)} = Module(new SCU(scuParam)))")
+    //}
 
-    val mcs = spade.mcs
+    //val mcs = spade.mcs
     //emitLambda(s"val mcs = List.tabulate(${2*(numRows+1)})", "i",) {
     //mcs.zipWithIndex.foreach { case (row, i) =>
     //emitln(s"Module())")
     //}
     //}
 
-    val sbs = spade.sbArray
-    emitln(s"val csbs = Array.fill(${sbs.size})(Array.ofDim[Module[CU]](${sbs.head.size}))")
-    emitln(s"val vsbs = Array.fill(${sbs.size})(Array.ofDim[Module[CU]](${sbs.head.size}))")
-    emitln(s"val ssbs = Array.fill(${sbs.size})(Array.ofDim[Module[CU]](${sbs.head.size}))")
 
     sbs.foreach { row =>
       row.foreach { sb =>
-        emitln(s"${qv(sb)} = Module(new VectorSwitch(switchParam)))")
-        emitln(s"${qs(sb)} = Module(new ScalarSwitch(switchParam)))")
-        emitln(s"${qc(sb)} = Module(new ControlSwitch(switchParam)))")
+        emitln(s"${qv(sb)} = Module(new VectorSwitch(VectorSwitchParams(numIns=${sb.vins.size}, numOuts=${sb.vouts.size}, v=${spade.numLanes}, w=${spade.wordWidth})))")
+        emitln(s"${qs(sb)} = Module(new ScalarSwitch(ScalarSwitchParams(numIns=${sb.sins.size}, numOuts=${sb.souts.size}, w=${spade.wordWidth})))")
+        emitln(s"${qc(sb)} = Module(new ControlSwitch(ControlSwitchParams(numIns=${sb.cins.size}, numOuts=${sb.couts.size})))")
       }
     }
   }
 
   def emitNetwork = {
-    emitln(s"val ${spade.top} = this.top")
-
     emitComment("VectorNetwork Connection")
     spade.pnes.foreach { pne =>
       pne.vectorIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
-          emitln(s"connect(${qv(pne)}, ${qv(in.src)}, ${out.index}, ${in.index})")
+          emitln(s"${qv(out)} <> ${qv(in)}")
         }
       }
     }
@@ -128,7 +195,7 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
     spade.pnes.foreach { pne =>
       pne.scalarIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
-          emitln(s"connect(${qs(pne)}, ${qs(in.src)}, ${out.index}, ${in.index})")
+          emitln(s"${qs(out)} <> ${qs(in)}")
         }
       }
     }
@@ -136,23 +203,10 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
     spade.pnes.foreach { pne =>
       pne.ctrlIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
-          emitln(s"connect(${qc(pne)}, ${qc(in.src)}, ${out.index}, ${in.index})")
+          emitln(s"${qc(out)} <> ${qc(in)}")
         }
       }
     }
-  }
-
-  def traverse = {
-    emitBlock(s"trait SwitchNetwork") {
-      emitln(s"self:Plasticine =>")
-      emitAlloc
-      emitNetwork
-    }
-  }
-  
-  override def finPass = {
-    super.finPass
-    close
   }
 
   def emitLambda(s:String, ins:Any*)(block: =>Any) = { 
@@ -176,15 +230,16 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
     case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     case n:ScalarComputeUnit => 
       val (x, y) = coordOf(n)
-      if (x==-1)
-      s"sbs()"
+      x match {
+        case -1 => s"scus(0)($y)"
+        case `numCols` => s"scus(1)($y)"
+      }
     case n:MemoryComputeUnit =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"
     case n:ComputeUnit =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"
-    case n:NetworkElement => s"$n"
   }
 
   def qv(n:Any):String = n match {
@@ -206,6 +261,43 @@ class SpadeCodegen(implicit design: Design) extends Codegen {
       val (x, y) = coordOf(n)
       s"csbs($x)($y)"
     case n => quote(n)
+  }
+
+  def qv(io:IO[_,_]):String = {
+    val n = io.src
+    val i = io.index
+    n match {
+      case n:SwitchBox if io.isIn => s"${qv(n)}.io.ins($i)"
+      case n:SwitchBox if io.isOut => s"${qv(n)}.io.outs($i)"
+      case n if io.isIn => s"${quote(n)}.io.vecIn($i)"
+      case n if io.isOut => s"${quote(n)}.io.vecOut($i)"
+    }
+  }
+
+  def qs(io:IO[_,_]):String = {
+    val n = io.src
+    val i = io.index
+    n match {
+      case n:Top if io.isIn => s"self.io.argOuts($i)"
+      case n:Top if io.isOut => s"self.io.argIns($i)"
+      case n:SwitchBox if io.isIn => s"${qs(n)}.io.ins($i)"
+      case n:SwitchBox if io.isOut => s"${qs(n)}.io.outs($i)"
+      case n if io.isIn => s"${quote(n)}.io.scalarIn($i)" 
+      case n if io.isOut => s"${quote(n)}.io.scalarOut($i)" 
+    }
+  }
+
+  def qc(io:IO[_,_]):String = {
+    val n = io.src
+    val i = io.index
+    n match {
+      case n:Top if io.isIn => s"self.io.done"
+      case n:Top if io.isOut => s"self.io.enable"
+      case n:SwitchBox if io.isIn => s"${qc(n)}.io.ins($i)"
+      case n:SwitchBox if io.isOut => s"${qc(n)}.io.outs($i)"
+      case n if io.isIn => s"${quote(n)}.io.controlIn($i)" 
+      case n if io.isOut => s"${quote(n)}.io.controlOut($i)" 
+    }
   }
 
 }
