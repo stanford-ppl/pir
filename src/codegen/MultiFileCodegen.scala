@@ -52,7 +52,8 @@ trait MultiFileCodegen extends Printer {
     }
     lineNumber = 0
     splitPreHeader
-    emitBSln(s"trait $traitName$fileNumber ")
+    val prevFile = if (fileNumber==1) " " else s" extends ${traitName}${fileNumber-1}"
+    emitBSln(s"trait $traitName$fileNumber$prevFile")
     splitPostHeader
   }
 
@@ -71,7 +72,8 @@ trait MultiFileCodegen extends Printer {
   }
 
   def emitMixed(block: => Unit):Unit = {
-    emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"${traitName}${i+1}").mkString(" with ")}") {
+    //emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"${traitName}${i+1}").mkString(" with ")}") {
+    emitBlock(s"trait $traitName extends ${traitName}${fileNumber}") {
       block
     }
   }

@@ -11,7 +11,7 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
+class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = true
   import spademeta._
 
@@ -22,6 +22,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
   def mapping = design.mapping.get
   def fimap = mapping.fimap
   def clmap = mapping.clmap
+  def ctmap = mapping.ctmap
   
   def top = spade.top
   def sbs = spade.sbArray
@@ -31,74 +32,30 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
-  override def initPass = {
-    super.initPass
-    emitHeader
-  }
-
-  var lineNumber:Int = 0
-  var fileNumber:Int = 0
-  var printer:Printer = this
-
-  override def emitln(s:String):Unit = { 
-    if (lineNumber > 100) {
-      printer.emitBEln
-      printer.close
-      printer = new Printer {
-        override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
-      }
-      fileNumber += 1
-      lineNumber = 0
-      emitImport
-      printer.emitBSln(s"trait $traitName$fileNumber")
-      printer.emitln(s"self:$traitName with Plasticine =>")
-    }
-    if (printer == this)
-      super.emitln(s)
-    else
-      printer.emitln(s); lineNumber += 1
-  }
-
-  def emitImport = {
-    printer.emitln(s"package plasticine.arch")
-    printer.emitln(s"import chisel3._")
-    printer.emitln(s"import chisel3.util._")
-    printer.emitln(s"import scala.collection.mutable.ListBuffer")
-    printer.emitln(1)
-  }
-
   def emitHeader = {
-    emitImport
-    emitParam
+    emitln(s"package plasticine.arch")
+    emitln(s"import chisel3._")
+    emitln(s"import chisel3.util._")
+    emitln(s"import scala.collection.mutable.ListBuffer")
     emitln(1)
   }
 
+  override def splitPreHeader:Unit = {
+    emitHeader
+  }
+
+  override def splitPostHeader:Unit = {
+  }
+
   def traverse = {
-    emitSplit
-    printer.close
-    printer = this
-    lineNumber = 0
-    emitBlock(s"object $traitName extends ${(0 until fileNumber).map(i => s"$traitName$i").mkString(" with ")}") {
-      emitDec
+    emitHeader
+    emitSplit {
+      emitCrossbarBits
+      emitCUBits
     }
+    emitMixed(emitPlasticineBits)
   }
   
-  override def finPass = {
-    super.finPass
-    close
-  }
-
-  def emitSplit = {
-    printer = new Printer {
-      override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
-    }
-    emitImport
-    printer.emitBSln(s"trait $traitName$fileNumber")
-    printer.emitln(s"self:$traitName with Plasticine =>")
-    emitConfig
-    printer.emitBEln
-  }
-
   def muxIdx(in:Input[_<:PortType,Module]) = {
     fimap.get(in).fold(-1) { out => in.indexOf(out) }
   }
@@ -106,7 +63,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
     fimap.get(out.ic).fold(-1) { _.src.index }
   }
 
-  def emitConfig = {
+  def cuParams = s"GeneratedTopParams.cuParams"
+
+  def emitCrossbarBits = {
     sbs.foreach { 
       _.foreach { sb =>
         emitln(s"${qv(sb)} = CrossbarBits(${quote(sb.vouts.map( out => muxIdx(out)))})")
@@ -114,14 +73,59 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
         emitln(s"${qc(sb)} = CrossbarBits(${quote(sb.couts.map( out => muxIdx(out)))})")
       }
     }
+  }
+
+  def emitCtrBits(pcu:ComputeUnit) = {
+    val cu = clmap.pmap(pcu)
+    pcu.ctrs.foreach { pctr =>
+      val ctrBit = ctmap.pmap.get(pctr) match { 
+        case None => s"CounterRCBits.zeros(${spade.wordWidth})" 
+        case Some(ctr) => 
+          s"CounterRCBits(max=)"
+      }
+      emitln(s"val ${q(pcu, pctr)} = $ctrBit")
+    }
+  }
+
+  def emitCChainBis(pcu:ComputeUnit) = {
+    val cu = clmap.pmap(pcu)
+    val pctrs = pcu.ctrs
+    val chain = List.tabulate(pctrs.size-1) { i =>
+      if (ctmap.pmap.contains(pctrs(i)) && ctmap.pmap.contains(pctrs(i+1))) {
+        val ctr = ctmap.pmap(pctrs(i))
+        val ctrp1 = ctmap.pmap(pctrs(i+1)) 
+        if (ctrp1.en.from == ctr.done) 1
+        else 0
+      } else 0
+    }
+    emitln(s"val ${q(pcu, "cc")} = CounterChainBits(${quote(chain)}, ${quote(pcu.ctrs.map(ctr => q(pcu, ctr)))})")
+  }
+
+  def emitCUBits = {
     cus.foreach { 
-      _.foreach { cu =>
-        clmap.pmap.get(cu) match { 
-          case None => emitln(s"PCUBits.zeros()")
-          case Some(cu) =>
+      _.foreach { pcu =>
+        val (x,y) = pcu.coord
+        val bitTp = pcu match {
+          case cu:MemoryComputeUnit => "MCUBits"
+          case cu:ComputeUnit => "PCUBits"
         }
+        val cuBit = clmap.pmap.get(pcu) match { 
+          case None => s"$bitTp.zeros($cuParams($x)($y))" 
+          case Some(cu) => 
+            emitCtrBits(pcu)
+            emitCChainBis(pcu)
+            s"$bitTp(${q(pcu, "cc")}, ${q(pcu, "sx")}, ${q(pcu, "sp")}, ${q(pcu, "st")}, ${q(pcu, "cb")}, ${q(pcu, "si")}, ${0})" //TODO
+        }
+        emitln(s"${quote(pcu)} = $cuBit")
       }
     }
+  }
+
+  def toBinary(x: Any, w: Int): List[Int] = x match {
+    //case num: Int => List.tabulate(w) { j => if (BigInt(num).testBit(j)) 1 else 0 }
+    case num: Float => toBinary(java.lang.Float.floatToRawIntBits(num), w)
+    case l: List[Any] => l.map { e => toBinary(e, w/l.size) }.flatten
+    case _ => throw new Exception("Unsupported type for toBinary")
   }
 
   def emitRegs(cu:ComputeUnit) = {
@@ -130,13 +134,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
   def emitStages(cu:ComputeUnit) = {
   }
 
-  def emitParam = {
-    val pcu = spade.pcus.head
-    emitln(1)
-    val mcu = spade.mcus.head
-  }
-
-  def emitDec = {
+  def emitPlasticineBits = {
     val cuArray = spade.cuArray
     emitln(s"val cus = Array.fill(${cuArray.size})(Array.ofDim[ComputeUnitBits](${cuArray.head.size}))")
     emitln(s"val csbs = Array.fill(${sbs.size})(Array.ofDim[CrossbarBits](${sbs.head.size}))")
@@ -144,10 +142,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
     emitln(s"val ssbs = Array.fill(${sbs.size})(Array.ofDim[CrossbarBits](${sbs.head.size}))")
     implicit val ms = new CollectionStatus(false)
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
-      emitComma(s"cu=cus.toList")
-      emitComma(s"vectorSwitch=vsbs.toList")
-      emitComma(s"scalarSwitch=ssbs.toList")
-      emitComma(s"controlSwitch=csbs.toList")
+      emitComma(s"cu=cus")
+      emitComma(s"vectorSwitch=vsbs")
+      emitComma(s"scalarSwitch=ssbs")
+      emitComma(s"controlSwitch=csbs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
     }
   }
@@ -192,4 +190,13 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen {
     case n => quote(n)
   }
 
+  def q(n:ComputeUnit, pm:String):String = {
+    val (x, y) = coordOf(n)
+    s"${pm}_${x}_${y}"
+  }
+
+  def q(n:ComputeUnit, ctr:Counter):String = {
+    val (x, y) = coordOf(n)
+    s"ctr${ctr.index}_${x}_${y}"
+  }
 }

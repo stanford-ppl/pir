@@ -23,18 +23,13 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
-  override def initPass = {
-    super.initPass
-    emitHeader
-  }
-
   override def splitPreHeader:Unit = {
     emitHeader
   }
 
   override def splitPostHeader:Unit = {
-    emitln(s"self:$traitName with Plasticine =>")
-    emitBSln(s"def connect${fileNumber}(cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ")
+    //emitln(s"self:$traitName with Plasticine =>")
+    emitBSln(s"def connect${fileNumber}(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ")
   }
 
   override def splitPreFooter:Unit = {
@@ -46,16 +41,18 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitln(s"import chisel3._")
     emitln(s"import chisel3.util._")
     emitln(s"import scala.collection.mutable.ListBuffer")
+    emitln(s"import plasticine.templates.MuxN")
     emitln(1)
   }
 
   def traverse = {
+    emitHeader
     emitSplit(emitNetwork)
     emitMixed {
       emitln(s"self:$traitName with Plasticine =>")
-      emitBlock(s"def connect(cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ") {
+      emitBlock(s"def connect(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(cus, vsbs, ssbs, csbs)")
+          emitln(s"connect${i+1}(io, argOutMuxes, cus, vsbs, ssbs, csbs)")
         }
       }
     }

@@ -23,11 +23,6 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
-  override def initPass = {
-    super.initPass
-    emitHeader
-  }
-
   override def splitPreHeader:Unit = {
     emitHeader
   }
@@ -46,12 +41,11 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def traverse = {
+    emitHeader
     emitSplit(emitPCUParams)
     emitTopParams
     emitParamClass
-    emitMixed {
-      splitPostHeader
-    }
+    emitMixed(splitPostHeader)
   }
 
   def emitTopParams = {
