@@ -64,8 +64,10 @@ trait Design extends PIRMetadata with Collector {
   val spadeScalDotPrinter = new CUScalarDotPrinter()
   val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
   val ctrlPrinter = new CtrlPrinter()
-  val spadeCodegen = new SpadeCodegen()
+  val spadeNetworkCodegen = new SpadeNetworkCodegen()
+  val spadeParamCodegen = new SpadeParamCodegen()
   val pisaCodegen = new PisaCodegen()
+  val configCodegen = new ConfigCodegen()
   val simulator = new Simulator()
 
   lazy val mapping:Option[PIRMap] = if (pirMapping.hasRun && pirMapping.succeeded) Some(pirMapping.mapping) else None
@@ -94,8 +96,10 @@ trait Design extends PIRMetadata with Collector {
   passes += spadeCtrlDotPrinter 
 
   // Codegen
-  passes += spadeCodegen 
+  passes += spadeNetworkCodegen 
+  passes += spadeParamCodegen 
   passes += pisaCodegen 
+  passes += configCodegen 
 
   // Simulation
   passes += simulator

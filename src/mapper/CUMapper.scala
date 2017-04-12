@@ -156,12 +156,9 @@ class CUMapper(implicit ds:Design) extends Mapper {
         case _ =>
       }
       dprintln(s"--mc filtered:[${pnes.mkString(",")}]")
-      pnes = routers.foldLeft(pnes) { case (pnes, router) =>
+      routers.foldLeft(pnes) { case (pnes, router) =>
         router.filterPNE(cl, pnes, m)
       }
-      dprintln(s"--routers filtered:[${pnes.mkString(",")}] ")
-      if (pnes.size==0) throw MappingException(this, m, s"No pcu available for $cl")
-      else pnes
     }
   }
 

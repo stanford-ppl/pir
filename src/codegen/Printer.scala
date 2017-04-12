@@ -31,24 +31,35 @@ trait Printer {
   def pprintln(s:String):Unit = { pw.println(s); if (stdOut) flush }
   def pprintln:Unit = { pw.println; if (stdOut) flush }
 
+  trait Braces { def s:String; def e:String }
+  case object Brackets extends Braces { def s = "["; def e = "]" }
+  case object CurlyBraces extends Braces { def s = "{"; def e = "}" }
+  case object Parentheses extends Braces { def s = "("; def e = ")" }
+
   def emit(s:String):Unit = pprint(s"${tab*level}${s}")
   def emit(s:Any):Unit = emit(s.toString) 
   def emit:Unit = emit("") 
   def emitln(s:String):Unit = pprintln(s"${tab*level}${s}")
   def emitln:Unit = pprintln
   def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
+  def emitBSln(s:String, b:Braces):Unit = { emit(s); emitBSln(b) }
   def emitBSln(s:String):Unit = { emit(s); emitBSln }
-  def emitBSln:Unit = { pprintln(s"{"); level += 1 }
+  def emitBSln(b:Braces):Unit = { pprintln(b.s); level += 1 }
+  def emitBSln:Unit = { pprintln(CurlyBraces.s); level += 1 }
+  def emitBS(s:String, b:Braces):Unit = { emit(s); emitBS(b) }
   def emitBS(s:String):Unit = { emit(s); emitBS }
-  def emitBS:Unit = { pprint(s"{"); level += 1 }
+  def emitBS(b:Braces):Unit = { pprint(b.s); level += 1 }
+  def emitBS:Unit = { pprint(CurlyBraces.s); level += 1 }
+  def emitBEln(s:String, b:Braces):Unit = { emitBE(b); pprintln(s) }
   def emitBEln(s:String):Unit = { emitBE; pprintln(s) }
-  def emitBEln = { emitBE; pprintln }
-  def emitBE = { level -= 1; emit(s"}") }
-  def emitCSln(s:String):Unit = { emit(s); emitCSln }
-  def emitCSln:Unit = { pprintln(s"["); level += 1 }
-  def emitCE = { level -= 1; emit(s"]") }
+  def emitBEln(b:Braces):Unit = { emitBE(b); pprintln }
+  def emitBEln:Unit = { emitBE; pprintln }
+  def emitBE(b:Braces):Unit = { level -= 1; emit(b.e) }
+  def emitBE:Unit = { level -= 1; emit(CurlyBraces.e) }
   def emitBlock[T](block: =>T):T = { emitBSln; val res = block; emitBEln; res }
+  def emitBlock[T](b:Braces)(block: =>T):T = { emitBSln(b); val res = block; emitBEln(b); res }
   def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
+  def emitBlock[T](s:String, b:Braces)(block: =>T):T = { emitBSln(s"$s ", b); val res = block; emitBEln(b); res }
   def emitTitleComment(title:String) = 
     emitln(s"/*****************************${title}****************************/")
   def flush = pw.flush()

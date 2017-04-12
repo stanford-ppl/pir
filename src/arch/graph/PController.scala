@@ -210,7 +210,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numRegs = 16
   override def numCtrs = 8
   override def numSRAMs = 1
-  override def numUDCs = 4
+  override def numUDCs = 0
   override def config(implicit spade:SwitchNetwork) = {
     addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)

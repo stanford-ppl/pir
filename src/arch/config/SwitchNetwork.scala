@@ -66,6 +66,9 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   lazy val scalarNetwork = new ScalarNetwork()
 
   override def config:Unit = {
+    scalarNetwork.reset
+    ctrlNetwork.reset
+    vectorNetwork.reset
     scalarNetwork.config
     ctrlNetwork.config
     vectorNetwork.config
@@ -151,18 +154,33 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   lazy val top = spade.top
   
   def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
-    val outs = io(out).addOutAt(outDir, channelWidth)
-    val ins = io(in).addInAt(inDir, channelWidth)
-    outs.zip(ins).foreach { case (o, i) => o ==> i }
+    (out, in) match {
+      case (out:Top, in) =>
+        val outs = io(out).outs
+        outs.foreach { argIn =>
+          val ins = io(in).addInAt(inDir, channelWidth)
+          ins.foreach { _ <== argIn }
+        }
+      case (out, in:Top) =>
+        val outs = io(out).addOutAt(outDir, channelWidth)
+        val ins = io(in).ins
+        ins.foreach { _ <== outs }
+      case (out, in) =>
+        val outs = io(out).addOutAt(outDir, channelWidth)
+        val ins = io(in).addInAt(inDir, channelWidth)
+        outs.zip(ins).foreach { case (o, i) => o ==> i }
+    }
   }
 
-  def config = {
+  def reset = {
     spade.pnes.foreach { pne =>
       io(pne).ins.foreach { _.disconnect }
       io(pne).outs.foreach { _.disconnect }
       io(pne).clearIO
     }
+  }
 
+  def config = {
     // CU to CU Connection
     for (y <- 0 until numRows) {
       for (x <- 0 until numCols) {
@@ -435,6 +453,13 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   //lazy val tpsbChannelWidth = 1
   // switch to Top channel width
   //lazy val sbtpChannelWidth = 1
+  
+  override def config = {
+    // Add ins and outs to Top
+    io(top).addInAt("S", top.numArgOuts)
+    io(top).addOutAt("S", top.numArgIns)
+    super.config
+  }
 }
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
@@ -493,5 +518,11 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   //lazy val tpsbChannelWidth = 1
   // switch to Top channel width
   //lazy val sbtpChannelWidth = 1
+  override def config = {
+    // Add ins and outs to Top
+    io(top).addInAt("S", 1) // status 
+    io(top).addOutAt("S", 1) // command
+    super.config
+  }
 }
 

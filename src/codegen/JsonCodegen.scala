@@ -37,9 +37,9 @@ trait JsonCodegen extends Printer {
   def emitList(key:String)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
     emitComma
     def block = { value(new CollectionStatus()); pprintln }
-    emitCSln(s""""$key": """)
+    emitBSln(s""""$key": """, Brackets)
     block
-    emitCE
+    emitBE(Brackets)
   }
   def emitList(key:String, value: List[String])(implicit ms:CollectionStatus):Unit =
     { emitComma; emit(s""""$key" : [${value.mkString(",")}]""") }

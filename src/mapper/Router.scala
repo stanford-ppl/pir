@@ -120,22 +120,28 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
 
-  def filterOutIns(cl:CL, reses:List[PNE], m:PIRMap) = {
+  def filterOutIns(cl:CL, pnes:List[PNE], m:PIRMap) = {
     val outins:List[I] = outs(cl).flatMap { out =>
       to(out).filter { in => 
         !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
       }
     }
     def start(in:I) = ctrler(in)
-    filterTraverse(start _, outins, reses, m, revAdvance _)
+    val reses = filterTraverse(start _, outins, pnes, m, revAdvance _)
+    if (reses.isEmpty) 
+      throw MappingException(this, m, s"No pnes can route outins of $cl. ins:${outins} to ${outins.map(in => from(in))}")
+    else reses
   }
 
-  def filterIns(cl:CL, reses:List[PNE], m:PIRMap) = {
+  def filterIns(cl:CL, pnes:List[PNE], m:PIRMap) = {
     val inputs:List[I] = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
     def start(in:I) = ctrler(from(in))
-    filterTraverse(start _, inputs, reses, m, advance _)
+    val reses = filterTraverse(start _, inputs, pnes, m, advance _)
+    if (reses.isEmpty) 
+      throw MappingException(this, m, s"No pnes can route inputs of $cl. ins:${inputs} to ${inputs.map(in => from(in))}")
+    else reses
   }
 
   def filterPNE(cl:CL, pnes:List[PNE], m:PIRMap):List[PNE] = {

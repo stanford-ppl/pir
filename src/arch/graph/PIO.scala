@@ -44,13 +44,16 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
     })
     s
   } 
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  override def toString =s"${super.toString}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   def isConnected: Boolean
   def disconnect:Unit
   def canConnect(n:Any):Boolean
+  def indexOf(n:Any):Int
 
   def isIn:Boolean
   def isOut:Boolean
+  def asIn = this.asInstanceOf[Input[P,S]]
+  def asOut = this.asInstanceOf[Output[P,S]]
   def isBus = tp.isInstanceOf[Bus]
   def isWord = tp.isInstanceOf[Word]
   def isBit = tp.isInstanceOf[Bit]
@@ -81,6 +84,7 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   def canConnect(n:Any):Boolean = {
     _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
   }
+  def indexOf(o:Any):Int = { _fanIns.indexOf(o) }
   def isConnected = _fanIns.size!=0
   def disconnect = _fanIns.clear
   def isIn:Boolean = true
@@ -110,6 +114,7 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def canConnect(n:Any):Boolean = {
     _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
   }
+  def indexOf(i:Any):Int = { _fanOuts.indexOf(i) }
   def isConnected = _fanOuts.size!=0
   def disconnect = _fanOuts.clear
   def isIn:Boolean = false

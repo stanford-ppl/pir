@@ -68,4 +68,9 @@ abstract class Codegen(implicit design:Design) extends Pass with Printer {
     case n:Node => pir.util.quote(n) 
     case n:PNode => pir.plasticine.util.quote(n)
   }
+
+  override def finPass = {
+    super.finPass
+    close
+  }
 }
