@@ -28,8 +28,8 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   override def splitPostHeader:Unit = {
-    emitln(s"self:TopParams =>")
-    emitln(s"import plasticineParams._")
+    emitln(s"self:PlasticineParams=>")
+//    emitln(s"import plasticineParams._")
   }
 
   def emitHeader = {
@@ -49,7 +49,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitTopParams = {
-    emitBlock(s"object GeneratedTopParams extends TopParams with GeneratedParams") {
+    emitBlock(s"object GeneratedTopParams extends TopParams") {
       emitFringeParam
       emitPlasticineParams
     }
@@ -65,7 +65,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   
   def emitPlasticineParams = {
     val cuArray = spade.cuArray
-    emitBlock(s"val plasticineParams = new PlasticineParams") {
+    emitBlock(s"val plasticineParams = new PlasticineParams with GeneratedParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val numRows = ${numRows}")
       emitln(s"override val numCols = ${numCols}")
