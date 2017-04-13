@@ -48,7 +48,7 @@ trait LocalRouter extends Mapper {
             } else { // inport map to logical reg but have some slack to reach pr
               var info = "" 
               if (pstage.before(pcurStage)) {
-                pcurStage.pre.get.get(preg).out
+                pcurStage.prev.get.get(preg).out
               } else if (pstage == pcurStage) {
                 if (!r.canConnect(ppr.out)) {
                   info = s"Cannot find connection to ${ppr}: " 
@@ -88,6 +88,7 @@ trait LocalRouter extends Mapper {
     }
     assert(map.opmap(n.from) == pop)
     val cmap = if (map.ipmap.contains(n)) map else map.setIP(n,r)
+    //dprintln(s"Mapping IP:${n} -> ${cmap.ipmap(n)}")
     cmap.setFI(r, pop)
   } 
 

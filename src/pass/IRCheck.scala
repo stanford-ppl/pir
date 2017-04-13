@@ -104,8 +104,8 @@ class IRCheck(implicit design: Design) extends Pass {
     design.arch.cus.foreach { cu =>
       cu.stages.zipWithIndex.foreach { case (stage, i) =>
         assert(stage.index==i-1, s"stage:$stage stage.index=${stage.index} should be ${i-1}")
-        if (stage!=cu.stages.head) assert(stage.pre==Some(cu.stages(i-1)))
-        else assert(stage.pre==None)
+        if (stage!=cu.stages.head) assert(stage.prev==Some(cu.stages(i-1)))
+        else assert(stage.prev==None)
         if (stage!=cu.stages.last) assert(stage.next==Some(cu.stages(i+1)))
         else assert(stage.next==None)
       }

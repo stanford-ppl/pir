@@ -122,11 +122,11 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     sts.zipWithIndex.foreach { case (stage, i) =>
       stage.index(i + stages.last.index + 1) // Empty stage is -1
       if (i==0) {
-        stage.pre = Some(stages.last)
+        stage.prev = Some(stages.last)
       } else {
-        stage.pre = Some(sts(i-1))
+        stage.prev = Some(sts(i-1))
       }
-      stage.pre.get.next = Some(stage)
+      stage.prev.get.next = Some(stage)
     }
     _stages ++= sts
   }

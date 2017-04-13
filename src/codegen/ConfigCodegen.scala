@@ -2,7 +2,8 @@ package pir.codegen
 
 import pir.Design
 import pir.plasticine.main._
-import pir.plasticine.graph._
+//import pir.plasticine.graph._
+import pir.util.typealias._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -16,27 +17,38 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   import spademeta._
 
   val traitName = s"$design".replace(s"$$", "")
-  lazy val dir = sys.env("PLASTICINE_HOME") + s"/apps/$design"
+  lazy val dir = sys.env("PLASTICINE_HOME") + s"/src/main/scala/apps/$design"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
   def mapping = design.mapping.get
   def fimap = mapping.fimap
   def clmap = mapping.clmap
   def ctmap = mapping.ctmap
+  def smmap = mapping.smmap
+  def stmap = mapping.stmap
+  def pmmap = mapping.pmmap
+  def ipmap = mapping.ipmap
   
   def top = spade.top
   def sbs = spade.sbArray
   def cus = spade.cuArray
 
-  override implicit def spade = design.arch.asInstanceOf[SwitchNetwork]
+  override implicit def spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
   def emitHeader = {
-    emitln(s"package plasticine.arch")
+    emitln(s"package plasticine.apps")
+    emitln(s"import plasticine.arch._")
     emitln(s"import chisel3._")
+    emitln(s"import plasticine.spade._")
+    emitln(s"import plasticine.pisa.ir._")
     emitln(s"import chisel3.util._")
     emitln(s"import scala.collection.mutable.ListBuffer")
+    emitln(s"import GeneratedTopParams.plasticineParams._")
+    emitln(s"import GeneratedTopParams._")
+    emitln(s"import plasticine.templates._")
+    emitln(s"import plasticine.pisa.enums._")
     emitln(1)
   }
 
@@ -45,6 +57,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   override def splitPostHeader:Unit = {
+    emitln(s"self:InOutArg =>")
   }
 
   def traverse = {
@@ -56,38 +69,83 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitMixed(emitPlasticineBits)
   }
   
-  def muxIdx(in:Input[_<:PortType,Module]) = {
+  def muxIdx(in:PI[PModule]) = {
     fimap.get(in).fold(-1) { out => in.indexOf(out) }
   }
-  def muxIdx(out:GlobalOutput[_<:PortType,Module]) = {
+  def muxIdx(out:PGO[PModule]) = {
     fimap.get(out.ic).fold(-1) { _.src.index }
   }
 
-  def cuParams = s"GeneratedTopParams.cuParams"
+  def emitXbar(name:String, outs:List[PGO[PModule]]) = {
+    outs.foreach { out => 
+      val id = muxIdx(out)
+      if (id != -1) {
+        emitln(s"${name}.outSelect(${out.index}) = $id")
+      }
+    }
+  }
 
   def emitCrossbarBits = {
     sbs.foreach { 
       _.foreach { sb =>
-        emitln(s"${qv(sb)} = CrossbarBits(${quote(sb.vouts.map( out => muxIdx(out)))})")
-        emitln(s"${qs(sb)} = CrossbarBits(${quote(sb.souts.map( out => muxIdx(out)))})")
-        emitln(s"${qc(sb)} = CrossbarBits(${quote(sb.couts.map( out => muxIdx(out)))})")
+        emitXbar(s"${qv(sb)}", sb.vouts)
+        emitXbar(s"${qs(sb)}", sb.souts)
+        emitXbar(s"${qc(sb)}", sb.couts)
       }
     }
   }
 
-  def emitCtrBits(pcu:ComputeUnit) = {
+  def lookUp(n:IP):String = { lookUp(ipmap(n)) }
+
+  def lookUp(n:PI[PModule]):String = fimap.get(n) match {
+    case None => s"SrcValueTuple()"
+    case Some(o) => 
+      val (src, value) = o.src match {
+        case s:PCtr => ("CounterSrc", s.index)
+        case s:PSMem => ("ScalarFIFOSrc", s.index)
+        case s:PVMem => ("VectorFIFOSrc", s.index)
+        case s:PConst =>
+          val const = pmmap.pmap(s)
+          const match {
+            case s:Const if s.isBool => ("ConstSrc", s.value)
+            case s:Const if s.isInt => ("ConstSrc", s.value)
+            case s:Const if s.isFloat => ("ConstSrc", s.value)
+          }
+        case s:PPR =>
+          n.src match {
+            case fs:PPR if fs.stage.prev == s.stage => ("PrevStageSrc", s.index) 
+            case fs:PPR if fs.stage == s.stage => ("CurrStageSrc", s.index)
+          }
+        case s:PFU => ("ALUSrc", 0)
+      }
+      s"SrcValueTuple($src, $value)"
+  }
+
+  def lookUp(n:PO[PModule]):List[String] = {
+    fimap.pmap(n).toList.map { i =>
+      val (src,value) =  i.src match {
+        case s:PPR =>
+          n.src match {
+            case ts:PFU => ("CurrStageDst", s"${s.reg.index}")
+          }
+        case s:PGO[_] if networkOf(s).isVectorNetwork => ("VectorOutDst", s.index)
+        case s:PGO[_] if networkOf(s).isScalarNetwork => ("ScalarOutDst", s.index)
+      }
+      s"SrcValueTuple($src, $value)"
+    }
+  }
+
+  def emitCtrBits(pcu:PCU) = {
     val cu = clmap.pmap(pcu)
     pcu.ctrs.foreach { pctr =>
-      val ctrBit = ctmap.pmap.get(pctr) match { 
-        case None => s"CounterRCBits.zeros(${spade.wordWidth})" 
-        case Some(ctr) => 
-          s"CounterRCBits(max=)"
+      ctmap.pmap.get(pctr).foreach { ctr =>
+        val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})(new CounterConfig(${spade.wordWidth}, 0, 0))"
+        emitln(s"${q(pcu, "ctrs")}(${pctr.index}) = $ctrBit")
       }
-      emitln(s"val ${q(pcu, pctr)} = $ctrBit")
     }
   }
 
-  def emitCChainBis(pcu:ComputeUnit) = {
+  def emitCChainBis(pcu:PCU) = {
     val cu = clmap.pmap(pcu)
     val pctrs = pcu.ctrs
     val chain = List.tabulate(pctrs.size-1) { i =>
@@ -98,7 +156,32 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         else 0
       } else 0
     }
-    emitln(s"val ${q(pcu, "cc")} = CounterChainBits(${quote(chain)}, ${quote(pcu.ctrs.map(ctr => q(pcu, ctr)))})")
+    emitln(s"val ${q(pcu, "ctrs")} = Array.tabulate(${pcu.ctrs.size}) { i => CounterRCBits.zeroes(${spade.wordWidth})}")
+    emitln(s"val ${q(pcu, "cc")} = CounterChainBits(${quote(chain)}, ${q(pcu, "ctrs")})(CounterChainConfig(${spade.wordWidth}, ${pcu.ctrs.size}, 0, 0))")
+  }
+
+  def emitFwdRegs(pst:PST) = {
+    emitln(s"val ${q(pst, "fwd")} = Array.tabulate(${pst.prs.size}) { i => SrcValueTuple() }")
+    pst.prs.foreach { pr =>
+      if (fimap.contains(pr.in)) {
+        emitln(s"${q(pst, "fwd")}(${pr.reg.index}) = ${lookUp(pr.in)}")
+      }
+    }
+  }
+
+  def emitStageBits(pcu:PCU) = {
+    emitln(s"val ${q(pcu, "sts")} = Array.tabulate(${pcu.fustages.size}) { i => PipeStageBits.zeroes(${pcu.regs.size}, ${spade.wordWidth})}")
+    val cu = clmap.pmap(pcu)
+    pcu.fustages.foreach { pst =>
+      stmap.pmap.get(pst).foreach { st =>
+        val pfu = pst.funcUnit.get
+        val fu = st.fu.get
+        val oprds = pfu.operands.map(lookUp)
+        emitFwdRegs(pst)
+        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, ${q(pst, "fwd")})(new PipeStageBundle(${pcu.regs.size}, ${spade.wordWidth}))"
+        emitln(s"${q(pcu, "sts")}(${pst.index}) = $stBit")
+      }
+    }
   }
 
   def emitCUBits = {
@@ -106,97 +189,99 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       _.foreach { pcu =>
         val (x,y) = pcu.coord
         val bitTp = pcu match {
-          case cu:MemoryComputeUnit => "MCUBits"
-          case cu:ComputeUnit => "PCUBits"
+          case cu:PMCU => "PMU"
+          case cu:PCU => "PCU"
         }
-        val cuBit = clmap.pmap.get(pcu) match { 
-          case None => s"$bitTp.zeros($cuParams($x)($y))" 
-          case Some(cu) => 
-            emitCtrBits(pcu)
-            emitCChainBis(pcu)
-            s"$bitTp(${q(pcu, "cc")}, ${q(pcu, "sx")}, ${q(pcu, "sp")}, ${q(pcu, "st")}, ${q(pcu, "cb")}, ${q(pcu, "si")}, ${0})" //TODO
+        clmap.pmap.get(pcu).foreach { cu => 
+          emitCChainBis(pcu)
+          emitCtrBits(pcu)
+          emitStageBits(pcu)
+          emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")})(${bitTp}Config(cuParams($x)($y)))")
         }
-        emitln(s"${quote(pcu)} = $cuBit")
       }
     }
   }
 
-  def toBinary(x: Any, w: Int): List[Int] = x match {
-    //case num: Int => List.tabulate(w) { j => if (BigInt(num).testBit(j)) 1 else 0 }
-    case num: Float => toBinary(java.lang.Float.floatToRawIntBits(num), w)
-    case l: List[Any] => l.map { e => toBinary(e, w/l.size) }.flatten
-    case _ => throw new Exception("Unsupported type for toBinary")
-  }
-
-  def emitRegs(cu:ComputeUnit) = {
+  def emitRegs(cu:PCU) = {
   }
   
-  def emitStages(cu:ComputeUnit) = {
-  }
-
   def emitPlasticineBits = {
     val cuArray = spade.cuArray
-    emitln(s"val cus = Array.fill(${cuArray.size})(Array.ofDim[ComputeUnitBits](${cuArray.head.size}))")
-    emitln(s"val csbs = Array.fill(${sbs.size})(Array.ofDim[CrossbarBits](${sbs.head.size}))")
-    emitln(s"val vsbs = Array.fill(${sbs.size})(Array.ofDim[CrossbarBits](${sbs.head.size}))")
-    emitln(s"val ssbs = Array.fill(${sbs.size})(Array.ofDim[CrossbarBits](${sbs.head.size}))")
+    emitLambda(s"val cus:Array[Array[CUBits]] = Array.tabulate(${cuArray.size}, ${cuArray.head.size})", "case (i,j)") {
+      emitBlock(s"cuParams(i)(j) match") {
+        emitln("case p:PCUParams => PCUBits.zeroes(p)")
+        emitln("case p:PMUParams => PMUBits.zeroes(p)")
+      }
+    }
+    emitLambda(s"val csbs = Array.tabulate(${sbs.size}, ${sbs.head.size})", "case (i,j)") {
+      emitln(s"CrossbarBits.zeroes(controlSwitchParams(i)(j))")
+    }
+    emitLambda(s"val ssbs = Array.tabulate(${sbs.size}, ${sbs.head.size})", "case (i,j)") {
+      emitln(s"CrossbarBits.zeroes(scalarSwitchParams(i)(j))")
+    }
+    emitLambda(s"val vsbs = Array.tabulate(${sbs.size}, ${sbs.head.size})", "case (i,j)") {
+      emitln(s"CrossbarBits.zeroes(vectorSwitchParams(i)(j))")
+    }
     implicit val ms = new CollectionStatus(false)
+    emitln(s"val plasticineConfig = PlasticineConfig(cuParams, vectorSwitchParams, scalarSwitchParams, controlSwitchParams, plasticineParams, fringeParams)")
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
       emitComma(s"cu=cus")
       emitComma(s"vectorSwitch=vsbs")
       emitComma(s"scalarSwitch=ssbs")
       emitComma(s"controlSwitch=csbs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
-    }
+    }("(plasticineConfig)")
   }
 
-  def quote(n:Node):String = n match {
-    case n:EmptyStage => s"EmptyStage"
-    case n:WAStage => s"WAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:RAStage => s"RAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:ScalarComputeUnit => 
+  def quote(n:PNode):String = n match {
+    //case n:EmptyStage => s"EmptyStage"
+    //case n:WAStage => s"WAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
+    //case n:RAStage => s"RAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
+    //case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
+    case n:PSCU => 
       val (x, y) = coordOf(n)
       x match {
         case -1 => s"scus(0)($y)"
         case `numCols` => s"scus(1)($y)"
       }
-    case n:MemoryComputeUnit =>
+    case n:PMCU =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"
-    case n:ComputeUnit =>
+    case n:PCU =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"
   }
 
   def qv(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:PSB => 
       val (x, y) = coordOf(n)
       s"vsbs($x)($y)"
     case n => quote(n)
   }
 
   def qs(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:PSB => 
       val (x, y) = coordOf(n)
       s"ssbs($x)($y)"
     case n => quote(n)
   }
 
   def qc(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:PSB => 
       val (x, y) = coordOf(n)
       s"csbs($x)($y)"
     case n => quote(n)
   }
 
-  def q(n:ComputeUnit, pm:String):String = {
+  def q(n:PCU, pm:String):String = {
     val (x, y) = coordOf(n)
     s"${pm}_${x}_${y}"
   }
 
-  def q(n:ComputeUnit, ctr:Counter):String = {
-    val (x, y) = coordOf(n)
-    s"ctr${ctr.index}_${x}_${y}"
+  def q(p:PPRIM, pm:String):String = {
+    val i = p.index
+    val pcu = p.pne
+    val (x, y) = coordOf(pcu)
+    s"${pm}${i}_${x}_${y}"
   }
 }

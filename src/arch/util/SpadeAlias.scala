@@ -27,6 +27,7 @@ trait SpadeAlias {
   type PRDST     = ReduceStage
   type PSMem     = ScalarMem
   type PVMem     = VectorMem
+  type PPRIM     = Primitive
   type PI[S<:PModule]       = Input[_<:PortType,S]
   type PO[S<:PModule]       = Output[_<:PortType,S]
   type PGI[S<:PModule] = GlobalInput[_<:PortType, S]

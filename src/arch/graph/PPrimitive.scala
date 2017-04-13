@@ -136,10 +136,10 @@ class Stage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkElement) extend
   regs.foreach { reg => _prs += (reg -> PipeReg(this, reg)) }
   def prs:List[PipeReg] = regs.map { r => _prs(r) }
   def get(reg:ArchReg):PipeReg = _prs(reg)
-  var pre:Option[Stage] = None // changed in addStage in PController
+  var prev:Option[Stage] = None // changed in addStage in PController
   var next:Option[Stage] = None 
   def isLast = next.isEmpty
-  def isHead = pre.isEmpty
+  def isHead = prev.isEmpty
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
   override val typeStr = "st"

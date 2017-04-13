@@ -84,8 +84,14 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 
+  implicit def self:GridNetwork = this
+
   type P <: PortType
   def io(cu:NetworkElement):GridIO[P, NetworkElement]
+
+  def isVectorNetwork = this.isInstanceOf[VectorNetwork]
+  def isScalarNetwork = this.isInstanceOf[ScalarNetwork]
+  def isControlNetwork = this.isInstanceOf[CtrlNetwork]
 
   def cuArray:List[List[ComputeUnit]] = spade.cuArray
   def mcArray:List[List[MemoryController]] = spade.mcArray

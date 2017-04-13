@@ -45,7 +45,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + ((k, v)))
   def setVO(k:VOMap.K, v:VOMap.V):PIRMap = set(vomap + ((k, v)))
   def setSM(k:SMMap.K, v:SMMap.V):PIRMap = set(smmap + ((k, v)))
-  def setCt(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + ((k, v)))
+  def setCT(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + ((k, v)))
   def setFI(k:FIMap.K, v:FIMap.V):PIRMap = set(fimap + ((k, v)))
   def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + ((k, v)))
   def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + ((k, v)))
@@ -238,7 +238,7 @@ object STMap extends IBiOneToOneObj {
   def empty:STMap = STMap(Map.empty, Map.empty)
 }
 /* FanIn map: a mapping between a PInput and the POutput it connects to */
-case class FIMap(map:FIMap.M) extends IOneToOneMap {
+case class FIMap(map:FIMap.M, pmap:FIMap.IM) extends IBiManyToOneMap {
   type K = FIMap.K
   type V = FIMap.V
   override type M = FIMap.M
@@ -247,13 +247,19 @@ case class FIMap(map:FIMap.M) extends IOneToOneMap {
     val (i, o) = rec
     assert(i.canConnect(o), s"$i cannot connect to $o but trying map $i to $o in FIMap")
   }
-  override def + (rec:(K,V)) = { check(rec); FIMap(map + rec) }
+  override def + (rec:(K,V)) = { 
+    check(rec); 
+    val set:Set[K] = (pmap.getOrElse(rec._2, Set.empty) + rec._1)
+    val v:V = rec._2
+    val npmap:IM = pmap + ((v, set))
+    FIMap(map + rec, npmap)
+  }
   def get(k:PGI[_<:PModule]) = { map.get(k).asInstanceOf[Option[PGO[_<:PModule]]] }
 }
-object FIMap extends IOneToOneObj {
+object FIMap extends IBiManyToOneObj {
   type K = PI[_<:PModule]
   type V = PO[_<:PModule]
-  def empty:FIMap = FIMap(Map.empty)
+  def empty:FIMap = FIMap(Map.empty, Map.empty)
 }
 /* A mapping between InPort and PInPort */
 case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {

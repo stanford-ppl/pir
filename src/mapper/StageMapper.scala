@@ -52,7 +52,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
         preLiveOuts = stage.liveOuts 
       } else {
         pstage.prs.foreach { ppr =>
-          if (ppregs.contains(ppr.reg)) fimap += ppr.in -> pstage.pre.get.get(ppr.reg).out
+          if (ppregs.contains(ppr.reg)) fimap += ppr.in -> pstage.prev.get.get(ppr.reg).out
         }
       }
     }

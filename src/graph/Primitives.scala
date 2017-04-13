@@ -444,4 +444,8 @@ case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Node {
       case Const(value:Float) => Const(value)
     }
   }
+
+  def isBool = value.isInstanceOf[Boolean]
+  def isInt = value.isInstanceOf[Int]
+  def isFloat = value.isInstanceOf[Float]
 }

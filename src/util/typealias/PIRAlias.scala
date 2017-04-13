@@ -23,6 +23,7 @@ trait PIRAlias {
   type FOR   = FIFOOnRead
   type FOW   = FIFOOnWrite
   type SMem  = ScalarMem
+  type SFIFO = ScalarFIFO
   type VFIFO = VectorFIFO
   type CC    = CounterChain
   type Ctr   = Counter

@@ -17,14 +17,6 @@ trait ScalaCodegen extends Printer {
   }
   def quote(n:Iterable[_]):String = s"List(${n.mkString(",")})"
 
-  def emitLambda(s:String, ins:Any*)(block: =>Any) = { 
-    emitBS(s"$s ")
-    val input = if (ins.size==1) { s"${ins.head}" } else { s"case (${ins.mkString(",")})" }
-    emitln(s"${input} =>")
-    block
-    emitBEln
-  }
-
   def emitComma(implicit ms:CollectionStatus):Unit = { 
     if (ms.inScope) { 
       if (ms.firstPair) ms.firstPair = false 
@@ -37,13 +29,26 @@ trait ScalaCodegen extends Printer {
     emit(s)
   }
 
-  def emitInst(s:String)(block: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
+  def emitInst(s:String)(block: CollectionStatus=>Unit)(e:String)(implicit ms:CollectionStatus):Unit = { 
     emitComma;
-    emitBlock(s, Parentheses) {
+    emitBlock(s, None, Some(e), Parentheses) {
       block(new CollectionStatus())
       pprintln
     }
   }
+
+  def emitLambda[T](s:String, ss:String)(block: =>T):T = { 
+    emitBlock(s=s, ss=Some(ss), es=None)(block)
+  }
+
+  def emitBlock[T](s:String, ss:Option[String]=None, es:Option[String]=None, b:Braces=CurlyBraces)(block: =>T):T = { 
+    emitBS(s"$s ", b)
+    ss.foreach { ss => emit(s"$ss =>") }
+    emitln
+    val res = block
+    emitBE(b)
+    es.foreach { es => emit(es) }
+    emitln
+    res
+  }
 }
-
-

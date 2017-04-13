@@ -56,9 +56,9 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitFringeParam = {
-    emitBlock(s"val fringeParams = new FringeParams") {
-      emitln(s"val numArgIns = ${spade.top.numArgIns}")
-      emitln(s"val numArgOuts = ${spade.top.numArgOuts}")
+    emitBlock(s"override val fringeParams = new FringeParams") {
+      emitln(s"override val numArgIns = ${spade.top.numArgIns}")
+      emitln(s"override val numArgOuts = ${spade.top.numArgOuts}")
       emitln(s"override val dataWidth = ${spade.wordWidth}")
     }
   }

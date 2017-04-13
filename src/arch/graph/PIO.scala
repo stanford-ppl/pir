@@ -202,32 +202,30 @@ trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
 
   def src:NE
   def tp:P
-  def inputs(num:Int)(implicit spade:Spade):List[GlobalInput[P, NE]] = 
-    List.tabulate(num) { is => GlobalInput(tp, src) }
-  def outputs(num:Int)(implicit spade:Spade):List[GlobalOutput[P, NE]] = 
-    List.tabulate(num) { is => GlobalOutput(tp, src) }
-  def addInAt(dir:String, num:Int)(implicit spade:Spade):List[GlobalInput[P, NE]] = { 
+  def inputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = 
+    List.tabulate(num) { i => val in = GlobalInput(tp, src); networkOf(in) = nt; in }
+  def outputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalOutput[P, NE]] = 
+    List.tabulate(num) { i => val out = GlobalOutput(tp, src); networkOf(out) = nt; out }
+  def addInAt(dir:String, num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = { 
     val ibs = inputs(num)
-    ibs.zipWithIndex.foreach { case (ib, i) => ib }
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
     ibs
   }
-  def addOutAt(dir:String, num:Int)(implicit spade:Spade):List[GlobalOutput[P, NE]] = {
+  def addOutAt(dir:String, num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalOutput[P, NE]] = {
     val obs = outputs(num)
-    obs.zipWithIndex.foreach { case (ob, i) => ob }
     outMap.getOrElseUpdate(dir, ListBuffer.empty) ++= obs
     obs
   }
-  def addIOAt(dir:String, num:Int)(implicit spade:Spade):NE = {
+  def addIOAt(dir:String, num:Int)(implicit spade:Spade, nt:GridNetwork):NE = {
     addInAt(dir,num)
     addOutAt(dir,num)
     src
   }
-  def addIns(num:Int)(implicit spade:Spade):NE = { 
+  def addIns(num:Int)(implicit spade:Spade, nt:GridNetwork):NE = { 
     addInAt("N", num)
     src
   }
-  def addOuts(num:Int)(implicit spade:Spade):NE = {
+  def addOuts(num:Int)(implicit spade:Spade, nt:GridNetwork):NE = {
     addOutAt("N", num)
     src
   }

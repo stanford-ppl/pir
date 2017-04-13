@@ -35,6 +35,8 @@ trait Spade extends SpadeMetadata {
   
   val simulatable = ListBuffer[Simulatable]()
   def config:Unit = {}
+
+  def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
 }
 
 trait PointToPointNetwork extends Spade {
