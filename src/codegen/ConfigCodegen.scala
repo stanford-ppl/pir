@@ -33,6 +33,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def sbs = spade.sbArray
   def cus = spade.cuArray
   def ocus = spade.ocuArray
+  def scus = spade.scuArray
+  def mcs = spade.mcArray
 
   override implicit def spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
@@ -114,8 +116,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           }
         case s:PPR =>
           n.src match {
-            case fs:PPR if fs.stage.prev == s.stage => ("PrevStageSrc", s.index) 
-            case fs:PPR if fs.stage == s.stage => ("CurrStageSrc", s.index)
+            case ts:PPR if ts.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index) 
+            case ts:PPR if ts.stage == s.stage => ("CurrStageSrc", s.reg.index)
+            case ts:PPR => throw new Exception(s"toStage=${quote(ts.stage)} prev=${ts.stage.prev.map(quote).getOrElse("None")} currStage=${quote(s.stage)}")
           }
         case s:PFU => ("ALUSrc", 0)
       }
@@ -141,7 +144,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     pcu.ctrs.foreach { pctr =>
       ctmap.pmap.get(pctr).foreach { ctr =>
         val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})"
-        emitln(s"${q(pcu, "ctrs")}(${pctr.index}) = $ctrBit")
+        emitln(s"${quote(pctr)}(${pctr.index}) = $ctrBit")
       }
     }
   }
@@ -162,25 +165,32 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitFwdRegs(pst:PST) = {
-    emitln(s"val ${q(pst, "fwd")} = Array.tabulate(${pst.prs.size}) { i => SrcValueTuple() }")
     pst.prs.foreach { pr =>
       if (fimap.contains(pr.in)) {
-        emitln(s"${q(pst, "fwd")}(${pr.reg.index}) = ${lookUp(pr.in)}")
+        emitln(s"${quote(pr)} = ${lookUp(pr.in)}")
       }
     }
   }
 
-  def emitStageBits(pcu:PCU) = {
+  def emitStages(pcu:PCU) = {
     emitln(s"val ${q(pcu, "sts")} = Array.tabulate(${pcu.fustages.size}) { i => PipeStageBits.zeroes(${pcu.regs.size}, ${spade.wordWidth})}")
+  }
+
+  def emitStageBits(pcu:PCU) = {
     val cu = clmap.pmap(pcu)
     pcu.fustages.foreach { pst =>
-      stmap.pmap.get(pst).foreach { st =>
+      stmap.pmap.get(pst).fold {
+        if (pst.prs.exists{ pr => fimap.contains(pr.in)}) {
+          emitFwdRegs(pst)
+        }
+      } { st =>
         val pfu = pst.funcUnit.get
         val fu = st.fu.get
         val oprds = pfu.operands.map(lookUp)
+        val fwd = "Array.tabulate(${pst.prs.size}) { i => SrcValueTuple() }"
+        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, $fwd)"
+        emitln(s"${quote(pst)} = $stBit")
         emitFwdRegs(pst)
-        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, ${q(pst, "fwd")})"
-        emitln(s"${q(pcu, "sts")}(${pst.index}) = $stBit")
       }
     }
   }
@@ -194,11 +204,29 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           case cu:PCU => "PCU"
         }
         clmap.pmap.get(pcu).foreach { cu => 
-          emitCChainBis(pcu)
-          emitCtrBits(pcu)
-          emitStageBits(pcu)
-          emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")})")
+          emitCommentBlock(s"Configuring ${quote(pcu)} <- $cu") {
+            emitCChainBis(pcu)
+            emitStages(pcu)
+            emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")})")
+            emitCtrBits(pcu)
+            emitStageBits(pcu)
+          }
         }
+      }
+    }
+    scus.foreach {
+      _.foreach { cu =>
+        //TODO
+      }
+    }
+    ocus.foreach {
+      _.foreach { cu =>
+        //TODO
+      }
+    }
+    mcs.foreach {
+      _.foreach { mc =>
+        //TODO
       }
     }
   }
@@ -254,6 +282,16 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     case n:PCU =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"
+    case n:PST =>
+      s"${quote(n.pne)}.stages(${n.index})"
+    case n:PCtr =>
+      s"${quote(n.pne)}.counterChain.counters(${n.index})"
+    case n:PPR =>
+      val pcu = n.pne
+      val pst = n.stage
+      s"${quote(pst)}.fwd(${n.reg.index})"
+    case n =>
+      pir.plasticine.util.quote(n)
   }
 
   def qv(n:Any):String = n match {
@@ -282,10 +320,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     s"${pm}_${x}_${y}"
   }
 
-  def q(p:PPRIM, pm:String):String = {
-    val i = p.index
-    val pcu = p.pne
-    val (x, y) = coordOf(pcu)
-    s"${pm}${i}_${x}_${y}"
-  }
+  //def q(p:PPRIM, pm:String):String = {
+    //val i = p.index
+    //val pcu = p.pne
+    //s"${quote(pcu)}.${pm}($i)"
+  //}
 }

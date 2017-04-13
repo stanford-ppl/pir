@@ -25,6 +25,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   lazy val cus = spade.cuArray
   lazy val sbs = spade.sbArray
+  lazy val ocus = spade.ocuArray
 
   override def splitPreHeader:Unit = {
     emitHeader
@@ -34,7 +35,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     emitln(s"self:TopParams =>")
     emitln(s"import plasticineParams._")
     val fn = if (isSplitting) s"${fileNumber}" else s""
-    emitBSln(s"def genParams$fn:Unit = {")
+    emitBSln(s"def genParams$fn:Unit = ")
   }
 
   override def splitPreFooter:Unit = {
@@ -51,7 +52,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   def traverse = {
     emitHeader
-    emitSplit(emitPCUParams)
+    emitSplit(emitParams)
     emitTopParams
     emitParamClass
     emitMixed {
@@ -87,6 +88,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override lazy val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
       emitln(s"override lazy val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
       emitln(s"override lazy val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
+      emitln(s"override lazy val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[PMUParams](${sbs.head.size}))")
       emitln(s"override lazy val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
     }
   }
@@ -136,14 +138,14 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     }
   }
 
-  def emitPCUParams = {
+  def emitParams = {
     cus.foreach { case row =>
       row.foreach { case cu =>
-        val temp = cu match {
+        val param = cu match {
           case mcu:MemoryComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
           case cu:ComputeUnit => s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
         }
-        emitln(s"${quote(cu)} = $temp")
+        emitln(s"${quote(cu)} = $param")
       }
     }
 
@@ -162,6 +164,14 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
         emitln(s"${qc(sb)} = ControlSwitchParams(numIns=${sb.cins.size}, numOuts=${sb.couts.size})")
       }
     }
+
+    ocus.foreach { row =>
+      row.foreach { cu =>
+        //TODO
+        val param = s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+        emitln(s"${quote(cu)} = $param")
+      }
+    }
   }
 
   def quote(n:Node):String = n match {
@@ -178,6 +188,9 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     case n:MemoryComputeUnit =>
       val (x, y) = coordOf(n)
       s"cuParams($x)($y)"
+    case n:OuterComputeUnit =>
+      val (x, y) = coordOf(n)
+      s"switchCUParams($x)($y)"
     case n:ComputeUnit =>
       val (x, y) = coordOf(n)
       s"cuParams($x)($y)"

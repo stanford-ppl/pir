@@ -55,4 +55,6 @@ trait ScalaCodegen extends Printer {
     emitln
     res
   }
+
+  def emitCommentBlock[T](s:String)(block: =>T):T = { emitBSln(s"// $s "); val res = block; emitBE("// "); emitln; res }
 }

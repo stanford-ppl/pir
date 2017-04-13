@@ -58,6 +58,7 @@ trait Printer {
   def emitBEln:Unit = { emitBE; pprintln }
   def emitBE(b:Braces):Unit = { decLevel; emit(b.e) }
   def emitBE:Unit = { decLevel; emit(CurlyBraces.e) }
+  def emitBE(s:String):Unit = { decLevel; emit(s"$s ${CurlyBraces.e}") }
   def emitBlock[T](block: =>T):T = { emitBSln; val res = block; emitBEln; res }
   def emitBlock[T](b:Braces)(block: =>T):T = { emitBSln(b); val res = block; emitBEln(b); res }
   def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
