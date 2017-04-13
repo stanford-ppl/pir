@@ -23,6 +23,9 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
+  lazy val cus = spade.cuArray
+  lazy val sbs = spade.sbArray
+
   override def splitPreHeader:Unit = {
     emitHeader
   }
@@ -30,6 +33,12 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   override def splitPostHeader:Unit = {
     emitln(s"self:TopParams =>")
     emitln(s"import plasticineParams._")
+    val fn = if (isSplitting) s"${fileNumber}" else s""
+    emitBSln(s"def genParams$fn:Unit = {")
+  }
+
+  override def splitPreFooter:Unit = {
+    emitBEln
   }
 
   def emitHeader = {
@@ -45,7 +54,13 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     emitSplit(emitPCUParams)
     emitTopParams
     emitParamClass
-    emitMixed(splitPostHeader)
+    emitMixed {
+      splitPostHeader
+      (0 until fileNumber).foreach { i =>
+        emitln(s"genParams${i+1}")
+      }
+      splitPreFooter
+    }
   }
 
   def emitTopParams = {
@@ -56,25 +71,23 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitFringeParam = {
-    emitBlock(s"override val fringeParams = new FringeParams") {
-      emitln(s"override val numArgIns = ${spade.top.numArgIns}")
-      emitln(s"override val numArgOuts = ${spade.top.numArgOuts}")
-      emitln(s"override val dataWidth = ${spade.wordWidth}")
+    emitBlock(s"override lazy val fringeParams = new FringeParams") {
+      emitln(s"override lazy val numArgIns = ${spade.top.numArgIns}")
+      emitln(s"override lazy val numArgOuts = ${spade.top.numArgOuts}")
+      emitln(s"override lazy val dataWidth = ${spade.wordWidth}")
     }
   }
   
   def emitPlasticineParams = {
-    val cuArray = spade.cuArray
-    emitBlock(s"val plasticineParams = new PlasticineParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val numRows = ${numRows}")
-      emitln(s"override val numCols = ${numCols}")
-      emitln(s"override val cuParams = Array.fill(${cuArray.size})(Array.ofDim[CUParams](${cuArray.head.size}))")
-      val sbs = spade.sbArray
-      emitln(s"val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
-      emitln(s"val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
-      emitln(s"val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
-      emitln(s"val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
+    emitBlock(s"override lazy val plasticineParams = new PlasticineParams") {
+      emitln(s"override lazy val w = ${spade.wordWidth}")
+      emitln(s"override lazy val numRows = ${numRows}")
+      emitln(s"override lazy val numCols = ${numCols}")
+      emitln(s"override lazy val cuParams = Array.fill(${cus.size})(Array.ofDim[CUParams](${cus.head.size}))")
+      emitln(s"override lazy val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
+      emitln(s"override lazy val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
+      emitln(s"override lazy val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
+      emitln(s"override lazy val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
     }
   }
 
@@ -124,9 +137,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitPCUParams = {
-    val cuArray = spade.cuArray
-    val sbs = spade.sbArray
-    cuArray.foreach { case row =>
+    cus.foreach { case row =>
       row.foreach { case cu =>
         val temp = cu match {
           case mcu:MemoryComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
@@ -137,7 +148,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     }
 
     //val scus = spade.scuArray
-    //emitln(s"val scus = Array.fill(${cuArray.size})(Array.ofDim[Module](${cuArray.head.size}))")
+    //emitln(s"val scus = Array.fill(${cus.size})(Array.ofDim[Module](${cus.head.size}))")
     //scus.foreach { scu =>
       //emitln(s"${quote(scu)} = Module(new SCU(scuParam)))")
     //}

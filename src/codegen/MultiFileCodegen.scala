@@ -13,24 +13,25 @@ import java.io.File
 
 trait MultiFileCodegen extends Printer {
   var lineNumber:Int = 0
-  var fileNumber:Int = 1
+  var fileNumber:Int = 0
   var printer:Printer = this
 
   def traitName:String 
   def dir:String
+
+  def isSplitting = printer != this
 
   override def pprintln(s:String):Unit = pprint(s"$s\n")
   override def pprintln:Unit = pprintln("") 
   override def pprint(s:String):Unit = {
     if (lineNumber > 100) {
       closeFile
-      fileNumber += 1
       openFile
     }
-    if (printer == this)
-      super.pprint(s)
-    else {
+    if (isSplitting) {
       printer.pprint(s); lineNumber += 1
+    } else {
+      super.pprint(s)
     }
   }
 
@@ -47,6 +48,7 @@ trait MultiFileCodegen extends Printer {
   }
 
   def openFile = {
+    fileNumber += 1
     printer = new Printer {
       override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
     }

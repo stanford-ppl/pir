@@ -37,6 +37,10 @@ trait ScalaCodegen extends Printer {
     }
   }
 
+  def emitLambda[T](s:String)(block: =>T):T = { 
+    emitBlock(s=s, ss=None, es=None)(block)
+  }
+
   def emitLambda[T](s:String, ss:String)(block: =>T):T = { 
     emitBlock(s=s, ss=Some(ss), es=None)(block)
   }
