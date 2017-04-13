@@ -49,6 +49,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(s"import GeneratedTopParams._")
     emitln(s"import plasticine.templates._")
     emitln(s"import plasticine.pisa.enums._")
+    emitln(s"import plasticine.config._")
     emitln(1)
   }
 
@@ -139,7 +140,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     val cu = clmap.pmap(pcu)
     pcu.ctrs.foreach { pctr =>
       ctmap.pmap.get(pctr).foreach { ctr =>
-        val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})(new CounterConfig(${spade.wordWidth}, 0, 0))"
+        val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})"
         emitln(s"${q(pcu, "ctrs")}(${pctr.index}) = $ctrBit")
       }
     }
@@ -157,7 +158,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       } else 0
     }
     emitln(s"val ${q(pcu, "ctrs")} = Array.tabulate(${pcu.ctrs.size}) { i => CounterRCBits.zeroes(${spade.wordWidth})}")
-    emitln(s"val ${q(pcu, "cc")} = CounterChainBits(${quote(chain)}, ${q(pcu, "ctrs")})(CounterChainConfig(${spade.wordWidth}, ${pcu.ctrs.size}, 0, 0))")
+    emitln(s"val ${q(pcu, "cc")} = CounterChainBits(${quote(chain)}, ${q(pcu, "ctrs")})")
   }
 
   def emitFwdRegs(pst:PST) = {
@@ -178,7 +179,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         val fu = st.fu.get
         val oprds = pfu.operands.map(lookUp)
         emitFwdRegs(pst)
-        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, ${q(pst, "fwd")})(new PipeStageBundle(${pcu.regs.size}, ${spade.wordWidth}))"
+        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, ${q(pst, "fwd")})"
         emitln(s"${q(pcu, "sts")}(${pst.index}) = $stBit")
       }
     }
@@ -196,7 +197,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           emitCChainBis(pcu)
           emitCtrBits(pcu)
           emitStageBits(pcu)
-          emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")})(${bitTp}Config(cuParams($x)($y)))")
+          emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")})")
         }
       }
     }
@@ -223,14 +224,14 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitln(s"CrossbarBits.zeroes(vectorSwitchParams(i)(j))")
     }
     implicit val ms = new CollectionStatus(false)
-    emitln(s"val plasticineConfig = PlasticineConfig(cuParams, vectorSwitchParams, scalarSwitchParams, controlSwitchParams, plasticineParams, fringeParams)")
+
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
       emitComma(s"cu=cus")
       emitComma(s"vectorSwitch=vsbs")
       emitComma(s"scalarSwitch=ssbs")
       emitComma(s"controlSwitch=csbs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
-    }("(plasticineConfig)")
+    }("")
   }
 
   def quote(n:PNode):String = n match {
