@@ -49,7 +49,6 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(s"import GeneratedTopParams._")
     emitln(s"import plasticine.templates._")
     emitln(s"import plasticine.pisa.enums._")
-    emitln(s"import plasticine.config._")
     emitln(1)
   }
 
