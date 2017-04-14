@@ -113,7 +113,7 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
       //emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
     }
     emitNode(design.top, design.top)
-    val command = design.top.command 
+    val command = design.top.ctrlBox.command 
     command.to.foreach { to => emitEdge(to, "command") }
     //TODO: Somehow dot fails if add this edge
     //val status = design.top.status

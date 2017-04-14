@@ -24,68 +24,76 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def map(cu:CL, pirMap:M):M = {
     log(cu) {
-      mapCtrl(cu, pirMap)
-    }
-  }
-
-  def mapCtrl(cu:CL, pirMap:M):M = {
-    var pmap = pirMap
-    val pcu = pmap.clmap(cu).asInstanceOf[PCU]
-    val pcb = pcu.ctrlBox
-    assert(cu.couts.size <= pcu.ctrlIO.outs.size)
-    assert(cu.cins.size <= pcu.ctrlIO.ins.size)
-    assert(cu.ctrlBox.udcounters.size <= pcu.ctrlBox.udcs.size)
-    //assert(cu.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
-    //assert(cu.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
-    //assert(cu.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
-
-    var ucmap = pmap.ucmap
-    var pmmap = pmap.pmmap
-    /* Up-Down Counter mapping */
-    cu.ctrlBox.udcounters.groupBy { case (_, udc) => 
-      // Whether an udc can placed in the first pudc or not
-      udc.out.to.map{_.src}.collect{case enlut:EnLUT => enlut}.exists{_.ins.exists{_.from.src.isInstanceOf[AT]} } 
-    }.foreach {
-      case (true, udcs) => udcs.zip(pcb.udcs.tail.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
-      case (false, udcs) => udcs.zip(pcb.udcs.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
-    }
-
-    /* Enable LUT mapping */
-    cu.ctrlBox.enLUTs.foreach { enLut =>
-      val ctr = enLut.out.to.flatMap{ _.src match {
-          case ctr:Ctr if ctr.ctrler == enLut.ctrler => Some(ctr)
-          case _ => None 
-        }
-      }.head
-      val pctr = pmap.ctmap(ctr)
-      //val penLut = pcb.enLUTs(indexOf(pctr))
-      //assert(enLut.ins.size <= penLut.numIns)
-      //pmmap += (enLut -> penLut)
-    }
-
-    def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
-      pluts.foreach { plut =>
-        assert(lut.ins.size <= plut.numIns)
-        if (!pmmap.pmap.contains(plut)) {
-          pmmap += (lut -> plut)
-          return
-        }
+      cu match {
+        //case cu:MP => mapCtrl(cu, pirMap)
+        //case cu:SP => mapCtrl(cu, pirMap)
+        //case cu:ICL => mapCtrl(cu, pirMap)
+        //case cu:SC => mapCtrl(cu, pirMap)
+        //case cu:OCL => mapCtrl(cu, pirMap)
+        case cu:Top => mapCtrl(cu, pirMap)
+        case cu => pirMap
       }
-      throw PIRException(s"Cannot map ${lut} in ${lut.ctrler} ${pcu} pluts:${pluts}}")
     }
-
-    /* TokenDown LUT mapping */
-    //cu.tokDownLUTs.foreach { tdlut => 
-      //findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !pmmap.pmap.contains(plut)))
-    //}
-
-    /* TokenOut LUT mapping */
-    //cu.tokOutLUTs.foreach { tolut => 
-      //findPto(tolut, pcb.tokenOutLUTs.filter(plut => !pmmap.pmap.contains(plut)))
-    //}
-
-    pmap.set(ucmap).set(pmmap)
   }
+
+  //def mapCtrl(cu:CL, pirMap:M):M = {
+    //var pmap = pirMap
+    //val pcu = pmap.clmap(cu).asInstanceOf[PCU]
+    //val pcb = pcu.ctrlBox
+    //assert(cu.couts.size <= pcu.ctrlIO.outs.size)
+    //assert(cu.cins.size <= pcu.ctrlIO.ins.size)
+    //assert(cu.ctrlBox.udcounters.size <= pcu.ctrlBox.udcs.size)
+    ////assert(cu.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
+    ////assert(cu.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
+    ////assert(cu.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
+
+    //var ucmap = pmap.ucmap
+    //var pmmap = pmap.pmmap
+    ///* Up-Down Counter mapping */
+    //cu.ctrlBox.udcounters.groupBy { case (_, udc) => 
+      //// Whether an udc can placed in the first pudc or not
+      //udc.out.to.map{_.src}.collect{case enlut:EnLUT => enlut}.exists{_.ins.exists{_.from.src.isInstanceOf[AT]} } 
+    //}.foreach {
+      //case (true, udcs) => udcs.zip(pcb.udcs.tail.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
+      //case (false, udcs) => udcs.zip(pcb.udcs.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
+    //}
+
+    ///* Enable LUT mapping */
+    //cu.ctrlBox.enLUTs.foreach { enLut =>
+      //val ctr = enLut.out.to.flatMap{ _.src match {
+          //case ctr:Ctr if ctr.ctrler == enLut.ctrler => Some(ctr)
+          //case _ => None 
+        //}
+      //}.head
+      //val pctr = pmap.ctmap(ctr)
+      ////val penLut = pcb.enLUTs(indexOf(pctr))
+      ////assert(enLut.ins.size <= penLut.numIns)
+      ////pmmap += (enLut -> penLut)
+    //}
+
+    //def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
+      //pluts.foreach { plut =>
+        //assert(lut.ins.size <= plut.numIns)
+        //if (!pmmap.pmap.contains(plut)) {
+          //pmmap += (lut -> plut)
+          //return
+        //}
+      //}
+      //throw PIRException(s"Cannot map ${lut} in ${lut.ctrler} ${pcu} pluts:${pluts}}")
+    //}
+
+    ///* TokenDown LUT mapping */
+    ////cu.tokDownLUTs.foreach { tdlut => 
+      ////findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !pmmap.pmap.contains(plut)))
+    ////}
+
+    ///* TokenOut LUT mapping */
+    ////cu.tokOutLUTs.foreach { tolut => 
+      ////findPto(tolut, pcb.tokenOutLUTs.filter(plut => !pmmap.pmap.contains(plut)))
+    ////}
+
+    //pmap.set(ucmap).set(pmmap)
+  //}
 
   def mapCtrl(cu:ICL, pirMap:M):M = {
     var mp = pirMap
@@ -93,14 +101,24 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapDone(cu:CU, pirMap:M):M = {
+  //def mapDone(cu:CU, pirMap:M):M = {
+    //var mp = pirMap
+    //val pcu = pirMap.clmap(cu)
+    //val pcb = pcu.ctrlBox
+    ////val pOCtr = pirMap.ctmap(cu.localCChain.outer)
+    ////mp = mp.setFI(pcb.doneXbar.in, pOCtr.done)
+    //mp
+  //} 
+
+  def mapCtrl(cu:Top, pirMap:M):M = {
     var mp = pirMap
     val pcu = pirMap.clmap(cu)
+    val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
-    //val pOCtr = pirMap.ctmap(cu.localCChain.outer)
-    //mp = mp.setFI(pcb.doneXbar.in, pOCtr.done)
+    mp = mapInPort(cb.status, pcb.status, mp)
+    mp = mapOutPort(cb.command, pcb.command, mp)
     mp
-  } 
+  }
 
 }
 

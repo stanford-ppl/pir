@@ -68,6 +68,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     emitBlock(s"object GeneratedTopParams extends TopParams with GeneratedParams") {
       emitFringeParam
       emitPlasticineParams
+      emitln(s"genParams")
     }
   }
 

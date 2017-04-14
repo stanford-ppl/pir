@@ -278,6 +278,21 @@ object OuterCtrlBox {
   def apply()(implicit ctrler:Controller, design:Design) = { new OuterCtrlBox() }
 }
 
+case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design) extends OuterCtrlBox() with StageCtrlBox {
+  // Connect to pulser SM if pipelining, connect to sibling and tree if streamming
+  val status = CtrlInPort(this, s"$this.status")
+  val command = CtrlOutPort(this, s"$this.command")
+  override def tokenDown:CtrlOutPort = command
+
+  override def ctrlIns:List[CtrlInPort]=  {
+    super.ctrlIns ++ List(status).filter { _.isCtrlIn }
+  }
+
+  override def ctrlOuts:List[CtrlOutPort] = { 
+    super.ctrlOuts ++ List(command).filter { _.isCtrlOut }
+  }
+}
+
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends InnerCtrlBox() {
   
   def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
