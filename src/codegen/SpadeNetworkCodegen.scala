@@ -27,9 +27,13 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitHeader
   }
 
+  val arguments = {
+    s"(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[PMU]])"
+  }
+
   override def splitPostHeader:Unit = {
     //emitln(s"self:$traitName with Plasticine =>")
-    emitBSln(s"def connect${fileNumber}(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ")
+    emitBSln(s"def connect${fileNumber}$arguments:Unit = ")
   }
 
   override def splitPreFooter:Unit = {
@@ -50,7 +54,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitSplit(emitNetwork)
     emitMixed {
       emitln(s"self:$traitName with Plasticine =>")
-      emitBlock(s"def connect(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]]):Unit = ") {
+      emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
           emitln(s"connect${i+1}(io, argOutMuxes, cus, vsbs, ssbs, csbs)")
         }
@@ -92,6 +96,15 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
         case -1 => s"scus(0)($y)"
         case `numCols` => s"scus(1)($y)"
       }
+    case n:MemoryController => 
+      val (x, y) = coordOf(n)
+      x match {
+        case -1 => s"mc(0)($y)"
+        case `numCols` => s"scus(1)($y)"
+      }
+    case n:OuterComputeUnit =>
+      val (x, y) = coordOf(n)
+      s"lcus($x)($y)"
     case n:MemoryComputeUnit =>
       val (x, y) = coordOf(n)
       s"cus($x)($y)"

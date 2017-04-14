@@ -140,6 +140,8 @@ class Stage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkElement) extend
   var next:Option[Stage] = None 
   def isLast = next.isEmpty
   def isHead = prev.isEmpty
+  def isPrev(s:Stage) = s.prev == Some(this)
+  def isNext(s:Stage) = s.next == Some(this)
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
   override val typeStr = "st"

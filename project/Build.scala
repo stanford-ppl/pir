@@ -42,7 +42,7 @@ object PIRBuild extends Build {
   )
 
   val cmds = Seq(hello, helloAll, failIfTrue, changeColor, printState)
-	lazy val pir = Project("pir", file("."), settings = bldSettings) settings(commands ++= cmds)
+	lazy val pir = Project("pir", file("."), settings = bldSettings).settings(commands ++= cmds)
 
   lazy val apps = Project("apps", file("apps"), 
         settings = bldSettings, 
@@ -50,4 +50,3 @@ object PIRBuild extends Build {
       ) settings(commands ++= cmds)
 
 }
-

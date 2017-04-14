@@ -26,6 +26,8 @@ trait Printer {
   def pw:PrintWriter = { bufferWriters.headOption.getOrElse(writer) }
   val tab = "  "
   var level = 0
+  def incLevel = level += 1
+  def decLevel = { level -= 1; assert(level >= 0) }
 
   def pprint(s:String):Unit = { pw.print(s); if (stdOut) flush }
   def pprintln(s:String):Unit = { pw.println(s); if (stdOut) flush }
@@ -44,18 +46,19 @@ trait Printer {
   def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
   def emitBSln(s:String, b:Braces):Unit = { emit(s); emitBSln(b) }
   def emitBSln(s:String):Unit = { emit(s); emitBSln }
-  def emitBSln(b:Braces):Unit = { pprintln(b.s); level += 1 }
-  def emitBSln:Unit = { pprintln(CurlyBraces.s); level += 1 }
+  def emitBSln(b:Braces):Unit = { pprintln(b.s); incLevel }
+  def emitBSln:Unit = { pprintln(CurlyBraces.s); incLevel }
   def emitBS(s:String, b:Braces):Unit = { emit(s); emitBS(b) }
   def emitBS(s:String):Unit = { emit(s); emitBS }
-  def emitBS(b:Braces):Unit = { pprint(b.s); level += 1 }
-  def emitBS:Unit = { pprint(CurlyBraces.s); level += 1 }
+  def emitBS(b:Braces):Unit = { pprint(b.s); incLevel }
+  def emitBS:Unit = { pprint(CurlyBraces.s); incLevel }
   def emitBEln(s:String, b:Braces):Unit = { emitBE(b); pprintln(s) }
   def emitBEln(s:String):Unit = { emitBE; pprintln(s) }
   def emitBEln(b:Braces):Unit = { emitBE(b); pprintln }
   def emitBEln:Unit = { emitBE; pprintln }
-  def emitBE(b:Braces):Unit = { level -= 1; emit(b.e) }
-  def emitBE:Unit = { level -= 1; emit(CurlyBraces.e) }
+  def emitBE(b:Braces):Unit = { decLevel; emit(b.e) }
+  def emitBE:Unit = { decLevel; emit(CurlyBraces.e) }
+  def emitBE(s:String):Unit = { decLevel; emit(s"$s ${CurlyBraces.e}") }
   def emitBlock[T](block: =>T):T = { emitBSln; val res = block; emitBEln; res }
   def emitBlock[T](b:Braces)(block: =>T):T = { emitBSln(b); val res = block; emitBEln(b); res }
   def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
