@@ -56,7 +56,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       emitln(s"self:$traitName with Plasticine =>")
       emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(io, argOutMuxes, cus, vsbs, ssbs, csbs)")
+          emitln(s"connect${i+1}(io, argOutMuxes, cus, vsbs, ssbs, csbs, lcus)")
         }
       }
     }

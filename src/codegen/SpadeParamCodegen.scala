@@ -73,23 +73,23 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   def emitFringeParam = {
     emitBlock(s"override lazy val fringeParams = new FringeParams") {
-      emitln(s"override lazy val numArgIns = ${spade.top.numArgIns}")
-      emitln(s"override lazy val numArgOuts = ${spade.top.numArgOuts}")
-      emitln(s"override lazy val dataWidth = ${spade.wordWidth}")
+      emitln(s"override val numArgIns = ${spade.top.numArgIns}")
+      emitln(s"override val numArgOuts = ${spade.top.numArgOuts}")
+      emitln(s"override val dataWidth = ${spade.wordWidth}")
     }
   }
   
   def emitPlasticineParams = {
     emitBlock(s"override lazy val plasticineParams = new PlasticineParams") {
-      emitln(s"override lazy val w = ${spade.wordWidth}")
-      emitln(s"override lazy val numRows = ${numRows}")
-      emitln(s"override lazy val numCols = ${numCols}")
-      emitln(s"override lazy val cuParams = Array.fill(${cus.size})(Array.ofDim[CUParams](${cus.head.size}))")
-      emitln(s"override lazy val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
-      emitln(s"override lazy val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
-      emitln(s"override lazy val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
-      emitln(s"override lazy val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[PMUParams](${sbs.head.size}))")
-      emitln(s"override lazy val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
+      emitln(s"override val w = ${spade.wordWidth}")
+      emitln(s"override val numRows = ${numRows}")
+      emitln(s"override val numCols = ${numCols}")
+      emitln(s"override val cuParams = Array.fill(${cus.size})(Array.ofDim[CUParams](${cus.head.size}))")
+      emitln(s"override val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
+      emitln(s"override val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
+      emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
+      emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[PMUParams](${sbs.head.size}))")
+      emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
     }
   }
 
