@@ -547,9 +547,6 @@ case class Top()(implicit design: Design) extends Controller { self =>
     list.toList.reverse
   }
 
-  val command = CtrlOutPort(this, s"${this}.command")
-  val status = CtrlInPort(this, s"${this}.status")
-
   private var _scalars:List[Scalar] = Nil
   def scalars:List[Scalar] = _scalars
   def scalars(scalars:List[Scalar]) = _scalars = scalars
@@ -558,7 +555,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def vectors:List[Vector] = _vectors
   def vectors(vectors:List[Vector]) = _vectors = vectors
 
-  override lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()(this, design)
+  override lazy val ctrlBox:TopCtrlBox = TopCtrlBox()(this, design)
   
   override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null
 

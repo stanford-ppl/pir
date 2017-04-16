@@ -141,7 +141,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
         case top:Top =>
       }
       cu match {
-        case cu@(_:OuterController | _:Top) =>
+        case cu@(_:Top) =>
+          val cb = cu.ctrlBox.asInstanceOf[TopCtrlBox]
+          val lasts = cu.children.filter{_.isLast}
+          assert(lasts.size==1)
+          cb.status.connect(lasts.head.ctrlBox.done)
+        case cu@(_:OuterController) =>
           val cb = cu.ctrlBox.asInstanceOf[OuterCtrlBox]
           val lasts = cu.children.filter{_.isLast}
           lasts.foreach { last =>

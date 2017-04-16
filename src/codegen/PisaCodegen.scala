@@ -85,14 +85,14 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
       design.arch match {
         case sn:SwitchNetwork =>
           // Status
-          val status = fimap(vimap(design.top.status))
+          val status = fimap(vimap(design.top.ctrlBox.status))
           val bottomRow = sn.sbArray.map{_.head}
           val topRow = sn.sbArray.map{_.last}
           val obs = bottomRow.flatMap{_.scalarIO.outAt("S")} ++ topRow.flatMap{_.scalarIO.outAt("N")}
           val idx = obs.indexOf(status)
           emitPair(s"done", s"$idx")
           // ArgOutBus
-          val ao = vimap(design.top.status)
+          val ao = vimap(design.top.ctrlBox.status)
           assert(design.arch.top.vins.size==1)
           if (!design.top.vins.isEmpty) {
             assert(design.top.vins.size==1)
