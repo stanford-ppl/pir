@@ -144,7 +144,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     pcu.ctrs.foreach { pctr =>
       ctmap.pmap.get(pctr).foreach { ctr =>
         val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})"
-        emitln(s"${quote(pctr)}(${pctr.index}) = $ctrBit")
+        emitln(s"${quote(pctr)} = $ctrBit")
       }
     }
   }
@@ -187,7 +187,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         val pfu = pst.funcUnit.get
         val fu = st.fu.get
         val oprds = pfu.operands.map(lookUp)
-        val fwd = "Array.tabulate(${pst.prs.size}) { i => SrcValueTuple() }"
+        val fwd = s"Array.tabulate(${pst.prs.size}) { i => SrcValueTuple() }"
         val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, $fwd)"
         emitln(s"${quote(pst)} = $stBit")
         emitFwdRegs(pst)
@@ -249,7 +249,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitln(s"CrossbarBits.zeroes(vectorSwitchParams(i)(j))")
     }
     emitLambda(s"val lcus = Array.tabulate(${ocus.size}, ${ocus.head.size})", "case (i,j)") {
-      emitln(s"CrossbarBits.zeroes(switchCUParams(i)(j))")
+      emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
     implicit val ms = new CollectionStatus(false)
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
