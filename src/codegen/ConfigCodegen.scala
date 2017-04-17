@@ -16,7 +16,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def shouldRun = true
   import spademeta._
 
-  val traitName = s"$design".replace(s"$$", "")
+  val appName = s"$design".replace(s"$$", "")
+  val traitName = appName + "Trait"
   lazy val dir = sys.env("PLASTICINE_HOME") + s"/src/main/scala/apps/$design"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
@@ -45,6 +46,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(s"import plasticine.arch._")
     emitln(s"import chisel3._")
     emitln(s"import plasticine.spade._")
+    emitln(s"import plasticine.pisa.PISADesign")
     emitln(s"import plasticine.pisa.ir._")
     emitln(s"import chisel3.util._")
     emitln(s"import scala.collection.mutable.ListBuffer")
@@ -55,16 +57,21 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(1)
   }
 
+  def emitAppObject { // Yaqi: Check/fix
+    emitln(s"object $appName extends PISADesign with $traitName")
+  }
+
   override def splitPreHeader:Unit = {
     emitHeader
   }
 
   override def splitPostHeader:Unit = {
-    emitln(s"self:InOutArg =>")
+    emitln(s"self:$traitName =>")
   }
 
   def traverse = {
     emitHeader
+    emitAppObject
     emitSplit {
       emitCrossbarBits
       emitCUBits
@@ -231,6 +238,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
+  def emitMain {
+    emitln("def main(args: String*) = plasticineBits")
+  }
+
   def emitPlasticineBits = {
     val cuArray = spade.cuArray
     emitLambda(s"val cus:Array[Array[CUBits]] = Array.tabulate(${cuArray.size}, ${cuArray.head.size})", "case (i,j)") {
@@ -252,6 +263,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
     implicit val ms = new CollectionStatus(false)
+
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
       emitComma(s"cu=cus")
       emitComma(s"vectorSwitch=vsbs")
@@ -260,6 +272,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"switchCU=lcus")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
     }("")
+
+    emitMain
   }
 
   def quote(n:PNode):String = n match {
