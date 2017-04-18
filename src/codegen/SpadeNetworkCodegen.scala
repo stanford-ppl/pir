@@ -28,7 +28,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
   }
 
   val arguments = {
-    s"(io:PlasticineIO, argOutMuxes:List[MuxN], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[PMU]])"
+    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
   }
 
   override def splitPostHeader:Unit = {
@@ -56,7 +56,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       emitln(s"self:$traitName with Plasticine =>")
       emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(io, argOutMuxes, cus, vsbs, ssbs, csbs, lcus)")
+          emitln(s"connect${i+1}(io, argOutMuxIns, cus, vsbs, ssbs, csbs, lcus)")
         }
       }
     }
@@ -161,7 +161,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     val n = io.src
     val i = io.index
     n match {
-      case n:Top if io.isIn => s"argOutMuxes($i).io.ins(${io.indexOf(from)})"
+      case n:Top if io.isIn => s"argOutMuxIns($i)(${io.indexOf(from)})"
       case n => qs(io)
     }
   }

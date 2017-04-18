@@ -89,7 +89,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val vectorSwitchParams = Array.fill(${sbs.size})(Array.ofDim[VectorSwitchParams](${sbs.head.size}))")
       emitln(s"override val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
       emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
-      emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[PMUParams](${sbs.head.size}))")
+      emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
       emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
     }
   }
@@ -137,14 +137,21 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitStages(mcu)
       emitln(s"override val r = regColors.size")
     }
+
+//    val scu = spade.sbs.head
+    emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
+      emitln(s"override val w = ${spade.wordWidth}")
+      emitln(s"override val numCounters = 8") // Yaqi: Fix
+    }
+
   }
 
   def emitParams = {
     cus.foreach { case row =>
       row.foreach { case cu =>
         val param = cu match {
-          case mcu:MemoryComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
-          case cu:ComputeUnit => s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+          case mcu:MemoryComputeUnit => s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+          case cu:ComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
         }
         emitln(s"${quote(cu)} = $param")
       }
@@ -169,7 +176,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     ocus.foreach { row =>
       row.foreach { cu =>
         //TODO
-        val param = s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+        val param = s"GeneratedSwitchCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.cins.size}, ${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")
       }
     }

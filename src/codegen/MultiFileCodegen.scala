@@ -74,8 +74,8 @@ trait MultiFileCodegen extends Printer {
   }
 
   def emitMixed(block: => Unit):Unit = {
-    //emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"${traitName}${i+1}").mkString(" with ")}") {
-    emitBlock(s"trait $traitName extends ${traitName}${fileNumber}") {
+    emitBlock(s"trait $traitName extends ${(0 until fileNumber).map(i => s"${traitName}${i+1}").mkString(" with ")}") {
+//    emitBlock(s"trait $traitName extends ${traitName}${fileNumber}") {
       block
     }
   }
