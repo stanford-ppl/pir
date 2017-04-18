@@ -76,6 +76,7 @@ trait OnChipMem extends Primitive {
   def asSRAM = this.asInstanceOf[SRAM]
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
+  def asBuf = this.asInstanceOf[LocalBuffer]
   val swapRead = Input(Bit(), this, s"${this}.swapRead")
   val swapWrite = Input(Bit(), this, s"${this}.swapWrite")
 }

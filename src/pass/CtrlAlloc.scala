@@ -12,12 +12,16 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
 class CtrlAlloc(implicit design: Design) extends Pass with Printer {
+  import pirmeta._
+
   def shouldRun = Config.ctrl
 
   override lazy val stream = newStream(s"CtrlAlloc.txt")
 
   override def traverse:Unit = {
-    swapAlloc 
+    design.top.ctrlers.foreach { ctrler =>
+      swapAlloc(ctrler)
+    }
     ctrlAlloc
   } 
 
@@ -36,26 +40,24 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
     cchains.minBy{_.ctrler.ancestors.size} // outer most CounterChain should have least ancesstors
   }
 
-  def swapAlloc = {
-    design.top.compUnits.foreach { 
-      case cu =>
-        cu.mems.foreach {
-          case mem:MultiBuffering if mem.buffering > 1 =>
-            val swapReadDone = mem.consumer match {
-              case ccu:MemoryPipeline if (mem.isInstanceOf[ScalarMem]) => // Check used in read or write addr calculation
-                val cchains = mem.readPort.to.map{_.src}.collect{ case c:Counter => c.cchain }.toSet
-                emitln(s"$mem consumer:${mem.consumer}, mem.readPort(${mem.readPort.to.mkString(",")}), cchains:${cchains.mkString(",")}")
-                getOuterMostCChain(cchains)
-              case cu:ComputeUnit => cu.localCChain
-              case top:Top => throw PIRException(s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
-            }
-            //cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
-            //cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
-            mem.swapRead.connect(getDone(cu, swapReadDone))
-            mem.swapWrite.connect(getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
-          case mem =>
-        }
-    }
+  def swapAlloc(ctrler:Controller) = ctrler match {
+    case cu:ComputeUnit =>
+      cu.mems.foreach {
+        case mem:MultiBuffering if mem.buffering > 1 =>
+          val swapReadCtr = mem.consumer match {
+            case cu:MemoryPipeline if forRead(mem) => cu.readCChains.last
+            case cu:MemoryPipeline if forWrite(mem) => cu.writeCChains.last
+            case cu:ComputeUnit => cu.localCChain
+            case top:Top => 
+              throw PIRException(
+                s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
+          }
+          mem.swapRead.connect(getDone(cu, swapReadCtr))
+          //TODO remove scalar swapWrite
+          mem.swapWrite.connect(getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
+        case mem =>
+      }
+    case _ =>
   }
 
   def ctrlAlloc = {
@@ -104,11 +106,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
                   }
                 }
             }
-            mem match {
-              case mem:SRAMOnRead =>
-                mem.ctrler.ctrlBox.asInstanceOf[MemCtrlBox].readEn.connect(cb.siblingAndTree.out)
-              case _ =>
-            }
+            //mem match {
+              //case mem:SRAMOnRead =>
+                //mem.ctrler.ctrlBox.asInstanceOf[MemCtrlBox].readEn.connect(cb.siblingAndTree.out)
+              //case _ =>
+            //}
           }
           cu.trueProduced.foreach { mem =>
             mem.buffering match {
@@ -131,10 +133,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
               case n =>
                 throw PIRException(s"$cu's parent is ${parent} but produced mem:$mem is $n")
             }
-            mem match {
-              case mem:SRAMOnWrite => // TODO: writeEn is from databus
-              case _ =>
-            }
+            //mem match {
+              //case mem:SRAMOnWrite => 
+              //case _ =>
+            //}
           }
           if (cu.isHead) {
             val tk = cb.tokenBuffer(cu.parent)

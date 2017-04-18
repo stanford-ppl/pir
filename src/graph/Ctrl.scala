@@ -142,7 +142,7 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   override val name = None
   override val typeStr = "CtrlBox"
 
-  val tokenBuffers = Map[Any, TokenBuffer]()
+  val tokenBuffers = Map[Any, TokenBuffer]() // Mem or Parent
   val creditBuffers = Map[Any, CreditBuffer]()
   def udcounters:Map[Any, UDCounter] = tokenBuffers ++ creditBuffers
   val enLUTs = ListBuffer[EnLUT]()
@@ -296,10 +296,8 @@ case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design)
 }
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends InnerCtrlBox() {
-  
-  def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
-  //def writeEn:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.localCChain).inner.en //goes along
-  //with data path
+  //def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
+  //def writeEn:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.asInstanceOf[ComputeUnit].localCChain).inner.en
 }
 
 

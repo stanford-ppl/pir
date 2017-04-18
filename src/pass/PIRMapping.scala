@@ -51,8 +51,8 @@ class PIRMapping(implicit design: Design) extends Pass {
   val ctrMapper = new CtrMapper() { 
     override def finPass(ctrler:ComputeUnit)(m:M):M = { 
       var mp = m
-      mp = ctrlMapper.map(ctrler, mp)
       mp = regAlloc.map(ctrler, mp)
+      mp = ctrlMapper.map(ctrler, mp)
       mp
     }
   }

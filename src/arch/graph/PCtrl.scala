@@ -72,15 +72,22 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
   val en = Delay(Bit(), 0)
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree() 
+  val fifoAndTree = AndTree()
+  val tokenInAndTree = AndTree()
+  val andTree = AndTree()
+  andTree <== tokenInAndTree.out
+  andTree <== fifoAndTree.out
 }
-class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
+
+class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {
   val doneXbar = Delay(Bit(), 0)
   val en = Delay(Bit(), 0)
   val childrenAndTree = AndTree() 
   val siblingAndTree = AndTree() 
   val pulserSM = PulserSM()
 }
-class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
+
+class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryComputeUnit) extends CtrlBox(numUDCs) {
   val readDoneXbar = Delay(Bit(), 0)
   val writeDoneXbar = Delay(Bit(), 0)
   val tokenInXbar = Delay(Bit(), 0)

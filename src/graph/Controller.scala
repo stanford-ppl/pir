@@ -403,16 +403,34 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
   }
   def data = dataOut.vector
 
-  lazy val writeCChain = { //TODO: fix for case when multiple cchains are copied for addr calculation
-    val wcc = cchains.filter { cc => forWrite(cc) }
-    assert(wcc.size==1)
-    wcc.head
+  def getChains(head:CounterChain) = {
+    val ccs = ListBuffer[CounterChain]()
+    var cur = head
+    ccs += cur
+    var outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
+    while (outerCCs.nonEmpty) {
+      assert(outerCCs.size==1)
+      cur = outerCCs.head
+      ccs += cur
+      outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
+    }
+    ccs.toList
   }
 
-  lazy val readCChain = {
-    val rcc = cchains.filter { cc => forRead(cc) }
-    assert(rcc.size==1)
-    rcc.head
+  lazy val writeCChains = {
+    val wccs = cchains.filter { cc => forWrite(cc) }
+    val heads = wccs.filterNot { _.inner.en.isConnected }
+    assert(heads.size==1)
+    val head = heads.head
+    getChains(head)
+  }
+
+  lazy val readCChains = {
+    val rccs = cchains.filter { cc => forRead(cc) }
+    val heads = rccs.filterNot { _.inner.en.isConnected }
+    assert(heads.size==1)
+    val head = heads.head
+    getChains(head)
   }
 
 }

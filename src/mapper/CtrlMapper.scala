@@ -7,6 +7,7 @@ import pir.util.enums._
 import pir.pass.{PIRMapping}
 import pir.codegen.{CUCtrlDotPrinter}
 import pir.exceptions._
+import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
@@ -27,90 +28,24 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def map(cu:CL, pirMap:M):M = {
     log(cu) {
       cu match {
-        case cu:MP => mapCtrl(cu, pirMap)
-        //case cu:SP => mapCtrl(cu, pirMap)
-        //case cu:ICL => mapCtrl(cu, pirMap)
-        //case cu:SC => mapCtrl(cu, pirMap)
-        //case cu:OCL => mapCtrl(cu, pirMap)
         case cu:Top => mapCtrl(cu, pirMap)
-        case cu => pirMap
+        case cu:CU => mapCtrl(cu, pirMap) 
       }
     }
   }
 
-  //def mapCtrl(cu:CL, pirMap:M):M = {
-    //var pmap = pirMap
-    //val pcu = pmap.clmap(cu).asInstanceOf[PCU]
-    //val pcb = pcu.ctrlBox
-    //assert(cu.couts.size <= pcu.ctrlIO.outs.size)
-    //assert(cu.cins.size <= pcu.ctrlIO.ins.size)
-    //assert(cu.ctrlBox.udcounters.size <= pcu.ctrlBox.udcs.size)
-    ////assert(cu.enLUTs.size <= pcu.ctrlBox.enLUTs.size)
-    ////assert(cu.tokDownLUTs.size <= pcu.ctrlBox.tokenDownLUTs.size)
-    ////assert(cu.tokOutLUTs.size <= pcu.ctrlBox.tokenOutLUTs.size)
-
-    //var ucmap = pmap.ucmap
-    //var pmmap = pmap.pmmap
-    ///* Up-Down Counter mapping */
-    //cu.ctrlBox.udcounters.groupBy { case (_, udc) => 
-      //// Whether an udc can placed in the first pudc or not
-      //udc.out.to.map{_.src}.collect{case enlut:EnLUT => enlut}.exists{_.ins.exists{_.from.src.isInstanceOf[AT]} } 
-    //}.foreach {
-      //case (true, udcs) => udcs.zip(pcb.udcs.tail.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
-      //case (false, udcs) => udcs.zip(pcb.udcs.filterNot{ pudc => ucmap.pmap.contains(pudc)}).foreach { case ((_, udc), pudc) => ucmap += (udc -> pudc) }
-    //}
-
-    ///* Enable LUT mapping */
-    //cu.ctrlBox.enLUTs.foreach { enLut =>
-      //val ctr = enLut.out.to.flatMap{ _.src match {
-          //case ctr:Ctr if ctr.ctrler == enLut.ctrler => Some(ctr)
-          //case _ => None 
-        //}
-      //}.head
-      //val pctr = pmap.ctmap(ctr)
-      ////val penLut = pcb.enLUTs(indexOf(pctr))
-      ////assert(enLut.ins.size <= penLut.numIns)
-      ////pmmap += (enLut -> penLut)
-    //}
-
-    //def findPto(lut:LUT, pluts:List[PLUT]):Unit = {
-      //pluts.foreach { plut =>
-        //assert(lut.ins.size <= plut.numIns)
-        //if (!pmmap.pmap.contains(plut)) {
-          //pmmap += (lut -> plut)
-          //return
-        //}
-      //}
-      //throw PIRException(s"Cannot map ${lut} in ${lut.ctrler} ${pcu} pluts:${pluts}}")
-    //}
-
-    ///* TokenDown LUT mapping */
-    ////cu.tokDownLUTs.foreach { tdlut => 
-      ////findPto(tdlut, pcb.tokenDownLUTs.filter(plut => !pmmap.pmap.contains(plut)))
-    ////}
-
-    ///* TokenOut LUT mapping */
-    ////cu.tokOutLUTs.foreach { tolut => 
-      ////findPto(tolut, pcb.tokenOutLUTs.filter(plut => !pmmap.pmap.contains(plut)))
-    ////}
-
-    //pmap.set(ucmap).set(pmmap)
-  //}
-
-  def mapCtrl(cu:ICL, pirMap:M):M = {
+  def mapCtrl(cu:CU, pirMap:M):M = {
     var mp = pirMap
-    mapCtrl(cu, pirMap)
+    val pcu = pirMap.clmap(cu)
+    mp = mapAndTree(cu.ctrlBox, pcu.ctrlBox, mp)
+    mp = mapDone(cu, pcu, mp)
+    mp = mapUDCs(cu, pcu, mp)
+    mp = mapSwapWrite(cu, pcu, mp)
+    mp = mapSwapRead(cu, pcu, mp)
+    mp = mapTokenOut(cu, pcu, mp)
+    mp = mapEn(cu, pcu, mp)
     mp
   }
-
-  //def mapDone(cu:CU, pirMap:M):M = {
-    //var mp = pirMap
-    //val pcu = pirMap.clmap(cu)
-    //val pcb = pcu.ctrlBox
-    ////val pOCtr = pirMap.ctmap(cu.localCChain.outer)
-    ////mp = mp.setFI(pcb.doneXbar.in, pOCtr.done)
-    //mp
-  //} 
 
   def mapCtrl(cu:Top, pirMap:M):M = {
     var mp = pirMap
@@ -119,17 +54,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     mp = mapInPort(cb.status, pcb.status, mp)
     mp = mapOutPort(cb.command, pcb.command, mp)
-    mp
-  }
-
-  def mapCtrl(cu:MP, pirMap:M):M = {
-    var mp = pirMap
-    val pcu = pirMap.clmap(cu)
-    val cb = cu.ctrlBox
-    val pcb = pcu.ctrlBox
-    mp = mapDone(cu, pcu, mp)
-    mp = mapSwapWrite(cu, pcu, mp)
-    mp = mapSwapRead(cu, pcu.ctrlBox, mp)
+    mp = mapTokenOut(cu, pcu, mp)
     mp
   }
 
@@ -138,23 +63,41 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     cu.mbuffers.foreach { mbuf =>
       val pmbuf = mp.smmap(mbuf)
       val psw = pmbuf.swapWrite
-      val po = mp.opmap(mbuf.swapWrite.from)
-      mp = mp.setFI(psw, po)
+      (mbuf, pcu) match {
+        case (mbuf:SRAM, pcu:PMCU) =>
+          mp = mp.setFI(psw, pcu.ctrlBox.writeDoneXbar.out)
+        case (mbuf:SMem, pcu:PCU) if mbuf.swapWrite.isCtrlIn =>
+          val pvi = mp.vimap(mbuf.swapWrite)
+          mp = mp.setFI(psw, pvi.ic)
+        case (mbuf:SMem, pcu:PCU) if !mbuf.swapWrite.isConnected =>
+        case (mbuf:SMem, pcu:PCU) =>
+          throw new Exception(s"$mbuf's swapWrite is not ctrlIn, ${mbuf.swapWrite.from}")
+      }
     }
-    //(cb.swapReads ++ cb.swapWrites).map { case (mbuf, (in, out)) =>
-    //}
     mp
   }
 
-  def mapSwapRead(cu:MP, pcb:PMCB, pirMap:M):M = {
+  def mapSwapRead(cu:CU, pcu:PCU, pirMap:M):M = {
     var mp = pirMap
-    cu.smems.foreach { 
-      case smem if forWrite(smem) =>
-        val psmem = mp.smmap(smem)
-        mp.setFI(psmem.swapRead, pcb.writeDoneXbar.out)
-      case smem if forRead(smem) =>
-        val psmem = mp.smmap(smem)
-        mp.setFI(psmem.swapRead, pcb.readDoneXbar.out)
+    val pcb = pcu.ctrlBox
+    cu.mbuffers.foreach { mbuf => 
+      (mbuf, pcb) match {
+        case (sram:SRAM, pcb:PMCB) =>
+          val psram = mp.smmap(sram)
+          mp.setFI(psram.swapRead, pcb.readDoneXbar.out)
+        case (smem:SMem, pcb:PMCB) if forWrite(smem) =>
+          val psmem = mp.smmap(smem)
+          mp.setFI(psmem.swapRead, pcb.writeDoneXbar.out)
+        case (smem:SMem, pcb:PMCB) if forRead(smem) =>
+          val psmem = mp.smmap(smem)
+          mp.setFI(psmem.swapRead, pcb.readDoneXbar.out)
+        case (smem:SMem, pcb:PICB) =>
+          val psmem = mp.smmap(smem)
+          mp.setFI(psmem.swapRead, pcb.doneXbar.out)
+        case (smem:SMem, pcb:POCB) =>
+          val psmem = mp.smmap(smem)
+          mp.setFI(psmem.swapRead, pcb.doneXbar.out)
+      }
     }
     mp
   }
@@ -163,8 +106,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     (cu, pcu) match {
       case (cu:MP, pcu:PMCU) =>
-        val writeCtr = mp.ctmap(cu.writeCChain.outer)
-        val readCtr = mp.ctmap(cu.readCChain.outer)
+        val writeCtr = mp.ctmap(cu.writeCChains.last.outer)
+        val readCtr = mp.ctmap(cu.readCChains.last.outer)
         mp = mp.setFI(pcu.ctrlBox.writeDoneXbar.in, writeCtr.done)
         mp = mp.setFI(pcu.ctrlBox.readDoneXbar.in, readCtr.done)
       case (cu:ICL, pcu:PCU) =>
@@ -196,17 +139,109 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapEn(cb:CB, pcb:PCB, pirMap:M):M = {
+  def mapEn(cu:CU, pcu:PCU, pirMap:M):M = {
     var mp = pirMap
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
+    pcb match {
+      case pcb:PMCB =>
+        mp = mp.setFI(pcb.readEn.in, pcb.readFIFOAndTree.out)
+        mp = mp.setFI(pcb.writeEn.in, pcb.writeFIFOAndTree.out)
+        cu.mems.foreach { mem =>
+          val pbuf = mp.smmap(mem).asBuf
+          mem match {
+            case mem if forRead(mem) => pcb.readFIFOAndTree <== pbuf.notEmpty
+            case mem if forWrite(mem) => pcb.writeFIFOAndTree <== pbuf.notEmpty
+          }
+        }
+        pcu.ctrs.foreach { pctr =>
+          mp.ctmap.pmap.get(pctr).foreach { ctr =>
+            if (ctr.en.isConnected) {
+              val prevCtr = ctr.en.from.src.asInstanceOf[Ctr]
+              val pPrevCtr = mp.ctmap(prevCtr)
+              mp = mp.setFI(pctr.en, pPrevCtr.done)
+            } else if (ctr==mp.clmap.pmap(pcb.pne).readCChains.head.inner) {
+              mp = mp.setFI(pctr.en, pcb.readEn.out)
+            } else if (ctr==mp.clmap.pmap(pcb.pne).writeCChains.head.inner) {
+              mp = mp.setFI(pctr.en, pcb.writeEn.out)
+            }
+          }
+        }
+      case pcb:POCB =>
+        mp = mp.setFI(pcb.en.in, pcb.childrenAndTree.out)
+      case pcb:PICB => // TODO check streaming or pipelining
+        //mp = mp.setFI(pcb.en.in, pcb.childrenAndTree.out)
+    }
     mp
   }
 
-  def mapTokenOut(cu:CU, pcu:PCU, pirMap:M):M = {
+  def mapTokenOut(cu:CL, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
+    val pcb = pcu.ctrlBox
     cu.ctrlBox.ctrlOuts.foreach { co =>
-      mp.vomap(co).foreach { pco =>
-        mp = mp.setFI(pco.ic, mp.opmap(co))
+      (co.src, pcb) match {
+        case (ctr:Ctr, pcb:PMCB) if forWrite(ctr) => // writeDone
+          assert(mp.fimap(pcb.writeDoneXbar.in) == mp.opmap(co))
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.writeDoneXbar.out)
+          }
+        case (ctr:Ctr, pcb:PMCB) if forRead(ctr) => // readDone
+          assert(mp.fimap(pcb.readDoneXbar.in) == mp.opmap(co))
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.readDoneXbar.out)
+          }
+        case (ctr:Ctr, pcb:PICB) => // done
+          assert(mp.fimap(pcb.doneXbar.in) == mp.opmap(co))
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.doneXbar.out)
+          }
+        case (ctr:Ctr, pcb:POCB) => // done
+          assert(mp.fimap(pcb.doneXbar.in) == mp.opmap(co))
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.doneXbar.out)
+          }
+        case (sbat:SBAT, pcb:PICB) => // siblingAndTree.out
+          assert(false, s"Unsupported connection from siblingAndTree to tokenOut in PCU")
+        case (sbat:SBAT, pcb:POCB) => // siblingAndTree.out
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.siblingAndTree.out)
+          }
+        case (cb:ICB, pcb:PICB) if co == cb.enableOut => // enableOut
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.en.out)
+          }
+        case (cb:OCB, pcb:POCB) if co == cb.pulserSMOut =>
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.pulserSM.out )
+          }
+        case (cb:TCB, pcb:PTCB) =>
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, pcb.command )
+          }
       }
+    }
+    mp
+  }
+
+  def mapUDCs(cu:CU, pcu:PCU, pirMap:M):M = {
+    var mp = pirMap
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
+    cb.udcounters.foreach { case (dep, udc) =>
+      val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.pmap.contains(pudc) }.head
+      mp = mp.setPM(udc, pudc).setIP(udc.inc, pudc.inc).setIP(udc.dec, pudc.dec).setOP(udc.out, pudc.out)
+      //TODO
+      //pcb match {
+        //case pcb:PICB =>
+          //assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
+          //mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
+        //case pcb:POCB =>
+          //assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
+          //mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
+      //}
+      assert(udc.inc.isCtrlIn)
+      val pvi = mp.vimap(udc.inc)
+      mp = mp.setFI(pudc.inc, pvi.ic)
     }
     mp
   }

@@ -153,11 +153,17 @@ object ConfigFactory extends Logger {
         cu.bufs.foreach { _.swapRead <== cb.doneXbar.out }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cb.siblingAndTree <== cb.udcs.map(_.out)
+        cb.udcs.foreach { udc =>
+          udc.inc <== cu.cins.map{_.ic}
+          udc.dec <== cb.doneXbar.out
+        }
         cu.couts.foreach { cout => 
           cout.ic <== cb.doneXbar.out
           cout.ic <== cb.siblingAndTree.out
           cout.ic <== cb.en.out
         }
+        cb.en.in <== cb.siblingAndTree.out
+        cb.en.in <== cb.andTree.out
       case cb:OuterCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
@@ -177,6 +183,7 @@ object ConfigFactory extends Logger {
           cout.ic <== cb.pulserSM.out
           cout.ic <== cb.siblingAndTree.out
         }
+        cb.en.in <== cb.childrenAndTree.out
       case cb:MemoryCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }

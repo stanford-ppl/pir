@@ -38,7 +38,6 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
   lazy val clmap:CLMap = mapping.clmap
   lazy val fimap:FIMap = mapping.fimap
   lazy val pmmap:PMMap = mapping.pmmap 
-  lazy val ucmap:UCMap = mapping.ucmap
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val rcmap:RCMap = mapping.rcmap
 
@@ -802,9 +801,9 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
       val udcComment = ListBuffer[String]()
       val initOnStart = ListBuffer[String]()
       pcb.udcs.map { pudc =>
-        if (ucmap.pmap.contains(pudc)) {
+        if (pmmap.pmap.contains(pudc)) {
           // inc
-          val udc = ucmap.pmap(pudc)
+          val udc = pmmap.pmap(pudc)
           val inc = if (udc.inc.isConnected) {
             val pcin = vimap(udc.inc)
             s""""${indexOf(pcin)}""""

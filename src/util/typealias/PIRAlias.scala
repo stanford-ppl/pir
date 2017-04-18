@@ -49,11 +49,13 @@ trait PIRAlias {
   type SCB   = StageCtrlBox
   type ICB   = InnerCtrlBox
   type OCB   = OuterCtrlBox
+  type TCB   = TopCtrlBox
   type LUT   = pir.graph.LUT
   type TOLUT = TokenOutLUT
   type TDLUT = TokenDownLUT
   type EnLUT = pir.graph.EnLUT
   type AT    = AndTree
+  type SBAT  = SiblingAndTree
   type UC    = UDCounter
   type Const = pir.graph.Const[_<:AnyVal]
   type Top   = pir.graph.Top
