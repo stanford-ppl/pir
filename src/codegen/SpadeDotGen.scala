@@ -167,9 +167,10 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
   }
 
-  def emitInput(pin:PI[PNE], mapping:Option[PIRMap])(implicit design:Design) = {
+  def emitInput(pin:PGI[PNE], mapping:Option[PIRMap])(implicit design:Design) = {
     val pne:PNE = pin.src
-    pin.fanIns.foreach { pout =>
+    pin.fanIns.foreach { po =>
+      val pout = po.asGlobal
       val attr = DotAttr()
       mapping.foreach { m => 
         if (m.fimap.get(pin).fold(false){ _ == pout }) {

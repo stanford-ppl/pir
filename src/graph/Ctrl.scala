@@ -154,34 +154,34 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   val tokInAndTree = TokenInAndTree()
   val andTree = AndTree(fifoAndTree.out, tokInAndTree.out)
   var tokenOut:Option[CtrlOutPort] = None 
-  val swapReads = Map[MultiBuffering, (Option[CtrlInPort], CtrlOutPort)]()
-  val swapWrites = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
-  def swapRead(mem:MultiBuffering, sr:CtrlOutPort) = {
-    mem match {
-      case mem:LocalMem => 
-        val co = sr 
-        assert(sr.ctrler == ctrler)
-        swapReads += mem -> (None,co)
-      case mem:RemoteMem => 
-        val ci = CtrlInPort(this, s"$mem.swapRead")
-        val co = CtrlOutPort(this, s"$mem.credit")
-        ci.connect(sr)
-        swapReads += mem -> (Some(ci),co)
-    }
-  }
-  def swapWrite(mem:MultiBuffering, sw:CtrlOutPort) = {
-    val ci = CtrlInPort(this, s"$mem.swapWrite")
-    val co = CtrlOutPort(this, s"$mem.token")
-    ci.connect(sw)
-    swapWrites += mem -> (ci,co)
-    ci
-  }
-  def swapRead(mem:MultiBuffering):CtrlOutPort = {
-    swapReads(mem)._2
-  }
-  def swapWrite(mem:MultiBuffering):CtrlOutPort = {
-    swapWrites(mem)._2
-  }
+  //val swapReads = Map[MultiBuffering, (Option[CtrlInPort], CtrlOutPort)]()
+  //val swapWrites = Map[MultiBuffering, (CtrlInPort, CtrlOutPort)]()
+  //def swapRead(mem:MultiBuffering, sr:CtrlOutPort) = {
+    //mem match {
+      //case mem:LocalMem => 
+        //val co = sr 
+        //assert(sr.ctrler == ctrler)
+        //swapReads += mem -> (None,co)
+      //case mem:RemoteMem => 
+        //val ci = CtrlInPort(this, s"$mem.swapRead")
+        //val co = CtrlOutPort(this, s"$mem.credit")
+        //ci.connect(sr)
+        //swapReads += mem -> (Some(ci),co)
+    //}
+  //}
+  //def swapWrite(mem:MultiBuffering, sw:CtrlOutPort) = {
+    //val ci = CtrlInPort(this, s"$mem.swapWrite")
+    //val co = CtrlOutPort(this, s"$mem.token")
+    //ci.connect(sw)
+    //swapWrites += mem -> (ci,co)
+    //ci
+  //}
+  //def swapRead(mem:MultiBuffering):CtrlOutPort = {
+    //swapReads(mem)._2
+  //}
+  //def swapWrite(mem:MultiBuffering):CtrlOutPort = {
+    //swapWrites(mem)._2
+  //}
   // only outer controller have token down, which is the init signal first child stage
 
   def tokenBuffer(dep:Any):TokenBuffer = { TokenBuffer(dep, 1) } //TODO
@@ -221,17 +221,19 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
       case cu:ComputeUnit => 
         cins ++= cu.cchains.map(_.inner.en).filter{ _.isCtrlIn }
         cins ++= cu.fifos.map { _.enqueueEnable }.filter{_.isCtrlIn}
+        cins ++= cu.mbuffers.map{ _.swapRead }.filter{ _.isCtrlIn }
+        cins ++= cu.mbuffers.map{ _.swapWrite }.filter{ _.isCtrlIn }
     }
     cins ++= tokInAndTree.ins
-    cins ++= swapReads.values.flatMap(_._1).filter{ _.isCtrlIn }
-    cins ++= swapWrites.values.map(_._1).filter{ _.isCtrlIn }
+    //cins ++= swapReads.values.flatMap(_._1).filter{ _.isCtrlIn }
+    //cins ++= swapWrites.values.map(_._1).filter{ _.isCtrlIn }
     cins.toSet.toList
   }
 
   def ctrlOuts:List[CtrlOutPort] = { 
     val couts = ListBuffer[CtrlOutPort]()
-    couts ++= swapReads.values.map(_._2).filter{ _.isCtrlOut }
-    couts ++= swapWrites.values.map(_._2).filter{ _.isCtrlOut }
+    //couts ++= swapReads.values.map(_._2).filter{ _.isCtrlOut }
+    //couts ++= swapWrites.values.map(_._2).filter{ _.isCtrlOut }
     ctrler match {
       case cu:ComputeUnit => 
         couts ++= cu.fifos.map { _.notFull }.filter{_.isCtrlOut}

@@ -153,7 +153,6 @@ object PIRPrinter {
               case _ =>
             }
           case n:OuterController =>
-            fields += s"inner=[${n.inner}]"
             fields += s"length=${n.length}"
         }
       case p:CounterChain =>

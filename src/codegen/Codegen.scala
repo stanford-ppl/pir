@@ -12,7 +12,6 @@ import java.io.PrintWriter
 import java.io.{File, FileInputStream, FileOutputStream}
 
 abstract class Codegen(implicit design:Design) extends Pass with Printer {
-  implicit def spade:Spade = design.arch
 
   def deleteFiles(file: File): Unit = {
     if (file.isDirectory) {
@@ -62,11 +61,6 @@ abstract class Codegen(implicit design:Design) extends Pass with Printer {
         copyFile(src, dst)
       }
     }
-  }
-
-  def quote(n:Any):String = n match {
-    case n:Node => pir.util.quote(n) 
-    case n:PNode => pir.plasticine.util.quote(n)
   }
 
   override def finPass = {

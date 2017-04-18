@@ -23,7 +23,7 @@ class LiveAnalysis(implicit design: Design) extends Pass {
         //else { cu.emptyStage }
       val empty = cu.emptyStage
       // Write Addr Stages
-      cu.wtAddrStages.foreach { was => stageAnalysis(was)(cu) }
+      stageAnalysis(cu.wtAddrStages)(cu)
       val locals = empty::cu.localStages.toList
       stageAnalysis(locals)(cu)
       // Interference Graph

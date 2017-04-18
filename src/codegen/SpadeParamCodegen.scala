@@ -19,7 +19,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
-  override implicit def spade = design.arch.asInstanceOf[SwitchNetwork]
+  override implicit lazy val spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 

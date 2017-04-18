@@ -38,7 +38,6 @@ abstract class Controller(implicit design:Design) extends Node {
     _.readers.map{ _.ctrler }
   }.toList
   def writers:List[Controller] = vinMap.keys.map(_.writer.ctrler).toList
-  def ctrlReaders:List[Controller] = couts.flatMap {_.to }.map { _.asInstanceOf[CtrlInPort].ctrler }.filter { _ != this }
 
   def ctrlBox:CtrlBox
 
@@ -138,8 +137,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   //  sins:List[ScalarIn] = _
   //  souts:List[ScalarOut] = _
   
-  def inner:InnerController
-
   lazy val localCChain:CounterChain = {
     this match {
       case cu:StreamPipeline =>
@@ -225,9 +222,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 
 class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
 
-  var inner:InnerController = _
-
-  override def toUpdate = super.toUpdate || inner == null 
+  override def toUpdate = super.toUpdate
 
   override def addCChain(cc:CounterChain):Unit = {
     assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
@@ -306,21 +301,14 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def fows:List[FIFOOnWrite] = mems.collect{ case sm:FIFOOnWrite => sm }
 
   /* Stages */
-  val rdAddrStages = ListBuffer[List[RAStage]]()
-  val wtAddrStages = ListBuffer[List[WAStage]]()
-  val localStages = ListBuffer[LocalStage]()
+  val _rdAddrStages = ListBuffer[RAStage]()
+  def rdAddrStages = _rdAddrStages.toList
+  val _wtAddrStages = ListBuffer[WAStage]()
+  def wtAddrStages = _wtAddrStages.toList
+  val _localStages = ListBuffer[LocalStage]()
+  def localStages = _localStages.toList 
 
-  override def stages = (emptyStage :: wtAddrStages.flatMap(l => l).toList ++ rdAddrStages.flatMap(l => l) ++ localStages).toList
-
-  def addWAStages(was:List[WAStage]) = {
-    wtAddrStages += was
-    was.foreach { wa => addStage(wa) }
-  }
-
-  def addRAStages(ras:List[RAStage]) = {
-    rdAddrStages += ras
-    ras.foreach { ra => addStage(ra) }
-  }
+  override def stages = (emptyStage :: wtAddrStages ++ rdAddrStages ++ localStages).toList
 
   def addStage(s:Stage):Unit = { 
     indexOf(s) = nextIndex
@@ -328,10 +316,9 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     s.prev = Some(prev)
     prev.next = Some(s)
     s match {
-      case ss:LocalStage =>
-        localStages += ss
-      case ss:WAStage => // WAstages are added in addWAStages 
-      case ss:RAStage => // RAstages are added in addRAStages 
+      case ss:LocalStage => _localStages += ss
+      case ss:WAStage => _wtAddrStages += ss
+      case ss:RAStage => _rdAddrStages += ss 
     }
   }
 
@@ -352,7 +339,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/
   var outers:List[OuterController] = Nil
-  def inner:InnerController = this
 
   /* Control Signals */
   lazy val ctrlBox:InnerCtrlBox = InnerCtrlBox()
@@ -363,7 +349,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
 
   /* Block updates */
-  override def reset =  { super.reset; localStages.clear; wtAddrStages.clear }
+  override def reset =  { super.reset; _localStages.clear; _wtAddrStages.clear; _rdAddrStages.clear }
 
 }
 
@@ -398,6 +384,7 @@ object UnitPipeline {
 
 /* Memory Pipeline */
 class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) {
+  import pirmeta._
 
   override val typeStr = "MemPipe"
   override lazy val ctrlBox:MemCtrlBox = MemCtrlBox()
@@ -415,6 +402,18 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
     dout
   }
   def data = dataOut.vector
+
+  lazy val writeCChain = { //TODO: fix for case when multiple cchains are copied for addr calculation
+    val wcc = cchains.filter { cc => forWrite(cc) }
+    assert(wcc.size==1)
+    wcc.head
+  }
+
+  lazy val readCChain = {
+    val rcc = cchains.filter { cc => forRead(cc) }
+    assert(rcc.size==1)
+    rcc.head
+  }
 
 }
 object MemoryPipeline {
@@ -526,27 +525,6 @@ case class Top()(implicit design: Design) extends Controller { self =>
     }
   }
 
-  def topoSort = {
-    val list = ListBuffer[Controller]()
-    def isDepFree(cl:Controller) = {
-      cl.isHead || cl.trueConsumed.forall { csm => list.contains(csm.producer) }
-    }
-    def addCtrler(cl:Controller):Unit = {
-      list += cl
-      var children = cl.children
-      while (!children.isEmpty) {
-        children = children.filter { child =>
-          if (isDepFree(child)) {
-            addCtrler(child)
-            false
-          } else { true }
-        }
-      }
-    }
-    addCtrler(top)
-    list.toList.reverse
-  }
-
   private var _scalars:List[Scalar] = Nil
   def scalars:List[Scalar] = _scalars
   def scalars(scalars:List[Scalar]) = _scalars = scalars
@@ -556,7 +534,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   def vectors(vectors:List[Vector]) = _vectors = vectors
 
   override lazy val ctrlBox:TopCtrlBox = TopCtrlBox()(this, design)
-  
+
   override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null
 
   def updateBlock(block:Top => Any)(implicit design: Design):Top = {

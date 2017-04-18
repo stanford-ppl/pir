@@ -62,14 +62,14 @@ class FusionTransform(implicit design: Design) extends Pass{
                   ccchain.addOuterCounter(cp)
                 }
                 ccu.removeCChainCopy(pcchain)
-                val iccchain = ccu.inner.getCopy(ccchain)
-                val ipcchain = ccu.inner.getCopy(pcchain)
-                ipcchain.counters.reverseIterator.foreach { ctr =>
-                  val cp = Counter(iccchain)(ccu.inner, design)
-                  cp.copy(ctr)
-                  iccchain.addOuterCounter(cp)
-                }
-                ccu.inner.removeCChainCopy(pcchain)
+                //val iccchain = ccu.inner.getCopy(ccchain)
+                //val ipcchain = ccu.inner.getCopy(pcchain)
+                //ipcchain.counters.reverseIterator.foreach { ctr =>
+                  //val cp = Counter(iccchain)(ccu.inner, design)
+                  //cp.copy(ctr)
+                  //iccchain.addOuterCounter(cp)
+                //}
+                //ccu.inner.removeCChainCopy(pcchain)
             }
             ccu.parent(pcu.parent)
             pcu.parent.addChildren(ccu) 
@@ -80,7 +80,7 @@ class FusionTransform(implicit design: Design) extends Pass{
         }
       }
     }
-    ForwardRef.collectOuters
+    //ForwardRef.collectOuters
   } 
 
   override def finPass = {

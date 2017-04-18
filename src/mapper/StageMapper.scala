@@ -23,7 +23,6 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   val typeStr = "StageMapper"
   override def debug = Config.debugSTMapper
   override val exceptLimit = 200
-  implicit val spade:Spade = design.arch
 
   def finPass(cu:ICL)(m:M):M = m
 

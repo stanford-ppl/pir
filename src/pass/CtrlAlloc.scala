@@ -49,8 +49,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
               case cu:ComputeUnit => cu.localCChain
               case top:Top => throw PIRException(s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
             }
-            cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
-            cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
+            //cu.ctrlBox.swapRead(mem, getDone(cu, swapReadDone))
+            //cu.ctrlBox.swapWrite(mem, getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
+            mem.swapRead.connect(getDone(cu, swapReadDone))
+            mem.swapWrite.connect(getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
           case mem =>
         }
     }
@@ -95,7 +97,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
                   mem.producer match {
                     case cu:ComputeUnit =>
                       val tk = cb.tokenBuffer(mem)
-                      tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
+                      //tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
+                      tk.inc.connect(mem.swapWrite.from)
                       cb.siblingAndTree.addInput(tk.out)
                     case top:Top => // No synchronization needed
                   }
@@ -118,7 +121,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
                         case mem:ScalarBuffer if (false) => // TODO Check scalar hardware buffer size?
                         case mem:OnChipMem =>
                           val cd = cb.creditBuffer(mem, n)
-                          cd.inc.connect(mem.ctrler.ctrlBox.swapRead(mem))
+                          //cd.inc.connect(mem.ctrler.ctrlBox.swapRead(mem))
+                          cd.inc.connect(mem.swapRead.from)
                           cb.siblingAndTree.addInput(cd.out)
                       }
                     case top:Top => // No synchronization needed

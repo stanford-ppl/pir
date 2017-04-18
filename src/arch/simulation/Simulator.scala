@@ -18,7 +18,6 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   implicit val sim:Simulator = this
   val vcd = if (Config.simulate) Some(new VcdPrinter(this)) else None
 
-  lazy val spade = design.arch
   lazy val mapping = design.mapping.get
 
   override lazy val stream = newStream("sim.log") 

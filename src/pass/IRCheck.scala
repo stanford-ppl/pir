@@ -12,9 +12,10 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
 class IRCheck(implicit design: Design) extends Pass {
+  import pirmeta._
+
   def shouldRun = true 
 
-  implicit def spade = design.arch
   override def traverse:Unit = {
     design.allNodes.foreach{ n => 
       if (n.toUpdate) {
@@ -25,46 +26,29 @@ class IRCheck(implicit design: Design) extends Pass {
       }
       n match {
         case top:Top => 
-          if (top.children.size!=1) throw PIRException(s"Top must have a single children!")
+          if (top.children.filter{_.isLast}.size!=1) throw PIRException("Top must have single last stage")
         case cu:OuterController =>
-          if (cu.children.size==1)
-            warn(s"Nested Single Stage. Control won't be correctly generated at the moment! ${cu} children:[${cu.children.mkString(",")}]")
+          //if (cu.children.size==1)
+            //warn(s"Nested Single Stage. Control won't be correctly generated at the moment! ${cu} children:[${cu.children.mkString(",")}]")
           cu match {
             case cu:StreamController =>
               cu.children.foreach { c =>
                 if (!c.isHead && !c.isInstanceOf[StreamPipeline])
                   throw PIRException("Only first stage in StreamController can be non-StreamPipeline")
-                if (c.isHead) {
-                  //assert(c.mems.collect{ case mem:FIFOOnRead => mem}.size==0, 
-                    //s"First stage of StreamController shouldn't have FIFOOnRead: ${c}")
-                } else {
-                  if (!c.ctrlBox.tokenBuffers.isEmpty) throw PIRException(s"StreamController's children other than the first stage shouldn't have tokenBuffer")
-                }
-                if (!c.ctrlBox.creditBuffers.isEmpty) throw PIRException(s"StreamController's children shouldn't have creditBuffer")
               }
             case _ =>
           }
         case cu:Controller =>
-          cu.ctrlReaders.foreach { reader =>
-            if (reader == cu)
-              throw PIRException(s"Ctrl Reader $reader same as writer $cu")
-          }
-          cu match {
-            case mc:MemoryController => 
-              mc.cchains.flatMap{_.counters}.foreach { ctr =>
-                if (!ctr.min.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.min.from}")
-                if (!ctr.step.from.src.isInstanceOf[Const]) throw TODOException(s"Counter in MC need to have constant min ${ctr} ${ctr.step.from}")
-              }
-            case _ =>
-          }
         case n:CtrlBox =>
-          n.udcounters.foreach { case (_, udc) => assert(udc.ctrler==n.ctrler) }
-          n.luts.foreach { lut => assert(lut.ctrler==n.ctrler) }
         case n:Counter =>
           n.ctrler match {
             case cu:OuterController =>
               if (cu.cchains.exists( _.isCopy)) 
                 throw PIRException(s"Outer controller cannot have counter copy")
+            case cu:MemoryPipeline =>
+              cu.cchains.foreach { cc =>
+                assert((forRead(cc) && !forWrite(cc)) || (forWrite(cc) && !forRead(cc)), s"$n in $cu forRead:${forRead(n)} forWrite:${forWrite(n)}")
+              }
             case _ =>
           }
         case n:SRAM => 
@@ -74,6 +58,12 @@ class IRCheck(implicit design: Design) extends Pass {
             throw PIRException(s"writeAddr of $n in ${n.ctrler} is not connected")
           if (!n.readAddr.isConnected)
             throw PIRException(s"readAddr of $n in ${n.ctrler} is not connected")
+        case n:LocalMem =>
+          n.ctrler match {
+            case cu:MemoryPipeline =>
+              assert(forRead(n) || forWrite(n), s"$n in $cu forRead:${forRead(n)} forWrite:${forWrite(n)}")
+            case _ =>
+          }
         case n =>
       }
     }
@@ -82,28 +72,27 @@ class IRCheck(implicit design: Design) extends Pass {
         sn.sbs.foreach { sb => 
           (sb.vectorIO.ins ++ sb.scalarIO.ins ++ sb.ctrlIO.ins).foreach { in => 
             if(in.fanIns.size>1) 
-              throw PIRException(s"Switchbox $sb has $in with fanIns > 1 ${in.fanIns}")
+              throw PIRException(s"Switchbox ${quote(sb)} has $in with fanIns > 1 ${in.fanIns} ${in.fanIns.map(_.src)}")
           }
           (sb.vectorIO.outs ++ sb.scalarIO.outs ++ sb.ctrlIO.outs).foreach { out => 
-            if(out.fanOuts.size>1) 
-              throw PIRException(s"Switchbox $sb has $out with fanOuts > 1 ${out.fanOuts}")
+            if(out.fanOuts.filterNot{_.src.isInstanceOf[PTop]}.size>1) 
+              throw PIRException(s"Switchbox ${quote(sb)} has $out with fanOuts > 1 ${out.fanOuts} ${out.fanOuts.map(_.src)}")
           }
         }
         sn.cus.foreach { pcu =>
           (pcu.vectorIO.ins ++ pcu.scalarIO.ins ++ pcu.ctrlIO.ins).foreach { in => 
             if(in.fanIns.size>1) 
-              throw PIRException(s"ComputeUnit $pcu has $in with fanIns > 1 ${in.fanIns}")
+              throw PIRException(s"ComputeUnit ${quote(pcu)} has $in with fanIns > 1 ${in.fanIns} ${in.fanIns.map(_.src)}")
           }
           pcu.ctrlIO.outs.foreach { out => 
             if(out.fanOuts.size>1) 
-              throw PIRException(s"ComputeUnit $pcu has $out with fanOuts > 1 ${out.fanOuts}")
+              throw PIRException(s"ComputeUnit ${quote(pcu)} has $out with fanOuts > 1 ${out.fanOuts} ${out.fanOuts.map(_.src)}")
           }
         }
       case _ =>
     }
     design.arch.cus.foreach { cu =>
       cu.stages.zipWithIndex.foreach { case (stage, i) =>
-        assert(stage.index==i-1, s"stage:$stage stage.index=${stage.index} should be ${i-1}")
         if (stage!=cu.stages.head) assert(stage.prev==Some(cu.stages(i-1)))
         else assert(stage.prev==None)
         if (stage!=cu.stages.last) assert(stage.next==Some(cu.stages(i+1)))

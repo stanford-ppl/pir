@@ -130,6 +130,7 @@ case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
   override type IM = CLMap.IM
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmp + rec.swap) }
   def apply(k:CU):PCU = { map(k).asCU }
+  def apply(k:MP):PMCU = { map(k).asInstanceOf[PMCU] }
   def apply(k:Top):PTop = { map(k).asInstanceOf[PTop] }
   def pmap:IM = pmp
   def pmap(v:PCU):CU = pmp(v).asInstanceOf[CU]
@@ -153,12 +154,12 @@ case class VIMap(map:VIMap.M, pmap:VIMap.IM) extends IBiManyToOneMap {
     val npmap:IM = pmap + ((v, set))
     VIMap(map + rec, npmap)
   }
-  def apply(n:VI):PGI[PModule] = { map(n).asGlobal[PModule] }
-  def apply(n:SI):PGI[PModule] = { map(n).asGlobal[PModule] }
+  def apply(n:VI):PGI[PModule] = { map(n).asGlobal }
+  def apply(n:SI):PGI[PModule] = { map(n).asGlobal }
 }
 object VIMap extends IBiManyToOneObj {
   type K = Node //InPort or VecIn
-  type V = PI[_<:PModule]
+  type V = PGI[PModule]
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
 
@@ -175,12 +176,12 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     VOMap(newmap, pmap + rec.swap)
   }
-  def apply(n:VO):Set[PGO[PModule]] = { map(n).map(_.asGlobal[PModule]) }
-  def apply(n:SO):Set[PGO[PModule]] = { map(n).map(_.asGlobal[PModule]) }
+  def apply(n:VO):Set[PGO[PModule]] = { map(n).map(_.asGlobal) }
+  def apply(n:SO):Set[PGO[PModule]] = { map(n).map(_.asGlobal) }
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
-  type V = PO[_<:PModule]
+  type V = PGO[PModule]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }
 

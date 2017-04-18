@@ -6,6 +6,7 @@ import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import pir.exceptions._
 import java.lang.Thread
+import scala.collection.mutable.ListBuffer
 
 package object util {
   implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
@@ -24,6 +25,27 @@ package object util {
     n match {
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
+  }
+
+  def topoSort(ctrler:Controller):List[Controller] = {
+    val list = ListBuffer[Controller]()
+    def isDepFree(cl:Controller) = {
+      cl.isHead || cl.trueConsumed.forall { csm => list.contains(csm.producer) }
+    }
+    def addCtrler(cl:Controller):Unit = {
+      list += cl
+      var children = cl.children
+      while (!children.isEmpty) {
+        children = children.filter { child =>
+          if (isDepFree(child)) {
+            addCtrler(child)
+            false
+          } else { true }
+        }
+      }
+    }
+    addCtrler(ctrler)
+    list.toList.reverse
   }
 
 }

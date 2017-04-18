@@ -26,6 +26,7 @@ trait Mapper { self =>
   def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
 
   implicit def design:Design
+  implicit def spade:Spade = design.arch
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design
 

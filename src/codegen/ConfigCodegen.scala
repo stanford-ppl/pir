@@ -36,7 +36,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def scus = spade.scuArray
   def mcs = spade.mcArray
 
-  override implicit def spade = design.arch.asSwitchNetwork
+  override implicit lazy val spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 

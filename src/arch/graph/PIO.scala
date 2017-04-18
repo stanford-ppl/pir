@@ -60,7 +60,7 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asBus:IO[Bus, S]
   def asWord:IO[Word, S]
   def asBit:IO[Bit, S]
-  def asGlobal[S<:Module]:GlobalIO[_<:PortType, S]
+  def asGlobal:GlobalIO[P, S]
 
   val v:Val[P] = Val(this)
   def ev(implicit sim:Simulator) = { v.eval }
@@ -92,7 +92,7 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   override def asBus:Input[Bus, S] = this.asInstanceOf[Input[Bus, S]]
   override def asWord:Input[Word, S] = this.asInstanceOf[Input[Word, S]]
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
-  override def asGlobal[S<:Module]:GlobalInput[_<:PortType, S] = this.asInstanceOf[GlobalInput[_<:PortType, S]]
+  override def asGlobal:GlobalInput[P, S] = this.asInstanceOf[GlobalInput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 }
 object Input {
@@ -122,7 +122,7 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asBus:Output[Bus, S] = this.asInstanceOf[Output[Bus, S]]
   override def asWord:Output[Word, S] = this.asInstanceOf[Output[Word, S]]
   override def asBit:Output[Bit, S] = this.asInstanceOf[Output[Bit, S]]
-  override def asGlobal[S<:Module]:GlobalOutput[_<:PortType, S] = this.asInstanceOf[GlobalOutput[_<:PortType, S]]
+  override def asGlobal:GlobalOutput[P, S] = this.asInstanceOf[GlobalOutput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 
   def slice(i:Int, in:Input[_<:PortType,Module]) = Slice(in, this.asBus, i)

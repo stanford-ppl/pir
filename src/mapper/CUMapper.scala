@@ -8,6 +8,7 @@ import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
 import pir.pass.{PIRMapping, MapPrinter}
 import pir.plasticine.main._
 import pir.util.misc._
+import pir.util.topoSort
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -18,7 +19,6 @@ import scala.util.{Try, Success, Failure}
 class CUMapper(implicit ds:Design) extends Mapper {
   def design:Design = ds 
   def typeStr = "CUMapper"
-  implicit def spade:Spade = ds.arch
 
   override implicit val mapper:CUMapper = this
 
@@ -164,7 +164,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val nodes = design.top.topoSort
+    val nodes = topoSort(design.top)
     val reses = design.arch.pnes
     info(s"Number of cus:${nodes.size}")
     bind(

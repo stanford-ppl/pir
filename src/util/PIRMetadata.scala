@@ -16,5 +16,18 @@ trait PIRMetadata extends { self:Design =>
     type K = Node
     type V = VectorIO[_]
   }
+
+  object forRead extends MOneToOneMap {
+    type K = Node
+    type V = Boolean
+  }
+
+  object forWrite extends MOneToOneMap {
+    type K = Node
+    type V = Boolean
+    override def apply(k:K):V = {
+      super.get(k).getOrElse(false)
+    }
+  }
 }
 

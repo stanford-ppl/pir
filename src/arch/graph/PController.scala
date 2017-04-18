@@ -173,7 +173,7 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   import spademeta._
   override val typeStr = "ocu"
   
-  override val ctrlBox:CtrlBox = new OuterCtrlBox(numUDCs)
+  override val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
 
   /* Parameters */
   override def numRegs = 0
@@ -191,7 +191,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "mcu"
   import spademeta._
 
-  override val ctrlBox:CtrlBox = new MemoryCtrlBox(numUDCs)
+  override val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
   private val _rastages:ListBuffer[RAStage] = ListBuffer.empty // Read Addr Stages

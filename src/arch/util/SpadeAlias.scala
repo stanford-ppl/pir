@@ -39,6 +39,9 @@ trait SpadeAlias {
   type PIB      = Input[PBS,PNE]
   type POB      = Output[PBS,PNE]
   type PCB = CtrlBox
+  type PMCB = MemoryCtrlBox
+  type PICB = InnerCtrlBox
+  type POCB = OuterCtrlBox
   type PLUT      = LUT
   type PEnLUT    = EnLUT
   type PTDLUT     = TokenDownLUT

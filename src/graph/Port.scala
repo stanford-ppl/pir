@@ -39,11 +39,6 @@ object InPort {
   def apply[S<:Node](s:S, toStr: => String)(implicit design:Design):InPort = {
     new {override val src:S = s} with InPort {override def toString = toStr}
   }
-  def apply[S<:Node](s:S, f:OutPort, toStr: => String)(implicit design:Design):InPort = {
-    val ip = InPort(s, toStr)
-    ip.connect(f)
-    ip
-  }
 }
 /**
  * A type representing a group of wires in pir

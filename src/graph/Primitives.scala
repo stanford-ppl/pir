@@ -167,7 +167,9 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
         //case _ => InPort(this, oprds(i), s"oprd(${oprds(i)})")
       //}
     //} else {
-      InPort(this, oprds(i), s"${oprds(i)}")
+      val in = InPort(this, s"${oprds(i)}")
+      in.connect(oprds(i))
+      in
     //}
   }
   val out = OutPort(this, s"${this}.out")
@@ -363,7 +365,7 @@ object WAStage {
 object WAStages {
   def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[WAStage] = {
     val was = List.tabulate(n) { i => WAStage(srams) }
-    ctrler.addWAStages(was)
+    was.foreach(ctrler.addStage)
     was
   }
 }
@@ -373,7 +375,7 @@ object RAStage {
 object RAStages {
   def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[RAStage] = {
     val ras = List.tabulate(n) { i => RAStage(srams) }
-    ctrler.addRAStages(ras)
+    ras.foreach(ctrler.addStage)
     ras
   }
 }

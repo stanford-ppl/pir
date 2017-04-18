@@ -69,7 +69,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
     val ptop = design.arch.top
     val enCtrs = n.en.from.src match {
-      case dep:Ctr if n.ctrler.inner == dep.ctrler.inner => // Counter in the same CU
+      case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
         m.ctmap.get(dep).fold(remainRes) { pdep =>
           pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
         }
@@ -78,7 +78,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     }
     val doneCtrs = n.done.to.map { done =>
       done.src match {
-        case deped:Ctr if n.ctrler.inner==deped.ctrler.inner =>
+        case deped:Ctr if n.ctrler==deped.ctrler =>
           m.ctmap.get(deped).fold(remainRes) { pdeped =>
             pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
           }

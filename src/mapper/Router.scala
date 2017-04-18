@@ -20,7 +20,6 @@ import scala.collection.mutable.Queue
 import scala.util.{Failure, Success, Try}
 
 abstract class Router(implicit design:Design) extends Mapper {
-  implicit def spade:Spade = design.arch
 
   lazy val minHop = 1
   lazy val maxHop = design.arch.diameter

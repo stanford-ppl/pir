@@ -46,6 +46,9 @@ trait PIRAlias {
   type OP    = OutPort
   type COP   = CtrlOutPort
   type CB    = CtrlBox
+  type SCB   = StageCtrlBox
+  type ICB   = InnerCtrlBox
+  type OCB   = OuterCtrlBox
   type LUT   = pir.graph.LUT
   type TOLUT = TokenOutLUT
   type TDLUT = TokenDownLUT

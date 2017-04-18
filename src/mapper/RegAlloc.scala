@@ -19,8 +19,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   override def debug = Config.debugRAMapper
   import spademeta._
 
-  implicit def spade:Spade = design.arch
-
   def finPass(cu:ICL)(m:M):M = m
 
   def constrain(cu:ICL, pirMap:M)(n:N, r:R, m:RCMap):RCMap = {

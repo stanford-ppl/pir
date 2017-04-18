@@ -146,6 +146,8 @@ trait MultiBuffering extends OnChipMem {
   var _buffering:Int = _
   def buffering = _buffering
   def buffering(buf:Int):this.type = { _buffering = buf; this }
+  val swapRead = CtrlInPort(this, s"$this.swapRead")
+  val swapWrite = CtrlInPort(this, s"$this.swapWrite")
 }
 trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
   override val typeStr = "FIFO"
