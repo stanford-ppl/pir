@@ -122,27 +122,27 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   
   lazy val localCChain:CounterChain = {
     this match {
-      case cu:StreamPipeline =>
-        if (isHead) {
-          cu.getCopy(cu.parent.localCChain)
-        } else if (isLast) {
-          cu match {
-            case mc:MemoryController => throw PIRException(s"MemoryController $this doesn't have localCChain")
-            case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
-          }
-        } else { // middle stages
-          if (cu.containsCopy(cu.parent.localCChain)) {
-            cu.getCopy(cu.parent.localCChain)
-          } else if (cchains.size==0) {
-            val dc = CounterChain.dummy(cu, design)
-            cu.addCChain(dc)
-            dc
-          } else {
-            val dcs = cchains.filter{_.isDummy}
-            assert(dcs.size==1, s"${cu} is not head and has non dummy counter chain $cchains")
-            dcs.head
-          }
-        }
+      //case cu:StreamPipeline =>
+        //if (isHead) {
+          //cu.getCopy(cu.parent.localCChain)
+        //} else if (isLast) {
+          //cu match {
+            //case mc:MemoryController => throw PIRException(s"MemoryController $this doesn't have localCChain")
+            //case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
+          //}
+        //} else { // middle stages
+          //if (cu.containsCopy(cu.parent.localCChain)) {
+            //cu.getCopy(cu.parent.localCChain)
+          //} else if (cchains.size==0) {
+            //val dc = CounterChain.dummy(cu, design)
+            //cu.addCChain(dc)
+            //dc
+          //} else {
+            //val dcs = cchains.filter{_.isDummy}
+            //assert(dcs.size==1, s"${cu} is not head and has non dummy counter chain $cchains")
+            //dcs.head
+          //}
+        //}
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
       case cu =>
@@ -301,18 +301,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
       case ss:WAStage => _wtAddrStages += ss
       case ss:RAStage => _rdAddrStages += ss 
     }
-  }
-
-  def stage:LocalStage = { 
-    val stage = LocalStage(None)
-    ctrler.addStage(stage)
-    stage
-  }
-
-  def reduceStage:ReduceStage = {
-    val stage = ReduceStage(None)
-    ctrler.addStage(stage)
-    stage
   }
 
   def parLanes:Int = localCChain.inner.par

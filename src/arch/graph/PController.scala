@@ -37,10 +37,15 @@ trait NetworkElement extends Module with Simulatable {
 abstract class Controller(implicit spade:Spade) extends NetworkElement {
   import spademeta._
 
-  def ctrlBox:CtrlBox
   lazy val scalarIO:ScalarIO[this.type] = ScalarIO(this)
   lazy val vectorIO:VectorIO[this.type] = VectorIO(this)
   lazy val ctrlIO:ControlIO[this.type] = ControlIO(this)
+
+  var sbufs:List[ScalarMem] = Nil
+  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
+  def numScalarBufs:Int = sbufs.size
+
+  def ctrlBox:CtrlBox
 }
 
 /* Top-level controller (host)
@@ -88,7 +93,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
   val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM().index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
-  var sbufs:List[ScalarMem] = Nil
+  //var sbufs:List[ScalarMem] = Nil // in Controller
   var vbufs:List[VectorMem] = Nil
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
@@ -131,8 +136,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     _stages ++= sts
   }
 
-  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
-  def numScalarBufs:Int = sbufs.size
   def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
   def numVecBufs:Int = vbufs.size
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
@@ -158,7 +161,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     numScalarBufs(4)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
-    color(0, ReduceReg)
+    color(0, ReduceReg).color(1, AccumReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
     color(8 until 8 + 4, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
@@ -256,5 +259,6 @@ class MemoryController()(implicit spade:Spade) extends Controller {
   /* Parameters */
   def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
+    numScalarBufs(2)
   }
 }

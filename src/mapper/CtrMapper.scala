@@ -38,7 +38,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
       ctrs.toList
     }
     val unSorted = cchains.flatMap(_.counters)
-    assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}")
+    assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}, cchains:${cchains}")
     sorted
   }
 
@@ -52,9 +52,11 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def map(cu:CU, pirMap:M):M = {
     log((cu, false)) {
       // Mapping inner counter first converges faster
-      val pcu = pirMap.clmap(cu).asInstanceOf[PCU]
       val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
-      val pctrs = pcu.ctrs
+      val pctrs = pirMap.clmap(cu) match {
+        case pcu:PCU => pcu.ctrs
+        case _ => Nil
+      }
       bind(
         allNodes=ctrs,
         initMap=pirMap,
@@ -99,9 +101,9 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def mapCtr(n:N, p:R, map:M):M = {
     var mp = map
-    mp = mapInPort(n.min, p.min, mp)
-    mp = mapInPort(n.max, p.max, mp)
-    mp = mapInPort(n.step, p.step, mp)
+    //mp = mapInPort(n.min, p.min, mp) //Mapped in SFifoMapper 
+    //mp = mapInPort(n.max, p.max, mp)
+    //mp = mapInPort(n.step, p.step, mp)
     mp = mapOutPort(n.out, p.out, mp)
     mp = mapOutPort(n.done, p.done, mp)
     mp = mp.setCT(n,p)

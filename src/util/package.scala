@@ -48,5 +48,40 @@ package object util {
     list.toList.reverse
   }
 
+  def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design) = {
+    val pirmeta:PIRMetadata = design 
+    import pirmeta._
+
+    val chained = ListBuffer[CounterChain]()
+    def prevParent(cc:CounterChain) = {
+      val prev = chained.last
+      val prevOrig = prev.original
+      prevOrig.ctrler.parent match {
+        case prevParent:ComputeUnit => prevParent
+        case top:Top =>
+          var info = s"prev cchain.original=$prevOrig's ctrler=${prevOrig.ctrler}'s parent is Top! curr=${cc} in ${cc.ctrler}" 
+          throw new Exception(info)
+      }
+    }
+    cchains.foreach { cc =>
+      if (chained.nonEmpty) {
+        while (prevParent(cc)!=cc.original.ctrler) {
+          val newCC = cu.getCopy(prevParent(cc).localCChain)
+          forRead(newCC) = forRead(chained.last)
+          forWrite(newCC) = forWrite(chained.last)
+          chained += newCC
+        }
+      }
+      chained += cc
+    }
+    chained.toList
+  }
+
+  def sortCChains(cchains:List[CounterChain]) = {
+    val ancSize = cchains.map { cc => cc.original.ctrler.ancestors.size }
+    assert(ancSize.size == ancSize.toSet.size) // ancSize should be unique
+    cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
+  }
+
 }
 

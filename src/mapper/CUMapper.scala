@@ -32,7 +32,10 @@ class CUMapper(implicit ds:Design) extends Mapper {
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
 
-  lazy val resMap:Map[CL, List[PNE]] = qualifyCheck
+  type N = CL
+  type R = PCL
+
+  lazy val resMap:Map[N, List[R]] = qualifyCheck
 
   def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
@@ -58,7 +61,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck:Map[CL, List[PNE]] = {
+  def qualifyCheck:Map[N, List[R]] = {
     val pnes = design.arch.pnes
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
@@ -76,7 +79,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     if (mcus.size > pmcus.size) throw OutOfMCU(pmcus, mcus)
     if (scus.size > pscus.size) throw OutOfSCU(pscus, scus)
     if (rcus.size > pcus.size) throw OutOfPCU(pcus, rcus)
-    val map = MMap[CL, List[PNE]]()
+    val map = MMap[N, List[R]]()
     map += design.top -> List(design.arch.top)
     mcs.foreach { cl => map += cl -> pmcs }
     ocus.foreach { cl => map += cl -> pocus }
@@ -84,7 +87,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     scus.foreach { cl => map += cl -> pscus }
     rcus.foreach { cl => map += cl -> pcus }
     cls.foreach { cl => 
-      val failureInfo = MMap[PNE, ListBuffer[String]]()
+      val failureInfo = MMap[R, ListBuffer[String]]()
       map += cl -> map(cl).filter { pne =>
         val cons = ListBuffer[(String, Any)]()
         cl match {
@@ -128,7 +131,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     map.toMap
   }
 
-  def place(cl:CL, pne:PNE, m:M):M = {
+  def place(cl:N, pne:R, m:M):M = {
     log((s"Try $cl -> ${quote(pne)}", false)) {
       routers.foldLeft(m.setCL(cl, pne)) { case (pm, router) =>
         router.route(cl, pm)
@@ -136,7 +139,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     }
   }
 
-  def resFunc(cl:CL, m:M, triedRes:List[PNE]):List[PNE] = {
+  def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
     implicit val spade:Spade = design.arch
     log((s"$cl resFunc:", false)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
@@ -157,7 +160,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
       }
       dprintln(s"--mc filtered:[${pnes.mkString(",")}]")
       routers.foldLeft(pnes) { case (pnes, router) =>
-        router.filterPNE(cl, pnes, m)
+        router.filterPCL(cl, pnes, m)
       }
     }
   }

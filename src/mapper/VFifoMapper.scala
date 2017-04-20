@@ -30,13 +30,12 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
-    val vi = m.vimap(n.writePort.from.asInstanceOf[VI])
+    val vi = m.vimap(n.writePort.from.src.asInstanceOf[VI])
     val r = vi.ic.fanOuts.head.src.asInstanceOf[R]
     List(r)
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    val pcu = pirMap.clmap(cu).asCU
     log(cu) {
       bind(
         allNodes=cu.vfifos,

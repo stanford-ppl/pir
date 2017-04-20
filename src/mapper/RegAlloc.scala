@@ -32,12 +32,16 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   /* Register coloring for registers with predefined colors */
   private def preColor(cu:ICL, pirMap:M):RCMap = {
     type M = RCMap
-    val pcu = pirMap.clmap(cu).asCU
+    val pcu = pirMap.clmap(cu)
     def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
       val pregs = n match {
-        //case LoadPR(mem) => 
+        case LoadPR(mem) if mem.isSFifo => 
           //val pmem = pirMap.smmap(mem)
           //regsOf(pmem.readPort)
+          pcu.asCU.regs.filter(_.is(ScalarInReg))
+        case LoadPR(mem) => 
+          val pmem = pirMap.smmap(mem)
+          regsOf(pmem.readPort)
         //case StorePR(sram) =>
         case WtAddrPR(waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM
@@ -45,7 +49,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case CtrPR(ctr) => 
           val pctr = pirMap.ctmap(ctr)
           regsOf(pctr.out)
-        case ReducePR() => pcu.regs.filter(_.is(ReduceReg))
+        case ReducePR() => pcu.asCU.regs.filter(_.is(ReduceReg))
         case VecOutPR(vecOut) =>
           val pvout = pirMap.vomap(vecOut).head
           regsOf(pvout.ic)
@@ -55,6 +59,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pregs = psos.flatMap(pso => regsOf(pso.ic)).toList
           dprintln(s"pregs:[${pregs.mkString(",")}]")
           pregs
+        case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
       }
       pregs.diff(triedRes)
     }
@@ -71,9 +76,12 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   private def color(cu:ICL, pirMap:M) = {
     type M = RCMap
-    val pcu = pirMap.clmap(cu).asCU
+    val pcu = pirMap.clmap(cu)
     val regs:List[N] = cu.regs.filter{_.isTemp}
-    val pregs:List[R] = (pcu.regs diff (pirMap.rcmap.values.toList)).toList
+    val pregs:List[R] = pcu match {
+      case pcu:PCU => (pcu.regs diff (pirMap.rcmap.values.toList)).toList
+      case pcu => Nil
+    }
 
     log(s"color $cu") {
       bind[R,N,M](

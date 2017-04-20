@@ -107,12 +107,13 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   def emitPNEs(pne:PNE, mapping:Option[PIRMap]) = {
     var attr = DotAttr().shape(Mrecord)
-    def mappedLabel(pne:PNE):String = {
+    def mappedLabel(pne:PCL):String = {
       mapping.fold(quote(pne)) { mp => mp.clmap.pmap.get(pne).fold(quote(pne)) { cl => s"${quote(pne)}|$cl"} }
     }
     val recs = ListBuffer[String]()
     pne match {
-      case pcl@(_:PCU | _:PMC) => 
+      case ptop:PTop => recs += s"$ptop" 
+      case pcl:PCL => 
         def ports(dir:String) = {
           var ins = io(pcl).inAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
           var outs = io(pcl).outAt(dir).map{io => s"<$io> $io(${indexOf(io)})"}
@@ -128,7 +129,6 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
         recs += s"{${ports("NW")}  | ${ports("N")}          | ${ports("NE")}}"
         recs += s"{{${ports("W")}} | {${mappedLabel(pcl)}}  | {${ports("E")}}}"
         recs += s"{${ports("SW")}  | ${ports("S")}          | ${ports("SE")}}"
-      case ptop:PTop => recs += s"$ptop" 
       case psb:PSB => 
         recs += mapping.flatMap { mp => 
           if (io(psb).ins.exists( in => mp.fimap.contains(in))) { 
@@ -153,8 +153,12 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
       case _ =>
     }
     mapping.foreach { mp => 
-      if (mp.clmap.pmap.contains(pne) || io(pne).ins.exists( in => mp.fimap.contains(in)))
-        attr.style(filled).fillcolor(color(pne))
+      pne match {
+        case pne:PCL =>
+          if (mp.clmap.pmap.contains(pne) || io(pne).ins.exists( in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(pne))
+        case pne =>
+      }
     }
     val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
     val nc = design.arch.asInstanceOf[SwitchNetwork].numCols

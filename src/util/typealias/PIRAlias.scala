@@ -26,6 +26,7 @@ trait PIRAlias {
   type SMem  = ScalarMem
   type SFIFO = ScalarFIFO
   type VFIFO = VectorFIFO
+  type FIFO  = pir.graph.FIFO
   type SBuf  = ScalarBuffer
   type CC    = CounterChain
   type Ctr   = Counter
@@ -48,6 +49,7 @@ trait PIRAlias {
   type OP    = OutPort
   type COP   = CtrlOutPort
   type CB    = CtrlBox
+  type MCB   = MemCtrlBox
   type SCB   = StageCtrlBox
   type ICB   = InnerCtrlBox
   type OCB   = OuterCtrlBox

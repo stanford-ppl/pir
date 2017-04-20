@@ -5,9 +5,7 @@ import pir.util._
 import pir.exceptions._
 import pir.codegen.Logger
 
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.Map
+import scala.collection.mutable._
 
 class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
   def shouldRun = true 
@@ -58,29 +56,23 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  def copyAddrCChains = {
-    design.top.memCUs.foreach { cu =>
-      //TODO
-    }
-  }
-
   def analyzeAddrCalc = {
-    design.top.memCUs.foreach { cu =>
+    design.top.compUnits.foreach { cu =>
       val readCCs = cu.cchains.filter { cc => forRead(cc) }
-      readCChainsOf(cu) = sortCChains(readCCs)
+      dprintln(s"readCCs:$readCCs")
+      readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
       val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
-      writeCChainsOf(cu) = sortCChains(writeCCs)
+      dprintln(s"writeCCs:$writeCCs")
+      writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
+      val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
+      dprintln(s"compCCs:$compCCs")
+      fillChain(cu, sortCChains(compCCs))
     }
-  }
-
-  def sortCChains(cchains:List[CounterChain]) = {
-    cchains.sortBy { cc => cc.ctrler.ancestors.size }.reverse
   }
 
   override def traverse = {
     analyzeStageOperands
     analyzeCChain
-    copyAddrCChains
     analyzeAddrCalc
     design.top.memCUs.foreach { cu =>
       emitBlock(s"$cu") {

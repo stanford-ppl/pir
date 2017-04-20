@@ -13,7 +13,7 @@ import pir.util.enums._
 import pir.pass.ForwardRef
 import pir.exceptions._
 
-case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) extends Primitive {
+case class CounterChain(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   override val typeStr = "CC"
   /* Fields */
   val _counters = ListBuffer[Counter]()
@@ -45,7 +45,7 @@ case class CounterChain(name:Option[String])(implicit ctrler:ComputeUnit, design
   /*
    * The original copy of this CounterChain
    * */
-  lazy val original = copy.fold(this) { e => e.right.get}
+  lazy val original:CounterChain = copy.fold(this) { e => e.right.get}
 
   override def toUpdate = super.toUpdate
 
@@ -161,11 +161,8 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
 
   def isInner = { 
-    ctrler match {
-      case mc:MemoryController =>
-        en.isConnected && !en.from.src.isInstanceOf[Counter]
-      case _ => en.isConnected && !en.from.src.isInstanceOf[Counter]
-    }
+    assert(en.isConnected, s"${this}.en is not connected")
+    !en.from.src.isInstanceOf[Counter]
   }
   def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
   def next:Counter = {

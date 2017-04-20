@@ -22,9 +22,9 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
       cu match {
         case cu:ComputeUnit =>
           cu.cchains.foreach { cc =>
-            emitBlock(s"${cc} ${PIRPrinter.genFields(cc)}") {
+            emitBlock(s"${cc} ${genFields(cc)}") {
               cc.counters.foreach { ctr =>
-                emitln(s"${ctr} ${PIRPrinter.genFields(ctr)}")
+                emitln(s"${ctr} ${genFields(ctr)}")
               } 
             }
           }
@@ -44,7 +44,7 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
         case cu:OuterController =>
         case cu:Top =>
       }
-      emitBlock(s"CtrlBox(${PIRPrinter.genFields(cu.ctrlBox)})") {
+      emitBlock(s"CtrlBox(${genFields(cu.ctrlBox)})") {
         cu.ctrlBox.udcounters.foreach { case (ctrler, tb) =>
           val info = ListBuffer[String]()
           info += s"ctrler=${tb.ctrler}"
@@ -58,7 +58,7 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
         cu.ctrlBox.luts.foreach { lut =>
           val ins = lut.ins.map(_.from).mkString(",")
           val out = lut.out.to.mkString(",")
-          emitln(s"${lut}${PIRPrinter.genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
+          emitln(s"${lut}${genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
         }
         cu.ctrlBox.andTrees.foreach { at =>
           emitln(s"$at(ins=[${at.ins.map(_.from).mkString(",")}] outs=[${at.out.to.mkString(",")}])")
@@ -76,6 +76,17 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
       }
     }
   }
+  
+  def genFields(n:Node):List[String] = {
+    val fields = ListBuffer[String]()
+    fields ++= PIRPrinter.genFields(n)
+    n match {
+      case n:Counter => s"isInner=${n.isInner}"
+      case n =>
+    }
+    fields.toList
+  }
+
   override def traverse = {
     design.top.ctrlers.foreach { cu =>
       emitCU(cu)

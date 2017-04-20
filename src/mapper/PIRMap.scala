@@ -126,7 +126,9 @@ case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
   override type M = CLMap.M
   override type IM = CLMap.IM
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmp + rec.swap) }
-  def apply(k:CU):PCU = { map(k).asCU }
+  def apply(k:PL):PCU = { map(k).asCU }
+  def apply(k:OCL):POCU = { map(k).asInstanceOf[POCU] }
+  def apply(k:MC):PMC = { map(k).asInstanceOf[PMC] }
   def apply(k:MP):PMCU = { map(k).asInstanceOf[PMCU] }
   def apply(k:Top):PTop = { map(k).asInstanceOf[PTop] }
   def pmap:IM = pmp
@@ -135,7 +137,7 @@ case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
 }
 object CLMap extends IBiOneToOneObj {
   type K = CL
-  type V = PNE
+  type V = PCL
   def empty:CLMap = CLMap(Map.empty, Map.empty)
 }
 
@@ -191,6 +193,7 @@ case class SMMap(map:SMMap.M, pmap:SMMap.IM) extends IBiOneToOneMap {
   override type IM = SMMap.IM
   override def + (rec:(K,V)) = { super.check(rec); SMMap(map + rec, pmap + rec.swap) }
   def apply(n:SRAM):PSRAM = { map(n).asSRAM }
+  def apply(n:FIFO):PBuf = { map(n).asBuf }
 }
 object SMMap extends IBiOneToOneObj {
   type K = OCM

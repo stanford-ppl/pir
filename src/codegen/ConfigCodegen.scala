@@ -4,6 +4,7 @@ import pir.Design
 import pir.plasticine.main._
 //import pir.plasticine.graph._
 import pir.util.typealias._
+import pir.Config
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -13,7 +14,7 @@ import java.io.OutputStream
 import java.io.File
 
 class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
-  def shouldRun = true
+  def shouldRun = design.pirMapping.succeeded 
   import spademeta._
 
   val appName = s"$design".replace(s"$$", "")

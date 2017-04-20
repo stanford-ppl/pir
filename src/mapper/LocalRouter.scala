@@ -86,7 +86,6 @@ trait LocalRouter extends Mapper {
         }
         else pport
     }
-    assert(map.opmap(n.from) == pop)
     val cmap = if (map.ipmap.contains(n)) map else map.setIP(n,r)
     //dprintln(s"Mapping IP:${n} -> ${cmap.ipmap(n)}")
     cmap.setFI(r, pop)

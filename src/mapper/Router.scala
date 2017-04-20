@@ -45,22 +45,30 @@ abstract class Router(implicit design:Design) extends Mapper {
           case sb:PSB => s"${super.quote(sb)}.${io}" 
           case top:PTop => s"${super.quote(top)}.${io}" 
         }
-      case edge if typeOf[T] =:= typeOf[FEdge] =>
-        val (from, to) = edge; s"${quote(from)} -> ${quote(to)}"
-      case edge if typeOf[T] =:= typeOf[REdge] =>
-        val (to, from) = edge; s"${quote(to)} <- ${quote(from)}"
-      case n => super.quote(n)
+      case n if typeOf[T] =:= typeOf[FEdge] =>
+        val (from, to) = n; s"${quote(from)} -> ${quote(to)}"
+      case n if typeOf[T] =:= typeOf[REdge] =>
+        val (to, from) = n; s"${quote(to)} <- ${quote(from)}"
+      case n if typeOf[T] =:= typeOf[FatPath[FEdge]] =>
+        n.asInstanceOf[FatPath[FEdge]].map(quote[FatEdge[FEdge]] _).mkString("\n=>\n")
+      case n if typeOf[T] =:= typeOf[FatPath[REdge]] =>
+        n.asInstanceOf[FatPath[REdge]].map(quote[FatEdge[REdge]] _).mkString("\n<=\n")
+      case n if typeOf[T] =:= typeOf[FatEdge[FEdge]] =>
+        n.asInstanceOf[FatEdge[FEdge]].map(quote[FEdge]).mkString(" | ")
+      case n if typeOf[T] =:= typeOf[FatEdge[REdge]] =>
+        n.asInstanceOf[FatEdge[REdge]].map(quote[REdge]).mkString(" | ")
+      case n if typeOf[T] =:= typeOf[Path[FEdge]] =>
+        n.asInstanceOf[Path[FEdge]].map(quote[FEdge]).mkString(", ")
+      case n if typeOf[T] =:= typeOf[Path[REdge]] =>
+        n.asInstanceOf[Path[REdge]].map(quote[REdge]).mkString(", ")
+      case n => 
+        println(typeOf[T])
+        super.quote(n)
     }
   }
-  def quote(fe:FatEdge[_]):String = { fe.map(quote).mkString(" | ") }
-  def quote[E<:Edge](path:FatPath[E])(implicit ev:TypeTag[E]):String = path match {
-    case path:FatPath[_] if typeOf[E] =:= typeOf[FEdge] =>
-      path.map(quote _).mkString("\n=>\n")
-    case path:FatPath[_] if typeOf[E] =:= typeOf[REdge] =>
-      path.map(quote _).mkString("\n<=\n")
-    case path:Path[_] =>
-      path.map(quote).mkString(", ")
-  }
+  //def quote[E<:Edge](fe:FatEdge[E])(implicit ev:TypeTag[E]):String = { fe.map(quote).mkString(" | ") }
+  //def quote[T](n:T)(implicit ev:TypeTag[T]):String = n match {
+  //}
 
   def ctrler(io:Node):CL
   def from(in:I):O
@@ -106,7 +114,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     valid && cond
   }
 
-  def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PNE], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
+  def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
     inputs.foldLeft(reses) { case (reses, in) =>
       def validCons(reached:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
         val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
@@ -119,7 +127,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
 
-  def filterOutIns(cl:CL, pnes:List[PNE], m:PIRMap) = {
+  def filterOutIns(cl:CL, pnes:List[PCL], m:PIRMap) = {
     val outins:List[I] = outs(cl).flatMap { out =>
       to(out).filter { in => 
         !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
@@ -132,7 +140,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     else reses
   }
 
-  def filterIns(cl:CL, pnes:List[PNE], m:PIRMap) = {
+  def filterIns(cl:CL, pnes:List[PCL], m:PIRMap) = {
     val inputs:List[I] = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
@@ -143,7 +151,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     else reses
   }
 
-  def filterPNE(cl:CL, pnes:List[PNE], m:PIRMap):List[PNE] = {
+  def filterPCL(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
     var reses = pnes 
     reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
     reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
@@ -367,11 +375,17 @@ abstract class Router(implicit design:Design) extends Mapper {
 
     def cons(n:I, r:R, m:M):M = {
       log(s"Try $n -> $r", (m:M) => (), failPass) {
+        var mp = m
         val (reachedCU, path) = r
         val pin = path.last._2
         val pout = path.head._1
-        var mp = sameSrcMap(ctrler(n))(from(n)).foldLeft(m) { case (pm, n) =>
-          pm.setVI(n, pin).setVO(from(n), pout).setRT(n, path.size)
+        sameSrcMap(ctrler(n))(from(n)).foreach { n =>
+          mp = mp.setVI(n, pin).setVO(from(n), pout).setRT(n, path.size)
+          n match {
+            case n:VI => mp = mp.setOP(n.out, pin.ic)
+            case n:SI => mp = mp.setOP(n.out, pin.ic)
+            case n =>
+          }
         }
         path.zipWithIndex.foreach { case ((out, in), i) => 
           mp = mp.setFI(in, out)

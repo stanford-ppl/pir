@@ -28,6 +28,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     override def finPass(ctrler:InnerController)(m:M):M = { 
       var mp = m
       mp = sfifoMapper.map(ctrler, mp)
+      mp = ctrlMapper.map(ctrler, mp)
       mp = stageMapper.map(ctrler, mp)
       mp
     }
@@ -36,7 +37,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     override def finPass(ctrler:ComputeUnit)(m:M):M = { 
       var mp = m
       mp = regAlloc.map(ctrler, mp)
-      mp = ctrlMapper.map(ctrler, mp)
       mp
     }
   }

@@ -147,11 +147,16 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   }
 
   def connectCtrl(cu:Controller)(implicit spade:Spade):Unit = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+
     cu.ctrlBox match {
       case cb:InnerCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
         cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cb.siblingAndTree <== cb.udcs.map(_.out)
         cb.udcs.foreach { udc =>
@@ -168,7 +173,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case cb:OuterCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
         cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
         cb.childrenAndTree <== cb.udcs.map(_.out)
         cb.siblingAndTree <== cb.udcs.map(_.out)
         cb.udcs.foreach { udc =>
@@ -189,7 +196,12 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         val cu = cb.pne
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
         cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
         cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
+        cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cb.writeFIFOAndTree <== cu.bufs.map(_.notEmpty) 
         cb.readFIFOAndTree <== cu.bufs.map(_.notEmpty)
@@ -199,13 +211,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.writeEn.in <== cb.writeFIFOAndTree.out
       case cb:TopCtrlBox =>
       case cb:CtrlBox =>
-    }
-    cu match {
-      case cu:ComputeUnit =>
-        cu.bufs.foreach { buf =>
-          buf.incWritePtr <== cu.cins.map(_.ic)
-        }
-      case cu =>
     }
   }
 

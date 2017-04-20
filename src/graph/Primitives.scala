@@ -217,7 +217,7 @@ object Stage {
   /* No Sugar API */
   def apply(operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:Design):Unit= {
-    val stage = ctrler.stage
+    val stage = LocalStage(None) 
     Stage(stage, operands, op, results)
   }
   def apply(stage:Stage, operands:List[Any], op:Op, results:List[Any])
@@ -235,6 +235,7 @@ object Stage {
       case pr:PipeReg => pr.in
     }
     stage.fu = Some(new FuncUnit(stage, oprds, op, res))
+    ctrler.addStage(stage)
   }
   //def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
             //(implicit ctrler:InnerController, design:Design):Unit= {
@@ -260,13 +261,12 @@ object Stage {
 }
 object Stages {
   def apply(n:Int) (implicit ctrler:InnerController, design: Design):List[LocalStage] = {
-    //List.tabulate(n) { i => LocalStage(None) }
-    List.tabulate(n) { i => ctrler.stage }
+    List.tabulate(n) { i => LocalStage(None) }
   }
   def reduce(n:Int, op:Op) (implicit ctrler:InnerController, design: Design):List[ReduceStage] = {
-    val rdStages = List.tabulate(n) {i => ctrler.reduceStage }
+    val rdStages = List.tabulate(n) {i => ReduceStage(None) }
     rdStages.foreach { stage =>
-      val preg = ctrler.reduce(stage.prev.get)
+      val preg = ctrler.reduce(ctrler.stages.last)
       val creg = ctrler.reduce(stage)
       Stage(stage, op1=preg.out, op2=preg.out, op, result=creg.in)
     }

@@ -33,6 +33,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
 
   def writer:Controller = writerOf(this)
   def reader:Controller = readerOf(this)
+  def isVFifo = this.isInstanceOf[VectorFIFO]
+  def isSFifo = this.isInstanceOf[ScalarFIFO]
 }
 
 trait SRAMOnRead extends MultiBuffering {

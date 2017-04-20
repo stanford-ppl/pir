@@ -5,6 +5,7 @@ import pir.util.enums._
 import pir.codegen.Logger
 import pir.exceptions._
 import pir.util.misc._
+import pir.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
@@ -26,7 +27,6 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     design.top.ctrlers.foreach { ctrler =>
       connectChildren(ctrler)
       connectSibling(ctrler)
-      //connectEnable(ctrler) // directly mapped
     }
   } 
 
@@ -173,13 +173,26 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def chainCChain(cchains:List[CounterChain]) = {
+    val chained = ListBuffer[CounterChain]()
+    cchains.zipWithIndex.foreach { case (cc, i) =>
+      if (i!=0) {
+        cc.inner.en.connect(cchains(i-1).outer.done)
+      }
+    }
+  }
+
   def connectEnable(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        readCChainsOf(ctrler).foreach { cc => cc.inner.en.connect(cb.readEnable ) }
-        writeCChainsOf(ctrler).foreach { cc => cc.inner.en.connect(cb.writeEnable ) }
+        readCChainsOf(ctrler).head.inner.en.connect(cb.readEnable)
+        writeCChainsOf(ctrler).head.inner.en.connect(cb.writeEnable)
+        chainCChain(readCChainsOf(ctrler))
+        chainCChain(writeCChainsOf(ctrler))
+      case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
         ctrler.localCChain.inner.en.connect(cb.enable)
+        chainCChain(sortCChains(ctrler.cchains))
       case (ctrler, cb) =>
     }
     //ctrler match {

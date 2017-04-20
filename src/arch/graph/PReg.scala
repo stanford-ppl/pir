@@ -30,3 +30,4 @@ case object ReadAddrReg extends RegColor
 case object WriteAddrReg extends RegColor
 case object CounterReg extends RegColor
 case object ReduceReg extends RegColor
+case object AccumReg extends RegColor

@@ -34,9 +34,11 @@ class SramMapper(implicit val design:Design) extends Mapper {
 
   def map(cu:ICL, pirMap:M):M = {
     log(cu) {
-      val pcu = pirMap.clmap(cu).asCU
       val srams = cu.srams
-      val psrams = pirMap.clmap(cu).asCU.srams
+      val psrams = pirMap.clmap(cu) match {
+        case pcu:PCU => pcu.srams
+        case _ => Nil
+      }
       bind(
         allRes=psrams,
         allNodes=srams,

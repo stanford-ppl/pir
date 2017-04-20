@@ -36,7 +36,10 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
     }
   }
 
-  def genFields(node:Node):String = PIRPrinter.genFields(node)
+  def genFields(node:Node):String = {
+    val fields = PIRPrinter.genFields(node)
+    s"(${fields.mkString(",")})"
+  }
 
   private def toStr(mp:Map[String, String], s:String, i:Reg) = mp += (s -> i.toString)
   private def toStr(mp:Map[String, String], s:String, l:Set[_]) = 
@@ -122,9 +125,9 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
   }
 }
 object PIRPrinter {
-  def genFields(node:Node)(implicit design:Design):String = {
-  val pirmeta:PIRMetadata = design
-  import pirmeta._
+  def genFields(node:Node)(implicit design:Design):List[String] = {
+    val pirmeta:PIRMetadata = design
+    import pirmeta._
 
     val fields = ListBuffer[String]()
     node.name.foreach { name => fields += s"name=$name" }
@@ -192,7 +195,6 @@ object PIRPrinter {
       case p:Counter => 
         fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
         fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
-        fields += s"isInner=${p.isInner}, isOuter=${p.isOuter}"
       //case p:UDCounter => 
       //  fields += s"init=${p.initVal}"
       case r:PipeReg =>
@@ -213,7 +215,7 @@ object PIRPrinter {
         }
       case _ =>
     }
-    s"(${if (fields.size>0) fields.reduce(_+", "+_) else ""})"
+    fields.toList
   }
 
 }

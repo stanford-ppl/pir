@@ -81,12 +81,12 @@ trait PIRMetadata extends { self:Design =>
   }
 
   object readCChainsOf extends MOneToOneMap {
-    type K = MemoryPipeline
+    type K = ComputeUnit
     type V = List[CounterChain]
   }
 
   object writeCChainsOf extends MOneToOneMap {
-    type K = MemoryPipeline
+    type K = ComputeUnit 
     type V = List[CounterChain]
   }
 }

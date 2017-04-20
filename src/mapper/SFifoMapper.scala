@@ -14,7 +14,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class SFifoMapper(implicit val design:Design) extends Mapper {
+class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type N = SMem
   type R = PSMem
   val typeStr = "ScalFifoMapper"
@@ -24,10 +24,12 @@ class SFifoMapper(implicit val design:Design) extends Mapper {
 
   def finPass(cu:ICL)(m:M):M = m 
 
-  def constrain(n:N, r:R, m:M):M = {
-    m.setSM(n, r)
-      .setOP(n.readPort, r.readPort)
-      .setIP(n.writePort, r.writePort)
+  def constrain(n:N, r:R, map:M):M = {
+    var mp = map
+    mp = mp.setSM(n, r)
+    mp = mapOutPort(n.readPort, r.readPort, mp)
+    mp = mapInPort(n.writePort, r.writePort, mp)
+    mp
   }
 
   // After RegAlloc
@@ -38,7 +40,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper {
       pcu.sbufs
     } else if (regs.size==1) {
       val preg = m.rcmap(regs.head)
-      val ppr = pcu.fustages.head.get(preg)
+      val ppr = pcu.asCU.fustages.head.get(preg)
       ppr.in.fanIns.map{_.src}.collect{ case sb:R => sb }
     } else {
       throw PIRException(s"scalarIn:$n is connected to more than 1 pipeRegs: ${regs.mkString(",")}")
