@@ -49,7 +49,6 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    val pcu = pirMap.clmap(cu).asCU
     log(cu) {
       bind(
         allNodes=cu.smems,
