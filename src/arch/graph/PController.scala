@@ -29,7 +29,7 @@ trait NetworkElement extends Module with Simulatable {
   def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
   def isSCU:Boolean = this.isInstanceOf[ScalarComputeUnit]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
-  def genConnections:this.type = { ConfigFactory.genConnections(this); this } 
+  def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
 }
 
@@ -144,7 +144,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
   def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
-  def genMapping:this.type = { ConfigFactory.genMapping(this); this }
+  def genMapping:this.type = { spade.factory.genMapping(this); this }
 
   /* Parameters */
   def numRegs = 16

@@ -16,6 +16,7 @@ import pir.pass.ForwardRef
 import pir.util.misc._
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
+  import pirmeta._
   val size:Int
   val banking:Banking
 
@@ -30,38 +31,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
   def load = readPort
 
-  def writer:Controller = {
-    writePort.from.src match {
-      case fifo:VectorFIFO => fifo.writer
-      case VecIn(_, vector) => vector.writer.ctrler
-      case ScalarIn(_, scalar) => scalar.writer.ctrler
-      case p => 
-        throw PIRException(s"Unknown OnChipMem write port ${p} for $this in $ctrler")
-    }
-  }
-
-  def reader:Controller = {
-    assert(readPort.to.size>=1, s"$this's readPort is connected to ${readPort.to}")
-    readPort.to.head.src match {
-      case vo:VecOut => 
-        val vrds = vo.vector.readers
-        if(vrds.size!=1)
-          warn(s"OnChipMem=$this in ${this.ctrler} has more than 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
-        val rds = vrds.filterNot{_.ctrler.isInstanceOf[MemoryPipeline]}
-        if (rds.size>1)
-          err(s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 non-MCU remote reader [${rds.mkString(",")}], [${rds.map(_.ctrler).mkString(",")}]")
-        else if (rds.size==1)
-          rds.head.ctrler
-        else
-          vrds.head.ctrler
-      case so:ScalarOut =>
-        assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem=$this in ${this.ctrler} can only have 1 remote reader ${so.scalar.readers}")
-        so.scalar.readers.head.ctrler
-      case cu:Controller => cu
-      case p:Primitive => p.ctrler
-      case p => throw new Exception(s"Unknown OnChipMem read port ${p} for $this in $ctrler")
-    }
-  }
+  def writer:Controller = writerOf(this)
+  def reader:Controller = readerOf(this)
 }
 
 trait SRAMOnRead extends MultiBuffering {

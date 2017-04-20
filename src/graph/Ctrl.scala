@@ -201,11 +201,6 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
     case ctrler:StreamPipeline => ctrler.getCopy(ctrler.parent.localCChain).outer.done
   }
 
-  def enable:EnInPort = ctrler match {
-    case mc:MemoryController => throw PIRException(s"MemoryController doesn't have enable")
-    case ctrler:ComputeUnit => ctrler.localCChain.inner.en
-  }
-
   def done:CtrlOutPort = ctrler match {
     case ctrler:Pipeline => ctrler.localCChain.outer.done 
     case ctrler:OuterController => ctrler.localCChain.outer.done 
@@ -216,6 +211,7 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   def ctrlIns:List[CtrlInPort] = {
     val cins = ListBuffer[CtrlInPort]()
     cins ++= udcounters.values.map(_.inc).filter{ _.isCtrlIn }
+    cins ++= tokInAndTree.ins.filter { _.isCtrlIn }
     ctrler match {
       case top:Top =>
       case cu:ComputeUnit => 
@@ -249,13 +245,13 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
 
 trait StageCtrlBox extends CtrlBox {
   val siblingAndTree:SiblingAndTree = SiblingAndTree()
+  val enable = CtrlOutPort(this, s"$this.enable")
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
   extends CtrlBox() with StageCtrlBox {
-  val enableOut = CtrlOutPort(this, s"$this.enable")
   override def ctrlOuts:List[CtrlOutPort] = { 
-    super.ctrlOuts ++ List(enableOut).filter { _.isCtrlOut }
+    super.ctrlOuts ++ List(enable).filter { _.isCtrlOut }
   }
 }
 object InnerCtrlBox {
@@ -296,8 +292,10 @@ case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design)
 }
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends InnerCtrlBox() {
-  //def readEn:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
-  //def writeEn:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.asInstanceOf[ComputeUnit].localCChain).inner.en
+  //def readEnable:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
+  //def writeEnable:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.asInstanceOf[ComputeUnit].localCChain).inner.en
+  val readEnable = CtrlOutPort(this, s"$this.readEnable")
+  val writeEnable = CtrlOutPort(this, s"$this.writeEnable")
 }
 
 

@@ -40,8 +40,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapAndTree(cu.ctrlBox, pcu.ctrlBox, mp)
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
-    mp = mapSwapWrite(cu, pcu, mp)
-    mp = mapSwapRead(cu, pcu, mp)
+    mp = mapMemoryWrite(cu, pcu, mp)
+    mp = mapMemoryRead(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
     mp = mapEn(cu, pcu, mp)
     mp
@@ -58,45 +58,47 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapSwapWrite(cu:CU, pcu:PCU, pirMap:M):M = {
+  def mapMemoryWrite(cu:CU, pcu:PCU, pirMap:M):M = {
     var mp = pirMap
-    cu.mbuffers.foreach { mbuf =>
-      val pmbuf = mp.smmap(mbuf)
-      val psw = pmbuf.swapWrite
-      (mbuf, pcu) match {
-        case (mbuf:SRAM, pcu:PMCU) =>
-          mp = mp.setFI(psw, pcu.ctrlBox.writeDoneXbar.out)
-        case (mbuf:SMem, pcu:PCU) if mbuf.swapWrite.isCtrlIn =>
-          val pvi = mp.vimap(mbuf.swapWrite)
-          mp = mp.setFI(psw, pvi.ic)
-        case (mbuf:SMem, pcu:PCU) if !mbuf.swapWrite.isConnected =>
-        case (mbuf:SMem, pcu:PCU) =>
-          throw new Exception(s"$mbuf's swapWrite is not ctrlIn, ${mbuf.swapWrite.from}")
+    pcu.mems.foreach { pmem =>
+      mp.smmap.pmap.get(pmem).foreach { mem =>
+        (mem, pcu) match {
+          case (mem:SFIFO, pcu:PCU) =>
+            //mp = mp.setFI
+          case (mem:SRAM, pcu:PMCU) =>
+            mp = mp.setFI(pmem.incWritePtr, pcu.ctrlBox.writeDoneXbar.out)
+          case (mem:SBuf, pcu:PCU) if mem.swapWrite.isCtrlIn =>
+            val pvi = mp.vimap(mem.swapWrite)
+            mp = mp.setFI(pmem.incWritePtr, pvi.ic)
+          case (mem:SBuf, pcu:PCU) if (mem.buffering == 1) => // Not multibuffered
+          case (mem:SBuf, pcu:PCU) if (mem.swapWrite.isConnected) =>
+            throw new Exception(s"$mem's swapWrite is not ctrlIn, ${mem.swapWrite.from}")
+        }
       }
     }
     mp
   }
 
-  def mapSwapRead(cu:CU, pcu:PCU, pirMap:M):M = {
+  def mapMemoryRead(cu:CU, pcu:PCU, pirMap:M):M = {
     var mp = pirMap
     val pcb = pcu.ctrlBox
     cu.mbuffers.foreach { mbuf => 
       (mbuf, pcb) match {
         case (sram:SRAM, pcb:PMCB) =>
           val psram = mp.smmap(sram)
-          mp.setFI(psram.swapRead, pcb.readDoneXbar.out)
+          mp.setFI(psram.incReadPtr, pcb.readDoneXbar.out)
         case (smem:SMem, pcb:PMCB) if forWrite(smem) =>
           val psmem = mp.smmap(smem)
-          mp.setFI(psmem.swapRead, pcb.writeDoneXbar.out)
+          mp.setFI(psmem.incReadPtr, pcb.writeDoneXbar.out)
         case (smem:SMem, pcb:PMCB) if forRead(smem) =>
           val psmem = mp.smmap(smem)
-          mp.setFI(psmem.swapRead, pcb.readDoneXbar.out)
+          mp.setFI(psmem.incReadPtr, pcb.readDoneXbar.out)
         case (smem:SMem, pcb:PICB) =>
           val psmem = mp.smmap(smem)
-          mp.setFI(psmem.swapRead, pcb.doneXbar.out)
+          mp.setFI(psmem.incReadPtr, pcb.doneXbar.out)
         case (smem:SMem, pcb:POCB) =>
           val psmem = mp.smmap(smem)
-          mp.setFI(psmem.swapRead, pcb.doneXbar.out)
+          mp.setFI(psmem.incReadPtr, pcb.doneXbar.out)
       }
     }
     mp
@@ -106,8 +108,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     (cu, pcu) match {
       case (cu:MP, pcu:PMCU) =>
-        val writeCtr = mp.ctmap(cu.writeCChains.last.outer)
-        val readCtr = mp.ctmap(cu.readCChains.last.outer)
+        val writeCtr = mp.ctmap(writeCChainsOf(cu).last.outer)
+        val readCtr = mp.ctmap(readCChainsOf(cu).last.outer)
         mp = mp.setFI(pcu.ctrlBox.writeDoneXbar.in, writeCtr.done)
         mp = mp.setFI(pcu.ctrlBox.readDoneXbar.in, readCtr.done)
       case (cu:ICL, pcu:PCU) =>
@@ -160,9 +162,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
               val prevCtr = ctr.en.from.src.asInstanceOf[Ctr]
               val pPrevCtr = mp.ctmap(prevCtr)
               mp = mp.setFI(pctr.en, pPrevCtr.done)
-            } else if (ctr==mp.clmap.pmap(pcb.pne).readCChains.head.inner) {
+            } else if (ctr==readCChainsOf(mp.clmap.pmap(pcb.pne)).head.inner) {
               mp = mp.setFI(pctr.en, pcb.readEn.out)
-            } else if (ctr==mp.clmap.pmap(pcb.pne).writeCChains.head.inner) {
+            } else if (ctr==writeCChainsOf(mp.clmap.pmap(pcb.pne)).head.inner) {
               mp = mp.setFI(pctr.en, pcb.writeEn.out)
             }
           }
@@ -206,7 +208,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.siblingAndTree.out)
           }
-        case (cb:ICB, pcb:PICB) if co == cb.enableOut => // enableOut
+        case (cb:ICB, pcb:PICB) if co == cb.enable => // enable
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.en.out)
           }

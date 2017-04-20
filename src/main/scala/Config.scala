@@ -21,19 +21,19 @@ object Config {
   var ctrl = true
   var simulate = false
 
-  var pirFile = getProperty("pir.pirfile", "PIR.txt")
+  var pirFile = getProperty("pir.pirfile", "PIR.log")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")
   var pirCtrlDot = getProperty("pir.pir_ctrl_network", "PIRCtrl.dot")
-  var spadeFile = getProperty("pir.spadefile", "Spade.txt")
+  var spadeFile = getProperty("pir.spadefile", "Spade.log")
   //var pisaFile = getProperty("pir.pisafile", "pisa.json")
   var spadeVectorNetwork = getProperty("pir.spade_vector_network", "VecNetwork.dot")
   var spadeScalarNetwork = getProperty("pir.spade_scalar_network", "ScalNetwork.dot")
   var spadeCtrlNetwork = getProperty("pir.spade_ctrl_network", "CtrlNetwork.dot")
   var spadeArgInOut = getProperty("pir.spade_arginout", "ArgInOut.dot")
   var ctrlDot = getProperty("pir.ctrl_dot", "Ctrl.dot")
-  var ctrlFile = getProperty("pir.ctrl_file", "Ctrl.txt")
+  var ctrlFile = getProperty("pir.ctrl_file", "Ctrl.log")
   var spadeCtr = getProperty("pir.spade_ctr", "PCtr.dot")
-  var mapFile = getProperty("pir.mapfile", "Mapping.txt")
+  var mapFile = getProperty("pir.mapfile", "Mapping.log")
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
   var debugLog = getProperty("pir.debugLog", "Debug.log")
 

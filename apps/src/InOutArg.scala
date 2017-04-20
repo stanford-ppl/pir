@@ -1,9 +1,9 @@
 import pir.graph
 import pir.graph._
-import pir.util.enums._
 import pir.codegen._
 import pir.plasticine.config._
 import pir.Design
+import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 

@@ -3,7 +3,7 @@ import pir._
 import pir.util.typealias._
 import pir.util.enums._
 import pir.graph.{Const, PipeReg}
-import pir.pass.{PIRMapping, MapPrinter}
+import pir.pass.{PIRMapping}
 import pir.util._
 import pir.plasticine.main._
 import pir.plasticine.graph.{Const => PConst}

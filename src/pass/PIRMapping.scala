@@ -1,32 +1,16 @@
 package pir.pass
 import pir.graph._
 import pir._
-import pir.codegen.Printer
+import pir.codegen.{Printer, Logger}
 import pir.mapper._
 import pir.exceptions._
 import scala.util.{Try, Success, Failure}
 import pir.util.misc._
 
-object MapPrinter extends Printer { 
-  def shouldRun = Config.debug
+class PIRMapping(implicit design: Design) extends Pass with Logger {
 
   override lazy val stream = newStream(Config.mapFile)
-  def printMap(mapping:PIRMap)(implicit design:Design) = {
-    if (Config.debug) {
-      emitTitleComment(s"Mapping")
-      mapping.printPMap(this, design)
-    }
-  }
 
-  def printException(e:PIRException) = {
-    if (Config.debug) {
-      emitTitleComment("Mapping Exceptions:")
-      emitln(s"$e ${e.msg} \n ${e.printStackTrace}")
-    }
-  }
-}
-
-class PIRMapping(implicit design: Design) extends Pass {
   def shouldRun = Config.mapping
 
   var mapping:PIRMap = _
@@ -91,33 +75,32 @@ class PIRMapping(implicit design: Design) extends Pass {
       case Success(_) =>
         succeeded = true
         info(s"Mapping succeeded") 
-        MapPrinter.printMap(mapping)
+        printMap(mapping)
       case Failure(e) =>
         succeeded = false
         info(s"Mapping failed")
         e match {
           case e:OutOfResource[_] =>
             err(e)
-            MapPrinter.printException(e)
+            printException(e)
             mapping = e.mapping.asInstanceOf[PIRMap]
           case ExceedExceptionLimit(mapper, m) =>
             err(s"$e")
             mapping = m.asInstanceOf[PIRMap]
           case PassThroughException(mapper, e, m) =>
-            MapPrinter.printMap(m)
-            MapPrinter.printException(e)
+            printMap(m)
+            printException(e)
             mapping = m
           case e:MappingException[_] =>
-            MapPrinter.printException(e)
+            printException(e)
             mapping = e.mapping.asInstanceOf[PIRMap]
           case e:PIRException => 
-            MapPrinter.printException(e)
+            printException(e)
           case e => throw e 
         }
     }
     toc(s"Mapping", "s")
     design.mapperLogger.close
-    MapPrinter.close
   } 
 
   override def initPass:Unit = {
@@ -126,6 +109,21 @@ class PIRMapping(implicit design: Design) extends Pass {
 
   override def finPass = {
     design.mapperLogger.close
-    info("Finishing PIR Mapping")
+    close
+    super.finPass
+  }
+
+  def printMap(mapping:PIRMap)(implicit design:Design) = {
+    if (Config.debug) {
+      emitTitleComment(s"Mapping")
+      mapping.printPMap(this, design)
+    }
+  }
+
+  def printException(e:PIRException) = {
+    if (Config.debug) {
+      emitTitleComment("Mapping Exceptions:")
+      emitln(s"$e ${e.msg} \n ${e.printStackTrace}")
+    }
   }
 }

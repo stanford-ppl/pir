@@ -14,6 +14,8 @@ import scala.collection.mutable.HashMap
 class IRCheck(implicit design: Design) extends Pass {
   import pirmeta._
 
+  override def toString = "IRCheck"
+
   def shouldRun = true 
 
   override def traverse:Unit = {
@@ -32,10 +34,10 @@ class IRCheck(implicit design: Design) extends Pass {
             //warn(s"Nested Single Stage. Control won't be correctly generated at the moment! ${cu} children:[${cu.children.mkString(",")}]")
           cu match {
             case cu:StreamController =>
-              cu.children.foreach { c =>
-                if (!c.isHead && !c.isInstanceOf[StreamPipeline])
-                  throw PIRException("Only first stage in StreamController can be non-StreamPipeline")
-              }
+              //cu.children.foreach { c =>
+                //if (!c.isHead && !c.isInstanceOf[StreamPipeline])
+                  //throw PIRException("Only first stage in StreamController can be non-StreamPipeline")
+              //}
             case _ =>
           }
         case cu:Controller =>

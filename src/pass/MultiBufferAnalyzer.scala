@@ -2,7 +2,7 @@ package pir.pass
 import pir.graph._
 import pir._
 import pir.exceptions._
-import pir.codegen.Printer
+import pir.codegen.Logger
 import pir.util.misc._
 
 import scala.collection.mutable.Set
@@ -10,10 +10,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
+class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   def shouldRun = true 
 
-  override lazy val stream = newStream(s"MultiBufferAnalysis.txt")
+  override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
 
   def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
     val ra = reader.ancestors
@@ -43,15 +43,15 @@ class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
     }
     buf.producer(producer)
     buf.consumer(consumer, true) // detect back edge later
-    emitln(s"$cu parent:$lca")
-    emitln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
-    emitln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
-    emitln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
-    emitln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
+    dprintln(s"$cu parent:$lca")
+    dprintln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
+    dprintln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
+    dprintln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
+    dprintln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
   }
 
   def setProducerConsumer:Unit = {
-    emitln(s"Set producer consumer ...")
+    dprintln(s"Set producer consumer ...")
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {
         cu.mbuffers.foreach { buf =>
@@ -71,29 +71,29 @@ class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
     while(toVisit.nonEmpty) {
       val node = toVisit.dequeue
       visited += node
-      emitln(s"Visiting $node produced:${node.produced}")
+      dprintln(s"Visiting $node produced:${node.produced}")
       node.produced.foreach { mem =>
         if (visited.contains(mem.consumer)) {
           mem.trueDep = false
-          emitln(s"Set $mem.trueDep=false in ${mem.ctrler}")
+          dprintln(s"Set $mem.trueDep=false in ${mem.ctrler}")
         } else {
           if (!toVisit.contains(mem.consumer))
             toVisit += mem.consumer
         }
       }
     }
-    emitln(s"----")
+    dprintln(s"----")
     visited.foreach{c => if (c.children.nonEmpty) findCycle(c.children) }
   }
 
   def findBackEdge:Unit = {
-    emitln(s"Finding back edge in dependencies")
+    dprintln(s"Finding back edge in dependencies")
     
     findCycle(List(design.top))
   }
 
   def setBufferSize:Unit = {
-    emitln(s"Set BufferSize ...")
+    dprintln(s"Set BufferSize ...")
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {
         cu.mbuffers.foreach { buf =>
@@ -117,13 +117,14 @@ class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
             }
           }
           buf.buffering(bufSize)
-          emitln(s"$buf buffering=${bufSize}")
+          dprintln(s"$buf buffering=${bufSize}")
         }
       }
     }
   }
 
   override def traverse:Unit = {
+    assert(design.accessAnalyzer.hasRun)
     setProducerConsumer
     findBackEdge
     setBufferSize
@@ -131,7 +132,8 @@ class MultiBufferAnalysis(implicit design: Design) extends Pass with Printer {
   } 
 
   override def finPass = {
-    endInfo("Finishing multiBuffer analysis")
+    close
+    super.finPass
   }
 
 }

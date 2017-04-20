@@ -2,7 +2,7 @@ package pir.pass
 import pir.graph._
 import pir._
 import pir.util.enums._
-import pir.codegen.Printer
+import pir.codegen.Logger
 import pir.exceptions._
 import pir.util.misc._
 
@@ -11,18 +11,23 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 
-class CtrlAlloc(implicit design: Design) extends Pass with Printer {
+class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = Config.ctrl
 
-  override lazy val stream = newStream(s"CtrlAlloc.txt")
+  override lazy val stream = newStream(s"CtrlAlloc.log")
 
   override def traverse:Unit = {
     design.top.ctrlers.foreach { ctrler =>
-      swapAlloc(ctrler)
+      connectEnable(ctrler)
+      connectMemoryControl(ctrler)
     }
-    ctrlAlloc
+    design.top.ctrlers.foreach { ctrler =>
+      connectChildren(ctrler)
+      connectSibling(ctrler)
+      //connectEnable(ctrler) // directly mapped
+    }
   } 
 
   /*
@@ -40,130 +45,160 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
     cchains.minBy{_.ctrler.ancestors.size} // outer most CounterChain should have least ancesstors
   }
 
-  def swapAlloc(ctrler:Controller) = ctrler match {
+  def swapReadCtr(mem:MultiBuffering) = {
+    mem.consumer match {
+      case cu:MemoryPipeline if forRead(mem) => readCChainsOf(cu).last
+      case cu:MemoryPipeline if forWrite(mem) => writeCChainsOf(cu).last
+      case cu:ComputeUnit => cu.localCChain
+      case top:Top => 
+        throw PIRException(
+          s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
+    }
+  }
+
+  def swapWriteCtr(mem:MultiBuffering) = {
+    mem.producer.asInstanceOf[ComputeUnit].localCChain
+  }
+
+  def connectMemoryControl(ctrler:Controller) = ctrler match {
     case cu:ComputeUnit =>
       cu.mems.foreach {
         case mem:MultiBuffering if mem.buffering > 1 =>
-          val swapReadCtr = mem.consumer match {
-            case cu:MemoryPipeline if forRead(mem) => cu.readCChains.last
-            case cu:MemoryPipeline if forWrite(mem) => cu.writeCChains.last
-            case cu:ComputeUnit => cu.localCChain
-            case top:Top => 
-              throw PIRException(
-                s"mem ($mem)'s consumer is top. Shouldn't be multibuffered buffering=${mem.buffering}")
+          val readCtr = swapReadCtr(mem)
+          val writeCtr = swapWriteCtr(mem)
+          mem.swapRead.connect(getDone(cu, readCtr))
+          mem.swapWrite.connect(getDone(cu, writeCtr))
+          dprintln(s"$mem in $ctrler")
+          dprintln(s"- swapRead:${mem.swapRead.from}(orig=${readCtr} in ${readCtr.ctrler})")
+          dprintln(s"- swapWrite:${mem.swapWrite.from}(orig=${writeCtr} in ${writeCtr.ctrler})")
+        case mem:MultiBuffering => 
+        case mem:ScalarFIFO =>
+          mem.writer.ctrlBox match {
+            case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.enable)
           }
-          mem.swapRead.connect(getDone(cu, swapReadCtr))
-          //TODO remove scalar swapWrite
-          mem.swapWrite.connect(getDone(cu, mem.producer.asInstanceOf[ComputeUnit].localCChain))
-        case mem =>
+          // deqEnable is mapped in CtrlMapper
+        case mem:VectorFIFO =>
+          // vectorFIFO.enqueueEnable routes through data bus 
+          // deqEnable is mapped in CtrlMapper
       }
     case _ =>
   }
 
-  def ctrlAlloc = {
-    design.top.ctrlers.foreach { cu =>
-      cu match {
-        case cu:MemoryPipeline =>  // handled ahead and after
-        case mc:MemoryController =>
-          mc.getCopy(mc.parent.localCChain).inner.en.connect(mc.done)
-          if (!mc.isHead) {
-            mc.fifos.foreach {
-              case sf:ScalarFIFO => sf.enqueueEnable.connect(sf.writer.ctrlBox.asInstanceOf[InnerCtrlBox].enableOut)
-              case vf:VectorFIFO =>
-            }
-          }
-        case cu:StreamPipeline =>
-          val cb = cu.ctrlBox
-          cu.parent match {
-            case parent:StreamController =>
-              if (cu.isHead) {
-                val td = parent.ctrler.ctrlBox.asInstanceOf[OuterCtrlBox].tokenDown
-                cb.enable.connect(td)
-              } else {
-                cb.enable.connect(cb.andTree.out)
-                cu.fifos.foreach {
-                  case sf:ScalarFIFO => sf.enqueueEnable.connect(sf.writer.ctrlBox.asInstanceOf[InnerCtrlBox].enableOut)
-                  case vf:VectorFIFO =>
-                }
-              }
-          }
-        case cu:ComputeUnit=>
-          val cb = cu.ctrlBox.asInstanceOf[StageCtrlBox]
-          val parent = cu.parent
-          //println(cu, cu.trueConsumed.map{ m => (m, m.ctrler) })
-          cu.trueConsumed.foreach { mem =>
-            mem.buffering match {
-              case 1 if parent.isInstanceOf[Sequential] | parent.isInstanceOf[Top] =>
-              case n if parent.isInstanceOf[MetaPipeline] =>
-                if (n < parent.length) {  // less then number of tokens
-                  mem.producer match {
-                    case cu:ComputeUnit =>
-                      val tk = cb.tokenBuffer(mem)
-                      //tk.inc.connect(mem.ctrler.ctrlBox.swapWrite(mem))
-                      tk.inc.connect(mem.swapWrite.from)
-                      cb.siblingAndTree.addInput(tk.out)
-                    case top:Top => // No synchronization needed
-                  }
-                }
-            }
-            //mem match {
-              //case mem:SRAMOnRead =>
-                //mem.ctrler.ctrlBox.asInstanceOf[MemCtrlBox].readEn.connect(cb.siblingAndTree.out)
-              //case _ =>
-            //}
-          }
-          cu.trueProduced.foreach { mem =>
-            mem.buffering match {
-              case 1 if parent.isInstanceOf[Sequential] | parent.isInstanceOf[Top] =>
-              case n if parent.isInstanceOf[MetaPipeline] =>
-                if (n < parent.length) {  // less then number of tokens
-                  mem.consumer match {
-                    case cu:ComputeUnit =>
-                      mem match {
-                        case mem:ScalarBuffer if (false) => // TODO Check scalar hardware buffer size?
-                        case mem:OnChipMem =>
-                          val cd = cb.creditBuffer(mem, n)
-                          //cd.inc.connect(mem.ctrler.ctrlBox.swapRead(mem))
-                          cd.inc.connect(mem.swapRead.from)
-                          cb.siblingAndTree.addInput(cd.out)
-                      }
-                    case top:Top => // No synchronization needed
-                  }
-                }
-              case n =>
-                throw PIRException(s"$cu's parent is ${parent} but produced mem:$mem is $n")
-            }
-            //mem match {
-              //case mem:SRAMOnWrite => 
-              //case _ =>
-            //}
-          }
-          if (cu.isHead) {
-            val tk = cb.tokenBuffer(cu.parent)
-            tk.inc.connect(parent.ctrler.ctrlBox.asInstanceOf[OuterCtrlBox].tokenDown)
-            cb.siblingAndTree.addInput(tk.out)
-          }
-          cb.enable.connect(cb.siblingAndTree.out)
-        case top:Top =>
-      }
-      cu match {
-        case cu@(_:Top) =>
-          val cb = cu.ctrlBox.asInstanceOf[TopCtrlBox]
-          val lasts = cu.children.filter{_.isLast}
-          assert(lasts.size==1)
-          cb.status.connect(lasts.head.ctrlBox.done)
-        case cu@(_:OuterController) =>
-          val cb = cu.ctrlBox.asInstanceOf[OuterCtrlBox]
-          val lasts = cu.children.filter{_.isLast}
-          lasts.foreach { last =>
-            val tk = cb.tokenBuffer(last)
-            tk.inc.connect(last.ctrlBox.done)
-            cb.childrenAndTree.addInput(tk.out)
-          }
-        case _ =>
+  def connectChildren(ctrler:Controller) = {
+    // Token down
+    val heads = ctrler.children.filter{_.isHead}
+    dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
+    heads.foreach { head =>
+      (ctrler, ctrler.ctrlBox, head.ctrlBox) match {
+        case (parent:StreamController, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
+          ccb.tokInAndTree.addInput(pcb.tokenDown)
+        case (parent:Controller, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
+          val tk = ccb.tokenBuffer(parent)
+          tk.inc.connect(pcb.tokenDown)
+          ccb.siblingAndTree.addInput(tk.out)
       }
     }
-  } 
+    // Token back
+    val lasts = ctrler.children.filter{_.isLast}
+    dprintln(s"$ctrler lasts:[${lasts.mkString(",")}]")
+    lasts.foreach { last =>
+      (ctrler, ctrler.ctrlBox, last.ctrlBox) match {
+        case (parent:Top, pcb:TopCtrlBox, ccb:CtrlBox) =>
+          pcb.status.connect(lasts.head.ctrlBox.done)
+        case (parent:StreamController, pcb:OuterCtrlBox, ccb:InnerCtrlBox) =>
+          val tk = pcb.tokenBuffer(last)
+          tk.inc.connect(ccb.enable)
+          tk.dec.connect(pcb.childrenAndTree.out)
+          pcb.childrenAndTree.addInput(tk.out)
+        case (parent:Controller, pcb:OuterCtrlBox, ccb:CtrlBox) =>
+          val tk = pcb.tokenBuffer(last)
+          tk.inc.connect(last.ctrlBox.done)
+          tk.dec.connect(pcb.childrenAndTree.out)
+          pcb.childrenAndTree.addInput(tk.out)
+      }
+    }
+  }
+
+  def connectSibling(ctrler:Controller) = {
+    // Forward dependency
+    (ctrler, ctrler.ctrlBox) match {
+      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[StreamController] =>
+        // FIFO.notEmpty
+        //cu.fifos.foreach { fifo =>
+          //cb.fifoAndTree.addInput(fifo.notEmpty)
+        //}
+      case (cu:ComputeUnit, cb:StageCtrlBox) =>
+        // Token
+        cu.trueConsumed.foreach { mem =>
+          mem.producer match {
+            case producer:ComputeUnit =>
+              val tk = cb.tokenBuffer(mem)
+              if (mem.swapWrite.isConnected) {
+                tk.inc.connect(mem.swapWrite.from)
+              } else {
+                tk.inc.connect(getDone(cu, swapWriteCtr(mem)))
+              }
+              tk.dec.connect(cb.done)
+              cb.siblingAndTree.addInput(tk.out)
+            case producer:Top => // No synchronization needed
+          }
+        }
+      case (cu:Top, cb) =>
+    }
+    // Backward pressure
+    (ctrler, ctrler.ctrlBox) match {
+      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[StreamController] =>
+        // FIFO.notFull
+        dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
+        cu.writtenFIFOs.foreach { fifo =>
+          cb.tokInAndTree.addInput(fifo.notFull)
+        }
+      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[MetaPipeline] => 
+        // Credit
+        cu.trueProduced.foreach { mem =>
+          mem.consumer match {
+            case consumer:ComputeUnit if mem.buffering != 1 & mem.buffering < cu.parent.length =>
+              val cd = cb.creditBuffer(mem, mem.buffering)
+              if (mem.swapRead.isConnected) {
+                cd.inc.connect(mem.swapRead.from)
+              } else {
+                cd.inc.connect(getDone(cu, swapReadCtr(mem)))
+              }
+              cd.dec.connect(cb.done)
+              cb.siblingAndTree.addInput(cd.out)
+            case consumer =>
+          }
+        }
+      case (cu, cb) =>
+    }
+  }
+
+  def connectEnable(ctrler:Controller) = {
+    (ctrler, ctrler.ctrlBox) match {
+      case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
+        readCChainsOf(ctrler).foreach { cc => cc.inner.en.connect(cb.readEnable ) }
+        writeCChainsOf(ctrler).foreach { cc => cc.inner.en.connect(cb.writeEnable ) }
+      case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
+        ctrler.localCChain.inner.en.connect(cb.enable)
+      case (ctrler, cb) =>
+    }
+    //ctrler match {
+      //case ctrler:MemoryPipeline =>
+      //case ctrler:InnerController =>
+        //val cb = ctrler.ctrlBox
+        //ctrler.localCChain.inner.en.connect(cb.enable)
+        //ctrler.parent match {
+          //case parent:StreamController =>
+            //cb.enable.connect(cb.andTree.out)
+          //case parent =>
+            //cb.enable.connect(cb.siblingAndTree.out)
+        //}
+      //case ctrler:OuterController =>
+        //val cb = ctrler.ctrlBox 
+        //cb.enable.connect(cb.childrenAndTree)
+      //case ctrler:Top =>
+    //}
+  }
 
   override def finPass = {
     //design.top.compUnits.foreach { cu =>
@@ -180,7 +215,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Printer {
           //}
       //}
     //}
-    endInfo("Finishing control logic allocation")
+    super.finPass
     close
   }
 }

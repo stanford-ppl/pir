@@ -6,6 +6,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 import pir.plasticine.simulation._
 import pir.plasticine.util._
+import pir.plasticine.config.ConfigFactory
 
 trait Spade extends SpadeMetadata {
   implicit def spade:this.type = this
@@ -37,6 +38,8 @@ trait Spade extends SpadeMetadata {
   def config:Unit = {}
 
   def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
+
+  val factory = new ConfigFactory()
 }
 
 trait PointToPointNetwork extends Spade {

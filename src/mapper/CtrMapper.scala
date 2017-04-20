@@ -27,7 +27,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   /*Make sure counters that are chained are next to each other and the counter is order such that
    * inner counter */
   def sortCChains(cchains:List[CC]):List[Ctr] = {
-    cchains.filter(_.inner.isInner).flatMap { cc =>
+    val sorted = cchains.filter(_.inner.isInner).flatMap { cc =>
       val ctrs = ListBuffer[Ctr]()
       var cur = cc.inner
       while (!cur.isOuter) {
@@ -37,6 +37,9 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
       ctrs += cur
       ctrs.toList
     }
+    val unSorted = cchains.flatMap(_.counters)
+    assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}")
+    sorted
   }
 
   def map(cu:CL, pirMap:M):M = {

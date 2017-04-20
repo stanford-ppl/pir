@@ -5,7 +5,7 @@ import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
 import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
-import pir.pass.{PIRMapping, MapPrinter}
+import pir.pass.{PIRMapping}
 import pir.plasticine.main._
 import pir.util.misc._
 import pir.util.topoSort
@@ -63,7 +63,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = mcs.filter { _.mctpe.isDense }.map { mc => mc.mcfifos("offset").writer.ctrler.asInstanceOf[StreamPipeline] }
+    val scus = mcs.filter { _.mctpe.isDense }.map { mc => mc.mcfifos("offset").writer.ctrler.asInstanceOf[ICL] }
     val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
     val pmcus = design.arch.mcus 
@@ -148,8 +148,8 @@ class CUMapper(implicit ds:Design) extends Mapper {
           if (m.clmap.contains(sp)) {
             pnes = pnes.filter{ pne => pne.coord == m.clmap(sp).coord }
           }
-        case sp:SP =>
-          val mcs = sp.writtenFIFO.filter{ _.isOfsFIFO }
+        case cu:CU if cu.isStreaming =>
+          val mcs = cu.writtenFIFOs.filter{ _.isOfsFIFO }
           if (!mcs.isEmpty && m.clmap.contains(mcs.head.ctrler)) {
             pnes = pnes.filter{ pne => pne.coord == m.clmap(mcs.head.ctrler).coord }
           }
@@ -187,7 +187,7 @@ case class OutOfPMC(pnodes:List[PMC], nodes:List[MC]) (implicit val mapper:CUMap
 case class OutOfPCU(pnodes:List[PCU], nodes:List[CU]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough ComputeUnits in ${design.arch} to map application."
 } 
-case class OutOfSCU(pnodes:List[PSCU], nodes:List[SP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
+case class OutOfSCU(pnodes:List[PSCU], nodes:List[ICL]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {
   override val msg = s"Not enough ScalarComputeUnits in ${design.arch} to map application."
 } 
 case class OutOfMCU(pnodes:List[PMCU], nodes:List[MP]) (implicit val mapper:CUMapper, design:Design) extends OutOfResource(PIRMap.empty) {

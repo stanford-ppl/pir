@@ -12,6 +12,7 @@ trait PIRAlias {
   type SC    = StreamController
   type SP    = StreamPipeline
   type MP    = MemoryPipeline
+  type PL    = Pipeline
   type MC    = MemoryController
   type PRIM  = Primitive
   type Reg   = pir.graph.Reg
@@ -25,6 +26,7 @@ trait PIRAlias {
   type SMem  = ScalarMem
   type SFIFO = ScalarFIFO
   type VFIFO = VectorFIFO
+  type SBuf  = ScalarBuffer
   type CC    = CounterChain
   type Ctr   = Counter
   type FU    = FuncUnit

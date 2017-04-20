@@ -15,6 +15,7 @@ abstract class Pass(implicit val design:Design) {
   implicit lazy val spade:Spade = design.arch
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design
+  var runId = -1
 
   var isInit = false
   var hasRun = false
@@ -26,7 +27,12 @@ abstract class Pass(implicit val design:Design) {
     hasRun = false
   }
   
-  def run = {
+  def run(id:Int):Unit = {
+    runId = id
+    run
+  }
+
+  def run:Unit = {
     initPass
     isInit = true
     traverse

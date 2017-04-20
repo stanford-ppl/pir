@@ -2,7 +2,6 @@ package pir.codegen
 
 import pir.{Design, Config}
 import pir.codegen._
-import pir.util._
 import pir.graph._
 import pir.mapper.PIRMap
 import pir.util.misc._
@@ -16,17 +15,20 @@ import scala.reflect.runtime.universe._
 
 trait PIRDotGen extends Codegen with DotCodegen {
 
-  val design:Design
+  def horizontal:Boolean
+
+  def design:Design
 
   def traverse:Unit = {
     emitBlock("digraph G") {
+      if (horizontal) emitln(s"rankdir=LR")
       emitNode(design.top)
       design.top.ctrlers.foreach { cl => emitInputs (cl) }
     }
   }
 
   override def finPass = {
-    endInfo(s"Finishing ${this.getClass.getSimpleName}")
+    super.finPass
     close
   }
 
@@ -34,18 +36,18 @@ trait PIRDotGen extends Codegen with DotCodegen {
     cl match {
       case top:Top => 
         emitSubGraph(top, top) {
-          emitNode(top, top, DotAttr().shape(box).style(dashed))
+          emitNode(top,DotAttr().shape(box).style(dashed).label(quote(top)))
           top.children.foreach { cu => emitNode(cu) }
         }
       case cu:OuterController =>
         emitSubGraph(cu, cu) {
-          emitNode(cu, cu, DotAttr().shape(box).style(dashed))
+          emitNode(cu,DotAttr().shape(box).style(dashed).label(quote(cu)))
           cu.children.foreach { cu => emitNode(cu) }
         }
       case cu:MemoryPipeline =>
-        emitNode(cu, cu, DotAttr().shape(box).style(filled).fillcolor(cyan))
+        emitNode(cu, DotAttr().shape(box).style(filled).fillcolor(cyan).label(quote(cu)))
       case cu:InnerController =>
-        emitNode(cu, cu, DotAttr().shape(box).style(rounded))
+        emitNode(cu, DotAttr().shape(box).style(rounded).label(quote(cu)))
     }
   }
 
@@ -96,11 +98,17 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
-  override def quote(n:Any):String = super[DotCodegen].quote(n)
+  override def quote(n:Any):String = {
+    super[DotCodegen].quote(n)
+  }
 }
 
 class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
+  import pirmeta._
+
   def shouldRun = Config.debug
+
+  def horizontal:Boolean = false
 
   override lazy val stream = newStream(fn)
 
@@ -113,11 +121,24 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
     //emitCtrlInputs(cl)
   }
 
+  override def quote(n:Any):String = {
+    n match {
+      case n:Controller => 
+        val head = if (isHead(n)) s"\n(HEAD)" else ""
+        val last = if (isLast(n)) s"\n(LAST)" else ""
+        s"${super.quote(n)}$head$last"
+      case n => super.quote(n)
+    }
+  }
+
 }
 
 
 class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
   def shouldRun = Config.debug & Config.ctrl
+
+  //def horizontal:Boolean = true
+  def horizontal:Boolean = false
 
   override lazy val stream = newStream(fn)
 

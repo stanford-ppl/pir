@@ -15,6 +15,8 @@ import pir.util._
 
 abstract class Controller(implicit design:Design) extends Node {
   implicit def ctrler:this.type = this
+  import pirmeta._
+
   val sinMap = Map[Scalar, ScalarIn]()
   val soutMap = Map[Scalar, ScalarOut]()
   val vinMap = Map[Vector, VecIn]()
@@ -54,39 +56,21 @@ abstract class Controller(implicit design:Design) extends Node {
   def produced = _produced.toList
   def trueConsumed = consumed.filter { _.trueDep }
   def trueProduced = produced.filter { _.trueDep }
-  def writtenMem:List[OnChipMem] = {
-    (soutMap ++ voutMap).values.flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
+  def writtenMems:List[OnChipMem] = {
+    (souts ++ vouts).flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
   }
 
-  def isHead = (trueConsumed.size==0)
-  def isLast = (trueProduced.size==0)
+  def length = lengthOf(this)
+  def ancestors: List[Controller] = ancestorsOf(this)
+  def descendents: List[Controller] = descendentsOf(this)
+  def isHead = pirmeta.isHead(this)
+  def isLast = pirmeta.isLast(this)
   def isUnitStage = isHead && isLast
-
-  /* Number of children stages on the critical path */
-  def length:Int = {
-    var count = 1
-    var heads:List[Controller] = children.filter{!_.isHead}
-    while(heads.size!=0) {
-      // Collect consumers that are not Top
-      heads = heads.flatMap { _.trueProduced.map { _.consumer } }.toSet.toList
-      count +=1
-    }
-    count
-  }
-
-  // Including current CU. From current to top
-  def ancestors: List[Controller] = {
-    val list = ListBuffer[Controller]()
-    var child:Controller = this 
-    list += child
-    while (!child.isInstanceOf[Top]) {
-      child = child.asInstanceOf[ComputeUnit].parent
-      list += child
-    }
-    list.toList
-  }
+  def isStreaming = pirmeta.isStreaming(this)
+  def isPipelining = pirmeta.isPipelining(this)
 
   def isMP = this.isInstanceOf[MemoryPipeline]
+  def asCU = this.asInstanceOf[ComputeUnit]
 
 }
 
@@ -127,7 +111,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   }
 
   def getCopy(cchain:CounterChain):CounterChain = {
-    assert(cchain.isDefined)
     cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
   }
 
@@ -140,9 +123,9 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   lazy val localCChain:CounterChain = {
     this match {
       case cu:StreamPipeline =>
-        if (cu.isHead) {
+        if (isHead) {
           cu.getCopy(cu.parent.localCChain)
-        } else if (cu.isLast) {
+        } else if (isLast) {
           cu match {
             case mc:MemoryController => throw PIRException(s"MemoryController $this doesn't have localCChain")
             case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
@@ -198,6 +181,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
   def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
   def smems = mems.collect { case smem:ScalarMem => smem }
+  def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
 
   val retiming:Map[Variable, FIFO] = Map.empty
   def getRetimingFIFO(variable:Variable):FIFO = {
@@ -275,9 +259,6 @@ object MetaPipeline {
 
 class StreamController(name:Option[String])(implicit design:Design) extends OuterController(name) {
   override val typeStr = "StreamCtrler"
-  override def children:List[InnerController] = {
-    super.children.asInstanceOf[List[InnerController]]
-  }
 }
 object StreamController {
   def apply[P](name: Option[String], parent:P) (block: StreamController => Any)
@@ -388,11 +369,11 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
 
   override val typeStr = "MemPipe"
   override lazy val ctrlBox:MemCtrlBox = MemCtrlBox()
-  override def isHead = false
-  override def isLast = false
 
-  lazy val mem:MultiBuffering = {
-    val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
+  //lazy val mem:MultiBuffering = {
+  lazy val mem:SRAM = {
+    //val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
+    val rms = mems.collect{ case m:SRAM => m}
     assert(rms.size==1)
     rms.head
   }
@@ -403,35 +384,35 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
   }
   def data = dataOut.vector
 
-  def getChains(head:CounterChain) = {
-    val ccs = ListBuffer[CounterChain]()
-    var cur = head
-    ccs += cur
-    var outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
-    while (outerCCs.nonEmpty) {
-      assert(outerCCs.size==1)
-      cur = outerCCs.head
-      ccs += cur
-      outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
-    }
-    ccs.toList
-  }
+  //def getChains(head:CounterChain) = {
+    //val ccs = ListBuffer[CounterChain]()
+    //var cur = head
+    //ccs += cur
+    //var outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
+    //while (outerCCs.nonEmpty) {
+      //assert(outerCCs.size==1)
+      //cur = outerCCs.head
+      //ccs += cur
+      //outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
+    //}
+    //ccs.toList
+  //}
 
-  lazy val writeCChains = {
-    val wccs = cchains.filter { cc => forWrite(cc) }
-    val heads = wccs.filterNot { _.inner.en.isConnected }
-    assert(heads.size==1)
-    val head = heads.head
-    getChains(head)
-  }
+  //lazy val writeCChains = {
+    //val wccs = cchains.filter { cc => forWrite(cc) }
+    //val heads = wccs.filterNot { _.inner.en.isConnected }
+    //assert(heads.size==1)
+    //val head = heads.head
+    //getChains(head)
+  //}
 
-  lazy val readCChains = {
-    val rccs = cchains.filter { cc => forRead(cc) }
-    val heads = rccs.filterNot { _.inner.en.isConnected }
-    assert(heads.size==1)
-    val head = heads.head
-    getChains(head)
-  }
+  //lazy val readCChains = {
+    //val rccs = cchains.filter { cc => forRead(cc) }
+    //val heads = rccs.filterNot { _.inner.en.isConnected }
+    //assert(heads.size==1)
+    //val head = heads.head
+    //getChains(head)
+  //}
 
 }
 object MemoryPipeline {
@@ -461,18 +442,6 @@ class StreamPipeline(name:Option[String])(implicit design:Design) extends InnerC
     this
   }
   override def removeParent:Unit = _parent = null
-
-  def writtenFIFO:List[FIFO] = writtenMem.collect { case fifo:FIFO => fifo }
-
-  override def isHead = { fifos.filter { fifo =>
-      fifo.writer match {
-        case cu:ComputeUnit => cu.parent == this.parent 
-        case top:Top => false
-      }
-    }.size==0
-  }
-  override def isLast = writtenFIFO.filter{_.ctrler.parent==parent}.size==0
-
 }
 object StreamPipeline {
   def apply[P](name: Option[String], parent:P) (block: StreamPipeline => Any)
@@ -495,12 +464,12 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   val mcfifos = Map[String, FIFO]()
   val mcvecs = Map[String, Vector]()
   
-  val done = CtrlOutPort(this, s"${this}.done")
-  val dummyCtrl = CtrlOutPort(this, s"${this}.dummy")
-  
   override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
     super.updateBlock(block)
     mcvecs.foreach { case (field, vec) => newVout(vec) }
+    mcfifos.foreach { case (field, fifo) =>
+      CtrlInPort(this, s"$this.$field").connect(fifo.readPort)
+    }
     this
   }
 }

@@ -33,7 +33,7 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
       cu match {
         case mc:MemoryController =>
           val info = ListBuffer[String]()
-          emitln(s"done=[${mc.done.to.mkString(",")}]")
+          //emitln(s"done=[${mc.done.to.mkString(",")}]")
         case cu:InnerController =>
           cu.mems.foreach { mem =>
             val info = ListBuffer[String]()

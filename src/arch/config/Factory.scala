@@ -13,8 +13,9 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 
 // Common configuration generator 
-object ConfigFactory extends Logger {
-    override lazy val stream = newStream("factory.log")
+class ConfigFactory(implicit spade:Spade) extends Logger {
+
+    override lazy val stream = newStream("factory.log", spade)
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
@@ -150,7 +151,7 @@ object ConfigFactory extends Logger {
       case cb:InnerCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
-        cu.bufs.foreach { _.swapRead <== cb.doneXbar.out }
+        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cb.siblingAndTree <== cb.udcs.map(_.out)
         cb.udcs.foreach { udc =>
@@ -167,7 +168,7 @@ object ConfigFactory extends Logger {
       case cb:OuterCtrlBox => 
         val cu = cb.pne
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
-        cu.bufs.foreach { _.swapRead <== cb.doneXbar.out }
+        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
         cb.childrenAndTree <== cb.udcs.map(_.out)
         cb.siblingAndTree <== cb.udcs.map(_.out)
         cb.udcs.foreach { udc =>
@@ -188,7 +189,7 @@ object ConfigFactory extends Logger {
         val cu = cb.pne
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
         cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
-        cu.bufs.foreach { buf => buf.swapRead <== cb.readDoneXbar.out; buf.swapRead <== cb.writeDoneXbar.out }
+        cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cb.writeFIFOAndTree <== cu.bufs.map(_.notEmpty) 
         cb.readFIFOAndTree <== cu.bufs.map(_.notEmpty)
@@ -202,7 +203,7 @@ object ConfigFactory extends Logger {
     cu match {
       case cu:ComputeUnit =>
         cu.bufs.foreach { buf =>
-          buf.swapWrite <== cu.cins.map(_.ic)
+          buf.incWritePtr <== cu.cins.map(_.ic)
         }
       case cu =>
     }

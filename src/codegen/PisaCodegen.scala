@@ -19,10 +19,14 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen with DebugLogger {
+class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
   def shouldRun = Config.genPisa && design.mapping.nonEmpty
   lazy val dir = sys.env("PLASTICINE_HOME") + "/apps"
   override lazy val stream = newStream(dir, s"${design}.json") 
+  val logger = new Logger {
+    override lazy val stream = newStream(s"PisaCodegen.log")
+  }
+  import logger.{dprint, dprintln}
   import pirmeta.{indexOf => _, _}
   import spademeta._
   
@@ -931,8 +935,6 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen wi
     }
   }
 
-}
-object CtrlCodegen extends DebugLogger {
   def lookUp(numBits:Int, transFunc: List[Boolean] => Boolean):List[String] = {
     val size:Int = Math.pow(2, numBits).toInt
     val table = genTable(numBits, transFunc)

@@ -79,8 +79,14 @@ trait DotCodegen extends Printer with DotEnum {
   val regex = "\\[[0-9]*\\]".r
   def q(s:Any) = regex.replaceAllIn(s.toString, "")
 
-  def emitNode(n:Any, label:Any) = {
+  def emitNode(n:Any, label:String) = {
     emitln(s"""${q(n)} [label="${q(label)}"];""")
+  }
+  def emitNode(n:Any, attr:DotAttr) = {
+    attr.attrMap.get("label").foreach { label =>
+      attr.attrMap += "label" -> q(label)
+    }
+    emitln(s"""${q(n)} [${attr.list}];""")
   }
   def emitNode(n:Any, label:Any, attr:DotAttr) = {
     emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
@@ -89,6 +95,10 @@ trait DotCodegen extends Printer with DotEnum {
     emitEdge(from, to, DotAttr().label(label))
   }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
+    //attr.attrMap.get("label").foreach { label =>
+      //attr.attrMap.remove("label")
+      //attr.attrMap += "xlabel" -> label
+    //}
     emitln(s"""${q(from)} -> ${q(to)} ${if (attr.attrMap.size!=0) s"[${attr.list}]" else ""}""")
   }
   def emitEdge(from:Any, to:Any):Unit = {

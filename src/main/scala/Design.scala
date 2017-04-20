@@ -45,17 +45,19 @@ trait Design extends PIRMetadata with Collector {
   val passes = ListBuffer[Pass]()
   val spadePrinter = new SpadePrinter()
   val forwardRef = new ForwardRef()
+  val controlAnalyzer = new ControlAnalyzer()
   val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
-  val multiBufferAnalysis = new MultiBufferAnalysis() 
+  val multiBufferAnalyzer = new MultiBufferAnalyzer() 
   val fusionTransform = new FusionTransform() { override def shouldRun = false }
   val scalarBundling = new ScalarBundling() { override def shouldRun = false }
-  val memoryAnalysis = new MemoryAnalysis()
+  val memoryAnalyzer = new MemoryAnalyzer()
+  val accessAnalyzer = new AccessAnalyzer()
   val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
   val pirPrinter1 = new PIRPrinter("PIR_orig.txt") 
   val pirPrinter2 = new PIRPrinter()
   val irCheck = new IRCheck() { }
   val pirDataDotGen = new PIRDataDotGen()
-  val liveness = new LiveAnalysis()
+  val livenessAnalyzer = new LiveAnalyzer()
   val ctrlAlloc = new CtrlAlloc()
   val pirCtrlDotGen = new PIRCtrlDotGen()
   val pirMapping = new PIRMapping()
@@ -76,14 +78,17 @@ trait Design extends PIRMetadata with Collector {
   // Graph Construction
   passes += spadePrinter 
   passes += forwardRef
+  passes += controlAnalyzer
   passes += scalMemInsertion
   passes += pirPrinter1
   passes += fusionTransform 
   passes += scalarBundling
-  passes += multiBufferAnalysis 
-  passes += memoryAnalysis
+  passes += memoryAnalyzer
+  passes += livenessAnalyzer 
+  passes += accessAnalyzer
+  passes += multiBufferAnalyzer
+  passes += controlAnalyzer
   passes += pirDataDotGen
-  passes += liveness 
   passes += irCheck 
   passes += ctrlAlloc 
   passes += ctrlDotPrinter 
@@ -109,7 +114,7 @@ trait Design extends PIRMetadata with Collector {
   def run = {
     try {
       arch.config
-      passes.foreach{ pass => if (pass.shouldRun) pass.run }
+      passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 
@@ -126,7 +131,6 @@ trait Design extends PIRMetadata with Collector {
         }
       case e:Throwable => throw e
     }
-    if (Config.debug) DebugLogger.close
   }
 
 }
