@@ -149,10 +149,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     (ctrler, ctrler.ctrlBox) match {
       case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[StreamController] =>
         // FIFO.notFull
-        dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
-        cu.writtenFIFOs.foreach { fifo =>
-          cb.tokInAndTree.addInput(fifo.notFull)
-        }
+        //dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
+        //cu.writtenFIFOs.foreach { fifo =>
+          //cb.tokInAndTree.addInput(fifo.notFull)
+        //}
       case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[MetaPipeline] => 
         // Credit
         cu.trueProduced.foreach { mem =>
