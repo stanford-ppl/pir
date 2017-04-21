@@ -147,7 +147,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
   def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
-  def genMapping:this.type = { spade.factory.genMapping(this); this }
 
   /* Parameters */
   def numRegs = 16
@@ -167,7 +166,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     color(12 until 12 + numVecBufs, VecInReg)
     color(12 until 12 + vouts.size, VecOutReg)
     genConnections
-    genMapping
   }
 
 }
@@ -186,7 +184,6 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def config(implicit spade:SwitchNetwork) = {
     numScalarBufs(4)
     genConnections
-    genMapping
   }
 }
 
@@ -224,7 +221,6 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     color(8 until 8 + numScalarBufs, ScalarInReg)
     color(12 until 12 + numVecBufs, VecInReg)
     genConnections
-    genMapping
   }
 }
 
@@ -248,7 +244,6 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     color(8 until 8 + 4, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
     genConnections
-    genMapping
   }
 }
 class MemoryController()(implicit spade:Spade) extends Controller {

@@ -52,8 +52,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
     }
 
-    // Xbar
-    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
     // One to one
     val siRegs = cu.regs.filter(_.is(ScalarInReg))
     (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
@@ -63,11 +61,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     // Xbar
     val soRegs = cu.regs.filter(_.is(ScalarOutReg))
     cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
-
-    // Counter min, max, step can from scalarIn
-    cu.sbufs.foreach { sbuf =>
-      cu.ctrs.foreach { c => c.min <== sbuf.readPort; c.max <== sbuf.readPort ; c.step <== sbuf.readPort }
-    }
 
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
@@ -85,6 +78,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
+  def connectData(mc:MemoryController)(implicit spade:Spade):Unit = {
+    (mc.sins, mc.sbufs).zipped.foreach { case (sin, sbuf) => sbuf.writePort <== sin.ic }
+  }
+
   /* Generate primitive connections within a CU */ 
   def connectData(cu:ComputeUnit)(implicit spade:Spade):Unit = {
     val spademeta: SpadeMetadata = spade
@@ -93,8 +90,11 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
     cu.ctrs.foreach { c => 
       c.min <== Const().out // Counter max, min, step can be constant or scalarIn(specified later)
+      c.min <== cu.sbufs.map(_.readPort)
       c.max <== Const().out
+      c.max <== cu.sbufs.map(_.readPort)
       c.step <== Const().out
+      c.step <== cu.sbufs.map(_.readPort)
     }
     /* Chain counters together */
     for (i <- 1 until cu.ctrs.size) { cu.ctrs(i).en <== cu.ctrs(i-1).done } 
@@ -104,6 +104,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       s.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
       s.writeAddr <== (cu.ctrs.map(_.out), 0)
     } 
+    // Xbar
+    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
 
     /* FU Constrain  */
     cu.fustages.zipWithIndex.foreach { case (stage, i) =>
@@ -143,9 +145,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     val spademeta: SpadeMetadata = spade
     import spademeta._
 
-    cu.ctrlBox match {
-      case cb:InnerCtrlBox => 
-        val cu = cb.pne
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
         cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
@@ -163,8 +164,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         }
         cb.en.in <== cb.siblingAndTree.out
         cb.en.in <== cb.andTree.out
-      case cb:OuterCtrlBox => 
-        val cu = cb.pne
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
         cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
@@ -185,8 +185,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           cout.ic <== cb.siblingAndTree.out
         }
         cb.en.in <== cb.childrenAndTree.out
-      case cb:MemoryCtrlBox => 
-        val cu = cb.pne
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
         cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
@@ -202,22 +201,25 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.readEn.in <== cb.readFIFOAndTree.out
         cb.readEn.in <== cb.tokenInXbar.out
         cb.writeEn.in <== cb.writeFIFOAndTree.out
-      case cb:TopCtrlBox =>
-      case cb:CtrlBox =>
+      case (mc:MemoryController, cb:CtrlBox) =>
+        mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (top:Top, cb:TopCtrlBox) =>
+        top.couts.foreach { _.ic <== cb.command}
+        top.cins.foreach { _.ic ==> cb.status }
     }
   }
 
   def genConnections(pne:NetworkElement)(implicit spade:Spade):Unit = {
     pne match {
       case pne:Top =>
-        pne.couts.foreach { _.ic <== pne.ctrlBox.command}
-        pne.cins.foreach { _.ic ==> pne.ctrlBox.status }
         connectCtrl(pne)
       case pne:ComputeUnit => 
         connectData(pne)
+        genMapping(pne)
         connectCtrl(pne)
       case pne:MemoryController =>
-        (pne.sins, pne.sbufs).zipped.foreach { case (sin, sbuf) => sbuf.writePort <== sin.ic }
+        connectData(pne)
+        connectCtrl(pne)
       case pne:SwitchBox => 
         pne.connectXbars
     }

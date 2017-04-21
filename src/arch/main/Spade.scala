@@ -25,9 +25,9 @@ trait Spade extends SpadeMetadata {
   def diameter:Int
 
   def cus = pcus ++ mcus ++ scus ++ ocus
-  def ctrlers = top :: cus
+  def ctrlers = top :: cus ++ mcs
 
-  def pnes:List[NetworkElement] = ctrlers ++ mcs
+  def pnes:List[NetworkElement] = ctrlers
 
   def numCUs = (pcus ++ mcus).size
 

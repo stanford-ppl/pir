@@ -65,6 +65,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       (mem, pcu) match {
         case (mem:SFIFO, pcu:PCL) => 
           val pin = mp.vimap(mem.enqueueEnable)
+          println(pmem, pcu, pin)
           mp = mp.setFI(pmem.incWritePtr, pin.ic) // enqEnable
         case (mem:VFIFO, pcu:PCU) => // enqueEnable is implicit through databus
         case (mem:SRAM, pcu:PMCU) =>

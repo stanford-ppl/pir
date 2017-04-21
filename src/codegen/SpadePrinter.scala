@@ -40,29 +40,18 @@ class SpadePrinter(implicit design: Design) extends Codegen {
   override def traverse = {
     design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
       emitIO(ctrler)
-      //emitBlock(s"scalarins") {
-        //ctrler.sins.foreach { si => 
-          //emitln(s"${si.in.ms}")
-          //emitln(s"${si.out.mt}")
-        //}
-      //}
-      //emitBlock(s"scalarouts") {
-        //ctrler.souts.foreach { so =>
-          //emitln(s"${so.in.ms}")
-          //emitln(s"${so.out.mt}")
-        //}
-      //}
+      emitBlock(s"sbufs") {
+        ctrler.sbufs.foreach{ s => 
+          emitBlock(s"${s}") {
+            emitln(s"${s.writePort.ms}")
+            emitln(s"${s.readPort.mt}")
+          }
+        }
+      }
       ctrler match {
         case top:Top =>
+        case mc:MemoryController =>
         case cu:ComputeUnit =>
-          emitBlock(s"sbufs") {
-            cu.sbufs.foreach{ s => 
-              emitBlock(s"${s}") {
-                emitln(s"${s.writePort.ms}")
-                emitln(s"${s.readPort.mt}")
-              }
-            }
-          }
           emitBlock(s"vbufs") {
             cu.vbufs.foreach{ s => 
               emitBlock(s"${s}") {
