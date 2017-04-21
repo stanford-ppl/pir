@@ -105,21 +105,19 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def mapDone(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
-    (cu, pcu) match {
-      case (cu:MP, pcu:PMCU) =>
+    (cu, pcu.ctrlBox) match {
+      case (cu:MP, pcb:PMCB) =>
         val writeCtr = mp.ctmap(writeCChainsOf(cu).last.outer)
         val readCtr = mp.ctmap(readCChainsOf(cu).last.outer)
-        mp = mp.setFI(pcu.ctrlBox.writeDoneXbar.in, writeCtr.done)
-        mp = mp.setFI(pcu.ctrlBox.readDoneXbar.in, readCtr.done)
-      case (cu:ICL, pcu:PCU) =>
-        assert(cu.cchains.size==1)
-        val ctr = mp.ctmap(cu.cchains.head.outer)
-        mp = mp.setFI(pcu.ctrlBox.asInstanceOf[PICB].doneXbar.in, ctr.done)
-      case (cu:OCL, pcu:POCU) =>
-        assert(cu.cchains.size==1)
-        val ctr = mp.ctmap(cu.cchains.head.outer)
-        mp = mp.setFI(pcu.ctrlBox.doneXbar.in, ctr.done)
-      case (cu, pcu) =>
+        mp = mp.setFI(pcb.writeDoneXbar.in, writeCtr.done)
+        mp = mp.setFI(pcb.readDoneXbar.in, readCtr.done)
+      case (cu:ICL, pcb:PICB) =>
+        val doneCtr = mp.ctmap(compCChainsOf(cu).last.outer)
+        mp = mp.setFI(pcb.doneXbar.in, doneCtr.done)
+      case (cu:OCL, pcb:POCB) =>
+        val doneCtr = mp.ctmap(compCChainsOf(cu).last.outer)
+        mp = mp.setFI(pcb.doneXbar.in, doneCtr.done)
+      case (cu, pcb) =>
     }
     mp
   }

@@ -79,7 +79,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
       val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
       dprintln(s"compCCs:$compCCs")
-      fillChain(cu, sortCChains(compCCs))
+      compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
     }
   }
 

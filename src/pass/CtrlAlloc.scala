@@ -194,7 +194,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
         ctrler.localCChain.inner.en.connect(cb.enable)
-        chainCChain(sortCChains(ctrler.cchains))
+        chainCChain(compCChainsOf(ctrler))
       case (ctrler, cb) =>
     }
     //ctrler match {

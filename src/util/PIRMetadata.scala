@@ -89,5 +89,10 @@ trait PIRMetadata extends { self:Design =>
     type K = ComputeUnit 
     type V = List[CounterChain]
   }
+
+  object compCChainsOf extends MOneToOneMap {
+    type K = ComputeUnit 
+    type V = List[CounterChain]
+  }
 }
 
