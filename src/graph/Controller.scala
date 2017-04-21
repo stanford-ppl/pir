@@ -171,7 +171,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def nextIndex = { val temp = index; index +=1 ; temp}
 
   val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
-  def stages:List[Stage] = emptyStage :: Nil 
+  //def stages:List[Stage] = emptyStage :: Nil 
+  def stages:List[Stage] = Nil 
 
   /* Memories */
   val _mems = ListBuffer[OnChipMem]()
@@ -289,13 +290,15 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   val _localStages = ListBuffer[LocalStage]()
   def localStages = _localStages.toList 
 
-  override def stages = (emptyStage :: wtAddrStages ++ rdAddrStages ++ localStages).toList
+  //override def stages = (emptyStage :: wtAddrStages ++ rdAddrStages ++ localStages).toList
+  override def stages:List[Stage] = localStages
 
   def addStage(s:Stage):Unit = { 
     indexOf(s) = nextIndex
-    val prev = stages.last
-    s.prev = Some(prev)
-    prev.next = Some(s)
+    stages.lastOption.foreach { prev =>
+      s.prev = Some(prev)
+      prev.next = Some(s)
+    }
     s match {
       case ss:LocalStage => _localStages += ss
       case ss:WAStage => _wtAddrStages += ss
@@ -357,6 +360,8 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
 
   override val typeStr = "MemPipe"
   override lazy val ctrlBox:MemCtrlBox = MemCtrlBox()
+
+  override def stages:List[Stage] = wtAddrStages ++ rdAddrStages
 
   //lazy val mem:MultiBuffering = {
   lazy val mem:SRAM = {

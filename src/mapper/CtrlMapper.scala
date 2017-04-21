@@ -63,13 +63,15 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     cu.mems.foreach { mem => 
       val pmem = mp.smmap(mem)
       (mem, pcu) match {
-        case (mem:SFIFO, pcu:PCU) =>
-        case (mem:VFIFO, pcu:PCU) =>
+        case (mem:SFIFO, pcu:PCL) => 
+          val pin = mp.vimap(mem.enqueueEnable)
+          mp = mp.setFI(pmem.incWritePtr, pin.ic) // enqEnable
+        case (mem:VFIFO, pcu:PCU) => // enqueEnable is implicit through databus
         case (mem:SRAM, pcu:PMCU) =>
-          mp = mp.setFI(pmem.incWritePtr, pcu.ctrlBox.writeDoneXbar.out)
+          mp = mp.setFI(pmem.incWritePtr, pcu.ctrlBox.writeDoneXbar.out) // swapWrite
         case (mem:SBuf, pcu:PCU) if mem.swapWrite.isCtrlIn =>
           val pvi = mp.vimap(mem.swapWrite)
-          mp = mp.setFI(pmem.incWritePtr, pvi.ic)
+          mp = mp.setFI(pmem.incWritePtr, pvi.ic) // swapWrite
         case (mem:SBuf, pcu:PCU) if (mem.buffering == 1) => // Not multibuffered
         case (mem:SBuf, pcu:PCU) if (mem.swapWrite.isConnected) =>
           throw new Exception(s"$mem's swapWrite is not ctrlIn, ${mem.swapWrite.from}")

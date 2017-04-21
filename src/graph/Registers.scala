@@ -33,22 +33,22 @@ trait OuterRegBlock { self:ComputeUnit =>
   * @param stage: Stage of the pipeline register 
   * @param s: ScalarIn buffer 
   */
-  def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
+  //def scalarIn(stage:Stage, s:ScalarIn):PipeReg = {
     //val fifo = getRetimingFIFO(s.scalar) 
     //fifo.wtPort(s.out)
     //stage match {
       //case stage:EmptyStage => fifo.load
       //case stage => load(stage, fifo).out
     //}
-    pipeReg(stage, scalarInPR(s)) // ScalarBuffer or ScalarFIFO should be inserted here
-  }
+    //pipeReg(stage, scalarInPR(s)) // ScalarBuffer or ScalarFIFO should be inserted here
+  //}
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
   * @param stage: Stage of the pipeline register 
   * @param rid: reg rid of scalar input 
   */
-  def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
-  def scalarIn(s:Scalar):PipeReg = scalarIn(emptyStage, newSin(s))
+  //def scalarIn(stage:Stage, s:Scalar):PipeReg = scalarIn(stage, newSin(s))
+  //def scalarIn(s:Scalar):PipeReg = scalarIn(emptyStage, newSin(s))
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
@@ -104,13 +104,17 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
   def wtAddr(stage:Stage, sram:SRAMOnWrite):PipeReg = pipeReg(stage, wtAddr(sram))
   
-  def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
+  //def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
+  def ctr(c:Counter):OutPort = c.out
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 
   * @param stage: Stage of the pipeline register 
   * @param c: counter 
   */
-  def ctr(stage:Stage, c:Counter):PipeReg = pipeReg(stage, ctrPR(c))
+  def ctr(stage:Stage, c:Counter):OutPort = stage match {
+    case stage:EmptyStage => ctr(c)
+    case stage => pipeReg(stage, ctrPR(c)).out
+  }
   /* Create a new logical accumulator register */
   def accum(init:Const[_<:AnyVal]):AccumPR = accumPR(init)
   /* Create a new logical accumulator register and return a PipeReg for the stage and the created
@@ -146,21 +150,21 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, v:VecIn):PipeReg = {
+  //def vecIn(stage:Stage, v:VecIn):PipeReg = {
     //val fifo = getRetimingFIFO(v.vector) 
     //fifo.wtPort(v.out)
     //stage match {
       //case stage:EmptyStage => fifo.load
       //case stage => load(stage, fifo).out
     //}
-    pipeReg(stage, vecInPR(v))
-  }
+    //pipeReg(stage, vecInPR(v))
+  //}
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
   */
-  def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
-  def vecIn(vec:Vector):PipeReg= vecIn(emptyStage, newVin(vec))
+  //def vecIn(stage:Stage, vec:Vector):PipeReg = vecIn(stage, newVin(vec))
+  //def vecIn(vec:Vector):PipeReg= vecIn(emptyStage, newVin(vec))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 

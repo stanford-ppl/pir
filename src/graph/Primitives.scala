@@ -181,14 +181,13 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
     }
     res.connect(out) 
   }
-  override def toUpdate = 
-    super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || !out.isConnected
-    val defs:List[Reg] = results.flatMap { _.src match {
-        case PipeReg(s, reg) => Some(reg)
-        case _ => None
-      } 
-    }.toList
-  def defines(reg:Reg) = defs.contains(reg) 
+  override def toUpdate = super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || !out.isConnected
+  val defs:List[Reg] = results.flatMap { _.src match {
+      case PipeReg(s, reg) => Some(reg)
+      case _ => None
+    } 
+  }.toList
+  def writesTo(reg:Reg) = defs.contains(reg) 
 }
 
 class Stage(override val name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
@@ -405,7 +404,7 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}
-//case class RdAddrPR(override val regId:Int)(implicit ctrler:Controller, design: Design)   extends Reg {override val typeStr = "regra"; val raPorts = ListBuffer[InPort]()}
+case class RdAddrPR(raPort:RdAddrInPort)(implicit ctrler:InnerController, design: Design)   extends Reg {override val typeStr = "regra"; }
 case class WtAddrPR(waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
 case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                  extends Reg {override val typeStr = "regct"}
 case class ReducePR()(implicit ctrler:InnerController, design: Design)                      extends Reg {override val typeStr = "regrd"}

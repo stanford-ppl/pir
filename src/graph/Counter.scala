@@ -195,12 +195,12 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
           val cu = ctrler.asInstanceOf[ComputeUnit]
           val sin = cu.newSin(s.scalar)
           sin.out
-        case s:PipeReg => // Outdated
-          assert(s.stage.isInstanceOf[EmptyStage])
-          assert(s.reg.isInstanceOf[ScalarInPR])
-          val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
-          val cu = ctrler.asInstanceOf[ComputeUnit]
-          cu.scalarIn(cu.emptyStage, scalar).out
+        //case s:PipeReg => // Outdated
+          //assert(s.stage.isInstanceOf[EmptyStage])
+          //assert(s.reg.isInstanceOf[ScalarInPR])
+          //val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
+          //val cu = ctrler.asInstanceOf[ComputeUnit]
+          //cu.scalarIn(cu.emptyStage, scalar).out
         case _ => throw new Exception(s"Don't know how to copy port") //TODO
       }
     }

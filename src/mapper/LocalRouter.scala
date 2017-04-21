@@ -86,6 +86,7 @@ trait LocalRouter extends Mapper {
                 // and inport is not from a PipeReg
         val pop = mp.opmap(n.from)
         //mp.opmap.get(n.from).foreach { pop =>
+        println(n, r, pop)
         mp = mp.setFI(r, pop)
         //}
     }

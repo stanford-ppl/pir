@@ -27,16 +27,19 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def finPass(cu:ICL)(m:M):M = m
 
   def map(cu:ICL, cuMap:M):M = {
+    if (cu.stages.isEmpty) return cuMap
     log(cu) {
-      val pcu = cuMap.clmap(cu).asInstanceOf[PCU]
-      val pest :: pfusts = pcu.stages
-      val est :: fusts = cu.stages.toList
-      var cmap = mapStage(est, pest, cuMap)
-      log(s"$cu bindStages") {
-        def oor(pnodes:List[PST], nodes:List[ST], mapping:PIRMap) = OutOfStage(pcu, cu, pnodes, nodes, mapping)
-        cmap = bindInOrder(pfusts, fusts, cmap, List(mapStage _), finPass(cu) _, oor _)
-      }
-      stageFowarding(pcu, cmap)
+      var mp = cuMap
+      val pcu = mp.clmap(cu).asCU
+      //val pest :: pfusts = pcu.stages
+      //val est :: fusts = cu.stages.toList
+      //var cmap = mapStage(est, pest, cuMap)
+      val nodes = cu.stages
+      val reses = pcu.fustages
+      def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfStage(pcu, cu, pnodes, nodes, m)
+      mp = bindInOrder(reses, nodes, mp, List(mapStage _), finPass(cu) _, oor _)
+      mp = stageFowarding(pcu, mp)
+      mp
     }
   }
 
