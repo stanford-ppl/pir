@@ -48,6 +48,7 @@ trait SpadeAlias {
   type PEnLUT    = EnLUT
   type PTDLUT     = TokenDownLUT
   type PTOLUT    = TokenOutLUT
+  type PAT       = AndTree
   type PUC       = UDCounter
   type PSB       = SwitchBox
   type PConst    = Const

@@ -181,8 +181,10 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
   def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
   def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
+  def sfifos = mems.collect { case fifo:ScalarFIFO => fifo }
   def smems = mems.collect { case smem:ScalarMem => smem }
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
+  def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }
 
   val retiming:Map[Variable, FIFO] = Map.empty
   def getRetimingFIFO(variable:Variable):FIFO = {
@@ -313,7 +315,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   var outers:List[OuterController] = Nil
 
   /* Control Signals */
-  lazy val ctrlBox:InnerCtrlBox = InnerCtrlBox()
+  lazy val ctrlBox:CtrlBox = InnerCtrlBox()
   
   def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
   def enLUTs:List[EnLUT] = locals.flatMap(_.ctrlBox.enLUTs)

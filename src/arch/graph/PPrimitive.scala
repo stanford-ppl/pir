@@ -185,7 +185,8 @@ case class RAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spad
 }
 
 class Const()(implicit spade:Spade) extends Simulatable {
-  val out = Output(Word(), this, s"Const")
+  override val typeStr = "const"
+  val out = Output(Word(), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
     super.register
     sim.mapping.pmmap.get(this).foreach { c => 

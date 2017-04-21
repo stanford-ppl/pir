@@ -3,6 +3,7 @@ package pir.codegen
 import pir.Design
 import pir.plasticine.main._
 import pir.plasticine.graph._
+import pir.Config
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -12,7 +13,7 @@ import java.io.OutputStream
 import java.io.File
 
 class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
-  def shouldRun = true
+  def shouldRun = Config.codegen
   import spademeta._
 
   val traitName = s"GeneratedParams"

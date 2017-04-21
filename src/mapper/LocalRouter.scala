@@ -18,12 +18,11 @@ import scala.language.existentials
 
 trait LocalRouter extends Mapper {
 
-  def mapConst(const:Const[_], pconst:PConst, map:M):M = {
+  def mapConst(n:Const[_], r:PConst, map:M):M = {
     var mp = map
-    if (!mp.opmap.contains(const.out))
-    mp = mp.setOP(const.out, pconst.out)
-    if (!mp.pmmap.contains(const))  
-    mp = mp.setPM(const, pconst)
+    dprintln(s"mapping $n -> $r")
+    mp = mp.setOP(n.out, r.out)
+    mp = mp.setPM(n, r)
     mp
   }
 
@@ -96,6 +95,7 @@ trait LocalRouter extends Mapper {
 
   def mapOutPort(n:OP, r:PO[_<:PModule], map:M):M = {
     val cmap = map.setOP(n,r)
+    dprintln(s"mapping $n -> $r")
     n.to.foldLeft(cmap) { case (pmap, ip) =>
       val ipmap = pmap.ipmap
       if (ipmap.contains(ip)) {

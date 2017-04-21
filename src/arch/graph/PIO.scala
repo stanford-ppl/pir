@@ -74,12 +74,12 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   val _fanIns = ListBuffer[O]()
   def fanIns = _fanIns.toList
   def connect(n:O):Unit = { _fanIns += n; n.connectedTo(this) }
-  def <==(n:O) = { connect(n) }
-  def <==(ns:List[O]) = ns.foreach(n => connect(n))
-  def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
-  def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
-  def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
-  def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
+  private[plasticine] def <==(n:O) = { connect(n) }
+  private[plasticine] def <==(ns:List[O]) = ns.foreach(n => connect(n))
+  private[plasticine] def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
+  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
+  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
+  private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=mp[${_fanIns.mkString(",")}]"
   def canConnect(n:Any):Boolean = {
     _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
@@ -108,8 +108,8 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   val _fanOuts = ListBuffer[I]()
   def fanOuts = _fanOuts.toList
   def connectedTo(n:I):Unit = _fanOuts += n
-  def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
-  def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
+  private[plasticine] def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
+  private[plasticine] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=mt[${_fanOuts.mkString(",")}]" 
   def canConnect(n:Any):Boolean = {
     _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))

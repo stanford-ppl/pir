@@ -37,9 +37,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapCtrl(cu:CU, pirMap:M):M = {
     var mp = pirMap
     val pcu = pirMap.clmap(cu)
-    mp = mapAndTree(cu.ctrlBox, pcu.ctrlBox, mp)
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
+    mp = mapAndTrees(cu, pcu, mp)
     mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapMemoryRead(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
@@ -65,7 +65,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       (mem, pcu) match {
         case (mem:SFIFO, pcu:PCL) => 
           val pin = mp.vimap(mem.enqueueEnable)
-          println(pmem, pcu, pin)
           mp = mp.setFI(pmem.incWritePtr, pin.ic) // enqEnable
         case (mem:VFIFO, pcu:PCU) => // enqueEnable is implicit through databus
         case (mem:SRAM, pcu:PMCU) =>
@@ -125,18 +124,38 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapAndTree(cb:CB, pcb:PCB, pirMap:M):M = {
+  def mapAndTree(at:AT, pat:PAT, pirMap:M):M = {
+    var mp = pirMap
+    mp = mp.setPM(at, pat)
+    mp = mp.setOP(at.out, pat.out)
+    at.ins.foreach { in =>
+      val po = if (in.isCtrlIn) { mp.vimap(in).ic } else { mp.opmap(in.from) }
+      val pins = pat.ins.filter { _.canConnect(po) }
+      var info = s"Mapping $at to $pat in ${at.ctrler}\n"
+      info += s"in=$in, from=${in.from}, po=$po \n"
+      info += s"$pat'ins mapped to $po = [${pins.mkString(",")}]"
+      assert(pins.size==1, info)
+      mp = mp.setIP(in, pins.head)
+    }
+    mp
+  }
+
+  def mapAndTrees(cu:CU, pcu:PCL, pirMap:M):M = {
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
     var mp = pirMap
     (cb, pcb) match {
-      case (cb:SCB, pcb:PICB) =>
-        mp = mp.setOP(cb.siblingAndTree.out, pcb.siblingAndTree.out)
-      case (cb:SCB, pcb:POCB) =>
-        mp = mp.setOP(cb.siblingAndTree.out, pcb.siblingAndTree.out)
-      case _ =>
-    }
-    (cb, pcb) match {
+      case (cb:ICB, pcb:PICB) =>
+        mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
+        mp = mapAndTree(cb.fifoAndTree, pcb.fifoAndTree, mp)
+        mp = mapAndTree(cb.tokenInAndTree, pcb.tokenInAndTree, mp)
+        mp = mapAndTree(cb.andTree, pcb.andTree, mp)
       case (cb:OCB, pcb:POCB) =>
-        mp = mp.setOP(cb.childrenAndTree.out, pcb.childrenAndTree.out)
+        mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
+        mp = mapAndTree(cb.childrenAndTree, pcb.childrenAndTree, mp)
+      case (cb:MCB, pcb:PMCB) =>
+        mp = mapAndTree(cb.readFifoAndTree, pcb.readFifoAndTree, mp)
+        mp = mapAndTree(cb.writeFifoAndTree, pcb.writeFifoAndTree, mp)
       case _ =>
     }
     mp
@@ -148,79 +167,71 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     (cb, pcb) match {
       case (cb:MCB, pcb:PMCB) =>
-        mp = mp.setFI(pcb.readEn.in, pcb.readFIFOAndTree.out)
-        mp = mp.setFI(pcb.writeEn.in, pcb.writeFIFOAndTree.out)
+        mp = mp.setFI(pcb.readEn.in, pcb.readFifoAndTree.out)
+        mp = mp.setFI(pcb.writeEn.in, pcb.writeFifoAndTree.out)
         mp = mp.setOP(cb.readEnable, pcb.readEn.out)
         mp = mp.setOP(cb.writeEnable, pcb.writeEn.out)
-        cu.fifos.foreach { mem =>
-          val pbuf = mp.smmap(mem)
-          mem match {
-            case mem if forRead(mem) => pcb.readFIFOAndTree <== pbuf.notEmpty
-            case mem if forWrite(mem) => pcb.writeFIFOAndTree <== pbuf.notEmpty
-          }
-        }
-        cu.cchains.flatMap(_.counters).foreach { ctr =>
-          val pctr = mp.ctmap(ctr)
-          mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from))
-          //if (!ctr.isInner) {
-            //val prevCtr = ctr.en.from.src.asInstanceOf[Ctr]
-            //val pPrevCtr = mp.ctmap(prevCtr)
-            //mp = mp.setFI(pctr.en, pPrevCtr.done)
-          //} else if (ctr==readCChainsOf(mp.clmap.pmap(pcb.pne)).head.inner) {
-            //mp = mp.setFI(pctr.en, pcb.readEn.out)
-          //} else if (ctr==writeCChainsOf(mp.clmap.pmap(pcb.pne)).head.inner) {
-            //mp = mp.setFI(pctr.en, pcb.writeEn.out)
-          //}
-        }
       case (cb:OCB, pcb:POCB) =>
         mp = mp.setFI(pcb.en.in, pcb.childrenAndTree.out)
-      case (cb:ICB, pcb:PICB) => // TODO check streaming or pipelining
         mp = mp.setOP(cb.enable, pcb.en.out)
-        //mp = mp.setFI(pcb.en.in, pcb.childrenAndTree.out)
+      case (cb:ICB, pcb:PICB) if isStreaming(cu) =>
+        mp = mp.setFI(pcb.en.in, pcb.andTree.out)
+        mp = mp.setOP(cb.enable, pcb.en.out)
+      case (cb:ICB, pcb:PICB) if isPipelining(cu) =>
+        mp = mp.setFI(pcb.en.in, pcb.siblingAndTree.out)
+        mp = mp.setOP(cb.enable, pcb.en.out)
+      case (cb:CB, pcb:PCB) =>
+        assert(cb.ctrler.isInstanceOf[MC])
+        assert(pcb.pne.isInstanceOf[PMC])
+    }
+    cu.cchains.flatMap(_.counters).foreach { ctr =>
+      val pctr = mp.ctmap(ctr)
+      mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from))
     }
     mp
   }
 
   def mapTokenOut(cu:CL, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
+    val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
-    cu.ctrlBox.ctrlOuts.foreach { co =>
-      (co.src, pcb) match {
-        case (ctr:Ctr, pcb:PMCB) if forWrite(ctr) => // writeDone
+    cb.ctrlOuts.foreach { co =>
+      (cb, co.src, pcb) match {
+        case (cb:CB, ctr:Ctr, pcb:PMCB) if forWrite(ctr) => // writeDone
           assert(mp.fimap(pcb.writeDoneXbar.in) == mp.opmap(co))
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.writeDoneXbar.out)
           }
-        case (ctr:Ctr, pcb:PMCB) if forRead(ctr) => // readDone
+        case (cb:CB, ctr:Ctr, pcb:PMCB) if forRead(ctr) => // readDone
           assert(mp.fimap(pcb.readDoneXbar.in) == mp.opmap(co))
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.readDoneXbar.out)
           }
-        case (ctr:Ctr, pcb:PICB) => // done
+        case (cb:CB, ctr:Ctr, pcb:PICB) => // done
           assert(mp.fimap(pcb.doneXbar.in) == mp.opmap(co))
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.doneXbar.out)
           }
-        case (ctr:Ctr, pcb:POCB) => // done
+        case (cb:CB, ctr:Ctr, pcb:POCB) => // done
           assert(mp.fimap(pcb.doneXbar.in) == mp.opmap(co))
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.doneXbar.out)
           }
-        case (sbat:SBAT, pcb:PICB) => // siblingAndTree.out
+        case (cb:ICB, at:AT, pcb:PICB) if at == cb.siblingAndTree =>
           assert(false, s"Unsupported connection from siblingAndTree to tokenOut in PCU")
-        case (sbat:SBAT, pcb:POCB) => // siblingAndTree.out
+        case (cb:OCB, at:AT, pcb:POCB) if at == cb.siblingAndTree => // siblingAndTree.out
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.siblingAndTree.out)
           }
-        case (cb:ICB, pcb:PICB) if co == cb.enable => // enable
+        case (_, cb:ICB, pcb:PICB) if co == cb.enable => // enable
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.en.out)
           }
-        case (cb:OCB, pcb:POCB) if co == cb.pulserSMOut =>
+        case (_, cb:OCB, pcb:POCB) if co == cb.pulserSMOut =>
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.pulserSM.out )
           }
-        case (cb:TCB, pcb:PTCB) =>
+        case (_, cb:TCB, pcb:PTCB) =>
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.command )
           }

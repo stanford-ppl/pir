@@ -183,7 +183,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
       s"Overriding existing counter ${this} with min ${c.step}")
     def copyOutPort(p:OutPort):OutPort = {
       p.src match {
-        case s:Const[_] => s.out
+        case Const(c) => Const(c).out
         case s:ScalarBuffer =>
           val ScalarIn(n, scalar) = s.writePort.from.src
           val cu = ctrler.asInstanceOf[ComputeUnit]

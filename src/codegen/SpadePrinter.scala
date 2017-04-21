@@ -40,66 +40,31 @@ class SpadePrinter(implicit design: Design) extends Codegen {
   override def traverse = {
     design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
       emitIO(ctrler)
-      emitBlock(s"sbufs") {
-        ctrler.sbufs.foreach{ s => 
-          emitBlock(s"${s}") {
-            emitln(s"${s.writePort.ms}")
-            emitln(s"${s.readPort.mt}")
-          }
-        }
-      }
+      ctrler.sbufs.foreach { s => emitModule(s) }
       ctrler match {
         case top:Top =>
         case mc:MemoryController =>
         case cu:ComputeUnit =>
-          emitBlock(s"vbufs") {
-            cu.vbufs.foreach{ s => 
-              emitBlock(s"${s}") {
-                emitln(s"${s.writePort.ms}")
-                emitln(s"${s.readPort.mt}")
+          cu.srams.foreach { s => emitModule(s) }
+          cu.vbufs.foreach { s => emitModule(s) }
+          cu.ctrs.foreach{ c => emitModule(c) }
+          cu.stages.foreach { s =>
+            emitBlock(s"${quote(s)}") {
+              s match {
+                case es:EmptyStage =>
+                case fs:FUStage =>
+                  fs.fu.operands.foreach { oprd =>
+                    emitln(s"${oprd.ms}")
+                  }
+                  val res = fs.fu.out
+                  emitln(s"${res.mt}")
+              }
+              emitBlock(s"prs") {
+                s.prs.foreach { pr => emitln(s"${pr}(${pr.reg}) ${pr.in.ms} ${pr.out.mt}") }
               }
             }
           }
-          emitBlock(s"srams") {
-            cu.srams.foreach{ s => 
-              emitBlock(s"${s}") {
-                emitln(s"${s.writeAddr.ms}")
-                emitln(s"${s.readAddr.ms}")
-                emitln(s"${s.writePort.ms}")
-                emitln(s"${s.readPort.mt}")
-              }
-            }
-          }
-          emitBlock(s"ctrs") {
-            cu.ctrs.foreach{ c =>
-              emitBlock(s"${c}") {
-                emitln(s"${c.min.ms}")
-                emitln(s"${c.max.ms}")
-                emitln(s"${c.step.ms}")
-                emitln(s"${c.out.mt}")
-                emitln(s"${c.en.ms}")
-                emitln(s"${c.done.mt}")
-              }
-            }
-          }
-          emitBlock("stages") {
-            cu.stages.foreach { s =>
-              emitBlock(s"${quote(s)}") {
-                s match {
-                  case es:EmptyStage =>
-                  case fs:FUStage =>
-                    fs.fu.operands.foreach { oprd =>
-                      emitln(s"${oprd.ms}")
-                    }
-                    val res = fs.fu.out
-                    emitln(s"${res.mt}")
-                }
-                emitBlock(s"prs") {
-                  s.prs.foreach { pr => emitln(s"${pr}(${pr.reg}) ${pr.in.ms} ${pr.out.mt}") }
-                }
-              }
-            }
-          }
+          emitModule(cu.ctrlBox, emitCtrlBox(cu.ctrlBox))
         }
       }
     }
@@ -107,6 +72,39 @@ class SpadePrinter(implicit design: Design) extends Codegen {
       case sn:SwitchNetwork =>
         sn.sbs.foreach { sb => emitIO(sb) }
       case pn:PointToPointNetwork =>
+    }
+  }
+
+  def emitCtrlBox(cb:CtrlBox) = cb match {
+    case cb:InnerCtrlBox =>
+      emitModule(cb.tokenInAndTree)
+      emitModule(cb.siblingAndTree)
+      emitModule(cb.fifoAndTree)
+    case cb:OuterCtrlBox =>
+      emitModule(cb.childrenAndTree)
+      emitModule(cb.siblingAndTree)
+      emitModule(cb.pulserSM)
+    case cb:MemoryCtrlBox =>
+      emitModule(cb.writeFifoAndTree)
+      emitModule(cb.readFifoAndTree)
+    case cb:TopCtrlBox =>
+    case cb:CtrlBox =>
+  }
+
+  def emitModule(m:Module, block: =>Any = {}) = {
+    var name=s"$m"
+    m match {
+      case m:AndTree => name += s"(${m.name})"
+      case _ =>
+    }
+    emitBlock(name) {
+      m.ins.foreach { in =>
+        emitln(s"${in.ms}")
+      }
+      m.outs.foreach { out =>
+        emitln(s"${out.mt}")
+      }
+      block
     }
   }
 

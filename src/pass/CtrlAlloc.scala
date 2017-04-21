@@ -90,8 +90,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
     heads.foreach { head =>
       (ctrler, ctrler.ctrlBox, head.ctrlBox) match {
-        case (parent:StreamController, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
-          ccb.tokInAndTree.addInput(pcb.tokenDown)
+        case (parent:StreamController, pcb:OuterCtrlBox, ccb:InnerCtrlBox) =>
+          ccb.tokenInAndTree.addInput(pcb.tokenDown)
         case (parent:Controller, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
           val tk = ccb.tokenBuffer(parent)
           tk.inc.connect(pcb.tokenDown)
@@ -122,12 +122,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectSibling(ctrler:Controller) = {
     // Forward dependency
     (ctrler, ctrler.ctrlBox) match {
-      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[StreamController] =>
+      case (cu:MemoryPipeline, cb:MemCtrlBox) =>
+        cu.sfifos.foreach { //vector fifo is handled in data path
+          case fifo if (forRead(fifo)) =>cb.readFifoAndTree.addInput(fifo.notEmpty)
+          case fifo if (forWrite(fifo)) => cb.writeFifoAndTree.addInput(fifo.notEmpty)
+        }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) if isStreaming(cu) =>
         // FIFO.notEmpty
-        //cu.fifos.foreach { fifo =>
-          //cb.fifoAndTree.addInput(fifo.notEmpty)
-        //}
-      case (cu:ComputeUnit, cb:StageCtrlBox) =>
+        cu.sfifos.foreach { fifo => //vector fifo is handled in data path
+          cb.fifoAndTree.addInput(fifo.notEmpty)
+        }
+      case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
+      case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
         // Token
         cu.trueConsumed.foreach { mem =>
           (mem, mem.producer) match {
@@ -149,13 +155,13 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     // Backward pressure
     (ctrler, ctrler.ctrlBox) match {
-      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[StreamController] =>
+      case (cu:ComputeUnit, cb:StageCtrlBox) if isStreaming(cu) =>
         // FIFO.notFull
         //dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
-        //cu.writtenFIFOs.foreach { fifo =>
-          //cb.tokInAndTree.addInput(fifo.notFull)
+        //cu.writtenSFIFOs.foreach { fifo =>
+          //cb.tokenInAndTree.addInput(fifo.notFull)
         //}
-      case (cu:ComputeUnit, cb:StageCtrlBox) if cu.parent.isInstanceOf[MetaPipeline] => 
+      case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) => 
         // Credit
         cu.trueProduced.foreach { mem =>
           mem.consumer match {

@@ -59,7 +59,6 @@ trait PIRAlias {
   type TDLUT = TokenDownLUT
   type EnLUT = pir.graph.EnLUT
   type AT    = AndTree
-  type SBAT  = SiblingAndTree
   type UC    = UDCounter
   type Const = pir.graph.Const[_<:AnyVal]
   type Top   = pir.graph.Top

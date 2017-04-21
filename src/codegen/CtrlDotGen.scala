@@ -102,13 +102,8 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
         emitEdge(c.inc, "inc")
         emitEdge(c.dec, "dec")
       }
-      cu.ctrlBox.luts.foreach { lut =>
-        lut.ins.flatMap { in =>
-          in.from.src match {
-            case at:AndTree => cu.ctrlBox.fifoAndTree.ins ++ cu.ctrlBox.tokInAndTree.ins
-            case _ => in::Nil
-          }
-        }.foreach { in => emitEdge(in.from.src, lut, s"${in.from}") }
+      cu.ctrlBox.andTrees.foreach { at =>
+        at.ins.foreach { in => emitEdge(in, "in") }
       }
       //emitEdge(cu.parent, cu, DotAttr().style(bold).color(red))
     }

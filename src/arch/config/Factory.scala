@@ -141,41 +141,105 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
   }
 
-  def connectCtrl(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectAndTree(cu:Controller)(implicit spade:Spade):Unit = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cb.siblingAndTree <== cb.udcs.map(_.out)
+        cb.tokenInAndTree <== cu.cins.map(_.ic)
+        cb.fifoAndTree <== cu.bufs.map(_.notEmpty) 
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
+        cb.childrenAndTree <== cb.udcs.map(_.out)
+        cb.siblingAndTree <== cb.udcs.map(_.out)
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        cb.writeFifoAndTree <== cu.bufs.map(_.notEmpty) 
+        cb.readFifoAndTree <== cu.bufs.map(_.notEmpty)
+      case (mc:MemoryController, cb:CtrlBox) =>
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
 
+  def connectCounters(cu:Controller)(implicit spade:Spade):Unit = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-        cb.tokenInXbar.in <== cu.cins.map(_.ic)
-        cb.siblingAndTree <== cb.udcs.map(_.out)
-        cb.udcs.foreach { udc =>
-          udc.inc <== cu.cins.map{_.ic}
-          udc.dec <== cb.doneXbar.out
-        }
-        cu.couts.foreach { cout => 
-          cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.siblingAndTree.out
-          cout.ic <== cb.en.out
-        }
         cb.en.in <== cb.siblingAndTree.out
         cb.en.in <== cb.andTree.out
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-        cb.childrenAndTree <== cb.udcs.map(_.out)
-        cb.siblingAndTree <== cb.udcs.map(_.out)
+        cb.en.in <== cb.childrenAndTree.out
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
+        cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
+        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
+        cb.readEn.in <== cb.readFifoAndTree.out
+        cb.readEn.in <== cb.tokenInXbar.out
+        cb.writeEn.in <== cb.writeFifoAndTree.out
+      case (mc:MemoryController, cb:CtrlBox) =>
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
+
+  def connectUDCs(cu:Controller)(implicit spade:Spade):Unit = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cb.udcs.foreach { udc =>
+          udc.inc <== cu.cins.map{_.ic}
+          udc.dec <== cb.doneXbar.out
+        }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
           udc.dec <== cb.doneXbar.out
           udc.dec <== cb.childrenAndTree.out
         }
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+      case (mc:MemoryController, cb:CtrlBox) =>
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
+
+  def connectMemoryControl(cu:Controller)(implicit spade:Spade):Unit = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
+        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
+        cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
+      case (mc:MemoryController, cb:CtrlBox) =>
+        mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
+
+  def connectCtrlIO(cu:Controller)(implicit spade:Spade):Unit = {
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cb.tokenInXbar.in <== cu.cins.map(_.ic)
+        cu.couts.foreach { cout => 
+          cout.ic <== cb.doneXbar.out
+          cout.ic <== cb.siblingAndTree.out
+          cout.ic <== cb.en.out
+        }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cb.pulserSM.done <== cb.doneXbar.out
         cb.pulserSM.en <== cb.childrenAndTree.out
         cb.pulserSM.init <== cb.siblingAndTree.out
@@ -184,29 +248,22 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           cout.ic <== cb.pulserSM.out
           cout.ic <== cb.siblingAndTree.out
         }
-        cb.en.in <== cb.childrenAndTree.out
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
-        cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
-        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
-        cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
-        cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-        cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
-        cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
-        cb.writeFIFOAndTree <== cu.bufs.map(_.notEmpty) 
-        cb.readFIFOAndTree <== cu.bufs.map(_.notEmpty)
         cu.couts.foreach { cout => cout.ic <== cb.writeDoneXbar.out; cout.ic <== cb.readDoneXbar.out }
-        cb.readEn.in <== cb.readFIFOAndTree.out
-        cb.readEn.in <== cb.tokenInXbar.out
-        cb.writeEn.in <== cb.writeFIFOAndTree.out
       case (mc:MemoryController, cb:CtrlBox) =>
-        mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (top:Top, cb:TopCtrlBox) =>
         top.couts.foreach { _.ic <== cb.command}
         top.cins.foreach { _.ic ==> cb.status }
     }
+  }
+
+  def connectCtrl(cu:Controller)(implicit spade:Spade):Unit = {
+    connectAndTree(cu)
+    connectCounters(cu)
+    connectUDCs(cu)
+    connectMemoryControl(cu)
+    connectCtrlIO(cu)
   }
 
   def genConnections(pne:NetworkElement)(implicit spade:Spade):Unit = {

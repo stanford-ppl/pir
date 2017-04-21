@@ -13,9 +13,10 @@ object Config {
 
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
+  var codegen = true
   var genDot = getProperty("pir.dot", "true") == "true"
   var mapping = getProperty("pir.mapping", "true") == "true"
-  var genPisa = getProperty("pir.pisa", "false") == "true"
+  var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
   var ctrl = true
