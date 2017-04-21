@@ -52,27 +52,20 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
     }
 
+    // Xbar
+    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    // One to one
     val siRegs = cu.regs.filter(_.is(ScalarInReg))
-    val siPerSreg = Math.ceil( cu.sins.size * 1.0 / siRegs.size ).toInt
-    if (cu.sins.size!=0) {
-      val gsis = cu.sins.grouped(siPerSreg).toList
-      (gsis, cu.sbufs).zipped.foreach { case (sis, sbuf) => sbuf.writePort <== sis.map(_.ic) }
-      (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
-        forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
-      }
+    (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
+      forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
     }
 
+    // Xbar
     val soRegs = cu.regs.filter(_.is(ScalarOutReg))
-    dprintln(s"$cu souts:${cu.souts.size} soRregs:${soRegs.size}")
-    val soPerSreg = Math.ceil( cu.souts.size * 1.0 / soRegs.size ).toInt
-    if (cu.souts.size!=0) {
-      val gsos = cu.souts.grouped(soPerSreg).toList
-      (gsos, soRegs).zipped.foreach { case (sos, reg) => 
-        sos.foreach { _.ic <== (cu.stages.last.get(reg).out, 0) }
-      }
-    }
+    cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
+
+    // Counter min, max, step can from scalarIn
     cu.sbufs.foreach { sbuf =>
-      // Counter min, max, step can from scalarIn
       cu.ctrs.foreach { c => c.min <== sbuf.readPort; c.max <== sbuf.readPort ; c.step <== sbuf.readPort }
     }
 
@@ -223,7 +216,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case pne:ComputeUnit => 
         connectData(pne)
         connectCtrl(pne)
-      case pne:SwitchBox => pne.connectXbars
+      case pne:MemoryController =>
+        (pne.sins, pne.sbufs).zipped.foreach { case (sin, sbuf) => sbuf.writePort <== sin.ic }
+      case pne:SwitchBox => 
+        pne.connectXbars
     }
   }
 

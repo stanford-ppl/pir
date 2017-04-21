@@ -33,11 +33,6 @@ trait Logger extends Printer {
   def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBSln(promp(header,s) + " ")
   def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(" " + promp(header, s))
 
-  def info(s:String) = emitln(s"[pir] ${s}")
-  def startInfo(s:String) = emit(s"[pir] ${s}")
-  def endInfo(s:String) = { emitln(s" ${s}") }
-  def warn(s:Any) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
-  def err(s:Any) = { emitln(s"${Console.RED}[error]${s}${Console.RESET}"); throw PIRException(s"$s") }
   def bp(s:Any) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")
 
   //override def newStream(dp:String, fname:String):FileOutputStream = { 

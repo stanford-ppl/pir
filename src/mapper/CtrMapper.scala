@@ -101,9 +101,9 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def mapCtr(n:N, p:R, map:M):M = {
     var mp = map
-    //mp = mapInPort(n.min, p.min, mp) //Mapped in SFifoMapper 
-    //mp = mapInPort(n.max, p.max, mp)
-    //mp = mapInPort(n.step, p.step, mp)
+    mp = mapInPort(n.min, p.min, mp)
+    mp = mapInPort(n.max, p.max, mp)
+    mp = mapInPort(n.step, p.step, mp)
     mp = mapOutPort(n.out, p.out, mp)
     mp = mapOutPort(n.done, p.done, mp)
     mp = mp.setCT(n,p)

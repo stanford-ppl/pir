@@ -27,7 +27,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   val regAlloc = new RegAlloc() {
     override def finPass(ctrler:InnerController)(m:M):M = { 
       var mp = m
-      mp = sfifoMapper.map(ctrler, mp)
       mp = ctrlMapper.map(ctrler, mp)
       mp = stageMapper.map(ctrler, mp)
       mp
@@ -44,6 +43,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     var mp = m
     mp = sramMapper.map(ctrler, mp)
     mp = vfifoMapper.map(ctrler, mp) 
+    mp = sfifoMapper.map(ctrler, mp)
     mp = ctrMapper.map(ctrler, mp)
     mp
   }

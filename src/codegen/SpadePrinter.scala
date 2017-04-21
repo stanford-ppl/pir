@@ -55,13 +55,29 @@ class SpadePrinter(implicit design: Design) extends Codegen {
       ctrler match {
         case top:Top =>
         case cu:ComputeUnit =>
+          emitBlock(s"sbufs") {
+            cu.sbufs.foreach{ s => 
+              emitBlock(s"${s}") {
+                emitln(s"${s.writePort.ms}")
+                emitln(s"${s.readPort.mt}")
+              }
+            }
+          }
+          emitBlock(s"vbufs") {
+            cu.vbufs.foreach{ s => 
+              emitBlock(s"${s}") {
+                emitln(s"${s.writePort.ms}")
+                emitln(s"${s.readPort.mt}")
+              }
+            }
+          }
           emitBlock(s"srams") {
             cu.srams.foreach{ s => 
               emitBlock(s"${s}") {
-              emitln(s"${s.writeAddr.ms}")
-              emitln(s"${s.readAddr.ms}")
-              emitln(s"${s.writePort.ms}")
-              emitln(s"${s.readPort.mt}")
+                emitln(s"${s.writeAddr.ms}")
+                emitln(s"${s.readAddr.ms}")
+                emitln(s"${s.writePort.ms}")
+                emitln(s"${s.readPort.mt}")
               }
             }
           }

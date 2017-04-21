@@ -55,9 +55,13 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def emitDataInputs(cl:Controller) = {
     cl.sinMap.foreach { case (s, sin) => 
-      s.writer.ctrler match {
-        case top:Top =>
-        case w => emitEdge(w, cl, DotAttr().label(s"$s"))
+      if (!s.writerIsEmpty) {
+        s.writer.ctrler match {
+          case top:Top =>
+          case w => emitEdge(w, cl, DotAttr().label(s"$s"))
+        }
+      } else {
+        emitEdge("NotConnected", cl, DotAttr().label(s"$s"))
       }
     }
     cl.vinMap.foreach { case (v, vin) => 
@@ -124,8 +128,8 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
   override def quote(n:Any):String = {
     n match {
       case n:Controller => 
-        val head = if (isHead(n)) s"\n(HEAD)" else ""
-        val last = if (isLast(n)) s"\n(LAST)" else ""
+        val head = if (isHead.get(n)==Some(true)) s"\n(HEAD)" else ""
+        val last = if (isLast.get(n)==Some(true)) s"\n(LAST)" else ""
         s"${super.quote(n)}$head$last"
       case n => super.quote(n)
     }

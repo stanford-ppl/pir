@@ -2,6 +2,7 @@ package pir.pass
 import pir.graph._
 import pir._
 import pir.util._
+import pir.util.misc._
 import pir.exceptions._
 import pir.codegen.Logger
 
@@ -28,16 +29,28 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
           }
         }
       }
-      cu.mem.writePort.from.src match {
-        case fifo:VectorFIFO => forWrite(fifo) = true
+      if (cu.mem.writePort.isConnected) {
+        cu.mem.writePort.from.src match {
+          case fifo:VectorFIFO => forWrite(fifo) = true
+        }
+      } else {
+        warn(s"${cu.mem} in $cu's writePort is not connected!")
       }
-      cu.mem.readAddr.from.src match {
-        case ctr:Counter => forRead(ctr) = true
-        case fu:FuncUnit =>
+      if (cu.mem.readAddr.isConnected) {
+        cu.mem.readAddr.from.src match {
+          case ctr:Counter => forRead(ctr) = true
+          case fu:FuncUnit =>
+        }
+      } else {
+        warn(s"${cu.mem} in $cu's readAddr is not connected!")
       }
-      cu.mem.writeAddr.from.src match {
-        case ctr:Counter => forWrite(ctr) = true
-        case fu:FuncUnit =>
+      if (cu.mem.writeAddr.isConnected) {
+        cu.mem.writeAddr.from.src match {
+          case ctr:Counter => forWrite(ctr) = true
+          case fu:FuncUnit =>
+        }
+      } else {
+        warn(s"${cu.mem} in $cu's writeAddr is not connected!")
       }
     }
   }

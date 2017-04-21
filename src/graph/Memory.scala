@@ -135,11 +135,11 @@ trait LocalMem extends OnChipMem {
 trait RemoteMem extends OnChipMem { self:VectorMem =>
   def rdPort(vec:Vector):this.type = { rdPort(ctrler.newVout(vec)) }
   def rdPort(vecOut:VecOut):this.type = { vecOut.in.connect(readPort); this }
-  override def wtPort(vecIn:VecIn):this.type = { 
-    val fifo = ctrler.getRetimingFIFO(vecIn.vector)
-    fifo.wtPort(vecIn.out)
-    wtPort(fifo.load)
-  }
+  //override def wtPort(vecIn:VecIn):this.type = { // Move this insertion to spatial
+    //val fifo = ctrler.getRetimingFIFO(vecIn.vector)
+    //fifo.wtPort(vecIn.out)
+    //wtPort(fifo.load)
+  //}
 }
 
 trait VectorMem extends OnChipMem {

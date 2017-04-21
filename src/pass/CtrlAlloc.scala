@@ -130,8 +130,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case (cu:ComputeUnit, cb:StageCtrlBox) =>
         // Token
         cu.trueConsumed.foreach { mem =>
-          mem.producer match {
-            case producer:ComputeUnit =>
+          (mem, mem.producer) match {
+            case (mem:SRAM, producer:ComputeUnit) => 
+              // SRAM no need for token because handled by FIFONotEmpty
+            case (mem, producer:ComputeUnit) =>
               val tk = cb.tokenBuffer(mem)
               if (mem.swapWrite.isConnected) {
                 tk.inc.connect(mem.swapWrite.from)
@@ -140,7 +142,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               }
               tk.dec.connect(cb.done)
               cb.siblingAndTree.addInput(tk.out)
-            case producer:Top => // No synchronization needed
+            case (mem, producer:Top) => // No synchronization needed
           }
         }
       case (cu:Top, cb) =>

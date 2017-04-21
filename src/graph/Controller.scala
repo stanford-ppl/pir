@@ -209,7 +209,7 @@ class OuterController(name:Option[String])(implicit design:Design) extends Compu
   override def toUpdate = super.toUpdate
 
   override def addCChain(cc:CounterChain):Unit = {
-    assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
+    //assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
     super.addCChain(cc)
   }
   override def getCopy(cchain:CounterChain):CounterChain = {

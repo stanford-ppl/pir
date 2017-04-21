@@ -16,6 +16,7 @@ trait Variable extends Node {
 case class Scalar(name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Scalar"
   var _writer:ScalarOut = _ 
+  def writerIsEmpty = _writer == null
   def writer:ScalarOut = {
     assert(_writer != null, throw PIRException(s"$this has no writer"))
     _writer

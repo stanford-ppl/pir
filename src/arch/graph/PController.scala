@@ -260,5 +260,6 @@ class MemoryController()(implicit spade:Spade) extends Controller {
   def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
     numScalarBufs(2)
+    genConnections
   }
 }

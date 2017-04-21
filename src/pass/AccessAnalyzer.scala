@@ -2,6 +2,7 @@ package pir.pass
 import pir.graph._
 import pir._
 import pir.util._
+import pir.util.misc._
 import pir.exceptions._
 import pir.codegen.Logger
 

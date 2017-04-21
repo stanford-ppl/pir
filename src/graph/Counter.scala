@@ -188,6 +188,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
           val ScalarIn(n, scalar) = s.writePort.from.src
           val cu = ctrler.asInstanceOf[ComputeUnit]
           val sb = ScalarBuffer()(cu, design).wtPort(scalar)
+          ctrler.mems(List(sb))
           //val smem = design.scalMemInsertion.insertScalarMem(sin)
           sb.load
         case s:ScalarIn => // Before scalar buffer/fifo insersion

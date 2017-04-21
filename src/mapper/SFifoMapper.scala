@@ -22,7 +22,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   import pirmeta.{indexOf => _, _}
   import spademeta._
 
-  def finPass(cu:ICL)(m:M):M = m 
+  def finPass(cu:CU)(m:M):M = m 
 
   def constrain(n:N, r:R, map:M):M = {
     var mp = map
@@ -33,22 +33,24 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   // After RegAlloc
-  def resFunc(cu:ICL)(n:N, m:M, triedRes:List[R]):List[R] = {
+  def resFunc(cu:CU)(n:N, m:M, triedRes:List[R]):List[R] = {
     val pcu = m.clmap(cu)
-    val regs = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }
-    val reses = if (regs.isEmpty) { // scalarIn is not used in pipeline stages. Pick whichever is not used
-      pcu.sbufs
-    } else if (regs.size==1) {
-      val preg = m.rcmap(regs.head)
-      val ppr = pcu.asCU.fustages.head.get(preg)
-      ppr.in.fanIns.map{_.src}.collect{ case sb:R => sb }
-    } else {
-      throw PIRException(s"scalarIn:$n is connected to more than 1 pipeRegs: ${regs.mkString(",")}")
-    }
+    val reses = pcu.sbufs
+    //val regs = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }
+    //if (regs.isEmpty) { // scalarIn is not used in pipeline stages. Pick whichever is not used
+      //pcu.sbufs
+    //} else if (regs.size==1) {
+      //val preg = m.rcmap(regs.head)
+      //val ppr = pcu.asCU.fustages.head.get(preg)
+      //ppr.in.fanIns.map{_.src}.collect{ case sb:R => sb }
+    //} else {
+      //throw PIRException(s"scalarIn:$n is connected to more than 1 pipeRegs: ${regs.mkString(",")}")
+    //}
+    //dprintln(s"$n read by regs:[${regs.mkString(",")}]")
     reses.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
   }
 
-  def map(cu:ICL, pirMap:M):M = {
+  def map(cu:CU, pirMap:M):M = {
     log(cu) {
       bind(
         allNodes=cu.smems,
@@ -62,7 +64,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def map(cu:CL, pirMap:M):M = {
     cu match {
-      case cu:ICL => map(cu, pirMap)
+      case cu:CU => map(cu, pirMap)
       case cu => pirMap
     }
   }
