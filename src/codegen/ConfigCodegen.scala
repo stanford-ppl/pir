@@ -333,7 +333,6 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def emitCUBit(pcu:PCU) = {
     clmap.pmap.get(pcu).foreach { cu => 
-      //emitCommentBlock(s"Configuring ${quote(pcu)} <- $cu") {
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
       emitCChainBis(pcu)
       emitControlBits(pcu)
@@ -341,7 +340,15 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitScalarOutXbar(pcu)
       emitCtrBits(pcu)
       emitStageBits(pcu)
-      //emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")}, scalarValidOut=Array(), vectorValidOut=Array())")
+    }
+  }
+
+  def emitCUBit(pcu:POCU) = {
+    clmap.pmap.get(pcu).foreach { cu => 
+      emitComment(s"Configuring ${quote(pcu)} <- $cu")
+      emitCChainBis(pcu)
+      emitControlBits(pcu)
+      emitCtrBits(pcu)
     }
   }
 
