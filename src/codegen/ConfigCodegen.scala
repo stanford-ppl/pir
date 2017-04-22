@@ -206,22 +206,31 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitStageBits(pcu:PCU) = {
-    emitln(s"${quote(pcu)}.stages = Array.tabulate(${pcu.fustages.size}) { i => PipeStageBits.zeroes(${pcu.regs.size}, ${spade.wordWidth})}")
     val cu = clmap.pmap(pcu)
     pcu.fustages.foreach { pst =>
       stmap.pmap.get(pst).fold {
-        if (pst.prs.exists{ pr => fimap.contains(pr.in)}) {
-          emitFwdRegs(pst)
+        cu match {
+          case cu:MP => 
+            emitln(s"${quote(pst)}.enableSelect = XSrc")
+          case cu:ICL =>  // by default turns on
         }
       } { st =>
         val pfu = pst.funcUnit.get
         val fu = st.fu.get
-        val oprds = pfu.operands.map(lookUp)
-        val fwd = s"Array.tabulate(${pst.prs.size}) { i => $SVT() }"
-        val stBit = s"PipeStageBits(${oprds.mkString(",")}, ${fu.op}, ${quote(lookUp(pfu.out))}, $fwd)"
-        emitln(s"${quote(pst)} = $stBit")
-        emitFwdRegs(pst)
+        emitln(s"${quote(pst)}.opA = ${lookUp(pfu.operands(0))}")
+        emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
+        emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
+        emitln(s"${quote(pst)}.opcode = ${fu.op}")
+        emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
+        cu match {
+          case cu:MP if forWrite(st) => 
+            emitln(s"${quote(pst)}.enableSelect = WriteEn")
+          case cu:MP if forRead(st) => 
+            emitln(s"${quote(pst)}.enableSelect = ReadEn")
+          case _ =>
+        }
       }
+      emitFwdRegs(pst)
     }
   }
 

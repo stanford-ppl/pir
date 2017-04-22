@@ -17,6 +17,10 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
   def analyzeStageOperands = {
     design.top.memCUs.foreach { cu =>
       (cu.wtAddrStages ++ cu.rdAddrStages).foreach { st =>
+        st match {
+          case st:WAStage => forWrite(st)
+          case st:RAStage => forRead(st)
+        }
         st.fu.foreach { fu =>
           fu.operands.foreach { oprd =>
             (oprd.from.src, st) match {
