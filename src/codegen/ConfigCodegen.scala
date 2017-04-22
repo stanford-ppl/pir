@@ -322,26 +322,23 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitXbar(s"${quote(pcu)}.scalarOutXbar", pcu.souts.map(_.ic))
   }
 
+  def emitCUBit(pcu:PCU) = {
+    clmap.pmap.get(pcu).foreach { cu => 
+      //emitCommentBlock(s"Configuring ${quote(pcu)} <- $cu") {
+      emitComment(s"Configuring ${quote(pcu)} <- $cu")
+      emitCChainBis(pcu)
+      emitControlBits(pcu)
+      emitScalarInXbar(pcu)
+      emitScalarOutXbar(pcu)
+      emitCtrBits(pcu)
+      emitStageBits(pcu)
+      //emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")}, scalarValidOut=Array(), vectorValidOut=Array())")
+    }
+  }
+
   def emitCUBits = {
     cus.foreach { 
-      _.foreach { pcu =>
-        val (x,y) = pcu.coord
-        val bitTp = pcu match {
-          case cu:PMCU => "PMU"
-          case cu:PCU => "PCU"
-        }
-        clmap.pmap.get(pcu).foreach { cu => 
-          //emitCommentBlock(s"Configuring ${quote(pcu)} <- $cu") {
-          emitComment(s"Configuring ${quote(pcu)} <- $cu")
-          emitCChainBis(pcu)
-          emitControlBits(pcu)
-          emitScalarInXbar(pcu)
-          emitScalarOutXbar(pcu)
-          emitCtrBits(pcu)
-          emitStageBits(pcu)
-          //emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")}, scalarValidOut=Array(), vectorValidOut=Array())")
-        }
-      }
+      _.foreach { cu => emitCUBit(cu) }
     }
     scus.foreach {
       _.foreach { cu =>
@@ -349,9 +346,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       }
     }
     ocus.foreach {
-      _.foreach { cu =>
-        //TODO
-      }
+      _.foreach { cu => emitCUBit(cu) }
     }
     mcs.foreach {
       _.foreach { mc =>
