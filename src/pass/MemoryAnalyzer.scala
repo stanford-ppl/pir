@@ -22,8 +22,8 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
             (oprd.from.src, st) match {
               case (p:Counter, st:WAStage) => forWrite(p) = true
               case (p:Counter, st:RAStage) => forRead(p) = true
-              case (p:ScalarFIFO, st:WAStage) => forWrite(p) = true
-              case (p:ScalarFIFO, st:RAStage) => forRead(p) = true
+              case (p:ScalarMem, st:WAStage) => forWrite(p) = true
+              case (p:ScalarMem, st:RAStage) => forRead(p) = true
               case (p:Const[_], _) =>
             }
           }

@@ -363,9 +363,7 @@ object WAStage {
 }
 object WAStages {
   def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[WAStage] = {
-    val was = List.tabulate(n) { i => WAStage(srams) }
-    was.foreach(ctrler.addStage)
-    was
+    List.tabulate(n) { i => WAStage(srams) }
   }
 }
 object RAStage {
@@ -373,9 +371,7 @@ object RAStage {
 }
 object RAStages {
   def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[RAStage] = {
-    val ras = List.tabulate(n) { i => RAStage(srams) }
-    ras.foreach(ctrler.addStage)
-    ras
+    List.tabulate(n) { i => RAStage(srams) }
   }
 }
 trait EmptyStage extends Stage {

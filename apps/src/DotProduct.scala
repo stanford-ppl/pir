@@ -8,6 +8,8 @@ import pir.util._
 import pir.PIRApp
 
 object DotProduct extends PIRApp {
+  override val arch = SN_4x4
+
   def main(args: String*)(top:Top) = {
     val x1067_oc = OffChip("x1067")
     val x1068_x1144_argout = ArgOut("x1068_x1144")

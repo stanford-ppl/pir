@@ -252,7 +252,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       mp = mp.setFI(pudc.inc, pvi.ic)
       pcb match {
         case pcb:PICB =>
-          println(udc)
           assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
           mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
         case pcb:POCB if isPipelining(cu) =>

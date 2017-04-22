@@ -27,6 +27,8 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
             throw PIRException(s"Unknown OnChipMem write port ${p} for $mem in ${mem.ctrler}")
         }
         dprintln(s"${(mem, mem.ctrler, mem.readPort.to)}")
+        if (!mem.readPort.isConnected)
+          warn(s"$mem.readPort in ${mem.ctrler} is not connected")
         readerOf(mem) = mem.readPort.to.head.src match {
           case vo:VecOut => 
             val vrds = vo.vector.readers
