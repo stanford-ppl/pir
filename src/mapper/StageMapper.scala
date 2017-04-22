@@ -2,11 +2,11 @@ package pir.mapper
 import pir._
 import pir.util.typealias._
 import pir.util.enums._
-import pir.graph.{Const, PipeReg}
+import pir.graph.{Const, ScalarOutPR, VecOutPR}
 import pir.pass.{PIRMapping}
 import pir.util._
 import pir.plasticine.main._
-import pir.plasticine.graph.{Const => PConst}
+import pir.plasticine.graph.{Const => PConst, PipeReg => PPR, _}
 import pir.plasticine.util._
 import pir.exceptions._
 
@@ -45,41 +45,55 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   /* Forward liveOut regs in pstages that doesn't have stage corresponding to them */
   def stageFowarding(pcu:PCU, cuMap:M):M = {
+    var mp = cuMap
     var preLiveOuts:Set[Reg] = Set.empty
-    var fimap = cuMap.fimap
     pcu.stages.foreach { pstage =>
-      val ppregs:Set[PReg] = preLiveOuts.map {reg => cuMap.rcmap(reg) }
-      if (cuMap.stmap.pmap.contains(pstage)) {
-        val stage = cuMap.stmap.pmap(pstage)
+      val ppregs:Set[PReg] = preLiveOuts.map {reg => mp.rcmap(reg) }
+      if (mp.stmap.pmap.contains(pstage)) {
+        val stage = mp.stmap.pmap(pstage)
         preLiveOuts = stage.liveOuts 
       } else {
         pstage.prs.foreach { ppr =>
-          if (ppregs.contains(ppr.reg)) fimap += ppr.in -> pstage.prev.get.get(ppr.reg).out
+          if (ppregs.contains(ppr.reg)) mp = mp.setFI(ppr.in, pstage.prev.get.get(ppr.reg).out)
         }
       }
     }
-    cuMap.set(fimap)
+    pcu.stages.last.prs.foreach { 
+      case ppr@PPR(ps, pr) if pr.is(ScalarOutReg) & mp.rcmap.pmap.contains(pr) =>
+        val ScalarOutPR(so) = mp.rcmap.pmap(pr)
+        mp.vomap(so).foreach { pso =>
+          mp = mp.setFI(pso.ic, ppr.out)
+        }
+      case ppr@PPR(ps, pr) if pr.is(VecOutReg) & mp.rcmap.pmap.contains(pr) =>
+        val VecOutPR(vo) = mp.rcmap.pmap(pr)
+        mp.vomap(vo).foreach { pvo =>
+          mp = mp.setFI(pvo.ic, ppr.out)
+        }
+      case pr =>
+    }
+    mp
   }
 
   def mapStage(n:N, p:R, map:M):M = {
     log(s"Try $n -> $p") {
-      var cmap = map.setST(n, p)
+      var mp = map
+      mp = mp.setST(n, p)
       n match {
         case s:EST => 
-          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, cmap)
-          cmap = mapPROut(n, p, cmap)
-          cmap = mapPRIn(n, p, cmap)
+          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, mp)
+          mp = mapPROut(n, p, mp)
+          mp = mapPRIn(n, p, mp)
         case fs => fs match {
-            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p, cmap)
-            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p, cmap)
-            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p, cmap)
+            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p, mp)
+            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p, mp)
+            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p, mp)
           }
-          cmap = mapPROut(n, p, cmap)
-          cmap = mapFUOut(n, p, cmap)
-          cmap = mapPRIn(n, p, cmap)
-          cmap = mapFUIn(n, p, cmap)
+          mp = mapPROut(n, p, mp)
+          mp = mapFUOut(n, p, mp)
+          mp = mapPRIn(n, p, mp)
+          mp = mapFUIn(n, p, mp)
       }
-      cmap
+      mp
     }
   }
 

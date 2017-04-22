@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir.Design
 import pir.plasticine.main._
-//import pir.plasticine.graph._
+import pir.plasticine.graph.{ScalarOutReg}
 import pir.util.typealias._
 import pir.Config
 
@@ -16,6 +16,7 @@ import java.io.File
 class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = design.pirMapping.succeeded && Config.codegen
   import spademeta._
+  import pirmeta.{indexOf => _, _}
 
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
@@ -103,11 +104,12 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     fimap.get(out.ic).fold(-1) { _.src.index }
   }
 
-  def emitXbar(name:String, outs:List[PGO[PModule]]) = {
-    outs.foreach { out => 
-      val id = muxIdx(out)
+  def emitXbar(name:String, ins:List[PI[PModule]]) = {
+    ins.zipWithIndex.foreach { case (in, idx) => 
+      val id = muxIdx(in)
+      indexOf.get(in).foreach { i => assert(i == idx) }
       if (id != -1) {
-        emitln(s"${name}.outSelect(${out.index}) = $id")
+        emitln(s"${name}.outSelect(${idx}) = $id")
       }
     }
   }
@@ -115,9 +117,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def emitCrossbarBits = {
     sbs.foreach { 
       _.foreach { sb =>
-        emitXbar(s"${qv(sb)}", sb.vouts)
-        emitXbar(s"${qs(sb)}", sb.souts)
-        emitXbar(s"${qc(sb)}", sb.couts)
+        emitXbar(s"${qv(sb)}", sb.vouts.map(_.ic))
+        emitXbar(s"${qs(sb)}", sb.souts.map(_.ic))
+        emitXbar(s"${qc(sb)}", sb.couts.map(_.ic))
       }
     }
   }
@@ -233,17 +235,91 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     if (config.nonEmpty) emitln(s"${quote(pcb)}.${at.name} = ${config}")
   }
 
-  def emitControlBits(pcu:PCU) = {
-    val (x,y) = coordOf(pcu)
+  def emitStreamingMuxSelect(pcu:PCU) = {
     val pcb = pcu.ctrlBox
-    emitln(s"${quote(pcb)} = PCUControlBoxBits.zeroes(cuParams($x)($y).asInstanceOf[PCUParams])")
+    pcb match {
+      case pcb:PICB =>
+        val cu = clmap.pmap(pcu)
+        emitComment(s"$cu isPipelining=${isPipelining(cu)} isStreaming=${isStreaming(cu)}")
+        emitln(s"${quote(pcb)}.streamingMuxSelect = ${muxIdx(pcb.en.in)}")
+      case pcb =>
+    }
+  }
+  
+  def emitXbars(pcu:PCU) = {
+    pcu.ctrlBox match {
+      case pcb:PICB =>
+        emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
+        //emitln(s"${quote(pcb)}.doneXbar = ${muxIdx(pcb.doneXbar.in)}")
+        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
+      case pcb:POCB =>
+        emitXbar("incrementXbar", pcb.udcs.map(_.inc))
+        emitXbar("swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
+        //emitln(s"${quote(pcb)}.doneXbar = ${muxIdx(pcb.doneXbar.in)}")
+        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
+      case pcb:PMCB =>
+        emitXbar("swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
+        //emitln(s"${quote(pcb)}.readDoneXbar = ${muxIdx(pcb.readDoneXbar.in)}")
+        //emitln(s"${quote(pcb)}.writeDoneXbar = ${muxIdx(pcb.writeDoneXbar.in)}")
+        emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
+        emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
+      case pcb =>
+    }
+  }
+
+  def emitAndTrees(pcu:PCU) = {
+    val pcb = pcu.ctrlBox
     pcb match {
       case pcb:PICB =>
         emitAndTree(pcb, pcb.tokenInAndTree)
         emitAndTree(pcb, pcb.fifoAndTree)
         emitAndTree(pcb, pcb.siblingAndTree)
       case pcb:POCB =>
+        emitAndTree(pcb, pcb.childrenAndTree)
+        emitAndTree(pcb, pcb.siblingAndTree)
+      case pcb:PMCB =>
+        emitAndTree(pcb, pcb.writeFifoAndTree)
+        emitAndTree(pcb, pcb.readFifoAndTree)
+      case pcb:PTCB =>
+      case pcb:PCB =>
     }
+  }
+
+  def emitSwapReadSelect(pcu:PCU) = {
+    val pcb = pcu.ctrlBox
+    pcu match {
+      case pcu:PMCU =>
+        val idxes = pcu.sbufs.map(sbuf => muxIdx(sbuf.incReadPtr))
+        emitln(s"${quote(pcb)}.scalarSwapReadSelect = ${quote(idxes)}")
+      case pcu =>
+    }
+  }
+
+  def emitControlBits(pcu:PCU) = {
+    val pcb = pcu.ctrlBox
+    emitAndTrees(pcu)
+    emitStreamingMuxSelect(pcu)
+    emitXbars(pcu)
+    emitSwapReadSelect(pcu)
+  }
+
+  def emitScalarInXbar(pcu:PCU) = {
+    val sins = pcu.sbufs.map { sbuf => fimap.get(sbuf.writePort).map { po => po.src } }
+    emitComment(s"${quote(pcu)}.scalarInXbar=[${sins.mkString(",")}]")
+    //val siIdxes = sins.map(_.map(_.index).getOrElse(-1))
+    //emitln(s"${quote(pcu)}.scalarInXbar=${quote(siIdxes)}")
+    emitXbar(s"${quote(pcu)}.scalarInXbar", pcu.sbufs.map(_.writePort))
+  }
+
+  def emitScalarOutXbar(pcu:PCU) = {
+    val souts = pcu.souts.map { sout => fimap.get(sout.ic).map { po => po.src } }
+    emitComment(s"${quote(pcu)}.scalarOutXbar=[${souts.mkString(",")}]")
+    val soRegs = pcu.regs.filter{ _.is(ScalarOutReg) }
+    val soIdxes = souts.map(_.map(ppr => soRegs.indexOf(ppr.asInstanceOf[PPR].reg) ).getOrElse(-1))
+    //val soIdxes = pcu.souts.map { sout => muxIdx(sout.ic) }
+    emitXbar(s"${quote(pcu)}.scalarOutXbar", pcu.souts.map(_.ic))
   }
 
   def emitCUBits = {
@@ -259,6 +335,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           emitComment(s"Configuring ${quote(pcu)} <- $cu")
           emitCChainBis(pcu)
           emitControlBits(pcu)
+          emitScalarInXbar(pcu)
+          emitScalarOutXbar(pcu)
           emitCtrBits(pcu)
           emitStageBits(pcu)
           //emitln(s"${quote(pcu)} = ${bitTp}Bits(counterChain=${q(pcu, "cc")}, stages=${q(pcu, "sts")}, scalarValidOut=Array(), vectorValidOut=Array())")
@@ -336,10 +414,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       s"lcus($x)($y)"
     case n:PMCU =>
       val (x, y) = coordOf(n)
-      s"cus($x)($y)"
+      s"cus($x)($y).asPMUBits"
     case n:PCU =>
       val (x, y) = coordOf(n)
-      s"cus($x)($y)"
+      s"cus($x)($y).asPCUBits"
     case n:PST =>
       s"${quote(n.pne)}.stages(${n.index})"
     case n:PCtr =>

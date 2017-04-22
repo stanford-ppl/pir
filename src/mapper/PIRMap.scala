@@ -216,16 +216,16 @@ object CTMap extends IBiOneToOneObj {
 }
 
 /* A mapping between a scalar value and its writer's (OutBus, Index of Scalar Port in the Bus) */
-case class RCMap(map:RCMap.M) extends IOneToOneMap {
+case class RCMap(map:RCMap.M, pmap:RCMap.IM) extends IBiOneToOneMap {
   type K = RCMap.K
   type V = RCMap.V
   override type M = RCMap.M
-  override def + (rec:(K,V)) = { super.check(rec); RCMap(map + rec) }
+  override def + (rec:(K,V)) = { super.check(rec); RCMap(map + rec, pmap + rec.swap) }
 }
-object RCMap extends IOneToOneObj {
+object RCMap extends IBiOneToOneObj {
   type K = Reg 
   type V = PReg 
-  def empty:RCMap = RCMap(Map.empty)
+  def empty:RCMap = RCMap(Map.empty, Map.empty)
 }
 /* A mapping between Stage and PStage */
 case class STMap(map:STMap.M, pmap:STMap.IM) extends IBiOneToOneMap {

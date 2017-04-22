@@ -21,24 +21,21 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   def finPass(cu:ICL)(m:M):M = m
 
-  def constrain(cu:ICL, pirMap:M)(n:N, r:R, m:RCMap):RCMap = {
+  def constrain(cu:ICL)(n:N, r:R, m:M):M = {
+    var mp = m
     cu.infGraph(n).foreach { ifr =>
-      if (m.contains(ifr) && m(ifr) == r ) throw InterfereException(n, ifr, r, pirMap.set(m))
+      if (mp.rcmap.get(ifr) == Some(r) ) throw InterfereException(n, ifr, r, m)
     }
     dprintln(s"mapping $n -> $r")
-    m + (n -> r)
+    mp = mp.setRC(n, r)
+    mp
   }
 
   /* Register coloring for registers with predefined colors */
-  private def preColor(cu:ICL, pirMap:M):RCMap = {
-    type M = RCMap
+  private def preColor(cu:ICL, pirMap:M):M = {
     val pcu = pirMap.clmap(cu)
     def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
       val pregs = n match {
-        case LoadPR(mem:SMem) => 
-          //val pmem = pirMap.smmap(mem)
-          //regsOf(pmem.readPort)
-          pcu.asCU.regs.filter(_.is(ScalarInReg))
         case LoadPR(mem) => 
           val pmem = pirMap.smmap(mem)
           regsOf(pmem.readPort)
@@ -56,7 +53,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case ScalarOutPR(scalarOut) =>
           val psos = pirMap.vomap(scalarOut)
           dprintln(s"sout:${scalarOut} -> psos:[${psos.mkString(",")}]")
-          val pregs = psos.flatMap(pso => regsOf(pso.ic)).toList
+          val pregs = psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
+            prev intersect regsOf(pso.ic)
+          }
           dprintln(s"pregs:[${pregs.mkString(",")}]")
           pregs
         case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
@@ -66,8 +65,8 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     log(s"precolor $cu") {
       bind(
         allNodes=cu.regs.filterNot{_.isTemp},
-        initMap=RCMap.empty, 
-        constrain=constrain(cu, pirMap) _,
+        initMap=pirMap, 
+        constrain=constrain(cu) _,
         resFunc=resFunc _, //(n, m, triedRes) => List[R]
         finPass=(m:M) => m
       )
@@ -75,7 +74,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   }
 
   private def color(cu:ICL, pirMap:M) = {
-    type M = RCMap
     val pcu = pirMap.clmap(cu)
     val regs:List[N] = cu.regs.filter{_.isTemp}
     val pregs:List[R] = pcu match {
@@ -84,11 +82,11 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     }
 
     log(s"color $cu") {
-      bind[R,N,M](
+      bind(
         allRes=pregs,
         allNodes=regs,
-        initMap=pirMap.rcmap,
-        constrain=constrain(cu, pirMap) _,
+        initMap=pirMap,
+        constrain=constrain(cu) _,
         finPass=(m:M) => m
       )
     }
@@ -102,9 +100,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   } 
 
   def map(cu:ICL, pirMap:M):M = {
-    var prc = preColor(cu, pirMap)
-    prc = color(cu, pirMap.set(RCMap(pirMap.rcmap.map ++ prc.map)))
-    finPass(cu)(pirMap.set(prc))
+    var mp = pirMap
+    mp = preColor(cu, mp)
+    mp = color(cu, mp)
+    finPass(cu)(mp)
   }
 }
 

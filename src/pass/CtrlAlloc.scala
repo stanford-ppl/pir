@@ -95,6 +95,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         case (parent:Controller, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
           val tk = ccb.tokenBuffer(parent)
           tk.inc.connect(pcb.tokenDown)
+          tk.dec.connect(ccb.done)
           ccb.siblingAndTree.addInput(tk.out)
       }
     }

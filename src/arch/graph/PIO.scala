@@ -84,7 +84,15 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   def canConnect(n:Any):Boolean = {
     _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
   }
-  def indexOf(o:Any):Int = { _fanIns.indexOf(o) }
+  def indexOf(o:Any):Int = {
+    _fanIns.map { out =>
+      out.src match {
+        case s:Slice[_] if s.in.canConnect(o) => o
+        case b:BroadCast[_] if b.in.canConnect(o) => o
+        case _ => out
+      }
+    }.indexOf(o)
+  }
   def isConnected = _fanIns.size!=0
   def disconnect = _fanIns.clear
   def isIn:Boolean = true
@@ -114,7 +122,15 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def canConnect(n:Any):Boolean = {
     _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
   }
-  def indexOf(i:Any):Int = { _fanOuts.indexOf(i) }
+  def indexOf(i:Any):Int = {
+    _fanOuts.map { in =>
+      in.src match {
+        case s:Slice[_] if s.out.canConnect(i) => i
+        case b:BroadCast[_] if b.out.canConnect(i) => i 
+        case _ => in
+      }
+    }.indexOf(i)
+  }
   def isConnected = _fanOuts.size!=0
   def disconnect = _fanOuts.clear
   def isIn:Boolean = false
