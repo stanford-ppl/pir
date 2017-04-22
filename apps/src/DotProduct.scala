@@ -19,14 +19,14 @@ object DotProduct extends PIRApp {
     val x1077_b1166_x1084_b1168_s = Scalar("x1077_b1166_x1084_b1168")
     val x1076_x1127_x1135_v = Vector("x1076_x1127_x1135")
     val x1076_x1117_v = Vector("x1076_x1117")
-    val x1078_x1085_s = Scalar("x1078_x1085")
+    //val x1078_x1085_s = Scalar("x1078_x1085")
     val x1122_x1133_s = Scalar("x1122_x1133")
     val x1065_oc = OffChip("x1065")
     val x1077_b1165_x1084_b1167_s = Scalar("x1077_b1165_x1084_b1167")
     val x1080_argin = ArgIn("x1080")
     val x1079_x1087_data_v = Vector("x1079_x1087_data")
     val x1099_b1169_x1106_b1171_s = Scalar("x1099_b1169_x1106_b1171")
-    val x1100_x1107_s = Scalar("x1100_x1107")
+    //val x1100_x1107_s = Scalar("x1100_x1107")
     val x1061_argin = ArgIn("x1061")
     val x1101_x1109_data_v = Vector("x1101_x1109_data")
     val x1146 = Sequential(name="x1146",parent=top) { implicit CU => 
@@ -64,11 +64,11 @@ object DotProduct extends PIRApp {
       val ctr4 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1086_unit = CounterChain(name = "x1086_unit", ctr4)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(4)
+      stage = CU.emptyStage +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x1074(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1081)))
       Stage(stage(2), operands=List(CU.temp(stage(1), x1081), CU.load(stage(1), x1080)), op=FixAdd, results=List(CU.temp(stage(2), x1082), CU.scalarOut(stage(2), x1077_b1165_x1084_b1167_s)))
       Stage(stage(3), operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(stage(3), x1077_b1166_x1084_b1168_s)))
-      Stage(stage(4), operands=List(Const(320)), op=Bypass, results=List(CU.scalarOut(stage(4), x1078_x1085_s)))
+      //Stage(stage(4), operands=List(Const(320)), op=Bypass, results=List(CU.scalarOut(stage(4), x1078_x1085_s)))
     }
     val x1087 = MemoryController(name="x1087",parent=x1098,offchip=x1065_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1077_b1165_x1084_b1167_s)
@@ -104,11 +104,11 @@ object DotProduct extends PIRApp {
       val ctr9 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1108_unit = CounterChain(name = "x1108_unit", ctr9)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(4)
+      stage = CU.emptyStage +: Stages(3)
       Stage(stage(1), operands=List(CU.ctr(stage(0), x1074(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1103)))
       Stage(stage(2), operands=List(CU.temp(stage(1), x1103), CU.load(stage(1), x1102)), op=FixAdd, results=List(CU.temp(stage(2), x1104), CU.scalarOut(stage(2), x1099_b1169_x1106_b1171_s)))
       Stage(stage(3), operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(stage(3), x1099_b1170_x1106_b1172_s)))
-      Stage(stage(4), operands=List(Const(320)), op=Bypass, results=List(CU.scalarOut(stage(4), x1100_x1107_s)))
+      //Stage(stage(4), operands=List(Const(320)), op=Bypass, results=List(CU.scalarOut(stage(4), x1100_x1107_s)))
     }
     val x1109 = MemoryController(name="x1109",parent=x1120,offchip=x1067_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1099_b1169_x1106_b1171_s)
