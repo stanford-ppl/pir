@@ -158,6 +158,8 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
           if (mp.clmap.pmap.contains(pne) || io(pne).ins.exists( in => mp.fimap.contains(in)))
             attr.style(filled).fillcolor(color(pne))
         case pne =>
+          if (io(pne).ins.exists(in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(pne))
       }
     }
     val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
