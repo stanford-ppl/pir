@@ -37,7 +37,7 @@ object SimpleSequential extends PIRApp {
     }
     val x357 = Pipeline(name="x357",parent=x358) { implicit CU => 
       val x347_x355 =  VectorFIFO(size = 1).wtPort(x347_x355_x357_v)
-      val ctr3 = Counter(min=Const(1), max=Const(1), step=Const(1), par=16) // Counter
+      val ctr3 = Counter(min=Const(1), max=Const(64), step=Const(1), par=16) // Counter
       val x357_unit = CounterChain(name = "x357_unit", ctr3)
       var stage: List[Stage] = Nil
       stage = CU.emptyStage +: Stages(2)
