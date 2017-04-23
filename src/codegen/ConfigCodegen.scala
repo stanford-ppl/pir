@@ -23,8 +23,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
   lazy val dir = sys.env("PLASTICINE_HOME") + s"/src/main/scala/apps/$design"
-  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
-  
+  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
+
   def mapping = design.mapping.get
   def fimap = mapping.fimap
   def clmap = mapping.clmap
@@ -35,7 +35,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def ipmap = mapping.ipmap
   def vimap = mapping.vimap
   def vomap = mapping.vomap
-  
+
   def top = spade.top
   def sbs = spade.sbArray
   def cus = spade.cuArray
@@ -100,7 +100,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitln(s"config")
     }
   }
-  
+
   def muxIdx(in:PI[PModule]) = {
     fimap.get(in).fold(-1) { out => in.indexOf(out) }
   }
@@ -109,7 +109,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitXbar(name:String, ins:List[PI[PModule]]) = {
-    ins.zipWithIndex.foreach { case (in, idx) => 
+    ins.zipWithIndex.foreach { case (in, idx) =>
       val id = muxIdx(in)
       indexOf.get(in).foreach { i => assert(i == idx) }
       if (id != -1) {
@@ -119,7 +119,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCrossbarBits = {
-    sbs.foreach { 
+    sbs.foreach {
       _.foreach { sb =>
         emitXbar(s"${qv(sb)}", sb.vouts.map(_.ic))
         emitXbar(s"${qs(sb)}", sb.souts.map(_.ic))
@@ -132,7 +132,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def lookUp(n:PI[PModule]):String = fimap.get(n) match {
     case None => s"$SVT()"
-    case Some(o) => 
+    case Some(o) =>
       val (src, value) = o.src match {
         case s:PCtr => ("CounterSrc", s.index)
         case s:PSMem => ("ScalarFIFOSrc", s.index)
@@ -146,10 +146,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           }
         case s:PPR =>
           n.src match {
-            case ts:PPR if ts.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index) 
+            case ts:PPR if ts.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
             case ts:PPR if ts.stage == s.stage => ("CurrStageSrc", s.reg.index)
-            case fu:PFU if fu.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index) 
-            case fu:PFU if fu.stage == s.stage => ("CurrStageSrc", s.reg.index) 
+            case fu:PFU if fu.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
+            case fu:PFU if fu.stage == s.stage => ("CurrStageSrc", s.reg.index)
             case ts:PPR => throw new Exception(s"toStage=${quote(ts.stage)} prev=${ts.stage.prev.map(quote).getOrElse("None")} currStage=${quote(s.stage)}")
           }
         case s:PFU => ("ALUSrc", s.stage.index)
@@ -195,7 +195,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     val chain = List.tabulate(pctrs.size-1) { i =>
       if (ctmap.pmap.contains(pctrs(i)) && ctmap.pmap.contains(pctrs(i+1))) {
         val ctr = ctmap.pmap(pctrs(i))
-        val ctrp1 = ctmap.pmap(pctrs(i+1)) 
+        val ctrp1 = ctmap.pmap(pctrs(i+1))
         if (ctrp1.en.from == ctr.done) 1
         else 0
       } else 0
@@ -231,7 +231,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     pcu.fustages.foreach { pst =>
       stmap.pmap.get(pst).fold {
         cu match {
-          case cu:MP => 
+          case cu:MP =>
             //emitln(s"${quote(pst)}.enableSelect = XSrc")
           case cu:ICL =>  // by default turns on
         }
@@ -245,9 +245,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
         emitAccum(pcu, fu)
         cu match {
-          case cu:MP if forWrite(st) => 
+          case cu:MP if forWrite(st) =>
             emitln(s"${quote(pst)}.enableSelect = WriteEn")
-          case cu:MP if forRead(st) => 
+          case cu:MP if forRead(st) =>
             emitln(s"${quote(pst)}.enableSelect = ReadEn")
           case _ =>
         }
@@ -271,7 +271,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       case pcb =>
     }
   }
-  
+
   def commentUDCs(pcu:PCU) = {
     clmap.pmap.get(pcu).foreach { cu =>
       emitComment(s"$cu.udcounters=[${cu.ctrlBox.udcounters.mkString(",")}]")
@@ -286,7 +286,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def commentSBufs(pcu:PCU) = {
     pcu.sbufs.foreach { sbuf =>
-      smmap.pmap.get(sbuf).foreach { 
+      smmap.pmap.get(sbuf).foreach {
         case smem:SBuf =>
           val sw = if (smem.swapWrite.isConnected) {
             s"swapWrite=${smem.swapWrite.from}"
@@ -393,13 +393,13 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         case Strided(stride) => stride
         case _ => -1 //TODO
       }
-      emitln(s"${quote(psram)}.stride = $stride") 
-      emitln(s"${quote(psram)}.numBufs = ${sram.buffering}") 
+      emitln(s"${quote(psram)}.stride = $stride")
+      emitln(s"${quote(psram)}.numBufs = ${sram.buffering}")
       val vfifo = sram.writePort.from.src.asInstanceOf[VFIFO]
       val pvi = vimap(vfifo.writePort.from.src)
-      emitln(s"${quote(psram)}.wdataSelect = ${pvi.index}") 
-      emitln(s"${quote(psram)}.waddrSelect = ${lookUp(psram.writeAddr)}") 
-      emitln(s"${quote(psram)}.raddrSelect = ${lookUp(psram.readAddr)}") 
+      emitln(s"${quote(psram.pne)}.wdataSelect = ${pvi.index}")
+      emitln(s"${quote(psram.pne)}.waddrSelect = ${lookUp(psram.writeAddr)}")
+      emitln(s"${quote(psram.pne)}.raddrSelect = ${lookUp(psram.readAddr)}")
     }
   }
 
@@ -421,7 +421,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCUBit(pcu:PCU) = {
-    clmap.pmap.get(pcu).foreach { cu => 
+    clmap.pmap.get(pcu).foreach { cu =>
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
       emitControlBits(pcu)
       emitScalarNBuffer(pcu)
@@ -435,7 +435,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCUBit(pcu:POCU) = {
-    clmap.pmap.get(pcu).foreach { cu => 
+    clmap.pmap.get(pcu).foreach { cu =>
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
       emitCChainBis(pcu)
       emitControlBits(pcu)
@@ -444,7 +444,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCUBits = {
-    cus.foreach { 
+    cus.foreach {
       _.foreach { cu => emitCUBit(cu) }
     }
     scus.foreach {
@@ -515,7 +515,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     //case n:WAStage => s"WAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     //case n:RAStage => s"RAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     //case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:PSCU => 
+    case n:PSCU =>
       val (x, y) = coordOf(n)
       x match {
         case -1 => s"scus(0)($y)"
@@ -554,21 +554,21 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def quote(n:List[_]):String = s"List(${n.mkString(",")})"
 
   def qv(n:Any):String = n match {
-    case n:PSB => 
+    case n:PSB =>
       val (x, y) = coordOf(n)
       s"vsbs($x)($y)"
     case n => quote(n)
   }
 
   def qs(n:Any):String = n match {
-    case n:PSB => 
+    case n:PSB =>
       val (x, y) = coordOf(n)
       s"ssbs($x)($y)"
     case n => quote(n)
   }
 
   def qc(n:Any):String = n match {
-    case n:PSB => 
+    case n:PSB =>
       val (x, y) = coordOf(n)
       s"csbs($x)($y)"
     case n => quote(n)
