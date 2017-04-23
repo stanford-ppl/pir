@@ -516,7 +516,7 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // override lazy val scmcChannelWidth = 4
     
   // OCU to switch channel width
-  override lazy val ocsbChannelWidth = 3
+  override lazy val ocsbChannelWidth = 4
   // switch to OCU channel width
   override lazy val sbocChannelWidth = 8
 

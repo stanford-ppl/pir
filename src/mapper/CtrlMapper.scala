@@ -43,8 +43,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapUDCIns(cu, pcu, mp)
     mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapMemoryRead(cu, pcu, mp)
-    mp = mapTokenOut(cu, pcu, mp)
     mp = mapEn(cu, pcu, mp)
+    mp = mapTokenOut(cu, pcu, mp)
     mp
   }
 
@@ -168,19 +168,16 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     (cb, pcb) match {
       case (cb:MCB, pcb:PMCB) =>
-        mp = mp.setFI(pcb.readEn.in, pcb.readFifoAndTree.out)
-        mp = mp.setFI(pcb.writeEn.in, pcb.writeFifoAndTree.out)
-        mp = mp.setOP(cb.readEnable, pcb.readEn.out)
-        mp = mp.setOP(cb.writeEnable, pcb.writeEn.out)
+        mp = mapInPort(cb.readEn.in, pcb.readEn.in, mp)
+        mp = mapInPort(cb.writeEn.in, pcb.writeEn.in, mp)
+        mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
+        mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)
       case (cb:OCB, pcb:POCB) =>
-        mp = mp.setFI(pcb.en.in, pcb.childrenAndTree.out)
-        mp = mp.setOP(cb.enable, pcb.en.out)
-      case (cb:ICB, pcb:PICB) if isStreaming(cu) =>
-        mp = mp.setFI(pcb.en.in, pcb.andTree.out)
-        mp = mp.setOP(cb.enable, pcb.en.out)
-      case (cb:ICB, pcb:PICB) if isPipelining(cu) =>
-        mp = mp.setFI(pcb.en.in, pcb.siblingAndTree.out)
-        mp = mp.setOP(cb.enable, pcb.en.out)
+        mp = mapInPort(cb.en.in, pcb.en.in, mp)
+        mp = mp.setOP(cb.en.out, pcb.en.out)
+      case (cb:ICB, pcb:PICB) =>
+        mp = mapInPort(cb.en.in, pcb.en.in, mp)
+        mp = mp.setOP(cb.en.out, pcb.en.out)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
         assert(pcb.pne.isInstanceOf[PMC])
@@ -224,10 +221,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.siblingAndTree.out)
           }
-        case (_, cb:ICB, pcb:PICB) if co == cb.enable => // enable
-          mp.vomap(co).foreach { pco =>
-            mp = mp.setFI(pco.ic, pcb.en.out)
-          }
         case (_, cb:OCB, pcb:POCB) if co == cb.pulserSMOut =>
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.pulserSM.out )
@@ -235,6 +228,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         case (_, cb:TCB, pcb:PTCB) =>
           mp.vomap(co).foreach { pco =>
             mp = mp.setFI(pco.ic, pcb.command )
+          }
+        case (_, _, _) =>
+          mp.vomap(co).foreach { pco =>
+            mp = mp.setFI(pco.ic, mp.opmap(co))
           }
       }
     }

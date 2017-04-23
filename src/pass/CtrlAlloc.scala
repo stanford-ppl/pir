@@ -45,10 +45,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     cchains.minBy{_.ctrler.ancestors.size} // outer most CounterChain should have least ancesstors
   }
 
-  def swapReadCtr(mem:MultiBuffering) = {
+  def swapReadCC(mem:MultiBuffering) = {
     mem.consumer match {
-      case cu:MemoryPipeline if forRead(mem) => readCChainsOf(cu).last
-      case cu:MemoryPipeline if forWrite(mem) => writeCChainsOf(cu).last
+      case cu:MemoryPipeline if forRead(mem) => 
+        readCChainsOf(cu).lastOption.getOrElse(cu.mem.consumer.asCU.localCChain)
+      case cu:MemoryPipeline if forWrite(mem) => 
+        writeCChainsOf(cu).lastOption.getOrElse(cu.mem.producer.asCU.localCChain)
       case cu:ComputeUnit => cu.localCChain
       case top:Top => 
         throw PIRException(
@@ -56,7 +58,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  def swapWriteCtr(mem:MultiBuffering) = {
+  def swapWriteCC(mem:MultiBuffering) = {
     mem.producer.asInstanceOf[ComputeUnit].localCChain
   }
 
@@ -64,8 +66,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     case cu:ComputeUnit =>
       cu.mems.foreach {
         case mem:MultiBuffering if mem.buffering > 1 =>
-          val readCtr = swapReadCtr(mem)
-          val writeCtr = swapWriteCtr(mem)
+          val readCtr = swapReadCC(mem)
+          val writeCtr = swapWriteCC(mem)
           mem.swapRead.connect(getDone(cu, readCtr))
           mem.swapWrite.connect(getDone(cu, writeCtr))
           dprintln(s"$mem in $ctrler")
@@ -74,7 +76,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         case mem:MultiBuffering => 
         case mem:ScalarFIFO =>
           mem.writer.ctrlBox match {
-            case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.enable)
+            case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.en.out)
           }
           // deqEnable is mapped in CtrlMapper
         case mem:VectorFIFO =>
@@ -108,7 +110,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
           pcb.status.connect(lasts.head.ctrlBox.done)
         case (parent:StreamController, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
           val tk = pcb.tokenBuffer(last)
-          tk.inc.connect(ccb.enable)
+          tk.inc.connect(ccb.en.out)
           tk.dec.connect(pcb.childrenAndTree.out)
           pcb.childrenAndTree.addInput(tk.out)
         case (parent:Controller, pcb:OuterCtrlBox, ccb:CtrlBox) =>
@@ -145,7 +147,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               if (mem.swapWrite.isConnected) {
                 tk.inc.connect(mem.swapWrite.from)
               } else {
-                tk.inc.connect(getDone(cu, swapWriteCtr(mem)))
+                tk.inc.connect(getDone(cu, swapWriteCC(mem)))
               }
               tk.dec.connect(cb.done)
               cb.siblingAndTree.addInput(tk.out)
@@ -171,7 +173,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               if (mem.swapRead.isConnected) {
                 cd.inc.connect(mem.swapRead.from)
               } else {
-                cd.inc.connect(getDone(cu, swapReadCtr(mem)))
+                cd.inc.connect(getDone(cu, swapReadCC(mem)))
               }
               cd.dec.connect(cb.done)
               cb.siblingAndTree.addInput(cd.out)
@@ -194,32 +196,27 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectEnable(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEnable) }
-        writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEnable) }
+        readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
+        writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEn.out) }
         chainCChain(readCChainsOf(ctrler))
         chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
-        ctrler.localCChain.inner.en.connect(cb.enable)
+        ctrler.localCChain.inner.en.connect(cb.en.out)
         chainCChain(compCChainsOf(ctrler))
       case (ctrler, cb) =>
     }
-    //ctrler match {
-      //case ctrler:MemoryPipeline =>
-      //case ctrler:InnerController =>
-        //val cb = ctrler.ctrlBox
-        //ctrler.localCChain.inner.en.connect(cb.enable)
-        //ctrler.parent match {
-          //case parent:StreamController =>
-            //cb.enable.connect(cb.andTree.out)
-          //case parent =>
-            //cb.enable.connect(cb.siblingAndTree.out)
-        //}
-      //case ctrler:OuterController =>
-        //val cb = ctrler.ctrlBox 
-        //cb.enable.connect(cb.childrenAndTree)
-      //case ctrler:Top =>
-    //}
+    ctrler.ctrlBox match {
+      case cb:MemCtrlBox =>
+        cb.readEn.in.connect(cb.readFifoAndTree.out)
+        cb.writeEn.in.connect(cb.writeFifoAndTree.out)
+      case cb:OuterCtrlBox =>
+        cb.en.in.connect(cb.childrenAndTree.out)
+      case cb:InnerCtrlBox if isPipelining(ctrler) =>
+        cb.en.in.connect(cb.siblingAndTree.out)
+      case cb:InnerCtrlBox if isStreaming(ctrler) =>
+        cb.en.in.connect(cb.andTree.out)
+    }
   }
 
   override def finPass = {
