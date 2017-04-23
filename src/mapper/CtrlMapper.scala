@@ -40,9 +40,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
     mp = mapPulserSM(cu, pcu, mp)
+    mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapAndTrees(cu, pcu, mp)
     mp = mapUDCIns(cu, pcu, mp)
-    mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapMemoryRead(cu, pcu, mp)
     mp = mapEn(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
@@ -64,11 +64,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     cu.mems.foreach { mem => 
       val pmem = mp.smmap(mem)
-      (mem, pcu) match {
-        case (mem:SFIFO, pcu:PCL) => 
+      (mem, pmem, pcu) match {
+        case (mem:SFIFO, pmem:PSMem, pcu:PCL) => 
           mp = mapInPort(mem.enqueueEnable, pmem.incWritePtr, mp)
-        case (mem:VFIFO, pcu:PCU) => // enqueEnable is implicit through databus
-        case (mem:MBuf, pcu:PCU) =>
+          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
+        case (mem:VFIFO, pmem:PVMem, pcu:PCU) => // enqueEnable is implicit through databus
+          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
+        case (mem:MBuf, pmem:POCM, pcu:PCU) =>
           if (mem.swapWrite.isConnected) {
             mp = mapInPort(mem.swapWrite, pmem.incWritePtr, mp)
           }

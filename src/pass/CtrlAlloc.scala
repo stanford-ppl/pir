@@ -154,34 +154,35 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     // Forward dependency
     (ctrler, ctrler.ctrlBox) match {
       case (cu:MemoryPipeline, cb:MemCtrlBox) =>
-        cu.sfifos.foreach { //vector fifo is handled in data path
-          case fifo if (forRead(fifo)) =>cb.readFifoAndTree.addInput(fifo.notEmpty)
+        cu.fifos.foreach {
+          case fifo if (forRead(fifo)) => cb.readFifoAndTree.addInput(fifo.notEmpty)
           case fifo if (forWrite(fifo)) => cb.writeFifoAndTree.addInput(fifo.notEmpty)
+          case fifo:VectorFIFO => cb.writeFifoAndTree.addInput(fifo.notEmpty)
         }
-          case (cu:ComputeUnit, cb:InnerCtrlBox) if isStreaming(cu) =>
-            // FIFO.notEmpty
-            cu.sfifos.foreach { fifo => //vector fifo is handled in data path
-              cb.fifoAndTree.addInput(fifo.notEmpty)
+        case (cu:ComputeUnit, cb:InnerCtrlBox) if isStreaming(cu) =>
+          // FIFO.notEmpty
+          cu.fifos.foreach { fifo =>
+            cb.fifoAndTree.addInput(fifo.notEmpty)
+          }
+        case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
+        case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
+          // Token
+          cu.trueConsumed.foreach { mem =>
+            (mem, mem.producer) match {
+              case (mem:SRAM, producer:ComputeUnit) => 
+                // SRAM no need for token because handled by FIFONotEmpty
+              case (mem, producer:ComputeUnit) =>
+                val tk = cb.tokenBuffer(mem)
+                if (mem.swapWrite.isConnected) {
+                  tk.inc.connect(mem.swapWrite.from)
+                } else {
+                  tk.inc.connect(getDone(cu, swapWriteCC(mem)))
+                }
+                tk.dec.connect(cb.done.out)
+                cb.siblingAndTree.addInput(tk.out)
+              case (mem, producer:Top) => // No synchronization needed
             }
-          case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
-          case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
-            // Token
-            cu.trueConsumed.foreach { mem =>
-              (mem, mem.producer) match {
-                case (mem:SRAM, producer:ComputeUnit) => 
-                  // SRAM no need for token because handled by FIFONotEmpty
-                case (mem, producer:ComputeUnit) =>
-                  val tk = cb.tokenBuffer(mem)
-                  if (mem.swapWrite.isConnected) {
-                    tk.inc.connect(mem.swapWrite.from)
-                  } else {
-                    tk.inc.connect(getDone(cu, swapWriteCC(mem)))
-                  }
-                  tk.dec.connect(cb.done.out)
-                  cb.siblingAndTree.addInput(tk.out)
-                case (mem, producer:Top) => // No synchronization needed
-              }
-            }
+          }
                 case (cu:Top, cb) =>
     }
     // Backward pressure

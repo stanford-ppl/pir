@@ -260,11 +260,6 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     case cu:PCU => "PCU"
   }
 
-  def emitAndTree(pcb:PCB, at:PAT) = {
-    val config = lookUp(at)
-    if (config.nonEmpty) emitln(s"${quote(pcb)}.${at.name} = ${config}")
-  }
-
   def emitStreamingMuxSelect(pcu:PCU) = {
     val pcb = pcu.ctrlBox
     pcb match {
@@ -330,6 +325,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
       case pcb =>
     }
+  }
+
+  def emitAndTree(pcb:PCB, at:PAT) = {
+    val config = lookUp(at)
+    if (config.nonEmpty) emitln(s"${quote(pcb)}.${at.name} = ${config}")
   }
 
   def emitAndTrees(pcu:PCU) = {

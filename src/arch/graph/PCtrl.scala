@@ -99,8 +99,8 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   val readDoneXbar = Delay(Bit(), 0)
   val writeDoneXbar = Delay(Bit(), 0)
   val tokenInXbar = Delay(Bit(), 0)
-  val writeFifoAndTree = AndTree() 
-  val readFifoAndTree = AndTree() 
+  val writeFifoAndTree = AndTree("writeFifoAndTree") 
+  val readFifoAndTree = AndTree("readFifoAndTree") 
   val writeEn = Delay(Bit(), 0)
   val readEn = Delay(Bit(),0) 
 }
