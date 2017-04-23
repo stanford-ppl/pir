@@ -21,7 +21,7 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
   import pirmeta.{indexOf => _, _}
   import spademeta._
 
-  def finPass(cu:ICL)(m:M):M = m 
+  def finPass(cu:CL)(m:M):M = m 
 
   def constrain(n:N, r:R, m:M):M = {
     m.setSM(n, r)
@@ -50,7 +50,7 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
   def map(cu:CL, pirMap:M):M = {
     cu match {
       case cu:ICL => map(cu, pirMap)
-      case cu => pirMap
+      case cu => finPass(cu)(pirMap)
     }
   }
 }

@@ -22,7 +22,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   import pirmeta.{indexOf => _, _}
   import spademeta._
 
-  def finPass(cu:CU)(m:M):M = m 
+  def finPass(cu:CL)(m:M):M = m 
 
   def constrain(n:N, r:R, map:M):M = {
     var mp = map
@@ -70,7 +70,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def map(cu:CL, pirMap:M):M = {
     cu match {
       case cu:CU => map(cu, pirMap)
-      case cu => pirMap
+      case cu => finPass(cu)(pirMap)
     }
   }
 }

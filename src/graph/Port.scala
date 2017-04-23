@@ -33,6 +33,11 @@ trait InPort extends Port {
   }
   def isConnectedTo(o:OutPort) = { from == o }
   def disconnect = { if (isConnected) from.to -= this; from = null }
+
+  def isCtrlIn:Boolean = this match {
+    case ci:CtrlInPort => ci.isCtrlIn
+    case _ => false
+  }
 }
 object InPort {
   def apply[S<:Node](s:S)(implicit design:Design):InPort = new {override val src:S = s} with InPort
@@ -53,6 +58,11 @@ trait OutPort extends Port {
   def width(implicit design:Design) = design.arch.wordWidth
   def by(step:OutPort)(implicit design:Design) = (Const(0).out, this, step)
   def until(max:OutPort) = new Range(this, max)
+
+  def isCtrlOut:Boolean = this match {
+    case co:CtrlOutPort => co.isCtrlOut
+    case _ => false
+  }
 }
 object OutPort {
   def apply(s:Node)(implicit design:Design):OutPort = new {override val src = s} with OutPort
@@ -116,7 +126,7 @@ trait CtrlPort extends Port {
   }
 }
 trait CtrlInPort extends InPort with CtrlPort { 
-  def isCtrlIn = { 
+  override def isCtrlIn:Boolean = { 
     isConnected && from.asInstanceOf[CtrlOutPort].ctrler != ctrler
   }
 }
@@ -126,7 +136,7 @@ object CtrlInPort {
   }
 }
 trait CtrlOutPort extends OutPort with CtrlPort { 
-  def isCtrlOut = { to.exists{ _.asInstanceOf[CtrlInPort].ctrler != ctrler } }
+  override def isCtrlOut:Boolean = { to.exists{ _.asInstanceOf[CtrlInPort].ctrler != ctrler } }
 }
 object CtrlOutPort {
   def apply(s:Node, toStr: => String)(implicit design:Design):CtrlOutPort = {

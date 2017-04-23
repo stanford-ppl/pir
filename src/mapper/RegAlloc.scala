@@ -19,7 +19,21 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   override def debug = Config.debugRAMapper
   import spademeta._
 
-  def finPass(cu:ICL)(m:M):M = m
+  def finPass(cu:CL)(m:M):M = m
+
+  def map(cu:CL, pirMap:M):M = {
+    cu match {
+      case cu:ICL => map(cu, pirMap)
+      case cu => finPass(cu)(pirMap)
+    }
+  } 
+
+  def map(cu:ICL, pirMap:M):M = {
+    var mp = pirMap
+    mp = preColor(cu, mp)
+    mp = color(cu, mp)
+    finPass(cu)(mp)
+  }
 
   def constrain(cu:ICL)(n:N, r:R, m:M):M = {
     var mp = m
@@ -92,19 +106,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     }
   }
 
-  def map(cu:CL, pirMap:M):M = {
-    cu match {
-      case cu:ICL => map(cu, pirMap)
-      case cu => pirMap
-    }
-  } 
-
-  def map(cu:ICL, pirMap:M):M = {
-    var mp = pirMap
-    mp = preColor(cu, mp)
-    mp = color(cu, mp)
-    finPass(cu)(mp)
-  }
 }
 
 case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {

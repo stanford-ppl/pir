@@ -40,6 +40,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
     mp = mapAndTrees(cu, pcu, mp)
+    mp = mapUDCIns(cu, pcu, mp)
     mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapMemoryRead(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
@@ -247,6 +248,16 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     cb.udcounters.foreach { case (dep, udc) =>
       val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.pmap.contains(pudc) }.head
       mp = mp.setPM(udc, pudc).setIP(udc.inc, pudc.inc).setIP(udc.dec, pudc.dec).setOP(udc.out, pudc.out)
+    }
+    mp
+  }
+
+  def mapUDCIns(cu:CU, pcu:PCL, pirMap:M):M = {
+    var mp = pirMap
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
+    cb.udcounters.foreach { case (dep, udc) =>
+      val pudc = mp.pmmap(udc)
       assert(udc.inc.isCtrlIn)
       val pvi = mp.vimap(udc.inc)
       mp = mp.setFI(pudc.inc, pvi.ic)
@@ -255,7 +266,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
           assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
           mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
         case pcb:POCB if isPipelining(cu) =>
-          assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
+          assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in), 
+            s"udc.dec.from=${udc.dec.from}(${mp.opmap(udc.dec.from)}), try to map to ${pcb.doneXbar.in}")
           mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
         case pcb:POCB if isStreaming(cu) =>
           mp = mapInPort(udc.dec, pudc.dec, mp)
@@ -263,6 +275,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     }
     mp
   }
+
 
 }
 

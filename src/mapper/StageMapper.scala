@@ -24,8 +24,13 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   override def debug = Config.debugSTMapper
   override val exceptLimit = 200
 
-  def finPass(cu:ICL)(m:M):M = m
+  def finPass(cu:CL)(m:M):M = m
 
+  def map(ctrler:CL, cuMap:M):M = ctrler match {
+    case cu:ICL => map(cu, cuMap)
+    case cu => finPass(cu)(cuMap)
+  }
+  
   def map(cu:ICL, cuMap:M):M = {
     if (cu.stages.isEmpty) return cuMap
     log(cu) {

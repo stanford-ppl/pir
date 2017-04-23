@@ -89,11 +89,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     val heads = ctrler.children.filter{_.isHead}
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
     heads.foreach { head =>
-      (ctrler, ctrler.ctrlBox, head.ctrlBox) match {
-        case (parent:StreamController, pcb:OuterCtrlBox, ccb:InnerCtrlBox) =>
+      (ctrler.ctrlBox, head.ctrlBox) match {
+        case (pcb:OuterCtrlBox, ccb:InnerCtrlBox) if isStreaming(head) =>
           ccb.tokenInAndTree.addInput(pcb.tokenDown)
-        case (parent:Controller, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
-          val tk = ccb.tokenBuffer(parent)
+        case (pcb:OuterCtrlBox, ccb:StageCtrlBox) if isPipelining(head) =>
+          val tk = ccb.tokenBuffer(ctrler)
           tk.inc.connect(pcb.tokenDown)
           tk.dec.connect(ccb.done)
           ccb.siblingAndTree.addInput(tk.out)
@@ -114,7 +114,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         case (parent:Controller, pcb:OuterCtrlBox, ccb:CtrlBox) =>
           val tk = pcb.tokenBuffer(last)
           tk.inc.connect(last.ctrlBox.done)
-          tk.dec.connect(pcb.childrenAndTree.out)
+          tk.dec.connect(pcb.done)
           pcb.childrenAndTree.addInput(tk.out)
       }
     }

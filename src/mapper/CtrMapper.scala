@@ -22,7 +22,14 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   override def debug = Config.debugCtrMapper
   override val exceptLimit = 200
   
-  def finPass(cu:CU)(m:M):M = m
+  def finPass(cu:CL)(m:M):M = m
+
+  def map(cu:CL, pirMap:M):M = {
+    cu match {
+      case cu:CU => map(cu, pirMap)
+      case cu => finPass(cu)(pirMap)
+    }
+  }
 
   /*Make sure counters that are chained are next to each other and the counter is order such that
    * inner counter */
@@ -40,13 +47,6 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val unSorted = cchains.flatMap(_.counters)
     assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}, cchains:${cchains}")
     sorted
-  }
-
-  def map(cu:CL, pirMap:M):M = {
-    cu match {
-      case cu:CU => map(cu, pirMap)
-      case cu => pirMap
-    }
   }
 
   def map(cu:CU, pirMap:M):M = {

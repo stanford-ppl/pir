@@ -83,7 +83,10 @@ trait LocalRouter extends Mapper {
         }
       case s => // src of the inport doesn't belong to a stage
                 // and inport is not from a PipeReg
-        val pop = mp.opmap(n.from)
+        val pop = n match {
+          case n if n.isCtrlIn => mp.vimap(n).ic
+          case n => mp.opmap(n.from)
+        }
         //mp.opmap.get(n.from).foreach { pop =>
         mp = mp.setFI(r, pop)
         //}

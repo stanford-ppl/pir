@@ -235,8 +235,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
+          cout.ic <== cu.sbufs.map(_.notFull)
           cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.siblingAndTree.out
+          //cout.ic <== cb.siblingAndTree.out
           cout.ic <== cb.en.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
