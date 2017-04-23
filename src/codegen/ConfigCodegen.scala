@@ -279,11 +279,14 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
+        emitln(s"${quote(pcb)}.pulserMax=${lengthOf(clmap.pmap(pcb.pne))}")
       case pcb:PMCB =>
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
       case pcb =>
     }
   }
