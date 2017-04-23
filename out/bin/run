@@ -1,9 +1,23 @@
-#bash
+#!/bin/bash
 
 if [[ $1 == "-c" ]]; then
-	dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && open $2.pdf
-	#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && open -a "Safari" $2.svg
+	if [ "$(uname)" == "Darwin" ]; then
+		# Do something under Mac OS X platform        
+		dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && open $2.pdf
+		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && open -a "Safari" $2.svg
+	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+		# Do something under GNU/Linux platform
+		dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && gnome-open $2.pdf # not tested
+		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && open -a "Safari" $2.svg
+	fi
 else
-	#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
-	dot -Tsvg -o $1.svg $1.dot && open -a "Safari" $1.svg
+	if [ "$(uname)" == "Darwin" ]; then
+		# Do something under Mac OS X platform        
+		#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
+		dot -Tsvg -o $1.svg $1.dot && open -a "Safari" $1.svg
+	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+		# Do something under GNU/Linux platform
+		#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
+		dot -Tsvg -o $1.svg $1.dot && google-chrome $1.svg # not tested
+	fi
 fi

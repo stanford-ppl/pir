@@ -140,13 +140,14 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val r = regColors.size")
     }
 
-//    val scu = spade.sbs.head
+    val ocu = spade.ocus.head
     emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val numCounters = 8") // Yaqi: Fix
-      emitln(s"override val numUDCs = ${pcu.numUDCs}")
+      emitln(s"override val numCounters = ${ocu.numCtrs}")
+      emitln(s"override val numUDCs = ${ocu.numUDCs}")
     }
 
+//    val scu = spade.sbs.head
   }
 
   def emitParams = {
