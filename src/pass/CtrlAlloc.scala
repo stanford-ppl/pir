@@ -157,13 +157,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cu.fifos.foreach {
           case fifo if (forRead(fifo)) => cb.readFifoAndTree.addInput(fifo.notEmpty)
           case fifo if (forWrite(fifo)) => cb.writeFifoAndTree.addInput(fifo.notEmpty)
-          case fifo:VectorFIFO => cb.writeFifoAndTree.addInput(fifo.notEmpty)
         }
         case (cu:ComputeUnit, cb:InnerCtrlBox) if isStreaming(cu) =>
           // FIFO.notEmpty
-          cu.fifos.foreach { fifo =>
-            cb.fifoAndTree.addInput(fifo.notEmpty)
-          }
+          cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
         case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
         case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
           // Token
@@ -183,7 +180,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               case (mem, producer:Top) => // No synchronization needed
             }
           }
-                case (cu:Top, cb) =>
+          cb match {
+            case cb:InnerCtrlBox =>
+              cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
+            case _ =>
+          }
+      case (cu:Top, cb) =>
     }
     // Backward pressure
     (ctrler, ctrler.ctrlBox) match {
