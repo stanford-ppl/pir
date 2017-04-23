@@ -147,19 +147,6 @@ class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   def creditBuffer(deped:Any, initVal:Int):CreditBuffer = { CreditBuffer(deped, initVal) }
   def enLut(outs:List[CtrlOutPort], transFunc:TransferFunction) = { EnLUT(outs.size, transFunc) }
 
-  def outerCtrDone:CtrlOutPort = ctrler match {
-    case ctrler:Pipeline => ctrler.localCChain.outer.done 
-    case ctrler:OuterController => ctrler.localCChain.outer.done 
-    case ctrler:StreamPipeline => ctrler.getCopy(ctrler.parent.localCChain).outer.done
-  }
-
-  def done:CtrlOutPort = ctrler match {
-    case ctrler:Pipeline => ctrler.localCChain.outer.done 
-    case ctrler:OuterController => ctrler.localCChain.outer.done 
-    case ctrler:StreamPipeline if (ctrler.isLast) => ctrler.getCopy(ctrler.parent.localCChain).outer.done
-    case ctrler:StreamPipeline => ctrler.localCChain.outer.done 
-  }
-
   def ctrlIns:List[CtrlInPort] = {
     val cins = ListBuffer[CtrlInPort]()
     cins ++= udcounters.values.map(_.inc).filter{ _.isCtrlIn }
@@ -207,6 +194,7 @@ object Delay {
 trait StageCtrlBox extends CtrlBox {
   val siblingAndTree = AndTree("SiblingAndTree")
   val en = Delay(s"$this.en")
+  val done = Delay(s"$this.done")
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
@@ -259,6 +247,8 @@ case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Des
   val writeFifoAndTree = AndTree("WriteFIFOAndTree")
   val readEn = Delay(s"$this.readEn")
   val writeEn = Delay(s"$this.writeEn")
+  val readDone = Delay(s"$this.readDone")
+  val writeDone = Delay(s"$this.writeDone")
 }
 
 

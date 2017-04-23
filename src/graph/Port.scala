@@ -20,6 +20,7 @@ trait Port extends Node {
   def isInput = this.isInstanceOf[InPort]
   def asOutput = this.asInstanceOf[OutPort]
   def asInput = this.asInstanceOf[InPort]
+  def asCtrl = this.asInstanceOf[CtrlPort]
 }
 trait InPort extends Port {
   override val name=None

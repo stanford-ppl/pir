@@ -141,8 +141,8 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
   def shouldRun = Config.debug & Config.ctrl
 
-  //def horizontal:Boolean = true
-  def horizontal:Boolean = false
+  def horizontal:Boolean = true
+  //def horizontal:Boolean = false
 
   override lazy val stream = newStream(fn)
 

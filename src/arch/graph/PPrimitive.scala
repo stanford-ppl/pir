@@ -199,6 +199,7 @@ object Const {
 }
 
 case class Delay[P<:PortType](tp:P, numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+  override val typeStr = "delay"
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp, this, s"${this}_out")
   val prevValues = List.tabulate(numReg) { i => if (i==0) in else Input(tp, this, s"${this}_in($i)") }

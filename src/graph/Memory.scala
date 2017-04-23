@@ -155,7 +155,7 @@ trait VectorMem extends OnChipMem {
  *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
  *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design) 
+case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
   extends VectorMem with RemoteMem with SRAMOnRead with SRAMOnWrite {
   override val typeStr = "SRAM"
 }
