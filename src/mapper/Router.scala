@@ -9,7 +9,6 @@ import pir.pass.{PIRMapping}
 import pir.plasticine.graph.{Node => PNode}
 import pir.plasticine.main._
 import pir.exceptions._
-import pir.util.misc._
 import scala.language.existentials
 
 import scala.collection.immutable.Set
@@ -79,7 +78,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
     // DEBUG
   def breakPoint(mp:M, info:String):Unit = if (debug) {
-    bp(info)
+    pir.util.misc.bp(info)
     //val arch = design.arch.asInstanceOf[SwitchNetwork]
     //val ocu = arch.ocuArray(0)(4)
     //ocu.ctrlIO.ins.foreach { pin =>
@@ -165,7 +164,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   type ValidCons[E<:Edge] = (PCL, FatPath[E]) => Option[FatPath[E]]
   type AdvanceCons[E<:Edge] = (PSB, FatPath[E]) => Option[FatPath[E]]
   //type AdvanceFunc[E<:Edge] = (PNE, ValidCons[E], AdvanceCons[E]) =>FatPaths[E] 
-  type AdvanceFunc[E<:Edge] = (PNE, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PNE], Int, Int) => FatPaths[E] 
+  type AdvanceFunc[E<:Edge] = (PCL, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PNE], Int, Int) => FatPaths[E] 
 
   def vldCons[E<:Edge](validCons:Option[ValidCons[E]], reached:Option[PNE], minHop:Int, maxHop:Int)
              (reachedCU:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
@@ -190,7 +189,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def fwdAdvance(
-      start:PNE, 
+      start:PCL, 
       validCons:Option[ValidCons[FEdge]] = None, 
       advanceCons:Option[AdvanceCons[FEdge]] = None,
       reached:Option[PNE] = None,
@@ -201,7 +200,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def revAdvance(
-      start:PNE, 
+      start:PCL, 
       validCons:Option[ValidCons[REdge]] = None, 
       advanceCons:Option[AdvanceCons[REdge]] = None,
       reached:Option[PNE] = None,
@@ -217,7 +216,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def advance[E<:Edge](edgeTails:PGrid[PNE] => List[PIO[PNE]])(
-      start:PNE, 
+      start:PCL, 
       validCons:ValidCons[E], 
       advanceCons:AdvanceCons[E]
     ):FatPaths[E] = {
@@ -234,15 +233,17 @@ abstract class Router(implicit design:Design) extends Mapper {
         val ets = edgeTails(io(pne)).sortWith{ case (et1, et2) => et1.src.isInstanceOf[PCU] || !et2.src.isInstanceOf[PCU] }
         val edges = ets.flatMap { et => tailToHeads(et).map { eh => (et, eh).asInstanceOf[E] } }
         val bundle = edges.groupBy { case (et, eh) => (et.src, eh.src) }
-        bundle.foreach { case ((fpne, tpne), fatEdge) =>
-          val newPath = fatpath :+ fatEdge 
-          tpne match {
-            case cl:PCL => 
-              validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
-            case sb:PSB =>
-              advanceCons(sb, newPath).foreach { newPath => fatpaths += newPath }
-            case _ =>
-          }
+        bundle.foreach { 
+          case ((fpne, tpne), fatEdge) if !visited.contains(tpne) =>
+            val newPath = fatpath :+ fatEdge 
+            tpne match {
+              case cl:PCL => 
+                validCons(cl, newPath).foreach { newPath => result += (cl -> newPath) }
+              case sb:PSB =>
+                advanceCons(sb, newPath).foreach { newPath => fatpaths += newPath }
+              case _ =>
+            }
+          case ((fpne, tpne), fatEdge) =>
         }
       }
     }
