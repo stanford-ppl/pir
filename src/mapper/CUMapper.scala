@@ -144,7 +144,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     log((s"$cl resFunc:", false)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
-      dprintln(s"--not mapped and tried:[${pnes.mkString(",")}]")
+      dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
       cl match {
         case cl:MC if cl.mctpe.isDense => 
           val sp = cl.mcfifos("offset").writer.ctrler

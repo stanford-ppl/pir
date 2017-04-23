@@ -261,16 +261,16 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       assert(udc.inc.isCtrlIn)
       val pvi = mp.vimap(udc.inc)
       mp = mp.setFI(pudc.inc, pvi.ic)
-      pcb match {
-        case pcb:PICB =>
+      (cu, pcb) match {
+        case (cu, pcb:PICB) =>
           assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in))
           mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
-        case pcb:POCB if isPipelining(cu) =>
-          assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in), 
-            s"udc.dec.from=${udc.dec.from}(${mp.opmap(udc.dec.from)}), try to map to ${pcb.doneXbar.in}")
-          mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
-        case pcb:POCB if isStreaming(cu) =>
+        case (cu:SC, pcb:POCB) if (cu.children.contains(dep)) =>
           mp = mapInPort(udc.dec, pudc.dec, mp)
+        case (cu:OCL, pcb:POCB) =>
+          assert(mp.opmap(udc.dec.from) == mp.fimap(pcb.doneXbar.in), 
+            s"$udc.dec.from=${udc.dec.from}(${mp.opmap(udc.dec.from)}), try to map to ${pcb.doneXbar.in}")
+          mp = mp.setFI(pudc.dec, pcb.doneXbar.out)
       }
     }
     mp

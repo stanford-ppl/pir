@@ -62,7 +62,6 @@ abstract class Router(implicit design:Design) extends Mapper {
       case n if typeOf[T] =:= typeOf[Path[REdge]] =>
         n.asInstanceOf[Path[REdge]].map(quote[REdge]).mkString(", ")
       case n => 
-        println(typeOf[T])
         super.quote(n)
     }
   }
@@ -109,15 +108,18 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def logCond(header:String, valid:Boolean, cond:Boolean, info:String):Boolean = {
     if (valid && !cond) {
-      dprintln(header, s"condition not passed : $info")
+      dprintln(header, s"not passed : $info")
     }
     valid && cond
   }
 
   def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
     inputs.foldLeft(reses) { case (reses, in) =>
+      val scl = start(in)
+      val spcu = m.clmap(scl)
       def validCons(reached:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
-        val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
+        var header = s"validCons(in:$in($scl) start:${quote(spcu)} reached:${quote(reached)}, fatpath:${fatpath.size})"
+        header += s" minHop:$minHop maxHop:$maxHop"
         var valid = true
         valid = logCond(header, valid, reses.contains(reached), s"invalid res")
         valid = logCond(header, valid, !m.clmap.pmap.contains(reached), s"res $reached is used ")
@@ -136,7 +138,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     def start(in:I) = ctrler(in)
     val reses = filterTraverse(start _, outins, pnes, m, revAdvance _)
     if (reses.isEmpty) 
-      throw MappingException(this, m, s"No pnes can route outins of $cl. ins:${outins} to ${outins.map(in => from(in))}")
+      throw MappingException(this, m, s"No pnes can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
     else reses
   }
 
@@ -153,6 +155,8 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def filterPCL(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
     var reses = pnes 
+    if (reses.isEmpty)
+      throw MappingException(this, m, s"No pnes to filter for $cl")
     reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
     reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
     reses
