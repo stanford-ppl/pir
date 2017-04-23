@@ -241,7 +241,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.opA = ${lookUp(pfu.operands(0))}")
         emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
         emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
-        emitln(s"${quote(pst)}.opcode = ${fu.op}")
+        emitln(s"${quote(pst)}.opcode = ${quote(fu.op)}")
         emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
         emitAccum(pcu, fu)
         cu match {
@@ -544,6 +544,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       s"${quote(n.pne)}.scratchpad"
     case n =>
       pir.plasticine.util.quote(n)
+  }
+
+  def quote(n:Op) = n match {
+    case Bypass => s"BypassA"
+    case n => s"$n"
   }
 
   def quote(n:List[_]):String = s"List(${n.mkString(",")})"
