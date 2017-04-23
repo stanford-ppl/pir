@@ -1,6 +1,7 @@
 package pir.codegen
 
 import pir.Design
+import pir.graph.{AccumPR, Const}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ScalarOutReg}
 import pir.util.typealias._
@@ -138,9 +139,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         case s:PConst =>
           val const = pmmap.pmap(s)
           const match {
-            case s:Const if s.isBool => ("ConstSrc", s.value)
-            case s:Const if s.isInt => ("ConstSrc", s.value)
-            case s:Const if s.isFloat => ("ConstSrc", s.value)
+            case s:Const[_] if s.isBool => ("ConstSrc", s.value)
+            case s:Const[_] if s.isInt => ("ConstSrc", s.value)
+            case s:Const[_] if s.isFloat => ("ConstSrc", s.value)
           }
         case s:PPR =>
           n.src match {
@@ -212,6 +213,18 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
+  def emitAccum(pcu:PCU, fu:FU) = {
+    fu.out.to.foreach { _.src match {
+        case pr:PR =>
+          pr.reg match {
+            case AccumPR(Const(init)) => emitln(s"${quote(pcu)}.accumInit = $init")
+            case _ =>
+          }
+        case _ =>
+      }
+    }
+  }
+
   def emitStageBits(pcu:PCU) = {
     val cu = clmap.pmap(pcu)
     pcu.fustages.foreach { pst =>
@@ -229,6 +242,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
         emitln(s"${quote(pst)}.opcode = ${fu.op}")
         emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
+        emitAccum(pcu, fu)
         cu match {
           case cu:MP if forWrite(st) => 
             emitln(s"${quote(pst)}.enableSelect = WriteEn")
@@ -378,13 +392,13 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         case Strided(stride) => stride
         case _ => -1 //TODO
       }
-      emitln(s"${psram}.stride = $stride") 
-      emitln(s"${psram}.numBufs = ${sram.buffering}") 
+      emitln(s"${quote(psram)}.stride = $stride") 
+      emitln(s"${quote(psram)}.numBufs = ${sram.buffering}") 
       val vfifo = sram.writePort.from.src.asInstanceOf[VFIFO]
       val pvi = vimap(vfifo.writePort.from.src)
-      emitln(s"${psram}.wdataSelect = ${pvi.index}") 
-      emitln(s"${psram}.waddrSelect = ${lookUp(psram.writeAddr)}") 
-      emitln(s"${psram}.raddrSelect = ${lookUp(psram.readAddr)}") 
+      emitln(s"${quote(psram)}.wdataSelect = ${pvi.index}") 
+      emitln(s"${quote(psram)}.waddrSelect = ${lookUp(psram.writeAddr)}") 
+      emitln(s"${quote(psram)}.raddrSelect = ${lookUp(psram.readAddr)}") 
     }
   }
 
@@ -481,7 +495,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"switchCU=lcus")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
       assert(top.cins.size==1)
-      //emitComma(s"doneSelect=${muxIdx(top.cins.head)}")
+      emitComma(s"doneSelect=${muxIdx(top.cins.head)}")
     }("")
 
     emitMain

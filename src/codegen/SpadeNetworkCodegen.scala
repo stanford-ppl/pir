@@ -29,7 +29,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
   }
 
   val arguments = {
-    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
+    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], doneOuts:Wire, cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
   }
 
   override def splitPostHeader:Unit = {
@@ -58,7 +58,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       emitln(s"self:$traitName with Plasticine =>")
       emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(io, argOutMuxIns, cus, vsbs, ssbs, csbs, lcus)")
+          emitln(s"connect${i+1}(io, argOutMuxIns, doneOuts, cus, vsbs, ssbs, csbs, lcus)")
         }
       }
     }
@@ -85,7 +85,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     spade.pnes.foreach { pne =>
       pne.ctrlIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
-          emitln(s"${qc(out)} <> ${qc(in)}")
+          emitln(s"${qc(out)} <> ${qc(in, from=out)}")
         }
       }
     }
@@ -172,12 +172,19 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     val n = io.src
     val i = io.index
     n match {
-      case n:Top if io.isIn => s"io.done"
       case n:Top if io.isOut => s"io.enable"
       case n:SwitchBox if io.isIn => s"${qc(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qc(n)}.io.outs($i)"
       case n:Node if io.isIn => s"${quote(n)}.io.controlIn($i)" 
       case n:Node if io.isOut => s"${quote(n)}.io.controlOut($i)" 
+    }
+  }
+
+  def qc(io:IO[_,_], from:IO[_,_]):String = {
+    val n = io.src
+    n match {
+      case n:Top if io.isIn => s"doneOuts(${io.indexOf(from)})"
+      case n => qc(io)
     }
   }
 
