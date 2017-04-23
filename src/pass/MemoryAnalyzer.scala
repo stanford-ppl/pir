@@ -18,8 +18,8 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     design.top.memCUs.foreach { cu =>
       (cu.wtAddrStages ++ cu.rdAddrStages).foreach { st =>
         st match {
-          case st:WAStage => forWrite(st)
-          case st:RAStage => forRead(st)
+          case st:WAStage => forWrite(st) = true
+          case st:RAStage => forRead(st) = true
         }
         st.fu.foreach { fu =>
           fu.operands.foreach { oprd =>
@@ -93,6 +93,9 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     analyzeAddrCalc
     design.top.memCUs.foreach { cu =>
       emitBlock(s"$cu") {
+        cu.stages.foreach { st =>
+          dprintln(s"$st forRead=${forRead(st)} forWrite=${forWrite(st)}")
+        }
         cu.fifos.foreach { fifo => 
           dprintln(s"$fifo forRead=${forRead(fifo)} forWrite=${forWrite(fifo)}")
         }

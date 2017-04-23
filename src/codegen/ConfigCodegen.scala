@@ -231,7 +231,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       stmap.pmap.get(pst).fold {
         cu match {
           case cu:MP => 
-            emitln(s"${quote(pst)}.enableSelect = XSrc")
+            //emitln(s"${quote(pst)}.enableSelect = XSrc")
           case cu:ICL =>  // by default turns on
         }
       } { st =>
