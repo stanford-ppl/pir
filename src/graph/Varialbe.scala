@@ -3,6 +3,7 @@ package pir.graph
 import pir.Design
 import pir.graph._
 import pir.exceptions._
+import pir.util.misc._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -18,7 +19,8 @@ case class Scalar(name:Option[String])(implicit design: Design) extends Variable
   var _writer:ScalarOut = _ 
   def writerIsEmpty = _writer == null
   def writer:ScalarOut = {
-    assert(_writer != null, throw PIRException(s"$this has no writer"))
+    if (_writer==null)
+      warn(s"$this has no writer")
     _writer
   }
   private val _readers:Set[ScalarIn] = Set[ScalarIn]() 
