@@ -198,8 +198,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
-          udc.dec <== cb.doneXbar.out
           udc.dec <== cb.childrenAndTree.out
+          udc.dec <== cb.doneXbar.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
       case (mc:MemoryController, cb:CtrlBox) =>

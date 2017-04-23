@@ -194,8 +194,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectEnable(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        readCChainsOf(ctrler).head.inner.en.connect(cb.readEnable)
-        writeCChainsOf(ctrler).head.inner.en.connect(cb.writeEnable)
+        readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEnable) }
+        writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEnable) }
         chainCChain(readCChainsOf(ctrler))
         chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
