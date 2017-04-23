@@ -95,8 +95,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case (cb:MCB, pcb:PMCB) =>
         mp = mp.setOP(cb.readDone.out, pcb.readDoneXbar.out)
         mp = mp.setOP(cb.writeDone.out, pcb.writeDoneXbar.out)
-        mp = mapInPort(cb.writeDone.in, pcb.writeDoneXbar.in, mp)
-        mp = mapInPort(cb.readDone.in, pcb.readDoneXbar.in, mp)
+        if (cb.writeDone.in.isConnected) {
+          mp = mapInPort(cb.writeDone.in, pcb.writeDoneXbar.in, mp)
+        }
+        if (cb.readDone.in.isConnected) {
+          mp = mapInPort(cb.readDone.in, pcb.readDoneXbar.in, mp)
+        }
       case (cb:ICB, pcb:PICB) =>
         mp = mapInPort(cb.done.in, pcb.doneXbar.in, mp)
         mp = mp.setOP(cb.done.out, pcb.doneXbar.out)

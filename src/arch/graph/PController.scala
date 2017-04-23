@@ -205,6 +205,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   def addRAstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = {
     addRAstages(List.fill(numStage) { RAStage(numOprds=numOprds, regs, ops)}); this // Read Addr stage 
   } 
+  def sram = srams.head
 
   /* Parameters */
   override def numRegs = 16

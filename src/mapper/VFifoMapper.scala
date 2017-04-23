@@ -13,7 +13,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class VFifoMapper(implicit val design:Design) extends Mapper {
+class VFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type N = VFIFO
   type R = PVMem
   val typeStr = "VecFifoMapper"
@@ -24,9 +24,10 @@ class VFifoMapper(implicit val design:Design) extends Mapper {
   def finPass(cu:CL)(m:M):M = m 
 
   def constrain(n:N, r:R, m:M):M = {
-    m.setSM(n, r)
-      .setOP(n.readPort, r.readPort)
-      .setIP(n.writePort, r.writePort)
+    var mp = m
+    mp = mp.setSM(n, r).setOP(n.readPort, r.readPort)
+    mp = mapInPort(n.writePort, r.writePort, mp)
+    mp
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {

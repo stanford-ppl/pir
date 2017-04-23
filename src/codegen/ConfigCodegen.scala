@@ -4,6 +4,7 @@ import pir.Design
 import pir.plasticine.main._
 import pir.plasticine.graph.{ScalarOutReg}
 import pir.util.typealias._
+import pir.util.enums._
 import pir.Config
 
 import scala.collection.mutable.ListBuffer
@@ -31,6 +32,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def stmap = mapping.stmap
   def pmmap = mapping.pmmap
   def ipmap = mapping.ipmap
+  def vimap = mapping.vimap
   
   def top = spade.top
   def sbs = spade.sbArray
@@ -148,7 +150,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
             case fu:PFU if fu.stage == s.stage => ("CurrStageSrc", s.reg.index) 
             case ts:PPR => throw new Exception(s"toStage=${quote(ts.stage)} prev=${ts.stage.prev.map(quote).getOrElse("None")} currStage=${quote(s.stage)}")
           }
-        case s:PFU => ("ALUSrc", 0)
+        case s:PFU => ("ALUSrc", s.stage.index)
       }
       s"$SVT($src, $value)"
   }
@@ -162,6 +164,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           }
         case s:PGO[_] if networkOf(s).isVectorNetwork => ("VectorOutDst", s.index)
         case s:PGO[_] if networkOf(s).isScalarNetwork => ("ScalarOutDst", s.index)
+        case s:PSRAM if i == s.readAddr =>
+          ("ReadAddrDst", -1)
+        case s:PSRAM if i == s.writeAddr =>
+          ("WriteAddrDst", -1)
       }
       s"$SVT($src, $value)"
     }
@@ -268,6 +274,27 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitComment(s"${quote(pcu)}.udcs=[${udcs.mkString(",")}]")
   }
 
+  def commentSBufs(pcu:PCU) = {
+    pcu.sbufs.foreach { sbuf =>
+      smmap.pmap.get(sbuf).foreach { 
+        case smem:SBuf =>
+          val sw = if (smem.swapWrite.isConnected) {
+            s"swapWrite=${smem.swapWrite.from}"
+          } else {
+            s"swapWrite=NotConnected"
+          }
+          emitComment(s"${quote(sbuf)} -> $smem $sw")
+        case smem:SFIFO =>
+          val eq = if (smem.enqueueEnable.isConnected) {
+            s"enqueueEnable=${smem.enqueueEnable.from}"
+          } else {
+            s"enqueueEnable=${smem.enqueueEnable.from}"
+          }
+          emitComment(s"${quote(sbuf)} -> $smem ")
+      }
+    }
+  }
+
   def emitXbars(pcu:PCU) = {
     pcu.ctrlBox match {
       case pcb:PICB =>
@@ -324,6 +351,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     commentUDCs(pcu)
     emitAndTrees(pcu)
     emitStreamingMuxSelect(pcu)
+    commentSBufs(pcu)
     emitXbars(pcu)
     emitSwapReadSelect(pcu)
   }
@@ -342,15 +370,52 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitXbar(s"${quote(pcu)}.scalarOutXbar", pcu.souts.map(_.ic))
   }
 
+  def emitSRAM(psram:PSRAM) = {
+    val pcu = psram.pne
+    smmap.pmap.get(psram).foreach { case sram:SRAM =>
+      emitComment(s"$psram -> $sram")
+      val stride = sram.banking match {
+        case Strided(stride) => stride
+        case _ => -1 //TODO
+      }
+      emitln(s"${psram}.stride = $stride") 
+      emitln(s"${psram}.numBufs = ${sram.buffering}") 
+      val vfifo = sram.writePort.from.src.asInstanceOf[VFIFO]
+      val pvi = vimap(vfifo.writePort.from.src)
+      emitln(s"${psram}.wdataSelect = ${pvi.index}") 
+      emitln(s"${psram}.waddrSelect = ${lookUp(psram.writeAddr)}") 
+      emitln(s"${psram}.raddrSelect = ${lookUp(psram.readAddr)}") 
+    }
+  }
+
+  def emitScratchpadBits(pcu:PCU) = {
+    pcu match {
+      case pcu:PMCU => emitSRAM(pcu.sram)
+      case _ =>
+    }
+  }
+
+  def emitScalarNBuffer(pcu:PCU) = {
+    val nbufs = pcu.sbufs.map { psbuf =>
+      smmap.pmap.get(psbuf).fold(-1) {
+        case smem:SBuf => smem.buffering
+        case smem:SFIFO => 0
+      }
+    }
+    emitln(s"${quote(pcu)}.fifoNbufConfig=${quote(nbufs)}")
+  }
+
   def emitCUBit(pcu:PCU) = {
     clmap.pmap.get(pcu).foreach { cu => 
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
       emitControlBits(pcu)
+      emitScalarNBuffer(pcu)
       emitScalarInXbar(pcu)
       emitScalarOutXbar(pcu)
       emitCChainBis(pcu)
       emitCtrBits(pcu)
       emitStageBits(pcu)
+      emitScratchpadBits(pcu)
     }
   }
 
@@ -415,6 +480,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"controlSwitch=csbs")
       emitComma(s"switchCU=lcus")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
+      assert(top.cins.size==1)
+      //emitComma(s"doneSelect=${muxIdx(top.cins.head)}")
     }("")
 
     emitMain
@@ -450,6 +517,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       s"${quote(pst)}.fwd(${n.reg.index})"
     case n:PCB =>
       s"${quote(n.pne)}.control"
+    case n:PSRAM =>
+      s"${quote(n.pne)}.scratchpad"
     case n =>
       pir.plasticine.util.quote(n)
   }

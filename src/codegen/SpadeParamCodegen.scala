@@ -143,6 +143,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val numCounters = 8") // Yaqi: Fix
+      emitln(s"override val numUDCs = ${pcu.numUDCs}")
     }
 
   }
@@ -176,7 +177,6 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
     ocus.foreach { row =>
       row.foreach { cu =>
-        //TODO
         val param = s"GeneratedSwitchCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.cins.size}, ${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")
       }

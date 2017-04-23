@@ -127,6 +127,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cu.srams.foreach { sram =>
           cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
           cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
+          sram.writePort <== cu.vbufs.map(_.readPort)
         }
       case _ =>
     }

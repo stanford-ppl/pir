@@ -14,7 +14,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class SramMapper(implicit val design:Design) extends Mapper {
+class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type N = SRAM
   type R = PSRAM
   val typeStr = "SramMapper"
@@ -25,11 +25,12 @@ class SramMapper(implicit val design:Design) extends Mapper {
   def finPass(cu:CL)(m:M):M = m 
 
   def constrain(n:N, r:R, m:M):M = {
-    m.setSM(n, r)
-      .setOP(n.readPort, r.readPort)
-      .setIP(n.writePort, r.writePort)
-      .setIP(n.writeAddr, r.writeAddr)
-      .setIP(n.readAddr, r.readAddr)
+    var mp = m
+    mp = m.setSM(n, r).setOP(n.readPort, r.readPort)
+    mp = mapInPort(n.writePort, r.writePort, mp)
+    mp = mp.setIP(n.writeAddr, r.writeAddr)
+    mp = mp.setIP(n.readAddr, r.readAddr)
+    mp
   }
 
   def map(cu:ICL, pirMap:M):M = {

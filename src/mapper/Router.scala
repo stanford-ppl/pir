@@ -112,7 +112,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     valid && cond
   }
 
-  def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]) = {
+  def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]):List[PCL] = {
     inputs.foldLeft(reses) { case (reses, in) =>
       val scl = start(in)
       val spcu = m.clmap(scl)
@@ -124,11 +124,11 @@ abstract class Router(implicit design:Design) extends Mapper {
         valid = logCond(header, valid, !m.clmap.pmap.contains(reached), s"res $reached is used ")
         if (valid) Some(fatpath) else None
       }
-      advanceFunc(m.clmap(start(in)), Some(validCons _), None, None, minHop, maxHop).map { _._1 }
+      advanceFunc(m.clmap(start(in)), Some(validCons _), None, None, minHop, maxHop).map { _._1 }.toSet.toList
     }
   }
 
-  def filterOutIns(cl:CL, pnes:List[PCL], m:PIRMap) = {
+  def filterOutIns(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
     val outins:List[I] = outs(cl).flatMap { out =>
       to(out).filter { in => 
         !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
@@ -141,7 +141,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     else reses
   }
 
-  def filterIns(cl:CL, pnes:List[PCL], m:PIRMap) = {
+  def filterIns(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
     val inputs:List[I] = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
