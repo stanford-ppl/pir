@@ -34,6 +34,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def pmmap = mapping.pmmap
   def ipmap = mapping.ipmap
   def vimap = mapping.vimap
+  def vomap = mapping.vomap
   
   def top = spade.top
   def sbs = spade.sbArray
@@ -465,6 +466,14 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln("def main(args: String*) = plasticineBits")
   }
 
+  def commentArgIns = {
+    top.souts.foreach { psout =>
+      vomap.pmap.get(psout).foreach { sout =>
+        emitComment(s"${quote(psout)} -> $sout")
+      }
+    }
+  }
+
   def emitPlasticineBits = {
     val cuArray = spade.cuArray
     emitLambda(s"val cus:Array[Array[CUBits]] = Array.tabulate(${cuArray.size}, ${cuArray.head.size})", "case (i,j)") {
@@ -497,7 +506,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       assert(top.cins.size==1)
       emitComma(s"doneSelect=${muxIdx(top.cins.head)}")
     }("")
-
+    commentArgIns
     emitMain
   }
 
