@@ -148,6 +148,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
           n.src match {
             case ts:PPR if ts.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
             case ts:PPR if ts.stage == s.stage => ("CurrStageSrc", s.reg.index)
+            case fu:PFU if stmap.pmap(fu.stage).isReduce => ("ReduceTreeSrc", s.reg.index)
             case fu:PFU if fu.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
             case fu:PFU if fu.stage == s.stage => ("CurrStageSrc", s.reg.index)
             case ts:PPR => throw new Exception(s"toStage=${quote(ts.stage)} prev=${ts.stage.prev.map(quote).getOrElse("None")} currStage=${quote(s.stage)}")
