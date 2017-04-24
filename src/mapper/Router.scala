@@ -42,6 +42,7 @@ abstract class Router(implicit design:Design) extends Mapper {
         io.src match {
           case cu:PCU => s"${super.quote(cu)}.${io}"
           case sb:PSB => s"${super.quote(sb)}.${io}" 
+          case mc:PMC => s"${super.quote(mc)}.${io}"
           case top:PTop => s"${super.quote(top)}.${io}" 
         }
       case n if typeOf[T] =:= typeOf[FEdge] =>

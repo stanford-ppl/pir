@@ -48,7 +48,7 @@ trait Design extends PIRMetadata with Collector {
   val controlAnalyzer = new ControlAnalyzer()
   val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
   val multiBufferAnalyzer = new MultiBufferAnalyzer() 
-  val fusionTransform = new FusionTransform() { override def shouldRun = false }
+  val fusionTransform = new FusionTransform()
   val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val memoryAnalyzer = new MemoryAnalyzer()
   val accessAnalyzer = new AccessAnalyzer()

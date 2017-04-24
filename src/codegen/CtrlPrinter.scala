@@ -55,6 +55,14 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
         cu.ctrlBox.andTrees.foreach { at =>
           emitln(s"$at(ins=[${at.ins.map(_.from).mkString(",")}] outs=[${at.out.to.mkString(",")}])")
         }
+        cu.ctrlBox match {
+          case cb:MemCtrlBox =>
+            emitln(s"${cb.writeDone.in} ${cb.writeDone.in.from}")
+            emitln(s"${cb.writeDone.out} ${cb.writeDone.out.to}")
+            emitln(s"${cb.readDone.in} ${cb.readDone.in.from}")
+            emitln(s"${cb.readDone.out} ${cb.readDone.out.to}")
+          case cb =>
+        }
       }
       emitBlock(s"ctrlIns") {
         cu.cins.foreach{ in =>

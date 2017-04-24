@@ -63,4 +63,6 @@ trait PIRAlias {
   type UC    = UDCounter
   type Const = pir.graph.Const[_<:AnyVal]
   type Top   = pir.graph.Top
+  type Seq   = Sequential
+  type MetaPipe = MetaPipeline
 }

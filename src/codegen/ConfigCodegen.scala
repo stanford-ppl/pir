@@ -305,6 +305,17 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
+  def emitPulserSM(pcu:PCU) = {
+    val cu = clmap.pmap(pcu)
+    cu match {
+      case cu:Seq =>
+        emitln(s"${quote(pcu.ctrlBox)}.pulserMax=1")
+      case cu:MetaPipe =>
+        emitln(s"${quote(pcu.ctrlBox)}.pulserMax=${lengthOf(cu)}")
+      case _ =>
+    }
+  }
+
   def emitXbars(pcu:PCU) = {
     pcu.ctrlBox match {
       case pcb:PICB =>
@@ -318,7 +329,6 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
-        emitln(s"${quote(pcb)}.pulserMax=${lengthOf(clmap.pmap(pcb.pne))}")
       case pcb:PMCB =>
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
@@ -368,6 +378,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitStreamingMuxSelect(pcu)
     commentSBufs(pcu)
     emitXbars(pcu)
+    emitPulserSM(pcu)
     emitSwapReadSelect(pcu)
   }
 
