@@ -246,9 +246,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitAccum(pcu, fu)
         cu match {
           case cu:MP if forWrite(st) =>
-            emitln(s"${quote(pst)}.enableSelect = WriteEn")
+            emitln(s"${quote(pst)}.enableSelect.src = WriteEnSrc")
           case cu:MP if forRead(st) =>
-            emitln(s"${quote(pst)}.enableSelect = ReadEn")
+            emitln(s"${quote(pst)}.enableSelect.src = ReadEnSrc")
           case _ =>
         }
       }
