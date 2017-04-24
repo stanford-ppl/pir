@@ -78,15 +78,16 @@ class FusionTransform(implicit design: Design) extends Pass{
   }
 
   override def traverse:Unit = {
-    design.top.outerCUs.foreach { pcu =>
-      if (pcu.children.size==1) {
+    design.top.outerCUs.foreach {
+      case pcu:StreamController =>
+      case pcu if pcu.children.size == 1=>
         pcu.children.head match {
           case sp:StreamPipeline =>
           case cu => 
             swapCopy(pcu, cu)
             fuseCUs(pcu, cu)
         }
-      }
+      case pcu =>
     }
     //ForwardRef.collectOuters
   } 

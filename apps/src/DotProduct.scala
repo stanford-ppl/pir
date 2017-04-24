@@ -8,6 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object DotProduct extends PIRApp {
+  override val arch = SN_4x4
   def main(args: String*)(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1035_b1117_x1043_b1119_s = Scalar("x1035_b1117_x1043_b1119")
@@ -69,6 +70,7 @@ object DotProduct extends PIRApp {
       CU.mcvecs += "data" -> x1036_x1045_data_v
     }
     val x1052 = Pipeline(name="x1052",parent=x1053) { implicit CU => 
+      val x1036_x1049 =  VectorFIFO(size = 1).wtPort(x1036_x1045_data_v)
       val ctr5 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x1047 = CounterChain(name = "x1047", ctr5)
       var stage: List[Stage] = Nil
@@ -95,6 +97,7 @@ object DotProduct extends PIRApp {
       CU.mcvecs += "data" -> x1055_x1064_data_v
     }
     val x1071 = Pipeline(name="x1071",parent=x1072) { implicit CU => 
+      val x1055_x1068 =  VectorFIFO(size = 1).wtPort(x1055_x1064_data_v)
       val ctr8 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x1066 = CounterChain(name = "x1066", ctr8)
       var stage: List[Stage] = Nil
