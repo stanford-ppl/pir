@@ -69,7 +69,8 @@ trait PIRDotGen extends Codegen with DotCodegen {
         case dv:DummyVector => s"$v[\n${dv.scalars.mkString(",\n")}]"
         case _ => s"$v"
       }
-      emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
+      if (v.writer!=null)
+        emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
     }
   }
 
