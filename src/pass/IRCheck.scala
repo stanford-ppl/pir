@@ -49,7 +49,8 @@ class IRCheck(implicit design: Design) extends Pass {
                 throw PIRException(s"Outer controller cannot have counter copy")
             case cu:MemoryPipeline =>
               cu.cchains.foreach { cc =>
-                assert((forRead(cc) && !forWrite(cc)) || (forWrite(cc) && !forRead(cc)), s"$n in $cu forRead:${forRead(n)} forWrite:${forWrite(n)}")
+                assert((forRead(cc) && !forWrite(cc)) || (forWrite(cc) && !forRead(cc)), 
+                  s"$cc in $cu forRead:${forRead(cc)} forWrite:${forWrite(cc)}")
               }
             case _ =>
           }
