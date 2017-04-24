@@ -1,12 +1,12 @@
 package pir.test
 
 import pir._
-import pir.typealias._
-import pir.misc._
-import pir.graph.enums._
+import pir.util.typealias._
+import pir.util.misc._
+import pir.util.enums._
 import pir.graph._
-import pir.graph.mapper._
-import pir.graph.traversal._
+import pir.mapper._
+import pir.pass._
 import pir.plasticine.config._
 
 import org.scalatest._
@@ -27,7 +27,7 @@ class RouterTest extends UnitTest { self =>
       val endCU = cus(3)(3)
 
       tic
-      val routes = router.advance(
+      val routes = router.fwdAdvance(
         start=cus(0)(0),
         validCons=None,
         advanceCons=None,

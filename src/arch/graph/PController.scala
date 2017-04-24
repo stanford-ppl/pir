@@ -28,6 +28,7 @@ trait NetworkElement extends Module with Simulatable {
 
   def isMCU:Boolean = this.isInstanceOf[MemoryComputeUnit]
   def isSCU:Boolean = this.isInstanceOf[ScalarComputeUnit]
+  def isTop:Boolean = this.isInstanceOf[Top]
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
   def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}

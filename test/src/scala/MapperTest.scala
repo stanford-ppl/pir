@@ -1,12 +1,13 @@
 package pir.test
 
 import pir._
-import pir.typealias._
-import pir.misc._
-import pir.graph.enums._
+import pir.util.typealias._
+import pir.util.misc._
+import pir.util.enums._
 import pir.graph._
-import pir.graph.mapper._
-import pir.graph.traversal._
+import pir.mapper._
+import pir.pass._
+import pir.exceptions._
 
 import org.scalatest._
 import scala.language.reflectiveCalls
@@ -35,9 +36,7 @@ class MapperTest extends UnitTest { self =>
       // Printer
       def cons(n:R, r:R, m:M):M = {
         if (r > pnodes.size/2 - n) m + (n -> r )
-        else throw new { 
-          val mapper = testMapper; val msg = "Constrain failed"
-        } with MappingException[M](m)
+        else throw MappingException[M](testMapper, m, "constrain failed")
       }
       intercept[MappingException[M]] {
         val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:M) => m)

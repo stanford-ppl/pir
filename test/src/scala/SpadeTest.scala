@@ -1,11 +1,13 @@
 package pir.test
 
 import pir._
-import pir.misc._
-import pir.graph.traversal._
+import pir.util.misc._
+import pir.pass._
 import pir.plasticine.config._
 import pir.plasticine.main._
-import pir.graph.mapper.PIRException
+import pir.plasticine.graph._
+import pir.exceptions._
+import pir.codegen._
 
 import org.scalatest._
 import scala.language.reflectiveCalls
@@ -19,16 +21,17 @@ class SpadeTest extends UnitTest { self =>
   "SN_4x4" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
       override val arch = SN_4x4
-      new SpadeCodegen().run
+      arch.config
+      new SpadePrinter().run
 
       new CUCtrlDotPrinter().print
-      s"out/bin/run -c out/CtrlNetwork".replace(".dot", "") !
+      s"out/bin/run -c out/${arch}/CtrlNetwork".replace(".dot", "") !
 
-      //new CUScalarDotPrinter().print
-      //s"out/bin/run -c out/ScalNetwork".replace(".dot", "") !
+      new CUScalarDotPrinter().print
+      s"out/bin/run -c out/${arch}/ScalNetwork".replace(".dot", "") !
 
-      //new CUVectorDotPrinter().print
-      //s"out/bin/run -c out/VecNetwork".replace(".dot", "") !
+      new CUVectorDotPrinter().print
+      s"out/bin/run -c out/${arch}/VecNetwork".replace(".dot", "") !
     }
     design.arch match {
       case sn:SwitchNetwork =>
@@ -40,7 +43,7 @@ class SpadeTest extends UnitTest { self =>
             }
           }
           (sb.vectorIO.outs ++ sb.scalarIO.outs ++ sb.ctrlIO.outs).foreach { out => 
-            if (out.fanOuts.size>1) {
+            if (out.fanOuts.filterNot{_.src.isInstanceOf[Top]}.size>1) {
               throw PIRException(s"Switchbox $sb has $out with fanOuts > 1 ${out.fanOuts}")
             }
           }
