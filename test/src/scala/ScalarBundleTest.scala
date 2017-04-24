@@ -1,12 +1,13 @@
 package pir.test
 
 import pir._
-import pir.typealias._
-import pir.misc._
-import pir.graph.enums._
+import pir.util.typealias._
+import pir.util.misc._
+import pir.util.enums._
 import pir.graph._
-import pir.graph.traversal._
+import pir.pass._
 import pir.plasticine.config._
+import pir.codegen._
 
 import org.scalatest.{ Sequential => _, _ }
 import scala.language.reflectiveCalls
@@ -20,33 +21,33 @@ class ScalarBundleTest extends UnitTest { self =>
       val sls = List.tabulate(8){ i => Scalar(s"s$i") }
       val outer = Sequential("outer", top, Nil) { implicit CU => } 
       val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
-        CU.scalarOut(sls(0)) 
-        CU.scalarOut(sls(1)) 
+        CU.newSout(sls(0)) 
+        CU.newSout(sls(1)) 
       }
       val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
-        CU.scalarIn(sls(0))
-        CU.scalarOut(sls(7))
-        CU.scalarOut(sls(6))
+        CU.newSin(sls(0))
+        CU.newSout(sls(7))
+        CU.newSout(sls(6))
       }
       val c2 = Pipeline("c2", outer, Nil){ implicit CU => 
-        CU.scalarIn(sls(6))
-        CU.scalarIn(sls(2))
-        CU.scalarIn(sls(3))
-        CU.scalarIn(sls(4))
-        CU.scalarIn(sls(5))
-        CU.scalarIn(sls(7))
+        CU.newSin(sls(6))
+        CU.newSin(sls(2))
+        CU.newSin(sls(3))
+        CU.newSin(sls(4))
+        CU.newSin(sls(5))
+        CU.newSin(sls(7))
       }
       val c3 = Pipeline("c3", outer, Nil){ implicit CU => 
-        CU.scalarIn(sls(6))
-        CU.scalarIn(sls(7))
+        CU.newSin(sls(6))
+        CU.newSin(sls(7))
       }
       val c4 = Pipeline("c4", outer, Nil){ implicit CU => 
-        CU.scalarIn(sls(0))
-        CU.scalarIn(sls(1))
-        CU.scalarOut(sls(2))
-        CU.scalarOut(sls(3))
-        CU.scalarOut(sls(4))
-        CU.scalarOut(sls(5))
+        CU.newSin(sls(0))
+        CU.newSin(sls(1))
+        CU.newSout(sls(2))
+        CU.newSout(sls(3))
+        CU.newSout(sls(4))
+        CU.newSout(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
       top.innerCUs(cus)
@@ -54,7 +55,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls)
 
       // PNodes
-      override val arch = P2P_2CU  
+      override val arch = SN_4x4 
 
       val sb = new ScalarBundling()
       sb.run
@@ -73,15 +74,15 @@ class ScalarBundleTest extends UnitTest { self =>
       val sls = Nil 
       val outer = Sequential("outer", top, Nil) { implicit CU => } 
       val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
-        CU.scalarIn(ais(0))
-        CU.scalarIn(ais(1))
+        CU.newSin(ais(0))
+        CU.newSin(ais(1))
       }
       val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
-        CU.scalarIn(ais(2))
-        CU.scalarIn(ais(3))
-        CU.scalarIn(ais(4))
-        CU.scalarIn(ais(5))
-        CU.scalarIn(ais(6))
+        CU.newSin(ais(2))
+        CU.newSin(ais(3))
+        CU.newSin(ais(4))
+        CU.newSin(ais(5))
+        CU.newSin(ais(6))
       }
       val cus = c0::c1::Nil
       top.innerCUs(cus)
@@ -89,7 +90,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = P2P_2CU  
+      override val arch = SN_2x2 
 
       val sb = new ScalarBundling()
       sb.run
@@ -113,15 +114,15 @@ class ScalarBundleTest extends UnitTest { self =>
       val sls = Nil 
       val outer = Sequential("outer", top, Nil) { implicit CU => } 
       val c0 = Pipeline("c0", outer, Nil){ implicit CU => 
-        CU.scalarIn(ais(0))
-        CU.scalarIn(ais(1))
+        CU.newSin(ais(0))
+        CU.newSin(ais(1))
       }
       val c1 = Pipeline("c1", outer, Nil){ implicit CU => 
-        CU.scalarIn(ais(1))
-        CU.scalarIn(ais(2))
+        CU.newSin(ais(1))
+        CU.newSin(ais(2))
       }
       val c2 = Pipeline("c2", outer, Nil){ implicit CU => 
-        CU.scalarIn(ais(2))
+        CU.newSin(ais(2))
       }
       val cus = c0::c1::c2::Nil
       top.innerCUs(cus)
@@ -129,7 +130,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = P2P_2CU  
+      override val arch = SN_2x2
 
       val sb = new ScalarBundling()
       sb.run
@@ -151,15 +152,15 @@ class ScalarBundleTest extends UnitTest { self =>
 
       val sls = Nil 
       val s0 = Sequential("s0", top, Nil){ implicit CU => 
-        CU.scalarIn(ais(2))
+        CU.newSin(ais(2))
       }
       val c0 = Pipeline("c0", s0, Nil){ implicit CU => 
-        CU.scalarIn(ais(0))
-        CU.scalarIn(ais(1))
+        CU.newSin(ais(0))
+        CU.newSin(ais(1))
       }
       val c1 = Pipeline("c1", s0, Nil){ implicit CU => 
-        CU.scalarIn(ais(1))
-        CU.scalarIn(ais(2))
+        CU.newSin(ais(1))
+        CU.newSin(ais(2))
       }
       val cus = c0::c1::Nil
       val outers = s0::Nil 
@@ -168,7 +169,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = P2P_2CU  
+      override val arch = SN_2x2 
 
       val sb = new ScalarBundling()
       sb.run

@@ -18,6 +18,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   type R = PCtr
   type N = Ctr
   import spademeta._
+  import pirmeta._
   val typeStr = "CtrMapper"
   override def debug = Config.debugCtrMapper
   override val exceptLimit = 200
@@ -91,12 +92,15 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
       }
     }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
 
-    val resPool = enCtrs intersect doneCtrs
+    var res = enCtrs intersect doneCtrs
+    if (forWrite(n)) {
+      res = res.filterNot{ _.index == 0 }
+    }
     //if (resPool.size==0) {
       //new CtrDotPrinter().print(allRes, m)
       //println(s"here")
     //}
-    resPool
+    res 
   }
 
   def mapCtr(n:N, p:R, map:M):M = {

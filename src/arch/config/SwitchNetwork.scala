@@ -14,7 +14,10 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   
   override def pnes = super.pnes ++ sbs
 
-  def diameter = (numRows + numCols)
+  def diameter = Math.max(
+                  numRows + numCols, // Allow top left to talk to top right
+                  Math.ceil(numRows*1.0/2).toInt+3 // allow top to talk to middle CUs
+                )
 
   // Top level controller ~= Host
   val top = Top(numArgIns, numArgOuts)

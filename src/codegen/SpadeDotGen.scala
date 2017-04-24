@@ -29,7 +29,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
 
   def io(pne:NetworkElement):GridIO[_<:PortType, NetworkElement]
 
-  override lazy val stream = newStream(file) 
+  override lazy val stream = if (design.mapping.isDefined) newStream(file) else newStream(file, design.arch)
 
   trait Mode
   object OnlyOCU extends Mode

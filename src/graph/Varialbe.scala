@@ -54,7 +54,8 @@ class Vector(val name:Option[String])(implicit design: Design) extends Variable 
   override val typeStr = "Vector"
   private var _writer:VecOut = _
   def writer:VecOut = {
-    assert(_writer!=null, throw PIRException(s"$this has no writer"))
+    if (_writer==null)
+      warn(s"$this has no writer")
     _writer
   }
   private val _readers:Set[VecIn] = Set.empty
