@@ -251,10 +251,9 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
   import spademeta._
-  val ctrlBox:CtrlBox = new CtrlBox(numUDCs)
+  val ctrlBox:CtrlBox = new MCCtrlBox()
 
   /* Parameters */
-  def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
     numScalarBufs(2)
     genConnections

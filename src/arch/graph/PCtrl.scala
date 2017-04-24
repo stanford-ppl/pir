@@ -122,3 +122,7 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
     }
   }
 }
+
+class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) {
+  val done = Output(Bit(), this, s"${this}.done")
+}

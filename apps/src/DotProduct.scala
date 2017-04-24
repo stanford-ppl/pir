@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object DotProduct extends PIRApp {
-  override val arch = SN_4x4
+  override val arch = SN_2x2
   def main(args: String*)(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1035_b1117_x1043_b1119_s = Scalar("x1035_b1117_x1043_b1119")
@@ -36,14 +36,16 @@ object DotProduct extends PIRApp {
     }
     val x1033_dsp0 = MemoryPipeline(name="x1033_dsp0",parent="x1094") { implicit CU => 
       val x1051_x1051 =  VectorFIFO(size = 1).wtPort(x1036_x1045_data_v)
-      val x1047 = CounterChain.copy("x1052", "x1047")
+      val ctr5 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
+      val x1047 = CounterChain(name = "x1047", ctr5)
       val x1076 = CounterChain.copy("x1087", "x1076")
       val x1033_x1078 =  SRAM(size = 320,banking = Strided(1)).wtPort(x1051_x1051.readPort).rdPort(x1033_x1078_x1087_v).rdAddr(x1076(0)).wtAddr(x1047(0))
       var stage: List[Stage] = Nil
     }
     val x1034_dsp0 = MemoryPipeline(name="x1034_dsp0",parent="x1094") { implicit CU => 
       val x1070_x1070 =  VectorFIFO(size = 1).wtPort(x1055_x1064_data_v)
-      val x1066 = CounterChain.copy("x1071", "x1066")
+      val ctr8 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
+      val x1066 = CounterChain(name = "x1066", ctr8)
       val x1076 = CounterChain.copy("x1087", "x1076")
       val x1034_x1079 =  SRAM(size = 320,banking = Strided(1)).wtPort(x1070_x1070.readPort).rdPort(x1034_x1079_x1087_v).rdAddr(x1076(0)).wtAddr(x1066(0))
       var stage: List[Stage] = Nil
@@ -69,12 +71,6 @@ object DotProduct extends PIRApp {
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1035_b1117_x1043_b1119_s)
       CU.mcvecs += "data" -> x1036_x1045_data_v
     }
-    val x1052 = Pipeline(name="x1052",parent=x1053) { implicit CU => 
-      val x1036_x1049 =  VectorFIFO(size = 1).wtPort(x1036_x1045_data_v)
-      val ctr5 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
-      val x1047 = CounterChain(name = "x1047", ctr5)
-      var stage: List[Stage] = Nil
-    }
     val x1072 = StreamController(name="x1072",parent=x1094) { implicit CU => 
       val ctr6 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1072_unit = CounterChain(name = "x1072_unit", ctr6)
@@ -95,12 +91,6 @@ object DotProduct extends PIRApp {
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1054_b1122_x1062_b1124_s)
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1054_b1121_x1062_b1123_s)
       CU.mcvecs += "data" -> x1055_x1064_data_v
-    }
-    val x1071 = Pipeline(name="x1071",parent=x1072) { implicit CU => 
-      val x1055_x1068 =  VectorFIFO(size = 1).wtPort(x1055_x1064_data_v)
-      val ctr8 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
-      val x1066 = CounterChain(name = "x1066", ctr8)
-      var stage: List[Stage] = Nil
     }
     val x1087 = Pipeline(name="x1087",parent=x1094) { implicit CU => 
       val ar63 = CU.accum(init = Const(0))

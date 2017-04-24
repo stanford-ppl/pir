@@ -44,6 +44,7 @@ trait SpadeAlias {
   type PICB = InnerCtrlBox
   type POCB = OuterCtrlBox
   type PTCB = TopCtrlBox
+  type PMCCB = MCCtrlBox
   type PLUT      = LUT
   type PEnLUT    = EnLUT
   type PTDLUT     = TokenDownLUT

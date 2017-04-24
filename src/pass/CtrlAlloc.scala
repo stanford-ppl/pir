@@ -136,6 +136,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       (ctrler, ctrler.ctrlBox, last.ctrlBox) match {
         case (parent:Top, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
           pcb.status.connect(ccb.done.out)
+        case (parent:StreamController, pcb:OuterCtrlBox, ccb:MCCtrlBox) =>
+          val tk = pcb.tokenBuffer(last)
+          tk.inc.connect(ccb.done)
+          tk.dec.connect(pcb.childrenAndTree.out)
+          pcb.childrenAndTree.addInput(tk.out)
         case (parent:StreamController, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
           val tk = pcb.tokenBuffer(last)
           tk.inc.connect(ccb.en.out)
@@ -185,7 +190,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
             case _ =>
           }
-      case (cu:Top, cb) =>
+      case (cu:MemoryController, cb:MCCtrlBox) =>
+      case (cu:Top, cb:TopCtrlBox) =>
     }
     // Backward pressure
     (ctrler, ctrler.ctrlBox) match {
@@ -207,7 +213,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
             case consumer =>
           }
         }
-            case (cu, cb) =>
+      case (cu, cb) =>
     }
   }
 
@@ -243,6 +249,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cb.en.in.connect(cb.siblingAndTree.out)
       case cb:InnerCtrlBox if isStreaming(ctrler) =>
         cb.en.in.connect(cb.andTree.out)
+      case cb:MCCtrlBox =>
     }
   }
 

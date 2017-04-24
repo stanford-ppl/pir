@@ -266,7 +266,7 @@ trait Mapper { self =>
         }
       }
       map match {
-        case map:PIRMap => design.pirMapping.mapping = map
+        case map:PIRMap => design.pirMapping.mapping = Some(map)
         case _ =>
       }
       throw FailToMapNode(this, n, exceps.toList, map)

@@ -455,6 +455,8 @@ object StreamPipeline {
 class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
   override val typeStr = "MemoryController"
   import pirmeta._
+  
+  override lazy val ctrlBox:MCCtrlBox = MCCtrlBox()
 
   val mcfifos = Map[String, FIFO]()
   val mcvecs = Map[String, Vector]()

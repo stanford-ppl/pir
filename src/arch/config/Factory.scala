@@ -255,7 +255,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => cout.ic <== cb.writeDoneXbar.out; cout.ic <== cb.readDoneXbar.out }
-      case (mc:MemoryController, cb:CtrlBox) =>
+      case (mc:MemoryController, cb:MCCtrlBox) =>
+        mc.couts.foreach { _.ic <== cb.done }
       case (top:Top, cb:TopCtrlBox) =>
         top.couts.foreach { _.ic <== cb.command}
         top.cins.foreach { _.ic ==> cb.status }
