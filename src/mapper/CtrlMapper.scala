@@ -109,7 +109,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case (cb:OCB, pcb:POCB) =>
         mp = mapInPort(cb.done.in, pcb.doneXbar.in, mp)
         mp = mp.setOP(cb.done.out, pcb.doneXbar.out)
-      case (cu, pcb) =>
+      case (cb:MCCB, pcb:PMCCB) =>
+        mp = mp.setOP(cb.done, pcb.done)
     }
     mp
   }

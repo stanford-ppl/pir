@@ -22,6 +22,9 @@ object SN_4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=5, numArgOut
 }
 
 object SN_2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {
+}
+
+object SN_2x2_test extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {
   override lazy val ctrlNetwork = new CtrlNetwork {
     // SCU to switch channel width
     override lazy val scsbChannelWidth = 0

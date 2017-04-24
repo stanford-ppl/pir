@@ -241,6 +241,11 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     print
   }
 
+  override def finPass = {
+    close
+    endInfo(s"Finishing $name in ${getPath}...")
+  }
+
 }
 
 class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extends CUDotPrinter(file, open) { 

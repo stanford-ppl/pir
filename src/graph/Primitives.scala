@@ -211,6 +211,7 @@ class Stage(override val name:Option[String])(implicit override val ctrler:Compu
   def addLiveOut(reg:Reg):Unit = { liveOuts += reg }
   def isHead = this==ctrler.stages.head
   def isLast = this==ctrler.stages.last
+  def isReduce = this.isInstanceOf[ReduceStage]
 } 
 object Stage {
   /* No Sugar API */

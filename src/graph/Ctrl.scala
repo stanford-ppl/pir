@@ -251,4 +251,9 @@ case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Des
   val writeDone = Delay(s"$this.writeDone")
 }
 
+case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: Design) extends CtrlBox() {
+  val done = CtrlOutPort(this, s"$this.done")
+  override def ctrlOuts = super.ctrlOuts ++ List(done).filter(_.isCtrlOut)
+}
+
 

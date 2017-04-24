@@ -55,6 +55,7 @@ trait PIRAlias {
   type ICB   = InnerCtrlBox
   type OCB   = OuterCtrlBox
   type TCB   = TopCtrlBox
+  type MCCB  = MCCtrlBox 
   type LUT   = pir.graph.LUT
   type TOLUT = TokenOutLUT
   type TDLUT = TokenDownLUT

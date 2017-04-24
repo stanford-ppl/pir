@@ -1,7 +1,7 @@
 package pir.pass
 import pir.graph._
 import pir._
-import pir.codegen.{Printer, Logger}
+import pir.codegen.{Printer, Logger, CUVectorDotPrinter, CUScalarDotPrinter, CUCtrlDotPrinter}
 import pir.mapper._
 import pir.exceptions._
 import scala.util.{Try, Success, Failure}
@@ -13,7 +13,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.mapping
 
-  var mapping:PIRMap = _
+  var mapping:Option[PIRMap] = None
   var succeeded = false
 
   def failed = !succeeded && Config.mapping
@@ -47,8 +47,15 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mp
   }
 
+  val spadeVecDotPrinter = new CUVectorDotPrinter()
+  val spadeScalDotPrinter = new CUScalarDotPrinter()
+  val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
+
   val cuMapper:CUMapper = new CUMapper() {
     override def finPass(m:PIRMap) = {
+      spadeVecDotPrinter.print(Some(m))
+      spadeScalDotPrinter.print(Some(m))
+      spadeCtrlDotPrinter.print(Some(m))
       try {
         m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
           mapPrim(ctrler)(pm)
@@ -61,20 +68,20 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   }
 
   override def reset = {
-    mapping = null
+    mapping = None
     succeeded = false
   }
 
   override def traverse = {
     tic
     Try[PIRMap](cuMapper.map(PIRMap.empty)).map { m =>
-      mapping = m
+      mapping = Some(m)
       design.mappers.foreach{ _.mappingCheck(m) }
     } match {
       case Success(_) =>
         succeeded = true
         info(s"Mapping succeeded") 
-        printMap(mapping)
+        printMap(mapping.get)
       case Failure(e) =>
         succeeded = false
         info(s"Mapping failed")
@@ -82,17 +89,17 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
           case e:OutOfResource[_] =>
             err(e)
             printException(e)
-            mapping = e.mapping.asInstanceOf[PIRMap]
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             err(s"$e")
-            mapping = m.asInstanceOf[PIRMap]
+            mapping = Some(m.asInstanceOf[PIRMap])
           case PassThroughException(mapper, e, m) =>
             printMap(m)
             printException(e)
-            mapping = m
+            mapping = Some(m)
           case e:MappingException[_] =>
             printException(e)
-            mapping = e.mapping.asInstanceOf[PIRMap]
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case e:PIRException => 
             printException(e)
           case e => throw e 

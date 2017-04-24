@@ -74,7 +74,7 @@ trait Design extends PIRMetadata with Collector {
   val configCodegen = new ConfigCodegen()
   val simulator = new Simulator()
 
-  lazy val mapping:Option[PIRMap] = if (pirMapping.hasRun && pirMapping.succeeded) Some(pirMapping.mapping) else None
+  def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
   passes += spadePrinter 
