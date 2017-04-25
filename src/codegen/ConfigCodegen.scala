@@ -247,9 +247,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitAccum(pcu, fu)
         cu match {
           case cu:MP if forWrite(st) =>
-            emitln(s"${quote(pst)}.enableSelect = WriteEn")
+            emitln(s"${quote(pst)}.enableSelect.src = WriteEnSrc")
           case cu:MP if forRead(st) =>
-            emitln(s"${quote(pst)}.enableSelect = ReadEn")
+            emitln(s"${quote(pst)}.enableSelect.src = ReadEnSrc")
           case _ =>
         }
       }
@@ -506,6 +506,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitLambda(s"val lcus = Array.tabulate(${ocus.size}, ${ocus.head.size})", "case (i,j)") {
       emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
+    emitLambda(s"val scalarCUs = Array.tabulate(2, 3)", "case (i,j)") {  // Yaqi: Fix
+      emitln(s"ScalarCUBits.zeroes(scalarCUParams(i)(j))")
+    }
+
     implicit val ms = new CollectionStatus(false)
 
     emitInst(s"val plasticineBits = PlasticineBits") { implicit ms:CollectionStatus =>
@@ -514,6 +518,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"scalarSwitch=ssbs")
       emitComma(s"controlSwitch=csbs")
       emitComma(s"switchCU=lcus")
+      emitComma(s"scalarCU=scalarCUs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
       assert(top.cins.size==1)
       emitComma(s"doneSelect=${muxIdx(top.cins.head)}")

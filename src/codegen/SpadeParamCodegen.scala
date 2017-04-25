@@ -18,8 +18,8 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
-  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
-  
+  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
+
   override implicit lazy val spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
@@ -80,7 +80,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val dataWidth = ${spade.wordWidth}")
     }
   }
-  
+
   def emitPlasticineParams = {
     emitBlock(s"override lazy val plasticineParams = new PlasticineParams") {
       emitln(s"override val w = ${spade.wordWidth}")
@@ -91,6 +91,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
       emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
       emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
+      emitln(s"override val scalarCUParams = Array.fill(2)(Array.ofDim[ScalarCUParams](3))") // Yaqi: Fix
       emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
       emitln(s"override val numDoneConnections = ${spade.top.cins.head.fanIns.size}")
     }
@@ -102,7 +103,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"regColors += List(${reg.colors.mkString(",")})")
     }
   }
-  
+
   def emitStages(cu:ComputeUnit) = {
     //emitln(s"val stageTypes = ListBuffer[StageType]()")
     //cu.stages.foreach { stage =>
@@ -147,6 +148,16 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val numUDCs = ${ocu.numUDCs}")
     }
 
+    val scu = spade.scus.head
+    emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
+      emitln(s"override val w = ${spade.wordWidth}")
+      emitln(s"override val numCounters = ${scu.numCtrs}")
+      emitln(s"override val numUDCs = ${scu.numUDCs}")
+      emitRegs(scu)
+      emitStages(scu)
+      emitln(s"override val r = regColors.size")
+    }
+
 //    val scu = spade.sbs.head
   }
 
@@ -155,6 +166,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       row.foreach { case cu =>
         val param = cu match {
           case mcu:MemoryComputeUnit => s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+          case scu:ScalarComputeUnit => s"GeneratedScalarCUParams(4, 2, 8, 4)"
           case cu:ComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
         }
         emitln(s"${quote(cu)} = $param")
@@ -183,6 +195,14 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
         emitln(s"${quote(cu)} = $param")
       }
     }
+
+    spade.scuArray.foreach { row =>
+      row.foreach { cu =>
+        val param = s"GeneratedScalarCUParams(4, 2, 8, 4)" // Yaqi: Fix. Using scu.sins.size etc generates zeroes
+        emitln(s"${quote(cu)} = $param")
+      }
+    }
+
   }
 
   def quote(n:Node):String = n match {
@@ -190,11 +210,11 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     case n:WAStage => s"WAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     case n:RAStage => s"RAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:ScalarComputeUnit => 
+    case n:ScalarComputeUnit =>
       val (x, y) = coordOf(n)
       x match {
-        case -1 => s"scus(0)($y)"
-        case `numCols` => s"scus(1)($y)"
+        case -1 => s"scalarCUParams(0)($y)"
+        case `numCols` => s"scalarCUParams(1)($y)"
       }
     case n:MemoryComputeUnit =>
       val (x, y) = coordOf(n)
@@ -208,21 +228,21 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def qv(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"vectorSwitchParams($x)($y)"
     case n => quote(n)
   }
 
   def qs(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"scalarSwitchParams($x)($y)"
     case n => quote(n)
   }
 
   def qc(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"controlSwitchParams($x)($y)"
     case n => quote(n)
