@@ -66,7 +66,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(1)
   }
 
-  def emitAppObject { // Yaqi: Check/fix
+  def emitAppObject {
     emitln(s"object $appName extends PISADesign with $traitName")
   }
 
@@ -506,7 +506,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitLambda(s"val lcus = Array.tabulate(${ocus.size}, ${ocus.head.size})", "case (i,j)") {
       emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
-    emitLambda(s"val scalarCUs = Array.tabulate(2, 3)", "case (i,j)") {  // Yaqi: Fix
+    emitLambda(s"val scalarCUs = Array.tabulate(${scus.size}, ${scus.head.size})", "case (i,j)") {
       emitln(s"ScalarCUBits.zeroes(scalarCUParams(i)(j))")
     }
 

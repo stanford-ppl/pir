@@ -29,7 +29,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
   }
 
   val arguments = {
-    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], doneOuts:Array[Bool], cus:Array[Array[CU]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
+    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], doneOuts:Array[Bool], cus:Array[Array[CU]], scus:Array[Array[ScalarCU]] , vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
   }
 
   override def splitPostHeader:Unit = {
@@ -58,7 +58,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       emitln(s"self:$traitName with Plasticine =>")
       emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(io, argOutMuxIns, doneOuts, cus, vsbs, ssbs, csbs, lcus)")
+          emitln(s"connect${i+1}(io, argOutMuxIns, doneOuts, cus, scus, vsbs, ssbs, csbs, lcus)")
         }
       }
     }
@@ -101,8 +101,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     case n:MemoryController => 
       val (x, y) = coordOf(n)
       x match {
-        case -1 => s"mc(0)($y)"
-        case `numCols` => s"scus(1)($y)"
+        case -1 => s"mcs(0)($y)"
+        case `numCols` => s"mcs(1)($y)"
       }
     case n:OuterComputeUnit =>
       val (x, y) = coordOf(n)

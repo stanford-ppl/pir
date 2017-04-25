@@ -24,9 +24,12 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
 
+  lazy val pcus = spade.pcus
+  lazy val mcus = spade.mcus
   lazy val cus = spade.cuArray
-  lazy val sbs = spade.sbArray
   lazy val ocus = spade.ocuArray
+  lazy val scus = spade.scuArray
+  lazy val sbs = spade.sbArray
 
   override def splitPreHeader:Unit = {
     emitHeader
@@ -91,14 +94,13 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
       emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
       emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
-      emitln(s"override val scalarCUParams = Array.fill(2)(Array.ofDim[ScalarCUParams](3))") // Yaqi: Fix
+      emitln(s"override val scalarCUParams = Array.fill(${scus.size})(Array.ofDim[ScalarCUParams](${scus.head.size}))")
       emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
       emitln(s"override val numDoneConnections = ${spade.top.cins.head.fanIns.size}")
     }
   }
 
   def emitRegs(cu:ComputeUnit) = {
-    //emitln(s"val regColors = ListBuffer[List[RegColor]]()")
     cu.regs.foreach { reg =>
       emitln(s"regColors += List(${reg.colors.mkString(",")})")
     }
@@ -119,7 +121,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitParamClass = {
-    val pcu = spade.pcus.head
+    val pcu = pcus.head
     emitBlock(s"case class GeneratedPCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val v = ${spade.numLanes}")
@@ -130,7 +132,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val r = regColors.size")
     }
     emitln(1)
-    val mcu = spade.mcus.head
+    val mcu = mcus.head
     emitBlock(s"case class GeneratedPMUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PMUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val v = ${spade.numLanes}")
@@ -141,14 +143,14 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val r = regColors.size")
     }
 
-    val ocu = spade.ocus.head
+    val ocu = ocus.head.head
     emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val numCounters = ${ocu.numCtrs}")
       emitln(s"override val numUDCs = ${ocu.numUDCs}")
     }
 
-    val scu = spade.scus.head
+    val scu = scus.head.head
     emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val numCounters = ${scu.numCtrs}")
@@ -158,7 +160,6 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val r = regColors.size")
     }
 
-//    val scu = spade.sbs.head
   }
 
   def emitParams = {
@@ -196,9 +197,9 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       }
     }
 
-    spade.scuArray.foreach { row =>
+    scus.foreach { row =>
       row.foreach { cu =>
-        val param = s"GeneratedScalarCUParams(4, 2, 8, 4)" // Yaqi: Fix. Using scu.sins.size etc generates zeroes
+        val param = s"GeneratedScalarCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.cins.size}, ${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")
       }
     }

@@ -241,7 +241,6 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     numScalarBufs(4)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
-    color(0, ReduceReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)
     color(8 until 8 + 4, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
@@ -255,8 +254,8 @@ class MemoryController()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
-    assert(sins.size==2)
-    assert(vins.size==1)
+    //assert(sins.size==2)
+    //assert(vins.size==1)
     numScalarBufs(2)
     numVecBufs(vins.size)
     genConnections
