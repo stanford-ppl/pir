@@ -237,7 +237,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numSRAMs = 0
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
-    addRegstages(numStage=5, numOprds=3, fixOps ++ bitOps ++ otherOps)
+    addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
     numScalarBufs(4)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)

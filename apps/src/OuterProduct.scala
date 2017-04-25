@@ -8,6 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object OuterProduct extends PIRApp {
+  override val arch = SN_4x4
   def main(args: String*)(top:Top) = {
     val x1216_x1225_data_v = Vector("x1216_x1225_data")
     val x1213_x1263_x1268_v = Vector("x1213_x1263_x1268")
