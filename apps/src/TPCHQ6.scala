@@ -95,7 +95,6 @@ object TPCHQ6 extends PIRApp {
       CU.mcvecs += "data" -> x1587_x1596_data_v
     }
     val x1603 = Pipeline(name="x1603",parent=x1604) { implicit CU => 
-      val x1587_x1600 =  VectorFIFO(size = 1).wtPort(x1587_x1596_data_v)
       val ctr5 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
       val x1598 = CounterChain(name = "x1598", ctr5)
       var stage: List[Stage] = Nil
@@ -122,7 +121,6 @@ object TPCHQ6 extends PIRApp {
       CU.mcvecs += "data" -> x1606_x1615_data_v
     }
     val x1622 = Pipeline(name="x1622",parent=x1623) { implicit CU => 
-      val x1606_x1619 =  VectorFIFO(size = 1).wtPort(x1606_x1615_data_v)
       val ctr8 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
       val x1617 = CounterChain(name = "x1617", ctr8)
       var stage: List[Stage] = Nil
@@ -149,7 +147,6 @@ object TPCHQ6 extends PIRApp {
       CU.mcvecs += "data" -> x1625_x1634_data_v
     }
     val x1641 = Pipeline(name="x1641",parent=x1642) { implicit CU => 
-      val x1625_x1638 =  VectorFIFO(size = 1).wtPort(x1625_x1634_data_v)
       val ctr11 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
       val x1636 = CounterChain(name = "x1636", ctr11)
       var stage: List[Stage] = Nil
@@ -176,7 +173,6 @@ object TPCHQ6 extends PIRApp {
       CU.mcvecs += "data" -> x1644_x1653_data_v
     }
     val x1660 = Pipeline(name="x1660",parent=x1661) { implicit CU => 
-      val x1644_x1657 =  VectorFIFO(size = 1).wtPort(x1644_x1653_data_v)
       val ctr14 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
       val x1655 = CounterChain(name = "x1655", ctr14)
       var stage: List[Stage] = Nil

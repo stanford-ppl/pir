@@ -13,7 +13,6 @@ object OuterProduct extends PIRApp {
     val x1216_x1225_data_v = Vector("x1216_x1225_data")
     val x1213_x1263_x1268_v = Vector("x1213_x1263_x1268")
     val x1217_argin = ArgIn("x1217")
-    val x1273_x1297_ack_v = Vector("x1273_x1297_ack")
     val x1237_argin = ArgIn("x1237")
     val x1235_b1329_x1243_b1331_s = Scalar("x1235_b1329_x1243_b1331")
     val x1215_b1326_x1223_b1328_s = Scalar("x1215_b1326_x1223_b1328")
@@ -171,7 +170,6 @@ object OuterProduct extends PIRApp {
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1271_b1336_x1284_b1338_s)
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1271_b1335_x1284_b1337_s)
       CU.mcfifos += "data" ->  VectorFIFO(size = 1).wtPort(x1214_x1291_x1295_v)
-      CU.mcvecs += "ack" -> x1273_x1297_ack_v
     }
     
   }
