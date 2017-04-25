@@ -254,10 +254,15 @@ class MemoryController()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
-    //assert(sins.size==2)
-    //assert(vins.size==1)
-    numScalarBufs(2)
+    assert(sins.size==2)
+    assert(vins.size==1)
+    numScalarBufs(4)
     numVecBufs(vins.size)
+    nameOf(sbufs(0)) = "roffset"
+    nameOf(sbufs(1)) = "woffset"
+    nameOf(sbufs(2)) = "rsize"
+    nameOf(sbufs(3)) = "wsize"
+    nameOf(vbufs(0)) = "data"
     genConnections
   }
 }

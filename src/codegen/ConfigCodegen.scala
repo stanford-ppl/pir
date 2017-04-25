@@ -285,8 +285,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitComment(s"${quote(pcu)}.udcs=[${udcs.mkString(",")}]")
   }
 
-  def commentSBufs(pcu:PCU) = {
-    pcu.sbufs.foreach { sbuf =>
+  def commentSBufs(pcl:PCL) = {
+    pcl.sbufs.foreach { sbuf =>
       smmap.pmap.get(sbuf).foreach {
         case smem:SBuf =>
           val sw = if (smem.swapWrite.isConnected) {
@@ -317,25 +317,39 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
-  def emitXbars(pcu:PCU) = {
-    pcu.ctrlBox match {
+  def commentIO(pouts:List[PGO[PModule]]) = {
+    pouts.foreach { pout =>
+      vomap.pmap.get(pout).foreach { out =>
+        emitComment(s"${quote(pout)} -> $out")
+      }
+    }
+  }
+
+  def emitXbars(pcl:PCL) = {
+    pcl.ctrlBox match {
       case pcb:PICB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
-        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
+        commentIO(pcl.couts)
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:POCB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
-        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
+        commentIO(pcl.couts)
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:PMCB =>
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcu.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
-        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcu.couts.map(_.ic))
-      case pcb =>
+        commentIO(pcl.couts)
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
+      case pcb:PMCCB =>
+        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.pne.sbufs.map(_.incWritePtr))
+        commentIO(pcl.couts)
+        emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
     }
   }
 
@@ -383,10 +397,16 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitSwapReadSelect(pcu)
   }
 
-  def emitScalarInXbar(pcu:PCU) = {
-    val sins = pcu.sbufs.map { sbuf => fimap.get(sbuf.writePort).map { po => po.src } }
-    emitComment(s"${quote(pcu)}.scalarInXbar=[${sins.mkString(",")}]")
-    emitXbar(s"${quote(pcu)}.scalarInXbar", pcu.sbufs.map(_.writePort))
+  def emitControlBits(pmc:PMC) = {
+    val pcb = pmc.ctrlBox
+    commentSBufs(pmc)
+    emitXbars(pmc)
+  }
+
+  def emitScalarInXbar(pcl:PCL) = {
+    val sins = pcl.sbufs.map { sbuf => fimap.get(sbuf.writePort).map { po => po.src } }
+    emitComment(s"${quote(pcl)}.scalarInXbar=[${sins.mkString(",")}]")
+    emitXbar(s"${quote(pcl)}.scalarInXbar", pcl.sbufs.map(_.writePort))
   }
 
   def emitScalarOutXbar(pcu:PCU) = {
@@ -455,22 +475,32 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
+  def commentMC(pmc:PMC) = {
+    val mc = clmap.pmap(pmc)
+    emitComment(s"mctpe=${mc.mctpe}")
+  }
+
+  def emitMCBit(pmc:PMC) = {
+    clmap.pmap.get(pmc).foreach { mc =>
+      emitComment(s"Configuring ${quote(pmc)} <- $mc")
+      commentMC(pmc)
+      emitScalarInXbar(pmc)
+      emitControlBits(pmc)
+    }
+  }
+
   def emitCUBits = {
     cus.foreach {
       _.foreach { cu => emitCUBit(cu) }
     }
-    scus.foreach {
-      _.foreach { cu =>
-        //TODO
-      }
-    }
     ocus.foreach {
       _.foreach { cu => emitCUBit(cu) }
     }
+    scus.foreach {
+      _.foreach { cu => emitCUBit(cu) }
+    }
     mcs.foreach {
-      _.foreach { mc =>
-        //TODO
-      }
+      _.foreach { cu => emitMCBit(cu) }
     }
   }
 
@@ -506,8 +536,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitLambda(s"val lcus = Array.tabulate(${ocus.size}, ${ocus.head.size})", "case (i,j)") {
       emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
-    emitLambda(s"val scalarCUs = Array.tabulate(${scus.size}, ${scus.head.size})", "case (i,j)") {
+    emitLambda(s"val scus = Array.tabulate(${scus.size}, ${scus.head.size})", "case (i,j)") {
       emitln(s"ScalarCUBits.zeroes(scalarCUParams(i)(j))")
+    }
+    emitLambda(s"val mcs = Array.tabulate(${mcs.size}, ${mcs.head.size})", "case (i,j)") {
+      emitln(s"MemoryChannelBits.zeroes(memoryChannelParams(i)(j))")
     }
 
     implicit val ms = new CollectionStatus(false)
@@ -518,7 +551,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"scalarSwitch=ssbs")
       emitComma(s"controlSwitch=csbs")
       emitComma(s"switchCU=lcus")
-      emitComma(s"scalarCU=scalarCUs")
+      emitComma(s"scalarCU=scus")
+      emitComma(s"memoryChannel=mcs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
       assert(top.cins.size==1)
       emitComma(s"doneSelect=${muxIdx(top.cins.head)}")
@@ -538,6 +572,12 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         case -1 => s"scus(0)($y)"
         case `numCols` => s"scus(1)($y)"
       }
+    case n:PMC =>
+      val (x, y) = coordOf(n)
+      x match {
+        case -1 => s"mcs(0)($y)"
+        case `numCols` => s"mcs(1)($y)"
+      }
     case n:POCU =>
       val (x, y) = coordOf(n)
       s"lcus($x)($y)"
@@ -555,6 +595,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       val pcu = n.pne
       val pst = n.stage
       s"${quote(pst)}.fwd(${n.reg.index})"
+    case n:PMCCB =>
+      s"${quote(n.pne)}"
     case n:PCB =>
       s"${quote(n.pne)}.control"
     case n:PSRAM =>
@@ -596,9 +638,4 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     s"${pm}_${x}_${y}"
   }
 
-  //def q(p:PPRIM, pm:String):String = {
-    //val i = p.index
-    //val pcu = p.pne
-    //s"${quote(pcu)}.${pm}($i)"
-  //}
 }

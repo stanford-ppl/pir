@@ -7,6 +7,7 @@ import pir.plasticine.graph.{PipeReg => PPR}
 import pir.plasticine.util._
 import pir.plasticine.main._
 import pir.exceptions._
+import pir.util.enums._
 import pir.util.PIRMetadata
 
 import scala.collection.mutable.ListBuffer
@@ -47,9 +48,8 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
     //}
     //dprintln(s"$n read by regs:[${regs.mkString(",")}]")
     val reses = cu match {
-      case cu:MC => // No scalarInXbar
-        val pin = m.vimap(n.writePort.from.src.asInstanceOf[SI])
-        mappingOf[R](pin.ic)
+      case cu:MC if cu.mctpe==TileLoad => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
+      case cu:MC if cu.mctpe==TileStore => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
       case cu => pcu.sbufs
     }
     reses.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }

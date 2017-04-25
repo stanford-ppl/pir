@@ -31,4 +31,10 @@ trait SpadeMetadata { self:Spade =>
     type K = GlobalIO[_<:PortType, _] 
     type V = GridNetwork
   }
+
+  /* Name of nodes */
+  object nameOf extends MOneToOneMap {
+    type K = Node
+    type V = String 
+  }
 }

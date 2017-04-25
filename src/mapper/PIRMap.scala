@@ -134,6 +134,7 @@ case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
   def pmap:IM = pmp
   def pmap(v:PCU):CU = pmp(v).asInstanceOf[CU]
   def pmap(v:PMCU):MP = pmp(v).asInstanceOf[MP]
+  def pmap(v:PMC):MC = pmp(v).asInstanceOf[MC]
 }
 object CLMap extends IBiOneToOneObj {
   type K = CL

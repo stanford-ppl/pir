@@ -31,6 +31,7 @@ abstract class Controller(implicit design:Design) extends Node {
   def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
   def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
   def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
+  def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(name, v))
 
   def cins:List[CtrlInPort] = ctrlBox.ctrlIns
   def couts:List[CtrlOutPort] = ctrlBox.ctrlOuts 
@@ -385,37 +386,6 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
     dout
   }
   def data = dataOut.vector
-
-  //def getChains(head:CounterChain) = {
-    //val ccs = ListBuffer[CounterChain]()
-    //var cur = head
-    //ccs += cur
-    //var outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
-    //while (outerCCs.nonEmpty) {
-      //assert(outerCCs.size==1)
-      //cur = outerCCs.head
-      //ccs += cur
-      //outerCCs = cur.outer.done.to.map(_.src).collect{ case ctr:Counter => ctr.cchain }
-    //}
-    //ccs.toList
-  //}
-
-  //lazy val writeCChains = {
-    //val wccs = cchains.filter { cc => forWrite(cc) }
-    //val heads = wccs.filterNot { _.inner.en.isConnected }
-    //assert(heads.size==1)
-    //val head = heads.head
-    //getChains(head)
-  //}
-
-  //lazy val readCChains = {
-    //val rccs = cchains.filter { cc => forRead(cc) }
-    //val heads = rccs.filterNot { _.inner.en.isConnected }
-    //assert(heads.size==1)
-    //val head = heads.head
-    //getChains(head)
-  //}
-
 }
 object MemoryPipeline {
   def apply(name: Option[String])(implicit design: Design):MemoryPipeline =
@@ -465,14 +435,16 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   
   override lazy val ctrlBox:MCCtrlBox = MCCtrlBox()
 
-  val mcfifos = Map[String, FIFO]()
-  val mcvecs = Map[String, Vector]()
+  val mcfifos = Map[String, FIFO]() //TODO
+  val mcvecs = Map[String, Vector]() //TODO
   
+  def getFifo(name:String) = fifos.filter { _.name == Some(name) }.head
+
   override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
     super.updateBlock(block)
     mcvecs.foreach { case (field, vec) => newVout(vec) }
-    mcfifos.foreach { case (field, fifo) =>
-      CtrlInPort(this, s"$this.$field").connect(fifo.readPort)
+    sfifos.foreach { sfifo =>
+      CtrlInPort(this, s"$this.${sfifo.name.get}").connect(sfifo.readPort)
     }
     this
   }

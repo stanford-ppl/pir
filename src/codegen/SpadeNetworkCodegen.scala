@@ -29,7 +29,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
   }
 
   val arguments = {
-    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], doneOuts:Array[Bool], cus:Array[Array[CU]], scus:Array[Array[ScalarCU]] , vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
+    s"(io:PlasticineIO, argOutMuxIns:Array[Array[DecoupledIO[UInt]]], doneOuts:Array[Bool], cus:Array[Array[CU]], scus:Array[Array[ScalarCU]] , mcs:Array[Array[MemoryChannel]], vsbs:Array[Array[VectorSwitch]], ssbs:Array[Array[ScalarSwitch]], csbs:Array[Array[ControlSwitch]], lcus:Array[Array[SwitchCU]])"
   }
 
   override def splitPostHeader:Unit = {
@@ -58,7 +58,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       emitln(s"self:$traitName with Plasticine =>")
       emitBlock(s"def connect$arguments:Unit = ") {
         (0 until fileNumber).foreach { i =>
-          emitln(s"connect${i+1}(io, argOutMuxIns, doneOuts, cus, scus, vsbs, ssbs, csbs, lcus)")
+          emitln(s"connect${i+1}(io, argOutMuxIns, doneOuts, cus, scus, mcs, vsbs, ssbs, csbs, lcus)")
         }
       }
     }
@@ -140,6 +140,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     val n = io.src
     val i = io.index
     n match {
+      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.vecIn" 
+      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.vecOut" 
       case n:SwitchBox if io.isIn => s"${qv(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qv(n)}.io.outs($i)"
       case n:Node if io.isIn => s"${quote(n)}.io.vecIn($i)"
@@ -154,6 +156,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       case n:Top if io.isOut => s"io.argIns($i)"
       case n:SwitchBox if io.isIn => s"${qs(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qs(n)}.io.outs($i)"
+      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.scalarIn" 
+      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.scalarOut" 
       case n:Node if io.isIn => s"${quote(n)}.io.scalarIn($i)" 
       case n:Node if io.isOut => s"${quote(n)}.io.scalarOut($i)" 
     }
@@ -175,6 +179,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       case n:Top if io.isOut => s"io.enable"
       case n:SwitchBox if io.isIn => s"${qc(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qc(n)}.io.outs($i)"
+      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.controlIn" 
+      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.controlOut" 
       case n:Node if io.isIn => s"${quote(n)}.io.controlIn($i)" 
       case n:Node if io.isOut => s"${quote(n)}.io.controlOut($i)" 
     }

@@ -78,7 +78,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   }
 
   def connectData(mc:MemoryController)(implicit spade:Spade):Unit = {
-    (mc.sins, mc.sbufs).zipped.foreach { case (sin, sbuf) => sbuf.writePort <== sin.ic }
+    // Xbar
+    mc.sins.foreach { sin => mc.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    // One to one
     (mc.vins, mc.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
   }
 
@@ -259,8 +261,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cu.couts.foreach { cout => cout.ic <== cb.writeDoneXbar.out; cout.ic <== cb.readDoneXbar.out }
       case (mc:MemoryController, cb:MCCtrlBox) =>
         mc.couts.foreach { cout =>
-          cout.ic <== cb.done
           cout.ic <== mc.sbufs.map(_.notFull)
+          cout.ic <== cb.rdone
+          cout.ic <== cb.wdone
         }
       case (top:Top, cb:TopCtrlBox) =>
         top.couts.foreach { _.ic <== cb.command}

@@ -29,6 +29,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val cus = spade.cuArray
   lazy val ocus = spade.ocuArray
   lazy val scus = spade.scuArray
+  lazy val mcs = spade.mcArray
   lazy val sbs = spade.sbArray
 
   override def splitPreHeader:Unit = {
@@ -95,6 +96,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
       emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
       emitln(s"override val scalarCUParams = Array.fill(${scus.size})(Array.ofDim[ScalarCUParams](${scus.head.size}))")
+      emitln(s"override val memoryChannelParams = Array.fill(${mcs.size})(Array.ofDim[MemoryChannelParams](${mcs.head.size}))")
       emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
       emitln(s"override val numDoneConnections = ${spade.top.cins.head.fanIns.size}")
     }
@@ -144,10 +146,11 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     }
 
     val ocu = ocus.head.head
-    emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
+    emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
       emitln(s"override val w = ${spade.wordWidth}")
       emitln(s"override val numCounters = ${ocu.numCtrs}")
       emitln(s"override val numUDCs = ${ocu.numUDCs}")
+      emitln(s"override val numScalarOut = 0")
     }
 
     val scu = scus.head.head
@@ -160,47 +163,53 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val r = regColors.size")
     }
 
+    val mc = mcs.head.head
+    emitBlock(s"case class GeneratedMemoryChannelParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends MemoryChannelParams") {
+      emitln(s"override val w = ${spade.wordWidth}")
+      emitln(s"override val v = ${spade.numLanes}")
+    }
+
   }
 
   def emitParams = {
     cus.foreach { case row =>
       row.foreach { case cu =>
         val param = cu match {
-          case mcu:MemoryComputeUnit => s"GeneratedPMUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
-          case scu:ScalarComputeUnit => s"GeneratedScalarCUParams(4, 2, 8, 4)"
-          case cu:ComputeUnit => s"GeneratedPCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.vins.size}, ${cu.vouts.size}, ${cu.cins.size}, ${cu.couts.size})"
+          case mcu:MemoryComputeUnit => 
+            s"GeneratedPMUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numVectorIn=${cu.vins.size}, numVectorOut=${cu.vouts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
+          case cu:ComputeUnit => 
+            s"GeneratedPCUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numVectorIn=${cu.vins.size}, numVectorOut=${cu.vouts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
         }
         emitln(s"${quote(cu)} = $param")
       }
     }
 
-    //val scus = spade.scuArray
-    //emitln(s"val scus = Array.fill(${cus.size})(Array.ofDim[Module](${cus.head.size}))")
-    //scus.foreach { scu =>
-      //emitln(s"${quote(scu)} = Module(new SCU(scuParam)))")
-    //}
-
-    //val mcs = spade.mcs
-
-    sbs.foreach { row =>
-      row.foreach { sb =>
-        emitln(s"${qv(sb)} = VectorSwitchParams(numIns=${sb.vins.size}, numOuts=${sb.vouts.size}, v=${spade.numLanes}, w=${spade.wordWidth})")
-        emitln(s"${qs(sb)} = ScalarSwitchParams(numIns=${sb.sins.size}, numOuts=${sb.souts.size}, w=${spade.wordWidth})")
-        emitln(s"${qc(sb)} = ControlSwitchParams(numIns=${sb.cins.size}, numOuts=${sb.couts.size})")
-      }
-    }
-
     ocus.foreach { row =>
       row.foreach { cu =>
-        val param = s"GeneratedSwitchCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.cins.size}, ${cu.couts.size})"
+        val param = s"GeneratedSwitchCUParams(numScalarIn=${cu.sins.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")
       }
     }
 
     scus.foreach { row =>
       row.foreach { cu =>
-        val param = s"GeneratedScalarCUParams(${cu.sins.size}, ${cu.souts.size}, ${cu.cins.size}, ${cu.couts.size})"
+        val param = s"GeneratedScalarCUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")
+      }
+    }
+
+    mcs.foreach { row =>
+      row.foreach { cu =>
+        val param = s"GeneratedMemoryChannelParams(numScalarIn=${cu.sins.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
+        emitln(s"${quote(cu)} = $param")
+      }
+    }
+
+    sbs.foreach { row =>
+      row.foreach { sb =>
+        emitln(s"${qv(sb)} = VectorSwitchParams(numIns=${sb.vins.size}, numOuts=${sb.vouts.size}, v=${spade.numLanes}, w=${spade.wordWidth})")
+        emitln(s"${qs(sb)} = ScalarSwitchParams(numIns=${sb.sins.size}, numOuts=${sb.souts.size}, w=${spade.wordWidth})")
+        emitln(s"${qc(sb)} = ControlSwitchParams(numIns=${sb.cins.size}, numOuts=${sb.couts.size})")
       }
     }
 
@@ -216,6 +225,12 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       x match {
         case -1 => s"scalarCUParams(0)($y)"
         case `numCols` => s"scalarCUParams(1)($y)"
+      }
+    case n:MemoryController =>
+      val (x, y) = coordOf(n)
+      x match {
+        case -1 => s"memoryChannelParams(0)($y)"
+        case `numCols` => s"memoryChannelParams(1)($y)"
       }
     case n:MemoryComputeUnit =>
       val (x, y) = coordOf(n)

@@ -81,7 +81,7 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
     ocm.ctrler match {
       case mc:MemoryController =>
         if (!mc.mctpe.isDense) false
-        else mc.mcfifos("offset") == this
+        else mc.getFifo("offset") == this
       case _ => false
     }
   }
