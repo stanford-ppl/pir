@@ -84,6 +84,11 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitComment("ControlNetwork Connection")
     spade.pnes.foreach { pne =>
       pne.ctrlIO.outs.foreach { out =>
+        pne match {
+          case mc:MemoryController =>
+            println(mc, out, out.fanOuts, out.fanOuts.map(_.src))
+          case _ =>
+        }
         out.fanOuts.foreach { in =>
           emitln(s"${qc(out)} <> ${qc(in, from=out)}")
         }
@@ -156,8 +161,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       case n:Top if io.isOut => s"io.argIns($i)"
       case n:SwitchBox if io.isIn => s"${qs(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qs(n)}.io.outs($i)"
-      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.scalarIn" 
-      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.scalarOut" 
+      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.scalarIn($i)" 
+      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.scalarOut($i)" 
       case n:Node if io.isIn => s"${quote(n)}.io.scalarIn($i)" 
       case n:Node if io.isOut => s"${quote(n)}.io.scalarOut($i)" 
     }
@@ -179,8 +184,8 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       case n:Top if io.isOut => s"io.enable"
       case n:SwitchBox if io.isIn => s"${qc(n)}.io.ins($i)"
       case n:SwitchBox if io.isOut => s"${qc(n)}.io.outs($i)"
-      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.controlIn" 
-      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.controlOut" 
+      case n:MemoryController if io.isIn => s"${quote(n)}.io.plasticine.controlIn($i)" 
+      case n:MemoryController if io.isOut => s"${quote(n)}.io.plasticine.controlOut($i)" 
       case n:Node if io.isIn => s"${quote(n)}.io.controlIn($i)" 
       case n:Node if io.isOut => s"${quote(n)}.io.controlOut($i)" 
     }

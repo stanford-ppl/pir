@@ -435,14 +435,10 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   
   override lazy val ctrlBox:MCCtrlBox = MCCtrlBox()
 
-  val mcfifos = Map[String, FIFO]() //TODO
-  val mcvecs = Map[String, Vector]() //TODO
-  
   def getFifo(name:String) = fifos.filter { _.name == Some(name) }.head
 
   override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
     super.updateBlock(block)
-    mcvecs.foreach { case (field, vec) => newVout(vec) }
     sfifos.foreach { sfifo =>
       CtrlInPort(this, s"$this.${sfifo.name.get}").connect(sfifo.readPort)
     }

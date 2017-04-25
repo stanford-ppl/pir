@@ -20,9 +20,9 @@ object SimpleSequential extends PIRApp {
     }
     val x347_dsp0 = MemoryPipeline(name="x347_dsp0",parent="x358") { implicit CU => 
       val x343_x354 =  ScalarBuffer().wtPort(x343_argin)
-      val x352_x352 =  VectorFIFO(size = 1).wtPort(x347_x352_v)
+      val x352_x352 =  VectorFIFO(size=1).wtPort(x347_x352_v)
       val x349 = CounterChain.copy("x353", "x349")
-      val x347_x355 =  SRAM(size = 64,banking = NoBanking()).wtPort(x352_x352.readPort).rdPort(x347_x355_x357_v).wtAddr(x349(0))
+      val x347_x355 =  SRAM(size=64,banking = NoBanking()).wtPort(x352_x352.readPort).rdPort(x347_x355_x357_v).wtAddr(x349(0))
       var stage: List[Stage] = Nil
       RAStage(operands=List(CU.load(x343_x354)), op=Bypass, results=List(x347_x355.readAddr))
     }
@@ -35,7 +35,7 @@ object SimpleSequential extends PIRApp {
     }
     val x357 = Pipeline(name="x357",parent=x358) { implicit CU => 
       val x343_x354 =  ScalarBuffer().wtPort(x343_argin)
-      val x347_x355 =  VectorFIFO(size = 1).wtPort(x347_x355_x357_v)
+      val x347_x355 =  VectorFIFO(size=1).wtPort(x347_x355_x357_v)
       val ctr3 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x357_unit = CounterChain(name = "x357_unit", ctr3)
       var stage: List[Stage] = Nil

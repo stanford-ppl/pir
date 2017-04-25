@@ -8,7 +8,6 @@ import pir.util._
 import pir.PIRApp
 
 object TPCHQ6 extends PIRApp {
-  override val arch = SN_4x4
   def main(args: String*)(top:Top) = {
     val x1588_argin = ArgIn("x1588")
     val x1645_argin = ArgIn("x1645")
@@ -47,31 +46,31 @@ object TPCHQ6 extends PIRApp {
       val x1581 = CounterChain(name = "x1581", ctr2)
     }
     val x1582_dsp0 = MemoryPipeline(name="x1582_dsp0",parent="x1697") { implicit CU => 
-      val x1602_x1602 =  VectorFIFO(size = 1).wtPort(x1587_x1596_data_v)
+      val x1602_x1602 =  VectorFIFO(size=1).wtPort(x1587_x1596_data_v)
       val x1598 = CounterChain.copy("x1603", "x1598")
       val x1665 = CounterChain.copy("x1690", "x1665")
-      val x1582_x1667 =  SRAM(size = 96,banking = Strided(1)).wtPort(x1602_x1602.readPort).rdPort(x1582_x1667_x1690_v).rdAddr(x1665(0)).wtAddr(x1598(0))
+      val x1582_x1667 =  SRAM(size=96,banking = Strided(1)).wtPort(x1602_x1602.readPort).rdPort(x1582_x1667_x1690_v).rdAddr(x1665(0)).wtAddr(x1598(0))
       var stage: List[Stage] = Nil
     }
     val x1583_dsp0 = MemoryPipeline(name="x1583_dsp0",parent="x1697") { implicit CU => 
-      val x1621_x1621 =  VectorFIFO(size = 1).wtPort(x1606_x1615_data_v)
+      val x1621_x1621 =  VectorFIFO(size=1).wtPort(x1606_x1615_data_v)
       val x1617 = CounterChain.copy("x1622", "x1617")
       val x1665 = CounterChain.copy("x1690", "x1665")
-      val x1583_x1669 =  SRAM(size = 96,banking = Strided(1)).wtPort(x1621_x1621.readPort).rdPort(x1583_x1669_x1690_v).rdAddr(x1665(0)).wtAddr(x1617(0))
+      val x1583_x1669 =  SRAM(size=96,banking = Strided(1)).wtPort(x1621_x1621.readPort).rdPort(x1583_x1669_x1690_v).rdAddr(x1665(0)).wtAddr(x1617(0))
       var stage: List[Stage] = Nil
     }
     val x1584_dsp0 = MemoryPipeline(name="x1584_dsp0",parent="x1697") { implicit CU => 
-      val x1640_x1640 =  VectorFIFO(size = 1).wtPort(x1625_x1634_data_v)
+      val x1640_x1640 =  VectorFIFO(size=1).wtPort(x1625_x1634_data_v)
       val x1636 = CounterChain.copy("x1641", "x1636")
       val x1665 = CounterChain.copy("x1690", "x1665")
-      val x1584_x1668 =  SRAM(size = 96,banking = Strided(1)).wtPort(x1640_x1640.readPort).rdPort(x1584_x1668_x1690_v).rdAddr(x1665(0)).wtAddr(x1636(0))
+      val x1584_x1668 =  SRAM(size=96,banking = Strided(1)).wtPort(x1640_x1640.readPort).rdPort(x1584_x1668_x1690_v).rdAddr(x1665(0)).wtAddr(x1636(0))
       var stage: List[Stage] = Nil
     }
     val x1585_dsp0 = MemoryPipeline(name="x1585_dsp0",parent="x1697") { implicit CU => 
-      val x1659_x1659 =  VectorFIFO(size = 1).wtPort(x1644_x1653_data_v)
+      val x1659_x1659 =  VectorFIFO(size=1).wtPort(x1644_x1653_data_v)
       val x1655 = CounterChain.copy("x1660", "x1655")
       val x1665 = CounterChain.copy("x1690", "x1665")
-      val x1585_x1670 =  SRAM(size = 96,banking = Strided(1)).wtPort(x1659_x1659.readPort).rdPort(x1585_x1670_x1690_v).rdAddr(x1665(0)).wtAddr(x1655(0))
+      val x1585_x1670 =  SRAM(size=96,banking = Strided(1)).wtPort(x1659_x1659.readPort).rdPort(x1585_x1670_x1690_v).rdAddr(x1665(0)).wtAddr(x1655(0))
       var stage: List[Stage] = Nil
     }
     val x1604 = StreamController(name="x1604",parent=x1697) { implicit CU => 
@@ -90,9 +89,9 @@ object TPCHQ6 extends PIRApp {
       Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1586_b1726_x1594_b1728_s)))
     }
     val x1596 = MemoryController(name="x1596",parent=x1604,offchip=x1566_oc, mctpe=TileLoad) { implicit CU => 
-      CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1586_b1725_x1594_b1727_s)
-      CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1586_b1726_x1594_b1728_s)
-      CU.mcvecs += "data" -> x1587_x1596_data_v
+      val x1586_b1725_x1596 =  ScalarFIFO(name="offset",size=1).wtPort(x1586_b1725_x1594_b1727_s)
+      val x1586_b1726_x1596 =  ScalarFIFO(name="size",size=1).wtPort(x1586_b1726_x1594_b1728_s)
+      CU.newVout("data", x1587_x1596_data_v)
     }
     val x1603 = Pipeline(name="x1603",parent=x1604) { implicit CU => 
       val ctr5 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
@@ -115,9 +114,9 @@ object TPCHQ6 extends PIRApp {
       Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1605_b1730_x1613_b1732_s)))
     }
     val x1615 = MemoryController(name="x1615",parent=x1623,offchip=x1568_oc, mctpe=TileLoad) { implicit CU => 
-      CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1605_b1730_x1613_b1732_s)
-      CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1605_b1729_x1613_b1731_s)
-      CU.mcvecs += "data" -> x1606_x1615_data_v
+      val x1605_b1730_x1615 =  ScalarFIFO(name="size",size=1).wtPort(x1605_b1730_x1613_b1732_s)
+      val x1605_b1729_x1615 =  ScalarFIFO(name="offset",size=1).wtPort(x1605_b1729_x1613_b1731_s)
+      CU.newVout("data", x1606_x1615_data_v)
     }
     val x1622 = Pipeline(name="x1622",parent=x1623) { implicit CU => 
       val ctr8 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
@@ -140,9 +139,9 @@ object TPCHQ6 extends PIRApp {
       Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1624_b1734_x1632_b1736_s)))
     }
     val x1634 = MemoryController(name="x1634",parent=x1642,offchip=x1570_oc, mctpe=TileLoad) { implicit CU => 
-      CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1624_b1734_x1632_b1736_s)
-      CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1624_b1733_x1632_b1735_s)
-      CU.mcvecs += "data" -> x1625_x1634_data_v
+      val x1624_b1734_x1634 =  ScalarFIFO(name="size",size=1).wtPort(x1624_b1734_x1632_b1736_s)
+      val x1624_b1733_x1634 =  ScalarFIFO(name="offset",size=1).wtPort(x1624_b1733_x1632_b1735_s)
+      CU.newVout("data", x1625_x1634_data_v)
     }
     val x1641 = Pipeline(name="x1641",parent=x1642) { implicit CU => 
       val ctr11 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
@@ -165,9 +164,9 @@ object TPCHQ6 extends PIRApp {
       Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1643_b1738_x1651_b1740_s)))
     }
     val x1653 = MemoryController(name="x1653",parent=x1661,offchip=x1572_oc, mctpe=TileLoad) { implicit CU => 
-      CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1643_b1737_x1651_b1739_s)
-      CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1643_b1738_x1651_b1740_s)
-      CU.mcvecs += "data" -> x1644_x1653_data_v
+      val x1643_b1737_x1653 =  ScalarFIFO(name="offset",size=1).wtPort(x1643_b1737_x1651_b1739_s)
+      val x1643_b1738_x1653 =  ScalarFIFO(name="size",size=1).wtPort(x1643_b1738_x1651_b1740_s)
+      CU.newVout("data", x1644_x1653_data_v)
     }
     val x1660 = Pipeline(name="x1660",parent=x1661) { implicit CU => 
       val ctr14 = Counter(min=Const(0), max=Const(96), step=Const(1), par=16) // Counter
@@ -185,10 +184,10 @@ object TPCHQ6 extends PIRApp {
       val x1683 = CU.temp
       val x1674 = CU.temp
       val x1678 = CU.temp
-      val x1584_x1668 =  VectorFIFO(size = 1).wtPort(x1584_x1668_x1690_v)
-      val x1583_x1669 =  VectorFIFO(size = 1).wtPort(x1583_x1669_x1690_v)
-      val x1582_x1667 =  VectorFIFO(size = 1).wtPort(x1582_x1667_x1690_v)
-      val x1585_x1670 =  VectorFIFO(size = 1).wtPort(x1585_x1670_x1690_v)
+      val x1584_x1668 =  VectorFIFO(size=1).wtPort(x1584_x1668_x1690_v)
+      val x1583_x1669 =  VectorFIFO(size=1).wtPort(x1583_x1669_x1690_v)
+      val x1582_x1667 =  VectorFIFO(size=1).wtPort(x1582_x1667_x1690_v)
+      val x1585_x1670 =  VectorFIFO(size=1).wtPort(x1585_x1670_x1690_v)
       val ctr15 = Counter(min=Const(0), max=Const(96), step=Const(1), par=1) // Counter
       val x1665 = CounterChain(name = "x1665", ctr15)
       var stage: List[Stage] = Nil

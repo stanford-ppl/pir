@@ -20,7 +20,7 @@ class SpadeTest extends UnitTest { self =>
 
   "SN_4x4" should "success" taggedAs(ARCH) in {
     val design = new Design { self =>
-      override val arch = SN_4x4
+      override val arch = SN_2x2
       arch.config
       new SpadePrinter().run
 
