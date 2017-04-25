@@ -94,7 +94,7 @@ abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) e
     }
     close
     if (open && Config.debug) { 
-        s"out/bin/run -c out/${file}".replace(".dot", "") !
+        s"out/bin/run -c ${getPath}".replace(".dot", "") !
 
         println(s"Waiting for input ...")
         val command = scala.io.StdIn.readLine()

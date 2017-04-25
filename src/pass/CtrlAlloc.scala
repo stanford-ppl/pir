@@ -122,6 +122,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       (ctrler.ctrlBox, head.ctrlBox) match {
         case (pcb:OuterCtrlBox, ccb:InnerCtrlBox) if isStreaming(head) =>
           ccb.tokenInAndTree.addInput(pcb.tokenDown)
+        case (pcb:OuterCtrlBox, ccb:OuterCtrlBox) if isStreaming(head) =>
         case (pcb:OuterCtrlBox, ccb:StageCtrlBox) if isPipelining(head) =>
           val tk = ccb.tokenBuffer(ctrler)
           tk.inc.connect(pcb.tokenDown)

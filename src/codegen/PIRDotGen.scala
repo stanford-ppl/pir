@@ -53,18 +53,9 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def emitInputs(cl:Controller):Unit
 
-  def emitDataInputs(cl:Controller) = {
-    cl.sinMap.foreach { case (s, sin) => 
-      if (!s.writerIsEmpty) {
-        s.writer.ctrler match {
-          case top:Top =>
-          case w => emitEdge(w, cl, DotAttr().label(s"$s"))
-        }
-      } else {
-        emitEdge("NotConnected", cl, DotAttr().label(s"$s"))
-      }
-    }
-    cl.vinMap.foreach { case (v, vin) => 
+  def emitVectorInputs(cl:Controller, vins:List[VecIn]):Unit = {
+    vins.foreach { vin => 
+      val v = vin.vector
       val label = v match {
         case dv:DummyVector => s"$v[\n${dv.scalars.mkString(",\n")}]"
         case _ => s"$v"
@@ -74,7 +65,21 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
-  def emitCtrlInputs(cl:Controller):Unit = {
+  def emitScalarInputs(cl:Controller, sins:List[ScalarIn]):Unit = {
+    sins.foreach { sin => 
+      val s = sin.scalar
+      if (!s.writerIsEmpty) {
+        s.writer.ctrler match {
+          case top:Top =>
+          case w => emitEdge(w, cl, DotAttr().label(s"$s"))
+        }
+      } else {
+        emitEdge("NotConnected", cl, DotAttr().label(s"$s"))
+      }
+    }
+  }
+
+  def emitCtrlInputs(cl:Controller, cins:List[CtrlInPort]):Unit = {
     def q(cp:CtrlPort) = cp.src match {
       case cb:CtrlBox => 
         val attrs = s"${cp}".split("\\.")
@@ -84,8 +89,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
           s"${cp}"
       case _ => s"${cp}"
     }
-    val ins = cl.ctrlBox.ctrlIns
-    ins.groupBy(_.from).foreach { case (from, cis) =>
+    cins.groupBy(_.from).foreach { case (from, cis) =>
       if (from != null) {
         val fromcu = from.src match {
           case p:Primitive => p.ctrler
@@ -122,8 +126,8 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
   }
 
   def emitInputs(cl:Controller):Unit = {
-    emitDataInputs(cl)
-    //emitCtrlInputs(cl)
+    emitScalarInputs(cl, cl.sins)
+    emitVectorInputs(cl, cl.vins)
   }
 
   override def quote(n:Any):String = {
@@ -144,8 +148,8 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
   def shouldRun = Config.debug & Config.ctrl
 
-  def horizontal:Boolean = true
-  //def horizontal:Boolean = false
+  //def horizontal:Boolean = true
+  def horizontal:Boolean = false
 
   override lazy val stream = newStream(fn)
 
@@ -154,7 +158,8 @@ class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
   }
 
   def emitInputs(cl:Controller):Unit = {
-    emitCtrlInputs(cl)
+    emitCtrlInputs(cl, cl.cins)
+    emitVectorInputs(cl, cl.vins)
   }
 
 }

@@ -41,7 +41,7 @@ object Config {
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugVecRouter = debugMapper && false
-  var debugScalRouter = debugMapper && false
+  var debugScalRouter = debugMapper && true 
   var debugCtrlRouter = debugMapper && false
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 

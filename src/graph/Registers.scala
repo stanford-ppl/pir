@@ -19,14 +19,15 @@ trait OuterRegBlock { self:ComputeUnit =>
   def scalarInPR(s:ScalarIn):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(s))
   def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(s))
 
-  def pipeReg(stage:Stage, reg:Reg) = stage.getOrElseUpdate(reg, PipeReg(stage,reg))
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
- def load(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, loadPR(s))
+ def load(stage:Stage, s:OnChipMem):PipeReg = stage.get(loadPR(s))
+
+ def load(s:OnChipMem):Reg = loadPR(s)
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarIn buffer with register rid
@@ -98,23 +99,21 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   * @param s: sram to load from 
   */
-  def store(stage:Stage, s:OnChipMem):PipeReg = pipeReg(stage, storePR(s))
+  def store(stage:Stage, s:OnChipMem):PipeReg = stage.get(storePR(s))
 
   def wtAddr(sram:SRAMOnWrite):WtAddrPR = wtAddrPR(sram)
-  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = pipeReg(stage, reg)
-  def wtAddr(stage:Stage, sram:SRAMOnWrite):PipeReg = pipeReg(stage, wtAddr(sram))
+  def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = stage.get(reg)
+  def wtAddr(stage:Stage, sram:SRAMOnWrite):PipeReg = stage.get(wtAddr(sram))
   
   //def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
-  def ctr(c:Counter):OutPort = c.out
+  def ctr(c:Counter):Reg = ctrPR(c)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the counter 
   * @param stage: Stage of the pipeline register 
   * @param c: counter 
   */
-  def ctr(stage:Stage, c:Counter):OutPort = stage match {
-    case stage:EmptyStage => ctr(c)
-    case stage => pipeReg(stage, ctrPR(c)).out
-  }
+  def ctr(stage:Stage, c:Counter):OutPort = stage.get(ctrPR(c)).out
+  
   /* Create a new logical accumulator register */
   def accum(init:Const[_<:AnyVal]):AccumPR = accumPR(init)
   /* Create a new logical accumulator register and return a PipeReg for the stage and the created
@@ -122,30 +121,31 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
    * @param init initial value of the accumulator
    * */
-  def accum(stage:Stage, init:Const[_<:AnyVal]):PipeReg = pipeReg(stage, accum(init))
+  def accum(stage:Stage, init:Const[_<:AnyVal]):PipeReg = stage.get(accum(init))
   /* Create a pipeline register for a stage that connects to the accumulator reg 
    * @param stage
    * @param acc 
    */
-  def accum(stage:Stage, acc:AccumPR):PipeReg = pipeReg(stage, acc)
+  def accum(stage:Stage, acc:AccumPR):PipeReg = stage.get(acc)
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the reduction network 
   * @param stage: Stage of the pipeline register 
   * @param i: initial value
   */
-  def reduce(stage:Stage):PipeReg = pipeReg(stage, reduceReg)
+  def reduce(stage:Stage):PipeReg = stage.get(reduceReg)
+  def reduce:Reg = reduceReg
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = pipeReg(stage, scalarOutPR(s))
+  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = stage.get(scalarOutPR(s))
  /** Create a pipeline register and a scalar buffer for a stage. 
   *  The pipeline register connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
   def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
-  def scalarOut(s:Scalar):PipeReg = scalarOut(emptyStage, newSout(s))
+  def scalarOut(s:Scalar):Reg = scalarOutPR(newSout(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
@@ -170,13 +170,13 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   * @param vo: VecOut of current ComputeUnit. One per CU 
   */
-  def vecOut(stage:Stage, vo:VecOut):PipeReg = pipeReg(stage, vecOutPR(vo))
+  def vecOut(stage:Stage, vo:VecOut):PipeReg = stage.get(vecOutPR(vo))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
   */
   def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newVout(vec))
-  def vecOut(vec:Vector):PipeReg = vecOut(emptyStage, newVout(vec))
+  def vecOut(vec:Vector):Reg = vecOutPR(newVout(vec))
 
   /* Create a new logical register 
    * */
@@ -187,13 +187,11 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   */
   def temp(stage:Stage, reg:Reg):PipeReg = {
     assert(tempRegs.contains(reg), s"PipeReg with reg:${reg} wans't created but try to refer to it")
-    pipeReg(stage, reg)
+    stage.get(reg)
   }
  /** Allocate a new pipeline register in the stage 
   * @param stage: Stage of the pipeline register 
   */
-  def temp(stage:Stage):PipeReg = {
-    pipeReg(stage, tempPR())
-  }
+  def temp(reg:Reg):Reg = reg
 }
 

@@ -195,8 +195,7 @@ class Stage(override val name:Option[String])(implicit override val ctrler:Compu
   var fu:Option[FuncUnit] = _
   val _prs:Map[Reg, PipeReg] = Map.empty
   def prs:List[PipeReg] = _prs.values.toList
-  def get(reg:Reg) = _prs(reg)
-  def getOrElseUpdate(reg:Reg, pipeReg:PipeReg) = _prs.getOrElseUpdate(reg, pipeReg)
+  def get(reg:Reg) = _prs.getOrElseUpdate(reg, PipeReg(this, reg))
   val defs:Set[Reg] = Set.empty
   val uses:Set[Reg] = Set.empty
   var liveIns:ISet[Reg] = ISet.empty
@@ -222,34 +221,22 @@ object Stage {
   }
   def apply(stage:Stage, operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:Design):Unit= {
+    ctrler.addStage(stage)
     val oprds = operands.map { 
       case o:OutPort => o
-      case r:Reg => PipeReg(stage.prev.get, r).out
+      case CtrPR(ctr) if stage.prev.isEmpty => ctr.out
+      case LoadPR(mem) if stage.prev.isEmpty => mem.load
+      case r:Reg => stage.prev.get.get(r).out
       case pr:PipeReg => pr.out
       case c:Const[_] => c.out
-      case c:Counter => c.out
     }
     val res = results.map {
       case i:InPort => i
-      case r:Reg => PipeReg(stage, r).in
+      case r:Reg => stage.get(r).in
       case pr:PipeReg => pr.in
     }
     stage.fu = Some(new FuncUnit(stage, oprds, op, res))
-    ctrler.addStage(stage)
   }
-  //def apply(stage:Stage, operands:List[OutPort], op:Op, results:List[InPort])
-            //(implicit ctrler:InnerController, design:Design):Unit= {
-    //stage.fu = Some(new FuncUnit(stage, operands, op, results))
-    ////ctrler.addStage(stage)
-  //}
-  /* Sugar API */
-  def apply(stage:Stage, op1:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
-    Stage(stage, List(op1), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit = 
-    Stage(stage, List(op1, op2), op, List(result))
-  def apply(stage:Stage, op1:OutPort, op2:OutPort, op3:OutPort, op:Op, result:InPort)(implicit ctrler:InnerController, design:Design):Unit =
-    Stage(stage, List(op1, op2, op3), op, List(result))
-
   //TODO check init type matches with op type
   def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
     val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
@@ -268,7 +255,7 @@ object Stages {
     rdStages.foreach { stage =>
       val preg = ctrler.reduce(ctrler.stages.last)
       val creg = ctrler.reduce(stage)
-      Stage(stage, op1=preg.out, op2=preg.out, op, result=creg.in)
+      Stage(stage, operands=List(preg.out, preg.out), op, results=List(creg.in))
     }
     rdStages
   }
@@ -282,7 +269,7 @@ object Stages {
     (AccumStage, PipeReg) = {
     val s = AccumStage(acc)
     val areg = ctrler.accum(s, acc)
-    Stage(s, op1=operand.out, op2=areg.read, op, areg.in)
+    Stage(s, operands=List(operand.out, areg.read), op, results=List(areg.in))
     (s, areg)
   }
 }
@@ -318,7 +305,6 @@ class WAStage (override val name:Option[String])
       case Right(l) => l += n.asInstanceOf[SRAMOnWrite]
     }
   }
-
   def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):WAStage = {
     typeOf[T] match {
       case t if t =:= typeOf[String] => 
@@ -331,6 +317,14 @@ class WAStage (override val name:Option[String])
     }
     this
   }
+}
+object WAStage {
+  def apply(operands:List[Any], op:Op, results:List[Any])
+            (implicit ctrler:InnerController, design:Design):Unit= {
+    val stage = WAStage(Nil) 
+    Stage(stage, operands, op, results)
+  }
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new WAStage(None).updateSRAMs(srams)
 }
 class RAStage (override val name:Option[String])
   (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
@@ -358,44 +352,37 @@ class RAStage (override val name:Option[String])
     this
   }
 }
-
-object WAStage {
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new WAStage(None).updateSRAMs(srams)
-}
-object WAStages {
-  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[WAStage] = {
-    List.tabulate(n) { i => WAStage(srams) }
-  }
-}
 object RAStage {
+  def apply(operands:List[Any], op:Op, results:List[Any])
+            (implicit ctrler:InnerController, design:Design):Unit= {
+    val stage = RAStage(Nil) 
+    Stage(stage, operands, op, results)
+  }
   def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: Design)  = new RAStage(None).updateSRAMs(srams)
 }
-object RAStages {
-  def apply[T](n:Int, srams:List[T]) (implicit ev:TypeTag[T], ctrler:InnerController, design: Design):List[RAStage] = {
-    List.tabulate(n) { i => RAStage(srams) }
-  }
-}
-trait EmptyStage extends Stage {
-  override val typeStr = "EmptyStage"
-  fu = None
-}
-object EmptyStage {
-  def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
-    new Stage(name) with EmptyStage
-  def apply()(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
-    new Stage(None) with EmptyStage
-}
+//trait EmptyStage extends Stage {
+  //override val typeStr = "EmptyStage"
+  //fu = None
+//}
+//object EmptyStage {
+  //def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
+    //new Stage(name) with EmptyStage
+  //def apply()(implicit ctrler:ComputeUnit, design: Design):EmptyStage  = 
+    //new Stage(None) with EmptyStage
+//}
 
 abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
+  import pirmeta._
   lazy val regId:Int = ctrler.newTemp
   override val typeStr = "reg"
   override val name = None
-  override def toString = s"${super.toString}_${regId}"
+  override def toString = s"${super.toString}"
   override def equals(that: Any) = that match {
     case n: Reg => regId == n.regId && ctrler == n.ctrler
     case _ => false 
   }
   override def hashCode:Int = { ctrler.hashCode *10 + regId }
+  indexOf(this) = regId
 
   def isTemp = this.isInstanceOf[TempPR]
 }
@@ -424,7 +411,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
   def read:OutPort = out
   def write(p:OutPort):Unit = in.connect(p) 
   override val typeStr = "PR"
-  override def toString = s"s${stage.id}_${reg}" 
+  override def toString = s"PR(${quote(stage)}, ${quote(reg)})" 
   override def equals(that: Any) = that match {
     case n: PipeReg => stage==n.stage && reg == n.reg && ctrler == n.ctrler
     case _ => false 

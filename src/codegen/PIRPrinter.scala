@@ -93,6 +93,9 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
           super.visitNode(node)
         case n:Stage =>
           val strs = ListBuffer[String]()
+          strs += s"prev=${n.prev.map(quote)}"
+          strs += s"next=${n.next.map(quote)}"
+          emitln(strs.mkString(" "))
           strs += s"uses:[${n.uses.mkString(",")}]"
           strs += s"defs:[${n.defs.mkString(",")}]"
           emitln(strs.mkString(" "))
@@ -167,8 +170,6 @@ object PIRPrinter {
         p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
         p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
       case p:Stage =>
-        fields += s"prev=${p.prev}"
-        fields += s"next=${p.next}"
         p.fu.foreach { fu =>
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
           fields += s"op=${fu.op}"

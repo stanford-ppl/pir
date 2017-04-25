@@ -28,7 +28,7 @@ class ScalarMemInsertion(implicit design: Design) extends Pass with Logger {
     emitln(s"sin:$sin sin.out:${sin.out} sin.out.to:[${sin.out.to.mkString(",")}]")
     sin.out.to.foreach { ip =>
       val op = ip.src match {
-        case s:Stage if s.prev.isInstanceOf[EmptyStage] => mem.load
+        case s:Stage if s.prev.isEmpty => mem.load
         case s:Stage => cu.load(s.prev.get, mem).out
         case _ => mem.load
       }

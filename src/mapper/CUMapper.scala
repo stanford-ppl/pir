@@ -91,8 +91,10 @@ class CUMapper(implicit ds:Design) extends Mapper {
       map += cl -> map(cl).filter { pne =>
         val cons = ListBuffer[(String, Any)]()
         cl match {
-          case top:Top =>
-            //cons += (("sin"	      , (cl.sins.size, pne.vins.size))) //TODO
+          case cl:Top =>
+            val pcu = pne
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
           case mc:MC =>
           case scu:SP =>
           case cu:ICL  =>
@@ -101,12 +103,12 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
             cons += (("udc"	      , (cu.udcounters, pcu.ctrlBox.udcs)))
-            cons += (("sin"	      , (cl.sins, pcu.sins)))
-            cons += (("sout"	    , (cl.souts, pcu.souts)))
-            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.fanIns.size>0))))
-            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.fanOuts.size>0))))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pcu.couts.filter(_.fanOuts.size>0))))
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
+            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
+            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
+            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pcu.couts.filter(_.isConnected))))
             cu match {
               case mc:MemoryController => 
               case _ => 

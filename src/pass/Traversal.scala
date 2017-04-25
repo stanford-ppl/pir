@@ -40,8 +40,7 @@ trait Traversal extends Pass {
           c.cchains.foreach { cc => visitNode(cc) }
           c.mems.foreach { s => visitNode(s) }
           c.stages.foreach { s => visitNode(s) }
-          c.ctrlBox.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
-          c.ctrlBox.creditBuffers.foreach { case (deped, c) => visitNode(c) }
+          visitNode(c.ctrlBox)
         }
       } 
       case n:Primitive => n match {
@@ -61,6 +60,9 @@ trait Traversal extends Pass {
         case r:ArgIn =>
         case r:ArgOut =>
         case p:Reg => 
+        case p:CtrlBox =>
+          p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
+          p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
       }
       case r:Const[_] =>
       case _ => throw new Exception(s"Don't know how to visit $node")

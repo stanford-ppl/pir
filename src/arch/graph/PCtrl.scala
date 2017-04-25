@@ -70,7 +70,7 @@ case class PulserSM()(implicit spade:Spade, pne:NetworkElement) extends Primitiv
   val out = Output(Bit(), this, s"${this}.out")
 }
 
-class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
+abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
   import spademeta._
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
 }

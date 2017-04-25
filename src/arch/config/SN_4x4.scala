@@ -12,13 +12,13 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 import scala.util.{Try, Success, Failure}
 
-object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=5, numArgOuts=5) {
+object SN_8x8 extends SwitchNetwork(numRows=8, numCols=8, numArgIns=6, numArgOuts=5) {
 }
 
-object SN_5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=5, numArgOuts=5) {
+object SN_5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=6, numArgOuts=5) {
 }
 
-object SN_4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=5, numArgOuts=5) {
+object SN_4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=6, numArgOuts=5) {
 }
 
 object SN_2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {

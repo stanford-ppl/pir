@@ -126,7 +126,7 @@ object AndTree {
   def apply()(implicit ctrlBox:CtrlBox, design:Design):AndTree = new AndTree(None)
 }
 
-class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
+abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   implicit def ctrlBox:CtrlBox = this
   override val name = None
   override val typeStr = "CtrlBox"

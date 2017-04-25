@@ -172,7 +172,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   var index = -1
   def nextIndex = { val temp = index; index +=1 ; temp}
 
-  val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
+  //val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
   //def stages:List[Stage] = emptyStage :: Nil 
   def stages:List[Stage] = Nil 
 
@@ -299,14 +299,19 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
 
   def addStage(s:Stage):Unit = { 
     indexOf(s) = nextIndex
-    stages.lastOption.foreach { prev =>
+    val pool = s match {
+      case s:WAStage => wtAddrStages
+      case s:RAStage => rdAddrStages
+      case s:LocalStage => localStages
+    }
+    pool.foreach { prev =>
       s.prev = Some(prev)
       prev.next = Some(s)
     }
     s match {
-      case ss:LocalStage => _localStages += ss
-      case ss:WAStage => _wtAddrStages += ss
-      case ss:RAStage => _rdAddrStages += ss 
+      case s:LocalStage => _localStages += s
+      case s:WAStage => _wtAddrStages += s
+      case s:RAStage => _rdAddrStages += s 
     }
   }
 

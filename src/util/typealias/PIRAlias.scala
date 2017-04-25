@@ -33,7 +33,7 @@ trait PIRAlias {
   type Ctr   = Counter
   type FU    = FuncUnit
   type ST    = Stage
-  type EST   = EmptyStage
+  //type EST   = EmptyStage
   type WAST  = WAStage
   type RDST  = ReduceStage
   type ACST  = AccumStage

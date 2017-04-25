@@ -80,10 +80,10 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
       var mp = map
       mp = mp.setST(n, p)
       n match {
-        case s:EST => 
-          if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, mp)
-          mp = mapPROut(n, p, mp)
-          mp = mapPRIn(n, p, mp)
+        //case s:EST => 
+          //if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, mp)
+          //mp = mapPROut(n, p, mp)
+          //mp = mapPRIn(n, p, mp)
         case fs => fs match {
             case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p, mp)
             case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p, mp)

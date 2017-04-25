@@ -150,7 +150,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass {
     for (i <- 0 until stages.size) {
       val stage = stages(i)
       stage.liveOuts.foreach { reg =>
-        val pr = cu.pipeReg(stage, reg)
+        val pr = stage.get(reg)
         if (!pr.in.isConnected) {
           if (stage.defs.contains(reg)) {
             if (stage == stages.head && !stage.fu.get.writesTo(reg)) {
@@ -174,7 +174,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass {
             }
           } else if (stage.liveIns.contains(reg)) {
             val pre = stages(i-1)
-            val prePr = cu.pipeReg(pre, reg)
+            val prePr = pre.get(reg)
             pr.in.connect(prePr)
           } else {
             throw PIRException(s"$pr.in is not connected but it's also not in liveIn and def of $stage in $cu")
