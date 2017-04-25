@@ -68,6 +68,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         case (mem:SFIFO, pmem:PSMem, pcu:PCL) => 
           mp = mapInPort(mem.enqueueEnable, pmem.incWritePtr, mp)
           mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
+          mp = mp.setOP(mem.notFull, pmem.notFull)
         case (mem:VFIFO, pmem:PVMem, pcu:PCU) => // enqueEnable is implicit through databus
           mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
         case (mem:MBuf, pmem:POCM, pcu:PCU) =>

@@ -74,7 +74,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           pregs
         case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
       }
-      pregs.diff(triedRes)
+      pregs.diff(triedRes).filterNot{ r => m.rcmap.pmap.contains(r) }
     }
     log(s"precolor $cu") {
       bind(

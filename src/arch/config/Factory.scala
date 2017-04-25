@@ -41,7 +41,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     val viRegs = cu.regs.filter(_.is(VecInReg))
     assert(cu.vins.size == cu.vbufs.size, s"cu:${cu} vins:${cu.vins.size} vbufs:${cu.vbufs.size}")
     assert(cu.vbufs.size == viRegs.size)
-    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
     (cu.vbufs, viRegs).zipped.foreach { case (vbuf, reg) =>
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
@@ -80,6 +79,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
   def connectData(mc:MemoryController)(implicit spade:Spade):Unit = {
     (mc.sins, mc.sbufs).zipped.foreach { case (sin, sbuf) => sbuf.writePort <== sin.ic }
+    (mc.vins, mc.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
   }
 
   /* Generate primitive connections within a CU */ 
@@ -106,6 +106,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     } 
     // Xbar
     cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    // One to one
+    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
 
     /* FU Constrain  */
     cu.fustages.zipWithIndex.foreach { case (stage, i) =>
@@ -256,7 +258,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => cout.ic <== cb.writeDoneXbar.out; cout.ic <== cb.readDoneXbar.out }
       case (mc:MemoryController, cb:MCCtrlBox) =>
-        mc.couts.foreach { _.ic <== cb.done }
+        mc.couts.foreach { cout =>
+          cout.ic <== cb.done
+          cout.ic <== mc.sbufs.map(_.notFull)
+        }
       case (top:Top, cb:TopCtrlBox) =>
         top.couts.foreach { _.ic <== cb.command}
         top.cins.foreach { _.ic ==> cb.status }

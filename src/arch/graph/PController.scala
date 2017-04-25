@@ -42,9 +42,12 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
   lazy val vectorIO:VectorIO[this.type] = VectorIO(this)
   lazy val ctrlIO:ControlIO[this.type] = ControlIO(this)
 
+  var vbufs:List[VectorMem] = Nil
   var sbufs:List[ScalarMem] = Nil
   def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
   def numScalarBufs:Int = sbufs.size
+  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
+  def numVecBufs:Int = vbufs.size
 
   def ctrlBox:CtrlBox
 }
@@ -95,7 +98,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM().index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
-  var vbufs:List[VectorMem] = Nil
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
@@ -137,8 +139,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     _stages ++= sts
   }
 
-  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
-  def numVecBufs:Int = vbufs.size
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 
     addRegstages(List.fill(numStage) { FUStage(numOprds=numOprds, regs, ops) }); this // Regular stages
   }
@@ -255,7 +255,10 @@ class MemoryController()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
+    assert(sins.size==2)
+    assert(vins.size==1)
     numScalarBufs(2)
+    numVecBufs(vins.size)
     genConnections
   }
 }
