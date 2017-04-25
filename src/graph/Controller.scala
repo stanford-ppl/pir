@@ -45,7 +45,7 @@ abstract class Controller(implicit design:Design) extends Node {
 
   val _children = ListBuffer[ComputeUnit]()
   def children:List[ComputeUnit] = _children.toList
-  def removeChildren(c:ComputeUnit) = { _children -= c }
+  def removeChild(c:ComputeUnit) = { _children -= c }
   def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
 
   private val _consumed = ListBuffer[MultiBuffering]()
@@ -109,6 +109,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     assert(!cc.isCopy)
     cchainMap -= cc
   }
+
+  def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
   def getCopy(cchain:CounterChain):CounterChain = {
     cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))

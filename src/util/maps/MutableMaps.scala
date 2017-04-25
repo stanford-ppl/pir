@@ -7,13 +7,13 @@ import scala.collection.mutable.Set
 trait MOneToOneMap extends OneToOneMap {
   override type M = Map[K, VV]
   val map:Map[K, VV] = Map.empty
-  def update(n:K, v:V):Unit = { super.check((n,v)); map += (n -> v) }
+  def update(n:K, v:V):Unit = { check((n,v)); map += (n -> v) }
 }
 
 trait MBiOneToOneMap extends MOneToOneMap with BiOneToOneMap {
   override type IM = Map[V, KK]
   val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { super.check((n,v)); super.update(n, v); pmap += (v -> n) }
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n, v); pmap += (v -> n) }
 }
 
 trait MOneToManyMap extends OneToManyMap {
@@ -26,14 +26,14 @@ trait MOneToManyMap extends OneToManyMap {
 trait MBiOneToManyMap extends MOneToManyMap with BiOneToManyMap {
   override type IM = Map[V, KK]
   val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { super.check((n,v)); super.update(n,v); pmap += (v -> n) } 
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); pmap += (v -> n) } 
 }
 
 trait MBiManyToOne extends MOneToOneMap with BiManyToOneMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
   val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { super.check((n,v)); super.update(n,v); pmap.getOrElseUpdate(v, Set[K]()) += n } 
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); pmap.getOrElseUpdate(v, Set[K]()) += n } 
 }
 
 trait MBiManyToMany extends MOneToManyMap with BiManyToManyMap {

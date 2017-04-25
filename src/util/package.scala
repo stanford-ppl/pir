@@ -78,8 +78,13 @@ package object util {
   }
 
   def sortCChains(cchains:List[CounterChain]) = {
-    val ancSize = cchains.map { cc => cc.original.ctrler.ancestors.size }
-    assert(ancSize.size == ancSize.toSet.size) // ancSize should be unique
+    val ancSize = cchains.map { _.original.ctrler.ancestors.size }
+    if (ancSize.size != ancSize.toSet.size) {
+      cchains.zip(ancSize).foreach { case (cc,size) =>
+        println(s"ctrler:${cc.ctrler} cchain:$cc ${cc.original.ctrler} $size")
+      }
+      throw new Exception(s"Don't know how to sort!")
+    }
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
 

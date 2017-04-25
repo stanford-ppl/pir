@@ -38,7 +38,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
    * */
   def getDone(current:ComputeUnit, cchain:CounterChain) = {
     if (current.containsCopy(cchain)) {
-      current.getCopy(cchain).outer.done
+      current.getCC(cchain).outer.done
     } else {
       cchain.ctrler.ctrlBox match {
         case cb:StageCtrlBox => cb.done.out
@@ -195,12 +195,10 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     // Backward pressure
     (ctrler, ctrler.ctrlBox) match {
-      case (cu:ComputeUnit, cb:StageCtrlBox) if isStreaming(cu) =>
+      case (cu:InnerController, cb:InnerCtrlBox) if isStreaming(cu) =>
         // FIFO.notFull
         //dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
-        //cu.writtenSFIFOs.foreach { fifo =>
-        //cb.tokenInAndTree.addInput(fifo.notFull)
-        //}
+        cu.writtenSFIFOs.foreach { fifo => cb.tokenInAndTree.addInput(fifo.notFull) }
       case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) => 
         // Credit
         cu.trueProduced.foreach { mem =>

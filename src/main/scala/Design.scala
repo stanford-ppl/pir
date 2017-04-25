@@ -52,12 +52,17 @@ trait Design extends PIRMetadata with Collector {
   val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val memoryAnalyzer = new MemoryAnalyzer()
   val accessAnalyzer = new AccessAnalyzer()
+  val optimizer = new Optimizer()
   val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
-  val pirPrinter1 = new PIRPrinter("PIR_orig.txt") 
-  val pirPrinter2 = new PIRPrinter()
-  val irCheck = new IRCheck() { }
-  val pirDataDotGen1 = new PIRDataDotGen()
-  val pirDataDotGen2 = new PIRDataDotGen()
+  val pirPrinter1 = new PIRPrinter("PIR1.log") 
+  val pirPrinter2 = new PIRPrinter("PIR2.log") 
+  val pirPrinter3 = new PIRPrinter("PIR3.log") 
+  val pirPrinter = new PIRPrinter()
+  val irCheck = new IRCheck()
+  val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
+  val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
+  val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
+  val pirDataDotGen = new PIRDataDotGen("PIR.dot")
   val livenessAnalyzer = new LiveAnalyzer()
   val ctrlAlloc = new CtrlAlloc()
   val pirCtrlDotGen = new PIRCtrlDotGen()
@@ -82,21 +87,27 @@ trait Design extends PIRMetadata with Collector {
   passes += controlAnalyzer
   passes += scalMemInsertion
   passes += pirPrinter1
-  passes += pirDataDotGen1
-  passes += fusionTransform 
   passes += scalarBundling
   passes += memoryAnalyzer
+  passes += pirPrinter2
+  passes += pirDataDotGen1
+  passes += optimizer
+  passes += pirDataDotGen2
+  passes += fusionTransform 
+  passes += pirPrinter3
+  passes += controlAnalyzer
+  passes += pirDataDotGen3
   passes += livenessAnalyzer 
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
   passes += controlAnalyzer
-  passes += pirDataDotGen2
+  passes += pirDataDotGen
   passes += irCheck 
   passes += ctrlAlloc 
   passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
   passes += ctrlPrinter 
-  passes += pirPrinter2
+  passes += pirPrinter
 
   // Mapping
   passes += pirMapping 
@@ -121,7 +132,7 @@ trait Design extends PIRMetadata with Collector {
     } catch {
       case e:PIRException => 
         try {
-          if (!pirPrinter2.hasRun) pirPrinter2.run
+          if (!pirPrinter.hasRun) pirPrinter.run
           //if (!ctrlDotPrinter.hasRun) ctrlDotPrinter.run
           if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
           if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run

@@ -53,6 +53,17 @@ trait Collector { design:Design =>
       case n:OuterController => 
         design.top.removeCtrler(n)
         n.cchains.foreach { cc => design.removeNode(cc) }
+        n.children.foreach { child =>
+          child.parent(n.parent)
+          n.parent.addChildren(child) 
+          n.removeChild(child)
+        }
+        n.parent.removeChild(n)
+        n.removeParent
+      case n:InnerController =>
+        design.top.removeCtrler(n)
+        n.parent.removeChild(n)
+        n.removeParent
       case n:CounterChain =>
         n.counters.foreach { ctr => 
           if (ctr.cchain==n) design.removeNode(ctr)

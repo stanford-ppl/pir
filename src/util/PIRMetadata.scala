@@ -45,11 +45,15 @@ trait PIRMetadata extends { self:Design =>
   object isStreaming extends MOneToOneMap {
     type K = Controller
     type V = Boolean
+    //Allow redefine
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object isPipelining extends MOneToOneMap {
     type K = Controller
     type V = Boolean
+    //Allow redefine
+    override def check(rec:(K,V)):Unit = {}
   }
 
   /* Number of children stages on the critical path */
@@ -62,12 +66,16 @@ trait PIRMetadata extends { self:Design =>
   object ancestorsOf extends MOneToOneMap {
     type K = Controller
     type V = List[Controller]
+    //Allow redefine
+    override def check(rec:(K,V)):Unit = {}
   }
 
   // Including current CU. From current to leaf children 
   object descendentsOf extends MOneToOneMap {
     type K = Controller
     type V = List[Controller]
+    //Allow redefine
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object writerOf extends MOneToOneMap {

@@ -131,7 +131,9 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
       case n:Controller => 
         val head = if (isHead.get(n)==Some(true)) s"\n(HEAD)" else ""
         val last = if (isLast.get(n)==Some(true)) s"\n(LAST)" else ""
-        s"${super.quote(n)}$head$last"
+        val streaming = if (isStreaming.get(n)==Some(true)) s"\n(Streaming)" else ""
+        val pipelining = if (isPipelining.get(n)==Some(true)) s"\n(Pipelining)" else ""
+        s"${super.quote(n)}$head$last$streaming$pipelining"
       case n => super.quote(n)
     }
   }
