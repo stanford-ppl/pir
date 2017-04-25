@@ -9,20 +9,18 @@ import pir.PIRApp
 
 object InOutArg extends PIRApp {
   def main(args: String*)(top:Top) = {
-    val x187_x191_argout = ArgOut("x187_x191")
-    val x186_argin = ArgIn("x186")
-    val x193 = Sequential(name="x193",parent=top) { implicit CU => 
+    val x223_x227_argout = ArgOut("x223_x227")
+    val x222_argin = ArgIn("x222")
+    val x229 = Sequential(name="x229",parent=top) { implicit CU => 
       val ctr1 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
-      val x193_unit = CounterChain(name = "x193_unit", ctr1)
+      val x229_unit = CounterChain(name = "x229_unit", ctr1)
     }
-    val x192 = Pipeline(name="x192",parent=x193) { implicit CU => 
-      val x190 = CU.temp
-      val x186_x189 =  ScalarBuffer().wtPort(x186_argin)
+    val x228 = Pipeline(name="x228",parent=x229) { implicit CU => 
+      val x222_x225 =  ScalarBuffer().wtPort(x222_argin)
       val ctr2 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
-      val x192_unit = CounterChain(name = "x192_unit", ctr2)
+      val x228_unit = CounterChain(name = "x228_unit", ctr2)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(1)
-      Stage(stage(1), operands=List(x186_x189.load, Const(4)), op=FixAdd, results=List(CU.scalarOut(stage(1), x187_x191_argout), CU.temp(stage(1), x190)))
+      Stage(operands=List(CU.load(x222_x225), Const(4)), op=FixAdd, results=List(CU.scalarOut(x223_x227_argout)))
     }
     
   }

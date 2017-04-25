@@ -8,6 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object TPCHQ6 extends PIRApp {
+  override val arch = SN_4x4
   def main(args: String*)(top:Top) = {
     val x1588_argin = ArgIn("x1588")
     val x1645_argin = ArgIn("x1645")
@@ -84,10 +85,9 @@ object TPCHQ6 extends PIRApp {
       val ctr4 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1595_unit = CounterChain(name = "x1595_unit", ctr4)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1581(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1589)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1589), CU.load(stage(1), x1588)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1586_b1725_x1594_b1727_s)))
-      Stage(stage(3), operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(stage(3), x1586_b1726_x1594_b1728_s)))
+      Stage(operands=List(CU.ctr(x1581(0)), Const(4)), op=FixMul, results=List(x1589))
+      Stage(operands=List(x1589, CU.load(x1588)), op=FixAdd, results=List(CU.scalarOut(x1586_b1725_x1594_b1727_s)))
+      Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1586_b1726_x1594_b1728_s)))
     }
     val x1596 = MemoryController(name="x1596",parent=x1604,offchip=x1566_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1586_b1725_x1594_b1727_s)
@@ -110,10 +110,9 @@ object TPCHQ6 extends PIRApp {
       val ctr7 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1614_unit = CounterChain(name = "x1614_unit", ctr7)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1581(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1608)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1608), CU.load(stage(1), x1607)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1605_b1729_x1613_b1731_s)))
-      Stage(stage(3), operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(stage(3), x1605_b1730_x1613_b1732_s)))
+      Stage(operands=List(CU.ctr(x1581(0)), Const(4)), op=FixMul, results=List(x1608))
+      Stage(operands=List(x1608, CU.load(x1607)), op=FixAdd, results=List(CU.scalarOut(x1605_b1729_x1613_b1731_s)))
+      Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1605_b1730_x1613_b1732_s)))
     }
     val x1615 = MemoryController(name="x1615",parent=x1623,offchip=x1568_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1605_b1730_x1613_b1732_s)
@@ -136,10 +135,9 @@ object TPCHQ6 extends PIRApp {
       val ctr10 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1633_unit = CounterChain(name = "x1633_unit", ctr10)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1581(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1627)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1627), CU.load(stage(1), x1626)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1624_b1733_x1632_b1735_s)))
-      Stage(stage(3), operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(stage(3), x1624_b1734_x1632_b1736_s)))
+      Stage(operands=List(CU.ctr(x1581(0)), Const(4)), op=FixMul, results=List(x1627))
+      Stage(operands=List(x1627, CU.load(x1626)), op=FixAdd, results=List(CU.scalarOut(x1624_b1733_x1632_b1735_s)))
+      Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1624_b1734_x1632_b1736_s)))
     }
     val x1634 = MemoryController(name="x1634",parent=x1642,offchip=x1570_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1624_b1734_x1632_b1736_s)
@@ -162,10 +160,9 @@ object TPCHQ6 extends PIRApp {
       val ctr13 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1652_unit = CounterChain(name = "x1652_unit", ctr13)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1581(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1646)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1646), CU.load(stage(1), x1645)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1643_b1737_x1651_b1739_s)))
-      Stage(stage(3), operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(stage(3), x1643_b1738_x1651_b1740_s)))
+      Stage(operands=List(CU.ctr(x1581(0)), Const(4)), op=FixMul, results=List(x1646))
+      Stage(operands=List(x1646, CU.load(x1645)), op=FixAdd, results=List(CU.scalarOut(x1643_b1737_x1651_b1739_s)))
+      Stage(operands=List(Const(384)), op=Bypass, results=List(CU.scalarOut(x1643_b1738_x1651_b1740_s)))
     }
     val x1653 = MemoryController(name="x1653",parent=x1661,offchip=x1572_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "offset" ->  ScalarFIFO(size = 1).wtPort(x1643_b1737_x1651_b1739_s)
@@ -187,7 +184,6 @@ object TPCHQ6 extends PIRApp {
       val x1680 = CU.temp
       val x1683 = CU.temp
       val x1674 = CU.temp
-      val ar111 = CU.accum(init = Const(0))
       val x1678 = CU.temp
       val x1584_x1668 =  VectorFIFO(size = 1).wtPort(x1584_x1668_x1690_v)
       val x1583_x1669 =  VectorFIFO(size = 1).wtPort(x1583_x1669_x1690_v)
@@ -196,31 +192,28 @@ object TPCHQ6 extends PIRApp {
       val ctr15 = Counter(min=Const(0), max=Const(96), step=Const(1), par=1) // Counter
       val x1665 = CounterChain(name = "x1665", ctr15)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(12)
-      Stage(stage(1), operands=List(Const(0), x1582_x1667.load), op=FixLt, results=List(CU.temp(stage(1), x1673)))
-      Stage(stage(2), operands=List(x1582_x1667.load, Const(9999)), op=FixLt, results=List(CU.temp(stage(2), x1674)))
-      Stage(stage(3), operands=List(CU.temp(stage(2), x1673), CU.temp(stage(2), x1674)), op=BitAnd, results=List(CU.temp(stage(3), x1675)))
-      Stage(stage(4), operands=List(Const(0), x1584_x1668.load), op=FixLeq, results=List(CU.temp(stage(4), x1677)))
-      Stage(stage(5), operands=List(CU.temp(stage(4), x1675), CU.temp(stage(4), x1677)), op=BitAnd, results=List(CU.temp(stage(5), x1678)))
-      Stage(stage(6), operands=List(x1584_x1668.load, Const(9999)), op=FixLeq, results=List(CU.temp(stage(6), x1679)))
-      Stage(stage(7), operands=List(CU.temp(stage(6), x1678), CU.temp(stage(6), x1679)), op=BitAnd, results=List(CU.temp(stage(7), x1680)))
-      Stage(stage(8), operands=List(x1583_x1669.load, Const(24)), op=FixLt, results=List(CU.temp(stage(8), x1682)))
-      Stage(stage(9), operands=List(CU.temp(stage(8), x1680), CU.temp(stage(8), x1682)), op=BitAnd, results=List(CU.temp(stage(9), x1683)))
-      Stage(stage(10), operands=List(x1585_x1670.load, x1584_x1668.load), op=FixMul, results=List(CU.temp(stage(10), x1685)))
-      Stage(stage(11), operands=List(CU.temp(stage(10), x1683), CU.temp(stage(10), x1685), Const(0)), op=Mux, results=List(CU.reduce(stage(11))))
-      val (rs1, rr196) = Stage.reduce(op=FixAdd, init=Const(0))
-      Stage(stage(12), operands=List(rr196), op=Bypass, results=List(CU.scalarOut(stage(12), x1663_x1688_s)))
+      Stage(operands=List(Const(0), CU.load(x1582_x1667)), op=FixLt, results=List(x1673))
+      Stage(operands=List(CU.load(x1582_x1667), Const(9999)), op=FixLt, results=List(x1674))
+      Stage(operands=List(x1673, x1674), op=BitAnd, results=List(x1675))
+      Stage(operands=List(Const(0), CU.load(x1584_x1668)), op=FixLeq, results=List(x1677))
+      Stage(operands=List(x1675, x1677), op=BitAnd, results=List(x1678))
+      Stage(operands=List(CU.load(x1584_x1668), Const(9999)), op=FixLeq, results=List(x1679))
+      Stage(operands=List(x1678, x1679), op=BitAnd, results=List(x1680))
+      Stage(operands=List(CU.load(x1583_x1669), Const(24)), op=FixLt, results=List(x1682))
+      Stage(operands=List(x1680, x1682), op=BitAnd, results=List(x1683))
+      Stage(operands=List(CU.load(x1585_x1670), CU.load(x1584_x1668)), op=FixMul, results=List(x1685))
+      Stage(operands=List(x1683, x1685, Const(0)), op=Mux, results=List(CU.reduce))
+      val (_, rr196) = Stage.reduce(op=FixAdd, init=Const(0))
+      Stage(operands=List(rr196), op=Bypass, results=List(CU.scalarOut(x1663_x1688_s)))
     }
     val x1695 = Pipeline(name="x1695",parent=x1697) { implicit CU => 
-      val ar6 = CU.accum(init = Const(0))
       val x1663_x1692 =  ScalarBuffer().wtPort(x1663_x1688_s)
       val ctr16 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1695_unit = CounterChain(name = "x1695_unit", ctr16)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(2)
-      Stage(stage(1), operands=List(x1663_x1692.load), op=Bypass, results=List(CU.reduce(stage(1))))
-      val (rs1, rr199) = Stage.reduce(op=FixAdd, init=Const(0))
-      Stage(stage(2), operands=List(rr199), op=Bypass, results=List(CU.scalarOut(stage(2), x1573_x1699_argout)))
+      Stage(operands=List(CU.load(x1663_x1692)), op=Bypass, results=List(CU.reduce))
+      val (_, rr199) = Stage.reduce(op=FixAdd, init=Const(0))
+      Stage(operands=List(rr199), op=Bypass, results=List(CU.scalarOut(x1573_x1699_argout)))
     }
     
   }

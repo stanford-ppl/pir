@@ -22,28 +22,24 @@ object SimpleSequential extends PIRApp {
       val x343_x354 =  ScalarBuffer().wtPort(x343_argin)
       val x352_x352 =  VectorFIFO(size = 1).wtPort(x347_x352_v)
       val x349 = CounterChain.copy("x353", "x349")
-      val x347_x355 =  SRAM(size = 64,banking = Strided(1)).wtPort(x352_x352.readPort).rdPort(x347_x355_x357_v).wtAddr(x349(0))
+      val x347_x355 =  SRAM(size = 64,banking = NoBanking()).wtPort(x352_x352.readPort).rdPort(x347_x355_x357_v).wtAddr(x349(0))
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: RAStages(1, List(x347_x355))
-      Stage(stage(1), operands=List(x343_x354.load), op=Bypass, results=List(x347_x355.readAddr))
+      RAStage(operands=List(CU.load(x343_x354)), op=Bypass, results=List(x347_x355.readAddr))
     }
     val x353 = Pipeline(name="x353",parent=x358) { implicit CU => 
       val x342_x350 =  ScalarBuffer().wtPort(x342_argin)
-      val ctr2 = Counter(min=Const(0), max=Const(64), step=Const(1), par=16) // Counter
+      val ctr2 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
       val x349 = CounterChain(name = "x349", ctr2)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(1)
-      Stage(stage(1), operands=List(x342_x350.load, CU.ctr(stage(0), x349(0))), op=FixMul, results=List(CU.vecOut(stage(1), x347_x352_v)))
+      Stage(operands=List(CU.load(x342_x350), CU.ctr(x349(0))), op=FixMul, results=List(CU.vecOut(x347_x352_v)))
     }
     val x357 = Pipeline(name="x357",parent=x358) { implicit CU => 
+      val x343_x354 =  ScalarBuffer().wtPort(x343_argin)
       val x347_x355 =  VectorFIFO(size = 1).wtPort(x347_x355_x357_v)
-      val ctr3 = Counter(min=Const(1), max=Const(64), step=Const(1), par=16) // Counter
+      val ctr3 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x357_unit = CounterChain(name = "x357_unit", ctr3)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(2)
-      Stage(stage(1), operands=List(x347_x355.load), op=Bypass, results=List(CU.reduce(stage(1))))
-      val (rs1, rr128) = Stage.reduce(op=FixAdd, init=Const(3))
-      Stage(stage(2), operands=List(rr128), op=Bypass, results=List(CU.scalarOut(stage(2), x344_x356_argout)))
+      Stage(operands=List(CU.load(x347_x355)), op=Bypass, results=List(CU.scalarOut(x344_x356_argout)))
     }
     
   }

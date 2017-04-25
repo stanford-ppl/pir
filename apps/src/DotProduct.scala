@@ -59,10 +59,9 @@ object DotProduct extends PIRApp {
       val ctr4 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1044_unit = CounterChain(name = "x1044_unit", ctr4)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1032(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1038)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1038), CU.load(stage(1), x1037)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1035_b1117_x1043_b1119_s)))
-      Stage(stage(3), operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(stage(3), x1035_b1118_x1043_b1120_s)))
+      Stage(operands=List(CU.ctr(x1032(0)), Const(4)), op=FixMul, results=List(x1038))
+      Stage(operands=List(x1038, CU.load(x1037)), op=FixAdd, results=List(CU.scalarOut(x1035_b1117_x1043_b1119_s)))
+      Stage(operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(x1035_b1118_x1043_b1120_s)))
     }
     val x1045 = MemoryController(name="x1045",parent=x1053,offchip=x1023_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1035_b1118_x1043_b1120_s)
@@ -85,10 +84,9 @@ object DotProduct extends PIRApp {
       val ctr7 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1063_unit = CounterChain(name = "x1063_unit", ctr7)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(3)
-      Stage(stage(1), operands=List(CU.ctr(stage(0), x1032(0)), Const(4)), op=FixMul, results=List(CU.temp(stage(1), x1057)))
-      Stage(stage(2), operands=List(CU.temp(stage(1), x1057), CU.load(stage(1), x1056)), op=FixAdd, results=List(CU.scalarOut(stage(2), x1054_b1121_x1062_b1123_s)))
-      Stage(stage(3), operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(stage(3), x1054_b1122_x1062_b1124_s)))
+      Stage(operands=List(CU.ctr(x1032(0)), Const(4)), op=FixMul, results=List(x1057))
+      Stage(operands=List(x1057, CU.load(x1056)), op=FixAdd, results=List(CU.scalarOut(x1054_b1121_x1062_b1123_s)))
+      Stage(operands=List(Const(1280)), op=Bypass, results=List(CU.scalarOut(x1054_b1122_x1062_b1124_s)))
     }
     val x1064 = MemoryController(name="x1064",parent=x1072,offchip=x1025_oc, mctpe=TileLoad) { implicit CU => 
       CU.mcfifos += "size" ->  ScalarFIFO(size = 1).wtPort(x1054_b1122_x1062_b1124_s)
@@ -107,10 +105,9 @@ object DotProduct extends PIRApp {
       val ctr9 = Counter(min=Const(0), max=Const(320), step=Const(1), par=1) // Counter
       val x1076 = CounterChain(name = "x1076", ctr9)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(2)
-      Stage(stage(1), operands=List(x1033_x1078.load, x1034_x1079.load), op=FixMul, results=List(CU.reduce(stage(1))))
-      val (rs1, rr112) = Stage.reduce(op=FixAdd, init=Const(0))
-      Stage(stage(2), operands=List(rr112), op=Bypass, results=List(CU.scalarOut(stage(2), x1074_x1085_s)))
+      Stage(operands=List(CU.load(x1033_x1078), CU.load(x1034_x1079)), op=FixMul, results=List(CU.reduce))
+      val (_, rr112) = Stage.reduce(op=FixAdd, init=Const(0))
+      Stage(operands=List(rr112), op=Bypass, results=List(CU.scalarOut(x1074_x1085_s)))
     }
     val x1092 = Pipeline(name="x1092",parent=x1094) { implicit CU => 
       val ar6 = CU.accum(init = Const(0))
@@ -118,10 +115,9 @@ object DotProduct extends PIRApp {
       val ctr10 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x1092_unit = CounterChain(name = "x1092_unit", ctr10)
       var stage: List[Stage] = Nil
-      stage = CU.emptyStage +: Stages(2)
-      Stage(stage(1), operands=List(x1074_x1089.load), op=Bypass, results=List(CU.reduce(stage(1))))
-      val (rs1, rr115) = Stage.reduce(op=FixAdd, init=Const(0))
-      Stage(stage(2), operands=List(rr115), op=Bypass, results=List(CU.scalarOut(stage(2), x1026_x1096_argout)))
+      Stage(operands=List(CU.load(x1074_x1089)), op=Bypass, results=List(CU.reduce))
+      val (_, rr115) = Stage.reduce(op=FixAdd, init=Const(0))
+      Stage(operands=List(rr115), op=Bypass, results=List(CU.scalarOut(x1026_x1096_argout)))
     }
     
   }
