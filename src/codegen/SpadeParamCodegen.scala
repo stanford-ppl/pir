@@ -18,8 +18,8 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
-  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
-  
+  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
+
   override implicit lazy val spade = design.arch.asSwitchNetwork
   lazy val numRows = spade.numRows
   lazy val numCols = spade.numCols
@@ -80,7 +80,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val dataWidth = ${spade.wordWidth}")
     }
   }
-  
+
   def emitPlasticineParams = {
     emitBlock(s"override lazy val plasticineParams = new PlasticineParams") {
       emitln(s"override val w = ${spade.wordWidth}")
@@ -102,7 +102,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"regColors += List(${reg.colors.mkString(",")})")
     }
   }
-  
+
   def emitStages(cu:ComputeUnit) = {
     //emitln(s"val stageTypes = ListBuffer[StageType]()")
     //cu.stages.foreach { stage =>
@@ -190,7 +190,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     case n:WAStage => s"WAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     case n:RAStage => s"RAStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
     case n:FUStage => s"FUStage(numOprds=${n.fu.numOprds}, ops=${quote(n.fu.ops)})"
-    case n:ScalarComputeUnit => 
+    case n:ScalarComputeUnit =>
       val (x, y) = coordOf(n)
       x match {
         case -1 => s"scus(0)($y)"
@@ -208,21 +208,21 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def qv(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"vectorSwitchParams($x)($y)"
     case n => quote(n)
   }
 
   def qs(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"scalarSwitchParams($x)($y)"
     case n => quote(n)
   }
 
   def qc(n:Any):String = n match {
-    case n:SwitchBox => 
+    case n:SwitchBox =>
       val (x, y) = coordOf(n)
       s"controlSwitchParams($x)($y)"
     case n => quote(n)
