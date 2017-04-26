@@ -84,11 +84,6 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitComment("ControlNetwork Connection")
     spade.pnes.foreach { pne =>
       pne.ctrlIO.outs.foreach { out =>
-        pne match {
-          case mc:MemoryController =>
-            println(mc, out, out.fanOuts, out.fanOuts.map(_.src))
-          case _ =>
-        }
         out.fanOuts.foreach { in =>
           emitln(s"${qc(out)} <> ${qc(in, from=out)}")
         }

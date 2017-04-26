@@ -81,27 +81,21 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       case Success(_) =>
         succeeded = true
         info(s"Mapping succeeded") 
-        printMap(mapping.get)
       case Failure(e) =>
         succeeded = false
         info(s"Mapping failed")
         e match {
           case e:OutOfResource[_] =>
             err(e)
-            printException(e)
             mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             err(s"$e")
             mapping = Some(m.asInstanceOf[PIRMap])
           case PassThroughException(mapper, e, m) =>
-            printMap(m)
-            printException(e)
             mapping = Some(m)
           case e:MappingException[_] =>
-            printException(e)
             mapping = Some(e.mapping.asInstanceOf[PIRMap])
-          case e:PIRException => 
-            printException(e)
+          case e:PIRException => throw e
           case e => throw e 
         }
     }
@@ -119,17 +113,17 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     super.finPass
   }
 
-  def printMap(mapping:PIRMap)(implicit design:Design) = {
-    if (Config.debug) {
-      emitTitleComment(s"Mapping")
-      mapping.printPMap(this, design)
-    }
-  }
+  //def printMap(mapping:PIRMap)(implicit design:Design) = {
+    //if (Config.debug) {
+      //emitTitleComment(s"Mapping")
+      //mapping.printPMap(this, design)
+    //}
+  //}
 
-  def printException(e:PIRException) = {
-    if (Config.debug) {
-      emitTitleComment("Mapping Exceptions:")
-      emitln(s"$e ${e.msg} \n ${e.printStackTrace}")
-    }
-  }
+  //def printException(e:PIRException) = {
+    //if (Config.debug) {
+      //emitTitleComment("Mapping Exceptions:")
+      //emitln(s"$e ${e.msg} \n ${e.printStackTrace}")
+    //}
+  //}
 }

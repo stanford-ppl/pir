@@ -78,6 +78,7 @@ trait Design extends PIRMetadata with Collector {
   val pisaCodegen = new PisaCodegen()
   val configCodegen = new ConfigCodegen()
   val simulator = new Simulator()
+  val mapPrinter = new MapPrinter()
 
   def mapping:Option[PIRMap] = pirMapping.mapping
 
@@ -111,6 +112,7 @@ trait Design extends PIRMetadata with Collector {
 
   // Mapping
   passes += pirMapping 
+  passes += mapPrinter
   passes += spadeVecDotPrinter 
   passes += spadeScalDotPrinter 
   passes += spadeCtrlDotPrinter 

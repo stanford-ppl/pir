@@ -8,9 +8,9 @@ import pir.codegen.DotCodegen
 import pir.exceptions._
 import pir.plasticine.util._
 import pir.plasticine.main.Spade
+import pir.util.enums._
 
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.{Set => MSet}
+import scala.collection.mutable
 
 class RegAlloc(implicit val design:Design) extends Mapper {
   type N = Reg
@@ -20,6 +20,8 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   import spademeta._
 
   def finPass(cu:CL)(m:M):M = m
+
+  val voMap = mutable.Map[Reg, mutable.Stack[PGO[PModule]]]()
 
   def map(cu:CL, pirMap:M):M = {
     cu match {
@@ -35,6 +37,16 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     finPass(cu)(mp)
   }
 
+  def resFunc(cu:ICL, allRes:N => List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
+    val infs = cu.infGraph(n)
+    allRes(n).diff(triedRes).filterNot{ r => 
+      m.rcmap.pmap.get(r).fold (false) { regs =>
+        dprintln(s"${quote(r)} <- [${regs.mkString(",")}]")
+        regs.exists { mapped => infs.contains(mapped) }
+      }
+    }
+  }
+
   def constrain(cu:ICL)(n:N, r:R, m:M):M = {
     var mp = m
     cu.infGraph(n).foreach { ifr =>
@@ -48,40 +60,49 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   /* Register coloring for registers with predefined colors */
   private def preColor(cu:ICL, pirMap:M):M = {
     val pcu = pirMap.clmap(cu)
-    def resFunc(n:N, m:M, triedRes:List[R]):List[R] = {
-      val pregs = n match {
+    val regs = mutable.ListBuffer[Reg]()
+    cu.regs.foreach {
+      case reg@VecOutPR(vo) =>
+        val pvos = pirMap.vomap(vo)
+        voMap += reg -> mutable.Stack() 
+        pvos.foreach { pvo =>
+          voMap(reg).push(pvo)
+          regs += reg
+        }
+      case reg if reg.isTemp =>
+      case reg => regs += reg
+    }
+    def allRes(n:N):List[R] = {
+      n match {
         case LoadPR(mem) => 
           val pmem = pirMap.smmap(mem)
           regsOf(pmem.readPort)
-        //case StorePR(sram) =>
         case WtAddrPR(waPort) => 
           val pmem = pirMap.smmap(waPort.src).asSRAM
           regsOf(pmem.writeAddr)
         case CtrPR(ctr) => 
           val pctr = pirMap.ctmap(ctr)
           regsOf(pctr.out)
-        case ReducePR() => pcu.asCU.regs.filter(_.is(ReduceReg))
+        case ReducePR() => 
+          pcu.asCU.regs.filter(_.is(ReduceReg))
         case VecOutPR(vecOut) =>
-          val pvout = pirMap.vomap(vecOut).head
+          val pvout = voMap(n).pop()
           regsOf(pvout.ic)
         case ScalarOutPR(scalarOut) =>
           val psos = pirMap.vomap(scalarOut)
-          dprintln(s"sout:${scalarOut} -> psos:[${psos.mkString(",")}]")
           val pregs = psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
             prev intersect regsOf(pso.ic)
           }
-          dprintln(s"pregs:[${pregs.mkString(",")}]")
           pregs
         case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
       }
-      pregs.diff(triedRes).filterNot{ r => m.rcmap.pmap.contains(r) }
     }
     log(s"precolor $cu") {
       bind(
-        allNodes=cu.regs.filterNot{_.isTemp},
+        allNodes=regs.toList,
         initMap=pirMap, 
         constrain=constrain(cu) _,
-        resFunc=resFunc _, //(n, m, triedRes) => List[R]
+        resFunc=resFunc(cu, allRes _) _, //(n, m, triedRes) => List[R]
         finPass=(m:M) => m
       )
     }
@@ -90,17 +111,12 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   private def color(cu:ICL, pirMap:M) = {
     val pcu = pirMap.clmap(cu)
     val regs:List[N] = cu.regs.filter{_.isTemp}
-    val pregs:List[R] = pcu match {
-      case pcu:PCU => (pcu.regs diff (pirMap.rcmap.values.toList)).toList
-      case pcu => Nil
-    }
-
     log(s"color $cu") {
       bind(
-        allRes=pregs,
         allNodes=regs,
         initMap=pirMap,
         constrain=constrain(cu) _,
+        resFunc=resFunc(cu, (n:N) => pcu.asCU.regs) _,
         finPass=(m:M) => m
       )
     }

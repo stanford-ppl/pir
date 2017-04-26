@@ -36,9 +36,6 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     log(cu) {
       var mp = cuMap
       val pcu = mp.clmap(cu).asCU
-      //val pest :: pfusts = pcu.stages
-      //val est :: fusts = cu.stages.toList
-      //var cmap = mapStage(est, pest, cuMap)
       val nodes = cu.stages
       val reses = pcu.fustages
       def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfStage(pcu, cu, pnodes, nodes, m)
@@ -53,7 +50,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = cuMap
     var preLiveOuts:Set[Reg] = Set.empty
     pcu.stages.foreach { pstage =>
-      val ppregs:Set[PReg] = preLiveOuts.map {reg => mp.rcmap(reg) }
+      val ppregs:Set[PReg] = preLiveOuts.flatMap {reg => mp.rcmap(reg) }
       if (mp.stmap.pmap.contains(pstage)) {
         val stage = mp.stmap.pmap(pstage)
         preLiveOuts = stage.liveOuts 
@@ -64,57 +61,54 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
       }
     }
     pcu.stages.last.prs.foreach { case ppr@PPR(ps, pr) =>
-      mp.rcmap.pmap.get(pr) match {
-        case Some(ScalarOutPR(so)) =>
-          mp.vomap(so).foreach { pso => mp = mp.setFI(pso.ic, ppr.out) }
-        case Some(VecOutPR(vo)) =>
-          mp.vomap(vo).foreach { pvo => mp = mp.setFI(pvo.ic, ppr.out) }
-        case _ =>
+      mp.rcmap.pmap.get(pr).foreach { regs =>
+        regs.foreach { reg =>
+          reg match {
+            case ScalarOutPR(so) =>
+              mp.vomap(so).foreach { pso => mp = mp.setFI(pso.ic, ppr.out) }
+            case VecOutPR(vo) =>
+              mp.vomap(vo).foreach { pvo => // One VecOut can be mapped to multiple pvouts 
+                if (regsOf(pvo.ic).contains(pr)) mp = mp.setFI(pvo.ic, ppr.out)
+              }
+            case _ =>
+          }
+        }
       }
     }
     mp
   }
 
+  def checkStageType(n:N, p:R, map:M):Unit = {
+    (n, p) match {
+      case (s:WAST, ps:PWAST) =>
+      case (s:RDST, ps:PRDST) =>
+      case (s:ST, ps:PFUST) =>
+      case _ => throw StageRouting(n, p, map)
+    }
+  }
+
   def mapStage(n:N, p:R, map:M):M = {
     log(s"Try $n -> $p") {
       var mp = map
+      checkStageType(n, p, mp)
       mp = mp.setST(n, p)
-      n match {
-        //case s:EST => 
-          //if (!p.isInstanceOf[PEST]) throw StageRouting(n, p, mp)
-          //mp = mapPROut(n, p, mp)
-          //mp = mapPRIn(n, p, mp)
-        case fs => fs match {
-            case s:WAST => if (!p.isInstanceOf[PWAST]) throw StageRouting(n, p, mp)
-            case s:RDST => if (!p.isInstanceOf[PRDST]) throw StageRouting(n, p, mp)
-            case _ => if (!p.isInstanceOf[PFUST]) throw StageRouting(n, p, mp)
-          }
-          mp = mapPROut(n, p, mp)
-          mp = mapFUOut(n, p, mp)
-          mp = mapPRIn(n, p, mp)
-          mp = mapFUIn(n, p, mp)
-      }
+      mp = mapFUOut(n, p, mp)
+      mp = mapPROut(n, p, mp)
+      mp = mapFUIn(n, p, mp)
+      mp = mapPRIn(n, p, mp)
       mp
     }
   }
 
   def mapFUIn(n:ST, p:PST, map:M):M = {
+    var mp = map
     val fu = n.fu.get
     val pfu = p.asInstanceOf[PFUST].fu
     // Check Operand 
-    val oprds = fu.operands
-    val poprds = pfu.operands
-    fu.op match {
-      case Mux =>
-        fu.operands.zipWithIndex.foldLeft(map){ case (map, (oprd, i)) =>
-          mapInPort(oprd, pfu.operands(i), map)
-        }
-      case _ =>
-        log(s"$n bind FU Inputs") {
-          def oor(pnodes:List[PI[_<:PModule]], nodes:List[IP], mapping:M) = OutOfOperand(p, n, pnodes, nodes, mapping)
-          bind(poprds, oprds, map, mapInPort _, (m:M) => m, oor _)
-        }
+    fu.operands.zipWithIndex.foreach { case (oprd,i) =>
+      mp = mapInPort(oprd, pfu.operands(i), mp)
     }
+    mp
   }
 
   def mapFUOut(n:ST, p:PST, map:M):M = {
@@ -127,25 +121,40 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def mapPRIn(stage:ST, pstage:PST, map:M):M = {
-    val rcmap = map.rcmap
-    stage.prs.foldLeft(map) { case (pmap, pr) =>
-      val preg = rcmap(pr.reg)
-      val ppr = pstage.get(preg)
-      mapInPort(pr.in, ppr.in, pmap)
+    var mp = map
+    // single reg can be mapped to multiple preg because of broadcast at the output
+    // for each of these pprs, mapp their corresponding inputs
+    stage.prs.foreach { pr =>
+      mp.rcmap(pr.reg).foreach { preg =>
+        val ppr = pstage.get(preg)
+        mp = mapInPort(pr.in, ppr.in, mp)
+      }
     }
+    mp
   }
 
   def mapPROut(stage:ST, pstage:PST, map:M):M = {
+    var mp = map
     val nres = pstage.prs.size
     val nnode = stage.prs.size
-    if (nnode > nres) throw OutOfPipeReg(pstage, stage, pstage.prs, stage.prs, map)
+    if (nnode > nres) throw OutOfPipeReg(pstage, stage, pstage.prs, stage.prs, mp)
 
-    val rcmap = map.rcmap
-    stage.prs.foldLeft(map) { case (pmap, pr) =>
-      val preg = rcmap(pr.reg)
-      val ppr = pstage.get(preg)
-      mapOutPort(pr.out, ppr.out, pmap)
+    val rcmap = mp.rcmap
+    stage.prs.foreach { pr =>
+      if (stage.liveOuts.contains(pr.reg)) {
+        rcmap(pr.reg).foreach { preg =>
+          val ppr = pstage.get(preg)
+          try {
+          mp = mapOutPort(pr.out, ppr.out, mp)
+          } catch {
+            case e:Throwable =>
+              design.mapPrinter.print(mp)
+              throw e
+          }
+        }
+      }
     }
+    mp
   }
 }
 case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {

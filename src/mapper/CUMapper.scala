@@ -9,6 +9,7 @@ import pir.pass.{PIRMapping}
 import pir.plasticine.main._
 import pir.util.misc._
 import pir.util.topoSort
+import pir.util.enums._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -17,6 +18,7 @@ import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
 class CUMapper(implicit ds:Design) extends Mapper {
+  import pirmeta._
   def design:Design = ds 
   def typeStr = "CUMapper"
 
@@ -66,7 +68,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = mcs.filter { _.mctpe.isDense }.map { mc => mc.getFifo("offset").writer.ctrler.asInstanceOf[ICL] }
+    val scus = design.top.innerCUs.filter{ cu => writesOfs(cu) } 
     val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
     val pmcus = design.arch.mcus 
@@ -96,7 +98,6 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
             cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
           case mc:MC =>
-          case scu:SP =>
           case cu:ICL  =>
             val pcu = pne.asInstanceOf[PCU]
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
@@ -109,16 +110,19 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
             cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
             cons += (("cout"	    , (cl.couts.filter(_.isConnected), pcu.couts.filter(_.isConnected))))
-            cu match {
-              case mc:MemoryController => 
-              case _ => 
-                cons += (("srams"	, (cu.srams, pcu.srams)))
-            }
+            cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
+            cons += (("srams"	, (cu.srams, pcu.srams)))
+            cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
+            cons += (("vectorInReg"	, (cu.regs.collect{case r@LoadPR(mem:VectorFIFO) => r}, pcu.regs.filter(_.is(VecInReg)))))
           case cu:OCL =>
             val pocu = pne.asInstanceOf[POCU]
+            cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
             cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
             cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
             cons += (("cout"	    , (cl.couts.filter(_.isConnected), pocu.ctrlIO.outs.filter(_.fanOuts.size>0))))
+            cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
+            cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pocu.regs.filter(_.is(ScalarInReg)))))
+            cons += (("vectorInReg"	, (cu.regs.collect{case r@LoadPR(mem:VectorFIFO) => r}, pocu.regs.filter(_.is(VecInReg)))))
         }
         failureInfo += pne -> ListBuffer[String]()
         check(cons.toList, failureInfo(pne))

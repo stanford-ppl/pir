@@ -3,7 +3,6 @@ package pir.codegen
 import pir.Design
 import pir.graph.{AccumPR, Const}
 import pir.plasticine.main._
-import pir.plasticine.graph.{ScalarOutReg}
 import pir.util.typealias._
 import pir.util.enums._
 import pir.Config

@@ -56,6 +56,14 @@ trait PIRMetadata extends { self:Design =>
     override def check(rec:(K,V)):Unit = {}
   }
 
+  object writesOfs extends MOneToOneMap {
+    type K = Controller
+    type V = Boolean
+    override def apply(k:K):V = {
+      super.get(k).getOrElse(false)
+    }
+  }
+
   /* Number of children stages on the critical path */
   object lengthOf extends MOneToOneMap {
     type K = Controller

@@ -28,8 +28,11 @@ trait Printer {
   def pw:PrintWriter = { bufferWriters.headOption.getOrElse(writer) }
   val tab = "  "
   var level = 0
+  var listing = false
   def incLevel = level += 1
   def decLevel = { level -= 1; assert(level >= 0) }
+  def blist = { listing = true; incLevel }
+  def elist = { listing = false; decLevel }
 
   def pprint(s:String):Unit = { pw.print(s); if (stdOut) flush }
   def pprintln(s:String):Unit = { pw.println(s); if (stdOut) flush }
@@ -40,10 +43,10 @@ trait Printer {
   case object CurlyBraces extends Braces { def s = "{"; def e = "}" }
   case object Parentheses extends Braces { def s = "("; def e = ")" }
 
-  def emit(s:String):Unit = pprint(s"${tab*level}${s}")
+  def emit(s:String):Unit = pprint(s"${tab*level}${if (listing) "- " else ""}${s}")
   def emit(s:Any):Unit = emit(s.toString) 
   def emit:Unit = emit("") 
-  def emitln(s:String):Unit = pprintln(s"${tab*level}${s}")
+  def emitln(s:String):Unit = pprintln(s"${tab*level}${if (listing) "- " else ""}${s}")
   def emitln:Unit = pprintln
   def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
   def emitBSln(s:String, b:Braces):Unit = { emit(s); emitBSln(b) }
@@ -65,6 +68,8 @@ trait Printer {
   def emitBlock[T](b:Braces)(block: =>T):T = { emitBSln(b); val res = block; emitBEln(b); res }
   def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
   def emitBlock[T](s:String, b:Braces)(block: =>T):T = { emitBSln(s"$s ", b); val res = block; emitBEln(b); res }
+  def emitList[T](s:String)(block: => T) = { emitln(s); blist; val res = block; elist; res}
+
   def emitTitleComment(title:String) = 
     emitln(s"/*****************************${title}****************************/")
   def flush = pw.flush()

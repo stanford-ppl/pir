@@ -88,20 +88,46 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
       }
     }
   }
+
+  def printStage(pst:PST)(implicit p:Printer, design:Design):Unit = {
+    import p._
+    emitBlock(s"${quote(pst)} <- ${stmap.pmap.get(pst)}"){
+      pst.prs.foreach { ppr =>
+        fimap.get(ppr.in).foreach { from =>
+          emitln(s"${quote(ppr)}.in <= $from")
+        }
+      }
+      pst.funcUnit.foreach { fu =>
+        fu.operands.foreach { oprd =>
+          fimap.get(oprd).foreach { from => 
+            emitln(s"${oprd} <= $from")
+          }
+        }
+        stmap.pmap.get(pst).foreach { st =>
+          emitln(s"$fu.op=${st.fu.get.op}")
+        }
+      }
+    }
+  }
+
   def printPMap(implicit p:Printer, design:Design):Unit = {
-    fimap.printMap(quote _)
+    import p._
+    //fimap.printMap(quote _)
     design.arch.ctrlers.foreach { pcl => 
       if (clmap.pmap.contains(pcl)) {
         val cl = clmap.pmap(pcl)
-        p.emitBlock( s"$pcl <- $cl" ) {
+        emitBlock( s"${quote(pcl)} <- $cl" ) {
           vimap.printMap(quote _, cl.vins)
           pcl match {
             case pcu:PCU =>
               val cu = clmap.pmap(pcu).asInstanceOf[CU]
-              smmap.printPMap(pcu.srams)
+              smmap.printPMap(pcu.mems)
               ctmap.printPMap(pcu.ctrs)
               rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
-              stmap.printPMap(pcu.stages)
+              //stmap.printPMap(pcu.stages)
+              pcu.stages.foreach { pst =>
+                printStage(pst)
+              }
               //pmmap.printPMap(pcu.ctrlBox.luts)
             case _ =>
           }
@@ -177,8 +203,8 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     VOMap(newmap, pmap + rec.swap)
   }
-  def apply(n:VO):Set[PGO[PModule]] = { map(n).map(_.asGlobal) }
-  def apply(n:SO):Set[PGO[PModule]] = { map(n).map(_.asGlobal) }
+  def apply(n:VO):Set[PGO[PModule]] = { map(n) }
+  def apply(n:SO):Set[PGO[PModule]] = { map(n) }
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
@@ -217,13 +243,20 @@ object CTMap extends IBiOneToOneObj {
 }
 
 /* A mapping between a scalar value and its writer's (OutBus, Index of Scalar Port in the Bus) */
-case class RCMap(map:RCMap.M, pmap:RCMap.IM) extends IBiOneToOneMap {
+case class RCMap(map:RCMap.M, pmap:RCMap.IM) extends IBiManyToManyMap {
   type K = RCMap.K
   type V = RCMap.V
   override type M = RCMap.M
-  override def + (rec:(K,V)) = { super.check(rec); RCMap(map + rec, pmap + rec.swap) }
+  override def + (rec:(K,V)) = { 
+    check(rec); 
+    val fset:Set[V] = (map.getOrElse(rec._1, Set.empty) + rec._2)
+    val rset:Set[K] = (pmap.getOrElse(rec._2, Set.empty) + rec._1)
+    val k:K = rec._1
+    val v:V = rec._2
+    RCMap(map + ((k, fset)), pmap + ((v, rset)))
+  }
 }
-object RCMap extends IBiOneToOneObj {
+object RCMap extends IBiManyToManyObj {
   type K = Reg 
   type V = PReg 
   def empty:RCMap = RCMap(Map.empty, Map.empty)

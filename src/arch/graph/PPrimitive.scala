@@ -122,7 +122,7 @@ case class VectorMem()(implicit spade:Spade, pne:NetworkElement) extends LocalBu
 case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, pne:NetworkElement) extends Primitive {
   import spademeta._
   override val typeStr = "fu"
-  val operands = List.fill(numOprds) (Input(Bus(Word()), this, s"$this.oprd${id}")) 
+  val operands = List.tabulate(numOprds) { i => Input(Bus(Word()), this, s"$this.oprd[$i]") } 
   val out = Output(Bus(Word()), this, s"$this.out")
 }
 

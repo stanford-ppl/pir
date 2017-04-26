@@ -111,6 +111,14 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     lengthOf(ctrler) = count
   }
 
+  def setSCUs(ctrler:Controller) = {
+    ctrler match {
+      case mc:MemoryController if mc.mctpe.isDense =>
+        writesOfs(mc.getFifo("offset").writer.ctrler) = true
+      case _ => 
+    }
+  }
+
   override def traverse = {
     if (!design.accessAnalyzer.hasRun) {
       design.top.ctrlers.foreach { ctrler =>
@@ -118,6 +126,14 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         findDescendent(ctrler)
         setStreaming(ctrler)
         setPipelining(ctrler)
+      }
+      design.top.ctrlers.foreach { ctrler =>
+        emitBlock(s"$ctrler") {
+          dprintln(s"ancestors = ${ancestorsOf(ctrler)}")
+          dprintln(s"descendents = ${descendentsOf(ctrler)}")
+          dprintln(s"isStreaming = ${isStreaming(ctrler)}")
+          dprintln(s"isPipelining = ${isPipelining(ctrler)}")
+        }
       }
     } else {
       assert(design.multiBufferAnalyzer.hasRun)
@@ -127,13 +143,10 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       }
       design.top.ctrlers.foreach { ctrler =>
         setLength(ctrler)
+        setSCUs(ctrler)
       }
       design.top.ctrlers.foreach { ctrler =>
         emitBlock(s"$ctrler") {
-          dprintln(s"ancestors = ${ancestorsOf(ctrler)}")
-          dprintln(s"descendents = ${descendentsOf(ctrler)}")
-          dprintln(s"isStreaming = ${isStreaming(ctrler)}")
-          dprintln(s"isPipelining = ${isPipelining(ctrler)}")
           dprintln(s"isHead = ${isHead(ctrler)}")
           dprintln(s"isLast = ${isLast(ctrler)}")
           dprintln(s"length = ${lengthOf(ctrler)}")

@@ -359,6 +359,12 @@ abstract class Router(implicit design:Design) extends Mapper {
             case n:SI => mp = mp.setOP(n.out, pin.ic)
             case n =>
           }
+          //One from(n) may map to multiple pout. but ipmap is not a one to many map
+          //from(n) match {
+            //case f:VO => mp = mp.setIP(f.in, pout.ic)
+            //case f:SO => mp = mp.setIP(f.in, pout.ic)
+            //case n =>
+          //}
         }
         path.zipWithIndex.foreach { case ((out, in), i) => 
           mp = mp.setFI(in, out)

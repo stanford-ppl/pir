@@ -170,7 +170,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     this
   }
 
-  var index = -1
+  var index = 0
   def nextIndex = { val temp = index; index +=1 ; temp}
 
   //val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
