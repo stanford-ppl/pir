@@ -51,7 +51,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
           cu.stages.foreach { s =>
             emitBlock(s"${quote(s)}") {
               s match {
-                case es:EmptyStage =>
+                //case es:EmptyStage =>
                 case fs:FUStage =>
                   fs.fu.operands.foreach { oprd =>
                     emitln(s"${oprd.ms}")
@@ -60,7 +60,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
                   emitln(s"${res.mt}")
               }
               emitBlock(s"prs") {
-                s.prs.foreach { pr => emitln(s"${pr}(${pr.reg}) ${pr.in.ms} ${pr.out.mt}") }
+                s.prs.foreach { pr => emitln(s"${pr.in.ms}"); emitln(s"${pr.out.mt}") }
               }
             }
           }

@@ -8,6 +8,8 @@ import pir.util._
 import pir.PIRApp
 
 object MatMult_inner extends PIRApp {
+  override val arch = SN_4x4
+
   def main(args: String*)(top:Top) = {
     val x1768_argin = ArgIn("x1768")
     val x1799_x1812_data_v = Vector("x1799_x1812_data")

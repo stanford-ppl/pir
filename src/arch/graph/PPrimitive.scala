@@ -180,7 +180,7 @@ case class WAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spad
 }
 case class RAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, pne:NetworkElement) 
   extends FUStage(numOprds, regs, ops) {
-  override val typeStr = "wast"
+  override val typeStr = "rast"
   override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 

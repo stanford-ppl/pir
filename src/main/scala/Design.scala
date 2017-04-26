@@ -135,6 +135,7 @@ trait Design extends PIRMetadata with Collector {
       case e:PIRException => 
         try {
           if (!pirPrinter.hasRun) pirPrinter.run
+          if (!mapPrinter.hasRun) mapPrinter.run
           //if (!ctrlDotPrinter.hasRun) ctrlDotPrinter.run
           if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
           if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run

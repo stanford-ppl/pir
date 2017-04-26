@@ -88,7 +88,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def mapStage(n:N, p:R, map:M):M = {
-    log(s"Try $n -> $p") {
+    log(s"Try $n -> ${quote(p)}") {
       var mp = map
       checkStageType(n, p, mp)
       mp = mp.setST(n, p)
@@ -144,13 +144,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
       if (stage.liveOuts.contains(pr.reg)) {
         rcmap(pr.reg).foreach { preg =>
           val ppr = pstage.get(preg)
-          try {
           mp = mapOutPort(pr.out, ppr.out, mp)
-          } catch {
-            case e:Throwable =>
-              design.mapPrinter.print(mp)
-              throw e
-          }
         }
       }
     }

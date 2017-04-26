@@ -340,30 +340,26 @@ object IPMap extends IBiOneToOneObj {
   def empty:IPMap = IPMap(Map.empty, Map.empty)
 }
 /* A mapping between OutPort and the POutPort */
-case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToOneMap {
+case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToManyMap {
   type K = OPMap.K
   type V = OPMap.V
   override type M = OPMap.M
   override type IM = OPMap.IM
-  override def + (rec:(K,V)):OPMap = { super.check(rec); OPMap(map + rec, pmap + rec.swap) }
-  def printOutPort(op:OP)(implicit p:Printer, design:Design) = {
-    if (map.contains(op)) {
-      p.emitln(s"${op} -> ${map(op)}")
-    } else {
-      p.emitln(s"${op} -> failed")
-    }
+  override def + (rec:(K,V)):OPMap = { 
+    val os:Set[V] = map.getOrElse(rec._1, Set.empty)
+    val set:Set[V] = os + rec._2
+    val newmap = map + (rec._1 -> set)
+    OPMap(newmap, pmap + rec.swap)
   }
-  def printOutPort(pop:PO[_<:PModule])(implicit p:Printer, design:Design) = {
-    if (pmap.contains(pop)) {
-      p.emitln(s"${pop} <- ${pmap(pop)}")
-    }// else {
-      //p.emitln(s"${pop} <- no map")
-    //}
+  def apply(op:COP):PO[PModule] = {
+    val pops = super.apply(op)
+    assert(pops.size==1)
+    pops.head
   }
 }
-object OPMap extends IBiOneToOneObj {
+object OPMap extends IBiOneToManyObj {
   type K = OP
-  type V = PO[_<:PModule]
+  type V = PO[PModule]
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 

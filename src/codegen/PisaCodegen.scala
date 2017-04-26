@@ -219,10 +219,10 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
     }
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
-      if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSMem])) {
+      //if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSMem])) {
         //simux += s""""0"""" //TODO scalar retiming mux 
-        simux += s"0" //TODO scalar retiming mux 
-      }
+        //simux += s"0" //TODO scalar retiming mux 
+      //}
     }
     emitXbar("scalarInMux", simux.toList)
   }

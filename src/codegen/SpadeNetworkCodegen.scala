@@ -163,7 +163,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     }
   }
 
-  def qs(io:IO[_,_], from:IO[_,_]):String = {
+  def qs(io:IO[_<:PortType,Module], from:IO[_<:PortType,Module]):String = {
     val n = io.src
     val i = io.index
     n match {
@@ -186,7 +186,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     }
   }
 
-  def qc(io:IO[_,_], from:IO[_,_]):String = {
+  def qc(io:IO[_<:PortType,Module], from:IO[_<:PortType,Module]):String = {
     val n = io.src
     n match {
       case n:Top if io.isIn => s"doneOuts(${io.indexOf(from)})"

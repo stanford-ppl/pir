@@ -111,12 +111,12 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   //def sins = _sins
   //lazy val _souts:List[ScalarOut] = List.tabulate(spade.numLanes) { is => ScalarOut(None) }
   //def souts = _souts
-  val etstage:EmptyStage = EmptyStage(regs).index(-1) // Empty Stage
+  //val etstage:EmptyStage = EmptyStage(regs).index(-1) // Empty Stage
   protected val _regstages:ListBuffer[FUStage] = ListBuffer.empty  // Regular Stages
   protected val _rdstages:ListBuffer[ReduceStage] = ListBuffer.empty // Reduction Stages
   protected val _fustages:ListBuffer[FUStage] = ListBuffer.empty // Function Unit Stages
   protected val _stages:ListBuffer[Stage] = ListBuffer.empty // All stages
-  _stages += etstage
+  //_stages += etstage
 
   def regstages:List[FUStage] = _regstages.toList // Regular Stages
   def rdstages:List[ReduceStage] = _rdstages.toList // Reduction Stages
@@ -128,15 +128,13 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   protected def addStages(sts:List[Stage]) = {
     sts.zipWithIndex.foreach { case (stage, i) =>
-      stage.index(i + stages.last.index + 1) // Empty stage is -1
-      if (i==0) {
+      stage.index(stages.size)
+      if (stages.nonEmpty) {
         stage.prev = Some(stages.last)
-      } else {
-        stage.prev = Some(sts(i-1))
+        stage.prev.get.next = Some(stage)
       }
-      stage.prev.get.next = Some(stage)
+      _stages += stage
     }
-    _stages ++= sts
   }
 
   def addRegstages(numStage:Int, numOprds:Int, ops:List[Op]):this.type = { 

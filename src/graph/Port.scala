@@ -20,7 +20,6 @@ trait Port extends Node {
   def isInput = this.isInstanceOf[InPort]
   def asOutput = this.asInstanceOf[OutPort]
   def asInput = this.asInstanceOf[InPort]
-  def asCtrl = this.asInstanceOf[CtrlPort]
 }
 trait InPort extends Port {
   override val name=None
@@ -39,6 +38,7 @@ trait InPort extends Port {
     case ci:CtrlInPort => ci.isCtrlIn
     case _ => false
   }
+  def asCtrl = this.asInstanceOf[CtrlInPort]
 }
 object InPort {
   def apply[S<:Node](s:S)(implicit design:Design):InPort = new {override val src:S = s} with InPort
@@ -64,6 +64,7 @@ trait OutPort extends Port {
     case co:CtrlOutPort => co.isCtrlOut
     case _ => false
   }
+  def asCtrl = this.asInstanceOf[CtrlOutPort]
 }
 object OutPort {
   def apply(s:Node)(implicit design:Design):OutPort = new {override val src = s} with OutPort

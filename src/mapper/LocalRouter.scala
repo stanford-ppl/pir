@@ -31,12 +31,13 @@ trait LocalRouter extends Mapper {
   def propogate(ppr:PPR, pin:PI[PModule], map:M):Option[M] = {
     var curppr = ppr
     var mp = map
+    dprintln(s"propogating $ppr to $pin")
     while (!ppr.out.canConnect(pin)) {
       curppr.stage.next.fold {
         return None
       } { nextStage =>
         val nextPpr = nextStage.get(curppr.reg)
-        mp = mp.setFI(nextPpr.in, ppr.out)
+        mp = mp.setFI(nextPpr.in, curppr.out)
         curppr = nextPpr
       }
     }
@@ -80,7 +81,10 @@ trait LocalRouter extends Mapper {
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
         val pop = n match {
           case n if n.isCtrlIn => mp.vimap(n).ic
-          case n => mp.opmap(n.from)
+          case n => 
+            val pops = mp.opmap(n.from).filter{ pop => r.canConnect(pop) }
+            if(pops.size!=1) throw InPortRouting(n, r, s"Cannot connect ${r} to ${pops} n=$n n.from=${n.from} r=$r pops=${pops}", mp)
+            pops.head
         }
         mp = mp.setFI(r, pop)
     }

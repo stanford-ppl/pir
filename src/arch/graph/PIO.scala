@@ -47,8 +47,8 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   override def toString =s"${super.toString}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   def isConnected: Boolean
   def disconnect:Unit
-  def canConnect(n:Any):Boolean
-  def indexOf(n:Any):Int
+  def canConnect(n:IO[_<:PortType, Module]):Boolean
+  def indexOf(n:IO[_<:PortType, Module]):Int
 
   def isIn:Boolean
   def isOut:Boolean
@@ -81,10 +81,10 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
   private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=mp[${_fanIns.mkString(",")}]"
-  def canConnect(n:Any):Boolean = {
+  def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
   }
-  def indexOf(o:Any):Int = {
+  def indexOf(o:IO[_<:PortType, Module]):Int = {
     _fanIns.map { out =>
       out.src match {
         case s:Slice[_] if s.in.canConnect(o) => o
@@ -119,10 +119,10 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   private[plasticine] def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
   private[plasticine] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=mt[${_fanOuts.mkString(",")}]" 
-  def canConnect(n:Any):Boolean = {
+  def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
   }
-  def indexOf(i:Any):Int = {
+  def indexOf(i:IO[_<:PortType, Module]):Int = {
     _fanOuts.map { in =>
       in.src match {
         case s:Slice[_] if s.out.canConnect(i) => i

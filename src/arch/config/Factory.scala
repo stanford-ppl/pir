@@ -112,14 +112,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
 
     /* FU Constrain  */
-    cu.fustages.zipWithIndex.foreach { case (stage, i) =>
+    cu.fustages.foreach { stage =>
       // All stage can read from any regs of its own stage, previous stage, and Const
-      val preStage = cu.stages(i) // == fustages(i-1)
       stage.fu.operands.foreach{ oprd =>
         oprd <-- Const().out // operand is constant
         cu.regs.foreach{ reg =>
           oprd <== stage.get(reg) // operand is from current register block
-          oprd <== preStage.get(reg) // operand is forwarded from previous register block
+          stage.prev.foreach { oprd <== _.get(reg) }// operand is forwarded from previous register block
         }
       }
       // All stage can write to all regs of its stage
