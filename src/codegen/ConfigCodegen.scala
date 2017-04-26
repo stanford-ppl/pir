@@ -316,12 +316,27 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
-  def commentIO(pouts:List[PGO[PModule]]) = {
-    pouts.foreach { pout =>
-      vomap.pmap.get(pout).foreach { out =>
-        emitComment(s"${quote(pout)} -> $out")
+  def commentIO(pios:List[PGIO[PModule]]) = {
+    pios.foreach { 
+      case pin:PGI[PModule] =>
+        vimap.pmap.get(pin).foreach { in =>
+          emitComment(s"${quote(pin)} -> $in")
+        }
+      case pout:PGO[PModule] =>
+        vomap.pmap.get(pout).foreach { out =>
+          emitComment(s"${quote(pout)} -> $out")
+        }
+    }
+  }
+
+  def emitUDCInits(pcu:PCL) = {
+    val inits = pcu.ctrlBox.udcs.map { pudc =>
+      pmmap.pmap.get(pudc).map { case udc:UC =>
+        s"${udc.initVal}"
       }
     }
+    if (inits.nonEmpty && inits.exists{_.nonEmpty})
+    emitln(s"${quote(pcu)}.udcInits=${quote(inits.map(_.getOrElse("-1")))}")
   }
 
   def emitXbars(pcl:PCL) = {
@@ -388,6 +403,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def emitControlBits(pcu:PCU) = {
     val pcb = pcu.ctrlBox
     commentUDCs(pcu)
+    emitUDCInits(pcu)
     emitAndTrees(pcu)
     emitStreamingMuxSelect(pcu)
     commentSBufs(pcu)
