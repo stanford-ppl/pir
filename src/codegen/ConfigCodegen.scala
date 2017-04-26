@@ -329,14 +329,14 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
-  def emitUDCInits(pcu:PCL) = {
+  def emitUDCInit(pcu:PCL) = {
     val inits = pcu.ctrlBox.udcs.map { pudc =>
       pmmap.pmap.get(pudc).map { case udc:UC =>
         s"${udc.initVal}"
       }
     }
     if (inits.nonEmpty && inits.exists{_.nonEmpty})
-    emitln(s"${quote(pcu)}.udcInits=${quote(inits.map(_.getOrElse("-1")))}")
+    emitln(s"${quote(pcu)}.udcInit=${quote(inits.map(_.getOrElse("-1")))}")
   }
 
   def emitXbars(pcl:PCL) = {
@@ -403,7 +403,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def emitControlBits(pcu:PCU) = {
     val pcb = pcu.ctrlBox
     commentUDCs(pcu)
-    emitUDCInits(pcu)
+    emitUDCInit(pcu)
     emitAndTrees(pcu)
     emitStreamingMuxSelect(pcu)
     commentSBufs(pcu)
