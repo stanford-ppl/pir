@@ -94,6 +94,19 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def analyzeScalarBufs(cu:MemoryPipeline) = {
+    cu.cchains.foreach { cc =>
+      cc.counters.foreach { ctr =>
+        List(ctr.min, ctr.max, ctr.step).map(_.from.src).foreach {
+          case mem:ScalarMem => 
+            forRead(mem) = forRead(ctr)
+            forWrite(mem) = forWrite(ctr)
+          case _ =>
+        }
+      }
+    }
+  }
+
   def analyzeAddrCalc(cu:ComputeUnit) = {
     val readCCs = cu.cchains.filter { cc => forRead(cc) }
     dprintln(s"readCCs:$readCCs")
@@ -111,6 +124,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       analyzeStageOperands(cu)
       analyzeCounters(cu)
       analyzeCChain(cu)
+      analyzeScalarBufs(cu)
     }
     design.top.compUnits.foreach { cu =>
       analyzeAddrCalc(cu)
@@ -120,8 +134,8 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         cu.stages.foreach { st =>
           dprintln(s"$st forRead=${forRead(st)} forWrite=${forWrite(st)}")
         }
-        cu.fifos.foreach { fifo => 
-          dprintln(s"$fifo forRead=${forRead(fifo)} forWrite=${forWrite(fifo)}")
+        cu.mems.foreach { mem => 
+          dprintln(s"$mem forRead=${forRead(mem)} forWrite=${forWrite(mem)}")
         }
         cu.cchains.foreach { cchain =>
           cchain.counters.foreach { ctr =>

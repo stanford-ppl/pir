@@ -35,7 +35,7 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
         case vo:VecOut => 
           val vrds = vo.vector.readers
           if(vrds.size!=1)
-            warn(s"OnChipMem=$mem in ${mem.ctrler} has more than 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
+            warn(s"OnChipMem=$mem in ${mem.ctrler} has not exactly 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
           val rds = vrds.filterNot{_.ctrler.isInstanceOf[MemoryPipeline]}
           if (rds.size>1)
             err(s"Currently assume each OnChipMem=$mem in ${mem.ctrler} can only have 1 non-MCU remote reader [${rds.mkString(",")}], [${rds.map(_.ctrler).mkString(",")}]")
