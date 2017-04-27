@@ -217,17 +217,23 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
-      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
-        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cu.bufs.foreach { _.incReadPtr <== cb.doneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cb.writeDoneXbar.out; buf.incWritePtr <== cu.cins.map(_.ic) }
         cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
         cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cu.bufs.foreach { buf =>
+          buf.incReadPtr <== cu.ctrs.map(_.done)
+          buf.incReadPtr <== cu.cins.map(_.ic)
+        }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
+        cu.bufs.foreach { buf =>
+          buf.incReadPtr <== cu.ctrs.map(_.done)
+          buf.incReadPtr <== cu.cins.map(_.ic)
+        }
+        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (mc:MemoryController, cb:CtrlBox) =>
         mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (top:Top, cb:TopCtrlBox) =>
@@ -242,7 +248,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.sbufs.map(_.notFull)
-          cout.ic <== cb.doneXbar.out
+          cout.ic <== cb.doneXbar.out //TODO: HACK
+          cout.ic <== cu.ctrs.map(_.done)
           cout.ic <== cb.en.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
@@ -251,6 +258,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.pulserSM.init <== cb.siblingAndTree.out
         cu.couts.foreach { cout => 
           cout.ic <== cb.doneXbar.out
+          cout.ic <== cu.ctrs.map(_.done) //TODO: HACK
           cout.ic <== cb.pulserSM.out
           cout.ic <== cb.en.out // en.in is connected to childrenAndTree.out
           cout.ic <== cb.siblingAndTree.out

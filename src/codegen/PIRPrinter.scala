@@ -95,14 +95,11 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
           val strs = ListBuffer[String]()
           strs += s"prev=${n.prev.map(quote)}"
           strs += s"next=${n.next.map(quote)}"
-          emitln(strs.mkString(" "))
           strs += s"uses:[${n.uses.mkString(",")}]"
           strs += s"defs:[${n.defs.mkString(",")}]"
-          emitln(strs.mkString(" "))
-          strs.clear
           strs += s"liveIns:[${n.liveIns.mkString(",")}]"
           strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
-          emitln(strs.mkString(" "))
+          strs.foreach(emitln)
           n.prs.foreach { case pr =>
            emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
           }

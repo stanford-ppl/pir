@@ -4,6 +4,7 @@ import pir.graph._
 import pir.util.enums._
 import pir.codegen._
 import pir.plasticine.main._
+import pir.plasticine.config._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
 

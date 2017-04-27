@@ -255,7 +255,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
   def this()(implicit design:Design) = this(false)
 
-  val scale = 15
+  val scale = 20
 
   def io(pne:NetworkElement) = pne.ctrlIO
 }

@@ -13,7 +13,7 @@ object Config {
 
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
-  var codegen = true
+  var codegen = false
   var genDot = getProperty("pir.dot", "true") == "true"
   var mapping = getProperty("pir.mapping", "true") == "true"
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
@@ -41,7 +41,7 @@ object Config {
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugVecRouter = debugMapper && false
-  var debugScalRouter = debugMapper && true 
+  var debugScalRouter = debugMapper && false
   var debugCtrlRouter = debugMapper && false
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 

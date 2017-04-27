@@ -179,7 +179,7 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numRegs = 0
   override def numCtrs = 6
   override def numSRAMs = 0
-  override def numUDCs = 4
+  override def numUDCs = 15
   override def config(implicit spade:SwitchNetwork) = {
     numScalarBufs(4)
     genConnections

@@ -21,15 +21,15 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
 
   override def traverse:Unit = {
     design.top.ctrlers.foreach { ctrler =>
+      connectDone(ctrler)
+    }
+    design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
       connectMemoryControl(ctrler)
     }
     design.top.ctrlers.foreach { ctrler =>
       connectChildren(ctrler)
       connectSibling(ctrler)
-    }
-    design.top.ctrlers.foreach { ctrler =>
-      connectDone(ctrler)
     }
   } 
 
@@ -81,13 +81,16 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               mem.swapWrite.connect(cb.writeDone.out)
             case cb:StageCtrlBox =>
               mem.readPort.to.foreach { _.src match {
-                  case ctr:Counter if ctr.cchain.isCopy =>
-                    throw new Exception(s"Unhandled case in hardware!") 
+                  case ctr:Counter if cu.containsCopy(ctr.cchain) =>
+                    mem.swapRead.connect(cu.getCC(ctr.cchain).outer.done)
+                  case ctr:Counter =>
+                    mem.swapRead.connect(ctr.cchain.ctrler.ctrlBox.asInstanceOf[StageCtrlBox].done.out)
+                    //throw new Exception(s"Unhandled case in hardware!") 
                     // If PCU make copy of ancesstors's counter, in which the counter's bounds are
                     // read from ScalarBuffer, the swapRead has to come from tokenIn but not
                     // local done
-                  case _ =>
-                    mem.swapRead.connect(cb.done.out)
+                  case _ => // Connect to local done
+                    mem.swapRead.connect(cb.done.in.from)
                 }
               }
               mem.swapWrite.connect(getDone(cu, swapWriteCC(mem)))
