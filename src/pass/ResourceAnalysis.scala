@@ -151,7 +151,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     emitSummary
     emitDetail
     summary.close
-    delail.close
+    detail.close
     close
     super.finPass
   }
