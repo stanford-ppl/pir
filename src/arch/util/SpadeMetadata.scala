@@ -38,4 +38,5 @@ trait SpadeMetadata { self:Spade =>
     type K = Node
     type V = String 
   }
+
 }

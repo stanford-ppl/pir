@@ -26,6 +26,9 @@ import scala.io.Source
 
 trait Design extends PIRMetadata with Collector {
 
+  def name = super.toString
+  override def toString = name 
+
   implicit def design: Design = this
   val arch:Spade
   var top:Top = _
@@ -79,6 +82,11 @@ trait Design extends PIRMetadata with Collector {
   val configCodegen = new ConfigCodegen()
   val simulator = new Simulator()
   val mapPrinter = new MapPrinter()
+  val pirStat = new PIRStat()
+  val pirStatLog = new PIRStatLog()
+  val contentionAnalysis = new ContentionAnalysis()
+  val latencyAnalysis = new LatencyAnalysis()
+  val resourceAnalysis = new ResourceAnalysis()
 
   def mapping:Option[PIRMap] = pirMapping.mapping
 
@@ -126,6 +134,9 @@ trait Design extends PIRMetadata with Collector {
   // Simulation
   passes += simulator
 
+  // Statistics
+  passes += resourceAnalysis
+
   def run = {
     try {
       arch.config
@@ -145,6 +156,7 @@ trait Design extends PIRMetadata with Collector {
         } catch {
           case ne:Throwable => throw e
         }
+        throw e
       case e:Throwable => throw e
     }
   }

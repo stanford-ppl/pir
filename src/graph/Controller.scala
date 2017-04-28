@@ -444,6 +444,8 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     }
     this
   }
+
+  def len = fifos.filter { _.name==Some("size") }.head
 }
 object MemoryController {
   def apply[P](name:String, parent:P, mctpe:MCType, offchip:OffChip)(block: MemoryController => Any)

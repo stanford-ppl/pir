@@ -5,6 +5,7 @@ import pir.exceptions._
 import pir.plasticine.main.Spade
 import pir.pass.Pass
 
+import java.nio.file.{Paths, Files}
 import java.io.PrintWriter
 import java.io.File
 import java.io.FileOutputStream
@@ -13,8 +14,12 @@ import java.io.ByteArrayOutputStream
 import scala.collection.mutable.Stack
 
 trait Printer {
+
+  var _append = false
+  def append = { stream; _append }
   var fileName:String = "System.out"
   var dirPath:String = Config.outDir 
+  var file:File = _
   lazy val stream:OutputStream = System.out
   def stdOut = fileName=="System.out" 
 
@@ -79,17 +84,27 @@ trait Printer {
       pw.close()
   }
 
-  def newStream(dp:String, fname:String):FileOutputStream = { 
+  def fileExist = Files.exists(Paths.get(getPath))
+  def fileEmpty = {
+    stream
+    file.length==0
+  }
+
+  def newStream(dp:String, fname:String, append:Boolean=false):FileOutputStream = { 
     fileName = fname
     dirPath = dp
+    _append = append
     val dir = new File(dirPath)
     if (!dir.exists()) {
       println(s"[pir] creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
       dir.mkdir();
     }
-    new FileOutputStream(new File(s"${getPath}"))
+    file = new File(getPath)
+    new FileOutputStream(file, append)
   }
   def newStream(fname:String)(implicit design:Design):FileOutputStream = { newStream(s"${Config.outDir}/$design", fname) }
+  def newStream(fname:String, append:Boolean)(implicit design:Design):FileOutputStream =
+    newStream(s"${Config.outDir}/$design", fname, append)
   def newStream(fname:String, spade:Spade):FileOutputStream = { newStream(s"${Config.outDir}/$spade", fname) }
 
   /* A temporary stream to write all data */
