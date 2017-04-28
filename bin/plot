@@ -1,0 +1,79 @@
+#!/usr/bin/env python
+
+from os import listdir
+from os.path import isfile, join, basename 
+import os
+import argparse
+import csv
+import subprocess
+import commands
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.mlab as mlab
+import matplotlib.gridspec as gridspec
+import scipy.stats as stats
+import pickle
+
+OUT_PATH='{0}/out/'.format(os.environ['PIR_HOME'])
+PLOT_PATH='{0}/plots'.format(OUT_PATH)
+utils = {}
+figs = {}
+axs = {}
+apps = []
+
+def plot_data():
+    if not os.path.exists(PLOT_PATH):
+            os.makedirs(PLOT_PATH)
+    plt.clf()
+    for header in headers:
+        if header!="cu":
+            f, ax = plt.subplots(figsize=(12,4.5), dpi=300)
+            figs[header] = f
+            axs[header] = ax
+    for header in headers:
+        boxes = []
+        if header!="cu":
+            for app in apps:
+                values = np.sort(np.array([v for v in utils[app][header] if v > 0])) 
+                # fit = stats.norm.pdf(values, np.mean(values), np.std(values))
+                # axs[header].hist(values,normed=True)
+                # axs[header].plot(values,fit,'-o', label=app)
+                boxes.append(values)
+            axs[header].boxplot(boxes)
+    for header in headers:
+        if header!="cu":
+            # axs[header].legend(loc=1, ncol=2, fontsize=10)
+            axs[header].set_title(header) 
+            axs[header].set_ylabel('Utilization') 
+            axs[header].set_xticklabels(apps)
+            figs[header].savefig('{0}/{1}.png'.format(PLOT_PATH, header))
+
+def load_data():
+    global headers
+    for app in [basename(x[0]) for x in os.walk(OUT_PATH)]:
+        print('Loading {0} ...'.format(app))
+        detail_path='{0}/{1}/UtilizationDetail.csv'.format(OUT_PATH, app)
+        if isfile(detail_path):
+            print(detail_path)
+            apps.append(app)
+            utils[app] = {}
+            detailcsv = csv.DictReader(open(detail_path, mode='r'))
+            headers = detailcsv.fieldnames
+            for header in headers:
+                utils[app][header] = []
+            for row in detailcsv:
+                for header in headers:
+                    if header!='cu':
+                        utils[app][header].append(float(row[header]))
+                    else:
+                        utils[app][header].append(row[header])
+
+def main():
+    usage = "Plotting utilization"
+    parser = argparse.ArgumentParser(description='Run feature experiments')
+    (opts, args) = parser.parse_known_args()
+    load_data()
+    plot_data()
+
+if __name__ == "__main__":
+    main()
