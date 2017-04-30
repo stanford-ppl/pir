@@ -31,7 +31,14 @@ class SpadeTest extends UnitTest { self =>
       info(s"${quote(cu)}.cout=${cu.couts.size}")
       info(s"${quote(cu)}.sin=${cu.sins.size}")
       info(s"${quote(cu)}.sout=${cu.souts.size}")
-      new SpadePrinter().run
+      info(s"numLanes=${spade.numLanes}")
+      info(s"wordWidth=${spade.wordWidth}")
+      emitBlock("regs") {
+        cu.stages.head.prs.map(_.reg).foreach { reg =>
+          info(s"reg=${quote(reg)} colors=[${reg.colors.mkString(",")}]")
+        }
+      }
+      //new SpadePrinter().run //this prints architecture in detail but is slow
       new SpadeNetworkCodegen().run
       new SpadeParamCodegen().run
 
