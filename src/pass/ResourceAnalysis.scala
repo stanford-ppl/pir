@@ -179,7 +179,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def emitDetail = {
     spade.cus.foreach { cl =>
       val row = detail.addRow
-      row += s"cu" -> s"${quote(cl)}"
+      row += s"cu" -> s"$cl"
       row += s"regUtil" -> pctUtil(regUsed(cl))
       row += s"stageUtil" -> pctUtil(stageUsed(cl))
       row += s"SFifoUtil" -> pctUtil(sBufUsed(cl))

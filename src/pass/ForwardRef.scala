@@ -51,10 +51,6 @@ class ForwardRef(implicit design: Design) extends Pass{
     nameMap(s)
   }
 
-  override def finPass = {
-    endInfo("Finishing updating forward referenced nodes")
-  }
-
 }
 object ForwardRef {
   def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"

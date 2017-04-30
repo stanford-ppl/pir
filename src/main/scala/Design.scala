@@ -65,6 +65,7 @@ trait Design extends PIRMetadata with Collector {
   val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
+  val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
   val pirDataDotGen = new PIRDataDotGen("PIR.dot")
   val livenessAnalyzer = new LiveAnalyzer()
   val ctrlAlloc = new CtrlAlloc()
@@ -93,7 +94,7 @@ trait Design extends PIRMetadata with Collector {
   // Graph Construction
   //passes += spadePrinter 
   passes += forwardRef
-  passes += controlAnalyzer
+  passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion
   passes += pirPrinter1
   passes += scalarBundling
@@ -104,15 +105,16 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen2
   passes += fusionTransform 
   passes += pirPrinter3
-  passes += controlAnalyzer
+  passes += controlAnalyzer // set isHead, isTail, length
   passes += pirDataDotGen3
   passes += livenessAnalyzer 
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
-  passes += controlAnalyzer
-  passes += pirDataDotGen
+  passes += controlAnalyzer // reset isHead, isTail, length
+  passes += pirDataDotGen4
   passes += irCheck 
   passes += ctrlAlloc 
+  passes += pirDataDotGen
   passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
   passes += ctrlPrinter 
