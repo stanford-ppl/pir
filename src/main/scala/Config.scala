@@ -15,7 +15,7 @@ object Config {
   var test = getProperty("pir.test", "false") == "true"
   var codegen = false
   var genDot = getProperty("pir.dot", "true") == "true"
-  var mapping = false 
+  var mapping = true
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
@@ -55,6 +55,24 @@ object Config {
   var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
+  
+  val maxLastChildren = 20
+
+//plasticine {
+  //sin-ucu = 4
+  //stages-ucu = 4
+  //sin-pcu = 4
+  //sout-pcu = 4
+  //vin-pcu = 4
+  //vout-pcu = 1
+  //comp = 6
+  //sin-pmu = 4
+  //sout-pmu = 0
+  //vin-pmu = 4
+  //vout-pmu = 1
+  //rw = 10
+  //lanes = 16
+//}
 
   if (quick) {
     genPisa = false

@@ -154,6 +154,7 @@ object Output {
 
 trait GlobalIO[P<:PortType, +S<:Module] extends IO[P, S] with Simulatable {
   val ic:IO[P, this.type]
+  def connectedToSwitch:Boolean
 }
 
 /* Input pin of network element. Has an innernal output */
@@ -165,6 +166,7 @@ class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(
     super.register
     ic.v <= this
   }
+  def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
 }
 object GlobalInput {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalInput[P, S] = new GlobalInput[P, S](t, s, None)
@@ -181,6 +183,7 @@ class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])
     super.register
     this.v <= ic
   }
+  def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
 } 
 object GlobalOutput {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalOutput[P, S] = new GlobalOutput[P,S](t, s, None)

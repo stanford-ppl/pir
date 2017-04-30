@@ -138,9 +138,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  val maxLastChildren = 2
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
-    val lastGroups = lasts.grouped(maxLastChildren).toList
+    val lastGroups = lasts.grouped(Config.maxLastChildren).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
         val clone = parent.cloneType

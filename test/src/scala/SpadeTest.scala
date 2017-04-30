@@ -23,7 +23,11 @@ class SpadeTest extends UnitTest { self =>
       def main(args: String*)(top:pir.graph.Top): Any = {}
 
       arch.config
+
+      val spade = arch.asInstanceOf[SwitchNetwork]
       new SpadePrinter().run
+      new SpadeNetworkCodegen().run
+      new SpadeParamCodegen().run
 
       new CUCtrlDotPrinter().print
       s"out/bin/run -c out/${arch}/CtrlNetwork".replace(".dot", "") !
