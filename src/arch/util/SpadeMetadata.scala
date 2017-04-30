@@ -2,6 +2,7 @@ package pir.plasticine.util
 
 import pir.util.maps._
 import pir.plasticine.graph._
+import pir.plasticine.config._
 import pir.plasticine.main._
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
@@ -37,4 +38,5 @@ trait SpadeMetadata { self:Spade =>
     type K = Node
     type V = String 
   }
+
 }

@@ -73,6 +73,25 @@ abstract class Controller(implicit design:Design) extends Node {
   def isMP = this.isInstanceOf[MemoryPipeline]
   def asCU = this.asInstanceOf[ComputeUnit]
 
+  def cloneType:Controller = {
+    val clone = this match {
+      case _:Sequential => 
+        val clone = new Sequential(Some(s"${this}_clone"))
+        clone.parent(this)
+        clone
+      case _:MetaPipeline => 
+        val clone = new MetaPipeline(Some(s"${this}_clone"))
+        clone.parent(this)
+        clone
+      case _:StreamController => 
+        val clone = new StreamController(Some(s"${this}_clone"))
+        clone.parent(this)
+        clone
+      case _ => throw PIRException(s"Cannot clone $this")
+    }
+    design.top.addCtrler(clone)
+    clone
+  }
 }
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock {
@@ -97,11 +116,12 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   /* CounterChains */
   val cchainMap = Map[CounterChain, CounterChain]() // map between original and copied cchains
   def cchains = cchainMap.values.toList
-  def addCChain(cc:CounterChain):Unit = {
-    if (!cc.isDefined) return // If cc is a copy but haven't been updated, addCChain during update 
+  def addCChain(cc:CounterChain):CounterChain = {
+    if (!cc.isDefined) return cc // If cc is a copy but haven't been updated, addCChain during update 
     if (cchainMap.contains(cc.original))
       throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
     else cchainMap += (cc.original -> cc)
+    return cc
   }
   def removeCChain(cc:CounterChain):Unit = {
     cchainMap.get(cc.original).foreach { cp => if (cp== cc) cchainMap -= cc.original }
@@ -148,7 +168,12 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         //}
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
-      case cu =>
+      case cu if isStreaming =>
+        val locals = cchains.filter{_.isLocal}
+        locals.headOption.getOrElse {
+          addCChain(CounterChain.dummy)
+        }
+      case cu if isPipelining =>
         val locals = cchains.filter{_.isLocal}
         assert(locals.size==1, 
           s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
@@ -210,14 +235,10 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   }
 }
 
-class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
+abstract class OuterController(name:Option[String])(implicit design:Design) extends ComputeUnit(name) {
 
   override def toUpdate = super.toUpdate
 
-  override def addCChain(cc:CounterChain):Unit = {
-    //assert(!cc.isCopy, "Outer controller cannot make copy of other CounterChain")
-    super.addCChain(cc)
-  }
   override def getCopy(cchain:CounterChain):CounterChain = {
     if (cchain.ctrler!=ctrler)
       throw PIRException(s"OuterController cannot make copy of other CounterChain")
@@ -227,6 +248,7 @@ class OuterController(name:Option[String])(implicit design:Design) extends Compu
   lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()
 
   def parLanes:Int = 1 
+
 }
 
 class Sequential(name:Option[String])(implicit design:Design) extends OuterController(name) {
@@ -444,6 +466,8 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
     }
     this
   }
+
+  def len = fifos.filter { _.name==Some("size") }.head
 }
 object MemoryController {
   def apply[P](name:String, parent:P, mctpe:MCType, offchip:OffChip)(block: MemoryController => Any)
@@ -459,28 +483,40 @@ case class Top()(implicit design: Design) extends Controller { self =>
   override val typeStr = "Top"
 
   /* Fields */
-  private var _innerCUs:List[InnerController] = Nil
-  def innerCUs(innerCUs:List[InnerController]) = _innerCUs = innerCUs
-  def innerCUs = _innerCUs
+  private val _innerCUs = ListBuffer[InnerController]()
+  def innerCUs = _innerCUs.toList
 
-  private var _outerCUs:List[OuterController] = Nil
-  def outerCUs(outerCUs:List[OuterController]) = _outerCUs = outerCUs 
-  def outerCUs = _outerCUs
+  private val _outerCUs = ListBuffer[OuterController]()
+  def outerCUs = _outerCUs.toList
 
-  private var _memCUs:List[MemoryPipeline] = Nil
-  def memCUs(memCUs:List[MemoryPipeline]) = _memCUs = memCUs
-  def memCUs = _memCUs
+  private var _memCUs = ListBuffer[MemoryPipeline]()
+  def memCUs = _memCUs.toList
 
   def compUnits:List[ComputeUnit] = innerCUs ++ outerCUs
   def spadeCtrlers:List[Controller] = this :: innerCUs
   def ctrlers = this :: compUnits
 
+  def addCtrler(ctrler:Controller) = {
+    ctrler match {
+      case ctrler:MemoryPipeline =>
+        _memCUs += ctrler
+        _innerCUs += ctrler
+      case ctrler:InnerController => 
+        _innerCUs += ctrler
+      case ctrler:OuterController => 
+        _outerCUs += ctrler
+    }
+  }
+  
   def removeCtrler(ctrler:Controller) = {
     ctrler match {
-      case _:InnerController => 
-        _innerCUs = _innerCUs.filterNot(_==ctrler)
-      case _:OuterController => 
-        _outerCUs = _outerCUs.filterNot(_==ctrler)
+      case ctrler:MemoryPipeline =>
+        _memCUs -= ctrler
+        _innerCUs -= ctrler
+      case ctrler:InnerController => 
+        _innerCUs -= ctrler
+      case ctrler:OuterController => 
+        _outerCUs -= ctrler
     }
   }
 
@@ -505,9 +541,9 @@ case class Top()(implicit design: Design) extends Controller { self =>
                       (n:Node) => n.isInstanceOf[Scalar], 
                       (n:Node) => n.isInstanceOf[Vector] 
                       )
-    this.innerCUs(inners)
-    this.outerCUs(outers)
-    this.memCUs(memcus)
+    this._innerCUs ++= inners
+    this._outerCUs ++= outers
+    this._memCUs ++= memcus
     this.scalars(scalars)
     scalars.foreach { s => s match {
         case a:ArgIn => 

@@ -8,6 +8,7 @@ trait MOneToOneMap extends OneToOneMap {
   override type M = Map[K, VV]
   val map:Map[K, VV] = Map.empty
   def update(n:K, v:V):Unit = { check((n,v)); map += (n -> v) }
+  def getOrElseUpdate(n:K, v:VV):VV = map.getOrElseUpdate(n,v)
 }
 
 trait MBiOneToOneMap extends MOneToOneMap with BiOneToOneMap {

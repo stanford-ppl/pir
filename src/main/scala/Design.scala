@@ -26,6 +26,9 @@ import scala.io.Source
 
 trait Design extends PIRMetadata with Collector {
 
+  def name = super.toString
+  override def toString = name 
+
   implicit def design: Design = this
   val arch:Spade
   var top:Top = _
@@ -62,6 +65,7 @@ trait Design extends PIRMetadata with Collector {
   val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
+  val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
   val pirDataDotGen = new PIRDataDotGen("PIR.dot")
   val livenessAnalyzer = new LiveAnalyzer()
   val ctrlAlloc = new CtrlAlloc()
@@ -79,13 +83,18 @@ trait Design extends PIRMetadata with Collector {
   val configCodegen = new ConfigCodegen()
   val simulator = new Simulator()
   val mapPrinter = new MapPrinter()
+  val pirStat = new PIRStat()
+  val pirStatLog = new PIRStatLog()
+  val contentionAnalysis = new ContentionAnalysis()
+  val latencyAnalysis = new LatencyAnalysis()
+  val resourceAnalysis = new ResourceAnalysis()
 
   def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
-  passes += spadePrinter 
+  //passes += spadePrinter 
   passes += forwardRef
-  passes += controlAnalyzer
+  passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion
   passes += pirPrinter1
   passes += scalarBundling
@@ -96,15 +105,16 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen2
   passes += fusionTransform 
   passes += pirPrinter3
-  passes += controlAnalyzer
+  passes += controlAnalyzer // set isHead, isTail, length
   passes += pirDataDotGen3
   passes += livenessAnalyzer 
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
-  passes += controlAnalyzer
-  passes += pirDataDotGen
+  passes += controlAnalyzer // reset isHead, isTail, length
+  passes += pirDataDotGen4
   passes += irCheck 
   passes += ctrlAlloc 
+  passes += pirDataDotGen
   passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
   passes += ctrlPrinter 
@@ -126,6 +136,9 @@ trait Design extends PIRMetadata with Collector {
   // Simulation
   passes += simulator
 
+  // Statistics
+  passes += resourceAnalysis
+
   def run = {
     try {
       arch.config
@@ -145,6 +158,7 @@ trait Design extends PIRMetadata with Collector {
         } catch {
           case ne:Throwable => throw e
         }
+        throw e
       case e:Throwable => throw e
     }
   }

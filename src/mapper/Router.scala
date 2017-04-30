@@ -107,9 +107,9 @@ abstract class Router(implicit design:Design) extends Mapper {
     // DEBUG --
 
   def logCond(header:String, valid:Boolean, cond:Boolean, info:String):Boolean = {
-    if (valid && !cond) {
-      dprintln(header, s"not passed : $info")
-    }
+    //if (valid && !cond) {
+      //dprintln(header, s"not passed : $info")
+    //}
     valid && cond
   }
 

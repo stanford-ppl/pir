@@ -19,10 +19,15 @@ import scala.language.postfixOps
 class SpadeTest extends UnitTest { self =>
 
   "SN_4x4" should "success" taggedAs(ARCH) in {
-    val design = new Design { self =>
-      override val arch = SN_2x2
+    val design = new PIRApp { self =>
+      def main(args: String*)(top:pir.graph.Top): Any = {}
+
       arch.config
+
+      val spade = arch.asInstanceOf[SwitchNetwork]
       new SpadePrinter().run
+      new SpadeNetworkCodegen().run
+      new SpadeParamCodegen().run
 
       new CUCtrlDotPrinter().print
       s"out/bin/run -c out/${arch}/CtrlNetwork".replace(".dot", "") !

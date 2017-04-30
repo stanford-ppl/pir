@@ -21,15 +21,15 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
 
   override def traverse:Unit = {
     design.top.ctrlers.foreach { ctrler =>
+      connectDone(ctrler)
+    }
+    design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
       connectMemoryControl(ctrler)
     }
     design.top.ctrlers.foreach { ctrler =>
       connectChildren(ctrler)
       connectSibling(ctrler)
-    }
-    design.top.ctrlers.foreach { ctrler =>
-      connectDone(ctrler)
     }
   } 
 
@@ -81,13 +81,16 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               mem.swapWrite.connect(cb.writeDone.out)
             case cb:StageCtrlBox =>
               mem.readPort.to.foreach { _.src match {
-                  case ctr:Counter if ctr.cchain.isCopy =>
-                    throw new Exception(s"Unhandled case in hardware!") 
+                  case ctr:Counter if cu.containsCopy(ctr.cchain) =>
+                    mem.swapRead.connect(cu.getCC(ctr.cchain).outer.done)
+                  case ctr:Counter =>
+                    mem.swapRead.connect(ctr.cchain.ctrler.ctrlBox.asInstanceOf[StageCtrlBox].done.out)
+                    //throw new Exception(s"Unhandled case in hardware!") 
                     // If PCU make copy of ancesstors's counter, in which the counter's bounds are
                     // read from ScalarBuffer, the swapRead has to come from tokenIn but not
                     // local done
-                  case _ =>
-                    mem.swapRead.connect(cb.done.out)
+                  case _ => // Connect to local done
+                    mem.swapRead.connect(cb.done.in.from)
                 }
               }
               mem.swapWrite.connect(getDone(cu, swapWriteCC(mem)))
@@ -100,7 +103,6 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                 case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.en.out)
               }
             case cu:ComputeUnit =>
-              throw new Exception(s"Unhandled case in hardware!") 
               // ScalarFIFO enable has to come from tokenIn
               mem.writer.ctrlBox match {
                 case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.en.out)
@@ -112,6 +114,50 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
           // deqEnable is mapped in CtrlMapper
       }
     case _ =>
+  }
+
+  def connectLast(parent:Controller, last:Controller) = {
+    (parent, last, parent.ctrlBox, last.ctrlBox) match {
+      case (parent:Top, last:ComputeUnit, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
+        pcb.status.connect(ccb.done.out)
+      case (parent:StreamController, last:MemoryController, pcb:OuterCtrlBox, ccb:MCCtrlBox) =>
+        val tk = pcb.tokenBuffer(last)
+        tk.inc.connect(ccb.done)
+        tk.dec.connect(pcb.childrenAndTree.out)
+        pcb.childrenAndTree.addInput(tk.out)
+      case (parent:StreamController, last:Pipeline, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
+        val tk = pcb.tokenBuffer(last)
+        tk.inc.connect(ccb.en.out)
+        tk.dec.connect(pcb.childrenAndTree.out)
+        pcb.childrenAndTree.addInput(tk.out)
+      case (parent:Controller, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
+        val tk = pcb.tokenBuffer(last)
+        tk.inc.connect(ccb.done.out)
+        tk.dec.connect(pcb.done.out)
+        pcb.childrenAndTree.addInput(tk.out)
+    }
+  }
+
+  def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
+    val lastGroups = lasts.grouped(Config.maxLastChildren).toList
+    val midParents = lastGroups.map { lasts =>
+      val midParent = if (lastGroups.size==1) parent else {
+        val clone = parent.cloneType
+        isHead(clone) = false 
+        isLast(clone) = true
+        isStreaming(clone) = isStreaming(parent)
+        isPipelining(clone) = isPipelining(parent)
+        ancestorsOf(clone) = clone :: ancestorsOf(parent)
+        descendentsOf(clone) = List(clone)
+        clone
+      }
+      dprintln(s"$parent midParent:$midParent lasts:[${lasts.mkString(",")}]")
+      lasts.foreach { last =>
+        connectLast(midParent, last)
+      }
+      midParent
+    }
+    if (midParents.size>1) connectLasts(parent, midParents)
   }
 
   def connectChildren(ctrler:Controller) = {
@@ -132,28 +178,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     // Token back
     val lasts = ctrler.children.filter{_.isLast}
-    dprintln(s"$ctrler lasts:[${lasts.mkString(",")}]")
-    lasts.foreach { last =>
-      (ctrler, ctrler.ctrlBox, last.ctrlBox) match {
-        case (parent:Top, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
-          pcb.status.connect(ccb.done.out)
-        case (parent:StreamController, pcb:OuterCtrlBox, ccb:MCCtrlBox) =>
-          val tk = pcb.tokenBuffer(last)
-          tk.inc.connect(ccb.done)
-          tk.dec.connect(pcb.childrenAndTree.out)
-          pcb.childrenAndTree.addInput(tk.out)
-        case (parent:StreamController, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
-          val tk = pcb.tokenBuffer(last)
-          tk.inc.connect(ccb.en.out)
-          tk.dec.connect(pcb.childrenAndTree.out)
-          pcb.childrenAndTree.addInput(tk.out)
-        case (parent:Controller, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
-          val tk = pcb.tokenBuffer(last)
-          tk.inc.connect(ccb.done.out)
-          tk.dec.connect(pcb.done.out)
-          pcb.childrenAndTree.addInput(tk.out)
-      }
-    }
+    connectLasts(ctrler, lasts)
   }
 
   def connectSibling(ctrler:Controller) = {

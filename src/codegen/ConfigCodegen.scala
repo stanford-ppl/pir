@@ -336,7 +336,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       }
     }
     if (inits.nonEmpty && inits.exists{_.nonEmpty})
-    emitln(s"${quote(pcu)}.control.udcInit=${quote(inits.map(_.getOrElse("-1")))}")
+    emitln(s"${quote(pcu.ctrlBox)}.udcInit=${quote(inits.map(_.getOrElse("-1")))}")
   }
 
   def emitXbars(pcl:PCL) = {

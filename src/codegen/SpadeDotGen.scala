@@ -22,14 +22,14 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class CUDotPrinter(file:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
+abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
   import spademeta._
 
   val scale:Int
 
   def io(pne:NetworkElement):GridIO[_<:PortType, NetworkElement]
 
-  override lazy val stream = if (design.mapping.isDefined) newStream(file) else newStream(file, design.arch)
+  override lazy val stream = if (design.mapping.isDefined) newStream(fn) else newStream(fn, design.arch)
 
   trait Mode
   object OnlyOCU extends Mode
@@ -255,7 +255,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design) extend
   def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
   def this()(implicit design:Design) = this(false)
 
-  val scale = 15
+  val scale = 20
 
   def io(pne:NetworkElement) = pne.ctrlIO
 }

@@ -110,5 +110,26 @@ trait PIRMetadata extends { self:Design =>
     type K = ComputeUnit 
     type V = List[CounterChain]
   }
+
+  object contentionOf extends MOneToOneMap {
+    type K = Node
+    type V = Int
+  }
+
+  object cycleOf extends MOneToOneMap {
+    type K = Node
+    type V = Int
+  }
+
+  object iterOf extends MOneToOneMap {
+    type K = Node
+    type V = Int
+  }
+
+  object constOf extends MOneToOneMap {
+    type K = Node
+    type V = Int
+  }
+
 }
 

@@ -50,8 +50,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.newSout(sls(5))
       }
       val cus = c0::c1::c2::c3::c4::Nil
-      top.innerCUs(cus)
-      top.outerCUs(outer::Nil)
+      cus.foreach(top.addCtrler)
       top.scalars(sls)
 
       // PNodes
@@ -85,8 +84,7 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.newSin(ais(6))
       }
       val cus = c0::c1::Nil
-      top.innerCUs(cus)
-      top.outerCUs(outer::Nil)
+      cus.foreach(top.addCtrler)
       top.scalars(sls ++ ais)
 
       // PNodes
@@ -125,8 +123,8 @@ class ScalarBundleTest extends UnitTest { self =>
         CU.newSin(ais(2))
       }
       val cus = c0::c1::c2::Nil
-      top.innerCUs(cus)
-      top.outerCUs(outer::Nil)
+      cus.foreach(top.addCtrler)
+      top.addCtrler(outer)
       top.scalars(sls ++ ais)
 
       // PNodes
@@ -164,8 +162,8 @@ class ScalarBundleTest extends UnitTest { self =>
       }
       val cus = c0::c1::Nil
       val outers = s0::Nil 
-      top.innerCUs(cus)
-      top.outerCUs(outers)
+      cus.foreach(top.addCtrler)
+      outers.foreach(top.addCtrler)
       top.scalars(sls ++ ais)
 
       // PNodes

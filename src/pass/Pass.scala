@@ -32,7 +32,7 @@ abstract class Pass(implicit val design:Design) {
     run
   }
 
-  def run:Unit = {
+  final def run:Unit = {
     initPass
     isInit = true
     traverse
