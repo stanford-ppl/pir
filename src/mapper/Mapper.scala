@@ -13,6 +13,7 @@ import java.lang.Thread
 import scala.collection.immutable.Set
 import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Stack
 import scala.util.{Try, Success, Failure}
 import pir.exceptions._
 
@@ -22,8 +23,18 @@ trait Mapper { self =>
 
   implicit val mapper = self
   val exceptLimit:Int = -1
-  lazy val mapExceps = ListBuffer[MappingException[_]]()
-  def exceedExceptLimit = (exceptLimit > 0) && (mapExceps.size > exceptLimit)
+  lazy val excepsStack = Stack[ListBuffer[E]]()
+  def currentExceptScope = excepsStack.lastOption.getOrElse{
+    val newList = ListBuffer[E]()
+    excepsStack.push(newList)
+    newList
+  }
+  def exceedExceptLimit = {
+    (exceptLimit > 0) && (currentExceptScope.size > exceptLimit)
+  }
+  def addException(e:E) = {
+    currentExceptScope += e
+  }
 
   implicit def design:Design
   implicit def spade:Spade = design.arch
@@ -59,10 +70,16 @@ trait Mapper { self =>
       case info => (s"$info", false)
     }
     dbsln(mapper, s"$infoStr")
-    if (buffer) logger.openBuffer
+    if (buffer) {
+      logger.openBuffer
+      excepsStack.push(ListBuffer.empty)
+    }
     Try(block) match {
       case Success(m) => 
-        if (buffer) logger.closeBuffer
+        if (buffer) { 
+          logger.closeBuffer
+          excepsStack.pop
+        }
         dbeln(mapper, s"$infoStr (succeeded)")
         finPass(m); m
       case Failure(e) => 

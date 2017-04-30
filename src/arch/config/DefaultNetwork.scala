@@ -137,7 +137,7 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement) = pne.ctrlIO
 
   // switch to switch channel width
-  override lazy val sbChannelWidth = 8
+  override lazy val sbChannelWidth = 12
   //override lazy val sbChannelWidthWE = 1
   //override lazy val sbChannelWidthEW = 1
   //override lazy val sbChannelWidthNS = 1
@@ -182,7 +182,7 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // OCU to switch channel width
   override lazy val ocsbChannelWidth = 4
   // switch to OCU channel width
-  override lazy val sbocChannelWidth = 15
+  override lazy val sbocChannelWidth = 6
 
   // Top to switch channel width
   //lazy val tpsbChannelWidth = 1

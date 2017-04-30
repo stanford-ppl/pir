@@ -42,7 +42,7 @@ object Config {
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugVecRouter = debugMapper && false
   var debugScalRouter = debugMapper && false
-  var debugCtrlRouter = debugMapper && false
+  var debugCtrlRouter = debugMapper && true
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugSIMapper = debugMapper && true 
@@ -56,8 +56,6 @@ object Config {
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
   
-  val maxLastChildren = 20
-
 //plasticine {
   //sin-ucu = 4
   //stages-ucu = 4
@@ -79,4 +77,48 @@ object Config {
     genDot = false
     test = false
   }
+
+  //case class PlasticineConf(
+    //sinUcu: Int,
+    //stagesUcu: Int,
+    //sinPcu: Int,
+    //soutPcu:Int,
+    //vinPcu: Int,
+    //voutPcu: Int,
+    //regsPcu: Int,
+    //comp: Int,
+    //sinPmu: Int,
+    //soutPmu:Int,
+    //vinPmu: Int,
+    //voutPmu: Int,
+    //regsPmu: Int,
+    //rw: Int,
+    //lanes: Int
+  //)
+    //loadConfig[PlasticineConf](mergedPlasticineConf, "plasticine") match {
+      //case Right(plasticineConf) =>
+        //sIn_UCU = plasticineConf.sinUcu
+        //stages_UCU = plasticineConf.stagesUcu
+        //sIn_PCU = plasticineConf.sinPcu
+        //sOut_PCU = plasticineConf.soutPcu
+        //vIn_PCU = plasticineConf.vinPcu
+        //vOut_PCU = plasticineConf.voutPcu
+        //stages = plasticineConf.comp
+        //regs_PCU = plasticineConf.regsPcu
+        //sIn_PMU = plasticineConf.sinPmu
+        //sOut_PMU = plasticineConf.soutPmu
+        //vIn_PMU = plasticineConf.vinPmu
+        //vOut_PMU = plasticineConf.voutPmu
+        //readWrite = plasticineConf.rw
+        //regs_PMU = plasticineConf.regsPmu
+        //lanes = plasticineConf.lanes
+
+      //case Left(failures) =>
+        //error("Unable to read Plasticine configuration")
+        //error(failures.head.description)
+        //failures.tail.foreach{x => error(x.description) }
+        //sys.exit(-1)
+    //}
+  //}
+
 }

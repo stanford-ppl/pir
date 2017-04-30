@@ -30,6 +30,8 @@ trait Design extends PIRMetadata with Collector {
   override def toString = name 
 
   implicit def design: Design = this
+  val pirmeta:PIRMetadata = this
+
   val arch:Spade
   var top:Top = _
 

@@ -24,16 +24,16 @@ abstract class MappingException[M](val mapping:M)(implicit design:Design) extend
   if (mapper.exceedExceptLimit) {
     (mapper, mapping) match {
       case (mapper:VectorRouter, mapping:PIRMap) =>
-        new CUVectorDotPrinter(true)(design).print(Some(mapping))
+        new CUVectorDotPrinter(open=true, interactive=false)(design).print(Some(mapping))
       case (mapper:ScalarRouter, mapping:PIRMap) =>
-        new CUScalarDotPrinter(true)(design).print(Some(mapping))
+        new CUScalarDotPrinter(open=true, interactive=false)(design).print(Some(mapping))
       case (mapper:ControlRouter, mapping:PIRMap) =>
-        new CUCtrlDotPrinter(true)(design).print(Some(mapping))
+        new CUCtrlDotPrinter(open=true, interactive=false)(design).print(Some(mapping))
       case _ =>
     }
     throw ExceedExceptionLimit(mapper, mapping) 
   } else {
-    mapper.mapExceps += this
+    mapper.addException(this)
   }
 }
 object MappingException {
