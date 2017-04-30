@@ -6,6 +6,7 @@ import pir.pass._
 import pir.plasticine.config._
 import pir.plasticine.main._
 import pir.plasticine.graph._
+import pir.plasticine.util._
 import pir.exceptions._
 import pir.codegen._
 
@@ -21,10 +22,15 @@ class SpadeTest extends UnitTest { self =>
   "SN_4x4" should "success" taggedAs(ARCH) in {
     val design = new PIRApp { self =>
       def main(args: String*)(top:pir.graph.Top): Any = {}
-
+      implicit val spade = arch.asInstanceOf[SwitchNetwork]
       arch.config
-
-      val spade = arch.asInstanceOf[SwitchNetwork]
+      val cu = arch.pcus.head
+      info(s"${quote(cu)}.vin=${cu.vins.size}")
+      info(s"${quote(cu)}.vout=${cu.vouts.size}")
+      info(s"${quote(cu)}.cin=${cu.cins.size}")
+      info(s"${quote(cu)}.cout=${cu.couts.size}")
+      info(s"${quote(cu)}.sin=${cu.sins.size}")
+      info(s"${quote(cu)}.sout=${cu.souts.size}")
       new SpadePrinter().run
       new SpadeNetworkCodegen().run
       new SpadeParamCodegen().run

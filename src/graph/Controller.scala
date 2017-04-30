@@ -73,20 +73,15 @@ abstract class Controller(implicit design:Design) extends Node {
   def isMP = this.isInstanceOf[MemoryPipeline]
   def asCU = this.asInstanceOf[ComputeUnit]
 
-  def cloneType:Controller = {
+  def cloneType(name:String):Controller = {
+    cloneType(Some(name))
+  }
+
+  def cloneType(name:Option[String] = None):Controller = {
     val clone = this match {
-      case _:Sequential => 
-        val clone = new Sequential(Some(s"${this}_clone"))
-        clone.parent(this)
-        clone
-      case _:MetaPipeline => 
-        val clone = new MetaPipeline(Some(s"${this}_clone"))
-        clone.parent(this)
-        clone
-      case _:StreamController => 
-        val clone = new StreamController(Some(s"${this}_clone"))
-        clone.parent(this)
-        clone
+      case _:Sequential => new Sequential(Some(s"${this}_${name.getOrElse("clone")}"))
+      case _:MetaPipeline => new MetaPipeline(Some(s"${this}_${name.getOrElse("clone")}"))
+      case _:StreamController => new StreamController(Some(s"${this}_${name.getOrElse("clone")}"))
       case _ => throw PIRException(s"Cannot clone $this")
     }
     design.top.addCtrler(clone)
@@ -168,16 +163,13 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         //}
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
-      case cu if isStreaming =>
+      case cu =>
         val locals = cchains.filter{_.isLocal}
+        assert(locals.size<=1, 
+          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
         locals.headOption.getOrElse {
           addCChain(CounterChain.dummy)
         }
-      case cu if isPipelining =>
-        val locals = cchains.filter{_.isLocal}
-        assert(locals.size==1, 
-          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
-        locals.head
     }
   }
 

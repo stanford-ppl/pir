@@ -166,7 +166,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapInPort(cb.writeEn.in, pcb.writeEn.in, mp)
         mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
         mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)
-      case (cb:OCB, pcb:POCB) =>
+      case (cb:OCB, pcb:POCB) => 
         mp = mapInPort(cb.en.in, pcb.en.in, mp)
         mp = mp.setOP(cb.en.out, pcb.en.out)
       case (cb:ICB, pcb:PICB) =>
@@ -228,7 +228,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapPulserSM(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     (cu.ctrlBox, pcu.ctrlBox) match {
-      case (cb:OCB, pcb:POCB) =>
+      case (cb:OCB, pcb:POCB) if !isTailCollector(cu) =>
         mp = mp.setOP(cb.pulserSMOut, pcb.pulserSM.out)
       case _ =>
     }

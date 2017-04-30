@@ -28,13 +28,24 @@ package object util {
   }
 
   def topoSort(ctrler:Controller):List[Controller] = {
+    import ctrler.design.pirmeta._
     val list = ListBuffer[Controller]()
-    def isDepFree(cl:Controller) = {
-      cl.isHead || cl.trueConsumed.forall { csm => list.contains(csm.producer) }
+    def isAdded(cl:Controller) = list.contains(cl)
+    def isDepFree(cl:Controller) = cl match {
+      case cl if isTailCollector(cl) => true // list will be reversed
+      case cl:MemoryPipeline => isAdded(cl.mem.writer)
+      case cl:ComputeUnit if isStreaming(cl) => cl.isHead || cl.fifos.forall { 
+        case fifo if fifo.writer.asCU.parent == cl.parent => isAdded(fifo.writer)
+        case fifo => true
+      } 
+      case cl if isPipelining(cl) => cl.isHead || cl.trueConsumed.forall { 
+        case csm:SRAM => isAdded(csm.ctrler) && isAdded(csm.producer)
+        case csm => isAdded(csm.producer)
+      }
     }
     def addCtrler(cl:Controller):Unit = {
       list += cl
-      var children = cl.children
+      var children = cl.children.reverse
       while (!children.isEmpty) {
         children = children.filter { child =>
           if (isDepFree(child)) {

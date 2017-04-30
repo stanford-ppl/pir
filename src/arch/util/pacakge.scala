@@ -69,6 +69,10 @@ package object util {
     }
   }
 
+  def OCU_MAX_CIN(implicit spade:Spade) = {
+    val ocu = spade.ocus.head
+    ocu.cins.size
+  }
 
   def isHigh(v:Option[Boolean]) = v == Some(true)
   def isHigh(v:Iterable[Boolean]) = v.nonEmpty && v.head // == true

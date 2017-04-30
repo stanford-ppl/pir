@@ -22,7 +22,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   lazy val minHop = 1
   lazy val maxHop = design.arch.diameter
-  override val exceptLimit = 100
+  override val exceptLimit = 200
 
   type I<:Node
   type O<:Node
@@ -87,11 +87,11 @@ abstract class Router(implicit design:Design) extends Mapper {
     //}
     this match {
       case router:VectorRouter =>
-        new CUVectorDotPrinter(true)(design).print(Some(mp))
+        new CUVectorDotPrinter(true, true)(design).print(Some(mp))
       case router:ScalarRouter =>
-        new CUScalarDotPrinter(true)(design).print(Some(mp))
+        new CUScalarDotPrinter(true, true)(design).print(Some(mp))
       case router:ControlRouter =>
-        new CUCtrlDotPrinter(true)(design).print(Some(mp))
+        new CUCtrlDotPrinter(true, true)(design).print(Some(mp))
     }
   }
   def failPass(e:Throwable):Unit = if (debug) {
@@ -331,7 +331,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       if (remain.isEmpty) {
         dprintln(s"advanced routes:${routes.mkString("\n")}")
         dprintln(s"not tried routes:${remain.mkString("\n")}")
-        throw MappingException(this, m, s"No route available for $in of $cl(${quote(pcl)}) from $out of $fcl(${quote(pfcl)})")
+        throw MappingException(this, m, s"No route available for $in of $cl(${quote(pcl)}) from $out of $fcl(${quote(pfcl)}) triedRes.size=${triedRes.size}")
       }
       head(remain)
     }
@@ -382,7 +382,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       srcMap.map { case (out, ins) => ins.head }
     }.toList
 
-    log((info, false), ((m:M) => ()), failPass) {
+    log((info, true), ((m:M) => ()), failPass) {
       bind[R,I,M](
         allNodes=uniqueIns, 
         initMap=m, 

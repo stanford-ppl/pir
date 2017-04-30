@@ -6,6 +6,7 @@ import pir.codegen.Logger
 import pir.exceptions._
 import pir.util.misc._
 import pir.util._
+import pir.plasticine.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
@@ -27,7 +28,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       connectEnable(ctrler)
       connectMemoryControl(ctrler)
     }
-    design.top.ctrlers.foreach { ctrler =>
+    topoSort(design.top).reverse.foreach { ctrler =>
       connectChildren(ctrler)
       connectSibling(ctrler)
     }
@@ -139,16 +140,20 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
-    val lastGroups = lasts.grouped(Config.maxLastChildren).toList
+    val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
-        val clone = parent.cloneType
+        val clone = parent.cloneType("collector")
         isHead(clone) = false 
         isLast(clone) = true
-        isStreaming(clone) = isStreaming(parent)
-        isPipelining(clone) = isPipelining(parent)
+        isStreaming(clone) = isStreaming(lasts.head)
+        isPipelining(clone) = isPipelining(lasts.head)
+        isTailCollector(clone) = true
         ancestorsOf(clone) = clone :: ancestorsOf(parent)
         descendentsOf(clone) = List(clone)
+        clone.asCU.parent(parent)
+        connectDone(clone)
+        connectEnable(clone)
         clone
       }
       dprintln(s"$parent midParent:$midParent lasts:[${lasts.mkString(",")}]")
@@ -160,9 +165,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     if (midParents.size>1) connectLasts(parent, midParents)
   }
 
-  def connectChildren(ctrler:Controller) = {
-    // Token down
-    val heads = ctrler.children.filter{_.isHead}
+  def connectHeads(ctrler:Controller, heads:List[Controller]) = {
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
     heads.foreach { head =>
       (ctrler.ctrlBox, head.ctrlBox) match {
@@ -176,9 +179,56 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
           ccb.siblingAndTree.addInput(tk.out)
       }
     }
+  }
+
+  def connectChildren(ctrler:Controller) = {
+    // Token down
+    val heads = ctrler.children.filter{_.isHead}
+    connectHeads(ctrler, heads)
     // Token back
     val lasts = ctrler.children.filter{_.isLast}
     connectLasts(ctrler, lasts)
+    //emitBlock(s"$ctrler.children") {
+      //topoSort(ctrler).foreach { ctrler =>
+        //dprintln(s"$ctrler")
+      //}
+    //}
+  }
+
+  def connectToken(consumer:Controller, tk:(Any, CtrlOutPort)):Unit = {
+    val cb = consumer.ctrlBox.asInstanceOf[StageCtrlBox]
+    val (dep, token) = tk
+    val tb = cb.tokenBuffer(dep)
+    tb.inc.connect(token)
+    tb.dec.connect(cb.done.out)
+    cb.siblingAndTree.addInput(tb.out)
+  }
+
+  def connectTokens(consumer:Controller, tokens:List[(Any, CtrlOutPort)]):Unit = {
+    println(consumer.cins)
+    val tokenGroups = tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
+    val midConsumers = tokenGroups.map { tokens =>
+        val midConsumer = if (tokenGroups.size==1) consumer else {
+        val clone = consumer.cloneType("splitter")
+        isHead(clone) = false
+        isLast(clone) = false
+        isStreaming(clone) = isStreaming(consumer)
+        isPipelining(clone) = isPipelining(consumer)
+        isHeadSplitter(clone) = true
+        val _ :: ancestors = ancestorsOf(consumer)
+        ancestorsOf(clone) = clone :: ancestors
+        descendentsOf(clone) = List(clone)
+        clone.asCU.parent(consumer.asCU.parent)
+        connectDone(clone)
+        connectEnable(clone)
+        clone
+      }
+      tokens.foreach { token =>
+        connectToken(midConsumer, token)
+      }
+      midConsumer
+    }
+    if (midConsumers.size>1) connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].done.out)))
   }
 
   def connectSibling(ctrler:Controller) = {
@@ -195,22 +245,20 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
         case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
           // Token
-          cu.trueConsumed.foreach { mem =>
+          val tokens = cu.trueConsumed.flatMap { mem =>
             (mem, mem.producer) match {
-              case (mem:SRAM, producer:ComputeUnit) => 
+              case (mem:SRAM, producer:ComputeUnit) => None
                 // SRAM no need for token because handled by FIFONotEmpty
               case (mem, producer:ComputeUnit) =>
-                val tk = cb.tokenBuffer(mem)
                 if (mem.swapWrite.isConnected) {
-                  tk.inc.connect(mem.swapWrite.from)
+                  Some(mem, mem.swapWrite.from.asCtrl)
                 } else {
-                  tk.inc.connect(getDone(cu, swapWriteCC(mem)))
+                  Some(mem, getDone(cu, swapWriteCC(mem)))
                 }
-                tk.dec.connect(cb.done.out)
-                cb.siblingAndTree.addInput(tk.out)
-              case (mem, producer:Top) => // No synchronization needed
+              case (mem, producer:Top) => None // No synchronization needed
             }
           }
+          connectTokens(cu, tokens)
           cb match {
             case cb:InnerCtrlBox =>
               cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
@@ -258,6 +306,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         chainCChain(readCChainsOf(ctrler))
         chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
+      case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
+        ctrler.localCChain.inner.en.connect(cb.en.out)
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
         ctrler.localCChain.inner.en.connect(cb.en.out)
         chainCChain(compCChainsOf(ctrler))

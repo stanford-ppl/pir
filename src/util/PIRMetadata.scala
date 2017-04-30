@@ -131,5 +131,21 @@ trait PIRMetadata extends { self:Design =>
     type V = Int
   }
 
+  object isTailCollector extends MOneToOneMap {
+    type K = Node
+    type V = Boolean
+    override def apply(k:K):V = {
+      super.get(k).getOrElse(false)
+    }
+  }
+
+  object isHeadSplitter extends MOneToOneMap {
+    type K = Node
+    type V = Boolean
+    override def apply(k:K):V = {
+      super.get(k).getOrElse(false)
+    }
+  }
+
 }
 

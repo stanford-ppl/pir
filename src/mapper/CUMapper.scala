@@ -98,6 +98,11 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
             cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
           case mc:MC =>
+            val pcu = pne
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
+            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
+            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
           case cu:ICL  =>
             val pcu = pne.asInstanceOf[PCU]
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
@@ -109,21 +114,18 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
             cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
             cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
-            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pcu.couts.filter(_.isConnected))))
+            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
             cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
             cons += (("srams"	, (cu.srams, pcu.srams)))
             cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
-            cons += (("vectorInReg"	, (cu.regs.collect{case r@LoadPR(mem:VectorFIFO) => r}, pcu.regs.filter(_.is(VecInReg)))))
           case cu:OCL =>
             val pocu = pne.asInstanceOf[POCU]
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
             cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
             cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
-            cons += (("cout"	    , (cl.couts.filter(_.isConnected), pocu.ctrlIO.outs.filter(_.fanOuts.size>0))))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
             cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
-            cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pocu.regs.filter(_.is(ScalarInReg)))))
-            cons += (("vectorInReg"	, (cu.regs.collect{case r@LoadPR(mem:VectorFIFO) => r}, pocu.regs.filter(_.is(VecInReg)))))
         }
         failureInfo += pne -> ListBuffer[String]()
         check(cons.toList, failureInfo(pne))
@@ -148,7 +150,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
     implicit val spade:Spade = design.arch
-    log((s"$cl resFunc:", false)) {
+    log((s"$cl resFunc:", true)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
       dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
@@ -178,6 +180,9 @@ class CUMapper(implicit ds:Design) extends Mapper {
     dprintln(s"Datapath placement & routing ")
     val nodes = topoSort(design.top)
     val reses = design.arch.pnes
+    emitBlock(s"topoSort:") {
+      nodes.foreach{ n => dprintln(s"$n") }
+    }
     info(s"Number of cus:${nodes.size}")
     bind(
       allNodes = nodes,
