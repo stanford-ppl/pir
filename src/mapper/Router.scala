@@ -351,6 +351,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       val (curo, curi) = cure
       val nextfe = fatpath(i+1)
       nextfe.foreach { nexte =>
+        val (nexto, nexti) = nexte
         mp.fimap.get(nexto.ic).foreach { iic => 
           if (iic == curi.ic) forward(nexte, i+1, path :+ cure).foreach { path => return Some(path) }
         }
