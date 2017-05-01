@@ -1230,162 +1230,162 @@ object DotProduct extends PIRApp {
       var stage: List[Stage] = Nil
     }
     val x4536_0 = Pipeline(name="x4536_0",parent=x4795) { implicit CU => 
-      val x3851_x4527 =  VectorFIFO(size=1).wtPort(x3851_x4527_x4536_v)
-      val x3867_x4528 =  VectorFIFO(size=1).wtPort(x3867_x4528_x4536_v)
+      val x4527_x4527 =  VectorFIFO(size=1).wtPort(x3851_x4527_x4536_v)
+      val x4528_x4528 =  VectorFIFO(size=1).wtPort(x3867_x4528_x4536_v)
       val ctr99 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4525 = CounterChain(name = "x4525", ctr99)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3851_x4527), CU.load(x3867_x4528)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4527_x4527), CU.load(x4528_x4528)), op=FixMul, results=List(CU.reduce))
       val (_, rr3864) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3864), op=Bypass, results=List(CU.scalarOut(x4508_x4534_s)))
     }
     val x4549_0 = Pipeline(name="x4549_0",parent=x4795) { implicit CU => 
-      val x3868_x4541 =  VectorFIFO(size=1).wtPort(x3868_x4541_x4549_v)
-      val x3852_x4540 =  VectorFIFO(size=1).wtPort(x3852_x4540_x4549_v)
+      val x4541_x4541 =  VectorFIFO(size=1).wtPort(x3868_x4541_x4549_v)
+      val x4540_x4540 =  VectorFIFO(size=1).wtPort(x3852_x4540_x4549_v)
       val ctr100 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4538 = CounterChain(name = "x4538", ctr100)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3852_x4540), CU.load(x3868_x4541)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4540_x4540), CU.load(x4541_x4541)), op=FixMul, results=List(CU.reduce))
       val (_, rr3869) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3869), op=Bypass, results=List(CU.scalarOut(x4509_x4547_s)))
     }
     val x4562_0 = Pipeline(name="x4562_0",parent=x4795) { implicit CU => 
-      val x3869_x4554 =  VectorFIFO(size=1).wtPort(x3869_x4554_x4562_v)
-      val x3853_x4553 =  VectorFIFO(size=1).wtPort(x3853_x4553_x4562_v)
+      val x4554_x4554 =  VectorFIFO(size=1).wtPort(x3869_x4554_x4562_v)
+      val x4553_x4553 =  VectorFIFO(size=1).wtPort(x3853_x4553_x4562_v)
       val ctr101 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4551 = CounterChain(name = "x4551", ctr101)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3853_x4553), CU.load(x3869_x4554)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4553_x4553), CU.load(x4554_x4554)), op=FixMul, results=List(CU.reduce))
       val (_, rr3874) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3874), op=Bypass, results=List(CU.scalarOut(x4510_x4560_s)))
     }
     val x4575_0 = Pipeline(name="x4575_0",parent=x4795) { implicit CU => 
-      val x3854_x4566 =  VectorFIFO(size=1).wtPort(x3854_x4566_x4575_v)
-      val x3870_x4567 =  VectorFIFO(size=1).wtPort(x3870_x4567_x4575_v)
+      val x4566_x4566 =  VectorFIFO(size=1).wtPort(x3854_x4566_x4575_v)
+      val x4567_x4567 =  VectorFIFO(size=1).wtPort(x3870_x4567_x4575_v)
       val ctr102 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4564 = CounterChain(name = "x4564", ctr102)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3854_x4566), CU.load(x3870_x4567)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4566_x4566), CU.load(x4567_x4567)), op=FixMul, results=List(CU.reduce))
       val (_, rr3879) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3879), op=Bypass, results=List(CU.scalarOut(x4511_x4573_s)))
     }
     val x4588_0 = Pipeline(name="x4588_0",parent=x4795) { implicit CU => 
-      val x3871_x4580 =  VectorFIFO(size=1).wtPort(x3871_x4580_x4588_v)
-      val x3855_x4579 =  VectorFIFO(size=1).wtPort(x3855_x4579_x4588_v)
+      val x4580_x4580 =  VectorFIFO(size=1).wtPort(x3871_x4580_x4588_v)
+      val x4579_x4579 =  VectorFIFO(size=1).wtPort(x3855_x4579_x4588_v)
       val ctr103 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4577 = CounterChain(name = "x4577", ctr103)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3855_x4579), CU.load(x3871_x4580)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4579_x4579), CU.load(x4580_x4580)), op=FixMul, results=List(CU.reduce))
       val (_, rr3884) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3884), op=Bypass, results=List(CU.scalarOut(x4512_x4586_s)))
     }
     val x4601_0 = Pipeline(name="x4601_0",parent=x4795) { implicit CU => 
-      val x3872_x4593 =  VectorFIFO(size=1).wtPort(x3872_x4593_x4601_v)
-      val x3856_x4592 =  VectorFIFO(size=1).wtPort(x3856_x4592_x4601_v)
+      val x4593_x4593 =  VectorFIFO(size=1).wtPort(x3872_x4593_x4601_v)
+      val x4592_x4592 =  VectorFIFO(size=1).wtPort(x3856_x4592_x4601_v)
       val ctr104 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4590 = CounterChain(name = "x4590", ctr104)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3856_x4592), CU.load(x3872_x4593)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4592_x4592), CU.load(x4593_x4593)), op=FixMul, results=List(CU.reduce))
       val (_, rr3889) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3889), op=Bypass, results=List(CU.scalarOut(x4513_x4599_s)))
     }
     val x4614_0 = Pipeline(name="x4614_0",parent=x4795) { implicit CU => 
-      val x3857_x4605 =  VectorFIFO(size=1).wtPort(x3857_x4605_x4614_v)
-      val x3873_x4606 =  VectorFIFO(size=1).wtPort(x3873_x4606_x4614_v)
+      val x4605_x4605 =  VectorFIFO(size=1).wtPort(x3857_x4605_x4614_v)
+      val x4606_x4606 =  VectorFIFO(size=1).wtPort(x3873_x4606_x4614_v)
       val ctr105 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4603 = CounterChain(name = "x4603", ctr105)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3857_x4605), CU.load(x3873_x4606)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4605_x4605), CU.load(x4606_x4606)), op=FixMul, results=List(CU.reduce))
       val (_, rr3894) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3894), op=Bypass, results=List(CU.scalarOut(x4514_x4612_s)))
     }
     val x4627_0 = Pipeline(name="x4627_0",parent=x4795) { implicit CU => 
-      val x3874_x4619 =  VectorFIFO(size=1).wtPort(x3874_x4619_x4627_v)
-      val x3858_x4618 =  VectorFIFO(size=1).wtPort(x3858_x4618_x4627_v)
+      val x4619_x4619 =  VectorFIFO(size=1).wtPort(x3874_x4619_x4627_v)
+      val x4618_x4618 =  VectorFIFO(size=1).wtPort(x3858_x4618_x4627_v)
       val ctr106 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4616 = CounterChain(name = "x4616", ctr106)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3858_x4618), CU.load(x3874_x4619)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4618_x4618), CU.load(x4619_x4619)), op=FixMul, results=List(CU.reduce))
       val (_, rr3899) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3899), op=Bypass, results=List(CU.scalarOut(x4515_x4625_s)))
     }
     val x4640_0 = Pipeline(name="x4640_0",parent=x4795) { implicit CU => 
-      val x3875_x4632 =  VectorFIFO(size=1).wtPort(x3875_x4632_x4640_v)
-      val x3859_x4631 =  VectorFIFO(size=1).wtPort(x3859_x4631_x4640_v)
+      val x4632_x4632 =  VectorFIFO(size=1).wtPort(x3875_x4632_x4640_v)
+      val x4631_x4631 =  VectorFIFO(size=1).wtPort(x3859_x4631_x4640_v)
       val ctr107 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4629 = CounterChain(name = "x4629", ctr107)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3859_x4631), CU.load(x3875_x4632)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4631_x4631), CU.load(x4632_x4632)), op=FixMul, results=List(CU.reduce))
       val (_, rr3904) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3904), op=Bypass, results=List(CU.scalarOut(x4516_x4638_s)))
     }
     val x4653_0 = Pipeline(name="x4653_0",parent=x4795) { implicit CU => 
-      val x3860_x4644 =  VectorFIFO(size=1).wtPort(x3860_x4644_x4653_v)
-      val x3876_x4645 =  VectorFIFO(size=1).wtPort(x3876_x4645_x4653_v)
+      val x4644_x4644 =  VectorFIFO(size=1).wtPort(x3860_x4644_x4653_v)
+      val x4645_x4645 =  VectorFIFO(size=1).wtPort(x3876_x4645_x4653_v)
       val ctr108 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4642 = CounterChain(name = "x4642", ctr108)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3860_x4644), CU.load(x3876_x4645)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4644_x4644), CU.load(x4645_x4645)), op=FixMul, results=List(CU.reduce))
       val (_, rr3909) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3909), op=Bypass, results=List(CU.scalarOut(x4517_x4651_s)))
     }
     val x4666_0 = Pipeline(name="x4666_0",parent=x4795) { implicit CU => 
-      val x3877_x4658 =  VectorFIFO(size=1).wtPort(x3877_x4658_x4666_v)
-      val x3861_x4657 =  VectorFIFO(size=1).wtPort(x3861_x4657_x4666_v)
+      val x4658_x4658 =  VectorFIFO(size=1).wtPort(x3877_x4658_x4666_v)
+      val x4657_x4657 =  VectorFIFO(size=1).wtPort(x3861_x4657_x4666_v)
       val ctr109 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4655 = CounterChain(name = "x4655", ctr109)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3861_x4657), CU.load(x3877_x4658)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4657_x4657), CU.load(x4658_x4658)), op=FixMul, results=List(CU.reduce))
       val (_, rr3914) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3914), op=Bypass, results=List(CU.scalarOut(x4518_x4664_s)))
     }
     val x4679_0 = Pipeline(name="x4679_0",parent=x4795) { implicit CU => 
-      val x3878_x4671 =  VectorFIFO(size=1).wtPort(x3878_x4671_x4679_v)
-      val x3862_x4670 =  VectorFIFO(size=1).wtPort(x3862_x4670_x4679_v)
+      val x4670_x4670 =  VectorFIFO(size=1).wtPort(x3862_x4670_x4679_v)
+      val x4671_x4671 =  VectorFIFO(size=1).wtPort(x3878_x4671_x4679_v)
       val ctr110 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4668 = CounterChain(name = "x4668", ctr110)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3862_x4670), CU.load(x3878_x4671)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4670_x4670), CU.load(x4671_x4671)), op=FixMul, results=List(CU.reduce))
       val (_, rr3919) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3919), op=Bypass, results=List(CU.scalarOut(x4519_x4677_s)))
     }
     val x4692_0 = Pipeline(name="x4692_0",parent=x4795) { implicit CU => 
-      val x3863_x4683 =  VectorFIFO(size=1).wtPort(x3863_x4683_x4692_v)
-      val x3879_x4684 =  VectorFIFO(size=1).wtPort(x3879_x4684_x4692_v)
+      val x4684_x4684 =  VectorFIFO(size=1).wtPort(x3879_x4684_x4692_v)
+      val x4683_x4683 =  VectorFIFO(size=1).wtPort(x3863_x4683_x4692_v)
       val ctr111 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4681 = CounterChain(name = "x4681", ctr111)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3863_x4683), CU.load(x3879_x4684)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4683_x4683), CU.load(x4684_x4684)), op=FixMul, results=List(CU.reduce))
       val (_, rr3924) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3924), op=Bypass, results=List(CU.scalarOut(x4520_x4690_s)))
     }
     val x4705_0 = Pipeline(name="x4705_0",parent=x4795) { implicit CU => 
-      val x3880_x4697 =  VectorFIFO(size=1).wtPort(x3880_x4697_x4705_v)
-      val x3864_x4696 =  VectorFIFO(size=1).wtPort(x3864_x4696_x4705_v)
+      val x4697_x4697 =  VectorFIFO(size=1).wtPort(x3880_x4697_x4705_v)
+      val x4696_x4696 =  VectorFIFO(size=1).wtPort(x3864_x4696_x4705_v)
       val ctr112 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4694 = CounterChain(name = "x4694", ctr112)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3864_x4696), CU.load(x3880_x4697)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4696_x4696), CU.load(x4697_x4697)), op=FixMul, results=List(CU.reduce))
       val (_, rr3929) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3929), op=Bypass, results=List(CU.scalarOut(x4521_x4703_s)))
     }
     val x4718_0 = Pipeline(name="x4718_0",parent=x4795) { implicit CU => 
-      val x3881_x4710 =  VectorFIFO(size=1).wtPort(x3881_x4710_x4718_v)
-      val x3865_x4709 =  VectorFIFO(size=1).wtPort(x3865_x4709_x4718_v)
+      val x4709_x4709 =  VectorFIFO(size=1).wtPort(x3865_x4709_x4718_v)
+      val x4710_x4710 =  VectorFIFO(size=1).wtPort(x3881_x4710_x4718_v)
       val ctr113 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4707 = CounterChain(name = "x4707", ctr113)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3865_x4709), CU.load(x3881_x4710)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4709_x4709), CU.load(x4710_x4710)), op=FixMul, results=List(CU.reduce))
       val (_, rr3934) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3934), op=Bypass, results=List(CU.scalarOut(x4522_x4716_s)))
     }
     val x4731_0 = Pipeline(name="x4731_0",parent=x4795) { implicit CU => 
-      val x3866_x4722 =  VectorFIFO(size=1).wtPort(x3866_x4722_x4731_v)
-      val x3882_x4723 =  VectorFIFO(size=1).wtPort(x3882_x4723_x4731_v)
+      val x4723_x4723 =  VectorFIFO(size=1).wtPort(x3882_x4723_x4731_v)
+      val x4722_x4722 =  VectorFIFO(size=1).wtPort(x3866_x4722_x4731_v)
       val ctr114 = Counter(min=Const(0), max=Const(320), step=Const(1), par=16) // Counter
       val x4720 = CounterChain(name = "x4720", ctr114)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x3866_x4722), CU.load(x3882_x4723)), op=FixMul, results=List(CU.reduce))
+      Stage(operands=List(CU.load(x4722_x4722), CU.load(x4723_x4723)), op=FixMul, results=List(CU.reduce))
       val (_, rr3939) = Stage.reduce(op=FixAdd, init=Const(0))
       Stage(operands=List(rr3939), op=Bypass, results=List(CU.scalarOut(x4523_x4729_s)))
     }
