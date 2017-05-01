@@ -43,6 +43,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     } else {
       cchain.ctrler.ctrlBox match {
         case cb:StageCtrlBox => cb.done.out
+        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
+        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
       }
     }
   }
@@ -64,8 +66,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     //}
   //}
 
+  def swapReadCC(mem:MultiBuffering) = {
+    mem.consumer match {
+      case cu:MemoryPipeline => readCChainsOf(cu).last
+      case cu:ComputeUnit => cu.localCChain
+    }
+  }
+
   def swapWriteCC(mem:MultiBuffering) = {
-    mem.producer.asInstanceOf[ComputeUnit].localCChain
+    mem.producer match {
+      case cu:MemoryPipeline => writeCChainsOf(cu).last
+      case cu:ComputeUnit => cu.localCChain
+    }
   }
 
   def connectMemoryControl(ctrler:Controller) = ctrler match {
@@ -331,7 +343,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        val readDone = getDone(ctrler, ctrler.mem.consumer.asInstanceOf[ComputeUnit].localCChain)
+        val readDone = getDone(ctrler, swapReadCC(ctrler.mem))
         cb.readDone.in.connect(readDone)
         val writeDone = getDone(ctrler, swapWriteCC(ctrler.mem))
         cb.writeDone.in.connect(writeDone)

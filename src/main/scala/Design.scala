@@ -53,7 +53,7 @@ trait Design extends PIRMetadata with Collector {
   val controlAnalyzer = new ControlAnalyzer()
   val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
   val multiBufferAnalyzer = new MultiBufferAnalyzer() 
-  val fusionTransform = new FusionTransform()
+  val fusionTransform = new FusionTransform() { override def shouldRun = false } //TODO fix this
   val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val memoryAnalyzer = new MemoryAnalyzer()
   val accessAnalyzer = new AccessAnalyzer()
@@ -63,7 +63,7 @@ trait Design extends PIRMetadata with Collector {
   val pirPrinter2 = new PIRPrinter("PIR2.log") 
   val pirPrinter3 = new PIRPrinter("PIR3.log") 
   val pirPrinter = new PIRPrinter()
-  val irCheck = new IRCheck()
+  val irCheck = new IRCheck() { override def shouldRun = false } //TODO fix kmeanas
   val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")

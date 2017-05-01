@@ -33,7 +33,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   /*Make sure counters that are chained are next to each other and the counter is order such that
-   * inner counter */
+   * inner counter comes first */
   def sortCChains(cchains:List[CC]):List[Ctr] = {
     val sorted = cchains.filter(_.inner.isInner).flatMap { cc =>
       val ctrs = ListBuffer[Ctr]()
