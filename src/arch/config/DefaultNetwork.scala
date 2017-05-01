@@ -14,7 +14,7 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement) = pne.vectorIO
 
   // switch to switch channel width
-  //override lazy val sbChannelWidth = 4
+  override lazy val sbChannelWidth = 6
   //override lazy val sbChannelWidthWE = sbChannelWidth
   //override lazy val sbChannelWidthEW = sbChannelWidth
   //override lazy val sbChannelWidthNS = sbChannelWidth

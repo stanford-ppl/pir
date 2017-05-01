@@ -11,6 +11,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
 class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
+  import pirmeta._
   def shouldRun = true 
 
   override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
@@ -25,15 +26,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffering):Unit = {
-    if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
-    val reader = buf.reader
-    val writer = buf.writer
-    reader match {
-      case mp:MemoryPipeline => setProducerConsumer(mp, mp.mem)
-      case _ =>
-    }
-    val lca = leastCommonAncestor(reader, writer)
+  def findProducerConsumer(reader:Controller, writer:Controller, lca:Controller):Option[(Controller, Controller)] = {
     val producers = writer.ancestors.intersect(lca.children)
     val consumers = reader.ancestors.intersect(lca.children)
     val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
@@ -41,12 +34,36 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     } else {
       (producers.head, consumers.head)
     }
+    if (isStreaming(producer) || isStreaming(consumer))
+      None
+    else Some((producer, consumer))
+  }
+
+  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffering):Unit = {
+    if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
+    val readers = buf.readers
+    val writer = buf.writer
+    readers.foreach { reader =>
+      reader match {
+        case mp:MemoryPipeline => setProducerConsumer(mp, mp.mem)
+        case _ =>
+      }
+    }
+    val reader = readers.head //HACK TODO multiple reader should happen only after splitting. shouldn't change control
+    var lca = leastCommonAncestor(reader, writer)
+    var pc = findProducerConsumer(reader, writer, lca)
+    while (pc.isEmpty) {
+      lca = lca.asCU.parent
+      pc = findProducerConsumer(reader, writer, lca)
+    }
+    val (producer, consumer) = pc.get
+
     buf.producer(producer)
     buf.consumer(consumer, true) // detect back edge later
     dprintln(s"$cu parent:$lca")
     dprintln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
     dprintln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
-    dprintln(s"$buf lca: $lca lca.children:${lca.children} producers:$producers consumers:$consumers")
+    dprintln(s"$buf lca: $lca lca.children:${lca.children}")
     dprintln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
   }
 

@@ -29,8 +29,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       connectMemoryControl(ctrler)
     }
     topoSort(design.top).reverse.foreach { ctrler =>
-      connectChildren(ctrler)
       connectSibling(ctrler)
+      connectChildren(ctrler)
     }
   } 
 
@@ -140,7 +140,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
-    val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
+    val lastGroups = if (lasts.size==0) Nil else lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
         val clone = parent.cloneType("collector")
@@ -205,8 +205,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectTokens(consumer:Controller, tokens:List[(Any, CtrlOutPort)]):Unit = {
-    println(consumer.cins)
-    val tokenGroups = tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
+    val tokenGroups = if (tokens.size==0) Nil else tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
     val midConsumers = tokenGroups.map { tokens =>
         val midConsumer = if (tokenGroups.size==1) consumer else {
         val clone = consumer.cloneType("splitter")

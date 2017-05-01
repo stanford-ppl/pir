@@ -32,7 +32,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def load = readPort
 
   def writer:Controller = writerOf(this)
-  def reader:Controller = readerOf(this)
+  def readers:List[Controller] = readersOf(this)
   def isVFifo = this.isInstanceOf[VectorFIFO]
   def isSFifo = this.isInstanceOf[ScalarFIFO]
   def asVFifo = this.asInstanceOf[VectorFIFO]
@@ -123,14 +123,16 @@ trait MultiBuffering extends OnChipMem {
   val swapRead = CtrlInPort(this, s"$this.swapRead")
   val swapWrite = CtrlInPort(this, s"$this.swapWrite")
 }
-trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
+trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
 }
 
 trait LocalMem extends OnChipMem {
-  override def reader:Controller = {
-    this.ctrler
+  def reader:Controller = {
+    val readers = super.readers
+    assert(readers.size==1, s"local mem should only have 1 reader, ${this}, ${readers}")
+    readers.head
   }
 }
 trait RemoteMem extends OnChipMem { self:VectorMem =>
@@ -178,7 +180,7 @@ object SemiFIFO {
 }
 
 class VectorFIFO(val name: Option[String], val size: Int)(implicit ctrler:ComputeUnit, design: Design) 
-  extends VectorMem with LocalMem with FIFO {
+  extends VectorMem with FIFO {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {

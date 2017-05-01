@@ -91,9 +91,9 @@ trait PIRMetadata extends { self:Design =>
     type V = Controller
   }
 
-  object readerOf extends MOneToOneMap {
+  object readersOf extends MOneToOneMap {
     type K = OnChipMem 
-    type V = Controller
+    type V = List[Controller]
   }
 
   object readCChainsOf extends MOneToOneMap {
