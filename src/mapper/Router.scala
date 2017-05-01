@@ -344,7 +344,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   //}
 
   // More optimized version. Prioritize reuse
-  def slimDown(fatpath:FatPath[FEdge], mp:PIRMap):Option[Path[FEdge]] = logger.emitBlock("slimDown") {
+  def slimDown(fatpath:FatPath[FEdge], mp:PIRMap):Option[Path[FEdge]] = {
     val length = fatpath.size 
     def forward(cure:FEdge, i:Int, path:Path[FEdge]):Option[Path[FEdge]] = {
       if (i==length-1) return Some(path :+ cure)

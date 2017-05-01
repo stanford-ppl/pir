@@ -129,7 +129,15 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
   def getCopy(cchain:CounterChain):CounterChain = {
-    cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
+    val copy = CounterChain.copy(cchain.original)(this, design)
+    assert(cchainMap.contains(copy.original))
+    copy
+  }
+
+  def cloneCC(cchain:CounterChain):CounterChain = {
+    val clone = CounterChain.clone(cchain.original)(this, design)
+    assert(cchainMap.contains(clone.original))
+    clone
   }
 
   def containsCopy(cchain:CounterChain):Boolean = {

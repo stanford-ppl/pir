@@ -18,6 +18,7 @@ object PIRBuild extends Build {
     libraryDependencies += "org.scala-lang" % "scala-library" % "2.11.5", 
     libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.11.5",
     libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.2",
+    libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
 
     retrieveManaged := true,
     javaOptions in (Test) += "-Xdebug",

@@ -36,7 +36,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
    * */
   def isCopy = copy.isDefined
   def isDummy = counters.forall{_.isInstanceOf[DummyCounter]}
-  def isLocal = !isCopy
+  def isLocal = !isCopy && (!inner.en.isConnected || !inner.en.from.src.isInstanceOf[Counter])
     
   /*
    * Whether CounterChain is not a copy or is a copy and has been updated
@@ -82,15 +82,23 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   }
 
   def copy(cp:CounterChain):Unit = {
-    // Check whether speculative wire allocation was correct
-    assert(counters.size <= cp.counters.size, 
-      s"Accessed counter ${counters.size-1} of ${this} is out of bound")
-    assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
-    val addiCtrs = List.fill(cp.counters.size-counters.size)(Counter(this))
-    addCounters(addiCtrs)
-    counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
+    assert(!cp.isCopy, s"Can only clone original CounterChain. Target ${cp} is a clone of ${cp.original}")
     this.setCopy(cp)
-    ctrler.addCChain(this)
+    clone(cp)
+  }
+
+  def clone(cc:CounterChain):Unit = {
+    if (cc.isCopy) {
+      clone(cc.original)
+    } else {
+      // Check whether speculative wire allocation was correct
+      assert(counters.size <= cc.counters.size, 
+        s"Accessed counter ${counters.size-1} of ${this} is out of bound")
+      val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
+      addCounters(addiCtrs)
+      counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
+      ctrler.addCChain(this)
+    }
   }
 
 }
@@ -124,6 +132,11 @@ object CounterChain {
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
     val cc = CounterChain(Some(s"${from}_copy"))
     cc.copy(from)
+    cc
+  }
+  def clone(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    val cc = CounterChain(from.name)
+    cc.clone(from)
     cc
   }
   def dummy(implicit ctrler:ComputeUnit, design: Design) = {
