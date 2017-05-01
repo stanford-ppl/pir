@@ -253,28 +253,35 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def filterUsedPaths(in:I, out:O, fatpath:FatPath[FEdge], map:PIRMap):Option[FatPath[FEdge]] = {
       // If out is already placed, use the mapped pout if possible. Otherwise use an unused pout
-      val pouts = map.vomap.get(out)
-      val filteredFatpath = fatpath.map { fe => // Find fatpath that has empty fatEdge after filter
-        var fatedge = fe
-        val feOutNotUsed = fatedge.filterNot{ case (po, pi) => map.vomap.pmap.contains(po)}
-        fatedge = pouts.fold(feOutNotUsed) { pouts =>
-          val feOutReused = fatedge.filter { case (po, pi) => pouts.contains(po) }
-          if (!feOutReused.isEmpty) feOutReused else feOutNotUsed
-        }
-        fatedge = fatedge.filter { case (po, pi) => 
-          map.vimap.pmap.get(pi).fold(true) { ins => from(ins.head.asInstanceOf[I])==from(in) }
-        }
-        fatedge = fatedge.filterNot { case (po, pi) => // available edges
+      //val pouts = map.vomap.get(out)
+      val filteredFatpath = fatpath.map { fatedge => // Find fatpath that has empty fatEdge after filter
+        //val feOutNotUsed = fatedge.filterNot{ case (po, pi) => map.vomap.pmap.contains(po)}
+        //fatedge = pouts.fold(feOutNotUsed) { pouts =>
+          //val feOutReused = fatedge.filter { case (po, pi) => pouts.contains(po) }
+          //if (!feOutReused.isEmpty) feOutReused else feOutNotUsed
+        //}
+        fatedge.filter { e => 
+          val edge:FEdge = e
+          val (po, pi) = edge
+          val pomk = map.mkmap.get(po)
+          val pimk = map.mkmap.get(pi)
+          val edgeMatch = pomk.fold(true) { _ == out } && pimk.fold(true) { _ == in }
+          dprintln(!edgeMatch, s"${quote(edge)} not match outMarker=${pomk} inMarker=${pimk}")
+          val ins = map.vimap.pmap.get(pi)
+          val inputSrcMatch = ins.fold(true) { ins => from(ins.head.asInstanceOf[I]) == out }
+          dprintln(!inputSrcMatch, s"${quote(edge)} not match input source vimap=${ins}")
           val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
-          val switchTaken = {
-            if (po.src.isInstanceOf[PSB]) {  // Check switch box
-              map.fimap.contains(po.ic) // Conservative here
-            } else false
+          dprintln(edgeTaken, s"${quote(edge)} edge is taken")
+          val switchTaken = map.fimap.get(po.ic).fold(false) { piic =>  // check whether marker of the switch is the same
+            map.mkmap.get(piic.src.asInstanceOf[PGI[PModule]]).fold(false) { _ == out }
           }
-          val invalid = edgeTaken || switchTaken
-          invalid
+            //if (po.src.isInstanceOf[PSB]) {  // Check switch box
+              //map.fimap.contains(po.ic) // Conservative here
+            //} else false
+          //}
+          dprintln(switchTaken, s"$po's switch is taken ${pi}")
+          edgeMatch && inputSrcMatch && !edgeTaken && !switchTaken
         }
-        fatedge
       }
       if (isFatPathValid(filteredFatpath)) Some(filteredFatpath) else {
         dprintln(s"fatpath:\n${quote(fatpath)}")
@@ -290,10 +297,82 @@ abstract class Router(implicit design:Design) extends Mapper {
     //head(available)
   //}
 
-  def head(fatpaths:FatPaths[FEdge]):Paths[FEdge] = {
-    fatpaths.map { case (reachedCU, fatpath) =>
-      (reachedCU, fatpath.map{ fatedge => fatedge.head }) // For any fatpath, pick the first avalable edge
+  // Not generalized to optimized switch taken
+  //def slimDown(fatpath:FatPath[FEdge], mp):Path[FEdge] = {
+  //  fatpath.map{ fatedge => fatedge.head } // For any fatpath, pick the first avalable edge
+  //}
+
+  // Too Slow for control network with extremely fatpath
+  //def slimDown(fatpath:FatPath[FEdge], mp:PIRMap):Option[Path[FEdge]] = log("slimDown") {
+    //val hfedge::rfedges = fatpath
+    //val paths = ListBuffer[Path[FEdge]]()
+    //paths ++= hfedge.map(e => List(e))
+    //rfedges.map { fedge =>
+      //val prepaths = paths.toList
+      //paths.clear
+      //prepaths.foreach { p =>
+        //val (prevo, previ) = p.last
+        //fedge.foreach { case e@(curo, curi) =>
+          //if (mp.fimap.get(curo.ic).fold(true) { _ == previ.ic }) {
+            //paths += p :+ e 
+          //}
+        //}
+      //}
+    //}
+    //paths.headOption
+  //}
+
+  // Faster version. No need to find all posibility before return. Find one directly return
+  //def slimDown(fatpath:FatPath[FEdge], mp:PIRMap):Option[Path[FEdge]] = log("slimDown") {
+    //val length = fatpath.size 
+    //def forward(cure:FEdge, i:Int, path:Path[FEdge]):Option[Path[FEdge]] = {
+      //if (i==length-1) return Some(path :+ cure)
+      //val (curo, curi) = cure
+      //val nextfe = fatpath(i+1)
+      //nextfe.foreach { nexte =>
+        //val (nexto, nexti) = nexte
+        //if (mp.fimap.get(nexto.ic).fold(true) { _ == curi.ic } ) {
+          //forward(nexte, i+1, path :+ cure).foreach { path => return Some(path) }
+        //}
+      //}
+      //return None
+    //}
+    //fatpath.head.foreach { cure =>
+      //forward(cure, 0, Nil).foreach { path => return Some(path) }
+    //}
+    //return None
+  //}
+
+  // More optimized version. Prioritize reuse
+  def slimDown(fatpath:FatPath[FEdge], mp:PIRMap):Option[Path[FEdge]] = logger.emitBlock("slimDown") {
+    val length = fatpath.size 
+    def forward(cure:FEdge, i:Int, path:Path[FEdge]):Option[Path[FEdge]] = {
+      if (i==length-1) return Some(path :+ cure)
+      val (curo, curi) = cure
+      val nextfe = fatpath(i+1)
+      nextfe.foreach { nexte =>
+        mp.fimap.get(nexto.ic).foreach { iic => 
+          if (iic == curi.ic) forward(nexte, i+1, path :+ cure).foreach { path => return Some(path) }
+        }
+      }
+      nextfe.foreach { nexte =>
+        val (nexto, nexti) = nexte
+        if (!mp.fimap.contains(nexto.ic)) forward(nexte, i+1, path :+ cure).foreach { path => return Some(path) }
+      }
+      return None
     }
+    fatpath.head.foreach { cure =>
+      forward(cure, 0, Nil).foreach { path => return Some(path) }
+    }
+    return None
+  }
+
+  def slimDown(fatpaths:FatPaths[FEdge], mp:M):Paths[FEdge] = {
+    val paths:Paths[FEdge] = fatpaths.flatMap { case (reachedCU, fatpath) =>
+      slimDown(fatpath, mp).map{ path => (reachedCU, path) }
+    }
+    if (paths.isEmpty) throw MappingException(this, mp, s"No valid connected path available")
+    else paths
   }
 
   def isFatPathValid(fatpath:FatPath[FEdge]) = { !fatpath.exists{_.size==0} }
@@ -305,18 +384,20 @@ abstract class Router(implicit design:Design) extends Mapper {
     val fcl = ctrler(from(in))
     val pfcl = m.clmap(fcl)
     def validCons(reached:PCL, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
-      val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
-      var valid = true
-      val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
-      valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
-      filtered
+      //val header = s"validCons(reached:$reached, fatpath:${fatpath.size})"
+      //var valid = true
+      //val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
+      //valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
+      //filtered
+      Some(fatpath)
     }
     def advanceCons(psb:PSB, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
-      val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
-      var valid = true
-      val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
-      valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
-      filtered
+      //val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
+      //var valid = true
+      //val filtered = if (valid) filterUsedPaths(in, out, fatpath, m) else None
+      //valid = logCond(header, valid, filtered.nonEmpty, s"fatpath ${fatpath.size} all used")
+      //filtered
+      Some(fatpath)
     }
     log((s"$in resFunc", true), (r:Paths[FEdge]) => (), failPass) {
       val routes = fwdAdvance(
@@ -327,13 +408,14 @@ abstract class Router(implicit design:Design) extends Mapper {
         minHop=minHop,
         maxHop=maxHop
       )
-      val remain = routes.diff(triedRes)
+      var remain = routes.flatMap { case (pcl, fp) => filterUsedPaths(in, out, fp, m).map( fp => (pcl, fp)) }
+      remain = remain.diff(triedRes)
       if (remain.isEmpty) {
         dprintln(s"advanced routes:${routes.mkString("\n")}")
         dprintln(s"not tried routes:${remain.mkString("\n")}")
         throw MappingException(this, m, s"No route available for $in of $cl(${quote(pcl)}) from $out of $fcl(${quote(pfcl)}) triedRes.size=${triedRes.size}")
       }
-      head(remain)
+      slimDown(remain, m)
     }
     //val froutes = filterUsedFatMaps(in, out, routes, m)
     //if (froutes.isEmpty) { breakPoint(m, s"resFunc: $in of $fcl -> routes:${routes.size} froutes:${froutes.size}") }
@@ -352,12 +434,14 @@ abstract class Router(implicit design:Design) extends Mapper {
         val (reachedCU, path) = r
         val pin = path.last._2
         val pout = path.head._1
-        sameSrcMap(ctrler(n))(from(n)).foreach { n =>
-          mp = mp.setVI(n, pin).setVO(from(n), pout).setRT(n, path.size)
-          n match {
-            case n:VI => mp = mp.setOP(n.out, pin.ic)
-            case n:SI => mp = mp.setOP(n.out, pin.ic)
-            case n =>
+        val in = n
+        val out = from(n)
+        sameSrcMap(ctrler(in))(out).foreach { in =>
+          mp = mp.setVI(in, pin).setVO(out, pout).setRT(in, path.size).setMK(pout, out).setMK(pin, out)
+          in match {
+            case in:VI => mp = mp.setOP(in.out, pin.ic)
+            case in:SI => mp = mp.setOP(in.out, pin.ic)
+            case in =>
           }
           //One from(n) may map to multiple pout. but ipmap is not a one to many map
           //from(n) match {

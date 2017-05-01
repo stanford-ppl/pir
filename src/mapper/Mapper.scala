@@ -50,6 +50,7 @@ trait Mapper { self =>
   def debug = Config.debugMapper
   def dprintln(s:Any):Unit = logger.dprintln(debug, s"$this", s)
   def dprint(s:Any):Unit = logger.dprint(debug, s"$this", s)
+  def dprintln(p:Boolean, s:Any):Unit = logger.dprint(p && debug, s"$this", s)
   def dprintln(mapper:Mapper, s:Any):Unit = logger.dprintln(debug, s"$mapper", s)
   def dprintln(header:String, s:Any):Unit = logger.dprintln(header, s) 
   def dbsln(mapper:Mapper, s:Any):Unit = logger.dbsln(debug, Some(s"$mapper"), s) 

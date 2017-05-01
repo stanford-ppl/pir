@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 import scala.language.existentials
 
 case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, 
-  smmap:SMMap, ctmap:CTMap,
+  mkmap:MKMap, smmap:SMMap, ctmap:CTMap,
   fimap:FIMap, rcmap:RCMap, stmap:STMap, 
   ipmap:IPMap, opmap:OPMap, pmmap:PMMap, rtmap:RTMap
   ) {
@@ -26,22 +26,24 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   //ucmap.pirMap = this
   //pmmap.pirMap = this
 
-  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:VOMap):PIRMap = PIRMap(clmap, vimap, cp   , smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, vomap, cp   , ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, cp   , fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:FIMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, cp   , rcmap, stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, cp   , stmap, ipmap, opmap, pmmap, rtmap)
-  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, cp   , ipmap, opmap, pmmap, rtmap)
-  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, cp   , opmap, pmmap, rtmap)
-  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, cp   , pmmap, rtmap)
-  def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, cp   , rtmap)
-  def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, cp   )
+  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:VOMap):PIRMap = PIRMap(clmap, vimap, cp   , mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:MKMap):PIRMap = PIRMap(clmap, vimap, vomap, cp   , smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:SMMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, cp   , ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:CTMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, cp   , fimap, rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:FIMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, cp   , rcmap, stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, cp   , stmap, ipmap, opmap, pmmap, rtmap)
+  def set(cp:STMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, cp   , ipmap, opmap, pmmap, rtmap)
+  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, cp   , opmap, pmmap, rtmap)
+  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, cp   , pmmap, rtmap)
+  def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, cp   , rtmap)
+  def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, cp   )
 
   def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + ((k, v)))
   def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + ((k, v)))
   def setVO(k:VOMap.K, v:VOMap.V):PIRMap = set(vomap + ((k, v)))
+  def setMK(k:MKMap.K, v:MKMap.V):PIRMap = set(mkmap + ((k, v)))
   def setSM(k:SMMap.K, v:SMMap.V):PIRMap = set(smmap + ((k, v)))
   def setCT(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + ((k, v)))
   def setFI(k:FIMap.K, v:FIMap.V):PIRMap = set(fimap + ((k, v)))
@@ -140,7 +142,8 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
 }
 object PIRMap {
   def empty:PIRMap = 
-    PIRMap(CLMap.empty, VIMap.empty, VOMap.empty, SMMap.empty, CTMap.empty, 
+    PIRMap(CLMap.empty, VIMap.empty, VOMap.empty, MKMap.empty,
+           SMMap.empty, CTMap.empty, 
            FIMap.empty,
            RCMap.empty, STMap.empty, IPMap.empty, OPMap.empty,
            PMMap.empty, RTMap.empty)
@@ -210,6 +213,19 @@ object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
   type V = PGO[PModule]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
+}
+
+/* A mapping between a Input (VecIn or ScalarIn) with PInBus */
+case class MKMap(map:MKMap.M) extends IOneToOneMap {
+  type K = MKMap.K
+  type V = MKMap.V
+  override type M = MKMap.M
+  override def + (rec:(K,V)) = { super.check(rec); MKMap(map + rec) }
+}
+object MKMap extends IOneToOneObj {
+  type K = PIO[PModule] //InPort or VecIn
+  type V = Node
+  def empty:MKMap = MKMap(Map.empty)
 }
 
 /* A Map between PIR Counter to Spade Counter */
