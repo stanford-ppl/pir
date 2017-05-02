@@ -141,11 +141,13 @@ class CUMapper(implicit ds:Design) extends Mapper {
   }
 
   def place(cl:N, pne:R, m:M):M = {
-    log((s"Try $cl -> ${quote(pne)}", false)) {
+    val mp = log((s"Try $cl -> ${quote(pne)}", true)) {
       routers.foldLeft(m.setCL(cl, pne)) { case (pm, router) =>
         router.route(cl, pm)
       }
     }
+    //breakPoint(mp, s"debugging placer")
+    mp
   }
 
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
@@ -167,10 +169,10 @@ class CUMapper(implicit ds:Design) extends Mapper {
           }
         case _ =>
       }
-      dprintln(s"--mc filtered:[${pnes.map(quote).mkString(",")}]")
+      //dprintln(s"--mc filtered:[${pnes.map(quote).mkString(",")}]")
       routers.foreach { router =>
         pnes = router.filterPCL(cl, pnes, m)
-        dprintln(s"--$router filtered:[${pnes.map(quote).mkString(",")}]")
+        //dprintln(s"--$router filtered:[${pnes.map(quote).mkString(",")}]")
       }
       pnes
     }

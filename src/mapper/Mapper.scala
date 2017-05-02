@@ -2,12 +2,14 @@ package pir.mapper
 
 import pir.{Design, Config}
 import pir.util.typealias._
+import pir.util.misc._
 import pir.codegen.{CUDotPrinter}
 import pir.plasticine.main._
 import pir.plasticine.graph.{ Node => PNode }
 import pir.codegen.{Logger}
 import pir.plasticine.util.SpadeMetadata
 import pir.util.PIRMetadata
+import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
 
 import java.lang.Thread
 import scala.collection.immutable.Set
@@ -50,7 +52,7 @@ trait Mapper { self =>
   def debug = Config.debugMapper
   def dprintln(s:Any):Unit = logger.dprintln(debug, s"$this", s)
   def dprint(s:Any):Unit = logger.dprint(debug, s"$this", s)
-  def dprintln(p:Boolean, s:Any):Unit = logger.dprint(p && debug, s"$this", s)
+  def dprintln(p:Boolean, s:Any):Unit = logger.dprintln(p && debug, s"$this", s)
   def dprintln(mapper:Mapper, s:Any):Unit = logger.dprintln(debug, s"$mapper", s)
   def dprintln(header:String, s:Any):Unit = logger.dprintln(header, s) 
   def dbsln(mapper:Mapper, s:Any):Unit = logger.dbsln(debug, Some(s"$mapper"), s) 
@@ -131,7 +133,7 @@ trait Mapper { self =>
   def recResWithExcept[R,N,M](
     n:N,
     constrain:(N, R, M, List[E]) => M,
-    resFilter:(List[R], List[E]) => List[R], // triedRes => reses 
+    resFilter:(List[R], List[E]) => List[R], // triedRes, exceptions => reses 
     finPass:M => M,
     map:M
   ):M = {
@@ -324,5 +326,49 @@ trait Mapper { self =>
       }
     }.toSet
   }
+
+    // DEBUG
+  def breakPoint(mp:Option[M], info:String, interactive:Boolean):Unit = if (debug) {
+    pir.util.misc.bp(info)
+    //val arch = design.arch.asInstanceOf[SwitchNetwork]
+    //val ocu = arch.ocuArray(0)(4)
+    //ocu.ctrlIO.ins.foreach { pin =>
+      //println(s"$ocu $pin -> ${mp.vimap.pmap.get(pin)}")
+    //}
+    var open = false
+    if (interactive) {
+      val answer = ask(s"Waiting for input ...")
+      answer match {
+        case "o" => open = true
+        case "q" =>
+          pir.util.misc.info(s"Stop debugging routing and exiting...")
+          System.exit(-1)
+        case _ =>
+      }
+    }
+    if (open) {
+      this match {
+        case router:VectorRouter =>
+          new CUVectorDotPrinter(open)(design).print(mp)
+        case router:ScalarRouter =>
+          new CUScalarDotPrinter(open)(design).print(mp)
+        case router:ControlRouter =>
+          new CUCtrlDotPrinter(open)(design).print(mp)
+        case router:CUMapper =>
+          new CUVectorDotPrinter(open)(design).print(mp)
+          //new CUScalarDotPrinter(true, true)(design).print(Some(mp))
+          //new CUCtrlDotPrinter(true, true)(design).print(Some(mp))
+      }
+    }
+  }
+
+  def breakPoint(mp:M, info:String, interactive:Boolean):Unit = if (debug) {
+    breakPoint(Some(mp), info, interactive)
+  }
+
+  def breakPoint(info:String, interactive:Boolean):Unit = if (debug) {
+    breakPoint(None, info, interactive)
+  }
+    // DEBUG --
 }
 

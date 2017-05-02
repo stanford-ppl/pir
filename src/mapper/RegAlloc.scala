@@ -89,11 +89,11 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pvout = voMap(n).pop()
           regsOf(pvout.ic)
         case ScalarOutPR(scalarOut) =>
-          val psos = pirMap.vomap(scalarOut)
-          val pregs = psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
-            prev intersect regsOf(pso.ic)
-          }
-          pregs
+          pirMap.vomap.get(scalarOut).map { psos =>
+            psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
+              prev intersect regsOf(pso.ic)
+            }
+          }.getOrElse(pcu.asCU.regs.filter(_.is(ScalarOutReg)))
         case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
       }
     }

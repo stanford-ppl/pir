@@ -172,7 +172,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
       case cu:Pipeline if isStreaming =>
-        sortCChains(cu.cchains).headOption.getOrElse(CounterChain.dummy)
+        sortCChains(cu.cchains).headOption.getOrElse(addCChain(CounterChain.dummy))
       case cu =>
         val locals = cchains.filter{_.isLocal}
         assert(locals.size<=1, 
