@@ -91,7 +91,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def isExtern(in:I):Boolean = { ctrler(in)!=ctrler(from(in)) }
 
   def logCond(header:String, valid:Boolean, cond:Boolean, info:String):Boolean = {
-    if (valid && !cond) dprintln(header, s"not passed : $info")
+    //if (valid && !cond) dprintln(header, s"not passed : $info")
     valid && cond
   }
 
@@ -238,13 +238,15 @@ abstract class Router(implicit design:Design) extends Mapper {
           case (start, Some(end)) =>
             val (ex, ey) = coordOf(end)
             if ((Math.abs(ex-cx) <= thresh) && (Math.abs(ey - cy) <= thresh)) {
-              valid &= ((cx <= coordXs.min - thresh) || (cx >= coordXs.max + thresh))
-              valid &= ((cy <= coordYs.min - thresh) || (cy >= coordYs.max + thresh))
+              valid &= ((cx <= coordXs.min + thresh) || (cx >= coordXs.max - thresh))
+              valid &= ((cy <= coordYs.min + thresh) || (cy >= coordYs.max - thresh))
             } else {
               valid &= ((cx <= coordXs.min) || (cx >= coordXs.max))
               valid &= ((cy <= coordYs.min) || (cy >= coordYs.max))
-              val (sx,sy) = coordOf(start)
-              valid &= ( ((ex >= sx) && (cx >= sx)) || ((ex <= sx) && (cx <= sx)) )
+              if (!start.isTop) {
+                val (sx,sy) = coordOf(start)
+                valid &= ( ((ex >= sx) && (cx >= sx)) || ((ex <= sx) && (cx <= sx)) )
+              }
             }
         }
       }
@@ -260,16 +262,27 @@ abstract class Router(implicit design:Design) extends Mapper {
       bundle.foreach { case ((fpne, tpne), fatEdge) =>
         //breakPoint(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)}", true)
         val tvisit = totalVisit.getOrElse(tpne, 0)
+        //tpne match {
+          //case psb:PSB => 
+            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)} shouldVisit:${shouldVisit(visited, psb)} ${tvisit}")
+          //case pcl:PCL => 
+            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)} ${end} ${tvisit}")
+        //}
         tpne match {
-          case psb:PSB if shouldVisit(visited, psb) & tvisit < 3 =>
+          case psb:PSB if shouldVisit(visited, psb) & (tvisit < 3) =>
             val newPath = fatpath :+ fatEdge 
-            advanceCons(psb, newPath).foreach { newPath => fatpaths += ((visited :+ psb, newPath)) }
-          case pcl:PCL if tvisit < 3 => 
+            advanceCons(psb, newPath).foreach { newPath => 
+              totalVisit += tpne -> (tvisit + 1)
+              fatpaths += ((visited :+ psb, newPath))
+            }
+          case pcl:PCL if end.fold(true) { _ == pcl } & (tvisit < 3) => 
             val newPath = fatpath :+ fatEdge 
-            validCons(pcl, newPath).foreach { newPath => result += (pcl -> newPath) }
+            validCons(pcl, newPath).foreach { newPath => 
+              totalVisit += tpne -> (tvisit + 1)
+              result += (pcl -> newPath)
+            }
           case _ =>
         }
-        totalVisit += tpne -> (tvisit + 1)
       }
     }
     result.toList

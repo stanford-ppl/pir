@@ -169,11 +169,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
           }
         case _ =>
       }
-      //dprintln(s"--mc filtered:[${pnes.map(quote).mkString(",")}]")
-      routers.foreach { router =>
-        pnes = router.filterPCL(cl, pnes, m)
-        //dprintln(s"--$router filtered:[${pnes.map(quote).mkString(",")}]")
-      }
+      if (pnes.size>1) routers.foreach { router => pnes = router.filterPCL(cl, pnes, m) }
       pnes
     }
   }

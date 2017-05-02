@@ -7,6 +7,7 @@ import scala.collection.mutable.ListBuffer
 import pir.plasticine.simulation._
 import pir.plasticine.util._
 import pir.plasticine.config.ConfigFactory
+import pir.util.misc._
 
 trait Spade extends SpadeMetadata {
   implicit def spade:this.type = this

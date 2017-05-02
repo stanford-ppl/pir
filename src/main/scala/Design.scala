@@ -32,7 +32,7 @@ trait Design extends PIRMetadata with Collector {
   implicit def design: Design = this
   val pirmeta:PIRMetadata = this
 
-  val arch:Spade
+  def arch:Spade
   var top:Top = _
 
   override def reset = {
@@ -63,7 +63,7 @@ trait Design extends PIRMetadata with Collector {
   val pirPrinter2 = new PIRPrinter("PIR2.log") 
   val pirPrinter3 = new PIRPrinter("PIR3.log") 
   val pirPrinter = new PIRPrinter()
-  val irCheck = new IRCheck() { override def shouldRun = false } //TODO fix kmeanas
+  val irCheck = new IRCheck() 
   val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
@@ -94,7 +94,7 @@ trait Design extends PIRMetadata with Collector {
   def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
-  //passes += spadePrinter 
+  passes += spadePrinter 
   passes += forwardRef
   passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion
@@ -144,6 +144,7 @@ trait Design extends PIRMetadata with Collector {
   def run = {
     try {
       arch.config
+      info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {

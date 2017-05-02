@@ -355,6 +355,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   override def finPass = {
+    design.top.compUnits.foreach {
+      case cu:MemoryController =>
+      case cu =>
+        assert(cu.cchains.nonEmpty, s"$cu's cchain is empty")
+    }
     //design.top.compUnits.foreach { cu =>
       //cu match {
         //case cu:OuterController =>

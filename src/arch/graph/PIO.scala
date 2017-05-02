@@ -81,7 +81,7 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
   private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
   private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
-  def ms = s"${this}=mp[${_fanIns.mkString(",")}]"
+  def ms = s"${this}=fanIns[${_fanIns.mkString(",")}]"
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
   }
@@ -119,7 +119,7 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def connectedTo(n:I):Unit = _fanOuts += n
   private[plasticine] def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
   private[plasticine] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
-  def mt = s"${this}=mt[${_fanOuts.mkString(",")}]" 
+  def mt = s"${this}=fanOuts[${_fanOuts.mkString(",")}]" 
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
   }
@@ -167,6 +167,7 @@ class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(
     ic.v <= this
   }
   def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
+  override def ms = s"${super.ms} ic=$ic"
 }
 object GlobalInput {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalInput[P, S] = new GlobalInput[P, S](t, s, None)
@@ -184,6 +185,7 @@ class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])
     this.v <= ic
   }
   def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
+  override def mt = s"${super.mt} ic=$ic"
 } 
 object GlobalOutput {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):GlobalOutput[P, S] = new GlobalOutput[P,S](t, s, None)

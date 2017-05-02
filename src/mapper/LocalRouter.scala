@@ -83,7 +83,9 @@ trait LocalRouter extends Mapper {
           case n if n.isCtrlIn => mp.vimap(n).ic
           case n => 
             val pops = mp.opmap(n.from).filter{ pop => r.canConnect(pop) }
-            if(pops.size!=1) throw InPortRouting(n, r, s"Cannot connect ${r} to ${pops} n=$n n.from=${n.from} r=$r pops=${pops}", mp)
+            if(pops.size!=1)  {
+              throw InPortRouting(n, r, s"Cannot connect ${r} to ${mp.opmap(n.from)} n=$n n.from=${n.from}", mp)
+            }
             pops.head
         }
         mp = mp.setFI(r, pop)
