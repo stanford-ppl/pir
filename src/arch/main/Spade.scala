@@ -15,6 +15,7 @@ trait Spade extends SpadeMetadata {
   override def toString = getClass().getSimpleName().replace("$", "")
   val wordWidth = 32
   val numLanes = 16
+  val clockFrequency:Int = 1000000000 //Hz
 
   def top:Top
   def pcus:List[ComputeUnit]

@@ -111,7 +111,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   //def sins = _sins
   //lazy val _souts:List[ScalarOut] = List.tabulate(spade.numLanes) { is => ScalarOut(None) }
   //def souts = _souts
-  //val etstage:EmptyStage = EmptyStage(regs).index(-1) // Empty Stage
   protected val _regstages:ListBuffer[FUStage] = ListBuffer.empty  // Regular Stages
   protected val _rdstages:ListBuffer[ReduceStage] = ListBuffer.empty // Reduction Stages
   protected val _fustages:ListBuffer[FUStage] = ListBuffer.empty // Function Unit Stages

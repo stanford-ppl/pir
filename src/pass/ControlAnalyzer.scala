@@ -11,6 +11,7 @@ import scala.collection.mutable._
 class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
   def shouldRun = true
   import pirmeta._
+  import spademeta._
   override lazy val stream = newStream(s"ControlAnalyzer.log")
 
   // Including current CU. From current to top
@@ -119,40 +120,55 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  override def traverse = {
-    if (!design.accessAnalyzer.hasRun) {
-      design.top.ctrlers.foreach { ctrler =>
-        findAncestors(ctrler)
-        findDescendent(ctrler)
-        setStreaming(ctrler)
-        setPipelining(ctrler)
-      }
-      design.top.ctrlers.foreach { ctrler =>
-        emitBlock(s"$ctrler") {
-          dprintln(s"ancestors = ${ancestorsOf(ctrler)}")
-          dprintln(s"descendents = ${descendentsOf(ctrler)}")
-          dprintln(s"isStreaming = ${isStreaming(ctrler)}")
-          dprintln(s"isPipelining = ${isPipelining(ctrler)}")
-        }
-      }
-    } else {
-      assert(design.multiBufferAnalyzer.hasRun)
-      design.top.ctrlers.foreach { ctrler =>
-        setHead(ctrler)
-        setLast(ctrler)
-      }
-      design.top.ctrlers.foreach { ctrler =>
-        setLength(ctrler)
-        setSCUs(ctrler)
-      }
-      design.top.ctrlers.foreach { ctrler =>
-        emitBlock(s"$ctrler") {
-          dprintln(s"isHead = ${isHead(ctrler)}")
-          dprintln(s"isLast = ${isLast(ctrler)}")
-          dprintln(s"length = ${lengthOf(ctrler)}")
-        }
+  addPass(true, 1) {
+    design.top.ctrlers.foreach { ctrler =>
+      findAncestors(ctrler)
+      findDescendent(ctrler)
+      setStreaming(ctrler)
+      setPipelining(ctrler)
+    }
+    design.top.ctrlers.foreach { ctrler =>
+      emitBlock(s"$ctrler") {
+        dprintln(s"ancestors = ${ancestorsOf(ctrler)}")
+        dprintln(s"descendents = ${descendentsOf(ctrler)}")
+        dprintln(s"isStreaming = ${isStreaming(ctrler)}")
+        dprintln(s"isPipelining = ${isPipelining(ctrler)}")
       }
     }
+  }
+
+  addPass(design.multiBufferAnalyzer.hasRun, 1) {
+    assert(design.multiBufferAnalyzer.hasRun)
+    design.top.ctrlers.foreach { ctrler =>
+      setHead(ctrler)
+      setLast(ctrler)
+    }
+    design.top.ctrlers.foreach { ctrler =>
+      setLength(ctrler)
+      setSCUs(ctrler)
+    }
+    design.top.ctrlers.foreach { ctrler =>
+      emitBlock(s"$ctrler") {
+        dprintln(s"isHead = ${isHead(ctrler)}")
+        dprintln(s"isLast = ${isLast(ctrler)}")
+        dprintln(s"length = ${lengthOf(ctrler)}")
+      }
+    }
+  }
+
+  addPass(design.pirMapping.succeeded, 1) {
+    val mp = design.mapping.get
+    design.arch.cus.foreach { pcu =>
+      mp.clmap.pmap.get(pcu).foreach {
+        case cu:MemoryPipeline => parOf(pcu) = 1
+        case cu:OuterController => parOf(pcu) = 1
+        case cu:ComputeUnit => parOf(pcu) = cu.localCChain.inner.par
+      }
+    }
+  }
+  
+  override def traverse = {
+    runPasses
   } 
 
 }

@@ -14,6 +14,8 @@ import pir.pass.ForwardRef
 import pir.exceptions._
 
 case class CounterChain(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+  import pirmeta._
+
   override val typeStr = "CC"
   /* Fields */
   val _counters = ListBuffer[Counter]()
@@ -97,9 +99,12 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
       val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
       addCounters(addiCtrs)
       counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
+      iterOf(this) = iterOf(cc) 
       ctrler.addCChain(this)
     }
   }
+
+  def iter(it:Long) = iterOf(this) = it
 
 }
 object CounterChain {
@@ -140,8 +145,10 @@ object CounterChain {
     cc
   }
   def dummy(implicit ctrler:ComputeUnit, design: Design) = {
+    import design.pirmeta._
     val cc = CounterChain(Some(s"dummy"))
     cc.addCounter(DummyCounter(cc))
+    iterOf(cc) = 1
     cc
   }
 }

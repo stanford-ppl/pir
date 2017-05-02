@@ -4,6 +4,7 @@ import pir._
 import pir.util.misc._
 import pir.util.enums._
 import pir.exceptions.PIRException
+import pir.codegen.{Logger, CSVPrinter, Row}
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -11,14 +12,14 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 import Math._
 
-class LatencyAnalysis(implicit design: Design) extends Pass {
+class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
   import pirmeta._
 
-  def shouldRun = true
-
-  val numPStage = 10 // Number of stages per CU 
+  def shouldRun = design.pirMapping.succeeded && design.controlAnalyzer.hasRun && design.contentionAnalyzer.hasRun
+  override lazy val stream = newStream(s"LatencyAnalysis.log")
 
   val latency = Map[Controller,List[Int]]()
+  lazy val mp = design.mapping.get
 
   def lenOf(mc:MemoryController) = mc.fifos.filter { _.name==Some("size") }.head
 
@@ -162,35 +163,39 @@ class LatencyAnalysis(implicit design: Design) extends Pass {
   //offchipLat += (1, "GDADesign", TileStore)  -> 469
   //offchipLat += (1, "GDADesign", TileStore)  -> 469
   //offchipLat += (1, "GDADesign", TileStore)  -> 469
-  def offchipLatency(mc:MemoryController) = {
-    //val len = constOf.getOrElseUpdate(mc.len, constProp(mc.len))
-    val len = constOf.getOrElseUpdate(lenOf(mc), hackLen2(mc))
-    val numRow = iter(mc.parent.localCChain)
-    val numBytes = ceil(len.toDouble * 4)
-    val comb = (numRow.toInt, numBytes.toInt, mc.mctpe)
-    if (!sizeSet.contains(comb)) {
-      println(s"OffChip Access: $design numRow=$numRow numBytes=$numBytes len=$len tpe=${mc.mctpe}")
-      sizeSet += comb
-    }
-    ////contentionOf(mc) * numBytes / 64 * 40 //TODO
-    //if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
-    //} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
-
-    //} else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegDesign"*/ 768, TileLoad)) { 758
-    //} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 4, TileLoad)) {
-    //} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 768, TileStore)) {
-
-    //} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    //} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    //} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    //} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-
-    //} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileStore)) { 
-    //} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 64  , "ConvolutionDesign", TileLoad)) { 
-    //} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileLoad)) { 
+  //def offchipLatency(mc:MemoryController) = {
+    ////val len = constOf.getOrElseUpdate(mc.len, constProp(mc.len))
+    //val len = constOf.getOrElseUpdate(lenOf(mc), hackLen2(mc))
+    //val numRow = iter(mc.parent.localCChain)
+    //val numBytes = ceil(len.toDouble * 4)
+    //val comb = (numRow.toInt, numBytes.toInt, mc.mctpe)
+    //if (!sizeSet.contains(comb)) {
+      //println(s"OffChip Access: $design numRow=$numRow numBytes=$numBytes len=$len tpe=${mc.mctpe}")
+      //sizeSet += comb
     //}
-    //val comb = (numRow.toInt, s"$design", mc.mctpe)
-    offchipLat(comb) / 4 
+    //////contentionOf(mc) * numBytes / 64 * 40 //TODO
+    ////if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
+
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegDesign"*/ 768, TileLoad)) { 758
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 4, TileLoad)) {
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 768, TileStore)) {
+
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileStore)) { 
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 64  , "ConvolutionDesign", TileLoad)) { 
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileLoad)) { 
+    ////}
+    ////val comb = (numRow.toInt, s"$design", mc.mctpe)
+    //offchipLat(comb) / 4 
+  //}
+
+  def offchipLatency(mc:MemoryController) = {
+    100
   }
 
   def constProp(node:Node):Int = {
@@ -269,48 +274,38 @@ class LatencyAnalysis(implicit design: Design) extends Pass {
   }
 
   /* Latency of the outer controller if only run 1 iteration */
-  def singleIterLat(cl:Controller):Int = {
-    def accumLat(cl:ComputeUnit):Int = {
-      val pres = cl.trueProduced.map(_.consumer)
+  def singleIterLatency(cl:Controller):Int = {
+    def accumLatency(cl:ComputeUnit):Int = {
+      val prevs = cl match {
+        case cl if isStreaming(cl) => cl.fifos.map { _.writer }
+        case cl if isPipelining(cl) => cl.trueConsumed.map(_.producer)
+      }
       val myLat = cycleOf.getOrElseUpdate(cl, calcLatency(cl))
-      if (pres.size==0) myLat 
-      else myLat + pres.map{ dep => accumLat(dep.asCU) }.reduce[Int]{ case (a,b) => max(a,b) }
+      if (prevs.size==0) myLat 
+      else myLat + prevs.map{ dep => accumLatency(dep.asCU) }.reduce[Int]{ case (a,b) => max(a,b) }
     }
     val lasts = cl.children.filter {_.isLast}
-    lasts.map { child => accumLat(child) }.reduce[Int]{ case (a,b) => max(a,b) }
+    lasts.map { child => accumLatency(child) }.reduce[Int]{ case (a,b) => max(a,b) }
   }
 
   def calcLatency(cl:Controller):Int = {
     cl match {
       case mc:MemoryController => cycleOf(mc) =  offchipLatency(mc)
-      case cl:UnitPipeline => cycleOf(cl) = iter(cl.localCChain); numPStage 
-      case cl:Pipeline => cycleOf(cl) = (iter(cl.localCChain)-1) + numPStage 
-      case cl:StreamPipeline => cycleOf(cl) = numPStage 
-      case cl:StreamController =>
-        val mcs = cl.children.collect { case mc:MemoryController => mc }
-        cl.children.foreach { cl => 
-          cl match { // Assert children of StreamController doesn't have a counter
-            case mc:MemoryController =>
-            case sp:StreamPipeline =>
-            case cu:UnitPipeline =>
-            case cu:Pipeline =>
-          }
-        }
-        val pipes = cl.children.map{_.ctrler}.collect{ case p:Pipeline if !p.isInstanceOf[UnitPipeline] => p}
-        if (pipes.size>0) { // OffChip Store
-          assert(pipes.size==1)
-          val pipe = pipes.head
-          assert(pipe.vouts.head.readers.exists{_.ctrler.isInstanceOf[MemoryController]})
-          cycleOf(cl) = (iter(cl.localCChain)-1)*cycleOf.getOrElseUpdate(pipe, calcLatency(pipe)) + singleIterLat(cl)
-        } else { // Spliting
-          cycleOf(cl) = (iter(cl.localCChain)-1) + singleIterLat(cl)
-        }
-      case cl:Sequential => 
-        cycleOf(cl) = iter(cl.localCChain) * singleIterLat(cl) 
+      case cl:Pipeline if (isPipelining(cl)) => 
+        val pcl = mp.clmap(cl)
+        cycleOf(cl) = (iter(cl.localCChain)-1) + pcl.stages.length
+      case cl:Pipeline if (isStreaming(cl)) => 
+        val pcl = mp.clmap(cl)
+        cycleOf(cl) = pcl.stages.length
+      case cl:StreamController => cycleOf(cl) = (iter(cl.localCChain)-1) + singleIterLatency(cl)
+      case cl:Sequential => cycleOf(cl) = iter(cl.localCChain) * singleIterLatency(cl) 
       case cl:MetaPipeline => 
-        val maxLat = cl.children.map { child => cycleOf.getOrElseUpdate(child, calcLatency(child)) }
-          .reduce[Int]{ case (a,b) => max(a,b) }
-        cycleOf(cl) = (iter(cl.localCChain)-1)*maxLat + singleIterLat(cl) 
+        val maxLat = cl.children.filterNot {
+          case child:MemoryPipeline => true
+          case child => false
+        }.map { child => cycleOf.getOrElseUpdate(child, calcLatency(child)) }
+        .reduce[Int]{ case (a,b) => max(a,b) }
+        cycleOf(cl) = (iter(cl.localCChain)-1)*maxLat + singleIterLatency(cl) 
       case cl:Top =>
         assert(cl.children.size==1)
         val child = cl.children.head
@@ -321,10 +316,9 @@ class LatencyAnalysis(implicit design: Design) extends Pass {
   }
 
   override def traverse = {
-    if (design.contentionAnalysis.hasRun) {
-      calcLatency(design.top)
-      design.pirStat.cycle(cycleOf(design.top))
-      iterOf(design.top) = 1
+    calcLatency(design.top)
+    design.top.ctrlers.foreach { ctrler =>
+      dprintln(s"cycleOf($ctrler) = ${cycleOf(ctrler)}")
     }
   }
 

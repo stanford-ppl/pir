@@ -123,7 +123,7 @@ trait PIRMetadata extends { self:Design =>
 
   object iterOf extends MOneToOneMap {
     type K = Node
-    type V = Int
+    type V = Long
   }
 
   object constOf extends MOneToOneMap {

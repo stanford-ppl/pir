@@ -48,53 +48,66 @@ trait Design extends PIRMetadata with Collector {
 
   /* Compiler Passes */
   val passes = ListBuffer[Pass]()
-  val spadePrinter = new SpadePrinter()
+
+  /* Analysis */
   val forwardRef = new ForwardRef()
   val controlAnalyzer = new ControlAnalyzer()
-  val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
   val multiBufferAnalyzer = new MultiBufferAnalyzer() 
-  val fusionTransform = new FusionTransform() { /*override def shouldRun = false*/ } //TODO fix this
-  val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val memoryAnalyzer = new MemoryAnalyzer()
   val accessAnalyzer = new AccessAnalyzer()
+  val livenessAnalyzer = new LiveAnalyzer()
+  val contentionAnalyzer = new ContentionAnalysis()
+  val latencyAnalyzer = new LatencyAnalysis()
+  val resourceAnalyzer = new ResourceAnalysis()
+  val powerAnalyzer = new PowerAnalyzer()
+
+  /* Transformation */
+  val ctrlAlloc = new CtrlAlloc()
+  val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
+  val fusionTransform = new FusionTransform() { /*override def shouldRun = false*/ } //TODO fix this
+  val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val optimizer = new Optimizer()
+
+  /* Mapping */
+  val pirMapping = new PIRMapping()
+
+  /* Codegen */
+  val spadeNetworkCodegen = new SpadeNetworkCodegen()
+  val spadeParamCodegen = new SpadeParamCodegen()
+  val pisaCodegen = new PisaCodegen()
+  val configCodegen = new ConfigCodegen()
+
+  /* Simulator */
+  val simulator = new Simulator()
+
+  /* Debug */
+  val spadePrinter = new SpadePrinter()
   val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
   val pirPrinter1 = new PIRPrinter("PIR1.log") 
   val pirPrinter2 = new PIRPrinter("PIR2.log") 
   val pirPrinter3 = new PIRPrinter("PIR3.log") 
   val pirPrinter = new PIRPrinter()
-  val irCheck = new IRCheck() 
   val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
   val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
   val pirDataDotGen = new PIRDataDotGen("PIR.dot")
-  val livenessAnalyzer = new LiveAnalyzer()
-  val ctrlAlloc = new CtrlAlloc()
   val pirCtrlDotGen = new PIRCtrlDotGen()
-  val pirMapping = new PIRMapping()
   val argDotPrinter = new ArgDotPrinter()
   val ctrDotPrinter = new CtrDotPrinter()
   val spadeVecDotPrinter = new CUVectorDotPrinter()
   val spadeScalDotPrinter = new CUScalarDotPrinter()
   val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
   val ctrlPrinter = new CtrlPrinter()
-  val spadeNetworkCodegen = new SpadeNetworkCodegen()
-  val spadeParamCodegen = new SpadeParamCodegen()
-  val pisaCodegen = new PisaCodegen()
-  val configCodegen = new ConfigCodegen()
-  val simulator = new Simulator()
   val mapPrinter = new MapPrinter()
   val pirStat = new PIRStat()
   val pirStatLog = new PIRStatLog()
-  val contentionAnalysis = new ContentionAnalysis()
-  val latencyAnalysis = new LatencyAnalysis()
-  val resourceAnalysis = new ResourceAnalysis()
+  val irCheck = new IRCheck() 
 
   def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
-  passes += spadePrinter 
+  //passes += spadePrinter 
   passes += forwardRef
   passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion
@@ -107,12 +120,11 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen2
   passes += fusionTransform 
   passes += pirPrinter3
-  passes += controlAnalyzer // set isHead, isTail, length
   passes += pirDataDotGen3
   passes += livenessAnalyzer 
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
-  passes += controlAnalyzer // reset isHead, isTail, length
+  passes += controlAnalyzer // set isHead, isTail, length
   passes += pirDataDotGen4
   passes += irCheck 
   passes += ctrlAlloc 
@@ -139,7 +151,10 @@ trait Design extends PIRMetadata with Collector {
   passes += simulator
 
   // Statistics
-  passes += resourceAnalysis
+  passes += contentionAnalyzer
+  passes += latencyAnalyzer
+  passes += resourceAnalyzer
+  passes += powerAnalyzer 
 
   def run = {
     try {
