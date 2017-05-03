@@ -151,10 +151,12 @@ trait Design extends PIRMetadata with Collector {
   passes += simulator
 
   // Statistics
+  passes += controlAnalyzer // set parOf 
   passes += contentionAnalyzer
   passes += latencyAnalyzer
   passes += resourceAnalyzer
   passes += powerAnalyzer 
+  passes += pirDataDotGen
 
   def run = {
     try {

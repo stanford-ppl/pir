@@ -99,8 +99,12 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       cc.counters.foreach { ctr =>
         List(ctr.min, ctr.max, ctr.step).map(_.from.src).foreach {
           case mem:ScalarMem => 
-            forRead(mem) = forRead(ctr)
-            forWrite(mem) = forWrite(ctr)
+            if (forRead(ctr)) {
+              forRead(mem) = true
+            }
+            if (forWrite(ctr)) {
+              forWrite(mem) = true
+            }
           case _ =>
         }
       }

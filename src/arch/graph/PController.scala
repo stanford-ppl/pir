@@ -103,6 +103,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
   def vout = vouts.head
+  def numLanes:Int = spade.numLanes
   
  // Scalar inputs. 1 per word in bus input 
   //lazy val _sins:List[ScalarIn] = List.tabulate(vins.size, spade.numLanes) { case (ib, is) =>
@@ -155,14 +156,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     addRegstages(numStage=3, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=2, numOprds=3, ops)
-    numScalarBufs(4)
+    numScalarBufs(6)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg).color(1, AccumReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
-    color(8 until 8 + 4, ScalarOutReg)
+    color(8 until 8 + souts.size, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
-    color(12 until 12 + vouts.size, VecOutReg)
+    color(0 until 0 + vouts.size, VecOutReg)
     genConnections
   }
 
@@ -173,6 +174,7 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "ocu"
   
   override val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
+  override def numLanes:Int = 1
 
   /* Parameters */
   override def numRegs = 0
@@ -190,6 +192,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   import spademeta._
 
   override val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
+  override def numLanes:Int = 1
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
   private val _rastages:ListBuffer[RAStage] = ListBuffer.empty // Read Addr Stages
@@ -227,6 +230,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "scu"
   import spademeta._
+  override def numLanes:Int = 1
 
   /* Parameters */
   override def numRegs = 16
@@ -239,7 +243,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)
-    color(8 until 8 + 4, ScalarOutReg)
+    color(8 until 8 + souts.size, ScalarOutReg)
     color(12 until 12 + numVecBufs, VecInReg)
     genConnections
   }
@@ -251,8 +255,8 @@ class MemoryController()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
-    assert(sins.size==2)
-    assert(vins.size==1)
+    //assert(sins.size==2)
+    //assert(vins.size==1)
     numScalarBufs(4)
     numVecBufs(vins.size)
     nameOf(sbufs(0)) = "roffset"

@@ -46,8 +46,12 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
       ctrs.toList
     }
     val unSorted = cchains.flatMap(_.counters)
-    assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}, cchains:${cchains}")
-    sorted
+    if (Config.ctrl) {
+      assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}, cchains:${cchains}")
+      sorted
+    } else {
+      unSorted
+    }
   }
 
   def map(cu:CU, pirMap:M):M = {
@@ -74,23 +78,31 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     //}
     val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
     val ptop = design.arch.top
-    val enCtrs = n.en.from.src match {
-      case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
-        m.ctmap.get(dep).fold(remainRes) { pdep =>
-          pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
-        }
-      // Inner most counter or copied inner most counter whose enable is routed fron network
-      case _ => remainRes.filter(pc => isInnerCounter(pc))
-    }
-    val doneCtrs = n.done.to.map { done =>
-      done.src match {
-        case deped:Ctr if n.ctrler==deped.ctrler =>
-          m.ctmap.get(deped).fold(remainRes) { pdeped =>
-            pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
+    val enCtrs = if (Config.ctrl) {
+      n.en.from.src match {
+        case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
+          m.ctmap.get(dep).fold(remainRes) { pdep =>
+            pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
           }
-        case _ => remainRes
+          // Inner most counter or copied inner most counter whose enable is routed fron network
+        case _ => remainRes.filter(pc => isInnerCounter(pc))
       }
-    }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
+    } else {
+      remainRes
+    }
+    val doneCtrs = if (Config.ctrl) {
+      n.done.to.map { done =>
+        done.src match {
+          case deped:Ctr if n.ctrler==deped.ctrler =>
+            m.ctmap.get(deped).fold(remainRes) { pdeped =>
+              pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
+            }
+          case _ => remainRes
+        }
+      }.reduceOption{ _ intersect _ }.getOrElse(remainRes)
+    } else {
+      remainRes
+    }
 
     var res = enCtrs intersect doneCtrs
     if (forWrite(n)) {

@@ -162,7 +162,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
-  var par:Int = 0
+  var par:Int = 1
   var _cchain:CounterChain = _
   def cchain:CounterChain = _cchain
   def cchain(cc:CounterChain):Counter = {
@@ -181,8 +181,12 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
 
   def isInner = { 
-    assert(en.isConnected, s"${this}.en is not connected")
-    !en.from.src.isInstanceOf[Counter]
+    if (Config.ctrl) {
+      assert(en.isConnected, s"${this}.en is not connected")
+      !en.from.src.isInstanceOf[Counter]
+    } else {
+      (ctrler.cchains.head == cchain) && (cchain.inner == this)
+    }
   }
   def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
   def next:Counter = {

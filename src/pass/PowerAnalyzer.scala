@@ -47,15 +47,16 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   val sramEnergy = Map[PNode, Double]()
   val sBufEnergy = Map[PNode, Double]()
   val vBufEnergy = Map[PNode, Double]()
-  val aluEnergy = Map[PNode, Double]()
+  val fuEnergy = Map[PNode, Double]()
   val pneEnergy = Map[PNode, Double]()
 
-  val regUnitEnergy = 1
-  val ctrUnitEnergy = 1
-  val sramUnitEnergy = 1
-  val sBufUnitEnergy = 1
-  val vBufUnitEnergy = 1
-  val aluUnitEnergy = 1
+  val regUnitPower = 0.12856 // mW
+  val ctrUnitPower = 0.12856 // mW
+  val sramReadUnitPower = 83.064832 // mW
+  val sramWriteUnitPower = 83.064832 // mW
+  val sBufUnitPower = 0.610175 * 2 // read and write
+  val vBufUnitPower = 9.7628 * 2 // read and write
+  val fuUnitPower = 3.3726 // mW
 
   def writeTime(mp:MP):Double = {
     mp.mem.producer match {
@@ -77,7 +78,7 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
         mp.clmap.pmap.get(pne).fold {
           regEnergy += pne -> 0 
           ctrEnergy += pne -> 0 
-          aluEnergy += pne -> 0
+          fuEnergy += pne -> 0
           sBufEnergy += pne -> 0 
           vBufEnergy += pne -> 0
           sramEnergy += pne -> 0
@@ -86,35 +87,37 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
           val rt = readTime(mp) 
           val wt = writeTime(mp)
           val at = (rt + wt)/2
-          regEnergy += pne -> regUnitEnergy * regUsed(pne).used * at
+          regEnergy += pne -> regUnitPower * regUsed(pne).used * at
           ctrEnergy += pne -> mp.cchains.map {
-            case cc if forRead(cc) => ctrUnitEnergy * rt * cc.counters.size
-            case cc if forWrite(cc) => ctrUnitEnergy * wt * cc.counters.size
+            case cc if forRead(cc) => ctrUnitPower * rt * cc.counters.size
+            case cc if forWrite(cc) => ctrUnitPower * wt * cc.counters.size
           }.sum
-          aluEnergy += pne -> mp.stages.map {
-            case stage if forRead(stage) => aluUnitEnergy * rt
-            case stage if forWrite(stage) => aluUnitEnergy * wt
+          fuEnergy += pne -> mp.stages.map {
+            case stage if forRead(stage) => fuUnitPower * rt
+            case stage if forWrite(stage) => fuUnitPower * wt
           }.sum
           sBufEnergy += pne -> mp.sfifos.map {
-            case fifo if forRead(fifo) => sBufUnitEnergy * rt
-            case fifo if forWrite(fifo) => sBufUnitEnergy * wt
+            case fifo if forRead(fifo) => sBufUnitPower * rt
+            case fifo if forWrite(fifo) => sBufUnitPower * wt
           }.sum
           vBufEnergy += pne -> mp.vfifos.map {
-            case fifo if forRead(fifo) => vBufUnitEnergy * rt
-            case fifo if forWrite(fifo) => vBufUnitEnergy * wt
+            case fifo if forRead(fifo) => vBufUnitPower * rt
+            case fifo if forWrite(fifo) => vBufUnitPower * wt
           }.sum
-          sramEnergy += pne -> sramUnitEnergy * at
+          sramEnergy += pne -> sramReadUnitPower * rt
+          sramEnergy += pne -> sramWriteUnitPower * wt
         }
       case pne =>
-        regEnergy += pne -> regUnitEnergy * regUsed(pne).used * timeOf(pne)
-        ctrEnergy += pne -> ctrUnitEnergy * ctrUsed(pne).used * timeOf(pne)
-        aluEnergy += pne -> aluUnitEnergy * stageUsed(pne).used * timeOf(pne) * parOf(pne)
-        sBufEnergy += pne -> sBufUnitEnergy * sBufUsed(pne).used * timeOf(pne)
-        vBufEnergy += pne -> vBufUnitEnergy * vBufUsed(pne).used * timeOf(pne)
+        regEnergy += pne -> regUnitPower * regUsed(pne).used * timeOf(pne)
+        ctrEnergy += pne -> ctrUnitPower * ctrUsed(pne).used * timeOf(pne)
+        fuEnergy += pne -> fuUnitPower * fuUsed(pne).used * timeOf(pne)
+        sBufEnergy += pne -> sBufUnitPower * sBufUsed(pne).used * timeOf(pne)
+        vBufEnergy += pne -> vBufUnitPower * vBufUsed(pne).used * timeOf(pne)
+        sramEnergy += pne -> 0
     }
     pneEnergy += pne -> (regEnergy(pne) + 
                         ctrEnergy(pne) + 
-                        aluEnergy(pne) + 
+                        fuEnergy(pne) + 
                         sBufEnergy(pne) + 
                         vBufEnergy(pne) + 
                         sramEnergy(pne))
@@ -123,8 +126,8 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   def compEnergy(psb:PSB):Unit = {
     pneEnergy += psb -> (psb.outs.map { pout => mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
-          case out:VO => spade.numLanes * regUnitEnergy * cycleOf(out.ctrler)
-          case out:SO => regUnitEnergy * cycleOf(out.ctrler)
+          case out:VO => spade.numLanes * regUnitPower * cycleOf(out.ctrler)
+          case out:SO => regUnitPower * cycleOf(out.ctrler)
           case out:OP => 0.0
         }
       }
@@ -135,11 +138,13 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
     pne match {
       case pne:PCU => compEnergy(pne)
       case pne:PSB => compEnergy(pne)
-      case pne:PTop =>
+      case pne:PTop => pneEnergy += pne -> 0
+      case pne:PMC => pneEnergy += pne -> 0
     }
   }
 
   override def traverse:Unit = {
+    assert(design.latencyAnalyzer.hasRun)
     spade.pnes.foreach { pne =>
       compEnergy(pne)
     }
@@ -162,7 +167,7 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
     row += "totalSFifoEnergy" -> sBufEnergy.map { case (n, e) => e }.sum
     row += "totalVFifoEnergy" -> vBufEnergy.map { case (n, e) => e }.sum
     row += "totalSramEnergy" -> sramEnergy.map { case (n, e) => e }.sum
-    row += "totalALUEnergy" -> aluEnergy.map { case (n, e) => e }.sum
+    row += "totalFUEnergy" -> fuEnergy.map { case (n, e) => e }.sum
     row += "totalPCUEnergy" -> spade.pcus.map { cu => pneEnergy(cu) }.sum
     row += "totalPMUEnergy" -> spade.mcus.map { cu => pneEnergy(cu) }.sum
     row += "totalSCUEnergy" -> spade.scus.map { cu => pneEnergy(cu) }.sum

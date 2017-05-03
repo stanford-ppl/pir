@@ -71,7 +71,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def failPass(e:Throwable):Unit = if (debug) {
     e match {
       case e:MappingException[_] =>
-        breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
+        //breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
       case e:Throwable =>
         println(e)
     }
@@ -414,7 +414,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       val (heads, last) = fatpath.splitAt(fatpath.size-1)
       filterUsedFatEdge(out, last.head, m).map{ last => heads :+ last }
     }
-    log((s"$in resFunc", true), (r:Paths[FEdge]) => (), failPass) {
+    log((s"$fcl.$out(${quote(pfcl)}) -> $cl.$in(${quote(pcl)}) resFunc", true), (r:Paths[FEdge]) => (), failPass) {
       val routes = fwdAdvance(
         start=pfcl, 
         validCons=Some(filterUsed _), 
@@ -424,16 +424,14 @@ abstract class Router(implicit design:Design) extends Mapper {
         maxHop=maxHop
       )
       if (routes.isEmpty) {
-        var info = s"No route available for $fcl.$out(${quote(pfcl)}) -> $cl.$in(${quote(pcl)})\n"
-        info += s"searching range=[$minHop, $maxHop]"
+        var info = s"No route available for searching range=[$minHop, $maxHop]\n"
         throw MappingException(this, m, info)
       }
       //var remain = routes.flatMap { case (pcl, fp) => filterUsedPaths(out, fp, m).map( fp => (pcl, fp)) }
       //remain = remain.diff(triedRes)
       val remain = routes.diff(triedRes)
       if (remain.isEmpty) {
-        var info = s"No remaining route available for $fcl.$out(${quote(pfcl)}) -> $cl.$in(${quote(pcl)})\n"
-        info += s"triedRes.size=${triedRes.size} searching range=[$minHop, $maxHop]"
+        var info = s"No remaining route available for triedRes.size=${triedRes.size} searching range=[$minHop, $maxHop]\n"
         throw MappingException(this, m, info)
       }
       slimDown(remain, m)

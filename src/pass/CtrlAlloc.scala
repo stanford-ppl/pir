@@ -152,9 +152,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
+    dprintln(s"$OCU_MAX_CIN ${parent.cins}") //TODO fix this for smv
     val lastGroups = if (lasts.size==0) Nil else lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
+        dprintln(s"parent=$parent lastGroups:$lastGroups")
         val clone = parent.cloneType("collector")
         isHead(clone) = false 
         isLast(clone) = true

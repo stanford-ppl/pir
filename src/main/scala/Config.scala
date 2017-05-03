@@ -19,7 +19,7 @@ object Config {
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = true
+  var ctrl = false
   var simulate = false
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
@@ -42,7 +42,7 @@ object Config {
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
   var debugVecRouter = debugMapper && false
   var debugScalRouter = debugMapper && true
-  var debugCtrlRouter = debugMapper && true
+  var debugCtrlRouter = debugMapper && false
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugSIMapper = debugMapper && true 

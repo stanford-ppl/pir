@@ -68,7 +68,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = design.top.innerCUs.filter{ cu => writesOfs(cu) } 
+    val scus = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
     val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
     val pmcus = design.arch.mcus 
@@ -157,15 +157,15 @@ class CUMapper(implicit ds:Design) extends Mapper {
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
       dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
       cl match {
-        case cl:MC if cl.mctpe.isDense => 
-          val sp = cl.getFifo("offset").writer.ctrler
-          if (m.clmap.contains(sp)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(sp).coord }
+        case cl:MC => 
+          val scu = scuOf(cl)
+          if (m.clmap.contains(scu)) {
+            pnes = pnes.filter{ pne => pne.coord == m.clmap(scu).coord }
           }
-        case cu:CU if cu.isStreaming =>
-          val mcs = cu.writtenFIFOs.filter{ _.isOfsFIFO }
-          if (!mcs.isEmpty && m.clmap.contains(mcs.head.ctrler)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(mcs.head.ctrler).coord }
+        case cu:CU if scuOf.pmap.contains(cu) =>
+          val mc = scuOf.pmap(cu)
+          if (m.clmap.contains(mc)) {
+            pnes = pnes.filter{ pne => pne.coord == m.clmap(mc).coord }
           }
         case _ =>
       }

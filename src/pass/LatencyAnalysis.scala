@@ -273,53 +273,69 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
     it
   }
 
-  /* Latency of the outer controller if only run 1 iteration */
-  def singleIterLatency(cl:Controller):Int = {
-    def accumLatency(cl:ComputeUnit):Int = {
-      val prevs = cl match {
-        case cl if isStreaming(cl) => cl.fifos.map { _.writer }
-        case cl if isPipelining(cl) => cl.trueConsumed.map(_.producer)
-      }
-      val myLat = cycleOf.getOrElseUpdate(cl, calcLatency(cl))
-      if (prevs.size==0) myLat 
-      else myLat + prevs.map{ dep => accumLatency(dep.asCU) }.reduce[Int]{ case (a,b) => max(a,b) }
-    }
-    val lasts = cl.children.filter {_.isLast}
-    lasts.map { child => accumLatency(child) }.reduce[Int]{ case (a,b) => max(a,b) }
+  def cycle(cl:Controller) = {
+    cycleOf.getOrElseUpdate(cl, calcLatency(cl))
   }
 
-  def calcLatency(cl:Controller):Int = {
+  /* Latency of the outer controller if only run 1 iteration */
+  def singleIterLatency(cl:Controller):Long = {
+    def accumLatency(cl:ComputeUnit):Long = {
+      val prevs = (cl match {
+        case cl if isStreaming(cl) & isHead(cl) => Nil 
+        case cl if isStreaming(cl) => 
+          val fifos = cl.descendents.flatMap {
+            case cu:ComputeUnit => cu.fifos
+            case cu => Nil
+          }
+          var writers = fifos.map { _.writer }
+          dprintln(s"$cl fifowriters:[${fifos.zip(writers).map { case (fifo,writer) => s"$fifo $writer"}.mkString(",")}]" )
+          writers = writers.filter { writer => cl.parent.descendents.contains(writer)}
+          dprintln(s"$cl.parent= ${cl.parent} parent descendents:${cl.parent.descendents}" )
+          dprintln(s"$cl filtered writers:[${writers.mkString(",")}]" )
+          writers
+        case cl if isPipelining(cl) => cl.trueConsumed.map(_.producer)
+      }).toSet
+      dprintln(s"prevs:[${prevs.mkString(",")}]")
+      val myLat = cycle(cl)
+      if (prevs.size==0) myLat 
+      else myLat + prevs.map{ dep => cycle(dep.asCU) }.reduce[Long]{ case (a,b) => max(a,b) }
+    }
+    val lasts = cl.children.filter {_.isLast}
+    lasts.map { child => accumLatency(child) }.reduce[Long]{ case (a,b) => max(a,b) }
+  }
+
+  def calcLatency(cl:Controller):Long = emitBlock(s"calcLatency($cl)") {
     cl match {
       case mc:MemoryController => cycleOf(mc) =  offchipLatency(mc)
-      case cl:Pipeline if (isPipelining(cl)) => 
-        val pcl = mp.clmap(cl)
-        cycleOf(cl) = (iter(cl.localCChain)-1) + pcl.stages.length
-      case cl:Pipeline if (isStreaming(cl)) => 
-        val pcl = mp.clmap(cl)
-        cycleOf(cl) = pcl.stages.length
-      case cl:StreamController => cycleOf(cl) = (iter(cl.localCChain)-1) + singleIterLatency(cl)
-      case cl:Sequential => cycleOf(cl) = iter(cl.localCChain) * singleIterLatency(cl) 
       case cl:MetaPipeline => 
         val maxLat = cl.children.filterNot {
           case child:MemoryPipeline => true
           case child => false
-        }.map { child => cycleOf.getOrElseUpdate(child, calcLatency(child)) }
-        .reduce[Int]{ case (a,b) => max(a,b) }
-        cycleOf(cl) = (iter(cl.localCChain)-1)*maxLat + singleIterLatency(cl) 
+        }.map { child => cycle(child) }
+        .reduce[Long]{ case (a,b) => max(a,b) }
+        cycleOf(cl) = (iterOf(cl.localCChain)-1)*maxLat + singleIterLatency(cl) 
+      case cl:Pipeline if (isPipelining(cl)) => 
+        val pcl = mp.clmap(cl)
+        cycleOf(cl) = (iterOf(cl.localCChain)-1) + pcl.stages.length
+      case cl:Pipeline if (isStreaming(cl)) => 
+        val pcl = mp.clmap(cl)
+        cycleOf(cl) = pcl.stages.length
+      case cl:StreamController => 
+        cl.children.foreach { child => cycle(child) } // calculate cycle of nested SteamController
+        cycleOf(cl) = (iterOf(cl.localCChain)-1) + singleIterLatency(cl)
+      case cl:Sequential => cycleOf(cl) = iterOf(cl.localCChain) * singleIterLatency(cl) 
       case cl:Top =>
         assert(cl.children.size==1)
         val child = cl.children.head
-        cycleOf(cl) = cycleOf.getOrElseUpdate(child, calcLatency(child))
+        cycleOf(cl) = cycle(child)
     }
     if (cycleOf(cl) < 0) throw PIRException(s"$cl has negative number of cycles = ${cycleOf(cl)}")
+    dprintln(s"cycleOf($cl) = ${cycleOf(cl)}")
     cycleOf(cl)
   }
 
   override def traverse = {
     calcLatency(design.top)
-    design.top.ctrlers.foreach { ctrler =>
-      dprintln(s"cycleOf($ctrler) = ${cycleOf(ctrler)}")
-    }
   }
 
 }

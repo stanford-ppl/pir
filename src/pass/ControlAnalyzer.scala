@@ -115,12 +115,14 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
   def setSCUs(ctrler:Controller) = {
     ctrler match {
       case mc:MemoryController if mc.mctpe.isDense =>
-        writesOfs(mc.getFifo("offset").writer.ctrler) = true
+        scuOf(mc) = mc.getFifo("offset").writer.ctrler
+      case mc:MemoryController if mc.mctpe.isSparse =>
+        scuOf(mc) = mc.getFifo("addr").writer.ctrler
       case _ => 
     }
   }
 
-  addPass(true, 1) {
+  def setStyle = {
     design.top.ctrlers.foreach { ctrler =>
       findAncestors(ctrler)
       findDescendent(ctrler)
@@ -135,6 +137,14 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         dprintln(s"isPipelining = ${isPipelining(ctrler)}")
       }
     }
+  }
+
+  addPass(true, 1) {
+    setStyle
+  }
+
+  addPass(design.fusionTransform.hasRun, 1) {
+    setStyle
   }
 
   addPass(design.multiBufferAnalyzer.hasRun, 1) {
@@ -152,6 +162,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         dprintln(s"isHead = ${isHead(ctrler)}")
         dprintln(s"isLast = ${isLast(ctrler)}")
         dprintln(s"length = ${lengthOf(ctrler)}")
+        dprintln(s"scuOf = ${scuOf.get(ctrler)}")
       }
     }
   }
@@ -159,11 +170,14 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
   addPass(design.pirMapping.succeeded, 1) {
     val mp = design.mapping.get
     design.arch.cus.foreach { pcu =>
-      mp.clmap.pmap.get(pcu).foreach {
+      mp.clmap.pmap.get(pcu).fold {
+        parOf(pcu) = -1
+      } {
         case cu:MemoryPipeline => parOf(pcu) = 1
         case cu:OuterController => parOf(pcu) = 1
         case cu:ComputeUnit => parOf(pcu) = cu.localCChain.inner.par
       }
+      dprintln(s"parOf($pcu) = ${parOf(pcu)}")
     }
   }
   
