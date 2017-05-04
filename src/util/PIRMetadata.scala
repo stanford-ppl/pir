@@ -118,6 +118,11 @@ trait PIRMetadata extends { self:Design =>
     type V = Long
   }
 
+  object totalCycleOf extends MOneToOneMap {
+    type K = Node
+    type V = Long
+  }
+
   object iterOf extends MOneToOneMap {
     type K = Node
     type V = Long

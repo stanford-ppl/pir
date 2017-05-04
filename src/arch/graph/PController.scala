@@ -149,7 +149,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   def numRegs = 16
-  def numCtrs = 8
+  def numCtrs = 5
   def numSRAMs = 0
   def numUDCs = 5
   override def config(implicit spade:SwitchNetwork) = {

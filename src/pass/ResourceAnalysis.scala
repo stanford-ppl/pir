@@ -82,7 +82,8 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def collectRegUtil(pne:PNE) = pne match {
     case pne:PCU if mp.clmap.pmap.contains(pne) =>
       regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
-        case (used, total) => (used * parOf(pne), total * pne.numLanes)
+        //case (used, total) => (used * parOf(pne), total * pne.numLanes)
+        case (used, total) => (used * parOf(pne), 8 * pne.numLanes) // assuming using 8 registers per stage
       }
     case pne =>
       regUsed += pne -> Util.empty
@@ -229,6 +230,17 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     row += "Total VoutPin Util"    -> totalVoutPinUtil.toPct
     row += "Total CinPin Util"    -> totalCinPinUtil.toPct
     row += "Total CoutPin Util"    -> totalCoutPinUtil.toPct
+
+    row += "Total Reg Used"    -> totalRegUtil.used
+    row += "Total Stage Used"    -> totalFUUtil.used
+    row += "Total SFifo Used"    -> totalSBufUtil.used
+    row += "Total VFifo Used"    -> totalVBufUtil.used
+    row += "Total SinPin Used"    -> totalSinPinUtil.used
+    row += "Total SoutPin Used"    -> totalSoutPinUtil.used
+    row += "Total VinPin Used"    -> totalVinPinUtil.used
+    row += "Total VoutPin Used"    -> totalVoutPinUtil.used
+    row += "Total CinPin Used"    -> totalCinPinUtil.used
+    row += "Total CoutPin Used"    -> totalCoutPinUtil.used
     summary.emitFile
   }
 
@@ -236,6 +248,16 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     spade.cus.foreach { cl =>
       val row = detail.addRow
       row += s"cu" -> s"$cl"
+      row += s"regUsed" -> regUsed(cl).used
+      row += s"ctrUsed" -> ctrUsed(cl).used
+      row += s"fuUsed" -> fuUsed(cl).used
+      row += s"SFifoUsed" -> sBufUsed(cl).used
+      row += s"VFifoUsed" -> vBufUsed(cl).used
+      row += s"SinPinUsed" -> sinPinUsed(cl).used
+      row += s"SoutPinUsed" -> soutPinUsed(cl).used
+      row += s"VinPinUsed" -> vinPinUsed(cl).used
+      row += s"VoutPinUsed" -> voutPinUsed(cl).used
+
       row += s"regUtil" -> regUsed(cl).toPct
       row += s"ctrUtil" -> ctrUsed(cl).toPct
       row += s"stageUtil" -> fuUsed(cl).toPct

@@ -201,7 +201,7 @@ object DotProduct extends PIRApp {
     val x4795 = MetaPipeline(name="x4795",parent=x4799) { implicit CU => 
       val x3837_x3848 =  ScalarBuffer().wtPort(x3837_argin)
       val ctr1 = Counter(min=Const(0), max=x3837_x3848.load, step=Const(3200), par=16) // Counter
-      val x3850 = CounterChain(name = "x3850", ctr1).iter(48000)
+      val x3850 = CounterChain(name = "x3850", ctr1).iter(15)
     }
     val x3851_dsp0 = MemoryPipeline(name="x3851_dsp0",parent="x4795") { implicit CU => 
       val x3899_x3899 =  VectorFIFO(size=1).wtPort(x3884_x3893_data_v)

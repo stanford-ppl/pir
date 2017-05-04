@@ -466,10 +466,10 @@ abstract class Router(implicit design:Design) extends Mapper {
             //case n =>
           //}
         }
-        path.zipWithIndex.foreach { case ((out, in), i) => 
-          mp = mp.setFI(in, out)
-          if (out.src.isInstanceOf[PSB]) { // Config SwitchBox
-            val to = out
+        path.zipWithIndex.foreach { case ((pout, pin), i) => 
+          mp = mp.setFI(pin, pout).setMK(pout, out).setMK(pin, out)
+          if (pout.src.isInstanceOf[PSB]) { // Config SwitchBox
+            val to = pout
             val from = path(i-1)._2
             mp = mp.setFI(to.ic, from.ic)
           }

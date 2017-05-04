@@ -298,10 +298,12 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
       dprintln(s"prevs:[${prevs.mkString(",")}]")
       val myLat = cycle(cl)
       if (prevs.size==0) myLat 
-      else myLat + prevs.map{ dep => cycle(dep.asCU) }.reduce[Long]{ case (a,b) => max(a,b) }
+      else myLat + prevs.map{ dep => accumLatency(dep.asCU) }.reduce[Long]{ case (a,b) => max(a,b) }
     }
     val lasts = cl.children.filter {_.isLast}
-    lasts.map { child => accumLatency(child) }.reduce[Long]{ case (a,b) => max(a,b) }
+    val singleLat = lasts.map { child => accumLatency(child) }.reduce[Long]{ case (a,b) => max(a,b) }
+    dprintln(s"$cl singleLat:$singleLat")
+    singleLat
   }
 
   def calcLatency(cl:Controller):Long = emitBlock(s"calcLatency($cl)") {
@@ -313,17 +315,17 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
           case child => false
         }.map { child => cycle(child) }
         .reduce[Long]{ case (a,b) => max(a,b) }
-        cycleOf(cl) = (iterOf(cl.localCChain)-1)*maxLat + singleIterLatency(cl) 
+        cycleOf(cl) = (iterOf(cl)-1)*maxLat + singleIterLatency(cl) 
       case cl:Pipeline if (isPipelining(cl)) => 
         val pcl = mp.clmap(cl)
-        cycleOf(cl) = (iterOf(cl.localCChain)-1) + pcl.stages.length
+        cycleOf(cl) = (iterOf(cl)-1) + pcl.stages.length
       case cl:Pipeline if (isStreaming(cl)) => 
         val pcl = mp.clmap(cl)
         cycleOf(cl) = pcl.stages.length
       case cl:StreamController => 
         cl.children.foreach { child => cycle(child) } // calculate cycle of nested SteamController
-        cycleOf(cl) = (iterOf(cl.localCChain)-1) + singleIterLatency(cl)
-      case cl:Sequential => cycleOf(cl) = iterOf(cl.localCChain) * singleIterLatency(cl) 
+        cycleOf(cl) = (iterOf(cl)-1) + singleIterLatency(cl)
+      case cl:Sequential => cycleOf(cl) = iterOf(cl) * singleIterLatency(cl) 
       case cl:Top =>
         assert(cl.children.size==1)
         val child = cl.children.head
@@ -334,8 +336,27 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
     cycleOf(cl)
   }
 
+  def setIter = {
+    design.top.ctrlers.foreach {
+      case cl:MemoryPipeline =>
+      case cl if isStreaming(cl) => iterOf(cl) = 1
+      case cl:ComputeUnit => iterOf(cl) = iterOf(cl.localCChain)
+      case cl:Top => iterOf(cl) = 1
+    }
+  }
+
+  def calcTotalCycle = {
+    design.top.ctrlers.foreach { cl =>
+      cycleOf.get(cl).map { cycle =>
+        totalCycleOf(cl) = cycle * ancestorsOf(cl).drop(1).map(anc => iterOf(anc)).fold(1l)(_*_)
+      }
+    }
+  }
+
   override def traverse = {
+    setIter
     calcLatency(design.top)
+    calcTotalCycle
   }
 
 }

@@ -60,6 +60,7 @@ trait Design extends PIRMetadata with Collector {
   val latencyAnalyzer = new LatencyAnalysis()
   val resourceAnalyzer = new ResourceAnalysis()
   val powerAnalyzer = new PowerAnalyzer()
+  val energyAnalyzer = new EnergyAnalyzer()
 
   /* Transformation */
   val ctrlAlloc = new CtrlAlloc()
@@ -91,6 +92,7 @@ trait Design extends PIRMetadata with Collector {
   val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
   val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
+  val pirDataDotGen5 = new PIRDataDotGen("PIR.dot")
   val pirDataDotGen = new PIRDataDotGen("PIR.dot")
   val pirCtrlDotGen = new PIRCtrlDotGen()
   val argDotPrinter = new ArgDotPrinter()
@@ -128,7 +130,7 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen4
   passes += irCheck 
   passes += ctrlAlloc 
-  passes += pirDataDotGen
+  passes += pirDataDotGen5
   passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
   passes += ctrlPrinter 
@@ -156,6 +158,7 @@ trait Design extends PIRMetadata with Collector {
   passes += latencyAnalyzer
   passes += resourceAnalyzer
   passes += powerAnalyzer 
+  passes += energyAnalyzer 
   passes += pirDataDotGen
 
   def run = {
