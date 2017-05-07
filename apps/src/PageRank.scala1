@@ -498,7 +498,7 @@ object PageRank extends PIRApp {
       val x4136 = CU.temp
       val x4137 = CU.temp
       val x4135 =  ScalarFIFO(size=1).wtPort(bus_602_s)
-      val x4123_x4123 =  VectorFIFO(size=1).wtPort(x3839_x4124_x4144_v)
+      val x4123_x4123 =  VectorFIFO(size=1).wtPort(x3921_x4128_x4144_v)
       val x4128_x4128 =  VectorFIFO(size=1).wtPort(x3921_x4128_x4144_v)
       val x4127_x4127 =  VectorFIFO(size=1).wtPort(x4088_x4127_x4144_v)
       var stage: List[Stage] = Nil
