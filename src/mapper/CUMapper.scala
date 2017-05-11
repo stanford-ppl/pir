@@ -76,6 +76,12 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val pocus = design.arch.ocus 
     val rcus = cls.collect { case pcu:CU => pcu }.diff(scus).diff(mcs).diff(ocus).diff(mcus)
     val pcus = design.arch.pcus 
+    info(s"numPCU:${if (scus.size==0) rcus.size - mcs.size else rcus.size} numPCU:${pcus.size}")
+    info(s"numMCU:${mcus.size} numPMCU:${pmcus.size}")
+    //info(s"numSCU:${scus.size} numPSCU:${pscus.size}")
+    info(s"numMC:${mcs.size} numSCU:${scus.size} numPMC:${pmcs.size} numPSCU:${pscus.size}")
+    info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
+    info(s"numCL:${cls.size}")
     if (mcs.size > pmcs.size) throw OutOfPMC(pmcs, mcs)
     if (ocus.size > pocus.size) throw OutOfOCU(pocus, ocus)
     if (mcus.size > pmcus.size) throw OutOfMCU(pmcus, mcus)
@@ -157,6 +163,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
       dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
       cl match {
+        case cl:MC if cl.mctpe==Scatter =>
         case cl:MC => 
           val scu = scuOf(cl)
           if (m.clmap.contains(scu)) {
@@ -176,7 +183,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val nodes = topoSort(design.top)
+    val nodes = design.top.ctrlers//topoSort(design.top)
     val reses = design.arch.pnes
     emitBlock(s"topoSort:") {
       nodes.foreach{ n => dprintln(s"$n") }

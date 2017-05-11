@@ -99,12 +99,15 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
       val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
       addCounters(addiCtrs)
       counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
-      iterOf(this) = iterOf(cc) 
+      //iterOf(this) = iterOf(cc) 
       ctrler.addCChain(this)
     }
   }
 
-  def iter(it:Long) = iterOf(this) = it
+  def iter(it:Long) = {
+    iterOf(this) = it
+    this
+  }
 
 }
 object CounterChain {

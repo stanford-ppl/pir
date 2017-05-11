@@ -155,10 +155,10 @@ trait Design extends PIRMetadata with Collector {
   // Statistics
   passes += controlAnalyzer // set parOf 
   passes += contentionAnalyzer
-  passes += latencyAnalyzer
+  //passes += latencyAnalyzer
   passes += resourceAnalyzer
   passes += powerAnalyzer 
-  passes += energyAnalyzer 
+  //passes += energyAnalyzer 
   passes += pirDataDotGen
 
   def run = {
@@ -166,6 +166,7 @@ trait Design extends PIRMetadata with Collector {
       arch.config
       info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
+      pirMapping.cuMapper.resMap
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 

@@ -62,7 +62,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     val pcu = pirMap.clmap(cu)
     val regs = mutable.ListBuffer[Reg]()
     cu.regs.foreach {
-      case reg@VecOutPR(vo) =>
+      case reg@VecOutPR(vo) if pirMap.vomap.contains(vo) =>
         val pvos = pirMap.vomap(vo)
         voMap += reg -> mutable.Stack() 
         pvos.foreach { pvo =>
@@ -86,8 +86,10 @@ class RegAlloc(implicit val design:Design) extends Mapper {
         case ReducePR() => 
           pcu.asCU.regs.filter(_.is(ReduceReg))
         case VecOutPR(vecOut) =>
-          val pvout = voMap(n).pop()
-          regsOf(pvout.ic)
+          voMap.get(n).map { stack =>
+            val pvout = stack.pop()
+            regsOf(pvout.ic)
+          }.getOrElse(pcu.asCU.regs.filter{_.is(VecOutReg)})
         case ScalarOutPR(scalarOut) =>
           pirMap.vomap.get(scalarOut).map { psos =>
             psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 

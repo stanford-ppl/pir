@@ -153,9 +153,9 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numSRAMs = 0
   def numUDCs = 5
   override def config(implicit spade:SwitchNetwork) = {
-    addRegstages(numStage=3, numOprds=3, ops)
-    addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=2, numOprds=3, ops)
+    addRdstages(numStage=4, numOprds=3, ops)
+    addRegstages(numStage=1, numOprds=3, ops)
     numScalarBufs(6)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
@@ -239,7 +239,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
-    numScalarBufs(4)
+    numScalarBufs(6)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)

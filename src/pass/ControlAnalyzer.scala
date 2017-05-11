@@ -4,6 +4,7 @@ import pir._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
+import pir.util.enums._
 import pir.codegen.Logger
 
 import scala.collection.mutable._
@@ -114,11 +115,12 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def setSCUs(ctrler:Controller) = {
     ctrler match {
+      case mc:MemoryController if mc.mctpe == Scatter => 
       case mc:MemoryController if mc.mctpe.isDense =>
         scuOf(mc) = mc.getFifo("offset").writer.ctrler
       case mc:MemoryController if mc.mctpe.isSparse =>
         scuOf(mc) = mc.getFifo("addr").writer.ctrler
-      case _ => 
+      case mc =>
     }
   }
 
@@ -175,6 +177,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       } {
         case cu:MemoryPipeline => parOf(pcu) = 1
         case cu:OuterController => parOf(pcu) = 1
+        case cu if isStreaming(cu) => parOf(pcu) = cu.asCU.parent.asCU.localCChain.inner.par 
         case cu:ComputeUnit => parOf(pcu) = cu.localCChain.inner.par
       }
       dprintln(s"parOf($pcu) = ${parOf(pcu)}")

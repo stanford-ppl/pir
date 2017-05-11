@@ -105,16 +105,19 @@ trait MultiBuffering extends OnChipMem {
     }
     this
   }
-  def consumer[T](cs:T, trueDep:Boolean):this.type = {
+  def consumer[T](cs:T):this.type = {
     cs match {
       case cs:String =>
-        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller], trueDep))
+        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller]))
       case cs:Controller =>
         this._consumer = cs
-        this.trueDep = trueDep
         cs.consume(this)
     }
     this
+  }
+  def consumer[T](cs:T, trueDep:Boolean):this.type = {
+    this.trueDep = trueDep
+    consumer(cs)
   }
 
   var _buffering:Int = _

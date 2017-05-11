@@ -56,8 +56,8 @@ class IRCheck(implicit design: Design) extends Pass {
         throw PIRException(s"readAddr of $n in ${n.ctrler} is not connected")
     case n:LocalMem =>
       n.ctrler match {
-        case cu:MemoryPipeline =>
-          assert(forRead(n) || forWrite(n), s"$n in $cu forRead:${forRead(n)} forWrite:${forWrite(n)}")
+        case cu:MemoryPipeline =>//TODO: add this back
+          //assert(forRead(n) || forWrite(n), s"$n in $cu forRead:${forRead(n)} forWrite:${forWrite(n)}")
         case _ =>
       }
     case n =>

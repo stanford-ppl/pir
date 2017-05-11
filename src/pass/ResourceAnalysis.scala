@@ -83,7 +83,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     case pne:PCU if mp.clmap.pmap.contains(pne) =>
       regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
         //case (used, total) => (used * parOf(pne), total * pne.numLanes)
-        case (used, total) => (used * parOf(pne), 8 * pne.numLanes) // assuming using 8 registers per stage
+        case (used, total) => (used * parOf(pne), 8 * pne.numLanes * pne.stages.size) // assuming using 8 registers per stage
       }
     case pne =>
       regUsed += pne -> Util.empty
@@ -220,8 +220,9 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     row += "CLink Util"    -> clinkUtil.toPct
     row += "SLink Util"    -> slinkUtil.toPct
     row += "VLink Util"    -> vlinkUtil.toPct
+
     row += "Total Reg Util"    -> totalRegUtil.toPct
-    row += "Total Stage Util"    -> totalFUUtil.toPct
+    row += "Total FU Util"    -> totalFUUtil.toPct
     row += "Total SFifo Util"    -> totalSBufUtil.toPct
     row += "Total VFifo Util"    -> totalVBufUtil.toPct
     row += "Total SinPin Util"    -> totalSinPinUtil.toPct
@@ -232,7 +233,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     row += "Total CoutPin Util"    -> totalCoutPinUtil.toPct
 
     row += "Total Reg Used"    -> totalRegUtil.used
-    row += "Total Stage Used"    -> totalFUUtil.used
+    row += "Total FU Used"    -> totalFUUtil.used
     row += "Total SFifo Used"    -> totalSBufUtil.used
     row += "Total VFifo Used"    -> totalVBufUtil.used
     row += "Total SinPin Used"    -> totalSinPinUtil.used
@@ -260,7 +261,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
 
       row += s"regUtil" -> regUsed(cl).toPct
       row += s"ctrUtil" -> ctrUsed(cl).toPct
-      row += s"stageUtil" -> fuUsed(cl).toPct
+      row += s"fuUtil" -> fuUsed(cl).toPct
       row += s"SFifoUtil" -> sBufUsed(cl).toPct
       row += s"VFifoUtil" -> vBufUsed(cl).toPct
       row += s"SinPinUtil" -> sinPinUsed(cl).toPct
@@ -316,7 +317,7 @@ case class Util(used:Int, total:Int) {
     Util(used * factor, total * factor)
   }
   def toPct:Float = {
-    if (total==0) -1 else used.toFloat / total
+    if (total==0) 0 else used.toFloat / total
   }
   def map(func:(Int, Int) =>(Int,Int)) = {
     val (newUsed, newTotal) = func(used, total)

@@ -26,12 +26,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
-      connectMemoryControl(ctrler)
+      //connectMemoryControl(ctrler) //TODO
     }
-    topoSort(design.top).reverse.foreach { ctrler =>
-      connectSibling(ctrler)
-      connectChildren(ctrler)
-    }
+    //topoSort(design.top).reverse.foreach { ctrler =>
+      //connectSibling(ctrler)
+      //connectChildren(ctrler)
+    //}
   } 
 
   /*
