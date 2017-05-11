@@ -19,7 +19,7 @@ object Config {
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = false
+  var ctrl = true
   var simulate = false
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
