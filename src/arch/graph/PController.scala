@@ -156,14 +156,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     addRegstages(numStage=2, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=1, numOprds=3, ops)
-    numScalarBufs(6)
+    numScalarBufs(4)
     numVecBufs(vins.size)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg).color(1, AccumReg)
-    color(8 until 8 + numScalarBufs, ScalarInReg)
-    color(8 until 8 + souts.size, ScalarOutReg)
-    color(12 until 12 + numVecBufs, VecInReg)
-    color(0 until 0 + vouts.size, VecOutReg)
+    color(5 until 5 + numScalarBufs, ScalarInReg)
+    color(5 until 5 + souts.size, ScalarOutReg)
+    color(9 until 9 + numVecBufs, VecInReg)
+    color(9 until 9 + vouts.size, VecOutReg)
     genConnections
   }
 
