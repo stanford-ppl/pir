@@ -25,9 +25,9 @@ import java.nio.file.{Paths, Files}
 import scala.io.Source
 
 trait PIRApp extends Design {
-  override val arch:Spade = new SwitchNetwork(numRows=16, numCols=8, numArgIns=40, numArgOuts=5) {}
+  //override val arch:Spade = new SwitchNetwork(numRows=16, numCols=8, numArgIns=40, numArgOuts=5) {}
   //override val arch:Spade = new SwitchNetwork(numRows=7, numCols=7, numArgIns=40, numArgOuts=5) {}
-  //override val arch:Spade = SN_4x4
+  override val arch:Spade = SN_2x2
   override def name:String = this.getClass().getSimpleName().replace("$","")
 
   def main(args: String*)(top:Top): Any 
