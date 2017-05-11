@@ -35,7 +35,7 @@ package object enums {
   case object FltExp extends FltOp
   case object FltAbs extends FltOp
   case object FltLog extends FltOp
-  case object FltSqrt extends FltOp
+  case object FltSqr extends FltOp
   case object FltNeg extends FltOp 
 
   sealed trait BitOp extends Op 
@@ -47,7 +47,7 @@ package object enums {
         FixNeq, FixMod, FixSra)
   val fltOps:List[FltOp] = 
     List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltEql,
-      FltNeq, FltExp, FltAbs)
+      FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
   val bitOps:List[BitOp] = 
     List(BitAnd, BitOr)
   val otherOps:List[Op] = List(Mux, Bypass)

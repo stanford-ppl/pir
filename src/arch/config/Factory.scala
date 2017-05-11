@@ -27,7 +27,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   }
 
   /* Generate connections relates to register mapping of a cu */
-  def genMapping(cu:ComputeUnit)(implicit spade:Spade) = {
+  def genMapping(cu:ComputeUnit) = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     /* Register Constrain */
@@ -77,7 +78,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectData(mc:MemoryController)(implicit spade:Spade):Unit = {
+  def connectData(mc:MemoryController):Unit = {
+    implicit val spade:Spade = mc.spade
     // Xbar
     mc.sins.foreach { sin => mc.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
     // One to one
@@ -85,7 +87,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   }
 
   /* Generate primitive connections within a CU */ 
-  def connectData(cu:ComputeUnit)(implicit spade:Spade):Unit = {
+  def connectData(cu:ComputeUnit):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     val top = spade.top
@@ -145,7 +148,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
   }
 
-  def connectAndTree(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectAndTree(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
@@ -164,7 +168,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectCounters(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectCounters(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
@@ -192,7 +197,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectUDCs(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectUDCs(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
@@ -213,7 +219,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectMemoryControl(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectMemoryControl(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
@@ -240,7 +247,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectCtrlIO(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectCtrlIO(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
     (cu, cu.ctrlBox) match {
@@ -282,7 +290,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectCtrl(cu:Controller)(implicit spade:Spade):Unit = {
+  def connectCtrl(cu:Controller):Unit = {
     connectAndTree(cu)
     connectCounters(cu)
     connectUDCs(cu)
@@ -290,7 +298,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     connectCtrlIO(cu)
   }
 
-  def genConnections(pne:NetworkElement)(implicit spade:Spade):Unit = {
+  def genConnections(pne:NetworkElement):Unit = {
     pne match {
       case pne:Top =>
         connectCtrl(pne)

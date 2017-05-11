@@ -1,10 +1,10 @@
 
 import pir._
 import pir.test._
-import pir.misc._
-import pir.graph.enums._
+import pir.util.misc._
+import pir.util.enums._
 import pir.graph._
-import pir.graph.mapper.PIRException
+import pir.exceptions.PIRException
 import plasticine.main._
 
 import org.scalatest._
@@ -34,9 +34,9 @@ class AppTests extends UnitTest { self =>
   // Apps 
   "DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
   "OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
+  "BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
   "TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
   "MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
-  "MatMult_outer" should "success" in { MatMult_outer.main(Array("MatMult_outer")) }
-  "LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   "GDA" should "success" in { GDA.main(Array("GDA")) }
+  "LogReg" should "success" in { LogReg.main(Array("LogReg")) }
 }

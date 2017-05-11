@@ -47,8 +47,8 @@ class FusionTransform(implicit design: Design) extends Pass with Logger {
 
   def fuseCUs(parent:OuterController, childCU:ComputeUnit) = {
     implicit val child:ComputeUnit = childCU 
-    val ccchain = child.localCChain
-    val pcchain = parent.localCChain
+    //val ccchain = child.localCChain
+    //val pcchain = parent.localCChain
     // Copying from inner most to outer most
     //child match {
       //case child:InnerController => // ccu might already have a copy of pcchain 
@@ -73,6 +73,12 @@ class FusionTransform(implicit design: Design) extends Pass with Logger {
         ////}
         ////ccu.inner.removeCChainCopy(pcchain)
     //}
+    dprintln(s"cloning cchain=${parent.localCChain} from $parent to $child")
+    dprintln(s"before=${child.cchains}")
+    val localCChain = child.localCChain
+    val cc = child.cloneCC(parent.localCChain)
+    cc.inner.en.connect(localCChain.outer.done)
+    dprintln(s"after=${child.cchains}")
     design.removeNode(parent)
   }
 

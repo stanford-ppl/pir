@@ -14,6 +14,8 @@ import pir.pass.ForwardRef
 import pir.exceptions._
 
 case class CounterChain(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+  import pirmeta._
+
   override val typeStr = "CC"
   /* Fields */
   val _counters = ListBuffer[Counter]()
@@ -36,7 +38,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
    * */
   def isCopy = copy.isDefined
   def isDummy = counters.forall{_.isInstanceOf[DummyCounter]}
-  def isLocal = !isCopy
+  def isLocal = !isCopy && (!inner.en.isConnected || !inner.en.from.src.isInstanceOf[Counter])
     
   /*
    * Whether CounterChain is not a copy or is a copy and has been updated
@@ -82,15 +84,29 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   }
 
   def copy(cp:CounterChain):Unit = {
-    // Check whether speculative wire allocation was correct
-    assert(counters.size <= cp.counters.size, 
-      s"Accessed counter ${counters.size-1} of ${this} is out of bound")
-    assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
-    val addiCtrs = List.fill(cp.counters.size-counters.size)(Counter(this))
-    addCounters(addiCtrs)
-    counters.zipWithIndex.foreach { case(c,i) => c.copy(cp.counters(i)) }
+    assert(!cp.isCopy, s"Can only clone original CounterChain. Target ${cp} is a clone of ${cp.original}")
     this.setCopy(cp)
-    ctrler.addCChain(this)
+    clone(cp)
+  }
+
+  def clone(cc:CounterChain):Unit = {
+    if (cc.isCopy) {
+      clone(cc.original)
+    } else {
+      // Check whether speculative wire allocation was correct
+      assert(counters.size <= cc.counters.size, 
+        s"Accessed counter ${counters.size-1} of ${this} is out of bound")
+      val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
+      addCounters(addiCtrs)
+      counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
+      //iterOf(this) = iterOf(cc) 
+      ctrler.addCChain(this)
+    }
+  }
+
+  def iter(it:Long) = {
+    iterOf(this) = it
+    this
   }
 
 }
@@ -126,9 +142,16 @@ object CounterChain {
     cc.copy(from)
     cc
   }
+  def clone(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
+    val cc = CounterChain(from.name)
+    cc.clone(from)
+    cc
+  }
   def dummy(implicit ctrler:ComputeUnit, design: Design) = {
+    import design.pirmeta._
     val cc = CounterChain(Some(s"dummy"))
     cc.addCounter(DummyCounter(cc))
+    iterOf(cc) = 1
     cc
   }
 }
@@ -142,7 +165,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   val en:EnInPort = EnInPort(this, s"${this}.en")
   val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
-  var par:Int = 0
+  var par:Int = 1
   var _cchain:CounterChain = _
   def cchain:CounterChain = _cchain
   def cchain(cc:CounterChain):Counter = {
@@ -161,8 +184,12 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
 
   def isInner = { 
-    assert(en.isConnected, s"${this}.en is not connected")
-    !en.from.src.isInstanceOf[Counter]
+    if (Config.ctrl) {
+      assert(en.isConnected, s"${this}.en is not connected")
+      !en.from.src.isInstanceOf[Counter]
+    } else {
+      (ctrler.cchains.head == cchain) && (cchain.inner == this)
+    }
   }
   def isOuter = { !done.isConnected || done.to.forall{!_.src.isInstanceOf[Counter]} } 
   def next:Counter = {

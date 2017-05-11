@@ -32,7 +32,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def load = readPort
 
   def writer:Controller = writerOf(this)
-  def reader:Controller = readerOf(this)
+  def readers:List[Controller] = readersOf(this)
   def isVFifo = this.isInstanceOf[VectorFIFO]
   def isSFifo = this.isInstanceOf[ScalarFIFO]
   def asVFifo = this.asInstanceOf[VectorFIFO]
@@ -105,16 +105,19 @@ trait MultiBuffering extends OnChipMem {
     }
     this
   }
-  def consumer[T](cs:T, trueDep:Boolean):this.type = {
+  def consumer[T](cs:T):this.type = {
     cs match {
       case cs:String =>
-        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller], trueDep))
+        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller]))
       case cs:Controller =>
         this._consumer = cs
-        this.trueDep = trueDep
         cs.consume(this)
     }
     this
+  }
+  def consumer[T](cs:T, trueDep:Boolean):this.type = {
+    this.trueDep = trueDep
+    consumer(cs)
   }
 
   var _buffering:Int = _
@@ -123,14 +126,16 @@ trait MultiBuffering extends OnChipMem {
   val swapRead = CtrlInPort(this, s"$this.swapRead")
   val swapWrite = CtrlInPort(this, s"$this.swapWrite")
 }
-trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite {
+trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
 }
 
 trait LocalMem extends OnChipMem {
-  override def reader:Controller = {
-    this.ctrler
+  def reader:Controller = {
+    val readers = super.readers
+    assert(readers.size==1, s"local mem should only have 1 reader, ${this}, ${readers}")
+    readers.head
   }
 }
 trait RemoteMem extends OnChipMem { self:VectorMem =>
@@ -178,7 +183,7 @@ object SemiFIFO {
 }
 
 class VectorFIFO(val name: Option[String], val size: Int)(implicit ctrler:ComputeUnit, design: Design) 
-  extends VectorMem with LocalMem with FIFO {
+  extends VectorMem with FIFO {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {

@@ -72,6 +72,8 @@ abstract class Controller(implicit design:Design) extends Node {
 
   def isMP = this.isInstanceOf[MemoryPipeline]
   def asCU = this.asInstanceOf[ComputeUnit]
+  def asCL = this.asInstanceOf[Controller]
+  def asMP = this.asInstanceOf[MemoryPipeline]
 
   def cloneType(name:String):Controller = {
     cloneType(Some(name))
@@ -129,7 +131,15 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
   def getCopy(cchain:CounterChain):CounterChain = {
-    cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
+    val copy = CounterChain.copy(cchain.original)(this, design)
+    assert(cchainMap.contains(copy.original))
+    copy
+  }
+
+  def cloneCC(cchain:CounterChain):CounterChain = {
+    val clone = CounterChain.clone(cchain.original)(this, design)
+    assert(cchainMap.contains(clone.original))
+    clone
   }
 
   def containsCopy(cchain:CounterChain):Boolean = {
@@ -163,6 +173,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
         //}
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
+      case cu:Pipeline if isStreaming =>
+        sortCChains(cu.cchains).headOption.getOrElse(addCChain(CounterChain.dummy))
       case cu =>
         val locals = cchains.filter{_.isLocal}
         assert(locals.size<=1, 

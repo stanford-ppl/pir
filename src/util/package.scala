@@ -1,6 +1,7 @@
 package pir
 
 import pir.graph._
+import pir.util.misc._
 import mapper._
 import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
@@ -98,6 +99,7 @@ package object util {
     }
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
+
 
 }
 

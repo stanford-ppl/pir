@@ -92,6 +92,11 @@ class MapPrinter(implicit design: Design) extends Codegen {
 
   override def traverse = {
     design.arch.ctrlers.foreach(emit)
+    emitBlock(s"mkmap") {
+      mp.mkmap.map.foreach { case (k,v) =>
+        emitln(s"${quote(k.src)}.$k -> $v")
+      }
+    }
   }
 
   def print(mapping:PIRMap) = {

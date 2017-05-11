@@ -27,27 +27,29 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
   }
 
   def setReader(mem:OnChipMem) = mem match {
-    case mem:LocalMem => readerOf(mem) = mem.ctrler
+    case mem:LocalMem => readersOf(mem) = List(mem.ctrler)
     case mem:RemoteMem =>
       if (!mem.readPort.isConnected)
         warn(s"$mem.readPort in ${mem.ctrler} is not connected")
-      readerOf(mem) = mem.readPort.to.head.src match {
+      readersOf(mem) = mem.readPort.to.head.src match {
         case vo:VecOut => 
-          val vrds = vo.vector.readers
-          if(vrds.size!=1)
-            warn(s"OnChipMem=$mem in ${mem.ctrler} has not exactly 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
-          val rds = vrds.filterNot{_.ctrler.isInstanceOf[MemoryPipeline]}
-          if (rds.size>1)
-            err(s"Currently assume each OnChipMem=$mem in ${mem.ctrler} can only have 1 non-MCU remote reader [${rds.mkString(",")}], [${rds.map(_.ctrler).mkString(",")}]")
-          else if (rds.size==1)
-            rds.head.ctrler
-          else
-            vrds.head.ctrler
+          vo.vector.readers.map(_.ctrler)
+          //val vrds = vo.vector.readers
+          //if(vrds.size!=1)
+            //warn(s"OnChipMem=$mem in ${mem.ctrler} has not exactly 1 remote reader [${vrds.mkString(",")}], [${vrds.map(_.ctrler).mkString(",")}]")
+          //val rds = vrds.filterNot{_.ctrler.isInstanceOf[MemoryPipeline]}
+          //if (rds.size>1)
+            //err(s"Currently assume each OnChipMem=$mem in ${mem.ctrler} can only have 1 non-MCU remote reader [${rds.mkString(",")}], [${rds.map(_.ctrler).mkString(",")}]")
+          //else if (rds.size==1)
+            //rds.head.ctrler
+          //else
+            //vrds.head.ctrler
         case so:ScalarOut =>
-          assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem=$mem in ${mem.ctrler} can only have 1 remote reader ${so.scalar.readers}")
-          so.scalar.readers.head.ctrler
-        case cu:Controller => cu
-        case p:Primitive => p.ctrler
+          so.scalar.readers.map(_.ctrler)
+          //assert(so.scalar.readers.size==1, s"Currently assume each OnChipMem=$mem in ${mem.ctrler} can only have 1 remote reader ${so.scalar.readers}")
+          //so.scalar.readers.head.ctrler
+        case cu:Controller => List(cu)
+        case p:Primitive => List(p.ctrler)
         case p => throw new Exception(s"Unknown OnChipMem read port ${p} for $this in ${mem.ctrler}")
       }
   }
@@ -68,7 +70,7 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
       emitBlock(s"$cu") {
         cu.mems.foreach { mem =>
           emitBlock(s"$mem") {
-            dprintln(s"reader = ${readerOf(mem)} = ${mem.ctrler}")
+            dprintln(s"reader = ${readersOf(mem)} = ${mem.ctrler}")
             dprintln(s"writer = ${writerOf(mem)} = ${mem.ctrler}")
           }
         }

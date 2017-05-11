@@ -22,7 +22,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class CUDotPrinter(fn:String, open:Boolean, interactive:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
+abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
   import spademeta._
 
   val scale:Int
@@ -95,14 +95,6 @@ abstract class CUDotPrinter(fn:String, open:Boolean, interactive:Boolean)(implic
     close
     if (open) { 
       s"out/bin/run -c ${getPath}".replace(".dot", "") !
-    }
-    if(interactive) {
-      info(s"Waiting for input ...")
-      val command = scala.io.StdIn.readLine()
-      if (command!="n") {
-        info(s"Stop debugging control routing and exiting...")
-        System.exit(-1)
-      }
     }
   }
 
@@ -249,26 +241,26 @@ abstract class CUDotPrinter(fn:String, open:Boolean, interactive:Boolean)(implic
 
 }
 
-class CUCtrlDotPrinter(file:String, open:Boolean, interactive:Boolean)(implicit design:Design)
-  extends CUDotPrinter(file, open, interactive) { 
+class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
+  extends CUDotPrinter(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false, false)
-  def this(open:Boolean, interactive:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open, interactive)
-  def this()(implicit design:Design) = this(false, false)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
+  def this()(implicit design:Design) = this(false)
 
   val scale = 20
 
   def io(pne:NetworkElement) = pne.ctrlIO
 }
 
-class CUScalarDotPrinter(file:String, open:Boolean, interactive:Boolean)(implicit design:Design) 
-  extends CUDotPrinter(file, open, interactive) { 
+class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+  extends CUDotPrinter(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false, false)
-  def this(open:Boolean, interactive:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open, interactive)
-  def this()(implicit design:Design) = this(false, false)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open)
+  def this()(implicit design:Design) = this(false)
   
   val scale = 15
 
@@ -276,13 +268,13 @@ class CUScalarDotPrinter(file:String, open:Boolean, interactive:Boolean)(implici
 
 }
 
-class CUVectorDotPrinter(file:String, open:Boolean, interactive:Boolean)(implicit design:Design) 
-  extends CUDotPrinter(file, open, interactive) { 
+class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+  extends CUDotPrinter(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false, false)
-  def this(open:Boolean, interactive:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open, interactive)
-  def this()(implicit design:Design) = this(false, false)
+  def this(file:String)(implicit design:Design) = this(file, false)
+  def this(open:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open)
+  def this()(implicit design:Design) = this(false)
   
   val scale = 15
 

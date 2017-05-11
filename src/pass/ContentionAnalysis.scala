@@ -3,23 +3,25 @@ import pir.graph._
 import pir._
 import pir.util.misc._
 import pir.exceptions.PIRException
+import pir.codegen.Logger
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ContentionAnalysis(implicit design: Design) extends Pass  {
+class ContentionAnalysis(implicit design: Design) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = true
+  override lazy val stream = newStream(s"ContentionAnalysis.log")
 
   val isolatedContention = Map[Controller,List[Int]]()
 
-  def outerContention(x: Controller, P: => Int): Int = {
+  def outerContention(x: Controller, par: => Int): Int = {
     x match {
       case x:InnerController => 0
       case x:Controller =>
-        val ics = x.children.map { c => calcContention(c) * P }
+        val ics = x.children.map { c => calcContention(c) * par }
         isolatedContention(x) = ics
         x match {
           case top:Top => assert(ics.size==1); ics.head
@@ -30,12 +32,8 @@ class ContentionAnalysis(implicit design: Design) extends Pass  {
   }
 
   def calcContention(x: Controller): Int = x match {
-    //case Deff(_:ParallelPipe)     => childrenOf(x).map(calcContention).sum
-    //case Deff(e:OpForeach)        => outerContention(x, parsOf(e.cchain).reduce{_*_})
-    //case Deff(e:OpReduce[_,_])    => outerContention(x, parsOf(e.cchain).reduce{_*_})
-    //case Deff(e:OpMemReduce[_,_]) => outerContention(x, parsOf(e.ccOuter).reduce{_*_})
     case x:Top => outerContention(x, 1)
-    case x:OuterController => outerContention(x, 1) //??
+    case x:OuterController => outerContention(x, 1) 
     case x:MemoryController => 1
     case x:InnerController  => 0 
   }
@@ -53,12 +51,15 @@ class ContentionAnalysis(implicit design: Design) extends Pass  {
     }
   }
 
-  def markContention(x: Controller, parent: Int): Unit = x match {
-    //case Deff(_:ParallelPipe)     => childrenOf(x).foreach{child => markContention(child,parent)}
-    case x:Top => markPipe(x, parent)
-    case x:OuterController => markPipe(x, parent)
-    case x:MemoryController => contentionOf(x) = parent
-    case x:InnerController => contentionOf(x) = 0 
+  def markContention(x: Controller, parent: Int): Unit = {
+    x match {
+      case x:Top => markPipe(x, parent)
+      case x:OuterController => markPipe(x, parent)
+      case x:MemoryController => contentionOf(x) = parent
+        dprintln(s"contentionOf($x) = ${contentionOf(x)}")
+      case x:InnerController => contentionOf(x) = 0 
+        dprintln(s"contentionOf($x) = ${contentionOf(x)}")
+    }
   }
 
   override def traverse:Unit = {

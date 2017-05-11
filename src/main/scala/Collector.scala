@@ -58,6 +58,7 @@ trait Collector { design:Design =>
           n.parent.addChildren(child) 
           n.removeChild(child)
         }
+        n.cchains.foreach { cc => design.removeNode(cc) }
         n.parent.removeChild(n)
         n.removeParent
       case n:InnerController =>
@@ -65,21 +66,30 @@ trait Collector { design:Design =>
         n.parent.removeChild(n)
         n.removeParent
       case n:CounterChain =>
-        n.counters.foreach { ctr => 
-          if (ctr.cchain==n) design.removeNode(ctr)
-        }
+        n.counters.foreach { ctr => design.removeNode(ctr) }
       case n:Counter =>
+        design.removeNode(n.min.from)
+        design.removeNode(n.max.from)
+        design.removeNode(n.step.from)
         design.removeNode(n.min)
         design.removeNode(n.max)
         design.removeNode(n.step)
+      case n:LocalMem =>
+        design.removeNode(n.readPort)
+        design.removeNode(n.writePort.from)
+        design.removeNode(n.writePort)
+      case n:ScalarIn =>
+        design.removeNode(n.out)
+        n.scalar.removeReader(n)
+        if (n.scalar.readers.isEmpty) {
+          design.removeNode(n.scalar.writer)
+          design.removeNode(n.scalar)
+        }
+      case n:ScalarOut => throw new Exception(s"TODO")
       case n:InPort =>
-        val from = n.from
         n.disconnect
-        if (!from.isConnected)
-          design.removeNode(from)
       case n:OutPort =>
         n.disconnect
-        design.removeNode(n.src)
       case _ =>
     }
   }

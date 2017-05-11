@@ -145,10 +145,23 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
         }
         // SB to SB (Vertical)
         if (y!=numRows) {
-          // S -> N
-          connect(sbs(x)(y), "N", sbs(x)(y+1), "S", sbChannelWidthSN)
-          // N -> S 
-          connect(sbs(x)(y+1), "S", sbs(x)(y), "N", sbChannelWidthNS)
+          //// S -> N
+          //connect(sbs(x)(y), "N", sbs(x)(y+1), "S", sbChannelWidthSN)
+          //// N -> S 
+          //connect(sbs(x)(y+1), "S", sbs(x)(y), "N", sbChannelWidthNS)
+          //TODO
+          //HACK: double the bandwidth on two side
+          if (x==0 | x==numCols) {
+            // S -> N
+            connect(sbs(x)(y), "N", sbs(x)(y+1), "S", 2*sbChannelWidthSN)
+            // N -> S 
+            connect(sbs(x)(y+1), "S", sbs(x)(y), "N", 2*sbChannelWidthNS)
+          } else {
+            // S -> N
+            connect(sbs(x)(y), "N", sbs(x)(y+1), "S", sbChannelWidthSN)
+            // N -> S 
+            connect(sbs(x)(y+1), "S", sbs(x)(y), "N", sbChannelWidthNS)
+          }
         }
 
         // Top to SB

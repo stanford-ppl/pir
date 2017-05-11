@@ -16,6 +16,7 @@ import Math._
 
 class ResourceAnalysis(implicit design: Design) extends Pass {
   import pirmeta._
+  import spademeta._
   def shouldRun = design.pirMapping.succeeded
 
   val summary = new CSVPrinter {
@@ -33,18 +34,11 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   lazy val mp = design.mapping.get
   override lazy val spade = design.arch.asInstanceOf[SwitchNetwork]
 
-  val numPStage = 8 // Number of stages per CU 
-
   val activeCycle = Map[PNode, Long]()
 
-  type Util = (Int, Int)
-  def pctUtil(util:Util):Float = {
-    val (u,t) = util
-    if (t==0) -1 else u.toFloat / t
-  }
-
   val regUsed = Map[PNode, Util]()
-  val stageUsed = Map[PNode, Util]()
+  val ctrUsed = Map[PNode, Util]()
+  val fuUsed = Map[PNode, Util]()
   val sBufUsed = Map[PNode, Util]()
   val vBufUsed = Map[PNode, Util]()
 
@@ -55,69 +49,74 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   val cinPinUsed = Map[PNode, Util]()
   val coutPinUsed = Map[PNode, Util]()
 
-  var pcuUtil = (-1, -1)
-  var mcuUtil = (-1, -1)
-  var ocuUtil = (-1, -1)
-  var scuUtil = (-1, -1)
-  var mcUtil = (-1, -1)
-  var slinkUtil = (-1, -1)
-  var vlinkUtil = (-1, -1)
-  var clinkUtil = (-1, -1)
-  var totalRegUtil = (-1, -1)
-  var totalStageUtil = (-1, -1)
-  var totalSBufUtil = (-1, -1)
-  var totalVBufUtil = (-1, -1)
+  var pcuUtil = Util.empty
+  var mcuUtil = Util.empty
+  var ocuUtil = Util.empty
+  var scuUtil = Util.empty
+  var mcUtil = Util.empty
+  var slinkUtil = Util.empty
+  var vlinkUtil = Util.empty
+  var clinkUtil = Util.empty
+  var totalRegUtil = Util.empty
+  var totalCtrUtil = Util.empty
+  var totalFUUtil = Util.empty
+  var totalSBufUtil = Util.empty
+  var totalVBufUtil = Util.empty
+  var totalSinPinUtil = Util.empty
+  var totalSoutPinUtil = Util.empty
+  var totalVinPinUtil = Util.empty
+  var totalVoutPinUtil = Util.empty
+  var totalCinPinUtil = Util.empty
+  var totalCoutPinUtil = Util.empty
 
-  var totalSinPinUtil = (-1, -1)
-  var totalSoutPinUtil = (-1, -1)
-  var totalVinPinUtil = (-1, -1)
-  var totalVoutPinUtil = (-1, -1)
-  var totalCinPinUtil = (-1, -1)
-  var totalCoutPinUtil = (-1, -1)
-
-    //if (design.contentionAnalysis.isTraversed && design.latencyAnalysis.isTraversed) super.run
-    //if (design.contentionAnalysis.hasRun) super.run
-
-  //val numLanes = 16
-  //val numPRegs = 16 * (numPStage + 1) * numLanes
-  //val numAlus = 16 * numPStage  
-  //val numSrams = 4
-  //val numVins = 4
-
-  def sum(list:List[Util]) = list.reduceOption[Util]{
-    case ((u1:Int,t1:Int), (u2:Int, t2:Int)) => (u1+u2, t1+t2)
-  }.getOrElse((0,0))
+  def sum(list:List[Util]):Util = list.reduceOption[Util]{ _ + _ }.getOrElse(Util.empty)
 
   def count(list:List[_]):Util = {
     sum(list.map {
       case x:List[_] => count(x)
-      case (x:Option[_]) => (if (x.isEmpty) 0 else 1, 1)
-      case x:(_,_) => x.asInstanceOf[Util]
+      case (x:Option[_]) => Util(if (x.isEmpty) 0 else 1, 1)
+      case x:Util => x
     })
   }
 
   def collectRegUtil(pne:PNE) = pne match {
-    case pne:PCU =>
-      regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.ipmap.pmap.get(ppr.in) } })
+    case pne:PCU if mp.clmap.pmap.contains(pne) =>
+      regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
+        //case (used, total) => (used * parOf(pne), total * pne.numLanes)
+        case (used, total) => (used * parOf(pne), 8 * pne.numLanes * pne.stages.size) // assuming using 8 registers per stage
+      }
     case pne =>
+      regUsed += pne -> Util.empty
   }
 
-  def collectStageUtil(pne:PNE) = pne match {
+  def collectCtrUtil(pne:PNE) = pne match {
     case pne:PCU =>
-      stageUsed += pne -> count(pne.stages.map { pst => mp.stmap.pmap.get(pst) })
+      ctrUsed += pne -> count(pne.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
     case pne =>
+      ctrUsed += pne -> Util.empty
+  }
+
+  def collectFUUtil(pne:PNE) = pne match {
+    case pne:PCU if mp.clmap.pmap.contains(pne) =>
+      fuUsed += pne -> count(pne.stages.map { pst => mp.stmap.pmap.get(pst) }).map {
+        case (used, total) => (used * parOf(pne), total * pne.numLanes)
+      }
+    case pne =>
+      fuUsed += pne -> Util.empty
   }
 
   def collectVBufUtil(pne:PNE) = pne match {
     case pne:PCU =>
       vBufUsed += pne -> count(pne.vbufs.map { vbuf => mp.smmap.pmap.get(vbuf) })
     case pne =>
+      vBufUsed += pne -> Util.empty
   }
 
   def collectSBufUtil(pne:PNE) = pne match {
     case pne:PCU =>
       sBufUsed += pne -> count(pne.sbufs.map { sbuf => mp.smmap.pmap.get(sbuf) })
     case pne =>
+      sBufUsed += pne -> Util.empty
   }
 
   def collectSinPinUtil(pne:PNE) = {
@@ -147,7 +146,8 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   override def traverse:Unit = {
     spade.pnes.foreach { cl =>
       collectRegUtil(cl)
-      collectStageUtil(cl)
+      collectCtrUtil(cl)
+      collectFUUtil(cl)
       collectSBufUtil(cl)
       collectVBufUtil(cl)
       collectSinPinUtil(cl)
@@ -166,7 +166,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     vlinkUtil = count(spade.sbs.map(sb => sb.vins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
     clinkUtil = count(spade.sbs.map(sb => sb.cins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
     totalRegUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => regUsed(pcu)))
-    totalStageUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => stageUsed(pcu)))
+    totalFUUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => fuUsed(pcu)))
     totalSBufUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => sBufUsed(pcu)))
     totalVBufUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => vBufUsed(pcu)))
     totalSinPinUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => sinPinUsed(pcu)))
@@ -212,24 +212,36 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     row += "App"           -> design.name
     row += "numRow"        -> spade.numRows
     row += "numCol"        -> spade.numCols
-    row += "PCU Util"      -> pctUtil(pcuUtil)
-    row += "MCU Util"      -> pctUtil(mcuUtil)
-    row += "SCU Util"      -> pctUtil(scuUtil)
-    row += "SwitchCU Util" -> pctUtil(ocuUtil)
-    row += "MC Util"       -> pctUtil(mcUtil)
-    row += "CLink Util"    -> pctUtil(clinkUtil)
-    row += "SLink Util"    -> pctUtil(slinkUtil)
-    row += "VLink Util"    -> pctUtil(vlinkUtil)
-    row += "Total Reg Util"    -> pctUtil(totalRegUtil)
-    row += "Total Stage Util"    -> pctUtil(totalStageUtil)
-    row += "Total SFifo Util"    -> pctUtil(totalSBufUtil)
-    row += "Total VFifo Util"    -> pctUtil(totalVBufUtil)
-    row += "Total SinPin Util"    -> pctUtil(totalSinPinUtil)
-    row += "Total SoutPin Util"    -> pctUtil(totalSoutPinUtil)
-    row += "Total VinPin Util"    -> pctUtil(totalVinPinUtil)
-    row += "Total VoutPin Util"    -> pctUtil(totalVoutPinUtil)
-    row += "Total CinPin Util"    -> pctUtil(totalCinPinUtil)
-    row += "Total CoutPin Util"    -> pctUtil(totalCoutPinUtil)
+    row += "PCU Util"      -> pcuUtil.toPct
+    row += "MCU Util"      -> mcuUtil.toPct
+    row += "SCU Util"      -> scuUtil.toPct
+    row += "SwitchCU Util" -> ocuUtil.toPct
+    row += "MC Util"       -> mcUtil.toPct
+    row += "CLink Util"    -> clinkUtil.toPct
+    row += "SLink Util"    -> slinkUtil.toPct
+    row += "VLink Util"    -> vlinkUtil.toPct
+
+    row += "Total Reg Util"    -> totalRegUtil.toPct
+    row += "Total FU Util"    -> totalFUUtil.toPct
+    row += "Total SFifo Util"    -> totalSBufUtil.toPct
+    row += "Total VFifo Util"    -> totalVBufUtil.toPct
+    row += "Total SinPin Util"    -> totalSinPinUtil.toPct
+    row += "Total SoutPin Util"    -> totalSoutPinUtil.toPct
+    row += "Total VinPin Util"    -> totalVinPinUtil.toPct
+    row += "Total VoutPin Util"    -> totalVoutPinUtil.toPct
+    row += "Total CinPin Util"    -> totalCinPinUtil.toPct
+    row += "Total CoutPin Util"    -> totalCoutPinUtil.toPct
+
+    row += "Total Reg Used"    -> totalRegUtil.used
+    row += "Total FU Used"    -> totalFUUtil.used
+    row += "Total SFifo Used"    -> totalSBufUtil.used
+    row += "Total VFifo Used"    -> totalVBufUtil.used
+    row += "Total SinPin Used"    -> totalSinPinUtil.used
+    row += "Total SoutPin Used"    -> totalSoutPinUtil.used
+    row += "Total VinPin Used"    -> totalVinPinUtil.used
+    row += "Total VoutPin Used"    -> totalVoutPinUtil.used
+    row += "Total CinPin Used"    -> totalCinPinUtil.used
+    row += "Total CoutPin Used"    -> totalCoutPinUtil.used
     summary.emitFile
   }
 
@@ -237,34 +249,47 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     spade.cus.foreach { cl =>
       val row = detail.addRow
       row += s"cu" -> s"$cl"
-      row += s"regUtil" -> pctUtil(regUsed(cl))
-      row += s"stageUtil" -> pctUtil(stageUsed(cl))
-      row += s"SFifoUtil" -> pctUtil(sBufUsed(cl))
-      row += s"VFifoUtil" -> pctUtil(vBufUsed(cl))
-      row += s"SinPinUtil" -> pctUtil(sinPinUsed(cl))
-      row += s"SoutPinUtil" -> pctUtil(soutPinUsed(cl))
-      row += s"VinPinUtil" -> pctUtil(vinPinUsed(cl))
-      row += s"VoutPinUtil" -> pctUtil(voutPinUsed(cl))
-      row += s"CinPinUtil" -> pctUtil(cinPinUsed(cl))
-      row += s"CoutPinUtil" -> pctUtil(coutPinUsed(cl))
+      row += s"regUsed" -> regUsed(cl).used
+      row += s"ctrUsed" -> ctrUsed(cl).used
+      row += s"fuUsed" -> fuUsed(cl).used
+      row += s"SFifoUsed" -> sBufUsed(cl).used
+      row += s"VFifoUsed" -> vBufUsed(cl).used
+      row += s"SinPinUsed" -> sinPinUsed(cl).used
+      row += s"SoutPinUsed" -> soutPinUsed(cl).used
+      row += s"VinPinUsed" -> vinPinUsed(cl).used
+      row += s"VoutPinUsed" -> voutPinUsed(cl).used
+
+      row += s"regUtil" -> regUsed(cl).toPct
+      row += s"ctrUtil" -> ctrUsed(cl).toPct
+      row += s"fuUtil" -> fuUsed(cl).toPct
+      row += s"SFifoUtil" -> sBufUsed(cl).toPct
+      row += s"VFifoUtil" -> vBufUsed(cl).toPct
+      row += s"SinPinUtil" -> sinPinUsed(cl).toPct
+      row += s"SoutPinUtil" -> soutPinUsed(cl).toPct
+      row += s"VinPinUtil" -> vinPinUsed(cl).toPct
+      row += s"VoutPinUtil" -> voutPinUsed(cl).toPct
+      row += s"CinPinUtil" -> cinPinUsed(cl).toPct
+      row += s"CoutPinUtil" -> coutPinUsed(cl).toPct
     }
     detail.emitFile
   }
 
   def logResults = {
     import logger._
-    spade.cus.foreach { cl =>
-      logger.emitBlock(s"$cl") {
-        regUsed.get(cl).foreach { util => dprintln(s"regs:$util")}
-        stageUsed.get(cl).foreach { util => dprintln(s"stage:$util")}
-        sBufUsed.get(cl).foreach { util => dprintln(s"sBuf:$util")}
-        vBufUsed.get(cl).foreach { util => dprintln(s"vBuf:$util")}
-        sinPinUsed.get(cl).foreach { util => dprintln(s"sinPin:$util")}
-        soutPinUsed.get(cl).foreach { util => dprintln(s"soutPin:$util")}
-        vinPinUsed.get(cl).foreach { util => dprintln(s"vinPin:$util")}
-        voutPinUsed.get(cl).foreach { util => dprintln(s"voutPin:$util")}
-        cinPinUsed.get(cl).foreach { util => dprintln(s"cinPin:$util")}
-        coutPinUsed.get(cl).foreach { util => dprintln(s"coutPin:$util")}
+    spade.cus.foreach { pcl =>
+      val cl = mp.clmap.pmap.get(pcl)
+      logger.emitBlock(s"${quote(pcl)} -> $cl parOf(${quote(pcl)}) = ${parOf(pcl)}") {
+        regUsed.get(pcl).foreach { util => dprintln(s"reg:$util")}
+        ctrUsed.get(pcl).foreach { util => dprintln(s"ctr:$util")}
+        fuUsed.get(pcl).foreach { util => dprintln(s"fu:$util")}
+        sBufUsed.get(pcl).foreach { util => dprintln(s"sBuf:$util")}
+        vBufUsed.get(pcl).foreach { util => dprintln(s"vBuf:$util")}
+        sinPinUsed.get(pcl).foreach { util => dprintln(s"sinPin:$util")}
+        soutPinUsed.get(pcl).foreach { util => dprintln(s"soutPin:$util")}
+        vinPinUsed.get(pcl).foreach { util => dprintln(s"vinPin:$util")}
+        voutPinUsed.get(pcl).foreach { util => dprintln(s"voutPin:$util")}
+        cinPinUsed.get(pcl).foreach { util => dprintln(s"cinPin:$util")}
+        coutPinUsed.get(pcl).foreach { util => dprintln(s"coutPin:$util")}
       }
     }
     dprintln(s"pcuUtil=$pcuUtil")
@@ -276,9 +301,29 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     dprintln(s"vlinkUtil=$vlinkUtil")
     dprintln(s"clinkUtil=$clinkUtil")
     dprintln(s"totalRegUtil=$totalRegUtil")
-    dprintln(s"totalStageUtil=$totalStageUtil")
+    dprintln(s"totalFUUtil=$totalFUUtil")
     dprintln(s"totalSBufUtil=$totalSBufUtil")
     dprintln(s"totalVBufUtil=$totalVBufUtil")
   }
 
+}
+
+case class Util(used:Int, total:Int) {
+  def + (ut2:Util):Util = {
+    val Util(u2, t2) = ut2
+    Util(used + u2, total + t2)
+  }
+  def *(factor:Int):Util = {
+    Util(used * factor, total * factor)
+  }
+  def toPct:Float = {
+    if (total==0) 0 else used.toFloat / total
+  }
+  def map(func:(Int, Int) =>(Int,Int)) = {
+    val (newUsed, newTotal) = func(used, total)
+    Util(newUsed, newTotal)
+  }
+}
+object Util {
+  def empty = Util(0,0)
 }

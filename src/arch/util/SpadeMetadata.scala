@@ -39,4 +39,10 @@ trait SpadeMetadata { self:Spade =>
     type V = String 
   }
 
+  /* parallelization factor of a pipeline */
+  object parOf extends MOneToOneMap {
+    type K = Node
+    type V = Int 
+  }
+
 }

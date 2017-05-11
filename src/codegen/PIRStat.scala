@@ -102,7 +102,7 @@ class PIRStatLog(fn:String)(implicit design: Design) extends Traversal with Prin
   }
 
   override def traverse = {
-    if (design.latencyAnalysis.hasRun) {
+    if (design.latencyAnalyzer.hasRun) {
       super.run
     }
   }

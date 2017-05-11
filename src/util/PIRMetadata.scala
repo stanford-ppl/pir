@@ -56,12 +56,9 @@ trait PIRMetadata extends { self:Design =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object writesOfs extends MOneToOneMap {
+  object scuOf extends MBiOneToOneMap {
     type K = Controller
-    type V = Boolean
-    override def apply(k:K):V = {
-      super.get(k).getOrElse(false)
-    }
+    type V = Controller
   }
 
   /* Number of children stages on the critical path */
@@ -91,9 +88,9 @@ trait PIRMetadata extends { self:Design =>
     type V = Controller
   }
 
-  object readerOf extends MOneToOneMap {
+  object readersOf extends MOneToOneMap {
     type K = OnChipMem 
-    type V = Controller
+    type V = List[Controller]
   }
 
   object readCChainsOf extends MOneToOneMap {
@@ -118,12 +115,17 @@ trait PIRMetadata extends { self:Design =>
 
   object cycleOf extends MOneToOneMap {
     type K = Node
-    type V = Int
+    type V = Long
+  }
+
+  object totalCycleOf extends MOneToOneMap {
+    type K = Node
+    type V = Long
   }
 
   object iterOf extends MOneToOneMap {
     type K = Node
-    type V = Int
+    type V = Long
   }
 
   object constOf extends MOneToOneMap {

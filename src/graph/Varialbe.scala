@@ -25,6 +25,7 @@ case class Scalar(name:Option[String])(implicit design: Design) extends Variable
   }
   private val _readers:Set[ScalarIn] = Set[ScalarIn]() 
   def readers:List[ScalarIn] = _readers.toList
+  def removeReader(r:ScalarIn) = _readers -= r
   def addReader(r:ScalarIn) = { _readers += r; this }
   def setWriter(w:ScalarOut) = { 
     assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")

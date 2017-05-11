@@ -68,7 +68,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = design.top.innerCUs.filter{ cu => writesOfs(cu) } 
+    val scus = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
     val pscus = design.arch.scus 
     val mcus = cls.collect { case mp:MP => mp }
     val pmcus = design.arch.mcus 
@@ -76,6 +76,12 @@ class CUMapper(implicit ds:Design) extends Mapper {
     val pocus = design.arch.ocus 
     val rcus = cls.collect { case pcu:CU => pcu }.diff(scus).diff(mcs).diff(ocus).diff(mcus)
     val pcus = design.arch.pcus 
+    info(s"numPCU:${if (scus.size==0) rcus.size - mcs.size else rcus.size} numPCU:${pcus.size}")
+    info(s"numMCU:${mcus.size} numPMCU:${pmcus.size}")
+    //info(s"numSCU:${scus.size} numPSCU:${pscus.size}")
+    info(s"numMC:${mcs.size} numSCU:${scus.size} numPMC:${pmcs.size} numPSCU:${pscus.size}")
+    info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
+    info(s"numCL:${cls.size}")
     if (mcs.size > pmcs.size) throw OutOfPMC(pmcs, mcs)
     if (ocus.size > pocus.size) throw OutOfOCU(pocus, ocus)
     if (mcus.size > pmcus.size) throw OutOfMCU(pmcus, mcus)
@@ -141,11 +147,13 @@ class CUMapper(implicit ds:Design) extends Mapper {
   }
 
   def place(cl:N, pne:R, m:M):M = {
-    log((s"Try $cl -> ${quote(pne)}", false)) {
+    val mp = log((s"Try $cl -> ${quote(pne)}", true)) {
       routers.foldLeft(m.setCL(cl, pne)) { case (pm, router) =>
         router.route(cl, pm)
       }
     }
+    //breakPoint(mp, s"debugging placer")
+    mp
   }
 
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
@@ -155,30 +163,27 @@ class CUMapper(implicit ds:Design) extends Mapper {
       var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
       dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
       cl match {
-        case cl:MC if cl.mctpe.isDense => 
-          val sp = cl.getFifo("offset").writer.ctrler
-          if (m.clmap.contains(sp)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(sp).coord }
+        case cl:MC if cl.mctpe==Scatter =>
+        case cl:MC => 
+          val scu = scuOf(cl)
+          if (m.clmap.contains(scu)) {
+            pnes = pnes.filter{ pne => pne.coord == m.clmap(scu).coord }
           }
-        case cu:CU if cu.isStreaming =>
-          val mcs = cu.writtenFIFOs.filter{ _.isOfsFIFO }
-          if (!mcs.isEmpty && m.clmap.contains(mcs.head.ctrler)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(mcs.head.ctrler).coord }
+        case cu:CU if scuOf.pmap.contains(cu) =>
+          val mc = scuOf.pmap(cu)
+          if (m.clmap.contains(mc)) {
+            pnes = pnes.filter{ pne => pne.coord == m.clmap(mc).coord }
           }
         case _ =>
       }
-      dprintln(s"--mc filtered:[${pnes.map(quote).mkString(",")}]")
-      routers.foreach { router =>
-        pnes = router.filterPCL(cl, pnes, m)
-        dprintln(s"--$router filtered:[${pnes.map(quote).mkString(",")}]")
-      }
+      if (pnes.size>1) routers.foreach { router => pnes = router.filterPCL(cl, pnes, m) }
       pnes
     }
   }
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val nodes = topoSort(design.top)
+    val nodes = design.top.ctrlers//topoSort(design.top)
     val reses = design.arch.pnes
     emitBlock(s"topoSort:") {
       nodes.foreach{ n => dprintln(s"$n") }

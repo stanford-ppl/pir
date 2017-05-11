@@ -26,12 +26,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
-      connectMemoryControl(ctrler)
+      //connectMemoryControl(ctrler) //TODO
     }
-    topoSort(design.top).reverse.foreach { ctrler =>
-      connectChildren(ctrler)
-      connectSibling(ctrler)
-    }
+    //topoSort(design.top).reverse.foreach { ctrler =>
+      //connectSibling(ctrler)
+      //connectChildren(ctrler)
+    //}
   } 
 
   /*
@@ -43,6 +43,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     } else {
       cchain.ctrler.ctrlBox match {
         case cb:StageCtrlBox => cb.done.out
+        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
+        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
       }
     }
   }
@@ -64,8 +66,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     //}
   //}
 
+  def swapReadCC(mem:MultiBuffering) = {
+    mem.consumer match {
+      case cu:MemoryPipeline => readCChainsOf(cu).last
+      case cu:ComputeUnit => cu.localCChain
+    }
+  }
+
   def swapWriteCC(mem:MultiBuffering) = {
-    mem.producer.asInstanceOf[ComputeUnit].localCChain
+    mem.producer match {
+      case cu:MemoryPipeline => writeCChainsOf(cu).last
+      case cu:ComputeUnit => cu.localCChain
+    }
   }
 
   def connectMemoryControl(ctrler:Controller) = ctrler match {
@@ -140,9 +152,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
-    val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
+    dprintln(s"$OCU_MAX_CIN ${parent.cins}") //TODO fix this for smv
+    val lastGroups = if (lasts.size==0) Nil else lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
+        dprintln(s"parent=$parent lastGroups:$lastGroups")
         val clone = parent.cloneType("collector")
         isHead(clone) = false 
         isLast(clone) = true
@@ -205,8 +219,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectTokens(consumer:Controller, tokens:List[(Any, CtrlOutPort)]):Unit = {
-    println(consumer.cins)
-    val tokenGroups = tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
+    val tokenGroups = if (tokens.size==0) Nil else tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
     val midConsumers = tokenGroups.map { tokens =>
         val midConsumer = if (tokenGroups.size==1) consumer else {
         val clone = consumer.cloneType("splitter")
@@ -308,9 +321,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
         ctrler.localCChain.inner.en.connect(cb.en.out)
-      case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
+      case (ctrler:InnerController, cb:InnerCtrlBox) =>
         ctrler.localCChain.inner.en.connect(cb.en.out)
         chainCChain(compCChainsOf(ctrler))
+      case (ctrler:OuterController, cb:OuterCtrlBox) =>
+        ctrler.localCChain.inner.en.connect(cb.en.out)
       case (ctrler, cb) =>
     }
     ctrler.ctrlBox match {
@@ -330,7 +345,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        val readDone = getDone(ctrler, ctrler.mem.consumer.asInstanceOf[ComputeUnit].localCChain)
+        val readDone = getDone(ctrler, swapReadCC(ctrler.mem))
         cb.readDone.in.connect(readDone)
         val writeDone = getDone(ctrler, swapWriteCC(ctrler.mem))
         cb.writeDone.in.connect(writeDone)
@@ -342,6 +357,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   override def finPass = {
+    design.top.compUnits.foreach {
+      case cu:MemoryController =>
+      case cu =>
+        assert(cu.cchains.nonEmpty, s"$cu's cchain is empty")
+    }
     //design.top.compUnits.foreach { cu =>
       //cu match {
         //case cu:OuterController =>

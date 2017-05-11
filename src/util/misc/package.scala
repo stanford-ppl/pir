@@ -37,5 +37,9 @@ package object misc extends Logger {
   def endInfo(s:String) = { emitln(s" ${s}") }
   def warn(s:Any) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
   def err(s:Any) = { emitln(s"${Console.RED}[error]${s}${Console.RESET}"); throw PIRException(s"$s") }
+  def ask(question:String) = {
+    info(question)
+    scala.io.StdIn.readLine()
+  }
 }
 
