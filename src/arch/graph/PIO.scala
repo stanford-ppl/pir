@@ -30,7 +30,7 @@ object Bus {
  * An input port of a module that can be recofigured to other's output ports
  * fanIns stores the list of ports the input port can configured to  
  * */
-abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:Spade) extends Node {
+abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:Spade) extends Node with Val[P] {
   import spademeta._
   src.addIO(this)
   override val typeStr = {
@@ -62,9 +62,6 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asWord:IO[Word, S]
   def asBit:IO[Bit, S]
   def asGlobal:GlobalIO[P, S]
-
-  val v:Val[P] = Val(this)
-  def ev(implicit sim:Simulator) = { v.eval }
 }
 
 /* Input pin. Can only connects to output of the same level */
@@ -164,7 +161,7 @@ class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(
   override val ic:Output[P, this.type] = new Output(tp, this, sf)
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    ic.v <= this
+    ic := this
   }
   def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
   override def ms = s"${super.ms} ic=$ic"
@@ -182,7 +179,7 @@ class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])
   override val ic:Input[P, this.type] = new Input(tp, this, sf)
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    this.v <= ic
+    this := ic
   }
   def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
   override def mt = s"${super.mt} ic=$ic"
@@ -201,7 +198,7 @@ case class Slice[P<:PortType](din:Input[P,Module], dout:Output[Bus,Module], i:In
   din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { v => v.value.copy(in.ev.value.value(i)) }
+    out.set { io => io.v.copy(in.ev.value(i)) }
   }
 }
 
@@ -213,7 +210,7 @@ case class BroadCast[P<:PortType](dout:Output[P,Module], din:Input[Bus, Module])
   din <== out
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { v => v.value.value.foreach{ _.copy(in.ev.value) } }
+    out.set { io => io.v.value.foreach{ _.copy(in.ev) } }
   }
 }
 

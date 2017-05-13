@@ -119,9 +119,8 @@ class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
   }
 
   def emitValue(io:IO[_, _]):Unit = {
-    val v = io.v
-    if (!v.changed) return
-    v.value match {
+    if (!io.changed) return
+    io.v match {
       case p@Bus(busWidth, Word(wordWidth)) =>
         p.value.zipWithIndex.foreach { case (vv, i) => emitln(s"${vv.s}${io}_$i") }
       case p@Bus(busWidth, Bit()) =>

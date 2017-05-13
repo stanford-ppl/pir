@@ -45,9 +45,9 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     cycle += 1
     dprintln(s"Starting simulation ...")
     while (!finishSimulation) {
-      spade.simulatable.foreach { m => m.ios.foreach { o => o.v.update } }
+      spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
       vcd.foreach { _.emitSignals }
-      spade.simulatable.foreach { m => m.ios.foreach { o => o.v.clearUpdate } }
+      spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }
       cycle += 1
     }
   }

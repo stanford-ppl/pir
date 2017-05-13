@@ -19,11 +19,11 @@ trait Simulatable extends Module {
   def register(implicit sim:Simulator):Unit = {
     val fimap = sim.mapping.fimap
     ins.foreach { in =>
-      if (in.v.func.isEmpty) {
+      if (in.func.isEmpty) {
         fimap.get(in).fold {
-          if (in.fanIns.size==1) in.v <= in.fanIns.head
+          if (in.fanIns.size==1) in := in.fanIns.head
         } { 
-          out => in.v <= out
+          out => in := out
         }
       }
     }
@@ -41,7 +41,7 @@ trait Simulatable extends Module {
           //}
         //case _ =>
       //}
-      if (isMapped(io) && io.v.func.isEmpty) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
+      if (isMapped(io) && io.func.isEmpty) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
     }
   }
 }

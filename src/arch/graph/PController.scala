@@ -61,6 +61,13 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
   override val ctrlBox:TopCtrlBox = TopCtrlBox()
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    //val fimap = sim.mapping.fimap
+    //(souts ++ vouts ++ couts).foreach { out =>
+      //fimap.get(out.ic).foreach { inic => out.ic :== inic }
+    //}
+  }
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -82,7 +89,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
     super.register
     val fimap = sim.mapping.fimap
     (souts ++ vouts ++ couts).foreach { out =>
-      fimap.get(out.ic).foreach { inic => out.ic.v <== inic }
+      fimap.get(out.ic).foreach { inic => out.ic :== inic }
     }
   }
 }

@@ -111,13 +111,13 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   override def register(implicit sim:Simulator):Unit = {
     super.register
     //sim.dprintln(s"setting $command")
-    command.v.set { v => 
+    command.set { io => 
       if (sim.cycle == 1)
-        v.value.value = Some(false) 
+        io.v.value = Some(false) 
       else if (sim.cycle == 2)
-        v.value.value = Some(true) 
-      else if (v.prevValue.value==Some(true))
-        v.value.value = Some(false)
+        io.v.value = Some(true) 
+      else if (io.pv.value==Some(true))
+        io.v.value = Some(false)
       //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
     }
   }

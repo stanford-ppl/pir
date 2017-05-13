@@ -107,22 +107,20 @@ trait BusValue extends Value { self:Bus =>
   def head:Value = value.head
 }
 
-case class Val[P<:PortType](io:IO[P, Module]) {
-  override def toString:String = s"$io.v"
-
-  val value:P = io.tp.clonetp
-  val prevValue:P = io.tp.clonetp
+trait Val[P<:PortType]{ self:IO[P, Module] =>
+  private val value:P = tp.clonetp
+  private val prevValue:P = tp.clonetp
   def changed:Boolean = value != prevValue
 
   var func: Option[this.type => Unit] = None 
   def set(f: this.type => Unit):Unit = {
-    if (func!=None) warn(s"Reseting func for ${io} of ${io.src} ${getStackTrace(4, 6)}")
+    if (func!=None) warn(s"Reseting func for ${this} of ${this.src} ${getStackTrace(4, 6)}")
     func = Some(f) 
   }
   var _updated = false
   def updated = _updated
   def clearUpdate(implicit sim:Simulator) = {
-    if (_updated!=true) throw PIRException(s"${io} is not updated at #${sim.cycle}")
+    if (_updated!=true) throw PIRException(s"${this} is not updated at #${sim.cycle}")
     _updated = false 
   }
   def update(implicit sim:Simulator):Unit = { 
@@ -132,20 +130,24 @@ case class Val[P<:PortType](io:IO[P, Module]) {
     //sim.dprintln(Config.debug && func.nonEmpty, s"#${sim.cycle} updating ${this} val:${value.value}")
     _updated = true
   }
-  def eval(implicit sim:Simulator):this.type = {
+  private def eval(implicit sim:Simulator):this.type = {
     update;
     this
   }
 
+  def v:P = value
+  def pv:P = prevValue
+  def ev(implicit sim:Simulator):P = { eval; v }
+  def epv(implicit sim:Simulator):P = { eval; pv }
   def vs:String = s"${value.s}"
   def pvs:String = s"${prevValue.s}"
 
-  def <= (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
-    set{ v => v.value.copy(o.ev.value) }
+  def := (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
+    set{ v => v.v.copy(o.ev) }
   }
 
-  def <== (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
-    set{ v => v.value.copy(o.ev.prevValue) }
+  def :== (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
+    set{ v => v.v.copy(o.epv) }
   }
 
   //def isV(x:Val[_]) = x.tp==tp
