@@ -120,7 +120,7 @@ abstract class Router(implicit design:Design) extends Mapper {
         val out = from(in)
         val icl = ctrler(in)
         val ocl = ctrler(out)
-        var info = s"No resource filtered for $icl.$in[${quote(m.clmap(icl))}]"
+        var info = s"No resource filtered for $icl.$in[${m.clmap.get(icl).map(quote)}]"
         info += s" from: $ocl.$out[${m.clmap.get(ocl).map(quote)}]" 
         throw MappingException(this, m, info)
       }

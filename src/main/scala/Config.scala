@@ -13,14 +13,14 @@ object Config {
 
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
-  var codegen = true
+  var codegen = false
   var genDot = getProperty("pir.dot", "true") == "true"
   var mapping = true
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
   var ctrl = true
-  var simulate = false
+  var simulate = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")

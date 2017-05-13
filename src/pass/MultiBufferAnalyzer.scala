@@ -113,7 +113,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     while(toVisit.nonEmpty) {
       val node = toVisit.dequeue
       visited += node
-      dprintln(s"Visiting $node produced:${node.produced} ${}")
+      dprintln(s"Visiting $node produced:${node.produced}}")
       node.produced.foreach { mem =>
         if (visited.contains(mem.consumer)) {
           mem.trueDep = false

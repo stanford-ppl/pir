@@ -28,6 +28,7 @@ trait Simulatable extends Module {
       }
     }
   }
+  // Check if a mapped simulatable has update function defined on all its io
   def check(implicit sim:Simulator):Unit = {
     implicit val design:Design = sim.design
     ios.foreach { io =>

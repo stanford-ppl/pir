@@ -93,7 +93,7 @@ trait MultiBuffering extends OnChipMem {
   var _consumer:Controller = _
   def producer:Controller = _producer
   def consumer:Controller = _consumer
-  var trueDep:Boolean = _ // Whether the consumer is a true dependency
+  var trueDep:Boolean = true // Whether the consumer is a true dependency
 
   def producer[T](pd:T):this.type = {
     pd match {

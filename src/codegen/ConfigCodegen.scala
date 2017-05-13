@@ -316,15 +316,40 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
   }
 
+  def from(io:Node) = {
+    io match {
+      case io:I => io.writer
+      case io:CIP => io.from
+    }
+  }
+
+  def to(io:Node) = {
+    io match {
+      case io:O => io.readers
+      case io:COP => io.to
+    }
+  }
+
+  def ctrler(io:Node) = {
+    io match {
+      case io:IO => io.ctrler
+      case io:CP =>
+        io.src match {
+          case prim:PRIM => prim.ctrler
+          case cl:CL => cl
+        }
+    }
+  }
+
   def commentIO(pios:List[PGIO[PModule]]) = {
     pios.foreach { 
       case pin:PGI[PModule] =>
-        vimap.pmap.get(pin).foreach { in =>
-          emitComment(s"${quote(pin)} -> $in")
+        vimap.pmap.get(pin).foreach { ins =>
+          emitComment(s"${quote(pin)} -> ${ins.map(in => s"${in}(from:${from(in)} at ${ctrler(from(in))})").mkString(",")}")
         }
       case pout:PGO[PModule] =>
         vomap.pmap.get(pout).foreach { out =>
-          emitComment(s"${quote(pout)} -> $out")
+          emitComment(s"${quote(pout)} -> ${out}(to:${to(out).map{ in => s"$in at ${ctrler(in)}"}.mkString(",")})")
         }
     }
   }
@@ -344,25 +369,21 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       case pcb:PICB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
-        commentIO(pcl.couts)
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:POCB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
-        commentIO(pcl.couts)
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:PMCB =>
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
-        commentIO(pcl.couts)
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
       case pcb:PMCCB =>
         emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.pne.sbufs.map(_.incWritePtr))
-        commentIO(pcl.couts)
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
     }
   }
@@ -402,6 +423,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def emitControlBits(pcu:PCU) = {
     val pcb = pcu.ctrlBox
+    commentIO(pcu.cins)
+    commentIO(pcu.couts)
     commentUDCs(pcu)
     emitUDCInits(pcu)
     emitAndTrees(pcu)

@@ -44,9 +44,12 @@ trait PIRAlias {
   type VO    = VecOut
   type DVO   = DummyVecOut
   type I     = Input
+  type O     = Output
+  type IO    = pir.graph.IO
   type PT    = Port
   type IP    = InPort
   type CIP   = CtrlInPort
+  type CP    = CtrlPort
   type OP    = OutPort
   type COP   = CtrlOutPort
   type CB    = CtrlBox
