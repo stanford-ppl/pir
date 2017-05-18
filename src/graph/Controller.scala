@@ -71,6 +71,7 @@ abstract class Controller(implicit design:Design) extends Node {
   def isPipelining = pirmeta.isPipelining(this)
 
   def isMP = this.isInstanceOf[MemoryPipeline]
+  def isCU = this.isInstanceOf[ComputeUnit]
   def asCU = this.asInstanceOf[ComputeUnit]
   def asCL = this.asInstanceOf[Controller]
   def asMP = this.asInstanceOf[MemoryPipeline]

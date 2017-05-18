@@ -62,11 +62,11 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val sbArray:List[List[SwitchBox]] = List.tabulate(numCols+1, numRows+1) { case (x, y) => SwitchBox().coord(x, y) }
   def sbs:List[SwitchBox] = sbArray.flatten
 
-  lazy val ctrlNetwork = new CtrlNetwork()
+  lazy val ctrlNetwork:GridNetwork = new CtrlNetwork()
 
-  lazy val vectorNetwork = new VectorNetwork()
+  lazy val vectorNetwork:GridNetwork = new VectorNetwork()
 
-  lazy val scalarNetwork = new ScalarNetwork()
+  lazy val scalarNetwork:GridNetwork = new ScalarNetwork()
 
   override def config:Unit = {
     scalarNetwork.reset

@@ -13,7 +13,7 @@ import pir.plasticine.util._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-class VcdPrinter(sim:Simulator)(implicit design: Design) extends Printer {
+class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   override lazy val stream = newStream("sim.vcd") 
   implicit lazy val spade:Spade = design.arch
 

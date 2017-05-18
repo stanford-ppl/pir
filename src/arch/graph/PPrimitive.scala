@@ -29,33 +29,37 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     super.register
-    val outPar = sim.mapping.clmap.pmap(pne) match {
-      case cu if cu.isMP => 1
-      case cu => cu.parLanes
-    }
-    out.set { io =>
-      val head = io.v.head.asWord //TODO: Add type parameter to Bus
-      if (en.ev.isHigh) {
-        head := zip(step.ev.value, Some(outPar), head.value){ case (a, b, c) => a * b + c }
-        if (isHigh(zip(head.value, max.ev.value)(_ >= _)))
-          head := min.ev.value
-      } else if (en.ev.isLow) {
-        head := min.ev.value
+    sim.mapping.clmap.pmap.get(pne).foreach { cu =>
+      val outPar = cu match {
+        case cu if cu.isMP => 1
+        case cu:pir.graph.ComputeUnit => cu.parLanes
       }
-      io.v.foreach { 
-        case (vl, i) if i > 0 & i < outPar => 
-          val io = vl.asWord 
-          io := zip(head.value, Some(i.toFloat))(_+_)
-        case (vl, i) =>
+      val head = out.v.head.asWord //TODO: Add type parameter to Bus
+      out.v.foreach { 
+        case (v, i) if (i==0) =>
+          head.set { headv =>
+            IfElse (en.v) {
+              headv <<= headv + (step.v * outPar)
+              If (headv >= max.v) {
+                headv <<= min.v.value
+              }
+            } {
+              headv <<= min.v.value
+            }
+          }
+        case (v, i) if i < outPar =>
+          val tail = v.asWord 
+          tail <<= head + (step.v * i)
+        case (v, i) =>
       }
-    }
-    done.set { io =>
-      val head:Option[Float] = out.ev.head.asWord.value
-      val isDone = zip(head, max.ev.value, Some(1.0), en.ev.value){ 
-        case (h, m, o, e) => e && (h == (m - o))
+      done.v.set { donev =>
+        donev.setLow
+        out.v.foreach { case (outv, i) =>
+          If (outv.asWord > max.v) {
+            donev.setHigh
+          }
+        }
       }
-      if (isHigh(isDone))
-        io.v := Some(true)
     }
   }
 }
@@ -189,8 +193,9 @@ class Const()(implicit spade:Spade) extends Simulatable {
   val out = Output(Word(), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    sim.mapping.pmmap.get(this).foreach { c => 
-      out.set { io => io.v.value = Some(c.toFloat.value) }
+    sim.mapping.pmmap.get(this).foreach { case c:pir.graph.Const[_] => 
+      //out.v.value = Some(c.toFloat.value) //TODO
+      out.v := Some(c.toFloat.value) 
     }
   }
 }
@@ -201,8 +206,8 @@ object Const {
 case class Delay[P<:PortType](tp:P, numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   override val typeStr = "delay"
   val in = Input(tp, this, s"${this}_in(0)")
-  val out = Output(tp, this, s"${this}_out")
-  val prevValues = List.tabulate(numReg) { i => if (i==0) in else Input(tp, this, s"${this}_in($i)") }
+  val out = Output(tp.clone, this, s"${this}_out")
+  val prevValues = List.tabulate(numReg) { i => if (i==0) in else Input(tp.clone, this, s"${this}_in($i)") }
   override def register(implicit sim:Simulator):Unit = {
     super.register
     prevValues.zipWithIndex.foreach { case (pv,i) => if (i!=0) { pv :== prevValues(i-1) } }

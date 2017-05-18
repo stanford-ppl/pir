@@ -16,9 +16,10 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
-  val vcd = if (Config.simulate) Some(new VcdPrinter(this)) else None
+  val vcd = if (Config.simulate) Some(new VcdPrinter) else None
 
   lazy val mapping = design.mapping.get
+  var inSimulation = false 
 
   override lazy val stream = newStream("sim.log") 
 
@@ -40,16 +41,18 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   override def traverse = {
     dprintln(s"Registering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
-    dprintln(s"Default values ...")
+    dprintln(s"\n\nDefault values ...")
     vcd.foreach { _.emitSignals }
     cycle += 1
-    dprintln(s"Starting simulation ...")
+    dprintln(s"\n\nStarting simulation ...")
+    inSimulation = true
     while (!finishSimulation) {
       spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
       vcd.foreach { _.emitSignals }
       spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }
       cycle += 1
     }
+    inSimulation = false
   }
 
   override def finPass = {

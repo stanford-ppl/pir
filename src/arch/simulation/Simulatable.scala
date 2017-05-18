@@ -14,16 +14,20 @@ import pir.plasticine.util._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-trait Simulatable extends Module {
+trait Simulatable extends Module with Evaluation {
   spade.simulatable += this
   def register(implicit sim:Simulator):Unit = {
     val fimap = sim.mapping.fimap
     ins.foreach { in =>
-      if (in.func.isEmpty) {
+      if (!in.v.isDefined) {
         fimap.get(in).fold {
-          if (in.fanIns.size==1) in := in.fanIns.head
-        } { 
-          out => in := out
+          if (in.fanIns.size==1) {
+            in := in.fanIns.head
+            sim.dprintln(s"$in := ${in.fanIns}.head")
+          }
+        } { out => 
+          sim.dprintln(s"$in := $out")
+          in := out
         }
       }
     }
@@ -41,7 +45,7 @@ trait Simulatable extends Module {
           //}
         //case _ =>
       //}
-      if (isMapped(io) && io.func.isEmpty) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
+      if (isMapped(io) && !io.v.isDefined) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
     }
   }
 }

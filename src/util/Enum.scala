@@ -1,12 +1,23 @@
 package pir.util
 
+import scala.collection.mutable.ListBuffer
+
 package object enums {
 
+  val _fixOps = ListBuffer[FixOp]()
+  val _fltOps = ListBuffer[FltOp]()
+  val _bitOps = ListBuffer[BitOp]()
+  val _otherOps = ListBuffer[Op]()
+  def fixOps = _fixOps.toList
+  def fltOps = _fixOps.toList
+  def bitOps = _bitOps.toList
+  def otherOps = _otherOps.toList
+
+  lazy val ops:List[Op] = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
+
   sealed trait Op 
-  case object Mux extends Op
-  case object Bypass extends Op
   
-  sealed trait FixOp extends Op 
+  sealed trait FixOp extends Op { _fixOps += this }
   case object FixAdd extends FixOp 
   case object FixSub extends FixOp 
   case object FixMul extends FixOp 
@@ -15,13 +26,15 @@ package object enums {
   case object FixMax extends FixOp 
   case object FixLt  extends FixOp
   case object FixLeq extends FixOp
+  case object FixGt  extends FixOp
+  case object FixGeq extends FixOp
   case object FixEql extends FixOp
   case object FixNeq extends FixOp
   case object FixMod extends FixOp
   case object FixSra extends FixOp
   case object FixNeg extends FixOp
   
-  sealed trait FltOp extends Op 
+  sealed trait FltOp extends Op  { _fltOps += this }
   case object FltAdd extends FltOp 
   case object FltSub extends FltOp 
   case object FltMul extends FltOp 
@@ -30,6 +43,8 @@ package object enums {
   case object FltMax extends FltOp 
   case object FltLt  extends FltOp
   case object FltLeq extends FltOp
+  case object FltGt  extends FltOp
+  case object FltGeq extends FltOp
   case object FltEql extends FltOp
   case object FltNeq extends FltOp
   case object FltExp extends FltOp
@@ -38,21 +53,12 @@ package object enums {
   case object FltSqr extends FltOp
   case object FltNeg extends FltOp 
 
-  sealed trait BitOp extends Op 
+  sealed trait BitOp extends Op  { _bitOps += this }
   case object BitAnd extends BitOp // &
   case object BitOr  extends BitOp // |
 
-  val fixOps:List[FixOp] = 
-    List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixEql,
-        FixNeq, FixMod, FixSra)
-  val fltOps:List[FltOp] = 
-    List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltEql,
-      FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
-  val bitOps:List[BitOp] = 
-    List(BitAnd, BitOr)
-  val otherOps:List[Op] = List(Mux, Bypass)
-
-  val ops:List[Op] = fixOps ++ fltOps ++ bitOps ++ otherOps 
+  case object Mux extends Op { _otherOps += this }
+  case object Bypass extends Op { _otherOps += this }
 
   //sealed trait CtrlType 
   //case object Pipe extends CtrlType

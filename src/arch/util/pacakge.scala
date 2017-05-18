@@ -74,11 +74,6 @@ package object util {
     ocu.cins.size
   }
 
-  def isHigh(v:Option[Boolean]) = v == Some(true)
-  def isHigh(v:Iterable[Boolean]) = v.nonEmpty && v.head // == true
-  def isLow(v:Option[Boolean]) = v == Some(false)
-  def isLow(v:Iterable[Boolean]) = v.nonEmpty && !v.head // == true
-
   def zip[T1, T2, T](x1:Option[T1], x2:Option[T2])(lambda:(T1,T2) => T):Option[T] = (x1, x2) match {
     case (Some(x1), Some(x2)) => Some(lambda(x1, x2))
     case _ => None
