@@ -45,6 +45,23 @@ trait LocalRouter extends Mapper {
     return Some(mp)
   }
 
+  /*
+   * Find connection from pin to pout by checkout pout + pout.slices + pout.broadcasts
+   * */
+  def findConnect(pin:PI[PModule], pout:PO[PModule]):List[PO[PModule]] = {
+    var pouts:List[PO[PModule]] = List(pout)
+    pouts ++= pouts.flatMap{ _.slices.map(_.out.asInstanceOf[PO[PModule]]) }
+    pouts ++= (pin.tp match {
+      case pir.plasticine.graph.Bus(bw, _) => 
+        pouts.flatMap{ pout => 
+          //dprintln(s"$pout.broadcasts=[${pout.broadcasts}]")
+          pout.getBroadcast(bw).map(_.out.asInstanceOf[PO[PModule]])
+        }
+      case _ => Nil
+    })
+    pouts.filter{ pout => pin.canConnect(pout) }
+  }
+
   def mapInPort(n:IP, r:PI[PModule], map:M):M = {
     var mp = map
     if (mp.fimap.contains(r) && mp.ipmap.contains(n)) return mp
@@ -55,7 +72,7 @@ trait LocalRouter extends Mapper {
           throw InPortRouting(n, r, info, mp)
         } { pconst =>
           mp = mapConst(oSrc, pconst, mp)
-          mp = mp.setFI(r, pconst.out)
+          mp = mp.setFI(r, findConnect(r, pconst.out).head)
         }
       case (oSrc@PipeReg(oStage, oReg), piSrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
@@ -79,16 +96,25 @@ trait LocalRouter extends Mapper {
         }
       case (os, pis) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
-        val pop = n match {
+        n match {
           case n if n.isCtrlIn => mp.vimap(n).ic
           case n => 
-            val pops = mp.opmap(n.from).filter{ pop => r.canConnect(pop) }
-            if(pops.size!=1)  {
-              throw InPortRouting(n, r, s"Cannot connect ${r} to ${mp.opmap(n.from)} n=$n n.from=${n.from}", mp)
+            var pops = mp.opmap(n.from)
+            val found = pops.foldLeft(false) { 
+              case (false, pop) =>
+                val cpops = findConnect(r, pop)
+                if (cpops.size>1) {
+                  throw InPortRouting(n, r, 
+                    s"More than 1 connection from ${r} to pops=$pops n=$n n.from=${n.from}", mp)
+                } else if (cpops.nonEmpty) {
+                  mp = mp.setFI(r, cpops.head)
+                  true
+                } else false
+              case (true, pop) => true
             }
-            pops.head
+            if (!found) throw InPortRouting(n, r, 
+                    s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
         }
-        mp = mp.setFI(r, pop)
     }
     mp = if (mp.ipmap.contains(n)) mp else mp.setIP(n,r)
     //dprintln(s"Mapping IP:${n} -> ${cmap.ipmap(n)}")

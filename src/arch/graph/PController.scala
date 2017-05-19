@@ -14,6 +14,7 @@ import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
 trait NetworkElement extends Module with Simulatable {
+  import spademeta._
   implicit val ctrler:this.type = this 
   def scalarIO:ScalarIO[this.type]
   def vectorIO:VectorIO[this.type]
@@ -32,6 +33,7 @@ trait NetworkElement extends Module with Simulatable {
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
   def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
+  override def toString = s"${coordOf.get(this).fold(super.toString) { case (x,y) => s"$typeStr[$x,$y]"}}"
 }
 
 /* Controller */

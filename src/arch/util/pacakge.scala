@@ -19,6 +19,7 @@ package object util {
 
   def mappingOf[T](io:IO[_,_])(implicit ev:ClassTag[T]):List[T] = io match {
     case in:Input[_,_] => 
+      //println(s"$in.fanIns=[${in.fanIns.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
       in.fanIns.map(_.src).flatMap {
         case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
         case sl:Slice[_] => mappingOf[T](sl.in)
@@ -26,6 +27,7 @@ package object util {
         case n => Nil
       }
     case out:Output[_,_] =>
+      //println(s"$out.fanOuts=[${out.fanOuts.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
       out.fanOuts.map(_.src).flatMap { 
         case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
         case sl:Slice[_] => mappingOf[T](sl.out)

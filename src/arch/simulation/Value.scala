@@ -33,9 +33,9 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
     }
   }
   def vAt(i:Int)(implicit sim:Simulator):P = {
-    assert(tp.io == this, s"${tp.io.src}.${tp.io}.$tp != ${this.src}.${this}")
+    assert(tp.io == this, s"$tp.io != ${this}")
     while (values.size<=i) {
-      val pv = tp.clone(s"${quote(src)}.${this}.v[${values.size}]")
+      val pv = tp.clone(s"${this}.v(${values.size})")
       assert(pv.io == this)
       values.lastOption.foreach { nv => setPrev(pv, nv) }
       values += pv
@@ -52,7 +52,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def changed(implicit sim:Simulator):Boolean = v.value != pv.value
 
   def update(implicit sim:Simulator):Unit = { 
-    sim.dprintln(s"UpdateIO: ${this.src}.$this")
+    sim.dprintln(s"UpdateIO $this")
     assert(sim.inSimulation)
     values.reverseIterator.foreach(_.update)
   }
@@ -162,15 +162,15 @@ trait SingleValue extends Value { self:PortType =>
   override def isDefined:Boolean = func.isDefined
   override def update(implicit sim:Simulator):this.type = { 
     if (updated || !sim.inSimulation) return this
-    sim.dprintln(s"UpdateValue ${self} for ${self.io.src}.${self.io}")
     func.foreach { case (f, stackTrace) => 
+      sim.dprintln(s"UpdateValue $this")
       try {
         f(this)
       } catch {
         case e:Exception =>
           errmsg(e.toString)
           errmsg(e.getStackTrace.slice(0,5).mkString("\n"))
-          errmsg("\nStaged trace: ")
+          errmsg(s"\nStaged trace for $this: ")
           errmsg(stackTrace)
           sys.exit()
       }
@@ -184,7 +184,8 @@ trait SingleValue extends Value { self:PortType =>
     _updated = false 
   }
   def := (other:Value)(implicit sim:Simulator):Unit = { set { v => 
-    //println(s"${v.io} copy ${other.asInstanceOf[PortType].io}")
+    val o = other.asInstanceOf[PortType] //TODO: why is this necessary. Why is self type not sufficient
+    sim.dprintln(s"${v.io} copies ${o.io}")
     v.copy(other.update) }
   }
   def := (other:Option[AnyVal])(implicit sim:Simulator):Unit = { set { v => v <<= other } }
@@ -248,7 +249,7 @@ trait WordValue extends SingleValue { self:Word =>
 
 trait BusValue extends Value { self:Bus =>
   type V = List[Value] 
-  val value:V = List.fill(busWidth) (elemTp.clone)
+  val value:V = List.tabulate(busWidth) { i => elemTp.clone(s"$this.e[$i]") }
   def s:String = value.map(_.s).mkString
   override def copy(other:Value):Unit = { 
     (value, other.asBus.value).zipped.foreach { case (v, ov) => v.copy(ov) }
@@ -266,7 +267,7 @@ trait BusValue extends Value { self:Bus =>
   override def updated = value.forall(_.updated) 
   override def update(implicit sim:Simulator):this.type = {
     if (updated || !sim.inSimulation) return this
-    sim.emitBlock(s"UpdateValue ${self.io.src}.${self.io}") {
+    sim.emitBlock(s"UpdateValue $this") {
       value.foreach{ v =>
         v.update
       }

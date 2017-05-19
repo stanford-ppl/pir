@@ -109,7 +109,7 @@ trait Design extends PIRMetadata with Collector {
   def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
-  //passes += spadePrinter 
+  passes += spadePrinter 
   passes += forwardRef
   passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion

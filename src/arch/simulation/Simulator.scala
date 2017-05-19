@@ -18,6 +18,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   implicit val sim:Simulator = this
   val vcd = if (Config.simulate) Some(new VcdPrinter) else None
 
+  override def debug = Config.verbose
+
   lazy val mapping = design.mapping.get
   var inSimulation = false 
 
