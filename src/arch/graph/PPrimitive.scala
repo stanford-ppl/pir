@@ -98,9 +98,17 @@ case class SRAM()(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
 }
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-trait LocalBuffer extends OnChipMem {
+trait LocalBuffer extends OnChipMem with Simulatable {
   val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
   val notFull = Output(Bit(), this, s"${this}.notFull")
+  override def register(implicit sim:Simulator):Unit = {
+    sim.mapping.smmap.pmap.get(this).fold {
+      notEmpty.v.set { v => v.setLow }
+      notFull.v.set { v => v.setHigh }
+    } { mem =>
+    }
+    super.register
+  }
 }
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 

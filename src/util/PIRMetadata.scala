@@ -133,6 +133,11 @@ trait PIRMetadata extends { self:Design =>
     type V = Int
   }
 
+  object boundOf extends MOneToOneMap {
+    type K = Node
+    type V = AnyVal
+  }
+
   object isTailCollector extends MOneToOneMap {
     type K = Node
     type V = Boolean

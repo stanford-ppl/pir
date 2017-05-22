@@ -39,9 +39,8 @@ object Scalar {
   def apply()(implicit design: Design):Scalar = Scalar(None) 
 }
 
-trait ArgIn extends Scalar{ 
+trait ArgIn extends Scalar { 
   override val typeStr = "ArgIn"
-  var const:Option[Const[Int]] = None
 }
 object ArgIn {
   def apply() (implicit design: Design):Scalar = new Scalar(None) with ArgIn

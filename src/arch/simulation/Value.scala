@@ -148,6 +148,7 @@ trait Evaluation {
   implicit def wv_to_opt(wv:WordValue)(implicit sim:Simulator):Option[Float] = wv.update.value
   implicit def bv_to_opt(bv:BitValue)(implicit sim:Simulator):Option[Boolean] = bv.update.value
   implicit def int_to_opt(int:Int):Option[Float] = Some(int.toFloat)
+  implicit def float_to_opt(f:Float):Option[Float] = Some(f.toFloat)
   def isHigh(v:Option[AnyVal]):Option[Boolean] = v.map { 
     case v:Boolean => v
     case v => throw new Exception(s"Don't know how to check isHigh for $v")

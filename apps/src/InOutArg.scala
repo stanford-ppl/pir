@@ -11,7 +11,7 @@ object InOutArg extends PIRApp {
   override val arch = SN1x1
   def main(args: String*)(top:Top) = {
     val x223_x227_argout = ArgOut("x223_x227")
-    val x222_argin = ArgIn("x222")
+    val x222_argin = ArgIn("x222").bound(3)
     val x229 = Sequential(name="x229",parent=top) { implicit CU => 
       val ctr1 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x229_unit = CounterChain(name = "x229_unit", ctr1)

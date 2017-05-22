@@ -58,9 +58,8 @@ package object util {
     val mp = design.mapping.getOrElse(return false)
     node match {
       case n:Controller => mp.clmap.isMapped(n)
-      case n:SRAM => mp.smmap.isMapped(n)
+      case n:OnChipMem => mp.smmap.isMapped(n)
       case n:Counter => mp.ctmap.isMapped(n)
-      case n:ScalarMem => mp.smmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)
       case n:UDCounter => mp.pmmap.isMapped(n)
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1

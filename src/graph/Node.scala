@@ -28,4 +28,5 @@ abstract class Node (implicit val design: Design) {
     case _ => super.equals(that)
   }
   override def toString = s"${typeStr}${id}${name.fold("")(n => s"_${n}")}" 
+  def bound(b:AnyVal):this.type = { boundOf(this) = b; this }
 }

@@ -1,6 +1,7 @@
 package pir.plasticine.graph
 
 import pir.util.enums._
+import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.config.ConfigFactory
 import pir.plasticine.simulation._
@@ -63,6 +64,20 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
   lazy val ctrlBox:TopCtrlBox = TopCtrlBox()
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
+    souts.foreach { psout =>
+      sim.mapping.vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
+        boundOf.get(sout.scalar) match {
+          case Some(b:Int) => psout.ic.v := b
+          case Some(b:Float) => psout.ic.v := b
+          case None => warn(s"${sout.scalar} doesn't have a bound")
+          case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
+        }
+      }
+    }
+    super.register
+  }
 }
 
 /* Switch box (6 inputs 6 outputs) */
