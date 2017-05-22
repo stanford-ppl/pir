@@ -152,6 +152,17 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
   override def asGlobal:GlobalInput[P, S] = this.asInstanceOf[GlobalInput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
+  def propogate:Input[P, Module] = {
+    src match {
+    case slice:Slice[_] => 
+      assert(slice.out.fanOuts.size==1, s"Cannot propogate $slice with fanOuts>1 fanOuts:${slice.out.fanOuts}")
+      slice.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+    case broadcast:BroadCast[_] => 
+      assert(broadcast.out.fanOuts.size==1, s"Cannot propogate $broadcast with fanOuts>1 fanOuts:${broadcast.out.fanOuts}")
+      broadcast.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+    case _ => this
+  }
+  }
 }
 object Input {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = new Input[P, S](t, s, None)
@@ -211,6 +222,15 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def broadcast(busWidth:Int):BroadCast[P] = _broadcastMap(busWidth)
   def getBroadcast(busWidth:Int):Option[BroadCast[P]] = _broadcastMap.get(busWidth)
   def broadcasts:List[BroadCast[P]] = _broadcastMap.values.toList
+  def propogate:Output[P, Module] = src match {
+    case slice:Slice[_] => 
+      assert(slice.in.fanIns.size==1, s"Cannot propogate $slice with fanIns>1 fanOuts:${slice.in.fanIns}")
+      slice.in.fanIns.head.asInstanceOf[Output[P, Module]].propogate
+    case broadcast:BroadCast[_] => 
+      assert(broadcast.in.fanIns.size==1, s"Cannot propogate $broadcast with fanIns>1 fanOuts:${broadcast.in.fanIns}")
+      broadcast.in.fanIns.head.asInstanceOf[Output[P, Module]].propogate
+    case _ => this
+  }
 } 
 object Output {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = new Output[P,S](t, s, None)

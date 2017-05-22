@@ -13,7 +13,7 @@ object Config {
 
   // Properties go here
   var test = getProperty("pir.test", "false") == "true"
-  var codegen = false
+  var codegen = true
   var genDot = getProperty("pir.dot", "true") == "true"
   var mapping = true
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen

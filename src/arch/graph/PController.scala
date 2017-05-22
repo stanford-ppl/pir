@@ -62,7 +62,7 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
-  override val ctrlBox:TopCtrlBox = TopCtrlBox()
+  lazy val ctrlBox:TopCtrlBox = TopCtrlBox()
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -103,7 +103,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
-  val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
+  lazy val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
   def vout = vouts.head
   def numLanes:Int = spade.numLanes
   
@@ -175,7 +175,7 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   import spademeta._
   override val typeStr = "ocu"
   
-  override val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
+  override lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
   override def numLanes:Int = 1
 
   /* Parameters */
@@ -193,7 +193,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "mcu"
   import spademeta._
 
-  override val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
+  override lazy val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
   override def numLanes:Int = 1
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
@@ -253,7 +253,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
   import spademeta._
-  val ctrlBox:CtrlBox = new MCCtrlBox()
+  lazy val ctrlBox:CtrlBox = new MCCtrlBox()
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {

@@ -8,6 +8,7 @@ import pir.plasticine.main._
 import pir.plasticine.graph._
 import pir.plasticine.traversal._
 import pir.plasticine.util.{quote => _, _}
+import pir.util.misc._
 import pir.exceptions.PIRException
 
 import scala.collection.mutable.Map
@@ -23,14 +24,17 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
 
   val tracking = ListBuffer[Simulatable]()
 
-  def qv(v:SingleValue):String = qv(v.value)
-
-  def qv(x:Option[_]):String = x match {
-    case Some(true) => "1"
-    case Some(false) => "0"
-    case Some(f:Float) => s"${f.toInt}" //TODO
-    case Some(x) => s"$x"
-    case None => "x"
+  def qv(x:Any):String = x match {
+    case x:SingleValue => qv(x.value)
+    case Some(x:Float) => qv(x.toInt) //TODO
+    case Some(x:Int) => qv(x)
+    case Some(true) => "b1"
+    case Some(false) => "b0"
+    case None => "bx"
+    case x:Int => s"b${x.toBinaryString}"
+    case x => 
+      warn(s"Don't know how to qv($x)")
+      s"$x"
   }
 
   def quote(n:Any):String = {
@@ -167,6 +171,7 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   }
 
   def emitValue(io:IO[_<:PortType, _]):Unit = {
+    //sim.dprintln(s"emitting ${sim.quote(io.v)} #${sim.cycle} changed=${io.changed}")
     if (!io.changed) return
     emitValue(io.v)
   }
@@ -176,9 +181,9 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
       case p@Bus(busWidth, _) =>
         p.value.zipWithIndex.foreach { case (vv, i) => emitValue(vv) }
       case p@Word(wordWidth) =>
-        emitln(s"${qv(p)}${id(p)}")
+        emitln(s"${qv(p)} ${id(p)}")
       case p@Bit() =>
-        emitln(s"b${qv(p)} ${id(p)}")
+        emitln(s"${qv(p)} ${id(p)}")
     }
   }
 

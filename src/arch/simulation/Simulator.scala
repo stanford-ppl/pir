@@ -27,6 +27,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   val period = 1; //ns per cycle
   var cycle = 0
+  var rst = false
   def finishSimulation:Boolean = {
     cycle >= 10
   } 
@@ -49,6 +50,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     dprintln(s"\n\nStarting simulation ...")
     inSimulation = true
     while (!finishSimulation) {
+      rst = if (cycle == 1) true else false
       spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
       vcd.foreach { _.emitSignals }
       spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }

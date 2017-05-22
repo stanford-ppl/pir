@@ -49,7 +49,7 @@ package object util {
     import spademeta._
     n match {
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"$n[$x,$y]" }
-      case n:IO[_,_] => s"$n"
+      case n:GlobalIO[_,_] => s"${quote(n.src)}.$n"
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
   }
@@ -67,7 +67,11 @@ package object util {
       case n:Output[_,_] => mp.opmap.pmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
-      case n:Delay[_] => mp.fimap.contains(n.in) || isMapped(n.in.fanIns.head) || true //TODO
+      case n:Delay[_] => mp.fimap.contains(n.in) || n.in.fanIns.forall(isMapped)
+      case n:Const => mp.pmmap.isMapped(n)
+      case n:BroadCast[_] => isMapped(n.in) 
+      case n:Slice[_] => isMapped(n.in) 
+      case n:AndTree => n.ins.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }

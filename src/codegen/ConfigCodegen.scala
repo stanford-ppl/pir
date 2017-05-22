@@ -132,7 +132,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def lookUp(n:PI[PModule]):String = fimap.get(n) match {
     case None => s"$SVT()"
     case Some(o) =>
-      val (src, value) = o.src match {
+      val (src, value) = o.propogate.src match {
         case s:PCtr => ("CounterSrc", s.index)
         case s:PSMem => ("ScalarFIFOSrc", s.index)
         case s:PVMem => ("VectorFIFOSrc", s.index)
@@ -355,13 +355,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitUDCInits(pcu:PCL) = {
-    val inits = pcu.ctrlBox.udcs.map { pudc =>
-      pmmap.pmap.get(pudc).map { case udc:UC =>
-        s"${udc.initVal}"
-      }
-    }
+    val inits = pcu.ctrlBox.udcs.map { _.init(mapping) }
     if (inits.nonEmpty && inits.exists{_.nonEmpty})
-    emitln(s"${quote(pcu.ctrlBox)}.udcInit=${quote(inits.map(_.getOrElse("-1")))}")
+    emitln(s"${quote(pcu.ctrlBox)}.udcInit=${quote(inits.map(_.getOrElse(-1)))}")
   }
 
   def emitXbars(pcl:PCL) = {
@@ -390,7 +386,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def emitAndTree(pcb:PCB, at:PAT) = {
     val config = lookUp(at)
-    if (config.nonEmpty) emitln(s"${quote(pcb)}.${at.name} = ${config}")
+    if (config.nonEmpty) emitln(s"${quote(pcb)}.${at.name.get} = ${config}")
   }
 
   def emitAndTrees(pcu:PCU) = {
@@ -448,7 +444,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitScalarOutXbar(pcu:PCU) = {
-    val souts = pcu.souts.map { sout => fimap.get(sout.ic).map { po => po.src } }
+    val souts = pcu.souts.map { sout => fimap.get(sout.ic).map { po => po.propogate.src } }
     emitComment(s"${quote(pcu)}.scalarOutXbar=[${souts.mkString(",")}]")
     val soRegs = pcu.regs.filter{ _.is(ScalarOutReg) }
     val soIdxes = souts.map(_.map(ppr => soRegs.indexOf(ppr.asInstanceOf[PPR].reg) ).getOrElse(-1))

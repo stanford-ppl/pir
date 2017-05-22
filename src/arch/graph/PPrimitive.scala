@@ -203,15 +203,24 @@ object Const {
   def apply()(implicit spade:Spade) = new Const()
 }
 
-case class Delay[P<:PortType](tp:P, numReg:Int)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
-  override val typeStr = "delay"
+case class Delay[P<:PortType](tp:P, delay:Int, ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+  override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
-  val prevValues = List.tabulate(numReg) { i => if (i==0) in else Input(tp.clone, this, s"${this}_in($i)") }
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    prevValues.zipWithIndex.foreach { case (pv,i) => if (i!=0) { pv :== prevValues(i-1) } }
-    if (numReg==0) out := in
-    else out :== prevValues.last
+    out.v := in.vAt(delay) 
   }
+}
+object Delay {
+  def apply(tp:Bit, delay:Int,ts:Option[String])
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = {
+    val d = new Delay(tp, delay, ts)(spade, pne)
+    ctrlBox.delays += d
+    d
+  }
+  def apply(tp:Bit, delay:Int,ts:String)
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, delay, Some(ts))
+  def apply(tp:Bit, delay:Int)
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, delay, None)
 }

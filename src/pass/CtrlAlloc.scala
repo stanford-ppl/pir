@@ -361,9 +361,9 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case cb:OuterCtrlBox =>
         cb.en.in.connect(cb.childrenAndTree.out)
       case cb:InnerCtrlBox if isPipelining(ctrler) =>
-        cb.en.in.connect(cb.siblingAndTree.out)
+        cb.en.in.connect(cb.pipeAndTree.out)
       case cb:InnerCtrlBox if isStreaming(ctrler) =>
-        cb.en.in.connect(cb.andTree.out)
+        cb.en.in.connect(cb.streamAndTree.out)
       case cb:MCCtrlBox =>
     }
   }

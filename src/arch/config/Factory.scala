@@ -176,8 +176,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.siblingAndTree.out // 0
-        cb.en.in <== cb.andTree.out // 1
+        cb.en.in <== cb.pipeAndTree.out // 0
+        cb.en.in <== cb.streamAndTree.out // 1
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)

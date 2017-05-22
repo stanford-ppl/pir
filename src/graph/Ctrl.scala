@@ -202,7 +202,12 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
   extends CtrlBox() with StageCtrlBox {
   val fifoAndTree = AndTree("FIFOAndTree")
   val tokenInAndTree = AndTree("TokenInAndTree")
-  val andTree = AndTree(fifoAndTree.out, tokenInAndTree.out)
+  val pipeAndTree = AndTree("pipeAndTree")
+  pipeAndTree.addInput(siblingAndTree.out)
+  pipeAndTree.addInput(fifoAndTree.out)
+  val streamAndTree = AndTree(s"streamAndTree")
+  streamAndTree.addInput(tokenInAndTree.out)
+  streamAndTree.addInput(fifoAndTree.out)
 }
 object InnerCtrlBox {
   def apply()(implicit ctrler:InnerController, design: Design) = new InnerCtrlBox()

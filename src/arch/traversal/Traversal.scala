@@ -50,6 +50,8 @@ trait Traversal {
       case n:TopCtrlBox => 
       case n:CtrlBox =>
         n.udcs.foreach(visitNode)
+        n.andTrees.foreach(visitNode)
+        n.delays.foreach(visitNode)
       case n =>
     }
     node match {

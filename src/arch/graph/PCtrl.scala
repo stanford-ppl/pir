@@ -2,9 +2,11 @@ package pir.plasticine.graph
 
 import pir.graph._
 import pir.util.enums._
+import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
+import pir.mapper.PIRMap
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -32,20 +34,45 @@ object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade, pne:NetworkElement):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "udc"
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
+  val count = Output(Word(), this, s"${this}.count")
   val out = Output(Bit(), this, s"${this}.out")
+  def init(mp:PIRMap):Option[Int] = {
+    mp.pmmap.pmap.get(this).map { case udc:pir.graph.UDCounter => udc.initVal }
+  }
+  override def register(implicit sim:Simulator):Unit = {
+    super.register
+    val fimap = sim.mapping.fimap
+    val pmmap = sim.mapping.pmmap
+    pmmap.pmap.get(this).fold {
+      out.v := Some(true) 
+    } { udc =>
+      sim.dprintln(s"$inc -> ${fimap.get(inc)} ${inc.fanIns}")
+      count.v.set { countv =>
+        if (sim.rst) countv <<= init(sim.mapping)
+        else {
+          Match(
+            inc.v -> { () => countv <<= countv + 1 },
+            dec.v -> { () => countv <<= countv - 1 }
+          ) {}
+        }
+      }
+      out.v := (count.v > 0)
+    }
+  }
 }
 object UDCounter {
   def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
 }
 
-case class AndTree()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   import spademeta._
-  override val typeStr = "at"
+  override val typeStr = name.getOrElse("at")
+  cb.andTrees += this
   val out = Output(Bit(), this, s"${this}.out")
   private[plasticine] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
   private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
@@ -53,14 +80,21 @@ case class AndTree()(implicit spade:Spade, pne:NetworkElement) extends Primitive
     val in = Input(Bit(), this, s"${this}.in$i").index(i)
     in <== out
   }
-  var name:String = super.toString
+
+  override def register(implicit sim:Simulator):Unit = {
+    val invs = ins.map(_.v).collect{case v:BitValue => v}
+    out.v := {
+      val res = invs.map{_.update.value }.reduceOption[Option[Boolean]]{ case (in1, in2) => 
+        eval(BitAnd, in1, in2).asInstanceOf[Option[Boolean]]
+      }
+      res.getOrElse(None)
+    }
+    super.register
+  }
 }
 object AndTree {
-  def apply(name:String)(implicit spade:Spade, pne:NetworkElement):AndTree = {
-    val at = AndTree()
-    at.name = name
-    at
-  }
+  def apply(name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndTree = AndTree(Some(name))
+  def apply()(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndTree = AndTree(None)
 }
 
 case class PulserSM()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
@@ -71,25 +105,31 @@ case class PulserSM()(implicit spade:Spade, pne:NetworkElement) extends Primitiv
 }
 
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
+  implicit val ctrlBox:CtrlBox = this
   import spademeta._
   val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
+  lazy val andTrees = ListBuffer[AndTree]()
+  lazy val delays = ListBuffer[Delay[Bit]]()
 }
 
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
   val doneXbar = Delay(Bit(), 0)
-  val en = Delay(Bit(), 0)
+  val en = Delay(Bit(), 0, s"$pne.en")
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
   val fifoAndTree = AndTree("fifoAndTree")
   val tokenInAndTree = AndTree("tokenInAndTree")
-  val andTree = AndTree()
-  andTree <== tokenInAndTree.out
-  andTree <== fifoAndTree.out
+  val pipeAndTree = AndTree("pipeAndTree")
+  pipeAndTree <== siblingAndTree.out
+  pipeAndTree <== fifoAndTree.out
+  val streamAndTree = AndTree("streamAndTree")
+  streamAndTree <== tokenInAndTree.out
+  streamAndTree <== fifoAndTree.out
 }
 
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {
   val doneXbar = Delay(Bit(), 0)
-  val en = Delay(Bit(), 0)
+  val en = Delay(Bit(), 0, s"$pne.en")
   val childrenAndTree = AndTree("childrenAndTree") 
   val siblingAndTree = AndTree("siblingAndTree") 
   val pulserSM = PulserSM()
@@ -110,11 +150,12 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   val status = Input(Bit(), this, s"status")
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    //sim.dprintln(s"setting $command")
     command.v.set { v =>
-      if (sim.cycle == 1) v.setLow
-      else if (sim.cycle == 2) v.setHigh
-      else if (command.pv.isHigh.getOrElse(false)) v.setLow
+      if (sim.rst) v.setHigh
+      else v.setLow
+      //if (sim.cycle == 1) v.setLow
+      //else if (sim.cycle == 2) v.setHigh
+      //else if (command.pv.isHigh.getOrElse(false)) v.setLow
       //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
     }
   }

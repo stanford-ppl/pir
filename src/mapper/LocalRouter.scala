@@ -97,7 +97,9 @@ trait LocalRouter extends Mapper {
       case (os, pis) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
         n match {
-          case n if n.isCtrlIn => mp.vimap(n).ic
+          case n if n.isCtrlIn => 
+            val pop = mp.vimap(n).ic
+            mp = mp.setFI(r, pop)
           case n => 
             var pops = mp.opmap(n.from)
             val found = pops.foldLeft(false) { 
@@ -112,8 +114,7 @@ trait LocalRouter extends Mapper {
                 } else false
               case (true, pop) => true
             }
-            if (!found) throw InPortRouting(n, r, 
-                    s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
+            if (!found) throw InPortRouting(n, r, s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
         }
     }
     mp = if (mp.ipmap.contains(n)) mp else mp.setIP(n,r)
