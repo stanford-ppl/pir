@@ -23,10 +23,10 @@ trait Simulatable extends Module with Evaluation {
         fimap.get(in).fold {
           if (in.fanIns.size==1) {
             in := in.fanIns.head
-            sim.dprintln(s"$in := ${in.fanIns}.head")
+            sim.dprintln(s"${sim.quote(in)} := ${in.fanIns.map(sim.quote)}.head")
           }
         } { out => 
-          sim.dprintln(s"$in := $out")
+          sim.dprintln(s"${sim.quote(in)} := ${sim.quote(out)}")
           in := out
         }
       }

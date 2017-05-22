@@ -20,8 +20,9 @@ object SN5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=6, numArgOuts
 
 object SN4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=6, numArgOuts=5) {
 }
-
 object SN2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {
+}
+object SN1x1 extends SwitchNetwork(numRows=1, numCols=1, numArgIns=3, numArgOuts=3) {
 }
 
 object SN2x2Test extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {

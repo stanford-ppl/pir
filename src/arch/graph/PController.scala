@@ -33,7 +33,7 @@ trait NetworkElement extends Module with Simulatable {
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
   def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
-  override def toString = s"${coordOf.get(this).fold(super.toString) { case (x,y) => s"$typeStr[$x,$y]"}}"
+  //override def toString = s"${coordOf.get(this).fold(super.toString) { case (x,y) => s"$typeStr[$x,$y]"}}"
 }
 
 /* Controller */

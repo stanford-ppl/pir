@@ -41,7 +41,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
 
   override def traverse = {
-    dprintln(s"Registering update functions ...")
+    dprintln(s"\n\nRegistering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
     dprintln(s"\n\nDefault values ...")
     vcd.foreach { _.emitSignals }
@@ -62,5 +62,20 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     vcd.foreach { _.close }
     super.finPass
   }
+
+  override def quote(n:Any):String = {
+    import spademeta._
+    n match {
+      case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
+      case n:GlobalIO[_,_] => 
+        s"${quote(n.src)}.${n.typeStr}${indexOf.get(n).fold("") { idx => s"[$idx]" }}"
+      case n:IO[_,_] if n.src.isInstanceOf[GlobalIO[_,_]] => 
+        s"${quote(n.src)}.${n.typeStr}${indexOf.get(n).fold("") { idx => s"[$idx]" }}"
+      case n:PortType => s"${quote(n.io)}.$n"
+      case n:Node => pir.plasticine.util.quote(n)
+      case n => s"$n"
+    }
+  }
+
 }
 

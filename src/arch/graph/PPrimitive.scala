@@ -17,7 +17,7 @@ abstract class Primitive(implicit spade:Spade, val pne:NetworkElement) extends M
 case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "ctr"
-  override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  //override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   val min = Input(Word(), this, s"${this}.min")
   val max = Input(Word(), this, s"${this}.max")
   val step = Input(Word(), this, s"${this}.step")
@@ -69,7 +69,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkEl
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
-  val in = Input(Bus(Word()), this, s"$this.i")
+  val in = Input(Bus(Word()), this, s"$this.in")
   val out = Output(Bus(Word()), this, s"${this}.out")
 }
 

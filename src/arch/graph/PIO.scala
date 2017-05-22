@@ -21,24 +21,26 @@ trait PortType extends Value {
   def clone(name:Option[String]):this.type
   def clone(name:String):this.type = clone(Some(name))
   override def clone():this.type = clone(None)
-  override def toString = s"${io}.tp"
-  def typeStr:String
+  override def toString = s"${io}.t${typeStr}"
 }
 /* Three types of pin */
-case class Bit() extends PortType with BitValue {
-  override def typeStr = "b"
+case class Bit()(implicit spade:Spade) extends PortType with BitValue {
+  override val typeStr = "b"
   def clone(name:Option[String]):this.type = {
-    val ntp = Bit().asInstanceOf[this.type]
+    val ntp = name match {
+      case Some(name) => new Bit() { override def toString = name }
+      case None => Bit()
+    }
     ntp.io = this.io
-    ntp
+    ntp.asInstanceOf[this.type]
   }
   //override def equals(that:Any):Boolean = that match {
     //case that:Bit => true
     //case _ => false
   //}
 }
-case class Word(wordWidth:Int) extends PortType with WordValue {
-  override def typeStr = "w"
+case class Word(wordWidth:Int)(implicit spade:Spade) extends PortType with WordValue {
+  override val typeStr = "w"
   def clone(name:Option[String]):this.type = {
     val ntp = name match {
       case Some(name) => new Word(wordWidth) { override def toString = name }
@@ -55,8 +57,8 @@ case class Word(wordWidth:Int) extends PortType with WordValue {
 object Word {
   def apply()(implicit spade:Spade):Word = Word(spade.wordWidth)
 }
-case class Bus(busWidth:Int, elemTp:PortType) extends PortType with BusValue {
-  override def typeStr = "u"
+case class Bus(busWidth:Int, elemTp:PortType)(implicit spade:Spade) extends PortType with BusValue {
+  override val typeStr = "u"
   override def io_= (io:IO[_, Module]) = {
     super.io_= (io)
     elemTp.io = io
@@ -94,7 +96,7 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
     s += tp.typeStr
     s
   } 
-  override def toString =s"${src}.${typeStr}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  //override def toString =s"${src}.${typeStr}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   def isConnected: Boolean
   def disconnect:Unit
   def canConnect(n:IO[_<:PortType, Module]):Boolean
@@ -266,7 +268,7 @@ case class Slice[P<:PortType](bintp:P, bout:Output[Bus,Module], i:Int)(implicit 
   override def register(implicit sim:Simulator):Unit = {
     super.register
     out.v.set { v => 
-      v := in.v.value(i)
+      v <<= in.v.value(i)
     }
   }
 }

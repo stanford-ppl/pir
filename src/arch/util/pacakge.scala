@@ -2,6 +2,7 @@ package pir.plasticine
 
 import pir.plasticine.main.Spade
 import pir.plasticine.graph._
+import pir.plasticine.simulation._
 import pir.exceptions.PIRException
 import pir.Design
 
@@ -43,11 +44,11 @@ package object util {
     }
   }
 
-  def quote(n:Node)(implicit spade:Spade) = {
+  def quote(n:Node)(implicit spade:Spade):String = {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     n match {
-      case pne:NetworkElement => coordOf.get(pne).fold(s"$pne") { case (x,y) => s"$pne[$x,$y]"}
+      case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"$n[$x,$y]" }
       case n:IO[_,_] => s"$n"
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
