@@ -17,7 +17,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
-  val vcd = if (Config.simulate) Some(new VcdPrinter) else None
+  val vcd:Option[VcdPrinter] = if (Config.simulate) Some(new VcdPrinter) else None
 
   override def debug = Config.verbose
 
@@ -65,7 +65,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     close
     vcd.foreach { _.close }
     super.finPass
-    toc("Simulation","ms")
+    toc("Simulation","s")
   }
 
   override def quote(n:Any):String = {

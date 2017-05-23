@@ -46,7 +46,7 @@ trait ScalaCodegen extends Printer {
   }
 
   def emitBlock[T](s:String, ss:Option[String]=None, es:Option[String]=None, b:Braces=CurlyBraces)(block: =>T):T = { 
-    emitBS(s"$s ", b)
+    emitBS(s, b)
     ss.foreach { ss => emit(s"$ss =>") }
     emitln
     val res = block

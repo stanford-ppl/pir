@@ -75,7 +75,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   override def splitPostHeader:Unit = {
     emitln(s"self:$traitName =>")
-    emitBSln(s"def config${fileNumber}:Unit = ")
+    emitBSln(s"def config${fileNumber}:Unit =")
   }
 
   override def splitPreFooter:Unit = {
@@ -91,7 +91,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     }
     emitMixed {
       emitPlasticineBits
-      emitBlock(s"def config:Unit = ") {
+      emitBlock(s"def config:Unit =") {
         (0 until fileNumber).foreach { i =>
           emitln(s"config${i+1}")
         }

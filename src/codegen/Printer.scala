@@ -54,25 +54,46 @@ trait Printer {
   def emitln(s:String):Unit = pprintln(s"${tab*level}${if (listing) "- " else ""}${s}")
   def emitln:Unit = pprintln
   def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
-  def emitBSln(s:String, b:Braces):Unit = { emit(s); emitBSln(b) }
-  def emitBSln(s:String):Unit = { emit(s); emitBSln }
-  def emitBSln(b:Braces):Unit = { pprintln(b.s); incLevel }
-  def emitBSln:Unit = { pprintln(CurlyBraces.s); incLevel }
-  def emitBS(s:String, b:Braces):Unit = { emit(s); emitBS(b) }
-  def emitBS(s:String):Unit = { emit(s); emitBS }
-  def emitBS(b:Braces):Unit = { pprint(b.s); incLevel }
-  def emitBS:Unit = { pprint(CurlyBraces.s); incLevel }
-  def emitBEln(s:String, b:Braces):Unit = { emitBE(b); pprintln(s) }
-  def emitBEln(s:String):Unit = { emitBE; pprintln(s) }
-  def emitBEln(b:Braces):Unit = { emitBE(b); pprintln }
-  def emitBEln:Unit = { emitBE; pprintln }
-  def emitBE(b:Braces):Unit = { decLevel; emit(b.e) }
-  def emitBE:Unit = { decLevel; emit(CurlyBraces.e) }
-  def emitBE(s:String):Unit = { decLevel; emit(s"$s ${CurlyBraces.e}") }
-  def emitBlock[T](block: =>T):T = { emitBSln; val res = block; emitBEln; res }
-  def emitBlock[T](b:Braces)(block: =>T):T = { emitBSln(b); val res = block; emitBEln(b); res }
-  def emitBlock[T](s:String)(block: =>T):T = { emitBSln(s"$s "); val res = block; emitBEln; res }
-  def emitBlock[T](s:String, b:Braces)(block: =>T):T = { emitBSln(s"$s ", b); val res = block; emitBEln(b); res }
+
+  def emitBSln:Unit = emitBSln(None, None, None)
+  def emitBSln(b:Braces):Unit = emitBSln(None, Some(b), None)
+  def emitBSln(bs:String):Unit = emitBSln(Some(bs),None, None)
+  def emitBSln(bs:String, b:Braces):Unit = emitBSln(Some(bs), Some(b), None)
+  def emitBSln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
+    emitln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
+  }
+
+  def emitBS:Unit = emitBS(None, None, None)
+  def emitBS(b:Braces):Unit = emitBS(None, Some(b), None)
+  def emitBS(bs:String):Unit = emitBS(Some(bs),None, None)
+  def emitBS(bs:String, b:Braces):Unit = emitBS(Some(bs), Some(b), None)
+  def emitBS(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
+    emit(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
+  }
+
+  def emitBEln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
+    decLevel; emitln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
+  }
+  def emitBEln(bs:String, b:Braces):Unit = emitBEln(Some(bs), Some(b), None) 
+  def emitBEln(es:String):Unit = emitBEln(None, None, Some(es))
+  def emitBEln(b:Braces):Unit = emitBEln(None, Some(b), None)
+  def emitBEln:Unit = emitBEln(None, None, None)
+
+  def emitBE(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
+    decLevel; emit(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
+  }
+  def emitBE(bs:String, b:Braces):Unit = emitBE(Some(bs), Some(b), None) 
+  def emitBE(es:String):Unit = emitBE(None, None, Some(es))
+  def emitBE(b:Braces):Unit = emitBE(None, Some(b), None)
+  def emitBE:Unit = emitBE(None, None, None)
+
+  def emitBlock[T](block: =>T):T = emitBlock(None, None, None)(block)
+  def emitBlock[T](b:Braces)(block: =>T):T = emitBlock(None, Some(b), None)(block)
+  def emitBlock[T](bs:String)(block: =>T):T = emitBlock(Some(bs), None, None)(block)
+  def emitBlock[T](bs:String, b:Braces)(block: =>T):T = emitBlock(Some(bs), Some(b), None)(block)
+  def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[String])(block: =>T):T = 
+    { emitBSln(bs, b, None); val res = block; emitBEln(None, b, es); res }
+
   def emitList[T](s:String)(block: => T) = { emitln(s); blist; val res = block; elist; res}
 
   def emitTitleComment(title:String) = 

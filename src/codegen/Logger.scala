@@ -30,8 +30,8 @@ trait Logger extends Printer {
   def dprint(pred:Boolean, s:Any):Unit = dprintln(pred, None, s)
   def dprintln(s:Any):Unit = dprintln(debug, None, s) 
   def dprint(s:Any):Unit = dprintln(debug, None, s)
-  def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBSln(promp(header,s) + " ")
-  def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(" " + promp(header, s))
+  def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBSln(promp(header,s))
+  def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(promp(header, s))
 
   def bp(s:Any) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")
 
