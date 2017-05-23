@@ -47,9 +47,9 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 
   var vbufs:List[VectorMem] = Nil
   var sbufs:List[ScalarMem] = Nil
-  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
+  def numScalarBufs(num:Int, size:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem(size).index(i) }; this }
   def numScalarBufs:Int = sbufs.size
-  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
+  def numVecBufs(num:Int, size:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem(size).index(i) }; this }
   def numVecBufs:Int = vbufs.size
 
   def ctrlBox:CtrlBox
@@ -112,7 +112,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   override val typeStr = "cu"
 
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
-  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM().index(i) }
+  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
@@ -168,13 +168,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numRegs = 16
   def numCtrs = 5
   def numSRAMs = 0
+  def sramSize = 0
   def numUDCs = 5
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=2, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=1, numOprds=3, ops)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    numScalarBufs(4, 256)
+    numVecBufs(vins.size, 256)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg).color(1, AccumReg)
     color(5 until 5 + numScalarBufs, ScalarInReg)
@@ -184,6 +185,20 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     genConnections
   }
 
+  override def register(implicit sim:Simulator):Unit = {
+    // Add delay to output if input is from doneXBar
+    ctrlBox match {
+      case cb:InnerCtrlBox =>
+        couts.foreach { cout =>
+          sim.mapping.fimap.get(cout.ic).foreach { 
+            case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
+            case _ =>
+          }
+        }
+      case _ =>
+    }
+    super.register
+  }
 }
 
 class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
@@ -196,10 +211,9 @@ class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   /* Parameters */
   override def numRegs = 0
   override def numCtrs = 6
-  override def numSRAMs = 0
   override def numUDCs = 15
   override def config(implicit spade:SwitchNetwork) = {
-    numScalarBufs(4)
+    numScalarBufs(4, 16)
     genConnections
   }
 }
@@ -229,12 +243,13 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numRegs = 16
   override def numCtrs = 8
   override def numSRAMs = 1
+  override def sramSize = 32768
   override def numUDCs = 0
   override def config(implicit spade:SwitchNetwork) = {
     addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    numScalarBufs(4, 16)
+    numVecBufs(vins.size, 16)
     color(0 until numCtrs, CounterReg)
     color(7, ReadAddrReg).color(8, WriteAddrReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
@@ -252,12 +267,11 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   /* Parameters */
   override def numRegs = 16
   override def numCtrs = 6
-  override def numSRAMs = 0
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
-    numScalarBufs(6)
-    numVecBufs(vins.size)
+    numScalarBufs(6, 16)
+    numVecBufs(vins.size, 16)
     color(0 until numCtrs, CounterReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)
     color(8 until 8 + souts.size, ScalarOutReg)
@@ -274,8 +288,8 @@ class MemoryController()(implicit spade:Spade) extends Controller {
   override def config(implicit spade:SwitchNetwork) = {
     //assert(sins.size==2)
     //assert(vins.size==1)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    numScalarBufs(4, 256)
+    numVecBufs(vins.size, 16)
     nameOf(sbufs(0)) = "roffset"
     nameOf(sbufs(1)) = "woffset"
     nameOf(sbufs(2)) = "rsize"

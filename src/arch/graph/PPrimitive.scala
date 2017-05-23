@@ -29,33 +29,35 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     super.register
-    sim.mapping.clmap.pmap.get(pne).foreach { cu =>
+    sim.mapping.ctmap.pmap.get(this).foreach { ctr =>
+      val cu = ctr.ctrler
+      val prevCtr = sim.mapping.fimap(en).src match {
+        case c:Counter => Some(c)
+        case _ => None
+      }
       val outPar = cu match {
         case cu if cu.isMP => 1
         case cu:pir.graph.ComputeUnit => cu.parLanes
       }
+      sim.dprintln(s"$this outPar = $outPar")
       val head = out.v.head.asWord //TODO: Add type parameter to Bus
       out.v.foreach { 
         case (v, i) if (i==0) =>
           head.set { headv =>
-            IfElse (en.v) {
-              headv <<= headv + (step.v * outPar)
-              If (headv >= max.v) {
-                headv <<= min.v.value
-              }
-            } {
-              headv <<= min.v.value
-            }
+            Match(
+              sim.rst -> { () => headv <<= min.v },
+              (done.pv & prevCtr.fold(done.pv) { _.done.pv } ) -> { () => headv <<= min.v },
+              en.v -> { () => headv <<= headv + step.v }
+            ) {}
           }
         case (v, i) if i < outPar =>
-          val tail = v.asWord 
-          tail <<= head + (step.v * i)
+          v.asWord := head + (step.v * (outPar * i))
         case (v, i) =>
       }
       done.v.set { donev =>
         donev.setLow
-        out.v.foreach { case (outv, i) =>
-          If (outv.asWord > max.v) {
+        out.v.update.foreach { case (outv, i) =>
+          If (outv.asWord >= max.v) {
             donev.setHigh
           }
         }
@@ -75,22 +77,31 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkEl
 
 trait OnChipMem extends Primitive {
   import spademeta._
-  val readPort:Output[_<:PortType, OnChipMem]
-  val writePort:Input[_<:PortType, OnChipMem]
+  val size:Int
+  type P<:PortType
+  val readPort:Output[P, OnChipMem]
+  val writePort:Input[P, OnChipMem]
+  val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
+  val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
+  val writePtr = Output(Word(), this, s"${this}.writePtr")
+  val readPtr = Output(Word(), this, s"${this}.readPtr")
+  val count = Output(Word(), this, s"${this}.count")
   def asSRAM = this.asInstanceOf[SRAM]
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
   def asBuf = this.asInstanceOf[LocalBuffer]
-  val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
-  val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
+  def createArray(capacity:Int):Array[P]
+
 }
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM()(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
+case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  type P = Bus 
+  def createArray(capacity:Int):Array[P] = Array.tabulate(capacity) { i => readPort.tp.clone }
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
@@ -101,11 +112,33 @@ case class SRAM()(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
 trait LocalBuffer extends OnChipMem with Simulatable {
   val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
   val notFull = Output(Bit(), this, s"${this}.notFull")
+
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).fold {
-      notEmpty.v.set { v => v.setLow }
+      notEmpty.v.set { v => v.setHigh }
       notFull.v.set { v => v.setHigh }
     } { mem =>
+      val capacity = mem match {
+        case mem:pir.graph.FIFO => mem.size
+        case mem:pir.graph.MultiBuffering => mem.buffering
+      }
+      val array:Array[P] = createArray(capacity)
+      def incPtr(v:WordValue) = {
+        v <<= v + 1; if (v.value.get.toInt>=capacity) v <<= 0
+      }
+      readPtr.v <<= 0
+      writePtr.v <<= 0
+      count.v <<= 0
+      readPtr.v.set { v => If(incReadPtr.v) { incPtr(v) } }
+      writePtr.v.set { v => If(incWritePtr.v) { incPtr(v) }; array(v.value.get.toInt) <<= writePort.v }
+      count.v.set { v => If(incReadPtr.v) { v <<= v - 1 }; If(incWritePtr.v) { v <<= v + 1 } }
+      readPort.v.set { v => 
+        writePtr.v.update
+        readPtr.v.update
+        v <<= array(readPtr.v.value.get.toInt)
+      }
+      notEmpty.v := (if (capacity==1) Some(true) else count.v > 0)
+      notFull.v := (if (capacity==1) Some(true) else count.v < capacity) //TODO: implement almost full
     }
     super.register
   }
@@ -113,17 +146,21 @@ trait LocalBuffer extends OnChipMem with Simulatable {
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarMem()(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
+case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
   override val typeStr = "sm"
+  type P = Word
   val writePort = Input(Word(), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
+  def createArray(capacity:Int):Array[P] = Array.tabulate(capacity) { i => readPort.tp.clone }
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorMem()(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
+case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
   override val typeStr = "vm"
+  type P = Bus
   val writePort = Input(Bus(Word()), this, s"${this}.in")
   val readPort = Output(Bus(Word()), this, s"${this}.out") 
+  def createArray(capacity:Int):Array[P] = Array.tabulate(capacity) { i => readPort.tp.clone }
 }
 
 /* Function unit. 

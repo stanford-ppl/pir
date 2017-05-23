@@ -77,7 +77,7 @@ case class Bus(busWidth:Int, elemTp:PortType)(implicit spade:Spade) extends Port
   //}
 }
 object Bus {
-  def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.wordWidth, elemTp)
+  def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.numLanes, elemTp)
 }
 
 /* 

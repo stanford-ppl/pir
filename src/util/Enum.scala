@@ -56,6 +56,7 @@ package object enums {
   sealed trait BitOp extends Op  { _bitOps += this }
   case object BitAnd extends BitOp // &
   case object BitOr  extends BitOp // |
+  case object BitNot extends BitOp // ~
 
   case object Mux extends Op { _otherOps += this }
   case object Bypass extends Op { _otherOps += this }

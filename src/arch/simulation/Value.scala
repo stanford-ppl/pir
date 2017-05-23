@@ -11,7 +11,7 @@ import pir.plasticine.util._
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
-import scala.reflect.{ClassTag, classTag}
+//import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe._
 import scala.language.implicitConversions
 
@@ -21,7 +21,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def setPrev(pv:SingleValue, nv:SingleValue)(implicit sim:Simulator):Unit = {
     pv.next = Some(nv)
     nv.prev = Some(pv)
-    pv.set { pv => pv <<= nv }
+    pv.set { pv => pv copy nv }
   }
   def setPrev(pv:BusValue, nv:BusValue)(implicit sim:Simulator):Unit = {
     (pv.value, nv.value).zipped.foreach { case (pv, nv) => setPrev(pv, nv) }
@@ -99,7 +99,11 @@ trait Value extends Node with Evaluation { self:PortType =>
   var next:Option[Value] = None
   def clearUpdate(implicit sim:Simulator):Unit
   def := (other:Value)(implicit sim:Simulator):Unit
-  def <<= (other:Value):Unit
+  def <<= (other:Value)(implicit sim:Simulator):Unit = { 
+    sim.dprintln(s"${sim.quote(this)} <<= ${sim.quote(other)}")
+    copy(other.update)
+  }
+  def copy (other:Value):Unit
   def set(f: this.type => Unit)(implicit sim:Simulator):Unit
 }
 
@@ -118,12 +122,17 @@ trait Evaluation {
     (inputs, op) match {
       case ((a:Float)::(b:Float)::_, FixAdd) => Some(a + b)
       case ((a:Float)::(b:Float)::_, FixSub) => Some(a - b)
+      case ((a:Float)::(b:Float)::_, FixMul) => Some(a * b)
+
       case ((a:Float)::(b:Float)::_, FltAdd) => Some(a + b)
       case ((a:Float)::(b:Float)::_, FltSub) => Some(a - b)
+      case ((a:Float)::(b:Float)::_, FltMul) => Some(a * b)
       case ((a:Float)::(b:Float)::_, FltGeq) => Some(a >= b)
       case ((a:Float)::(b:Float)::_, FltGt) => Some(a > b)
 
       case ((a:Boolean)::(b:Boolean)::_, BitAnd) => Some(a & b)
+      case ((a:Boolean)::(b:Boolean)::_, BitOr) => Some(a | b)
+      case ((a:Boolean)::_, BitNot) => Some(!a)
       case (ins, op) =>
         throw PIRException(s"Don't know how to eval $op for ins=$ins")
     }
@@ -145,10 +154,18 @@ trait Evaluation {
         //throw PIRException(s"Don't know how to eval $op for ins=$ins")
     //}
   //}
+  class CurryHelper[T, Res](f: Seq[T] => Res, as: Seq[T]) {
+    def myCurry() = this
+    def apply(ts: T*) = new CurryHelper(f, as ++ ts)
+    def apply(ts: Seq[T]) = f(as ++ ts)
+  }
+  implicit def toCurryHelper[T, Res](f: Seq[T] => Res) = new CurryHelper(f, IndexedSeq[T]())
+
   implicit def wv_to_opt(wv:WordValue)(implicit sim:Simulator):Option[Float] = wv.update.value
   implicit def bv_to_opt(bv:BitValue)(implicit sim:Simulator):Option[Boolean] = bv.update.value
   implicit def int_to_opt(int:Int):Option[Float] = Some(int.toFloat)
   implicit def float_to_opt(f:Float):Option[Float] = Some(f.toFloat)
+  implicit def bool_to_opt(b:Boolean):Option[Boolean] = Some(b)
   def isHigh(v:Option[AnyVal]):Option[Boolean] = v.map { 
     case v:Boolean => v
     case v => throw new Exception(s"Don't know how to check isHigh for $v")
@@ -171,12 +188,16 @@ trait Evaluation {
         //}.asInstanceOf[T]
     //}
   //}
-  def Match(matches:(SingleValue, () => Unit)*)(defaultFunc: => Unit)(implicit sim:Simulator):Unit = {
-    Match(matches.map{case (cond, func) => (cond.update.value, func)}:_*)(defaultFunc)
-  }
-  def Match(matches:(Option[AnyVal], () => Unit)*)(defaultFunc: => Unit):Unit = {
+
+  def Match(matches:(Any, () => Unit)*)(defaultFunc: => Unit)(implicit sim:Simulator):Unit = {
     var trigDefault = false
-    matches.foreach { case (cond, func) =>
+    val matchPairs:Seq[(Option[AnyVal], () => Unit)] = matches.map { 
+      case (cond:SingleValue, func) => (cond.update.value, func)
+      case (cond:Boolean, func) => (Some(cond), func)
+      case (cond:Option[_], func) => (cond.asInstanceOf[Option[AnyVal]], func)
+    }
+    sim.dprintln(s"matchpairs: ${matchPairs.map(_._1)}")
+    matchPairs.foreach { case (cond, func) =>
       cond.foreach { 
         case true => 
           trigDefault = false
@@ -210,7 +231,7 @@ trait SingleValue extends Value { self:PortType =>
   override def updated = _updated
   var func: Option[(this.type => Unit, String)] = None 
   def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
-    assert(!sim.inSimulation)
+    if (next.isEmpty) assert(!sim.inSimulation)
     val stackTrace = getStackTrace(1, 20)
     if (func.isDefined) 
       warn(s"Reseting func of value $this of io ${io} in ${io.src} ${getStackTrace(4, 6)}")
@@ -239,14 +260,11 @@ trait SingleValue extends Value { self:PortType =>
     if (isDefined && !updated) throw PIRException(s"${this} is not updated at #${sim.cycle}")
     _updated = false 
   }
-  def := (other:Value)(implicit sim:Simulator):Unit = set { v =>
-    val o = other.asInstanceOf[PortType] //TODO: why is this necessary. Why is self type not sufficient
-    sim.dprintln(s"${sim.quote(v.io.v)} <<= ${sim.quote(o.io.v)}")
-    v <<= other.update
-  }
-  def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { v => v <<= other }
-  def <<= (other:Option[AnyVal]):Unit
-  def <<= (other:Value) = { this <<= other.asInstanceOf[SingleValue].value }
+  def := (other:Value)(implicit sim:Simulator):Unit = set { v => v <<= other }
+  def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { v => v copy other }
+  def <<= (other:Option[AnyVal]):Unit = copy(other) 
+  def copy(other:Value):Unit = copy(other.asInstanceOf[SingleValue].value)
+  def copy (other:Option[AnyVal]):Unit
 }
 
 trait BitValue extends SingleValue { self:Bit =>
@@ -255,7 +273,7 @@ trait BitValue extends SingleValue { self:Bit =>
     case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
     case v => unmatchFunc(v)
   }
-  def <<= (other:Option[AnyVal]) = value = other.asInstanceOf[V]
+  def copy (other:Option[AnyVal]) = value = other.asInstanceOf[V]
   def s:String = value match {
     case Some(true) => "1"
     case Some(false) => "0"
@@ -272,7 +290,9 @@ trait BitValue extends SingleValue { self:Bit =>
   def isLow:V = value.map { v => !v } 
   def setHigh = value = Some(true)
   def setLow = value = Some(false)
-  def & (vl:Any)(implicit sim:Simulator):V = eval(FltAdd, value, vl).asInstanceOf[V]
+  def & (vl:Any)(implicit sim:Simulator):V = eval(BitAnd, value, vl).asInstanceOf[V]
+  def | (vl:Any)(implicit sim:Simulator):V = eval(BitOr, value, vl).asInstanceOf[V]
+  def not(implicit sim:Simulator):V = eval(BitNot, value).asInstanceOf[V]
 }
 
 trait WordValue extends SingleValue { self:Word =>
@@ -281,8 +301,8 @@ trait WordValue extends SingleValue { self:Word =>
     case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
     case v => unmatchFunc(v)
   }
-  def <<= (other:Option[AnyVal]):Unit = value = other.asInstanceOf[V]
-  def <<= (other:Int):Unit = value = Some(other.toFloat)
+  def copy (other:Option[AnyVal]):Unit = value = other.asInstanceOf[V]
+  def <<= (other:Int):Unit = <<=(Some(other.toFloat)) 
   def s:String = value match {
     case Some(v) => s"$v"
     case None => "x"
@@ -296,7 +316,7 @@ trait WordValue extends SingleValue { self:Word =>
 
   def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, value, vl)
   def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltSub, value, vl)
-  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, value, vl)
+  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltMul, value, vl)
   def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, value, vl)
   def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, value, vl)
   def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, value, vl)
@@ -336,12 +356,12 @@ trait BusValue extends Value { self:Bus =>
         (value, other.value).zipped.foreach { case (v, ov) => v := ov }
     }
   }
-  override def <<= (other:Value) = {
+  override def copy (other:Value) = {
     other match {
       case other:SingleValue =>
-        value.foreach { v => v <<= other }
+        value.foreach { v => v copy other }
       case other:BusValue =>
-        (value, other.value).zipped.foreach { case (v, ov) => v <<= ov }
+        (value, other.value).zipped.foreach { case (v, ov) => v copy ov }
     }
   }
   def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {

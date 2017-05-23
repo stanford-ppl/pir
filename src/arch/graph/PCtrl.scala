@@ -113,7 +113,7 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
 }
 
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val doneXbar = Delay(Bit(), 0)
+  val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
   val en = Delay(Bit(), 0, s"$pne.en")
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
@@ -128,7 +128,7 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
 }
 
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {
-  val doneXbar = Delay(Bit(), 0)
+  val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
   val en = Delay(Bit(), 0, s"$pne.en")
   val childrenAndTree = AndTree("childrenAndTree") 
   val siblingAndTree = AndTree("siblingAndTree") 
