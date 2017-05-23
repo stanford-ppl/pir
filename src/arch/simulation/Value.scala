@@ -245,7 +245,9 @@ trait SingleValue extends Value { self:PortType =>
     _updated = true
     func.foreach { case (f, stackTrace) => 
       try {
-        f(this)
+        sim.emitBlock(s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id}", {
+          f(this)
+        }, s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id} ${value}")
       } catch {
         case e:Exception =>
           errmsg(e.toString)
@@ -254,7 +256,6 @@ trait SingleValue extends Value { self:PortType =>
           errmsg(stackTrace)
           sys.exit()
       }
-      sim.dprintln(s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id} ${value}")
     }
   }
   override def clearUpdate(implicit sim:Simulator) = {

@@ -91,6 +91,7 @@ trait Printer {
   def emitBlock[T](b:Braces)(block: =>T):T = emitBlock(None, Some(b), None)(block)
   def emitBlock[T](bs:String)(block: =>T):T = emitBlock(Some(bs), None, None)(block)
   def emitBlock[T](bs:String, b:Braces)(block: =>T):T = emitBlock(Some(bs), Some(b), None)(block)
+  def emitBlock[T](bs:String, block: =>T, es:String):T = emitBlock(Some(bs), None, Some(es))(block)
   def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[String])(block: =>T):T = 
     { emitBSln(bs, b, None); val res = block; emitBEln(None, b, es); res }
 

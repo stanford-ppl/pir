@@ -42,7 +42,6 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     tic
   }
 
-
   override def traverse = {
     dprintln(s"\n\nRegistering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
