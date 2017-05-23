@@ -64,6 +64,13 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   }
 
   val declarator = new Traversal {
+    //override def visitNode (node:Node): Unit = {
+      //node match {
+        //case node:Primitive if (!tracking.contains(node)) => super.visitNode(node)
+        //case node:Module => declare(node) { super.visitNode(node) }
+        //case node => emitln(s"emitting $node"); super.visitNode(node)
+      //}
+    //}
     override def visitNode (node:Node): Unit = node match {
       case node:Primitive if (!tracking.contains(node)) => super.visitNode(node)
       case node:Module => declare(node) { super.visitNode(node) }
@@ -71,26 +78,14 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
     }
     override def traverse(implicit spade: Spade):Unit = {
       visitNode(spade.top)
-      emitkv(s"scope module", "pcus")
-      spade.pcus.foreach(visitNode)
-      emitln(s"$$upscope $$end")
-      emitkv(s"scope module", "mcus")
-      spade.mcus.foreach(visitNode)
-      emitln(s"$$upscope $$end")
-      emitkv(s"scope module", "scus")
-      spade.scus.foreach(visitNode)
-      emitln(s"$$upscope $$end")
-      emitkv(s"scope module", "ocus")
-      spade.ocus.foreach(visitNode)
-      emitln(s"$$upscope $$end")
-      emitkv(s"scope module", "mcs")
-      spade.mcs.foreach(visitNode)
-      emitln(s"$$upscope $$end")
+      declare("pcus") { spade.pcus.foreach(visitNode) }
+      declare("mcus") { spade.mcus.foreach(visitNode) }
+      declare("scus") { spade.scus.foreach(visitNode) }
+      declare("ocus") { spade.ocus.foreach(visitNode) }
+      declare("mcs") { spade.mcs.foreach(visitNode) }
       spade match {
         case spade:SwitchNetwork => 
-          emitkv(s"scope module", "sbs")
-          spade.sbs.foreach(visitNode)
-          emitln(s"$$upscope $$end")
+          declare("sbs") { spade.sbs.foreach(visitNode) }
         case _ =>
       }
     } 
@@ -124,6 +119,12 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
 
   def id(node:Node) = {
     s"n${node.id}"
+  }
+
+  def declare(m:String)(finPass: => Unit):Unit = {
+    emitkv(s"scope module", m)
+    finPass
+    emitln(s"$$upscope $$end")
   }
 
   def declare(m:Module)(finPass: => Unit):Unit = {
