@@ -39,6 +39,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
       vcd.emitHeader
     }
     super.initPass
+    tic
   }
 
 
@@ -50,7 +51,6 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     cycle += 1
     dprintln(s"\n\nStarting simulation ...")
     inSimulation = true
-    tic
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
       spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
@@ -58,7 +58,6 @@ class Simulator(implicit design: Design) extends Pass with Logger {
       spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }
       cycle += 1
     }
-    toc("Simulation","ms")
     inSimulation = false
   }
 
@@ -66,6 +65,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     close
     vcd.foreach { _.close }
     super.finPass
+    toc("Simulation","ms")
   }
 
   override def quote(n:Any):String = {
