@@ -53,7 +53,8 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
 
   def update(implicit sim:Simulator):Unit = { 
     assert(sim.inSimulation)
-    if (v.isDefined) sim.emitBlock(s"UpdateIO ${sim.quote(this)}") { v.update }
+    //if (v.isDefined) sim.emitBlock(s"UpdateIO ${sim.quote(this)}") { v.update }
+    if (v.isDefined) v.update
   }
 
   def clearUpdate(implicit sim:Simulator) = {
@@ -90,7 +91,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     if (updated || !isDefined) return this
     prevUpdate
     mainUpdate
-    postUpdate
+    //postUpdate // allow cyclic update on previous value
     this
   }
   def prevUpdate(implicit sim:Simulator):Unit = { prev.foreach(_.update) }
