@@ -4,6 +4,7 @@ import pir._
 import pir.mapper.PIRMap
 import pir.codegen.Logger
 import pir.pass.Pass
+import pir.util.misc._
 import pir.util.PIRMetadata
 import pir.plasticine.main._
 import pir.plasticine.graph._
@@ -49,6 +50,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     cycle += 1
     dprintln(s"\n\nStarting simulation ...")
     inSimulation = true
+    tic
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
       spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
@@ -56,6 +58,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
       spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }
       cycle += 1
     }
+    toc("Simulation","ms")
     inSimulation = false
   }
 
