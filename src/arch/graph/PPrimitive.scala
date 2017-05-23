@@ -28,7 +28,6 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
-    super.register
     sim.mapping.ctmap.pmap.get(this).foreach { ctr =>
       val cu = ctr.ctrler
       val prevCtr = sim.mapping.fimap(en).src match {
@@ -63,16 +62,25 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
         }
       }
     }
+    super.register
   }
 }
 
 /* Phyiscal pipeline register */
-case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
   val in = Input(Bus(Word()), this, s"$this.in")
   val out = Output(Bus(Word()), this, s"${this}.out")
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
+    implicit val mp = sim.mapping
+    if (isMapped(this)) {
+      out := in
+    }
+    super.register
+  }
 }
 
 trait OnChipMem extends Primitive {
@@ -168,11 +176,17 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
  * @param ops List of supported ops
  * @param stage which stage the FU locates
  * */
-case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "fu"
   val operands = List.tabulate(numOprds) { i => Input(Bus(Word()), this, s"$this.oprd[$i]") } 
   val out = Output(Bus(Word()), this, s"$this.out")
+  override def register(implicit sim:Simulator):Unit = {
+    sim.mapping.stmap.pmap.get(stage).foreach { st =>
+      out.v.foreach { case (v, i) => v.asWord := eval(st.fu.get.op, operands.map(_.v.value(i).update).toSeq:_*) }
+    }
+    super.register
+  }
 }
 
 /*
@@ -194,6 +208,8 @@ class Stage(regs:List[ArchReg])(implicit spade:Spade, pne:NetworkElement) extend
   def isNext(s:Stage) = s.next == Some(this)
   def before(s:Stage) = indexOf(this) < indexOf(s)
   def after(s:Stage) = indexOf(this) > indexOf(s)
+  override def index(i:Int)(implicit spade:Spade):this.type = { super.index(i); funcUnit.foreach(_.index(i)); this }
+  override def index(implicit spade:Spade):Int = { super.index }
   override val typeStr = "st"
 }
 /* Dummy stage that only has register block */

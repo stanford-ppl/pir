@@ -68,6 +68,9 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   override def quote(n:Any):String = {
     import spademeta._
     n match {
+      case PipeReg(stage, reg) => s"pr(${quote(stage)},${quote(reg)})"
+      case n:ArchReg => s"$n"
+      case n:Primitive if indexOf.get(n).nonEmpty => s"${n.typeStr}[${n.index}]"
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
       case n:GlobalIO[_,_] => 
         s"${quote(n.src)}.${n.typeStr}${indexOf.get(n).fold("") { idx => s"[$idx]" }}"

@@ -4,6 +4,7 @@ import pir.plasticine.main.Spade
 import pir.plasticine.graph._
 import pir.plasticine.simulation._
 import pir.exceptions.PIRException
+import pir.mapper.PIRMap
 import pir.Design
 
 import scala.collection.mutable.ListBuffer
@@ -54,13 +55,14 @@ package object util {
     }
   }
 
-  def isMapped(node:Node)(implicit design: Design):Boolean = {
-    val mp = design.mapping.getOrElse(return false)
+  def isMapped(node:Node)(implicit mp: PIRMap):Boolean = {
     node match {
       case n:Controller => mp.clmap.isMapped(n)
       case n:OnChipMem => mp.smmap.isMapped(n)
       case n:Counter => mp.ctmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)
+      case n:PipeReg => isMapped(n.in)
+      case n:FuncUnit => isMapped(n.stage)
       case n:UDCounter => mp.pmmap.isMapped(n)
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
       case n:Output[_,_] => mp.opmap.pmap.contains(n)
