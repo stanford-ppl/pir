@@ -291,9 +291,9 @@ trait BitValue extends SingleValue { self:Bit =>
   def isLow:V = value.map { v => !v } 
   def setHigh = value = Some(true)
   def setLow = value = Some(false)
-  def & (vl:Any)(implicit sim:Simulator):V = eval(BitAnd, value, vl).asInstanceOf[V]
-  def | (vl:Any)(implicit sim:Simulator):V = eval(BitOr, value, vl).asInstanceOf[V]
-  def not(implicit sim:Simulator):V = eval(BitNot, value).asInstanceOf[V]
+  def & (vl:Any)(implicit sim:Simulator):V = eval(BitAnd, this, vl).asInstanceOf[V]
+  def | (vl:Any)(implicit sim:Simulator):V = eval(BitOr, this, vl).asInstanceOf[V]
+  def not(implicit sim:Simulator):V = eval(BitNot, this).asInstanceOf[V]
 }
 
 trait WordValue extends SingleValue { self:Word =>
@@ -315,12 +315,12 @@ trait WordValue extends SingleValue { self:Word =>
     }
   }
 
-  def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, value, vl)
-  def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltSub, value, vl)
-  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltMul, value, vl)
-  def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, value, vl)
-  def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, value, vl)
-  def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, value, vl)
+  def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, this, vl)
+  def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltSub, this, vl)
+  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltMul, this, vl)
+  def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, this, vl)
+  def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, this, vl)
+  def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, this, vl)
 }
 
 trait BusValue extends Value { self:Bus =>
