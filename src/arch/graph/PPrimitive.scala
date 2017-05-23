@@ -28,9 +28,10 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
-    sim.mapping.ctmap.pmap.get(this).foreach { ctr =>
+    import sim.mapping._
+    ctmap.pmap.get(this).foreach { ctr =>
       val cu = ctr.ctrler
-      val prevCtr = sim.mapping.fimap(en).src match {
+      val prevCtr = fimap(en).src match {
         case c:Counter => Some(c)
         case _ => None
       }
@@ -43,17 +44,18 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
             Match(
               sim.rst -> { () => headv <<= min.v },
               (done.pv & prevCtr.fold(done.pv) { _.done.pv } ) -> { () => headv <<= min.v },
-              en.v -> { () => headv <<= headv + step.v }
+              en.v -> { () => headv <<= headv + (step.v * outPar) }
             ) {}
           }
         case (v, i) if i < outPar =>
-          v.asWord := head + (step.v * (outPar * i))
+          v.asWord := head + (step.v * i)
         case (v, i) =>
       }
+      en.v := fimap(en).pv
       done.v.set { donev =>
         donev.setLow
         out.v.update.foreach { case (outv, i) =>
-          If (outv.asWord >= max.v) {
+          If (outv.asWord >= (max.v-1)) {
             donev.setHigh
           }
         }

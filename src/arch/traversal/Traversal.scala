@@ -26,6 +26,7 @@ trait Traversal {
   def visitNode(node: Node) : Unit = {
     //assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
     if (visited.contains(node)) return
+    visited += node
     node match {
       case n:NetworkElement =>
         n.gridIOs.foreach{_.ios.foreach(visitNode)}
@@ -59,7 +60,6 @@ trait Traversal {
       case n:Module => n.ins.map(_.src).collect{case c:Const => c}.foreach(visitNode)
       case _ =>
     }
-    visited += node
   }
 
 }

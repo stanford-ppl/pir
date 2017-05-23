@@ -64,19 +64,22 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   }
 
   val declarator = new Traversal {
-    override def visitNode (node:Node): Unit = node match {
-      case node:ComputeUnit => declare(node) {
-        declare("srams") { node.srams.foreach(visitNode) }
-        declare("ctrs") { node.ctrs.foreach(visitNode) }
-        declare("sbufs") { node.sbufs.foreach(visitNode) }
-        declare("vbufs") { node.vbufs.foreach(visitNode) }
-        declare("stages") { node.stages.foreach(visitNode) }
-        super.visitNode(node)
+    override def visitNode (node:Node): Unit = {
+      if (visited.contains(node)) return
+      node match {
+        case node:ComputeUnit => declare(node) {
+          declare("srams") { node.srams.foreach(visitNode) }
+          declare("ctrs") { node.ctrs.foreach(visitNode) }
+          declare("sbufs") { node.sbufs.foreach(visitNode) }
+          declare("vbufs") { node.vbufs.foreach(visitNode) }
+          declare("stages") { node.stages.foreach(visitNode) }
+          super.visitNode(node)
+        }
+        case node:CtrlBox => declare(node) { super.visitNode(node) }
+        case node:Primitive if (!tracking.contains(node)) => super.visitNode(node)
+        case node:Module => declare(node) { super.visitNode(node) }
+        case _ => super.visitNode(node)
       }
-      case node:CtrlBox => declare(node) { super.visitNode(node) }
-      case node:Primitive if (!tracking.contains(node)) => super.visitNode(node)
-      case node:Module => declare(node) { super.visitNode(node) }
-      case _ => super.visitNode(node)
     }
     override def traverse(implicit spade: Spade):Unit = {
       visitNode(spade.top)

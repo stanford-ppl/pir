@@ -18,10 +18,12 @@ object InOutArg extends PIRApp {
     }
     val x228 = Pipeline(name="x228",parent=x229) { implicit CU => 
       val x222_x225 =  ScalarBuffer().wtPort(x222_argin)
-      val ctr2 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1) // Counter
+      val ctr2 = Counter(min=Const(0), max=Const(16), step=Const(1), par=2) // Counter
       val x228_unit = CounterChain(name = "x228_unit", ctr2)
       var stage: List[Stage] = Nil
-      Stage(operands=List(CU.load(x222_x225), Const(4)), op=FixAdd, results=List(CU.scalarOut(x223_x227_argout)))
+      val temp = CU.temp
+      Stage(operands=List(CU.load(x222_x225), ctr2.out), op=FixAdd, results=List(temp))
+      Stage(operands=List(CU.load(x222_x225), temp), op=FixAdd, results=List(CU.scalarOut(x223_x227_argout)))
     }
     
   }

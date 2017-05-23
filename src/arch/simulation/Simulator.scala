@@ -29,7 +29,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   var cycle = 0
   var rst = false
   def finishSimulation:Boolean = {
-    cycle >= 20
+    spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false) || cycle >= 50
   } 
 
   override def initPass = {
