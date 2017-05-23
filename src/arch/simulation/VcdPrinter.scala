@@ -20,7 +20,8 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   implicit lazy val spade:Spade = design.arch
   import sim.quote
 
-  lazy val fimap = sim.mapping.fimap
+  implicit lazy val mp:PIRMap = sim.mapping
+  lazy val fimap = mp.fimap
 
   val tracking = ListBuffer[Simulatable]()
 
