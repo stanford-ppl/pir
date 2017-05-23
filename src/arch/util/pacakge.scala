@@ -50,7 +50,7 @@ package object util {
     import spademeta._
     n match {
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"$n[$x,$y]" }
-      case n:GlobalIO[_,_] => s"${quote(n.src)}.$n"
+      case n:GlobalIO[_,_] => s"${quote(n.src)}.$n[${n.index}]"
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
   }
@@ -74,6 +74,18 @@ package object util {
       case n:Slice[_] => isMapped(n.in) 
       case n:AndTree => n.ins.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
+    }
+  }
+
+  def getPar(prim:pir.graph.Primitive)(implicit sim:Simulator) = {
+    import sim.pirmeta._
+    val cu = prim.ctrler.asCU
+    if (forRead(prim)) {
+      readCChainsOf(cu).head.inner.par
+    } else if (forWrite(prim)) {
+      writeCChainsOf(cu).head.inner.par
+    } else {
+      compCChainsOf(cu).head.inner.par
     }
   }
 

@@ -24,8 +24,8 @@ trait Traversal {
   } 
 
   def visitNode(node: Node) : Unit = {
-    assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
-    //if (visited.contains(node)) return
+    //assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
+    if (visited.contains(node)) return
     node match {
       case n:NetworkElement =>
         n.gridIOs.foreach{_.ios.foreach(visitNode)}

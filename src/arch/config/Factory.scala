@@ -251,6 +251,23 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
+  def connectStageControl(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        //TODO: map enable once read and write stage can be shared
+        cu.rastages.foreach { _.prs.foreach { _.en <== cb.readEn.out } }
+        cu.wastages.foreach { _.prs.foreach { _.en <== cb.writeEn.out } }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cu.stages.foreach { _.prs.foreach { _.en <== cb.en.out } }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
+      case (mc:MemoryController, cb:CtrlBox) =>
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
+
   def connectCtrlIO(cu:Controller):Unit = {
     implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
@@ -297,6 +314,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     connectCounters(cu)
     connectUDCs(cu)
     connectMemoryControl(cu)
+    connectStageControl(cu)
     connectCtrlIO(cu)
   }
 

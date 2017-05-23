@@ -68,14 +68,15 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   override def quote(n:Any):String = {
     import spademeta._
     n match {
-      case PipeReg(stage, reg) => s"pr(${quote(stage)},${quote(reg)})"
-      case n:ArchReg => s"$n"
+      case n:Stage => s"st[${n.index}]"
+      case n:FuncUnit => s"${quote(n.stage)}.$n"
+      case PipeReg(stage, reg) => s"${quote(stage)}.${quote(reg)}"
+      case n:ArchReg => s"reg[${n.index}]"
       case n:Primitive if indexOf.get(n).nonEmpty => s"${n.typeStr}[${n.index}]"
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
-      case n:GlobalIO[_,_] => 
-        s"${quote(n.src)}.${n.typeStr}${indexOf.get(n).fold("") { idx => s"[$idx]" }}"
-      case n:IO[_,_] if n.src.isInstanceOf[GlobalIO[_,_]] => 
-        s"${quote(n.src)}.${n.typeStr}${indexOf.get(n).fold("") { idx => s"[$idx]" }}"
+      case n:IO[_,_] =>  
+        s"${pir.plasticine.util.quote(n)}".replace(s"${pir.plasticine.util.quote(n.src)}", quote(n.src))
+      case n:Value if n.parent.nonEmpty => s"${quote(n.parent.get)}.$n"
       case n:PortType => s"${quote(n.io)}.$n"
       case n:Node => pir.plasticine.util.quote(n)
       case n => s"$n"

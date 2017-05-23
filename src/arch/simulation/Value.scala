@@ -82,6 +82,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     }
   }
   def asBus:BusValue = this.asInstanceOf[BusValue]
+  var parent:Option[Value] = None
 
   def isDefined:Boolean
   def updated:Boolean
@@ -118,7 +119,6 @@ trait Evaluation {
   }
   def eval(op:Op, ins:Any*)(implicit sim:Simulator):Option[AnyVal] = {
     val inputs = ins.toList.map(unwrap)
-    inputs.foreach { case None => return None; case _ => }
     (inputs, op) match {
       case ((a:Float)::(b:Float)::_, FixAdd) => Some(a + b)
       case ((a:Float)::(b:Float)::_, FixSub) => Some(a - b)
@@ -133,6 +133,7 @@ trait Evaluation {
       case ((a:Boolean)::(b:Boolean)::_, BitAnd) => Some(a & b)
       case ((a:Boolean)::(b:Boolean)::_, BitOr) => Some(a | b)
       case ((a:Boolean)::_, BitNot) => Some(!a)
+      case (ins, op) if ins.contains(None) => return None 
       case (ins, op) =>
         throw PIRException(s"Don't know how to eval $op for ins=$ins")
     }
@@ -325,7 +326,9 @@ trait WordValue extends SingleValue { self:Word =>
 trait BusValue extends Value { self:Bus =>
   type V = List[Value] 
   val value:V = List.tabulate(busWidth) { i => 
-    elemTp.clone(s"$this.${elemTp.typeStr}v[$i]")
+    val eval = elemTp.clone(s"${elemTp.typeStr}v[$i]")
+    eval.parent = Some(this)
+    eval
   }
   def s:String = value.map(_.s).mkString
   override def equals(that:Any):Boolean = {

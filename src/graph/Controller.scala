@@ -186,8 +186,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     }
   }
 
-  def parLanes:Int
-
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
@@ -251,8 +249,6 @@ abstract class OuterController(name:Option[String])(implicit design:Design) exte
   }
 
   lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()
-
-  def parLanes:Int = 1 
 
 }
 
@@ -343,7 +339,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     }
   }
 
-  def parLanes:Int = localCChain.inner.par
   /* Controller Hierarchy */
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/

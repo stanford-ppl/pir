@@ -385,6 +385,10 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
   indexOf(this) = regId
 
   def isTemp = this.isInstanceOf[TempPR]
+  def getInit:Option[AnyVal] = this match {
+    case AccumPR(Const(init)) => Some(init)
+    case r => None
+  }
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}

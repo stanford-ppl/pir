@@ -93,16 +93,22 @@ trait PIRMetadata extends { self:Design =>
     type V = List[Controller]
   }
 
+  /* counters for read address calculation. 
+   * inner counter comes first */
   object readCChainsOf extends MOneToOneMap {
     type K = ComputeUnit
     type V = List[CounterChain]
   }
 
+  /* counters for write address calculation. 
+   * inner counter comes first */
   object writeCChainsOf extends MOneToOneMap {
     type K = ComputeUnit 
     type V = List[CounterChain]
   }
 
+  /* counters for computation
+   * inner counter comes first */
   object compCChainsOf extends MOneToOneMap {
     type K = ComputeUnit 
     type V = List[CounterChain]

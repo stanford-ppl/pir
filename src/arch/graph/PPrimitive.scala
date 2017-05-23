@@ -34,10 +34,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
         case c:Counter => Some(c)
         case _ => None
       }
-      val outPar = cu match {
-        case cu if cu.isMP => 1
-        case cu:pir.graph.ComputeUnit => cu.parLanes
-      }
+      val outPar = getPar(ctr) 
       sim.dprintln(s"$this outPar = $outPar")
       val head = out.v.head.asWord //TODO: Add type parameter to Bus
       out.v.foreach { 
@@ -71,13 +68,24 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, pne:NetworkEl
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
+  val en = Input(Bit(), this, s"$this.en")
   val in = Input(Bus(Word()), this, s"$this.in")
   val out = Output(Bus(Word()), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     implicit val mp = sim.mapping
-    if (isMapped(this)) {
-      out := in
+    mp.fimap.get(this).foreach { _ =>
+      val inits = mp.rcmap.pmap(reg).flatMap{_.getInit}.collect{ case c:Int => c; case c:Float => c}
+      assert(inits.size<=1)
+      en.v := true //TODO: set this properly
+      out.v.foreach { case (v, i) =>
+        v.set { v =>
+          Match(
+            (sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asWord <<= inits.head.toFloat },
+            en.v -> { () => v <<= in.pv.value(i) }
+          ) {}
+        }
+      }
     }
     super.register
   }
@@ -183,7 +191,15 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
   val out = Output(Bus(Word()), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.stmap.pmap.get(stage).foreach { st =>
-      out.v.foreach { case (v, i) => v.asWord := eval(st.fu.get.op, operands.map(_.v.value(i).update).toSeq:_*) }
+      out.v.foreach { case (v, i) => 
+        val vals = operands.map(_.v.value(i)).toSeq
+        v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
+        //v.asWord := {
+          //val res = eval(st.fu.get.op, vals.map(_.update):_*)
+          //sim.dprintln(s"${sim.quote(v)} := eval(${vals.map(op => s"${sim.quote(op)}=${op.value}" )})")
+          //res
+        //}
+      }
     }
     super.register
   }
