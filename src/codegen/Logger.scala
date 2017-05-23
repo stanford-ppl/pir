@@ -14,13 +14,12 @@ import scala.collection.mutable.Stack
 
 trait Logger extends Printer {
   def debug = Config.debug
-  override def emitBSln(s:String):Unit = { super.emitBSln(s); flush }
-  override def emitBEln(s:String):Unit = { super.emitBEln(s); flush }
-  override def emitln(s:String):Unit = { super.emitln(s); flush } 
-  override def emitBlock[T](block: =>T):T = { if (debug) { val res = super.emitBlock(block); flush; res } else { block } }
-  override def emitBlock[T](s:String)(block: =>T):T = { if (debug) { val res = super.emitBlock(s)(block); flush; res } else { block } }
-  def emitBlock[T](header:String, s:String)(block: =>T):T = { if (debug) { val res = super.emitBlock(promp(Some(header), s))(block); flush; res } else { block } }
+  override def pprint(s:String):Unit = if (debug) { super.pprint(s); flush } 
+  override def pprintln(s:String):Unit = if (debug) { super.pprintln(s); flush } 
+  override def pprintln:Unit = if (debug) { super.pprintln; flush } 
+
   def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
+  def emitBlock[T](header:String, s:String)(block: =>T):T = emitBlock(promp(Some(header), s))(block)
   def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitln(promp(header, s))
   def dprint(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emit(promp(header, s))
   def dprintln(pred:Boolean, header:String, s:Any):Unit = dprintln(pred, Some(header), s) 
