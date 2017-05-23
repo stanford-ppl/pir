@@ -45,7 +45,6 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
     mp.pmmap.pmap.get(this).map { case udc:pir.graph.UDCounter => udc.initVal }
   }
   override def register(implicit sim:Simulator):Unit = {
-    super.register
     val fimap = sim.mapping.fimap
     val pmmap = sim.mapping.pmmap
     pmmap.pmap.get(this).fold {
@@ -63,6 +62,7 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
       }
       out.v := (count.v > 0)
     }
+    super.register
   }
 }
 object UDCounter {

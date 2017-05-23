@@ -44,18 +44,17 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
             Match(
               sim.rst -> { () => headv <<= min.v },
               (done.pv & prevCtr.fold(done.pv) { _.done.pv } ) -> { () => headv <<= min.v },
-              en.v -> { () => headv <<= headv + (step.v * outPar) }
+              en.pv -> { () => headv <<= headv + (step.v * outPar) }
             ) {}
           }
         case (v, i) if i < outPar =>
           v.asWord := head + (step.v * i)
         case (v, i) =>
       }
-      en.v := fimap(en).pv
       done.v.set { donev =>
         donev.setLow
         out.v.update.foreach { case (outv, i) =>
-          If (outv.asWord >= (max.v-1)) {
+          If (outv.asWord >= max.v) {
             donev.setHigh
           }
         }
