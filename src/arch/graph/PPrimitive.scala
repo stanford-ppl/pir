@@ -165,9 +165,9 @@ trait LocalBuffer extends OnChipMem with Simulatable {
       readPtr.v <<= 0
       writePtr.v <<= 0
       count.v <<= 0
-      readPtr.v.set { v => If(incReadPtr.v) { incPtr(v) } }
-      writePtr.v.set { v => If(incWritePtr.v) { incPtr(v) }; array(v.value.get.toInt) <<= writePort.v }
-      count.v.set { v => If(incReadPtr.v) { v <<= v - 1 }; If(incWritePtr.v) { v <<= v + 1 } }
+      readPtr.v.set { v => If (incReadPtr.v) { incPtr(v) } }
+      writePtr.v.set { v => If (incWritePtr.v) { incPtr(v) }; array(v.value.get.toInt) <<= writePort.v }
+      count.v.set { v => If (incReadPtr.v) { v <<= v - 1 }; If (incWritePtr.v) { v <<= v + 1 } }
       readPort.v.set { v => 
         writePtr.v.update
         readPtr.v.update

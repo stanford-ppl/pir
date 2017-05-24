@@ -133,6 +133,8 @@ trait Evaluation {
 
       case ((a:Boolean)::(b:Boolean)::_, BitAnd) => Some(a & b)
       case ((a:Boolean)::(b:Boolean)::_, BitOr) => Some(a | b)
+      case ((a:Boolean)::(b:Boolean)::_, BitXnor) => Some(a == b)
+      case ((a:Boolean)::(b:Boolean)::_, BitXor) => Some(a != b)
       case ((a:Boolean)::_, BitNot) => Some(!a)
       case (ins, op) if ins.contains(None) => return None 
       case (ins, op) =>
@@ -295,6 +297,8 @@ trait BitValue extends SingleValue { self:Bit =>
   def setLow = value = Some(false)
   def & (vl:Any)(implicit sim:Simulator):V = eval(BitAnd, this, vl).asInstanceOf[V]
   def | (vl:Any)(implicit sim:Simulator):V = eval(BitOr, this, vl).asInstanceOf[V]
+  def == (vl:Any)(implicit sim:Simulator):V = eval(BitXnor, this, vl).asInstanceOf[V]
+  def != (vl:Any)(implicit sim:Simulator):V = eval(BitXor, this, vl).asInstanceOf[V]
   def not(implicit sim:Simulator):V = eval(BitNot, this).asInstanceOf[V]
 }
 

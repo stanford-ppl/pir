@@ -54,6 +54,11 @@ trait Traversal {
         n.udcs.foreach(visitNode)
         n.andTrees.foreach(visitNode)
         n.delays.foreach(visitNode)
+        n match {
+          case n:OuterCtrlBox => 
+            visitNode(n.pulserSM)
+          case n =>
+        }
       case n =>
     }
     node match {

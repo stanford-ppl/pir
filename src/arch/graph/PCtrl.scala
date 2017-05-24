@@ -98,11 +98,43 @@ object AndTree {
   def apply()(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndTree = AndTree(None)
 }
 
-case class PulserSM()(implicit spade:Spade, pne:NetworkElement) extends Primitive {
+case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
   val done = Input(Bit(), this, s"${this}.done")
   val en = Input(Bit(), this, s"${this}.en")
   val init = Input(Bit(), this, s"${this}.init")
   val out = Output(Bit(), this, s"${this}.out")
+  val INIT = false
+  val RUNNING = true
+  val state = Output(Bit(), this, s"${this}.state")
+  var pulseLength = 1
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
+    import sim.mapping._
+    clmap.pmap.get(pne).foreach { cu =>
+      state.v <<= INIT 
+      out.v.set { outv =>
+        If (state.v == INIT) {
+          If(init.v) {
+            outv.setHigh
+            pulseLength = lengthOf(cu)
+            state.v <<= RUNNING
+          }
+        } 
+        If(state.v == RUNNING) {
+          IfElse (done.v) {
+            state.v <<= INIT
+          } {
+            If (en.pv) {
+              outv.setHigh
+              pulseLength = 1 
+            }
+          }
+        } 
+        If(out.vAt(pulseLength)) { outv.setLow }
+      }
+    }
+    super.register
+  }
 }
 
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {

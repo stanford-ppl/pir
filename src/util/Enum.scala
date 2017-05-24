@@ -57,6 +57,8 @@ package object enums {
   case object BitAnd extends BitOp // &
   case object BitOr  extends BitOp // |
   case object BitNot extends BitOp // ~
+  case object BitXnor extends BitOp // ==
+  case object BitXor extends BitOp // !=
 
   case object Mux extends Op { _otherOps += this }
   case object Bypass extends Op { _otherOps += this }
