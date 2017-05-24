@@ -69,7 +69,7 @@ package object util {
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
       case n:Delay[_] => mp.fimap.contains(n.in) || n.in.fanIns.forall(isMapped)
-      case n:Const => mp.pmmap.isMapped(n)
+      case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_] => isMapped(n.in) 
       case n:AndTree => n.ins.exists(isMapped)

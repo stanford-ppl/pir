@@ -2,6 +2,7 @@ package pir.plasticine.graph
 
 import pir.graph._
 import pir.util.enums._
+import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
@@ -172,8 +173,8 @@ trait LocalBuffer extends OnChipMem with Simulatable {
         readPtr.v.update
         v <<= array(readPtr.v.value.get.toInt)
       }
-      notEmpty.v := (if (capacity==1) Some(true) else count.v > 0)
-      notFull.v := (if (capacity==1) Some(true) else count.v < capacity) //TODO: implement almost full
+      //notEmpty.v := (if (capacity==1) Some(true) else count.v > 0)
+      //notFull.v := (if (capacity==1) Some(true) else count.v < capacity) //TODO: implement almost full
     }
     super.register
   }
@@ -286,19 +287,34 @@ case class RAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spad
   override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 
-class Const()(implicit spade:Spade) extends Simulatable {
+class Const[P<:PortType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {
   override val typeStr = "const"
-  val out = Output(Word(), this, s"$this.out")
+  val out:Output[P, this.type] = Output(tp.clone, this, s"$this.out")
+
   override def register(implicit sim:Simulator):Unit = {
+    def assign(v:Value, value:AnyVal) = {
+      (out.v, value) match {
+        case (v:WordValue, value:Float) => v := value
+        case (v:WordValue, value:Int) => v := value
+        case (v:BitValue, value:Boolean) => v := value
+        case (v, value) => err(s"Cannot create constant $value with type of $v")
+      }
+    }
+
     super.register
+    value.foreach { value =>
+      assign(out.v, value)
+    }
     sim.mapping.pmmap.get(this).foreach { case c:pir.graph.Const[_] => 
-      //out.v.value = Some(c.toFloat.value) //TODO
-      out.v := Some(c.toFloat.value) 
+      assign(out.v, c.value)
     }
   }
 }
 object Const {
-  def apply()(implicit spade:Spade) = new Const()
+  def apply()(implicit spade:Spade):Const[Word] = new Const(Word(), None)
+  def apply(v:Boolean)(implicit spade:Spade):Const[Bit] = new Const(Bit(), Some(v))
+  def apply(v:Int)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
+  def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
 case class Delay[P<:PortType](tp:P, delay:Int, ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {

@@ -121,7 +121,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def mapAndTree(at:AT, pat:PAT, pirMap:M):M = {
-    var mp = pirMap
+    implicit var mp = pirMap
     mp = mp.setPM(at, pat)
     mp = mp.setOP(at.out, pat.out)
     at.ins.foreach { in =>
@@ -131,7 +131,15 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       info += s"in=$in, from=${in.from}, po=$po \n"
       info += s"$pat'ins mapped to $po = [${pins.mkString(",")}]"
       assert(pins.size==1, info)
-      mp = mp.setIP(in, pins.head)
+      val pin = pins.head
+      mp = mp.setIP(in, pin)
+      mp = mp.setFI(pin, po)
+    }
+    pat.ins.foreach { pin =>
+      if (!isMapped(pin)) {
+        val po = pin.fanIns.filter { _.src.isConst }.head
+        mp = mp.setFI(pin, po)
+      }
     }
     mp
   }

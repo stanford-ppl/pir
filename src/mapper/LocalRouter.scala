@@ -6,7 +6,7 @@ import pir.graph.{Const, PipeReg}
 import pir.pass.{PIRMapping}
 import pir.util._
 import pir.plasticine.main._
-import pir.plasticine.graph.{Const => PConst, PipeReg => PPR}
+import pir.plasticine.graph.{PipeReg => PPR}
 import pir.plasticine.util._
 import pir.exceptions._
 

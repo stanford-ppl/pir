@@ -176,7 +176,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def lookUp(n:PAT):List[Int] = {
-    n.ins.map { in => if (ipmap.pmap.contains(in)) 1 else 0 }
+    //n.ins.map { in => if (ipmap.pmap.contains(in)) 1 else 0 }
+    n.ins.map { in => muxIdx(in) }
   }
 
   def emitCtrBits(pcu:PCU) = {

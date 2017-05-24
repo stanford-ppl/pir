@@ -78,6 +78,7 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:C
   private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
     val i = ins.size
     val in = Input(Bit(), this, s"${this}.in$i").index(i)
+    in <== Const(true).out
     in <== out
   }
 

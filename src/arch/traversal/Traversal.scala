@@ -57,7 +57,7 @@ trait Traversal {
       case n =>
     }
     node match {
-      case n:Module => n.ins.map(_.src).collect{case c:Const => c}.foreach(visitNode)
+      case n:Module => n.ins.map(_.src).collect{case c:Const[_] => c}.foreach(visitNode)
       case _ =>
     }
   }

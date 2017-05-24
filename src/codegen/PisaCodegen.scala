@@ -10,7 +10,7 @@ import pir.util.enums._
 import pir.util.misc._
 import pir.mapper._
 import pir.graph.{EnLUT => _, ScalarInPR, _}
-import pir.plasticine.graph.{ Const => PConst, GridIO, PortType, Input}
+import pir.plasticine.graph.{ GridIO, PortType, Input}
 import pir.plasticine.util._
 
 import scala.collection.mutable.ListBuffer

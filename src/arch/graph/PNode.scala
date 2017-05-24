@@ -22,6 +22,8 @@ class Node(implicit val spade:Spade) {
   def index(implicit spade:Spade):Int = { indexOf(this) }
   def coord(c:(Int, Int))(implicit spade:Spade):this.type = { coordOf(this) = c; this} // Coordinate
   def coord(implicit spade:Spade):(Int, Int) = { coordOf(this) }
+
+  def isConst = this.isInstanceOf[Const[_]]
 }
 
 trait Module extends Node {
