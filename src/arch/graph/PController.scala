@@ -173,7 +173,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=2, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
-    addRegstages(numStage=1, numOprds=3, ops)
+    addRegstages(numStage=2, numOprds=3, ops)
     numScalarBufs(4, 256)
     numVecBufs(vins.size, 256)
     color(0 until numCtrs, CounterReg)

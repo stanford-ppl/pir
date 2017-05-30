@@ -150,10 +150,7 @@ trait LocalBuffer extends OnChipMem with Simulatable {
   val notFull = Output(Bit(), this, s"${this}.notFull")
 
   override def register(implicit sim:Simulator):Unit = {
-    sim.mapping.smmap.pmap.get(this).fold {
-      notEmpty.v.set { v => v.setHigh }
-      notFull.v.set { v => v.setHigh }
-    } { mem =>
+    sim.mapping.smmap.pmap.get(this).foreach { mem =>
       val capacity = mem match {
         case mem:pir.graph.FIFO => mem.size
         case mem:pir.graph.MultiBuffering => mem.buffering
@@ -173,8 +170,8 @@ trait LocalBuffer extends OnChipMem with Simulatable {
         readPtr.v.update
         v <<= array(readPtr.v.value.get.toInt)
       }
-      //notEmpty.v := (if (capacity==1) Some(true) else count.v > 0)
-      //notFull.v := (if (capacity==1) Some(true) else count.v < capacity) //TODO: implement almost full
+      notEmpty.v := count.v > 0
+      notFull.v := count.v < capacity //TODO: implement almost full
     }
     super.register
   }
@@ -211,15 +208,41 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
   val operands = List.tabulate(numOprds) { i => Input(Bus(Word()), this, s"$this.oprd[$i]") } 
   val out = Output(Bus(Word()), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
-    sim.mapping.stmap.pmap.get(stage).foreach { st =>
-      out.v.foreach { case (v, i) => 
-        val vals = operands.map(_.v.value(i)).toSeq
-        v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
-        //v.asWord := {
-          //val res = eval(st.fu.get.op, vals.map(_.update):_*)
-          //sim.dprintln(s"${sim.quote(v)} := eval(${vals.map(op => s"${sim.quote(op)}=${op.value}" )})")
-          //res
-        //}
+    import sim.mapping._
+    import sim.{dprintln, quote}
+    def readsReduceReg(operands:List[Input[Bus, FuncUnit]]) = {
+      operands.slice(0,2).forall{ op => fimap.get(op).fold(false) { _.propogate.src match {
+        case PipeReg(_, r) => r.is(ReduceReg); case _ => false }
+      }
+    }}
+    sim.dprintln(s"here ${quote(stage)} ${stage.isInstanceOf[ReduceStage]} ${readsReduceReg(operands)}")
+    stmap.pmap.get(stage).foreach { st =>
+      stage match {
+        case stage:ReduceStage if readsReduceReg(operands) =>
+          val rdStageIdx = stage.reduceIdx
+          val inStep = Math.pow(2, rdStageIdx).toInt
+          val outStep = Math.pow(2, rdStageIdx + 1).toInt
+          val inIdx = (0 until spade.numLanes by inStep).toList
+          val outIdx = (0 until spade.numLanes by outStep).toList
+          val groups = outIdx.map { oi =>
+            (oi, List(oi, oi + inStep))
+          }.toMap
+          dprintln(s"reduce: ${quote(stage)}: rdStageIdx:$rdStageIdx inStep:$inStep outStep:$outStep")
+          dprintln(s"inIdx:[${inIdx.mkString(",")}] outIdx:[${outIdx.mkString(",")}]")
+          out.v.foreach { 
+            case (v, oi) if groups.contains(oi) => 
+              val vals = (operands, groups(oi)).zipped.map { case (operand, ii) => operand.v.value(ii) }.toSeq
+              v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
+              dprintln(s"${quote(v)} := fu(${vals.map(quote).mkString(", ")})")
+            case (v, oi) =>
+          }
+        case stage =>
+          out.v.foreach { case (v, i) => 
+            val vals = operands.map(_.v.value(i)).toSeq
+            v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
+            dprintln(s"")
+            dprintln(s"stage: ${quote(stage)} ${quote(v)} := fu(${st.fu.get.op})(${vals.map(quote).mkString(", ")})")
+          }
       }
     }
     super.register
@@ -273,18 +296,16 @@ object FUStage {
 case class ReduceStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, override val pne:ComputeUnit) 
   extends FUStage(numOprds, regs, ops) {
   override val typeStr = "rdst"
-  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
+  lazy val reduceIdx:Int = pne.rdstages.indexOf(this)
 }
 /* WriteAddr calculation stage */
 case class WAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, override val pne:ComputeUnit) 
   extends FUStage(numOprds, regs, ops) {
   override val typeStr = "wast"
-  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 case class RAStage(numOprds:Int, regs:List[ArchReg], ops:List[Op])(implicit spade:Spade, override val pne:ComputeUnit) 
   extends FUStage(numOprds, regs, ops) {
   override val typeStr = "rast"
-  override val funcUnit = Some(FuncUnit(numOprds, ops, this))
 }
 
 class Const[P<:PortType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {

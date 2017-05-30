@@ -328,7 +328,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
       case s:RAStage => rdAddrStages
       case s:LocalStage => localStages
     }
-    pool.foreach { prev =>
+    pool.lastOption.foreach { prev =>
       s.prev = Some(prev)
       prev.next = Some(s)
     }

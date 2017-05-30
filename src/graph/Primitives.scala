@@ -243,7 +243,8 @@ object Stage {
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
     val (accstage, reg) = Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
-    (rdstages :+ accstage, reg)
+    val stages = rdstages :+ accstage
+    (stages, reg)
   }
 }
 object Stages {
