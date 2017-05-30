@@ -39,7 +39,6 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   def resFunc(cu:ICL, allRes:N => List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
     val infs = cu.infGraph(n)
-    dprintln(s"allRes=[${allRes(n).mkString(",")}]")
     allRes(n).diff(triedRes).filterNot{ r => 
       m.rcmap.pmap.get(r).fold (false) { regs =>
         dprintln(s"${quote(r)} <- [${regs.mkString(",")}]")
@@ -66,6 +65,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
       case reg@VecOutPR(vo) if pirMap.vomap.contains(vo) =>
         val pvos = pirMap.vomap(vo)
         voMap += reg -> mutable.Stack() 
+        dprintln(s"$vo -> ${quote(pvos)}")
         pvos.foreach { pvo =>
           voMap(reg).push(pvo)
           regs += reg
