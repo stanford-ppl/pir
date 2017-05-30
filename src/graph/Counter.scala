@@ -243,8 +243,11 @@ object Counter {
   def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = {
     new Counter(name).cchain(cc)
   }
-  def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: Design):Counter =
-    { val c = new Counter(None); c.update(min, max, step, par); c }
+  def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: Design):Counter = { 
+    val c = new Counter(None)
+    c.update(min, max, step, par)
+    c 
+  }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 
     Counter(None, cchain)
 }
