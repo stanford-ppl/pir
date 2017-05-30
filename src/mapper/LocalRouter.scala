@@ -32,7 +32,7 @@ trait LocalRouter extends Mapper {
     var curppr = ppr
     var mp = map
     dprintln(s"propogating $ppr to $pin")
-    while (!ppr.out.canConnect(pin)) {
+    while (!curppr.out.propogate.canConnect(pin)) {
       curppr.stage.next.fold {
         return None
       } { nextStage =>
@@ -41,7 +41,7 @@ trait LocalRouter extends Mapper {
         curppr = nextPpr
       }
     }
-    mp = mp.setFI(pin, ppr.out)
+    mp = mp.setFI(pin, curppr.out.propogate)
     return Some(mp)
   }
 

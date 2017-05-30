@@ -78,12 +78,16 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
+  def typeMismatch(n:N, p:R, map:M):Unit = {
+    throw MappingException(this, map, s"Type Mismatch: $n cannot be mapped to $p")
+  }
+
   def checkStageType(n:N, p:R, map:M):Unit = {
-    (n, p) match {
-      //case (s:WAST, ps:PWAST) => currently assume stages in mcu can do both //TODO
-      //case (s:RDST, ps:PRDST) =>
-      case (s:ST, ps:PFUST) =>
-      case _ => throw StageRouting(n, p, map)
+    n match {
+      //case s:WAST => p match { case p:PWAST => ; case p => typeMismatch(p) }
+      //case s:RAST => p match { case p:PRAST => ; case p => typeMismatch(p) }
+      case s:RDST => p match { case p:PRDST => ; case p => typeMismatch(s, p, map) }
+      case _ =>
     }
   }
 
