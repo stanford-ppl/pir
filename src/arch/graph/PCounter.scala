@@ -53,7 +53,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
       done.v.set { donev =>
         donev.setLow
         out.v.update.foreach { case (outv, i) =>
-          If (outv.asWord >= max.v) {
+          If (en.v & (outv.asWord >= (max.v-1))) {
             donev.setHigh
           }
         }

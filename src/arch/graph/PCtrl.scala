@@ -57,8 +57,8 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
         if (sim.rst) countv <<= initVal
         else {
           Match(
-            inc.v -> { () => countv <<= countv + 1 },
-            dec.v -> { () => countv <<= countv - 1 }
+            inc.pv -> { () => countv <<= countv + 1 },
+            dec.pv -> { () => countv <<= countv - 1 }
           ) {}
         }
       }
