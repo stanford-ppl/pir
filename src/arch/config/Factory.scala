@@ -46,10 +46,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
 
-    if (!cu.isMCU) {
-      val voRegs = cu.regs.filter(_.is(VecOutReg))
-      assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
-      (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+    cu match {
+      case cu:MemoryComputeUnit =>
+        cu.vouts.foreach { _.ic <== cu.sram.readPort }
+      case cu:ComputeUnit =>
+        val voRegs = cu.regs.filter(_.is(VecOutReg))
+        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
     }
 
     // One to one

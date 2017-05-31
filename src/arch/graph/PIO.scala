@@ -56,6 +56,9 @@ case class Word(wordWidth:Int)(implicit spade:Spade) extends PortType with WordV
 }
 object Word {
   def apply()(implicit spade:Spade):Word = Word(spade.wordWidth)
+  def apply(name:String)(implicit spade:Spade):Word = {
+    new Word(spade.wordWidth) { override def toString = name }
+  }
 }
 case class Bus(busWidth:Int, elemTp:PortType)(implicit spade:Spade) extends PortType with BusValue {
   override val typeStr = "u"

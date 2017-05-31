@@ -63,25 +63,33 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   type P = Bus 
-  var array:Array[Array[P]] = _
+  var array:Array[Array[Word]] = _
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val swapWrite = Output(Bit(), this, s"${this}.swapWrite")
   def updateArray(implicit sim:Simulator):Unit = {
-    writePtr.v.update.value.foreach { idx => array(readPtr.v.update.value.get.toInt)(readAddr.v.update.value.get.toInt) <<= writePort.pv }
+    writePtr.v.update.value.foreach { writePtr => 
+      val writeAddrHead = writeAddr.v.update.value.get.toInt
+      writePort.pv.foreach { case (pv, i) =>
+        array(writePtr.toInt)(writeAddrHead + i) <<= writePort.pv.update.value(i)
+      }
+    }
   }
   def clearArray:Unit = {
     if (array==null) return
-    array.foreach { _.foreach { _.foreach { case (v:WordValue, i) => v <<= 0 } } }
+    array.foreach { _.foreach { _ <<= 0 } }
   }
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
-      array = Array.tabulate(bufferSize, size) { case (i,j) => readPort.tp.clone(s"$this.array[$i,$j]") }
+      array = Array.tabulate(bufferSize, size) { case (i,j) => Word(s"$this.array[$i,$j]") }
       readPort.v.set { v => 
         updateArray
-        v <<= array(readPtr.v.update.value.get.toInt)(readAddr.v.update.value.get.toInt)
+        val readAddrHead = readAddr.v.update.value.get.toInt
+        v.foreach { case (ev, i) =>
+          ev <<= array(readPtr.v.update.value.get.toInt)(readAddrHead + i)
+        }
       }
       swapWrite := incWritePtr
     }
