@@ -23,10 +23,8 @@ trait Simulatable extends Module with Evaluation {
         fimap.get(in).fold {
           if (in.fanIns.size==1) {
             in := in.fanIns.head
-            sim.dprintln(s"${sim.quote(in)} := ${in.fanIns.map(sim.quote)}.head")
           }
         } { out => 
-          sim.dprintln(s"${sim.quote(in)} := ${sim.quote(out)}")
           in := out
         }
       }
@@ -48,5 +46,12 @@ trait Simulatable extends Module with Evaluation {
       if (isMapped(io) && !io.v.isDefined) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
     }
   }
+  def updateModule(implicit sim:Simulator):Unit = {
+    ios.foreach { io => io.update }
+  }
+  def clearModule(implicit sim:Simulator):Unit = {
+    ios.foreach { io => io.clearUpdate }
+  }
+  def simCount = ios.size
 }
 

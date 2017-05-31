@@ -12,6 +12,15 @@ import scala.language.reflectiveCalls
 
 class AppTests extends UnitTest { self =>
 
+  def testInOutArg = {
+    "InOutArg" should "success" in { 
+      InOutArg.main(Array("InOutArg"))
+      val argOuts = InOutArg.arch.top.sins.map(_.values.head.value)
+      if (!argOuts.contains(Some(8.0) ))
+        throw PIRException(s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+    }
+  }
+
   //intercept[PIRException] {
   // No offchip access 
   //"ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
@@ -32,11 +41,13 @@ class AppTests extends UnitTest { self =>
   //"SimpleTileLoadStoreDesign" should "success" in { SimpleTileLoadStoreDesign.main(Array("SimpleTileLoadStoreDesign")) }
   
   // Apps 
-  "DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
-  "OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
-  "BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
-  "TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
-  "MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
-  "GDA" should "success" in { GDA.main(Array("GDA")) }
-  "LogReg" should "success" in { LogReg.main(Array("LogReg")) }
+  //"DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
+  //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
+  //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
+  //"TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
+  //"MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
+  //"GDA" should "success" in { GDA.main(Array("GDA")) }
+  //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
+  
+  testInOutArg
 }

@@ -57,6 +57,10 @@ package object util {
 
   def isMapped(node:Node)(implicit mp: PIRMap):Boolean = {
     node match {
+      case n:Primitive if !isMapped(n.pne) => return false
+      case n =>
+    }
+    node match {
       case n:Controller => mp.clmap.isMapped(n)
       case n:OnChipMem => mp.smmap.isMapped(n)
       case n:Counter => mp.ctmap.isMapped(n)

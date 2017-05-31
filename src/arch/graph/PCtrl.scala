@@ -3,6 +3,7 @@ package pir.plasticine.graph
 import pir.graph._
 import pir.util.enums._
 import pir.util.misc._
+import pir.util.pipelinedBy
 import pir.plasticine.main._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
@@ -50,9 +51,10 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
     pmmap.pmap.get(this).fold {
       out.v := Some(true) 
     } { udc =>
-      sim.dprintln(s"$inc -> ${fimap.get(inc)} ${inc.fanIns}")
+      val initVal = init(sim.mapping)
+      sim.dprintln(s"${quote(this)} -> $udc initVal=$initVal")
       count.v.set { countv =>
-        if (sim.rst) countv <<= init(sim.mapping)
+        if (sim.rst) countv <<= initVal
         else {
           Match(
             inc.v -> { () => countv <<= countv + 1 },
@@ -67,6 +69,25 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
 }
 object UDCounter {
   def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
+}
+
+case class AndGate()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+  val out = Output(Bit(), this, s"${this}.out")
+  val in0 = Input(Bit(), this, s"${this}.in0").index(0)
+  val in1 = Input(Bit(), this, s"${this}.in1").index(1)
+  override def register(implicit sim:Simulator):Unit = {
+    val invs = ins.map(_.v).collect{case v:BitValue => v}
+    out.v := in0.v & in1.v
+    super.register
+  }
+}
+object AndGate {
+  def apply(out0:Output[Bit, Module], out1:Output[Bit, Module])(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
+    val ag = AndGate()
+    ag.in0 <== out0
+    ag.in1 <== out1
+    ag
+  }
 }
 
 case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
@@ -111,26 +132,28 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
     import sim.pirmeta._
     import sim.mapping._
     clmap.pmap.get(pne).foreach { cu =>
-      state.v <<= INIT 
-      out.v.set { outv =>
-        If (state.v == INIT) {
-          If(init.v) {
-            outv.setHigh
-            pulseLength = lengthOf(cu)
-            state.v <<= RUNNING
-          }
-        } 
-        If(state.v == RUNNING) {
-          IfElse (done.v) {
-            state.v <<= INIT
-          } {
-            If (en.pv) {
+      if (isPipelining(cu)) {
+        state.v <<= INIT 
+        out.v.set { outv =>
+          If (state.v == INIT) {
+            If(init.v) {
               outv.setHigh
-              pulseLength = 1 
+              pulseLength = lengthOf(cu) / pipelinedBy(cu)(sim.design)
+              state.v <<= RUNNING
             }
-          }
-        } 
-        If(out.vAt(pulseLength)) { outv.setLow }
+          } 
+          If(state.v == RUNNING) {
+            IfElse (done.v) {
+              state.v <<= INIT
+            } {
+              If (en.pv) {
+                outv.setHigh
+                pulseLength = 1 
+              }
+            }
+          } 
+          If(out.vAt(pulseLength)) { outv.setLow }
+        }
       }
     }
     super.register
@@ -140,7 +163,7 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
-  val udcs = List.tabulate(numUDCs) { i => UDCounter(i) }
+  val udcs = List.tabulate(numUDCs) { i => UDCounter(idx=i) }
   lazy val andTrees = ListBuffer[AndTree]()
   lazy val delays = ListBuffer[Delay[Bit]]()
 }
@@ -176,6 +199,8 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   val readFifoAndTree = AndTree("readFifoAndTree") 
   val writeEn = Delay(Bit(), 0)
   val readEn = Delay(Bit(),0) 
+  val readUDC = UDCounter()
+  val readAndGate = AndGate(readUDC.out, readFifoAndTree.out)
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {
@@ -186,10 +211,6 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
     command.v.set { v =>
       if (sim.rst) v.setHigh
       else v.setLow
-      //if (sim.cycle == 1) v.setLow
-      //else if (sim.cycle == 2) v.setHigh
-      //else if (command.pv.isHigh.getOrElse(false)) v.setLow
-      //sim.dprintln(s"#${sim.cycle} ${o} ${v.value.s}")
     }
   }
 }

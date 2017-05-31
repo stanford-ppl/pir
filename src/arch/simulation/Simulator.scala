@@ -45,6 +45,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   override def traverse = {
     dprintln(s"\n\nRegistering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
+    info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
     dprintln(s"\n\nDefault values ...")
     vcd.foreach { _.emitSignals }
     cycle += 1
@@ -52,9 +53,9 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     inSimulation = true
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
-      spade.simulatable.foreach { m => m.ios.foreach { o => o.update } }
+      spade.simulatable.foreach { m => m.updateModule }
       vcd.foreach { _.emitSignals }
-      spade.simulatable.foreach { m => m.ios.foreach { o => o.clearUpdate } }
+      spade.simulatable.foreach { m => m.clearModule }
       cycle += 1
     }
     inSimulation = false

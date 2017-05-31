@@ -63,6 +63,36 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
     emitSignals
   }
 
+  def name(io:IO[_<:PortType,_<:Module], i:Option[Int] = None):String = {
+    val cm = ListBuffer[String]()
+    io match {
+      case io:Input[_,_] =>
+        if (fimap.contains(io)) cm += s"f-${quote(fimap(io).src)}"
+      case io:Output[_,_] =>
+        val is = io.fanOuts.filter(i => fimap.get(i).fold(false){ _ == io }).map(_.src)
+        if (is.nonEmpty) cm += s"t-${is.map(quote).mkString(",")}"
+    }
+    io match {
+      case io:GlobalInput[_, _] =>
+        val os = io.fanIns.filter(o => fimap.get(o.asGlobal.ic).fold(false) { _ == io.ic} )
+        if (os.nonEmpty) cm += s"t-${os.map(quote).mkString(",")}"
+      case io:GlobalOutput[_, _] =>
+        if (fimap.contains(io.ic)) cm += s"f-${quote(fimap(io.ic).src)}"
+      case _ =>
+    }
+    val nm = s"${io}${i.map(i => s"_$i").getOrElse("")}"
+    if (cm.nonEmpty) s"${nm}_${cm.mkString("_")}"
+    else s"$nm"
+  }
+  
+  def name(value:Value):String = {
+    quote(value)
+  }
+
+  def id(node:Node) = {
+    s"n${node.id}"
+  }
+
   val declarator = new Traversal {
     override def visitNode (node:Node): Unit = {
       if (visited.contains(node)) return
@@ -95,36 +125,6 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
       }
     } 
   } 
-
-  def name(io:IO[_<:PortType,_<:Module], i:Option[Int] = None):String = {
-    val cm = ListBuffer[String]()
-    io match {
-      case io:Input[_,_] =>
-        if (fimap.contains(io)) cm += s"f-${quote(fimap(io).src)}"
-      case io:Output[_,_] =>
-        val is = io.fanOuts.filter(i => fimap.get(i).fold(false){ _ == io }).map(_.src)
-        if (is.nonEmpty) cm += s"t-${is.map(quote).mkString(",")}"
-    }
-    io match {
-      case io:GlobalInput[_, _] =>
-        val os = io.fanIns.filter(o => fimap.get(o.asGlobal.ic).fold(false) { _ == io.ic} )
-        if (os.nonEmpty) cm += s"t-${os.map(quote).mkString(",")}"
-      case io:GlobalOutput[_, _] =>
-        if (fimap.contains(io.ic)) cm += s"f-${quote(fimap(io.ic).src)}"
-      case _ =>
-    }
-    val nm = s"${io}${i.map(i => s"_$i").getOrElse("")}"
-    if (cm.nonEmpty) s"${nm}_${cm.mkString("_")}"
-    else s"$nm"
-  }
-  
-  def name(value:Value):String = {
-    quote(value)
-  }
-
-  def id(node:Node) = {
-    s"n${node.id}"
-  }
 
   def declare(m:String)(finPass: => Unit):Unit = {
     emitkv(s"scope module", m)
@@ -159,7 +159,9 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
   def declare(value:Value):Unit = {
     value match {
       case value:BusValue =>
-        value.foreach { case (v,i) => declare(v) }
+        emitkv(s"scope module", name(value))
+        value.foreachv { case (v,i) => declare(v) } { valid => declare(valid) }
+        emitln(s"$$upscope $$end")
       case Word(wordWidth) if wordWidth == 1 =>
         emitVar("wire", wordWidth, id(value), name(value))
       case Word(wordWidth) if wordWidth <= 32 =>
@@ -187,6 +189,7 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
     value match {
       case p@Bus(busWidth, _) =>
         p.value.zipWithIndex.foreach { case (vv, i) => emitValue(vv) }
+        emitValue(p.valid)
       case p@Word(wordWidth) =>
         emitln(s"${qv(p)} ${id(p)}")
       case p@Bit() =>

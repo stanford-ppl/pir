@@ -25,6 +25,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   }
   def setPrev(pv:BusValue, nv:BusValue)(implicit sim:Simulator):Unit = {
     (pv.value, nv.value).zipped.foreach { case (pv, nv) => setPrev(pv, nv) }
+    setPrev(pv.valid, nv.valid)
   }
   def setPrev(pv:Value, nv:Value)(implicit sim:Simulator):Unit = {
     (pv, nv) match {
@@ -85,28 +86,61 @@ trait Value extends Node with Evaluation { self:PortType =>
   def asBus:BusValue = this.asInstanceOf[BusValue]
   var parent:Option[Value] = None
 
+  var funcHasRan = false
+  var func: Option[(this.type => Unit, String)] = None 
+  def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
+    if (next.isEmpty) assert(!sim.inSimulation)
+    val stackTrace = getStackTrace(1, 20)
+    func.foreach { func =>
+      var info = s"Reseting func of value $this of io ${io} in ${if (io!=null) s"${io.src}" else "null"}\n"
+      info += s"Redefinition at \n${getStackTrace(4, 20)}\n"
+      info += s"Originally defined at \n${func._2}"
+      warn(info)
+    }
+    func = Some((f,stackTrace)) 
+  }
   def isDefined:Boolean
   def updated:Boolean
   final def update(implicit sim:Simulator):this.type = {
     if (updated || !isDefined) return this
     prevUpdate
-    mainUpdate
+    if (updated || !isDefined) return this
+    sim.emitBlock(s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id}", {
+      mainUpdate
+    }, s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id} ${value}")
     //postUpdate // allow cyclic update on previous value
     this
   }
   def prevUpdate(implicit sim:Simulator):Unit = { prev.foreach(_.update) }
-  def mainUpdate(implicit sim:Simulator):Unit
+  def mainUpdate(implicit sim:Simulator):Unit = {
+    if (!funcHasRan) {
+      funcHasRan = true
+      func.foreach { case (f, stackTrace) => 
+        try {
+          f(this)
+        } catch {
+          case e:Exception =>
+            errmsg(e.toString)
+            errmsg(e.getStackTrace.slice(0,5).mkString("\n"))
+            errmsg(s"\nStaged trace for $this: ")
+            errmsg(stackTrace)
+            sys.exit()
+        }
+      }
+    }
+  }
   def postUpdate(implicit sim:Simulator):Unit = { next.foreach(_.update) }
   var prev:Option[Value] = None
   var next:Option[Value] = None
-  def clearUpdate(implicit sim:Simulator):Unit
+  def clearUpdate(implicit sim:Simulator):Unit = {
+    funcHasRan = false 
+  }
   def := (other:Value)(implicit sim:Simulator):Unit
   def <<= (other:Value)(implicit sim:Simulator):Unit = { 
     sim.dprintln(s"${sim.quote(this)} <<= ${sim.quote(other)}")
     copy(other.update)
   }
   def copy (other:Value):Unit
-  def set(f: this.type => Unit)(implicit sim:Simulator):Unit
 }
 
 trait SingleValue extends Value { self:PortType =>
@@ -114,42 +148,21 @@ trait SingleValue extends Value { self:PortType =>
   type V = Option[E]
   var value:V = None
   def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit):Unit
-  var _updated = false
-  override def updated = _updated
-  var func: Option[(this.type => Unit, String)] = None 
-  def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
-    if (next.isEmpty) assert(!sim.inSimulation)
-    val stackTrace = getStackTrace(1, 20)
-    if (func.isDefined) 
-      warn(s"Reseting func of value $this of io ${io} in ${io.src} ${getStackTrace(4, 6)}")
-    func = Some((f,stackTrace)) 
-  }
+  override def updated = funcHasRan
   override def isDefined:Boolean = func.isDefined && next.fold(true) { _.isDefined }
   override def mainUpdate(implicit sim:Simulator):Unit = { 
-    if (updated || !isDefined) return
-    assert(_updated==false)
-    _updated = true
-    func.foreach { case (f, stackTrace) => 
-      try {
-        sim.emitBlock(s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id}", {
-          f(this)
-        }, s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id} ${value}")
-      } catch {
-        case e:Exception =>
-          errmsg(e.toString)
-          errmsg(e.getStackTrace.slice(0,5).mkString("\n"))
-          errmsg(s"\nStaged trace for $this: ")
-          errmsg(stackTrace)
-          sys.exit()
-      }
-    }
+    assert(!funcHasRan)
+    super.mainUpdate
   }
-  override def clearUpdate(implicit sim:Simulator) = {
+  override def clearUpdate(implicit sim:Simulator):Unit = {
     if (isDefined && !updated) throw PIRException(s"${this} is not updated at #${sim.cycle}")
-    _updated = false 
+    super.clearUpdate
   }
-  def := (other:Value)(implicit sim:Simulator):Unit = set { v => v <<= other }
-  def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { v => v copy other }
+  def := (other:Value)(implicit sim:Simulator):Unit = {
+    sim.dprintln(s"${sim.quote(this)} := ${sim.quote(other)}")
+    set { _ <<= other }
+  }
+  def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { _ copy other }
   def <<= (other:Option[AnyVal]):Unit = copy(other) 
   def copy(other:Value):Unit = copy(other.asInstanceOf[SingleValue].value)
   def copy (other:Option[AnyVal]):Unit
@@ -219,6 +232,10 @@ trait BusValue extends Value { self:Bus =>
     eval.parent = Some(this)
     eval
   }
+  lazy val valid = new Bit() { 
+    this.io = self.io
+    override def toString = s"${self.toString}.valid"
+  }
   def s:String = value.map(_.s).mkString
   override def equals(that:Any):Boolean = {
     that match {
@@ -226,26 +243,35 @@ trait BusValue extends Value { self:Bus =>
       case that => false
     }
   }
-  def foreach(lambda:(Value, Int) => Unit):Unit = value.zipWithIndex.foreach { case (e, i) => lambda(e, i) }
+  def foreach(lambda:(Value, Int) => Unit):Unit =  {
+    value.zipWithIndex.foreach { case (e, i) => lambda(e, i) }
+  }
+  def foreachv(lambda:(Value, Int) => Unit)(vlambda:BitValue => Unit):Unit =  {
+    foreach(lambda)
+    vlambda(valid)
+  }
   def head:Value = value.head
 
-  override def isDefined:Boolean = value.exists(_.isDefined)
-  override def updated = value.forall(_.updated) 
+  override def isDefined:Boolean = (value.exists(_.isDefined) || func.isDefined) && next.fold(true){ _.isDefined }
+  override def updated = funcHasRan && value.forall(_.updated) 
   override def mainUpdate(implicit sim:Simulator):Unit = {
-    if (updated || !isDefined) return
-    sim.emitBlock(s"UpdateValue $this") {
-      value.foreach(_.update)
-    }
+    super.mainUpdate
+    value.foreach(_.update)
+    valid.update
   }
   override def clearUpdate(implicit sim:Simulator) = {
+    super.clearUpdate
     value.foreach(_.clearUpdate)
+    valid.clearUpdate
   }
   override def := (other:Value)(implicit sim:Simulator):Unit = {
+    sim.dprintln(s"${sim.quote(this)} := ${sim.quote(other)}")
     other match {
       case other:SingleValue =>
         value.foreach { v => v := other }
       case other:BusValue =>
         (value, other.value).zipped.foreach { case (v, ov) => v := ov }
+        valid := other.valid
     }
   }
   override def copy (other:Value) = {
@@ -254,10 +280,8 @@ trait BusValue extends Value { self:Bus =>
         value.foreach { v => v copy other }
       case other:BusValue =>
         (value, other.value).zipped.foreach { case (v, ov) => v copy ov }
+        other.valid copy valid
     }
-  }
-  def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
-    throw new Exception(s"Cannot set bus value!")
   }
 }
 

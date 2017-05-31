@@ -34,14 +34,14 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
           en.v := true //TODO: set this properly
       }
       // Enable on input
-      in.v.foreach { case (v, i) =>
+      in.v.foreachv { case (v, i) =>
         v.set { v =>
           Match(
             (sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asWord <<= inits.head.toFloat },
             en.v -> { () => v <<= fimap(in).v.asBus.value(i) }
           ) {}
         }
-      }
+      } { valid => valid := en.v }
       out.v := in.pv
 
       // Enable on output
@@ -77,7 +77,6 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
         case PipeReg(_, r) => r.is(ReduceReg); case _ => false }
       }
     }}
-    sim.dprintln(s"here ${quote(stage)} ${stage.isInstanceOf[ReduceStage]} ${readsReduceReg(operands)}")
     stmap.pmap.get(stage).foreach { st =>
       stage match {
         case stage:ReduceStage if readsReduceReg(operands) =>

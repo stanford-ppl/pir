@@ -99,7 +99,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
     super.register
     val fimap = sim.mapping.fimap
     (souts ++ vouts ++ couts).foreach { out =>
-      fimap.get(out.ic).foreach { inic => out.ic :== inic }
+      fimap.get(out.ic).foreach { out.ic :== _ }
     }
   }
 }
@@ -186,16 +186,42 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   }
 
   override def register(implicit sim:Simulator):Unit = {
+    import sim.mapping._
     // Add delay to output if input is from doneXBar
-    ctrlBox match {
-      case cb:InnerCtrlBox =>
-        couts.foreach { cout =>
-          sim.mapping.fimap.get(cout.ic).foreach { 
-            case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
-            case _ =>
+    clmap.pmap.get(this).foreach { cu =>
+      ctrlBox match {
+        case cb:InnerCtrlBox =>
+          couts.foreach { cout =>
+            sim.mapping.fimap.get(cout.ic).foreach { 
+              case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
+              case _ =>
+            }
+          }
+        case _ =>
+      }
+      val enable = ctrlBox match {
+        case cb:MemoryCtrlBox => 
+          val readStages = cu.asMP.rdAddrStages
+          val numReadStages = if (readStages.isEmpty) 0 else stmap(readStages.last).index - stmap(readStages.head).index
+          Some(cb.readEn.out.vAt(numReadStages + 1))
+        case cb:InnerCtrlBox => Some(cb.en.out.vAt(stages.size))
+        case _ => None
+      }
+      vouts.foreach { vout =>
+        fimap.get(vout.ic).fold {
+          if (vout.ic.fanIns.size==1) {
+            vout.ic.v.set { v =>
+              v <<= vout.ic.fanIns.head.v
+              v.valid <<= enable.get
+            }
+          }
+        } { out => 
+          vout.ic.v.set { v =>
+            v <<= out.v
+            v.valid <<= enable.get
           }
         }
-      case _ =>
+      }
     }
     super.register
   }

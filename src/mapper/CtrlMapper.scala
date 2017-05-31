@@ -172,7 +172,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     (cb, pcb) match {
       case (cb:MCB, pcb:PMCB) =>
-        mp = mapInPort(cb.readEn.in, pcb.readEn.in, mp)
+        //mp = mapInPort(cb.readEn.in, pcb.readEn.in, mp)
+        mp = mp.setIP(cb.readEn.in, pcb.readEn.in)
         mp = mapInPort(cb.writeEn.in, pcb.writeEn.in, mp)
         mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
         mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)

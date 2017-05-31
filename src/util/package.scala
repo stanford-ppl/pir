@@ -100,6 +100,16 @@ package object util {
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
 
+  def pipelinedBy(ctrler:Controller)(implicit design:Design) = {
+    import design.pirmeta._
+    ctrler match {
+      case ctrler:StreamController => -1
+      case ctrler:InnerController => -1
+      case ctrler:MetaPipeline => 1 
+      case ctrler:Sequential => lengthOf(ctrler) 
+      case ctrler:Top => 1 
+    }
+  }
 
 }
 

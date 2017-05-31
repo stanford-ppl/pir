@@ -108,10 +108,6 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     if (forWrite(n)) {
       res = res.filterNot{ _.index == 0 }
     }
-    //if (resPool.size==0) {
-      //new CtrDotPrinter().print(allRes, m)
-      //println(s"here")
-    //}
     res 
   }
 

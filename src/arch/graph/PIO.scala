@@ -247,7 +247,7 @@ trait GlobalIO[P<:PortType, +S<:Module] extends IO[P, S] with Simulatable {
 class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade)
   extends Input(tp, src, sf) with GlobalIO[P,S] { 
   import spademeta._
-  override val ic:Output[P, this.type] = new Output(tp.clone, this, sf)
+  override val ic:Output[P, this.type] = new Output(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
     super.register
     ic := this
@@ -265,7 +265,7 @@ object GlobalInput {
 class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade) 
   extends Output(tp, src, sf) with GlobalIO[P, S] { 
   import spademeta._
-  override val ic:Input[P, this.type] = new Input(tp.clone, this, sf)
+  override val ic:Input[P, this.type] = new Input(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
     super.register
     this := ic
