@@ -158,10 +158,10 @@ class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
 
   def declare(value:Value):Unit = {
     value match {
-      case value:BusValue =>
-        emitkv(s"scope module", name(value))
+      case value:Bus =>
+        if (value.busWidth>1) emitkv(s"scope module", name(value))
         value.foreachv { case (v,i) => declare(v) } { valid => declare(valid) }
-        emitln(s"$$upscope $$end")
+        if (value.busWidth>1) emitln(s"$$upscope $$end")
       case Word(wordWidth) if wordWidth == 1 =>
         emitVar("wire", wordWidth, id(value), name(value))
       case Word(wordWidth) if wordWidth <= 32 =>

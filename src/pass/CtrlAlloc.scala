@@ -122,10 +122,26 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                 case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.en.out)
               }
           }
-          // deqEnable is mapped in CtrlMapper
+          cu.ctrlBox match {
+            case cb:InnerCtrlBox =>
+              mem.dequeueEnable.connect(cb.en.out)
+            case cb:MemCtrlBox =>
+              if (forRead(mem)) 
+                mem.dequeueEnable.connect(cb.readEn.out)
+              else if (forWrite(mem)) 
+                mem.dequeueEnable.connect(cb.writeEn.out)
+          }
         case mem:VectorFIFO =>
           // vectorFIFO.enqueueEnable routes through data bus 
-          // deqEnable is mapped in CtrlMapper
+          cu.ctrlBox match {
+            case cb:InnerCtrlBox =>
+              mem.dequeueEnable.connect(cb.en.out)
+            case cb:MemCtrlBox =>
+              if (forRead(mem)) 
+                mem.dequeueEnable.connect(cb.readEn.out)
+              else if (forWrite(mem)) 
+                mem.dequeueEnable.connect(cb.writeEn.out)
+          }
       }
     case _ =>
   }

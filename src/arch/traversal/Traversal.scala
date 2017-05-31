@@ -53,6 +53,7 @@ trait Traversal {
       case n:CtrlBox =>
         n.udcs.foreach(visitNode)
         n.andTrees.foreach(visitNode)
+        n.andGates.foreach(visitNode)
         n.delays.foreach(visitNode)
         n match {
           case n:OuterCtrlBox => 

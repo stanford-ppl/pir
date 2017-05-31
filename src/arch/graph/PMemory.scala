@@ -70,7 +70,7 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val swapWrite = Output(Bit(), this, s"${this}.swapWrite")
   def updateArray(implicit sim:Simulator):Unit = {
-    writePtr.v.update.value.foreach { idx => array(readPtr.v.update.value.get.toInt)(readAddr.v.update.value.get.toInt) <<= writePort.v }
+    writePtr.v.update.value.foreach { idx => array(readPtr.v.update.value.get.toInt)(readAddr.v.update.value.get.toInt) <<= writePort.pv }
   }
   def clearArray:Unit = {
     if (array==null) return

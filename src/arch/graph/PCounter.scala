@@ -20,7 +20,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
   val min = Input(Word(), this, s"${this}.min")
   val max = Input(Word(), this, s"${this}.max")
   val step = Input(Word(), this, s"${this}.step")
-  val out = Output(Bus(Word()), this, s"${this}.out")
+  val out = Output(Bus(pne.numLanes, Word()), this, s"${this}.out")
   val en = Input(Bit(), this, s"${this}.en")
   val done = Output(Bit(), this, s"${this}.done")
   def isDep(c:Counter) = en.canConnect(c.done)
@@ -52,10 +52,8 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
       }
       done.v.set { donev =>
         donev.setLow
-        out.v.update.foreach { case (outv, i) =>
-          If (en.v & (outv.asWord >= (max.v-1))) {
-            donev.setHigh
-          }
+        If (en.v & (head >= (max.v - (outPar + 1)))) {
+          donev.setHigh
         }
       }
     }

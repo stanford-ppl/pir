@@ -67,17 +67,22 @@ package object util {
       case n:Stage => mp.stmap.isMapped(n)
       case n:PipeReg => isMapped(n.in)
       case n:FuncUnit => isMapped(n.stage)
-      case n:UDCounter => mp.pmmap.isMapped(n)
+      case n:UDCounter => 
+        n.pne.ctrlBox match {
+          case cb:MemoryCtrlBox => true
+          case cb:CtrlBox => mp.pmmap.isMapped(n)
+        }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
       case n:Output[_,_] => mp.opmap.pmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
       case n:PulserSM => isMapped(n.pne)
-      case n:Delay[_] => mp.fimap.contains(n.in) || n.in.fanIns.forall(isMapped)
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_] => isMapped(n.in) 
+      case n:Delay[_] => isMapped(n.in) 
       case n:AndTree => n.ins.exists(isMapped)
+      case n:AndGate => n.ins.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }

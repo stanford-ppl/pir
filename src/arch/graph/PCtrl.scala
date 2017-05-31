@@ -35,9 +35,10 @@ object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade, pne:NetworkElement):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "udc"
+  cb._udcs += this
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
   val count = Output(Word(), this, s"${this}.count")
@@ -46,13 +47,11 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
     mp.pmmap.pmap.get(this).map { case udc:pir.graph.UDCounter => udc.initVal }
   }
   override def register(implicit sim:Simulator):Unit = {
-    val fimap = sim.mapping.fimap
-    val pmmap = sim.mapping.pmmap
-    pmmap.pmap.get(this).fold {
-      out.v := Some(true) 
-    } { udc =>
-      val initVal = init(sim.mapping)
-      sim.dprintln(s"${quote(this)} -> $udc initVal=$initVal")
+    import sim.mapping._
+    import sim.{dprintln, quote}
+    if (isMapped(this)(sim.mapping)) {
+      val initVal = init(sim.mapping).getOrElse(0)
+      dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)} initVal=$initVal")
       count.v.set { countv =>
         if (sim.rst) countv <<= initVal
         else {
@@ -68,10 +67,12 @@ case class UDCounter()(implicit spade:Spade, pne:NetworkElement) extends Primiti
   }
 }
 object UDCounter {
-  def apply(idx:Int)(implicit spade:Spade, pne:NetworkElement):UDCounter = UDCounter().index(idx)
+  def apply(idx:Int)(implicit spade:Spade, pne:Controller, cb:CtrlBox):UDCounter = UDCounter().index(idx)
 }
 
-case class AndGate()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+  override val typeStr = name.getOrElse("ag")
+  cb.andGates += this
   val out = Output(Bit(), this, s"${this}.out")
   val in0 = Input(Bit(), this, s"${this}.in0").index(0)
   val in1 = Input(Bit(), this, s"${this}.in1").index(1)
@@ -82,14 +83,13 @@ case class AndGate()(implicit spade:Spade, override val pne:Controller, cb:CtrlB
   }
 }
 object AndGate {
-  def apply(out0:Output[Bit, Module], out1:Output[Bit, Module])(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
-    val ag = AndGate()
+  def apply(out0:Output[Bit, Module], out1:Output[Bit, Module], name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
+    val ag = AndGate(Some(name))
     ag.in0 <== out0
     ag.in1 <== out1
     ag
   }
 }
-
 case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = name.getOrElse("at")
@@ -163,9 +163,12 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
-  val udcs = List.tabulate(numUDCs) { i => UDCounter(idx=i) }
+  for (i <- 0 until numUDCs) { UDCounter(idx=i) }
+  lazy val _udcs = ListBuffer[UDCounter]()
+  def udcs = _udcs.toList
   lazy val andTrees = ListBuffer[AndTree]()
   lazy val delays = ListBuffer[Delay[Bit]]()
+  lazy val andGates = ListBuffer[AndGate]()
 }
 
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
@@ -200,7 +203,7 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   val writeEn = Delay(Bit(), 0, s"$pne.writeEn")
   val readEn = Delay(Bit(),0, s"$pne.readEn") 
   val readUDC = UDCounter()
-  val readAndGate = AndGate(readUDC.out, readFifoAndTree.out)
+  val readAndGate = AndGate(readUDC.out, readFifoAndTree.out, s"$pne.readAndGate")
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {

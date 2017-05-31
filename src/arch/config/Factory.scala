@@ -227,8 +227,16 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cb.writeDoneXbar.out; buf.incWritePtr <== cu.cins.map(_.ic) }
+        cu.bufs.foreach { buf => 
+          buf.incReadPtr <== cb.readDoneXbar.out; 
+          buf.incReadPtr <== cb.writeDoneXbar.out
+          buf.incReadPtr <== cb.readEn.out; 
+          buf.incReadPtr <== cb.writeEn.out; 
+        }
+        cu.bufs.foreach { buf => 
+          buf.incWritePtr <== cb.writeDoneXbar.out
+          buf.incWritePtr <== cu.cins.map(_.ic)
+        }
         cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
         cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
@@ -237,6 +245,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           //buf.incReadPtr <== cu.ctrs.map(_.done)
           //buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.doneXbar.out 
+          buf.incReadPtr <== cb.en.out; 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
