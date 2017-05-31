@@ -280,7 +280,7 @@ trait BusValue extends Value { self:Bus =>
         value.foreach { v => v copy other }
       case other:BusValue =>
         (value, other.value).zipped.foreach { case (v, ov) => v copy ov }
-        other.valid copy valid
+        valid copy other.valid
     }
   }
 }

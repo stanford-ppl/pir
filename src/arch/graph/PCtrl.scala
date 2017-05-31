@@ -192,13 +192,13 @@ class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComp
 }
 
 class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryComputeUnit) extends CtrlBox(numUDCs) {
-  val readDoneXbar = Delay(Bit(), 0)
-  val writeDoneXbar = Delay(Bit(), 0)
-  val tokenInXbar = Delay(Bit(), 0)
+  val readDoneXbar = Delay(Bit(), 0, s"$pne.readDoneXbar")
+  val writeDoneXbar = Delay(Bit(), 0, s"$pne.writeDoneXbar")
+  val tokenInXbar = Delay(Bit(), 0, s"$pne.tokenInXbar")
   val writeFifoAndTree = AndTree("writeFifoAndTree") 
   val readFifoAndTree = AndTree("readFifoAndTree") 
-  val writeEn = Delay(Bit(), 0)
-  val readEn = Delay(Bit(),0) 
+  val writeEn = Delay(Bit(), 0, s"$pne.writeEn")
+  val readEn = Delay(Bit(),0, s"$pne.readEn") 
   val readUDC = UDCounter()
   val readAndGate = AndGate(readUDC.out, readFifoAndTree.out)
 }

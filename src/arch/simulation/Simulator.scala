@@ -75,7 +75,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
       case n:FuncUnit => s"${quote(n.stage)}.$n"
       case PipeReg(stage, reg) => s"${quote(stage)}.${quote(reg)}"
       case n:ArchReg => s"reg[${n.index}]"
-      case n:Primitive if indexOf.get(n).nonEmpty => s"${n.typeStr}[${n.index}]"
+      case n:Primitive if indexOf.get(n).nonEmpty => 
+        s"${n.typeStr}[${n.index}]".replace(s"${pir.plasticine.util.quote(n.pne)}", quote(n.pne))
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
       case n:IO[_,_] =>  
         s"${pir.plasticine.util.quote(n)}".replace(s"${pir.plasticine.util.quote(n.src)}", quote(n.src))
