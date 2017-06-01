@@ -26,6 +26,9 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def setPrev(pv:BusValue, nv:BusValue)(implicit sim:Simulator):Unit = {
     (pv.value, nv.value).zipped.foreach { case (pv, nv) => setPrev(pv, nv) }
     setPrev(pv.valid, nv.valid)
+    pv.next = Some(nv)
+    nv.prev = Some(pv)
+    pv.set { pv => pv copy nv }
   }
   def setPrev(pv:Value, nv:Value)(implicit sim:Simulator):Unit = {
     (pv, nv) match {
@@ -54,7 +57,6 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
 
   def update(implicit sim:Simulator):Unit = { 
     assert(sim.inSimulation)
-    //if (v.isDefined) sim.emitBlock(s"UpdateIO ${sim.quote(this)}") { v.update }
     if (v.isDefined) v.update
   }
 
@@ -86,7 +88,8 @@ trait Value extends Node with Evaluation { self:PortType =>
   def asBus:BusValue = this.asInstanceOf[BusValue]
   var parent:Option[Value] = None
 
-  var funcHasRan = false
+  var _funcHasRan = false
+  def funcHasRan = func.isEmpty || _funcHasRan
   var func: Option[(this.type => Unit, String)] = None 
   def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
     if (next.isEmpty) assert(!sim.inSimulation)
@@ -100,22 +103,30 @@ trait Value extends Node with Evaluation { self:PortType =>
     func = Some((f,stackTrace)) 
   }
   def isDefined:Boolean
-  def updated:Boolean
+  def updated:Boolean = funcHasRan && parent.fold(true) { p => !p.isDefined || p.funcHasRan }
   final def update(implicit sim:Simulator):this.type = {
-    if (updated || !isDefined) return this
-    prevUpdate
-    if (updated || !isDefined) return this
-    sim.emitBlock(s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id}", {
-      mainUpdate
-    }, s"UpdateValue #${sim.cycle} ${sim.quote(this)} n${id} ${value}")
+    if (!isDefined) return this
+    if (!updated) prevUpdate
+    if (!updated) {
+      sim.emitBlock(s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id}", {
+        mainUpdate
+      }, s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${sim.quote(value)}")
+    }
     //postUpdate // allow cyclic update on previous value
+    if (!updated) parent.foreach { parent => 
+      parent.updateFunc
+    }
+    assert(updated, s"updated=false after update\n${updateInfo}")
     this
   }
   def prevUpdate(implicit sim:Simulator):Unit = { prev.foreach(_.update) }
   def mainUpdate(implicit sim:Simulator):Unit = {
+    updateFunc
+  }
+  def updateFunc(implicit sim:Simulator):Unit = {
     if (!funcHasRan) {
-      funcHasRan = true
       func.foreach { case (f, stackTrace) => 
+        _funcHasRan = true
         try {
           f(this)
         } catch {
@@ -133,7 +144,14 @@ trait Value extends Node with Evaluation { self:PortType =>
   var prev:Option[Value] = None
   var next:Option[Value] = None
   def clearUpdate(implicit sim:Simulator):Unit = {
-    funcHasRan = false 
+    _funcHasRan = false 
+  }
+  def updateInfo(implicit sim:Simulator):String = {
+    var info = s"value=${sim.quote(this)} isDefined=${isDefined} updated=${updated}\n"
+    info += s"func=${func.isDefined} funcHasRan=${funcHasRan}\n"
+    info += s"next=${next.isDefined} nextIsDefined=${next.map(_.isDefined)}\n"
+    info += s"parent=${parent.map { p => s"funcHasRan=${p.funcHasRan}"}}"
+    info
   }
   def := (other:Value)(implicit sim:Simulator):Unit
   def <<= (other:Value)(implicit sim:Simulator):Unit = { 
@@ -148,16 +166,9 @@ trait SingleValue extends Value { self:PortType =>
   type V = Option[E]
   var value:V = None
   def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit):Unit
-  override def updated = funcHasRan
-  override def isDefined:Boolean = func.isDefined && next.fold(true) { _.isDefined }
-  override def mainUpdate(implicit sim:Simulator):Unit = { 
-    assert(!funcHasRan)
-    super.mainUpdate
-  }
-  override def clearUpdate(implicit sim:Simulator):Unit = {
-    if (isDefined && !updated) throw PIRException(s"${this} is not updated at #${sim.cycle}")
-    super.clearUpdate
-  }
+  override def isDefined:Boolean = 
+    (func.isDefined || parent.fold(false) { _.func.isDefined }) && 
+    next.fold(true) { _.isDefined }
   def := (other:Value)(implicit sim:Simulator):Unit = {
     sim.dprintln(s"${sim.quote(this)} := ${sim.quote(other)}")
     set { _ <<= other }
@@ -252,8 +263,12 @@ trait BusValue extends Value { self:Bus =>
   }
   def head:Value = value.head
 
-  override def isDefined:Boolean = (value.exists(_.isDefined) || func.isDefined) && next.fold(true){ _.isDefined }
-  override def updated = funcHasRan && value.forall(_.updated) 
+  override def isDefined:Boolean = 
+    (value.exists(_.isDefined) || func.isDefined || parent.fold(false) { _.func.isDefined }) && 
+    next.fold(true) { _.isDefined } 
+  override def updated = super.updated && 
+                         value.forall(v => !v.isDefined || v.updated) && 
+                         (!valid.isDefined || valid.updated)
   override def mainUpdate(implicit sim:Simulator):Unit = {
     super.mainUpdate
     value.foreach(_.update)
@@ -263,6 +278,12 @@ trait BusValue extends Value { self:Bus =>
     super.clearUpdate
     value.foreach(_.clearUpdate)
     valid.clearUpdate
+  }
+  override def updateInfo(implicit sim:Simulator):String = {
+    var info = super.updateInfo
+    info += s"${value.map{ v => s"${sim.quote(v)} updated=${v.updated}" }.mkString("\n")}\n"
+    info += s"${sim.quote(valid)} updated=${valid.updated}"
+    info
   }
   override def := (other:Value)(implicit sim:Simulator):Unit = {
     sim.dprintln(s"${sim.quote(this)} := ${sim.quote(other)}")
