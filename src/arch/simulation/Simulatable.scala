@@ -43,10 +43,12 @@ trait Simulatable extends Module with Evaluation {
           //}
         //case _ =>
       //}
-      if (isMapped(io) && !io.v.isDefined) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
+      if (isMapped(io) && !io.v.isDefined) 
+        warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")
     }
   }
   def updateModule(implicit sim:Simulator):Unit = {
+    import sim.quote
     ios.foreach { io => io.update }
   }
   def clearModule(implicit sim:Simulator):Unit = {

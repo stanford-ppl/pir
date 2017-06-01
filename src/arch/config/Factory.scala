@@ -235,13 +235,14 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cb.writeDoneXbar.out
           buf.incReadPtr <== cb.readEn.out; 
           buf.incReadPtr <== cb.writeEn.out; 
-        }
-        cu.bufs.foreach { buf => 
           buf.incWritePtr <== cb.writeDoneXbar.out
           buf.incWritePtr <== cu.cins.map(_.ic)
         }
-        cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
-        cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
+        cu.srams.foreach { sram => 
+          sram.incReadPtr <== cb.readDoneXbar.out 
+          sram.incWritePtr <== cb.writeDoneXbar.out
+          sram.writeEn <== cb.writeEn.out
+        }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
           //TODO
