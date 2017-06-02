@@ -14,17 +14,17 @@ class AppTests extends UnitTest { self =>
 
   def testInOutArg = {
     "InOutArg" should "success" in { 
-      InOutArg.main(Array("InOutArg"))
-      val argOuts = InOutArg.arch.top.sins.map(_.values.head.value)
-      assert(argOuts.contains(Some(8.0) ), s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+      val design = InOutArg
+      design.main(Array("InOutArg"))
+      assert(design.mapping.get.vimap(design.top.sins.head).values(0).value==Some(8.0), s"Result incorrect")
     }
   }
 
   def testSRAMReadWrite = {
     "SRAMReadWrite" should "success" in { 
-      SRAMReadWrite.main(Array("SRAMReadWrite"))
-      val argOuts = SRAMReadWrite.arch.top.sins.map(_.values.head.value)
-      assert(argOuts.contains(Some(10416.0), s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+      val design = SRAMReadWrite
+      design.main(Array("SRAMReadWrite"))
+      assert(design.mapping.get.vimap(design.top.sins.head).values(0).value==Some(10416.0), s"Result incorrect")
     }
   }
 
