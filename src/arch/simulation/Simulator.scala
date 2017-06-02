@@ -2,7 +2,7 @@ package pir.plasticine.simulation
 
 import pir._
 import pir.mapper.PIRMap
-import pir.codegen.Logger
+import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter}
 import pir.pass.Pass
 import pir.util.misc._
 import pir.util.PIRMetadata
@@ -17,7 +17,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
-  val vcd:Option[VcdPrinter] = if (Config.simulate) Some(new VcdPrinter) else None
+  val vcd:Option[VcdPrinter] = if (Config.simulate) Some(new SpadeVcdPrinter) else None
 
   override def debug = Config.verbose
 
@@ -35,7 +35,6 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   override def initPass = {
     vcd.foreach { vcd => 
-      vcd.addAll
       vcd.emitHeader
     }
     super.initPass

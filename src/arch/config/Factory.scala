@@ -230,13 +230,18 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cu.bufs.foreach { buf => 
+        cu.sbufs.foreach { buf => 
           buf.incReadPtr <== cb.readDoneXbar.out; 
           buf.incReadPtr <== cb.writeDoneXbar.out
           buf.incReadPtr <== cb.readEn.out; 
           buf.incReadPtr <== cb.writeEn.out; 
           buf.incWritePtr <== cb.writeDoneXbar.out
           buf.incWritePtr <== cu.cins.map(_.ic)
+        }
+        cu.vbufs.foreach { buf => 
+          buf.incReadPtr <== cb.readEn.out; 
+          buf.incReadPtr <== cb.writeEn.out; 
+          // buf.incWritePtr <== cu.cins.valid 
         }
         cu.srams.foreach { sram => 
           sram.incReadPtr <== cb.readDoneXbar.out 

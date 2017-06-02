@@ -372,7 +372,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     ctrler.ctrlBox match {
       case cb:MemCtrlBox =>
-        cb.readEn.in.connect(cb.readFifoAndTree.out)
+        //cb.readEn.in.connect(cb.readFifoAndTree.out)
         cb.writeEn.in.connect(cb.writeFifoAndTree.out)
       case cb:OuterCtrlBox =>
         cb.en.in.connect(cb.childrenAndTree.out)

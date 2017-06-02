@@ -16,8 +16,7 @@ class AppTests extends UnitTest { self =>
     "InOutArg" should "success" in { 
       InOutArg.main(Array("InOutArg"))
       val argOuts = InOutArg.arch.top.sins.map(_.values.head.value)
-      if (!argOuts.contains(Some(8.0) ))
-        throw PIRException(s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+      assert(argOuts.contains(Some(8.0) ), s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
     }
   }
 
@@ -25,8 +24,7 @@ class AppTests extends UnitTest { self =>
     "SRAMReadWrite" should "success" in { 
       SRAMReadWrite.main(Array("SRAMReadWrite"))
       val argOuts = SRAMReadWrite.arch.top.sins.map(_.values.head.value)
-      if (!argOuts.contains(Some(10416.0) ))
-        throw PIRException(s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+      assert(argOuts.contains(Some(10416.0), s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
     }
   }
 
