@@ -21,6 +21,15 @@ class AppTests extends UnitTest { self =>
     }
   }
 
+  def testSRAMReadWrite = {
+    "SRAMReadWrite" should "success" in { 
+      SRAMReadWrite.main(Array("SRAMReadWrite"))
+      val argOuts = SRAMReadWrite.arch.top.sins.map(_.values.head.value)
+      if (!argOuts.contains(Some(10416.0) ))
+        throw PIRException(s"Result incorrect argOuts=[${argOuts.mkString(", ")}]")
+    }
+  }
+
   //intercept[PIRException] {
   // No offchip access 
   //"ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
@@ -50,4 +59,5 @@ class AppTests extends UnitTest { self =>
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
   testInOutArg
+  testSRAMReadWrite
 }

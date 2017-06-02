@@ -159,7 +159,7 @@ case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST], mp:PIRM
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
 case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
-  override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
+  override val msg = s"${ps}:[${ps.funcUnit.get.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
 }
 case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."

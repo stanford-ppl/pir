@@ -9,11 +9,9 @@ package object enums {
   val _bitOps = ListBuffer[BitOp]()
   val _otherOps = ListBuffer[Op]()
   def fixOps = _fixOps.toList
-  def fltOps = _fixOps.toList
+  def fltOps = _fltOps.toList
   def bitOps = _bitOps.toList
   def otherOps = _otherOps.toList
-
-  lazy val ops:List[Op] = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
 
   sealed trait Op 
   
@@ -62,6 +60,8 @@ package object enums {
 
   case object Mux extends Op { _otherOps += this }
   case object Bypass extends Op { _otherOps += this }
+
+  def ops:List[Op] = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
 
   //sealed trait CtrlType 
   //case object Pipe extends CtrlType

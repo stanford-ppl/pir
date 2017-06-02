@@ -17,6 +17,7 @@ trait OnChipMem extends Primitive with Simulatable {
   val size:Int
   type P<:PortType
   val readPort:Output[P, OnChipMem]
+  val readOut:Output[P, OnChipMem]
   val writePort:Input[P, OnChipMem]
   val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
   val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
@@ -48,6 +49,7 @@ trait OnChipMem extends Primitive with Simulatable {
       readPtr.v <<= 0
       writePtr.v <<= 0
       count.v <<= 0
+      readPort.v := readOut.pv
       readPtr.v.set { v => If (incReadPtr.v) { incPtr(v) } }
       writePtr.v.set { v => If (incWritePtr.v) { incPtr(v) }; updateArray }
       count.v.set { v => If (incReadPtr.v) { v <<= v - 1 }; If (incWritePtr.v) { v <<= v + 1 } }
@@ -99,7 +101,6 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
           }
         }
       }
-      readPort.v := readOut.pv
       swapWrite := incWritePtr
       debug.v.set { v =>
         v.foreach { case (ev, i) =>
@@ -120,7 +121,7 @@ trait LocalBuffer extends OnChipMem {
 
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
-      readPort.v.set { v => 
+      readOut.v.set { v => 
         updateArray
         v <<= array(readPtr.v.update.value.get.toInt)
       }
@@ -139,8 +140,9 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   var array:Array[P] = _
   val writePort = Input(Word(), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
+  val readOut = Output(Word(), this, s"${this}.ro")
   def updateArray(implicit sim:Simulator):Unit = {
-    writePtr.v.update.value.foreach { idx => array(idx.toInt) <<= writePort.pv }
+    writePtr.v.update.value.foreach { idx => array(idx.toInt) <<= writePort.v }
   }
   def clearArray:Unit = {
     if (array==null) return
@@ -163,13 +165,14 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
     array.foreach { _.foreach { case (v:WordValue, i) => v <<= 0 } }
   }
   def updateArray(implicit sim:Simulator):Unit = {
-    //If (writePort.pv.update.valid) { //TODO
-      writePtr.v.update.value.foreach { idx => array(idx.toInt) <<= writePort.pv }
-    //}
+    If (writePort.v.update.valid) { //TODO
+      writePtr.v.update.value.foreach { idx => array(idx.toInt) <<= writePort.v }
+    }
   }
   var array:Array[P] = _
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val readPort = Output(Bus(Word()), this, s"${this}.rp") 
+  val readOut = Output(Bus(Word()), this, s"${this}.ro") 
   override def register(implicit sim:Simulator):Unit = {
     import sim.mapping._
     smmap.pmap.get(this).foreach { mem =>
