@@ -15,11 +15,7 @@ trait Traversal extends Pass {
     visited.clear()
   }
   
-  def traverse(node: Node) = {
-    visitNode(node)
-  }
-  
-  override def traverse = traverse(design.top)
+  override def traverse = visitNode(design.top)
 
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
@@ -27,10 +23,12 @@ trait Traversal extends Pass {
   }
   /* Depth first search traversal on node and their fields */
   def visitNodeNoCheck(node: Node) : Unit = {
+    if (visited.contains(node)) return
+    visited += node
     node match {
       case n:Controller => 
         n.sins.foreach { si => visitNode(si) }
-        n.vinMap.foreach { case (vector, vi) => visitNode(vi) }
+        n.vins.foreach { vi => visitNode(vi) }
         n.souts.foreach { so => visitNode(so) }
         n.vouts.foreach { vo => visitNode(vo) }
         n match {
@@ -63,10 +61,11 @@ trait Traversal extends Pass {
         case p:CtrlBox =>
           p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
           p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
+        case p:Counter =>
+        case p:Delay =>
       }
       case r:Const[_] =>
       case _ => throw new Exception(s"Don't know how to visit $node")
     }
-    visited += node
   }
 }

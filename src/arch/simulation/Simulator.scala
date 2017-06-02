@@ -2,7 +2,7 @@ package pir.plasticine.simulation
 
 import pir._
 import pir.mapper.PIRMap
-import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter}
+import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 import pir.pass.Pass
 import pir.util.misc._
 import pir.util.PIRMetadata
@@ -17,7 +17,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
-  val vcd:Option[VcdPrinter] = if (Config.simulate) Some(new SpadeVcdPrinter) else None
+  val vcds:List[VcdPrinter] = if (Config.simulate) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
   override def debug = Config.verbose
 
@@ -34,8 +34,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   } 
 
   override def initPass = {
-    vcd.foreach { vcd => 
-      vcd.emitHeader
+    vcds.foreach { vcds => 
+      vcds.emitHeader
     }
     super.initPass
     tic
@@ -46,14 +46,14 @@ class Simulator(implicit design: Design) extends Pass with Logger {
     spade.simulatable.foreach { s => s.register; s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
     dprintln(s"\n\nDefault values ...")
-    vcd.foreach { _.emitSignals }
+    vcds.foreach { _.emitSignals }
     cycle += 1
     dprintln(s"\n\nStarting simulation ...")
     inSimulation = true
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
       spade.simulatable.foreach { m => m.updateModule }
-      vcd.foreach { _.emitSignals }
+      vcds.foreach { _.emitSignals }
       spade.simulatable.foreach { m => m.clearModule }
       cycle += 1
     }
@@ -62,7 +62,7 @@ class Simulator(implicit design: Design) extends Pass with Logger {
 
   override def finPass = {
     close
-    vcd.foreach { _.close }
+    vcds.foreach { _.close }
     super.finPass
     toc("Simulation","s")
   }
