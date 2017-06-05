@@ -166,6 +166,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case (cb:MCB, pcb:PMCB) =>
         mp = mapAndTree(cb.readFifoAndTree, pcb.readFifoAndTree, mp)
         mp = mapAndTree(cb.writeFifoAndTree, pcb.writeFifoAndTree, mp)
+      case (cb:MCCB, pcb:PMCCB) =>
+        mp = mapAndTree(cb.fifoAndTree, pcb.fifoAndTree, mp)
       case _ =>
     }
     mp
@@ -182,6 +184,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case (cb:OCB, pcb:POCB) => 
         mp = mp.setOP(cb.en.out, pcb.en.out)
       case (cb:ICB, pcb:PICB) =>
+        mp = mp.setOP(cb.en.out, pcb.en.out)
+      case (cb:MCCB, pcb:PMCCB) =>
         mp = mp.setOP(cb.en.out, pcb.en.out)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
@@ -203,6 +207,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapInPort(cb.en.in, pcb.en.in, mp)
       case (cb:ICB, pcb:PICB) =>
         mp = mapInPort(cb.en.in, pcb.en.in, mp)
+      case (cb:MCCB, pcb:PMCCB) =>
+        //mp = mapInPort(cb.en.in, pcb.en.in, mp)
+        mp = mp.setIP(cb.en.in, pcb.en.in)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
         assert(pcb.pne.isInstanceOf[PMC])
@@ -259,7 +266,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapPulserSM(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     (cu.ctrlBox, pcu.ctrlBox) match {
-      case (cb:OCB, pcb:POCB) if !isTailCollector(cu) =>
+      case (cb:OCB, pcb:POCB) if !isTailCollector(cu) & !cu.isSC =>
         mp = mp.setOP(cb.pulserSMOut, pcb.pulserSM.out)
       case _ =>
     }

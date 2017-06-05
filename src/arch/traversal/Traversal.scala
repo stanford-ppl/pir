@@ -41,6 +41,8 @@ trait Traversal {
                 n.vbufs.foreach(visitNode)
                 n.stages.foreach(visitNode)
               case n:MemoryController =>
+                n.sbufs.foreach(visitNode)
+                n.vbufs.foreach(visitNode)
               case n:Top =>
             }
           case n:SwitchBox =>

@@ -47,6 +47,7 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 
   var vbufs:List[VectorMem] = Nil
   var sbufs:List[ScalarMem] = Nil
+  def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def numScalarBufs(num:Int, size:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem(size).index(i) }; this }
   def numScalarBufs:Int = sbufs.size
   def numVecBufs(num:Int, size:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem(size).index(i) }; this }
@@ -66,8 +67,9 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
   lazy val ctrlBox:TopCtrlBox = TopCtrlBox()
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
+    import sim.util._
     souts.foreach { psout =>
-      sim.mapping.vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
+      vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
         boundOf.get(sout.scalar) match {
           case Some(b:Int) => psout.ic.v := b
           case Some(b:Float) => psout.ic.v := b
@@ -96,8 +98,8 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
     connectXbar(ctrlIO)
   }
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
     super.register
-    val fimap = sim.mapping.fimap
     (souts ++ vouts ++ couts).foreach { out =>
       fimap.get(out.ic).foreach { out.ic :== _ }
     }
@@ -115,7 +117,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
-  def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
   lazy val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
@@ -186,13 +187,13 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   }
 
   override def register(implicit sim:Simulator):Unit = {
-    import sim.mapping._
+    import sim.util._
     // Add delay to output if input is from doneXBar
     clmap.pmap.get(this).foreach { cu =>
       ctrlBox match {
         case cb:InnerCtrlBox =>
           couts.foreach { cout =>
-            sim.mapping.fimap.get(cout.ic).foreach { 
+            fimap.get(cout.ic).foreach { 
               case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
               case _ =>
             }
@@ -308,7 +309,7 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
   import spademeta._
-  lazy val ctrlBox:CtrlBox = new MCCtrlBox()
+  lazy val ctrlBox:MCCtrlBox = new MCCtrlBox()
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
@@ -322,5 +323,36 @@ class MemoryController()(implicit spade:Spade) extends Controller {
     nameOf(sbufs(3)) = "wsize"
     nameOf(vbufs(0)) = "data"
     genConnections
+  }
+
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    clmap.pmap.get(this).foreach { case mc:pir.graph.MemoryController =>
+      mc.mctpe match {
+        case TileLoad =>
+          val offset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
+          val size = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
+          val array = Array.tabulate(1024) { i => Word(s"$this.array[$i]") }
+          array.zipWithIndex.foreach { case (e,i) => e <<= i }
+          vouts.foreach { vout =>
+            vout.v.set { v =>
+              If (ctrlBox.en.out.v) {
+                val so = offset.readPort.v.value.get.toInt / 4
+                val sz = size.readPort.v.value.get.toInt / 4
+                v.foreachv { case (ev, i) =>
+                  ev <<= array(so + i)
+                } { _ <<= true }
+              }
+            }
+          }
+        case TileStore =>
+          val offset = sbufs.filter{ sb => nameOf(sb)=="woffset" }.head
+          val size = sbufs.filter{ sb => nameOf(sb)=="wsize" }.head
+          val data = sbufs.filter{ sb => nameOf(sb)=="data" }.head
+        case Gather =>
+        case Scatter =>
+      }
+    }
+    super.register
   }
 }

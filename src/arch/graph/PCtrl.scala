@@ -47,13 +47,12 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
     mp.pmmap.pmap.get(this).map { case udc:pir.graph.UDCounter => udc.initVal }
   }
   override def register(implicit sim:Simulator):Unit = {
-    import sim.mapping._
-    import sim.{dprintln, quote}
-    if (isMapped(this)(sim.mapping)) {
-      val initVal = init(sim.mapping).getOrElse(0)
+    import sim.util._
+    if (isMapped(this)(mapping)) {
+      val initVal = init(mapping).getOrElse(0)
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)} initVal=$initVal")
       count.v.set { countv =>
-        if (sim.rst) countv <<= initVal
+        if (rst) countv <<= initVal
         else {
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
@@ -130,9 +129,9 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
   var pulseLength = 1
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
-    import sim.mapping._
+    import sim.util._
     clmap.pmap.get(pne).foreach { cu =>
-      if (isPipelining(cu)) {
+      if (cu.isSeq || cu.isMeta) {
         state.v <<= INIT 
         out.v.set { outv =>
           If (state.v == INIT) {
@@ -210,15 +209,55 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
     super.register
     command.v.set { v =>
-      if (sim.rst) v.setHigh
+      if (rst) v.setHigh
       else v.setLow
     }
   }
 }
 
-class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) {
+class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) with Simulatable {
   val rdone = Output(Bit(), this, s"${this}.rdone")
   val wdone = Output(Bit(), this, s"${this}.wdone")
+  val fifoAndTree = AndTree("fifoAndTree")
+  val en = Delay(Bit(), 0, s"$pne.en")
+  val WAITING = false
+  val LOADING = true
+  val state = Output(Bit(), this, s"${this}.state")
+  val count = Output(Word(), this, s"${this}.count")
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    import spademeta._
+    clmap.pmap.get(pne).foreach { case mc:pir.graph.MemoryController =>
+      state.v <<= WAITING 
+      mc.mctpe match {
+        case TileLoad =>
+          en.out.v.set { env =>
+            state.v.update
+            If(en.out.pv) { env.setLow }
+          }
+          state.v.set { statev =>
+            If(fifoAndTree.out.v & (rdone.pv | (statev == WAITING))) {
+              statev <<= LOADING
+              en.out.v.setHigh
+            }
+          }
+          count.v.set { countv =>
+            Match(
+              sim.rst -> { () => countv <<= 0 },
+              rdone.pv -> { () => countv <<= 0 },
+              (state.v==LOADING) -> { () => countv <<= countv + 1 }
+            ) {}
+          }
+          val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
+          rdone.v := count.v >= size.v - 1
+        case TileStore =>
+        case Gather =>
+        case Scatter =>
+      }
+    }
+    super.register
+  }
 }
