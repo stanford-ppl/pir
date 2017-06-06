@@ -13,7 +13,20 @@ import pir.plasticine.traversal._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-class Simulator(implicit design: Design) extends Pass with Logger {
+trait SimUtil extends Logger {
+  def quote(n:Any):String
+  def mapping:PIRMap
+  def fimap = mapping.fimap
+  def clmap = mapping.clmap
+  def pmmap = mapping.pmmap
+  def vimap = mapping.vimap
+  def vomap = mapping.vomap
+  def stmap = mapping.stmap
+  def pirmeta:PIRMetadata
+  def rst:Boolean
+}
+
+class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def shouldRun = Config.simulate && design.mapping.nonEmpty
   implicit val sim:Simulator = this
@@ -22,6 +35,8 @@ class Simulator(implicit design: Design) extends Pass with Logger {
   override def debug = Config.verbose
 
   lazy val mapping = design.mapping.get
+  lazy val util:SimUtil = this
+
   var inSimulation = false 
 
   override lazy val stream = newStream("sim.log") 

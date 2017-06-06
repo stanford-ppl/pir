@@ -130,6 +130,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                 mem.dequeueEnable.connect(cb.readEn.out)
               else if (forWrite(mem)) 
                 mem.dequeueEnable.connect(cb.writeEn.out)
+            case cb:MCCtrlBox =>
+              mem.dequeueEnable.connect(cb.en.out)
           }
         case mem:VectorFIFO =>
           // vectorFIFO.enqueueEnable routes through data bus 
@@ -381,6 +383,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case cb:InnerCtrlBox if isStreaming(ctrler) =>
         cb.en.in.connect(cb.streamAndTree.out)
       case cb:MCCtrlBox =>
+        //cb.en.in.connect(cb.fifoAndTree.out)
     }
   }
 

@@ -166,7 +166,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cb.writeFifoAndTree <== cu.bufs.map(_.notEmpty) 
         cb.readFifoAndTree <== cu.bufs.map(_.notEmpty)
-      case (mc:MemoryController, cb:CtrlBox) =>
+      case (cu:MemoryController, cb:MCCtrlBox) =>
+        cb.fifoAndTree <== cu.bufs.map(_.notEmpty) 
       case (top:Top, cb:TopCtrlBox) =>
     }
   }
@@ -195,7 +196,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.readEn.in <== cb.readAndGate.out
         //cb.readEn.in <== cb.tokenInXbar.out
         cb.writeEn.in <== cb.writeFifoAndTree.out
-      case (mc:MemoryController, cb:CtrlBox) =>
+      case (cu:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
     }
   }
@@ -265,8 +266,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cb.doneXbar.out 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-      case (mc:MemoryController, cb:CtrlBox) =>
+      case (mc:MemoryController, cb:MCCtrlBox) =>
         mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        mc.bufs.foreach { buf => buf.incReadPtr <== cb.en.out }
+        //cb.en.in <== cb.fifoAndTree.out
       case (top:Top, cb:TopCtrlBox) =>
     }
   }

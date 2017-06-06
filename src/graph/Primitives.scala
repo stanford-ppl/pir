@@ -43,7 +43,6 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
   extends Input {
   scalar.addReader(this)
   override val typeStr = "ScalIn"
-  override def toString = s"${super.toString}($scalar)"
   override def equals(that: Any) = that match {
     case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)
@@ -63,7 +62,6 @@ object ScalarIn {
 case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val ctrler:Controller, design: Design) extends Output{
   scalar.setWriter(this)
   override val typeStr = "ScalOut"
-  override def toString = s"${super.toString}($scalar)"
   override def equals(that: Any) = that match {
     case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
     case _ => super.equals(that)

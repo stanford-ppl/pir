@@ -17,7 +17,7 @@ import scala.collection.mutable.ListBuffer
 trait Simulatable extends Module with Evaluation {
   spade.simulatable += this
   def register(implicit sim:Simulator):Unit = {
-    val fimap = sim.mapping.fimap
+    import sim.util._
     ins.foreach { in =>
       if (!in.v.isDefined) {
         fimap.get(in).fold {
@@ -32,6 +32,7 @@ trait Simulatable extends Module with Evaluation {
   }
   // Check if a mapped simulatable has update function defined on all its io
   def check(implicit sim:Simulator):Unit = {
+    import sim.util._
     implicit val mp:PIRMap = sim.mapping
     ios.foreach { io =>
       //this match {
@@ -43,12 +44,13 @@ trait Simulatable extends Module with Evaluation {
           //}
         //case _ =>
       //}
-      if (isMapped(io) && !io.v.isDefined) 
+      if (isMapped(io) && !io.v.isDefined) {
         warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")
+      }
     }
   }
   def updateModule(implicit sim:Simulator):Unit = {
-    import sim.quote
+    import sim.util._
     ios.foreach { io => io.update }
   }
   def clearModule(implicit sim:Simulator):Unit = {
