@@ -14,38 +14,92 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.language.existentials
 
-trait PortType extends Value
+trait PortType extends Value {
+  private var _io:IO[_, Module] = _
+  def io = _io
+  def io_= (value:IO[_, Module]) = _io = value
+  def clone(name:Option[String]):this.type
+  def clone(name:String):this.type = clone(Some(name))
+  override def clone():this.type = clone(None)
+  override def toString = s"${io}.t${typeStr}"
+}
 /* Three types of pin */
-case class Bit() extends PortType with BitValue
-case class Word(wordWidth:Int) extends PortType with WordValue
+case class Bit()(implicit spade:Spade) extends PortType with BitValue {
+  override val typeStr = "b"
+  def clone(name:Option[String]):this.type = {
+    val ntp = name match {
+      case Some(name) => new Bit() { override def toString = name }
+      case None => Bit()
+    }
+    ntp.io = this.io
+    ntp.asInstanceOf[this.type]
+  }
+  //override def equals(that:Any):Boolean = that match {
+    //case that:Bit => true
+    //case _ => false
+  //}
+}
+case class Word(wordWidth:Int)(implicit spade:Spade) extends PortType with WordValue {
+  override val typeStr = "w"
+  def clone(name:Option[String]):this.type = {
+    val ntp = name match {
+      case Some(name) => new Word(wordWidth) { override def toString = name }
+      case None => Word(wordWidth)
+    }
+    ntp.io = this.io
+    ntp.asInstanceOf[this.type]
+  }
+  //override def equals(that:Any):Boolean = that match {
+    //case Word(ww) => ww==wordWidth
+    //case _ => false
+  //}
+}
 object Word {
   def apply()(implicit spade:Spade):Word = Word(spade.wordWidth)
+  def apply(name:String)(implicit spade:Spade):Word = {
+    new Word(spade.wordWidth) { override def toString = name }
+  }
 }
-case class Bus(busWidth:Int, elemTp:PortType) extends PortType with BusValue
+case class Bus(busWidth:Int, elemTp:PortType)(implicit spade:Spade) extends PortType with BusValue {
+  override val typeStr = "u"
+  override def io_= (io:IO[_, Module]) = {
+    super.io_= (io)
+    elemTp.io = io
+  }
+  def clone(name:Option[String]):this.type = {
+    val ntp = name match {
+      case Some(name) => new Bus(busWidth, elemTp.clone) { override def toString = name }
+      case None => Bus(busWidth, elemTp.clone)
+    }
+    ntp.io = this.io
+    ntp.asInstanceOf[this.type]
+  }
+  //override def equals(that:Any):Boolean = that match {
+    //case Bus(bw, et) => (bw==busWidth) && (et==elemTp)
+    //case _ => false
+  //}
+}
 object Bus {
-  def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.wordWidth, elemTp)
+  def apply(elemTp:PortType)(implicit spade:Spade):Bus = Bus(spade.numLanes, elemTp)
 }
 
 /* 
  * An input port of a module that can be recofigured to other's output ports
  * fanIns stores the list of ports the input port can configured to  
  * */
-abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:Spade) extends Node {
+abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:Spade) extends Node with Val[P] {
   import spademeta._
   src.addIO(this)
+  tp.io = this
   override val typeStr = {
     var s = this match {
       case _:Input[_,_] => s"i"
       case _:Output[_,_] => s"o"
     }
-    s += (tp match {
-      case Bit() => "b"
-      case Word(w) => "w"
-      case Bus(w, tp) => "u"
-    })
+    s += tp.typeStr
     s
   } 
-  override def toString =s"${super.toString}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  //override def toString =s"${src}.${typeStr}${spademeta.indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   def isConnected: Boolean
   def disconnect:Unit
   def canConnect(n:IO[_<:PortType, Module]):Boolean
@@ -62,9 +116,6 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asWord:IO[Word, S]
   def asBit:IO[Bit, S]
   def asGlobal:GlobalIO[P, S]
-
-  val v:Val[P] = Val(this)
-  def ev(implicit sim:Simulator) = { v.eval }
 }
 
 /* Input pin. Can only connects to output of the same level */
@@ -78,18 +129,19 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   private[plasticine] def <==(n:O) = { connect(n) }
   private[plasticine] def <==(ns:List[O]) = ns.foreach(n => connect(n))
   private[plasticine] def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
-  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
-  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
+  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this.asBus)
+  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this.asBus))
   private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=fanIns[${_fanIns.mkString(",")}]"
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
-    _fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
+    _fanIns.contains(n)
+    //_fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
   }
   def indexOf(o:IO[_<:PortType, Module]):Int = {
     _fanIns.map { out =>
       out.src match {
-        case s:Slice[_] if s.in.canConnect(o) => o
-        case b:BroadCast[_] if b.in.canConnect(o) => o
+        //case s:Slice[_] if s.in.canConnect(o) => o
+        //case b:BroadCast[_] if b.in.canConnect(o) => o
         case _ => out
       }
     }.indexOf(o)
@@ -103,6 +155,17 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
   override def asGlobal:GlobalInput[P, S] = this.asInstanceOf[GlobalInput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
+  def propogate:Input[P, Module] = {
+    src match {
+    case slice:Slice[_] => 
+      assert(slice.out.fanOuts.size==1, s"Cannot propogate $slice with fanOuts>1 fanOuts:${slice.out.fanOuts}")
+      slice.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+    case broadcast:BroadCast[_] => 
+      assert(broadcast.out.fanOuts.size==1, s"Cannot propogate $broadcast with fanOuts>1 fanOuts:${broadcast.out.fanOuts}")
+      broadcast.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+    case _ => this
+  }
+  }
 }
 object Input {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Input[P, S] = new Input[P, S](t, s, None)
@@ -121,13 +184,14 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   private[plasticine] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=fanOuts[${_fanOuts.mkString(",")}]" 
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
-    _fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
+    _fanOuts.contains(n)
+    //_fanOuts.contains(n) || _fanOuts.map(_.src).collect{case s:Slice[_] => s.out; case b:BroadCast[_] => b.out}.exists(_.canConnect(n))
   }
   def indexOf(i:IO[_<:PortType, Module]):Int = {
     _fanOuts.map { in =>
       in.src match {
-        case s:Slice[_] if s.out.canConnect(i) => i
-        case b:BroadCast[_] if b.out.canConnect(i) => i 
+        //case s:Slice[_] if s.out.canConnect(i) => i
+        //case b:BroadCast[_] if b.out.canConnect(i) => i 
         case _ => in
       }
     }.indexOf(i)
@@ -142,9 +206,34 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asGlobal:GlobalOutput[P, S] = this.asInstanceOf[GlobalOutput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 
-  def slice(i:Int, in:Input[_<:PortType,Module]) = Slice(in, this.asBus, i)
-  def sliceHead(in:Input[_<:PortType,Module]) = slice(0, in)
-  def broadcast(in:Input[Bus, Module]) = BroadCast(this, in)
+  private lazy val _sliceMap = Map[Int, Slice[P]]()
+  def slice(i:Int, in:Input[P,Module]):Slice[P] = {
+    val slice = _sliceMap.getOrElseUpdate(i, Slice(in.tp, this.asBus, i))
+    in <== slice.out
+    slice
+  }
+  def sliceHead(in:Input[P,Module]):Slice[P] = slice(0, in)
+  def slice(i:Int):Slice[P] = _sliceMap(i)
+  def sliceHead:Slice[P] = slice(0)
+  def slices:List[Slice[P]] = _sliceMap.values.toList
+  private lazy val _broadcastMap = Map[Int, BroadCast[P]]()
+  def broadcast(in:Input[Bus, Module]):BroadCast[P] = {
+    val bc = _broadcastMap.getOrElseUpdate(in.tp.busWidth, BroadCast(this, in.tp.clone)) 
+    in <== bc.out
+    bc
+  }
+  def broadcast(busWidth:Int):BroadCast[P] = _broadcastMap(busWidth)
+  def getBroadcast(busWidth:Int):Option[BroadCast[P]] = _broadcastMap.get(busWidth)
+  def broadcasts:List[BroadCast[P]] = _broadcastMap.values.toList
+  def propogate:Output[P, Module] = src match {
+    case slice:Slice[_] => 
+      assert(slice.in.fanIns.size==1, s"Cannot propogate $slice with fanIns>1 fanOuts:${slice.in.fanIns}")
+      slice.in.fanIns.head.asInstanceOf[Output[P, Module]].propogate
+    case broadcast:BroadCast[_] => 
+      assert(broadcast.in.fanIns.size==1, s"Cannot propogate $broadcast with fanIns>1 fanOuts:${broadcast.in.fanIns}")
+      broadcast.in.fanIns.head.asInstanceOf[Output[P, Module]].propogate
+    case _ => this
+  }
 } 
 object Output {
   def apply[P<:PortType, S<:Module](t:P, s:S)(implicit spade:Spade):Output[P, S] = new Output[P,S](t, s, None)
@@ -161,10 +250,10 @@ trait GlobalIO[P<:PortType, +S<:Module] extends IO[P, S] with Simulatable {
 class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade)
   extends Input(tp, src, sf) with GlobalIO[P,S] { 
   import spademeta._
-  override val ic:Output[P, this.type] = new Output(tp, this, sf)
+  override val ic:Output[P, this.type] = new Output(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    ic.v <= this
+    ic := this
   }
   def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
   override def ms = s"${super.ms} ic=$ic"
@@ -179,10 +268,10 @@ object GlobalInput {
 class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implicit spade:Spade) 
   extends Output(tp, src, sf) with GlobalIO[P, S] { 
   import spademeta._
-  override val ic:Input[P, this.type] = new Input(tp, this, sf)
+  override val ic:Input[P, this.type] = new Input(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    this.v <= ic
+    this := ic
   }
   def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
   override def mt = s"${super.mt} ic=$ic"
@@ -193,27 +282,27 @@ object GlobalOutput {
     new GlobalOutput[P, S](t,s, Some(sf _))
 }
 
-case class Slice[P<:PortType](din:Input[P,Module], dout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
+case class Slice[P<:PortType](bintp:P, bout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
   override val typeStr = "slice"
-  val in = Input(dout.tp, this, s"${this}.in").asBus
-  val out = Output(din.tp, this, s"${this}.out")
-  in <== dout
-  din <== out
+  override def toString = s"$bout.slice($i)"
+  val in = Input(bout.tp.clone(), this, s"${this}.in").asBus
+  val out:Output[P, this.type] = Output(bintp.clone(), this, s"${this}.out")
+  in <== bout
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { v => v.value.copy(in.ev.value.value(i)) }
+    out.v := in.v.value(i)
   }
 }
 
-case class BroadCast[P<:PortType](dout:Output[P,Module], din:Input[Bus, Module])(implicit spade:Spade) extends Simulatable {
+case class BroadCast[P<:PortType](bout:Output[P,Module], bintp:Bus)(implicit spade:Spade) extends Simulatable {
   override val typeStr = "broadcast"
-  val in = Input(dout.tp, this, s"${this}.in")
-  val out = Output(din.tp, this, s"${this}.out")
-  in <== dout
-  din <== out
+  override def toString = s"${bintp.io}.broadcast"
+  val in:Input[P, this.type] = Input(bout.tp.clone(), this, s"${this}.in")
+  val out:Output[Bus, this.type] = Output(bintp.clone(), this, s"${this}.out")
+  in <== bout
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v.set { v => v.value.value.foreach{ _.copy(in.ev.value) } }
+    out.v.foreach { case (v, i) => v := in.v }
   }
 }
 
@@ -225,9 +314,9 @@ trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
   def src:NE
   def tp:P
   def inputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = 
-    List.tabulate(num) { i => val in = GlobalInput(tp, src); networkOf(in) = nt; in }
+    List.tabulate(num) { i => val in = GlobalInput(tp.clone(), src); networkOf(in) = nt; in }
   def outputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalOutput[P, NE]] = 
-    List.tabulate(num) { i => val out = GlobalOutput(tp, src); networkOf(out) = nt; out }
+    List.tabulate(num) { i => val out = GlobalOutput(tp.clone(), src); networkOf(out) = nt; out }
   def addInAt(dir:String, num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = { 
     val ibs = inputs(num)
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs

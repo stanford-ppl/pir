@@ -1,6 +1,7 @@
 package pir.plasticine.graph
 
 import pir.util.enums._
+import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.config.ConfigFactory
 import pir.plasticine.simulation._
@@ -14,6 +15,7 @@ import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
 trait NetworkElement extends Module with Simulatable {
+  import spademeta._
   implicit val ctrler:this.type = this 
   def scalarIO:ScalarIO[this.type]
   def vectorIO:VectorIO[this.type]
@@ -32,6 +34,7 @@ trait NetworkElement extends Module with Simulatable {
   def asCU:ComputeUnit = this.asInstanceOf[ComputeUnit]
   def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
+  //override def toString = s"${coordOf.get(this).fold(super.toString) { case (x,y) => s"$typeStr[$x,$y]"}}"
 }
 
 /* Controller */
@@ -44,9 +47,9 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
 
   var vbufs:List[VectorMem] = Nil
   var sbufs:List[ScalarMem] = Nil
-  def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem().index(i) }; this }
+  def numScalarBufs(num:Int, size:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem(size).index(i) }; this }
   def numScalarBufs:Int = sbufs.size
-  def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem().index(i) }; this }
+  def numVecBufs(num:Int, size:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem(size).index(i) }; this }
   def numVecBufs:Int = vbufs.size
 
   def ctrlBox:CtrlBox
@@ -60,7 +63,21 @@ abstract class Controller(implicit spade:Spade) extends NetworkElement {
  * */
 case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Controller { self =>
   import spademeta._
-  override val ctrlBox:TopCtrlBox = TopCtrlBox()
+  lazy val ctrlBox:TopCtrlBox = TopCtrlBox()
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
+    souts.foreach { psout =>
+      sim.mapping.vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
+        boundOf.get(sout.scalar) match {
+          case Some(b:Int) => psout.ic.v := b
+          case Some(b:Float) => psout.ic.v := b
+          case None => warn(s"${sout.scalar} doesn't have a bound")
+          case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
+        }
+      }
+    }
+    super.register
+  }
 }
 
 /* Switch box (6 inputs 6 outputs) */
@@ -82,7 +99,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
     super.register
     val fimap = sim.mapping.fimap
     (souts ++ vouts ++ couts).foreach { out =>
-      fimap.get(out.ic).foreach { inic => out.ic.v <== inic }
+      fimap.get(out.ic).foreach { out.ic :== _ }
     }
   }
 }
@@ -95,13 +112,13 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   override val typeStr = "cu"
 
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
-  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM().index(i) }
+  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
-  val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
+  lazy val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
   def vout = vouts.head
   def numLanes:Int = spade.numLanes
   
@@ -151,13 +168,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def numRegs = 16
   def numCtrs = 5
   def numSRAMs = 0
+  def sramSize = 0
   def numUDCs = 5
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=2, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
-    addRegstages(numStage=1, numOprds=3, ops)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    addRegstages(numStage=2, numOprds=3, ops)
+    numScalarBufs(4, 256)
+    numVecBufs(vins.size, 256)
     color(0 until numCtrs, CounterReg)
     color(0, ReduceReg).color(1, AccumReg)
     color(5 until 5 + numScalarBufs, ScalarInReg)
@@ -167,22 +185,61 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     genConnections
   }
 
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.mapping._
+    // Add delay to output if input is from doneXBar
+    clmap.pmap.get(this).foreach { cu =>
+      ctrlBox match {
+        case cb:InnerCtrlBox =>
+          couts.foreach { cout =>
+            sim.mapping.fimap.get(cout.ic).foreach { 
+              case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
+              case _ =>
+            }
+          }
+        case _ =>
+      }
+      val enable = ctrlBox match {
+        case cb:MemoryCtrlBox => 
+          val readStages = cu.asMP.rdAddrStages
+          val numReadStages = if (readStages.isEmpty) 0 else stmap(readStages.last).index - stmap(readStages.head).index
+          Some(cb.readEn.out.vAt(numReadStages + 1))
+        case cb:InnerCtrlBox => Some(cb.en.out.vAt(stages.size))
+        case _ => None
+      }
+      vouts.foreach { vout =>
+        fimap.get(vout.ic).fold {
+          if (vout.ic.fanIns.size==1) {
+            vout.ic.v.set { v =>
+              v <<= vout.ic.fanIns.head.v
+              v.valid <<= enable.get
+            }
+          }
+        } { out => 
+          vout.ic.v.set { v =>
+            v <<= out.v
+            v.valid <<= enable.get
+          }
+        }
+      }
+    }
+    super.register
+  }
 }
 
 class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   import spademeta._
   override val typeStr = "ocu"
   
-  override val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
+  override lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
   override def numLanes:Int = 1
 
   /* Parameters */
   override def numRegs = 0
   override def numCtrs = 6
-  override def numSRAMs = 0
   override def numUDCs = 15
   override def config(implicit spade:SwitchNetwork) = {
-    numScalarBufs(4)
+    numScalarBufs(4, 16)
     genConnections
   }
 }
@@ -191,7 +248,7 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override val typeStr = "mcu"
   import spademeta._
 
-  override val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
+  override lazy val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
   override def numLanes:Int = 1
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
@@ -212,12 +269,13 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   override def numRegs = 16
   override def numCtrs = 8
   override def numSRAMs = 1
+  override def sramSize = 32768
   override def numUDCs = 0
   override def config(implicit spade:SwitchNetwork) = {
     addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    numScalarBufs(4, 16)
+    numVecBufs(vins.size, 16)
     color(0 until numCtrs, CounterReg)
     color(7, ReadAddrReg).color(8, WriteAddrReg)
     color(8 until 8 + numScalarBufs, ScalarInReg)
@@ -235,12 +293,11 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
   /* Parameters */
   override def numRegs = 16
   override def numCtrs = 6
-  override def numSRAMs = 0
   override def numUDCs = 4
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
-    numScalarBufs(6)
-    numVecBufs(vins.size)
+    numScalarBufs(6, 16)
+    numVecBufs(vins.size, 16)
     color(0 until numCtrs, CounterReg)
     color(7 until 7 + numScalarBufs, ScalarInReg)
     color(8 until 8 + souts.size, ScalarOutReg)
@@ -251,14 +308,14 @@ class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"
   import spademeta._
-  val ctrlBox:CtrlBox = new MCCtrlBox()
+  lazy val ctrlBox:CtrlBox = new MCCtrlBox()
 
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
     //assert(sins.size==2)
     //assert(vins.size==1)
-    numScalarBufs(4)
-    numVecBufs(vins.size)
+    numScalarBufs(4, 256)
+    numVecBufs(vins.size, 16)
     nameOf(sbufs(0)) = "roffset"
     nameOf(sbufs(1)) = "woffset"
     nameOf(sbufs(2)) = "rsize"

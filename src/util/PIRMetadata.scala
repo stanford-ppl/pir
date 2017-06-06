@@ -93,16 +93,22 @@ trait PIRMetadata extends { self:Design =>
     type V = List[Controller]
   }
 
+  /* counters for read address calculation. 
+   * inner counter comes first */
   object readCChainsOf extends MOneToOneMap {
     type K = ComputeUnit
     type V = List[CounterChain]
   }
 
+  /* counters for write address calculation. 
+   * inner counter comes first */
   object writeCChainsOf extends MOneToOneMap {
     type K = ComputeUnit 
     type V = List[CounterChain]
   }
 
+  /* counters for computation
+   * inner counter comes first */
   object compCChainsOf extends MOneToOneMap {
     type K = ComputeUnit 
     type V = List[CounterChain]
@@ -131,6 +137,11 @@ trait PIRMetadata extends { self:Design =>
   object constOf extends MOneToOneMap {
     type K = Node
     type V = Int
+  }
+
+  object boundOf extends MOneToOneMap {
+    type K = Node
+    type V = AnyVal
   }
 
   object isTailCollector extends MOneToOneMap {

@@ -65,7 +65,7 @@ trait Design extends PIRMetadata with Collector {
   /* Transformation */
   val ctrlAlloc = new CtrlAlloc()
   val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
-  val fusionTransform = new FusionTransform() { /*override def shouldRun = false*/ } //TODO fix this
+  val fusionTransform = new FusionTransform() { override def shouldRun = false } //TODO fix this
   val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   val optimizer = new Optimizer()
 
@@ -109,7 +109,7 @@ trait Design extends PIRMetadata with Collector {
   def mapping:Option[PIRMap] = pirMapping.mapping
 
   // Graph Construction
-  //passes += spadePrinter 
+  passes += spadePrinter 
   passes += forwardRef
   passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
   passes += scalMemInsertion

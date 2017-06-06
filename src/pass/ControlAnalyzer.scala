@@ -64,7 +64,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  def setHead(ctrler:Controller) = {
+  def setHead(ctrler:Controller) = emitBlock(s"setHead: $ctrler") {
     isHead(ctrler) = ctrler match {
       case ctrler:MemoryPipeline => false
       case ctrler if isPipelining(ctrler) =>
@@ -83,10 +83,11 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  def setLast(ctrler:Controller) = {
+  def setLast(ctrler:Controller) = emitBlock(s"setLast: $ctrler") {
     isLast(ctrler) = ctrler match {
       case ctrler:MemoryPipeline => false
       case ctrler if isPipelining(ctrler) =>
+        dprintln(s"trueProduced:[${ctrler.trueProduced.mkString(",")}]")
         ctrler.trueProduced.isEmpty
       case ctrler:ComputeUnit if isStreaming(ctrler) =>
         val descendents = ctrler.descendents.collect { case cu:ComputeUnit => cu }
@@ -97,7 +98,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
             }
           }
         }
-        dprintln(s"setLast: $ctrler descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
+        dprintln(s"descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
         fifos.isEmpty
     }
   }

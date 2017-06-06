@@ -38,6 +38,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapCtrl(cu:CU, pirMap:M):M = {
     var mp = pirMap
     val pcu = pirMap.clmap(cu)
+    mp = mapEnOut(cu, pcu, mp)
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
     mp = mapPulserSM(cu, pcu, mp)
@@ -45,7 +46,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapAndTrees(cu, pcu, mp)
     mp = mapUDCIns(cu, pcu, mp)
     mp = mapMemoryRead(cu, pcu, mp)
-    mp = mapEn(cu, pcu, mp)
+    mp = mapEnIn(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
     mp
   }
@@ -91,6 +92,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapInPort(mbuf.swapRead, pmem.incReadPtr, mp)
       }
     }
+    cu.fifos.foreach { fifo =>
+      val pmem = mp.smmap(fifo)
+      mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
+    }
     mp
   }
 
@@ -121,7 +126,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def mapAndTree(at:AT, pat:PAT, pirMap:M):M = {
-    var mp = pirMap
+    implicit var mp = pirMap
     mp = mp.setPM(at, pat)
     mp = mp.setOP(at.out, pat.out)
     at.ins.foreach { in =>
@@ -131,7 +136,15 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       info += s"in=$in, from=${in.from}, po=$po \n"
       info += s"$pat'ins mapped to $po = [${pins.mkString(",")}]"
       assert(pins.size==1, info)
-      mp = mp.setIP(in, pins.head)
+      val pin = pins.head
+      mp = mp.setIP(in, pin)
+      mp = mp.setFI(pin, po)
+    }
+    pat.ins.foreach { pin =>
+      if (!isMapped(pin)) {
+        val po = pin.fanIns.filter { _.src.isConst }.head
+        mp = mp.setFI(pin, po)
+      }
     }
     mp
   }
@@ -145,7 +158,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
         mp = mapAndTree(cb.fifoAndTree, pcb.fifoAndTree, mp)
         mp = mapAndTree(cb.tokenInAndTree, pcb.tokenInAndTree, mp)
-        mp = mapAndTree(cb.andTree, pcb.andTree, mp)
+        mp = mapAndTree(cb.streamAndTree, pcb.streamAndTree, mp)
+        mp = mapAndTree(cb.pipeAndTree, pcb.pipeAndTree, mp)
       case (cb:OCB, pcb:POCB) =>
         mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
         mp = mapAndTree(cb.childrenAndTree, pcb.childrenAndTree, mp)
@@ -157,22 +171,38 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapEn(cu:CU, pcu:PCL, pirMap:M):M = {
+  def mapEnOut(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
     (cb, pcb) match {
       case (cb:MCB, pcb:PMCB) =>
-        mp = mapInPort(cb.readEn.in, pcb.readEn.in, mp)
-        mp = mapInPort(cb.writeEn.in, pcb.writeEn.in, mp)
         mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
         mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)
       case (cb:OCB, pcb:POCB) => 
-        mp = mapInPort(cb.en.in, pcb.en.in, mp)
         mp = mp.setOP(cb.en.out, pcb.en.out)
       case (cb:ICB, pcb:PICB) =>
-        mp = mapInPort(cb.en.in, pcb.en.in, mp)
         mp = mp.setOP(cb.en.out, pcb.en.out)
+      case (cb:CB, pcb:PCB) =>
+        assert(cb.ctrler.isInstanceOf[MC])
+        assert(pcb.pne.isInstanceOf[PMC])
+    }
+    mp
+  }
+
+  def mapEnIn(cu:CU, pcu:PCL, pirMap:M):M = {
+    var mp = pirMap
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
+    (cb, pcb) match {
+      case (cb:MCB, pcb:PMCB) =>
+        //mp = mapInPort(cb.readEn.in, pcb.readEn.in, mp)
+        mp = mp.setIP(cb.readEn.in, pcb.readEn.in)
+        mp = mapInPort(cb.writeEn.in, pcb.writeEn.in, mp)
+      case (cb:OCB, pcb:POCB) => 
+        mp = mapInPort(cb.en.in, pcb.en.in, mp)
+      case (cb:ICB, pcb:PICB) =>
+        mp = mapInPort(cb.en.in, pcb.en.in, mp)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
         assert(pcb.pne.isInstanceOf[PMC])

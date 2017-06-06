@@ -65,6 +65,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
       case reg@VecOutPR(vo) if pirMap.vomap.contains(vo) =>
         val pvos = pirMap.vomap(vo)
         voMap += reg -> mutable.Stack() 
+        dprintln(s"$vo -> ${quote(pvos)}")
         pvos.foreach { pvo =>
           voMap(reg).push(pvo)
           regs += reg
@@ -92,7 +93,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           }.getOrElse(pcu.asCU.regs.filter{_.is(VecOutReg)})
         case ScalarOutPR(scalarOut) =>
           pirMap.vomap.get(scalarOut).map { psos =>
+            dprintln(s"$n -> $psos")
             psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
+              dprintln(s"regsOf($pso) = ${regsOf(pso)}")
               prev intersect regsOf(pso.ic)
             }
           }.getOrElse(pcu.asCU.regs.filter(_.is(ScalarOutReg)))

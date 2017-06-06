@@ -243,7 +243,8 @@ object Stage {
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
     val (accstage, reg) = Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
-    (rdstages :+ accstage, reg)
+    val stages = rdstages :+ accstage
+    (stages, reg)
   }
 }
 object Stages {
@@ -385,6 +386,10 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
   indexOf(this) = regId
 
   def isTemp = this.isInstanceOf[TempPR]
+  def getInit:Option[AnyVal] = this match {
+    case AccumPR(Const(init)) => Some(init)
+    case r => None
+  }
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}

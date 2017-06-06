@@ -71,6 +71,7 @@ abstract class Controller(implicit design:Design) extends Node {
   def isPipelining = pirmeta.isPipelining(this)
 
   def isMP = this.isInstanceOf[MemoryPipeline]
+  def isCU = this.isInstanceOf[ComputeUnit]
   def asCU = this.asInstanceOf[ComputeUnit]
   def asCL = this.asInstanceOf[Controller]
   def asMP = this.asInstanceOf[MemoryPipeline]
@@ -185,8 +186,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     }
   }
 
-  def parLanes:Int
-
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
@@ -250,8 +249,6 @@ abstract class OuterController(name:Option[String])(implicit design:Design) exte
   }
 
   lazy val ctrlBox:OuterCtrlBox = OuterCtrlBox()
-
-  def parLanes:Int = 1 
 
 }
 
@@ -331,7 +328,7 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
       case s:RAStage => rdAddrStages
       case s:LocalStage => localStages
     }
-    pool.foreach { prev =>
+    pool.lastOption.foreach { prev =>
       s.prev = Some(prev)
       prev.next = Some(s)
     }
@@ -342,7 +339,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
     }
   }
 
-  def parLanes:Int = localCChain.inner.par
   /* Controller Hierarchy */
   def locals = this :: outers
   /* List of outer controllers reside in current inner*/

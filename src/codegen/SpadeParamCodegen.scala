@@ -123,51 +123,57 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   }
 
   def emitParamClass = {
-    val pcu = pcus.head
-    emitBlock(s"case class GeneratedPCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PCUParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val v = ${spade.numLanes}")
-      emitln(s"override val numCounters = ${pcu.numCtrs}")
-      emitln(s"override val numUDCs = ${pcu.numUDCs}")
-      emitRegs(pcu)
-      emitStages(pcu)
-      emitln(s"override val r = regColors.size")
+    pcus.headOption.foreach { pcu =>
+      emitBlock(s"case class GeneratedPCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PCUParams") {
+        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val v = ${spade.numLanes}")
+        emitln(s"override val numCounters = ${pcu.numCtrs}")
+        emitln(s"override val numUDCs = ${pcu.numUDCs}")
+        emitRegs(pcu)
+        emitStages(pcu)
+        emitln(s"override val r = regColors.size")
+      }
     }
     emitln(1)
-    val mcu = mcus.head
-    emitBlock(s"case class GeneratedPMUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PMUParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val v = ${spade.numLanes}")
-      emitln(s"override val numCounters = ${mcu.numCtrs}")
-      emitln(s"override val numUDCs = ${mcu.numUDCs}")
-      emitRegs(mcu)
-      emitStages(mcu)
-      emitln(s"override val r = regColors.size")
+
+    mcus.headOption.foreach { mcu =>
+      emitBlock(s"case class GeneratedPMUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PMUParams") {
+        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val v = ${spade.numLanes}")
+        emitln(s"override val numCounters = ${mcu.numCtrs}")
+        emitln(s"override val numUDCs = ${mcu.numUDCs}")
+        emitRegs(mcu)
+        emitStages(mcu)
+        emitln(s"override val r = regColors.size")
+      }
     }
 
-    val ocu = ocus.head.head
-    emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val numCounters = ${ocu.numCtrs}")
-      emitln(s"override val numUDCs = ${ocu.numUDCs}")
-      emitln(s"override val numScalarOut = 0")
-    }
+    ocus.headOption.foreach { _.headOption.foreach { ocu =>
+      emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
+        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val numCounters = ${ocu.numCtrs}")
+        emitln(s"override val numUDCs = ${ocu.numUDCs}")
+        emitln(s"override val numScalarOut = 0")
+      }
+    }}
 
-    val scu = scus.head.head
-    emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val numCounters = ${scu.numCtrs}")
-      emitln(s"override val numUDCs = ${scu.numUDCs}")
-      emitRegs(scu)
-      emitStages(scu)
-      emitln(s"override val r = regColors.size")
-    }
+    scus.headOption.foreach { _.headOption.foreach { scu =>
+      emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
+        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val numCounters = ${scu.numCtrs}")
+        emitln(s"override val numUDCs = ${scu.numUDCs}")
+        emitRegs(scu)
+        emitStages(scu)
+        emitln(s"override val r = regColors.size")
+      }
+    }}
 
-    val mc = mcs.head.head
-    emitBlock(s"case class GeneratedMemoryChannelParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends MemoryChannelParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
-      emitln(s"override val v = ${spade.numLanes}")
-    }
+    mcs.headOption.foreach { _.headOption.foreach { mc =>
+      emitBlock(s"case class GeneratedMemoryChannelParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends MemoryChannelParams") {
+        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val v = ${spade.numLanes}")
+      }
+    }}
 
   }
 

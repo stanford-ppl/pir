@@ -126,17 +126,17 @@ trait DotCodegen extends Printer with DotEnum {
   def quote(n:Any)(implicit design:Design) = {
     implicit val spade:Spade = design.arch
     n match {
-      case vin:PI[_] =>
-        vin.src match {
-          case cu:PCU => s"""${vin.src}:${vin}:n"""
-          case sb:PSB => s"""${vin.src}"""
-          case _ => vin.src.toString
+      case pin:PI[_] =>
+        pin.src match {
+          case cu:PCU => s"""${pin.src}:${pin}:n"""
+          case sb:PSB => s"""${pin.src}"""
+          case _ => pin.src.toString
         }
-      case vout:PO[_] =>
-        vout.src match {
-          case cu:PCU => s"""${vout.src}:${vout}:s"""
-          case sb:PSB => s"""${vout.src}"""
-          case _ => vout.src.toString
+      case pout:PO[_] =>
+        pout.src match {
+          case cu:PCU => s"""${pout.src}:${pout}:s"""
+          case sb:PSB => s"""${pout.src}"""
+          case _ => pout.src.toString
         }
       case n:Node => pir.util.quote(n)
       case n:PNode => pir.plasticine.util.quote(n)

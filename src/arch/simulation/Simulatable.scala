@@ -14,22 +14,25 @@ import pir.plasticine.util._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-trait Simulatable extends Module {
+trait Simulatable extends Module with Evaluation {
   spade.simulatable += this
   def register(implicit sim:Simulator):Unit = {
     val fimap = sim.mapping.fimap
     ins.foreach { in =>
-      if (in.v.func.isEmpty) {
+      if (!in.v.isDefined) {
         fimap.get(in).fold {
-          if (in.fanIns.size==1) in.v <= in.fanIns.head
-        } { 
-          out => in.v <= out
+          if (in.fanIns.size==1) {
+            in := in.fanIns.head
+          }
+        } { out => 
+          in := out
         }
       }
     }
   }
+  // Check if a mapped simulatable has update function defined on all its io
   def check(implicit sim:Simulator):Unit = {
-    implicit val design:Design = sim.design
+    implicit val mp:PIRMap = sim.mapping
     ios.foreach { io =>
       //this match {
         //case n:Counter if isMapped(n) =>
@@ -40,8 +43,17 @@ trait Simulatable extends Module {
           //}
         //case _ =>
       //}
-      if (isMapped(io) && io.v.func.isEmpty) warn(s"Simulatable ${quote(this)}'s $io doesn't have a update function!")
+      if (isMapped(io) && !io.v.isDefined) 
+        warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")
     }
   }
+  def updateModule(implicit sim:Simulator):Unit = {
+    import sim.quote
+    ios.foreach { io => io.update }
+  }
+  def clearModule(implicit sim:Simulator):Unit = {
+    ios.foreach { io => io.clearUpdate }
+  }
+  def simCount = ios.size
 }
 

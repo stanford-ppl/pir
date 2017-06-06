@@ -29,14 +29,17 @@ package object misc extends Logger {
     getStackTrace(1, 5)
   }
   def getStackTrace(start:Int, end:Int):String = {
-    Thread.currentThread().getStackTrace().slice(start,end).map("" + _).mkString("\n")
+    val curThread = Thread.currentThread()
+    val trace = curThread.getStackTrace()
+    trace.slice(start,end).map("" + _).mkString("\n")
   }
 
   def info(s:String) = emitln(s"[pir] ${s}")
   def startInfo(s:String) = emit(s"[pir] ${s}")
   def endInfo(s:String) = { emitln(s" ${s}") }
-  def warn(s:Any) = emitln(s"${Console.YELLOW}[warning] ${s}${Console.RESET}")
-  def err(s:Any) = { emitln(s"${Console.RED}[error]${s}${Console.RESET}"); throw PIRException(s"$s") }
+  def warn(s:Any) = emitln(s"\n${Console.YELLOW}[warning] ${s}${Console.RESET}")
+  def errmsg(s:Any) = { emitln(s"\n${Console.RED}[error]${s}${Console.RESET}") }
+  def err(s:Any) = { errmsg(s); throw PIRException(s"$s") }
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()

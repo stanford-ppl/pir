@@ -50,10 +50,10 @@ trait Mapper { self =>
   override def toString = s"$typeStr"
 
   def debug = Config.debugMapper
-  def dprintln(s:Any):Unit = logger.dprintln(debug, s"$this", s)
-  def dprint(s:Any):Unit = logger.dprint(debug, s"$this", s)
+  def dprintln(s:Any):Unit = logger.dprintln(s"$this", s)
+  def dprint(s:Any):Unit = logger.dprint(s"$this", s)
   def dprintln(p:Boolean, s:Any):Unit = logger.dprintln(p && debug, s"$this", s)
-  def dprintln(mapper:Mapper, s:Any):Unit = logger.dprintln(debug, s"$mapper", s)
+  def dprintln(mapper:Mapper, s:Any):Unit = logger.dprintln(s"$mapper", s)
   def dprintln(header:String, s:Any):Unit = logger.dprintln(header, s) 
   def dbsln(mapper:Mapper, s:Any):Unit = logger.dbsln(debug, Some(s"$mapper"), s) 
   def dbeln(mapper:Mapper, s:Any):Unit = logger.dbeln(debug, Some(s"$mapper"), s) 
@@ -65,6 +65,7 @@ trait Mapper { self =>
   def quote(n:Any)(implicit spade:Spade):String = n match {
     case n:Node => pir.util.quote(n) 
     case n:PNode => pir.plasticine.util.quote(n)
+    case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
   }
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {

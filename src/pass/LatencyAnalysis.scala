@@ -245,9 +245,9 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
       case ScalarIn(_, scalar) => constProp(scalar)
       case ctr:Counter => 0
       case s:ScalarOut => constProp(s.in.from)
-      case n:ArgIn => n.const match {
-          case Some(Const(c:Int)) => c
-          case None => throw PIRException(s"Don't know you to const propogate ArgIn $n")
+      case n:ArgIn => boundOf.get(n) match {
+          case Some(c:Int) => c
+          case _ => throw PIRException(s"Don't know how to const propogate ArgIn $n")
         }
       case s:Scalar => constProp(s.writer)
       case n => throw PIRException(s"Don't know how to const propogate $n") 

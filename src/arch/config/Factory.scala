@@ -46,10 +46,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
 
-    if (!cu.isMCU) {
-      val voRegs = cu.regs.filter(_.is(VecOutReg))
-      assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
-      (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+    cu match {
+      case cu:MemoryComputeUnit =>
+        cu.vouts.foreach { _.ic <== cu.sram.readPort }
+      case cu:ComputeUnit =>
+        val voRegs = cu.regs.filter(_.is(VecOutReg))
+        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
     }
 
     // One to one
@@ -176,8 +179,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.siblingAndTree.out // 0
-        cb.en.in <== cb.andTree.out // 1
+        cb.en.in <== cb.pipeAndTree.out // 0
+        cb.en.in <== cb.streamAndTree.out // 1
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
@@ -189,8 +192,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
-        cb.readEn.in <== cb.readFifoAndTree.out
-        cb.readEn.in <== cb.tokenInXbar.out
+        cb.readEn.in <== cb.readAndGate.out
+        //cb.readEn.in <== cb.tokenInXbar.out
         cb.writeEn.in <== cb.writeFifoAndTree.out
       case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
@@ -214,6 +217,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           udc.dec <== cb.doneXbar.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        cb.readUDC.inc <== cu.sram.swapWrite
+        cb.readUDC.dec <== cb.readDoneXbar.out
       case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
     }
@@ -225,24 +230,60 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cu.bufs.foreach { buf => buf.incReadPtr <== cb.readDoneXbar.out; buf.incReadPtr <== cb.writeDoneXbar.out }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cb.writeDoneXbar.out; buf.incWritePtr <== cu.cins.map(_.ic) }
-        cu.srams.foreach { sram => sram.incReadPtr <== cb.readDoneXbar.out }
-        cu.srams.foreach { sram => sram.incWritePtr <== cb.writeDoneXbar.out }
+        cu.sbufs.foreach { buf => 
+          buf.incReadPtr <== cb.readDoneXbar.out; 
+          buf.incReadPtr <== cb.writeDoneXbar.out
+          buf.incReadPtr <== cb.readEn.out; 
+          buf.incReadPtr <== cb.writeEn.out; 
+          buf.incWritePtr <== cb.writeDoneXbar.out
+          buf.incWritePtr <== cu.cins.map(_.ic)
+        }
+        cu.vbufs.foreach { buf => 
+          buf.incReadPtr <== cb.readEn.out; 
+          buf.incReadPtr <== cb.writeEn.out; 
+          // buf.incWritePtr <== cu.cins.valid 
+        }
+        cu.srams.foreach { sram => 
+          sram.incReadPtr <== cb.readDoneXbar.out 
+          sram.incWritePtr <== cb.writeDoneXbar.out
+          sram.writeEn <== cb.writeEn.out
+        }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
-          buf.incReadPtr <== cu.ctrs.map(_.done)
-          buf.incReadPtr <== cu.cins.map(_.ic)
+          //TODO
+          //buf.incReadPtr <== cu.ctrs.map(_.done)
+          //buf.incReadPtr <== cu.cins.map(_.ic)
+          buf.incReadPtr <== cb.doneXbar.out 
+          buf.incReadPtr <== cb.en.out; 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf =>
-          buf.incReadPtr <== cu.ctrs.map(_.done)
-          buf.incReadPtr <== cu.cins.map(_.ic)
+          //TODO
+          //buf.incReadPtr <== cu.ctrs.map(_.done)
+          //buf.incReadPtr <== cu.cins.map(_.ic)
+          buf.incReadPtr <== cb.doneXbar.out 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (mc:MemoryController, cb:CtrlBox) =>
         mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+      case (top:Top, cb:TopCtrlBox) =>
+    }
+  }
+
+  def connectStageControl(cu:Controller):Unit = {
+    implicit val spade:Spade = cu.spade
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    (cu, cu.ctrlBox) match {
+      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
+        //TODO: map enable once read and write stage can be shared
+        cu.rastages.foreach { _.prs.foreach { _.en <== cb.readEn.out } }
+        cu.wastages.foreach { _.prs.foreach { _.en <== cb.writeEn.out } }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
+        cu.stages.foreach { _.prs.foreach { _.en <== cb.en.out } }
+      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
+      case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
     }
   }
@@ -256,8 +297,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.sbufs.map(_.notFull)
-          cout.ic <== cb.doneXbar.out //TODO: HACK
-          cout.ic <== cu.ctrs.map(_.done)
+          cout.ic <== cb.doneXbar.out
           cout.ic <== cb.en.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
@@ -266,7 +306,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.pulserSM.init <== cb.siblingAndTree.out
         cu.couts.foreach { cout => 
           cout.ic <== cb.doneXbar.out
-          cout.ic <== cu.ctrs.map(_.done) //TODO: HACK
           cout.ic <== cb.pulserSM.out
           cout.ic <== cb.en.out // en.in is connected to childrenAndTree.out
           cout.ic <== cb.siblingAndTree.out
@@ -295,6 +334,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     connectCounters(cu)
     connectUDCs(cu)
     connectMemoryControl(cu)
+    connectStageControl(cu)
     connectCtrlIO(cu)
   }
 

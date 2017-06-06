@@ -65,7 +65,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
         regs.foreach { reg =>
           reg match {
             case ScalarOutPR(so) =>
-              mp.vomap.get(so).foreach { _.foreach { pso => mp = mp.setFI(pso.ic, ppr.out) } }
+              mp.vomap.get(so).foreach { _.foreach { pso => mp = mp.setFI(pso.ic, ppr.out.sliceHead.out) } }
             case VecOutPR(vo) =>
               mp.vomap.get(vo).foreach { _.foreach { pvo => // One VecOut can be mapped to multiple pvouts 
                 if (regsOf(pvo.ic).contains(pr)) mp = mp.setFI(pvo.ic, ppr.out)
@@ -78,12 +78,16 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
+  def typeMismatch(n:N, p:R, map:M):Unit = {
+    throw MappingException(this, map, s"Type Mismatch: $n cannot be mapped to $p")
+  }
+
   def checkStageType(n:N, p:R, map:M):Unit = {
-    (n, p) match {
-      //case (s:WAST, ps:PWAST) => currently assume stages in mcu can do both //TODO
-      //case (s:RDST, ps:PRDST) =>
-      case (s:ST, ps:PFUST) =>
-      case _ => throw StageRouting(n, p, map)
+    n match {
+      //case s:WAST => p match { case p:PWAST => ; case p => typeMismatch(p) }
+      //case s:RAST => p match { case p:PRAST => ; case p => typeMismatch(p) }
+      case s:RDST => p match { case p:PRDST => ; case p => typeMismatch(s, p, map) }
+      case _ =>
     }
   }
 
@@ -155,7 +159,7 @@ case class OutOfStage(pcu:PCU, cu:ICL, pnodes:List[PST], nodes:List[ST], mp:PIRM
   override val msg = s"Not enough Stages in ${pcu} to map ${cu}."
 }
 case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
-  override val msg = s"${ps}:[${ps.funcUnit.get.ops}] doesn't support op:${s.fu.get.op} in ${s}"
+  override val msg = s"${ps}:[${ps.funcUnit.get.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
 }
 case class OutOfPipeReg(ps:PST, s:ST, pnodes:List[PPR], nodes:List[PR], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends OutOfResource(mp) {
   override val msg = s"Not enough PipeReg in ${ps} to map ${s}."

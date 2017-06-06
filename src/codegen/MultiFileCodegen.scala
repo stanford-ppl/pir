@@ -54,7 +54,7 @@ trait MultiFileCodegen extends Printer {
     }
     lineNumber = 0
     splitPreHeader
-    val prevFile = if (fileNumber==1) " " else s" extends ${traitName}${fileNumber-1} "
+    val prevFile = if (fileNumber==1) "" else s" extends ${traitName}${fileNumber-1} "
     emitBSln(s"trait $traitName$fileNumber$prevFile")
     splitPostHeader
   }

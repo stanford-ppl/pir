@@ -53,6 +53,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
               s match {
                 //case es:EmptyStage =>
                 case fs:FUStage =>
+                  emitln(s"ops=[${fs.fu.ops.mkString(",")}]")
                   fs.fu.operands.foreach { oprd =>
                     emitln(s"${oprd.ms}")
                   }

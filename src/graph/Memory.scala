@@ -14,6 +14,7 @@ import pir.util.enums._
 import pir.exceptions._
 import pir.pass.ForwardRef
 import pir.util.misc._
+import pir.mapper.PIRMap
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
   import pirmeta._
@@ -93,7 +94,7 @@ trait MultiBuffering extends OnChipMem {
   var _consumer:Controller = _
   def producer:Controller = _producer
   def consumer:Controller = _consumer
-  var trueDep:Boolean = _ // Whether the consumer is a true dependency
+  var trueDep:Boolean = true // Whether the consumer is a true dependency
 
   def producer[T](pd:T):this.type = {
     pd match {
@@ -129,6 +130,9 @@ trait MultiBuffering extends OnChipMem {
 trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
+  def finalSize(mp:PIRMap):Int = {
+    size + mp.rtmap(writePort.from.src)
+  }
 }
 
 trait LocalMem extends OnChipMem {

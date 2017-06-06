@@ -94,16 +94,17 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               mem.swapWrite.connect(cb.writeDone.out)
             case cb:StageCtrlBox =>
               mem.readPort.to.foreach { _.src match {
-                  case ctr:Counter if cu.containsCopy(ctr.cchain) =>
-                    mem.swapRead.connect(cu.getCC(ctr.cchain).outer.done)
-                  case ctr:Counter =>
-                    mem.swapRead.connect(ctr.cchain.ctrler.ctrlBox.asInstanceOf[StageCtrlBox].done.out)
+                  case ctr:Counter if ctr.cchain.outer.done == cb.done.in.from =>
+                    mem.swapRead.connect(cb.done.out)
                     //throw new Exception(s"Unhandled case in hardware!") 
                     // If PCU make copy of ancesstors's counter, in which the counter's bounds are
                     // read from ScalarBuffer, the swapRead has to come from tokenIn but not
                     // local done
+                  case ctr:Counter if cu.containsCopy(ctr.cchain) =>
+                    assert(false) //TODO: add ctr.done and tokenIn to readPtrInc connection
+                    mem.swapRead.connect(getDone(cu, ctr.cchain))
                   case _ => // Connect to local done
-                    mem.swapRead.connect(cb.done.in.from)
+                    mem.swapRead.connect(cb.done.out)
                 }
               }
               mem.swapWrite.connect(getDone(cu, swapWriteCC(mem)))
@@ -121,10 +122,26 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                 case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.en.out)
               }
           }
-          // deqEnable is mapped in CtrlMapper
+          cu.ctrlBox match {
+            case cb:InnerCtrlBox =>
+              mem.dequeueEnable.connect(cb.en.out)
+            case cb:MemCtrlBox =>
+              if (forRead(mem)) 
+                mem.dequeueEnable.connect(cb.readEn.out)
+              else if (forWrite(mem)) 
+                mem.dequeueEnable.connect(cb.writeEn.out)
+          }
         case mem:VectorFIFO =>
           // vectorFIFO.enqueueEnable routes through data bus 
-          // deqEnable is mapped in CtrlMapper
+          cu.ctrlBox match {
+            case cb:InnerCtrlBox =>
+              mem.dequeueEnable.connect(cb.en.out)
+            case cb:MemCtrlBox =>
+              if (forRead(mem)) 
+                mem.dequeueEnable.connect(cb.readEn.out)
+              else if (forWrite(mem)) 
+                mem.dequeueEnable.connect(cb.writeEn.out)
+          }
       }
     case _ =>
   }
@@ -244,6 +261,26 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     if (midConsumers.size>1) connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].done.out)))
   }
 
+  //def propogateXbar(cb:CtrlBox, swapCtrl:CtrlInPort) = {
+    //cb match {
+      //case cb if swapCtrl.isCtrlIn => swapCtrl.from
+      //case cb:MemCtrlBox =>
+        //if (swapCtrl.from==cb.readDone.out) {
+          //cb.readDone.out
+        //} else if (swapCtrl.from==cb.writeDone.out) {
+          //cb.writeDone.out
+        //} else {
+          //throw PIRException(s"cb:${cb} swapCtrl is not readDone or writeDone, ${swapCtrl}.from=${swapCtrl.from}")
+        //}
+      //case cb:StageCtrlBox =>
+        //if (swapCtrl.from==cb.done.out) {
+          //cb.done.out
+        //} else {
+          //throw PIRException(s"cb:${cb} swapCtrl is not done, ${swapCtrl}.from=${swapCtrl.from}")
+        //}
+    //}
+  //}
+
   def connectSibling(ctrler:Controller) = {
     // Forward dependency
     (ctrler, ctrler.ctrlBox) match {
@@ -291,8 +328,13 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cu.trueProduced.foreach { mem =>
           mem.consumer match {
             case consumer:ComputeUnit if mem.buffering != 1 & mem.buffering < cu.parent.length =>
+              val inc = consumer.ctrlBox match {
+                case cmcb:MemCtrlBox if forRead(mem) => cmcb.readDone.out
+                case cmcb:MemCtrlBox if forWrite(mem) => cmcb.readDone.out
+                case cmcb:StageCtrlBox => cmcb.done.out
+              }
               val cd = cb.creditBuffer(mem, mem.buffering)
-              cd.inc.connect(mem.swapRead.from)
+              cd.inc.connect(inc)
               cd.dec.connect(cb.done.out)
               cb.siblingAndTree.addInput(cd.out)
             case consumer =>
@@ -330,14 +372,14 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     ctrler.ctrlBox match {
       case cb:MemCtrlBox =>
-        cb.readEn.in.connect(cb.readFifoAndTree.out)
+        //cb.readEn.in.connect(cb.readFifoAndTree.out)
         cb.writeEn.in.connect(cb.writeFifoAndTree.out)
       case cb:OuterCtrlBox =>
         cb.en.in.connect(cb.childrenAndTree.out)
       case cb:InnerCtrlBox if isPipelining(ctrler) =>
-        cb.en.in.connect(cb.siblingAndTree.out)
+        cb.en.in.connect(cb.pipeAndTree.out)
       case cb:InnerCtrlBox if isStreaming(ctrler) =>
-        cb.en.in.connect(cb.andTree.out)
+        cb.en.in.connect(cb.streamAndTree.out)
       case cb:MCCtrlBox =>
     }
   }

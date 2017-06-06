@@ -28,10 +28,11 @@ abstract class UDCounter(implicit ctrlBox:CtrlBox, design:Design) extends CtrlPr
 /* TokenBuffer represents the forward data dependency.
  * @param dep depended compute unit where data is from. None if if allocated in first stage, in
  * which case used for handling token from parent and collect token from last stage. */
-case class TokenBuffer(dep:Any, initVal:Int)
+case class TokenBuffer(dep:Any)
   (implicit ctrlBox:CtrlBox, design:Design) extends UDCounter{
   override val name = None
   override val typeStr = "TokBuf"
+  val initVal = 0
   def initOnStart = false
   ctrler.ctrlBox.tokenBuffers += dep -> this
 }
@@ -143,7 +144,7 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
   var tokenOut:Option[CtrlOutPort] = None 
   // only outer controller have token down, which is the init signal first child stage
 
-  def tokenBuffer(dep:Any):TokenBuffer = { TokenBuffer(dep, 1) } //TODO
+  def tokenBuffer(dep:Any):TokenBuffer = { TokenBuffer(dep) }
   def creditBuffer(deped:Any, initVal:Int):CreditBuffer = { CreditBuffer(deped, initVal) }
   def enLut(outs:List[CtrlOutPort], transFunc:TransferFunction) = { EnLUT(outs.size, transFunc) }
 
@@ -201,7 +202,12 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
   extends CtrlBox() with StageCtrlBox {
   val fifoAndTree = AndTree("FIFOAndTree")
   val tokenInAndTree = AndTree("TokenInAndTree")
-  val andTree = AndTree(fifoAndTree.out, tokenInAndTree.out)
+  val pipeAndTree = AndTree("pipeAndTree")
+  pipeAndTree.addInput(siblingAndTree.out)
+  pipeAndTree.addInput(fifoAndTree.out)
+  val streamAndTree = AndTree(s"streamAndTree")
+  streamAndTree.addInput(tokenInAndTree.out)
+  streamAndTree.addInput(fifoAndTree.out)
 }
 object InnerCtrlBox {
   def apply()(implicit ctrler:InnerController, design: Design) = new InnerCtrlBox()

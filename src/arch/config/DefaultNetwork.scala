@@ -14,7 +14,7 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement) = pne.vectorIO
 
   // switch to switch channel width
-  override lazy val sbChannelWidth = 6
+  //override lazy val sbChannelWidth = 6
   //override lazy val sbChannelWidthWE = sbChannelWidth
   //override lazy val sbChannelWidthEW = sbChannelWidth
   //override lazy val sbChannelWidthNS = sbChannelWidth
@@ -75,8 +75,8 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   //override lazy val sbChannelWidth = 4
   //override lazy val sbChannelWidthWE = sbChannelWidth
   //override lazy val sbChannelWidthEW = sbChannelWidth
-  override lazy val sbChannelWidthNS = 8// sbChannelWidth
-  override lazy val sbChannelWidthSN = 8 //sbChannelWidth
+  //override lazy val sbChannelWidthNS = 8// sbChannelWidth
+  //override lazy val sbChannelWidthSN = 8 //sbChannelWidth
 
   // CU to CU channel width
   //override lazy val cuChannelWidth = 0
@@ -102,7 +102,7 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // SCU to switch channel width
   //override lazy val scsbChannelWidth = 4
   // switch to SCU channel width
-  override lazy val sbscChannelWidth = 6
+  //override lazy val sbscChannelWidth = 6
 
   // MC to switch channel width
   override lazy val mcsbChannelWidth = 0
@@ -137,7 +137,7 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   def io(pne:NetworkElement) = pne.ctrlIO
 
   // switch to switch channel width
-  override lazy val sbChannelWidth = 12
+  //override lazy val sbChannelWidth = 12
   //override lazy val sbChannelWidthWE = 1
   //override lazy val sbChannelWidthEW = 1
   //override lazy val sbChannelWidthNS = 1
@@ -151,14 +151,14 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   //override lazy val cuChannelWidthSN = 1
 
   // switch to CU channel width
-  override lazy val sbcuChannelWidth = 4
+  //override lazy val sbcuChannelWidth = 4
   //override lazy val sbcuChannelWidthNW = 1
   //override lazy val sbcuChannelWidthNE = 1
   //override lazy val sbcuChannelWidthSW = 1
   //override lazy val sbcuChannelWidthSE = 1
 
   // CU to Switch channel width
-  override lazy val cusbChannelWidth = 2
+  //override lazy val cusbChannelWidth = 2
   //override lazy val cusbChannelWidthNW = 1
   //override lazy val cusbChannelWidthNE = 1
   //override lazy val cusbChannelWidthSW = 1
@@ -180,9 +180,9 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
    override lazy val scmcChannelWidth = 0
     
   // OCU to switch channel width
-  override lazy val ocsbChannelWidth = 4
+  //override lazy val ocsbChannelWidth = 4
   // switch to OCU channel width
-  override lazy val sbocChannelWidth = 6
+  //override lazy val sbocChannelWidth = 6
 
   // Top to switch channel width
   //lazy val tpsbChannelWidth = 1
