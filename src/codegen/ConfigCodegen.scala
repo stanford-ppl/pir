@@ -243,7 +243,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
         emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
         emitln(s"${quote(pst)}.opcode = ${quote(fu.op)}")
-        emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
+        if (fimap.pmap.contains(pfu.out)) {
+          emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
+        } else {
+          emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out.sliceHead.out))}")
+        }
         emitAccum(pcu, fu)
         cu match {
           case cu:MP if forWrite(st) =>

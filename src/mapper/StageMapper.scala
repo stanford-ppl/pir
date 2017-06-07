@@ -116,12 +116,14 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def mapFUOut(n:ST, p:PST, map:M):M = {
+    var mp = map
     val fu = n.fu.get
     val pfu = p.asInstanceOf[PFUST].fu
     // Check Operation 
-    if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, map)
+    if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, mp)
     // Check Result 
-    mapOutPort(fu.out, pfu.out, map)
+    mp = mapOutPort(fu.out, pfu.out, mp)
+    mp 
   }
 
   def mapPRIn(stage:ST, pstage:PST, map:M):M = {
