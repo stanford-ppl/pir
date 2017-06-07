@@ -231,11 +231,11 @@ object OuterCtrlBox {
   def apply()(implicit ctrler:Controller, design:Design) = { new OuterCtrlBox() }
 }
 
-case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design) extends OuterCtrlBox {
+case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox {
   // Connect to pulser SM if pipelining, connect to sibling and tree if streamming
   val status = CtrlInPort(this, s"$this.status")
   val command = CtrlOutPort(this, s"$this.command")
-  override def tokenDown:CtrlOutPort = command
+  def tokenDown:CtrlOutPort = command
 
   override def ctrlIns:List[CtrlInPort]=  {
     super.ctrlIns ++ List(status).filter { _.isCtrlIn }

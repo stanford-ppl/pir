@@ -45,11 +45,25 @@ trait Traversal extends Pass {
       } 
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
-        case p:OnChipMem => 
-          //p match {
-            //case f:FIFOOnWrite => visitNode(f.dummyCtr)
-            //case _ =>
-          //}
+        case p:SRAM => 
+          visitNode(p.readPort)
+          visitNode(p.writePort)
+          visitNode(p.readAddr)
+          visitNode(p.writeAddr)
+          visitNode(p.swapRead)
+          visitNode(p.swapWrite)
+        case p:ScalarBuffer =>
+          visitNode(p.readPort)
+          visitNode(p.writePort)
+          visitNode(p.swapRead)
+          visitNode(p.swapWrite)
+        case p:FIFO => 
+          visitNode(p.readPort)
+          visitNode(p.writePort)
+          visitNode(p.enqueueEnable)
+          visitNode(p.dequeueEnable)
+          visitNode(p.notEmpty)
+          visitNode(p.notFull)
         case p:ScalarIn =>
         case p:ScalarOut =>
         case p:VecIn =>
@@ -63,10 +77,15 @@ trait Traversal extends Pass {
         case p:CtrlBox =>
           p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
           p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
+          p.delays.foreach(visitNode)
         case p:Counter =>
         case p:Delay =>
+          visitNode(p.in)
+          visitNode(p.out)
       }
       case r:Const[_] =>
+      case p:InPort =>
+      case p:OutPort =>
       case _ => throw new Exception(s"Don't know how to visit $node")
     }
   }
