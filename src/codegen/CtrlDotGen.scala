@@ -46,7 +46,7 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
     }
   }
 
-  override def traverse = {
+  addPass {
     design.top.innerCUs.foreach { icl =>
       emitSubGraph(s"inner_$icl", DotAttr().label(icl)) {
         icl match {

@@ -353,7 +353,7 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  override def traverse = {
+  addPass {
     setIter
     calcLatency(design.top)
     calcTotalCycle

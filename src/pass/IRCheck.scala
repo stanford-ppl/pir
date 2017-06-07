@@ -109,7 +109,7 @@ class IRCheck(implicit design: Design) extends Pass {
     }
   }
 
-  override def traverse:Unit = {
+  addPass {
     checkPIR
     checkSpade
   } 

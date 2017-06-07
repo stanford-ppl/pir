@@ -90,7 +90,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
     if (mp==null) mp = design.mapping.get
   }
 
-  override def traverse = {
+  addPass {
     design.arch.ctrlers.foreach(emit)
     emitBlock(s"mkmap") {
       mp.mkmap.map.foreach { case (k,v) =>

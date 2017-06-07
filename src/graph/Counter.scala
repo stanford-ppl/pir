@@ -84,7 +84,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   }
 
   def copy(cp:CounterChain):Unit = {
-    assert(!cp.isCopy, s"Can only clone original CounterChain. Target ${cp} is a clone of ${cp.original}")
+    assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
     this.setCopy(cp)
     clone(cp)
   }

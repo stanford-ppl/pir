@@ -19,7 +19,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def design:Design
 
-  def traverse:Unit = {
+  addPass {
     emitBlock("digraph G") {
       if (horizontal) emitln(s"rankdir=LR")
       emitNode(design.top)

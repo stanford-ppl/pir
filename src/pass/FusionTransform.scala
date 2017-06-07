@@ -82,7 +82,7 @@ class FusionTransform(implicit design: Design) extends Pass with Logger {
     design.removeNode(parent)
   }
 
-  override def traverse:Unit = {
+  addPass(canRun=design.optimizer.hasRun) {
     design.top.outerCUs.foreach {
       case pcu:StreamController =>
       case pcu if pcu.children.size == 1=>

@@ -234,14 +234,14 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
       state.v <<= WAITING 
       mc.mctpe match {
         case TileLoad =>
-          en.out.v.set { env =>
+          en.in.v.set { env =>
             state.v.update
-            If(en.out.pv) { env.setLow }
+            If(en.in.pv) { env.setLow }
           }
           state.v.set { statev =>
             If(fifoAndTree.out.v & (rdone.pv | (statev == WAITING))) {
               statev <<= LOADING
-              en.out.v.setHigh
+              en.in.v.setHigh
             }
           }
           count.v.set { countv =>

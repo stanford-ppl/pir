@@ -143,7 +143,7 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
     }
   }
 
-  override def traverse:Unit = {
+  addPass {
     assert(design.latencyAnalyzer.hasRun)
     spade.pnes.foreach { pne =>
       compEnergy(pne)

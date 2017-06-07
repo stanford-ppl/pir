@@ -20,7 +20,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
 
   override lazy val stream = newStream(s"CtrlAlloc.log")
 
-  override def traverse:Unit = {
+  addPass(canRun=design.memoryAnalyzer.hasRun, runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
       connectDone(ctrler)
     }
@@ -32,7 +32,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       connectSibling(ctrler)
       connectChildren(ctrler)
     }
-  } 
+  }
 
   /*
    * Use local copy if existed. Otherwise route the done
@@ -390,9 +390,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
+        //val readDone = ctrler.getCopy(swapReadCC(ctrler.mem)).outer.done
         val readDone = getDone(ctrler, swapReadCC(ctrler.mem))
         cb.readDone.in.connect(readDone)
         val writeDone = getDone(ctrler, swapWriteCC(ctrler.mem))
+        //val writeDone = ctrler.getCopy(swapWriteCC(ctrler.mem)).outer.done
         cb.writeDone.in.connect(writeDone)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>

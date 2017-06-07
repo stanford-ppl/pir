@@ -82,7 +82,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitBEln
   }
 
-  def traverse = {
+  addPass(canRun=true, runCount=1) {
     emitHeader
     emitAppObject
     emitSplit {

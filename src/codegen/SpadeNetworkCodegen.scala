@@ -51,7 +51,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
     emitln(1)
   }
 
-  def traverse = {
+  addPass {
     emitHeader
     emitSplit(emitNetwork)
     emitMixed {

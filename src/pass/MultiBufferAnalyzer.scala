@@ -166,8 +166,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  override def traverse:Unit = {
-    assert(design.accessAnalyzer.hasRun)
+  addPass(design.accessAnalyzer.hasRun) {
     setProducerConsumer
     findBackEdge
     setBufferSize

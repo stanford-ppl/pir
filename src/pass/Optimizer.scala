@@ -13,9 +13,8 @@ class Optimizer(implicit design: Design) extends Pass with Logger {
   import pirmeta._
   override lazy val stream = newStream(s"Optimizer.log")
 
-  override def traverse = {
+  addPass(canRun=design.memoryAnalyzer.hasRun) {
     // No longer need info by dummy CUs
-    assert(design.memoryAnalyzer.hasRun)
     design.top.compUnits.foreach { cu =>
       if (cu.children.isEmpty && cu.stages.isEmpty && cu.mems.isEmpty && cu.sins.isEmpty && cu.vins.isEmpty) {
         dprintln(s"Find dummy CU $cu")

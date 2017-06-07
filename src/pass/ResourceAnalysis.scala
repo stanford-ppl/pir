@@ -143,7 +143,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     coutPinUsed += pne -> count(pne.couts.map { out => mp.vomap.pmap.get(out) })
   }
 
-  override def traverse:Unit = {
+  addPass {
     spade.pnes.foreach { cl =>
       collectRegUtil(cl)
       collectCtrUtil(cl)

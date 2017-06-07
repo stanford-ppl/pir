@@ -62,7 +62,7 @@ class ContentionAnalysis(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  override def traverse:Unit = {
+  addPass {
     val c = calcContention(design.top)
     markContention(design.top, c)
   } 

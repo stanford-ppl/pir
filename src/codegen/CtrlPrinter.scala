@@ -87,7 +87,7 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
     fields.mkString(",")
   }
 
-  override def traverse = {
+  addPass(canRun=design.ctrlAlloc.hasRun) {
     design.top.ctrlers.foreach { cu =>
       emitCU(cu)
     }

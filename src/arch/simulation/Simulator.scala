@@ -28,7 +28,7 @@ trait SimUtil extends Logger {
 
 class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
-  def shouldRun = Config.simulate && design.mapping.nonEmpty
+  def shouldRun = Config.simulate && design.pirMapping.succeeded
   implicit val sim:Simulator = this
   val vcds:List[VcdPrinter] = if (Config.simulate) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
@@ -56,7 +56,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     tic
   }
 
-  override def traverse = {
+  addPass {
     dprintln(s"\n\nRegistering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")

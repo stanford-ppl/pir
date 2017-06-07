@@ -230,7 +230,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
     }
   }
 
-  override def traverse = {
+  addPass {
     print
   }
 

@@ -18,13 +18,11 @@ abstract class Pass(implicit val design:Design) {
   var runId = -1
 
   var isInit = false
-  var hasRun = false
   def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
 
   def reset {
     isInit = false
-    hasRun = false
   }
   
   def run(id:Int):Unit = {
@@ -35,12 +33,9 @@ abstract class Pass(implicit val design:Design) {
   final def run:Unit = {
     initPass
     isInit = true
-    traverse
+    runPasses
     finPass
-    hasRun = true
   }
-
-  def traverse:Unit
 
   def initPass:Unit = {
     startInfo(s"Begin $name ...")
@@ -57,18 +52,36 @@ abstract class Pass(implicit val design:Design) {
 
   val passes = mutable.ListBuffer[(() => Boolean, () => Any)]()
   val passRanCount = mutable.Map[Int, (Int,Int)]()
-  def addPass(canRun: => Boolean, runCount:Int)(pass: => Any) = {
+  def addPass(pass: => Any):Unit = addPass(canRun=true, runCount=1) (pass)
+  def addPass(canRun: => Boolean)(pass: => Any):Unit = addPass(canRun, runCount=1) (pass)
+  def addPass(canRun: => Boolean, runCount:Int)(pass: => Any):Unit = {
     passRanCount += passes.size -> (runCount, 0)
     passes += ((canRun _, pass _))
   }
   def runPasses = {
-    passes.zipWithIndex.foreach { case ((canRun, pass), i) =>
-      val (totalRun, currRun) = passRanCount(i)
+    passes.zipWithIndex.foreach { case ((canRun, pass), id) =>
+      val (totalRun, currRun) = passRanCount(id)
       if (canRun() && (totalRun > currRun)) {
-        print(s"$name pass $i run for the ${currRun+1} times .. ")
+        print(s"Pass $id run ${currRun+1} .. ")
         pass()
-        passRanCount(i) = (totalRun, currRun + 1)
+        passRanCount(id) = (totalRun, currRun + 1)
       }
     }
   }
+  def checkRanAll = {
+    if (shouldRun) {
+      passRanCount.foreach { case (id, (totalRun, currRun)) =>
+        if (totalRun != currRun)
+          errmsg(s"$name pass $id should run $totalRun times but only ran $currRun times!")
+      }
+    }
+  }
+  def hasRun = {
+    passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
+  }
+  def hasRun(id:Int) = {
+    val (totalRun, currRun) = passRanCount(id)
+    totalRun == currRun
+  }
+
 }

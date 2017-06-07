@@ -15,7 +15,9 @@ trait Traversal extends Pass {
     visited.clear()
   }
   
-  override def traverse = visitNode(design.top)
+  def traverse = visitNode(design.top)
+
+  addPass { traverse }
 
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")

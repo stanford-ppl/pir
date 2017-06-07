@@ -14,7 +14,9 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   def shouldRun = Config.mapping
 
   var mapping:Option[PIRMap] = None
-  var succeeded = false
+  var placeAndRouteSucceeded = false
+  var localMappingSucceeded = false
+  def succeeded = placeAndRouteSucceeded & localMappingSucceeded 
 
   def failed = !succeeded && Config.mapping
 
@@ -51,39 +53,28 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   val spadeScalDotPrinter = new CUScalarDotPrinter()
   val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
 
-  val cuMapper:CUMapper = new CUMapper() {
-    override def finPass(m:PIRMap) = {
-      spadeVecDotPrinter.print(Some(m))
-      spadeScalDotPrinter.print(Some(m))
-      spadeCtrlDotPrinter.print(Some(m))
-      try {
-        m.clmap.map.foldLeft(m) { case (pm, (ctrler, _)) =>
-          mapPrim(ctrler)(pm)
-        }
-      } catch {
-        case e:MappingException[_] => throw PassThroughException(cuMapper, e, m)(design)
-        case e:Throwable => throw e 
-      } 
-    }
-  }
+  val cuMapper:CUMapper = new CUMapper()
 
   override def reset = {
     mapping = None
-    succeeded = false
+    placeAndRouteSucceeded = false
+    localMappingSucceeded = false
   }
 
-  override def traverse = {
+  addPass {
     tic
     Try[PIRMap](cuMapper.map(PIRMap.empty)).map { m =>
+      spadeVecDotPrinter.print(Some(m))
+      spadeScalDotPrinter.print(Some(m))
+      spadeCtrlDotPrinter.print(Some(m))
       mapping = Some(m)
-      design.mappers.foreach{ _.mappingCheck(m) }
     } match {
       case Success(_) =>
-        succeeded = true
-        info(s"Mapping succeeded") 
+        placeAndRouteSucceeded = true
+        info(s"Placement & Routing succeeded") 
       case Failure(e) =>
-        succeeded = false
-        info(s"Mapping failed")
+        placeAndRouteSucceeded = false
+        info(s"Placement & Routing succeeded")
         e match {
           case e:OutOfResource[_] =>
             err(e)
@@ -100,9 +91,44 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
           case e => throw e 
         }
     }
-    toc(s"Mapping", "s")
-    design.mapperLogger.close
+    toc(s"Placement & Routing", "s")
   } 
+
+  addPass(canRun=placeAndRouteSucceeded && design.ctrlAlloc.hasRun) {
+    Try[PIRMap]{
+      var mp = mapping.get
+      design.top.ctrlers.foreach { ctrler =>
+        mp = mapPrim(ctrler)(mp)
+      }
+      mp
+    }.map { m =>
+      mapping = Some(m)
+      design.mappers.foreach{ _.mappingCheck(m) }
+    } match {
+      case Success(_) =>
+        localMappingSucceeded = true
+        info(s"Local Mapping succeeded") 
+      case Failure(e) =>
+        placeAndRouteSucceeded = false
+        info(s"Local Mapping succeeded")
+        e match {
+          case e:OutOfResource[_] =>
+            err(e)
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
+          case ExceedExceptionLimit(mapper, m) =>
+            mapping = Some(m.asInstanceOf[PIRMap])
+            throw e
+          case PassThroughException(mapper, e, m) =>
+            mapping = Some(m)
+            throw e
+          case e:MappingException[_] =>
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
+          case e:PIRException => throw e
+          case e => throw e 
+        }
+    }
+    design.mapperLogger.close
+  }
 
   override def initPass:Unit = {
     info(s"Start mapping...")

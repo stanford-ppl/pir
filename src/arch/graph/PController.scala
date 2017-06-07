@@ -194,7 +194,8 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
         case cb:InnerCtrlBox =>
           couts.foreach { cout =>
             fimap.get(cout.ic).foreach { 
-              case from if from==cb.doneXbar.out => cout.ic.v := from.vAt(stages.size)
+              case from if from==cb.doneXbar.out | from==cb.en.out=> 
+                cout.ic.v := from.vAt(stages.size)
               case _ =>
             }
           }
@@ -327,20 +328,20 @@ class MemoryController()(implicit spade:Spade) extends Controller {
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
+    val dram = spade.dram
     clmap.pmap.get(this).foreach { case mc:pir.graph.MemoryController =>
       mc.mctpe match {
         case TileLoad =>
           val offset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
           val size = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
-          val array = Array.tabulate(1024) { i => Word(s"$this.array[$i]") }
-          array.zipWithIndex.foreach { case (e,i) => e <<= i }
+          dram.zipWithIndex.foreach { case (e,i) => e <<= i }
           vouts.foreach { vout =>
             vout.v.set { v =>
               If (ctrlBox.en.out.v) {
                 val so = offset.readPort.v.value.get.toInt / 4
                 val sz = size.readPort.v.value.get.toInt / 4
                 v.foreachv { case (ev, i) =>
-                  ev <<= array(so + i)
+                  ev <<= dram(so + i + ctrlBox.count.v.value.get.toInt)
                 } { _ <<= true }
               }
             }
