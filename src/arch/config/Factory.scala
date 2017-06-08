@@ -188,9 +188,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.en.in <== cb.childrenAndTree.out
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
-        cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
+        //cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
         cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
-        cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
+        //cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
         cb.readEn.in <== cb.readAndGate.out
