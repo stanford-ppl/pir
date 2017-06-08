@@ -44,11 +44,11 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
         case io:Output =>
           visited += node
           vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
-        case io:CtrlInPort =>
+        case io:InPort =>
           visited += node
           val pio = if (io.isCtrlIn) vimap.get(io) else ipmap.get(io)
           pio.foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
-        case io:CtrlOutPort =>
+        case io:OutPort =>
           visited += node
           if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
           else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${quote(io)}@")) } }

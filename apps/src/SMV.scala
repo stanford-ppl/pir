@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object SMV extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x3462_x3494_data_v = Vector("x3462_x3494_data")
     val x3463_argin = ArgIn("x3463")
     val x3621_x3635_s = Scalar("x3621_x3635")

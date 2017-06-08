@@ -64,6 +64,11 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
     values.foreach(_.clearUpdate)
   }
 
+  def reset = {
+    values.foreach(_.reset)
+    _values.clear
+  }
+
   def := (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
     v := o.v
   }
@@ -143,8 +148,13 @@ trait Value extends Node with Evaluation { self:PortType =>
   def postUpdate(implicit sim:Simulator):Unit = { next.foreach(_.update) }
   var prev:Option[Value] = None
   var next:Option[Value] = None
-  def clearUpdate(implicit sim:Simulator):Unit = {
-    _funcHasRan = false 
+  def clearUpdate(implicit sim:Simulator):Unit = { _funcHasRan = false }
+  def reset = {
+    _funcHasRan = false
+    func = None
+    parent = None
+    prev = None
+    next = None
   }
   def updateInfo(implicit sim:Simulator):String = {
     var info = s"value=${sim.quote(this)} isDefined=${isDefined} updated=${updated}\n"

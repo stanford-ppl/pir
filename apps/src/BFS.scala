@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object BFS extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x2099_x2105_s = Scalar("x2099_x2105")
     val x1994_oc = OffChip("x1994")
     val x2011_argin = ArgIn("x2011")

@@ -111,5 +111,13 @@ package object util {
     }
   }
 
+  def toValue(s:String):AnyVal = {
+    if (s.contains("true") || s.contains("false")) 
+      s.toBoolean
+    else if (s.contains("."))
+      s.toFloat
+    else s.toInt
+  }
+
 }
 

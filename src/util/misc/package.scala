@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 import java.lang.Thread
 import pir.exceptions._
 
-package object misc extends Logger {
+package object misc extends Printer {
   var startTime:Long = _
   var endTime:Long = _
   def tic = {
@@ -39,10 +39,12 @@ package object misc extends Logger {
   def endInfo(s:String) = { emitln(s" ${s}") }
   def warn(s:Any) = emitln(s"\n${Console.YELLOW}[warning] ${s}${Console.RESET}")
   def errmsg(s:Any) = { emitln(s"\n${Console.RED}[error]${s}${Console.RESET}") }
+  def bp(s:Any) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")
   def err(s:Any) = { errmsg(s); throw PIRException(s"$s") }
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()
   }
+
 }
 

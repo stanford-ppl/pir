@@ -35,5 +35,5 @@ trait Module extends Node {
     case input:Input[_,_] => _ins += input.asInstanceOf[Input[_<:PortType, Module]]
     case output:Output[_,_] => _outs += output.asInstanceOf[Output[_<:PortType, Module]]
   }
-  def ios = ins ++ outs
+  def ios:List[IO[_<:PortType, Module]] = ins ++ outs
 }

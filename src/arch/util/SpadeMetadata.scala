@@ -43,6 +43,7 @@ trait SpadeMetadata { self:Spade =>
   object parOf extends MOneToOneMap {
     type K = Node
     type V = Int 
+    override def check(rec:(K,V)):Unit = {}
   }
 
 }

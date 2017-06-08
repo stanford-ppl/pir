@@ -36,7 +36,8 @@ trait Design extends PIRMetadata with Collector {
   var top:Top = _
 
   override def reset = {
-    super.reset
+    super[Collector].reset
+    super[PIRMetadata].reset
     passes.foreach(_.reset)
     top = null
   }
@@ -164,7 +165,6 @@ trait Design extends PIRMetadata with Collector {
 
   def run = {
     try {
-      arch.config
       info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
       passes.foreach { _.checkRanAll }

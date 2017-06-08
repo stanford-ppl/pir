@@ -17,12 +17,13 @@ abstract class Pass(implicit val design:Design) {
   lazy val pirmeta:PIRMetadata = design
   var runId = -1
 
-  var isInit = false
   def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
 
   def reset {
-    isInit = false
+    passRanCount.foreach { case (id, (totalRun, currRun)) =>
+      passRanCount(id) = (totalRun, 0)
+    }
   }
   
   def run(id:Int):Unit = {
@@ -32,7 +33,6 @@ abstract class Pass(implicit val design:Design) {
 
   final def run:Unit = {
     initPass
-    isInit = true
     runPasses
     finPass
   }

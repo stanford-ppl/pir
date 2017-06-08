@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object PageRank extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x3909_x3918_s = Scalar("x3909_x3918")
     val x4155_b4283_x4165_b4285_s = Scalar("x4155_b4283_x4165_b4285")
     val x3925_argin = ArgIn("x3925")

@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object OuterProduct extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x4037_x4592_x4597_v = Vector("x4037_x4592_x4597")
     val x4976_argin = ArgIn("x4976")
     val x4210_x4220_data_v = Vector("x4210_x4220_data")

@@ -526,6 +526,7 @@ case class Top()(implicit design: Design) extends Controller { self =>
   private var _scalars:List[Scalar] = Nil
   def scalars:List[Scalar] = _scalars
   def scalars(scalars:List[Scalar]) = _scalars = scalars
+  def argIns = scalars.collect { case s:ArgIn => s }
 
   private var _vectors:List[Vector] = Nil
   def vectors:List[Vector] = _vectors

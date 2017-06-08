@@ -19,11 +19,10 @@ import scala.language.postfixOps
 
 class SpadeTest extends UnitTest { self =>
 
-  "SN_4x4" should "success" taggedAs(ARCH) in {
+  "SN2x2" should "success" taggedAs(ARCH) in {
     val design = new PIRApp { self =>
-      def main(args: String*)(top:pir.graph.Top): Any = {}
+      def main(top:pir.graph.Top): Any = {}
       implicit val spade = arch.asInstanceOf[SwitchNetwork]
-      arch.config
       val cu = arch.pcus.head
       info(s"${quote(cu)}.vin=${cu.vins.size}")
       info(s"${quote(cu)}.vout=${cu.vouts.size}")

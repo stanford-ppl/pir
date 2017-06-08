@@ -8,12 +8,12 @@ import pir.util._
 import pir.PIRApp
 
 object SimpleSequential extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x347_x355_x357_v = Vector("x347_x355_x357")
     val x342_argin = ArgIn("x342").bound(10)
     val x347_x352_v = Vector("x347_x352")
     val x344_x356_argout = ArgOut("x344_x356")
-    val x343_argin = ArgIn("x343").bound(1)
+    val x343_argin = ArgIn("x343").bound(2)
     val x358 = Sequential(name="x358",parent=top) { implicit CU => 
       val ctr1 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
       val x358_unit = CounterChain(name = "x358_unit", ctr1)

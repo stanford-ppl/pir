@@ -66,20 +66,6 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     //}
   //}
 
-  def swapReadCC(mem:MultiBuffering) = {
-    mem.consumer match {
-      case cu:MemoryPipeline => readCChainsOf(cu).last
-      case cu:ComputeUnit => cu.localCChain
-    }
-  }
-
-  def swapWriteCC(mem:MultiBuffering) = {
-    mem.producer match {
-      case cu:MemoryPipeline => writeCChainsOf(cu).last
-      case cu:ComputeUnit => cu.localCChain
-    }
-  }
-
   def connectMemoryControl(ctrler:Controller) = ctrler match {
     case cu:ComputeUnit =>
       cu.mems.foreach {
@@ -107,7 +93,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                     mem.swapRead.connect(cb.done.out)
                 }
               }
-              mem.swapWrite.connect(getDone(cu, swapWriteCC(mem)))
+              mem.swapWrite.connect(getDone(cu, swapWriteCChainOf(mem)))
           }
         case mem:MultiBuffering => 
         case mem:ScalarFIFO =>
@@ -210,6 +196,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
           tk.inc.connect(pcb.tokenDown)
           tk.dec.connect(ccb.done.out)
           ccb.siblingAndTree.addInput(tk.out)
+        case (pcb:TopCtrlBox, ccb:StageCtrlBox) if isPipelining(head) =>
+          val tk = ccb.tokenBuffer(ctrler)
+          tk.inc.connect(pcb.tokenDown)
+          tk.dec.connect(ccb.done.out)
+          ccb.siblingAndTree.addInput(tk.out)
       }
     }
   }
@@ -305,7 +296,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
                 if (mem.swapWrite.isConnected) {
                   Some(mem, mem.swapWrite.from.asCtrl)
                 } else {
-                  Some(mem, getDone(cu, swapWriteCC(mem)))
+                  Some(mem, getDone(cu, swapWriteCChainOf(mem)))
                 }
               case (mem, producer:Top) => None // No synchronization needed
             }
@@ -384,17 +375,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cb.en.in.connect(cb.streamAndTree.out)
       case cb:MCCtrlBox =>
         //cb.en.in.connect(cb.fifoAndTree.out)
+      case cb:TopCtrlBox =>
     }
   }
 
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        //val readDone = ctrler.getCopy(swapReadCC(ctrler.mem)).outer.done
-        val readDone = getDone(ctrler, swapReadCC(ctrler.mem))
+        //val readDone = getDone(ctrler, swapReadCChainOf(ctrler.mem))
+        val readDone = ctrler.getCC(swapReadCChainOf(ctrler.mem)).outer.done
         cb.readDone.in.connect(readDone)
-        val writeDone = getDone(ctrler, swapWriteCC(ctrler.mem))
-        //val writeDone = ctrler.getCopy(swapWriteCC(ctrler.mem)).outer.done
+        //val writeDone = getDone(ctrler, swapWriteCChainOf(ctrler.mem))
+        val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.mem)).outer.done
         cb.writeDone.in.connect(writeDone)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
@@ -406,8 +398,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   override def finPass = {
     design.top.compUnits.foreach {
       case cu:MemoryController =>
-      case cu =>
-        assert(cu.cchains.nonEmpty, s"$cu's cchain is empty")
+      case cu => assert(cu.cchains.nonEmpty, s"$cu's cchain is empty")
     }
     //design.top.compUnits.foreach { cu =>
       //cu match {

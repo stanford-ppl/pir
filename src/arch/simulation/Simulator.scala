@@ -48,10 +48,17 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false) || cycle >= 50
   } 
 
+  override def reset = {
+    super.reset
+    rst = false
+    inSimulation = false
+    cycle = 0
+    spade.simulatable.foreach { m => m.clearModule }
+    spade.simulatable.foreach { m => m.reset }
+  }
+
   override def initPass = {
-    vcds.foreach { vcds => 
-      vcds.emitHeader
-    }
+    vcds.foreach { vcds => vcds.emitHeader }
     super.initPass
     tic
   }
