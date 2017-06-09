@@ -83,10 +83,10 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
               val label = s"{${c}|init=${c.initVal}|deped=${c.deped}}"
               emitNode(c, label, DotAttr().shape(Mrecord).style(filled).fillcolor(limegreen))
             }
-            cu.ctrlBox.luts.foreach { lut =>
-              val label = s"{${lut}|tf=${lut.transFunc.info}}"
-              emitNode(lut, label, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
-            }
+            //cu.ctrlBox.luts.foreach { lut =>
+              //val label = s"{${lut}|tf=${lut.transFunc.info}}"
+              //emitNode(lut, label, DotAttr().shape(Mrecord).style(filled).fillcolor(white))
+            //}
 			    }
         }
       }

@@ -26,12 +26,11 @@ class AppTests extends UnitTest { self =>
         } else {
           design.main(args)
         }
-        argOuts.split(" ").foreach { ao =>
-          val aon::aov::_ = ao.split("=").toList
-          design.top.sins.filter { _.name==Some(aon) }.foreach { ao =>
-            val pao = design.mapping.get.vimap(ao)
-            assert(pao.values(0).value==Some(toValue(aov)), s"Result incorrect")
-          }
+        argOuts.split(" ").foreach { aos =>
+          val aon::aov::_ = aos.split("=").toList
+          val ao = design.top.sins.filter { _.scalar.name==Some(aon) }.head
+          val pao = design.mapping.get.vimap(ao)
+          assert(pao.values(0).value==Some(toValue(aov)), s"Result incorrect")
         }
       } catch {
         case e:Exception => errmsg(s"$e"); throw e
@@ -68,7 +67,7 @@ class AppTests extends UnitTest { self =>
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
   //testInOutArg
-  test(InOutArg, args="x222=4", argOuts="x1026_x1096=8.0")
+  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
   test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
   test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
   test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")

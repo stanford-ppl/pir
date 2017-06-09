@@ -350,11 +350,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   /* Control Signals */
   lazy val ctrlBox:CtrlBox = InnerCtrlBox()
   
-  def udcounters = locals.flatMap{ _.ctrlBox.udcounters }
-  def enLUTs:List[EnLUT] = locals.flatMap(_.ctrlBox.enLUTs)
-  def tokDownLUTs = locals.flatMap(_.ctrlBox.tokDownLUTs)
-  def tokOutLUTs = locals.flatMap(_.ctrlBox.tokOutLUTs)
-
   /* Block updates */
   override def reset =  { super.reset; _localStages.clear; _wtAddrStages.clear; _rdAddrStages.clear }
 

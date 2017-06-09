@@ -180,12 +180,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.pipeAndTree.out // 0
-        cb.en.in <== cb.streamAndTree.out // 1
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.childrenAndTree.out
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
         //cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
@@ -304,14 +301,9 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           cout.ic <== cb.en.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cb.pulserSM.done <== cb.doneXbar.out
-        cb.pulserSM.en <== cb.childrenAndTree.out
-        cb.pulserSM.init <== cb.siblingAndTree.out
         cu.couts.foreach { cout => 
-          cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.pulserSM.out
-          cout.ic <== cb.en.out // en.in is connected to childrenAndTree.out
-          cout.ic <== cb.siblingAndTree.out
+          cout.ic <== cb.udsm.doneOut 
+          cout.ic <== cb.en.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cb.tokenInXbar.in <== cu.cins.map(_.ic)

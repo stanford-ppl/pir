@@ -47,11 +47,11 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
           info += s"out=[${tb.out.to.mkString(",")}]"
           emitln(s"${tb} (${info.mkString(",")})")
         }
-        cu.ctrlBox.luts.foreach { lut =>
-          val ins = lut.ins.map(_.from).mkString(",")
-          val out = lut.out.to.mkString(",")
-          emitln(s"${lut}${genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
-        }
+        //cu.ctrlBox.luts.foreach { lut =>
+          //val ins = lut.ins.map(_.from).mkString(",")
+          //val out = lut.out.to.mkString(",")
+          //emitln(s"${lut}${genFields(lut)} ins=[${ins}] outs=[${out}] transFunc=[${lut.transFunc.info}]")
+        //}
         cu.ctrlBox.andTrees.foreach { at =>
           emitln(s"$at(ins=[${at.ins.map(_.from).mkString(",")}] outs=[${at.out.to.mkString(",")}])")
         }

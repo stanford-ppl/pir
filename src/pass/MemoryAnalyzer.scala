@@ -181,6 +181,10 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
         dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
         dprintln(s"compCChainsOf:[${compCChainsOf(cu).mkString(",")}]")
+        cu.mbuffers.foreach { mem =>
+          dprintln(s"swapReadCChainOf($mem) = ${swapReadCChainOf.get(mem)} buffering=${mem.buffering}")
+          dprintln(s"swapWriteCChainOf($mem) = ${swapWriteCChainOf.get(mem)} buffering=${mem.buffering}")
+        }
       }
     }
   }

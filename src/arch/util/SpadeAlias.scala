@@ -53,4 +53,5 @@ trait SpadeAlias {
   type PUC       = UDCounter
   type PSB       = SwitchBox
   type PConst    = Const[_<:PortType]
+  type PUDSM = UpDownSM
 }

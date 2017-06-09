@@ -73,20 +73,27 @@ case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:C
   override val typeStr = name.getOrElse("ag")
   cb.andGates += this
   val out = Output(Bit(), this, s"${this}.out")
-  val in0 = Input(Bit(), this, s"${this}.in0").index(0)
-  val in1 = Input(Bit(), this, s"${this}.in1").index(1)
+  private[plasticine] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
+  private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
+    val i = ins.size
+    val in = Input(Bit(), this, s"${this}.in$i").index(i)
+    in <== out
+  }
+
   override def register(implicit sim:Simulator):Unit = {
-    val invs = ins.map(_.v).collect{case v:BitValue => v}
-    out.v := in0.v & in1.v
+    val invs = ins.map(_.v).collect{ case v:BitValue => v }
+    out.v := {
+      val res = invs.map{_.update.value }.reduceOption[Option[Boolean]]{ case (in1, in2) => 
+        eval(BitAnd, in1, in2).asInstanceOf[Option[Boolean]]
+      }
+      res.getOrElse(None)
+    }
     super.register
   }
 }
 object AndGate {
-  def apply(out0:Output[Bit, Module], out1:Output[Bit, Module], name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
-    val ag = AndGate(Some(name))
-    ag.in0 <== out0
-    ag.in1 <== out1
-    ag
+  def apply(name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
+    AndGate(Some(name))
   }
 }
 case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
@@ -103,7 +110,7 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:C
   }
 
   override def register(implicit sim:Simulator):Unit = {
-    val invs = ins.map(_.v).collect{case v:BitValue => v}
+    val invs = ins.map(_.v).collect{ case v:BitValue => v }
     out.v := {
       val res = invs.map{_.update.value }.reduceOption[Option[Boolean]]{ case (in1, in2) => 
         eval(BitAnd, in1, in2).asInstanceOf[Option[Boolean]]
@@ -159,6 +166,48 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
   }
 }
 
+case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
+  val doneIn = Input(Bit(), this, s"${this}.doneIn")
+  val inc = Input(Bit(), this, s"${this}.inc")
+  val dec = Input(Bit(), this, s"${this}.dec")
+  val doneOut = Output(Bit(), this, s"${this}.doneOut")
+  val notDone = Output(Bit(), this, s"${this}.notDone")
+  val notRun = Output(Bit(), this, s"${this}.notRun")
+  // Debug
+  val out = Output(Bit(), this, s"${this}.out")
+  val count = Output(Word(), this, s"${this}.count")
+  val done = Output(Bit(), this, s"${this}.done") // Initially low
+
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    if (isMapped(this)(mapping)) {
+      dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)}")
+      done.v <<= false 
+      done.v.set { donev =>
+        If (doneIn.v) { donev.setHigh }
+        If (dec.v) { donev.setLow }
+      }
+      notDone.v := done.v.not
+      count.v.set { countv =>
+        if (rst) countv <<= 0 
+        else {
+          Match(
+            inc.pv -> { () => countv <<= countv + 1 },
+            dec.pv -> { () => countv <<= countv - 1 }
+          ) {}
+        }
+      }
+      out.v := (count.v > 0)
+      notRun.v := out.v.not 
+      doneOut.v.set { doneOutv =>
+        If (out.pv & out.v.update.not) { doneOutv.setHigh }
+        If (doneOut.pv) { doneOutv.setLow }
+      } 
+    }
+    super.register
+  }
+}
+
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
@@ -170,9 +219,13 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
   lazy val andGates = ListBuffer[AndGate]()
 }
 
+
+
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
   val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
+  val doneDelay = Delay(Bit(), pne.stages.size, s"$pne.doneDelay")
   val en = Delay(Bit(), 0, s"$pne.en")
+  val enDelay = Delay(Bit(), pne.stages.size, s"$pne.enDelay")
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
   val fifoAndTree = AndTree("fifoAndTree")
@@ -183,6 +236,8 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
   val streamAndTree = AndTree("streamAndTree")
   streamAndTree <== tokenInAndTree.out
   streamAndTree <== fifoAndTree.out
+  en.in <== pipeAndTree.out // 0
+  en.in <== streamAndTree.out // 1
 }
 
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {
@@ -190,7 +245,16 @@ class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComp
   val en = Delay(Bit(), 0, s"$pne.en")
   val childrenAndTree = AndTree("childrenAndTree") 
   val siblingAndTree = AndTree("siblingAndTree") 
-  val pulserSM = PulserSM()
+  val udsm = UpDownSM()
+  udsm.doneIn <== doneXbar.out
+  udsm.dec <== childrenAndTree.out
+  udsm.inc <== en.out
+  val enAnd = AndGate("enAnd")
+  enAnd <== udsm.notDone
+  enAnd <== udsm.notRun
+  enAnd.ins(1).asBit <== Const(true).out
+  enAnd <== siblingAndTree.out
+  en.in <== enAnd.out 
 }
 
 class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryComputeUnit) extends CtrlBox(numUDCs) {
@@ -202,7 +266,9 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   val writeEn = Delay(Bit(), 0, s"$pne.writeEn")
   val readEn = Delay(Bit(),0, s"$pne.readEn") 
   val readUDC = UDCounter()
-  val readAndGate = AndGate(readUDC.out, readFifoAndTree.out, s"$pne.readAndGate")
+  val readAndGate = AndGate(s"$pne.readAndGate")
+  readAndGate <== readUDC.out
+  readAndGate <== readFifoAndTree.out 
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {

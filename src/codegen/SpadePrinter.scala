@@ -87,7 +87,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
     case cb:OuterCtrlBox =>
       emitModule(cb.childrenAndTree)
       emitModule(cb.siblingAndTree)
-      emitModule(cb.pulserSM)
+      emitModule(cb.udsm)
       cb.udcs.foreach { udc => emitModule(udc) }
       emitModule(cb.en)
       emitModule(cb.doneXbar)
