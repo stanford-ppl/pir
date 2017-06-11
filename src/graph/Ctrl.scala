@@ -245,7 +245,7 @@ case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Des
 }
 
 case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: Design) extends StageCtrlBox() {
-  def enOut = en.out // should not be used
+  def enOut = en.out
   def doneOut = CtrlOutPort(this, s"$this.doneOut")
   val fifoAndTree = AndTree("FIFOAndTree")
 }

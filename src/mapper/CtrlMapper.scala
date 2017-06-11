@@ -202,7 +202,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mp.setOP(cb.en.out, pcb.en.out)
         mp = mp.setOP(cb.enOut, pcb.enDelay.out)
       case (cb:MCCB, pcb:PMCCB) =>
-        //mp = mp.setOP(cb.en.out, pcb.en.out)
+        mp = mp.setOP(cb.en.out, pcb.en.out)
     }
     mp
   }
@@ -234,6 +234,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pctr = mp.ctmap(ctr)
       mp = mp.setIP(ctr.en, pctr.en)
       mp = mp.setOP(ctr.done, pctr.done)
+    }
+    cu.cchains.flatMap(_.counters).foreach { ctr =>
+      val pctr = mp.ctmap(ctr)
       mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from.asCtrl))
     }
     mp

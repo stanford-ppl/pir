@@ -249,18 +249,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
-          //TODO
-          //buf.incReadPtr <== cu.ctrs.map(_.done)
-          //buf.incReadPtr <== cu.cins.map(_.ic)
-          buf.incReadPtr <== cb.doneXbar.out 
+          buf.incReadPtr <== cu.ctrs.map(_.done)
+          buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.en.out; 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf =>
-          //TODO
-          //buf.incReadPtr <== cu.ctrs.map(_.done)
-          //buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.doneXbar.out 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }

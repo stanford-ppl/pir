@@ -39,10 +39,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
    * */
   def getDone(current:ComputeUnit, cchain:CounterChain) = {
     if (current.containsCopy(cchain)) {
+      val lcchain = current.getCC(cchain)
       current.ctrlBox match {
-        case cb:StageCtrlBox => current.getCC(cchain).outer.done
-        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
-        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
+        case cb:StageCtrlBox => current.getCC(lcchain).outer.done
+        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == lcchain) => cb.readDone.out
+        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == lcchain) => cb.writeDone.out
       }
     } else {
       cchain.ctrler.ctrlBox match {
