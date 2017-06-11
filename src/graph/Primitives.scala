@@ -237,11 +237,14 @@ object Stage {
   }
   //TODO check init type matches with op type
   def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
-    val numStages = (Math.ceil(Math.log(design.arch.numLanes))/Math.log(2)).toInt 
+    val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
+    assert(rest.size==0)
+    val numStages = (Math.ceil(Math.log(localCChain.inner.par))/Math.log(2)).toInt 
     val rdstages = Stages.reduce(numStages, op) 
     val acc = ctrler.accum(init)
-    val (accstage, reg) = Stages.accum(ctrler.reduce(rdstages.last), op, acc) 
-    val stages = rdstages :+ accstage
+    var totalStages = ctrler.stages ++ rdstages
+    val (accstage, reg) = Stages.accum(ctrler.reduce(totalStages.last), op, acc) 
+    var stages = rdstages :+ accstage
     (stages, reg)
   }
 }

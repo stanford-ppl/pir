@@ -15,7 +15,7 @@ object SimpleSequential extends PIRApp {
     val x344_x356_argout = ArgOut("x344_x356")
     val x343_argin = ArgIn("x343").bound(2)
     val x358 = Sequential(name="x358",parent=top) { implicit CU => 
-      val ctr1 = Counter(min=Const(1), max=Const(1), step=Const(1), par=1) // Counter
+      val ctr1 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1) // Counter
       val x358_unit = CounterChain(name = "x358_unit", ctr1)
     }
     val x347_dsp0 = MemoryPipeline(name="x347_dsp0",parent="x358") { implicit CU => 

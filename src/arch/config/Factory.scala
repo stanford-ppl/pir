@@ -212,6 +212,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
           udc.dec <== cb.childrenAndTree.out
+          //udc.dec <== cb.udsm.doneOut
           udc.dec <== cb.doneXbar.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
@@ -297,8 +298,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.sbufs.map(_.notFull)
-          cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.en.out
+          cout.ic <== cb.doneDelay.out
+          cout.ic <== cb.enDelay.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.couts.foreach { cout => 

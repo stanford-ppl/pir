@@ -56,7 +56,10 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
         else {
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
-            dec.pv -> { () => countv <<= countv - 1 }
+            dec.pv -> { () => 
+              If(countv==0) { errmsg(s"${quote(this)} of ${quote(pne)} underflow at cycle #$cycle") }
+              countv <<= countv - 1
+            } 
           ) {}
         }
       }
@@ -187,7 +190,7 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
         If (doneIn.v) { donev.setHigh }
         If (dec.v) { donev.setLow }
       }
-      notDone.v := done.v.not
+      notDone.v := done.pv.not
       count.v.set { countv =>
         if (rst) countv <<= 0 
         else {
@@ -224,8 +227,10 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
   val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
   val doneDelay = Delay(Bit(), pne.stages.size, s"$pne.doneDelay")
+  doneDelay.in <== doneXbar.out
   val en = Delay(Bit(), 0, s"$pne.en")
   val enDelay = Delay(Bit(), pne.stages.size, s"$pne.enDelay")
+  enDelay.in <== en.out
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
   val fifoAndTree = AndTree("fifoAndTree")

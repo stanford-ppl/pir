@@ -37,9 +37,10 @@ package object misc extends Printer {
   def info(s:String) = emitln(s"[pir] ${s}")
   def startInfo(s:String) = emit(s"[pir] ${s}")
   def endInfo(s:String) = { emitln(s" ${s}") }
-  def warn(s:Any) = emitln(s"\n${Console.YELLOW}[warning] ${s}${Console.RESET}")
-  def errmsg(s:Any) = { emitln(s"\n${Console.RED}[error]${s}${Console.RESET}") }
-  def bp(s:Any) = emitln(s"${Console.RED}[break]${s}${Console.RESET}")
+  def success(s:Any) = emitln(s"\n[${Console.GREEN}success${Console.RESET}] ${s}")
+  def warn(s:Any) = emitln(s"\n[${Console.YELLOW}warning${Console.RESET}] ${s}")
+  def errmsg(s:Any) = { emitln(s"\n[${Console.RED}error${Console.RESET}] ${s}") }
+  def bp(s:Any) = emitln(s"[${Console.RED}break${Console.RESET}]${s}")
   def err(s:Any) = { errmsg(s); throw PIRException(s"$s") }
   def ask(question:String) = {
     info(question)

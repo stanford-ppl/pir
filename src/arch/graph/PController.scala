@@ -192,13 +192,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
     clmap.pmap.get(this).foreach { cu =>
       ctrlBox match {
         case cb:InnerCtrlBox =>
-          couts.foreach { cout =>
-            fimap.get(cout.ic).foreach { 
-              case from if from==cb.doneXbar.out | from==cb.en.out=> 
-                cout.ic.v := from.vAt(stages.size)
-              case _ =>
-            }
-          }
         case _ =>
       }
       val enable = ctrlBox match {
@@ -206,7 +199,7 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
           val readStages = cu.asMP.rdAddrStages
           val numReadStages = if (readStages.isEmpty) 0 else stmap(readStages.last).index - stmap(readStages.head).index
           Some(cb.readEn.out.vAt(numReadStages + 1))
-        case cb:InnerCtrlBox => Some(cb.en.out.vAt(stages.size))
+        case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
         case _ => None
       }
       vouts.foreach { vout =>

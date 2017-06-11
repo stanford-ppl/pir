@@ -26,6 +26,7 @@ class AppTests extends UnitTest { self =>
         } else {
           design.main(args)
         }
+        assert(!design.simulator.timeOut)
         argOuts.split(" ").foreach { aos =>
           val aon::aov::_ = aos.split("=").toList
           val ao = design.top.sins.filter { _.scalar.name==Some(aon) }.head
@@ -71,5 +72,6 @@ class AppTests extends UnitTest { self =>
   test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
   test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
   test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
 
 }

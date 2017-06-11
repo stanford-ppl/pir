@@ -119,7 +119,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def cchains = cchainMap.values.toList
   def addCChain(cc:CounterChain):CounterChain = {
     if (!cc.isDefined) return cc // If cc is a copy but haven't been updated, addCChain during update 
-    if (cchainMap.contains(cc.original))
+    if (cchainMap.contains(cc.original) && cchainMap(cc.original)!=cc)
       throw PIRException(s"Already have copy/original copy of ${cc.original} but adding duplicated copy ${cc}")
     else cchainMap += (cc.original -> cc)
     return cc
@@ -149,54 +149,27 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def containsCopy(cchain:CounterChain):Boolean = {
     cchainMap.contains(cchain.original)
   }
-  //  sins:List[ScalarIn] = _
-  //  souts:List[ScalarOut] = _
   
   lazy val localCChain:CounterChain = {
     this match {
-      //case cu:StreamPipeline =>
-        //if (isHead) {
-          //cu.getCopy(cu.parent.localCChain)
-        //} else if (isLast) {
-          //cu match {
-            //case mc:MemoryController => throw PIRException(s"MemoryController $this doesn't have localCChain")
-            //case sp:StreamPipeline => cu.getCopy(cu.parent.localCChain)
-          //}
-        //} else { // middle stages
-          //if (cu.containsCopy(cu.parent.localCChain)) {
-            //cu.getCopy(cu.parent.localCChain)
-          //} else if (cchains.size==0) {
-            //val dc = CounterChain.dummy(cu, design)
-            //cu.addCChain(dc)
-            //dc
-          //} else {
-            //val dcs = cchains.filter{_.isDummy}
-            //assert(dcs.size==1, s"${cu} is not head and has non dummy counter chain $cchains")
-            //dcs.head
-          //}
-        //}
       case cu:MemoryPipeline =>
         throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
       case cu:Pipeline if isStreaming =>
-        sortCChains(cu.cchains).headOption.getOrElse(addCChain(CounterChain.dummy))
+        sortCChains(cu.cchains).headOption.getOrElse(CounterChain.dummy)
       case cu =>
         val locals = cchains.filter{_.isLocal}
         assert(locals.size<=1, 
           s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
-        locals.headOption.getOrElse {
-          addCChain(CounterChain.dummy)
-        }
+        locals.headOption.getOrElse(CounterChain.dummy)
     }
   }
 
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
-    val (cchains, mems) = design.addBlock[CounterChain, OnChipMem](block(this), 
-                            (n:Node) => n.isInstanceOf[CounterChain],
+    val mems = design.addBlock[OnChipMem](block(this), 
                             (n:Node) => n.isInstanceOf[OnChipMem] 
                             ) 
-    cchains.foreach { cc => addCChain(cc) }
     this.mems(mems)
     this
   }

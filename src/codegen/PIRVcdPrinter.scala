@@ -34,9 +34,7 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
     override def visitNode (node:Node): Unit = {
       if (visited.contains(node)) return
       node match {
-        case node:Controller => declare(node) {
-          super.visitNodeNoCheck(node)
-        }
+        case node:Controller => declare(node) { super.visitNodeNoCheck(node) }
         case io:Input =>
           visited += node
           val pio = vimap(io)
@@ -52,7 +50,12 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
           visited += node
           if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
           else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${quote(io)}@")) } }
-        case node@(_:OnChipMem|_:CtrlBox|_:Delay) => declare(node) { super.visitNode(node) }
+        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:CtrlBox|_:Delay) => 
+          declare(node) { super.visitNode(node) }
+        case node:UDCounter => declare(node) { 
+          super.visitNode(node)
+          declare(pmmap(node).count, None)
+        }
         case _ => super.visitNodeNoCheck(node)
       }
     }
@@ -80,8 +83,14 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
         declarator.visitNode(n.ctrlBox)
         n match {
           case n:ComputeUnit =>
+            emitkv(s"scope module", "cchains")
+            n.cchains.foreach(declarator.visitNode)
+            emitln(s"$$upscope $$end")
             emitkv(s"scope module", "mems")
             n.mems.foreach(declarator.visitNode)
+            emitln(s"$$upscope $$end")
+            emitkv(s"scope module", "stages")
+            n.stages.foreach(declarator.visitNode)
             emitln(s"$$upscope $$end")
           case _ =>
         }
@@ -89,6 +98,13 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
     }
     finPass
     emitln(s"$$upscope $$end")
+  }
+
+  override def quote(n:Any):String = {
+    n match {
+      case n:Node => super.quote(pir.util.quote(n))
+      case n => super.quote(n) 
+    }
   }
 
   override def declare(io:pir.plasticine.graph.IO[_<:pir.plasticine.graph.PortType, _<:PModule], prefix:Option[String]=None) = {

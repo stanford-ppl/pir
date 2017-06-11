@@ -13,7 +13,7 @@ import pir.util.enums._
 import pir.pass.ForwardRef
 import pir.exceptions._
 
-case class CounterChain(name:Option[String])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
+case class CounterChain(name:Option[String], cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: Design) extends Primitive {
   import pirmeta._
 
   override val typeStr = "CC"
@@ -25,8 +25,9 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   // Pointer to the original copy
   private var _copy:Option[Either[String, CounterChain]] = None
   def copy:Option[Either[String, CounterChain]] = _copy
-  def setCopy(cc:String) = { _copy = Some(Left(cc)) }
-  def setCopy(cc:CounterChain) = { _copy = Some(Right(cc)); cc.addCopied(this) }
+  def setCopy(cc:String):Unit = { _copy = Some(Left(cc)) }
+  def setCopy(cc:CounterChain):Unit = { _copy = Some(Right(cc)); cc.addCopied(this) }
+  cc.foreach{ case Left(cc) => setCopy(cc); case Right(cc) => setCopy(cc) }
 
   // List of copies to this original Counterchain 
   private val _copied = ListBuffer[CounterChain]()
@@ -47,7 +48,8 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   /*
    * The original copy of this CounterChain
    * */
-  lazy val original:CounterChain = copy.fold(this) { e => e.right.get}
+  lazy val _original:CounterChain = copy.fold(this) { e => e.right.get}
+  def original:CounterChain = { _original }
 
   override def toUpdate = super.toUpdate
 
@@ -71,7 +73,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   }
 
   def this(name:Option[String], ctrs:Counter*)(implicit ctrler:ComputeUnit, design: Design) = {
-    this(name)
+    this(name, None)
     ctrs.foreach { ctr => addCounter(ctr) }
   }
 
@@ -86,6 +88,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
   def copy(cp:CounterChain):Unit = {
     assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
     this.setCopy(cp)
+    ctrler.addCChain(this)
     clone(cp)
   }
 
@@ -100,7 +103,6 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
       addCounters(addiCtrs)
       counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
       //iterOf(this) = iterOf(cc) 
-      ctrler.addCChain(this)
     }
   }
 
@@ -109,6 +111,7 @@ case class CounterChain(name:Option[String])(implicit override val ctrler:Comput
     this
   }
 
+  ctrler.addCChain(this)
 }
 object CounterChain {
   def apply(name:String, ctrs: Counter*)(implicit ctrler:ComputeUnit, design: Design):CounterChain =
@@ -131,25 +134,24 @@ object CounterChain {
    * @param from: full name of Primitive 
    * */
   def copy(from:String) (implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(Some(s"${from}_copy"))
-    cc.setCopy(from)
+    val cc = new CounterChain(Some(s"${from}_copy"), Some(Left(from)))
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
     design.updateLater(from, updateFunc _ )
     cc
   }
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(Some(s"${from}_copy"))
+    val cc = new CounterChain(Some(s"${from}_copy"), Some(Right(from)))
     cc.copy(from)
     cc
   }
   def clone(from:CounterChain)(implicit ctrler:ComputeUnit, design: Design):CounterChain = {
-    val cc = CounterChain(from.name)
+    val cc = CounterChain(from.name, None)
     cc.clone(from)
     cc
   }
   def dummy(implicit ctrler:ComputeUnit, design: Design) = {
     import design.pirmeta._
-    val cc = CounterChain(Some(s"dummy"))
+    val cc = CounterChain(Some(s"dummy"), None)
     cc.addCounter(DummyCounter(cc))
     iterOf(cc) = 1
     cc

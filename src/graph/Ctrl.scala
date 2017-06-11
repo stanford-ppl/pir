@@ -23,7 +23,7 @@ abstract class UDCounter(implicit ctrlBox:CtrlBox, design:Design) extends CtrlPr
   val inc = CtrlInPort(this, s"${this}.inc")
   val dec = CtrlInPort(this, s"${this}.dec")
   val init = CtrlInPort(this, s"${this}.init")
-  val out = CtrlOutPort(this, s"${this}.o")
+  val out = CtrlOutPort(this, s"${this}.out")
 }
 /* TokenBuffer represents the forward data dependency.
  * @param dep depended compute unit where data is from. None if if allocated in first stage, in
@@ -159,10 +159,10 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
     ctrler match {
       case cu:ComputeUnit => 
         couts ++= cu.fifos.map { _.notFull }.filter{_.isCtrlOut}
-        couts ++= cu.cchains.map(_.outer.done).filter{ _.isCtrlOut }
+        //couts ++= cu.cchains.map(_.outer.done).filter{ _.isCtrlOut }
       case _ =>
     }
-    couts ++= andTrees.map{_.out}.filter{_.isCtrlOut}
+    //couts ++= andTrees.map{_.out}.filter{_.isCtrlOut}
     couts ++= delays.map{_.out}.filter{_.isCtrlOut}
     couts.toSet.toList
   }
@@ -188,6 +188,9 @@ trait StageCtrlBox extends CtrlBox {
   val done = Delay(s"$this.done")
   def enOut:CtrlOutPort
   def doneOut:CtrlOutPort
+  override def ctrlOuts:List[CtrlOutPort] = { 
+    (super.ctrlOuts ++ List(enOut,doneOut).filter { _.isCtrlOut }).toSet.toList
+  }
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
@@ -211,10 +214,6 @@ class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) ex
   def enOut = en.out
   val doneOut:CtrlOutPort = CtrlOutPort(this, s"$ctrler.doneOut") 
   val childrenAndTree = AndTree("ChildrenAndTree")
-
-  override def ctrlOuts:List[CtrlOutPort] = { 
-    super.ctrlOuts ++ List(doneOut).filter { _.isCtrlOut }
-  }
 }
 object OuterCtrlBox {
   def apply()(implicit ctrler:Controller, design:Design) = { new OuterCtrlBox() }
@@ -249,7 +248,6 @@ case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: De
   def enOut = en.out // should not be used
   def doneOut = CtrlOutPort(this, s"$this.doneOut")
   val fifoAndTree = AndTree("FIFOAndTree")
-  override def ctrlOuts = super.ctrlOuts ++ List(doneOut).filter(_.isCtrlOut)
 }
 
 

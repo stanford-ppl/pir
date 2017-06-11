@@ -34,7 +34,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
         case c:Counter => Some(c)
         case _ => None
       }
-      val outPar = getPar(ctr) 
+      val outPar = pir.util.parOf(ctr)  //TODO change this to metadata
       sim.dprintln(s"$this outPar = $outPar")
       val head = out.v.head.asWord //TODO: Add type parameter to Bus
       out.v.foreach { 

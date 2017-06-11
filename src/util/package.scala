@@ -93,7 +93,7 @@ package object util {
     val ancSize = cchains.map { _.original.ctrler.ancestors.size }
     if (ancSize.size != ancSize.toSet.size) {
       cchains.zip(ancSize).foreach { case (cc,size) =>
-        println(s"ctrler:${cc.ctrler} cchain:$cc ${cc.original.ctrler} $size")
+        println(s"ctrler:${cc.ctrler} cchain:$cc original:${cc.original} ${cc.original.ctrler} $size")
       }
       throw new Exception(s"Don't know how to sort!")
     }
@@ -117,6 +117,35 @@ package object util {
     else if (s.contains("."))
       s.toFloat
     else s.toInt
+  }
+
+  def readParOf(node:Node):Int = {
+    import node.pirmeta._
+    node match {
+      case node:MemoryPipeline => readCChainsOf(node).head.inner.par
+    }
+  }
+
+  def writeParOf(node:Node):Int = {
+    import node.pirmeta._
+    node match {
+      case node:MemoryPipeline => writeCChainsOf(node).head.inner.par
+    }
+  }
+
+  def parOf(node:Node):Int = {
+    import node.pirmeta._
+    node match {
+      case node:Primitive =>
+        val cu = node.ctrler.asCU
+        if (forRead(node)) readParOf(cu)
+        else if (forWrite(node)) writeParOf(cu)
+        else parOf(cu)
+      case node:MemoryPipeline =>
+        err(s"No par defined for $node")
+      case node:ComputeUnit =>
+        compCChainsOf(node).head.inner.par
+    }
   }
 
 }

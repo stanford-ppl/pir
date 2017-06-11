@@ -88,18 +88,6 @@ package object util {
     }
   }
 
-  def getPar(prim:pir.graph.Primitive)(implicit sim:Simulator) = {
-    import sim.pirmeta._
-    val cu = prim.ctrler.asCU
-    if (forRead(prim)) {
-      readCChainsOf(cu).head.inner.par
-    } else if (forWrite(prim)) {
-      writeCChainsOf(cu).head.inner.par
-    } else {
-      compCChainsOf(cu).head.inner.par
-    }
-  }
-
   def OCU_MAX_CIN(implicit spade:Spade) = {
     val ocu = spade.ocus.head
     ocu.cins.size

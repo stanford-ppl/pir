@@ -71,10 +71,10 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     } match {
       case Success(_) =>
         placeAndRouteSucceeded = true
-        info(s"Placement & Routing succeeded") 
+        success(s"Placement & Routing succeeded") 
       case Failure(e) =>
         placeAndRouteSucceeded = false
-        info(s"Placement & Routing succeeded")
+        errmsg(s"Placement & Routing failed")
         e match {
           case e:OutOfResource[_] =>
             err(e)
@@ -107,10 +107,10 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     } match {
       case Success(_) =>
         localMappingSucceeded = true
-        info(s"Local Mapping succeeded") 
+        success(s"Local Mapping succeeded") 
       case Failure(e) =>
         placeAndRouteSucceeded = false
-        info(s"Local Mapping succeeded")
+        errmsg(s"Local Mapping failed")
         e match {
           case e:OutOfResource[_] =>
             err(e)
