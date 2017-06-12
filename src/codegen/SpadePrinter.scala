@@ -37,7 +37,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
     emitBlock(s"${quote(pne)}.ctrlIO") { emitIO(pne.ctrlIO) } 
   }
 
-  override def traverse = {
+  addPass {
     design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
       emitIO(ctrler)
       ctrler.sbufs.foreach { s => emitModule(s) }
@@ -87,7 +87,7 @@ class SpadePrinter(implicit design: Design) extends Codegen {
     case cb:OuterCtrlBox =>
       emitModule(cb.childrenAndTree)
       emitModule(cb.siblingAndTree)
-      emitModule(cb.pulserSM)
+      emitModule(cb.udsm)
       cb.udcs.foreach { udc => emitModule(udc) }
       emitModule(cb.en)
       emitModule(cb.doneXbar)

@@ -3,6 +3,7 @@ import pir._
 import pir.test._
 import pir.util.misc._
 import pir.util.enums._
+import pir.util._
 import pir.graph._
 import pir.exceptions.PIRException
 import plasticine.main._
@@ -12,19 +13,29 @@ import scala.language.reflectiveCalls
 
 class AppTests extends UnitTest { self =>
 
-  def testInOutArg = {
-    "InOutArg" should "success" in { 
-      val design = InOutArg
-      design.main(Array("InOutArg"))
-      assert(design.mapping.get.vimap(design.top.sins.head).values(0).value==Some(8.0), s"Result incorrect")
-    }
-  }
-
-  def testSRAMReadWrite = {
-    "SRAMReadWrite" should "success" in { 
-      val design = SRAMReadWrite
-      design.main(Array("SRAMReadWrite"))
-      assert(design.mapping.get.vimap(design.top.sins.head).values(0).value==Some(10416.0), s"Result incorrect")
+  def test(app:PIRApp, args:String, argOuts:String) = {
+    s"$app [$args] ($argOuts)" should "success" in { 
+      try {
+        val design = app 
+        Config.codegen = false
+        Config.debug = false
+        if (design.pirMapping.hasRun) {
+          design.setArgs(args.split(" "))
+          design.simulator.reset
+          design.simulator.run
+        } else {
+          design.main(args)
+        }
+        assert(!design.simulator.timeOut)
+        argOuts.split(" ").foreach { aos =>
+          val aon::aov::_ = aos.split("=").toList
+          val ao = design.top.sins.filter { _.scalar.name==Some(aon) }.head
+          val pao = design.mapping.get.vimap(ao)
+          assert(pao.values(0).value==Some(toValue(aov)), s"Result incorrect")
+        }
+      } catch {
+        case e:Exception => errmsg(s"$e"); throw e
+      }
     }
   }
 
@@ -56,6 +67,11 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  testInOutArg
-  testSRAMReadWrite
+  //testInOutArg
+  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
+  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
+  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
+
 }

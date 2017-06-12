@@ -13,7 +13,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass {
   def shouldRun = true 
   import pirmeta._
 
-  override def traverse = {
+  addPass {
     design.top.innerCUs.foreach { implicit cu =>
       // Uses in sram and counter
       updatesPrim(cu)

@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object SRAMReadWrite extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1055_x1064_data_v = Vector("x1055_x1064_data")
     val x1026_x1096_argout = ArgOut("x1026_x1096")

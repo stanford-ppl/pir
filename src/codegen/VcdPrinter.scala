@@ -35,7 +35,7 @@ abstract class VcdPrinter(implicit sim:Simulator, design: Design) extends Printe
 
   def quote(n:Any):String = {
     val str = sim.quote(n)
-    str.replace(".","_").replace("[","(").replace("]",")")
+    str.replace(".","_").replace("[","(").replace("]",")").replace(" ","")
   }
 
   def end = {

@@ -180,17 +180,14 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.pipeAndTree.out // 0
-        cb.en.in <== cb.streamAndTree.out // 1
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.ctrs.foreach { cb.doneXbar.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
-        cb.en.in <== cb.childrenAndTree.out
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
-        cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
+        //cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
         cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
-        cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
+        //cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
         cb.readEn.in <== cb.readAndGate.out
@@ -215,6 +212,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
           udc.dec <== cb.childrenAndTree.out
+          //udc.dec <== cb.udsm.doneOut
           udc.dec <== cb.doneXbar.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
@@ -251,18 +249,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
-          //TODO
-          //buf.incReadPtr <== cu.ctrs.map(_.done)
-          //buf.incReadPtr <== cu.cins.map(_.ic)
-          buf.incReadPtr <== cb.doneXbar.out 
+          buf.incReadPtr <== cu.ctrs.map(_.done)
+          buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.en.out; 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf =>
-          //TODO
-          //buf.incReadPtr <== cu.ctrs.map(_.done)
-          //buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.doneXbar.out 
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
@@ -300,18 +293,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.sbufs.map(_.notFull)
-          cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.en.out
+          cout.ic <== cb.doneDelay.out
+          cout.ic <== cb.enDelay.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cb.pulserSM.done <== cb.doneXbar.out
-        cb.pulserSM.en <== cb.childrenAndTree.out
-        cb.pulserSM.init <== cb.siblingAndTree.out
         cu.couts.foreach { cout => 
-          cout.ic <== cb.doneXbar.out
-          cout.ic <== cb.pulserSM.out
-          cout.ic <== cb.en.out // en.in is connected to childrenAndTree.out
-          cout.ic <== cb.siblingAndTree.out
+          cout.ic <== cb.udsm.doneOut 
+          cout.ic <== cb.en.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cb.tokenInXbar.in <== cu.cins.map(_.ic)

@@ -55,7 +55,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     emitln(1)
   }
 
-  def traverse = {
+  addPass {
     emitHeader
     emitSplit(emitParams)
     emitTopParams

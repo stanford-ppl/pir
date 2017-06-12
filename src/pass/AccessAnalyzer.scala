@@ -63,8 +63,7 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  override def traverse = {
-    assert(design.livenessAnalyzer.hasRun)
+  addPass(canRun=design.livenessAnalyzer.hasRun) {
     setAccess
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {

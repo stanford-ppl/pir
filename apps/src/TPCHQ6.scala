@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object TPCHQ6 extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x2816_b3160_x2824_b3162_s = Scalar("x2816_b3160_x2824_b3162")
     val x2721_argin = ArgIn("x2721")
     val x2683_argin = ArgIn("x2683")

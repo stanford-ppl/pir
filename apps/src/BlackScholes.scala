@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object BlackScholes extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x3860_argin = ArgIn("x3860")
     val bus_581_v = Vector("bus_581")
     val bus_551_v = Vector("bus_551")

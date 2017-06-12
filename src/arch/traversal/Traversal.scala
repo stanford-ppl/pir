@@ -59,7 +59,7 @@ trait Traversal {
         n.delays.foreach(visitNode)
         n match {
           case n:OuterCtrlBox => 
-            visitNode(n.pulserSM)
+            visitNode(n.udsm)
           case n =>
         }
       case n =>

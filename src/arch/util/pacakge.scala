@@ -77,6 +77,7 @@ package object util {
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.pne)
       case n:PulserSM => isMapped(n.pne) && !mp.clmap.pmap(n.pne).isSC
+      case n:UpDownSM => isMapped(n.pne)
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_] => isMapped(n.in) 
@@ -84,18 +85,6 @@ package object util {
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
-    }
-  }
-
-  def getPar(prim:pir.graph.Primitive)(implicit sim:Simulator) = {
-    import sim.pirmeta._
-    val cu = prim.ctrler.asCU
-    if (forRead(prim)) {
-      readCChainsOf(cu).head.inner.par
-    } else if (forWrite(prim)) {
-      writeCChainsOf(cu).head.inner.par
-    } else {
-      compCChainsOf(cu).head.inner.par
     }
   }
 

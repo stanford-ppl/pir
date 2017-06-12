@@ -17,7 +17,7 @@ class ScalarBundling(implicit design: Design) extends Pass {
 
   lazy val par = design.arch.numLanes
 
-  override def traverse:Unit = {
+  addPass {
     bundleScalarOuts
     bundleScalarIns
   } 

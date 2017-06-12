@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object MatMult_inner extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x6541_x7384_x7390_v = Vector("x6541_x7384_x7390")
     val x7643_b8390_x7658_b8392_s = Scalar("x7643_b8390_x7658_b8392")
     val x6534_x6642_x6648_v = Vector("x6534_x6642_x6648")

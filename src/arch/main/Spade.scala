@@ -42,6 +42,9 @@ trait Spade extends SpadeMetadata {
   def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
 
   val factory = new ConfigFactory()
+          
+  val dram = Array.tabulate(1024) { i => Word(s"$this.dram[$i]") }
+  dram.zipWithIndex.foreach { case (v, i) => v <<= i }
 }
 
 trait PointToPointNetwork extends Spade {

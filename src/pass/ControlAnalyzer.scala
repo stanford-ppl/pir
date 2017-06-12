@@ -142,15 +142,15 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass(true, 1) {
+  addPass(canRun=true, runCount=1) {
     setStyle
   }
 
-  addPass(design.fusionTransform.hasRun, 1) {
+  addPass(canRun=(!design.fusionTransform.shouldRun || design.fusionTransform.hasRun), runCount=1) {
     setStyle
   }
 
-  addPass(design.multiBufferAnalyzer.hasRun, 1) {
+  addPass(canRun=design.multiBufferAnalyzer.hasRun, runCount=1) {
     assert(design.multiBufferAnalyzer.hasRun)
     design.top.ctrlers.foreach { ctrler =>
       setHead(ctrler)
@@ -184,9 +184,5 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       dprintln(s"parOf($pcu) = ${parOf(pcu)}")
     }
   }
-  
-  override def traverse = {
-    runPasses
-  } 
 
 }

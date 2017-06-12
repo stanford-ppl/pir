@@ -42,7 +42,7 @@ class ScalarMemInsertion(implicit design: Design) extends Pass with Logger {
     mem
   }
 
-  override def traverse:Unit = {
+  addPass {
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {
         cu.sins.foreach { sin =>

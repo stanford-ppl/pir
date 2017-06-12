@@ -53,6 +53,9 @@ trait Simulatable extends Module with Evaluation {
     import sim.util._
     ios.foreach { io => io.update }
   }
+  def reset = {
+    ios.foreach { io => io.reset }
+  }
   def clearModule(implicit sim:Simulator):Unit = {
     ios.foreach { io => io.clearUpdate }
   }

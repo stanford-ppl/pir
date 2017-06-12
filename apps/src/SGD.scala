@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object SGD extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x1966_b2025_x1974_b2027_s = Scalar("x1966_b2025_x1974_b2027")
     val x1892_b2021_x1906_b2023_s = Scalar("x1892_b2021_x1906_b2023")
     val x1839_oc = OffChip("x1839")

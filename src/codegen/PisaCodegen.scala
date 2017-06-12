@@ -45,7 +45,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
   lazy val rtmap:RTMap = mapping.rtmap
   lazy val rcmap:RCMap = mapping.rcmap
 
-  override def traverse:Unit = {
+  addPass {
     implicit val ms = new CollectionStatus(false)
     emitBlock {
       emitMap("PISA") { implicit ms =>

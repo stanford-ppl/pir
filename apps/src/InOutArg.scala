@@ -9,7 +9,7 @@ import pir.PIRApp
 
 object InOutArg extends PIRApp {
   override val arch = SN1x1
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x223_x227_argout = ArgOut("x223_x227")
     val x222_argin = ArgIn("x222").bound(4)
     val x229 = Sequential(name="x229",parent=top) { implicit CU => 

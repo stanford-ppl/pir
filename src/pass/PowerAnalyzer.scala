@@ -113,7 +113,7 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
     }
   }
 
-  override def traverse:Unit = {
+  addPass {
     //spade.pnes.foreach { pne =>
       //compPower(pne)
     //}

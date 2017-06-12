@@ -11,29 +11,33 @@ import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.simulation._
 
-//import analysis._
-
 import scala.util.{Try, Success, Failure}
 
 import scala.language.implicitConversions
-import scala.collection.mutable.Queue
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Stack
-import scala.collection.mutable.{Set,Map}
-import java.nio.file.{Paths, Files}
-import scala.io.Source
 
 trait PIRApp extends Design {
   //override val arch:Spade = SN16x8
   override val arch:Spade = SN2x2
   override def name:String = this.getClass().getSimpleName().replace("$","")
+  
+  def setArgs(args: Array[String]):Unit = {
+    args.foreach { 
+      case arg if arg.contains("=") =>
+        val k::v::_ = arg.split("=").toList
+        top.argIns.filter {_.name==Some(k)}.foreach { argIn =>
+          argIn.bound(toValue(v))
+        }
+      case arg => 
+    }
+  }
 
-  def main(args: String*)(top:Top): Any 
+  def main(top:Top): Any 
+  def main(args: String): Unit = main(args.split(" "))
   def main(args: Array[String]): Unit = {
-    println(args.mkString(", "))
+    info(s"args=[${args.mkString(", ")}]")
     reset
-    top = Top().updateBlock(main(args:_*)) 
+    top = Top().updateBlock(main) 
+    setArgs(args)
     endInfo(s"Finishing graph construction for ${this}")
     run
   }

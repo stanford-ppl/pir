@@ -36,7 +36,8 @@ trait Design extends PIRMetadata with Collector {
   var top:Top = _
 
   override def reset = {
-    super.reset
+    super[Collector].reset
+    super[PIRMetadata].reset
     passes.foreach(_.reset)
     top = null
   }
@@ -118,14 +119,15 @@ trait Design extends PIRMetadata with Collector {
   passes += memoryAnalyzer
   passes += pirPrinter2
   passes += pirDataDotGen1
+  passes += livenessAnalyzer 
+  passes += accessAnalyzer
+  passes += multiBufferAnalyzer
+  passes += memoryAnalyzer
   passes += optimizer
   passes += pirDataDotGen2
   passes += fusionTransform 
   passes += pirPrinter3
   passes += pirDataDotGen3
-  passes += livenessAnalyzer 
-  passes += accessAnalyzer
-  passes += multiBufferAnalyzer
   passes += controlAnalyzer // set isHead, isTail, length
   passes += pirDataDotGen4
   passes += irCheck 
@@ -163,9 +165,9 @@ trait Design extends PIRMetadata with Collector {
 
   def run = {
     try {
-      arch.config
       info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
+      passes.foreach { _.checkRanAll }
       pirMapping.cuMapper.resMap
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {

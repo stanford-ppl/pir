@@ -24,11 +24,12 @@ trait SimUtil extends Logger {
   def stmap = mapping.stmap
   def pirmeta:PIRMetadata
   def rst:Boolean
+  def cycle:Int
 }
 
 class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
-  def shouldRun = Config.simulate && design.mapping.nonEmpty
+  def shouldRun = Config.simulate && design.pirMapping.succeeded
   implicit val sim:Simulator = this
   val vcds:List[VcdPrinter] = if (Config.simulate) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
@@ -44,19 +45,34 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   val period = 1; //ns per cycle
   var cycle = 0
   var rst = false
+
+  var timeOut = false
+  var done = false
+
   def finishSimulation:Boolean = {
-    spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false) || cycle >= 50
+    if (spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
+    else if (cycle >= 50) { timeOut = true; true }
+    else false
   } 
 
+  override def reset = {
+    super.reset
+    rst = false
+    timeOut = false
+    done = false
+    inSimulation = false
+    cycle = 0
+    spade.simulatable.foreach { m => m.clearModule }
+    spade.simulatable.foreach { m => m.reset }
+  }
+
   override def initPass = {
-    vcds.foreach { vcds => 
-      vcds.emitHeader
-    }
+    vcds.foreach { vcds => vcds.emitHeader }
     super.initPass
     tic
   }
 
-  override def traverse = {
+  addPass {
     dprintln(s"\n\nRegistering update functions ...")
     spade.simulatable.foreach { s => s.register; s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")

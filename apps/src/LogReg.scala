@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object LogReg extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x3879_x4267_x4272_v = Vector("x3879_x4267_x4272")
     val x3879_x4279_x4284_v = Vector("x3879_x4279_x4284")
     val x3860_oc = OffChip("x3860")

@@ -15,7 +15,7 @@ class ForwardRef(implicit design: Design) extends Pass{
   private val nameMap = Map[String, Node]()
 
   override def reset = nameMap.clear()
-  override def traverse:Unit = {
+  addPass {
     design.allNodes.foreach(n => addName(n))
     design.toUpdate.foreach { case (k,f) =>
       val n:Node = getByName(k)

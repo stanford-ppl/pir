@@ -125,12 +125,11 @@ trait LocalRouter extends Mapper {
   def mapOutPort(n:OP, r:PO[_<:PModule], map:M):M = {
     var mp = map
     mp = mp.setOP(n,r)
-    dprintln(s"mapping $n -> $r")
-    mp = n.to.foldLeft(mp) { case (pmap, ip) =>
-      val ipmap = pmap.ipmap
-      if (ipmap.contains(ip)) {
-        mapInPort(ip, ipmap(ip), pmap)
-      } else pmap
+    //dprintln(s"mapping $n -> $r")
+    n.to.foreach { 
+      case ip if (mp.ipmap.contains(ip)) =>
+        mp = mapInPort(ip, mp.ipmap(ip), mp)
+      case ip =>
     }
     mp
   }

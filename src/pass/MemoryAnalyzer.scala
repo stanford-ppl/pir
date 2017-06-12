@@ -111,29 +111,50 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def setSwapCC(cu:ComputeUnit) = {
+    cu.mbuffers.foreach { 
+      case mem if mem.isSRAM | mem.buffering > 1 =>
+        swapReadCChainOf(mem) = mem.consumer match {
+          case cu:MemoryPipeline => readCChainsOf(cu).last
+          case cu:ComputeUnit => cu.localCChain
+        }
+        swapWriteCChainOf(mem) = mem.producer match {
+          case cu:MemoryPipeline => writeCChainsOf(cu).last
+          case cu:ComputeUnit => cu.localCChain
+        }
+      case _ =>
+    }
+  }
+
+  def copySwapCC(cu:ComputeUnit) = {
+    cu match {
+      case cu:MemoryPipeline =>
+        val swapRead = cu.getCopy(swapReadCChainOf(cu.mem))
+        forRead(swapRead) = true
+        swapRead.counters.foreach(ctr => forRead(ctr) = true)
+        val swapWrite = cu.getCopy(swapWriteCChainOf(cu.mem))
+        forWrite(swapWrite) = true
+        swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
+      case cu =>
+    }
+  }
+
   def analyzeAddrCalc(cu:ComputeUnit) = {
     val readCCs = cu.cchains.filter { cc => forRead(cc) }
-    dprintln(s"readCCs:$readCCs")
     readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
     val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
-    dprintln(s"writeCCs:$writeCCs")
     writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
     val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
-    dprintln(s"compCCs:$compCCs")
     compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
   }
 
-  override def traverse = {
+  addPass {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
       analyzeCounters(cu)
       analyzeCChain(cu)
       analyzeScalarBufs(cu)
-    }
-    design.top.compUnits.foreach { cu =>
-      analyzeAddrCalc(cu)
-    }
-    design.top.memCUs.foreach { cu =>
+
       emitBlock(s"$cu") {
         cu.stages.foreach { st =>
           dprintln(s"$st forRead=${forRead(st)} forWrite=${forWrite(st)}")
@@ -147,10 +168,25 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
           }
           dprintln(s"$cchain forRead=${forRead(cchain)} forWrite=${forWrite(cchain)}")
         }
-        dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
-        dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
       }
     }
-  } 
+  }
+
+  addPass(canRun=design.multiBufferAnalyzer.hasRun, 1) {
+    design.top.compUnits.foreach { cu =>
+      setSwapCC(cu)
+      copySwapCC(cu)
+      analyzeAddrCalc(cu)
+      emitBlock(s"$cu") {
+        dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
+        dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
+        dprintln(s"compCChainsOf:[${compCChainsOf(cu).mkString(",")}]")
+        cu.mbuffers.foreach { mem =>
+          dprintln(s"swapReadCChainOf($mem) = ${swapReadCChainOf.get(mem)} buffering=${mem.buffering}")
+          dprintln(s"swapWriteCChainOf($mem) = ${swapWriteCChainOf.get(mem)} buffering=${mem.buffering}")
+        }
+      }
+    }
+  }
 
 }

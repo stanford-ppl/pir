@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object GDA extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x4975_argin = ArgIn("x4975")
     val x5465_b6069_x5483_b6077_s = Scalar("x5465_b6069_x5483_b6077")
     val x5558_x5851_x5879_v = Vector("x5558_x5851_x5879")

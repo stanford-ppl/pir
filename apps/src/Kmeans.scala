@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object Kmeans extends PIRApp {
-  def main(args: String*)(top:Top) = {
+  def main(top:Top) = {
     val x3325_b3620_x3334_b3622_s = Scalar("x3325_b3620_x3334_b3622")
     val x3479_x3502_x3506_v = Vector("x3479_x3502_x3506")
     val x3322_x3471_x3477_v = Vector("x3322_x3471_x3477")
