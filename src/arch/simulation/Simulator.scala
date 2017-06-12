@@ -22,6 +22,9 @@ trait SimUtil extends Logger {
   def vimap = mapping.vimap
   def vomap = mapping.vomap
   def stmap = mapping.stmap
+  def ipmap = mapping.ipmap
+  def opmap = mapping.opmap
+  def smmap = mapping.smmap
   def pirmeta:PIRMetadata
   def rst:Boolean
   def cycle:Int

@@ -52,11 +52,6 @@ trait Traversal extends Pass {
           visitNode(p.writeAddr)
           visitNode(p.swapRead)
           visitNode(p.swapWrite)
-        case p:ScalarBuffer =>
-          visitNode(p.readPort)
-          visitNode(p.writePort)
-          visitNode(p.swapRead)
-          visitNode(p.swapWrite)
         case p:FIFO => 
           visitNode(p.readPort)
           visitNode(p.writePort)
@@ -64,6 +59,11 @@ trait Traversal extends Pass {
           visitNode(p.dequeueEnable)
           visitNode(p.notEmpty)
           visitNode(p.notFull)
+        case p:ScalarBuffer =>
+          visitNode(p.readPort)
+          visitNode(p.writePort)
+          visitNode(p.swapRead)
+          visitNode(p.swapWrite)
         case p:ScalarIn =>
         case p:ScalarOut =>
         case p:VecIn =>

@@ -108,6 +108,10 @@ trait Value extends Node with Evaluation { self:PortType =>
     func = Some((f,stackTrace)) 
   }
   def isDefined:Boolean
+  def svalue(implicit sim:Simulator) = this match {
+    case v:BusValue => v.value.map(ev => sim.quote(ev.value)) :+ s"n${v.valid.id}=${sim.quote(v.valid.value)}"
+    case v => sim.quote(v.value)
+  }
   def updated:Boolean = funcHasRan && parent.fold(true) { p => !p.isDefined || p.funcHasRan }
   final def update(implicit sim:Simulator):this.type = {
     if (!isDefined) return this
@@ -115,7 +119,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     if (!updated) {
       sim.emitBlock(s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id}", {
         mainUpdate
-      }, s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${sim.quote(value)}")
+      }, s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}")
     }
     //postUpdate // allow cyclic update on previous value
     if (!updated) parent.foreach { parent => 

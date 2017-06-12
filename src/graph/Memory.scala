@@ -76,7 +76,7 @@ trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
 
   /* Control Signals */
   val notFull = CtrlOutPort(this, s"$this.notFull")
-  val enqueueEnable = CtrlInPort(this, s"$this.enqueueEnable")
+  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
   override def toUpdate = super.toUpdate
 
   def isOfsFIFO:Boolean = {

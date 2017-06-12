@@ -19,8 +19,7 @@ import scala.collection.mutable.ListBuffer
 
 class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
   override lazy val stream = newStream("sim_pir.vcd") 
-  import sim.quote
-  import sim.mapping._ 
+  import sim.util._
   implicit def mapping:PIRMap = sim.mapping
 
   val tracking = ListBuffer[PIO[PModule]]()
