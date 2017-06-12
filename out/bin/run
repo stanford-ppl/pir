@@ -18,6 +18,6 @@ else
 	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		# Do something under GNU/Linux platform
 		#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
-		dot -Tsvg -o $1.svg $1.dot && google-chrome $1.svg # not tested
+		dot -Tsvg -o $1.svg $1.dot && firefox $1.svg # not tested
 	fi
 fi

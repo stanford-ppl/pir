@@ -20,7 +20,7 @@ object Config {
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
   var ctrl = true
-  var simulate = true
+  var simulate = false
   var verbose = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
