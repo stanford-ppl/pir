@@ -73,6 +73,6 @@ class AppTests extends UnitTest { self =>
   test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
   test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
   test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
-  test(DotProduct, args="x1019=1,x1037=0,x1056=64", argOuts="x1026_x1096=18352.0")
+  test(DotProduct, args="x1019=1 x1037=0 x1056=64", argOuts="x1026_x1096=18352.0")
 
 }
