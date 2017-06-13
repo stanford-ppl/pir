@@ -248,6 +248,7 @@ trait WordValue extends SingleValue { self:Word =>
   def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, this, vl)
   def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltSub, this, vl)
   def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltMul, this, vl)
+  def / (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltDiv, this, vl)
   def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, this, vl)
   def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, this, vl)
   def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, this, vl)

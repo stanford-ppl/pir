@@ -54,7 +54,11 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def finishSimulation:Boolean = {
     if (spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
-    else if (cycle >= 50) { timeOut = true; true }
+    else if (cycle >= 60) { 
+      timeOut = true
+      warn(s"Simulation time out at #${cycle}!")
+      true 
+    }
     else false
   } 
 

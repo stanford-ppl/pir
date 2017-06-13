@@ -330,15 +330,16 @@ class MemoryController()(implicit spade:Spade) extends Controller {
           dram.zipWithIndex.foreach { case (e,i) => e <<= i }
           vouts.foreach { vout =>
             vout.ic.v.set { v =>
-              If (ctrlBox.en.out.v) {
+              If (ctrlBox.state.v==ctrlBox.LOADING) {
                 val so = offset.readPort.v.value.get.toInt / 4
                 val sz = size.readPort.v.value.get.toInt / 4
                 dprintln(s"${quote(this)} so=$so sz=$sz ${ctrlBox.count.v.update}")
-                v.foreachv { case (ev, i) =>
-                  ev <<= dram(so + i + ctrlBox.count.v.update.value.get.toInt)
-                } { _ <<= true }
+                v.foreach { case (ev, i) =>
+                  ev <<= dram(so + i + ctrlBox.count.v.value.get.toInt)
+                }
               }
             }
+            vout.ic.v.valid := ctrlBox.state.v==ctrlBox.LOADING
           }
         case TileStore =>
           val offset = sbufs.filter{ sb => nameOf(sb)=="woffset" }.head

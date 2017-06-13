@@ -33,10 +33,13 @@ trait Evaluation {
       case ((a:WordTp)::(b:WordTp)::_, FixAdd)      => Some(a + b)
       case ((a:WordTp)::(b:WordTp)::_, FixSub)      => Some(a - b)
       case ((a:WordTp)::(b:WordTp)::_, FixMul)      => Some(a * b)
+      case ((a:WordTp)::(b:WordTp)::_, FixDiv)      => Some(a / b)
 
       case ((a:WordTp)::(b:WordTp)::_, FltAdd)      => Some(a + b)
       case ((a:WordTp)::(b:WordTp)::_, FltSub)      => Some(a - b)
       case ((a:WordTp)::(b:WordTp)::_, FltMul)      => Some(a * b)
+      case ((a:WordTp)::(b:WordTp)::_, FltDiv)      => Some(a / b)
+
       case ((a:WordTp)::(b:WordTp)::_, FltGeq)      => Some(a >= b)
       case ((a:WordTp)::(b:WordTp)::_, FltGt)       => Some(a > b)
       case ((a:WordTp)::(b:WordTp)::_, FltLeq)      => Some(a <= b)

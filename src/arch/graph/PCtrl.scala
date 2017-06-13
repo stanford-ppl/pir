@@ -321,15 +321,16 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
               statev <<= WAITING
             }
           }
+          val par = spade.numLanes //TODO loader's par
           count.v.set { countv =>
             Match(
               sim.rst -> { () => countv <<= 0 },
               rdone.pv -> { () => countv <<= 0 },
-              (state.v==LOADING) -> { () => countv <<= countv + 1 }
+              (state.pv==LOADING) -> { () => countv <<= countv + par }
             ) {}
           }
           val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
-          rdone.v := (count.v >= (size.v - 1))
+          rdone.v := (count.v >= eval(FltSub, size.v.update / 4, par))
         case TileStore =>
         case Gather =>
         case Scatter =>

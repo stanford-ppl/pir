@@ -113,16 +113,17 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def setSwapCC(cu:ComputeUnit) = {
     cu.mbuffers.foreach { 
-      case mem if mem.isSRAM | mem.buffering > 1 =>
-        swapReadCChainOf(mem) = mem.consumer match {
-          case cu:MemoryPipeline => readCChainsOf(cu).last
-          case cu:ComputeUnit => cu.localCChain
+      case mem =>
+        mem.consumer match {
+          case cu:MemoryPipeline => swapReadCChainOf(mem) = readCChainsOf(cu).last
+          case cu:ComputeUnit => swapReadCChainOf(mem) = cu.localCChain
+          case _ =>
         }
-        swapWriteCChainOf(mem) = mem.producer match {
-          case cu:MemoryPipeline => writeCChainsOf(cu).last
-          case cu:ComputeUnit => cu.localCChain
+        mem.producer match {
+          case cu:MemoryPipeline => swapWriteCChainOf(mem) = writeCChainsOf(cu).last
+          case cu:ComputeUnit => swapWriteCChainOf(mem) = cu.localCChain
+          case _ =>
         }
-      case _ =>
     }
   }
 
