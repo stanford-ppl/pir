@@ -49,12 +49,17 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
           visited += node
           if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
           else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${quote(io)}@")) } }
-        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:CtrlBox|_:Delay) => 
-          declare(node) { super.visitNode(node) }
         case node:UDCounter => declare(node) { 
           super.visitNode(node)
           declare(pmmap(node).count, None)
         }
+        case node:MCCtrlBox => declare(node) { 
+          super.visitNode(node)
+          declare(pmmap(node).count, None)
+          declare(pmmap(node).state, None)
+        }
+        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:CtrlBox|_:Delay) => 
+          declare(node) { super.visitNode(node) }
         case _ => super.visitNodeNoCheck(node)
       }
     }

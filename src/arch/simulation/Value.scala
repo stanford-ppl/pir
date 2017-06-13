@@ -55,6 +55,8 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
 
   def changed(implicit sim:Simulator):Boolean = v.value != pv.value
 
+  def check(implicit sim:Simulator):Unit = v.check
+
   def update(implicit sim:Simulator):Unit = { 
     assert(sim.inSimulation)
     if (v.isDefined) v.update
@@ -107,9 +109,10 @@ trait Value extends Node with Evaluation { self:PortType =>
     }
     func = Some((f,stackTrace)) 
   }
+  def check(implicit sim:Simulator):Unit = {}
   def isDefined:Boolean
   def svalue(implicit sim:Simulator) = this match {
-    case v:BusValue => v.value.map(ev => sim.quote(ev.value)) :+ s"n${v.valid.id}=${sim.quote(v.valid.value)}"
+    case v:BusValue => v.value.map(ev => sim.quote(ev.value)) :+ sim.quote(v.valid.value)
     case v => sim.quote(v.value)
   }
   def updated:Boolean = funcHasRan && parent.fold(true) { p => !p.isDefined || p.funcHasRan }
@@ -277,6 +280,12 @@ trait BusValue extends Value { self:Bus =>
   }
   def head:Value = value.head
 
+  override def check(implicit sim:Simulator) = {
+    import sim.util._
+    if (func.isDefined && ((value :+ valid).exists(_.func.isDefined))) {
+      warn(s"Bus ${quote(this)} has both group and individual update!")
+    }
+  }
   override def isDefined:Boolean = 
     (value.exists(_.isDefined) || func.isDefined || parent.fold(false) { _.func.isDefined }) && 
     next.fold(true) { _.isDefined } 
@@ -284,6 +293,7 @@ trait BusValue extends Value { self:Bus =>
                          value.forall(v => !v.isDefined || v.updated) && 
                          (!valid.isDefined || valid.updated)
   override def mainUpdate(implicit sim:Simulator):Unit = {
+    import sim.util._
     super.mainUpdate
     value.foreach(_.update)
     valid.update

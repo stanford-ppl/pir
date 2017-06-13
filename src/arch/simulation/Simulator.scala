@@ -77,7 +77,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   addPass {
     dprintln(s"\n\nRegistering update functions ...")
-    spade.simulatable.foreach { s => s.register; s.check }
+    spade.simulatable.foreach { s => s.register }
+    spade.simulatable.foreach { s => s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
     dprintln(s"\n\nDefault values ...")
     vcds.foreach { _.emitSignals }

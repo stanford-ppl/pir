@@ -283,6 +283,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
             case _ =>
           }
       case (cu:MemoryController, cb:MCCtrlBox) =>
+          cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
       case (cu:Top, cb:TopCtrlBox) =>
     }
     // Backward pressure
