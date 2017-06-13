@@ -44,6 +44,8 @@ trait Evaluation {
 
       case ((a:BitTp)::(b:BitTp)::_, BitAnd)  => Some(a & b)
       case ((a:BitTp)::(b:BitTp)::_, BitOr)   => Some(a | b)
+      case ((true   ):: _       ::_, BitOr)   => Some(true)
+      case ( _       :: true    ::_, BitOr)   => Some(true)
       case ((a:BitTp)::(b:BitTp)::_, BitXnor) => Some(a == b)
       case ((a:BitTp)::(b:BitTp)::_, BitXor)  => Some(a != b)
       case ((a:BitTp)::_, BitNot) => Some(!a)
