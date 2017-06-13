@@ -100,7 +100,7 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   //override lazy val cusbChannelWidthSE = 1 
   
   // SCU to switch channel width
-  override lazy val scsbChannelWidth = 0
+  //override lazy val scsbChannelWidth = 4
   // switch to SCU channel width
   //override lazy val sbscChannelWidth = 6
 

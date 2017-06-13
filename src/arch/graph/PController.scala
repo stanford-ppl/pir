@@ -329,11 +329,10 @@ class MemoryController()(implicit spade:Spade) extends Controller {
           val size = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
           dram.zipWithIndex.foreach { case (e,i) => e <<= i }
           vouts.foreach { vout =>
-            vout.ic.v.set { v =>
+            vout.v.set { v =>
               If (ctrlBox.en.out.v) {
                 val so = offset.readPort.v.value.get.toInt / 4
                 val sz = size.readPort.v.value.get.toInt / 4
-                dprintln(s"${quote(this)} so=$so sz=$sz")
                 v.foreachv { case (ev, i) =>
                   ev <<= dram(so + i + ctrlBox.count.v.value.get.toInt)
                 } { _ <<= true }

@@ -47,7 +47,6 @@ trait Simulatable extends Module with Evaluation {
       if (isMapped(io) && !io.v.isDefined) {
         warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")
       }
-      io.check
     }
   }
   def updateModule(implicit sim:Simulator):Unit = {

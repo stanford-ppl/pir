@@ -306,19 +306,13 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
       mc.mctpe match {
         case TileLoad =>
           en.in.v.set { env =>
-            If(fifoAndTree.out.v & (rdone.pv | (state.v == WAITING))) {
-              env.setHigh
-            }
-            If(state.v==LOADING) {
-              env.setLow
-            }
+            state.v.update
+            If(en.in.pv) { env.setLow }
           }
           state.v.set { statev =>
-            If(en.out.pv & (state.pv==WAITING)) {
+            If(fifoAndTree.out.v & (rdone.pv | (statev == WAITING))) {
               statev <<= LOADING
-            }
-            If(rdone.pv & (state.pv==LOADING)) {
-              statev <<= WAITING
+              en.in.v.setHigh
             }
           }
           count.v.set { countv =>
@@ -329,7 +323,7 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             ) {}
           }
           val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
-          rdone.v := (count.v >= (size.v - 1))
+          rdone.v := count.v >= size.v - 1
         case TileStore =>
         case Gather =>
         case Scatter =>
