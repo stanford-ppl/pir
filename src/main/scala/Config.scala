@@ -21,6 +21,7 @@ object Config {
   var outDir = getProperty("pir.outDir", "out")
   var ctrl = true
   var simulate = true
+  var simulationTimeOut = 100
   var verbose = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")

@@ -17,18 +17,15 @@ import scala.language.existentials
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
-  override lazy val stream = newStream("sim_pir.vcd") 
+trait PIRVcdDeclarator { self:VcdPrinter =>
   import sim.util._
-  implicit def mapping:PIRMap = sim.mapping
+  val pirDeclarator:PIRVcdDeclarator = this
 
-  val tracking = ListBuffer[PIO[PModule]]()
-
-  def declareAll = {
-    declarator.traverse
-  }
-
-  val declarator = new Traversal {
+  private val _tracking = ListBuffer[PIO[PModule]]()
+  def track(s:PIO[PModule]):Unit = _tracking += s
+  def tracked(s:PIO[PModule]):Boolean = _tracking.contains(s)
+  def tracking(declarator:PIRVcdDeclarator):Iterable[PIO[PModule]] = _tracking 
+  private val declarator:Traversal = new Traversal {
     override def shouldRun = false
     override def visitNode (node:Node): Unit = {
       if (visited.contains(node)) return
@@ -53,17 +50,17 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
           super.visitNode(node)
           declare(pmmap(node).count, None)
         }
-        case node:MCCtrlBox => declare(node) { 
-          super.visitNode(node)
-          declare(pmmap(node).count, None)
-          declare(pmmap(node).state, None)
+        case node:CtrlBox => declare(node) { 
+          //super.visitNode(node)
+          declarator(spadeDeclarator).visitNode(pmmap(node))
         }
-        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:CtrlBox|_:Delay) => 
+        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:Delay) => 
           declare(node) { super.visitNode(node) }
         case _ => super.visitNodeNoCheck(node)
       }
     }
   } 
+  def traverse(self:PIRVcdDeclarator):Unit = declarator.traverse
 
   def declare(n:Node)(finPass: => Unit):Unit = {
     val qt = n match {
@@ -104,6 +101,49 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
     emitln(s"$$upscope $$end")
   }
 
+}
+class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
+  override lazy val stream = newStream("sim_pir.vcd") 
+  import sim.util._
+  implicit def mapping:PIRMap = sim.mapping
+
+  def declareAll = {
+    addAll
+    traverse(pirDeclarator)
+  }
+
+  def addAll = {
+    adder.traverse
+  }
+
+  val adder = new Traversal {
+    override def shouldRun = false
+    override def visitNode (node:Node): Unit = {
+      if (visited.contains(node)) return
+      node match {
+        case node:Controller => spadeDeclarator.track(clmap(node))
+        case node:Counter => spadeDeclarator.track(ctmap(node))
+        case node:CounterChain =>
+        //case node:Stage => spadeDeclarator.track(stmap(node))
+        case node:OnChipMem => spadeDeclarator.track(smmap(node))
+        case node:Input => spadeDeclarator.track(vimap(node))
+        case node:Output => spadeDeclarator.track(vomap(node))
+        case node:InPort if node.isCtrlIn => spadeDeclarator.track(vimap(node))
+        case node:OutPort if node.isCtrlOut => spadeDeclarator.track(vomap(node))
+        case node:InPort => 
+        case node:OutPort => 
+        case node:Primitive if pmmap.contains(node) => spadeDeclarator.track(pmmap(node))
+        case node =>
+      }
+      super.visitNode(node)
+    }
+  }
+
+  def emitSignals = {
+    emitTime
+    tracking(pirDeclarator).foreach(emitValue)
+  }
+
   override def quote(n:Any):String = {
     n match {
       case n:Node => super.quote(pir.util.quote(n))
@@ -112,13 +152,8 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
   }
 
   override def declare(io:pir.plasticine.graph.IO[_<:pir.plasticine.graph.PortType, _<:PModule], prefix:Option[String]=None) = {
-    tracking += io
+    track(io)
     super.declare(io, prefix)
-  }
-
-  def emitSignals = {
-    emitTime
-    tracking.foreach(emitValue)
   }
 
 }

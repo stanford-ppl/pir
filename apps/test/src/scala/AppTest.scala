@@ -39,6 +39,13 @@ class AppTests extends UnitTest { self =>
     }
   }
 
+  def testDotProduct(startA:Int, startB:Int, N:Int) = {
+    val a = (startA until startA+N).toList
+    val b = (startB until startB+N).toList
+    val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum.toFloat
+    test(DotProduct, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
+  }
+
   //intercept[PIRException] {
   // No offchip access 
   //"ArgInOutDesign" should "success" in { ArgInOutDesign.main(Array("ArgInOutDesign")) }
@@ -68,11 +75,12 @@ class AppTests extends UnitTest { self =>
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
   //testInOutArg
-  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
-  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
-  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
-  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
-  test(DotProduct, args="x1019=1 x1037=0 x1056=64", argOuts="x1026_x1096=18352.0")
+  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
+  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
+  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
+  //testDotProduct(startA=0, startB=16, N=32)
+  testDotProduct(startA=0, startB=16, N=64)
 
 }

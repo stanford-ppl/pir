@@ -5,7 +5,7 @@ import scala.collection.mutable.Set
 
 trait Traversal {
 
-  val visited = Set[Node]()
+  val visited = Set[Any]()
   def reset {
     visited.clear
   }

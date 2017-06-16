@@ -9,23 +9,23 @@ import scala.collection.mutable.Set
 trait Traversal extends Pass {
   implicit def design: Design
 
-  val visited = Set[Node]()
+  val visited = Set[Any]()
   override def reset {
     super.reset
     visited.clear()
   }
   
-  def traverse = visitNode(design.top)
+  def traverse:Unit = visitNode(design.top)
 
   addPass { traverse }
 
   def visitNode(node: Node) : Unit = {
     assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
     visitNodeNoCheck(node)
+    if (visited.contains(node)) return
   }
   /* Depth first search traversal on node and their fields */
   def visitNodeNoCheck(node: Node) : Unit = {
-    if (visited.contains(node)) return
     visited += node
     node match {
       case n:Controller => 
@@ -36,6 +36,7 @@ trait Traversal extends Pass {
         n match {
           case c:Top => 
             c.compUnits.foreach(n => visitNode(n))
+            visitNode(c.ctrlBox)
           case c:ComputeUnit => {
             c.cchains.foreach { cc => visitNode(cc) }
             c.mems.foreach { s => visitNode(s) }

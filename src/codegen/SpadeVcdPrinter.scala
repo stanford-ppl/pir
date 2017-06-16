@@ -14,24 +14,22 @@ import pir.plasticine.simulation._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
-  override lazy val stream = newStream("sim.vcd") 
-  import sim.quote
-  import sim.mapping._ 
-  implicit def mapping:PIRMap = sim.mapping
-
-  val tracking = ListBuffer[Simulatable]()
-
-  def declareAll = {
-    addAll
-    declarator.traverse
-  }
-
-  val declarator = new Traversal {
+trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
+  val spadeDeclarator:SpadeVcdDeclarator = this
+  private val _tracking = ListBuffer[Simulatable]()
+  def tracking(self:SpadeVcdDeclarator):Iterable[Simulatable] = _tracking
+  def track(s:Any):Unit = s match {
+    case s:Simulatable if (!tracked(s)) => _tracking += s
+    case s:Iterable[_] => s.foreach(track)
+    case s =>
+  } 
+  def tracked(s:Simulatable):Boolean = _tracking.contains(s)
+  def declarator(self:SpadeVcdDeclarator):Traversal = _declarator
+  private val _declarator = new Traversal {
     override def visitNode (node:Node): Unit = {
       if (visited.contains(node)) return
       node match {
-        case node:ComputeUnit => declare(node) {
+        case node:ComputeUnit if _tracking.contains(node) => declare(node) {
           declare("srams") { node.srams.foreach(visitNode) }
           declare("ctrs") { node.ctrs.foreach(visitNode) }
           declare("sbufs") { node.sbufs.foreach(visitNode) }
@@ -39,9 +37,8 @@ class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter
           declare("stages") { node.stages.foreach(visitNode) }
           super.visitNode(node)
         }
-        case node:CtrlBox => declare(node) { super.visitNode(node) }
-        case node:Primitive if (!tracking.contains(node)) => super.visitNode(node)
-        case node:Module => declare(node) { super.visitNode(node) }
+        case node:CtrlBox if _tracking.contains(node) => declare(node) { super.visitNode(node) }
+        case node:Module if _tracking.contains(node) => declare(node) { super.visitNode(node) }
         case _ => super.visitNode(node)
       }
     }
@@ -63,7 +60,7 @@ class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter
   def declare(m:Module)(finPass: => Unit):Unit = {
     emitkv(s"scope module", s"${quote(m)}")
     m match {
-      case m:NetworkElement if tracking.contains(m) =>
+      case m:NetworkElement =>
         emitkv(s"scope module", "sio")
         m.scalarIO.ios.foreach { io => declare(io) }
         emitln(s"$$upscope $$end")
@@ -73,16 +70,28 @@ class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter
         emitkv(s"scope module", "cio")
         m.ctrlIO.ios.foreach { io => declare(io) }
         emitln(s"$$upscope $$end")
-      case m:Simulatable if tracking.contains(m) => m.ios.foreach { io => declare(io) }
+      case m:Simulatable => m.ios.foreach { io => declare(io) }
       case _ =>
     }
     finPass
     emitln(s"$$upscope $$end")
   }
 
+}
+
+class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
+  override lazy val stream = newStream("sim.vcd") 
+  import sim.util._
+  implicit def mapping:PIRMap = sim.mapping
+
+  def declareAll = {
+    addAll
+    declarator(spadeDeclarator).traverse
+  }
+
   def emitSignals = {
     emitTime
-    tracking.foreach { m =>
+    tracking(spadeDeclarator).foreach { m =>
       m.ios.foreach { io => emitValue(io) }
     }
   }
@@ -91,9 +100,9 @@ class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter
     override def visitNode (node:Node): Unit = {
       node match {
         case node:GlobalIO[_,_] =>
-        case node:Simulatable if !tracking.contains(node) && isMapped(node) => 
+        case node:Simulatable if isMapped(node) => 
           sim.dprintln(s"tracking ${sim.quote(node)}")
-          tracking += node
+          spadeDeclarator.track(node)
         case _ =>
       }
       super.visitNode(node)

@@ -203,15 +203,17 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
       out.v := (count.v > 0)
       notRun.v := out.v.not 
       doneOut.v.set { doneOutv =>
-        If (out.pv & out.v.update.not) { doneOutv.setHigh }
-        If (doneOut.pv) { doneOutv.setLow }
+        Match(
+          (done.v & (out.pv & out.v.not)) -> { () => doneOutv.setHigh },
+          doneOut.pv -> { () => doneOutv.setLow }
+        ) { doneOutv.setLow }
       } 
     }
     super.register
   }
 }
 
-abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive {
+abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
   for (i <- 0 until numUDCs) { UDCounter(idx=i) }
@@ -276,7 +278,7 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   readAndGate <== readFifoAndTree.out 
 }
 
-case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) with Simulatable {
+case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) {
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")
   override def register(implicit sim:Simulator):Unit = {
@@ -289,7 +291,7 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   }
 }
 
-class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) with Simulatable {
+class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) {
   val rdone = Output(Bit(), this, s"${this}.rdone")
   val wdone = Output(Bit(), this, s"${this}.wdone")
   val fifoAndTree = AndTree("fifoAndTree")

@@ -14,7 +14,7 @@ import pir.plasticine.simulation._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-abstract class VcdPrinter(implicit sim:Simulator, design: Design) extends Printer {
+abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extends SpadeVcdDeclarator with PIRVcdDeclarator with Printer {
   lazy val spademeta:SpadeMetadata = design.arch
   implicit lazy val spade:Spade = design.arch
   import sim.quote

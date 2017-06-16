@@ -14,7 +14,7 @@ object DotProduct extends PIRApp {
     val x1054_b1122_x1062_b1124_s = Scalar("x1054_b1122_x1062_b1124")
     val x1035_b1118_x1043_b1120_s = Scalar("x1035_b1118_x1043_b1120")
     val x1025_oc = OffChip("x1025")
-    val x1019_argin = ArgIn("x1019").bound(1)
+    val x1019_argin = ArgIn("x1019").bound(64)
     val x1037_argin = ArgIn("x1037").bound(0)
     val x1074_x1085_s = Scalar("x1074_x1085")
     val x1036_x1045_data_v = Vector("x1036_x1045_data")

@@ -58,6 +58,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcu = pirMap.clmap(cu)
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
+    mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
     mp = mapInPort(cb.status, pcb.status, mp)
     mp = mapOutPort(cb.command, pcb.command, mp)
     mp = mapTokenOut(cu, pcu, mp)

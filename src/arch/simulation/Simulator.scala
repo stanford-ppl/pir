@@ -25,6 +25,7 @@ trait SimUtil extends Logger {
   def ipmap = mapping.ipmap
   def opmap = mapping.opmap
   def smmap = mapping.smmap
+  def ctmap = mapping.ctmap
   def pirmeta:PIRMetadata
   def rst:Boolean
   def cycle:Int
@@ -54,7 +55,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def finishSimulation:Boolean = {
     if (spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
-    else if (cycle >= 60) { 
+    else if (cycle >= Config.simulationTimeOut) { 
       timeOut = true
       warn(s"Simulation time out at #${cycle}!")
       true 
