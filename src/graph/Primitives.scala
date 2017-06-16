@@ -236,6 +236,7 @@ object Stage {
     stage.fu = Some(new FuncUnit(stage, oprds, op, res))
   }
   //TODO check init type matches with op type
+  //TODO add reset controller
   def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
     val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
     assert(rest.size==0)

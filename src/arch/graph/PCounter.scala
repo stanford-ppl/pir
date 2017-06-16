@@ -52,7 +52,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
       }
       done.v.set { donev =>
         donev.setLow
-        If (en.v & (head >= (max.v - outPar))) {
+        If (en.v & (head >= (max.v - (step.v * outPar)))) {
           donev.setHigh
         }
       }
