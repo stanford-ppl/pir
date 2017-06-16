@@ -17,8 +17,8 @@ class AppTests extends UnitTest { self =>
     s"$app [$args] ($argOuts)" should "success" in { 
       try {
         val design = app 
-        Config.codegen = false
-        Config.debug = false
+        //Config.codegen = false
+        //Config.debug = false
         if (design.pirMapping.hasRun) {
           design.setArgs(args.split(" "))
           design.simulator.reset
@@ -39,11 +39,14 @@ class AppTests extends UnitTest { self =>
     }
   }
 
-  def testDotProduct(startA:Int, startB:Int, N:Int) = {
+  def testDotProduct(dotprod:PIRApp, startA:Int, startB:Int, N:Int) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum.toFloat
-    test(DotProduct, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
+    val default = Config.simulationTimeOut
+    Config.simulationTimeOut = 100
+    test(dotprod, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
+    Config.simulationTimeOut = default
   }
 
   //intercept[PIRException] {
@@ -74,13 +77,13 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  //testInOutArg
-  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
-  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
-  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
-  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
-  //testDotProduct(startA=0, startB=16, N=32)
-  testDotProduct(startA=0, startB=16, N=64)
+  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
+  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
+  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
+  testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
+  testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
+  testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
 
 }

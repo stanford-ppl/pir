@@ -176,7 +176,8 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
   val doneOut = Output(Bit(), this, s"${this}.doneOut")
   val notDone = Output(Bit(), this, s"${this}.notDone")
   val notRun = Output(Bit(), this, s"${this}.notRun")
-  // Debug
+  val finished = Output(Bit(), this, s"${this}.finished")
+  // Internal signals 
   val out = Output(Bit(), this, s"${this}.out")
   val count = Output(Word(), this, s"${this}.count")
   val done = Output(Bit(), this, s"${this}.done") // Initially low
@@ -187,8 +188,8 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)}")
       done.v <<= false 
       done.v.set { donev =>
-        If (doneIn.pv) { donev.setHigh }
-        If (doneOut.pv) { donev.setLow }
+        If (doneIn.v) { donev.setHigh }
+        If (doneOut.v) { donev.setLow }
       }
       notDone.v := done.v.not
       count.v.set { countv =>
@@ -202,9 +203,10 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
       }
       out.v := (count.v > 0)
       notRun.v := out.v.not 
+      finished.v := (done.pv & notRun.pv)
       doneOut.v.set { doneOutv =>
         Match(
-          (done.pv & notRun.pv) -> { () => doneOutv.setHigh },
+          (finished.v & finished.pv.not) -> { () => doneOutv.setHigh },
           doneOut.pv -> { () => doneOutv.setLow }
         ) { doneOutv.setLow }
       } 
