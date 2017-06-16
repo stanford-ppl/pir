@@ -29,7 +29,7 @@ trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
     override def visitNode (node:Node): Unit = {
       if (visited.contains(node)) return
       node match {
-        case node:ComputeUnit if _tracking.contains(node) => declare(node) {
+        case node:ComputeUnit if tracked(node) => declare(node) {
           declare("srams") { node.srams.foreach(visitNode) }
           declare("ctrs") { node.ctrs.foreach(visitNode) }
           declare("sbufs") { node.sbufs.foreach(visitNode) }
@@ -37,8 +37,8 @@ trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
           declare("stages") { node.stages.foreach(visitNode) }
           super.visitNode(node)
         }
-        case node:CtrlBox if _tracking.contains(node) => declare(node) { super.visitNode(node) }
-        case node:Module if _tracking.contains(node) => declare(node) { super.visitNode(node) }
+        case node:CtrlBox if tracked(node) => declare(node) { super.visitNode(node) }
+        case node:Simulatable if tracked(node) => declare(node) { super.visitNode(node) }
         case _ => super.visitNode(node)
       }
     }

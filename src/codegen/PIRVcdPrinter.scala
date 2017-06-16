@@ -51,8 +51,8 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
           declare(pmmap(node).count, None)
         }
         case node:CtrlBox => declare(node) { 
-          //super.visitNode(node)
           declarator(spadeDeclarator).visitNode(pmmap(node))
+          super.visitNode(node)
         }
         case node@(_:OnChipMem|_:CounterChain|_:Stage|_:Delay) => 
           declare(node) { super.visitNode(node) }
@@ -108,36 +108,10 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
   implicit def mapping:PIRMap = sim.mapping
 
   def declareAll = {
-    addAll
     traverse(pirDeclarator)
   }
 
-  def addAll = {
-    adder.traverse
-  }
-
-  val adder = new Traversal {
-    override def shouldRun = false
-    override def visitNode (node:Node): Unit = {
-      if (visited.contains(node)) return
-      node match {
-        case node:Controller => spadeDeclarator.track(clmap(node))
-        case node:Counter => spadeDeclarator.track(ctmap(node))
-        case node:CounterChain =>
-        //case node:Stage => spadeDeclarator.track(stmap(node))
-        case node:OnChipMem => spadeDeclarator.track(smmap(node))
-        case node:Input => spadeDeclarator.track(vimap(node))
-        case node:Output => spadeDeclarator.track(vomap(node))
-        case node:InPort if node.isCtrlIn => spadeDeclarator.track(vimap(node))
-        case node:OutPort if node.isCtrlOut => spadeDeclarator.track(vomap(node))
-        case node:InPort => 
-        case node:OutPort => 
-        case node:Primitive if pmmap.contains(node) => spadeDeclarator.track(pmmap(node))
-        case node =>
-      }
-      super.visitNode(node)
-    }
-  }
+  override def tracked(s:Simulatable):Boolean = true 
 
   def emitSignals = {
     emitTime

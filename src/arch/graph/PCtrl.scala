@@ -187,15 +187,15 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)}")
       done.v <<= false 
       done.v.set { donev =>
-        If (doneIn.v) { donev.setHigh }
-        If (dec.v) { donev.setLow }
+        If (doneIn.pv) { donev.setHigh }
+        If (doneOut.pv) { donev.setLow }
       }
       notDone.v := done.pv.not
       count.v.set { countv =>
         if (rst) countv <<= 0 
         else {
           Match(
-            inc.pv -> { () => countv <<= countv + 1 },
+            (inc.pv & done.v.not) -> { () => countv <<= countv + 1 },
             dec.pv -> { () => countv <<= countv - 1 }
           ) {}
         }
@@ -204,7 +204,7 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
       notRun.v := out.v.not 
       doneOut.v.set { doneOutv =>
         Match(
-          (done.v & (out.pv & out.v.not)) -> { () => doneOutv.setHigh },
+          (done.v & out.v.not) -> { () => doneOutv.setHigh },
           doneOut.pv -> { () => doneOutv.setLow }
         ) { doneOutv.setLow }
       } 
