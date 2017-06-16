@@ -94,6 +94,7 @@ trait Evaluation {
   implicit def int_to_opt(int:Int):Option[WordTp] = Some(int.toFloat)
   implicit def float_to_opt(f:WordTp):Option[WordTp] = Some(f.toFloat)
   implicit def bool_to_opt(b:BitTp):Option[BitTp] = Some(b)
+  //implicit def op_to_bit(op:Option[BitTp])(implicit spade:Spade):BitValue = { val b = Bit(); b.value=op; b }
   def isHigh(v:Option[AnyVal]):Option[BitTp] = v.map { 
     case v:BitTp => v
     case v => throw new Exception(s"Don't know how to check isHigh for $v")

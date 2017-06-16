@@ -240,39 +240,22 @@ object Stage {
     val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
     assert(rest.size==0)
     val numStages = (Math.ceil(Math.log(localCChain.inner.par))/Math.log(2)).toInt 
-    val rdstages = Stages.reduce(numStages, op) 
-    val acc = ctrler.accum(init)
-    var totalStages = ctrler.stages ++ rdstages
-    val (accstage, reg) = Stages.accum(ctrler.reduce(totalStages.last), op, acc) 
-    var stages = rdstages :+ accstage
-    (stages, reg)
-  }
-}
-object Stages {
-  def apply(n:Int) (implicit ctrler:InnerController, design: Design):List[LocalStage] = {
-    List.tabulate(n) { i => LocalStage(None) }
-  }
-  def reduce(n:Int, op:Op) (implicit ctrler:InnerController, design: Design):List[ReduceStage] = {
-    val rdStages = List.tabulate(n) {i => ReduceStage(None) }
-    rdStages.foreach { stage =>
+    val rdstages = List.tabulate(numStages) {i => ReduceStage(None) }
+    rdstages.foreach { stage =>
       val preg = ctrler.reduce(ctrler.stages.last)
       val creg = ctrler.reduce(stage)
       Stage(stage, operands=List(preg.out, preg.out), op, results=List(creg.in))
     }
-    rdStages
-  }
-  /* Create an accumulation stage
-   * @param operand operand to accumulate. i.e. acc = acc + operand
-   * @init initial value of accumulator
-   * @op accumulation operand
-   * Returns the accumulation stage and PipeReg of the accumulator
-   * */
-  def accum(operand:PipeReg, op:Op, acc:AccumPR) (implicit ctrler:InnerController, design: Design):
-    (AccumStage, PipeReg) = {
-    val s = AccumStage(acc)
-    val areg = ctrler.accum(s, acc)
-    Stage(s, operands=List(operand.out, areg.read), op, results=List(areg.in))
-    (s, areg)
+    val acc = ctrler.accum(init)
+    val accstage = AccumStage(acc)
+    val areg = ctrler.accum(accstage, acc)
+    Stage(
+      stage=accstage, 
+      operands=List(ctrler.reduce((ctrler.stages ++ rdstages).last).out, areg.read), 
+      op=op, 
+      results=List(areg.in)
+    )
+    (rdstages :+ accstage, areg)
   }
 }
 trait LocalStage extends Stage { override val typeStr = s"LStage" }
