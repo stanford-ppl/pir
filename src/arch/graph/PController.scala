@@ -338,8 +338,8 @@ class MemoryController()(implicit spade:Spade) extends Controller {
                   ev <<= dram(so + i + ctrlBox.count.v.value.get.toInt)
                 }
               }
+              v.valid <<= ctrlBox.state.v==ctrlBox.LOADING
             }
-            vout.ic.v.valid := ctrlBox.state.v==ctrlBox.LOADING
           }
         case TileStore =>
           val offset = sbufs.filter{ sb => nameOf(sb)=="woffset" }.head
