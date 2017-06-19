@@ -167,12 +167,14 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
 
   /* Parameters */
   def numRegs = 16
+  //def numRegs = 20
   def numCtrs = 5
   def numSRAMs = 0
   def sramSize = 0
   def numUDCs = 5
   override def config(implicit spade:SwitchNetwork) = {
     addRegstages(numStage=2, numOprds=3, ops)
+    //addRegstages(numStage=15, numOprds=3, ops)
     addRdstages(numStage=4, numOprds=3, ops)
     addRegstages(numStage=2, numOprds=3, ops)
     numScalarBufs(4, 256)

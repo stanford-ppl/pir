@@ -244,7 +244,7 @@ object Output {
 trait GlobalIO[P<:PortType, +S<:Module] extends IO[P, S] with Simulatable {
   val ic:IO[P, this.type]
   def connectedToSwitch:Boolean
-  override def reset = {
+  override def reset(implicit sim:Simulator) = {
     super[Simulatable].reset
   }
   override def check(implicit sim:Simulator) = {
@@ -263,7 +263,7 @@ class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(
   }
   def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
   override def ms = s"${super.ms} ic=$ic"
-  override def reset = {
+  override def reset(implicit sim:Simulator) = {
     super[Input].reset
     super[GlobalIO].reset
   }
@@ -289,7 +289,7 @@ class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])
   }
   def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
   override def mt = s"${super.mt} ic=$ic"
-  override def reset = {
+  override def reset(implicit sim:Simulator) = {
     super[Output].reset
     super[GlobalIO].reset
   }

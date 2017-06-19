@@ -51,9 +51,11 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
     if (isMapped(this)(mapping)) {
       val initVal = init(mapping).getOrElse(0)
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)} initVal=$initVal")
+      count.v.default = initVal
       count.v.set { countv =>
-        if (rst) countv <<= initVal
-        else {
+        if (rst) {
+          countv <<= initVal
+        } else {
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
             dec.pv -> { () => 
@@ -142,7 +144,7 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
     import sim.util._
     clmap.pmap.get(pne).foreach { cu =>
       if (cu.isSeq || cu.isMeta) {
-        state.v <<= INIT 
+        state.v.default = INIT 
         out.v.set { outv =>
           If (state.v == INIT) {
             If(init.v) {
@@ -186,7 +188,7 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
     import sim.util._
     if (isMapped(this)(mapping)) {
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)}")
-      done.v <<= false 
+      done.v.default = false 
       done.v.set { donev =>
         If (doneIn.v) { donev.setHigh }
         If (doneOut.v) { donev.setLow }
@@ -302,6 +304,7 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     super.register
+    status.vAt(3)
     command.v.set { v =>
       if (rst) v.setHigh
       else v.setLow
@@ -322,7 +325,7 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
     import sim.util._
     import spademeta._
     clmap.pmap.get(pne).foreach { case mc:pir.graph.MemoryController =>
-      state.v <<= WAITING 
+      state.v.default = WAITING 
       mc.mctpe match {
         case TileLoad =>
           en.in.v.set { env =>

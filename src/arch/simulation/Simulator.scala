@@ -44,6 +44,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   lazy val util:SimUtil = this
 
   var inSimulation = false 
+  var inRegistration = false 
 
   override lazy val stream = newStream("sim.log") 
 
@@ -70,9 +71,10 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     timeOut = false
     done = false
     inSimulation = false
+    inRegistration = false
     cycle = 0
-    spade.simulatable.foreach { m => m.clearModule }
     spade.simulatable.foreach { m => m.reset }
+    spade.zeroDRAM
   }
 
   override def initPass = {
@@ -81,14 +83,19 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     tic
   }
 
-  addPass {
+  def register = {
     dprintln(s"\n\nRegistering update functions ...")
-    spade.simulatable.foreach { s => s.register }
+    inRegistration = true
+    spade.simulatable.foreach { s => s.register; s.zeroModule }
+    spade.simulatable.foreach { s => s.updateModule; }
+    spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
+    spade.zeroDRAM
+    inRegistration = false
     spade.simulatable.foreach { s => s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
-    dprintln(s"\n\nDefault values ...")
-    vcds.foreach { _.emitSignals }
-    cycle += 1
+  }
+
+  def simulate = {
     dprintln(s"\n\nStarting simulation ...")
     inSimulation = true
     while (!finishSimulation) {
@@ -99,6 +106,14 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
       cycle += 1
     }
     inSimulation = false
+  }
+
+  addPass {
+    register
+    dprintln(s"\n\nDefault values ...")
+    vcds.foreach { _.emitSignals }
+    cycle += 1
+    simulate
   }
 
   override def finPass = {

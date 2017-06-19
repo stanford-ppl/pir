@@ -39,6 +39,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def vAt(idx:Int)(implicit sim:Simulator):P = {
     assert(tp.io == this, s"$tp.io != ${this}")
     while (values.size<=idx) {
+      assert(!sim.inSimulation, s"Adding previous value during simulation!")
       val v = tp.clone(s"${tp.typeStr}v${values.size}")
       assert(v.io == this)
       values.lastOption.foreach { nv => setPrev(v, nv) }
@@ -58,7 +59,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def check(implicit sim:Simulator):Unit = v.check
 
   def update(implicit sim:Simulator):Unit = { 
-    assert(sim.inSimulation)
+    assert(sim.inSimulation || sim.inRegistration)
     if (v.isDefined) v.update
   }
 
@@ -69,6 +70,10 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def reset = {
     values.foreach(_.reset)
     _values.clear
+  }
+
+  def zero(implicit sim:Simulator) = {
+    values.foreach(_.zero)
   }
 
   def := (o: => IO[_<:PortType, Module])(implicit sim:Simulator):Unit = {
@@ -120,7 +125,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     if (!isDefined) return this
     if (!updated) prevUpdate
     if (!updated) {
-      sim.emitBlock(s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id}", {
+      sim.emitBlock(s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}", {
         mainUpdate
       }, s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}")
     }
@@ -163,6 +168,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     prev = None
     next = None
   }
+  def zero(implicit sim:Simulator):Unit
   def updateInfo(implicit sim:Simulator):String = {
     var info = s"value=${sim.quote(this)} isDefined=${isDefined} updated=${updated}\n"
     info += s"func=${func.isDefined} funcHasRan=${funcHasRan}\n"
@@ -176,7 +182,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     dprintln(s"${sim.quote(this)} <<= ${sim.quote(other)}")
     copy(other.update)
   }
-  def copy (other:Value):Unit
+  def copy (other:Value)(implicit sim:Simulator):Unit
 }
 
 trait SingleValue extends Value { self:PortType =>
@@ -192,9 +198,20 @@ trait SingleValue extends Value { self:PortType =>
     set { _ <<= other }
   }
   def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { _ copy other }
-  def <<= (other:Option[AnyVal]):Unit = copy(other) 
-  def copy(other:Value):Unit = copy(other.asInstanceOf[SingleValue].value)
-  def copy (other:Option[AnyVal]):Unit
+  def <<= (other:Option[AnyVal])(implicit sim:Simulator):Unit = copy(other) 
+  def copy(other:Value)(implicit sim:Simulator):Unit = copy(other.asInstanceOf[SingleValue].value)
+  def copy (other:Option[AnyVal])(implicit sim:Simulator):Unit
+  private var _default:Option[E] = None
+  def default:Option[E] = _default
+  def default_= (value:E)(implicit sim:Simulator) = {
+    import sim.util._
+    dprintln(s"${quote(this)}.default=$value")
+    _default = Some(value)
+  }
+  def zero(implicit sim:Simulator):Unit = {
+    import sim.util._
+    value = default
+  }
 }
 
 trait BitValue extends SingleValue { self:Bit =>
@@ -203,7 +220,10 @@ trait BitValue extends SingleValue { self:Bit =>
     case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
     case v => unmatchFunc(v)
   }
-  def copy (other:Option[AnyVal]) = value = other.asInstanceOf[V]
+  def copy (other:Option[AnyVal])(implicit sim:Simulator) = {
+    assert(sim.inSimulation || sim.inRegistration)
+    value = other.asInstanceOf[V]
+  }
   def s:String = value match {
     case Some(true) => "1"
     case Some(false) => "0"
@@ -233,8 +253,11 @@ trait WordValue extends SingleValue { self:Word =>
     case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
     case v => unmatchFunc(v)
   }
-  def copy (other:Option[AnyVal]):Unit = value = other.asInstanceOf[V]
-  def <<= (other:Int):Unit = <<=(Some(other.toFloat)) 
+  def copy (other:Option[AnyVal])(implicit sim:Simulator):Unit = {
+    assert(sim.inSimulation || sim.inRegistration)
+    value = other.asInstanceOf[V]
+  }
+  def <<= (other:Int)(implicit sim:Simulator):Unit = <<=(Some(other.toFloat)) 
   def s:String = value match {
     case Some(v) => s"$v"
     case None => "x"
@@ -322,7 +345,7 @@ trait BusValue extends Value { self:Bus =>
         valid := other.valid
     }
   }
-  override def copy (other:Value) = {
+  override def copy (other:Value)(implicit sim:Simulator) = {
     other match {
       case other:SingleValue =>
         value.foreach { v => v copy other }
@@ -330,6 +353,10 @@ trait BusValue extends Value { self:Bus =>
         (value, other.value).zipped.foreach { case (v, ov) => v copy ov }
         valid copy other.valid
     }
+  }
+  def zero(implicit sim:Simulator):Unit = {
+    value.foreach(_.zero)
+    valid.zero
   }
 }
 

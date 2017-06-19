@@ -39,15 +39,27 @@ class AppTests extends UnitTest { self =>
     }
   }
 
-  def testDotProduct(dotprod:PIRApp, startA:Int, startB:Int, N:Int) = {
+  def testDotProduct(app:PIRApp, startA:Int, startB:Int, N:Int) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum.toFloat
     val default = Config.simulationTimeOut
     Config.simulationTimeOut = 100
-    test(dotprod, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
+    test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
     Config.simulationTimeOut = default
   }
+
+  //def testTPCHQ6(app:PIRApp, startA:Int, startB:Int, startC:Int, startD:Int, N:Int) = {
+    //val a = (startA until startA+N).toList
+    //val b = (startB until startB+N).toList
+    //val c = (startC until startC+N).toList
+    //val d = (startD until startD+N).toList
+    //val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum.toFloat
+    //val default = Config.simulationTimeOut
+    //Config.simulationTimeOut = 100
+    //test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
+    //Config.simulationTimeOut = default
+  //}
 
   //intercept[PIRException] {
   // No offchip access 
@@ -79,14 +91,15 @@ class AppTests extends UnitTest { self =>
   Config.debug = false
   Config.waveform = false
   Config.verbose = false
-  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
-  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
-  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
-  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
+  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
+  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
+  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
   testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
   testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
   testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
   testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
+  //testTPCHQ6(TPCHQ6, startA=0, startB=16, N=32)
 
 }

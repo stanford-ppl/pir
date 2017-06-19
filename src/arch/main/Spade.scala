@@ -44,7 +44,11 @@ trait Spade extends SpadeMetadata {
   val factory = new ConfigFactory()
           
   val dram = Array.tabulate(1024) { i => Word(s"$this.dram[$i]") }
-  dram.zipWithIndex.foreach { case (v, i) => v <<= i }
+
+  def zeroDRAM(implicit sim:Simulator) = {
+    dram.zipWithIndex.foreach { case (v, i) => v.default = i }
+    dram.foreach(_.zero)
+  }
 }
 
 trait PointToPointNetwork extends Spade {

@@ -39,6 +39,8 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
       val head = out.v.head.asWord //TODO: Add type parameter to Bus
       out.v.foreach { 
         case (v, i) if (i==0) =>
+          done.pv
+          en.pv
           head.set { headv =>
             Match(
               sim.rst -> { () => headv <<= min.v },
