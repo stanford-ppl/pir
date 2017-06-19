@@ -142,12 +142,29 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def setLocalCChain = {
+    design.top.compUnits.foreach { implicit compUnit:ComputeUnit =>
+      compUnit match {
+        case cu:MemoryPipeline =>
+        case cu:MemoryController =>
+        case cu:Pipeline if isStreaming(cu) =>
+          localCChainOf(cu) = sortCChains(cu.cchains).headOption.getOrElse(CounterChain.dummy)
+        case cu =>
+          val locals = cu.cchains.filter{_.isLocal}
+          assert(locals.size<=1, 
+            s"Currently assume each ComputeUnit only have a single local Counterchain ${cu} [${locals.mkString(",")}]")
+          localCChainOf(cu) = locals.headOption.getOrElse(CounterChain.dummy)
+      }
+    }
+  }
+
   addPass(canRun=true, runCount=1) {
     setStyle
   }
 
   addPass(canRun=(!design.fusionTransform.shouldRun || design.fusionTransform.hasRun), runCount=1) {
     setStyle
+    setLocalCChain
   }
 
   addPass(canRun=design.multiBufferAnalyzer.hasRun, runCount=1) {

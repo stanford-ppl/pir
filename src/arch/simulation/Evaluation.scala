@@ -44,6 +44,7 @@ trait Evaluation {
       case ((a:WordTp)::(b:WordTp)::_, FltGt)       => Some(a > b)
       case ((a:WordTp)::(b:WordTp)::_, FltLeq)      => Some(a <= b)
       case ((a:WordTp)::(b:WordTp)::_, FltLt)       => Some(a < b)
+      case ((a:WordTp)::(b:WordTp)::_, FltEql)      => Some(a == b)
 
       case ((a:BitTp)::(b:BitTp)::_, BitAnd)  => Some(a & b)
       case ((a:BitTp)::(b:BitTp)::_, BitOr)   => Some(a | b)

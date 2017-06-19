@@ -229,11 +229,11 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
 
 
 class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
-  val doneDelay = Delay(Bit(), pne.stages.size, s"$pne.doneDelay")
+  val doneXbar = Delay(Bit(), 0, s"${quote(pne)}.doneXbar")
+  val doneDelay = Delay(Bit(), pne.stages.size, s"${quote(pne)}.doneDelay")
   doneDelay.in <== doneXbar.out
-  val en = Delay(Bit(), 0, s"$pne.en")
-  val enDelay = Delay(Bit(), pne.stages.size, s"$pne.enDelay")
+  val en = Delay(Bit(), 0, s"${quote(pne)}.en")
+  val enDelay = Delay(Bit(), pne.stages.size, s"${quote(pne)}.enDelay")
   enDelay.in <== en.out
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
@@ -247,6 +247,22 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
   streamAndTree <== fifoAndTree.out
   en.in <== pipeAndTree.out // 0
   en.in <== streamAndTree.out // 1
+  val accumPassThrough = Output(Bit(), this, s"${quote(pne)}.accumPassThrough")
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    import sim.pirmeta._
+    super.register
+    clmap.pmap.get(pne).foreach { case icl:pir.graph.InnerController =>
+      assert(icl.accumRegs.size<=1)
+      icl.accumRegs.headOption match {
+        case None => //accumPassThrough.v := false
+        case Some(acc) => 
+          val ctr = accumCounterOf(acc)
+          val pctr = ctmap(ctr)
+          accumPassThrough.v := pctr.out.v.head.asWord == 0
+      }
+    }
+  }
 }
 
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {

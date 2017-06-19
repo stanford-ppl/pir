@@ -19,10 +19,6 @@ object Config {
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
-  var ctrl = true
-  var simulate = true
-  var simulationTimeOut = 100
-  var verbose = true
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")
@@ -58,6 +54,11 @@ object Config {
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
   
+  var ctrl = true
+  var simulate = true
+  var simulationTimeOut = 100
+  var verbose = debug & true
+  var waveform = true
 //plasticine {
   //sin-ucu = 4
   //stages-ucu = 4

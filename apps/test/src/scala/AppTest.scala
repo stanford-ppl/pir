@@ -77,6 +77,9 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
+  Config.debug = false
+  Config.waveform = false
+  Config.verbose = false
   test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
   test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
   test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
@@ -85,5 +88,6 @@ class AppTests extends UnitTest { self =>
   testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
   testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
   testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
+  testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
 
 }

@@ -140,6 +140,18 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def copyAccumCC(cu:ComputeUnit) = {
+    cu match {
+      case cu:InnerController =>
+        cu.accumRegs.foreach { acc =>
+          val accumCC = acc.accumParent.right.get.localCChain
+          val cc = cu.getCopy(accumCC)
+          accumCounterOf(acc) = cc.outer
+        }
+      case cu =>
+    }
+  }
+
   def analyzeAddrCalc(cu:ComputeUnit) = {
     val readCCs = cu.cchains.filter { cc => forRead(cc) }
     readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
@@ -168,6 +180,16 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
             dprintln(s"$ctr forRead=${forRead(ctr)} forWrite=${forWrite(ctr)}")
           }
           dprintln(s"$cchain forRead=${forRead(cchain)} forWrite=${forWrite(cchain)}")
+        }
+      }
+    }
+
+    design.top.innerCUs.foreach { cu =>
+      copyAccumCC(cu)
+
+      emitBlock(s"$cu") {
+        cu.accumRegs.foreach { acc =>
+          dprintln(s"accumCounterOf($acc)=${accumCounterOf(acc)}")
         }
       }
     }

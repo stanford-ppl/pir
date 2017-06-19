@@ -112,17 +112,17 @@ trait Design extends PIRMetadata with Collector {
   // Graph Construction
   passes += spadePrinter 
   passes += forwardRef
-  passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining
+  passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
   passes += scalMemInsertion
   passes += pirPrinter1
   passes += scalarBundling
-  passes += memoryAnalyzer
+  passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
   passes += pirPrinter2
   passes += pirDataDotGen1
   passes += livenessAnalyzer 
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
-  passes += memoryAnalyzer
+  passes += memoryAnalyzer // set swapReadCChainOf, swapWriteCChainOf, readCChainsOf, writeCChainsOf, compCChainsOf
   passes += optimizer
   passes += pirDataDotGen2
   passes += fusionTransform 

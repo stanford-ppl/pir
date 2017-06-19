@@ -128,7 +128,7 @@ abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extend
 
   def emitValue(io:IO[_<:PortType, _]):Unit = {
     //sim.dprintln(s"emitting ${sim.quote(io.v)} #${sim.cycle} changed=${io.changed}")
-    if (!io.changed) return
+    //if (!io.changed) return
     emitValue(io.v)
   }
 

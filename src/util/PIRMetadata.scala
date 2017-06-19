@@ -133,6 +133,16 @@ trait PIRMetadata extends { self:Design =>
     type V = CounterChain
   }
 
+  object accumCounterOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = AccumPR 
+    type V = Counter
+  }
+
+  object localCChainOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = Controller 
+    type V = CounterChain
+  }
+
   object contentionOf extends MOneToOneMap with PIRMetadataMaps {
     type K = Node
     type V = Int

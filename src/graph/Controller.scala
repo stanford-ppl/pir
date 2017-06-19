@@ -150,19 +150,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     cchainMap.contains(cchain.original)
   }
   
-  lazy val localCChain:CounterChain = {
-    this match {
-      case cu:MemoryPipeline =>
-        throw PIRException(s"MemoryPipeline $this doesn't have local counter chain")
-      case cu:Pipeline if isStreaming =>
-        sortCChains(cu.cchains).headOption.getOrElse(CounterChain.dummy)
-      case cu =>
-        val locals = cchains.filter{_.isLocal}
-        assert(locals.size<=1, 
-          s"Currently assume each ComputeUnit only have a single local Counterchain ${this} [${locals.mkString(",")}]")
-        locals.headOption.getOrElse(CounterChain.dummy)
-    }
-  }
+  def localCChain:CounterChain = localCChainOf(this)
 
   override def toUpdate = { super.toUpdate }
 

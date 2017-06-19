@@ -53,7 +53,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   //def vs:String = s"${value.s}"
   //def pvs:String = s"${prevValue.s}"
 
-  def changed(implicit sim:Simulator):Boolean = v.value != pv.value
+  //def changed(implicit sim:Simulator):Boolean = v.value != pv.value
 
   def check(implicit sim:Simulator):Unit = v.check
 
@@ -172,7 +172,8 @@ trait Value extends Node with Evaluation { self:PortType =>
   }
   def := (other:Value)(implicit sim:Simulator):Unit
   def <<= (other:Value)(implicit sim:Simulator):Unit = { 
-    sim.dprintln(s"${sim.quote(this)} <<= ${sim.quote(other)}")
+    import sim.util._
+    dprintln(s"${sim.quote(this)} <<= ${sim.quote(other)}")
     copy(other.update)
   }
   def copy (other:Value):Unit
@@ -219,11 +220,11 @@ trait BitValue extends SingleValue { self:Bit =>
   def isLow:V = value.map { v => !v } 
   def setHigh = value = Some(true)
   def setLow = value = Some(false)
-  def & (vl:Any)(implicit sim:Simulator):V = eval(BitAnd, this, vl).asInstanceOf[V]
-  def | (vl:Any)(implicit sim:Simulator):V = eval(BitOr, this, vl).asInstanceOf[V]
-  def == (vl:Any)(implicit sim:Simulator):V = eval(BitXnor, this, vl).asInstanceOf[V]
-  def != (vl:Any)(implicit sim:Simulator):V = eval(BitXor, this, vl).asInstanceOf[V]
-  def not(implicit sim:Simulator):V = eval(BitNot, this).asInstanceOf[V]
+  def & (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitAnd, this, vl)
+  def | (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitOr, this, vl)
+  def == (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXnor, this, vl)
+  def != (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXor, this, vl)
+  def not(implicit sim:Simulator):Option[AnyVal] = eval(BitNot, this)
 }
 
 trait WordValue extends SingleValue { self:Word =>
@@ -252,6 +253,7 @@ trait WordValue extends SingleValue { self:Word =>
   def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, this, vl)
   def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, this, vl)
   def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, this, vl)
+  def == (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltEql, this, vl)
 }
 
 trait BusValue extends Value { self:Bus =>

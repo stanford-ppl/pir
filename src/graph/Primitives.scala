@@ -236,8 +236,16 @@ object Stage {
     stage.fu = Some(new FuncUnit(stage, oprds, op, res))
   }
   //TODO check init type matches with op type
-  //TODO add reset controller
   def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
+    reduce(op, init, Right(ctrler))
+  }
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:ComputeUnit)(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
+    reduce(op, init, Right(accumParent))
+  }
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:String)(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
+    reduce(op, init, Left(accumParent))
+  }
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:Either[String, ComputeUnit])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
     val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
     assert(rest.size==0)
     val numStages = (Math.ceil(Math.log(localCChain.inner.par))/Math.log(2)).toInt 
@@ -248,6 +256,7 @@ object Stage {
       Stage(stage, operands=List(preg.out, preg.out), op, results=List(creg.in))
     }
     val acc = ctrler.accum(init)
+    acc.updateParent(accumParent)
     val accstage = AccumStage(acc)
     val areg = ctrler.accum(accstage, acc)
     Stage(
@@ -382,7 +391,18 @@ case class RdAddrPR(raPort:RdAddrInPort)(implicit ctrler:InnerController, design
 case class WtAddrPR(waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
 case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                  extends Reg {override val typeStr = "regct"}
 case class ReducePR()(implicit ctrler:InnerController, design: Design)                      extends Reg {override val typeStr = "regrd"}
-case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)  extends Reg {override val typeStr = "regac"}
+case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)  extends Reg {
+  override val typeStr = "regac"
+  var accumParent:Either[String, ComputeUnit] = Right(ctrler)
+  def updateParent(parent:Either[String, ComputeUnit]):Unit = {
+    parent match { 
+      case Left(parent) => 
+        def updateFunc(parent:Node) = updateParent(Right(parent.asInstanceOf[ComputeUnit])) 
+        design.updateLater(parent, updateFunc _ )
+      case Right(parent) => accumParent = Right(parent)
+    }
+  }
+}
 case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: Design)                extends Reg {override val typeStr = "regvi"}
 case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: Design)             extends Reg {override val typeStr = "regvo"}
 case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: Design)       extends Reg {override val typeStr = "regsi"}

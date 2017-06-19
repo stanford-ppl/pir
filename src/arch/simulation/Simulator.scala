@@ -35,7 +35,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def shouldRun = Config.simulate && design.pirMapping.succeeded
   implicit val sim:Simulator = this
-  val vcds:List[VcdPrinter] = if (Config.simulate) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
+  val vcds:List[VcdPrinter] = 
+    if (Config.simulate & Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
   override def debug = Config.verbose
 
@@ -118,7 +119,12 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
         s"${n.typeStr}[${n.index}]".replace(s"${pir.plasticine.util.quote(n.pne)}", quote(n.pne))
       case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
       case n:IO[_,_] =>  
-        s"${pir.plasticine.util.quote(n)}".replace(s"${pir.plasticine.util.quote(n.src)}", quote(n.src))
+        var q = pir.plasticine.util.quote(n).replace(pir.plasticine.util.quote(n.src), quote(n.src))
+        n.src match {
+          case n:Primitive => q = q.replace(pir.plasticine.util.quote(n.pne), quote(n.pne))
+          case _ =>
+        }
+        q
       case n:Value if n.parent.nonEmpty => s"${quote(n.parent.get)}.$n"
       case n:PortType => s"${quote(n.io)}.$n"
       case n:Node => pir.plasticine.util.quote(n)

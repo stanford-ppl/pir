@@ -7,7 +7,7 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object DotProductMeta extends PIRApp {
+object DotProductSeq extends PIRApp {
   def main(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1035_b1117_x1043_b1119_s = Scalar("x1035_b1117_x1043_b1119")
@@ -24,7 +24,7 @@ object DotProductMeta extends PIRApp {
     val x1023_oc = OffChip("x1023")
     val x1055_x1064_data_v = Vector("x1055_x1064_data")
     val x1026_x1096_argout = ArgOut("x1026_x1096")
-    val x1094 = MetaPipeline(name="x1094",parent=top) { implicit CU => 
+    val x1094 = Sequential(name="x1094",parent=top) { implicit CU => 
       val x1019_x1030 =  ScalarBuffer().wtPort(x1019_argin)
       val ctr1 = Counter(min=Const(0), max=x1019_x1030.load, step=Const(32), par=1) // Counter
       val x1032 = CounterChain(name = "x1032", ctr1)
@@ -89,14 +89,14 @@ object DotProductMeta extends PIRApp {
       val ctr4 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16) // Counter
       val x1076 = CounterChain(name = "x1076", ctr4)
       Stage(operands=List(CU.load(x1078_x1078), CU.load(x1079_x1079)), op=FixMul, results=List(CU.reduce))
-      val (_, rr91) = Stage.reduce(op=FixAdd, init=Const(0))
+      val (_, rr91) = Stage.reduce(op=FixAdd, init=Const(0), accumParent=CU)
       Stage(operands=List(rr91), op=Bypass, results=List(CU.scalarOut(x1074_x1085_s)))
     }
     val x1092_0 = Pipeline(name="x1092_0",parent=x1094) { implicit CU => 
       val x1074_x1089 =  ScalarBuffer().wtPort(x1074_x1085_s)
       val x1092_unit = CounterChain(name = "x1092_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(CU.load(x1074_x1089)), op=Bypass, results=List(CU.reduce))
-      val (_, rr94) = Stage.reduce(op=FixAdd, init=Const(0))
+      val (_, rr94) = Stage.reduce(op=FixAdd, init=Const(0), accumParent=x1094)
       Stage(operands=List(rr94), op=Bypass, results=List(CU.scalarOut(x1026_x1096_argout)))
     }
     
