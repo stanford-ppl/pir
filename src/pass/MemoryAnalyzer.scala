@@ -146,7 +146,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         cu.accumRegs.foreach { acc =>
           val accumCC = acc.accumParent.right.get.localCChain
           val cc = cu.getCopy(accumCC)
-          accumCounterOf(acc) = cc.outer
+          accumCounterOf(acc) = cc.inner
         }
       case cu =>
     }

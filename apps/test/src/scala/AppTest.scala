@@ -69,7 +69,6 @@ class AppTests extends UnitTest { self =>
   //"SimpleTileLoadStoreDesign" should "success" in { SimpleTileLoadStoreDesign.main(Array("SimpleTileLoadStoreDesign")) }
   
   // Apps 
-  //"DotProduct" should "success" in { DotProduct.main(Array("DotProduct")) }
   //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
   //"TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
