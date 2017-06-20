@@ -21,68 +21,55 @@ trait Evaluation {
   def unwrap(x:Any)(implicit sim:Simulator):Any = x match {
     case x:SingleValue => unwrap(x.update.value)
     case Some(x) => unwrap(x)
-    case x:Int => 
-      x.toFloat
-    case x => 
-      x
+    case x:Int => x.toFloat
+    case x => x
+  }
+  def eval(op:Op1, a:Any)(implicit sim:Simulator):Option[AnyVal] = {
+    import sim.util._
+    (op,unwrap(a)) match {
+      case (op:FixOp  , a:WordTp) => Some(op.eval(a))
+      case (op:FltOp  , a:WordTp) => Some(op.eval(a))
+      case (op:BitOp  , a:BitTp ) => Some(op.eval(a))
+      case (op@Bypass , a:WordTp) => Some(op.eval(a))
+      case (_         , None    ) => None
+      case _ => throw PIRException(s"Don't know how to eval $op for ins=${quote(a)}")
+    }
+  }
+  def eval(op:Op2, a:Any, b:Any)(implicit sim:Simulator):Option[AnyVal] = {
+    import sim.util._
+    (op,unwrap(a),unwrap(b)) match {
+      case (op:FixOp, a:WordTp, b:WordTp) => Some(op.eval(a, b))
+      case (op:FltOp, a:WordTp, b:WordTp) => Some(op.eval(a, b))
+      case (op:BitOp, a:BitTp , b:BitTp ) => Some(op.eval(a, b))
+      case (op@BitOr, a:BitTp , None    ) => Some(a)
+      case (op@BitOr, None    , b:BitTp ) => Some(b)
+      case (_       , None    , _       ) => None
+      case (_       , _       , None    ) => None
+      case _ => throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)}]")
+    }
+  }
+  def eval(op:Op3, a:Any, b:Any, c:Any)(implicit sim:Simulator):Option[AnyVal] = {
+    import sim.util._
+    (op,unwrap(a),unwrap(b),unwrap(c)) match {
+      case (_     , None    , _       , _       ) => None
+      case (_     , _       , None    , _       ) => None
+      case (_     , _       , _       , None    ) => None
+      case (op@Mux, a:WordTp, b:WordTp, c:WordTp) => Some(op.eval(a, b, c))
+      case _ => throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)},${quote(c)}]")
+    }
   }
   def eval(op:Op, ins:Any*)(implicit sim:Simulator):Option[AnyVal] = {
-    import sim.{quote, dprintln}
-    val inputs = ins.toList.map(unwrap)
-    val res = (inputs, op) match {
-      case ((a:WordTp)::(b:WordTp)::_, FixAdd)      => Some(a + b)
-      case ((a:WordTp)::(b:WordTp)::_, FixSub)      => Some(a - b)
-      case ((a:WordTp)::(b:WordTp)::_, FixMul)      => Some(a * b)
-      case ((a:WordTp)::(b:WordTp)::_, FixDiv)      => Some(a / b)
-
-      case ((a:WordTp)::(b:WordTp)::_, FltAdd)      => Some(a + b)
-      case ((a:WordTp)::(b:WordTp)::_, FltSub)      => Some(a - b)
-      case ((a:WordTp)::(b:WordTp)::_, FltMul)      => Some(a * b)
-      case ((a:WordTp)::(b:WordTp)::_, FltDiv)      => Some(a / b)
-
-      case ((a:WordTp)::(b:WordTp)::_, FltGeq)      => Some(a >= b)
-      case ((a:WordTp)::(b:WordTp)::_, FltGt)       => Some(a > b)
-      case ((a:WordTp)::(b:WordTp)::_, FltLeq)      => Some(a <= b)
-      case ((a:WordTp)::(b:WordTp)::_, FltLt)       => Some(a < b)
-      case ((a:WordTp)::(b:WordTp)::_, FltEql)      => Some(a == b)
-
-      case ((a:BitTp)::(b:BitTp)::_, BitAnd)  => Some(a & b)
-      case ((a:BitTp)::(b:BitTp)::_, BitOr)   => Some(a | b)
-      case ((true   ):: _       ::_, BitOr)   => Some(true)
-      case ( _       :: true    ::_, BitOr)   => Some(true)
-      case ((a:BitTp)::(b:BitTp)::_, BitXnor) => Some(a == b)
-      case ((a:BitTp)::(b:BitTp)::_, BitXor)  => Some(a != b)
-      case ((a:BitTp)::_, BitNot) => Some(!a)
-
-      case ((a:WordTp)::_, Bypass)  => Some(a) 
-      case ((a:BitTp)::_, Bypass)  => Some(a) 
-
-      case (ins, op) if ins.contains(None) => None 
-      case (ins, op) =>
-        throw PIRException(s"Don't know how to eval $op for ins=$ins")
+    import sim.util._
+    val res = op match {
+      case op:Op1 => eval(op, ins(0))
+      case op:Op2 => eval(op, ins(0), ins(1))
+      case op:Op3 => eval(op, ins(0), ins(1), ins(2))
     }
-    sim.emitBlock(s"eval($op)(${ins.map(quote).mkString(", ")})") {
-      dprintln(s"inputs=[${inputs.mkString(",")}] res=$res")
-    }
+    //sim.emitBlock(s"eval($op)(${ins.map(quote).mkString(", ")})") {
+      //dprintln(s"ins=[${ins.mkString(",")}] res=$res")
+    //}
     res
   }
-  //def eval(op:Op)(ins:Any)(implicit sim:Simulator):Option[AnyVal] = {
-    //(ins, op) match {
-      //case ((Some(a:WordTp), Some(b:WordTp)), FixAdd) => Some(a + b)
-      //case ((Some(a:WordTp), Some(b:WordTp)), FixSub) => Some(a - b)
-      //case ((Some(a:WordTp), Some(b:WordTp)), FltAdd) => Some(a + b)
-      //case ((Some(a:WordTp), Some(b:WordTp)), FltSub) => Some(a - b)
-      //case ((Some(a:WordTp), Some(b:WordTp)), FltGeq) => Some(a >= b)
-      //case ((Some(a:WordTp), Some(b:WordTp)), FltGt) => Some(a > b)
-      //case (None, op) => None
-      //case ((None, _), op) => None
-      //case ((_, None), op) => None
-      //case ((a:SingleValue, b), op) => eval(op)((a.update.value, b))
-      //case ((a, b:SingleValue), op) => eval(op)((a, b.update.value))
-      //case (ins, op) =>
-        //throw PIRException(s"Don't know how to eval $op for ins=$ins")
-    //}
-  //}
   class CurryHelper[T, Res](f: Seq[T] => Res, as: Seq[T]) {
     def myCurry() = this
     def apply(ts: T*) = new CurryHelper(f, as ++ ts)

@@ -255,7 +255,11 @@ trait WordValue extends SingleValue { self:Word =>
   }
   def copy (other:Option[AnyVal])(implicit sim:Simulator):Unit = {
     assert(sim.inSimulation || sim.inRegistration)
-    value = other.asInstanceOf[V]
+    value = other.map {
+      case v:Boolean if v => 1.0f
+      case v:Boolean if !v => 0.0f
+      case v => v.asInstanceOf[E]
+    }
   }
   def <<= (other:Int)(implicit sim:Simulator):Unit = <<=(Some(other.toFloat)) 
   def s:String = value match {
