@@ -21,6 +21,26 @@ object SN5x5 extends SwitchNetwork(numRows=5, numCols=5, numArgIns=6, numArgOuts
 }
 
 object SN4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=6, numArgOuts=5) {
+  override def pcuAt(i:Int, j:Int) = {
+    val param = new PatternComputeUnitParam {
+      override val numRegs = 20
+      override def config(cu:PatternComputeUnit)(implicit spade:SwitchNetwork) = {
+        cu.addRegstages(numStage=13, numOprds=3, ops)
+        cu.addRdstages(numStage=4, numOprds=3, ops)
+        cu.addRegstages(numStage=2, numOprds=3, ops)
+        cu.numScalarBufs(4, 256)
+        cu.numVecBufs(cu.vins.size, 256)
+        cu.color(0 until numCtrs, CounterReg)
+        cu.color(0, ReduceReg).color(1, AccumReg)
+        cu.color(5 until 5 + cu.numScalarBufs, ScalarInReg)
+        cu.color(5 until 5 + cu.souts.size, ScalarOutReg)
+        cu.color(9 until 9 + cu.numVecBufs, VecInReg)
+        cu.color(9 until 9 + cu.vouts.size, VecOutReg)
+        cu.genConnections
+      }
+    }
+    new PatternComputeUnit(param)
+  }
   config
 }
 object SN2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {

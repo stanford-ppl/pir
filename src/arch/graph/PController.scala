@@ -105,11 +105,20 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
     }
   }
 }
+
+trait ComputeUnitParam {
+  val numRegs = 16
+  val numCtrs = 5
+  val numSRAMs = 0
+  val sramSize = 0
+  val numUDCs = 5
+}
 /*
  * ComputeUnit
  * */
-class ComputeUnit()(implicit spade:Spade) extends Controller {
+abstract class ComputeUnit(val param:ComputeUnitParam)(implicit spade:Spade) extends Controller {
   import spademeta._
+  import param._
   //override implicit val ctrler:ComputeUnit = this 
   override val typeStr = "cu"
 
@@ -165,29 +174,6 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   def color(range:Range, color:RegColor):this.type = { range.foreach { i => regs(i).color(color) }; this }
   def color(i:Int, color:RegColor):this.type = { regs(i).color(color); this }
 
-  /* Parameters */
-  def numRegs = 16
-  //def numRegs = 20
-  def numCtrs = 5
-  def numSRAMs = 0
-  def sramSize = 0
-  def numUDCs = 5
-  override def config(implicit spade:SwitchNetwork) = {
-    addRegstages(numStage=2, numOprds=3, ops)
-    //addRegstages(numStage=15, numOprds=3, ops)
-    addRdstages(numStage=4, numOprds=3, ops)
-    addRegstages(numStage=2, numOprds=3, ops)
-    numScalarBufs(4, 256)
-    numVecBufs(vins.size, 256)
-    color(0 until numCtrs, CounterReg)
-    color(0, ReduceReg).color(1, AccumReg)
-    color(5 until 5 + numScalarBufs, ScalarInReg)
-    color(5 until 5 + souts.size, ScalarOutReg)
-    color(9 until 9 + numVecBufs, VecInReg)
-    color(9 until 9 + vouts.size, VecOutReg)
-    genConnections
-  }
-
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     // Add delay to output if input is from doneXBar
@@ -224,26 +210,77 @@ class ComputeUnit()(implicit spade:Spade) extends Controller {
   }
 }
 
-class OuterComputeUnit()(implicit spade:Spade) extends ComputeUnit {
-  import spademeta._
-  override val typeStr = "ocu"
-  
-  override lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
-  override def numLanes:Int = 1
+class PatternComputeUnitParam() extends ComputeUnitParam() {
 
-  /* Parameters */
-  override def numRegs = 0
-  override def numCtrs = 6
-  override def numUDCs = 15
-  override def config(implicit spade:SwitchNetwork) = {
-    numScalarBufs(4, 16)
-    genConnections
+  def config(cu:PatternComputeUnit)(implicit spade:SwitchNetwork) = {
+    cu.addRegstages(numStage=2, numOprds=3, ops)
+    cu.addRdstages(numStage=4, numOprds=3, ops)
+    cu.addRegstages(numStage=2, numOprds=3, ops)
+    cu.numScalarBufs(4, 256)
+    cu.numVecBufs(cu.vins.size, 256)
+    cu.color(0 until numCtrs, CounterReg)
+    cu.color(0, ReduceReg).color(1, AccumReg)
+    cu.color(5 until 5 + cu.numScalarBufs, ScalarInReg)
+    cu.color(5 until 5 + cu.souts.size, ScalarOutReg)
+    cu.color(9 until 9 + cu.numVecBufs, VecInReg)
+    cu.color(9 until 9 + cu.vouts.size, VecOutReg)
+    cu.genConnections
+  }
+}
+class PatternComputeUnit(override val param:PatternComputeUnitParam=new PatternComputeUnitParam())(implicit spade:Spade) 
+  extends ComputeUnit(param) {
+  override val typeStr = "pcu"
+  override def config(implicit spade:SwitchNetwork) = param.config(this)
+}
+
+class OuterComputeUnitParam() extends ComputeUnitParam() {
+  override val numRegs = 0
+  override val numCtrs = 6
+  override val numUDCs = 15
+
+  def config(cu:OuterComputeUnit)(implicit spade:SwitchNetwork) = {
+    cu.numScalarBufs(4, 16)
+    cu.genConnections
   }
 }
 
-class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
-  override val typeStr = "mcu"
+class OuterComputeUnit(override val param:OuterComputeUnitParam=new OuterComputeUnitParam())(implicit spade:Spade) 
+  extends ComputeUnit(param) {
   import spademeta._
+  import param._
+  override val typeStr = "ocu"
+  override def config(implicit spade:SwitchNetwork) = param.config(this)
+
+  override lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
+  override def numLanes:Int = 1
+}
+
+class MemoryComputeUnitParam() extends ComputeUnitParam() {
+  override val numRegs = 16
+  override val numCtrs = 8
+  override val numSRAMs = 1
+  override val sramSize = 32768
+  override val numUDCs = 0
+
+  /* Parameters */
+  def config(cu:MemoryComputeUnit)(implicit spade:SwitchNetwork) = {
+    cu.addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
+    cu.addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
+    cu.numScalarBufs(4, 16)
+    cu.numVecBufs(cu.vins.size, 16)
+    cu.color(0 until numCtrs, CounterReg)
+    cu.color(7, ReadAddrReg).color(8, WriteAddrReg)
+    cu.color(8 until 8 + cu.numScalarBufs, ScalarInReg)
+    cu.color(12 until 12 + cu.numVecBufs, VecInReg)
+    cu.genConnections
+  }
+}
+class MemoryComputeUnit(override val param:MemoryComputeUnitParam=new MemoryComputeUnitParam())(implicit spade:Spade) 
+  extends ComputeUnit(param) {
+  override val typeStr = "mcu"
+  override def config(implicit spade:SwitchNetwork) = param.config(this)
+  import spademeta._
+  import param._
 
   override lazy val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
   override def numLanes:Int = 1
@@ -261,46 +298,33 @@ class MemoryComputeUnit()(implicit spade:Spade) extends ComputeUnit {
     addRAstages(List.fill(numStage) { RAStage(numOprds=numOprds, regs, ops)}); this // Read Addr stage 
   } 
   def sram = srams.head
-
-  /* Parameters */
-  override def numRegs = 16
-  override def numCtrs = 8
-  override def numSRAMs = 1
-  override def sramSize = 32768
-  override def numUDCs = 0
-  override def config(implicit spade:SwitchNetwork) = {
-    addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
-    addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
-    numScalarBufs(4, 16)
-    numVecBufs(vins.size, 16)
-    color(0 until numCtrs, CounterReg)
-    color(7, ReadAddrReg).color(8, WriteAddrReg)
-    color(8 until 8 + numScalarBufs, ScalarInReg)
-    color(12 until 12 + numVecBufs, VecInReg)
-    genConnections
-  }
 }
 
-/* A spetial type of CU used for memory loader/storer */
-class ScalarComputeUnit()(implicit spade:Spade) extends ComputeUnit {
-  override val typeStr = "scu"
-  import spademeta._
-  override def numLanes:Int = 1
+class ScalarComputeUnitParam() extends ComputeUnitParam() {
+  override val numRegs = 16
+  override val numCtrs = 6
+  override val numUDCs = 4
 
   /* Parameters */
-  override def numRegs = 16
-  override def numCtrs = 6
-  override def numUDCs = 4
-  override def config(implicit spade:SwitchNetwork) = {
-    addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
-    numScalarBufs(6, 16)
-    numVecBufs(vins.size, 16)
-    color(0 until numCtrs, CounterReg)
-    color(7 until 7 + numScalarBufs, ScalarInReg)
-    color(8 until 8 + souts.size, ScalarOutReg)
-    color(12 until 12 + numVecBufs, VecInReg)
-    genConnections
+  def config(cu:ScalarComputeUnit)(implicit spade:SwitchNetwork) = {
+    cu.addRegstages(numStage=6, numOprds=3, fixOps ++ bitOps ++ otherOps)
+    cu.numScalarBufs(6, 16)
+    cu.numVecBufs(cu.vins.size, 16)
+    cu.color(0 until numCtrs, CounterReg)
+    cu.color(7 until 7 + cu.numScalarBufs, ScalarInReg)
+    cu.color(8 until 8 + cu.souts.size, ScalarOutReg)
+    cu.color(12 until 12 + cu.numVecBufs, VecInReg)
+    cu.genConnections
   }
+}
+/* A spetial type of CU used for memory loader/storer */
+class ScalarComputeUnit(override val param:ScalarComputeUnitParam=new ScalarComputeUnitParam())(implicit spade:Spade) 
+  extends ComputeUnit(param) {
+  override val typeStr = "scu"
+  override def config(implicit spade:SwitchNetwork) = param.config(this)
+  import spademeta._
+  import param._
+  override def numLanes:Int = 1
 }
 class MemoryController()(implicit spade:Spade) extends Controller {
   override val typeStr = "mc"

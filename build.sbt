@@ -16,6 +16,6 @@
   addCommandAlias("apps", ";project apps; test")
   addCommandAlias("pir", "; project apps; run-main")
   addCommandAlias("d", "; project apps; run-main DotProductPar1")
-  addCommandAlias("wip", s"""project pir; test-only -- -n "WIP"""")
-  addCommandAlias("arch", s"""project pir; test-only -- -n "ARCH"""")
+  addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
+  addCommandAlias("arch", s"""; project pir; test-only -- -n "ARCH"""")
   cancelable in Global := true

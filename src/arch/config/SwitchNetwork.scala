@@ -23,9 +23,13 @@ abstract class SwitchNetwork(val numRows:Int, val numCols:Int, val numArgIns:Int
   val top = Top(numArgIns, numArgOuts)
 
   def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) new ComputeUnit()
-    else new MemoryComputeUnit()
+    if ((i+j) % 2 == 0) pcuAt(i,j) 
+    else mcuAt(i,j) 
   }
+
+  def pcuAt(i:Int, j:Int) = new PatternComputeUnit()
+
+  def mcuAt(i:Int, j:Int) = new MemoryComputeUnit()
 
   def scuAt(c:Int, r:Int):ScalarComputeUnit = new ScalarComputeUnit()
 
