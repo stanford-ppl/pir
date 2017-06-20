@@ -36,7 +36,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
       }
       val outPar = pir.util.parOf(ctr)  //TODO change this to metadata
       sim.dprintln(s"$this outPar = $outPar")
-      val head = out.v.head.asWord //TODO: Add type parameter to Bus
+      val head = out.v.head.asSingle
       out.v.foreach { 
         case (v, i) if (i==0) =>
           done.pv
@@ -49,7 +49,7 @@ case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive wi
             ) {}
           }
         case (v, i) if i < outPar =>
-          v.asWord := head + (step.v * i)
+          v.asSingle := head + (step.v * i)
         case (v, i) =>
       }
       done.v.set { donev =>

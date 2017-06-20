@@ -42,7 +42,7 @@ class AppTests extends UnitTest { self =>
   def testDotProduct(app:PIRApp, startA:Int, startB:Int, N:Int) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
-    val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum.toFloat
+    val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum
     val default = Config.simulationTimeOut
     Config.simulationTimeOut = 100
     test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold")
@@ -91,11 +91,11 @@ class AppTests extends UnitTest { self =>
   Config.debug = false
   Config.waveform = false
   Config.verbose = false
-  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416.0")
-  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
-  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
-  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
+  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416")
+  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20.0")
+  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10.0")
+  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200.0")
   testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
   testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
   testDotProduct(DotProductMeta, startA=0, startB=16, N=32)

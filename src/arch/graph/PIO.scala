@@ -23,8 +23,9 @@ trait PortType extends Value {
   override def clone():this.type = clone(None)
   override def toString = s"${io}.t${typeStr}"
 }
+trait SingleType extends PortType with SingleValue
 /* Three types of pin */
-case class Bit()(implicit spade:Spade) extends PortType with BitValue {
+case class Bit()(implicit spade:Spade) extends SingleType {
   override val typeStr = "b"
   def clone(name:Option[String]):this.type = {
     val ntp = name match {
@@ -39,7 +40,7 @@ case class Bit()(implicit spade:Spade) extends PortType with BitValue {
     //case _ => false
   //}
 }
-case class Word(wordWidth:Int)(implicit spade:Spade) extends PortType with WordValue {
+case class Word(wordWidth:Int)(implicit spade:Spade) extends SingleType {
   override val typeStr = "w"
   def clone(name:Option[String]):this.type = {
     val ntp = name match {

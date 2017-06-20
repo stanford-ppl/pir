@@ -65,7 +65,7 @@ trait Ops {
   sealed trait Op2 extends Op { def eval(a:T, b:T):AnyVal }
   sealed trait Op3 extends Op { def eval(a:T, b:T, c:T):AnyVal }
 
-  sealed trait FixOp extends Op { type T = Float; _fixOps += this }
+  sealed trait FixOp extends Op { type T = Int; _fixOps += this }
   case object FixAdd extends FixOp with Op2 { def eval(a:T, b:T) = a + b          }
   case object FixSub extends FixOp with Op2 { def eval(a:T, b:T) = a - b          }
   case object FixMul extends FixOp with Op2 { def eval(a:T, b:T) = a * b          }
@@ -102,11 +102,11 @@ trait Ops {
   case object FltNeg extends FltOp with Op1 { def eval(a:T     ) = -a              }
 
   sealed trait BitOp  extends Op { type T = Boolean; _bitOps += this }
-  case object BitAnd  extends BitOp with Op2 { def eval(a:T, b:T) = a && b }; _bitOps += BitAnd
-  case object BitOr   extends BitOp with Op2 { def eval(a:T, b:T) = a || b }; _bitOps += BitOr 
-  case object BitNot  extends BitOp with Op1 { def eval(a:T     ) = !a     }; _bitOps += BitNot
-  case object BitXnor extends BitOp with Op2 { def eval(a:T, b:T) = a == b }; _bitOps += BitXnor
-  case object BitXor  extends BitOp with Op2 { def eval(a:T, b:T) = a != b }; _bitOps += BitXor 
+  case object BitAnd  extends BitOp with Op2 { def eval(a:T, b:T) = a && b }
+  case object BitOr   extends BitOp with Op2 { def eval(a:T, b:T) = a || b }
+  case object BitNot  extends BitOp with Op1 { def eval(a:T     ) = !a     }
+  case object BitXnor extends BitOp with Op2 { def eval(a:T, b:T) = a == b }
+  case object BitXor  extends BitOp with Op2 { def eval(a:T, b:T) = a != b }
 
   case object Mux    extends Op with Op3 { 
     type T = AnyVal 

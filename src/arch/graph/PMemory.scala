@@ -61,8 +61,8 @@ trait OnChipMem extends Primitive with Simulatable {
   }
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
-      def incPtr(v:WordValue) = {
-        v <<= v + 1; if (v.value.get.toInt>=bufferSize) v <<= 0
+      def incPtr(v:SingleValue) = {
+        v <<= v + 1; if (v.toInt>=bufferSize) v <<= 0
       }
       readPtr.v.default = 0
       writePtr.v.default = 0
@@ -93,16 +93,14 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val swapWrite = Output(Bit(), this, s"${this}.swapWrite")
   def mainUpdateArray(implicit sim:Simulator):Unit = {
-    writePtr.pv.update
-    writeAddr.pv.update
-    writePort.pv.update
-    writeEn.pv
-    writePtr.pv.value.foreach { writePtr => 
-      writeAddr.pv.value.foreach { writeAddr =>
-        writePort.pv.foreach { case (writePort, i) =>
-          If (writeEn.pv) {
-            array(writePtr.toInt)(writeAddr.toInt + i) <<= writePort
-          }
+    writePtr.pv
+    writeAddr.pv
+    writePort.pv
+    writePtr.v.default = 0
+    If (writeEn.pv) {
+      writePort.pv.foreach { case (writePort, i) =>
+        writeAddr.pv.getInt.foreach { writeAddr =>
+          array(writePtr.pv.toInt)(writeAddr + i) <<= writePort
         }
       }
     }
@@ -115,13 +113,12 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       array = Array.tabulate(bufferSize, size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+      readPtr.v.default = 0
       readOut.v.set { v => 
         updateArray
-        readAddr.v.update
-        readPtr.v.update
-        readAddr.v.value.foreach { rdhead =>
-          v.foreach { case (ev, i) =>
-            ev <<= array(readPtr.v.value.get.toInt)(rdhead.toInt + i)
+        v.foreach { case (ev, i) =>
+          readAddr.v.getInt.foreach { readAddr =>
+            ev <<= array(readPtr.v.toInt)(readAddr + i)
           }
         }
       }
@@ -148,7 +145,7 @@ trait LocalBuffer extends OnChipMem {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       readPort.v.set { v => 
         updateArray
-        v <<= array(readPtr.v.update.value.get.toInt)
+        v <<= array(readPtr.v.toInt)
       }
       notEmpty.v := count.v > 0
       notFull.v := count.v < bufferSize //TODO: implement almost full
@@ -166,8 +163,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   val writePort = Input(Word(), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
   def mainUpdateArray(implicit sim:Simulator):Unit = {
-    writePort.pv.update
-    writePtr.pv.update.value.foreach { pv => array(pv.toInt) <<= writePort.pv }
+    array(writePtr.pv.toInt) <<= writePort.pv
   }
   def zeroArray(implicit sim:Simulator):Unit = {
     if (array==null) return
@@ -176,6 +172,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       array = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
+      writePtr.v.default = 0
     }
     super.register
   }
@@ -187,12 +184,12 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   type P = Bus
   def zeroArray(implicit sim:Simulator):Unit = {
     if (array==null) return
-    array.foreach { _.foreach { case (v:WordValue, i) => v.zero } }
+    array.foreach { _.foreach { case (v:SingleValue, i) => v.zero } }
   }
   def mainUpdateArray(implicit sim:Simulator):Unit = {
     writePtr.pv
     If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
-      writePtr.pv.update.value.foreach { pv => array(pv.toInt) <<= writePort.pv }
+      array(writePtr.pv.toInt) <<= writePort.pv
     }
   }
   var array:Array[P] = _
@@ -203,6 +200,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
     smmap.pmap.get(this).foreach { mem =>
       array = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       incWritePtr.v.set { _ <<= writePort.v.update.valid }
+      writePtr.v.default = 0
     }
     super.register
   }

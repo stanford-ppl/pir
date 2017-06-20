@@ -22,11 +22,14 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
   val out = Output(Bus(pne.numLanes, Word()), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
-    import sim.mapping._
+    import sim.util._
     implicit val mp = sim.mapping
     fimap.get(this).foreach { _ =>
-      val inits = rcmap.pmap(reg).flatMap{_.getInit}.collect{ case c:Int => c; case c:Float => c}
+      val inits = rcmap.pmap(reg).flatMap{_.getInit}
       assert(inits.size<=1)
+      if (inits.nonEmpty) {
+        dprintln(s"${quote(in.v)}.init = ${inits.head}")
+      }
       pne.ctrlBox match {
         case cb:InnerCtrlBox =>
           en.v := cb.en.out.vAt(stage.index) 
@@ -37,7 +40,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
       in.v.foreachv { case (v, i) =>
         v.set { v =>
           Match(
-            (sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asWord <<= inits.head.toFloat },
+            (sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asSingle <<= inits.head },
             en.v -> { () => v <<= fimap(in).v.asBus.value(i) }
           ) {}
         }
@@ -48,7 +51,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
       //out.v.foreach { case (v, i) =>
         //v.set { v =>
           //Match(
-            //(sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asWord <<= inits.head.toFloat },
+            //(sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asSingle <<= inits.head },
             //en.v -> { () => v <<= in.pv.value(i) }
           //) {}
         //}
@@ -98,7 +101,7 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
           out.v.foreach { 
             case (v, oi) if groups.contains(oi) => 
               val vals = (operands, groups(oi)).zipped.map { case (operand, ii) => operand.v.value(ii) }.toSeq
-              v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
+              v.asSingle := eval(st.fu.get.op, vals.map(_.update):_*)
               dprintln(s"${quote(v)} := fu(${vals.map(quote).mkString(", ")})")
             case (v, oi) =>
           }
@@ -114,14 +117,14 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
               IfElse (pne.ctrlBox.asInstanceOf[InnerCtrlBox].accumPassThrough.vAt(stage.index)) {
                 ev <<= inputOp.v.update.value(i)
               } {
-                ev.asWord <<= eval(st.fu.get.op, vals.map(_.update):_*)
+                ev.asSingle <<= eval(st.fu.get.op, vals.map(_.update):_*)
               }
             }
           }
         case (pst,st) =>
           out.v.foreach { case (v, i) => 
             val vals = operands.map(_.v.value(i)).toSeq
-            v.asWord := eval(st.fu.get.op, vals.map(_.update):_*)
+            v.asSingle := eval(st.fu.get.op, vals.map(_.update):_*)
             dprintln(s"")
             dprintln(s"pst: ${quote(pst)} ${quote(v)} := fu(${st.fu.get.op})(${vals.map(quote).mkString(", ")})")
           }

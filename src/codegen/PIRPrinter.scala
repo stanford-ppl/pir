@@ -41,17 +41,21 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
     s"(${fields.mkString(",")})"
   }
 
-  private def toStr(mp:Map[String, String], s:String, i:Reg) = mp += (s -> i.toString)
-  private def toStr(mp:Map[String, String], s:String, l:Set[_]) = 
-    if (l.size > 0) mp += (s -> s"[${l.mkString(",")}]")
-  private def toStr(mp:Map[String, String], s:String, l:ListBuffer[_]) = 
-    if (l.size > 0) mp += (s -> s"[${l.mkString(",")}]")
-  private def toStr(mp:Map[String, String], s:String, m:Map[_,_]) = 
+  private def toStr(r:Any):String = r match { case r:AccumPR => s"${r.toString}(init=${r.getInit})"; case r => r.toString }
+  private def toStr(mp:Map[String, String], s:String, r:Reg):Unit = mp += (s -> toStr(r))
+  private def toStr(mp:Map[String, String], s:String, l:Set[_<:Reg]):Unit = 
+    if (l.size > 0) mp += (s -> s"[${l.map(toStr).mkString(",")}]")
+  private def toStr(mp:Map[String, String], s:String, l:ListBuffer[_<:Reg]):Unit = 
+    if (l.size > 0) mp += (s -> s"[${l.map(toStr).mkString(",")}]")
+  private def toStr(mp:Map[String, String], s:String, m:Map[_,_]):Unit = 
     if (m.size > 0) {
       val mstrs = m.map{case (k, v) => v match {
-          case n:Set[_] => s"${k}->{${n.map{i => s"${i}"}.mkString(",")}}"
-          case n:Map[_,_] => s"${k}->{${n.map{case (kk, vv) => s"${vv}"}.mkString(",")}}"
-          case _ => s"${k}->${v}"
+          case n:Set[_] => 
+            s"${k}->{${n.map{i => toStr(i)}.mkString(",")}}"
+          case n:Map[_,_] => 
+            s"${k}->{${n.map{case (kk, vv) => toStr(vv)}.mkString(",")}}"
+          case _ => 
+            s"${k}->${v}"
         } 
       }
       mp += (s -> s"[${mstrs.mkString(",")}]")
@@ -62,6 +66,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logg
     c match {
       case c:InnerController =>
         toStr(m, "reduceReg" , c.reduceReg  )
+        toStr(m, "accumRegs" , c.accumRegs      )
         toStr(m, "vecInRegs" , c.vecInRegs      )
         toStr(m, "vecOutRegs" , c.vecOutRegs     )
         toStr(m, "scalarOuts", c.scalarOutRegs )

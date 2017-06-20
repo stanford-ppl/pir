@@ -371,7 +371,6 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
   lazy val regId:Int = ctrler.newTemp
   override val typeStr = "reg"
   override val name = None
-  override def toString = s"${super.toString}"
   override def equals(that: Any) = that match {
     case n: Reg => regId == n.regId && ctrler == n.ctrler
     case _ => false 
@@ -432,13 +431,6 @@ case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Node {
   override val typeStr = "Const"
   val name:Option[String] = Some(s"$value")
   val out = OutPort(this, s"Const${id}(${value})")
-
-  def toFloat:Const[Float] = {
-    this match {
-      case Const(value:Int) => Const(value.toFloat)
-      case Const(value:Float) => Const(value)
-    }
-  }
 
   def isBool = value.isInstanceOf[Boolean]
   def isInt = value.isInstanceOf[Int]

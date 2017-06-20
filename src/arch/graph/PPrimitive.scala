@@ -14,26 +14,20 @@ import scala.collection.mutable.Set
 
 abstract class Primitive(implicit spade:Spade, val pne:NetworkElement) extends Module
 
-class Const[P<:PortType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {
+class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {
   override val typeStr = "const"
   val out:Output[P, this.type] = Output(tp.clone, this, s"$this.out")
 
   override def register(implicit sim:Simulator):Unit = {
-    def assign(v:Value, value:AnyVal) = {
-      (out.v, value) match {
-        case (v:WordValue, value:Float) => v := value
-        case (v:WordValue, value:Int) => v := value
-        case (v:BitValue, value:Boolean) => v := value
-        case (v, value) => err(s"Cannot create constant $value with type of $v")
-      }
-    }
-
     super.register
-    value.foreach { value =>
-      assign(out.v, value)
-    }
-    sim.mapping.pmmap.get(this).foreach { case c:pir.graph.Const[_] => 
-      assign(out.v, c.value)
+    sim.mapping.pmmap.get(this).fold {
+      out.v := value
+    } { c => 
+      c.value match {
+        case v:Float => out.v := v
+        case v:Int => out.v := v
+        case v:Boolean => out.v := v
+      }
     }
   }
 }

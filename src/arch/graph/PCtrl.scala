@@ -59,7 +59,7 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
             dec.pv -> { () => 
-              If(countv==0) { errmsg(s"${quote(this)} of ${quote(pne)} underflow at cycle #$cycle") }
+              If(countv == 0) { errmsg(s"${quote(this)} of ${quote(pne)} underflow at cycle #$cycle") }
               countv <<= countv - 1
             } 
           ) {}
@@ -86,10 +86,10 @@ case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:C
   }
 
   override def register(implicit sim:Simulator):Unit = {
-    val invs = ins.map(_.v).collect{ case v:BitValue => v }
+    val invs = ins.map(_.v).collect{ case v:SingleValue => v }
     out.v := {
-      val res = invs.map{_.update.value }.reduceOption[Option[Boolean]]{ case (in1, in2) => 
-        eval(BitAnd, in1, in2).asInstanceOf[Option[Boolean]]
+      val res = invs.map{ _.update.value }.reduceOption[Option[AnyVal]]{ case (in1, in2) => 
+        eval(BitAnd, in1, in2)
       }
       res.getOrElse(None)
     }
@@ -115,10 +115,10 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:C
   }
 
   override def register(implicit sim:Simulator):Unit = {
-    val invs = ins.map(_.v).collect{ case v:BitValue => v }
+    val invs = ins.map(_.v).collect{ case v:SingleValue => v }
     out.v := {
-      val res = invs.map{_.update.value }.reduceOption[Option[Boolean]]{ case (in1, in2) => 
-        eval(BitAnd, in1, in2).asInstanceOf[Option[Boolean]]
+      val res = invs.map{_.update.value }.reduceOption[Option[AnyVal]]{ case (in1, in2) => 
+        eval(BitAnd, in1, in2)
       }
       res.getOrElse(None)
     }
@@ -146,14 +146,14 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
       if (cu.isSeq || cu.isMeta) {
         state.v.default = INIT 
         out.v.set { outv =>
-          If (state.v == INIT) {
+          If (state.v =:= INIT) {
             If(init.v) {
               outv.setHigh
               pulseLength = lengthOf(cu) / pipelinedBy(cu)(sim.design)
               state.v <<= RUNNING
             }
           } 
-          If(state.v == RUNNING) {
+          If(state.v =:= RUNNING) {
             IfElse (done.v) {
               state.v <<= INIT
             } {
@@ -261,7 +261,7 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
         case Some(acc) => 
           val ctr = accumCounterOf(acc)
           val pctr = ctmap(ctr)
-          accumPassThrough.v := pctr.out.v.head.asWord == 0
+          accumPassThrough.v := pctr.out.v.head.asSingle == 0
       }
     }
   }
@@ -329,18 +329,18 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
       mc.mctpe match {
         case TileLoad =>
           en.in.v.set { env =>
-            If(fifoAndTree.out.v & (rdone.pv | (state.v == WAITING))) {
+            If(fifoAndTree.out.v & (rdone.pv | (state.v =:= WAITING))) {
               env.setHigh
             }
-            If(state.v==LOADING) {
+            If(state.v =:= LOADING) {
               env.setLow
             }
           }
           state.v.set { statev =>
-            If(en.out.pv & (state.pv==WAITING)) {
+            If(en.out.pv & (state.pv =:= WAITING)) {
               statev <<= LOADING
             }
-            If(rdone.pv & (state.pv==LOADING)) {
+            If(rdone.pv & (state.pv =:= LOADING)) {
               statev <<= WAITING
             }
           }
@@ -349,11 +349,11 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             Match(
               sim.rst -> { () => countv <<= 0 },
               rdone.pv -> { () => countv <<= 0 },
-              (state.pv==LOADING) -> { () => countv <<= countv + par }
+              (state.pv =:= LOADING) -> { () => countv <<= countv + par }
             ) {}
           }
           val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
-          rdone.v := (count.v >= eval(FltSub, size.v.update / 4, par))
+          rdone.v := (count.v >= eval(FixSub, size.v.update / 4, par))
         case TileStore =>
         case Gather =>
         case Scatter =>

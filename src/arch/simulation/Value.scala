@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 //import scala.reflect.{ClassTag, classTag}
-import scala.reflect.runtime.universe._
+import scala.reflect.runtime.universe.{SingleType =>_, _}
 import scala.language.implicitConversions
 
 trait Val[P<:PortType]{ self:IO[P, Module] =>
@@ -90,13 +90,7 @@ trait Value extends Node with Evaluation { self:PortType =>
   type V
   def value:V
   def s:String
-  def asBit:BitValue = this.asInstanceOf[BitValue]
-  def asWord:WordValue = {
-    this match {
-      case v:WordValue => v
-      case _ => throw new Exception(s"${io}'s value cannot be casted to WordValue")
-    }
-  }
+  def asSingle:SingleValue = this.asInstanceOf[SingleValue]
   def asBus:BusValue = this.asInstanceOf[BusValue]
   var parent:Option[Value] = None
 
@@ -149,7 +143,7 @@ trait Value extends Node with Evaluation { self:PortType =>
         } catch {
           case e:Exception =>
             errmsg(e.toString)
-            errmsg(e.getStackTrace.slice(0,5).mkString("\n"))
+            errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)
             sys.exit()
@@ -185,11 +179,16 @@ trait Value extends Node with Evaluation { self:PortType =>
   def copy (other:Value)(implicit sim:Simulator):Unit
 }
 
-trait SingleValue extends Value { self:PortType =>
-  type E <: AnyVal
-  type V = Option[E]
+trait SingleValue extends Value { self:SingleType =>
+  type V = Option[AnyVal]
   var value:V = None
-  def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit):Unit
+  def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit) = x match {
+    case None => matchFunc(None)
+    case Some(v:Float) => matchFunc(Some(v))
+    case Some(v:Int) => matchFunc(Some(v))
+    case Some(v:Boolean) => matchFunc(Some(v))
+    case v => unmatchFunc(v)
+  }
   override def isDefined:Boolean = 
     (func.isDefined || parent.fold(false) { _.func.isDefined }) && 
     next.fold(true) { _.isDefined }
@@ -200,10 +199,13 @@ trait SingleValue extends Value { self:PortType =>
   def := (other: => Option[AnyVal])(implicit sim:Simulator):Unit = set { _ copy other }
   def <<= (other:Option[AnyVal])(implicit sim:Simulator):Unit = copy(other) 
   def copy(other:Value)(implicit sim:Simulator):Unit = copy(other.asInstanceOf[SingleValue].value)
-  def copy (other:Option[AnyVal])(implicit sim:Simulator):Unit
-  private var _default:Option[E] = None
-  def default:Option[E] = _default
-  def default_= (value:E)(implicit sim:Simulator) = {
+  def copy (other:Option[AnyVal])(implicit sim:Simulator) = {
+    assert(sim.inSimulation || sim.inRegistration)
+    value = other.asInstanceOf[V]
+  }
+  private var _default:V = None
+  def default:V = _default
+  def default_= (value:AnyVal)(implicit sim:Simulator) = {
     import sim.util._
     dprintln(s"${quote(this)}.default=$value")
     _default = Some(value)
@@ -212,57 +214,9 @@ trait SingleValue extends Value { self:PortType =>
     import sim.util._
     value = default
   }
-}
-
-trait BitValue extends SingleValue { self:Bit =>
-  type E = Boolean
-  def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit) = x match {
-    case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
-    case v => unmatchFunc(v)
-  }
-  def copy (other:Option[AnyVal])(implicit sim:Simulator) = {
-    assert(sim.inSimulation || sim.inRegistration)
-    value = other.asInstanceOf[V]
-  }
   def s:String = value match {
     case Some(true) => "1"
     case Some(false) => "0"
-    case None => "x"
-  }
-  override def equals(that:Any):Boolean = {
-    that match {
-      case that: Bit => super.equals(that) && (this.value == that.value)
-      case that => false
-    }
-  }
-
-  def isHigh:V = value
-  def isLow:V = value.map { v => !v } 
-  def setHigh = value = Some(true)
-  def setLow = value = Some(false)
-  def & (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitAnd, this, vl)
-  def | (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitOr, this, vl)
-  def == (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXnor, this, vl)
-  def != (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXor, this, vl)
-  def not(implicit sim:Simulator):Option[AnyVal] = eval(BitNot, this)
-}
-
-trait WordValue extends SingleValue { self:Word =>
-  type E = WordTp
-  def isVOrElse(x:Any)(matchFunc: V => Unit)(unmatchFunc: Any => Unit) = x match {
-    case v:Option[_] if v.fold(true) { _.isInstanceOf[E] } => matchFunc(v.asInstanceOf[V])
-    case v => unmatchFunc(v)
-  }
-  def copy (other:Option[AnyVal])(implicit sim:Simulator):Unit = {
-    assert(sim.inSimulation || sim.inRegistration)
-    value = other.map {
-      case v:Boolean if v => 1.0f
-      case v:Boolean if !v => 0.0f
-      case v => v.asInstanceOf[E]
-    }
-  }
-  def <<= (other:Int)(implicit sim:Simulator):Unit = <<=(Some(other.toFloat)) 
-  def s:String = value match {
     case Some(v) => s"$v"
     case None => "x"
   }
@@ -273,14 +227,27 @@ trait WordValue extends SingleValue { self:Word =>
     }
   }
 
-  def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltAdd, this, vl)
-  def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltSub, this, vl)
-  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltMul, this, vl)
-  def / (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltDiv, this, vl)
-  def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGeq, this, vl)
-  def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltGt, this, vl)
-  def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltLt, this, vl)
-  def == (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FltEql, this, vl)
+  def toInt(implicit sim:Simulator):Int = update.value.get.asInstanceOf[Int]
+  def getInt(implicit sim:Simulator):Option[Int] = update.value.asInstanceOf[Option[Int]]
+
+  def isHigh:Option[Boolean] = value.map { case v:Boolean => v }
+  def isLow:Option[Boolean] = value.map { case v:Boolean => !v } 
+  def setHigh = value = Some(true)
+  def setLow = value = Some(false)
+  def & (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitAnd, this, vl)
+  def | (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitOr, this, vl)
+  def =:= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXnor, this, vl)
+  def =!= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(BitXor, this, vl)
+  def not(implicit sim:Simulator):Option[AnyVal] = eval(BitNot, this)
+
+  def + (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixAdd, this, vl)
+  def - (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixSub, this, vl)
+  def * (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixMul, this, vl)
+  def / (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixDiv, this, vl)
+  def >= (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixGeq, this, vl)
+  def > (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixGt, this, vl)
+  def < (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixLt, this, vl)
+  def == (vl:Any)(implicit sim:Simulator):Option[AnyVal] = eval(FixEql, this, vl)
 }
 
 trait BusValue extends Value { self:Bus =>
@@ -304,7 +271,7 @@ trait BusValue extends Value { self:Bus =>
   def foreach(lambda:(Value, Int) => Unit):Unit =  {
     value.zipWithIndex.foreach { case (e, i) => lambda(e, i) }
   }
-  def foreachv(lambda:(Value, Int) => Unit)(vlambda:BitValue => Unit):Unit =  {
+  def foreachv(lambda:(Value, Int) => Unit)(vlambda:SingleType => Unit):Unit =  {
     foreach(lambda)
     vlambda(valid)
   }

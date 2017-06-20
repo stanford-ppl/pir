@@ -26,6 +26,7 @@ trait SimUtil extends Logger {
   def opmap = mapping.opmap
   def smmap = mapping.smmap
   def ctmap = mapping.ctmap
+  def rcmap = mapping.rcmap
   def pirmeta:PIRMetadata
   def rst:Boolean
   def cycle:Int

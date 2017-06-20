@@ -16,46 +16,51 @@ import scala.reflect.runtime.universe._
 import scala.language.implicitConversions
 
 trait Evaluation {
-  type WordTp = Float
-  type BitTp = Boolean
-  def unwrap(x:Any)(implicit sim:Simulator):Any = x match {
-    case x:SingleValue => unwrap(x.update.value)
-    case Some(x) => unwrap(x)
-    case x:Int => x.toFloat
-    case x => x
+  def unwrap(x:Any, op:Op)(implicit sim:Simulator):Any = (x,op) match {
+    case (x:SingleValue, op:Op) => unwrap(x.update.value, op)
+    case (Some(x), op:Op) => unwrap(x, op)
+    case (x:Int, op:FltOp) => x.toFloat
+    case (x:Int, op:BitOp) => x > 0 
+    case (x:Float, op:BitOp) => x > 0 
+    case (x, op) => x
   }
   def eval(op:Op1, a:Any)(implicit sim:Simulator):Option[AnyVal] = {
     import sim.util._
-    (op,unwrap(a)) match {
-      case (op:FixOp  , a:WordTp) => Some(op.eval(a))
-      case (op:FltOp  , a:WordTp) => Some(op.eval(a))
-      case (op:BitOp  , a:BitTp ) => Some(op.eval(a))
-      case (op@Bypass , a:WordTp) => Some(op.eval(a))
-      case (_         , None    ) => None
-      case _ => throw PIRException(s"Don't know how to eval $op for ins=${quote(a)}")
+    (op,unwrap(a, op)) match {
+      case (op:FixOp  , a:Int     ) => Some(op.eval(a))
+      case (op:FltOp  , a:Float   ) => Some(op.eval(a))
+      case (op:BitOp  , a:Boolean ) => Some(op.eval(a))
+      case (op@Bypass , a:Float   ) => Some(op.eval(a))
+      case (op@Bypass , a:Int     ) => Some(op.eval(a))
+      case (op@Bypass , a:Boolean ) => Some(op.eval(a))
+      case (_         , None      ) => None
+      case (op        , a         ) => 
+        throw PIRException(s"Don't know how to eval $op for ins=${quote(a)}")
     }
   }
   def eval(op:Op2, a:Any, b:Any)(implicit sim:Simulator):Option[AnyVal] = {
     import sim.util._
-    (op,unwrap(a),unwrap(b)) match {
-      case (op:FixOp, a:WordTp, b:WordTp) => Some(op.eval(a, b))
-      case (op:FltOp, a:WordTp, b:WordTp) => Some(op.eval(a, b))
-      case (op:BitOp, a:BitTp , b:BitTp ) => Some(op.eval(a, b))
-      case (op@BitOr, a:BitTp , None    ) => Some(a)
-      case (op@BitOr, None    , b:BitTp ) => Some(b)
-      case (_       , None    , _       ) => None
-      case (_       , _       , None    ) => None
-      case _ => throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)}]")
+    (op,unwrap(a, op),unwrap(b, op)) match {
+      case (op:FixOp, a:Int    , b:Int      ) => Some(op.eval(a, b))
+      case (op:FltOp, a:Float  , b:Float    ) => Some(op.eval(a, b))
+      case (op:BitOp, a:Boolean, b:Boolean  ) => Some(op.eval(a, b))
+      case (op@BitOr, a:Boolean, None       ) => Some(a)
+      case (op@BitOr, None     , b:Boolean  ) => Some(b)
+      case (_       , None     , _          ) => None
+      case (_       , _        , None       ) => None
+      case (op      , a        , b          ) => 
+        throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)}]")
     }
   }
   def eval(op:Op3, a:Any, b:Any, c:Any)(implicit sim:Simulator):Option[AnyVal] = {
     import sim.util._
-    (op,unwrap(a),unwrap(b),unwrap(c)) match {
-      case (_     , None    , _       , _       ) => None
-      case (_     , _       , None    , _       ) => None
-      case (_     , _       , _       , None    ) => None
-      case (op@Mux, a:WordTp, b:WordTp, c:WordTp) => Some(op.eval(a, b, c))
-      case _ => throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)},${quote(c)}]")
+    (op,unwrap(a, op),unwrap(b, op),unwrap(c, op)) match {
+      case (_     , None    , _       , _     ) => None
+      case (_     , _       , None    , _     ) => None
+      case (_     , _       , _       , None  ) => None
+      case (op@Mux, a:Float, b:Float, c:Float ) => Some(op.eval(a, b, c))
+      case (op    , a       , b       , c     ) => 
+        throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)},${quote(c)}]")
     }
   }
   def eval(op:Op, ins:Any*)(implicit sim:Simulator):Option[AnyVal] = {
@@ -77,18 +82,17 @@ trait Evaluation {
   }
   implicit def toCurryHelper[T, Res](f: Seq[T] => Res) = new CurryHelper(f, IndexedSeq[T]())
 
-  implicit def wv_to_opt(wv:WordValue)(implicit sim:Simulator):Option[WordTp] = wv.update.value
-  implicit def bv_to_opt(bv:BitValue)(implicit sim:Simulator):Option[BitTp] = bv.update.value
-  implicit def int_to_opt(int:Int):Option[WordTp] = Some(int.toFloat)
-  implicit def float_to_opt(f:WordTp):Option[WordTp] = Some(f.toFloat)
-  implicit def bool_to_opt(b:BitTp):Option[BitTp] = Some(b)
-  //implicit def op_to_bit(op:Option[BitTp])(implicit spade:Spade):BitValue = { val b = Bit(); b.value=op; b }
-  def isHigh(v:Option[AnyVal]):Option[BitTp] = v.map { 
-    case v:BitTp => v
+  implicit def sv_to_opt(sv:SingleValue)(implicit sim:Simulator):Option[AnyVal] = sv.update.value
+  implicit def int_to_opt(int:Int):Option[AnyVal] = Some(int)
+  implicit def float_to_opt(f:Float):Option[AnyVal] = Some(f)
+  implicit def bool_to_opt(b:Boolean):Option[AnyVal] = Some(b)
+  implicit def av_to_opt(a:AnyVal):Option[AnyVal] = Some(a)
+  def isHigh(v:Option[AnyVal]):Option[Boolean] = v.map { 
+    case v:Boolean => v
     case v => throw new Exception(s"Don't know how to check isHigh for $v")
   }
-  def isLow(v:Option[AnyVal]):Option[BitTp] = v.map { 
-    case v:BitTp => !v
+  def isLow(v:Option[AnyVal]):Option[Boolean] = v.map { 
+    case v:Boolean => !v
     case v => throw new Exception(s"Don't know how to check isLow for $v")
   }
   //def IfElse[T](cond:Option[AnyVal])(trueFunc: => T)(falseFunc: => T)(implicit ev:TypeTag[T]):T = {
@@ -110,10 +114,9 @@ trait Evaluation {
     var trigDefault = false
     val matchPairs:Seq[(Option[AnyVal], () => Unit)] = matches.map { 
       case (cond:SingleValue, func) => (cond.update.value, func)
-      case (cond:BitTp, func) => (Some(cond), func)
+      case (cond:Boolean, func) => (Some(cond), func)
       case (cond:Option[_], func) => (cond.asInstanceOf[Option[AnyVal]], func)
     }
-    sim.dprintln(s"matchpairs: ${matchPairs.map(_._1)}")
     matchPairs.foreach { case (cond, func) =>
       cond.foreach { 
         case true => 
