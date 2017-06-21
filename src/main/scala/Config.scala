@@ -56,7 +56,7 @@ object Config {
   
   var ctrl = true
   var simulate = true
-  var simulationTimeOut = 100
+  var simulationTimeOut = 60
   var verbose = debug & true
   var waveform = true
 //plasticine {

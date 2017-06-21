@@ -353,7 +353,7 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             ) {}
           }
           val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
-          rdone.v := (count.v >= eval(FixSub, size.v.update / 4, par))
+          rdone.v := (count.v >= eval(FixSub, size.v / 4, par))
         case TileStore =>
         case Gather =>
         case Scatter =>

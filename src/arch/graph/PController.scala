@@ -353,7 +353,6 @@ class MemoryController()(implicit spade:Spade) extends Controller {
         case TileLoad =>
           val offset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
           val size = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
-          dram.zipWithIndex.foreach { case (e,i) => e <<= i }
           vouts.foreach { vout =>
             vout.ic.v.set { v =>
               If (ctrlBox.state.v =:= ctrlBox.LOADING) {

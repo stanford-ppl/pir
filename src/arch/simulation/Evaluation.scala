@@ -21,7 +21,6 @@ trait Evaluation {
     case (Some(x), op:Op) => unwrap(x, op)
     case (x:Int, op:FltOp) => x.toFloat
     case (x:Int, op:BitOp) => x > 0 
-    case (x:Float, op:BitOp) => x > 0 
     case (x, op) => x
   }
   def eval(op:Op1, a:Any)(implicit sim:Simulator):Option[AnyVal] = {
@@ -54,12 +53,13 @@ trait Evaluation {
   }
   def eval(op:Op3, a:Any, b:Any, c:Any)(implicit sim:Simulator):Option[AnyVal] = {
     import sim.util._
-    (op,unwrap(a, op),unwrap(b, op),unwrap(c, op)) match {
-      case (_     , None    , _       , _     ) => None
-      case (_     , _       , None    , _     ) => None
-      case (_     , _       , _       , None  ) => None
-      case (op@Mux, a:Float, b:Float, c:Float ) => Some(op.eval(a, b, c))
-      case (op    , a       , b       , c     ) => 
+    (op,unwrap(a, op),unwrap(b, op),unwrap(c, op)) match { //TODO
+      case (op@Mux, a:Boolean, b:Int  , c:Int  ) => Some(op.eval(a, b, c))
+      case (op@Mux, a:Boolean, b:Float, c:Float) => Some(op.eval(a, b, c))
+      case (_     , None     , _      , _      ) => None
+      case (_     , _        , None   , _      ) => None
+      case (_     , _        , _      , None   ) => None
+      case (op    , a        , b      , c      ) => 
         throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)},${quote(c)}]")
     }
   }
