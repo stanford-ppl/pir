@@ -363,18 +363,20 @@ class MemoryController()(implicit spade:Spade) extends Controller {
                 val sz = rsize.readPort.v.toInt / 4
                 dprintln(s"${quote(this)} TileLoad roffset=$so rsize=$sz ${ctrlBox.count.v.update}")
                 v.foreach { case (ev, i) =>
-                  ev <<= dram(so + i + ctrlBox.count.v.toInt)
+                  ev <<= dram.memory(so + i + ctrlBox.count.v.toInt)
                 }
               }
               v.valid <<= ctrlBox.running.v
             }
           }
         case TileStore =>
-          data.readPort.v.foreach { case (ev, i) =>
-            val so = woffset.readPort.v.toInt / 4
-            val sz = wsize.readPort.v.toInt / 4
-            dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")
-            dram(so + i + ctrlBox.count.v.toInt) <<= ev
+          dram.setMem { memory =>
+            data.readPort.v.foreach { case (ev, i) =>
+              val so = woffset.readPort.v.toInt / 4
+              val sz = wsize.readPort.v.toInt / 4
+              dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")
+              memory(so + i + ctrlBox.count.v.toInt) <<= ev
+            }
           }
         case Gather =>
         case Scatter =>

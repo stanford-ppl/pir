@@ -62,6 +62,7 @@ package object util {
     }
     node match {
       case n:Controller => mp.clmap.isMapped(n)
+      case n:DRAM => true
       case n:OnChipMem => mp.smmap.isMapped(n)
       case n:Counter => mp.ctmap.isMapped(n)
       case n:Stage => mp.stmap.isMapped(n)

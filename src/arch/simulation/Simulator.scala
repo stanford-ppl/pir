@@ -75,7 +75,6 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     inRegistration = false
     cycle = 0
     spade.simulatable.foreach { m => m.reset }
-    spade.zeroDRAM
   }
 
   override def initPass = {
@@ -90,7 +89,6 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     spade.simulatable.foreach { s => s.register; s.zeroModule }
     spade.simulatable.foreach { s => s.updateModule; }
     spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
-    spade.zeroDRAM
     inRegistration = false
     spade.simulatable.foreach { s => s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
