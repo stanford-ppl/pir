@@ -12,6 +12,10 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
+trait DRAM extends Node with Simulatable {
+  import spademeta._
+}
+
 trait OnChipMem extends Primitive with Simulatable {
   import spademeta._
   val size:Int

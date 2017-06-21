@@ -70,6 +70,8 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
           mem.dequeueEnable.connect(cb.readEn.out)
         case cb:MemCtrlBox if forWrite(mem) =>
           mem.dequeueEnable.connect(cb.writeEn.out)
+        case cb:MCCtrlBox if mem.name.get=="data" =>
+          //mem.dequeueEnable.connect(cb.running)
         case cb:StageCtrlBox =>
           mem.dequeueEnable.connect(cb.en.out)
       }

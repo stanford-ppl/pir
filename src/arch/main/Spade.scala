@@ -49,6 +49,9 @@ trait Spade extends SpadeMetadata {
     dram.zipWithIndex.foreach { case (v, i) => v.default = i }
     dram.foreach(_.zero)
   }
+
+  def updateDRAM(implicit sim:Simulator) = {
+  }
 }
 
 trait PointToPointNetwork extends Spade {

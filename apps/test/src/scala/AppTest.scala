@@ -79,16 +79,16 @@ class AppTests extends UnitTest { self =>
   Config.debug = false
   Config.waveform = false
   Config.verbose = false
-  test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416")
-  test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20")
-  test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10")
-  test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200")
-  testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
-  testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
-  testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
+  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
+  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416")
+  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20")
+  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10")
+  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200")
+  //testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
+  //testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
+  //testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
   testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
-  testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32)
+  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32)
   testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64)
 
 }

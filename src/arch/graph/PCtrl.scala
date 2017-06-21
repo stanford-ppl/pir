@@ -318,8 +318,9 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
   val fifoAndTree = AndTree("fifoAndTree")
   val en = Delay(Bit(), 0, s"$pne.en")
   val WAITING = false
-  val LOADING = true
+  val RUNNING = true
   val state = Output(Bit(), this, s"${this}.state")
+  val running = Output(Bit(), this, s"${this}.running")
   val count = Output(Word(), this, s"${this}.count")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
@@ -327,20 +328,26 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
     clmap.pmap.get(pne).foreach { case mc:pir.graph.MemoryController =>
       state.v.default = WAITING 
       mc.mctpe match {
-        case TileLoad =>
+        case tp if tp.isDense =>
+          val (done, size) = tp match {
+            case TileLoad => (rdone, pne.rsize)
+            case TileStore => (wdone, pne.wsize)
+            case _ => throw new Exception(s"Not possible match")
+          }
+          running.v := (state.v =:= RUNNING)
           en.in.v.set { env =>
-            If(fifoAndTree.out.v & (rdone.pv | (state.v =:= WAITING))) {
+            If(fifoAndTree.out.v & (rdone.pv | running.v.not)) {
               env.setHigh
             }
-            If(state.v =:= LOADING) {
+            If(running.v) {
               env.setLow
             }
           }
           state.v.set { statev =>
-            If(en.out.pv & (state.pv =:= WAITING)) {
-              statev <<= LOADING
+            If(en.out.pv & (running.pv.not)) {
+              statev <<= RUNNING
             }
-            If(rdone.pv & (state.pv =:= LOADING)) {
+            If(rdone.pv & (running.pv)) {
               statev <<= WAITING
             }
           }
@@ -349,12 +356,10 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             Match(
               sim.rst -> { () => countv <<= 0 },
               rdone.pv -> { () => countv <<= 0 },
-              (state.pv =:= LOADING) -> { () => countv <<= countv + par }
+              (running.pv) -> { () => countv <<= countv + par }
             ) {}
           }
-          val size = pne.sbufs.filter{ sb => nameOf(sb)=="rsize" }.head.readPort
-          rdone.v := (count.v >= eval(FixSub, size.v / 4, par))
-        case TileStore =>
+          rdone.v := (count.v >= eval(FixSub, size.readPort.v / 4, par))
         case Gather =>
         case Scatter =>
       }

@@ -261,7 +261,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (mc:MemoryController, cb:MCCtrlBox) =>
         mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-        mc.bufs.foreach { buf => buf.incReadPtr <== cb.en.out }
+        mc.sbufs.foreach { buf => buf.incReadPtr <== cb.en.out }
+        mc.data.incReadPtr <== cb.running
         //cb.en.in <== cb.fifoAndTree.out
       case (top:Top, cb:TopCtrlBox) =>
     }

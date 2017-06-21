@@ -112,7 +112,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     }
     cu.fifos.foreach { fifo =>
       val pmem = mp.smmap(fifo)
-      mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
+      if (fifo.dequeueEnable.isConnected)
+        mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
     }
     mp
   }

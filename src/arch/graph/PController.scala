@@ -331,6 +331,11 @@ class MemoryController()(implicit spade:Spade) extends Controller {
   import spademeta._
   lazy val ctrlBox:MCCtrlBox = new MCCtrlBox()
 
+  lazy val woffset = sbufs.filter{ sb => nameOf(sb)=="woffset" }.head
+  lazy val roffset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
+  lazy val wsize = sbufs.filter{ sb => nameOf(sb)=="wsize" }.head
+  lazy val rsize = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
+  lazy val data = vbufs.filter{ vb => nameOf(vb)=="data" }.head
   /* Parameters */
   override def config(implicit spade:SwitchNetwork) = {
     //assert(sins.size==2)
@@ -351,25 +356,26 @@ class MemoryController()(implicit spade:Spade) extends Controller {
     clmap.pmap.get(this).foreach { case mc:pir.graph.MemoryController =>
       mc.mctpe match {
         case TileLoad =>
-          val offset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
-          val size = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
           vouts.foreach { vout =>
             vout.ic.v.set { v =>
-              If (ctrlBox.state.v =:= ctrlBox.LOADING) {
-                val so = offset.readPort.v.toInt / 4
-                val sz = size.readPort.v.toInt / 4
-                dprintln(s"${quote(this)} so=$so sz=$sz ${ctrlBox.count.v.update}")
+              If (ctrlBox.state.v =:= ctrlBox.RUNNING) {
+                val so = roffset.readPort.v.toInt / 4
+                val sz = rsize.readPort.v.toInt / 4
+                dprintln(s"${quote(this)} TileLoad roffset=$so rsize=$sz ${ctrlBox.count.v.update}")
                 v.foreach { case (ev, i) =>
                   ev <<= dram(so + i + ctrlBox.count.v.toInt)
                 }
               }
-              v.valid <<= ctrlBox.state.v =:= ctrlBox.LOADING
+              v.valid <<= ctrlBox.running.v
             }
           }
         case TileStore =>
-          val offset = sbufs.filter{ sb => nameOf(sb)=="woffset" }.head
-          val size = sbufs.filter{ sb => nameOf(sb)=="wsize" }.head
-          val data = sbufs.filter{ sb => nameOf(sb)=="data" }.head
+          data.readPort.v.foreach { case (ev, i) =>
+            val so = woffset.readPort.v.toInt / 4
+            val sz = wsize.readPort.v.toInt / 4
+            dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")
+            dram(so + i + ctrlBox.count.v.toInt) <<= ev
+          }
         case Gather =>
         case Scatter =>
       }
