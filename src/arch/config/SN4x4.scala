@@ -43,6 +43,9 @@ object SN4x4 extends SwitchNetwork(numRows=4, numCols=4, numArgIns=6, numArgOuts
   }
   config
 }
+object SN2x3 extends SwitchNetwork(numRows=2, numCols=3, numArgIns=5, numArgOuts=3) {
+  config
+}
 object SN2x2 extends SwitchNetwork(numRows=2, numCols=2, numArgIns=3, numArgOuts=3) {
   config
 }

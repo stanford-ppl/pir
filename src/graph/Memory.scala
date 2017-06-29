@@ -144,6 +144,8 @@ trait LocalMem extends OnChipMem {
   }
 }
 trait RemoteMem extends OnChipMem { self:VectorMem =>
+  def rdPort(scalar:Scalar):this.type = { rdPort(ctrler.newSout(scalar)) }
+  def rdPort(scalarOut:ScalarOut):this.type = { scalarOut.in.connect(readPort); this }
   def rdPort(vec:Vector):this.type = { rdPort(ctrler.newVout(vec)) }
   def rdPort(vecOut:VecOut):this.type = { vecOut.in.connect(readPort); this }
   //override def wtPort(vecIn:VecIn):this.type = { // Move this insertion to spatial

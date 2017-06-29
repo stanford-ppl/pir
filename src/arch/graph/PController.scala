@@ -190,17 +190,17 @@ abstract class ComputeUnit(val param:ComputeUnitParam)(implicit spade:Spade) ext
         case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
         case _ => None
       }
-      vouts.foreach { vout =>
-        fimap.get(vout.ic).fold {
-          if (vout.ic.fanIns.size==1) {
-            vout.ic.v.set { v =>
-              v <<= vout.ic.fanIns.head.v
+      vouts.foreach { out =>
+        fimap.get(out.ic).fold {
+          if (out.ic.fanIns.size==1) {
+            out.ic.v.set { v =>
+              v <<= out.ic.fanIns.head.v
               v.valid <<= enable.get
             }
           }
-        } { out => 
-          vout.ic.v.set { v =>
-            v <<= out.v
+        } { pout => 
+          out.ic.v.set { v =>
+            v <<= pout.v
             v.valid <<= enable.get
           }
         }
@@ -358,7 +358,7 @@ class MemoryController()(implicit spade:Spade) extends Controller {
         case TileLoad =>
           vouts.foreach { vout =>
             vout.ic.v.set { v =>
-              If (ctrlBox.state.v =:= ctrlBox.RUNNING) {
+              If (ctrlBox.running.v) {
                 val so = roffset.readPort.v.toInt / 4
                 val sz = rsize.readPort.v.toInt / 4
                 dprintln(s"${quote(this)} TileLoad roffset=$so rsize=$sz ${ctrlBox.count.v.update}")
@@ -371,11 +371,13 @@ class MemoryController()(implicit spade:Spade) extends Controller {
           }
         case TileStore =>
           dram.setMem { memory =>
-            data.readPort.v.foreach { case (ev, i) =>
-              val so = woffset.readPort.v.toInt / 4
-              val sz = wsize.readPort.v.toInt / 4
-              dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")
-              memory(so + i + ctrlBox.count.v.toInt) <<= ev
+            If (ctrlBox.running.v) {
+              data.readPort.v.foreach { case (ev, i) =>
+                val so = woffset.readPort.v.toInt / 4
+                val sz = wsize.readPort.v.toInt / 4
+                dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")
+                memory(so + i + ctrlBox.count.v.toInt) <<= ev
+              }
             }
           }
         case Gather =>

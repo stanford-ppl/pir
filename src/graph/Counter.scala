@@ -178,13 +178,6 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
   override def toUpdate = super.toUpdate || cchain==null
 
-  def update(mi:OutPort, ma:OutPort, s:OutPort, par:Int):Unit = {
-    min.connect(mi)
-    max.connect(ma)
-    step.connect(s)
-    this.par = par
-  }
-
   def isInner = { 
     if (Config.ctrl) {
       assert(en.isConnected, s"${this}.en is not connected")
@@ -238,7 +231,10 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
         case _ => throw new Exception(s"Don't know how to copy port") //TODO
       }
     }
-    update(copyOutPort(c.min.from), copyOutPort(c.max.from), copyOutPort(c.step.from), c.par)
+    min.connect(copyOutPort(c.min.from))
+    max.connect(copyOutPort(c.max.from))
+    step.connect(copyOutPort(c.step.from))
+    par = c.par
   } 
 }
 object Counter {
@@ -247,7 +243,10 @@ object Counter {
   }
   def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: Design):Counter = { 
     val c = new Counter(None)
-    c.update(min, max, step, par)
+    c.min.connect(min)
+    c.max.connect(max)
+    c.step.connect(step)
+    c.par = par
     c 
   }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: Design):Counter = 

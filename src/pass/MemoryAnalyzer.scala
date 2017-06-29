@@ -161,6 +161,32 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
   }
 
+  def setPar(cu:ComputeUnit) = {
+    cu.cchains.foreach { cc =>
+      cc.counters.foreach { ctr => parOf(ctr) = ctr.par }
+    }
+    cu match {
+      case cu:MemoryPipeline => 
+        rparOf(cu) = readCChainsOf(cu).head.inner.par
+        wparOf(cu) = writeCChainsOf(cu).head.inner.par
+        cu.mems.foreach { 
+          case mem if forRead(mem) => 
+            parOf(mem) = rparOf(cu)
+          case mem if forWrite(mem) =>
+            parOf(mem) = rparOf(cu)
+          case mem:SRAM =>
+            rparOf(mem) = rparOf(cu)
+            wparOf(mem) = wparOf(cu)
+        }
+      case cu if isStreaming(cu) =>
+        parOf(cu) = localCChainOf(cu.parent).inner.par
+        cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
+      case cu =>
+        parOf(cu) = compCChainsOf(cu).head.inner.par
+        cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
+    }
+  }
+
   addPass {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
@@ -200,13 +226,20 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       setSwapCC(cu)
       copySwapCC(cu)
       analyzeAddrCalc(cu)
+      setPar(cu)
       emitBlock(s"$cu") {
         dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
         dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
         dprintln(s"compCChainsOf:[${compCChainsOf(cu).mkString(",")}]")
+        dprintln(s"parOf($cu)=${parOf.get(cu)}")
+        dprintln(s"rparOf($cu)=${rparOf.get(cu)}")
+        dprintln(s"wparOf($cu)=${wparOf.get(cu)}")
         cu.mbuffers.foreach { mem =>
           dprintln(s"swapReadCChainOf($mem) = ${swapReadCChainOf.get(mem)} buffering=${mem.buffering}")
           dprintln(s"swapWriteCChainOf($mem) = ${swapWriteCChainOf.get(mem)} buffering=${mem.buffering}")
+          dprintln(s"parOf($mem)=${parOf.get(mem)}")
+          dprintln(s"rparOf($mem)=${rparOf.get(mem)}")
+          dprintln(s"wparOf($mem)=${wparOf.get(mem)}")
         }
       }
     }

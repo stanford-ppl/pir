@@ -187,19 +187,4 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass(design.pirMapping.succeeded, 1) {
-    val mp = design.mapping.get
-    design.arch.cus.foreach { pcu =>
-      mp.clmap.pmap.get(pcu).fold {
-        parOf(pcu) = -1
-      } {
-        case cu:MemoryPipeline => parOf(pcu) = 1
-        case cu:OuterController => parOf(pcu) = 1
-        case cu if isStreaming(cu) => parOf(pcu) = cu.asCU.parent.asCU.localCChain.inner.par 
-        case cu:ComputeUnit => parOf(pcu) = cu.localCChain.inner.par
-      }
-      dprintln(s"parOf($pcu) = ${parOf(pcu)}")
-    }
-  }
-
 }

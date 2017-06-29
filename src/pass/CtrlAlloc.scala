@@ -62,7 +62,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case mem =>
     }
     cu.sfifos.foreach { mem =>
-      mem.enqueueEnable.connect(mem.writer.ctrlBox.asInstanceOf[StageCtrlBox].enOut)
+      mem.writer.ctrlBox match {
+        case cb:StageCtrlBox =>
+          mem.enqueueEnable.connect(cb.enOut)
+        case cb:MemCtrlBox =>
+          //mem.enqueueEnable.connect(cb.enOut)
+      }
     }
     cu.fifos.foreach { mem =>
       cu.ctrlBox match {

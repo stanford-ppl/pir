@@ -69,6 +69,13 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   var totalCinPinUtil = Util.empty
   var totalCoutPinUtil = Util.empty
 
+  def parOf(pne:PCL):Int = {
+    pne match {
+      case pne:PMCU => 1
+      case pne => mp.clmap.pmap.get(pne).fold(-1) { cl => pirmeta.parOf(cl) }
+    }
+  }
+
   def sum(list:List[Util]):Util = list.reduceOption[Util]{ _ + _ }.getOrElse(Util.empty)
 
   def count(list:List[_]):Util = {

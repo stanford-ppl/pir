@@ -337,9 +337,9 @@ trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
   def src:NE
   def tp:P
   def inputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = 
-    List.tabulate(num) { i => val in = GlobalInput(tp.clone(), src); networkOf(in) = nt; in }
+    List.tabulate(num) { i => val in = GlobalInput(tp, src); networkOf(in) = nt; in }
   def outputs(num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalOutput[P, NE]] = 
-    List.tabulate(num) { i => val out = GlobalOutput(tp.clone(), src); networkOf(out) = nt; out }
+    List.tabulate(num) { i => val out = GlobalOutput(tp, src); networkOf(out) = nt; out }
   def addInAt(dir:String, num:Int)(implicit spade:Spade, nt:GridNetwork):List[GlobalInput[P, NE]] = { 
     val ibs = inputs(num)
     inMap.getOrElseUpdate(dir, ListBuffer.empty) ++= ibs
@@ -393,7 +393,7 @@ object GridIO {
 
 case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[ScalarIO.P, N] {
   override def toString = s"${src}.scalarIO"
-  override val tp = Word()
+  override def tp = Word()
 }
 object ScalarIO {
   type P = Word 
@@ -401,7 +401,7 @@ object ScalarIO {
 
 case class VectorIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[VectorIO.P, N] {
   override def toString = s"${src}.vectorIO"
-  override val tp = Bus(spade.numLanes, Word())
+  override def tp = Bus(spade.numLanes, Word())
 }
 object VectorIO {
   type P = Bus
@@ -409,7 +409,7 @@ object VectorIO {
 
 case class ControlIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[ControlIO.P, N] {
   override def toString = s"${src}.ctrlIO"
-  override val tp = Bit()
+  override def tp = Bit()
 }
 object ControlIO {
   type P = Bit 

@@ -64,6 +64,8 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
   type M = Array[Word]
   val memory = Array.tabulate(size) { i => Word(s"$this.array[$i]") }
 
+  def getValue:Array[Option[AnyVal]] = memory.map(_.value)
+
   override def register(implicit sim:Simulator):Unit = {
     memory.zipWithIndex.foreach { case (v, i) => v.default = i }
   }
@@ -133,6 +135,7 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
     memory.foreach { _.foreach { _.zero } }
   }
   override def register(implicit sim:Simulator):Unit = {
+    import sim.pirmeta._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize, size) { case (i,j) => Word(s"$this.array[$i,$j]") }
       setMem { memory =>
@@ -141,10 +144,12 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
         writePort.pv
         writePtr.v.default = 0
         If (writeEn.pv) {
-          writePort.pv.foreach { case (writePort, i) =>
-            writeAddr.pv.getInt.foreach { writeAddr =>
-              memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
-            }
+          writePort.pv.foreach { 
+            case (writePort, i) if i < wparOf(mem) =>
+              writeAddr.pv.getInt.foreach { writeAddr =>
+                memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
+              }
+            case (writePort, i) =>
           }
         }
         //debug.v.update
@@ -152,10 +157,12 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
       readPtr.v.default = 0
       readOut.v.set { v => 
         updateMemory
-        v.foreach { case (ev, i) =>
-          readAddr.v.getInt.foreach { readAddr =>
-            ev <<= memory(readPtr.v.toInt)(readAddr + i)
-          }
+        v.foreach { 
+          case (ev, i) if i < rparOf(mem) =>
+            readAddr.v.getInt.foreach { readAddr =>
+              ev <<= memory(readPtr.v.toInt)(readAddr + i)
+            }
+          case _ =>
         }
       }
       readPort.v := readOut.pv

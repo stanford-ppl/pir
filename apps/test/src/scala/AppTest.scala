@@ -13,8 +13,9 @@ import scala.language.reflectiveCalls
 
 class AppTests extends UnitTest { self =>
 
-  def test(app:PIRApp, args:String, argOuts:String, timeOut:Int=60) = {
+  def test(app:PIRApp, args:String="", argOuts:String="", checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, timeOut:Int=60) = {
     s"$app [$args] ($argOuts)" should "success" in { 
+      Config.simulate = true
       Config.simulationTimeOut = timeOut
       try {
         if (app.pirMapping.hasRun) {
@@ -25,11 +26,16 @@ class AppTests extends UnitTest { self =>
           app.main(args)
         }
         assert(!app.simulator.timeOut)
-        argOuts.split(" ").foreach { aos =>
-          val aon::aov::_ = aos.split("=").toList
-          val ao = app.top.sins.filter { _.scalar.name==Some(aon) }.head
-          val pao = app.mapping.get.vimap(ao)
-          assert(pao.values(0).value==Some(toValue(aov)), s"Result incorrect")
+        if (argOuts != "") {
+          argOuts.split(" ").foreach { aos =>
+            val aon::aov::_ = aos.split("=").toList
+            val ao = app.top.sins.filter { _.scalar.name==Some(aon) }.head
+            val pao = app.mapping.get.vimap(ao)
+            assert(pao.values(0).asBus.head.value==Some(toValue(aov)), s"ArgOut result incorrect")
+          }
+        }
+        checkDram.foreach { checkDram =>
+          assert(checkDram(app.arch.dram.getValue), s"DRAM result incorrect")
         }
       } catch {
         case e:Exception => errmsg(s"$e"); throw e
@@ -42,7 +48,7 @@ class AppTests extends UnitTest { self =>
     val b = (startB until startB+N).toList
     val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum
     val default = Config.simulationTimeOut
-    test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold", 100)
+    test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold", timeOut=100)
   }
 
   def testTPCHQ6(app:PIRApp, startA:Int, startB:Int, startC:Int, startD:Int, N:Int) = {
@@ -66,6 +72,33 @@ class AppTests extends UnitTest { self =>
     )
   }
 
+  def testOuterProduct(app:PIRApp, startA:Int, startB:Int, startC:Int, N:Int) = {
+    val a = (startA until startA+N).toList
+    val b = (startB until startB+N).toList
+    val gold = List.tabulate(a.size, b.size) { case (i, j) =>
+      a(i) * b(j)
+    }
+    def checkDram(dram:Array[Option[AnyVal]]) = {
+      var correct = true
+      for (i <- 0 until N*N) {
+        val addr = i + startC
+        val dramVal = dram(addr)
+        val goldVal = Some(gold(i))
+        if (dramVal!=goldVal) {
+          println(s"DRAM($addr)($dramVal) != gold($i)($goldVal)")
+          correct = false
+        }
+      }
+      correct
+    }
+    test(
+      app, 
+      args=s"x1203=$N x1204=$N x1247=${startA*4} x1226=${startB*4} x1284=${startC*4}", 
+      checkDram = Some(checkDram _),
+      timeOut=200
+    )
+  }
+
   //intercept[PIRException] {
 
   // Apps 
@@ -76,19 +109,20 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  Config.debug = false
-  Config.waveform = false
-  Config.verbose = false
+  //Config.debug = false
+  //Config.waveform = false
+  //Config.verbose = false
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  //test(SRAMReadWrite, args="", argOuts="x1026_x1096=10416")
+  //test(SRAMReadWrite, argOuts="x1026_x1096=10416")
   //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20")
   //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10")
   //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200")
   //testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
   //testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
-  //testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
-  testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
+  testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
+  //testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
   //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32)
-  testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64)
+  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64)
+  //testOuterProduct(OuterProduct, startA=0, startB=100, startC=200, N=16)
 
 }

@@ -347,7 +347,7 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             If(en.out.pv & (running.pv.not)) {
               statev <<= RUNNING
             }
-            If(rdone.pv & (running.pv)) {
+            If(done.pv & (running.pv)) {
               statev <<= WAITING
             }
           }
@@ -355,11 +355,11 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
           count.v.set { countv =>
             Match(
               sim.rst -> { () => countv <<= 0 },
-              rdone.pv -> { () => countv <<= 0 },
+              done.pv -> { () => countv <<= 0 },
               (running.pv) -> { () => countv <<= countv + par }
             ) {}
           }
-          rdone.v := (count.v >= eval(FixSub, size.readPort.v / 4, par))
+          done.v := (count.v >= eval(FixSub, size.readPort.v / 4, par))
         case Gather =>
         case Scatter =>
       }

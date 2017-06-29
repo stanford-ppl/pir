@@ -119,34 +119,36 @@ package object util {
     else s.toInt
   }
 
-  def readParOf(node:Node):Int = {
-    import node.pirmeta._
-    node match {
-      case node:MemoryPipeline => readCChainsOf(node).head.inner.par
-    }
-  }
+  //def readParOf(node:Node):Int = {
+    //import node.pirmeta._
+    //node match {
+      //case node:SRAM => readParOf(node.ctrler)
+      //case node:MemoryPipeline => readCChainsOf(node).head.inner.par
+    //}
+  //}
 
-  def writeParOf(node:Node):Int = {
-    import node.pirmeta._
-    node match {
-      case node:MemoryPipeline => writeCChainsOf(node).head.inner.par
-    }
-  }
+  //def writeParOf(node:Node):Int = {
+    //import node.pirmeta._
+    //node match {
+      //case node:SRAM => writeParOf(node.ctrler)
+      //case node:MemoryPipeline => writeCChainsOf(node).head.inner.par
+    //}
+  //}
 
-  def parOf(node:Node):Int = {
-    import node.pirmeta._
-    node match {
-      case node:Primitive =>
-        val cu = node.ctrler.asCU
-        if (forRead(node)) readParOf(cu)
-        else if (forWrite(node)) writeParOf(cu)
-        else parOf(cu)
-      case node:MemoryPipeline =>
-        err(s"No par defined for $node")
-      case node:ComputeUnit =>
-        compCChainsOf(node).head.inner.par
-    }
-  }
+  //def parOf(node:Node):Int = {
+    //import node.pirmeta._
+    //node match {
+      //case node:Primitive =>
+        //val cu = node.ctrler.asCU
+        //if (forRead(node)) readParOf(cu)
+        //else if (forWrite(node)) writeParOf(cu)
+        //else parOf(cu)
+      //case node:MemoryPipeline =>
+        //err(s"No par defined for $node")
+      //case node:ComputeUnit =>
+        //compCChainsOf(node).head.inner.par
+    //}
+  //}
 
 }
 

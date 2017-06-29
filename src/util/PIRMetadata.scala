@@ -168,6 +168,21 @@ trait PIRMetadata extends { self:Design =>
     type V = Int
   }
 
+  object parOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = Node
+    type V = Int
+  }
+
+  object rparOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = Node
+    type V = Int
+  }
+
+  object wparOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = Node
+    type V = Int
+  }
+
   object boundOf extends MOneToOneMap with PIRMetadataMaps {
     type K = Node
     type V = AnyVal
