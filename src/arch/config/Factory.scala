@@ -49,6 +49,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     cu match {
       case cu:MemoryComputeUnit =>
         cu.vouts.foreach { _.ic <== cu.sram.readPort }
+        cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
       case cu:ComputeUnit =>
         val voRegs = cu.regs.filter(_.is(VecOutReg))
         assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
@@ -234,13 +235,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cb.writeDoneXbar.out
           buf.incReadPtr <== cb.readEn.out; 
           buf.incReadPtr <== cb.writeEn.out; 
-          buf.incWritePtr <== cb.writeDoneXbar.out
           buf.incWritePtr <== cu.cins.map(_.ic)
         }
         cu.vbufs.foreach { buf => 
-          buf.incReadPtr <== cb.readEn.out; 
           buf.incReadPtr <== cb.writeEn.out; 
-          // buf.incWritePtr <== cu.cins.valid 
         }
         cu.srams.foreach { sram => 
           sram.incReadPtr <== cb.readDoneXbar.out 
@@ -255,12 +253,10 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cu.bufs.foreach { buf =>
-          buf.incReadPtr <== cb.doneXbar.out 
-        }
+        cu.bufs.foreach { buf => buf.incReadPtr <== cb.doneXbar.out  }
         cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (mc:MemoryController, cb:MCCtrlBox) =>
-        mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        //mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
         mc.sbufs.foreach { buf => buf.incReadPtr <== cb.en.out }
         mc.data.incReadPtr <== cb.running
         //cb.en.in <== cb.fifoAndTree.out

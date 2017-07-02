@@ -81,6 +81,12 @@ class MapPrinter(implicit design: Design) extends Codegen {
         }
         pcl.souts.map(sout => emit(sout.ic))
         pcl.vouts.map(vout => emit(vout.ic))
+        pcl match {
+          case pcl:PMCU =>
+            emitln(s"readDelay=${pcl.ctrlBox.readDelay.delay(mp)}") 
+            emitln(s"writeDelay=${mp.rtmap(pcl.sram.writePort)}") 
+          case _ =>
+        }
       }
     }
   }

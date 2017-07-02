@@ -50,11 +50,15 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
           super.visitNode(node)
           declare(pmmap(node).count, None)
         }
-        case node:CtrlBox => declare(node) { 
+        case node@(_:CtrlBox) => declare(node) { 
           declarator(spadeDeclarator).visitNode(pmmap(node))
           super.visitNode(node)
         }
-        case node@(_:OnChipMem|_:CounterChain|_:Stage|_:Delay) => 
+        case node@(_:OnChipMem) => declare(node) { 
+          declarator(spadeDeclarator).visitNode(smmap(node))
+          super.visitNode(node)
+        }
+        case node@(_:CounterChain|_:Stage|_:Delay) => 
           declare(node) { super.visitNode(node) }
         case _ => super.visitNodeNoCheck(node)
       }

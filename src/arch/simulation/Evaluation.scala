@@ -40,14 +40,16 @@ trait Evaluation {
   def eval(op:Op2, a:Any, b:Any)(implicit sim:Simulator):Option[AnyVal] = {
     import sim.util._
     (op,unwrap(a, op),unwrap(b, op)) match {
-      case (op:FixOp, a:Int    , b:Int      ) => Some(op.eval(a, b))
-      case (op:FltOp, a:Float  , b:Float    ) => Some(op.eval(a, b))
-      case (op:BitOp, a:Boolean, b:Boolean  ) => Some(op.eval(a, b))
-      case (op@BitOr, a:Boolean, None       ) => Some(a)
-      case (op@BitOr, None     , b:Boolean  ) => Some(b)
-      case (_       , None     , _          ) => None
-      case (_       , _        , None       ) => None
-      case (op      , a        , b          ) => 
+      case (op:FixOp , a:Int    , b:Int      ) => Some(op.eval(a, b))
+      case (op:FltOp , a:Float  , b:Float    ) => Some(op.eval(a, b))
+      case (op:BitOp , a:Boolean, b:Boolean  ) => Some(op.eval(a, b))
+      case (op@BitOr , a:Boolean, None       ) => Some(a)
+      case (op@BitOr , None     , b:Boolean  ) => Some(b)
+      case (op@BitAnd, _        , false      ) => Some(false)
+      case (op@BitAnd, false    , _          ) => Some(false)
+      case (_        , None     , _          ) => None
+      case (_        , _        , None       ) => None
+      case (op       , a        , b          ) => 
         throw PIRException(s"Don't know how to eval $op for ins=[${quote(a)},${quote(b)}]")
     }
   }

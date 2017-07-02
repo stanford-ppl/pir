@@ -59,6 +59,7 @@ object Config {
   var simulationTimeOut = 60
   var verbose = debug & true
   var waveform = true
+
 //plasticine {
   //sin-ucu = 4
   //stages-ucu = 4

@@ -6,6 +6,7 @@ import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
+import pir.mapper.PIRMap
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -38,24 +39,37 @@ object Const {
   def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
-case class Delay[P<:PortType](tp:P, delay:Int, ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+case class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
+  def delay(mapping:PIRMap):Option[Int] = mapping.rtmap.get(this).orElse(staticDelay) 
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    import sim.spade
     super.register
-    out.v := in.vAt(delay) 
+    delay(mapping).foreach { delay =>
+      dprintln(s"${quote(this)}.delay=$delay")
+      out.v := in.vAt(delay) 
+    }
   }
 }
 object Delay {
   def apply(tp:Bit, delay:Int,ts:Option[String])
     (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = {
-    val d = new Delay(tp, delay, ts)(spade, pne)
+    val d = new Delay(tp, Some(delay), ts)(spade, pne)
     ctrlBox.delays += d
     d
   }
+  def apply(tp:Bit,ts:String)
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, None, Some(ts))
   def apply(tp:Bit, delay:Int,ts:String)
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, delay, Some(ts))
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), Some(ts))
   def apply(tp:Bit, delay:Int)
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, delay, None)
+    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), None)
+
+  def apply[P<:PortType](tp:P, delay:Int,ts:Option[String])
+    (implicit spade:Spade, pne:NetworkElement):Delay[P] = { new Delay(tp, Some(delay), ts)(spade, pne) }
+  def apply[P<:PortType](tp:P,ts:String)
+    (implicit spade:Spade, pne:NetworkElement):Delay[P] = Delay(tp, None, Some(ts))
 }

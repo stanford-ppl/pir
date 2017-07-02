@@ -292,6 +292,8 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryCo
   val readFifoAndTree = AndTree("readFifoAndTree") 
   val writeEn = Delay(Bit(), 0, s"$pne.writeEn")
   val readEn = Delay(Bit(),0, s"$pne.readEn") 
+  val readDelay = Delay(Bit(),s"$pne.readDelay") 
+  readDelay.in <== readEn.out
   val readUDC = UDCounter()
   val readAndGate = AndGate(s"$pne.readAndGate")
   readAndGate <== readUDC.out
@@ -335,23 +337,16 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
             case _ => throw new Exception(s"Not possible match")
           }
           running.v := (state.v =:= RUNNING)
-          en.in.v.set { env =>
-            If(fifoAndTree.out.v & (rdone.pv | running.v.not)) {
-              env.setHigh
-            }
-            If(running.v) {
-              env.setLow
-            }
-          }
+          en.in.v := fifoAndTree.out.v & (done.pv | running.pv.not)
           state.v.set { statev =>
-            If(en.out.pv & (running.pv.not)) {
-              statev <<= RUNNING
-            }
-            If(done.pv & (running.pv)) {
+            If(done.v) {
               statev <<= WAITING
             }
+            If(en.out.v) {
+              statev <<= RUNNING
+            }
           }
-          val par = spade.numLanes //TODO loader's par
+          val par = spade.numLanes //TODO loader's / store's par
           count.v.set { countv =>
             Match(
               sim.rst -> { () => countv <<= 0 },
@@ -359,7 +354,7 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
               (running.pv) -> { () => countv <<= countv + par }
             ) {}
           }
-          done.v := (count.v >= eval(FixSub, size.readPort.v / 4, par))
+          done.v := running.v & (count.v >= eval(FixSub, size.readPort.v / 4, par))
         case Gather =>
         case Scatter =>
       }

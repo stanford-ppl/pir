@@ -14,7 +14,7 @@ import java.io.OutputStream
 import java.io.File
 import pir.util._
 
-class PIRPrinter(fn:String)(implicit design: Design) extends Traversal with Logger {
+class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traversal with Logger {
   def shouldRun = Config.debug
 
   def this()(implicit design: Design) = {

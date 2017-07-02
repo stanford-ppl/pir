@@ -24,6 +24,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   val vfifoMapper = new VFifoMapper()
   val sfifoMapper = new SFifoMapper()
   val stageMapper = new StageMapper()
+  val delayMapper = new DelayMapper()
   val ctrlMapper = new CtrlMapper()
   val regAlloc = new RegAlloc() {
     override def finPass(ctrler:Controller)(m:M):M = { 
@@ -40,12 +41,13 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       mp
     }
   }
-  def mapPrim(ctrler:Controller)(m:PIRMap):PIRMap = {
+  def mapPrimtivies(ctrler:Controller)(m:PIRMap):PIRMap = {
     var mp = m
     mp = vfifoMapper.map(ctrler, mp) 
     mp = sramMapper.map(ctrler, mp)
     mp = sfifoMapper.map(ctrler, mp)
     mp = ctrMapper.map(ctrler, mp)
+    mp = delayMapper.map(ctrler, mp)
     mp
   }
 
@@ -98,7 +100,12 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     Try[PIRMap]{
       var mp = mapping.get
       design.top.ctrlers.foreach { ctrler =>
-        mp = mapPrim(ctrler)(mp)
+        mp = mapPrimtivies(ctrler)(mp)
+        ctrler match {
+          case ctrler:pir.graph.MemoryPipeline =>
+            val pmcu = mp.clmap(ctrler)
+          case _ =>
+        }
       }
       mp
     }.map { m =>

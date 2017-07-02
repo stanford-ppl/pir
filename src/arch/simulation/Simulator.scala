@@ -27,6 +27,7 @@ trait SimUtil extends Logger {
   def smmap = mapping.smmap
   def ctmap = mapping.ctmap
   def rcmap = mapping.rcmap
+  def rtmap = mapping.rtmap
   def pirmeta:PIRMetadata
   def rst:Boolean
   def cycle:Int
@@ -36,8 +37,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def shouldRun = Config.simulate && design.pirMapping.succeeded
   implicit val sim:Simulator = this
-  val vcds:List[VcdPrinter] = 
-    if (Config.simulate & Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
+  lazy val vcds:List[VcdPrinter] = 
+    if (Config.simulate && Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
   override def debug = Config.verbose
 

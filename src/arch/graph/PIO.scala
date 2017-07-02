@@ -130,8 +130,8 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   private[plasticine] def <==(n:O) = { connect(n) }
   private[plasticine] def <==(ns:List[O]) = ns.foreach(n => connect(n))
   private[plasticine] def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
-  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this.asBus)
-  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this.asBus))
+  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
+  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
   private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=fanIns[${_fanIns.mkString(",")}]"
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
@@ -207,17 +207,17 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asGlobal:GlobalOutput[P, S] = this.asInstanceOf[GlobalOutput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 
-  private lazy val _sliceMap = Map[Int, Slice[P]]()
-  def slice(i:Int, in:Input[P,Module]):Slice[P] = {
-    val slice = _sliceMap.getOrElseUpdate(i, Slice(in.tp, this.asBus, i))
+  private lazy val _sliceMap = Map[Int, Slice[_<:PortType]]() // Int: element index 
+  def slice[E<:PortType](i:Int, in:Input[E,Module]):Slice[E] = {
+    val slice = _sliceMap.getOrElseUpdate(i, Slice(in.tp, this.asBus, i)).asInstanceOf[Slice[E]]
     in <== slice.out
     slice
   }
   def sliceHead(in:Input[P,Module]):Slice[P] = slice(0, in)
-  def slice(i:Int):Slice[P] = _sliceMap(i)
+  def slice[E<:PortType](i:Int):Slice[E] = _sliceMap(i).asInstanceOf[Slice[E]]
   def sliceHead:Slice[P] = slice(0)
-  def slices:List[Slice[P]] = _sliceMap.values.toList
-  private lazy val _broadcastMap = Map[Int, BroadCast[P]]()
+  def slices:List[Slice[_<:PortType]] = _sliceMap.values.toList
+  private lazy val _broadcastMap = Map[Int, BroadCast[P]]() // Int: input buswidth
   def broadcast(in:Input[Bus, Module]):BroadCast[P] = {
     val bc = _broadcastMap.getOrElseUpdate(in.tp.busWidth, BroadCast(this, in.tp.clone)) 
     in <== bc.out
@@ -313,7 +313,13 @@ case class Slice[P<:PortType](bintp:P, bout:Output[Bus,Module], i:Int)(implicit 
   in <== bout
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v := in.v.value(i)
+    out.v match {
+      case v:BusValue =>
+        v.value.foreach { ev => ev := in.v.value(i) }
+        v.valid := in.v.valid
+      case v:SingleValue =>
+        v := in.v.value(i)
+    }
   }
 }
 
@@ -393,10 +399,10 @@ object GridIO {
 
 case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[ScalarIO.P, N] {
   override def toString = s"${src}.scalarIO"
-  override def tp = Word()
+  override def tp = Bus(1, Word())
 }
 object ScalarIO {
-  type P = Word 
+  type P = Bus
 }
 
 case class VectorIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[VectorIO.P, N] {

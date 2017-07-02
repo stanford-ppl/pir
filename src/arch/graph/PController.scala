@@ -71,8 +71,8 @@ case class Top(numArgIns:Int, numArgOuts:Int)(implicit spade:Spade) extends Cont
     souts.foreach { psout =>
       vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
         boundOf.get(sout.scalar) match {
-          case Some(b:Int) => psout.ic.v := b
-          case Some(b:Float) => psout.ic.v := b
+          case Some(b:Int) => psout.ic.v.head.asSingle := b
+          case Some(b:Float) => psout.ic.v.head.asSingle := b
           case None => warn(s"${sout.scalar} doesn't have a bound")
           case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
         }
@@ -183,14 +183,12 @@ abstract class ComputeUnit(val param:ComputeUnitParam)(implicit spade:Spade) ext
         case _ =>
       }
       val enable = ctrlBox match {
-        case cb:MemoryCtrlBox => 
-          val readStages = cu.asMP.rdAddrStages
-          val numReadStages = if (readStages.isEmpty) 0 else stmap(readStages.last).index - stmap(readStages.head).index
-          Some(cb.readEn.out.vAt(numReadStages + 1))
+        case cb:MemoryCtrlBox => Some(cb.readDelay.out.v)
         case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
         case _ => None
       }
-      vouts.foreach { out =>
+      val outs:List[GlobalOutput[Bus, ComputeUnit]] = (souts++vouts)
+      outs.foreach { out =>
         fimap.get(out.ic).fold {
           if (out.ic.fanIns.size==1) {
             out.ic.v.set { v =>
@@ -211,7 +209,6 @@ abstract class ComputeUnit(val param:ComputeUnitParam)(implicit spade:Spade) ext
 }
 
 class PatternComputeUnitParam() extends ComputeUnitParam() {
-
   def config(cu:PatternComputeUnit)(implicit spade:SwitchNetwork) = {
     cu.addRegstages(numStage=2, numOprds=3, ops)
     cu.addRdstages(numStage=4, numOprds=3, ops)
@@ -227,6 +224,7 @@ class PatternComputeUnitParam() extends ComputeUnitParam() {
     cu.genConnections
   }
 }
+
 class PatternComputeUnit(override val param:PatternComputeUnitParam=new PatternComputeUnitParam())(implicit spade:Spade) 
   extends ComputeUnit(param) {
   override val typeStr = "pcu"
@@ -275,6 +273,7 @@ class MemoryComputeUnitParam() extends ComputeUnitParam() {
     cu.genConnections
   }
 }
+
 class MemoryComputeUnit(override val param:MemoryComputeUnitParam=new MemoryComputeUnitParam())(implicit spade:Spade) 
   extends ComputeUnit(param) {
   override val typeStr = "mcu"

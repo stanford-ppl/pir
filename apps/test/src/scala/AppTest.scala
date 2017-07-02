@@ -7,16 +7,36 @@ import pir.util._
 import pir.graph._
 import pir.exceptions.PIRException
 import plasticine.main._
+import pir.codegen.Logger
 
 import org.scalatest._
 import scala.language.reflectiveCalls
 
 class AppTests extends UnitTest { self =>
 
-  def test(app:PIRApp, args:String="", argOuts:String="", checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, timeOut:Int=60) = {
+  def logDRAM(app:PIRApp, dram:Array[Option[AnyVal]]) = {
+    val logger = new Logger {
+      override lazy val stream = newStream("dram.log")(app)
+    }
+    dram.zipWithIndex.foreach { case (data, addr) => logger.dprintln(s"DRAM[$addr] = $data") }
+    logger.close
+  }
+
+  def test(
+      app:PIRApp, 
+      args:String="", 
+      argOuts:String="", 
+      checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, 
+      timeOut:Int=60,
+      debug:Boolean=false
+    ) = {
     s"$app [$args] ($argOuts)" should "success" in { 
       Config.simulate = true
       Config.simulationTimeOut = timeOut
+      Config.debug = debug
+      Config.waveform = debug 
+      Config.verbose = debug 
+      Config.codegen = false
       try {
         if (app.pirMapping.hasRun) {
           app.setArgs(args.split(" "))
@@ -43,15 +63,21 @@ class AppTests extends UnitTest { self =>
     }
   }
 
-  def testDotProduct(app:PIRApp, startA:Int, startB:Int, N:Int) = {
+  def testDotProduct(app:PIRApp, startA:Int, startB:Int, N:Int, debug:Boolean=false) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum
     val default = Config.simulationTimeOut
-    test(app, args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", argOuts=s"x1026_x1096=$gold", timeOut=100)
+    test(
+      app, 
+      args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", 
+      argOuts=s"x1026_x1096=$gold", 
+      timeOut=100, 
+      debug=debug
+    )
   }
 
-  def testTPCHQ6(app:PIRApp, startA:Int, startB:Int, startC:Int, startD:Int, N:Int) = {
+  def testTPCHQ6(app:PIRApp, startA:Int, startB:Int, startC:Int, startD:Int, N:Int, debug:Boolean=false) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val c = (startC until startC+N).toList
@@ -68,16 +94,17 @@ class AppTests extends UnitTest { self =>
       app, 
       args=s"x1563=$N x1607=${startA*4} x1626=${startB*4} x1588=${startC*4} x1645=${startD*4}", 
       argOuts=s"x1573_x1699=$gold",
-      timeOut=100 * (N / 32)
+      timeOut=100 * (N / 32),
+      debug=debug
     )
   }
 
-  def testOuterProduct(app:PIRApp, startA:Int, startB:Int, startC:Int, N:Int) = {
+  def testOuterProduct(app:PIRApp, startA:Int, startB:Int, startC:Int, N:Int, debug:Boolean=false) = {
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val gold = List.tabulate(a.size, b.size) { case (i, j) =>
       a(i) * b(j)
-    }
+    }.flatten
     def checkDram(dram:Array[Option[AnyVal]]) = {
       var correct = true
       for (i <- 0 until N*N) {
@@ -89,13 +116,15 @@ class AppTests extends UnitTest { self =>
           correct = false
         }
       }
+      logDRAM(app, dram)
       correct
     }
     test(
       app, 
-      args=s"x1203=$N x1204=$N x1247=${startA*4} x1226=${startB*4} x1284=${startC*4}", 
+      args=s"x1203=$N x1204=$N x1226=${startA*4} x1247=${startB*4} x1284=${startC*4}", 
       checkDram = Some(checkDram _),
-      timeOut=200
+      timeOut=200,
+      debug=debug
     )
   }
 
@@ -109,9 +138,6 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  //Config.debug = false
-  //Config.waveform = false
-  //Config.verbose = false
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
   //test(SRAMReadWrite, argOuts="x1026_x1096=10416")
   //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20")
@@ -119,10 +145,10 @@ class AppTests extends UnitTest { self =>
   //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200")
   //testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
   //testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
-  testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
+  //testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
   //testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
   //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32)
   //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64)
-  //testOuterProduct(OuterProduct, startA=0, startB=100, startC=200, N=16)
-
+  testOuterProduct(OuterProduct, startA=0, startB=100, startC=200, N=16, debug=true)
 }
+

@@ -15,7 +15,8 @@ import scala.language.existentials
 case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, 
   mkmap:MKMap, smmap:SMMap, ctmap:CTMap,
   fimap:FIMap, rcmap:RCMap, stmap:STMap, 
-  ipmap:IPMap, opmap:OPMap, pmmap:PMMap, rtmap:RTMap
+  ipmap:IPMap, opmap:OPMap, pmmap:PMMap, 
+  rtmap:RTMap
   ) {
   
   //stmap.pirMap = this
@@ -410,7 +411,7 @@ case class RTMap(map:RTMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); RTMap(map + rec) }
 }
 object RTMap extends IOneToOneObj {
-  type K = Node //InPort or VecIn
+  type K = Any //InPort or VecIn or Delay
   type V = Int 
   def empty:RTMap = RTMap(Map.empty)
 }

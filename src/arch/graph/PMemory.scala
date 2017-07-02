@@ -78,8 +78,8 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
 trait OnChipMem extends Primitive with Memory {
   import spademeta._
   type P<:PortType
-  val readPort:Output[P, OnChipMem]
-  val writePort:Input[P, OnChipMem]
+  val readPort:Output[_<:PortType, OnChipMem]
+  val writePort:Input[_<:PortType, OnChipMem]
   val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
   val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
   val writePtr = Output(Word(), this, s"${this}.writePtr")
@@ -92,11 +92,12 @@ trait OnChipMem extends Primitive with Memory {
   def bufferSize(implicit sim:Simulator) = {
     val mem = sim.mapping.smmap.pmap(this)
     mem match {
-      case mem:pir.graph.FIFO => mem.finalSize(sim.mapping) + 10 //TODO make this huge as a start
+      case mem:pir.graph.FIFO => mem.finalSize(sim.mapping) + 16 //TODO make this huge as a start
       case mem:pir.graph.MultiBuffering => mem.buffering
     }
   }
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       def incPtr(v:SingleValue) = {
         v <<= v + 1; if (v.toInt>=bufferSize) v <<= 0
@@ -104,10 +105,20 @@ trait OnChipMem extends Primitive with Memory {
       readPtr.v.default = 0
       writePtr.v.default = 0
       count.v.default = 0
+      if (mem.isMbuffer && mem.asMbuffer.buffering <= 1) {
+        incReadPtr.v := false
+        incWritePtr.v := false
+      }
       incReadPtr.pv; incWritePtr.pv
       readPtr.v.set { v => If (incReadPtr.pv) { incPtr(v) } }
       writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
-      count.v.set { v => If (incReadPtr.pv) { v <<= v - 1 }; If (incWritePtr.pv) { v <<= v + 1 } }
+      count.v.set { v => 
+        If (incReadPtr.pv) { 
+          if (v.value==Some(0)) warn(s"${quote(pne)}.${quote(this)}'s count underflow at #$cycle!")
+          v <<= v - 1
+        }
+        If (incWritePtr.pv) { v <<= v + 1 }
+      }
     }
     super.register
   }
@@ -125,10 +136,12 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
   val writeEn = Input(Bit(), this, s"${this}.we")
+  val writeEnDelay = Input(Bit(), this, s"${this}.wed")
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
   //val debug = Output(Bus(spade.numLanes * 2, Word()), this, s"${this}.debug")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
+  val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd")
   val swapWrite = Output(Bit(), this, s"${this}.swapWrite")
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
@@ -136,15 +149,20 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
-    sim.mapping.smmap.pmap.get(this).foreach { mem =>
+    import sim.util._
+    smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize, size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+      val wdelay = rtmap(writePort)
+      writePortDelay.v := writePort.vAt(wdelay)
+      writeEnDelay.v := writeEn.vAt(wdelay)
       setMem { memory =>
         writePtr.pv
         writeAddr.pv
-        writePort.pv
+        writePortDelay.pv
+        writeEnDelay.pv
         writePtr.v.default = 0
-        If (writeEn.pv) {
-          writePort.pv.foreach { 
+        If (writeEnDelay.pv) {
+          writePortDelay.pv.foreach { 
             case (writePort, i) if i < wparOf(mem) =>
               writeAddr.pv.getInt.foreach { writeAddr =>
                 memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
@@ -202,17 +220,24 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   override val typeStr = "sm"
   type P = Word
   var memory:Array[P] = _
-  val writePort = Input(Word(), this, s"${this}.wp")
+  val writePort = Input(Bus(1,Word()), this, s"${this}.wp")
   val readPort = Output(Word(), this, s"${this}.rp")
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.zero }
   }
   override def register(implicit sim:Simulator):Unit = {
-    sim.mapping.smmap.pmap.get(this).foreach { mem =>
+    import sim.util._
+    smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory =>
-        memory(writePtr.pv.toInt) <<= writePort.pv
+        memory(writePtr.pv.toInt) <<= writePort.pv.head
+      }
+      if (mem.isSFifo) {
+        incWritePtr.v.set { v => 
+          If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
+          v <<= writePort.v.update.valid
+        }
       }
       writePtr.v.default = 0
     }
@@ -232,16 +257,20 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val readPort = Output(Bus(Word()), this, s"${this}.rp") 
   override def register(implicit sim:Simulator):Unit = {
-    import sim.mapping._
+    import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory =>
         writePtr.pv
         If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
+          If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
           memory(writePtr.pv.toInt) <<= writePort.pv
         }
       }
-      incWritePtr.v.set { _ <<= writePort.v.update.valid }
+      assert(mem.isVFifo)
+      incWritePtr.v.set { v =>
+        v <<= writePort.v.update.valid
+      }
       writePtr.v.default = 0
     }
     super.register

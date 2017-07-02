@@ -38,6 +38,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def isSFifo = this.isInstanceOf[ScalarFIFO]
   def asVFifo = this.asInstanceOf[VectorFIFO]
   def isSRAM = this.isInstanceOf[SRAM]
+  def isMbuffer = this.isInstanceOf[MultiBuffering]
+  def asMbuffer = this.asInstanceOf[MultiBuffering]
 }
 
 trait SRAMOnRead extends MultiBuffering {

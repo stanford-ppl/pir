@@ -61,16 +61,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         mem.swapWrite.connect(getDone(cu, swapWriteCChainOf(mem)))
       case mem =>
     }
-    cu.sfifos.foreach { mem =>
-      mem.writer.ctrlBox match {
-        case cb:StageCtrlBox =>
-          mem.enqueueEnable.connect(cb.enOut)
-        case cb:MemCtrlBox =>
+    //cu.sfifos.foreach { mem =>
+      //mem.writer.ctrlBox match {
+        //case cb:StageCtrlBox =>
           //mem.enqueueEnable.connect(cb.enOut)
-      }
-    }
+        //case cb:MemCtrlBox =>
+          //mem.enqueueEnable.connect(cb.enOut)
+      //}
+    //}
     cu.fifos.foreach { mem =>
       cu.ctrlBox match {
+        case cb:MemCtrlBox if mem.isVFifo =>
+          //mem.dequeueEnable.connect(cb.writeDelay.out)
         case cb:MemCtrlBox if forRead(mem) =>
           mem.dequeueEnable.connect(cb.readEn.out)
         case cb:MemCtrlBox if forWrite(mem) =>
@@ -83,61 +85,6 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     }
     case _ =>
   }
-
-  //def connectMemoryControl(ctrler:Controller) = ctrler match {
-    //case cu:ComputeUnit =>
-      //cu.mems.foreach {
-        //case mem:SRAM if mem.buffering > 1 =>
-          //val cb = mem.ctrler.ctrlBox
-          //mem.swapRead.connect(cb.readDone.out)
-          //mem.swapWrite.connect(cb.writeDone.out)
-        //case mem:ScalarBuffer if mem.buffering > 1=> 
-          //ctrler.ctrlBox match {
-            //case cb:MemCtrlBox =>
-              //mem.swapRead.connect(cb.readDone.out)
-              //mem.swapWrite.connect(cb.writeDone.out)
-            //case cb:StageCtrlBox =>
-              //mem.swapRead.connect(getDone(cu, swapReadCChainOf(mem)))
-              //mem.swapWrite.connect(getDone(cu, swapWriteCChainOf(mem)))
-          //}
-        //case mem:MultiBuffering => 
-        //case mem:ScalarFIFO =>
-          //cu match {
-            //case cu:MemoryController =>
-              //mem.writer.ctrlBox match {
-                //case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.enOut)
-              //}
-            //case cu:ComputeUnit =>
-              //// ScalarFIFO enable has to come from tokenIn
-              //mem.writer.ctrlBox match {
-                //case wtcb:InnerCtrlBox => mem.enqueueEnable.connect(wtcb.enOut)
-              //}
-          //}
-          //cu.ctrlBox match {
-            //case cb:InnerCtrlBox =>
-              //mem.dequeueEnable.connect(cb.en.out)
-            //case cb:MemCtrlBox =>
-              //if (forRead(mem)) 
-                //mem.dequeueEnable.connect(cb.readEn.out)
-              //else if (forWrite(mem)) 
-                //mem.dequeueEnable.connect(cb.writeEn.out)
-            //case cb:MCCtrlBox =>
-              //mem.dequeueEnable.connect(cb.en.out)
-          //}
-        //case mem:VectorFIFO =>
-          //// vectorFIFO.enqueueEnable routes through data bus 
-          //cu.ctrlBox match {
-            //case cb:InnerCtrlBox =>
-              //mem.dequeueEnable.connect(cb.en.out)
-            //case cb:MemCtrlBox =>
-              //if (forRead(mem)) 
-                //mem.dequeueEnable.connect(cb.readEn.out)
-              //else if (forWrite(mem)) 
-                //mem.dequeueEnable.connect(cb.writeEn.out)
-          //}
-      //}
-    //case _ =>
-  //}
 
   def connectLast(parent:Controller, last:Controller) = {
     (parent, last, parent.ctrlBox, last.ctrlBox) match {

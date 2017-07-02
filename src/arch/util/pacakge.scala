@@ -82,7 +82,7 @@ package object util {
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_] => isMapped(n.in) 
-      case n:Delay[_] => n.pne match { case mc:MemoryController => true; case _ => isMapped(n.in) }
+      case n:Delay[_] => isMapped(n.pne)
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")

@@ -119,10 +119,7 @@ object OuterProduct extends PIRApp {
       val ctr7 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1) // Counter
       val x1280 = CounterChain(name = "x1280", ctr7).iter(16)
     }
-    val x1308 = Sequential(name="x1308",parent=x1318) { implicit CU => 
-      val x1308_unit = CounterChain(name = "x1308_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x1297 = Pipeline(name="x1297",parent=x1308) { implicit CU => 
+    val x1297 = Pipeline(name="x1297",parent=x1318) { implicit CU => 
       val x1286 = CU.temp
       val x1288 = CU.temp
       val x1287 = CU.temp
@@ -139,7 +136,7 @@ object OuterProduct extends PIRApp {
       Stage(operands=List(x1289, CU.load(x1284)), op=FixAdd, results=List(CU.scalarOut(x1281_b1347_x1296_b1349_s)))
       Stage(operands=List(Const(64)), op=Bypass, results=List(CU.scalarOut(x1281_b1348_x1296_b1350_s)))
     }
-    val x1307 = Pipeline(name="x1307",parent=x1308) { implicit CU => 
+    val x1307 = Pipeline(name="x1307",parent=x1318) { implicit CU => 
       val ctr8 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1299 = CounterChain(name = "x1299", ctr8).iter(1)
     }
