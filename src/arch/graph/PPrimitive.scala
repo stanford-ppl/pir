@@ -39,7 +39,7 @@ object Const {
   def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
-case class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
@@ -55,9 +55,9 @@ case class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(
   }
 }
 object Delay {
-  def apply(tp:Bit, delay:Int,ts:Option[String])
+  def apply(tp:Bit, staticDelay:Option[Int], ts:Option[String])
     (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = {
-    val d = new Delay(tp, Some(delay), ts)(spade, pne)
+    val d = new Delay(tp, staticDelay, ts)
     ctrlBox.delays += d
     d
   }
@@ -69,7 +69,7 @@ object Delay {
     (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), None)
 
   def apply[P<:PortType](tp:P, delay:Int,ts:Option[String])
-    (implicit spade:Spade, pne:NetworkElement):Delay[P] = { new Delay(tp, Some(delay), ts)(spade, pne) }
+    (implicit spade:Spade, pne:NetworkElement):Delay[P] = new Delay(tp, Some(delay), ts)(spade, pne)
   def apply[P<:PortType](tp:P,ts:String)
-    (implicit spade:Spade, pne:NetworkElement):Delay[P] = Delay(tp, None, Some(ts))
+    (implicit spade:Spade, pne:NetworkElement):Delay[P] = new Delay(tp, None, Some(ts))
 }
