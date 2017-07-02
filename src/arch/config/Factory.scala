@@ -217,7 +217,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           udc.dec <== cb.doneXbar.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cb.readUDC.inc <== cu.sram.swapWrite
+        cb.readUDC.inc <== cb.writeDoneXbar.out
         cb.readUDC.dec <== cb.readDoneXbar.out
       case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>

@@ -142,7 +142,6 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
   //val debug = Output(Bus(spade.numLanes * 2, Word()), this, s"${this}.debug")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd")
-  val swapWrite = Output(Bit(), this, s"${this}.swapWrite")
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -184,7 +183,6 @@ case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipM
         }
       }
       readPort.v := readOut.pv
-      swapWrite := incWritePtr
       //debug.v.set { v =>
         //v.foreach { case (ev, i) =>
           //ev <<= array(0)(i)
