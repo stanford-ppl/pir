@@ -55,8 +55,8 @@ object Config {
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
   
   var ctrl = true
-  var simulate = false
-  var simulationTimeOut = 60
+  var simulate = true
+  var simulationTimeOut = 100
   var verbose = debug & true
   var waveform = true
 

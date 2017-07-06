@@ -52,6 +52,7 @@ trait PIRAlias {
   type CP    = CtrlPort
   type OP    = OutPort
   type COP   = CtrlOutPort
+  type PDU   = PredicateUnit
   type CB    = CtrlBox
   type MCB   = MemCtrlBox
   type SCB   = StageCtrlBox

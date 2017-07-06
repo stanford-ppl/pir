@@ -18,7 +18,7 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def setWriter(mem:OnChipMem) = {
     writerOf(mem) = mem.writePort.from.src match {
-      case fifo:VectorFIFO => fifo.writer
+      case fifo:FIFO => fifo.writer
       case VecIn(_, vector) => vector.writer.ctrler
       case ScalarIn(_, scalar) => scalar.writer.ctrler
       case p => 

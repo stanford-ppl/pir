@@ -57,6 +57,7 @@ trait Traversal {
         n.andTrees.foreach(visitNode)
         n.andGates.foreach(visitNode)
         n.delays.foreach(visitNode)
+        n.predicateUnits.foreach(visitNode)
         n match {
           case n:OuterCtrlBox => 
             visitNode(n.udsm)

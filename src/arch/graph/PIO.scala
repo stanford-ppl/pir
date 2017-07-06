@@ -213,9 +213,9 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
     in <== slice.out
     slice
   }
-  def sliceHead(in:Input[P,Module]):Slice[P] = slice(0, in)
+  def sliceHead[E<:PortType](in:Input[E,Module]):Slice[E] = slice(0, in)
   def slice[E<:PortType](i:Int):Slice[E] = _sliceMap(i).asInstanceOf[Slice[E]]
-  def sliceHead:Slice[P] = slice(0)
+  def sliceHead[E<:PortType]:Slice[E] = slice(0)
   def slices:List[Slice[_<:PortType]] = _sliceMap.values.toList
   private lazy val _broadcastMap = Map[Int, BroadCast[P]]() // Int: input buswidth
   def broadcast(in:Input[Bus, Module]):BroadCast[P] = {

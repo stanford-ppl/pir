@@ -125,7 +125,6 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    dprintln(s"----")
     visited.foreach{c => if (c.children.nonEmpty) findCycle(c.children) }
   }
 

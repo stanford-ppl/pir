@@ -23,6 +23,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   addPass(canRun=design.memoryAnalyzer.hasRun, runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
       connectDone(ctrler)
+      setPredicate(ctrler)
     }
     design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
@@ -31,6 +32,25 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     topoSort(design.top).reverse.foreach { ctrler =>
       connectSibling(ctrler)
       connectChildren(ctrler)
+    }
+  }
+
+  def setPredicate(ctrler:Controller) = {
+    setAccumPredicate(ctrler)
+    //setFifoPredicate(ctrler)
+  }
+
+  def setAccumPredicate(cu:Controller) = {
+    (cu, cu.ctrlBox) match {
+      case (cu:InnerController, cb:InnerCtrlBox) =>
+        assert(cu.accumRegs.size<=1, s"Assume $cu can only have a single accumulator at the moment")
+        cu.accumRegs.headOption match {
+          case None => //out.v := false
+          case Some(acc) => 
+            val ctr = accumCounterOf(acc)
+            cb.setAccumPredicate(ctr, FixEql, 0)
+        }
+      case (cu, cb) =>
     }
   }
 

@@ -13,7 +13,7 @@ object OuterProduct extends PIRApp {
     val x1224_b1338_x1233_b1340_s = Scalar("x1224_b1338_x1233_b1340")
     val x1203_argin = ArgIn("x1203").bound(16)
     val x1245_b1342_x1254_b1344_s = Scalar("x1245_b1342_x1254_b1344")
-    val x1221_x1273_x1278_v = Scalar("x1221_x1273_x1278")
+    val x1221_x1273_x1278_s = Scalar("x1221_x1273_x1278")
     val x1223_x1277_v = Vector("x1223_x1277")
     val x1246_x1256_data_v = Vector("x1246_x1256_data")
     val x1281_b1347_x1296_b1349_s = Scalar("x1281_b1347_x1296_b1349")
@@ -43,20 +43,20 @@ object OuterProduct extends PIRApp {
     val x1221_dsp0 = MemoryPipeline(name="x1221_dsp0",parent="x1319") { implicit CU => 
       val x1242_x1242 = VectorFIFO(size=1).wtPort(x1225_x1235_data_v)
       val x1237 = CounterChain.copy("x1243", "x1237")
-      val x1269 = CounterChain.copy("x1278", "x1269")
-      val x1221_x1273 = SRAM(size=16,banking = Strided(1)).wtPort(x1242_x1242.readPort).rdPort(x1221_x1273_x1278_v).rdAddr(x1269(0)).wtAddr(x1237(0))
+      val x1269 = CounterChain.copy("x1278_0", "x1269")
+      val x1221_x1273 = SRAM(size=16,banking = Strided(1)).wtPort(x1242_x1242.readPort).rdPort(x1221_x1273_x1278_s).rdAddr(x1269(0)).wtAddr(x1237(0))
     }
     val x1222_dsp0 = MemoryPipeline(name="x1222_dsp0",parent="x1319") { implicit CU => 
       val x1263_x1263 = VectorFIFO(size=1).wtPort(x1246_x1256_data_v)
       val x1258 = CounterChain.copy("x1264", "x1258")
-      val x1269 = CounterChain.copy("x1278", "x1269")
+      val x1269 = CounterChain.copy("x1278_0", "x1269")
       val x1222_x1274 = SRAM(size=16,banking = Strided(1)).wtPort(x1263_x1263.readPort).rdPort(x1222_x1274_x1278_v).rdAddr(x1269(1)).wtAddr(x1258(0))
     }
     val x1223_dsp0 = MemoryPipeline(name="x1223_dsp0",parent="x1319") { implicit CU => 
       val b1345 = CU.temp
       val b1351 = CU.temp
       val x1277_x1277 = VectorFIFO(size=1).wtPort(x1223_x1277_v)
-      val x1269 = CounterChain.copy("x1278", "x1269")
+      val x1269 = CounterChain.copy("x1278_0", "x1269")
       val x1280 = CounterChain.copy("x1318", "x1280")
       val x1299 = CounterChain.copy("x1307", "x1299")
       val x1223_x1303 = SRAM(size=256,banking = Strided(1)).wtPort(x1277_x1277.readPort).rdPort(x1223_x1303_x1307_v)
@@ -68,7 +68,7 @@ object OuterProduct extends PIRApp {
     val x1244 = StreamController(name="x1244",parent=x1319) { implicit CU => 
       val x1244_unit = CounterChain(name = "x1244_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x1234 = Pipeline(name="x1234",parent=x1244) { implicit CU => 
+    val x1234_0 = Pipeline(name="x1234_0",parent=x1244) { implicit CU => 
       val x1227 = CU.temp
       val x1226 = ScalarBuffer().wtPort(x1226_argin)
       val x1220 = CounterChain.copy("x1319", "x1220")
@@ -89,7 +89,7 @@ object OuterProduct extends PIRApp {
     val x1265 = StreamController(name="x1265",parent=x1319) { implicit CU => 
       val x1265_unit = CounterChain(name = "x1265_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x1255 = Pipeline(name="x1255",parent=x1265) { implicit CU => 
+    val x1255_0 = Pipeline(name="x1255_0",parent=x1265) { implicit CU => 
       val x1248 = CU.temp
       val x1247 = ScalarBuffer().wtPort(x1247_argin)
       val x1220 = CounterChain.copy("x1319", "x1220")
@@ -107,8 +107,8 @@ object OuterProduct extends PIRApp {
       val ctr4 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1258 = CounterChain(name = "x1258", ctr4).iter(1)
     }
-    val x1278 = Pipeline(name="x1278",parent=x1319) { implicit CU => 
-      val x1273_x1273 = ScalarFIFO(size=1).wtPort(x1221_x1273_x1278_v)
+    val x1278_0 = Pipeline(name="x1278_0",parent=x1319) { implicit CU => 
+      val x1273_x1273 = ScalarFIFO(size=1).wtPort(x1221_x1273_x1278_s)
       val x1274_x1274 = VectorFIFO(size=1).wtPort(x1222_x1274_x1278_v)
       val ctr5 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1) // Counter
       val ctr6 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
@@ -119,7 +119,7 @@ object OuterProduct extends PIRApp {
       val ctr7 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1) // Counter
       val x1280 = CounterChain(name = "x1280", ctr7).iter(16)
     }
-    val x1297 = Pipeline(name="x1297",parent=x1318) { implicit CU => 
+    val x1297_0 = Pipeline(name="x1297_0",parent=x1318) { implicit CU => 
       val x1286 = CU.temp
       val x1288 = CU.temp
       val x1287 = CU.temp

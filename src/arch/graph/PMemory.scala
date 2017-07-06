@@ -228,9 +228,9 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
-      setMem { memory =>
-        memory(writePtr.pv.toInt) <<= writePort.pv.head
-      }
+      writePtr.pv
+      writePort.pv
+      setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 
           If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
@@ -258,8 +258,9 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
+      writePtr.pv
+      writePort.pv
       setMem { memory =>
-        writePtr.pv
         If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
           If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
           memory(writePtr.pv.toInt) <<= writePort.pv

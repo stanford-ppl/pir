@@ -46,7 +46,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   lazy val util:SimUtil = this
 
   var inSimulation = false 
-  var inRegistration = false 
+  var _inRegistration = false 
+  def inRegistration = _inRegistration
 
   override lazy val stream = newStream("sim.log") 
 
@@ -73,7 +74,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     timeOut = false
     done = false
     inSimulation = false
-    inRegistration = false
+    _inRegistration = false
     cycle = 0
     spade.simulatable.foreach { m => m.reset }
   }
@@ -86,11 +87,11 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def register = {
     dprintln(s"\n\nRegistering update functions ...")
-    inRegistration = true
+    _inRegistration = true
     spade.simulatable.foreach { s => s.register; s.zeroModule }
     spade.simulatable.foreach { s => s.updateModule; }
     spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
-    inRegistration = false
+    _inRegistration = false
     spade.simulatable.foreach { s => s.check }
     info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
   }

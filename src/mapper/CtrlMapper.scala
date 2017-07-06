@@ -41,6 +41,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
     mp = mapEnOut(cu, pcu, mp)
     mp = mapCounters(cu, pcu, mp)
+    mp = mapPredUnits(cu, pcu, mp)
     mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
     mp = mapMemoryWrite(cu, pcu, mp)
@@ -290,6 +291,20 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pudc = mp.pmmap(udc)
       mp = mapInPort(udc.inc, pudc.inc, mp)
       mp = mapInPort(udc.dec, pudc.dec, mp)
+    }
+    mp
+  }
+
+  def mapPredUnits(cu:CU, pcu:PCL, pirMap:M):M = {
+    var mp = pirMap
+    (cu.ctrlBox, pcu.ctrlBox) match {
+      case (cu:ICB, pcb:PICB) =>
+        cu.accumPredUnit.foreach { apu =>
+          mp = mp.setPM(apu, pcb.accumPredUnit)
+          mp = mapInPort(apu.in, pcb.accumPredUnit.in, mp)
+          mp = mapOutPort(apu.out, pcb.accumPredUnit.out, mp)
+        }
+      case (cu, pcb) =>
     }
     mp
   }

@@ -395,6 +395,7 @@ case class PMMap(map:PMMap.M, pmp:PMMap.IM) extends IBiOneToOneMap {
   def pmap(v:PConst):Const = { pmp(v).asInstanceOf[Const] }
   def pmap(v:PUC):UC = { pmp(v).asInstanceOf[UC] }
   def pmap(v:PAT):AT = { pmp(v).asInstanceOf[AT] }
+  def pmap(v:PPDU):PDU = { pmp(v).asInstanceOf[PDU] }
   def pmap:IM = pmp
   def get(v:PConst):Option[Const] = { pmp.get(v).asInstanceOf[Option[Const]] }
 }

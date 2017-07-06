@@ -34,7 +34,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
     if (cu.mem.writePort.isConnected) {
       cu.mem.writePort.from.src match {
-        case fifo:VectorFIFO => forWrite(fifo) = true
+        case fifo:FIFO => forWrite(fifo) = true
       }
     } else {
       warn(s"${cu.mem} in $cu's writePort is not connected!")
@@ -136,6 +136,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         val swapWrite = cu.getCopy(swapWriteCChainOf(cu.mem))
         forWrite(swapWrite) = true
         swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
+        analyzeScalarBufs(cu)
       case cu =>
     }
   }

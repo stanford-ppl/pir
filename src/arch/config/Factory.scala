@@ -224,6 +224,17 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
+  def connectPredUnits(cu:Controller):Unit = {
+    (cu, cu.ctrlBox) match {
+      case (cu:ComputeUnit, cb:InnerCtrlBox) =>
+        cu.ctrs.foreach { ctr => 
+          cb.accumPredUnit.in <== (ctr.out, 0)
+          cb.fifoPredUnit.in <== (ctr.out, 0) 
+        }
+      case _ =>
+    }
+  }
+
   def connectMemoryControl(cu:Controller):Unit = {
     implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
@@ -321,6 +332,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     connectAndTree(cu)
     connectCounters(cu)
     connectUDCs(cu)
+    connectPredUnits(cu)
     connectMemoryControl(cu)
     connectStageControl(cu)
     connectCtrlIO(cu)

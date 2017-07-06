@@ -75,8 +75,8 @@ object UDCounter {
 }
 
 case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
-  override val typeStr = name.getOrElse("ag")
   cb.andGates += this
+  override val typeStr = name.getOrElse("ag")
   val out = Output(Bit(), this, s"${this}.out")
   private[plasticine] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
   private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
@@ -217,6 +217,24 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
   }
 }
 
+case class PredicateUnit()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+  override val typeStr = "predUnit"
+  cb.predicateUnits += this
+  val in = Input(Word(), this, s"${quote(this)}.in")
+  val out = Output(Bit(), this, s"${quote(this)}.out")
+  override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
+    import sim.pirmeta._
+    import pir.util.typealias._
+    super.register
+    pmmap.pmap.get(this).fold {
+      out.v := false
+    } { case pdu:PDU =>
+      out.v := eval(pdu.op, in.v, pdu.const)
+    }
+  }
+}
+
 abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
@@ -226,6 +244,7 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
   lazy val andTrees = ListBuffer[AndTree]()
   lazy val delays = ListBuffer[Delay[Bit]]()
   lazy val andGates = ListBuffer[AndGate]()
+  lazy val predicateUnits = ListBuffer[PredicateUnit]()
 }
 
 
@@ -249,22 +268,8 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
   streamAndTree <== fifoAndTree.out
   en.in <== pipeAndTree.out // 0
   en.in <== streamAndTree.out // 1
-  val accumPassThrough = Output(Bit(), this, s"${quote(pne)}.accumPassThrough")
-  override def register(implicit sim:Simulator):Unit = {
-    import sim.util._
-    import sim.pirmeta._
-    super.register
-    clmap.pmap.get(pne).foreach { case icl:pir.graph.InnerController =>
-      assert(icl.accumRegs.size<=1)
-      icl.accumRegs.headOption match {
-        case None => //accumPassThrough.v := false
-        case Some(acc) => 
-          val ctr = accumCounterOf(acc)
-          val pctr = ctmap(ctr)
-          accumPassThrough.v := pctr.out.v.head.asSingle == 0
-      }
-    }
-  }
+  val accumPredUnit = PredicateUnit()
+  val fifoPredUnit = PredicateUnit()
 }
 
 class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {

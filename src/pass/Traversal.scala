@@ -89,6 +89,7 @@ trait Traversal extends Pass {
           p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
           p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
           p.delays.foreach(visitNode)
+          p.predicateUnits.foreach(visitNode)
         case p:Counter =>
           visitNode(p.min)
           visitNode(p.step)
@@ -97,6 +98,9 @@ trait Traversal extends Pass {
           visitNode(p.en)
           visitNode(p.done)
         case p:Delay =>
+          visitNode(p.in)
+          visitNode(p.out)
+        case p:PredicateUnit =>
           visitNode(p.in)
           visitNode(p.out)
       }

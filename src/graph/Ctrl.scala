@@ -121,6 +121,13 @@ object AndTree {
   def apply()(implicit ctrlBox:CtrlBox, design:Design):AndTree = new AndTree(None)
 }
 
+case class PredicateUnit(name:Option[String], op:FixOp, const:Int) (implicit ctrlBox:CtrlBox, design:Design) extends CtrlPrimitive {
+  ctrlBox.predicateUnits += this
+  override val typeStr = "PredicateUnit"
+  val in = InPort(this, s"$this.in")
+  val out = CtrlOutPort(this, s"$this.out")
+}
+
 abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   implicit def ctrlBox:CtrlBox = this
   override val name = None
@@ -131,6 +138,7 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
   def udcounters:Map[Any, UDCounter] = tokenBuffers ++ creditBuffers
   val andTrees = ListBuffer[AndTree]()
   val delays = ListBuffer[Delay]()
+  val predicateUnits = ListBuffer[PredicateUnit]()
   var tokenOut:Option[CtrlOutPort] = None 
   // only outer controller have token down, which is the init signal first child stage
 
@@ -205,6 +213,16 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
   val streamAndTree = AndTree(s"streamAndTree")
   streamAndTree.addInput(tokenInAndTree.out)
   streamAndTree.addInput(fifoAndTree.out)
+  var accumPredUnit:Option[PredicateUnit] = None
+  var fifoPredUnit:Option[PredicateUnit] = None
+  def setAccumPredicate(ctr:Counter, op:FixOp, const:Int) = {
+    accumPredUnit = Some(PredicateUnit(Some("accumPredUnit"), op, const))
+    accumPredUnit.foreach{ _.in.connect(ctr.out) }
+  }
+  def setFifoPredicate(ctr:Counter, op:FixOp, const:Int) = {
+    fifoPredUnit = Some(PredicateUnit(Some("fifoPredUnit"), op, const))
+    fifoPredUnit.foreach{ _.in.connect(ctr.out) }
+  }
 }
 object InnerCtrlBox {
   def apply()(implicit ctrler:InnerController, design: Design) = new InnerCtrlBox()

@@ -33,6 +33,7 @@ nightlies
 *.dot
 *.pdf
 *.swp
+*.swo
 out/
 *.log
 *.aux

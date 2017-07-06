@@ -85,6 +85,7 @@ package object util {
       case n:Delay[_] => isMapped(n.pne)
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
+      case n:PredicateUnit => isMapped(n.in) 
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }

@@ -200,7 +200,7 @@ trait SingleValue extends Value { self:SingleType =>
   def <<= (other:Option[AnyVal])(implicit sim:Simulator):Unit = copy(other) 
   def copy(other:Value)(implicit sim:Simulator):Unit = copy(other.asInstanceOf[SingleValue].value)
   def copy (other:Option[AnyVal])(implicit sim:Simulator) = {
-    assert(sim.inSimulation || sim.inRegistration)
+    assert(sim.inSimulation || sim.inRegistration, s"inSimulation=${sim.inSimulation} inRegistration=${sim.inRegistration}")
     value = other.asInstanceOf[V]
   }
   private var _default:V = None

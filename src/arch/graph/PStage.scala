@@ -114,7 +114,7 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
           out.v.foreach { case (ev,i) =>
             val vals = operands.map(_.v.value(i)).toSeq
             ev.set { ev =>
-              IfElse (pne.ctrlBox.asInstanceOf[InnerCtrlBox].accumPassThrough.vAt(stage.index)) {
+              IfElse (pne.ctrlBox.asInstanceOf[InnerCtrlBox].accumPredUnit.out.vAt(stage.index)) {
                 ev <<= inputOp.v.update.value(i)
               } {
                 ev.asSingle <<= eval(st.fu.get.op, vals.map(_.update):_*)
