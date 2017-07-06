@@ -78,60 +78,38 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  //def findCycle(ctrlers:List[Controller]):Unit = {
-    //val visited = ListBuffer[Controller]()
-    //val toVisit = Queue[Controller]()
-    //val heads = ctrlers.filter{_.consumed.isEmpty}.filterNot{ c => c.isInstanceOf[MemoryPipeline]}
-    ////Hack: if there's a loop without entry point, assume the first ctrler is the entry point in the
-    ////program order
-    //toVisit ++= (if (heads.isEmpty) List(ctrlers.head) else heads)
-    //while(toVisit.nonEmpty) {
-      //val node = toVisit.dequeue
-      //visited += node
-      //dprintln(s"Visiting $node produced:${node.produced}")
-      //node.produced.foreach { mem =>
-        //if (visited.contains(mem.consumer)) {
-          //mem.trueDep = false
-          //dprintln(s"Set $mem.trueDep=false in ${mem.ctrler}")
-        //} else {
-          //if (!toVisit.contains(mem.consumer))
-            //toVisit += mem.consumer
-        //}
-      //}
-    //}
-    //dprintln(s"----")
-    //visited.foreach{c => if (c.children.nonEmpty) findCycle(c.children) }
-  //}
-
-  def findCycle(ctrlers:List[Controller]):Unit = {
+  def findCycle(ctrler:Controller):Unit = emitBlock(s"FindCycle $ctrler"){
+    val children = ctrler.children.filterNot{ _.isMP }
+    val heads = children.filter{_.consumed.isEmpty}
     val visited = ListBuffer[Controller]()
     val toVisit = Queue[Controller]()
-    val heads = ctrlers.filter{_.consumed.isEmpty}.filterNot{ c => c.isInstanceOf[MemoryPipeline]}
     //Hack: if there's a loop without entry point, assume the first ctrler is the entry point in the
     //program order
-    toVisit ++= (if (heads.isEmpty) List(ctrlers.head) else heads)
+    toVisit ++= (if (heads.isEmpty && children.nonEmpty) List(children.head) else heads)
     while(toVisit.nonEmpty) {
       val node = toVisit.dequeue
       visited += node
-      dprintln(s"Visiting $node produced:${node.produced}}")
+      dprintln(s"Visiting $node produced=${node.produced}")
       node.produced.foreach { mem =>
-        if (visited.contains(mem.consumer)) {
-          mem.trueDep = false
-          dprintln(s"Set $mem.trueDep=false in ${mem.ctrler}")
-        } 
-        toVisit ++= ctrlers.filter { c => 
-          dprintln(s"consider:$c consumed ${c}")
-          !visited.contains(c) && !c.isInstanceOf[MemoryPipeline] && c.consumed.forall(mem => visited.contains(mem.producer))
+        emitBlock(s"checking $mem") {
+          val consumer = mem.consumer
+          if (visited.contains(consumer)) {
+            mem.trueDep = false
+            dprintln(s"Set $mem.trueDep=false in ${mem.ctrler}")
+          } else if (!toVisit.contains(consumer)) {
+            toVisit += consumer
+            dprintln(s"toVisit += ${consumer}")
+          }
         }
       }
     }
-    visited.foreach{c => if (c.children.nonEmpty) findCycle(c.children) }
+    children.foreach(findCycle)
   }
 
   def findBackEdge:Unit = {
     dprintln(s"Finding back edge in dependencies")
     
-    findCycle(List(design.top))
+    findCycle(design.top)
   }
 
   def setBufferSize:Unit = {
