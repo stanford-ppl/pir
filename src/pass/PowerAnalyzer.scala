@@ -41,7 +41,7 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   val sBufPower = Map[PNode, Double]()
   val vBufPower = Map[PNode, Double]()
   val fuPower = Map[PNode, Double]()
-  val pnePower = Map[PNode, Double]()
+  val prtPower = Map[PNode, Double]()
 
   val regUnitPower = 0.12856 * 2 // mW //read and write
   val ctrUnitPower = 0.12856 * 2 // mW //read and write
@@ -61,39 +61,39 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   val unitMCUPower = unitSCUPower + sramReadUnitPower + sramWriteUnitPower //mW
   val unitOCUPower = 89e-6 //mW
 
-  def compPower(pne:PCU):Unit = {
-    pne match {
-      case pne:PCL =>
-        mp.clmap.pmap.get(pne).fold {
-          regPower += pne -> 0 
-          ctrPower += pne -> 0 
-          fuPower += pne -> 0
-          sBufPower += pne -> 0 
-          vBufPower += pne -> 0
-          sramPower += pne -> 0
+  def compPower(prt:PCU):Unit = {
+    prt match {
+      case prt:PCL =>
+        mp.clmap.pmap.get(prt).fold {
+          regPower += prt -> 0 
+          ctrPower += prt -> 0 
+          fuPower += prt -> 0
+          sBufPower += prt -> 0 
+          vBufPower += prt -> 0
+          sramPower += prt -> 0
         } { cl =>
-          regPower += pne -> regUnitPower * regUsed(pne).used
-          ctrPower += pne -> ctrUnitPower * ctrUsed(pne).used
-          fuPower += pne -> fuUnitPower * fuUsed(pne).used
-          sBufPower += pne -> sBufUnitPower * sBufUsed(pne).used 
-          vBufPower += pne -> vBufUnitPower * vBufUsed(pne).used 
+          regPower += prt -> regUnitPower * regUsed(prt).used
+          ctrPower += prt -> ctrUnitPower * ctrUsed(prt).used
+          fuPower += prt -> fuUnitPower * fuUsed(prt).used
+          sBufPower += prt -> sBufUnitPower * sBufUsed(prt).used 
+          vBufPower += prt -> vBufUnitPower * vBufUsed(prt).used 
           cl match {
-            case mp:MP => sramPower += pne -> (sramReadUnitPower + sramWriteUnitPower)
-            case mp => sramPower += pne -> 0
+            case mp:MP => sramPower += prt -> (sramReadUnitPower + sramWriteUnitPower)
+            case mp => sramPower += prt -> 0
           }
         }
-      case pne =>
+      case prt =>
     }
-    pnePower += pne -> (regPower(pne) + 
-                        ctrPower(pne) + 
-                        fuPower(pne) + 
-                        sBufPower(pne) + 
-                        vBufPower(pne) + 
-                        sramPower(pne))
+    prtPower += prt -> (regPower(prt) + 
+                        ctrPower(prt) + 
+                        fuPower(prt) + 
+                        sBufPower(prt) + 
+                        vBufPower(prt) + 
+                        sramPower(prt))
   }
 
   def compPower(psb:PSB):Unit = {
-    pnePower += psb -> (psb.outs.map { pout => 
+    prtPower += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
           case out:VO => spade.numLanes * regUnitPower
@@ -104,18 +104,18 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
     }).sum
   }
   
-  def compPower(pne:PNE):Unit = {
-    pne match {
-      case pne:PCU => compPower(pne)
-      case pne:PSB => compPower(pne)
-      case pne:PTop => pnePower += pne -> 0
-      case pne:PMC => pnePower += pne -> 0
+  def compPower(prt:PRT):Unit = {
+    prt match {
+      case prt:PCU => compPower(prt)
+      case prt:PSB => compPower(prt)
+      case prt:PTop => prtPower += prt -> 0
+      case prt:PMC => prtPower += prt -> 0
     }
   }
 
   addPass {
-    //spade.pnes.foreach { pne =>
-      //compPower(pne)
+    //spade.prts.foreach { prt =>
+      //compPower(prt)
     //}
     DCPower
   } 
@@ -130,18 +130,18 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   }
 
   def DCPower = {
-    spade.pnes.map {
-      case pne:PMCU if mp.clmap.pmap.contains(pne) => totalMCUPower += unitMCUPower
-      case pne:PSCU if mp.clmap.pmap.contains(pne) => totalSCUPower += unitSCUPower
-      case pne:POCU if mp.clmap.pmap.contains(pne) => totalOCUPower += unitOCUPower
-      case pne:PCU if mp.clmap.pmap.contains(pne) => totalPCUPower += unitPCUPower
-      case pne =>
+    spade.prts.map {
+      case prt:PMCU if mp.clmap.pmap.contains(prt) => totalMCUPower += unitMCUPower
+      case prt:PSCU if mp.clmap.pmap.contains(prt) => totalSCUPower += unitSCUPower
+      case prt:POCU if mp.clmap.pmap.contains(prt) => totalOCUPower += unitOCUPower
+      case prt:PCU if mp.clmap.pmap.contains(prt) => totalPCUPower += unitPCUPower
+      case prt =>
     }
   }
 
   def emitSummary = {
     val row = summary.addRow
-    val totalSwitchPower = spade.sbs.map { sb => pnePower.getOrElse(sb, 0.0) }.sum //TODO
+    val totalSwitchPower = spade.sbs.map { sb => prtPower.getOrElse(sb, 0.0) }.sum //TODO
     row += "App"           -> design.name
     row += "totalRegPower" -> regPower.map { case (n, e) => e }.sum
     row += "totalCtrPower" -> ctrPower.map { case (n, e) => e }.sum
@@ -149,12 +149,12 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
     row += "totalVFifoPower" -> vBufPower.map { case (n, e) => e }.sum
     row += "totalSramPower" -> sramPower.map { case (n, e) => e }.sum
     row += "totalFUPower" -> fuPower.map { case (n, e) => e }.sum
-    row += "totalPCUPower" -> spade.pcus.map { cu => pnePower.getOrElse(cu, 0.0) }.sum //TODO remove getOrElse
-    row += "totalPMUPower" -> spade.mcus.map { cu => pnePower.getOrElse(cu, 0.0) }.sum
-    row += "totalSCUPower" -> spade.scus.map { cu => pnePower.getOrElse(cu, 0.0) }.sum
-    row += "totalOCUPower" -> spade.ocus.map { cu => pnePower.getOrElse(cu, 0.0) }.sum
+    row += "totalPCUPower" -> spade.pcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum //TODO remove getOrElse
+    row += "totalPMUPower" -> spade.mcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalSCUPower" -> spade.scus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalOCUPower" -> spade.ocus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
     row += "totalSwitchPower" -> totalSwitchPower
-    row += "totalPower" -> spade.pnes.map(pne => pnePower.getOrElse(pne, 0.0)).sum
+    row += "totalPower" -> spade.prts.map(prt => prtPower.getOrElse(prt, 0.0)).sum
     row += "DCtotalPCUPower" -> totalPCUPower
     row += "DCtotalPMUPower" -> totalMCUPower
     row += "DCtotalSCUPower" -> totalSCUPower

@@ -338,19 +338,19 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     connectCtrlIO(cu)
   }
 
-  def genConnections(pne:NetworkElement):Unit = {
-    pne match {
-      case pne:Top =>
-        connectCtrl(pne)
-      case pne:ComputeUnit => 
-        connectData(pne)
-        genMapping(pne)
-        connectCtrl(pne)
-      case pne:MemoryController =>
-        connectData(pne)
-        connectCtrl(pne)
-      case pne:SwitchBox => 
-        pne.connectXbars
+  def genConnections(prt:Routable):Unit = {
+    prt match {
+      case prt:Top =>
+        connectCtrl(prt)
+      case prt:ComputeUnit => 
+        connectData(prt)
+        genMapping(prt)
+        connectCtrl(prt)
+      case prt:MemoryController =>
+        connectData(prt)
+        connectCtrl(prt)
+      case prt:SwitchBox => 
+        prt.connectXbars
     }
   }
 

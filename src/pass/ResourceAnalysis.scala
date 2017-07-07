@@ -69,10 +69,10 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   var totalCinPinUtil = Util.empty
   var totalCoutPinUtil = Util.empty
 
-  def parOf(pne:PCL):Int = {
-    pne match {
-      case pne:PMCU => 1
-      case pne => mp.clmap.pmap.get(pne).fold(-1) { cl => pirmeta.parOf(cl) }
+  def parOf(prt:PCL):Int = {
+    prt match {
+      case prt:PMCU => 1
+      case prt => mp.clmap.pmap.get(prt).fold(-1) { cl => pirmeta.parOf(cl) }
     }
   }
 
@@ -86,72 +86,72 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     })
   }
 
-  def collectRegUtil(pne:PNE) = pne match {
-    case pne:PCU if mp.clmap.pmap.contains(pne) =>
-      regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
-        //case (used, total) => (used * parOf(pne), total * pne.numLanes)
-        case (used, total) => (used * parOf(pne), 8 * pne.param.numLanes * pne.stages.size) // assuming using 8 registers per stage
+  def collectRegUtil(prt:PRT) = prt match {
+    case prt:PCU if mp.clmap.pmap.contains(prt) =>
+      regUsed += prt -> count(prt.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
+        //case (used, total) => (used * parOf(prt), total * prt.numLanes)
+        case (used, total) => (used * parOf(prt), 8 * prt.param.numLanes * prt.stages.size) // assuming using 8 registers per stage
       }
-    case pne =>
-      regUsed += pne -> Util.empty
+    case prt =>
+      regUsed += prt -> Util.empty
   }
 
-  def collectCtrUtil(pne:PNE) = pne match {
-    case pne:PCU =>
-      ctrUsed += pne -> count(pne.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
-    case pne =>
-      ctrUsed += pne -> Util.empty
+  def collectCtrUtil(prt:PRT) = prt match {
+    case prt:PCU =>
+      ctrUsed += prt -> count(prt.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
+    case prt =>
+      ctrUsed += prt -> Util.empty
   }
 
-  def collectFUUtil(pne:PNE) = pne match {
-    case pne:PCU if mp.clmap.pmap.contains(pne) =>
-      fuUsed += pne -> count(pne.stages.map { pst => mp.stmap.pmap.get(pst) }).map {
-        case (used, total) => (used * parOf(pne), total * pne.param.numLanes)
+  def collectFUUtil(prt:PRT) = prt match {
+    case prt:PCU if mp.clmap.pmap.contains(prt) =>
+      fuUsed += prt -> count(prt.stages.map { pst => mp.stmap.pmap.get(pst) }).map {
+        case (used, total) => (used * parOf(prt), total * prt.param.numLanes)
       }
-    case pne =>
-      fuUsed += pne -> Util.empty
+    case prt =>
+      fuUsed += prt -> Util.empty
   }
 
-  def collectVBufUtil(pne:PNE) = pne match {
-    case pne:PCU =>
-      vBufUsed += pne -> count(pne.vbufs.map { vbuf => mp.smmap.pmap.get(vbuf) })
-    case pne =>
-      vBufUsed += pne -> Util.empty
+  def collectVBufUtil(prt:PRT) = prt match {
+    case prt:PCU =>
+      vBufUsed += prt -> count(prt.vbufs.map { vbuf => mp.smmap.pmap.get(vbuf) })
+    case prt =>
+      vBufUsed += prt -> Util.empty
   }
 
-  def collectSBufUtil(pne:PNE) = pne match {
-    case pne:PCU =>
-      sBufUsed += pne -> count(pne.sbufs.map { sbuf => mp.smmap.pmap.get(sbuf) })
-    case pne =>
-      sBufUsed += pne -> Util.empty
+  def collectSBufUtil(prt:PRT) = prt match {
+    case prt:PCU =>
+      sBufUsed += prt -> count(prt.sbufs.map { sbuf => mp.smmap.pmap.get(sbuf) })
+    case prt =>
+      sBufUsed += prt -> Util.empty
   }
 
-  def collectSinPinUtil(pne:PNE) = {
-    sinPinUsed += pne -> count(pne.sins.map { in => mp.vimap.pmap.get(in) })
+  def collectSinPinUtil(prt:PRT) = {
+    sinPinUsed += prt -> count(prt.sins.map { in => mp.vimap.pmap.get(in) })
   }
 
-  def collectSoutPinUtil(pne:PNE) = {
-    soutPinUsed += pne -> count(pne.souts.map { out => mp.vomap.pmap.get(out) })
+  def collectSoutPinUtil(prt:PRT) = {
+    soutPinUsed += prt -> count(prt.souts.map { out => mp.vomap.pmap.get(out) })
   }
 
-  def collectVinPinUtil(pne:PNE) = {
-    vinPinUsed += pne -> count(pne.vins.map { in => mp.vimap.pmap.get(in) })
+  def collectVinPinUtil(prt:PRT) = {
+    vinPinUsed += prt -> count(prt.vins.map { in => mp.vimap.pmap.get(in) })
   }
 
-  def collectVoutPinUtil(pne:PNE) =  {
-    voutPinUsed += pne -> count(pne.vouts.map { out => mp.vomap.pmap.get(out) })
+  def collectVoutPinUtil(prt:PRT) =  {
+    voutPinUsed += prt -> count(prt.vouts.map { out => mp.vomap.pmap.get(out) })
   }
 
-  def collectCinPinUtil(pne:PNE) = {
-    cinPinUsed += pne -> count(pne.cins.map { in => mp.vimap.pmap.get(in) })
+  def collectCinPinUtil(prt:PRT) = {
+    cinPinUsed += prt -> count(prt.cins.map { in => mp.vimap.pmap.get(in) })
   }
 
-  def collectCoutPinUtil(pne:PNE) =  {
-    coutPinUsed += pne -> count(pne.couts.map { out => mp.vomap.pmap.get(out) })
+  def collectCoutPinUtil(prt:PRT) =  {
+    coutPinUsed += prt -> count(prt.couts.map { out => mp.vomap.pmap.get(out) })
   }
 
   addPass {
-    spade.pnes.foreach { cl =>
+    spade.prts.foreach { cl =>
       collectRegUtil(cl)
       collectCtrUtil(cl)
       collectFUUtil(cl)

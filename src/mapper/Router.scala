@@ -27,9 +27,9 @@ abstract class Router(implicit design:Design) extends Mapper {
   type I<:Node
   type O<:Node
   type R = (PCL, Path[FEdge])
-  type Edge = (PGIO[PNE], PGIO[PNE])
-  type FEdge = (PGO[PNE], PGI[PNE])
-  type REdge = (PGI[PNE], PGO[PNE])
+  type Edge = (PGIO[PRT], PGIO[PRT])
+  type FEdge = (PGO[PRT], PGI[PRT])
+  type REdge = (PGI[PRT], PGO[PRT])
   type Path[E<:Edge] = List[E]
   type Paths[E<:Edge] = List[(PCL, Path[E])]
   type FatEdge[E<:Edge] = List[E] 
@@ -37,7 +37,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   type FatPath[E<:Edge] = List[FatEdge[E]]
   type ValidCons[E<:Edge] = (PCL, FatPath[E]) => Option[FatPath[E]]
   type AdvanceCons[E<:Edge] = (PSB, FatPath[E]) => Option[FatPath[E]]
-  type AdvanceFunc[E<:Edge] = (PCL, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PNE], Int, Int) => FatPaths[E] 
+  type AdvanceFunc[E<:Edge] = (PCL, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PRT], Int, Int) => FatPaths[E] 
 
   def quote[T](n:T)(implicit spade:Spade, ev:TypeTag[T]):String = {
     n match {
@@ -87,7 +87,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def to(out:O):List[I]
   def ins(cl:CL):List[I]
   def outs(cl:CL):List[O]
-  def io(pne:PNE):PGrid[PNE]
+  def io(prt:PRT):PGrid[PRT]
   def isExtern(in:I):Boolean = { ctrler(in)!=ctrler(from(in)) }
 
   def logCond(header:String, valid:Boolean, cond:Boolean, info:String):Boolean = {
@@ -128,30 +128,30 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
 
-  def filterOutIns(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
+  def filterOutIns(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     val outins:List[I] = outs(cl).flatMap { out =>
       to(out).filter { in => 
         !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
       }
     }
     def start(in:I) = ctrler(in)
-    val reses = filterTraverse(start _, outins, pnes, m, revAdvance _)
+    val reses = filterTraverse(start _, outins, prts, m, revAdvance _)
     if (reses.isEmpty) 
-      throw MappingException(this, m, s"No pnes can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
+      throw MappingException(this, m, s"No prts can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
     else reses
   }
 
-  def filterIns(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
+  def filterIns(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     val inputs:List[I] = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
     def start(in:I) = ctrler(from(in))
-    filterTraverse(start _, inputs, pnes, m, fwdAdvance _)
+    filterTraverse(start _, inputs, prts, m, fwdAdvance _)
   }
 
-  def filterPCL(cl:CL, pnes:List[PCL], m:PIRMap):List[PCL] = {
-    var reses = pnes 
-    if (reses.isEmpty) throw MappingException(this, m, s"No pnes to filter for $cl")
+  def filterPCL(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
+    var reses = prts 
+    if (reses.isEmpty) throw MappingException(this, m, s"No prts to filter for $cl")
     reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
     reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
     reses
@@ -178,11 +178,11 @@ abstract class Router(implicit design:Design) extends Mapper {
       start:PCL, 
       validCons:Option[ValidCons[FEdge]] = None, 
       advanceCons:Option[AdvanceCons[FEdge]] = None,
-      end:Option[PNE] = None,
+      end:Option[PRT] = None,
       minHop:Int = this.minHop, 
       maxHop:Int = this.maxHop
     ):FatPaths[FEdge] = {
-    advance[FEdge]((io:PGrid[PNE]) => io.outs)(
+    advance[FEdge]((io:PGrid[PRT]) => io.outs)(
       start=start, 
       end=end,
       validCons=vldCons(validCons, minHop, maxHop) _, 
@@ -194,11 +194,11 @@ abstract class Router(implicit design:Design) extends Mapper {
       start:PCL, 
       validCons:Option[ValidCons[REdge]] = None, 
       advanceCons:Option[AdvanceCons[REdge]] = None,
-      end:Option[PNE] = None,
+      end:Option[PRT] = None,
       minHop:Int = this.minHop, 
       maxHop:Int = this.maxHop
     ):FatPaths[REdge] = {
-    advance[REdge]((io:PGrid[PNE]) => io.ins)(
+    advance[REdge]((io:PGrid[PRT]) => io.ins)(
       start=start, 
       end=end,
       validCons=vldCons(validCons, minHop, maxHop) _, 
@@ -206,14 +206,14 @@ abstract class Router(implicit design:Design) extends Mapper {
     )
   }
 
-  def tailToHeads(io:PIO[PNE]):List[PIO[PNE]] = io match {
-    case io:PI[_] => io.fanIns.asInstanceOf[List[PO[PNE]]]
-    case io:PO[_] => io.fanOuts.asInstanceOf[List[PI[PNE]]]
+  def tailToHeads(io:PIO[PRT]):List[PIO[PRT]] = io match {
+    case io:PI[_] => io.fanIns.asInstanceOf[List[PO[PRT]]]
+    case io:PO[_] => io.fanOuts.asInstanceOf[List[PI[PRT]]]
   }
 
-  def advance[E<:Edge](edgeTails:PGrid[PNE] => List[PIO[PNE]])(
+  def advance[E<:Edge](edgeTails:PGrid[PRT] => List[PIO[PRT]])(
       start:PCL, 
-      end:Option[PNE],
+      end:Option[PRT],
       validCons:ValidCons[E], 
       advanceCons:AdvanceCons[E]
     ):FatPaths[E] = {
@@ -252,33 +252,33 @@ abstract class Router(implicit design:Design) extends Mapper {
       }
       valid
     }
-    val totalVisit = mutable.Map[PNE, Int]() // reduce quadratic space 
+    val totalVisit = mutable.Map[PRT, Int]() // reduce quadratic space 
     while (fatpaths.size!=0) {
       val (visited, fatpath) =  fatpaths.dequeue
-      val pne:PNE = fatpath.lastOption.fold[PNE](start) { _.head._2.src }
-      val ets = edgeTails(io(pne)).sortWith{ case (et1, et2) => et1.src.isInstanceOf[PCU] || !et2.src.isInstanceOf[PCU] }
+      val prt:PRT = fatpath.lastOption.fold[PRT](start) { _.head._2.src }
+      val ets = edgeTails(io(prt)).sortWith{ case (et1, et2) => et1.src.isInstanceOf[PCU] || !et2.src.isInstanceOf[PCU] }
       val edges = ets.flatMap { et => tailToHeads(et).map { eh => (et, eh).asInstanceOf[E] } }
       val bundle = edges.groupBy { case (et, eh) => (et.src, eh.src) }
-      bundle.foreach { case ((fpne, tpne), fatEdge) =>
-        //breakPoint(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)}", true)
-        val tvisit = totalVisit.getOrElse(tpne, 0)
-        //tpne match {
+      bundle.foreach { case ((fprt, tprt), fatEdge) =>
+        //breakPoint(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tprt=${quote(tprt)}", true)
+        val tvisit = totalVisit.getOrElse(tprt, 0)
+        //tprt match {
           //case psb:PSB => 
-            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)} shouldVisit:${shouldVisit(visited, psb)} ${tvisit}")
+            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tprt=${quote(tprt)} shouldVisit:${shouldVisit(visited, psb)} ${tvisit}")
           //case pcl:PCL => 
-            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tpne=${quote(tpne)} ${end} ${tvisit}")
+            //dprintln(s"start=${quote(start)} end=${end.map(quote)} visited=[${visited.map(quote)}] tprt=${quote(tprt)} ${end} ${tvisit}")
         //}
-        tpne match {
+        tprt match {
           case psb:PSB if shouldVisit(visited, psb) & (tvisit < 3) =>
             val newPath = fatpath :+ fatEdge 
             advanceCons(psb, newPath).foreach { newPath => 
-              totalVisit += tpne -> (tvisit + 1)
+              totalVisit += tprt -> (tvisit + 1)
               fatpaths += ((visited :+ psb, newPath))
             }
           case pcl:PCL if end.fold(true) { _ == pcl } & (tvisit < 3) => 
             val newPath = fatpath :+ fatEdge 
             validCons(pcl, newPath).foreach { newPath => 
-              totalVisit += tpne -> (tvisit + 1)
+              totalVisit += tprt -> (tvisit + 1)
               result += (pcl -> newPath)
             }
           case _ =>
@@ -410,7 +410,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     val out = from(in) 
     val fcl = ctrler(from(in))
     val pfcl = m.clmap(fcl)
-    def filterUsed(pne:PNE, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
+    def filterUsed(prt:PRT, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
       val (heads, last) = fatpath.splitAt(fatpath.size-1)
       filterUsedFatEdge(out, last.head, m).map{ last => heads :+ last }
     }
@@ -539,7 +539,7 @@ class VectorRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugVecRouter
 
-  def io(pne:PNE):PGrid[PNE] = pne.vectorIO
+  def io(prt:PRT):PGrid[PRT] = prt.vectorIO
 
   def ctrler(io:Node):CL = {
     io match {
@@ -562,7 +562,7 @@ class ScalarRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugScalRouter 
 
-  def io(pne:PNE):PGrid[PNE] = pne.scalarIO
+  def io(prt:PRT):PGrid[PRT] = prt.scalarIO
 
   def ctrler(io:Node):CL = {
     io match {
@@ -584,7 +584,7 @@ class ControlRouter()(implicit val design:Design) extends Router {
 
   override def debug:Boolean = Config.debugCtrlRouter
 
-  def io(pne:PNE):PGrid[PNE] = pne.ctrlIO
+  def io(prt:PRT):PGrid[PRT] = prt.ctrlIO
 
   def ctrler(io:Node):CL = {
     io match {

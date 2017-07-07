@@ -20,7 +20,7 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
-  override def pnes = super.pnes ++ sbs
+  override def prts = super.prts ++ sbs
 
   def diameter = Math.max(
                   numRows + numCols, // Allow top left to talk to top right

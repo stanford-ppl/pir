@@ -15,7 +15,7 @@ import scala.collection.mutable.Set
 
 
 /* Switch box (6 inputs 6 outputs) */
-case class SwitchBox()(implicit spade:SwitchNetwork) extends NetworkElement {
+case class SwitchBox()(implicit spade:SwitchNetwork) extends Routable {
   import spademeta._
   override val typeStr = "sb"
   val scalarIO:ScalarIO[this.type] = ScalarIO(this)

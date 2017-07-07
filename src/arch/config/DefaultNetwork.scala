@@ -11,7 +11,7 @@ import scala.language.existentials
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = VectorIO.P
-  def io(pne:NetworkElement) = pne.vectorIO
+  def io(prt:Routable) = prt.vectorIO
 
   // switch to switch channel width
   //override lazy val sbChannelWidth = 6
@@ -69,7 +69,7 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ScalarIO.P
-  def io(pne:NetworkElement) = pne.scalarIO
+  def io(prt:Routable) = prt.scalarIO
 
   // switch to switch channel width
   //override lazy val sbChannelWidth = 4
@@ -134,7 +134,7 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ControlIO.P
-  def io(pne:NetworkElement) = pne.ctrlIO
+  def io(prt:Routable) = prt.ctrlIO
 
   // switch to switch channel width
   //override lazy val sbChannelWidth = 12

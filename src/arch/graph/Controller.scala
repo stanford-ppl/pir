@@ -19,7 +19,7 @@ trait ControllerParam extends SpadeParam {
 }
 
 /* Controller */
-abstract class Controller(val param:ControllerParam)(implicit spade:Spade) extends NetworkElement {
+abstract class Controller(val param:ControllerParam)(implicit spade:Spade) extends Routable {
   import spademeta._
   import param._
 

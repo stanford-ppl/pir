@@ -39,7 +39,7 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
     totalCycleOf(n) * 1.0 / spade.clockFrequency
   }
 
-  def timeOf(n:PNE):Double = {
+  def timeOf(n:PRT):Double = {
     n match {
       case n:PCL => mp.clmap.pmap.get(n).fold(0.0) { cl => timeOf(cl) }
     }
@@ -61,7 +61,7 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
   val sBufEnergy = Map[PNode, Double]()
   val vBufEnergy = Map[PNode, Double]()
   val fuEnergy = Map[PNode, Double]()
-  val pneEnergy = Map[PNode, Double]()
+  val prtEnergy = Map[PNode, Double]()
 
   val regUnitPower = 0.12856 * 2 // mW //read and write
   val ctrUnitPower = 0.12856 * 2 // mW //read and write
@@ -71,59 +71,59 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
   val vBufUnitPower = 9.7628 * 2 // read and write
   val fuUnitPower = 3.3726 // mW
 
-  def compEnergy(pne:PCU):Unit = {
-    pne match {
-      case pne:PMCU =>
-        mp.clmap.pmap.get(pne).fold {
-          regEnergy += pne -> 0 
-          ctrEnergy += pne -> 0 
-          fuEnergy += pne -> 0
-          sBufEnergy += pne -> 0 
-          vBufEnergy += pne -> 0
-          sramEnergy += pne -> 0
+  def compEnergy(prt:PCU):Unit = {
+    prt match {
+      case prt:PMCU =>
+        mp.clmap.pmap.get(prt).fold {
+          regEnergy += prt -> 0 
+          ctrEnergy += prt -> 0 
+          fuEnergy += prt -> 0
+          sBufEnergy += prt -> 0 
+          vBufEnergy += prt -> 0
+          sramEnergy += prt -> 0
         } { cl =>
           val mp = cl.asMP
           val rt = readTime(mp) 
           val wt = writeTime(mp)
           val at = (rt + wt)/2
-          regEnergy += pne -> regUnitPower * regUsed(pne).used * at
-          ctrEnergy += pne -> mp.cchains.map {
+          regEnergy += prt -> regUnitPower * regUsed(prt).used * at
+          ctrEnergy += prt -> mp.cchains.map {
             case cc if forRead(cc) => ctrUnitPower * rt * cc.counters.size
             case cc if forWrite(cc) => ctrUnitPower * wt * cc.counters.size
           }.sum
-          fuEnergy += pne -> mp.stages.map {
+          fuEnergy += prt -> mp.stages.map {
             case stage if forRead(stage) => fuUnitPower * rt
             case stage if forWrite(stage) => fuUnitPower * wt
           }.sum
-          sBufEnergy += pne -> mp.sfifos.map {
+          sBufEnergy += prt -> mp.sfifos.map {
             case fifo if forRead(fifo) => sBufUnitPower * rt
             case fifo if forWrite(fifo) => sBufUnitPower * wt
           }.sum
-          vBufEnergy += pne -> mp.vfifos.map {
+          vBufEnergy += prt -> mp.vfifos.map {
             case fifo if forRead(fifo) => vBufUnitPower * rt
             case fifo if forWrite(fifo) => vBufUnitPower * wt
           }.sum
-          sramEnergy += pne -> sramReadUnitPower * rt
-          sramEnergy += pne -> sramWriteUnitPower * wt
+          sramEnergy += prt -> sramReadUnitPower * rt
+          sramEnergy += prt -> sramWriteUnitPower * wt
         }
-      case pne =>
-        regEnergy += pne -> regUnitPower * regUsed(pne).used * timeOf(pne)
-        ctrEnergy += pne -> ctrUnitPower * ctrUsed(pne).used * timeOf(pne)
-        fuEnergy += pne -> fuUnitPower * fuUsed(pne).used * timeOf(pne)
-        sBufEnergy += pne -> sBufUnitPower * sBufUsed(pne).used * timeOf(pne)
-        vBufEnergy += pne -> vBufUnitPower * vBufUsed(pne).used * timeOf(pne)
-        sramEnergy += pne -> 0
+      case prt =>
+        regEnergy += prt -> regUnitPower * regUsed(prt).used * timeOf(prt)
+        ctrEnergy += prt -> ctrUnitPower * ctrUsed(prt).used * timeOf(prt)
+        fuEnergy += prt -> fuUnitPower * fuUsed(prt).used * timeOf(prt)
+        sBufEnergy += prt -> sBufUnitPower * sBufUsed(prt).used * timeOf(prt)
+        vBufEnergy += prt -> vBufUnitPower * vBufUsed(prt).used * timeOf(prt)
+        sramEnergy += prt -> 0
     }
-    pneEnergy += pne -> (regEnergy(pne) + 
-                        ctrEnergy(pne) + 
-                        fuEnergy(pne) + 
-                        sBufEnergy(pne) + 
-                        vBufEnergy(pne) + 
-                        sramEnergy(pne))
+    prtEnergy += prt -> (regEnergy(prt) + 
+                        ctrEnergy(prt) + 
+                        fuEnergy(prt) + 
+                        sBufEnergy(prt) + 
+                        vBufEnergy(prt) + 
+                        sramEnergy(prt))
   }
 
   def compEnergy(psb:PSB):Unit = {
-    pneEnergy += psb -> (psb.outs.map { pout => 
+    prtEnergy += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
           case out:VO => spade.numLanes * regUnitPower * writeTime(out.ctrler)
@@ -134,19 +134,19 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
     }).sum
   }
   
-  def compEnergy(pne:PNE):Unit = {
-    pne match {
-      case pne:PCU => compEnergy(pne)
-      case pne:PSB => compEnergy(pne)
-      case pne:PTop => pneEnergy += pne -> 0
-      case pne:PMC => pneEnergy += pne -> 0
+  def compEnergy(prt:PRT):Unit = {
+    prt match {
+      case prt:PCU => compEnergy(prt)
+      case prt:PSB => compEnergy(prt)
+      case prt:PTop => prtEnergy += prt -> 0
+      case prt:PMC => prtEnergy += prt -> 0
     }
   }
 
   addPass {
     assert(design.latencyAnalyzer.hasRun)
-    spade.pnes.foreach { pne =>
-      compEnergy(pne)
+    spade.prts.foreach { prt =>
+      compEnergy(prt)
     }
   } 
 
@@ -168,12 +168,12 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
     row += "totalVFifoEnergy" -> vBufEnergy.map { case (n, e) => e }.sum
     row += "totalSramEnergy" -> sramEnergy.map { case (n, e) => e }.sum
     row += "totalFUEnergy" -> fuEnergy.map { case (n, e) => e }.sum
-    row += "totalPCUEnergy" -> spade.pcus.map { cu => pneEnergy(cu) }.sum
-    row += "totalPMUEnergy" -> spade.mcus.map { cu => pneEnergy(cu) }.sum
-    row += "totalSCUEnergy" -> spade.scus.map { cu => pneEnergy(cu) }.sum
-    row += "totalOCUEnergy" -> spade.ocus.map { cu => pneEnergy(cu) }.sum
-    row += "totalSwitchEnergy" -> spade.sbs.map { sb => pneEnergy(sb) }.sum
-    val totalEnergy = spade.pnes.map(pne => pneEnergy(pne)).sum
+    row += "totalPCUEnergy" -> spade.pcus.map { cu => prtEnergy(cu) }.sum
+    row += "totalPMUEnergy" -> spade.mcus.map { cu => prtEnergy(cu) }.sum
+    row += "totalSCUEnergy" -> spade.scus.map { cu => prtEnergy(cu) }.sum
+    row += "totalOCUEnergy" -> spade.ocus.map { cu => prtEnergy(cu) }.sum
+    row += "totalSwitchEnergy" -> spade.sbs.map { sb => prtEnergy(sb) }.sum
+    val totalEnergy = spade.prts.map(prt => prtEnergy(prt)).sum
     row += "totalEnergy" -> totalEnergy
     row += "totalPower" -> totalEnergy / timeOf(design.top) 
     summary.emitFile

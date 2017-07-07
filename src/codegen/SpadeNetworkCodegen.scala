@@ -65,24 +65,24 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
 
   def emitNetwork = {
     emitComment("VectorNetwork Connection")
-    spade.pnes.foreach { pne =>
-      pne.vectorIO.outs.foreach { out =>
+    spade.prts.foreach { prt =>
+      prt.vectorIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qv(out)} <> ${qv(in)}")
         }
       }
     }
     emitComment("ScalarNetwork Connection")
-    spade.pnes.foreach { pne =>
-      pne.scalarIO.outs.foreach { out =>
+    spade.prts.foreach { prt =>
+      prt.scalarIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qs(out)} <> ${qs(in, from=out)}")
         }
       }
     }
     emitComment("ControlNetwork Connection")
-    spade.pnes.foreach { pne =>
-      pne.ctrlIO.outs.foreach { out =>
+    spade.prts.foreach { prt =>
+      prt.ctrlIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qc(out)} <> ${qc(in, from=out)}")
         }

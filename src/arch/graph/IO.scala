@@ -335,7 +335,7 @@ case class BroadCast[P<:PortType](bout:Output[P,Module], bintp:Bus)(implicit spa
   }
 }
 
-trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
+trait GridIO[P <:PortType, +NE<:Routable] extends Node {
   import spademeta._
   private val inMap = Map[String, ListBuffer[Input[P, _]]]()
   private val outMap = Map[String, ListBuffer[Output[P, _]]]()
@@ -380,7 +380,7 @@ trait GridIO[P <:PortType, +NE<:NetworkElement] extends Node {
   def ios:List[IO[P, NE]] = ins ++ outs
   def numIns:Int = inMap.values.map(_.size).sum
   def numOuts:Int = outMap.values.map(_.size).sum
-  def io(in:Input[P, NetworkElement]):String = {
+  def io(in:Input[P, Routable]):String = {
     val dirs = inMap.filter{ case (dir, l) => l.contains(in) }
     assert(dirs.size==1)
     val (dir, list) = dirs.head
@@ -397,7 +397,7 @@ object GridIO {
   def diagDirections = {"NW":: "NE":: "SE":: "SW" :: Nil}
 }
 
-case class ScalarIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[ScalarIO.P, N] {
+case class ScalarIO[+N<:Routable](src:N)(implicit spade:Spade) extends GridIO[ScalarIO.P, N] {
   override def toString = s"${src}.scalarIO"
   override def tp = Bus(1, Word())
 }
@@ -405,7 +405,7 @@ object ScalarIO {
   type P = Bus
 }
 
-case class VectorIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[VectorIO.P, N] {
+case class VectorIO[+N<:Routable](src:N)(implicit spade:Spade) extends GridIO[VectorIO.P, N] {
   override def toString = s"${src}.vectorIO"
   override def tp = Bus(spade.numLanes, Word())
 }
@@ -413,7 +413,7 @@ object VectorIO {
   type P = Bus
 }
 
-case class ControlIO[+N<:NetworkElement](src:N)(implicit spade:Spade) extends GridIO[ControlIO.P, N] {
+case class ControlIO[+N<:Routable](src:N)(implicit spade:Spade) extends GridIO[ControlIO.P, N] {
   override def toString = s"${src}.ctrlIO"
   override def tp = Bit()
 }

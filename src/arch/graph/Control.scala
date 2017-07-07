@@ -14,28 +14,28 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-abstract class LUT(implicit spade:Spade, pne:NetworkElement) extends Node {
+abstract class LUT(implicit spade:Spade, prt:Routable) extends Node {
   val numIns:Int
 }
-case class EnLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
+case class EnLUT(numIns:Int)(implicit spade:Spade, prt:Routable) extends LUT {
   import spademeta._
   override val typeStr = "enlut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
 }
-case class TokenOutLUT()(implicit spade:Spade, pne:NetworkElement) extends LUT{
+case class TokenOutLUT()(implicit spade:Spade, prt:Routable) extends LUT{
   import spademeta._
   override val typeStr = "tolut"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   override val numIns = 2 // Token out is a combination of two output
 }
-case class TokenDownLUT(numIns:Int)(implicit spade:Spade, pne:NetworkElement) extends LUT {
+case class TokenDownLUT(numIns:Int)(implicit spade:Spade, prt:Routable) extends LUT {
   override val typeStr = "tdlut"
 }
 object TokenDownLUT {
-  def apply(idx:Int, numIns:Int)(implicit spade:Spade, pne:NetworkElement):TokenDownLUT = 
+  def apply(idx:Int, numIns:Int)(implicit spade:Spade, prt:Routable):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "udc"
   cb._udcs += this
@@ -59,7 +59,7 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
             dec.pv -> { () => 
-              If(countv == 0) { errmsg(s"${quote(this)} of ${quote(pne)} underflow at cycle #$cycle") }
+              If(countv == 0) { errmsg(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle") }
               countv <<= countv - 1
             } 
           ) {}
@@ -71,10 +71,10 @@ case class UDCounter()(implicit spade:Spade, override val pne:Controller, cb:Ctr
   }
 }
 object UDCounter {
-  def apply(idx:Int)(implicit spade:Spade, pne:Controller, cb:CtrlBox):UDCounter = UDCounter().index(idx)
+  def apply(idx:Int)(implicit spade:Spade, prt:Controller, cb:CtrlBox):UDCounter = UDCounter().index(idx)
 }
 
-case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class AndGate(name:Option[String])(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   cb.andGates += this
   override val typeStr = name.getOrElse("ag")
   val out = Output(Bit(), this, s"${this}.out")
@@ -97,11 +97,11 @@ case class AndGate(name:Option[String])(implicit spade:Spade, override val pne:C
   }
 }
 object AndGate {
-  def apply(name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndGate = {
+  def apply(name:String)(implicit spade:Spade, prt:Controller, cb:CtrlBox):AndGate = {
     AndGate(Some(name))
   }
 }
-case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class AndTree(name:Option[String])(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = name.getOrElse("at")
   cb.andTrees += this
@@ -126,11 +126,11 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val pne:C
   }
 }
 object AndTree {
-  def apply(name:String)(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndTree = AndTree(Some(name))
-  def apply()(implicit spade:Spade, pne:Controller, cb:CtrlBox):AndTree = AndTree(None)
+  def apply(name:String)(implicit spade:Spade, prt:Controller, cb:CtrlBox):AndTree = AndTree(Some(name))
+  def apply()(implicit spade:Spade, prt:Controller, cb:CtrlBox):AndTree = AndTree(None)
 }
 
-case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
+case class PulserSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   val done = Input(Bit(), this, s"${this}.done")
   val en = Input(Bit(), this, s"${this}.en")
   val init = Input(Bit(), this, s"${this}.init")
@@ -142,7 +142,7 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     import sim.util._
-    clmap.pmap.get(pne).foreach { cu =>
+    clmap.pmap.get(prt).foreach { cu =>
       if (cu.isSeq || cu.isMeta) {
         state.v.default = INIT 
         out.v.set { outv =>
@@ -171,7 +171,7 @@ case class PulserSM()(implicit spade:Spade, override val pne:Controller) extends
   }
 }
 
-case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
+case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   val doneIn = Input(Bit(), this, s"${this}.doneIn")
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
@@ -217,7 +217,7 @@ case class UpDownSM()(implicit spade:Spade, override val pne:Controller) extends
   }
 }
 
-case class PredicateUnit()(implicit spade:Spade, override val pne:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class PredicateUnit()(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
   override val typeStr = "predUnit"
   cb.predicateUnits += this
   val in = Input(Word(), this, s"${quote(this)}.in")
@@ -235,7 +235,7 @@ case class PredicateUnit()(implicit spade:Spade, override val pne:Controller, cb
   }
 }
 
-abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Controller) extends Primitive with Simulatable {
+abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
   for (i <- 0 until numUDCs) { UDCounter(idx=i) }
@@ -249,12 +249,12 @@ abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:Contr
 
 
 
-class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUnit) extends CtrlBox(numUDCs) {
-  val doneXbar = Delay(Bit(), 0, s"${quote(pne)}.doneXbar")
-  val doneDelay = Delay(Bit(), pne.stages.size, s"${quote(pne)}.doneDelay")
+class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:ComputeUnit) extends CtrlBox(numUDCs) {
+  val doneXbar = Delay(Bit(), 0, s"${quote(prt)}.doneXbar")
+  val doneDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.doneDelay")
   doneDelay.in <== doneXbar.out
-  val en = Delay(Bit(), 0, s"${quote(pne)}.en")
-  val enDelay = Delay(Bit(), pne.stages.size, s"${quote(pne)}.enDelay")
+  val en = Delay(Bit(), 0, s"${quote(prt)}.en")
+  val enDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.enDelay")
   enDelay.in <== en.out
   val tokenInXbar = Delay(Bit(), 0)
   val siblingAndTree = AndTree("siblingAndTree") 
@@ -272,9 +272,9 @@ class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:ComputeUn
   val fifoPredUnit = PredicateUnit()
 }
 
-class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComputeUnit) extends CtrlBox(numUDCs) {
-  val doneXbar = Delay(Bit(), 0, s"$pne.doneXbar")
-  val en = Delay(Bit(), 0, s"$pne.en")
+class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:OuterComputeUnit) extends CtrlBox(numUDCs) {
+  val doneXbar = Delay(Bit(), 0, s"$prt.doneXbar")
+  val en = Delay(Bit(), 0, s"$prt.en")
   val childrenAndTree = AndTree("childrenAndTree") 
   val siblingAndTree = AndTree("siblingAndTree") 
   val udsm = UpDownSM()
@@ -289,23 +289,23 @@ class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:OuterComp
   en.in <== enAnd.out 
 }
 
-class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val pne:MemoryComputeUnit) extends CtrlBox(numUDCs) {
-  val readDoneXbar = Delay(Bit(), 0, s"$pne.readDoneXbar")
-  val writeDoneXbar = Delay(Bit(), 0, s"$pne.writeDoneXbar")
-  val tokenInXbar = Delay(Bit(), 0, s"$pne.tokenInXbar")
+class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox(numUDCs) {
+  val readDoneXbar = Delay(Bit(), 0, s"$prt.readDoneXbar")
+  val writeDoneXbar = Delay(Bit(), 0, s"$prt.writeDoneXbar")
+  val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
   val writeFifoAndTree = AndTree("writeFifoAndTree") 
   val readFifoAndTree = AndTree("readFifoAndTree") 
-  val writeEn = Delay(Bit(), 0, s"$pne.writeEn")
-  val readEn = Delay(Bit(),0, s"$pne.readEn") 
-  val readDelay = Delay(Bit(),s"$pne.readDelay") 
+  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
+  val readEn = Delay(Bit(),0, s"$prt.readEn") 
+  val readDelay = Delay(Bit(),s"$prt.readDelay") 
   readDelay.in <== readEn.out
   val readUDC = UDCounter()
-  val readAndGate = AndGate(s"$pne.readAndGate")
+  val readAndGate = AndGate(s"$prt.readAndGate")
   readAndGate <== readUDC.out
   readAndGate <== readFifoAndTree.out 
 }
 
-case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends CtrlBox(0) {
+case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox(0) {
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")
   override def register(implicit sim:Simulator):Unit = {
@@ -319,11 +319,11 @@ case class TopCtrlBox()(implicit spade:Spade, override val pne:Top) extends Ctrl
   }
 }
 
-class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) extends CtrlBox(0) {
+class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) extends CtrlBox(0) {
   val rdone = Output(Bit(), this, s"${this}.rdone")
   val wdone = Output(Bit(), this, s"${this}.wdone")
   val fifoAndTree = AndTree("fifoAndTree")
-  val en = Delay(Bit(), 0, s"$pne.en")
+  val en = Delay(Bit(), 0, s"$prt.en")
   val WAITING = false
   val RUNNING = true
   val state = Output(Bit(), this, s"${this}.state")
@@ -332,13 +332,13 @@ class MCCtrlBox()(implicit spade:Spade, override val pne:MemoryController) exten
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import spademeta._
-    clmap.pmap.get(pne).foreach { case mc:pir.graph.MemoryController =>
+    clmap.pmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
       state.v.default = WAITING 
       mc.mctpe match {
         case tp if tp.isDense =>
           val (done, size) = tp match {
-            case TileLoad => (rdone, pne.rsize)
-            case TileStore => (wdone, pne.wsize)
+            case TileLoad => (rdone, prt.rsize)
+            case TileStore => (wdone, prt.wsize)
             case _ => throw new Exception(s"Not possible match")
           }
           running.v := (state.v =:= RUNNING)

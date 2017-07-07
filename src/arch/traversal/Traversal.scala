@@ -28,7 +28,7 @@ trait Traversal {
     if (visited.contains(node)) return
     visited += node
     node match {
-      case n:NetworkElement =>
+      case n:Routable =>
         n.gridIOs.foreach{_.ios.foreach(visitNode)}
         n match {
           case n:Controller => 

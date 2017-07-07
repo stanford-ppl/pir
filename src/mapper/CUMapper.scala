@@ -64,7 +64,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
   def qualifyCheck:Map[N, List[R]] = {
-    val pnes = design.arch.pnes
+    val prts = design.arch.prts
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
@@ -96,21 +96,21 @@ class CUMapper(implicit ds:Design) extends Mapper {
     rcus.foreach { cl => map += cl -> pcus }
     cls.foreach { cl => 
       val failureInfo = MMap[R, ListBuffer[String]]()
-      map += cl -> map(cl).filter { pne =>
+      map += cl -> map(cl).filter { prt =>
         val cons = ListBuffer[(String, Any)]()
         cl match {
           case cl:Top =>
-            val pcu = pne
+            val pcu = prt
             cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
             cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
           case mc:MC =>
-            val pcu = pne
+            val pcu = prt
             cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
             cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
             cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
             cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
           case cu:ICL  =>
-            val pcu = pne.asInstanceOf[PCU]
+            val pcu = prt.asInstanceOf[PCU]
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
@@ -125,7 +125,7 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("srams"	, (cu.srams, pcu.srams)))
             cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
           case cu:OCL =>
-            val pocu = pne.asInstanceOf[POCU]
+            val pocu = prt.asInstanceOf[POCU]
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
             cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
             cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
@@ -133,11 +133,11 @@ class CUMapper(implicit ds:Design) extends Mapper {
             cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
             cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
         }
-        failureInfo += pne -> ListBuffer[String]()
-        check(cons.toList, failureInfo(pne))
+        failureInfo += prt -> ListBuffer[String]()
+        check(cons.toList, failureInfo(prt))
       }
       if (map(cl).size==0) {
-        val info = failureInfo.map{ case (pne, info) => s"$pne: [${info.mkString(",")}] \n"}.mkString(",")
+        val info = failureInfo.map{ case (prt, info) => s"$prt: [${info.mkString(",")}] \n"}.mkString(",")
         println(s"info:${info}")
         throw CUOutOfSize(cl, info)
       }
@@ -146,9 +146,9 @@ class CUMapper(implicit ds:Design) extends Mapper {
     map.toMap
   }
 
-  def place(cl:N, pne:R, m:M):M = {
-    val mp = log((s"Try $cl -> ${quote(pne)}", true)) {
-      routers.foldLeft(m.setCL(cl, pne)) { case (pm, router) =>
+  def place(cl:N, prt:R, m:M):M = {
+    val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
+      routers.foldLeft(m.setCL(cl, prt)) { case (pm, router) =>
         router.route(cl, pm)
       }
     }
@@ -160,31 +160,31 @@ class CUMapper(implicit ds:Design) extends Mapper {
     implicit val spade:Spade = design.arch
     log((s"$cl resFunc:", true)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
-      var pnes = resMap(cl).filterNot( pne => triedRes.contains(pne) || m.clmap.pmap.contains(pne) )
-      dprintln(s"--not mapped and not tried:[${pnes.mkString(",")}]")
+      var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.clmap.pmap.contains(prt) )
+      dprintln(s"--not mapped and not tried:[${prts.mkString(",")}]")
       cl match {
         case cl:MC if cl.mctpe==Scatter =>
         case cl:MC => 
           val scu = scuOf(cl)
           if (m.clmap.contains(scu)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(scu).coord }
+            prts = prts.filter{ prt => prt.coord == m.clmap(scu).coord }
           }
         case cu:CU if scuOf.pmap.contains(cu) =>
           val mc = scuOf.pmap(cu)
           if (m.clmap.contains(mc)) {
-            pnes = pnes.filter{ pne => pne.coord == m.clmap(mc).coord }
+            prts = prts.filter{ prt => prt.coord == m.clmap(mc).coord }
           }
         case _ =>
       }
-      if (pnes.size>1) routers.foreach { router => pnes = router.filterPCL(cl, pnes, m) }
-      pnes
+      if (prts.size>1) routers.foreach { router => prts = router.filterPCL(cl, prts, m) }
+      prts
     }
   }
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
     val nodes = design.top.ctrlers//topoSort(design.top)
-    val reses = design.arch.pnes
+    val reses = design.arch.prts
     emitBlock(s"topoSort:") {
       nodes.foreach{ n => dprintln(s"$n") }
     }

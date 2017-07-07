@@ -14,7 +14,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.Set
 
 /* Routable element at interconnection level */
-trait NetworkElement extends Module with Simulatable {
+trait Routable extends Module with Simulatable {
   import spademeta._
   implicit val ctrler:this.type = this 
   def scalarIO:ScalarIO[this.type]

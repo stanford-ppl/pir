@@ -234,7 +234,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mp.setIP(cb.en.in, pcb.en.in)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
-        assert(pcb.pne.isInstanceOf[PMC])
+        assert(pcb.prt.isInstanceOf[PMC])
     }
     mp
   }

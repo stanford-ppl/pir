@@ -18,23 +18,23 @@ class SpadePrinter(implicit design: Design) extends Codegen {
 
   override lazy val stream = newStream(Config.spadeFile, design.arch) 
   
-  def emitIO(pne:GridIO[_<:PortType, _<:NetworkElement]):Unit = {
+  def emitIO(prt:GridIO[_<:PortType, _<:Routable]):Unit = {
     emitBlock(s"ins") {
-      pne.ins.foreach { in =>
+      prt.ins.foreach { in =>
         emitln(s"${in.ms}")
       }
     }
     emitBlock(s"outs: ") {
-      pne.outs.foreach { out =>
+      prt.outs.foreach { out =>
         emitln(s"${out.mt}")
       }
     }
   }
 
-  def emitIO(pne:NetworkElement):Unit = {
-    emitBlock(s"${quote(pne)}.vectorIO") { emitIO(pne.vectorIO) } 
-    emitBlock(s"${quote(pne)}.scalarIO") { emitIO(pne.scalarIO) } 
-    emitBlock(s"${quote(pne)}.ctrlIO") { emitIO(pne.ctrlIO) } 
+  def emitIO(prt:Routable):Unit = {
+    emitBlock(s"${quote(prt)}.vectorIO") { emitIO(prt.vectorIO) } 
+    emitBlock(s"${quote(prt)}.scalarIO") { emitIO(prt.scalarIO) } 
+    emitBlock(s"${quote(prt)}.ctrlIO") { emitIO(prt.ctrlIO) } 
   }
 
   addPass {

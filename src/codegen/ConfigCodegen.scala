@@ -383,7 +383,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
       case pcb:PMCCB =>
-        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.pne.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sbufs.map(_.incWritePtr))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
     }
   }
@@ -456,7 +456,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitSRAM(psram:PSRAM) = {
-    val pcu = psram.pne
+    val pcu = psram.prt
     smmap.pmap.get(psram).foreach { case sram:SRAM =>
       emitComment(s"$psram -> $sram")
       val stride = sram.banking match {
@@ -467,9 +467,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitln(s"${quote(psram)}.numBufs = ${sram.buffering}")
       val vfifo = sram.writePort.from.src.asInstanceOf[VFIFO]
       val pvi = vimap(vfifo.writePort.from.src)
-      emitln(s"${quote(psram.pne)}.wdataSelect = ${pvi.index}")
-      emitln(s"${quote(psram.pne)}.waddrSelect = ${lookUp(psram.writeAddr)}")
-      emitln(s"${quote(psram.pne)}.raddrSelect = ${lookUp(psram.readAddr)}")
+      emitln(s"${quote(psram.prt)}.wdataSelect = ${pvi.index}")
+      emitln(s"${quote(psram.prt)}.waddrSelect = ${lookUp(psram.writeAddr)}")
+      emitln(s"${quote(psram.prt)}.raddrSelect = ${lookUp(psram.readAddr)}")
     }
   }
 
@@ -626,19 +626,19 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       val (x, y) = coordOf(n)
       s"cus($x)($y).asPCUBits"
     case n:PST =>
-      s"${quote(n.pne)}.stages(${n.index})"
+      s"${quote(n.prt)}.stages(${n.index})"
     case n:PCtr =>
-      s"${quote(n.pne)}.counterChain.counters(${n.index})"
+      s"${quote(n.prt)}.counterChain.counters(${n.index})"
     case n:PPR =>
-      val pcu = n.pne
+      val pcu = n.prt
       val pst = n.stage
       s"${quote(pst)}.fwd(${n.reg.index})"
     case n:PMCCB =>
-      s"${quote(n.pne)}"
+      s"${quote(n.prt)}"
     case n:PCB =>
-      s"${quote(n.pne)}.control"
+      s"${quote(n.prt)}.control"
     case n:PSRAM =>
-      s"${quote(n.pne)}.scratchpad"
+      s"${quote(n.prt)}.scratchpad"
     case n =>
       pir.plasticine.util.quote(n)
   }

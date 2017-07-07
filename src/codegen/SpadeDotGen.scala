@@ -27,7 +27,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
 
   val scale:Int
 
-  def io(pne:NetworkElement):GridIO[_<:PortType, NetworkElement]
+  def io(prt:Routable):GridIO[_<:PortType, Routable]
 
   override lazy val stream = if (design.mapping.isDefined) newStream(fn) else newStream(fn, design.arch)
 
@@ -40,7 +40,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
   //val mode:Mode = OnlyOCU 
   
   def linkColor = Color("indianred1") 
-  def color(pne:PNE):Color = pne match {
+  def color(prt:PRT):Color = prt match {
     case pscu:PSCU => Color("palevioletred1")
     case pmcu:PMCU => Color("lightseagreen")
     case pocu:POCU => Color("orange")
@@ -70,23 +70,23 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
         case pn:PointToPointNetwork =>
         case sn:SwitchNetwork =>
           //emitln(s"splines=ortho;")
-          val pnes = mode match {
+          val prts = mode match {
             case NoOCU =>
-              sn.pnes.filterNot{_.isInstanceOf[OuterComputeUnit]}
+              sn.prts.filterNot{_.isInstanceOf[OuterComputeUnit]}
             case OnlyOCU =>
-              sn.pnes.filter{ pne => pne.isInstanceOf[ScalarComputeUnit] && pne.isInstanceOf[OuterComputeUnit]}
+              sn.prts.filter{ prt => prt.isInstanceOf[ScalarComputeUnit] && prt.isInstanceOf[OuterComputeUnit]}
             case AllCU =>
-              sn.pnes
+              sn.prts
           }
-          pnes.foreach { pne =>
-            emitPNEs(pne, mapping )
+          prts.foreach { prt =>
+            emitPRTs(prt, mapping )
             val ins =  mode match {
               case NoOCU =>
-                io(pne).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+                io(prt).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
               case OnlyOCU =>
-                io(pne).ins.filter{ in => in.fanIns.head.src.isInstanceOf[ScalarComputeUnit] && in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+                io(prt).ins.filter{ in => in.fanIns.head.src.isInstanceOf[ScalarComputeUnit] && in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
               case AllCU =>
-                io(pne).ins
+                io(prt).ins
             }
             ins.foreach { in => emitInput(in, mapping) }
           }
@@ -98,13 +98,13 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
     }
   }
 
-  def emitPNEs(pne:PNE, mapping:Option[PIRMap]) = {
+  def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
     var attr = DotAttr().shape(Mrecord)
-    def mappedLabel(pne:PCL):String = {
-      mapping.fold(quote(pne)) { mp => mp.clmap.pmap.get(pne).fold(quote(pne)) { cl => s"${quote(pne)}|$cl"} }
+    def mappedLabel(prt:PCL):String = {
+      mapping.fold(quote(prt)) { mp => mp.clmap.pmap.get(prt).fold(quote(prt)) { cl => s"${quote(prt)}|$cl"} }
     }
     val recs = ListBuffer[String]()
-    pne match {
+    prt match {
       case ptop:PTop => recs += s"$ptop" 
       case pcl:PCL => 
         def ports(dir:String) = {
@@ -137,7 +137,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
         }.getOrElse(quote(psb))
     }
     val label = s"{${recs.mkString("|")}}"
-    pne match {
+    prt match {
       case pscu:PSCU => coordOf.get(pscu).foreach { case (x,y) => attr.pos((x*scale, (y-0.3)*scale)) }
       case pmc:PMC => coordOf.get(pmc).foreach { case (x,y) => attr.pos((x*scale, (y-0.7)*scale)) }
       case pocu:POCU => coordOf.get(pocu).foreach { case (x,y) => attr.pos(((x-0.3)*scale, (y-0.3)*scale)) }
@@ -146,28 +146,28 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
       case _ =>
     }
     mapping.foreach { mp => 
-      pne match {
-        case pne:PCL =>
-          if (mp.clmap.pmap.contains(pne) || io(pne).ins.exists( in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(pne))
-        case pne =>
-          if (io(pne).ins.exists(in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(pne))
+      prt match {
+        case prt:PCL =>
+          if (mp.clmap.pmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(prt))
+        case prt =>
+          if (io(prt).ins.exists(in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(prt))
       }
     }
     val spade = design.arch.asInstanceOf[SwitchNetwork]
     import spade.param._
-    pne match {
+    prt match {
       case ptop:PTop => s"$ptop" 
         emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, numRows*scale))
         emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, -scale))
       case _ =>
-        emitNode(pne, label, attr)
+        emitNode(prt, label, attr)
     }
   }
 
-  def emitInput(pin:PGI[PNE], mapping:Option[PIRMap])(implicit design:Design) = {
-    val pne:PNE = pin.src
+  def emitInput(pin:PGI[PRT], mapping:Option[PIRMap])(implicit design:Design) = {
+    val prt:PRT = pin.src
     pin.fanIns.foreach { po =>
       val pout = po.asGlobal
       val attr = DotAttr()
@@ -190,7 +190,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
                 //}
               //case psb:PSB => s"\n(o-${indexOf(pout)})"
             //}
-            //val cl = m.clmap.pmap(pne)
+            //val cl = m.clmap.pmap(prt)
             //in match {
               //case op:OP =>
                 //val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
@@ -211,7 +211,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
       val to = pin.src match {
         case psb:PSB => s"$psb"
         case ptop:PTop => quote(ptop, coordOf(pout.src)._2==0)
-        case _ => s"$pne:$pin"
+        case _ => s"$prt:$pin"
       }
       val from = pout.src match {
         case from:PSB =>
@@ -251,7 +251,7 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
 
   val scale = 20
 
-  def io(pne:NetworkElement) = pne.ctrlIO
+  def io(prt:Routable) = prt.ctrlIO
 }
 
 class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) 
@@ -264,7 +264,7 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design)
   
   val scale = 15
 
-  def io(pne:NetworkElement) = pne.scalarIO
+  def io(prt:Routable) = prt.scalarIO
 
 }
 
@@ -278,5 +278,5 @@ class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design)
   
   val scale = 15
 
-  def io(pne:NetworkElement) = pne.vectorIO
+  def io(prt:Routable) = prt.vectorIO
 }

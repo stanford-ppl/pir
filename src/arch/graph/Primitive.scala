@@ -13,7 +13,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-abstract class Primitive(implicit spade:Spade, val pne:NetworkElement) extends Module
+abstract class Primitive(implicit spade:Spade, val prt:Routable) extends Module
 
 class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {
   override val typeStr = "const"
@@ -39,7 +39,7 @@ object Const {
   def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
-class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, pne:NetworkElement) extends Primitive with Simulatable {
+class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable) extends Primitive with Simulatable {
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
@@ -56,20 +56,20 @@ class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(impli
 }
 object Delay {
   def apply(tp:Bit, staticDelay:Option[Int], ts:Option[String])
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = {
+    (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = {
     val d = new Delay(tp, staticDelay, ts)
     ctrlBox.delays += d
     d
   }
   def apply(tp:Bit,ts:String)
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, None, Some(ts))
+    (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, None, Some(ts))
   def apply(tp:Bit, delay:Int,ts:String)
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), Some(ts))
+    (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), Some(ts))
   def apply(tp:Bit, delay:Int)
-    (implicit spade:Spade, pne:NetworkElement, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), None)
+    (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), None)
 
   def apply[P<:PortType](tp:P, delay:Int,ts:Option[String])
-    (implicit spade:Spade, pne:NetworkElement):Delay[P] = new Delay(tp, Some(delay), ts)(spade, pne)
+    (implicit spade:Spade, prt:Routable):Delay[P] = new Delay(tp, Some(delay), ts)(spade, prt)
   def apply[P<:PortType](tp:P,ts:String)
-    (implicit spade:Spade, pne:NetworkElement):Delay[P] = new Delay(tp, None, Some(ts))
+    (implicit spade:Spade, prt:Routable):Delay[P] = new Delay(tp, None, Some(ts))
 }

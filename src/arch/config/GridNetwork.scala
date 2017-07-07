@@ -13,7 +13,7 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   implicit def self:GridNetwork = this
 
   type P <: PortType
-  def io(cu:NetworkElement):GridIO[P, NetworkElement]
+  def io(cu:Routable):GridIO[P, Routable]
 
   def isVectorNetwork = this.isInstanceOf[VectorNetwork]
   def isScalarNetwork = this.isInstanceOf[ScalarNetwork]
@@ -85,7 +85,7 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
 
   lazy val top = spade.top
   
-  def connect(out:NetworkElement, outDir:String, in:NetworkElement, inDir:String, channelWidth:Int) = {
+  def connect(out:Routable, outDir:String, in:Routable, inDir:String, channelWidth:Int) = {
     (out, in) match {
       case (out:Top, in) =>
         val outs = io(out).outs
@@ -105,10 +105,10 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   }
 
   def reset = {
-    spade.pnes.foreach { pne =>
-      io(pne).ins.foreach { _.disconnect }
-      io(pne).outs.foreach { _.disconnect }
-      io(pne).clearIO
+    spade.prts.foreach { prt =>
+      io(prt).ins.foreach { _.disconnect }
+      io(prt).outs.foreach { _.disconnect }
+      io(prt).clearIO
     }
   }
 

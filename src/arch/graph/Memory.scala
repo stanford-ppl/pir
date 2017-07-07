@@ -114,7 +114,7 @@ trait OnChipMem extends Primitive with Memory {
       writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
         If (incReadPtr.pv) { 
-          if (v.value==Some(0)) warn(s"${quote(pne)}.${quote(this)}'s count underflow at #$cycle!")
+          if (v.value==Some(0)) warn(s"${quote(prt)}.${quote(this)}'s count underflow at #$cycle!")
           v <<= v - 1
         }
         If (incWritePtr.pv) { v <<= v + 1 }
@@ -126,7 +126,7 @@ trait OnChipMem extends Primitive with Memory {
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM(size:Int)(implicit spade:Spade, pne:ComputeUnit) extends OnChipMem {
+case class SRAM(size:Int)(implicit spade:Spade, prt:ComputeUnit) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
@@ -214,7 +214,7 @@ trait LocalBuffer extends OnChipMem {
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
+case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
   override val typeStr = "sm"
   type P = Word
   var memory:Array[P] = _
@@ -233,7 +233,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 
-          If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
+          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)} overflow at $cycle!") }
           v <<= writePort.v.update.valid
         }
       }
@@ -244,7 +244,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends LocalBuffer {
+case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
   override val typeStr = "vm"
   type P = Bus
   def zeroMemory(implicit sim:Simulator):Unit = {
@@ -262,7 +262,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, pne:NetworkElement) extends
       writePort.pv
       setMem { memory =>
         If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
-          If(notFull.v.not) { warn(s"${quote(pne)}.${quote(this)} overflow at $cycle!") }
+          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)} overflow at $cycle!") }
           memory(writePtr.pv.toInt) <<= writePort.pv
         }
       }

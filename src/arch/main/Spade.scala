@@ -31,7 +31,7 @@ trait Spade extends SpadeMetadata with SpadeParam {
   def cus = pcus ++ mcus ++ scus ++ ocus
   def ctrlers = top :: cus ++ mcs
 
-  def pnes:List[NetworkElement] = ctrlers
+  def prts:List[Routable] = ctrlers
 
   def numCUs = (pcus ++ mcus).size
 

@@ -60,7 +60,7 @@ trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
   def declare(m:Module)(finPass: => Unit):Unit = {
     emitkv(s"scope module", s"${quote(m)}")
     m match {
-      case m:NetworkElement =>
+      case m:Routable =>
         emitkv(s"scope module", "sio")
         m.scalarIO.ios.foreach { io => declare(io) }
         emitln(s"$$upscope $$end")

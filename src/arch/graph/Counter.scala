@@ -13,14 +13,14 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
 /** Physical Counter  */
-case class Counter()(implicit spade:Spade, pne:ComputeUnit) extends Primitive with Simulatable {
+case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "ctr"
   //override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   val min = Input(Word(), this, s"${this}.min")
   val max = Input(Word(), this, s"${this}.max")
   val step = Input(Word(), this, s"${this}.step")
-  val out = Output(Bus(pne.param.numLanes, Word()), this, s"${this}.out")
+  val out = Output(Bus(prt.param.numLanes, Word()), this, s"${this}.out")
   val en = Input(Bit(), this, s"${this}.en")
   val done = Output(Bit(), this, s"${this}.done")
   def isDep(c:Counter) = en.canConnect(c.done)

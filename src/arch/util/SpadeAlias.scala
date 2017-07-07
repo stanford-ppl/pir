@@ -13,7 +13,7 @@ trait SpadeAlias {
   type POCU       = OuterComputeUnit
   type PMC       = MemoryController
   type PTop      = Top
-  type PNE       = NetworkElement
+  type PRT       = Routable 
   type PReg      = pir.plasticine.graph.ArchReg
   type PPR       = PipeReg
   type PCtr      = Counter
@@ -35,10 +35,10 @@ trait SpadeAlias {
   type PGO[S<:PModule] = GlobalOutput[_<:PortType, S]
   type PIO[S<:PModule] = IO[_<:PortType,S]
   type PGIO[S<:PModule] = GlobalIO[_<:PortType,S]
-  type PGrid[S<:NetworkElement] = GridIO[_<:PortType,S]
+  type PGrid[S<:Routable] = GridIO[_<:PortType,S]
   type PBS       = Bus
-  type PIB      = Input[PBS,PNE]
-  type POB      = Output[PBS,PNE]
+  type PIB      = Input[PBS,Routable]
+  type POB      = Output[PBS,Routable]
   type PCB = CtrlBox
   type PMCB = MemoryCtrlBox
   type PICB = InnerCtrlBox

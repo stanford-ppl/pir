@@ -49,7 +49,7 @@ package object util {
     val spademeta: SpadeMetadata = spade
     import spademeta._
     n match {
-      case n:NetworkElement => coordOf.get(n).fold(s"$n") { case (x,y) => s"$n[$x,$y]" }
+      case n:Routable => coordOf.get(n).fold(s"$n") { case (x,y) => s"$n[$x,$y]" }
       case n:GlobalIO[_,_] => s"${quote(n.src)}.$n[${n.index}]"
       case n => indexOf.get(n).fold(s"$n"){ i =>s"$n[$i]"}
     }
@@ -57,7 +57,7 @@ package object util {
 
   def isMapped(node:Node)(implicit mp: PIRMap):Boolean = {
     node match {
-      case n:Primitive if !isMapped(n.pne) => return false
+      case n:Primitive if !isMapped(n.prt) => return false
       case n =>
     }
     node match {
@@ -69,20 +69,20 @@ package object util {
       case n:PipeReg => isMapped(n.in)
       case n:FuncUnit => isMapped(n.stage)
       case n:UDCounter => 
-        n.pne.ctrlBox match {
+        n.prt.ctrlBox match {
           case cb:MemoryCtrlBox => true
           case cb:CtrlBox => mp.pmmap.isMapped(n)
         }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
       case n:Output[_,_] => mp.opmap.pmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
-      case n:CtrlBox => isMapped(n.pne)
-      case n:PulserSM => isMapped(n.pne) && !mp.clmap.pmap(n.pne).isSC
-      case n:UpDownSM => isMapped(n.pne)
+      case n:CtrlBox => isMapped(n.prt)
+      case n:PulserSM => isMapped(n.prt) && !mp.clmap.pmap(n.prt).isSC
+      case n:UpDownSM => isMapped(n.prt)
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_] => isMapped(n.in) 
-      case n:Delay[_] => isMapped(n.pne)
+      case n:Delay[_] => isMapped(n.prt)
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
       case n:PredicateUnit => isMapped(n.in) 
