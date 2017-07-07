@@ -10,7 +10,6 @@ trait PIRAlias {
   type OCL   = OuterController
   type CU    = ComputeUnit
   type SC    = StreamController
-  type SP    = StreamPipeline
   type MP    = MemoryPipeline
   type PL    = Pipeline
   type MC    = MemoryController

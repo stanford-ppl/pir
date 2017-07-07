@@ -63,7 +63,6 @@ class PIRStatLog(fn:String)(implicit design: Design) extends Traversal with Prin
       case n:Controller =>
         n match {
           case n:MemoryController => fields += s"cycles=${cycleOf(n)}"
-          case n:StreamPipeline =>
           case n => fields += s"cycles=${cycleOf(n)}"
         }
         n match {
@@ -82,7 +81,6 @@ class PIRStatLog(fn:String)(implicit design: Design) extends Traversal with Prin
           case _ =>
         }
         n match {
-          case n:StreamPipeline =>
           case _ => fields += s"iter=${iterOf(n)}"
         }
       case p:Counter =>

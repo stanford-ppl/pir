@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 import pir.pass.ForwardRef
 import pir.util._
 
-class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends StreamPipeline(name) { self =>
+class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: Design) extends InnerController(name) { 
   override val typeStr = "MemoryController"
   import pirmeta._
   

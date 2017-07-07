@@ -213,10 +213,10 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
     emitComment(s"scalarIn", siComment.mkString(","))
     emitXbar("scalarInXbar", siXbar.toList)
     val cu = clmap.pmap(pcu).asInstanceOf[ComputeUnit]
-    cu match {
-      case cu:UnitPipeline => emitPair("scalarOutMux", "1")
-      case cu => emitPair("scalarOutMux", "0")
-    }
+    //cu match {
+      //case cu:UnitPipeline => emitPair("scalarOutMux", "1")
+      //case cu => emitPair("scalarOutMux", "0")
+    //}
     val simux = ListBuffer[String]()
     pcu.regs.foreach { reg => 
       //if (pcu.etstage.get(reg).in.fanIns.exists(_.src.isInstanceOf[PSMem])) {

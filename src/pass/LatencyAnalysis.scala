@@ -26,7 +26,6 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
   // Not used. Doens't work when addr calculation is splitted 
   def hackLen(mc:MemoryController) = {
     val lenWritter = lenOf(mc).writer.ctrler
-    assert(lenWritter.isInstanceOf[UnitPipeline] || lenWritter.isInstanceOf[StreamPipeline])
     lenWritter.asInstanceOf[ComputeUnit].stages.flatMap{ 
       _.fu.fold(List[Node]())(_.operands.map(_.from.src)) }.collect { 
         case Const(c:Int) => c
