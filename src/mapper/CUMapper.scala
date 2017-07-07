@@ -19,6 +19,9 @@ import scala.util.{Try, Success, Failure}
 
 class CUMapper(implicit ds:Design) extends Mapper {
   import pirmeta._
+  type N = CL
+  type R = PCL
+
   def design:Design = ds 
   def typeStr = "CUMapper"
 
@@ -33,9 +36,6 @@ class CUMapper(implicit ds:Design) extends Mapper {
 
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
-
-  type N = CL
-  type R = PCL
 
   lazy val resMap:Map[N, List[R]] = qualifyCheck
 
