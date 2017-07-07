@@ -87,7 +87,8 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       if (cc.counters.exists(cc => forWrite(cc))) {
         forWrite(cc) = true
         cc.counters.foreach(ctr => forWrite(ctr) = true)
-      } else if (cc.counters.exists(cc => forRead(cc))) {
+      }
+      if (cc.counters.exists(cc => forRead(cc))) {
         forRead(cc) = true
         cc.counters.foreach(ctr => forRead(ctr) = true)
       }
@@ -188,6 +189,40 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def duplicateCChain(cu:ComputeUnit) = {
+    cu.cchains.foreach { cc =>
+      if (forRead(cc) && forWrite(cc)) {
+        val clone = CounterChain.clone(cc)(cu, design)
+        clone.setCopy(cc.original)
+        forRead(cc) = false
+        forWrite(clone) = false
+        forRead(clone) = true
+        readCChainsOf(cu) = readCChainsOf(cu).map { case `cc` => clone; case cc => cc }
+        cu.stages.foreach { 
+          case st if forRead(st) =>
+            st.fu.foreach { fu =>
+              fu.operands.foreach { oprd =>
+                oprd.from.src match {
+                  case ctr:Counter if cc.counters.contains(ctr) =>
+                    val idx = cc.counters.indexOf(ctr)
+                    val nctr = clone.counters(idx)
+                    oprd.disconnect
+                    oprd.connect(nctr.out)
+                  case PipeReg(s, CtrPR(ctr)) if cc.counters.contains(ctr) =>
+                    val idx = cc.counters.indexOf(ctr)
+                    val nctr = clone.counters(idx)
+                    oprd.disconnect
+                    oprd.connect(cu.asICL.ctr(s, nctr))
+                  case _ =>
+                }
+              }
+            }
+          case _ =>
+        }
+      }
+    }
+  }
+
   addPass {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
@@ -224,11 +259,19 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   addPass(canRun=design.multiBufferAnalyzer.hasRun, 1) {
     design.top.compUnits.foreach { cu =>
+      analyzeAddrCalc(cu)
       setSwapCC(cu)
       copySwapCC(cu)
       analyzeAddrCalc(cu)
+      duplicateCChain(cu)
       setPar(cu)
       emitBlock(s"$cu") {
+        cu.cchains.foreach { cchain =>
+          cchain.counters.foreach { ctr =>
+            dprintln(s"$ctr forRead=${forRead(ctr)} forWrite=${forWrite(ctr)}")
+          }
+          dprintln(s"$cchain forRead=${forRead(cchain)} forWrite=${forWrite(cchain)}")
+        }
         dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
         dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
         dprintln(s"compCChainsOf:[${compCChainsOf(cu).mkString(",")}]")

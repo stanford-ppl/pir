@@ -18,8 +18,8 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
   val en = Input(Bit(), this, s"$this.en")
-  val in = Input(Bus(pne.numLanes, Word()), this, s"$this.in")
-  val out = Output(Bus(pne.numLanes, Word()), this, s"${this}.out")
+  val in = Input(Bus(pne.param.numLanes, Word()), this, s"$this.in")
+  val out = Output(Bus(pne.param.numLanes, Word()), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     import sim.util._
@@ -70,8 +70,8 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
   extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "fu"
-  val operands = List.tabulate(numOprds) { i => Input(Bus(pne.numLanes, Word()), this, s"$this.oprd[$i]") } 
-  val out = Output(Bus(pne.numLanes, Word()), this, s"$this.out")
+  val operands = List.tabulate(numOprds) { i => Input(Bus(pne.param.numLanes, Word()), this, s"$this.oprd[$i]") } 
+  val out = Output(Bus(pne.param.numLanes, Word()), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.mapping._
     import sim.{dprintln, quote}

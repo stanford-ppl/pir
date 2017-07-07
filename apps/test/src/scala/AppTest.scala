@@ -139,16 +139,16 @@ class AppTests extends UnitTest { self =>
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0")
-  //test(SRAMReadWrite, argOuts="x1026_x1096=10416")
-  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20")
-  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10")
-  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200")
-  //testDotProduct(DotProductSeq, startA=0, startB=16, N=32)
-  //testDotProduct(DotProductSeq, startA=0, startB=16, N=64)
-  //testDotProduct(DotProductMeta, startA=0, startB=16, N=32)
-  //testDotProduct(DotProductMeta, startA=0, startB=16, N=64)
-  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32)
-  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64)
-  testOuterProduct(OuterProduct, startA=0, startB=100, startC=200, N=16, debug=true)
+  //test(SRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
+  //test(SimpleSequential, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
+  //test(SimpleSequential, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
+  //test(SimpleReduce, args="x350=10", argOuts="x351_x365=1200", debug=false)
+  //testDotProduct(DotProductSeq, startA=0, startB=16, N=32, debug=false)
+  //testDotProduct(DotProductSeq, startA=0, startB=16, N=64, debug=false)
+  //testDotProduct(DotProductMeta, startA=0, startB=16, N=32, debug=false)
+  testDotProduct(DotProductMeta, startA=0, startB=16, N=64, debug=false)
+  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
+  //testTPCHQ6(TPCHQ6, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
+  //testOuterProduct(OuterProduct, startA=0, startB=100, startC=200, N=16, debug=false)
 }
 

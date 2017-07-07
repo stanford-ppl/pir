@@ -9,16 +9,18 @@ import pir.plasticine.util._
 import pir.plasticine.config.ConfigFactory
 import pir.util.misc._
 
-trait Spade extends SpadeMetadata {
-  implicit def spade:this.type = this
-
-  override def toString = getClass().getSimpleName().replace("$", "")
+trait SpadeParam {
   val wordWidth = 32
   val numLanes = 16
   val clockFrequency:Int = 1000000000 //Hz
+}
 
+trait Spade extends SpadeMetadata with SpadeParam {
+  implicit def spade:this.type = this
+
+  override def toString = getClass().getSimpleName().replace("$", "")
   def top:Top
-  def pcus:List[ComputeUnit]
+  def pcus:List[PatternComputeUnit]
   def mcus:List[MemoryComputeUnit]
   def scus:List[ScalarComputeUnit]
   def ocus:List[OuterComputeUnit]
@@ -37,7 +39,14 @@ trait Spade extends SpadeMetadata {
   def nextId = {val temp = nextSym; nextSym +=1; temp}
   
   val simulatable = ListBuffer[Simulatable]()
-  def config:Unit = {}
+  def config:Unit = {
+    top.genConnections
+    pcus.foreach { _.config }
+    mcus.foreach { _.config }
+    scus.foreach { _.config }
+    mcs.foreach { _.config }
+    ocus.foreach { _.config }
+  }
 
   def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
 
@@ -49,4 +58,3 @@ trait Spade extends SpadeMetadata {
 trait PointToPointNetwork extends Spade {
   def diameter = (pcus ++ mcus).length
 }
-

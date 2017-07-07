@@ -31,6 +31,7 @@ trait PIRMetadata extends { self:Design =>
     override def apply(k:K):V = {
       super.get(k).getOrElse(false)
     }
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object forWrite extends MOneToOneMap with PIRMetadataMaps {
@@ -107,6 +108,7 @@ trait PIRMetadata extends { self:Design =>
   object readCChainsOf extends MOneToOneMap with PIRMetadataMaps {
     type K = ComputeUnit
     type V = List[CounterChain]
+    override def check(rec:(K,V)):Unit = {}
   }
 
   /* counters for write address calculation. 
@@ -114,6 +116,7 @@ trait PIRMetadata extends { self:Design =>
   object writeCChainsOf extends MOneToOneMap with PIRMetadataMaps {
     type K = ComputeUnit 
     type V = List[CounterChain]
+    override def check(rec:(K,V)):Unit = {}
   }
 
   /* counters for computation
@@ -121,6 +124,7 @@ trait PIRMetadata extends { self:Design =>
   object compCChainsOf extends MOneToOneMap with PIRMetadataMaps {
     type K = ComputeUnit 
     type V = List[CounterChain]
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object swapReadCChainOf extends MOneToOneMap with PIRMetadataMaps {

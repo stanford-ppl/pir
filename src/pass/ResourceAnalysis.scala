@@ -90,7 +90,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
     case pne:PCU if mp.clmap.pmap.contains(pne) =>
       regUsed += pne -> count(pne.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
         //case (used, total) => (used * parOf(pne), total * pne.numLanes)
-        case (used, total) => (used * parOf(pne), 8 * pne.numLanes * pne.stages.size) // assuming using 8 registers per stage
+        case (used, total) => (used * parOf(pne), 8 * pne.param.numLanes * pne.stages.size) // assuming using 8 registers per stage
       }
     case pne =>
       regUsed += pne -> Util.empty
@@ -106,7 +106,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def collectFUUtil(pne:PNE) = pne match {
     case pne:PCU if mp.clmap.pmap.contains(pne) =>
       fuUsed += pne -> count(pne.stages.map { pst => mp.stmap.pmap.get(pst) }).map {
-        case (used, total) => (used * parOf(pne), total * pne.numLanes)
+        case (used, total) => (used * parOf(pne), total * pne.param.numLanes)
       }
     case pne =>
       fuUsed += pne -> Util.empty
@@ -215,10 +215,12 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   }
 
   def emitSummary = {
+    val spade = design.arch.asInstanceOf[SwitchNetwork]
+    import spade.param._
     val row = summary.addRow
     row += "App"           -> design.name
-    row += "numRow"        -> spade.numRows
-    row += "numCol"        -> spade.numCols
+    row += "numRow"        -> numRows
+    row += "numCol"        -> numCols
     row += "PCU Util"      -> pcuUtil.toPct
     row += "MCU Util"      -> mcuUtil.toPct
     row += "SCU Util"      -> scuUtil.toPct

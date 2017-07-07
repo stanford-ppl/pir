@@ -155,12 +155,12 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
             attr.style(filled).fillcolor(color(pne))
       }
     }
-    val nr = design.arch.asInstanceOf[SwitchNetwork].numRows
-    val nc = design.arch.asInstanceOf[SwitchNetwork].numCols
+    val spade = design.arch.asInstanceOf[SwitchNetwork]
+    import spade.param._
     pne match {
       case ptop:PTop => s"$ptop" 
-        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (nc/2-1)*scale+scale/2, nr*scale))
-        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (nc/2-1)*scale+scale/2, -scale))
+        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, numRows*scale))
+        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, -scale))
       case _ =>
         emitNode(pne, label, attr)
     }

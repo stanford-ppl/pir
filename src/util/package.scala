@@ -71,7 +71,9 @@ package object util {
       prevOrig.ctrler.parent match {
         case prevParent:ComputeUnit => prevParent
         case top:Top =>
-          var info = s"prev cchain.original=$prevOrig's ctrler=${prevOrig.ctrler}'s parent is Top! curr=${cc} in ${cc.ctrler}" 
+          var info = s"fillChain: ${cchains}\n"
+          info += s"prev=$prev cchain.original=$prevOrig\n"
+          info += s"original.ctrler=${prevOrig.ctrler}'s parent is Top! curr=${cc} in ${cc.ctrler}" 
           throw new Exception(info)
       }
     }

@@ -15,14 +15,13 @@ import java.io.File
 class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
+  import spade.param._
 
   val traitName = s"PlasticineArch"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/arch/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
   override implicit lazy val spade = design.arch.asSwitchNetwork
-  lazy val numRows = spade.numRows
-  lazy val numCols = spade.numCols
 
   override def splitPreHeader:Unit = {
     emitHeader

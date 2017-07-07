@@ -77,6 +77,7 @@ abstract class Controller(implicit design:Design) extends Node {
   def isCU = this.isInstanceOf[ComputeUnit]
   def asCU = this.asInstanceOf[ComputeUnit]
   def asCL = this.asInstanceOf[Controller]
+  def asICL = this.asInstanceOf[InnerController]
   def asMP = this.asInstanceOf[MemoryPipeline]
 
   def cloneType(name:String):Controller = {

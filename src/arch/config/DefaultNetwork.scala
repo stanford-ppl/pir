@@ -126,8 +126,8 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   
   override def config = {
     // Add ins and outs to Top
-    io(top).addInAt("S", top.numArgOuts)
-    io(top).addOutAt("S", top.numArgIns)
+    io(top).addInAt("S", spade.param.numArgOuts)
+    io(top).addOutAt("S", spade.param.numArgIns)
     super.config
   }
 }

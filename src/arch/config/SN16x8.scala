@@ -12,7 +12,7 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 import scala.util.{Try, Success, Failure}
 
-object SN_16x8 extends SwitchNetwork(numRows=16, numCols=8, numArgIns=40, numArgOuts=5) {
+object SN16x8 extends SwitchNetwork(new SwitchNetworkParam(numRows=16, numCols=8, numArgIns=40, numArgOuts=5)) {
   override lazy val vectorNetwork = new VectorNetwork() {
     // switch to switch channel width
     override lazy val sbChannelWidth = 6

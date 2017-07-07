@@ -18,6 +18,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def shouldRun = design.pirMapping.succeeded && Config.codegen
   import spademeta._
   import pirmeta.{indexOf => _, _}
+  import spade.param._
 
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
@@ -43,8 +44,6 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def mcs = spade.mcArray
 
   override implicit lazy val spade = design.arch.asSwitchNetwork
-  lazy val numRows = spade.numRows
-  lazy val numCols = spade.numCols
 
   //val SVT = "SrcValueTuple"
   val SVT = "SVT"

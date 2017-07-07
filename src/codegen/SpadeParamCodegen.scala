@@ -15,14 +15,13 @@ import java.io.File
 class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
+  import spade.param._
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
 
   override implicit lazy val spade = design.arch.asSwitchNetwork
-  lazy val numRows = spade.numRows
-  lazy val numCols = spade.numCols
 
   lazy val pcus = spade.pcus
   lazy val mcus = spade.mcus
@@ -79,8 +78,8 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
 
   def emitFringeParam = {
     emitBlock(s"override lazy val fringeParams = new FringeParams") {
-      emitln(s"override val numArgIns = ${spade.top.numArgIns}")
-      emitln(s"override val numArgOuts = ${spade.top.numArgOuts}")
+      emitln(s"override val numArgIns = ${numArgIns}")
+      emitln(s"override val numArgOuts = ${numArgOuts}")
       emitln(s"override val dataWidth = ${spade.wordWidth}")
     }
   }
