@@ -305,6 +305,22 @@ class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:MemoryCo
   readAndGate <== readFifoAndTree.out 
 }
 
+class MUCtrlBox()(implicit spade:Spade, override val prt:MemoryUnit) extends CtrlBox(0) {
+  val readDoneXbar = Delay(Bit(), 0, s"$prt.readDoneXbar")
+  val writeDoneXbar = Delay(Bit(), 0, s"$prt.writeDoneXbar")
+  val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
+  val writeFifoAndTree = AndTree("writeFifoAndTree") 
+  val readFifoAndTree = AndTree("readFifoAndTree") 
+  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
+  val readEn = Delay(Bit(),0, s"$prt.readEn") 
+  val readDelay = Delay(Bit(),s"$prt.readDelay") 
+  readDelay.in <== readEn.out
+  val readUDC = UDCounter()
+  val readAndGate = AndGate(s"$prt.readAndGate")
+  readAndGate <== readUDC.out
+  readAndGate <== readFifoAndTree.out 
+}
+
 case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox(0) {
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")

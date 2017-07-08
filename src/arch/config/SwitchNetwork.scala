@@ -34,18 +34,29 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
     if ((i+j) % 2 == 0) pcuAt(i,j) 
     else mcuAt(i,j) 
   }
+  
+  //def cuAt(i:Int, j:Int) = {
+    //if (i % 2 == 0) {
+      //if (j % 2 == 0) pcuAt(i,j)
+      //else muAt(i,j)
+    //}
+    //else scuAt(i,j)
+  //}
 
-  def pcuAt(i:Int, j:Int) = new PatternComputeUnit()
+  def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit()
 
-  def mcuAt(i:Int, j:Int) = new MemoryComputeUnit()
+  def mcuAt(i:Int, j:Int):MemoryComputeUnit = new MemoryComputeUnit()
 
-  def scuAt(c:Int, r:Int):ScalarComputeUnit = new ScalarComputeUnit()
+  def muAt(i:Int, j:Int):MemoryUnit = new MemoryUnit()
 
-  def mcAt(c:Int, r:Int):MemoryController = new MemoryController()
+  def scuAt(i:Int, j:Int):ScalarComputeUnit = new ScalarComputeUnit()
 
-  def ocuAt(c:Int, r:Int):OuterComputeUnit = new OuterComputeUnit()
+  def mcAt(i:Int, j:Int):MemoryController = new MemoryController()
 
-  val cuArray = List.tabulate(numCols, numRows) { case (x, y) => cuAt(x, y).coord(x, y) }
+  def ocuAt(i:Int, j:Int):OuterComputeUnit = new OuterComputeUnit()
+
+  val cuArray:List[List[Controller]] = List.tabulate(numCols, numRows) { case (x, y) => cuAt(x, y).coord(x, y) }
+
   val scuArray = List.tabulate(2, numRows+1) { case (x, y) => 
     val scu = scuAt(x, y)
     if (x==0) {
@@ -55,7 +66,7 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
     }
     scu
   }
-  def scus = scuArray.flatten
+  def scus = scuArray.flatten ++ cuArray.flatten.collect { case cu:ScalarComputeUnit => cu }
   val mcArray = List.tabulate(2, numRows+1) { case (x, y) => 
     val mc = mcAt(x, y)
     if (x==0) {
@@ -67,6 +78,7 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
   }
   def mcs = mcArray.flatten
   lazy val mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
+  lazy val mus = cuArray.flatten.collect { case mcu:MemoryUnit => mcu }
   lazy val pcus = cuArray.flatten.collect { case pcu:PatternComputeUnit => pcu }
   val ocuArray = List.tabulate(numCols+1, numRows+1) { case (x, y) => ocuAt(x, y).coord(x, y) }
   def ocus:List[OuterComputeUnit] = ocuArray.flatten

@@ -126,7 +126,7 @@ trait OnChipMem extends Primitive with Memory {
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM(size:Int)(implicit spade:Spade, prt:ComputeUnit) extends OnChipMem {
+case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"

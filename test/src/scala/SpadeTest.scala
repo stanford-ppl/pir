@@ -34,14 +34,10 @@ class SpadeTest extends UnitTest { self =>
       info(s"numLanes=${spade.numLanes}")
       info(s"wordWidth=${spade.wordWidth}")
       emitBlock("regs") {
-        cu.stages.head.prs.map(_.reg).foreach { reg =>
+        cu.stages.headOption.foreach { _.prs.map(_.reg).foreach { reg =>
           info(s"reg=${quote(reg)} colors=[${reg.colors.mkString(",")}]")
-        }
+        } }
       }
-      //new SpadePrinter().run //this prints architecture in detail but is slow
-      new SpadeNetworkCodegen().run
-      new SpadeParamCodegen().run
-
       new CUCtrlDotPrinter().print
       s"out/bin/run -c out/${arch}/CtrlNetwork".replace(".dot", "") !
 
@@ -50,6 +46,10 @@ class SpadeTest extends UnitTest { self =>
 
       new CUVectorDotPrinter().print
       s"out/bin/run -c out/${arch}/VecNetwork".replace(".dot", "") !
+
+      //new SpadePrinter().run //this prints architecture in detail but is slow
+      //new SpadeNetworkCodegen().run
+      //new SpadeParamCodegen().run
     }
     design.arch match {
       case sn:SwitchNetwork =>

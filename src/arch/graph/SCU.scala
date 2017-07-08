@@ -41,6 +41,4 @@ class ScalarComputeUnit(override val param:ScalarComputeUnitParam=new ScalarComp
   extends ComputeUnit(param) {
   override val typeStr = "scu"
   override def config = param.config(this)
-  import spademeta._
-  import param._
 }

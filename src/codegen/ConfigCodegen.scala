@@ -490,26 +490,24 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(s"${quote(pcu)}.fifoNbufConfig=${quote(nbufs)}")
   }
 
-  def emitCUBit(pcu:PCU) = {
+  def emitCUBit(pcu:PCL) = {
     clmap.pmap.get(pcu).foreach { cu =>
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
-      emitControlBits(pcu)
-      emitScalarNBuffer(pcu)
-      emitScalarInXbar(pcu)
-      emitScalarOutXbar(pcu)
-      emitCChainBis(pcu)
-      emitCtrBits(pcu)
-      emitStageBits(pcu)
-      emitScratchpadBits(pcu)
-    }
-  }
-
-  def emitCUBit(pcu:POCU) = {
-    clmap.pmap.get(pcu).foreach { cu =>
-      emitComment(s"Configuring ${quote(pcu)} <- $cu")
-      emitCChainBis(pcu)
-      emitControlBits(pcu)
-      emitCtrBits(pcu)
+      pcu match {
+        case pcu:POCU =>
+          emitCChainBis(pcu)
+          emitControlBits(pcu)
+          emitCtrBits(pcu)
+        case pcu:PCU =>
+          emitControlBits(pcu)
+          emitScalarNBuffer(pcu)
+          emitScalarInXbar(pcu)
+          emitScalarOutXbar(pcu)
+          emitCChainBis(pcu)
+          emitCtrBits(pcu)
+          emitStageBits(pcu)
+          emitScratchpadBits(pcu)
+      }
     }
   }
 

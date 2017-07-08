@@ -23,7 +23,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   def forwardStages(cu:ComputeUnit) = cu match {
     case cu:MemoryComputeUnit => cu.wastages :+ cu.rastages.head
     case cu:OuterComputeUnit => Nil
-    case cu:ComputeUnit => cu.fustages.head :: Nil 
+    case cu:ComputeUnit => List(cu.fustages.head)
   }
 
   /* Generate connections relates to register mapping of a cu */
@@ -46,25 +46,11 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
 
-    cu match {
-      case cu:MemoryComputeUnit =>
-        cu.vouts.foreach { _.ic <== cu.sram.readPort }
-        cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
-      case cu:ComputeUnit =>
-        val voRegs = cu.regs.filter(_.is(VecOutReg))
-        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
-        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
-    }
-
     // One to one
     val siRegs = cu.regs.filter(_.is(ScalarInReg))
     (cu.sbufs, siRegs).zipped.foreach { case (sbuf, reg) =>
       forwardStages(cu).foreach { s => s.get(reg).in <-- sbuf.readPort } // broadcast
     }
-
-    // Xbar
-    val soRegs = cu.regs.filter(_.is(ScalarOutReg))
-    cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
 
     // Counters can be forwarde to empty stage, writeAddr and readAddr stages 
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
@@ -82,12 +68,30 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
   }
 
-  def connectData(mc:MemoryController):Unit = {
-    implicit val spade:Spade = mc.spade
+  def connectDataIO(cu:Controller):Unit = {
     // Xbar
-    mc.sins.foreach { sin => mc.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
     // One to one
-    (mc.vins, mc.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
+    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
+
+    cu match {
+      case cu:MemoryUnit =>
+        cu.vouts.foreach { _.ic <== cu.sram.readPort }
+        cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
+      case cu:MemoryComputeUnit =>
+        cu.vouts.foreach { _.ic <== cu.sram.readPort }
+        cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
+      case cu:ComputeUnit =>
+        val voRegs = cu.regs.filter(_.is(VecOutReg))
+        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+        // Xbar
+        val soRegs = cu.regs.filter(_.is(ScalarOutReg))
+        cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
+      case cu:MemoryController =>
+      case cu:Top =>
+    }
+
   }
 
   /* Generate primitive connections within a CU */ 
@@ -113,10 +117,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       s.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
       s.writeAddr <== (cu.ctrs.map(_.out), 0)
     } 
-    // Xbar
-    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
-    // One to one
-    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
 
     /* FU Constrain  */
     cu.fustages.foreach { stage =>
@@ -343,11 +343,14 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case prt:Top =>
         connectCtrl(prt)
       case prt:ComputeUnit => 
+        connectDataIO(prt)
         connectData(prt)
         genMapping(prt)
         connectCtrl(prt)
+      case prt:MemoryUnit =>
+        connectDataIO(prt)
       case prt:MemoryController =>
-        connectData(prt)
+        connectDataIO(prt)
         connectCtrl(prt)
       case prt:SwitchBox => 
         prt.connectXbars

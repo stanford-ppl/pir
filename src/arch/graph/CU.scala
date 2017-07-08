@@ -28,8 +28,6 @@ abstract class ComputeUnit(param:ComputeUnitParam)(implicit spade:Spade) extends
   import spademeta._
   import param._
   //override implicit val ctrler:ComputeUnit = this 
-  override val typeStr = "cu"
-
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
   val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }

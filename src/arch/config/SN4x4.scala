@@ -54,48 +54,15 @@ object SN1x1 extends SwitchNetwork(new SwitchNetworkParam(numRows=1, numCols=1, 
 
 object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols=2, numArgIns=3, numArgOuts=3)) {
   override lazy val ctrlNetwork = new CtrlNetwork {
-    // SCU to switch channel width
-    override lazy val scsbChannelWidth = 0
-    // switch to SCU channel width
-    override lazy val sbscChannelWidth = 0
-    // MC to switch channel width
-    override lazy val mcsbChannelWidth = 0
-    // switch to MC channel width
-    override lazy val sbmcChannelWidth = 0
-    // MC to SCU channel width
-    override lazy val mcscChannelWidth = 0
-    // SCU to MC channel width
-    override lazy val scmcChannelWidth = 0
+    channelWidth("pos"->List("left", "right")) = 0
   }
 
   override lazy val vectorNetwork = new VectorNetwork {
-    // SCU to switch channel width
-    override lazy val scsbChannelWidth = 0
-    // switch to SCU channel width
-    override lazy val sbscChannelWidth = 0
-    // MC to switch channel width
-    override lazy val mcsbChannelWidth = 0
-    // switch to MC channel width
-    override lazy val sbmcChannelWidth = 0
-    // MC to SCU channel width
-    override lazy val mcscChannelWidth = 0
-    // SCU to MC channel width
-    override lazy val scmcChannelWidth = 0
+    channelWidth("pos"->List("left", "right")) = 0
   }
 
   override lazy val scalarNetwork = new ScalarNetwork {
-    // SCU to switch channel width
-    override lazy val scsbChannelWidth = 0
-    // switch to SCU channel width
-    override lazy val sbscChannelWidth = 0
-    // MC to switch channel width
-    override lazy val mcsbChannelWidth = 0
-    // switch to MC channel width
-    override lazy val sbmcChannelWidth = 0
-    // MC to SCU channel width
-    override lazy val mcscChannelWidth = 0
-    // SCU to MC channel width
-    override lazy val scmcChannelWidth = 0
+    channelWidth("pos"->List("left", "right")) = 0
   }
   config
 }

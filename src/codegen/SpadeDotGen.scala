@@ -99,6 +99,8 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
   }
 
   def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
+    val spade = design.arch.asInstanceOf[SwitchNetwork]
+    import spade.param._
     var attr = DotAttr().shape(Mrecord)
     def mappedLabel(prt:PCL):String = {
       mapping.fold(quote(prt)) { mp => mp.clmap.pmap.get(prt).fold(quote(prt)) { cl => s"${quote(prt)}|$cl"} }
@@ -137,13 +139,15 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
         }.getOrElse(quote(psb))
     }
     val label = s"{${recs.mkString("|")}}"
-    prt match {
-      case pscu:PSCU => coordOf.get(pscu).foreach { case (x,y) => attr.pos((x*scale, (y-0.3)*scale)) }
-      case pmc:PMC => coordOf.get(pmc).foreach { case (x,y) => attr.pos((x*scale, (y-0.7)*scale)) }
-      case pocu:POCU => coordOf.get(pocu).foreach { case (x,y) => attr.pos(((x-0.3)*scale, (y-0.3)*scale)) }
-      case pcu:PCU => coordOf.get(pcu).foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
-      case psb:PSB => coordOf.get(psb).foreach { case (x,y) => attr.pos(((x-0.5)*scale, (y-0.5)*scale)) }
-      case _ =>
+    coordOf.get(prt).foreach { case (x,y) =>
+      prt match {
+        case pscu:PSCU if (x<0) | (x>=numCols) => attr.pos((x*scale, (y-0.3)*scale))
+        case pmc:PMC => attr.pos((x*scale, (y-0.7)*scale))
+        case pocu:POCU => attr.pos(((x-0.3)*scale, (y-0.3)*scale))
+        case psb:PSB => attr.pos(((x-0.5)*scale, (y-0.5)*scale))
+        case ptop:PTop =>
+        case pcu => attr.pos((x*scale, y*scale))
+      }
     }
     mapping.foreach { mp => 
       prt match {
@@ -155,8 +159,6 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
             attr.style(filled).fillcolor(color(prt))
       }
     }
-    val spade = design.arch.asInstanceOf[SwitchNetwork]
-    import spade.param._
     prt match {
       case ptop:PTop => s"$ptop" 
         emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, numRows*scale))
