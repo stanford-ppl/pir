@@ -7,8 +7,8 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object InOutArg extends PIRApp {
-  override val arch = SN(1,1)
+object InOutArg_MCU extends PIRApp {
+  override val arch = SN_MCU(1,1)
   def main(top:Top) = {
     val x223_x227_argout = ArgOut("x223_x227")
     val x222_argin = ArgIn("x222").bound(4)

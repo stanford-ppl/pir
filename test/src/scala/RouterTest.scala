@@ -18,7 +18,7 @@ class RouterTest extends UnitTest { self =>
 
   "RouterTest" should "success" taggedAs(WIP) in {
     new Design { self =>
-      override val arch = SN8x8
+      override val arch = SN(8,8)
       val cus = arch.cuArray
       // Mapping
       val router = new ControlRouter()

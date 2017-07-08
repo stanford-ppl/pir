@@ -29,19 +29,14 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
 
   // Top level controller ~= Host
   val top = Top()
-
-  def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) pcuAt(i,j) 
-    else mcuAt(i,j) 
-  }
   
-  //def cuAt(i:Int, j:Int) = {
-    //if (i % 2 == 0) {
-      //if (j % 2 == 0) pcuAt(i,j)
-      //else muAt(i,j)
-    //}
-    //else scuAt(i,j)
-  //}
+  def cuAt(i:Int, j:Int) = {
+    if (i % 2 == 0) {
+      if (j % 2 == 0) pcuAt(i,j)
+      else muAt(i,j)
+    }
+    else scuAt(i,j)
+  }
 
   def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit()
 
