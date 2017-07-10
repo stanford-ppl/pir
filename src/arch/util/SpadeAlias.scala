@@ -9,6 +9,7 @@ trait SpadeAlias {
   type PCL       = Controller
   type PCU       = ComputeUnit
   type PMCU      = MemoryComputeUnit
+  type PMU       = MemoryUnit
   type PSCU      = ScalarComputeUnit
   type POCU       = OuterComputeUnit
   type PMC       = MemoryController

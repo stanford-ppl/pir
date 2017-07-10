@@ -64,10 +64,8 @@ case class ResourceNotUsed[M](mapper:Mapper, n:Node, r:PNode, mp:M)(implicit des
   override val msg = s"Binding succeeded for $n on $r but don't mark $r as used"
 }
 
-abstract class OutOfResource[M](mp:M)(implicit design:Design) extends MappingException(mp) {
-  val pnodes:List[PNode]
-  val nodes:List[Node]
-  override def toString = s"${super.toString}. numRes:${pnodes.size}, numNode:${nodes.size}."
+case class OutOfResource[M](mapper:Mapper, msg:String, pnodes:List[PNode], nodes:List[Node], mp:M)(implicit design:Design) extends MappingException(mp) {
+  override def toString = s"$msg. numRes:${pnodes.size}, numNode:${nodes.size}."
 }
 
 /* Exxception that wrap arounds MappingException that allowing MappingException to passing through

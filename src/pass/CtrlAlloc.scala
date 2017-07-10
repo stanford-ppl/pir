@@ -305,12 +305,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
-        ctrler.localCChain.inner.en.connect(cb.en.out)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
       case (ctrler:InnerController, cb:InnerCtrlBox) =>
-        ctrler.localCChain.inner.en.connect(cb.en.out)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
         chainCChain(compCChainsOf(ctrler))
       case (ctrler:OuterController, cb:OuterCtrlBox) =>
-        ctrler.localCChain.inner.en.connect(cb.en.out)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
       case (ctrler, cb) =>
     }
     ctrler.ctrlBox match {
@@ -338,7 +338,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cb.writeDone.in.connect(writeDone)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
-        cb.done.in.connect(ctrler.localCChain.outer.done)
+        cb.done.in.connect(localCChainOf(ctrler).outer.done)
       case (ctrler, cb) =>
     }
   }

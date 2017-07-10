@@ -11,16 +11,16 @@ import scala.collection.mutable.Map
 
 class FusionTransform(implicit design: Design) extends Pass with Logger {
   def shouldRun = true 
+  import design.pirmeta._
 
   override lazy val stream = newStream(s"FusionTransform.log")
 
   def fuseCUs(parent:OuterController, childCU:ComputeUnit) = {
     implicit val child:ComputeUnit = childCU 
-    dprintln(s"cloning cchain=${parent.localCChain} from $parent to $child")
+    dprintln(s"cloning cchain=${localCChainOf(parent)} from $parent to $child")
     dprintln(s"before=${child.cchains}")
-    val localCChain = child.localCChain
-    val cc = child.cloneCC(parent.localCChain)
-    cc.inner.en.connect(localCChain.outer.done)
+    val cc = child.cloneCC(localCChainOf(parent))
+    cc.inner.en.connect(localCChainOf(child).outer.done)
     dprintln(s"after=${child.cchains}")
     design.removeNode(parent)
   }

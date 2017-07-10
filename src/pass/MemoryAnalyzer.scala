@@ -56,7 +56,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     if (cu.mem.readAddr.isConnected) {
       cu.mem.readAddr.from.src match {
         case ctr:Counter => forRead(ctr) = true
-        case fu:FuncUnit =>
+        case _ =>
       }
     } else {
       warn(s"${cu.mem} in $cu's readAddr is not connected!")
@@ -75,7 +75,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     if (cu.mem.writeAddr.isConnected) {
       cu.mem.writeAddr.from.src match {
         case ctr:Counter => forWrite(ctr) = true
-        case fu:FuncUnit =>
+        case _ =>
       }
     } else {
       warn(s"${cu.mem} in $cu's writeAddr is not connected!")
@@ -110,6 +110,22 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
+    if (cu.mem.writeAddr.isConnected) {
+      cu.mem.writeAddr.from.src match {
+        case fifo:ScalarFIFO => forWrite(fifo) = true
+        case _ =>
+      }
+    } else {
+      warn(s"${cu.mem} in $cu's writeAddr is not connected!")
+    }
+    if (cu.mem.readAddr.isConnected) {
+      cu.mem.readAddr.from.src match {
+        case fifo:ScalarFIFO => forRead(fifo) = true
+        case _ =>
+      }
+    } else {
+      warn(s"${cu.mem} in $cu's readAddr is not connected!")
+    }
   }
 
   def setSwapCC(cu:ComputeUnit) = {
@@ -117,12 +133,12 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       case mem =>
         mem.consumer match {
           case cu:MemoryPipeline => swapReadCChainOf(mem) = readCChainsOf(cu).last
-          case cu:ComputeUnit => swapReadCChainOf(mem) = cu.localCChain
+          case cu:ComputeUnit => swapReadCChainOf(mem) = localCChainOf(cu)
           case _ =>
         }
         mem.producer match {
           case cu:MemoryPipeline => swapWriteCChainOf(mem) = writeCChainsOf(cu).last
-          case cu:ComputeUnit => swapWriteCChainOf(mem) = cu.localCChain
+          case cu:ComputeUnit => swapWriteCChainOf(mem) = localCChainOf(cu)
           case _ =>
         }
     }
@@ -146,7 +162,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     cu match {
       case cu:InnerController =>
         cu.accumRegs.foreach { acc =>
-          val accumCC = acc.accumParent.right.get.localCChain
+          val accumCC = localCChainOf(acc.accumParent.right.get)
           val cc = cu.getCopy(accumCC)
           accumCounterOf(acc) = cc.inner
         }
@@ -181,7 +197,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
             wparOf(mem) = wparOf(cu)
         }
       case cu if isStreaming(cu) =>
-        parOf(cu) = localCChainOf(cu.parent).inner.par
+        parOf(cu) = localCChainOf(cu.parent).inner.par //TODO: fix for nested streaming controller
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
       case cu =>
         parOf(cu) = compCChainsOf(cu).head.inner.par
@@ -223,7 +239,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass {
+  addPass(canRun=design.controlAnalyzer.hasRun(1)) {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
       analyzeCounters(cu)
@@ -247,7 +263,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
 
     design.top.innerCUs.foreach { cu =>
-      copyAccumCC(cu)
+      copyAccumCC(cu) // use localCChainOf
 
       emitBlock(s"$cu") {
         cu.accumRegs.foreach { acc =>
@@ -263,7 +279,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       setSwapCC(cu)
       copySwapCC(cu)
       analyzeAddrCalc(cu)
-      duplicateCChain(cu)
+      //duplicateCChain(cu)
       setPar(cu)
       emitBlock(s"$cu") {
         cu.cchains.foreach { cchain =>

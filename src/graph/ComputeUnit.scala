@@ -68,8 +68,6 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
     cchainMap.contains(cchain.original)
   }
   
-  def localCChain:CounterChain = localCChainOf(this)
-
   override def toUpdate = { super.toUpdate }
 
   def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {

@@ -50,12 +50,12 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mp = delayMapper.map(ctrler, mp)
     mp
   }
+  val prescreen = new ResourcePrescreen()
+  val cuMapper = new CUMapper()
 
   val spadeVecDotPrinter = new CUVectorDotPrinter()
   val spadeScalDotPrinter = new CUScalarDotPrinter()
   val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
-
-  val cuMapper:CUMapper = new CUMapper()
 
   override def reset = {
     mapping = None
@@ -65,7 +65,10 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
 
   addPass {
     tic
-    Try[PIRMap](cuMapper.map(PIRMap.empty)).map { m =>
+    Try[PIRMap]{
+      prescreen.run
+      cuMapper.map(PIRMap.empty)
+    }.map { m =>
       spadeVecDotPrinter.print(Some(m))
       spadeScalDotPrinter.print(Some(m))
       spadeCtrlDotPrinter.print(Some(m))

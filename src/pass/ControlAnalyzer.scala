@@ -153,7 +153,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
           val locals = cu.cchains.filter{_.isLocal}
           assert(locals.size<=1, 
             s"Currently assume each ComputeUnit only have a single local Counterchain ${cu} [${locals.mkString(",")}]")
-          localCChainOf(cu) = locals.headOption.getOrElse(CounterChain.dummy)
+          localCChainOf(cu) = (locals ++ sortCChains(cu.cchains)).headOption.getOrElse(CounterChain.dummy)
       }
     }
   }

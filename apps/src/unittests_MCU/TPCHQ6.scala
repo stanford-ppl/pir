@@ -7,7 +7,7 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object TPCHQ6_PMU extends PIRApp {
+object TPCHQ6_MCU extends PIRApp {
   override val arch = {
     import pir.plasticine.graph._
     import pir.plasticine.main._

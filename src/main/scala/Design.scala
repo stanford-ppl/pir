@@ -167,7 +167,6 @@ trait Design extends PIRMetadata with Collector {
       info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
       passes.foreach { _.checkRanAll }
-      pirMapping.cuMapper.resMap
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
       case e:PIRException => 

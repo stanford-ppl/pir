@@ -80,7 +80,7 @@ package object util {
     cchains.foreach { cc =>
       if (chained.nonEmpty) {
         while (prevParent(cc)!=cc.original.ctrler) {
-          val newCC = cu.getCopy(prevParent(cc).localCChain)
+          val newCC = cu.getCopy(localCChainOf(prevParent(cc)))
           forRead(newCC) = forRead(chained.last)
           forWrite(newCC) = forWrite(chained.last)
           chained += newCC

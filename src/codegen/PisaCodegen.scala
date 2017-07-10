@@ -458,7 +458,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
         else { "0" }
       case _ => 
         if (!cchain.isLocal) { "0" }
-        else if (ctr==cu.localCChain.outer) { s"${numLocalStages(pcu)}" } // Local outer most
+        else if (ctr==localCChainOf(cu).outer) { s"${numLocalStages(pcu)}" } // Local outer most
         else { "0" }
     }
   }
@@ -621,9 +621,9 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
                     val srams = wast.srams.right.get
                     val ctrlers = srams.map(_.ctrler).toSet
                     assert(ctrlers.size==1, s"Cannot have write addr calculation stage for srams from different ctrlers [${ctrlers.mkString(",")}]")
-                    emitPair(s"en", lookUp(ctrlers.head.localCChain.inner))
+                    emitPair(s"en", lookUp(localCChainOf(ctrlers.head).inner))
                   case _ =>
-                    emitPair(s"en", lookUp(stage.ctrler.localCChain.inner))
+                    emitPair(s"en", lookUp(localCChainOf(stage.ctrler).inner))
                 }
                 emitComment("stage", s"${pstage} <- ${stage}${PIRPrinter.genFields(stage)}")
                 // Operand
@@ -658,7 +658,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
                 emitComment("stage", s"${pstage} <- no map")
                 if (clmap.pmap.contains(pcu)) {
                   val cu = clmap.pmap(pcu).asInstanceOf[CU]
-                  emitPair(s"en", lookUp(cu.localCChain.inner))
+                  emitPair(s"en", lookUp(localCChainOf(cu).inner))
                 }
                 emitPair("opA", "x")
                 emitPair("opB", "x")

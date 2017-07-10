@@ -339,7 +339,7 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
     design.top.ctrlers.foreach {
       case cl:MemoryPipeline =>
       case cl if isStreaming(cl) => iterOf(cl) = 1
-      case cl:ComputeUnit => iterOf(cl) = iterOf(cl.localCChain)
+      case cl:ComputeUnit => iterOf(cl) = iterOf(localCChainOf(cl))
       case cl:Top => iterOf(cl) = 1
     }
   }
