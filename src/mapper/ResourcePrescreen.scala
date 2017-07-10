@@ -51,9 +51,17 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     }
   }
 
-  def quantityCheck(map:MMap[N, List[R]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
+  def quantityCheck(map:Option[MMap[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
     if (cls.size > pcls.size) throw new OutOfResource(this, msg, pcls, cls, PIRMap.empty)
-    cls.foreach { cl => map += cl -> pcls }
+    map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
+  }
+
+  def logMapping(map:MMap[N, List[R]]) = {
+    mapper.emitBlock(s"qualified resouce") {
+      design.top.ctrlers.foreach { cl =>
+        mapper.dprintln(s"$cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
+      }
+    }
   }
 
   /* 
@@ -64,7 +72,9 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
     val pmcs = design.arch.mcs 
-    val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false } 
+    val scus_offchip = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
+    val pscus_offchip = design.arch.asInstanceOf[SwitchNetwork].scuArray.flatten
+    val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(scus_offchip)
     val pscus = design.arch.scus 
     val mps = cls.collect { case mp:MP => mp }
     val mcusgrp = mps.groupBy { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
@@ -74,7 +84,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     val pmus = design.arch.mus
     val ocus = cls.collect { case ocu:OCL => ocu }
     val pocus = design.arch.ocus 
-    val rcus = cls.collect { case cu:PL => cu }.diff(scus).diff(mus).diff(mcus)
+    val rcus = cls.collect { case cu:PL => cu }.diff(scus_offchip).diff(scus).diff(mus).diff(mcus)
     val pcus = design.arch.pcus 
     //info(s"numPCU:${if (scus.size==0) rcus.size - mcs.size else rcus.size} numPCU:${pcus.size}")
     //info(s"numMCU:${mcus.size} numPMCU:${pmcus.size}")
@@ -83,14 +93,15 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     //info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
     //info(s"numCL:${cls.size}")
     val map = MMap[N, List[R]]()
-    quantityCheck(map, mcs , pmcs, "MemoryController")
-    quantityCheck(map, ocus , pocus, "OuterComputeUnit")
-    quantityCheck(map, mus , (pmus ++ pmcus), "MemoryUnit")
-    quantityCheck(map, mcus , pmcus, "MemoryComputeUnit")
-    quantityCheck(map, scus , (pscus ++ pcus), "ScalarComputeUnit")
-    quantityCheck(map, rcus , pcus, "PatternComputeUnit")
-    quantityCheck(map, (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
-    quantityCheck(map, List(design.top), List(design.arch.top), "Top")
+    quantityCheck(Some(map), mcs , pmcs, "MemoryController")
+    quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
+    quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
+    quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
+    quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
+    quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
+    quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
+    quantityCheck(None     , (scus_offchip ++ scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
+    quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
     cls.foreach { cl => 
       val failureInfo = MMap[R, ListBuffer[String]]()
       map += cl -> map(cl).filter { prt =>
@@ -135,11 +146,10 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
       }
       if (map(cl).size==0) {
         val info = failureInfo.map{ case (prt, info) => s"$prt: [${info.mkString(",")}] \n"}.mkString(",")
-        println(s"info:${info}")
         throw CUOutOfSize(cl, info)
       }
-      mapper.dprintln(s"qualified resource: $cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
     }
+    logMapping(map)
     map.toMap
   }
 }

@@ -32,8 +32,8 @@ case class SN(numRows:Int, numCols:Int) extends SwitchNetwork(
   override def toString = s"SN${numRows}x${numCols}"
   config
 }
-case class SN_MCU(numRows:Int, numCols:Int) extends SwitchNetwork(
-  new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=3, numArgOuts=3)
+case class SN_MCU(numRows:Int, numCols:Int, numArgIns:Int=3, numArgOuts:Int=3) extends SwitchNetwork(
+  new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts)
 ) {
   override def cuAt(i:Int, j:Int) = {
     if ((i+j) % 2 == 0) pcuAt(i,j) 

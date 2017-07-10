@@ -81,8 +81,11 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Placement & Routing failed")
         e match {
+          case e:CUOutOfSize =>
+            errmsg(e)
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case e:OutOfResource[_] =>
-            err(e)
+            errmsg(e)
             mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             mapping = Some(m.asInstanceOf[PIRMap])
