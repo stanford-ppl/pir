@@ -156,16 +156,25 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   override def asBit:Input[Bit, S] = this.asInstanceOf[Input[Bit, S]]
   override def asGlobal:GlobalInput[P, S] = this.asInstanceOf[GlobalInput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
+  private lazy val _sliceMap = Map[Int, Slice[_<:PortType, Bus]]() // Int: element index 
+  def slice[E<:PortType](i:Int, out:Output[E,Module]):Slice[E, Bus] = {
+    val slice = _sliceMap.getOrElseUpdate(i, Slice(out.tp, this.asBus, i)).asInstanceOf[Slice[E, Bus]]
+    slice.in <== out
+    slice
+  }
+  def sliceHead[E<:PortType](out:Output[E,Module]):Slice[E, Bus] = slice(0, out)
+  def slice[E<:PortType](i:Int):Slice[E, Bus] = _sliceMap(i).asInstanceOf[Slice[E, Bus]]
+  def slices:List[Slice[_<:PortType, Bus]] = _sliceMap.values.toList
   def propogate:Input[P, Module] = {
     src match {
-    case slice:Slice[_] => 
-      assert(slice.out.fanOuts.size==1, s"Cannot propogate $slice with fanOuts>1 fanOuts:${slice.out.fanOuts}")
-      slice.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
-    case broadcast:BroadCast[_] => 
-      assert(broadcast.out.fanOuts.size==1, s"Cannot propogate $broadcast with fanOuts>1 fanOuts:${broadcast.out.fanOuts}")
-      broadcast.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
-    case _ => this
-  }
+      case slice:Slice[_, _] => 
+        assert(slice.out.fanOuts.size==1, s"Cannot propogate $slice with fanOuts>1 fanOuts:${slice.out.fanOuts}")
+        slice.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+      case broadcast:BroadCast[_] => 
+        assert(broadcast.out.fanOuts.size==1, s"Cannot propogate $broadcast with fanOuts>1 fanOuts:${broadcast.out.fanOuts}")
+        broadcast.out.fanOuts.head.asInstanceOf[Input[P, Module]].propogate
+      case _ => this
+    }
   }
 }
 object Input {
@@ -207,16 +216,16 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   override def asGlobal:GlobalOutput[P, S] = this.asInstanceOf[GlobalOutput[P, S]]
   override def toString():String = sf.fold(super.toString) { sf => sf() }
 
-  private lazy val _sliceMap = Map[Int, Slice[_<:PortType]]() // Int: element index 
-  def slice[E<:PortType](i:Int, in:Input[E,Module]):Slice[E] = {
-    val slice = _sliceMap.getOrElseUpdate(i, Slice(in.tp, this.asBus, i)).asInstanceOf[Slice[E]]
+  private lazy val _sliceMap = Map[Int, Slice[Bus, _<:PortType]]() // Int: element index 
+  def slice[E<:PortType](i:Int, in:Input[E,Module]):Slice[Bus, E] = {
+    val slice = _sliceMap.getOrElseUpdate(i, Slice(in.tp, this.asBus, i)).asInstanceOf[Slice[Bus, E]]
     in <== slice.out
     slice
   }
-  def sliceHead[E<:PortType](in:Input[E,Module]):Slice[E] = slice(0, in)
-  def slice[E<:PortType](i:Int):Slice[E] = _sliceMap(i).asInstanceOf[Slice[E]]
-  def sliceHead[E<:PortType]:Slice[E] = slice(0)
-  def slices:List[Slice[_<:PortType]] = _sliceMap.values.toList
+  def sliceHead[E<:PortType](in:Input[E,Module]):Slice[Bus, E] = slice(0, in)
+  def slice[E<:PortType](i:Int):Slice[Bus, E] = _sliceMap(i).asInstanceOf[Slice[Bus, E]]
+  def sliceHead[E<:PortType]:Slice[Bus, E] = slice(0)
+  def slices:List[Slice[Bus, _<:PortType]] = _sliceMap.values.toList
   private lazy val _broadcastMap = Map[Int, BroadCast[P]]() // Int: input buswidth
   def broadcast(in:Input[Bus, Module]):BroadCast[P] = {
     val bc = _broadcastMap.getOrElseUpdate(in.tp.busWidth, BroadCast(this, in.tp.clone)) 
@@ -227,7 +236,7 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   def getBroadcast(busWidth:Int):Option[BroadCast[P]] = _broadcastMap.get(busWidth)
   def broadcasts:List[BroadCast[P]] = _broadcastMap.values.toList
   def propogate:Output[P, Module] = src match {
-    case slice:Slice[_] => 
+    case slice:Slice[_,_] => 
       assert(slice.in.fanIns.size==1, s"Cannot propogate $slice with fanIns>1 fanOuts:${slice.in.fanIns}")
       slice.in.fanIns.head.asInstanceOf[Output[P, Module]].propogate
     case broadcast:BroadCast[_] => 
@@ -305,21 +314,40 @@ object GlobalOutput {
     new GlobalOutput[P, S](t,s, Some(sf _))
 }
 
-case class Slice[P<:PortType](bintp:P, bout:Output[Bus,Module], i:Int)(implicit spade:Spade) extends Simulatable {
+case class Slice[PI<:PortType, PO<:PortType](intp:PI, outtp:PO, i:Int)(implicit spade:Spade) extends Simulatable {
   override val typeStr = "slice"
-  override def toString = s"$bout.slice($i)"
-  val in = Input(bout.tp.clone(), this, s"${this}.in").asBus
-  val out:Output[P, this.type] = Output(bintp.clone(), this, s"${this}.out")
-  in <== bout
+  val in = Input(intp.clone(), this, s"${this}.in")
+  val out = Output(outtp.clone(), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
     super.register
-    out.v match {
-      case v:BusValue =>
-        v.value.foreach { ev => ev := in.v.value(i) }
-        v.valid := in.v.valid
-      case v:SingleValue =>
-        v := in.v.value(i)
+    (in.v, out.v) match {
+      case (in:SingleValue, out:BusValue) =>
+        out.value(i) := in 
+      case (in:BusValue, out:SingleValue) =>
+        out := in.value(i)
+      case (in:BusValue, out:BusValue) if in.bus.busWidth==1 =>
+        out.value(i) := in.value(0)
+        out.valid := in.valid
+      case (in:BusValue, out:BusValue) if out.bus.busWidth==1 =>
+        out.value(0) := in.value(i)
+        out.valid := in.valid
     }
+  }
+}
+object Slice {
+  def apply[P<:PortType](intp:P, fout:Output[Bus,Module], i:Int)(implicit spade:Spade):Slice[Bus, P] = {
+    val slice = new Slice(fout.tp, intp, i) {
+      override def toString = s"$fout.slice($i)"
+    }
+    slice.in <== fout
+    slice
+  }
+  def apply[P<:PortType](outtp:P, fin:Input[Bus,Module], i:Int)(implicit spade:Spade):Slice[P, Bus] = {
+    val slice = new Slice(outtp, fin.tp, i) {
+      override def toString = s"$fin.slice($i)"
+    }
+    fin <== slice.out
+    slice
   }
 }
 

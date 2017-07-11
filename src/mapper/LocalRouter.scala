@@ -48,7 +48,7 @@ trait LocalRouter extends Mapper {
   /*
    * Find connection from pin to pout by checkout pout + pout.slices + pout.broadcasts
    * */
-  def findConnect(pin:PI[PModule], pout:PO[PModule]):List[PO[PModule]] = {
+  def findConnect(pin:PI[PModule], pout:PO[PModule]):List[(PI[PModule], PO[PModule])] = {
     var pouts:List[PO[PModule]] = List(pout)
     pouts ++= pouts.flatMap{ _.slices.map(_.out.asInstanceOf[PO[PModule]]) }
     pouts ++= (pin.tp match {
@@ -59,7 +59,8 @@ trait LocalRouter extends Mapper {
         }
       case _ => Nil
     })
-    pouts.filter{ pout => pin.canConnect(pout) }
+    val pins = pin :: pin.slices.map{_.in}
+    pins.flatMap { pin => pouts.filter { pout => pin.canConnect(pout) }.map { pin -> _ } }
   }
 
   def mapInPort(n:IP, r:PI[PModule], map:M):M = {
@@ -72,7 +73,8 @@ trait LocalRouter extends Mapper {
           throw InPortRouting(n, r, info, mp)
         } { pconst =>
           mp = mapConst(oSrc, pconst, mp)
-          mp = mp.setFI(r, findConnect(r, pconst.out).head)
+          val (pin, pout) = findConnect(r, pconst.out).head
+          mp = mp.setFI(pin, pout)
         }
       case (oSrc@PipeReg(oStage, oReg), piSrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
@@ -104,12 +106,13 @@ trait LocalRouter extends Mapper {
             var pops = mp.opmap(n.from)
             val found = pops.foldLeft(false) { 
               case (false, pop) =>
-                val cpops = findConnect(r, pop)
-                if (cpops.size>1) {
+                val pairs = findConnect(r, pop)
+                if (pairs.size>1) {
                   throw InPortRouting(n, r, 
                     s"More than 1 connection from ${r} to pops=$pops n=$n n.from=${n.from}", mp)
-                } else if (cpops.nonEmpty) {
-                  mp = mp.setFI(r, cpops.head)
+                } else if (pairs.nonEmpty) {
+                  val (pin, pout) = pairs.head
+                  mp = mp.setFI(pin, pout)
                   true
                 } else false
               case (true, pop) => true

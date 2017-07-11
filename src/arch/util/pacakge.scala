@@ -24,7 +24,7 @@ package object util {
       //println(s"$in.fanIns=[${in.fanIns.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
       in.fanIns.map(_.src).flatMap {
         case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
-        case sl:Slice[_] => mappingOf[T](sl.in)
+        case sl:Slice[_,_] => mappingOf[T](sl.in)
         case bc:BroadCast[_] => mappingOf[T](bc.in)
         case n => Nil
       }
@@ -32,7 +32,7 @@ package object util {
       //println(s"$out.fanOuts=[${out.fanOuts.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
       out.fanOuts.map(_.src).flatMap { 
         case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
-        case sl:Slice[_] => mappingOf[T](sl.out)
+        case sl:Slice[_,_] => mappingOf[T](sl.out)
         case bc:BroadCast[_] => mappingOf[T](bc.out)
         case n => Nil
       }
@@ -81,7 +81,7 @@ package object util {
       case n:UpDownSM => isMapped(n.prt)
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
-      case n:Slice[_] => isMapped(n.in) 
+      case n:Slice[_,_] => isMapped(n.in) 
       case n:Delay[_] => isMapped(n.prt)
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)

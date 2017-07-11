@@ -5,15 +5,16 @@ import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import java.lang.Thread
 import pir.exceptions._
+import scala.collection.mutable.Stack
 
 package object misc extends Printer {
-  var startTime:Long = _
-  var endTime:Long = _
+  val times = Stack[Long]()
   def tic = {
-    startTime = System.nanoTime()
+    times.push(System.nanoTime())
   }
-  def toc(info:String, unit:String) = {
-    endTime = System.nanoTime()
+  def toc(unit:String):Double = {
+    val startTime = times.pop()
+    val endTime = System.nanoTime()
     val timeUnit = unit match {
       case "ns" => 1
       case "us" => 1000
@@ -21,7 +22,11 @@ package object misc extends Printer {
       case "s" => 1000000000
       case _ => throw PIRException(s"Unknown time unit!")
     }
-    val time = (endTime - startTime) * 1.0 / timeUnit
+    (endTime - startTime) * 1.0 / timeUnit
+  }
+
+  def toc(info:String, unit:String):Unit = {
+    val time = toc(unit)
     println(s"$info elapsed time: ${f"$time%1.3f"}$unit")
   }
 

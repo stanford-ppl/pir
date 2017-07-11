@@ -252,6 +252,7 @@ trait SingleValue extends Value { self:SingleType =>
 
 trait BusValue extends Value { self:Bus =>
   type V = List[Value] 
+  val bus:Bus = self
   val value:V = List.tabulate(busWidth) { i => 
     val eval = elemTp.clone(s"${elemTp.typeStr}v[$i]")
     eval.parent = Some(this)
