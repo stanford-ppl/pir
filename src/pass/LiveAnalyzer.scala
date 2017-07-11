@@ -196,8 +196,8 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
           }
         }
       }
-      stage.prs.foreach { case pr@pipereg(stage, reg) =>
-        if (!stage.liveins.contains(reg) && !stage.liveouts.contains(reg)) {
+      stage.prs.foreach { case pr@PipeReg(stage, reg) =>
+        if (!stage.liveIns.contains(reg) && !stage.liveOuts.contains(reg)) {
           stage.remove(reg)
           dprintln(s"eliminate unused register $pr in $cu.$stage")
         }
