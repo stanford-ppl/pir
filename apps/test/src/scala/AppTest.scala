@@ -138,17 +138,21 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  //test(InOutArg_MCU, args="x222=4", argOuts="x223_x227=8.0")
-  //test(SRAMReadWrite_MCU, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
-  //test(SimpleSequential_MCU, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
-  //test(SimpleSequential_MCU, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
-  //test(SimpleReduce_MCU, args="x350=10", argOuts="x351_x365=1200", debug=false)
-  //testDotProduct(DotProductSeq_MCU, startA=0, startB=16, N=32, debug=false)
-  //testDotProduct(DotProductSeq_MCU, startA=0, startB=16, N=64, debug=false)
-  //testDotProduct(DotProductMeta_MCU, startA=0, startB=16, N=32, debug=false)
-  //testDotProduct(DotProductMeta_MCU, startA=0, startB=16, N=64, debug=false)
-  //testTPCHQ6(TPCHQ6_MCU, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
-  //testTPCHQ6(TPCHQ6_MCU, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
-  //testOuterProduct(OuterProduct_MCU, startA=0, startB=100, startC=200, N=16, debug=false)
+  test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", debug=true)
+  //test(SRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
+  //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=2false0", debug=false)
+  //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
+  //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
+  //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
+  //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=true)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
+  //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
+  //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
+  //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=true)
+  
+  //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=true)
+  //test(SRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
+  //test(MatMult_inner, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
 }
 
