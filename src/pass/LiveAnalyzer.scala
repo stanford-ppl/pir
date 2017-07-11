@@ -4,14 +4,17 @@ import pir._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
+import pir.codegen.Logger
 
 import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class LiveAnalyzer(implicit design: Design) extends Pass {
+class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
   def shouldRun = true 
   import pirmeta._
+
+  override lazy val stream = newStream(s"LiveAnalyzer.log")
 
   addPass {
     design.top.innerCUs.foreach { implicit cu =>
@@ -191,6 +194,12 @@ class LiveAnalyzer(implicit design: Design) extends Pass {
               case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
             }
           }
+        }
+      }
+      stage.prs.foreach { case pr@pipereg(stage, reg) =>
+        if (!stage.liveins.contains(reg) && !stage.liveouts.contains(reg)) {
+          stage.remove(reg)
+          dprintln(s"eliminate unused register $pr in $cu.$stage")
         }
       }
     }
