@@ -182,8 +182,10 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
         val param = cu match {
           case mcu:MemoryComputeUnit => 
             s"GeneratedPMUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numVectorIn=${cu.vins.size}, numVectorOut=${cu.vouts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
-          case cu:ComputeUnit => 
+          case cu:PatternComputeUnit => 
             s"GeneratedPCUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numVectorIn=${cu.vins.size}, numVectorOut=${cu.vouts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
+          case scu:ScalarComputeUnit =>
+            s"GeneratedScalarCUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
         }
         emitln(s"${quote(cu)} = $param")
       }
@@ -230,6 +232,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       x match {
         case -1 => s"scalarCUParams(0)($y)"
         case `numCols` => s"scalarCUParams(1)($y)"
+        case _ => s"cuParams($x)($y)"
       }
     case n:MemoryController =>
       val (x, y) = coordOf(n)

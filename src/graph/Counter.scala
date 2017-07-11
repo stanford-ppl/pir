@@ -101,7 +101,7 @@ case class CounterChain(name:Option[String], cc:Option[Either[String, CounterCha
         s"Accessed counter ${counters.size-1} of ${this} is out of bound")
       val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
       addCounters(addiCtrs)
-      counters.zipWithIndex.foreach { case(c,i) => c.copy(cc.counters(i)) }
+      counters.zipWithIndex.foreach { case(c,i) => c.clone(cc.counters(i)) }
       //iterOf(this) = iterOf(cc) 
     }
   }
@@ -196,7 +196,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
 
   def setDep(c:Counter) = { en.connect(c.done) }
 
-  def copy(c:Counter) = {
+  def clone(c:Counter) = {
     assert(min.from==null, 
       s"Overriding existing counter ${this} with min ${c.min}")
     assert(max.from==null, 

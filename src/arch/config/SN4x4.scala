@@ -12,33 +12,9 @@ import scala.reflect.runtime.universe._
 import pir.util.enums._
 import scala.util.{Try, Success, Failure}
 
-object SN8x8 extends SwitchNetwork(new SwitchNetworkParam(numRows=8, numCols=8, numArgIns=6, numArgOuts=5)) {
-  config
-}
-
-object SN5x5 extends SwitchNetwork(new SwitchNetworkParam(numRows=5, numCols=5, numArgIns=6, numArgOuts=5)) {
-  config
-}
-
-object SN2x3 extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols=3, numArgIns=5, numArgOuts=3)) {
-  config
-}
-object SN2x2 extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols=2, numArgIns=3, numArgOuts=3)) {
-  config
-}
-case class SN(numRows:Int, numCols:Int) extends SwitchNetwork(
-  new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=3, numArgOuts=3)
+case class SN(numRows:Int, numCols:Int, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork(
+  new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts, pattern=pattern)
 ) {
-  override def toString = s"SN${numRows}x${numCols}"
-  config
-}
-case class SN_MCU(numRows:Int, numCols:Int, numArgIns:Int=3, numArgOuts:Int=3) extends SwitchNetwork(
-  new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts)
-) {
-  override def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) pcuAt(i,j) 
-    else mcuAt(i,j) 
-  }
   config
 }
 object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols=2, numArgIns=3, numArgOuts=3)) {
@@ -55,3 +31,23 @@ object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols
   }
   config
 }
+
+sealed trait Pattern {
+  def cuAt(sn:SwitchNetwork)(i:Int, j:Int):ComputeUnit
+}
+case object Checkerboard extends Pattern {
+  def cuAt(sn:SwitchNetwork)(i:Int, j:Int):ComputeUnit = {
+    if ((i+j) % 2 == 0) sn.pcuAt(i,j) 
+    else sn.mcuAt(i,j) 
+  }
+}
+case object MixAll extends Pattern {
+  def cuAt(sn:SwitchNetwork)(i:Int, j:Int):ComputeUnit = {
+    if (i % 2 == 0) {
+      if (j % 2 == 0) sn.pcuAt(i,j)
+      else sn.mcuAt(i,j)
+    }
+    else sn.scuAt(i,j)
+  }
+}
+

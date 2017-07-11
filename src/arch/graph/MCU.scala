@@ -21,7 +21,7 @@ case class MemoryComputeUnitParam(
   numUDCs:Int = 0
 ) extends ComputeUnitParam() {
   val numSRAMs = 1
-  val sramSize = 32768
+  val sramSize = 128
   override val numLanes = 1
 
   /* Parameters */

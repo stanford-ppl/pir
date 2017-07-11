@@ -23,14 +23,14 @@ trait Spade extends SpadeMetadata with SpadeParam {
   def pcus:List[PatternComputeUnit]
   def mcus:List[MemoryComputeUnit]
   def scus:List[ScalarComputeUnit]
-  def mus:List[MemoryUnit]
+  //def mus:List[MemoryUnit]
   def ocus:List[OuterComputeUnit]
   def mcs:List[MemoryController]
 
   def diameter:Int
 
   def cus = pcus ++ mcus ++ scus ++ ocus
-  def ctrlers = top :: cus ++ mcs ++ mus
+  def ctrlers = top :: cus ++ mcs// ++ mus
 
   def prts:List[Routable] = ctrlers
 
@@ -44,7 +44,7 @@ trait Spade extends SpadeMetadata with SpadeParam {
     top.genConnections
     pcus.foreach { _.config }
     mcus.foreach { _.config }
-    mus.foreach { _.config }
+    //mus.foreach { _.config }
     scus.foreach { _.config }
     mcs.foreach { _.config }
     ocus.foreach { _.config }

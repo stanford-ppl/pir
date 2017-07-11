@@ -22,7 +22,7 @@ class SpadeTest extends UnitTest { self =>
   "SN2x2" should "success" taggedAs(ARCH) in {
     val design = new PIRApp { self =>
       def main(top:pir.graph.Top): Any = {}
-      override val arch = SN(4,4)
+      override val arch = SN(2,2)
       implicit val spade = arch.asInstanceOf[SwitchNetwork]
       val cu = arch.pcus.head
       info(s"${quote(cu)}.vin=${cu.vins.size}")

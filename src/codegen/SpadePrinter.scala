@@ -44,9 +44,6 @@ class SpadePrinter(implicit design: Design) extends Codegen {
       ctrler match {
         case top:Top =>
         case mc:MemoryController =>
-        case cu:MemoryUnit =>
-          emitModule(cu.sram)
-          cu.bufs.foreach { s => emitModule(s) }
         case cu:ComputeUnit =>
           cu.srams.foreach { s => emitModule(s) }
           cu.bufs.foreach { s => emitModule(s) }

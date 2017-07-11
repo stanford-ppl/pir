@@ -13,30 +13,34 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.Set
 
-case class MemoryUnitParam(
-  sbufSize:Int = 16,
-  vbufSize:Int = 16
-) extends ControllerParam() {
-  val sramSize = 128
-  override val numLanes = 1
+//case class MemoryUnitParam(
+  //numCtrs:Int = 4,
+  //sbufSize:Int = 16,
+  //vbufSize:Int = 16
+//) extends ComputeUnitParam() {
+  //val numSRAMs = 1
+  //val sramSize = 128
+  //val numUDCs = 0
+  //val numRegs = 0
+  //override val numLanes = 1
 
-  /* Parameters */
-  def config(cu:MemoryUnit)(implicit spade:Spade) = {
-    cu.numScalarBufs(3)
-    cu.numVecBufs(cu.vins.size)
-    cu.genConnections
-  }
-}
+  ///* Parameters */
+  //def config(cu:MemoryUnit)(implicit spade:Spade) = {
+    //cu.numScalarBufs(3)
+    //cu.numVecBufs(cu.vins.size)
+    //cu.genConnections
+  //}
+//}
 
-class MemoryUnit(override val param:MemoryUnitParam=MemoryUnitParam())(implicit spade:Spade) 
-  extends Controller(param) {
-  override val typeStr = "mu"
-  import spademeta._
-  import param._
+//class MemoryUnit(override val param:MemoryUnitParam=MemoryUnitParam())(implicit spade:Spade) 
+  //extends ComputeUnit(param) {
+  //override val typeStr = "mu"
+  //import spademeta._
+  //import param._
 
-  override lazy val ctrlBox:MUCtrlBox = new MUCtrlBox()
+  //override lazy val ctrlBox:MUCtrlBox = new MUCtrlBox()
 
-  val sram = SRAM(sramSize)
-  override def config = param.config(this)
-}
+  //def sram = srams.head
+  //override def config = param.config(this)
+//}
 

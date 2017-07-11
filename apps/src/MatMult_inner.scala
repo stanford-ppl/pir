@@ -8,6 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object MatMult_inner extends PIRApp {
+  override val arch = SN(4,4,numArgIns=6,pattern=Checkerboard)
   def main(top:Top) = {
     val x1818_argin = ArgIn("x1818")
     val x1842_x1918_x1931_v = Vector("x1842_x1918_x1931")

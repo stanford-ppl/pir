@@ -96,6 +96,7 @@ class SpadeNetworkCodegen(implicit design: Design) extends Codegen with ScalaCod
       x match {
         case -1 => s"scus(0)($y)"
         case `numCols` => s"scus(1)($y)"
+        case _ => s"cu($x)($y)"
       }
     case n:MemoryController => 
       val (x, y) = coordOf(n)

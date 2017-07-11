@@ -32,12 +32,12 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    if (cu.mem.writePort.isConnected) {
-      cu.mem.writePort.from.src match {
+    if (cu.sram.writePort.isConnected) {
+      cu.sram.writePort.from.src match {
         case fifo:FIFO => forWrite(fifo) = true
       }
     } else {
-      warn(s"${cu.mem} in $cu's writePort is not connected!")
+      warn(s"${cu.sram} in $cu's writePort is not connected!")
     }
   }
 
@@ -53,13 +53,13 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    if (cu.mem.readAddr.isConnected) {
-      cu.mem.readAddr.from.src match {
+    if (cu.sram.readAddr.isConnected) {
+      cu.sram.readAddr.from.src match {
         case ctr:Counter => forRead(ctr) = true
         case _ =>
       }
     } else {
-      warn(s"${cu.mem} in $cu's readAddr is not connected!")
+      warn(s"${cu.sram} in $cu's readAddr is not connected!")
     }
     cu.wtAddrStages.foreach { stage =>
       stage.fu.foreach { fu =>
@@ -72,13 +72,13 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    if (cu.mem.writeAddr.isConnected) {
-      cu.mem.writeAddr.from.src match {
+    if (cu.sram.writeAddr.isConnected) {
+      cu.sram.writeAddr.from.src match {
         case ctr:Counter => forWrite(ctr) = true
         case _ =>
       }
     } else {
-      warn(s"${cu.mem} in $cu's writeAddr is not connected!")
+      warn(s"${cu.sram} in $cu's writeAddr is not connected!")
     }
   }
 
@@ -110,21 +110,21 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    if (cu.mem.writeAddr.isConnected) {
-      cu.mem.writeAddr.from.src match {
+    if (cu.sram.writeAddr.isConnected) {
+      cu.sram.writeAddr.from.src match {
         case fifo:ScalarFIFO => forWrite(fifo) = true
         case _ =>
       }
     } else {
-      warn(s"${cu.mem} in $cu's writeAddr is not connected!")
+      warn(s"${cu.sram} in $cu's writeAddr is not connected!")
     }
-    if (cu.mem.readAddr.isConnected) {
-      cu.mem.readAddr.from.src match {
+    if (cu.sram.readAddr.isConnected) {
+      cu.sram.readAddr.from.src match {
         case fifo:ScalarFIFO => forRead(fifo) = true
         case _ =>
       }
     } else {
-      warn(s"${cu.mem} in $cu's readAddr is not connected!")
+      warn(s"${cu.sram} in $cu's readAddr is not connected!")
     }
   }
 
@@ -146,11 +146,11 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def copySwapCC(cu:ComputeUnit) = {
     cu match {
-      case cu:MemoryPipeline =>
-        val swapRead = cu.getCopy(swapReadCChainOf(cu.mem))
+      case cu:MemoryPipeline if cu.sram.buffering > 0 =>
+        val swapRead = cu.getCopy(swapReadCChainOf(cu.sram))
         forRead(swapRead) = true
         swapRead.counters.foreach(ctr => forRead(ctr) = true)
-        val swapWrite = cu.getCopy(swapWriteCChainOf(cu.mem))
+        val swapWrite = cu.getCopy(swapWriteCChainOf(cu.sram))
         forWrite(swapWrite) = true
         swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
         analyzeScalarBufs(cu)
@@ -200,7 +200,12 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         parOf(cu) = localCChainOf(cu.parent).inner.par //TODO: fix for nested streaming controller
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
       case cu =>
-        parOf(cu) = compCChainsOf(cu).head.inner.par
+        val cc = compCChainsOf(cu).head
+        if (!cu.ancestors.contains(cc.original.ctrler)) { // Addresss calculation
+          parOf(cu) = 1
+        } else {
+          parOf(cu) = cc.inner.par
+        }
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
     }
   }
@@ -279,7 +284,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       setSwapCC(cu)
       copySwapCC(cu)
       analyzeAddrCalc(cu)
-      //duplicateCChain(cu)
+      duplicateCChain(cu)
       setPar(cu)
       emitBlock(s"$cu") {
         cu.cchains.foreach { cchain =>

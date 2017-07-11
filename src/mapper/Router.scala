@@ -41,13 +41,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def quote[T](n:T)(implicit spade:Spade, ev:TypeTag[T]):String = {
     n match {
-      case io:PIO[_] =>
-        io.src match {
-          case cu:PCU => s"${super.quote(cu)}.${io}"
-          case sb:PSB => s"${super.quote(sb)}.${io}" 
-          case mc:PMC => s"${super.quote(mc)}.${io}"
-          case top:PTop => s"${super.quote(top)}.${io}" 
-        }
+      case io:PIO[_] => s"${super.quote(io.src)}.${io}" 
       case n if typeOf[T] =:= typeOf[FEdge] =>
         val (from, to) = n; s"${quote(from)} -> ${quote(to)}"
       case n if typeOf[T] =:= typeOf[REdge] =>

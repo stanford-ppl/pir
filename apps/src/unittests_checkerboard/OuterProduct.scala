@@ -7,8 +7,8 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object OuterProduct_MCU extends PIRApp {
-  override val arch = SN_MCU(2,3,5,3)
+object OuterProduct_cb extends PIRApp {
+  override val arch = SN(2,3,5,3,pattern=Checkerboard)
   def main(top:Top) = {
     val x1224_b1338_x1233_b1340_s = Scalar("x1224_b1338_x1233_b1340")
     val x1203_argin = ArgIn("x1203").bound(16)

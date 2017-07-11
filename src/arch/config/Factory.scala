@@ -21,7 +21,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
   // input <== outputs: input can be configured to 1 of the outputs
   
   def forwardStages(cu:ComputeUnit) = cu match {
-    case cu:MemoryComputeUnit => cu.wastages :+ cu.rastages.head
+    case cu:MemoryComputeUnit => cu.wastages ++ cu.rastages.headOption.map{ h => List(h) }.getOrElse(Nil)
     case cu:OuterComputeUnit => Nil
     case cu:ComputeUnit => List(cu.fustages.head)
   }
@@ -41,7 +41,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     // Bus input is forwarded to 1 register in empty stage
     val viRegs = cu.regs.filter(_.is(VecInReg))
     assert(cu.vins.size == cu.vbufs.size, s"cu:${cu} vins:${cu.vins.size} vbufs:${cu.vbufs.size}")
-    assert(cu.vbufs.size == viRegs.size)
+    if (cu.stages.nonEmpty) assert(cu.vbufs.size == viRegs.size)
     (cu.vbufs, viRegs).zipped.foreach { case (vbuf, reg) =>
       forwardStages(cu).foreach { s => s.get(reg).in <== vbuf.readPort }
     }
@@ -56,16 +56,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu.ctrs, cu.regs.filter(_.is(CounterReg))).zipped.foreach { case (c, reg) => 
       forwardStages(cu).foreach { s => s.get(reg).in <== c.out }
     }
-    cu match {
-      case cu:MemoryComputeUnit =>
-        cu.srams.foreach { case sram => 
-          (cu.wastages ++ cu.rastages).foreach { s =>
-            sram.readAddr <== (s.fu.out, 0)
-            sram.writeAddr <== (s.fu.out, 0)
-          }
-        }
-      case _ =>
-    }
   }
 
   def connectDataIO(cu:Controller):Unit = {
@@ -75,9 +65,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
 
     cu match {
-      case cu:MemoryUnit =>
-        cu.vouts.foreach { _.ic <== cu.sram.readPort }
-        cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
       case cu:MemoryComputeUnit =>
         cu.vouts.foreach { _.ic <== cu.sram.readPort }
         cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
@@ -94,8 +81,25 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
   }
 
-  /* Generate primitive connections within a CU */ 
-  def connectData(cu:ComputeUnit):Unit = {
+  def connectSRAM(cu:ComputeUnit):Unit = {
+    cu.srams.foreach { sram =>
+      sram.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
+      sram.readAddr <== cu.sbufs.map(_.readPort)
+      sram.writeAddr <== (cu.ctrs.map(_.out), 0)
+      sram.writeAddr <== cu.sbufs.map(_.readPort)
+      cu match {
+        case cu:MemoryComputeUnit =>
+          cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
+          cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
+        case _ =>
+      }
+
+      sram.writePort <== cu.vbufs.map(_.readPort)
+      cu.sbufs.foreach { sbuf => sram.writePort.sliceHead(sbuf.readPort) }
+    } 
+  }
+
+  def connectCounters(cu:ComputeUnit):Unit = {
     implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
@@ -112,11 +116,14 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     /* Chain counters together */
     for (i <- 1 until cu.ctrs.size) { cu.ctrs(i).en <== cu.ctrs(i-1).done } 
     for (i <- 0 until cu.ctrs.size by 1) { isInnerCounter(cu.ctrs(i)) = true  } // Allow group counter in chain in multiple of 2
+  }
 
-    cu.srams.foreach { s =>
-      s.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
-      s.writeAddr <== (cu.ctrs.map(_.out), 0)
-    } 
+  /* Generate primitive connections within a CU */ 
+  def connectData(cu:ComputeUnit):Unit = {
+    implicit val spade:Spade = cu.spade
+    val spademeta: SpadeMetadata = spade
+    import spademeta._
+    val top = spade.top
 
     /* FU Constrain  */
     cu.fustages.foreach { stage =>
@@ -132,15 +139,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       cu.regs.foreach{ reg => stage.get(reg) <== stage.fu.out }
     }
 
-    cu match {
-      case cu:MemoryComputeUnit =>
-        cu.srams.foreach { sram =>
-          cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
-          cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
-          sram.writePort <== cu.vbufs.map(_.readPort)
-        }
-      case _ =>
-    }
     forwardStages(cu).foreach { stage =>
       stage.fu.operands.foreach { oprd => 
         cu.ctrs.foreach{ oprd <== _.out }
@@ -343,12 +341,12 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case prt:Top =>
         connectCtrl(prt)
       case prt:ComputeUnit => 
+        connectSRAM(prt)
+        connectCounters(prt)
         connectDataIO(prt)
         connectData(prt)
         genMapping(prt)
         connectCtrl(prt)
-      case prt:MemoryUnit =>
-        connectDataIO(prt)
       case prt:MemoryController =>
         connectDataIO(prt)
         connectCtrl(prt)

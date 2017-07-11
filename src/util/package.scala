@@ -34,7 +34,7 @@ package object util {
     def isAdded(cl:Controller) = list.contains(cl)
     def isDepFree(cl:Controller) = cl match {
       case cl if isTailCollector(cl) => true // list will be reversed
-      case cl:MemoryPipeline => isAdded(cl.mem.writer)
+      case cl:MemoryPipeline => isAdded(cl.sram.writer)
       case cl:ComputeUnit if isStreaming(cl) => cl.isHead || cl.fifos.forall { 
         case fifo if fifo.writer.asCU.parent == cl.parent => isAdded(fifo.writer)
         case fifo => true

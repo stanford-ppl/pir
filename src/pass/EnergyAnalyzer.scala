@@ -46,12 +46,12 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
   }
 
   def readTime(n:CL):Double = n match {
-    case n:MP => timeOf(n.mem.consumer)
+    case n:MP => timeOf(n.sram.consumer)
     case n => timeOf(n)
   }
 
   def writeTime(n:CL):Double = n match {
-    case n:MP => timeOf(n.mem.producer)
+    case n:MP => timeOf(n.sram.producer)
     case n => timeOf(n)
   }
 

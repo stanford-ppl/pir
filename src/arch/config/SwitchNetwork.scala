@@ -12,14 +12,18 @@ case class SwitchNetworkParam(
   numArgIns:Int = 6,
   numArgOuts:Int = 5,
   numRows:Int = 2,
-  numCols:Int = 2
-) extends SpadeParam
+  numCols:Int = 2,
+  pattern:Pattern = MixAll
+) extends SpadeParam {
+}
 
 abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam()) extends Spade {
   import param._
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
+  override def toString = s"SN${numRows}x${numCols}"
+
   override def prts = super.prts ++ sbs
 
   def diameter = Math.max(
@@ -30,19 +34,13 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
   // Top level controller ~= Host
   val top = Top()
   
-  def cuAt(i:Int, j:Int) = {
-    if (i % 2 == 0) {
-      if (j % 2 == 0) pcuAt(i,j)
-      else muAt(i,j)
-    }
-    else scuAt(i,j)
-  }
+  def cuAt(i:Int, j:Int) = param.pattern.cuAt(this)(i,j)
 
   def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit()
 
   def mcuAt(i:Int, j:Int):MemoryComputeUnit = new MemoryComputeUnit()
 
-  def muAt(i:Int, j:Int):MemoryUnit = new MemoryUnit()
+  //def muAt(i:Int, j:Int):MemoryUnit = new MemoryUnit()
 
   def scuAt(i:Int, j:Int):ScalarComputeUnit = new ScalarComputeUnit()
 
@@ -73,7 +71,7 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
   }
   def mcs = mcArray.flatten
   lazy val mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
-  lazy val mus = cuArray.flatten.collect { case mcu:MemoryUnit => mcu }
+  //lazy val mus = cuArray.flatten.collect { case mcu:MemoryUnit => mcu }
   lazy val pcus = cuArray.flatten.collect { case pcu:PatternComputeUnit => pcu }
   val ocuArray = List.tabulate(numCols+1, numRows+1) { case (x, y) => ocuAt(x, y).coord(x, y) }
   def ocus:List[OuterComputeUnit] = ocuArray.flatten
@@ -98,3 +96,4 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
     super.config
   }
 }
+

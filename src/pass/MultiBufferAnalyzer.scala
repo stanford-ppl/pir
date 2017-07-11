@@ -45,7 +45,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     val writer = buf.writer
     readers.foreach { reader =>
       reader match {
-        case mp:MemoryPipeline => setProducerConsumer(mp, mp.mem)
+        case mp:MemoryPipeline => setProducerConsumer(mp, mp.sram)
         case _ =>
       }
     }

@@ -7,17 +7,13 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object TPCHQ6_MCU extends PIRApp {
+object TPCHQ6_cb extends PIRApp {
   override val arch = {
     import pir.plasticine.graph._
     import pir.plasticine.main._
     new SwitchNetwork(
-      new SwitchNetworkParam(numRows=4, numCols=4, numArgIns=5, numArgOuts=3)
+      new SwitchNetworkParam(numRows=4, numCols=4, numArgIns=5, numArgOuts=3, pattern=Checkerboard)
     ) {
-      override def cuAt(i:Int, j:Int) = {
-        if ((i+j) % 2 == 0) pcuAt(i,j) 
-        else mcuAt(i,j) 
-      }
       override def pcuAt(i:Int, j:Int) = {
         new PatternComputeUnit(new PatternComputeUnitParam{
           override val numRegs = 20

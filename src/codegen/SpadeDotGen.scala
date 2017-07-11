@@ -43,6 +43,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
   def color(prt:PRT):Color = prt match {
     case pscu:PSCU => Color("palevioletred1")
     case pmcu:PMCU => Color("lightseagreen")
+    //case pmu:PMU => Color("lightseagreen")
     case pocu:POCU => Color("orange")
     case pcu:PCU => Color("dodgerblue")
     case pmc:PMC => Color("forestgreen")

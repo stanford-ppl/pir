@@ -22,16 +22,15 @@ class MemoryPipeline(override val name: Option[String])(implicit design: Design)
 
   override def stages:List[Stage] = wtAddrStages ++ rdAddrStages
 
-  //lazy val mem:MultiBuffering = {
-  lazy val mem:SRAM = {
+  lazy val sram:SRAM = {
     //val rms = mems.collect{ case m:SemiFIFO => m; case m:SRAM => m}
     val rms = mems.collect{ case m:SRAM => m}
     assert(rms.size==1)
     rms.head
   }
   lazy val dataOut = {
-    val dout = mem.readPort.to.map{_.src}.collect{ case vo:VecOut => vo}.head
-    dout.in.connect(mem.load)
+    val dout = sram.readPort.to.map{_.src}.collect{ case vo:VecOut => vo}.head
+    dout.in.connect(sram.load)
     dout
   }
   def data = dataOut.vector

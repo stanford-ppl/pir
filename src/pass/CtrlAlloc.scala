@@ -332,9 +332,9 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        val readDone = ctrler.getCC(swapReadCChainOf(ctrler.mem)).outer.done
+        val readDone = ctrler.getCC(swapReadCChainOf(ctrler.sram)).outer.done
         cb.readDone.in.connect(readDone)
-        val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.mem)).outer.done
+        val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.sram)).outer.done
         cb.writeDone.in.connect(writeDone)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
