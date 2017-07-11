@@ -14,7 +14,7 @@ trait Variable extends Node {
 }
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-case class Scalar(name:Option[String])(implicit design: Design) extends Variable {
+class Scalar(val name:Option[String])(implicit design: Design) extends Variable {
   override val typeStr = "Scalar"
   var _writer:ScalarOut = _ 
   def writerIsEmpty = _writer == null
@@ -35,8 +35,25 @@ case class Scalar(name:Option[String])(implicit design: Design) extends Variable
   override def toUpdate = super.toUpdate || writer==null
 }
 object Scalar {
-  def apply(name:String)(implicit design: Design):Scalar = Scalar(Some(name)) 
-  def apply()(implicit design: Design):Scalar = Scalar(None) 
+  def apply(name:String)(implicit design: Design):Scalar = new Scalar(Some(name)) 
+  def apply()(implicit design: Design):Scalar = new Scalar(None) 
+}
+
+case class DRAMAddress(override val name:Option[String])(implicit design:Design) extends Scalar(name) with ArgIn {
+  override val typeStr = "DramAddress"
+  private var _offchip:Either[String, OffChip] = _
+  def setOffChip(offchip:String):Unit = { 
+    _offchip = Left(offchip)
+    design.updateLater(offchip, (n:Node) => setOffChip(n.asInstanceOf[OffChip]))
+  }
+  def setOffChip(offchip:OffChip):Unit = { _offchip = Right(offchip) }
+}
+object DRAMAddress {
+  def apply(name:String, offchip:String)(implicit design:Design):DRAMAddress = {
+    val da = DRAMAddress(Some(name))
+    da.setOffChip(offchip)
+    da
+  }
 }
 
 trait ArgIn extends Scalar { 

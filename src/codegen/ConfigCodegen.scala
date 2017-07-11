@@ -465,9 +465,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       }
       emitln(s"${quote(psram)}.stride = $stride")
       emitln(s"${quote(psram)}.numBufs = ${sram.buffering}")
-      val vfifo = sram.writePort.from.src.asInstanceOf[VFIFO]
-      val pvi = vimap(vfifo.writePort.from.src)
-      emitln(s"${quote(psram.prt)}.wdataSelect = ${pvi.index}")
+      val fifo = sram.writePort.from.src.asInstanceOf[FIFO]
+      val pin = vimap(fifo.writePort.from.src)
+      emitln(s"${quote(psram.prt)}.wdataSelect = ${pin.index}") //TODO:add mux for selecting scalar/vector input 
       emitln(s"${quote(psram.prt)}.waddrSelect = ${lookUp(psram.writeAddr)}")
       emitln(s"${quote(psram.prt)}.raddrSelect = ${lookUp(psram.readAddr)}")
     }

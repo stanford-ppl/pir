@@ -36,7 +36,7 @@ trait Memory extends Node with Simulatable {
             errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)
-            sys.exit()
+            throw e
         }
       }
     }

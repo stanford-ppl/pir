@@ -95,7 +95,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       }
 
       sram.writePort <== cu.vbufs.map(_.readPort)
-      //cu.sbufs.foreach { sbuf => sram.writePort.sliceHead(sbuf.readPort) }
+      cu.sbufs.foreach { sbuf => sram.writePort.sliceHead(sbuf.readPort) }
     } 
   }
 

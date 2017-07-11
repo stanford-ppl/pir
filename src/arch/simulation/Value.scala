@@ -146,7 +146,7 @@ trait Value extends Node with Evaluation { self:PortType =>
             errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)
-            sys.exit()
+            throw e
         }
       }
     }
