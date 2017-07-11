@@ -171,6 +171,7 @@ class Stage(override val name:Option[String])(implicit override val ctrler:Compu
   val _prs:Map[Reg, PipeReg] = Map.empty
   def prs:List[PipeReg] = _prs.values.toList
   def get(reg:Reg) = _prs.getOrElseUpdate(reg, PipeReg(this, reg))
+  def remove(reg:Reg) = _prs -= reg
   val defs:Set[Reg] = Set.empty
   val uses:Set[Reg] = Set.empty
   var liveIns:ISet[Reg] = ISet.empty

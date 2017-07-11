@@ -44,8 +44,8 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   def mapPrimtivies(ctrler:Controller)(m:PIRMap):PIRMap = {
     var mp = m
     mp = vfifoMapper.map(ctrler, mp) 
-    mp = sramMapper.map(ctrler, mp)
     mp = sfifoMapper.map(ctrler, mp)
+    mp = sramMapper.map(ctrler, mp)
     mp = ctrMapper.map(ctrler, mp)
     mp = delayMapper.map(ctrler, mp)
     mp
