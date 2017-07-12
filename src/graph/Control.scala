@@ -215,13 +215,16 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
   streamAndTree.addInput(fifoAndTree.out)
   var accumPredUnit:Option[PredicateUnit] = None
   var fifoPredUnit:Option[PredicateUnit] = None
-  def setAccumPredicate(ctr:Counter, op:FixOp, const:Int) = {
+  def setAccumPredicate(ctr:Counter, op:FixOp, const:Int):PredicateUnit = {
     accumPredUnit = Some(PredicateUnit(Some("accumPredUnit"), op, const))
     accumPredUnit.foreach{ _.in.connect(ctr.out) }
+    accumPredUnit.get
   }
-  def setFifoPredicate(ctr:Counter, op:FixOp, const:Int) = {
+  def setFifoPredicate(ctr:Counter, op:FixOp, const:Int):PredicateUnit = {
+    assert(fifoPredUnit.isEmpty, s"Assume a single FifoPredicateUnit in each controller $ctrler")
     fifoPredUnit = Some(PredicateUnit(Some("fifoPredUnit"), op, const))
     fifoPredUnit.foreach{ _.in.connect(ctr.out) }
+    fifoPredUnit.get
   }
 }
 object InnerCtrlBox {

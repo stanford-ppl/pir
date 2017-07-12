@@ -108,6 +108,14 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
           n.prs.foreach { case pr =>
            emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
           }
+        case n:FIFO =>
+          emitln(s"rp=[${n.readPort.to.mkString(",")}]")
+          emitln(s"wp=${n.writePort.from}")
+        case n:SRAM =>
+          emitln(s"rp=[${n.readPort.to.mkString(",")}]")
+          emitln(s"wp=${n.writePort.from}")
+          emitln(s"ra=${n.readAddr.from}")
+          emitln(s"wa=${n.writeAddr.from}")
         case _ => super.visitNode(node)
       }
     }
@@ -119,7 +127,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
       case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
       case n:Stage => emitBlock(s"${quote(node)}${genFields(node)}", node)
       case n:UDCounter => // printed in Ctrl.txt
-      case n:FIFOOnWrite => emitBlock(s"${node}${genFields(node)}", node)
+      case n:OnChipMem => emitBlock(s"${node}${genFields(node)}", node)
       case _ => emitln(s"${node}${genFields(node)}")
     }
   }

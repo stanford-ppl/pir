@@ -46,26 +46,38 @@ trait LocalRouter extends Mapper {
   }
 
   /*
-   * Find connection from pin to pout by checkout pout + pout.slices + pout.broadcasts
+   * Find connection from pin to pout by checkout pout + pout.slices + pout.broadcasts to pin +
+   * pin.slices
+   * @return mapping and whether successfully connected
    * */
-  def findConnect(pin:PI[PModule], pout:PO[PModule]):List[(PI[PModule], PO[PModule])] = {
-    var pouts:List[PO[PModule]] = List(pout)
-    pouts ++= pouts.flatMap{ _.slices.map(_.out.asInstanceOf[PO[PModule]]) }
-    pouts ++= (pin.tp match {
-      case pir.plasticine.graph.Bus(bw, _) => 
-        pouts.flatMap{ pout => 
-          //dprintln(s"$pout.broadcasts=[${pout.broadcasts}]")
-          pout.getBroadcast(bw).map(_.out.asInstanceOf[PO[PModule]])
-        }
-      case _ => Nil
-    })
+  def connect(pin:PI[PModule], pout:PO[PModule], map:M):(M, Boolean) = {
+    var mp = map
+    val pouts = pout :: pout.slices.map{_.out} ++ pout.broadcasts.map{_.out}
     val pins = pin :: pin.slices.map{_.in}
-    pins.flatMap { pin => pouts.filter { pout => pin.canConnect(pout) }.map { pin -> _ } }
+    var connected = false
+    pins.foreach { pi => 
+      pouts.foreach { po => 
+        if (pi.canConnect(po)) {
+          if (!connected) {
+            mp = mp.setFI(pi, po)
+            pin.slices.filter { _.in == pi }.foreach { slice => mp = mp.setFI(pin, slice.out) }
+            pout.slices.filter { _.out == po }.foreach { slice => mp = mp.setFI(slice.in, pout) }
+            pout.broadcasts.filter { _.out == po }.foreach { broadcast => mp = mp.setFI(broadcast.in, pout) }
+            connected = true
+          } else {
+            throw LocalRouting(s"More than 1 connection between pin=$pin and pout=$pout", mp)
+          }
+        }
+      }
+    }
+    (mp, connected)
   }
 
   def mapInPort(n:IP, r:PI[PModule], map:M):M = {
     var mp = map
     if (mp.fimap.contains(r) && mp.ipmap.contains(n)) return mp
+    mp = mp.setIP(n, r)
+    if (!n.isConnected) return mp
     (n.from.src, r.src) match {
       case (oSrc@Const(c), piSrc) =>
         mappingOf[PConst](r).filterNot{ pc => mp.pmmap.pmap.contains(pc) }.headOption.fold {
@@ -73,8 +85,9 @@ trait LocalRouter extends Mapper {
           throw InPortRouting(n, r, info, mp)
         } { pconst =>
           mp = mapConst(oSrc, pconst, mp)
-          val (pin, pout) = findConnect(r, pconst.out).head
-          mp = mp.setFI(pin, pout)
+          val (m, connected) = connect(r, pconst.out, mp)
+          mp = m
+          if (!connected) throw LocalRouting(s"No connection between $r to constant $pconst", mp)
         }
       case (oSrc@PipeReg(oStage, oReg), piSrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
@@ -103,25 +116,19 @@ trait LocalRouter extends Mapper {
             val pop = mp.vimap(n).ic
             mp = mp.setFI(r, pop)
           case n => 
-            var pops = mp.opmap(n.from)
-            val found = pops.foldLeft(false) { 
-              case (false, pop) =>
-                val pairs = findConnect(r, pop)
-                if (pairs.size>1) {
-                  throw InPortRouting(n, r, 
-                    s"More than 1 connection from ${r} to pops=$pops n=$n n.from=${n.from}", mp)
-                } else if (pairs.nonEmpty) {
-                  val (pin, pout) = pairs.head
-                  mp = mp.setFI(pin, pout)
-                  true
-                } else false
-              case (true, pop) => true
+            mp.opmap.get(n.from).foreach { pops =>
+              var pops = mp.opmap(n.from)
+              val found = pops.foldLeft(false) { 
+                case (false, pop) =>
+                  val (m, connected) = connect(r, pop, mp)
+                  mp = m
+                  connected
+                case (true, pop) => true
+              }
+              if (!found) throw InPortRouting(n, r, s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
             }
-            if (!found) throw InPortRouting(n, r, s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
         }
     }
-    mp = if (mp.ipmap.contains(n)) mp else mp.setIP(n,r)
-    //dprintln(s"Mapping IP:${n} -> ${cmap.ipmap(n)}")
     mp
   } 
 
@@ -140,4 +147,7 @@ trait LocalRouter extends Mapper {
 }
 case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
+}
+case class LocalRouting(info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+  override val msg = s"${info}"
 }

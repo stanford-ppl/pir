@@ -136,7 +136,7 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   def ms = s"${this}=fanIns[${_fanIns.mkString(",")}]"
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanIns.contains(n)
-    //_fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(n))
+    //_fanIns.contains(n) || _fanIns.map(_.src).collect{case s:Slice[_] => s.in; case b:BroadCast[_] => b.in }.exists(_.canConnect(na)
   }
   def indexOf(o:IO[_<:PortType, Module]):Int = {
     _fanIns.map { out =>
@@ -319,6 +319,7 @@ case class Slice[PI<:PortType, PO<:PortType](intp:PI, outtp:PO, i:Int)(implicit 
   val in = Input(intp.clone(), this, s"${this}.in")
   val out = Output(outtp.clone(), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
     super.register
     (in.v, out.v) match {
       case (in:SingleValue, out:BusValue) =>
@@ -334,6 +335,7 @@ case class Slice[PI<:PortType, PO<:PortType](intp:PI, outtp:PO, i:Int)(implicit 
     }
   }
 }
+
 object Slice {
   def apply[P<:PortType](intp:P, fout:Output[Bus,Module], i:Int)(implicit spade:Spade):Slice[Bus, P] = {
     val slice = new Slice(fout.tp, intp, i) {

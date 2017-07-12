@@ -36,6 +36,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def readers:List[Controller] = readersOf(this)
   def isVFifo = this.isInstanceOf[VectorFIFO]
   def isSFifo = this.isInstanceOf[ScalarFIFO]
+  def isFifo = this.isInstanceOf[FIFO]
   def asVFifo = this.asInstanceOf[VectorFIFO]
   def isSRAM = this.isInstanceOf[SRAM]
   def isMbuffer = this.isInstanceOf[MultiBuffering]
@@ -58,6 +59,7 @@ trait FIFOOnRead extends OnChipMem {
   /* Control Signals */
   val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
   val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
+  val predicate = CtrlInPort(this, s"$this.predicate")
 }
 
 trait SRAMOnWrite extends MultiBuffering {

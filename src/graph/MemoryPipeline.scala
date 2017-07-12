@@ -14,7 +14,7 @@ import pir.pass.ForwardRef
 import pir.util._
 
 /* Memory Pipeline */
-class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends Pipeline(name) {
+class MemoryPipeline(override val name: Option[String])(implicit design: Design) extends InnerController(name) {
   import pirmeta._
 
   override val typeStr = "MemPipe"

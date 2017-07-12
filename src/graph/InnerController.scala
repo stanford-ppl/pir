@@ -54,9 +54,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
   /* List of outer controllers reside in current inner*/
   var outers:List[OuterController] = Nil
 
-  /* Control Signals */
-  lazy val ctrlBox:CtrlBox = InnerCtrlBox()
-  
   /* Block updates */
   override def reset =  { super.reset; _localStages.clear; _wtAddrStages.clear; _rdAddrStages.clear }
 

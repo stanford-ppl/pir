@@ -28,8 +28,8 @@ class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = m
     mp = m.setSM(n, r).setOP(n.readPort, r.readPort)
     mp = mapInPort(n.writePort, r.writePort, mp)
-    mp = mp.setIP(n.writeAddr, r.writeAddr)
-    mp = mp.setIP(n.readAddr, r.readAddr)
+    mp = mapInPort(n.writeAddr, r.writeAddr, mp)
+    mp = mapInPort(n.readAddr, r.readAddr, mp)
     mp
   }
 

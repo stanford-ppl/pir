@@ -16,6 +16,7 @@ import pir.util._
 class Pipeline(name:Option[String])(implicit design:Design) extends InnerController(name) { self =>
   override val typeStr = "PipeCU"
 
+  override lazy val ctrlBox:InnerCtrlBox = InnerCtrlBox()
 }
 object Pipeline {
   def apply[P](name: Option[String], parent:P)(block: Pipeline => Any)(implicit design: Design):Pipeline = {

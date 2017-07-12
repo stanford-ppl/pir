@@ -95,11 +95,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
           mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
           mp = mp.setOP(mem.notFull, pmem.notFull)
         case (mem:MBuf, pmem:POCM, pcu:PCU) =>
-          if (mem.swapWrite.isConnected) {
-            mp = mapInPort(mem.swapWrite, pmem.incWritePtr, mp)
-          } else {
-            mp = mp.setIP(mem.swapWrite, pmem.incWritePtr)
-          }
+          mp = mapInPort(mem.swapWrite, pmem.incWritePtr, mp)
       }
     }
     mp
@@ -110,18 +106,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     cu.mbuffers.foreach { mbuf => 
       val pmem = mp.smmap(mbuf)
-      if (mbuf.swapRead.isConnected) {
-        mp = mapInPort(mbuf.swapRead, pmem.incReadPtr, mp)
-      } else {
-        mp = mp.setIP(mbuf.swapRead, pmem.incReadPtr)
-      }
+      mp = mapInPort(mbuf.swapRead, pmem.incReadPtr, mp)
     }
     cu.fifos.foreach { fifo =>
       val pmem = mp.smmap(fifo)
-      if (fifo.dequeueEnable.isConnected)
-        mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
-      else
-        mp = mp.setIP(fifo.dequeueEnable, pmem.incReadPtr)
+      mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
+      mp = mapInPort(fifo.predicate, pmem.predicate, mp)
     }
     mp
   }
@@ -299,10 +289,15 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     (cu.ctrlBox, pcu.ctrlBox) match {
       case (cu:ICB, pcb:PICB) =>
-        cu.accumPredUnit.foreach { apu =>
-          mp = mp.setPM(apu, pcb.accumPredUnit)
-          mp = mapInPort(apu.in, pcb.accumPredUnit.in, mp)
-          mp = mapOutPort(apu.out, pcb.accumPredUnit.out, mp)
+        cu.accumPredUnit.foreach { pu =>
+          mp = mp.setPM(pu, pcb.accumPredUnit)
+          mp = mapInPort(pu.in, pcb.accumPredUnit.in, mp)
+          mp = mapOutPort(pu.out, pcb.accumPredUnit.out, mp)
+        }
+        cu.fifoPredUnit.foreach { pu =>
+          mp = mp.setPM(pu, pcb.fifoPredUnit)
+          mp = mapInPort(pu.in, pcb.fifoPredUnit.in, mp)
+          mp = mapOutPort(pu.out, pcb.fifoPredUnit.out, mp)
         }
       case (cu, pcb) =>
     }

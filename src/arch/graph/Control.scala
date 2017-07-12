@@ -217,8 +217,8 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
   }
 }
 
-case class PredicateUnit()(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
-  override val typeStr = "predUnit"
+case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+  override val typeStr = s"pu_$name"
   cb.predicateUnits += this
   val in = Input(Word(), this, s"${quote(this)}.in")
   val out = Output(Bit(), this, s"${quote(this)}.out")
@@ -285,8 +285,8 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
   en.in <== pipeAndTree.out // 0
   en.in <== streamAndTree.out // 1
 
-  val accumPredUnit = PredicateUnit()
-  val fifoPredUnit = PredicateUnit()
+  val accumPredUnit = PredicateUnit("accum")
+  val fifoPredUnit = PredicateUnit("fifo")
   prt.ctrs.foreach { ctr => 
     accumPredUnit.in <== (ctr.out, 0)
     fifoPredUnit.in <== (ctr.out, 0) 

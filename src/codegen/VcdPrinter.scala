@@ -24,8 +24,8 @@ abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extend
     case x:SingleValue => qv(x.value)
     case Some(x:Float) => qv(x.toInt) //TODO
     case Some(x:Int) => qv(x)
-    case Some(true) => "b1"
     case Some(false) => "b0"
+    case Some(true) => "b1"
     case None => "bx"
     case x:Int => s"b${x.toBinaryString}"
     case x => 
@@ -107,7 +107,9 @@ abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extend
     value match {
       case value:Bus =>
         if (value.busWidth>1) emitkv(s"scope module", sname)
-        value.foreachv { case (v,i) => declare(v, prefix) } { valid => declare(valid, prefix) }
+        value.foreachv { 
+          case (v,i) => declare(v, prefix) 
+        } { valid => declare(valid, prefix) }
         if (value.busWidth>1) emitln(s"$$upscope $$end")
       case Word(wordWidth) if wordWidth == 1 =>
         emitVar("wire", wordWidth, id(value), sname)

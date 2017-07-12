@@ -205,6 +205,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
     import spademeta._
+    val low = Const(false)
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.sbufs.foreach { buf => 
@@ -213,9 +214,11 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cb.readEn.out; 
           buf.incReadPtr <== cb.writeEn.out; 
           buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.predicate <== low.out
         }
         cu.vbufs.foreach { buf => 
           buf.incReadPtr <== cb.writeEn.out; 
+          buf.predicate <== low.out
         }
         cu.srams.foreach { sram => 
           sram.incReadPtr <== cb.readDoneXbar.out 
@@ -227,15 +230,20 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cu.ctrs.map(_.done)
           buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.en.out; 
+          buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.predicate <== cb.fifoPredUnit.out
         }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cu.bufs.foreach { buf => buf.incReadPtr <== cb.doneXbar.out  }
-        cu.bufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
+        cu.bufs.foreach { buf => 
+          buf.incReadPtr <== cb.doneXbar.out
+          buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.predicate <== low.out
+        }
       case (mc:MemoryController, cb:MCCtrlBox) =>
         //mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
         mc.sbufs.foreach { buf => buf.incReadPtr <== cb.en.out }
         mc.data.incReadPtr <== cb.running
+        mc.bufs.foreach { buf => buf.predicate <== low.out }
         //cb.en.in <== cb.fifoAndTree.out
       case (top:Top, cb:TopCtrlBox) =>
     }

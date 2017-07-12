@@ -154,7 +154,7 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
     import sim.pirmeta._
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
-      memory = Array.tabulate(bufferSize, size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+      memory = Array.tabulate(bufferSize, mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
       val wdelay = rtmap(writePort)
       writePortDelay.v := writePort.vAt(wdelay)
       writeEnDelay.v := writeEn.vAt(wdelay)
@@ -199,18 +199,23 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
 trait LocalBuffer extends OnChipMem {
+  val predicate = Input(Bit(), this, s"${this}.predicate")
   val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
   val notFull = Output(Bit(), this, s"${this}.notFull")
   type M = Array[P]
 
   override def register(implicit sim:Simulator):Unit = {
+    import sim.util._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       readPort.v.set { v => 
         updateMemory
         v <<= memory(readPtr.v.toInt)
       }
-      notEmpty.v := count.v > 0
+      notEmpty.v := eval(BitOr, predicate.v, (count.v > 0))
       notFull.v := count.v < bufferSize //TODO: implement almost full
+      if (mem.isSFifo) {
+        incReadPtr.v := fimap(incReadPtr).v.asSingle & predicate.v.not
+      }
     }
     super.register
   }

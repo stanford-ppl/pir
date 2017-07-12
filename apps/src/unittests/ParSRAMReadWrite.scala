@@ -7,11 +7,13 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object SRAMReadWrite_cb extends PIRApp {
-  override val arch = SN(2,2,pattern=Checkerboard)
+object ParSRAMReadWrite extends PIRApp {
+  override val arch = SN(2,3)
   def main(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1055_x1064_data_v = Vector("x1055_x1064_data")
+    val x1055_x1064_ra_s = Scalar("x1055_x1064_ra")
+    val x1055_x1064_wa_s = Scalar("x1055_x1064_wa")
     val x1026_x1096_argout = ArgOut("x1026_x1096")
     val x1098 = Sequential(name="x1098",parent=top) { implicit CU => 
       val x1098_unit = CounterChain(name = "x1098_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -21,11 +23,19 @@ object SRAMReadWrite_cb extends PIRApp {
       val x1047 = CounterChain(name = "x1047", ctr2).iter(2)
       Stage(operands=List(Const(0), CU.ctr(ctr2)), op=FixAdd, results=List(CU.vecOut(x1055_x1064_data_v)))
     }
+    val x1052_wa = Pipeline(name="x1052_wa",parent=x1098) { implicit CU => 
+      val x1047 = CounterChain.copy("x1052", "x1047")
+      Stage(operands=List(CU.ctr(x1047(0))), op=Bypass, results=List(CU.scalarOut(x1055_x1064_wa_s)))
+    }
+    val x1052_ra = Pipeline(name="x1052_ra",parent=x1098) { implicit CU => 
+      val x1076 = CounterChain.copy("x1087_0", "x1076")
+      Stage(operands=List(CU.ctr(x1076(0))), op=Bypass, results=List(CU.scalarOut(x1055_x1064_ra_s)))
+    }
     val x1034_dsp0 = MemoryPipeline(name="x1034_dsp0",parent=x1098) { implicit CU => 
       val x1070_x1070 =  VectorFIFO(size=1).wtPort(x1055_x1064_data_v)
-      val x1047 = CounterChain.copy("x1052", "x1047")
-      val x1076 = CounterChain.copy("x1087_0", "x1076")
-      val x1034_x1079 =  SRAM(size=32,banking = Strided(1)).wtPort(x1070_x1070.readPort).rdPort(x1034_x1079_x1087_v).rdAddr(x1076(0)).wtAddr(x1047(0))
+      val wa =  ScalarFIFO(size=1).wtPort(x1055_x1064_wa_s)
+      val ra =  ScalarFIFO(size=1).wtPort(x1055_x1064_ra_s)
+      val x1034_x1079 =  SRAM(size=32,banking = Strided(1)).wtPort(x1070_x1070.readPort).rdPort(x1034_x1079_x1087_v).rdAddr(ra.readPort).wtAddr(wa.readPort)
     }
     val x1087_0 = Pipeline(name="x1087_0",parent=x1098) { implicit CU => 
       val x1079_x1079 =  VectorFIFO(size=1).wtPort(x1034_x1079_x1087_v)

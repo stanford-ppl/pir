@@ -8,10 +8,7 @@ import pir.util.misc._
 import pir.util._
 import pir.plasticine.util._
 
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
+import scala.collection.mutable._
 
 class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   import pirmeta._
@@ -37,7 +34,64 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
 
   def setPredicate(ctrler:Controller) = {
     setAccumPredicate(ctrler)
-    //setFifoPredicate(ctrler)
+    setFifoPredicate(ctrler)
+  }
+
+  def setFifoPredicate(ctrler:Controller) = {
+    ctrler match {
+      case cu:Pipeline =>
+        val lookUp = Map[Reg, FIFO]()
+        def addPredicate(mem:FIFO, sel:InPort) = {
+          sel.from.src match {
+            case PipeReg(stage, reg) => lookUp += reg -> mem
+            case _ => throw PIRException(s"Not supported format for FIFO Predicate in ${ctrler}")
+          }
+        }
+        cu.stages.reverseIterator.foreach { stage =>
+          stage.fu.foreach { fu =>
+            fu.op match {
+              case Mux =>
+                val sel::data = fu.operands
+                data.foreach { 
+                  _.from.src match {
+                    case PipeReg(stage, LoadPR(mem:FIFO)) => addPredicate(mem, sel)
+                    case mem:FIFO => addPredicate(mem, sel)
+                    case _ =>
+                  }
+                }
+              case _ =>
+            }
+            fu.out.to.foreach {
+              _.src match {
+                case PipeReg(stage, reg) if lookUp.contains(reg) =>
+                  var const:Option[Int] = None
+                  var counter:Option[Counter] = None
+                  fu.operands.foreach {
+                    _.from.src match {
+                      case Const(c:Int) => const = Some(c)
+                      case PipeReg(stage, CtrPR(ctr)) => counter = Some(ctr)
+                      case ctr:Counter => counter = Some(ctr)
+                      case x => throw PIRException(s"Not supported operand $x for FIFO predication in ${ctrler}")
+                    }
+                  }
+                  if (const.isEmpty || counter.isEmpty) {
+                    throw PIRException(s"Not supported operand for FIFO predication in ${ctrler} const=$const counter=$counter")
+                  } else {
+                    fu.op match {
+                      case op:FixOp if fixCompOps.contains(op) => 
+                        val predUnit = cu.ctrlBox.setFifoPredicate(counter.get, op, const.get)
+                        val fifo = lookUp(reg)
+                        fifo.predicate.connect(predUnit.out)
+                      case op => throw PIRException(s"Unsupported op for FIFO predication $op")
+                    }
+                  }
+                case _ =>
+              }
+            }
+          }
+        }
+      case _ =>
+    }
   }
 
   def setAccumPredicate(cu:Controller) = {

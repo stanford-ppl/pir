@@ -65,41 +65,43 @@ trait Ops {
   sealed trait Op2 extends Op { def eval(a:T, b:T):AnyVal }
   sealed trait Op3 extends Op { def eval(a:T, b:T, c:T):AnyVal }
 
+  sealed trait CompOp extends Op
+
   sealed trait FixOp extends Op { type T = Int; _fixOps += this }
-  case object FixAdd extends FixOp with Op2 { def eval(a:T, b:T) = a + b          }
-  case object FixSub extends FixOp with Op2 { def eval(a:T, b:T) = a - b          }
-  case object FixMul extends FixOp with Op2 { def eval(a:T, b:T) = a * b          }
-  case object FixDiv extends FixOp with Op2 { def eval(a:T, b:T) = a / b          }
-  case object FixMin extends FixOp with Op2 { def eval(a:T, b:T) = Math.min(a, b) }
-  case object FixMax extends FixOp with Op2 { def eval(a:T, b:T) = Math.max(a, b) }
-  case object FixLt  extends FixOp with Op2 { def eval(a:T, b:T) = a < b          }
-  case object FixLeq extends FixOp with Op2 { def eval(a:T, b:T) = a <= b         }
-  case object FixGt  extends FixOp with Op2 { def eval(a:T, b:T) = a > b          }
-  case object FixGeq extends FixOp with Op2 { def eval(a:T, b:T) = a >= b         }
-  case object FixEql extends FixOp with Op2 { def eval(a:T, b:T) = a == b         }
-  case object FixNeq extends FixOp with Op2 { def eval(a:T, b:T) = a != b         }
-  case object FixMod extends FixOp with Op2 { def eval(a:T, b:T) = a % b          }
-  case object FixSra extends FixOp with Op2 { def eval(a:T, b:T) = a.toInt >> b.toInt}
-  case object FixNeg extends FixOp with Op1 { def eval(a:T     ) = -a             }
+  case object FixAdd extends FixOp             with Op2 { def eval(a:T, b:T) = a + b          }
+  case object FixSub extends FixOp             with Op2 { def eval(a:T, b:T) = a - b          }
+  case object FixMul extends FixOp             with Op2 { def eval(a:T, b:T) = a * b          }
+  case object FixDiv extends FixOp             with Op2 { def eval(a:T, b:T) = a / b          }
+  case object FixMin extends FixOp             with Op2 { def eval(a:T, b:T) = Math.min(a, b) }
+  case object FixMax extends FixOp             with Op2 { def eval(a:T, b:T) = Math.max(a, b) }
+  case object FixLt  extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a < b          }
+  case object FixLeq extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a <= b         }
+  case object FixGt  extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a > b          }
+  case object FixGeq extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a >= b         }
+  case object FixEql extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a == b         }
+  case object FixNeq extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a != b         }
+  case object FixMod extends FixOp             with Op2 { def eval(a:T, b:T) = a % b          }
+  case object FixSra extends FixOp             with Op2 { def eval(a:T, b:T) = a.toInt >> b.toInt}
+  case object FixNeg extends FixOp             with Op1 { def eval(a:T     ) = -a             }
   
   sealed trait FltOp extends Op { type T = Float; _fltOps += this }
-  case object FltAdd extends FltOp with Op2 { def eval(a:T, b:T) = a + b           }
-  case object FltSub extends FltOp with Op2 { def eval(a:T, b:T) = a - b           }
-  case object FltMul extends FltOp with Op2 { def eval(a:T, b:T) = a * b           }
-  case object FltDiv extends FltOp with Op2 { def eval(a:T, b:T) = a / b           }
-  case object FltMin extends FltOp with Op2 { def eval(a:T, b:T) = Math.min(a , b) }
-  case object FltMax extends FltOp with Op2 { def eval(a:T, b:T) = Math.max(a , b) }
-  case object FltLt  extends FltOp with Op2 { def eval(a:T, b:T) = a < b           }
-  case object FltLeq extends FltOp with Op2 { def eval(a:T, b:T) = a <= b          }
-  case object FltGt  extends FltOp with Op2 { def eval(a:T, b:T) = a > b           }
-  case object FltGeq extends FltOp with Op2 { def eval(a:T, b:T) = a >= b          }
-  case object FltEql extends FltOp with Op2 { def eval(a:T, b:T) = a == b          }
-  case object FltNeq extends FltOp with Op2 { def eval(a:T, b:T) = a != b          }
-  case object FltExp extends FltOp with Op1 { def eval(a:T     ) = Math.exp(a)     }
-  case object FltAbs extends FltOp with Op1 { def eval(a:T     ) = Math.abs(a)     }
-  case object FltLog extends FltOp with Op1 { def eval(a:T     ) = Math.log(a)     }
-  case object FltSqr extends FltOp with Op1 { def eval(a:T     ) = Math.sqrt(a)    }
-  case object FltNeg extends FltOp with Op1 { def eval(a:T     ) = -a              }
+  case object FltAdd extends FltOp             with Op2 { def eval(a:T, b:T) = a + b           }
+  case object FltSub extends FltOp             with Op2 { def eval(a:T, b:T) = a - b           }
+  case object FltMul extends FltOp             with Op2 { def eval(a:T, b:T) = a * b           }
+  case object FltDiv extends FltOp             with Op2 { def eval(a:T, b:T) = a / b           }
+  case object FltMin extends FltOp             with Op2 { def eval(a:T, b:T) = Math.min(a , b) }
+  case object FltMax extends FltOp             with Op2 { def eval(a:T, b:T) = Math.max(a , b) }
+  case object FltLt  extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a < b           }
+  case object FltLeq extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a <= b          }
+  case object FltGt  extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a > b           }
+  case object FltGeq extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a >= b          }
+  case object FltEql extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a == b          }
+  case object FltNeq extends FltOp with CompOp with Op2 { def eval(a:T, b:T) = a != b          }
+  case object FltExp extends FltOp             with Op1 { def eval(a:T     ) = Math.exp(a)     }
+  case object FltAbs extends FltOp             with Op1 { def eval(a:T     ) = Math.abs(a)     }
+  case object FltLog extends FltOp             with Op1 { def eval(a:T     ) = Math.log(a)     }
+  case object FltSqr extends FltOp             with Op1 { def eval(a:T     ) = Math.sqrt(a)    }
+  case object FltNeg extends FltOp             with Op1 { def eval(a:T     ) = -a              }
 
   sealed trait BitOp  extends Op { type T = Boolean; _bitOps += this }
   case object BitAnd  extends BitOp with Op2 { def eval(a:T, b:T) = a && b }
@@ -130,6 +132,9 @@ trait Ops {
   def bitOps = _bitOps.toList
   def otherOps = _otherOps.toList
   def ops = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
+  def compOps = ops.collect {case op:CompOp => op}
+  def fixCompOps = fixOps.collect {case op:CompOp => op}
+  def fltCompOps = fltOps.collect {case op:CompOp => op}
 
 FixAdd 
 FixSub 

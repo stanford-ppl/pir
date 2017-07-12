@@ -607,6 +607,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       x match {
         case -1 => s"scus(0)($y)"
         case `numCols` => s"scus(1)($y)"
+        case _ => s"cus($x)($y).asSCUBits"
       }
     case n:PMC =>
       val (x, y) = coordOf(n)
