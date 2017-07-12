@@ -137,10 +137,13 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
         val last = if (isLast.get(n)==Some(true)) s"\n(LAST)" else ""
         val streaming = if (isStreaming.get(n)==Some(true)) s"\n(Streaming)" else ""
         val pipelining = if (isPipelining.get(n)==Some(true)) s"\n(Pipelining)" else ""
+        val par = parOf.get(n).fold("") { p => s"\n(par=$p)" }
+        val rpar = rparOf.get(n).fold("") { p => s"\n(rpar=$p)" }
+        val wpar = wparOf.get(n).fold("") { p => s"\n(wpar=$p)" }
         val iter = iterOf.get(n).fold("") { c => s"\n(Iter=$c)"}
         val cycle = cycleOf.get(n).fold("") { c => s"\n(Cycle=$c)"}
         val totalCycle = totalCycleOf.get(n).fold("") { c => s"\n(TotalCycle=$c)"}
-        s"${super.quote(n)}$head$last$streaming$pipelining$iter$cycle$totalCycle"
+        s"${super.quote(n)}$head$last$streaming$pipelining$par$rpar$wpar$iter$cycle$totalCycle"
       case n => super.quote(n)
     }
   }

@@ -51,8 +51,7 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  //addPass(canRun=design.livenessAnalyzer.hasRun) {
-  addPass {
+  addPass (runCount=2) {
     setAccess
     design.top.compUnits.foreach { cu =>
       emitBlock(s"$cu") {

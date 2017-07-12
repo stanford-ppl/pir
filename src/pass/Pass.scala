@@ -54,6 +54,7 @@ abstract class Pass(implicit val design:Design) {
   val passRanCount = mutable.Map[Int, (Int,Int)]()
   def addPass(pass: => Any):Unit = addPass(canRun=true, runCount=1) (pass)
   def addPass(canRun: => Boolean)(pass: => Any):Unit = addPass(canRun, runCount=1) (pass)
+  def addPass(runCount:Int)(pass: => Any):Unit = addPass(true, runCount)(pass)
   def addPass(canRun: => Boolean, runCount:Int)(pass: => Any):Unit = {
     passRanCount += passes.size -> (runCount, 0)
     passes += ((canRun _, pass _))
@@ -77,11 +78,13 @@ abstract class Pass(implicit val design:Design) {
     }
   }
   def hasRun = {
-    passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
+    //passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
+    passRanCount.forall { case (id, (totalRun, currRun)) => currRun > 0 }
   }
   def hasRun(id:Int) = {
     val (totalRun, currRun) = passRanCount(id)
-    totalRun == currRun
+    //totalRun == currRun
+    currRun > 0
   }
 
 }

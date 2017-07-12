@@ -44,7 +44,7 @@ class MemoryComputeUnit(override val param:MemoryComputeUnitParam=MemoryComputeU
   import spademeta._
   import param._
 
-  override lazy val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox(numUDCs)
+  lazy val ctrlBox:MemoryCtrlBox = new MemoryCtrlBox()
 
   private val _wastages:ListBuffer[WAStage] = ListBuffer.empty // Write Addr Stages
   private val _rastages:ListBuffer[RAStage] = ListBuffer.empty // Read Addr Stages

@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-trait Memory extends Node with Simulatable {
+trait Memory extends Module with Simulatable {
   val size:Int
   var updatedMemory = false
   type M
@@ -32,7 +32,11 @@ trait Memory extends Node with Simulatable {
           f(memory)
         } catch {
           case e:Exception =>
-            errmsg(e.toString)
+            val info = this match {
+              case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${smmap.pmap.get(mem)})"
+              case mem:DRAM => s"dram"
+            }
+            errmsg(s"[$info]: ${e.toString}")
             errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)

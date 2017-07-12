@@ -278,14 +278,14 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass(canRun=design.multiBufferAnalyzer.hasRun, 1) {
+  addPass(canRun=design.multiBufferAnalyzer.hasRun(0), 1) {
     design.top.compUnits.foreach { cu =>
-      analyzeAddrCalc(cu)
-      setSwapCC(cu)
-      copySwapCC(cu)
-      analyzeAddrCalc(cu)
-      duplicateCChain(cu)
-      setPar(cu)
+      analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
+      setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
+      copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
+      analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
+      duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
+      setPar(cu) // use forRead, forWrite, set parOf, rparOf, wparOf
       emitBlock(s"$cu") {
         cu.cchains.foreach { cchain =>
           cchain.counters.foreach { ctr =>

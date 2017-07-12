@@ -28,6 +28,7 @@ case class TopParam (
 case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade) extends Controller(param) { self =>
   import spademeta._
   import param._
+
   lazy val ctrlBox:TopCtrlBox = TopCtrlBox()
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._

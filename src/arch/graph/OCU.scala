@@ -37,5 +37,5 @@ class OuterComputeUnit(override val param:OuterComputeUnitParam=new OuterCompute
   override val typeStr = "ocu"
   override def config = param.config(this)
 
-  override lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox(numUDCs)
+  lazy val ctrlBox:OuterCtrlBox = new OuterCtrlBox()
 }

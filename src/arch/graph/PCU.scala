@@ -42,5 +42,7 @@ case class PatternComputeUnitParam(
 class PatternComputeUnit(override val param:PatternComputeUnitParam=PatternComputeUnitParam())(implicit spade:Spade) 
   extends ComputeUnit(param) {
   override val typeStr = "pcu"
+
+  lazy val ctrlBox:InnerCtrlBox = new InnerCtrlBox()
   override def config = param.config(this)
 }

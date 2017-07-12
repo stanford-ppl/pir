@@ -40,5 +40,6 @@ case class ScalarComputeUnitParam (
 class ScalarComputeUnit(override val param:ScalarComputeUnitParam=new ScalarComputeUnitParam())(implicit spade:Spade) 
   extends ComputeUnit(param) {
   override val typeStr = "scu"
+  lazy val ctrlBox:InnerCtrlBox = new InnerCtrlBox()
   override def config = param.config(this)
 }

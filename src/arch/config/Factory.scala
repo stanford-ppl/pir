@@ -150,27 +150,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
 
   }
 
-  def connectAndTree(cu:Controller):Unit = {
-    implicit val spade:Spade = cu.spade
-    val spademeta: SpadeMetadata = spade
-    import spademeta._
-    (cu, cu.ctrlBox) match {
-      case (cu:ComputeUnit, cb:InnerCtrlBox) => 
-        cb.siblingAndTree <== cb.udcs.map(_.out)
-        cb.tokenInAndTree <== cu.cins.map(_.ic)
-        cb.fifoAndTree <== cu.bufs.map(_.notEmpty) 
-      case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cb.childrenAndTree <== cb.udcs.map(_.out)
-        cb.siblingAndTree <== cb.udcs.map(_.out)
-      case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cb.writeFifoAndTree <== cu.bufs.map(_.notEmpty) 
-        cb.readFifoAndTree <== cu.bufs.map(_.notEmpty)
-      case (cu:MemoryController, cb:MCCtrlBox) =>
-        cb.fifoAndTree <== cu.bufs.map(_.notEmpty) 
-      case (top:Top, cb:TopCtrlBox) =>
-    }
-  }
-
   def connectCounters(cu:Controller):Unit = {
     implicit val spade:Spade = cu.spade
     val spademeta: SpadeMetadata = spade
@@ -219,17 +198,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.readUDC.dec <== cb.readDoneXbar.out
       case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
-    }
-  }
-
-  def connectPredUnits(cu:Controller):Unit = {
-    (cu, cu.ctrlBox) match {
-      case (cu:ComputeUnit, cb:InnerCtrlBox) =>
-        cu.ctrs.foreach { ctr => 
-          cb.accumPredUnit.in <== (ctr.out, 0)
-          cb.fifoPredUnit.in <== (ctr.out, 0) 
-        }
-      case _ =>
     }
   }
 
@@ -296,7 +264,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
-        cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.sbufs.map(_.notFull)
           cout.ic <== cb.doneDelay.out
@@ -321,16 +288,14 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           cout.ic <== cb.wdone
         }
       case (top:Top, cb:TopCtrlBox) =>
-        top.couts.foreach { _.ic <== cb.command}
         top.cins.foreach { _.ic ==> cb.status }
+        top.couts.foreach { _.ic <== cb.command}
     }
   }
 
   def connectCtrl(cu:Controller):Unit = {
-    connectAndTree(cu)
     connectCounters(cu)
     connectUDCs(cu)
-    connectPredUnits(cu)
     connectMemoryControl(cu)
     connectStageControl(cu)
     connectCtrlIO(cu)

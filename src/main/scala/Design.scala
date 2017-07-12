@@ -121,8 +121,11 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen1
   passes += accessAnalyzer
   passes += multiBufferAnalyzer
-  passes += memoryAnalyzer    // set swapReadCChainOf, swapWriteCChainOf, 
-                              // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf
+  passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
+                              // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
+                              // rparOf, wparOf
+  passes += accessAnalyzer
+  passes += multiBufferAnalyzer
   passes += livenessAnalyzer 
   passes += optimizer
   passes += pirDataDotGen2

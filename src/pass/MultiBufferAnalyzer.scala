@@ -143,7 +143,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass(design.accessAnalyzer.hasRun) {
+  addPass(design.accessAnalyzer.hasRun, runCount=2) {
     setProducerConsumer
     findBackEdge
     setBufferSize

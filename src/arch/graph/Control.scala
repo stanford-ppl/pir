@@ -235,95 +235,116 @@ case class PredicateUnit()(implicit spade:Spade, override val prt:Controller, cb
   }
 }
 
-abstract class CtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
+abstract class CtrlBox()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   implicit val ctrlBox:CtrlBox = this
   import spademeta._
-  for (i <- 0 until numUDCs) { UDCounter(idx=i) }
   lazy val _udcs = ListBuffer[UDCounter]()
   def udcs = _udcs.toList
   lazy val andTrees = ListBuffer[AndTree]()
   lazy val delays = ListBuffer[Delay[Bit]]()
   lazy val andGates = ListBuffer[AndGate]()
   lazy val predicateUnits = ListBuffer[PredicateUnit]()
+
+  val fifoAndTree = AndTree("fifoAndTree")
+  fifoAndTree <== prt.bufs.map(_.notEmpty) 
 }
 
+abstract class StageCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit) extends CtrlBox {
+  import prt.param._
 
+  for (i <- 0 until numUDCs) { UDCounter(idx=i) }
+  val siblingAndTree = AndTree("siblingAndTree") 
+  siblingAndTree <== udcs.map(_.out)
+}
 
-class InnerCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:ComputeUnit) extends CtrlBox(numUDCs) {
+class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit) 
+  extends StageCtrlBox {
   val doneXbar = Delay(Bit(), 0, s"${quote(prt)}.doneXbar")
+
   val doneDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.doneDelay")
   doneDelay.in <== doneXbar.out
+
   val en = Delay(Bit(), 0, s"${quote(prt)}.en")
+
   val enDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.enDelay")
   enDelay.in <== en.out
+
   val tokenInXbar = Delay(Bit(), 0)
-  val siblingAndTree = AndTree("siblingAndTree") 
-  val fifoAndTree = AndTree("fifoAndTree")
+  tokenInXbar.in <== prt.cins.map(_.ic)
+
   val tokenInAndTree = AndTree("tokenInAndTree")
+  tokenInAndTree <== prt.cins.map(_.ic)
+
   val pipeAndTree = AndTree("pipeAndTree")
   pipeAndTree <== siblingAndTree.out
   pipeAndTree <== fifoAndTree.out
+
   val streamAndTree = AndTree("streamAndTree")
   streamAndTree <== tokenInAndTree.out
   streamAndTree <== fifoAndTree.out
   en.in <== pipeAndTree.out // 0
   en.in <== streamAndTree.out // 1
+
   val accumPredUnit = PredicateUnit()
   val fifoPredUnit = PredicateUnit()
+  prt.ctrs.foreach { ctr => 
+    accumPredUnit.in <== (ctr.out, 0)
+    fifoPredUnit.in <== (ctr.out, 0) 
+  }
 }
 
-class OuterCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:OuterComputeUnit) extends CtrlBox(numUDCs) {
+class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit) 
+  extends StageCtrlBox {
   val doneXbar = Delay(Bit(), 0, s"$prt.doneXbar")
-  val en = Delay(Bit(), 0, s"$prt.en")
+
   val childrenAndTree = AndTree("childrenAndTree") 
-  val siblingAndTree = AndTree("siblingAndTree") 
+  childrenAndTree <== udcs.map(_.out)
+
+  val en = Delay(Bit(), 0, s"$prt.en")
+
   val udsm = UpDownSM()
   udsm.doneIn <== doneXbar.out
   udsm.dec <== childrenAndTree.out
   udsm.inc <== en.out
+
   val enAnd = AndGate("enAnd")
   enAnd <== udsm.notDone
   enAnd <== udsm.notRun
   enAnd.ins(1).asBit <== Const(true).out
   enAnd <== siblingAndTree.out
+
   en.in <== enAnd.out 
 }
 
-class MemoryCtrlBox(numUDCs:Int)(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox(numUDCs) {
+class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox() {
   val readDoneXbar = Delay(Bit(), 0, s"$prt.readDoneXbar")
   val writeDoneXbar = Delay(Bit(), 0, s"$prt.writeDoneXbar")
   val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
+
   val writeFifoAndTree = AndTree("writeFifoAndTree") 
+  writeFifoAndTree <== prt.bufs.map(_.notEmpty) 
+
   val readFifoAndTree = AndTree("readFifoAndTree") 
+  readFifoAndTree <== prt.bufs.map(_.notEmpty)
+
   val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
   val readEn = Delay(Bit(),0, s"$prt.readEn") 
+
   val readDelay = Delay(Bit(),s"$prt.readDelay") 
   readDelay.in <== readEn.out
+
   val readUDC = UDCounter()
+
   val readAndGate = AndGate(s"$prt.readAndGate")
   readAndGate <== readUDC.out
   readAndGate <== readFifoAndTree.out 
 }
 
-//class MUCtrlBox()(implicit spade:Spade, override val prt:MemoryUnit) extends CtrlBox(0) {
-  //val readDoneXbar = Delay(Bit(), 0, s"$prt.readDoneXbar")
-  //val writeDoneXbar = Delay(Bit(), 0, s"$prt.writeDoneXbar")
-  //val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
-  //val writeFifoAndTree = AndTree("writeFifoAndTree") 
-  //val readFifoAndTree = AndTree("readFifoAndTree") 
-  //val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
-  //val readEn = Delay(Bit(),0, s"$prt.readEn") 
-  //val readDelay = Delay(Bit(),s"$prt.readDelay") 
-  //readDelay.in <== readEn.out
-  //val readUDC = UDCounter()
-  //val readAndGate = AndGate(s"$prt.readAndGate")
-  //readAndGate <== readUDC.out
-  //readAndGate <== readFifoAndTree.out 
-//}
+case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox() {
 
-case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox(0) {
   val command = Output(Bit(), this, s"command")
   val status = Input(Bit(), this, s"status")
+
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     super.register
@@ -335,16 +356,16 @@ case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends Ctrl
   }
 }
 
-class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) extends CtrlBox(0) {
+class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) extends CtrlBox() {
   val rdone = Output(Bit(), this, s"${this}.rdone")
   val wdone = Output(Bit(), this, s"${this}.wdone")
-  val fifoAndTree = AndTree("fifoAndTree")
   val en = Delay(Bit(), 0, s"$prt.en")
   val WAITING = false
   val RUNNING = true
   val state = Output(Bit(), this, s"${this}.state")
   val running = Output(Bit(), this, s"${this}.running")
   val count = Output(Word(), this, s"${this}.count")
+
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import spademeta._

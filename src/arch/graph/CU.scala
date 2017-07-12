@@ -24,7 +24,7 @@ trait ComputeUnitParam extends ControllerParam {
 /*
  * ComputeUnit
  * */
-abstract class ComputeUnit(param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) {
+abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) {
   import spademeta._
   import param._
   //override implicit val ctrler:ComputeUnit = this 
@@ -34,7 +34,6 @@ abstract class ComputeUnit(param:ComputeUnitParam)(implicit spade:Spade) extends
   //var sbufs:List[ScalarMem] = Nil // in Controller
   def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
 
-  lazy val ctrlBox:CtrlBox = new InnerCtrlBox(numUDCs)
   def vout = vouts.head
 
   protected val _regstages:ListBuffer[FUStage] = ListBuffer.empty  // Regular Stages
