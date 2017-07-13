@@ -158,16 +158,16 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def lookUp(n:PO[PModule]):List[String] = {
     fimap.pmap(n).toList.map { i =>
-      val (src,value) =  i.src match {
+      val (src,value) =  i.propogate.src match {
         case s:PPR =>
           n.src match {
             case ts:PFU => ("CurrStageDst", s"${s.reg.index}")
           }
         case s:PGO[_] if networkOf(s).isVectorNetwork => ("VectorOutDst", s.index)
         case s:PGO[_] if networkOf(s).isScalarNetwork => ("ScalarOutDst", s.index)
-        case s:PSRAM if i == s.readAddr =>
+        case s:PSRAM if i == s.readAddr || s.readAddr.slices.map(_.in).contains(i) =>
           ("ReadAddrDst", -1)
-        case s:PSRAM if i == s.writeAddr =>
+        case s:PSRAM if i == s.writeAddr || s.writeAddr.slices.map(_.in).contains(i) =>
           ("WriteAddrDst", -1)
       }
       s"$SVT($src, $value)"
@@ -242,10 +242,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
         emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
         emitln(s"${quote(pst)}.opcode = ${quote(fu.op)}")
-        if (fimap.pmap.contains(pfu.out)) {
-          emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
-        } else {
+        assert(fimap.pmap(pfu.out).size==1)
+        if (fimap.pmap(pfu.out).head.isSrcSlice) {
           emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out.sliceHead.out))}")
+        } else {
+          emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
         }
         emitAccum(pcu, fu)
         cu match {

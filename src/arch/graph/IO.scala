@@ -117,6 +117,8 @@ abstract class IO[P<:PortType, +S<:Module](val tp:P, val src:S)(implicit spade:S
   def asWord:IO[Word, S]
   def asBit:IO[Bit, S]
   def asGlobal:GlobalIO[P, S]
+
+  def isSrcSlice = src.isInstanceOf[Slice[_,_]]
 }
 
 /* Input pin. Can only connects to output of the same level */
