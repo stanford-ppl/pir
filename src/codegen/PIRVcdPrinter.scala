@@ -18,7 +18,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
 trait PIRVcdDeclarator { self:VcdPrinter =>
-  import sim.util._
+  import sim.util.{quote => _, _}
   val pirDeclarator:PIRVcdDeclarator = this
 
   private val _tracking = ListBuffer[PIO[PModule]]()
@@ -34,18 +34,19 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
         case io:Input =>
           visited += node
           val pio = vimap(io)
-          declare(pio, Some(s"${quote(io)}@"))
+          declare(pio, Some(s"${self.quote(io)}"))
         case io:Output =>
           visited += node
-          vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
+          val pio = vomap(io).head
+          declare(pio, Some(s"${self.quote(io)}"))
         case io:InPort =>
           visited += node
           val pio = if (io.isCtrlIn) vimap.get(io) else ipmap.get(io)
-          pio.foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
+          pio.foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
         case io:OutPort =>
           visited += node
-          if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${quote(io)}@")) }
-          else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${quote(io)}@")) } }
+          if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
+          else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${self.quote(io)}")) } }
         case node:UDCounter => declare(node) { 
           super.visitNode(node)
           declare(pmmap(node).count, None)
@@ -68,9 +69,9 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
 
   def declare(n:Node)(finPass: => Unit):Unit = {
     val qt = n match {
-      case n:Controller => s"${quote(n)}@${quote(clmap(n))}"
-      case n:OnChipMem => s"${quote(n)}@${quote(smmap(n))}"
-      case n:Primitive if pmmap.contains(n) => s"${quote(n)}@${quote(pmmap(n))}"
+      //case n:Controller => s"${quote(n)}@${quote(clmap(n))}"
+      //case n:OnChipMem => s"${quote(n)}@${quote(smmap(n))}"
+      //case n:Primitive if pmmap.contains(n) => s"${quote(n)}@${quote(pmmap(n))}"
       case n => s"${quote(n)}"
     } 
     emitkv(s"scope module", s"$qt")

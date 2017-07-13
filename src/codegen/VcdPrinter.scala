@@ -98,18 +98,18 @@ abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extend
     emitln(s"$$upscope $$end")
   }
 
-  def declare(io:IO[_<:PortType,_<:Module], prefix:Option[String]=None):Unit = {
-    declare(io.v, prefix)
+  def declare(io:IO[_<:PortType,_<:Module], name:Option[String]=None):Unit = {
+    declare(io.v, name)
   }
 
-  def declare(value:Value, prefix:Option[String]):Unit = {
-    val sname = prefix.fold("") { p => quote(p)} + name(value)
+  def declare(value:Value, nm:Option[String]):Unit = {
+    val sname = nm.getOrElse(name(value))
     value match {
       case value:Bus =>
         if (value.busWidth>1) emitkv(s"scope module", sname)
         value.foreachv { 
-          case (v,i) => declare(v, prefix) 
-        } { valid => declare(valid, prefix) }
+          case (v,i) => declare(v, nm.map { n => s"$n($i)"}) 
+        } { valid => declare(valid, nm.map { n => s"${n}_valid" }) }
         if (value.busWidth>1) emitln(s"$$upscope $$end")
       case Word(wordWidth) if wordWidth == 1 =>
         emitVar("wire", wordWidth, id(value), sname)

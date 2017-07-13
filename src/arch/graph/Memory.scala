@@ -67,11 +67,12 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
   override val typeStr = "dram"
   type M = Array[Word]
   val memory = Array.tabulate(size) { i => Word(s"$this.array[$i]") }
+  val dramDefault:Array[AnyVal] = Array.tabulate(size) { i => i }
 
   def getValue:Array[Option[AnyVal]] = memory.map(_.value)
 
   override def register(implicit sim:Simulator):Unit = {
-    memory.zipWithIndex.foreach { case (v, i) => v.default = i }
+    memory.zipWithIndex.foreach { case (v, i) => v.default = dramDefault(i) }
   }
 
   def zeroMemory(implicit sim:Simulator):Unit = {
@@ -242,7 +243,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 
-          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)} overflow at $cycle!") }
+          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!") }
           v <<= writePort.v.update.valid
         }
       }

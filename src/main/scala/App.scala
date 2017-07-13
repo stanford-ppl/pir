@@ -31,6 +31,12 @@ trait PIRApp extends Design {
     }
   }
 
+  def dramDefault = arch.dram.dramDefault
+
+  def setDram(start:Int, array:Iterable[AnyVal]) = {
+    array.zipWithIndex.foreach { case (a, i) => dramDefault(start + i) = a }
+  }
+
   def main(top:Top): Any 
   def main(args: String): Unit = main(args.split(" "))
   def main(args: Array[String]): Unit = {

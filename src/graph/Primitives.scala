@@ -393,8 +393,8 @@ case class TempPR()(implicit ctrler:InnerController, design: Design)            
  **/
 case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Design) extends Primitive{
   override val name = None
-  val in:InPort = InPort(this, s"${this}") 
-  val out:OutPort = OutPort(this, {s"${this}"}) 
+  val in:InPort = InPort(this, s"${this}.in") 
+  val out:OutPort = OutPort(this, {s"${this}.out"}) 
   def read:OutPort = out
   def write(p:OutPort):Unit = in.connect(p) 
   override val typeStr = "PR"
