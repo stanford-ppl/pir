@@ -185,8 +185,14 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
     cu match {
       case cu:MemoryPipeline => 
-        rparOf(cu) = readCChainsOf(cu).head.inner.par
-        wparOf(cu) = writeCChainsOf(cu).head.inner.par
+        rparOf(cu) = cu.sram.readPort.to.head.src match {
+          case o:ScalarOut => 1
+          case o:VecOut => readCChainsOf(cu).head.inner.par
+        }
+        wparOf(cu) = cu.sram.writePort.from.src match {
+          case i:ScalarFIFO => 1
+          case i:VectorFIFO => writeCChainsOf(cu).head.inner.par
+        }
         cu.mems.foreach { 
           case mem if forRead(mem) => 
             parOf(mem) = rparOf(cu)

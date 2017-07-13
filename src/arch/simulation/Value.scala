@@ -135,6 +135,7 @@ trait Value extends Node with Evaluation { self:PortType =>
     updateFunc
   }
   def updateFunc(implicit sim:Simulator):Unit = {
+    import sim.util._
     if (!funcHasRan) {
       func.foreach { case (f, stackTrace) => 
         _funcHasRan = true
@@ -142,7 +143,7 @@ trait Value extends Node with Evaluation { self:PortType =>
           f(this)
         } catch {
           case e:Exception =>
-            errmsg(e.toString)
+            errmsg(s"${e.toString} at #$cycle")
             errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)
