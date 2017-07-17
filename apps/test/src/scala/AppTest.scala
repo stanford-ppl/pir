@@ -36,7 +36,6 @@ class AppTests extends UnitTest { self =>
     }
     correct
   }
-
   def test(
       app:PIRApp, 
       args:String="", 
@@ -46,20 +45,18 @@ class AppTests extends UnitTest { self =>
       debug:Boolean=false
     ) = {
     s"$app [$args] ($argOuts)" should "success" in { 
-      Config.simulate = true
-      Config.simulationTimeOut = timeOut
-      Config.debug = debug
-      Config.waveform = debug 
-      Config.verbose = debug 
-      Config.codegen = false
-      try {
+      def runApp = {
         if (app.pirMapping.hasRun) {
-          app.setArgs(args.split(" "))
-          app.simulator.reset
-          app.simulator.run
+          if (simulate) {
+            app.setArgs(args.split(" "))
+            app.simulator.reset
+            app.simulator.run
+          }
         } else {
           app.main(args)
         }
+      }
+      def checkResult = {
         assert(!app.simulator.timeOut)
         if (argOuts != "") {
           argOuts.split(" ").foreach { aos =>
@@ -74,6 +71,16 @@ class AppTests extends UnitTest { self =>
           logDRAM(app, dram)
           assert(checkDram(dram), s"DRAM result incorrect")
         }
+      }
+      Config.simulate = simulate
+      Config.simulationTimeOut = timeOut
+      Config.debug = debug
+      Config.waveform = debug 
+      Config.verbose = debug 
+      Config.codegen = false
+      try {
+        runApp
+        if (simulate) checkResult
       } catch {
         case e:Exception => errmsg(s"$e"); throw e
       }
@@ -134,8 +141,8 @@ class AppTests extends UnitTest { self =>
   }
 
   def testMatMult_inner(app:PIRApp, N:Int, M:Int, P:Int, startA:Int, startB:Int, startC:Int, debug:Boolean=false) = {
-    val a = Array.tabulate(M, P){ case (i, j) => i*P + j }
-    val b = Array.tabulate(P, N){ case (i, j) => i*N + j }
+    val a = Array.tabulate(M, P){ case (i, j) => startA + i*P + j }
+    val b = Array.tabulate(P, N){ case (i, j) => startB + i*N + j }
 
     val gold = List.tabulate(M, N){ case (i,j) =>
       val bCol = b.map{ row => row(j) }
@@ -146,13 +153,29 @@ class AppTests extends UnitTest { self =>
       app, 
       args=s"N=$N M=$M P=$P a_addr=${startA*4} b_addr=${startB*4} c_addr=${startC*4}", 
       checkDram = Some(checkDram(startC, gold) _),
-      timeOut=200,
+      timeOut=400,
+      debug=debug
+    )
+  }
+
+  def testBlockReduce1D(app:PIRApp, numTile:Int, tileSize:Int, startSrc:Int, startDst:Int, debug:Boolean=false) = {
+    val block = List.tabulate(numTile, tileSize){ case (i,j) => i * tileSize + j }
+    app.setDram(startSrc, block.flatten)
+
+    val gold = block.reduce[List[Int]] { case (t1, t2) => t1.zip(t2).map { case (e1, e2) => e1 + e2 } } 
+
+    test(
+      app, 
+      args=s"sizeIn=${numTile*tileSize} dstFPGA_addr=${startDst} srcFPGA_addr=${startSrc}", 
+      checkDram = Some(checkDram(startDst, gold) _),
+      timeOut=100,
       debug=debug
     )
   }
 
   //intercept[PIRException] {
 
+  val simulate = true
   // Apps 
   //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
@@ -161,8 +184,8 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", debug=false)
-  //test(SRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
+  test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", debug=false)
+  //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=2false0", debug=false)
   //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
@@ -173,9 +196,13 @@ class AppTests extends UnitTest { self =>
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
   //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
-  testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
+  //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=false)
+  //testBlockReduce1D(BlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=false)
-  //test(SRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
+  //test(ChainTest, args="ai_in=3 ai_out=3", argOuts="x223_x227=8", debug=true, timeOut=80)
+  //test(ChainTest, args="ai_in=1 ai_out=3", argOuts="x223_x227=0", debug=true, timeOut=80)
+  //test(SRAMReadWrite, argOuts="x1026_x1096=41", timeOut=60, debug=true)
+  //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
 }
 
