@@ -231,6 +231,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.incReadPtr <== cu.cins.map(_.ic)
           buf.incReadPtr <== cb.en.out; 
           buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.predicate <== low.out 
           buf.predicate <== cb.fifoPredUnit.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 

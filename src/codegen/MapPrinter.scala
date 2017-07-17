@@ -45,10 +45,12 @@ class MapPrinter(implicit design: Design) extends Codegen {
 
   def emit(pst:PST):Unit = {
     emitList(s"${quote(pst)} <- ${mp.stmap.pmap.get(pst)}"){
-      pst.funcUnit.foreach { fu =>
+      pst.funcUnit.foreach { pfu =>
         mp.stmap.pmap.get(pst).foreach { st =>
-          fu.ins.foreach(emit)
-          emitln(s"$fu.op=${st.fu.get.op}")
+          val fu = st.fu.get
+          emitln(s"$pfu <- $fu")
+          pfu.ins.foreach(emit)
+          emitln(s"$pfu.op=${fu.op}")
         }
       }
       pst.prs.foreach(pr => emit(pr.in))

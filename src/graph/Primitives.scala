@@ -143,7 +143,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
   override val typeStr = "FU"
   override val name = None
   val operands = List.tabulate(oprds.size) { i => 
-    val in = InPort(this, s"${oprds(i)}")
+    val in = InPort(this, s"${this}.oprd($i)")
     in.connect(oprds(i))
     in
   }
