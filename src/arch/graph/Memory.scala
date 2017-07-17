@@ -36,7 +36,7 @@ trait Memory extends Module with Simulatable {
               case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${smmap.pmap.get(mem)})"
               case mem:DRAM => s"dram"
             }
-            errmsg(s"[$info]: ${e.toString}")
+            errmsg(s"[$info #$cycle]: ${e.toString}")
             errmsg(e.getStackTrace.slice(0,15).mkString("\n"))
             errmsg(s"\nStaged trace for $this: ")
             errmsg(stackTrace)
@@ -125,7 +125,6 @@ trait OnChipMem extends Primitive with Memory {
         If (incWritePtr.pv) { v <<= v + 1 }
       }
     }
-    super.register
   }
 }
 
@@ -164,7 +163,6 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
         writeAddr.pv
         writePortDelay.pv
         writeEnDelay.pv
-        writePtr.v.default = 0
         If (writeEnDelay.pv) {
           writePortDelay.pv.foreach { 
             case (writePort, i) if i < wparOf(mem) =>
@@ -176,7 +174,6 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
         }
         //debug.v.update
       }
-      readPtr.v.default = 0
       readOut.v.set { v => 
         updateMemory
         v.foreach { 
@@ -247,7 +244,6 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
           v <<= writePort.v.update.valid
         }
       }
-      writePtr.v.default = 0
     }
     super.register
   }
@@ -280,7 +276,6 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
       incWritePtr.v.set { v =>
         v <<= writePort.v.update.valid
       }
-      writePtr.v.default = 0
     }
     super.register
   }

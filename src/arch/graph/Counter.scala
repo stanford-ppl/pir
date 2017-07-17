@@ -59,7 +59,6 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
         }
       }
     }
-    super.register
   }
 }
 

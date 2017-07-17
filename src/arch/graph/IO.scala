@@ -270,7 +270,6 @@ class GlobalInput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(
   import spademeta._
   override val ic:Output[P, this.type] = new Output(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
-    super.register
     ic := this
   }
   def connectedToSwitch:Boolean = fanIns.exists { _.src.isInstanceOf[SwitchBox] }
@@ -296,7 +295,6 @@ class GlobalOutput[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])
   import spademeta._
   override val ic:Input[P, this.type] = new Input(tp.clone, this, Some(() => s"$this.ic"))
   override def register(implicit sim:Simulator):Unit = {
-    super.register
     this := ic
   }
   def connectedToSwitch:Boolean = fanOuts.exists { _.src.isInstanceOf[SwitchBox] }
@@ -322,7 +320,6 @@ case class Slice[PI<:PortType, PO<:PortType](intp:PI, outtp:PO, i:Int)(implicit 
   val out = Output(outtp.clone(), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    super.register
     (in.v, out.v) match {
       case (in:SingleValue, out:BusValue) =>
         out.value(i) := in 
@@ -362,7 +359,6 @@ case class BroadCast[P<:PortType](bout:Output[P,Module], bintp:Bus)(implicit spa
   val out:Output[Bus, this.type] = Output(bintp.clone(), this, s"${this}.out")
   in <== bout
   override def register(implicit sim:Simulator):Unit = {
-    super.register
     out.v.foreach { case (v, i) => v := in.v }
   }
 }

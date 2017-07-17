@@ -57,7 +57,6 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
         //}
       //}
     }
-    super.register
   }
 }
 
@@ -130,7 +129,6 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
           }
       }
     }
-    super.register
   }
 }
 

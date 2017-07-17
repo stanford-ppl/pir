@@ -31,7 +31,6 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends Routable {
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    super.register
     (souts ++ vouts ++ couts).foreach { out =>
       fimap.get(out.ic).foreach { out.ic :== _ }
     }

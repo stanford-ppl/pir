@@ -78,6 +78,5 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
         case Scatter =>
       }
     }
-    super.register
   }
 }

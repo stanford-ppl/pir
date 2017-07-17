@@ -67,7 +67,6 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:Ctr
       }
       out.v := (count.v > 0)
     }
-    super.register
   }
 }
 object UDCounter {
@@ -93,7 +92,6 @@ case class AndGate(name:Option[String])(implicit spade:Spade, override val prt:C
       }
       res.getOrElse(None)
     }
-    super.register
   }
 }
 object AndGate {
@@ -122,7 +120,6 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val prt:C
       }
       res.getOrElse(None)
     }
-    super.register
   }
 }
 object AndTree {
@@ -167,7 +164,6 @@ case class PulserSM()(implicit spade:Spade, override val prt:Controller) extends
         }
       }
     }
-    super.register
   }
 }
 
@@ -213,7 +209,6 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
         ) { doneOutv.setLow }
       } 
     }
-    super.register
   }
 }
 
@@ -226,7 +221,6 @@ case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Con
     import sim.util._
     import sim.pirmeta._
     import pir.util.typealias._
-    super.register
     pmmap.pmap.get(this).fold {
       out.v := false
     } { case pdu:PDU =>
@@ -291,6 +285,8 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
     accumPredUnit.in <== (ctr.out, 0)
     fifoPredUnit.in <== (ctr.out, 0) 
   }
+
+  def register(implicit sim:Simulator):Unit = {}
 }
 
 class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit) 
@@ -314,6 +310,8 @@ class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit)
   enAnd <== siblingAndTree.out
 
   en.in <== enAnd.out 
+
+  def register(implicit sim:Simulator):Unit = {}
 }
 
 class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox() {
@@ -338,6 +336,8 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   val readAndGate = AndGate(s"$prt.readAndGate")
   readAndGate <== readUDC.out
   readAndGate <== readFifoAndTree.out 
+
+  def register(implicit sim:Simulator):Unit = {}
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox() {
@@ -347,7 +347,6 @@ case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends Ctrl
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    super.register
     status.vAt(3)
     command.v.set { v =>
       if (rst) v.setHigh
@@ -401,6 +400,5 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
         case Scatter =>
       }
     }
-    super.register
   }
 }

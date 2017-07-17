@@ -20,7 +20,6 @@ class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) ext
   val out:Output[P, this.type] = Output(tp.clone, this, s"$this.out")
 
   override def register(implicit sim:Simulator):Unit = {
-    super.register
     sim.mapping.pmmap.get(this).fold {
       out.v := value
     } { c => 
@@ -47,7 +46,6 @@ class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(impli
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.spade
-    super.register
     delay(mapping).foreach { delay =>
       dprintln(s"${quote(this)}.delay=$delay")
       out.v := in.vAt(delay) 

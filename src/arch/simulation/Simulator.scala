@@ -88,7 +88,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   def register = {
     dprintln(s"\n\nRegistering update functions ...")
     _inRegistration = true
-    spade.simulatable.foreach { s => s.register; s.zeroModule }
+    spade.simulatable.foreach { s => s.registerAll; s.zeroModule }
     spade.simulatable.foreach { s => s.updateModule; }
     spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
     _inRegistration = false
