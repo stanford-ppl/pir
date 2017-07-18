@@ -166,7 +166,7 @@ class AppTests extends UnitTest { self =>
 
     test(
       app, 
-      args=s"sizeIn=${numTile*tileSize} dstFPGA_addr=${startDst} srcFPGA_addr=${startSrc}", 
+      args=s"sizeIn=${numTile*tileSize} dstFPGA_addr=${startDst*4} srcFPGA_addr=${startSrc*4}", 
       checkDram = Some(checkDram(startDst, gold) _),
       timeOut=100,
       debug=debug
@@ -195,9 +195,9 @@ class AppTests extends UnitTest { self =>
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
-  testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=true)
+  //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
   //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=false)
-  //testBlockReduce1D(BlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
+  testBlockReduce1D(BlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=false)
   //test(ChainTest, args="ai_in=3 ai_out=3", argOuts="x223_x227=8", debug=true, timeOut=80)

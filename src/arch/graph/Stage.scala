@@ -72,8 +72,9 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
   val operands = List.tabulate(numOprds) { i => Input(Bus(prt.param.numLanes, Word()), this, s"$this.oprd[$i]") } 
   val out = Output(Bus(prt.param.numLanes, Word()), this, s"$this.out")
   override def register(implicit sim:Simulator):Unit = {
-    import sim.mapping._
-    import sim.{dprintln, quote}
+    import sim.util._
+    import sim.pirmeta._
+
     def readsColor(operands:List[Input[Bus, FuncUnit]], color:RegColor):List[Input[Bus, FuncUnit]] = {
       operands.slice(0,2).flatMap { op => 
         fimap.get(op).flatMap { 
@@ -85,49 +86,54 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
       }
     }
     stmap.pmap.get(stage).foreach { st =>
-      (stage, st) match {
-        case (pst:ReduceStage, st) if readsColor(operands, ReduceReg).nonEmpty =>
-          val rdStageIdx = pst.reduceIdx
-          val inStep = Math.pow(2, rdStageIdx).toInt
-          val outStep = Math.pow(2, rdStageIdx + 1).toInt
-          val inIdx = (0 until spade.numLanes by inStep).toList
-          val outIdx = (0 until spade.numLanes by outStep).toList
-          val groups = outIdx.map { oi =>
-            (oi, List(oi, oi + inStep))
-          }.toMap
-          dprintln(s"reduce: ${quote(pst)}: rdStageIdx:$rdStageIdx inStep:$inStep outStep:$outStep")
-          dprintln(s"inIdx:[${inIdx.mkString(",")}] outIdx:[${outIdx.mkString(",")}]")
-          out.v.foreach { 
-            case (v, oi) if groups.contains(oi) => 
-              val vals = (operands, groups(oi)).zipped.map { case (operand, ii) => operand.v.value(ii) }.toSeq
-              v.asSingle := eval(st.fu.get.op, vals.map(_.update):_*)
-              dprintln(s"${quote(v)} := fu(${vals.map(quote).mkString(", ")})")
-            case (v, oi) =>
-          }
-        case (pst,st:pir.graph.AccumStage) =>
+
+      val inputOps = st match {
+        case st:pir.graph.AccumStage =>
           val oprds = operands.filter{ oprd => isMapped(oprd)(sim.mapping) }
           val accumOp = readsColor(oprds, AccumReg)
-          val inputOps = oprds diff accumOp
-          assert(inputOps.size==1)
-          val inputOp = inputOps.head
-          out.v.foreach { case (ev,i) =>
-            val vals = operands.map(_.v.value(i)).toSeq
-            ev.set { ev =>
-              IfElse (prt.ctrlBox.asInstanceOf[InnerCtrlBox].accumPredUnit.out.vAt(stage.index)) {
-                ev <<= inputOp.v.update.value(i)
-              } {
-                ev.asSingle <<= eval(st.fu.get.op, vals.map(_.update):_*)
-              }
-            }
-          }
-        case (pst,st) =>
-          out.v.foreach { case (v, i) => 
-            val vals = operands.map(_.v.value(i)).toSeq
-            v.asSingle := eval(st.fu.get.op, vals.map(_.update):_*)
-            dprintln(s"")
-            dprintln(s"pst: ${quote(pst)} ${quote(v)} := fu(${st.fu.get.op})(${vals.map(quote).mkString(", ")})")
-          }
+          oprds diff accumOp
+        case st => Nil
       }
+      assert(inputOps.size<=1, inputOps)
+
+      val vals = List.tabulate(parOf(st)) { i =>
+        (stage, st) match {
+          case (pst:ReduceStage, st:pir.graph.ReduceStage) =>
+            val rdStageIdx = pst.reduceIdx
+            val inStep = Math.pow(2, rdStageIdx).toInt
+            val outStep = Math.pow(2, rdStageIdx + 1).toInt
+            val inIdx = (0 until spade.numLanes by inStep).toList
+            val outIdx = (0 until spade.numLanes by outStep).toList
+            val groups = outIdx.map { oi => (oi, List(oi, oi + inStep)) }.toMap
+            dprintln(s"reduce: ${quote(pst)}: rdStageIdx:$rdStageIdx inStep:$inStep outStep:$outStep")
+            dprintln(s"inIdx:[${inIdx.mkString(",")}] outIdx:[${outIdx.mkString(",")}]")
+            if (groups.contains(i))
+              (operands, groups(i)).zipped.map { case (operand, ii) => operand.v.value(ii) }.toSeq
+            else
+              operands.map(_.v.value(i)).toSeq
+          case (pst, st) => operands.map(_.v.value(i)).toSeq
+        }
+      }
+
+      out.v.foreach { 
+        case (v, i) if i < parOf(st) => 
+          st match {
+            case st:pir.graph.AccumStage =>
+              v.set { v =>
+                IfElse (prt.ctrlBox.asInstanceOf[InnerCtrlBox].accumPredUnit.out.vAt(stage.index)) {
+                  v <<= inputOps.head.v.update.value(i)
+                } {
+                  v.asSingle <<= eval(st.fu.get.op, vals(i).map(_.update):_*)
+                }
+              }
+              dprintln(s"${quote(v)} := fu(${vals(i).map(quote).mkString(", ")})")
+            case _ =>
+              v.asSingle := eval(st.fu.get.op, vals(i).map(_.update):_*)
+              dprintln(s"pst: ${quote(stage)} ${quote(v)} := fu(${st.fu.get.op})(${vals(i).map(quote).mkString(", ")})")
+          }
+        case _ =>
+      }
+
     }
   }
 }

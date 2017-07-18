@@ -202,9 +202,12 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
             rparOf(mem) = rparOf(cu)
             wparOf(mem) = wparOf(cu)
         }
+        cu.rdAddrStages.foreach { st => parOf(st) = 1 }
+        cu.wtAddrStages.foreach { st => parOf(st) = 1 }
       case cu if isStreaming(cu) =>
         parOf(cu) = localCChainOf(cu.parent).inner.par //TODO: fix for nested streaming controller
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
+        cu.stages.foreach { st => parOf(st) = parOf(cu) }
       case cu =>
         val cc = compCChainsOf(cu).head
         if (!cu.ancestors.contains(cc.original.ctrler)) { // Addresss calculation
@@ -213,6 +216,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
           parOf(cu) = cc.inner.par
         }
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
+        cu.stages.foreach { st => parOf(st) = parOf(cu) }
     }
   }
 
