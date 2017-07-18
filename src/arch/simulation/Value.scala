@@ -110,19 +110,9 @@ trait Value extends Node with Evaluation { self:PortType =>
     case v => sim.quote(v.value)
   }
   def updated:Boolean = funcHasRan && parent.fold(true) { p => !p.isDefined || p.funcHasRan }
-
-  final def track(implicit sim:Simulator):this.type = {
-    if (isDefined) {
-      sim.emitBlock(s"TrackValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}", {
-        update
-        sim.track(this)
-      }, s"TrackValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}")
-    } 
-    this
-  }
-
   final def update(implicit sim:Simulator):this.type = {
-    //if (!isDefined) return this
+    import sim.util._
+    if (sim.inRegistration && !isDefined) return this
     if (!updated) prevUpdate
     if (!updated) {
       sim.emitBlock(s"UpdateValue ${sim.quote(this)} #${sim.cycle} n${id} ${svalue}", {

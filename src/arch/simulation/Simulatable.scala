@@ -46,10 +46,10 @@ trait Simulatable extends Module with Evaluation {
       io.check
     }
   }
-  def trackModule(implicit sim:Simulator):Unit = {
+  def updateModule(implicit sim:Simulator):Unit = {
     import sim.util._
-    emitBlock(s"TrackModule ${quote(this)} #$cycle") {
-      ios.foreach { io => io.v.track }
+    emitBlock(s"UpdateModule ${quote(this)} #$cycle") {
+      ios.foreach { io => io.v.update }
     }
   }
   def reset(implicit sim:Simulator) = {

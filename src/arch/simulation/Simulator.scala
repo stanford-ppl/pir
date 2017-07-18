@@ -49,9 +49,6 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   def inSimulation = _inSimulation
   var _inRegistration = false 
   def inRegistration = _inRegistration
-  val _tracked = ListBuffer[Value]()
-  def track(v:Value) = if (!tracked.contains(v)) _tracked += v
-  def tracked = _tracked.toList
 
   override lazy val stream = newStream("sim.log") 
 
@@ -79,7 +76,6 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     done = false
     _inSimulation = false
     _inRegistration = false
-    _tracked.clear
     cycle = 0
     spade.simulatable.foreach { m => m.reset }
   }
@@ -94,7 +90,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     dprintln(s"\n\nRegistering update functions ...")
     _inRegistration = true
     spade.simulatable.foreach { s => s.registerAll; s.zeroModule }
-    spade.simulatable.foreach { s => s.trackModule; }
+    spade.simulatable.foreach { s => s.updateModule; }
     spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
     _inRegistration = false
     spade.simulatable.foreach { s => s.check }
@@ -106,10 +102,9 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     _inSimulation = true
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
-      tracked.foreach { _.update }
-      spade.dram.updateMemory
-      vcds.foreach { _.emitSignals }
-      spade.simulatable.foreach { m => m.clearModule }
+      spade.simulatable.foreach(_.updateModule)
+      vcds.foreach(_.emitSignals)
+      spade.simulatable.foreach(_.clearModule)
       cycle += 1
     }
     _inSimulation = false
