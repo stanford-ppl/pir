@@ -59,7 +59,9 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:Ctr
           Match(
             inc.pv -> { () => countv <<= countv + 1 },
             dec.pv -> { () => 
-              If(countv == 0) { errmsg(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle") }
+              if (sim.inSimulation && countv==Some(0)) {
+                warn(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle")
+              }
               countv <<= countv - 1
             } 
           ) {}
@@ -286,7 +288,9 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
     fifoPredUnit.in <== (ctr.out, 0) 
   }
 
-  def register(implicit sim:Simulator):Unit = {}
+  def register(implicit sim:Simulator):Unit = {
+    enDelay.out.v.default = false
+  }
 }
 
 class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit) 
@@ -325,19 +329,24 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   val readFifoAndTree = AndTree("readFifoAndTree") 
   readFifoAndTree <== prt.bufs.map(_.notEmpty)
 
-  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
-  val readEn = Delay(Bit(),0, s"$prt.readEn") 
-
-  val readDelay = Delay(Bit(),s"$prt.readDelay") 
-  readDelay.in <== readEn.out
-
   val readUDC = UDCounter()
 
   val readAndGate = AndGate(s"$prt.readAndGate")
   readAndGate <== readUDC.out
   readAndGate <== readFifoAndTree.out 
 
-  def register(implicit sim:Simulator):Unit = {}
+  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
+  writeEn.in <== writeFifoAndTree.out
+  val readEn = Delay(Bit(),0, s"$prt.readEn") 
+  readEn.in <== readAndGate.out
+
+  val readDelay = Delay(Bit(),s"$prt.readDelay") 
+  readDelay.in <== readEn.out
+
+  def register(implicit sim:Simulator):Unit = {
+    readEn.out.v.default = false
+    writeEn.out.v.default = false
+  }
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox() {
@@ -370,6 +379,9 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
     import spademeta._
     clmap.pmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
       state.v.default = WAITING 
+      rdone.v.default = false
+      wdone.v.default = false
+      running.v.default = false
       mc.mctpe match {
         case tp if tp.isDense =>
           val (done, size) = tp match {

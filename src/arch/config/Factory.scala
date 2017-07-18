@@ -168,9 +168,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         //cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
-        cb.readEn.in <== cb.readAndGate.out
-        //cb.readEn.in <== cb.tokenInXbar.out
-        cb.writeEn.in <== cb.writeFifoAndTree.out
       case (cu:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
     }
@@ -245,7 +242,6 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         mc.sbufs.foreach { buf => buf.incReadPtr <== cb.en.out }
         mc.data.incReadPtr <== cb.running
         mc.bufs.foreach { buf => buf.predicate <== low.out }
-        //cb.en.in <== cb.fifoAndTree.out
       case (top:Top, cb:TopCtrlBox) =>
     }
   }

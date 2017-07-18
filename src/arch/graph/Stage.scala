@@ -40,7 +40,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
       in.v.foreachv { case (v, i) =>
         v.set { v =>
           Match(
-            (sim.rst & inits.nonEmpty & (i==0)) -> { () => v.asSingle <<= inits.head },
+            (sim.rst & (i==0)) -> { () => if (inits.nonEmpty) v.asSingle <<= inits.head },
             en.v -> { () => v <<= fimap(in).v.asBus.value(i) }
           ) {}
         }

@@ -126,27 +126,38 @@ trait Evaluation {
       case (cond:Boolean, func) => (Some(cond), func)
       case (cond:Option[_], func) => (cond.asInstanceOf[Option[AnyVal]], func)
     }
-    matchPairs.foreach { case (cond, func) =>
-      cond.foreach { 
-        case true => 
-          trigDefault = false
-          func()
-          return
-        case false => trigDefault = true
+    if (sim.inRegistration) {
+      matchPairs.foreach { case (_, func) => func() }
+      defaultFunc
+    } else {
+      matchPairs.foreach { case (cond, func) =>
+        cond.foreach { 
+          case true => 
+            trigDefault = false
+            func()
+            return
+          case false => trigDefault = true
+        }
+      }
+      if (trigDefault) defaultFunc
+    }
+  }
+  def IfElse(cond:Option[AnyVal])(trueFunc: => Unit)(falseFunc: => Unit)(implicit sim:Simulator) = {
+    if (sim.inRegistration) { trueFunc; falseFunc }
+    else {
+      isHigh(cond).foreach { 
+        case true => trueFunc
+        case false => falseFunc
       }
     }
-    if (trigDefault) defaultFunc
   }
-  def IfElse(cond:Option[AnyVal])(trueFunc: => Unit)(falseFunc: => Unit) = {
-    isHigh(cond).foreach { 
-      case true => trueFunc
-      case false => falseFunc
-    }
-  }
-  def If(cond:Option[AnyVal])(trueFunc: => Unit):Unit = {
-    isHigh(cond).foreach {
-      case true => trueFunc
-      case false =>
+  def If(cond:Option[AnyVal])(trueFunc: => Unit)(implicit sim:Simulator):Unit = {
+    if (sim.inRegistration) { trueFunc }
+    else {
+      isHigh(cond).foreach {
+        case true => trueFunc
+        case false =>
+      }
     }
   }
 }

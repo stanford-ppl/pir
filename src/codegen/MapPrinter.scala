@@ -69,6 +69,12 @@ class MapPrinter(implicit design: Design) extends Codegen {
     }
   }
 
+  def emit(pprim:PPRIM):Unit = {
+    mp.pmmap.pmap.get(pprim).foreach { prim =>
+      emitln(s"${prim} -> ${quote(pprim)}")
+    }
+  }
+
   def emit(pcl:PCL):Unit = {
     mp.clmap.pmap.get(pcl).foreach { cl =>
       emitBlock(s"${quote(pcl)} -> $cl") {
@@ -77,6 +83,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
             pcu.ctrs.foreach(emit)
             pcu.mems.foreach(emit)
             pcu.stages.foreach(emit)
+            pcu.ctrlBox.udcs.foreach(emit)
             emitList(s"pregs") { pcu.regs.foreach(emit) }
             emitList(s"regs") { cu.regs.foreach(emit) }
           case _ =>

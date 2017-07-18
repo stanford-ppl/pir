@@ -98,7 +98,7 @@ trait Value extends Node with Evaluation { self:PortType =>
   def funcHasRan = func.isEmpty || _funcHasRan
   var func: Option[(this.type => Unit, String)] = None 
   def set(f: this.type => Unit)(implicit sim:Simulator):Unit = {
-    if (next.isEmpty) assert(!sim.inSimulation)
+    assert(sim.inRegistration)
     val stackTrace = getStackTrace(1, 20)
     func.foreach { func =>
       var info = s"Reseting func of value $this of io ${io} in ${if (io!=null) s"${io.src}" else "null"}\n"
@@ -228,8 +228,11 @@ trait SingleValue extends Value { self:SingleType =>
     }
   }
 
-  def toInt(implicit sim:Simulator):Int = update.value.get.asInstanceOf[Int]
-  def getInt(implicit sim:Simulator):Option[Int] = update.value.asInstanceOf[Option[Int]]
+  def toInt(implicit sim:Simulator):Int = 
+    if (sim.inRegistration) 0 else update.value.get.asInstanceOf[Int]
+  def getInt(implicit sim:Simulator):Option[Int] = 
+    if (sim.inRegistration) Some(0) 
+    else update.value.asInstanceOf[Option[Int]]
 
   def isHigh:Option[Boolean] = value.map { case v:Boolean => v }
   def isLow:Option[Boolean] = value.map { case v:Boolean => !v } 

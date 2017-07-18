@@ -119,7 +119,7 @@ trait OnChipMem extends Primitive with Memory {
       writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
         If (incReadPtr.pv) { 
-          if (v.value==Some(0)) warn(s"${quote(prt)}.${quote(this)}'s count underflow at #$cycle!")
+          if (sim.inSimulation && v.value==Some(0)) warn(s"${quote(prt)}.${quote(this)}'s count underflow at #$cycle!")
           v <<= v - 1
         }
         If (incWritePtr.pv) { v <<= v + 1 }
@@ -210,7 +210,9 @@ trait LocalBuffer extends OnChipMem {
         v <<= memory(readPtr.v.toInt)
       }
       notEmpty.v := eval(BitOr, predicate.v, (count.v > 0))
+      notEmpty.v.default = true
       notFull.v := count.v < bufferSize //TODO: implement almost full
+      notFull.v.default = true
       if (mem.isSFifo) {
         incReadPtr.v := fimap(incReadPtr).v.asSingle & predicate.v.not
       }
@@ -240,8 +242,10 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 
-          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!") }
           v <<= writePort.v.update.valid
+          if (sim.inSimulation && incWritePtr.v!=Some(false) && notFull.v.value!=Some(true)) { 
+            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
+          }
         }
       }
     }
@@ -263,16 +267,15 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
+      assert(mem.isVFifo)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
-      writePtr.pv
-      writePort.pv
       setMem { memory =>
         If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
-          If(notFull.v.not) { warn(s"${quote(prt)}.${quote(this)} overflow at $cycle!") }
+          if (sim.inSimulation && notFull.v.value!=Some(true))
+            warn(s"${quote(prt)}.${quote(this)} overflow at #$cycle!")
           memory(writePtr.pv.toInt) <<= writePort.pv
         }
       }
-      assert(mem.isVFifo)
       incWritePtr.v.set { v =>
         v <<= writePort.v.update.valid
       }

@@ -83,8 +83,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
         case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
         case _ => None
       }
-      val outs:List[GlobalOutput[Bus, ComputeUnit]] = (souts++vouts)
-      outs.foreach { out =>
+      (souts++vouts).foreach { out =>
         fimap.get(out.ic).fold {
           if (out.ic.fanIns.size==1) {
             out.ic.v.set { v =>
@@ -98,6 +97,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
             v.valid <<= enable.get
           }
         }
+        out.v.valid.default = false
       }
     }
   }
