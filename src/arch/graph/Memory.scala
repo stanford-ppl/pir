@@ -114,7 +114,6 @@ trait OnChipMem extends Primitive with Memory {
         incReadPtr.v := false
         incWritePtr.v := false
       }
-      incReadPtr.pv; incWritePtr.pv
       readPtr.v.set { v => If (incReadPtr.pv) { incPtr(v) } }
       writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
@@ -159,10 +158,6 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
       writePortDelay.v := writePort.vAt(wdelay)
       writeEnDelay.v := writeEn.vAt(wdelay)
       setMem { memory =>
-        writePtr.pv
-        writeAddr.pv
-        writePortDelay.pv
-        writeEnDelay.pv
         If (writeEnDelay.pv) {
           writePortDelay.pv.foreach { 
             case (writePort, i) if i < wparOf(mem) =>
@@ -237,8 +232,6 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
-      writePtr.pv
-      writePort.pv
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 

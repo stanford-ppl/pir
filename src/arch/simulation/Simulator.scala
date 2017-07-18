@@ -45,7 +45,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
   lazy val mapping = design.mapping.get
   lazy val util:SimUtil = this
 
-  var inSimulation = false 
+  var _inSimulation = false 
+  def inSimulation = _inSimulation
   var _inRegistration = false 
   def inRegistration = _inRegistration
 
@@ -73,7 +74,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     rst = false
     timeOut = false
     done = false
-    inSimulation = false
+    _inSimulation = false
     _inRegistration = false
     cycle = 0
     spade.simulatable.foreach { m => m.reset }
@@ -98,7 +99,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   def simulate = {
     dprintln(s"\n\nStarting simulation ...")
-    inSimulation = true
+    _inSimulation = true
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
       spade.simulatable.foreach { m => m.updateModule }
@@ -106,7 +107,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
       spade.simulatable.foreach { m => m.clearModule }
       cycle += 1
     }
-    inSimulation = false
+    _inSimulation = false
   }
 
   addPass {
