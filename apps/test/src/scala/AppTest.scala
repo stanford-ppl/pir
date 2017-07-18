@@ -191,11 +191,11 @@ class AppTests extends UnitTest { self =>
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
-  testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
-  //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=true)
+  testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=true)
   //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=false)
   //testBlockReduce1D(BlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
   
