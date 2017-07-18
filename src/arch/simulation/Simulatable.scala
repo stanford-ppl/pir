@@ -40,25 +40,16 @@ trait Simulatable extends Module with Evaluation {
     import sim.util._
     implicit val mp:PIRMap = sim.mapping
     ios.foreach { io =>
-      //this match {
-        //case n:Counter if isMapped(n) =>
-          //io match {
-            //case io:Output[_,_] =>
-              //println(s"${io} ${isMapped(io)} ${sim.mapping.opmap.pmap.contains(io)}")
-            //case _ =>
-          //}
-        //case _ =>
-      //}
       if (isMapped(io) && !io.v.isDefined) {
         warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")
       }
       io.check
     }
   }
-  def updateModule(implicit sim:Simulator):Unit = {
+  def trackModule(implicit sim:Simulator):Unit = {
     import sim.util._
-    emitBlock(s"UpdateModule ${quote(this)} #$cycle") {
-      ios.foreach { io => io.update }
+    emitBlock(s"TrackModule ${quote(this)} #$cycle") {
+      ios.foreach { io => io.v.track }
     }
   }
   def reset(implicit sim:Simulator) = {

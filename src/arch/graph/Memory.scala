@@ -45,8 +45,8 @@ trait Memory extends Module with Simulatable {
       }
     }
   }
-  override def updateModule(implicit sim:Simulator):Unit = {
-    super.updateModule
+  override def trackModule(implicit sim:Simulator):Unit = {
+    super.trackModule
     if (isMapped(this)(sim.mapping)) {
       updateMemory
     }

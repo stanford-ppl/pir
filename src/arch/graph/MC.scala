@@ -56,6 +56,7 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
                 val so = roffset.readPort.v.toInt / 4
                 val sz = rsize.readPort.v.toInt / 4
                 dprintln(s"${quote(this)} TileLoad roffset=$so rsize=$sz ${ctrlBox.count.v.update}")
+                dram.updateMemory
                 v.foreach { case (ev, i) =>
                   ev <<= dram.memory(so + i + ctrlBox.count.v.toInt)
                 }
