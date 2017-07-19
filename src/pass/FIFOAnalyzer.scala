@@ -20,13 +20,15 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
           cu.mems.foreach { 
             case mem:FIFO =>
               val pmem = mp.smmap(mem)
+              dprintln(s"$mem -> $pmem")
               if (mem.notFull.isConnected) {
                 val fhop = mp.rtmap(mem.writePort.from.src)
                 val bhop = mp.rtmap(mem.notFull.to.head)
-                notFullOffset(pmem) = fhop + bhop
+                val pipeDepth = mem.writer.ctrler.asCU.stages.size
+                notFullOffset(pmem) = fhop + bhop + pipeDepth
+                dprintln(s" - fhop=$fhop bhop=$bhop pipeDepth=$pipeDepth")
               }
-              bufferSizeOf(pmem) = mem.size + notFullOffset(pmem) + 4 //TODO make this large as a start
-              dprintln(s"$mem -> $pmem")
+              bufferSizeOf(pmem) = mem.size + notFullOffset(pmem) + 2 //TODO a little buffer just in case 
               dprintln(s" - notFullOffset=${notFullOffset(pmem)}")
               dprintln(s"- bufferSize=${bufferSizeOf(pmem)}")
             case mem:MultiBuffering =>

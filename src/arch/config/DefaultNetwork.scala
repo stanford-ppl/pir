@@ -82,7 +82,7 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "mu", "mcu", "scu")) = 1
 
   // CU to Switch channel width
-  channelWidth("pos"->"center", "src"->List("pcu", "mu", "mcu", "scu"), "dst"->"sb") = 1
+  channelWidth("pos"->"center", "src"->List("pcu", "mu", "mcu", "scu"), "dst"->"sb") = 2
 
   // SCU to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"sb") = 1

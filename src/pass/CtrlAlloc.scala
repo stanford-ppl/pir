@@ -214,9 +214,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
     heads.foreach { head =>
       (ctrler.ctrlBox, head.ctrlBox) match {
-        case (pcb:OuterCtrlBox, hcb:InnerCtrlBox) if isStreaming(head) =>
-          hcb.tokenInAndTree.addInput(pcb.enOut)
-        case (pcb:OuterCtrlBox, hcb:OuterCtrlBox) if isStreaming(head) =>
+        case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isStreaming(head) =>
+          val tk = hcb.tokenBuffer(ctrler)
+          tk.inc.connect(pcb.enOut)
+          tk.dec.connect(hcb.en.out)
+          hcb.siblingAndTree.addInput(tk.out)
         case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isPipelining(head) =>
           val tk = hcb.tokenBuffer(ctrler)
           tk.inc.connect(pcb.enOut)

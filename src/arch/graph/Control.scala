@@ -277,6 +277,7 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
 
   val streamAndTree = AndTree("streamAndTree")
   streamAndTree <== tokenInAndTree.out
+  streamAndTree <== siblingAndTree.out
   streamAndTree <== fifoAndTree.out
   en.in <== pipeAndTree.out // 0
   en.in <== streamAndTree.out // 1

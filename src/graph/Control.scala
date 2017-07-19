@@ -213,6 +213,7 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
   pipeAndTree.addInput(fifoAndTree.out)
   val streamAndTree = AndTree(s"streamAndTree")
   streamAndTree.addInput(tokenInAndTree.out)
+  streamAndTree.addInput(siblingAndTree.out)
   streamAndTree.addInput(fifoAndTree.out)
   var accumPredUnit:Option[PredicateUnit] = None
   var fifoPredUnit:Option[PredicateUnit] = None
