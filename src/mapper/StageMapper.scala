@@ -133,7 +133,8 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     stage.prs.foreach { pr =>
       mp.rcmap(pr.reg).foreach { preg =>
         val ppr = pstage.get(preg)
-        mp = mapInPort(pr.in, ppr.in, mp)
+        if (!mp.ipmap.contains(pr.in)) mp = mp.setIP(pr.in, ppr.in)
+        mp = mapFanIn(pr.in, ppr.in, mp)
       }
     }
     mp

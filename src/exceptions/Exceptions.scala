@@ -70,7 +70,7 @@ case class OutOfResource[M](mapper:Mapper, msg:String, pnodes:List[PNode], nodes
 
 /* Exxception that wrap arounds MappingException that allowing MappingException to passing through
  * higher level of recursion unless explicit caught */
-case class PassThroughException[M](mapper:Mapper, except:MappingException[M], mp:PIRMap)(implicit design:Design) extends PIRException {
+case class PassThroughException[M](mapper:Mapper, except:Exception, mp:PIRMap)(implicit design:Design) extends PIRException {
   override val msg = s"PassThrough: $mapper except:$except"
 }
 

@@ -51,16 +51,10 @@ class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
       emitSubGraph(s"inner_$icl", DotAttr().label(icl)) {
         icl match {
           case icu:InnerController =>
-            icu.mems.collect{ case mem:FIFOOnRead => mem; case mem:FIFOOnWrite => mem}.foreach { mem =>
+            icu.fifos.foreach { mem =>
               emitNode(mem, mem, DotAttr().shape(box).style(filled).fillcolor(cyan))
-              mem match {
-                case mem:FIFOOnRead => emitEdge(mem.dequeueEnable.from.src, mem, s"${mem.dequeueEnable}")
-                case _ =>
-              }
-              mem match {
-                case mem:FIFOOnWrite => emitEdge(mem.enqueueEnable.from.src, mem, s"${mem.enqueueEnable}")
-                case _ =>
-              }
+              emitEdge(mem.dequeueEnable.from.src, mem, s"${mem.dequeueEnable}")
+              emitEdge(mem.enqueueEnable.from.src, mem, s"${mem.enqueueEnable}")
             }
         }
         icl.cchains.foreach { cchain =>

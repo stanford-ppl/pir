@@ -43,56 +43,6 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def asMbuffer = this.asInstanceOf[MultiBuffering]
 }
 
-trait SRAMOnRead extends MultiBuffering {
-  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
-  def rdAddr(ra:OutPort):this.type = { 
-    readAddr.connect(ra); 
-    ra.src match {
-      case PipeReg(stage,r) =>
-        throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
-      case _ =>
-    }
-    this
-  } 
-}
-trait FIFOOnRead extends OnChipMem {
-  /* Control Signals */
-  val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
-  val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
-  val predicate = CtrlInPort(this, s"$this.predicate")
-}
-
-trait SRAMOnWrite extends MultiBuffering {
-  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
-  def wtAddr(wa:OutPort):this.type = { 
-    writeAddr.connect(wa)
-    this 
-  }
-  def writeCtr = writeAddr.from.src.asInstanceOf[Counter].cchain.inner
-}
-trait FIFOOnWrite extends OnChipMem { ocm:OnChipMem =>
-  var _wtStart:Option[OutPort] = None
-  var _wtEnd:Option[OutPort] = None 
-  def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
-  def wtEnd(op:OutPort):this.type = { _wtEnd = Some(op); this }
-  def wtStart:Option[OutPort] = _wtStart
-  def wtEnd:Option[OutPort] = _wtEnd 
-
-  /* Control Signals */
-  val notFull = CtrlOutPort(this, s"$this.notFull")
-  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
-  override def toUpdate = super.toUpdate
-
-  def isOfsFIFO:Boolean = {
-    ocm.ctrler match {
-      case mc:MemoryController =>
-        if (!mc.mctpe.isDense) false
-        else mc.getFifo("offset") == this
-      case _ => false
-    }
-  }
-}
-
 trait MultiBuffering extends OnChipMem {
   val design:Design
   var _producer:Controller = _
@@ -132,15 +82,39 @@ trait MultiBuffering extends OnChipMem {
   val swapRead = CtrlInPort(this, s"$this.swapRead")
   val swapWrite = CtrlInPort(this, s"$this.swapWrite")
 }
-trait FIFO extends OnChipMem with FIFOOnRead with FIFOOnWrite with LocalMem {
+trait FIFO extends OnChipMem with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
+  /* Control Signals */
+  val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
+  val predicate = CtrlInPort(this, s"$this.predicate")
+  val notFull = CtrlOutPort(this, s"$this.notFull")
+  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
+  override def toUpdate = super.toUpdate
+
+  var _wtStart:Option[OutPort] = None
+  var _wtEnd:Option[OutPort] = None 
+  def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
+  def wtEnd(op:OutPort):this.type = { _wtEnd = Some(op); this }
+  def wtStart:Option[OutPort] = _wtStart
+  def wtEnd:Option[OutPort] = _wtEnd 
+
+  def isOfsFIFO:Boolean = {
+    ctrler match {
+      case mc:MemoryController =>
+        if (!mc.mctpe.isDense) false
+        else mc.getFifo("offset") == this
+      case _ => false
+    }
+  }
+
   def finalSize(mp:PIRMap):Int = {
     size + mp.rtmap(writePort.from.src)
   }
 }
 
 trait LocalMem extends OnChipMem {
+  val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
   def reader:Controller = {
     val readers = super.readers
     assert(readers.size==1, s"local mem should only have 1 reader, ${this}, ${readers}")
@@ -173,24 +147,30 @@ trait VectorMem extends OnChipMem {
  *  calculate write address?
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
-  extends VectorMem with RemoteMem with SRAMOnRead with SRAMOnWrite {
+  extends VectorMem with RemoteMem with MultiBuffering {
   override val typeStr = "SRAM"
+  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
+  def rdAddr(ra:OutPort):this.type = { 
+    readAddr.connect(ra); 
+    ra.src match {
+      case PipeReg(stage,r) =>
+        throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
+      case _ =>
+    }
+    this
+  } 
+  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
+  def wtAddr(wa:OutPort):this.type = { 
+    writeAddr.connect(wa)
+    this 
+  }
+  def writeCtr = writeAddr.from.src.asInstanceOf[Counter].cchain.inner
 }
 object SRAM {
   def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SRAM
     = SRAM(None, size, banking)
   def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SRAM
     = SRAM(Some(name), size, banking)
-}
-case class SemiFIFO(name: Option[String], size: Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design) 
-  extends VectorMem with RemoteMem with SRAMOnRead with FIFOOnWrite {
-  override val typeStr = "SemiFIFO"
-}
-object SemiFIFO {
-  def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(None, size, banking)
-  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SemiFIFO
-    = SemiFIFO(Some(name), size, banking)
 }
 
 class VectorFIFO(val name: Option[String], val size: Int)(implicit ctrler:ComputeUnit, design: Design) 

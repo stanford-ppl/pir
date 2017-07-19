@@ -18,11 +18,8 @@ trait PIRAlias {
   type PR    = PipeReg
   type OCM   = OnChipMem
   type SRAM  = pir.graph.SRAM
-  type SOR   = SRAMOnRead
-  type SOW   = SRAMOnWrite
-  type FOR   = FIFOOnRead
-  type FOW   = FIFOOnWrite
   type SMem  = ScalarMem
+  type LMem  = LocalMem
   type SFIFO = ScalarFIFO
   type VFIFO = VectorFIFO
   type FIFO  = pir.graph.FIFO

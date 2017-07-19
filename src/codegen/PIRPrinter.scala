@@ -15,6 +15,8 @@ import java.io.File
 import pir.util._
 
 class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traversal with Logger {
+  import design.pirmeta._
+
   def shouldRun = Config.debug
 
   def this()(implicit design: Design) = {
@@ -98,6 +100,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
           super.visitNode(node)
         case n:Stage =>
           val strs = ListBuffer[String]()
+          strs += s"par=${parOf.get(n)}"
           strs += s"prev=${n.prev.map(quote)}"
           strs += s"next=${n.next.map(quote)}"
           strs += s"uses:[${n.uses.mkString(",")}]"
@@ -171,16 +174,20 @@ object PIRPrinter {
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
         fields += s"copied=[${p.copied.mkString(",")}]"
+      case p:Counter => 
+        fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
+        fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
+        fields += s"par=${p.par}"
       case p:OnChipMem =>
         fields += s"size=${p.size}"
         fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}"
-        p match { case p:SRAMOnRead => fields += s"RA=${p.readAddr.from}"; case _ => }
-        p match { case p:SRAMOnWrite => fields += s"WA=${p.writeAddr.from}"; case _ => }
-        p match { case p:FIFOOnWrite => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
+        p match { case p:SRAM => fields += s"RA=${p.readAddr.from}, WA=${p.writeAddr.from}"; case _ => }
+        p match { case p:FIFO => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
         p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
       case p:Stage =>
         p.fu.foreach { fu =>
+          fields += s"fu=${fu}"
           fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
           fields += s"op=${fu.op}"
           fields += s"results=[${fu.out.to.mkString(",")}]"
@@ -203,9 +210,6 @@ object PIRPrinter {
         fields += s"vector=${p.vector}, writer=${p.vector.writer}"
       case p:VecOut =>
         fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
-      case p:Counter => 
-        fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
-        fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
       //case p:UDCounter => 
       //  fields += s"init=${p.initVal}"
       case r:PipeReg =>

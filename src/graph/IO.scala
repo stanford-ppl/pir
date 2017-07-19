@@ -77,15 +77,15 @@ object OutPort {
 }
 
 /* SRAM Ports */
-trait RdAddrInPort extends InPort { override val src:SRAMOnRead }
+trait RdAddrInPort extends InPort { override val src:SRAM }
 object RdAddrInPort {
-  def apply(s:SRAMOnRead, toStr: => String)(implicit design:Design):RdAddrInPort = {
+  def apply(s:SRAM, toStr: => String)(implicit design:Design):RdAddrInPort = {
     new {override val src = s} with RdAddrInPort {override def toString = toStr}
   }
 }
-trait WtAddrInPort extends InPort { override val src:SRAMOnWrite }
+trait WtAddrInPort extends InPort { override val src:SRAM }
 object WtAddrInPort {
-  def apply(s:SRAMOnWrite, toStr: => String)(implicit design:Design):WtAddrInPort = {
+  def apply(s:SRAM, toStr: => String)(implicit design:Design):WtAddrInPort = {
     new {override val src = s} with WtAddrInPort {override def toString = toStr}
   }
 }

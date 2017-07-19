@@ -28,6 +28,7 @@ trait SpadeAlias {
   type PRDST     = ReduceStage
   type PSMem     = ScalarMem
   type PVMem     = VectorMem
+  type PLMem     = LocalBuffer 
   type PBuf      = LocalBuffer
   type PPRIM     = Primitive
   type PI[S<:PModule]       = Input[_<:PortType,S]

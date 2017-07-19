@@ -368,7 +368,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
     cu match {
       case mc:MC => 0
       case icl:ICL =>
-        val wasrams = icl.mems.collect{ case sm:SOW => sm}.filter(_.writeCtr==ctr)
+        val wasrams = icl.mems.collect{ case sm:SRAM => sm}.filter(_.writeCtr==ctr)
         val wastages = pcu.stages.filter { pstage =>
           if (stmap.pmap.contains(pstage)) {
             val stage = stmap.pmap(pstage)
@@ -478,18 +478,10 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
             val mem = smmap.pmap(psram)
             emitComment(s"$mem", s"$psram")
             mem match {
-              case mem:SOR =>
+              case mem:SRAM =>
                 emitPair("ra", lookUp(mem.readAddr))
                 emitPair("deqEn", "x")
                 emitPair("isReadFifo", "0")
-              case mem:FOR =>
-                emitPair("ra", "x")
-                val enlut = mem.dequeueEnable.from.src.asInstanceOf[EnLUT]
-                emitPair("deqEn", s"${indexOf(pmmap(enlut))}")
-                emitPair("isReadFifo", "1")
-            }
-            mem match {
-              case mem:SOW =>
                 mem.writeAddr.from.src match {
                   case pr:PR => 
                     emitPair("wa", "local")
@@ -501,7 +493,11 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
                 emitPair("end", "x")
                 emitPair("enqEn", "x")
                 emitPair("isWriteFifo", "0")
-              case mem:FOW =>
+              case mem:FIFO =>
+                emitPair("ra", "x")
+                val enlut = mem.dequeueEnable.from.src.asInstanceOf[EnLUT]
+                emitPair("deqEn", s"${indexOf(pmmap(enlut))}")
+                emitPair("isReadFifo", "1")
                 emitPair("wa", "x")
                 emitPair("wen", "x")
                 if (mem.wtStart.isDefined)
@@ -778,7 +774,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
         vomap.pmap.get(pto).fold (s""""x"""") { t =>
           val to = t.asInstanceOf[Port]
           val idx = to.src match {
-            case l:FOW => 
+            case l:FIFO => 
               cu match {
                 case mc:MC =>
                   l match {
@@ -904,7 +900,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
       pcu.srams.foreach { psram =>
         smmap.pmap.get(psram).fold(fifoAndTree += "0"){ sram =>
           val used = sram match {
-            case f:FOR => "1"
+            case f:FIFO => "1"
             case _ => "0"
           }
           fifoAndTree += used 
@@ -916,7 +912,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
           // cis should have the same source
           assert(cis.map(_.asInstanceOf[CIP].from).toSet.size==1)
           cis.head.asInstanceOf[CIP].from.src match {
-            case f:FOW => tokInAndTree(i) = s""""1""""
+            case f:FIFO => tokInAndTree(i) = s""""1""""
             case _ =>
           }
         }

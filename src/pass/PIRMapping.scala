@@ -130,21 +130,18 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
             mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             mapping = Some(m.asInstanceOf[PIRMap])
-            throw e
           case PassThroughException(mapper, e, m) =>
             mapping = Some(m)
-            throw e
           case e:MappingException[_] =>
             mapping = Some(e.mapping match {
               case m:PIRMap => m
               case (m:PIRMap, _) => m
             })
-            throw e
-          case e:PIRException => throw e
-          case e => throw e 
+          case _ =>
         }
+        design.mapperLogger.close
+        throw e
     }
-    design.mapperLogger.close
   }
 
   override def initPass:Unit = {

@@ -269,13 +269,13 @@ object AccumStage {
 class WAStage (override val name:Option[String])
   (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
   override val typeStr = "WAStage"
-  var srams:Either[List[String], ListBuffer[SRAMOnWrite]] = _
+  var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
 
   def updateSRAM(n:Node) = {
     srams match {
-      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAMOnWrite]))
-      case Right(l) => l += n.asInstanceOf[SRAMOnWrite]
+      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
+      case Right(l) => l += n.asInstanceOf[SRAM]
     }
   }
   def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):WAStage = {
@@ -285,8 +285,8 @@ class WAStage (override val name:Option[String])
         srams.asInstanceOf[List[String]].foreach { s =>
           design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
         }
-      case t if t <:< typeOf[SRAMOnWrite] => 
-        this.srams = Right(srams.asInstanceOf[List[SRAMOnWrite]].to[ListBuffer])
+      case t if t <:< typeOf[SRAM] => 
+        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
     }
     this
   }
@@ -302,13 +302,13 @@ object WAStage {
 class RAStage (override val name:Option[String])
   (implicit ctrler:ComputeUnit, design: Design) extends Stage(name) {
   override val typeStr = "RAStage"
-  var srams:Either[List[String], ListBuffer[SRAMOnRead]] = _
+  var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
 
   def updateSRAM(n:Node) = {
     srams match {
-      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAMOnRead]))
-      case Right(l) => l += n.asInstanceOf[SRAMOnRead]
+      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
+      case Right(l) => l += n.asInstanceOf[SRAM]
     }
   }
 
@@ -319,8 +319,8 @@ class RAStage (override val name:Option[String])
         srams.asInstanceOf[List[String]].foreach { s =>
           design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
         }
-      case t if t <:< typeOf[SRAMOnRead] => 
-        this.srams = Right(srams.asInstanceOf[List[SRAMOnRead]].to[ListBuffer])
+      case t if t <:< typeOf[SRAM] => 
+        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
     }
     this
   }

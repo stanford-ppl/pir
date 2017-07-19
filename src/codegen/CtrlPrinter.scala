@@ -28,10 +28,13 @@ class CtrlPrinter(implicit design: Design) extends Codegen {
               } 
             }
           }
-          cu.mems.foreach { mem =>
-            val info = ListBuffer[String]()
-            mem match { case mem:FIFOOnWrite => info += s"notFull=[${mem.notFull.to.mkString(",")}], enqEn=${mem.enqueueEnable.from}"; case _ => }
-            mem match { case mem:FIFOOnRead => info += s"notEmpty=[${mem.notEmpty.to.mkString(",")}], deqEn=${mem.dequeueEnable.from}"; case _ => }
+          val info = ListBuffer[String]()
+          cu.lmems.foreach { mem =>
+            info += s"notEmpty=[${mem.notEmpty.to.mkString(",")}]"
+          }
+          cu.fifos.foreach { mem =>
+            info += s"notFull=[${mem.notFull.to.mkString(",")}]"
+            info += s"enqEn=${mem.enqueueEnable.from}, deqEn=${mem.dequeueEnable.from}"
             emitln(s"$mem(${info.mkString(",")})")
           }
         case top:Top =>

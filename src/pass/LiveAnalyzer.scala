@@ -46,8 +46,12 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
     cu match {
       case icu:InnerController =>
         icu.mems.foreach { mem =>
-          mem match { case mem:SRAMOnRead => if (mem.readAddr.isConnected) addLiveOut(mem.readAddr); case _ => }
-          mem match { case mem:SRAMOnWrite => if (mem.writeAddr.isConnected) addLiveOut(mem.writeAddr); case _ => }
+          mem match { 
+            case mem:SRAM => 
+              if (mem.readAddr.isConnected) addLiveOut(mem.readAddr)
+              if (mem.writeAddr.isConnected) addLiveOut(mem.writeAddr)
+            case _ => 
+          }
           if (mem.writePort.isConnected) addLiveOut(mem.writePort)
         }
       case _ =>

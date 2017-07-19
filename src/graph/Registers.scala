@@ -63,7 +63,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val vecInRegs     = Map[VecIn, VecInPR]()
   val vecOutRegs     = Map[VecOut, VecOutPR]()
   val storeRegs  = Map[OnChipMem, StorePR]()
-  val wtAddrRegs = Map[SRAMOnWrite, WtAddrPR]()
+  val wtAddrRegs = Map[SRAM, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
@@ -72,7 +72,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(s))
 
-  def wtAddrPR(s:SRAMOnWrite):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(s.writeAddr))
+  def wtAddrPR(s:SRAM):WtAddrPR = wtAddrRegs.getOrElseUpdate(s, WtAddrPR(s.writeAddr))
 
   def ctrPR(c:Counter):CtrPR = ctrRegs.getOrElseUpdate(c, CtrPR(c))
 
@@ -101,9 +101,9 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   */
   def store(stage:Stage, s:OnChipMem):PipeReg = stage.get(storePR(s))
 
-  def wtAddr(sram:SRAMOnWrite):WtAddrPR = wtAddrPR(sram)
+  def wtAddr(sram:SRAM):WtAddrPR = wtAddrPR(sram)
   def wtAddr(stage:Stage, reg:WtAddrPR):PipeReg = stage.get(reg)
-  def wtAddr(stage:Stage, sram:SRAMOnWrite):PipeReg = stage.get(wtAddr(sram))
+  def wtAddr(stage:Stage, sram:SRAM):PipeReg = stage.get(wtAddr(sram))
   
   //def ctr(c:Counter):PipeReg = pipeReg(emptyStage, ctrPR(c))
   def ctr(c:Counter):Reg = ctrPR(c)

@@ -21,9 +21,20 @@ class MapPrinter(implicit design: Design) extends Codegen {
 
   override lazy val stream = newStream("Mapping.log") 
   
-  def emit(in:PI[PModule]) = {
-    mp.fimap.get(in).foreach { from =>
-      emitln(s"${quote(in)} <= ${quote(from)}")
+  def emit(pin:PI[PModule]) = {
+    mp.fimap.get(pin).foreach { from =>
+      emitln(s"${quote(pin)} <= ${quote(from)}")
+    }
+    mp.ipmap.pmap.get(pin).foreach { in =>
+      emitln(s"${quote(pin)} -> ${in}")
+    }
+  }
+  def emit(pout:PO[PModule]) = {
+    mp.fimap.pmap.get(pout).foreach { to =>
+      emitln(s"${quote(pout)} => [${to.map(quote).mkString(",")}]")
+    }
+    mp.opmap.pmap.get(pout).foreach { out =>
+      emitln(s"${quote(pout)} -> ${out}")
     }
   }
 
@@ -93,7 +104,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
         pcl match {
           case pcl:PMCU =>
             emitln(s"readDelay=${pcl.ctrlBox.readDelay.delay(mp)}") 
-            emitln(s"writeDelay=${mp.rtmap(pcl.sram.writePort)}") 
+            emitln(s"writeDelay=${mp.rtmap.get(pcl.sram.writePort)}") 
           case _ =>
         }
       }
@@ -122,6 +133,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   def emitModule(m:PModule, title:String)(block: =>Any) = {
     emitList(s"${title}") {
       m.ins.foreach(emit)
+      m.outs.foreach(emit)
       block
     }
   }

@@ -41,19 +41,27 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
   def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, cp   , rtmap)
   def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, smmap, ctmap, fimap, rcmap, stmap, ipmap, opmap, pmmap, cp   )
 
-  def setCL(k:CLMap.K, v:CLMap.V):PIRMap = set(clmap + ((k, v)))
-  def setVI(k:VIMap.K, v:VIMap.V):PIRMap = set(vimap + ((k, v)))
-  def setVO(k:VOMap.K, v:VOMap.V):PIRMap = set(vomap + ((k, v)))
-  def setMK(k:MKMap.K, v:MKMap.V):PIRMap = set(mkmap + ((k, v)))
-  def setSM(k:SMMap.K, v:SMMap.V):PIRMap = set(smmap + ((k, v)))
-  def setCT(k:CTMap.K, v:CTMap.V):PIRMap = set(ctmap + ((k, v)))
-  def setFI(k:FIMap.K, v:FIMap.V):PIRMap = set(fimap + ((k, v)))
-  def setRC(k:RCMap.K, v:RCMap.V):PIRMap = set(rcmap + ((k, v)))
-  def setST(k:STMap.K, v:STMap.V):PIRMap = set(stmap + ((k, v)))
-  def setIP(k:IPMap.K, v:IPMap.V):PIRMap = set(ipmap + ((k, v)))
-  def setOP(k:OPMap.K, v:OPMap.V):PIRMap = set(opmap + ((k, v)))
-  def setPM(k:PMMap.K, v:PMMap.V):PIRMap = set(pmmap + ((k, v)))
-  def setRT(k:RTMap.K, v:RTMap.V):PIRMap = set(rtmap + ((k, v)))
+  def setCL(k:CLMap.K, v:CLMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(clmap + ((k, v))))
+  def setVI(k:VIMap.K, v:VIMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vimap + ((k, v))))
+  def setVO(k:VOMap.K, v:VOMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vomap + ((k, v))))
+  def setMK(k:MKMap.K, v:MKMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(mkmap + ((k, v))))
+  def setSM(k:SMMap.K, v:SMMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(smmap + ((k, v))))
+  def setCT(k:CTMap.K, v:CTMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(ctmap + ((k, v))))
+  def setFI(k:FIMap.K, v:FIMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(fimap + ((k, v))))
+  def setRC(k:RCMap.K, v:RCMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(rcmap + ((k, v))))
+  def setST(k:STMap.K, v:STMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(stmap + ((k, v))))
+  def setIP(k:IPMap.K, v:IPMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(ipmap + ((k, v))))
+  def setOP(k:OPMap.K, v:OPMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(opmap + ((k, v))))
+  def setPM(k:PMMap.K, v:PMMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(pmmap + ((k, v))))
+  def setRT(k:RTMap.K, v:RTMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(rtmap + ((k, v))))
+
+  def wrap(func: => PIRMap)(implicit mapper:Mapper, design:Design):PIRMap = {
+    try {
+      func
+    } catch {
+      case e:Exception => throw PassThroughException(mapper, e, this) 
+    }
+  }
 
   def quote(n:Any)(implicit design:Design) = n match {
     case n:Node => pir.util.quote(n)
@@ -322,34 +330,6 @@ case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {
   override type M = IPMap.M
   override type IM = IPMap.IM
   override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec, pmap + rec.swap) }
-  //def printInPort(ip:IP)(implicit p:Printer, design:Design) = {
-    //if (map.contains(ip)) {
-      //val pip = map(ip)
-      //val fimap = pirMap.fimap
-      //if (fimap.contains(pip)) {
-        //val pop = fimap(pip)
-        //p.emitln(s"${ip} -> ${pip} <- ${pop}")
-      //} else {
-        //p.emitln(s"${ip} -> ${pip} <- failed")
-      //}
-    //} else {
-      //p.emitln(s"${ip} -> failed")
-    //}
-  //}
-  //def printInPort(pip:PI)(implicit p:Printer, design:Design) = {
-    //if (pmap.contains(pip)) {
-      //val ip = pmap(pip)
-      //val fimap = pirMap.fimap
-      //if (fimap.contains(pip)) {
-        //val pop = fimap(pip)
-        //p.emitln(s"${pip}(${ip}) <- ${pop}")
-      //} else {
-        //p.emitln(s"${pip}(${ip}) <- failed")
-      //}
-    //} //else {
-      ////p.emitln(s"${pip} -> no map")
-    ////}
-  //}
 }
 object IPMap extends IBiOneToOneObj {
   type K = IP 

@@ -46,7 +46,7 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
         case io:OutPort =>
           visited += node
           if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
-          else opmap.get(io).foreach { _.foreach { pio => declare(pio, Some(s"${self.quote(io)}")) } }
+          else opmap.get(io).foreach { pios => declare(pios.head, Some(s"${self.quote(io)}")) }
         case node:UDCounter => declare(node) { 
           super.visitNode(node)
           declare(pmmap(node).count, None)

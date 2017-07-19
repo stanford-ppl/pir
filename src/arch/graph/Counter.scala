@@ -34,8 +34,8 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
         case c:Counter => Some(c)
         case _ => None
       }
-      val outPar = ctr.par 
-      sim.dprintln(s"$this outPar = $outPar")
+      val ctrPar = ctr.par 
+      sim.dprintln(s"$this ctrPar = $ctrPar")
       val head = out.v.head.asSingle
       out.v.foreach { 
         case (v, i) if (i==0) =>
@@ -45,16 +45,17 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
             Match(
               sim.rst -> { () => headv <<= min.v },
               (done.pv & prevCtr.fold(done.pv) { _.done.pv } ) -> { () => headv <<= min.v },
-              en.pv -> { () => headv <<= headv + (step.v * outPar) }
+              en.pv -> { () => headv <<= headv + (step.v * ctrPar) }
             ) {}
           }
-        case (v, i) if i < outPar =>
+        case (v, i) if i < ctrPar =>
           v.asSingle := head + (step.v * i)
         case (v, i) =>
+          v.asSingle := head + (step.v * (ctrPar-1))
       }
       done.v.set { donev =>
         donev.setLow
-        If (en.v & (head >= (max.v - (step.v * outPar)))) {
+        If (en.v & (head >= (max.v - (step.v * ctrPar)))) {
           donev.setHigh
         }
       }

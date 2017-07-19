@@ -36,8 +36,12 @@ case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade)
     souts.foreach { psout =>
       vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
         boundOf.get(sout.scalar) match {
-          case Some(b:Int) => psout.ic.v.head.asSingle := b
-          case Some(b:Float) => psout.ic.v.head.asSingle := b
+          case Some(b:Int) => 
+            psout.ic.v.head.asSingle := b
+            psout.ic.v.valid := true
+          case Some(b:Float) => 
+            psout.ic.v.head.asSingle := b
+            psout.ic.v.valid := true
           case None => warn(s"${sout.scalar} doesn't have a bound")
           case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
         }

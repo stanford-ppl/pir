@@ -94,6 +94,8 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
   def sfifos = mems.collect { case fifo:ScalarFIFO => fifo }
   def smems = mems.collect { case smem:ScalarMem => smem }
+  def sbufs = mems.collect { case smem:ScalarBuffer => smem }
+  def lmems = mems.collect { case mem:LocalMem => mem }
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
   def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }
 

@@ -73,10 +73,8 @@ trait LocalRouter extends Mapper {
     (mp, connected)
   }
 
-  def mapInPort(n:IP, r:PI[PModule], map:M):M = {
+  def mapFanIn(n:IP, r:PI[PModule], map:M):M = {
     var mp = map
-    if (mp.fimap.contains(r) && mp.ipmap.contains(n)) return mp
-    mp = mp.setIP(n, r)
     if (!n.isConnected) return mp
     (n.from.src, r.src) match {
       case (oSrc@Const(c), piSrc) =>
@@ -129,6 +127,14 @@ trait LocalRouter extends Mapper {
             }
         }
     }
+    mp
+  }
+
+  def mapInPort(n:IP, r:PI[PModule], map:M):M = {
+    var mp = map
+    if (mp.fimap.contains(r) && mp.ipmap.contains(n)) return mp
+    mp = mp.setIP(n, r)
+    mp = mapFanIn(n, r, mp)
     mp
   } 
 

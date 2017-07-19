@@ -58,7 +58,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
       val v = vin.vector
       val label = v match {
         case dv:DummyVector => s"$v[\n${dv.scalars.mkString(",\n")}]"
-        case _ => s"$v"
+        case _ => s"$v\n(${v.writer})\n(${v.readers.filter{_.ctrler==cl}.mkString(",")})"
       }
       if (v.writer!=null)
         emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
@@ -68,6 +68,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
   def emitScalarInputs(cl:Controller, sins:List[ScalarIn]):Unit = {
     sins.foreach { sin => 
       val s = sin.scalar
+      val label = s"$s\n(${s.writer})\n(${s.readers.filter{_.ctrler==cl}.mkString(",")})"
       if (!s.writerIsEmpty) {
         s.writer.ctrler match {
           case top:Top =>
