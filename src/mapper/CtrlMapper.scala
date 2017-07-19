@@ -85,17 +85,20 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     cu.mems.foreach { mem => 
       val pmem = mp.smmap(mem)
-      (mem, pmem, pcu) match {
-        case (mem:SFIFO, pmem:PSMem, pcu:PCL) => 
+      (mem, pmem) match {
+        case (mem:SFIFO, pmem:PSMem) => 
           mp = mp.setIP(mem.enqueueEnable, pmem.incWritePtr)
-          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
           mp = mp.setOP(mem.notFull, pmem.notFull)
-        case (mem:VFIFO, pmem:PVMem, pcu:PCL) => // enqueEnable is implicit through databus
+        case (mem:VFIFO, pmem:PVMem) => // enqueEnable is implicit through databus
           mp = mp.setIP(mem.enqueueEnable, pmem.incWritePtr)
-          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
           mp = mp.setOP(mem.notFull, pmem.notFull)
-        case (mem:MBuf, pmem:POCM, pcu:PCU) =>
+        case (mem:MBuf, pmem:POCM) =>
           mp = mapInPort(mem.swapWrite, pmem.incWritePtr, mp)
+      }
+      (mem, pmem) match {
+        case (mem:LMem, pmem:PLMem) =>
+          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
+        case _ =>
       }
     }
     mp

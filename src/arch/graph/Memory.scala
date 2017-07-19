@@ -84,7 +84,7 @@ trait OnChipMem extends Primitive with Memory {
   import spademeta._
   type P<:PortType
   val readPort:Output[_<:PortType, OnChipMem]
-  val writePort:Input[_<:PortType, OnChipMem]
+  val writePort:Input[Bus, OnChipMem]
   val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
   val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
   val writePtr = Output(Word(), this, s"${this}.writePtr")
@@ -204,7 +204,11 @@ trait LocalBuffer extends OnChipMem {
         updateMemory
         v <<= memory(readPtr.v.toInt)
       }
-      notEmpty.v := eval(BitOr, predicate.v, (count.v > 0))
+      if (mem.isFifo) {
+        notEmpty.v := eval(BitOr, predicate.v, (count.v > 0))
+      } else { // MultiBuffer
+        notEmpty.v := writePort.pv.valid
+      }
       notEmpty.v.default = true
       notFull.v := count.v < bufferSize //TODO: implement almost full
       notFull.v.default = true

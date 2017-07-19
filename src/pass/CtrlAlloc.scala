@@ -283,36 +283,35 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
 
   def connectSibling(ctrler:Controller) = {
     // Forward dependency
+    // - FIFO.notEmpty + Mbuffer.valid
     (ctrler, ctrler.ctrlBox) match {
       case (cu:MemoryPipeline, cb:MemCtrlBox) =>
-        cu.fifos.foreach {
-          case fifo if (forRead(fifo)) => cb.readFifoAndTree.addInput(fifo.notEmpty)
-          case fifo if (forWrite(fifo)) => cb.writeFifoAndTree.addInput(fifo.notEmpty)
+        cu.lmems.foreach {
+          case mem if (forRead(mem)) => cb.readFifoAndTree.addInput(mem.notEmpty)
+          case mem if (forWrite(mem)) => cb.writeFifoAndTree.addInput(mem.notEmpty)
         }
-        case (cu:ComputeUnit, cb:InnerCtrlBox) if isStreaming(cu) =>
-          // FIFO.notEmpty
-          cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
-        case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
-        case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
-          // Token
-          val tokens = cu.trueConsumed.flatMap { mem =>
-            (mem, mem.producer) match {
-              case (mem:SRAM, producer:ComputeUnit) => None
-                // SRAM no need for token because handled by FIFONotEmpty
-              case (mem, producer:ComputeUnit) =>
-                Some(mem, getDone(cu, swapWriteCChainOf(mem))) // should always from remote
-              case (mem, producer:Top) => None // No synchronization needed
-            }
-          }
-          connectTokens(cu, tokens)
-          cb match {
-            case cb:InnerCtrlBox =>
-              cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
-            case _ =>
-          }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) =>
+        cu.lmems.foreach { mem => cb.fifoAndTree.addInput(mem.notEmpty) }
       case (cu:MemoryController, cb:MCCtrlBox) =>
-          cu.fifos.foreach { fifo => cb.fifoAndTree.addInput(fifo.notEmpty) }
-      case (cu:Top, cb:TopCtrlBox) =>
+        cu.lmems.foreach { mem => cb.fifoAndTree.addInput(mem.notEmpty) }
+      case _ =>
+    }
+    // - Token
+    (ctrler, ctrler.ctrlBox) match {
+      case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
+      case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
+        // Token
+        val tokens = cu.trueConsumed.flatMap { mem =>
+          (mem, mem.producer) match {
+            case (mem:SRAM, producer:ComputeUnit) => None
+              // SRAM no need for token because handled by FIFONotEmpty
+            case (mem, producer:ComputeUnit) =>
+              Some(mem, getDone(cu, swapWriteCChainOf(mem))) // should always from remote
+            case (mem, producer:Top) => None // No synchronization needed
+          }
+        }
+        connectTokens(cu, tokens)
+      case _ =>
     }
     // Backward pressure
     (ctrler, ctrler.ctrlBox) match {
