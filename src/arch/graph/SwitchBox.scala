@@ -36,9 +36,7 @@ case class SwitchBox()(implicit spade:SwitchNetwork) extends Routable {
         out.ic :== inic
       }
     }
-    (souts ++ vouts).foreach { out =>
-      out.ic.v.asBus.valid.default = false
-    }
+    super.register
   }
 }
 

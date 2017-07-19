@@ -102,7 +102,8 @@ class AndTree(val name:Option[String])(implicit ctrlBox:CtrlBox, design:Design) 
   val out = CtrlOutPort(this, s"$this.out")
   ctrlBox.andTrees += this
   def addInput(input:CtrlOutPort):CtrlInPort = {
-    val ip = CtrlInPort(this, s"$this.in")
+    val idx = ins.size
+    val ip = CtrlInPort(this, s"$this.in${idx}")
     ins += ip
     ip.connect(input)
     ip
@@ -257,6 +258,7 @@ case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design)
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends CtrlBox() {
   //def readEnable:CtrlInPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
   //def writeEnable:CtrlInPort = ctrler.getCopy(ctrler.mem.writer.asInstanceOf[ComputeUnit].localCChain).inner.en
+  val tokenInAndTree = AndTree("TokenInAndTree")
   val readFifoAndTree = AndTree("ReadFIFOAndTree")
   val writeFifoAndTree = AndTree("WriteFIFOAndTree")
   val readEn = Delay(s"$this.readEn")

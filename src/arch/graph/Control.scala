@@ -329,10 +329,14 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   val readFifoAndTree = AndTree("readFifoAndTree") 
   readFifoAndTree <== prt.bufs.map(_.notEmpty)
 
+  val tokenInAndTree = AndTree("tokenInAndTree")
+  tokenInAndTree <== prt.cins.map(_.ic)
+
   val readUDC = UDCounter()
 
   val readAndGate = AndGate(s"$prt.readAndGate")
   readAndGate <== readUDC.out
+  readAndGate <== tokenInAndTree.out
   readAndGate <== readFifoAndTree.out 
 
   val writeEn = Delay(Bit(), 0, s"$prt.writeEn")

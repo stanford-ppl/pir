@@ -187,6 +187,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case (cb:MCB, pcb:PMCB) =>
         mp = mapAndTree(cb.readFifoAndTree, pcb.readFifoAndTree, mp)
         mp = mapAndTree(cb.writeFifoAndTree, pcb.writeFifoAndTree, mp)
+        mp = mapAndTree(cb.tokenInAndTree, pcb.tokenInAndTree, mp)
       case (cb:MCCB, pcb:PMCCB) =>
         mp = mapAndTree(cb.fifoAndTree, pcb.fifoAndTree, mp)
       case _ =>

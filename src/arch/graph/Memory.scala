@@ -94,18 +94,11 @@ trait OnChipMem extends Primitive with Memory {
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
   def asBuf = this.asInstanceOf[LocalBuffer]
-  def bufferSize(implicit sim:Simulator) = {
-    val mem = sim.mapping.smmap.pmap(this)
-    mem match {
-      case mem:pir.graph.FIFO => mem.finalSize(sim.mapping) + 16 //TODO make this huge as a start
-      case mem:pir.graph.MultiBuffering => mem.buffering
-    }
-  }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       def incPtr(v:SingleValue) = {
-        v <<= v + 1; if (v.toInt>=bufferSize) v <<= 0
+        v <<= v + 1; if (v.toInt>=bufferSizeOf(this)) v <<= 0
       }
       readPtr.v.default = 0
       writePtr.v.default = 0
@@ -153,7 +146,7 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
     import sim.pirmeta._
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
-      memory = Array.tabulate(bufferSize, mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+      memory = Array.tabulate(bufferSizeOf(this), mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
       val wdelay = rtmap(writePort)
       writePortDelay.v := writePort.vAt(wdelay)
       writeEnDelay.v := writeEn.vAt(wdelay)
@@ -199,6 +192,7 @@ trait LocalBuffer extends OnChipMem {
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
+    import sim.spademeta._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
       readPort.v.set { v => 
         updateMemory
@@ -210,8 +204,8 @@ trait LocalBuffer extends OnChipMem {
         notEmpty.v := writePort.pv.valid
       }
       notEmpty.v.default = true
-      notFull.v := count.v < bufferSize //TODO: implement almost full
       notFull.v.default = true
+      notFull.v := count.v < (bufferSizeOf(this) - notFullOffset(this))
       if (mem.isSFifo) {
         incReadPtr.v := fimap(incReadPtr).v.asSingle & predicate.v.not
       }
@@ -223,6 +217,7 @@ trait LocalBuffer extends OnChipMem {
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
 case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
+  import spademeta._
   override val typeStr = "sm"
   type P = Word
   var memory:Array[P] = _
@@ -235,12 +230,13 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
+      val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
         incWritePtr.v.set { v => 
           v <<= writePort.v.update.valid
-          if (sim.inSimulation && incWritePtr.v!=Some(false) && notFull.v.value!=Some(true)) { 
+          if (sim.inSimulation && incWritePtr.v!=Some(false) && (count.v.toInt > bufferSize)) { 
             warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
           }
         }
@@ -252,6 +248,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
 case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
+  import spademeta._
   override val typeStr = "vm"
   type P = Bus
   def zeroMemory(implicit sim:Simulator):Unit = {
@@ -265,10 +262,11 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       assert(mem.isVFifo)
+      val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory =>
         If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
-          if (sim.inSimulation && notFull.v.value!=Some(true))
+          if (sim.inSimulation && (count.v.toInt > bufferSize))
             warn(s"${quote(prt)}.${quote(this)} overflow at #$cycle!")
           memory(writePtr.pv.toInt) <<= writePort.pv
         }

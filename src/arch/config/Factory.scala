@@ -270,7 +270,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu, cu.ctrlBox) match {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.couts.foreach { cout => 
-          cout.ic <== cu.sbufs.map(_.notFull)
+          cout.ic <== cu.bufs.map(_.notFull)
           cout.ic <== cb.doneDelay.out
           cout.ic <== cb.enDelay.out
         }
@@ -282,13 +282,13 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
-          cout.ic <== cu.sbufs.map(_.notFull)
+          cout.ic <== cu.bufs.map(_.notFull)
           cout.ic <== cb.writeDoneXbar.out
           cout.ic <== cb.readDoneXbar.out
         }
       case (mc:MemoryController, cb:MCCtrlBox) =>
         mc.couts.foreach { cout =>
-          cout.ic <== mc.sbufs.map(_.notFull)
+          cout.ic <== mc.bufs.map(_.notFull)
           cout.ic <== cb.rdone
           cout.ic <== cb.wdone
         }

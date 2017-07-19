@@ -314,13 +314,17 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case _ =>
     }
     // Backward pressure
+    // - FIFO.notFull
     (ctrler, ctrler.ctrlBox) match {
-      case (cu:InnerController, cb:InnerCtrlBox) if isStreaming(cu) =>
-        // FIFO.notFull
-        //dprintln(s"$cu writtenFIFOs:[${cu.writtenFIFOs.mkString(",")}]")
-        cu.writtenSFIFOs.foreach { fifo => cb.tokenInAndTree.addInput(fifo.notFull) }
+      case (cu:ComputeUnit, cb:InnerCtrlBox) =>
+        cu.writtenFIFOs.foreach { fifo => cb.tokenInAndTree.addInput(fifo.notFull) }
+      case (cu:ComputeUnit, cb:MemCtrlBox) =>
+        cu.writtenFIFOs.foreach { fifo => cb.tokenInAndTree.addInput(fifo.notFull) }
+      case (cu, cb) =>
+    }
+    // - Credit
+    (ctrler, ctrler.ctrlBox) match {
       case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) => 
-        // Credit
         cu.trueProduced.foreach { mem =>
           mem.consumer match {
             case consumer:ComputeUnit if mem.buffering != 1 & mem.buffering < cu.parent.length =>

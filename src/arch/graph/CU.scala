@@ -100,6 +100,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
         out.v.valid.default = false
       }
     }
+    super.register
   }
 
 }

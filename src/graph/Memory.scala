@@ -108,9 +108,6 @@ trait FIFO extends OnChipMem with LocalMem {
     }
   }
 
-  def finalSize(mp:PIRMap):Int = {
-    size + mp.rtmap(writePort.from.src)
-  }
 }
 
 trait LocalMem extends OnChipMem {

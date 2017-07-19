@@ -47,6 +47,7 @@ case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade)
         }
       }
     }
+    super.register
   }
   def config:Unit = {}
 }

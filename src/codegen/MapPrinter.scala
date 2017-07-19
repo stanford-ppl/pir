@@ -22,20 +22,22 @@ class MapPrinter(implicit design: Design) extends Codegen {
   override lazy val stream = newStream("Mapping.log") 
   
   def emit(pin:PI[PModule]) = {
-    mp.fimap.get(pin).foreach { from =>
-      emitln(s"${quote(pin)} <= ${quote(from)}")
+    val fin = mp.fimap.get(pin).fold("") { from =>
+      s" <= ${quote(from)}"
     }
-    mp.ipmap.pmap.get(pin).foreach { in =>
-      emitln(s"${quote(pin)} -> ${in}")
+    val ip = mp.ipmap.pmap.get(pin).fold("") { in =>
+      s"  (${in})"
     }
+    emitln(s"${quote(pin)}$fin$ip")
   }
   def emit(pout:PO[PModule]) = {
-    mp.fimap.pmap.get(pout).foreach { to =>
-      emitln(s"${quote(pout)} => [${to.map(quote).mkString(",")}]")
+    val fout = mp.fimap.pmap.get(pout).fold("") { to =>
+      s" => [${to.map(quote).mkString(",")}]"
     }
-    mp.opmap.pmap.get(pout).foreach { out =>
-      emitln(s"${quote(pout)} -> ${out}")
+    val op = mp.opmap.pmap.get(pout).fold("") { out =>
+      s" (${out})"
     }
+    emitln(s"${quote(pout)}$fout$op")
   }
 
   def emit(m:PModule):Unit = {
@@ -81,32 +83,42 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pprim:PPRIM):Unit = {
-    mp.pmmap.pmap.get(pprim).foreach { prim =>
-      emitln(s"${prim} -> ${quote(pprim)}")
+    val title = mp.pmmap.pmap.get(pprim).fold {
+      s"${quote(pprim)}"
+    } { prim =>
+      s"${prim} -> ${quote(pprim)}"
+    }
+    emitModule(pprim, title) {}
+  }
+
+  def emit(pcb:PCB):Unit = {
+    pcb.udcs.foreach(emit)
+    pcb.andTrees.foreach(emit)
+    pcb.andGates.foreach(emit)
+    pcb.delays.foreach(emit)
+    pcb match {
+      case pcb:PMCB =>
+        emitln(s"readDelay=${pcb.prt.ctrlBox.readDelay.delay(mp)}") 
+        emitln(s"writeDelay=${mp.rtmap.get(pcb.prt.sram.writePort)}") 
+      case _ =>
     }
   }
 
   def emit(pcl:PCL):Unit = {
     mp.clmap.pmap.get(pcl).foreach { cl =>
-      emitBlock(s"${quote(pcl)} -> $cl") {
+      emitModule(pcl, s"${quote(pcl)} -> $cl") {
         (cl, pcl) match {
           case (cu:CU, pcu:PCU) =>
             pcu.ctrs.foreach(emit)
             pcu.mems.foreach(emit)
             pcu.stages.foreach(emit)
-            pcu.ctrlBox.udcs.foreach(emit)
             emitList(s"pregs") { pcu.regs.foreach(emit) }
             emitList(s"regs") { cu.regs.foreach(emit) }
           case _ =>
         }
         pcl.souts.map(sout => emit(sout.ic))
         pcl.vouts.map(vout => emit(vout.ic))
-        pcl match {
-          case pcl:PMCU =>
-            emitln(s"readDelay=${pcl.ctrlBox.readDelay.delay(mp)}") 
-            emitln(s"writeDelay=${mp.rtmap.get(pcl.sram.writePort)}") 
-          case _ =>
-        }
+        emit(pcl.ctrlBox)
       }
     }
   }
@@ -118,6 +130,11 @@ class MapPrinter(implicit design: Design) extends Codegen {
 
   addPass {
     design.arch.ctrlers.foreach(emit)
+    design.arch match {
+      case sn:SwitchNetwork =>
+        sn.sbs.foreach(emit)
+      case _ =>
+    }
     emitBlock(s"mkmap") {
       mp.mkmap.map.foreach { case (k,v) =>
         emitln(s"${quote(k.src)}.$k -> $v")

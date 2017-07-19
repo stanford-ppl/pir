@@ -35,5 +35,19 @@ trait Routable extends Module with Simulatable {
   def genConnections:this.type = { spade.factory.genConnections(this); this } 
   def config(implicit spade:SwitchNetwork):Unit = {}
   //override def toString = s"${coordOf.get(this).fold(super.toString) { case (x,y) => s"$typeStr[$x,$y]"}}"
+  def register(implicit sim:Simulator):Unit = {
+    (sins ++ vins).foreach { in =>
+      in.v.valid.default = false
+      in.ic.asBus.v.valid.default = false
+    }
+    (souts ++ vouts).foreach { out =>
+      out.v.valid.default = false
+      out.ic.v.asBus.valid.default = false
+    }
+    (cins ++ couts).foreach { cio =>
+      cio.v.default = false
+      cio.ic.v.default = false
+    }
+  }
 }
 
