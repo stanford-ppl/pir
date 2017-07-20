@@ -56,15 +56,13 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:Ctr
         if (rst) {
           countv <<= initVal
         } else {
-          Match(
-            inc.pv -> { () => countv <<= countv + 1 },
-            dec.pv -> { () => 
-              if (sim.inSimulation && countv==Some(0)) {
-                warn(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle")
-              }
-              countv <<= countv - 1
-            } 
-          ) {}
+          If (inc.pv) { countv <<= countv + 1 }
+          If (dec.pv) {
+            if (sim.inSimulation && countv==Some(0)) {
+              warn(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle")
+            }
+            countv <<= countv - 1
+          }
         }
       }
       out.v := (count.v > 0)

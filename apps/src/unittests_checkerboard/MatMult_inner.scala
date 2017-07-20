@@ -34,7 +34,7 @@ object MatMult_inner extends PIRApp {
     val x1838_x1969_x1973_v = Vector("x1838_x1969_x1973")
     val x1877_b2021_x1892_b2023_s = Scalar("x1877_b2021_x1892_b2023")
     val x1986 = Sequential(name="x1986",parent=top) { implicit CU => 
-      val x1986_unit = CounterChain(name = "x1986_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      val x1986_unit = CounterChain(name = "x1986_unit", Counter(Const(0), Const(1), Const(1), par=1))
     }
     val x1985 = MetaPipeline(name="x1985",parent=x1986) { implicit CU => 
       val x1817_x1833 = ScalarBuffer().wtPort(N_argin)
@@ -94,7 +94,7 @@ object MatMult_inner extends PIRApp {
       val x1909 = CounterChain.copy("x1943", "x1909")
       val x1876 = CounterChain.copy("x1905", "x1876")
       val x1896 = CounterChain.copy("x1904", "x1896")
-      val x1843_x1919 = SRAM(size=256,banking = Strided(1)).wtPort(x1903_x1903.readPort).rdPort(x1843_x1919_x1931_v)
+      val x1843_x1919 = SRAM(size=256,banking = Strided(16)).wtPort(x1903_x1903.readPort).rdPort(x1843_x1919_x1931_v)
       WAStage(operands=List(CU.ctr(x1876(0)), Const(16)), op=FixMul, results=List(b2025))
       WAStage(operands=List(b2025, CU.ctr(x1896(0))), op=FixAdd, results=List(x1843_x1919.writeAddr))
       RAStage(operands=List(CU.ctr(x1912(0)), Const(16)), op=FixMul, results=List(b2029))

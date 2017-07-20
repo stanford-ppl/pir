@@ -6,6 +6,7 @@ import pir.util.misc._
 import pir.plasticine.main._
 import pir.plasticine.util._
 import pir.plasticine.simulation._
+import pir.exceptions._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -133,12 +134,13 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
   val writeEn = Input(Bit(), this, s"${this}.we")
-  val writeEnDelay = Input(Bit(), this, s"${this}.wed")
+  val writeEnDelay = Input(Bit(), this, s"${this}.wed") // Enable delayed by # writeAddr calculation stages
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
-  //val debug = Output(Bus(spade.numLanes * 2, Word()), this, s"${this}.debug")
+  //val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
-  val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd")
+  val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd") // writePort delayed by # writeAddr calculation stages
+  val writePtrDelay = Output(Word(), this, s"${this}.writePtrDelay") // writePtr delayed by # writeAddr calculation stages
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -151,32 +153,41 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
       val wdelay = rtmap(writePort)
       writePortDelay.v := writePort.vAt(wdelay)
       writeEnDelay.v := writeEn.vAt(wdelay)
+      writePtrDelay.v := writePtr.vAt(wdelay)
       setMem { memory =>
         If (writeEnDelay.pv) {
           writePortDelay.pv.foreach { 
             case (writePort, i) if i < wparOf(mem) =>
               writeAddr.pv.getInt.foreach { writeAddr =>
-                memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
+                memory(writePtrDelay.pv.toInt)(writeAddr + i) <<= writePort
               }
             case (writePort, i) =>
           }
         }
-        //debug.v.update
+        //DEBUG.v.update
+      }
+      def calcReadAddr(ra:Int, i:Int) = mem.banking match {
+        case Diagonal(_,_) => throw PIRException(s"Not supporting diagonal banking at the moment")
+        case Strided(stride) => ra + i * stride
+        case Duplicated() => ra
+        case NoBanking() => ra
       }
       readOut.v.set { v => 
         updateMemory
         v.foreach { 
           case (ev, i) if i < rparOf(mem) =>
-            readAddr.v.getInt.foreach { readAddr =>
-              ev <<= memory(readPtr.v.toInt)(readAddr + i)
+            readAddr.v.getInt.fold {
+              ev.asSingle <<= None
+            } { readAddr =>
+              ev <<= memory(readPtr.v.toInt)(calcReadAddr(readAddr, i))
             }
           case _ =>
         }
       }
       readPort.v := readOut.pv
-      //debug.v.set { v =>
+      //DEBUG.v.set { v =>
         //v.foreach { case (ev, i) =>
-          //ev <<= array(0)(i)
+          //ev <<= memory(0)(i+14*16)
         //}
       //}
     }

@@ -22,7 +22,7 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
   val pirDeclarator:PIRVcdDeclarator = this
 
   private val _tracking = ListBuffer[PIO[PModule]]()
-  def track(s:PIO[PModule]):Unit = _tracking += s
+  def track(s:PIO[PModule]):Unit = if (!_tracking.contains(s)) _tracking += s
   def tracked(s:PIO[PModule]):Boolean = _tracking.contains(s)
   def tracking(declarator:PIRVcdDeclarator):Iterable[PIO[PModule]] = _tracking 
   private val declarator:Traversal = new Traversal {
