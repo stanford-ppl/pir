@@ -111,7 +111,8 @@ trait OnChipMem extends Primitive with Memory {
       writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
         If (incReadPtr.pv) { 
-          if (sim.inSimulation && v.value==Some(0)) warn(s"${quote(prt)}.${quote(this)}'s count underflow at #$cycle!")
+          if (sim.inSimulation && v.value==Some(0)) 
+            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) underflow at #$cycle!")
           v <<= v - 1
         }
         If (incWritePtr.pv) { v <<= v + 1 }
@@ -206,8 +207,8 @@ trait LocalBuffer extends OnChipMem {
       notEmpty.v.default = true
       notFull.v.default = true
       notFull.v := count.v < (bufferSizeOf(this) - notFullOffset(this))
-      if (mem.isSFifo) {
-        incReadPtr.v := fimap(incReadPtr).v.asSingle & predicate.v.not
+      if (mem.isFifo) {
+        fanInOf(incReadPtr).foreach { incReadPtr.v := _.v.asSingle & predicate.v.not }
       }
     }
     super.register

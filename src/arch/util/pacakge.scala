@@ -37,6 +37,7 @@ package object util {
         case n => Nil
       }
   }
+
   def stageOf(io:IO[_,_]):Option[Stage] = {
     io.src match {
       case pr:PipeReg => Some(pr.stage) 
@@ -87,6 +88,15 @@ package object util {
       case n:AndGate => n.ins.exists(isMapped)
       case n:PredicateUnit => isMapped(n.in) 
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
+    }
+  }
+
+  def fanInOf[P<:PortType](in:Input[P,Module])(implicit sim:Simulator):Option[Output[P,Module]] = {
+    import sim.util._
+    fimap.get(in).fold { 
+      if (in.fanIns.size==1) Some(in.fanIns.head) else None
+    } { out =>
+      Some(out.asInstanceOf[Output[P, Module]])
     }
   }
 

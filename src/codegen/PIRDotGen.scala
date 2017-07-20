@@ -134,6 +134,7 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
   override def quote(n:Any):String = {
     n match {
       case n:Controller => 
+        val pcl = design.mapping.fold("") { mp => mp.clmap.get(n).fold(""){ pcl => s"\n${quote(pcl)}" } }
         val head = if (isHead.get(n)==Some(true)) s"\n(HEAD)" else ""
         val last = if (isLast.get(n)==Some(true)) s"\n(LAST)" else ""
         val streaming = if (isStreaming.get(n)==Some(true)) s"\n(Streaming)" else ""
@@ -144,7 +145,7 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
         val iter = iterOf.get(n).fold("") { c => s"\n(Iter=$c)"}
         val cycle = cycleOf.get(n).fold("") { c => s"\n(Cycle=$c)"}
         val totalCycle = totalCycleOf.get(n).fold("") { c => s"\n(TotalCycle=$c)"}
-        s"${super.quote(n)}$head$last$streaming$pipelining$par$rpar$wpar$iter$cycle$totalCycle"
+        s"${super.quote(n)}$pcl$head$last$streaming$pipelining$par$rpar$wpar$iter$cycle$totalCycle"
       case n => super.quote(n)
     }
   }

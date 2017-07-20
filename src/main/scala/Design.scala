@@ -151,6 +151,7 @@ trait Design extends PIRMetadata with Collector {
   passes += spadeCtrlDotPrinter 
 
   // Post-mapping analysis
+  passes += pirDataDotGen
   passes += fifoAnalyzer
 
   // Codegen
@@ -168,7 +169,6 @@ trait Design extends PIRMetadata with Collector {
   passes += resourceAnalyzer
   passes += powerAnalyzer 
   //passes += energyAnalyzer 
-  passes += pirDataDotGen
 
   def run = {
     try {

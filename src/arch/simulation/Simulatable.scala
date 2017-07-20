@@ -21,15 +21,7 @@ trait Simulatable extends Module with Evaluation {
     register
     import sim.util._
     ins.foreach { in =>
-      if (!in.v.isDefined) {
-        fimap.get(in).fold {
-          if (in.fanIns.size==1) {
-            in := in.fanIns.head
-          }
-        } { out => 
-          in := out
-        }
-      }
+      if (!in.v.isDefined) { fanInOf(in).foreach { out => in := out } }
     }
   }
 
