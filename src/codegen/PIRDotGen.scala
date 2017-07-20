@@ -72,10 +72,10 @@ trait PIRDotGen extends Codegen with DotCodegen {
       if (!s.writerIsEmpty) {
         s.writer.ctrler match {
           case top:Top =>
-          case w => emitEdge(w, cl, DotAttr().label(s"$s"))
+          case w => emitEdge(w, cl, DotAttr().label(label))
         }
       } else {
-        emitEdge("NotConnected", cl, DotAttr().label(s"$s"))
+        emitEdge("NotConnected", cl, DotAttr().label(label))
       }
     }
   }

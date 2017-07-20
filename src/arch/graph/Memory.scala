@@ -85,8 +85,8 @@ trait OnChipMem extends Primitive with Memory {
   type P<:PortType
   val readPort:Output[_<:PortType, OnChipMem]
   val writePort:Input[Bus, OnChipMem]
-  val incReadPtr = Input(Bit(), this, s"${this}.incReadPtr")
-  val incWritePtr = Input(Bit(), this, s"${this}.incWritePtr")
+  val readNext = Input(Bit(), this, s"${this}.readNext")
+  val writeNext = Input(Bit(), this, s"${this}.writeNext")
   val writePtr = Output(Word(), this, s"${this}.writePtr")
   val readPtr = Output(Word(), this, s"${this}.readPtr")
   val count = Output(Word(), this, s"${this}.count")
@@ -104,18 +104,18 @@ trait OnChipMem extends Primitive with Memory {
       writePtr.v.default = 0
       count.v.default = 0
       if (mem.isMbuffer && mem.asMbuffer.buffering <= 1) {
-        incReadPtr.v := false
-        incWritePtr.v := false
+        readNext.v := false
+        writeNext.v := false
       }
-      readPtr.v.set { v => If (incReadPtr.pv) { incPtr(v) } }
-      writePtr.v.set { v => If (incWritePtr.pv) { incPtr(v) }; updateMemory }
+      readPtr.v.set { v => If (readNext.pv) { incPtr(v) } }
+      writePtr.v.set { v => If (writeNext.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
-        If (incReadPtr.pv) { 
+        If (readNext.pv) { 
           if (sim.inSimulation && v.value==Some(0)) 
             warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) underflow at #$cycle!")
           v <<= v - 1
         }
-        If (incWritePtr.pv) { v <<= v + 1 }
+        If (writeNext.pv) { v <<= v + 1 }
       }
     }
   }
@@ -208,7 +208,7 @@ trait LocalBuffer extends OnChipMem {
       notFull.v.default = true
       notFull.v := count.v < (bufferSizeOf(this) - notFullOffset(this))
       if (mem.isFifo) {
-        fanInOf(incReadPtr).foreach { incReadPtr.v := _.v.asSingle & predicate.v.not }
+        fanInOf(readNext).foreach { readNext.v := _.v.asSingle & predicate.v.not }
       }
     }
     super.register
@@ -235,9 +235,9 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
       if (mem.isSFifo) {
-        incWritePtr.v.set { v => 
+        writeNext.v.set { v => 
           v <<= writePort.v.update.valid
-          if (sim.inSimulation && incWritePtr.v!=Some(false) && (count.v.toInt > bufferSize)) { 
+          if (sim.inSimulation && writeNext.v!=Some(false) && (count.v.toInt > bufferSize)) { 
             warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
           }
         }
@@ -272,7 +272,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
           memory(writePtr.pv.toInt) <<= writePort.pv
         }
       }
-      incWritePtr.v.set { v =>
+      writeNext.v.set { v =>
         v <<= writePort.v.update.valid
       }
     }

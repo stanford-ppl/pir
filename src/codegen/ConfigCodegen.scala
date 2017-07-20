@@ -369,22 +369,22 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     pcl.ctrlBox match {
       case pcb:PICB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:POCB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
       case pcb:PMCB =>
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
       case pcb:PMCCB =>
-        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sbufs.map(_.incWritePtr))
+        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
     }
   }
@@ -416,7 +416,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     val pcb = pcu.ctrlBox
     pcu match {
       case pcu:PMCU =>
-        val idxes = pcu.sbufs.map(sbuf => muxIdx(sbuf.incReadPtr))
+        val idxes = pcu.sbufs.map(sbuf => muxIdx(sbuf.readNext))
         emitln(s"${quote(pcb)}.scalarSwapReadSelect = ${quote(idxes)}")
       case pcu =>
     }

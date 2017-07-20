@@ -87,13 +87,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pmem = mp.smmap(mem)
       (mem, pmem) match {
         case (mem:SFIFO, pmem:PSMem) => 
-          mp = mp.setIP(mem.enqueueEnable, pmem.incWritePtr)
+          mp = mp.setIP(mem.enqueueEnable, pmem.writeNext)
           mp = mp.setOP(mem.notFull, pmem.notFull)
         case (mem:VFIFO, pmem:PVMem) => // enqueEnable is implicit through databus
-          mp = mp.setIP(mem.enqueueEnable, pmem.incWritePtr)
+          mp = mp.setIP(mem.enqueueEnable, pmem.writeNext)
           mp = mp.setOP(mem.notFull, pmem.notFull)
         case (mem:MBuf, pmem:POCM) =>
-          mp = mapInPort(mem.swapWrite, pmem.incWritePtr, mp)
+          mp = mapInPort(mem.swapWrite, pmem.writeNext, mp)
       }
       (mem, pmem) match {
         case (mem:LMem, pmem:PLMem) =>
@@ -109,11 +109,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     cu.mbuffers.foreach { mbuf => 
       val pmem = mp.smmap(mbuf)
-      mp = mapInPort(mbuf.swapRead, pmem.incReadPtr, mp)
+      mp = mapInPort(mbuf.swapRead, pmem.readNext, mp)
     }
     cu.fifos.foreach { fifo =>
       val pmem = mp.smmap(fifo)
-      mp = mapInPort(fifo.dequeueEnable, pmem.incReadPtr, mp)
+      mp = mapInPort(fifo.dequeueEnable, pmem.readNext, mp)
       mp = mapInPort(fifo.predicate, pmem.predicate, mp)
       if (!fifo.predicate.isConnected) {
         mp = mp.setFI(pmem.predicate, mappingOf[PConst](pmem.predicate).head.out)

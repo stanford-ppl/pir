@@ -206,41 +206,41 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.sbufs.foreach { buf => 
-          buf.incReadPtr <== cb.readDoneXbar.out; 
-          buf.incReadPtr <== cb.writeDoneXbar.out
-          buf.incReadPtr <== cb.readEn.out; 
-          buf.incReadPtr <== cb.writeEn.out; 
-          buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.readNext <== cb.readDoneXbar.out; 
+          buf.readNext <== cb.writeDoneXbar.out
+          buf.readNext <== cb.readEn.out; 
+          buf.readNext <== cb.writeEn.out; 
+          buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
         cu.vbufs.foreach { buf => 
-          buf.incReadPtr <== cb.writeEn.out; 
+          buf.readNext <== cb.writeEn.out; 
           buf.predicate <== low.out
         }
         cu.srams.foreach { sram => 
-          sram.incReadPtr <== cb.readDoneXbar.out 
-          sram.incWritePtr <== cb.writeDoneXbar.out
+          sram.readNext <== cb.readDoneXbar.out 
+          sram.writeNext <== cb.writeDoneXbar.out
           sram.writeEn <== cb.writeEn.out
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
-          buf.incReadPtr <== cu.ctrs.map(_.done)
-          buf.incReadPtr <== cu.cins.map(_.ic)
-          buf.incReadPtr <== cb.en.out; 
-          buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.readNext <== cu.ctrs.map(_.done)
+          buf.readNext <== cu.cins.map(_.ic)
+          buf.readNext <== cb.en.out; 
+          buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out 
           buf.predicate <== cb.fifoPredUnit.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf => 
-          buf.incReadPtr <== cb.doneXbar.out
-          buf.incWritePtr <== cu.cins.map(_.ic)
+          buf.readNext <== cb.doneXbar.out
+          buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
       case (mc:MemoryController, cb:MCCtrlBox) =>
-        //mc.sbufs.foreach { buf => buf.incWritePtr <== cu.cins.map(_.ic) }
-        mc.sbufs.foreach { buf => buf.incReadPtr <== cb.en.out }
-        mc.data.incReadPtr <== cb.running
+        //mc.sbufs.foreach { buf => buf.writeNext <== cu.cins.map(_.ic) }
+        mc.sbufs.foreach { buf => buf.readNext <== cb.en.out }
+        mc.data.readNext <== cb.running
         mc.bufs.foreach { buf => buf.predicate <== low.out }
       case (top:Top, cb:TopCtrlBox) =>
     }
