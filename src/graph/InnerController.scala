@@ -17,8 +17,6 @@ abstract class InnerController(name:Option[String])(implicit design:Design) exte
  with InnerRegBlock {
   import pirmeta._
 
-  def srams:List[SRAM] = mems.collect{ case sm:SRAM => sm }
-
   /* Stages */
   val _rdAddrStages = ListBuffer[RAStage]()
   def rdAddrStages = _rdAddrStages.toList

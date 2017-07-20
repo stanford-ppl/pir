@@ -220,6 +220,22 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  def swapCounter(ip:InPort, ccFrom:CounterChain, ccTo:CounterChain) = {
+    ip.from.src match {
+      case ctr:Counter if ccFrom.counters.contains(ctr) =>
+        val idx = ccFrom.counters.indexOf(ctr)
+        val nctr = ccTo.counters(idx)
+        ip.disconnect
+        ip.connect(nctr.out)
+      case PipeReg(s, CtrPR(ctr)) if ccFrom.counters.contains(ctr) =>
+        val idx = ccFrom.counters.indexOf(ctr)
+        val nctr = ccTo.counters(idx)
+        ip.disconnect
+        ip.connect(s.ctrler.asICL.ctr(s, nctr))
+      case _ =>
+    }
+  }
+
   def duplicateCChain(cu:ComputeUnit) = {
     cu.cchains.foreach { cc =>
       if (forRead(cc) && forWrite(cc)) {
@@ -229,24 +245,11 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         forWrite(clone) = false
         forRead(clone) = true
         readCChainsOf(cu) = readCChainsOf(cu).map { case `cc` => clone; case cc => cc }
+        cu.srams.foreach { sram => swapCounter(sram.readAddr, cc, clone) }
         cu.stages.foreach { 
           case st if forRead(st) =>
             st.fu.foreach { fu =>
-              fu.operands.foreach { oprd =>
-                oprd.from.src match {
-                  case ctr:Counter if cc.counters.contains(ctr) =>
-                    val idx = cc.counters.indexOf(ctr)
-                    val nctr = clone.counters(idx)
-                    oprd.disconnect
-                    oprd.connect(nctr.out)
-                  case PipeReg(s, CtrPR(ctr)) if cc.counters.contains(ctr) =>
-                    val idx = cc.counters.indexOf(ctr)
-                    val nctr = clone.counters(idx)
-                    oprd.disconnect
-                    oprd.connect(cu.asICL.ctr(s, nctr))
-                  case _ =>
-                }
-              }
+              fu.operands.foreach { oprd => swapCounter(oprd, cc, clone) }
             }
           case _ =>
         }
