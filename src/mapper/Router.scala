@@ -399,27 +399,27 @@ abstract class Router(implicit design:Design) extends Mapper {
   def isFatPathValid(fatpath:FatPath[FEdge]) = { !fatpath.exists{_.size==0} }
 
   def resFilter(in:I, m:M, triedRes:Paths[FEdge]):Paths[FEdge] = {
-    val cl = ctrler(in)
-    val pcl = m.clmap(cl)
+    val icl = ctrler(in)
+    val picl = m.clmap(icl)
     val out = from(in) 
-    val fcl = ctrler(from(in))
-    val pfcl = m.clmap(fcl)
+    val ocl = ctrler(out)
+    val pocl = m.clmap(ocl)
     def filterUsed(prt:PRT, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
       val (heads, last) = fatpath.splitAt(fatpath.size-1)
       filterUsedFatEdge(out, last.head, m).map{ last => heads :+ last }
     }
-    log((s"$fcl.$out(${quote(pfcl)}) -> $cl.$in(${quote(pcl)}) resFunc", true), (r:Paths[FEdge]) => (), failPass) {
+    log((s"$ocl.$out(${quote(pocl)}) -> $icl.$in(${quote(picl)}) resFunc", true), (r:Paths[FEdge]) => (), failPass) {
       val routes = fwdAdvance(
-        start=pfcl, 
+        start=pocl, 
+        end=Some(picl), 
         validCons=Some(filterUsed _), 
         advanceCons=Some(filterUsed _),
-        end=Some(pcl), 
         minHop=minHop,
         maxHop=maxHop
       )
       if (routes.isEmpty) {
         var info = s"No route available for searching range=[$minHop, $maxHop]\n"
-        throw MappingException(this, m, info)
+        throw PassThroughException(this, ReplaceController(this, List(icl -> picl, ocl -> pocl), m), m)
       }
       //var remain = routes.flatMap { case (pcl, fp) => filterUsedPaths(out, fp, m).map( fp => (pcl, fp)) }
       //remain = remain.diff(triedRes)

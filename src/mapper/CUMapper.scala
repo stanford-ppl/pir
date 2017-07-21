@@ -40,8 +40,15 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
   def place(cl:N, prt:R, m:M):M = {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
-      routers.foldLeft(m.setCL(cl, prt)) { case (pm, router) =>
-        router.route(cl, pm)
+      Try {
+        routers.foldLeft(m.setCL(cl, prt)) { case (pm, router) =>
+          router.route(cl, pm)
+        }
+      } match {
+        case Success(mp) => mp
+        case Failure(PassThroughException(_, e@ReplaceController(_, mappings, _), _)) if (mappings.contains((cl, prt))) =>
+          throw e
+        case Failure(e) => throw e
       }
     }
     //breakPoint(mp, s"debugging placer")
@@ -90,4 +97,9 @@ class CUMapper(implicit val design:Design) extends Mapper {
     )
   }
 
+}
+
+case class ReplaceController[M](mapper:Mapper, mappings:List[(CL, PCL)], mp:M)(implicit design:Design) 
+  extends MappingException(mp) {
+    override val msg = s"Avoid mapping of ${ mappings.map{ case (cl, pcl) => s"$cl -> $pcl"}.mkString(",") }"
 }
