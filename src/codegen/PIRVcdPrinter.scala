@@ -31,6 +31,10 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
       if (visited.contains(node)) return
       node match {
         case node:Controller => declare(node) { super.visitNodeNoCheck(node) }
+        case n:Variable =>
+          visited += node
+          val pio = vomap(n.writer).head
+          declare(pio, Some(s"$n"))
         case io:Input =>
           visited += node
           val pio = vimap(io)
@@ -97,6 +101,13 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
             emitln(s"$$upscope $$end")
             emitkv(s"scope module", "stages")
             n.stages.foreach(declarator.visitNode)
+            emitln(s"$$upscope $$end")
+          case n:Top =>
+            emitkv(s"scope module", "scalars")
+            n.scalars.foreach { n => declarator.visitNode(n) }
+            emitln(s"$$upscope $$end")
+            emitkv(s"scope module", "vectors")
+            n.vectors.foreach { n => declarator.visitNode(n) }
             emitln(s"$$upscope $$end")
           case _ =>
         }

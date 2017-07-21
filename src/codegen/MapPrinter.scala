@@ -96,12 +96,6 @@ class MapPrinter(implicit design: Design) extends Codegen {
     pcb.andTrees.foreach(emit)
     pcb.andGates.foreach(emit)
     pcb.delays.foreach(emit)
-    pcb match {
-      case pcb:PMCB =>
-        emitln(s"readDelay=${pcb.prt.ctrlBox.readDelay.delay(mp)}") 
-        emitln(s"writeDelay=${mp.rtmap.get(pcb.prt.sram.writePort)}") 
-      case _ =>
-    }
   }
 
   def emit(pcl:PCL):Unit = {
