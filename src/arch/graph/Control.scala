@@ -343,9 +343,6 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   val readEn = Delay(Bit(),0, s"$prt.readEn") 
   readEn.in <== readAndGate.out
 
-  val readDelay = Delay(Bit(),s"$prt.readDelay") 
-  readDelay.in <== readEn.out
-
   def register(implicit sim:Simulator):Unit = {
     readEn.out.v.default = false
     writeEn.out.v.default = false

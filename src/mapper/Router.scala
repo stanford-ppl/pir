@@ -66,6 +66,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     e match {
       case e:MappingException[_] =>
         //breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
+      case e:PassThroughException[_] =>
       case e:Throwable =>
         println(e)
     }

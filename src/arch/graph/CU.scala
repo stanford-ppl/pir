@@ -79,22 +79,17 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
         case _ =>
       }
       val enable = ctrlBox match {
-        case cb:MemoryCtrlBox => Some(cb.readDelay.out.v)
+        case cb:MemoryCtrlBox => None 
         case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
         case _ => None
       }
       (souts++vouts).foreach { out =>
-        fimap.get(out.ic).fold {
-          if (out.ic.fanIns.size==1) {
+        enable.foreach { en =>
+          fanInOf(out.ic).foreach { pout =>
             out.ic.v.set { v =>
-              v <<= out.ic.fanIns.head.v
-              v.valid <<= enable.get
+              v <<= pout.v
+              v.valid <<= en
             }
-          }
-        } { pout => 
-          out.ic.v.set { v =>
-            v <<= pout.v
-            v.valid <<= enable.get
           }
         }
         out.v.valid.default = false

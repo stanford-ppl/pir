@@ -30,10 +30,10 @@ class DelayMapper(implicit val design:Design) extends Mapper {
     val ridxs = rstages.map(_.index)
     val widxs = wstages.map(_.index)
     // Last stage's FU is not pipelined
-    val rdelay = (if (ridxs.nonEmpty) ridxs.max - ridxs.min else 0) + 1
+    val rdelay = (if (ridxs.nonEmpty) ridxs.max - ridxs.min else 0)
     val wdelay = if (widxs.nonEmpty) widxs.max - widxs.min else 0
     dprintln(s"$cu(${quote(pmcu)}) rdelay=$rdelay wdelay=$wdelay")
-    mp = mp.setRT(pmcu.ctrlBox.readDelay, rdelay)
+    mp = mp.setRT(pmcu.sram.readPort, rdelay)
     mp = mp.setRT(pmcu.sram.writePort, wdelay)
     mp
   }

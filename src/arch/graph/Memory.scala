@@ -134,13 +134,16 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   val readAddr = Input(Word(), this, s"${this}.ra")
   val writeAddr = Input(Word(), this, s"${this}.wa")
   val writeEn = Input(Bit(), this, s"${this}.we")
-  val writeEnDelay = Input(Bit(), this, s"${this}.wed") // Enable delayed by # writeAddr calculation stages
+  val writeEnDelay = Input(Bit(), this, s"${this}.wed") // Write enable delayed by # writeAddr calculation stages
+  val readEn = Input(Bit(), this, s"${this}.re")
+  val readEnDelay = Input(Bit(), this, s"${this}.red") // Read enable delayed by # writeAddr calculation stages
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
   //val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
   val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd") // writePort delayed by # writeAddr calculation stages
   val writePtrDelay = Output(Word(), this, s"${this}.writePtrDelay") // writePtr delayed by # writeAddr calculation stages
+  val readPtrDelay = Output(Word(), this, s"${this}.readPtrDelay") // writePtr delayed by # writeAddr calculation stages
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -150,10 +153,21 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
       memory = Array.tabulate(bufferSizeOf(this), mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+      val rdelay = rtmap(readPort)
       val wdelay = rtmap(writePort)
-      writePortDelay.v := writePort.vAt(wdelay)
+
+      writeEn.v.default = false
+      writeEnDelay.v.default = false
       writeEnDelay.v := writeEn.vAt(wdelay)
+      writePortDelay.v := writePort.vAt(wdelay)
       writePtrDelay.v := writePtr.vAt(wdelay)
+
+      readEn.v.default = false
+      readEnDelay.v.default = false
+      readEnDelay.v := readEn.vAt(rdelay)
+      readPtrDelay.v := readPtr.vAt(rdelay)
+      readOut.v.valid.default = false
+
       setMem { memory =>
         If (writeEnDelay.pv) {
           writePortDelay.pv.foreach { 
@@ -174,15 +188,15 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
       }
       readOut.v.set { v => 
         updateMemory
-        v.foreach { 
+        v.foreachv { 
           case (ev, i) if i < rparOf(mem) =>
             readAddr.v.getInt.fold {
               ev.asSingle <<= None
             } { readAddr =>
-              ev <<= memory(readPtr.v.toInt)(calcReadAddr(readAddr, i))
+              ev <<= memory(readPtrDelay.v.toInt)(calcReadAddr(readAddr, i))
             }
           case _ =>
-        }
+        } { valid => valid <<= readEnDelay.v }
       }
       readPort.v := readOut.pv
       //DEBUG.v.set { v =>

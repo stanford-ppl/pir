@@ -221,6 +221,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           sram.readNext <== cb.readDoneXbar.out 
           sram.writeNext <== cb.writeDoneXbar.out
           sram.writeEn <== cb.writeEn.out
+          sram.readEn <== cb.readEn.out
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
