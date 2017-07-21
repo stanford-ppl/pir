@@ -147,13 +147,13 @@ class AppTests extends UnitTest { self =>
     val gold = List.tabulate(M, N){ case (i,j) =>
       val bCol = b.map{ row => row(j) }
       a(i).zip(bCol).map{ case (aa, bb) => aa * bb }.reduce{_+_}
-    }.flatten
+    }
 
     test(
       app, 
       args=s"N=$N M=$M P=$P a_addr=${startA*4} b_addr=${startB*4} c_addr=${startC*4}", 
-      checkDram = Some(checkDram(startC, gold) _),
-      timeOut=400,
+      checkDram = Some(checkDram(startC, gold.flatten) _),
+      timeOut=600,
       debug=debug
     )
   }
@@ -168,7 +168,7 @@ class AppTests extends UnitTest { self =>
       app, 
       args=s"sizeIn=${numTile*tileSize} dstFPGA_addr=${startDst*4} srcFPGA_addr=${startSrc*4}", 
       checkDram = Some(checkDram(startDst, gold) _),
-      timeOut=100,
+      timeOut=120,
       debug=debug
     )
   }
@@ -191,14 +191,14 @@ class AppTests extends UnitTest { self =>
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
-  testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
   //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
-  //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=false)
-  //testBlockReduce1D(BlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
-  //testBlockReduce1D(ParBlockReduce1D, numTile=1, tileSize=16, startSrc=20, startDst=0, debug=true)
+  testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
+  //testBlockReduce1D(BlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
+  //testBlockReduce1D(ParBlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=false)
   //test(ChainTest, args="ai_in=3 ai_out=3", argOuts="x223_x227=8", debug=true, timeOut=80)
