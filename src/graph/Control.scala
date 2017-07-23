@@ -193,19 +193,22 @@ object Delay {
 
 trait StageCtrlBox extends CtrlBox {
   val siblingAndTree = AndTree("SiblingAndTree")
-  val en = Delay(s"$this.en")
-  val done = Delay(s"$this.done")
-  def enOut:CtrlOutPort
-  def doneOut:CtrlOutPort
+  val enIn = CtrlInPort(this, s"$this.enIn")
+  val enOut = CtrlOutPort(this, s"$this.enOut")
+  def enDelayOut:CtrlOutPort
+  val doneIn = CtrlInPort(this, s"$this.doneIn")
+  val doneOut = CtrlOutPort(this, s"$this.doneOut")
+  def doneDelayOut:CtrlOutPort
   override def ctrlOuts:List[CtrlOutPort] = { 
-    (super.ctrlOuts ++ List(enOut,doneOut).filter { _.isCtrlOut }).toSet.toList
+    (super.ctrlOuts ++ List(enDelayOut,doneDelayOut).filter { _.isCtrlOut }).toSet.toList
   }
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
   extends CtrlBox() with StageCtrlBox {
-  val enOut:CtrlOutPort = CtrlOutPort(this, s"$ctrler.enOut") 
-  val doneOut:CtrlOutPort = CtrlOutPort(this, s"$ctrler.doneOut") 
+  val enDelayOut = CtrlOutPort(this, s"$this.enDelayOut")
+  val doneDelayOut = CtrlOutPort(this, s"$this.doneDelayOut")
+
   val fifoAndTree = AndTree("FIFOAndTree")
   val tokenInAndTree = AndTree("TokenInAndTree")
   val pipeAndTree = AndTree("pipeAndTree")
@@ -234,8 +237,8 @@ object InnerCtrlBox {
 } 
 
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
-  def enOut = en.out
-  val doneOut:CtrlOutPort = CtrlOutPort(this, s"$ctrler.doneOut") 
+  def enDelayOut = enOut 
+  val doneDelayOut:CtrlOutPort = CtrlOutPort(this, s"$ctrler.doneDelayOut") 
   val childrenAndTree = AndTree("ChildrenAndTree")
 }
 object OuterCtrlBox {
@@ -269,8 +272,8 @@ case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Des
 }
 
 case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: Design) extends StageCtrlBox() {
-  def enOut = en.out
-  val doneOut = CtrlOutPort(this, s"$this.doneOut")
+  def enDelayOut = enOut 
+  val doneDelayOut = doneOut 
   val fifoAndTree = AndTree("FIFOAndTree")
 }
 

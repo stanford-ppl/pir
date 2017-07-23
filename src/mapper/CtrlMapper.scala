@@ -131,13 +131,13 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapInPort(cb.writeDone.in, pcb.writeDoneXbar.in, mp)
         mp = mapInPort(cb.readDone.in, pcb.readDoneXbar.in, mp)
       case (cb:ICB, pcb:PICB) =>
-        mp = mapInPort(cb.done.in, pcb.doneXbar.in, mp)
-        mp = mp.setOP(cb.done.out, pcb.doneXbar.out)
-        mp = mp.setOP(cb.doneOut, pcb.doneDelay.out)
+        mp = mapInPort(cb.doneIn, pcb.doneXbar.in, mp)
+        mp = mp.setOP(cb.doneOut, pcb.doneXbar.out)
+        mp = mp.setOP(cb.doneDelayOut, pcb.doneDelay.out)
       case (cb:OCB, pcb:POCB) =>
-        mp = mapInPort(cb.done.in, pcb.doneXbar.in, mp)
-        mp = mp.setOP(cb.done.out, pcb.doneXbar.out)
-        mp = mp.setOP(cb.doneOut, pcb.udsm.doneOut)
+        mp = mapInPort(cb.doneIn, pcb.doneXbar.in, mp)
+        mp = mp.setOP(cb.doneOut, pcb.doneXbar.out)
+        mp = mp.setOP(cb.doneDelayOut, pcb.udsm.doneOut)
       case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileLoad =>
         mp = mp.setOP(cb.doneOut, pcb.rdone)
       case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileStore =>
@@ -204,13 +204,12 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
         mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)
       case (cb:OCB, pcb:POCB) => 
-        mp = mp.setOP(cb.en.out, pcb.en.out)
-        //mp = mp.setOP(cb.enOut, pcb.en.out)
+        mp = mp.setOP(cb.enOut, pcb.en.out)
       case (cb:ICB, pcb:PICB) =>
-        mp = mp.setOP(cb.en.out, pcb.en.out)
-        mp = mp.setOP(cb.enOut, pcb.enDelay.out)
+        mp = mp.setOP(cb.enOut, pcb.en.out)
+        mp = mp.setOP(cb.enDelayOut, pcb.enDelay.out)
       case (cb:MCCB, pcb:PMCCB) =>
-        mp = mp.setOP(cb.en.out, pcb.en.out)
+        mp = mp.setOP(cb.enOut, pcb.en.out)
     }
     mp
   }
@@ -224,11 +223,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mp.setIP(cb.readEn.in, pcb.readEn.in)
         mp = mp.setIP(cb.writeEn.in, pcb.writeEn.in)
       case (cb:OCB, pcb:POCB) => 
-        mp = mp.setIP(cb.en.in, pcb.en.in)
+        mp = mp.setIP(cb.enIn, pcb.en.in)
       case (cb:ICB, pcb:PICB) =>
-        mp = mapInPort(cb.en.in, pcb.en.in, mp)
+        mp = mapInPort(cb.enIn, pcb.en.in, mp)
       case (cb:MCCB, pcb:PMCCB) =>
-        mp = mp.setIP(cb.en.in, pcb.en.in)
+        mp = mp.setIP(cb.enIn, pcb.en.in)
       case (cb:CB, pcb:PCB) =>
         assert(cb.ctrler.isInstanceOf[MC])
         assert(pcb.prt.isInstanceOf[PMC])
