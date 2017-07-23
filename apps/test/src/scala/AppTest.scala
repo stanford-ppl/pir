@@ -173,9 +173,23 @@ class AppTests extends UnitTest { self =>
     )
   }
 
+  def testSRAMReadWrite2D(app:PIRApp, M:Int, N:Int, debug:Boolean=false) = {
+    val block = Array.tabulate(M, N) { case (i,j) => i*N + j }
+
+    val gold = block.flatten.map{ e => e*e }.reduce {_+_}
+
+    test(
+      app, 
+      args=s"M=$M N=$N", 
+      argOuts=s"x1026_x1096=$gold",
+      timeOut=120,
+      debug=debug
+    )
+  }
+
   //intercept[PIRException] {
 
-  val simulate = true
+  val simulate = false 
   // Apps 
   //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
@@ -186,19 +200,21 @@ class AppTests extends UnitTest { self =>
   
   //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", debug=true)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
-  //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=2false0", debug=false)
+  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true)
+  //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
   //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
-  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
+  testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=true)
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
   //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
-  testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
+  //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
   //testBlockReduce1D(BlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //testBlockReduce1D(ParBlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
+  //test(MetaPipeTest, args="x222=4", argOuts="x223_x227=3", timeOut=40, debug=true)
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=false)
   //test(ChainTest, args="ai_in=3 ai_out=3", argOuts="x223_x227=8", debug=true, timeOut=80)
