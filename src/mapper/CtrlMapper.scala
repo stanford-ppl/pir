@@ -151,7 +151,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mp.setPM(at, pat)
     mp = mp.setOP(at.out, pat.out)
     at.ins.foreach { in =>
-      val po = if (in.isCtrlIn) { mp.vimap(in).ic } else { mp.opmap(in.from.asCtrl) }
+      val po = if (in.isGlobal) { mp.vimap(in).ic } else { mp.opmap(in.from).head }
       val pins = pat.ins.filter { _.canConnect(po) }
       var info = s"Mapping $at to $pat in ${at.ctrler}\n"
       info += s"in=$in, from=${in.from}, po=$po \n"
@@ -244,7 +244,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     }
     cu.cchains.flatMap(_.counters).foreach { ctr =>
       val pctr = mp.ctmap(ctr)
-      mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from.asCtrl))
+      mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from).head)
     }
     mp
   }
@@ -261,7 +261,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
           }
         case (_, _) =>
           mp.vomap(co).foreach { pco =>
-            mp = mp.setFI(pco.ic, mp.opmap(co))
+            mp = mp.setFI(pco.ic, mp.opmap(co).head)
           }
       }
     }

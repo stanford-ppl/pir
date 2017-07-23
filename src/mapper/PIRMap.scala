@@ -348,11 +348,6 @@ case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     OPMap(newmap, pmap + rec.swap)
   }
-  def apply(op:COP):PO[PModule] = {
-    val pops = super.apply(op)
-    assert(pops.size==1)
-    pops.head
-  }
 }
 object OPMap extends IBiOneToManyObj {
   type K = OP

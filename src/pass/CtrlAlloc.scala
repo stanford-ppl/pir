@@ -247,7 +247,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     //}
   }
 
-  def connectToken(consumer:Controller, tk:(Any, CtrlOutPort)):Unit = {
+  def connectToken(consumer:Controller, tk:(Any, OutPort)):Unit = {
     val cb = consumer.ctrlBox.asInstanceOf[StageCtrlBox]
     val (dep, token) = tk
     val tb = cb.tokenBuffer(dep)
@@ -256,7 +256,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     cb.siblingAndTree.addInput(tb.out)
   }
 
-  def connectTokens(consumer:Controller, tokens:List[(Any, CtrlOutPort)]):Unit = {
+  def connectTokens(consumer:Controller, tokens:List[(Any, OutPort)]):Unit = {
     val tokenGroups = if (tokens.size==0) Nil else tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
     val midConsumers = tokenGroups.map { tokens =>
       val midConsumer = if (tokenGroups.size==1) consumer else {

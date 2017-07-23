@@ -13,7 +13,7 @@ import scala.reflect.runtime.universe._
 import pir.pass.ForwardRef
 import pir.util._
 
-abstract class Controller(implicit design:Design) extends Node {
+abstract class Controller(implicit design:Design) extends Module {
   implicit def ctrler:this.type = this
   import pirmeta._
 
@@ -33,8 +33,8 @@ abstract class Controller(implicit design:Design) extends Node {
   def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
   def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(name, v))
 
-  def cins:List[CtrlInPort] = ctrlBox.ctrlIns
-  def couts:List[CtrlOutPort] = ctrlBox.ctrlOuts 
+  def cins:List[InPort] = ctrlBox.ctrlIns
+  def couts:List[OutPort] = ctrlBox.ctrlOuts 
 
   // No need to consider scalar after bundling
   def readers:List[Controller] = voutMap.keys.flatMap {

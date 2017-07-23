@@ -110,7 +110,7 @@ trait LocalRouter extends Mapper {
       case (os, pis) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
         n match {
-          case n if n.isCtrlIn => 
+          case n if n.isGlobal => 
             val pop = mp.vimap(n).ic
             mp = mp.setFI(r, pop)
           case n => 

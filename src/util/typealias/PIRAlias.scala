@@ -44,10 +44,7 @@ trait PIRAlias {
   type IO    = pir.graph.IO
   type PT    = Port
   type IP    = InPort
-  type CIP   = CtrlInPort
-  type CP    = CtrlPort
   type OP    = OutPort
-  type COP   = CtrlOutPort
   type PDU   = PredicateUnit
   type CB    = CtrlBox
   type MCB   = MemCtrlBox

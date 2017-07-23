@@ -705,15 +705,15 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
               //emitPair("syncTokenMux", "x")
             //} else {
               //val tdlut = lumap.pmap(ptdlut)
-              //val inits = ListBuffer[CIP]()
-              //val tos = ListBuffer[COP]()
-              //val map:Map[COP, Int] = Map.empty
+              //val inits = ListBuffer[IP]()
+              //val tos = ListBuffer[OP]()
+              //val map:Map[OP, Int] = Map.empty
               //tdlut.ins.foreach { in =>
                 //in.from.src match {
                   //case t:Top => inits += in
                   //case p:PRIM => 
                     //if (p.ctrler==tdlut.ctrler.asInstanceOf[ComputeUnit].parent) inits += in
-                    //else tos += in.from.asInstanceOf[COP]
+                    //else tos += in.from.asInstanceOf[OP]
                   //case c => emitln(s"${c}") //TODO?
                 //}
               //}
@@ -725,7 +725,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
                 //val init = inits.head
                 //val pcin = vimap(init)
                 //emitPair("syncTokenMux", s"${indexOf(pcin)}")
-                //map += (init.from.asInstanceOf[COP] -> 0) // Assume init is the first input
+                //map += (init.from.asInstanceOf[OP] -> 0) // Assume init is the first input
               //}
               //tos.foreach { to =>
                 //map += (to -> (indexOf(ucmap(to.src.asInstanceOf[UC]))+1) ) // Assume init is the first input
@@ -751,7 +751,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
               //val tolut = lumap.pmap(ptolut)
               //val ctrs = tolut.ins.map(_.from.src.asInstanceOf[Ctr])
               //assert(ctrs.size<=2)
-              //val map:Map[COP, Int] = Map.empty
+              //val map:Map[OP, Int] = Map.empty
               //doneXbar ++= List.tabulate(2) { i => // sel for Xbar
                 //if (i<ctrs.size) {
                 //val pct = ctmap(ctrs(i))
@@ -848,7 +848,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
               //fifoMux += s""""x""""
             //} else {
               //val enlut = lumap.pmap(penlut)
-              //val map:Map[COP, Int] = Map.empty
+              //val map:Map[OP, Int] = Map.empty
               //var toAndTree = false
               //enlut.ins.map(_.from.src).foreach { 
                 //case udc:UC => 
@@ -873,25 +873,12 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
       val emuxs = pcu.ctrs.zipWithIndex.map { case (pctr, i) => 
         if (ctmap.pmap.contains(pctr)) {
           val ctr = ctmap.pmap(pctr)
-          if (!ctr.en.isCtrlIn) {
+          if (!ctr.en.isGlobal) {
             s""""0""""
           } else {
             tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
             s""""1""""
           }
-          //ctr.en.from.src match {
-            //case e:EnLUT =>
-              //val penlut = lumap(e).asInstanceOf[PEnLUT]
-              //if (e.ctrler==cu) {
-                //assert(indexOf(penlut) == i)
-                //s""""0""""
-              //} else { // from token in
-                //tokIns(i) = s""""${indexOf(vimap(ctr.en))}""""
-                //s""""1""""
-              //}
-            //case c:Ctr => //Chained
-              //s""""x""""
-          //}
         } else {
           s""""x""""
         }
@@ -910,8 +897,8 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
       pcu.ctrlIO.ins.zipWithIndex.foreach { case (cin, i) =>
         vimap.pmap.get(cin).foreach { cis =>
           // cis should have the same source
-          assert(cis.map(_.asInstanceOf[CIP].from).toSet.size==1)
-          cis.head.asInstanceOf[CIP].from.src match {
+          assert(cis.map(_.asInstanceOf[IP].from).toSet.size==1)
+          cis.head.asInstanceOf[IP].from.src match {
             case f:FIFO => tokInAndTree(i) = s""""1""""
             case _ =>
           }
@@ -951,7 +938,7 @@ class PisaCodegen()(implicit design: Design) extends Codegen with JsonCodegen {
     }
     table.toList
   }
-  def printTable(numBits:Int, transFunc:TransferFunction, map:Map[COP, Int]):Unit = {
+  def printTable(numBits:Int, transFunc:TransferFunction, map:Map[OP, Int]):Unit = {
     val table = genTable(numBits, transFunc.tf(map, _))
     val size:Int = table.size
     dprintln(s"TransferFunction: ${transFunc.info}, map:${map} numBits:$numBits")

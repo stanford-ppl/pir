@@ -24,7 +24,7 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
   override def updateBlock(block: this.type => Any)(implicit design: Design):this.type = {
     super.updateBlock(block)
     sfifos.foreach { sfifo =>
-      CtrlInPort(this, s"$this.${sfifo.name.get}").connect(sfifo.readPort)
+      InPort(this, s"$this.${sfifo.name.get}").connect(sfifo.readPort)
     }
     this
   }

@@ -16,7 +16,7 @@ import pir.pass.ForwardRef
 import pir.util._
 
 
-abstract class Primitive(implicit val ctrler:Controller, design:Design) extends Node 
+abstract class Primitive(implicit val ctrler:Controller, design:Design) extends Module 
 /** Counter node. Represents a chain of counters where each counter counts upto a certain max value. When
  *  the topmost counter reaches its maximum value, the entire counter chain ''saturates'' and does not
  *  wrap around.
@@ -93,7 +93,7 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   def tokenIn:Option[InPort] = {
     ctrler match {
       case c:Controller =>
-        val cins = c.cins.filter{_.asInstanceOf[CtrlInPort].ctrler==writer.ctrler}
+        val cins = c.cins.filter{_.asInstanceOf[InPort].ctrler==writer.ctrler}
         if (cins.size==0) None
         else {
           assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")
@@ -364,8 +364,8 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}
-case class RdAddrPR(raPort:RdAddrInPort)(implicit ctrler:InnerController, design: Design)   extends Reg {override val typeStr = "regra"; }
-case class WtAddrPR(waPort:WtAddrInPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
+case class RdAddrPR(raPort:InPort)(implicit ctrler:InnerController, design: Design)   extends Reg {override val typeStr = "regra"; }
+case class WtAddrPR(waPort:InPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
 case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                  extends Reg {override val typeStr = "regct"}
 case class ReducePR()(implicit ctrler:InnerController, design: Design)                      extends Reg {override val typeStr = "regrd"}
 case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)  extends Reg {
@@ -405,7 +405,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: Des
   }
 }
 
-case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Node {
+case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Module {
   override val typeStr = "Const"
   val name:Option[String] = Some(s"$value")
   val out = OutPort(this, s"Const${id}(${value})")

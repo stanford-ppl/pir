@@ -45,11 +45,11 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
           declare(pio, Some(s"${self.quote(io)}"))
         case io:InPort =>
           visited += node
-          val pio = if (io.isCtrlIn) vimap.get(io) else ipmap.get(io)
+          val pio = if (io.isGlobal) vimap.get(io) else ipmap.get(io)
           pio.foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
         case io:OutPort =>
           visited += node
-          if (io.isCtrlOut) vomap(io).foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
+          if (io.isGlobal) vomap(io).foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
           else opmap.get(io).foreach { pios => declare(pios.head, Some(s"${self.quote(io)}")) }
         case node:UDCounter => declare(node) { 
           super.visitNode(node)

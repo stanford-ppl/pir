@@ -80,8 +80,8 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
-  def emitCtrlInputs(cl:Controller, cins:List[CtrlInPort]):Unit = {
-    def q(cp:CtrlPort) = cp.src match {
+  def emitCtrlInputs(cl:Controller, cins:List[InPort]):Unit = {
+    def q(cp:Port) = cp.src match {
       case cb:CtrlBox => 
         val attrs = s"${cp}".split("\\.")
         if (attrs.size==2)
@@ -98,7 +98,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
         }
         val fromlb = from.src match {
           //case ctr:Counter => s"${fromcu.name.getOrElse(fromcu.toString)}.done"
-          case cb:CtrlBox => q(from.asInstanceOf[CtrlPort])
+          case cb:CtrlBox => q(from)
           case _ => s"${from}"
         }
         val tolb = cis.mkString(",\n")

@@ -30,3 +30,20 @@ abstract class Node (implicit val design: Design) {
   override def toString = s"${typeStr}${id}${name.fold("")(n => s"_${n}")}" 
   def bound(b:AnyVal):this.type = { boundOf(this) = b; this }
 }
+
+trait Module extends Node {
+  implicit val self:Module = this
+  val _ins = ListBuffer[InPort]()
+  def ins:List[InPort] = _ins.toList
+  val _outs = ListBuffer[OutPort]()
+  def outs:List[OutPort] = _outs.toList
+  def addIO(io:Port) = io match {
+    case input:InPort => _ins += input
+    case output:OutPort => _outs += output
+  }
+  def ios:List[Port] = ins ++ outs
+
+  def isConst:Boolean = this.isInstanceOf[Const[_]]
+
+  def asSRAM:SRAM = this.asInstanceOf[SRAM]
+}

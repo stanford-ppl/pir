@@ -164,8 +164,8 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   val max:InPort = InPort(this, s"${this}.max")
   val step:InPort = InPort(this, s"${this}.step")
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
-  val en:EnInPort = EnInPort(this, s"${this}.en")
-  val done:DoneOutPort = DoneOutPort(this, s"${this}.done")
+  val en:InPort = InPort(this, s"${this}.en")
+  val done:OutPort = OutPort(this, s"${this}.done")
   var par:Int = 1
   var _cchain:CounterChain = _
   def cchain:CounterChain = _cchain
@@ -258,7 +258,7 @@ case class DummyCounter(cc:CounterChain)(implicit override val ctrler:ComputeUni
   this.min.connect(Const(-1).out)
   this.max.connect(Const(-1).out)
   this.step.connect(Const(-1).out)
-  //val dummyCtrl = CtrlOutPort(this, s"${this}.dummyEn")
+  //val dummyCtrl = OutPort(this, s"${this}.dummyEn")
   //this.en.connect(dummyCtrl)
   override def toUpdate = false
 }

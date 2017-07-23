@@ -21,8 +21,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   val size:Int
   val banking:Banking
 
-  val readPort: ReadOutPort = ReadOutPort(this, s"${this}.rp") 
-  val writePort: WriteInPort = WriteInPort(this, s"${this}.wp")
+  val readPort: OutPort = OutPort(this, s"${this}.rp") 
+  val writePort: InPort = InPort(this, s"${this}.wp")
 
   def isRemoteWrite = this match {
     case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
@@ -79,17 +79,17 @@ trait MultiBuffering extends OnChipMem {
   var _buffering:Int = _
   def buffering = _buffering
   def buffering(buf:Int):this.type = { _buffering = buf; this }
-  val swapRead = CtrlInPort(this, s"$this.swapRead")
-  val swapWrite = CtrlInPort(this, s"$this.swapWrite")
+  val swapRead = InPort(this, s"$this.swapRead")
+  val swapWrite = InPort(this, s"$this.swapWrite")
 }
 trait FIFO extends OnChipMem with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
   /* Control Signals */
-  val dequeueEnable = CtrlInPort(this, s"$this.deqEn")
-  val predicate = CtrlInPort(this, s"$this.predicate")
-  val notFull = CtrlOutPort(this, s"$this.notFull")
-  val enqueueEnable = CtrlInPort(this, s"$this.enqEn")
+  val dequeueEnable = InPort(this, s"$this.deqEn")
+  val predicate = InPort(this, s"$this.predicate")
+  val notFull = OutPort(this, s"$this.notFull")
+  val enqueueEnable = InPort(this, s"$this.enqEn")
   override def toUpdate = super.toUpdate
 
   var _wtStart:Option[OutPort] = None
@@ -111,7 +111,7 @@ trait FIFO extends OnChipMem with LocalMem {
 }
 
 trait LocalMem extends OnChipMem {
-  val notEmpty = CtrlOutPort(this, s"$this.notEmpty")
+  val notEmpty = OutPort(this, s"$this.notEmpty")
   def reader:Controller = {
     val readers = super.readers
     assert(readers.size==1, s"local mem should only have 1 reader, ${this}, ${readers}")
@@ -146,7 +146,7 @@ trait VectorMem extends OnChipMem {
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
   extends VectorMem with RemoteMem with MultiBuffering {
   override val typeStr = "SRAM"
-  val readAddr: RdAddrInPort = RdAddrInPort(this, s"${this}.ra")
+  val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
     readAddr.connect(ra); 
     ra.src match {
@@ -156,7 +156,7 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
     }
     this
   } 
-  val writeAddr: WtAddrInPort = WtAddrInPort(this, s"${this}.wa")
+  val writeAddr: InPort = InPort(this, s"${this}.wa")
   def wtAddr(wa:OutPort):this.type = { 
     writeAddr.connect(wa)
     this 

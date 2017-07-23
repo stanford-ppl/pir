@@ -79,7 +79,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pmem = pirMap.smmap(mem)
           regsOf(pmem.readPort)
         case WtAddrPR(waPort) => 
-          val pmem = pirMap.smmap(waPort.src).asSRAM
+          val pmem = pirMap.smmap(waPort.src.asSRAM).asSRAM
           regsOf(pmem.writeAddr)
         case CtrPR(ctr) => 
           val pctr = pirMap.ctmap(ctr)

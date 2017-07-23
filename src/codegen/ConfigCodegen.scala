@@ -324,21 +324,21 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def from(io:Node) = {
     io match {
       case io:I => io.writer
-      case io:CIP => io.from
+      case io:IP => io.from
     }
   }
 
   def to(io:Node) = {
     io match {
       case io:O => io.readers
-      case io:COP => io.to
+      case io:OP => io.to
     }
   }
 
   def ctrler(io:Node) = {
     io match {
       case io:IO => io.ctrler
-      case io:CP =>
+      case io:PT =>
         io.src match {
           case prim:PRIM => prim.ctrler
           case cl:CL => cl
