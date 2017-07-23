@@ -36,7 +36,7 @@ object ParBlockReduce1D extends PIRApp {
     val x907_dsp1 = MemoryPipeline(name="x907_dsp1",parent="x941") { implicit CU => 
       val x938_x938 = VectorFIFO(size=1).wtPort(x907_x938_v)
       val x932 = CounterChain.copy("x939_0", "x932")
-      val x907_x934 = SRAM(size=16,banking = NoBanking()).wtPort(x938_x938.readPort).rdPort(x907_x934_x939_v).rdAddr(x932(0)).wtAddr(x932(0))
+      val x907_x934 = SRAM(size=16,banking = Strided(1)).wtPort(x938_x938.readPort).rdPort(x907_x934_x939_v).rdAddr(x932(0)).wtAddr(x932(0))
     }
     val x941 = MetaPipeline(name="x941",parent=x967) { implicit CU => 
       val x901_x908 = ScalarBuffer().wtPort(sizeIn_argin)

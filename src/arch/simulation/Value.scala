@@ -21,6 +21,7 @@ trait Val[P<:PortType]{ self:IO[P, Module] =>
   def setPrev(pv:SingleValue, nv:SingleValue)(implicit sim:Simulator):Unit = {
     pv.next = Some(nv)
     nv.prev = Some(pv)
+    pv.default = nv.default
     pv.set { pv => pv copy nv }
   }
   def setPrev(pv:BusValue, nv:BusValue)(implicit sim:Simulator):Unit = {
@@ -205,10 +206,13 @@ trait SingleValue extends Value { self:SingleType =>
   }
   private var _default:V = None
   def default:V = _default
-  def default_= (value:AnyVal)(implicit sim:Simulator) = {
+  def default_= (value:AnyVal)(implicit sim:Simulator):Unit = {
     import sim.util._
     dprintln(s"${quote(this)}.default=$value")
     _default = Some(value)
+  }
+  def default_= (value:Option[AnyVal])(implicit sim:Simulator):Unit = {
+    value.foreach { v => default_=(v) }
   }
   def zero(implicit sim:Simulator):Unit = {
     import sim.util._

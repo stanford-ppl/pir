@@ -48,8 +48,7 @@ case class CounterChain(name:Option[String], cc:Option[Either[String, CounterCha
   /*
    * The original copy of this CounterChain
    * */
-  lazy val _original:CounterChain = copy.fold(this) { e => e.right.get}
-  def original:CounterChain = { _original }
+  def original:CounterChain = copy.fold(this) { e => e.right.get}
 
   override def toUpdate = super.toUpdate
 

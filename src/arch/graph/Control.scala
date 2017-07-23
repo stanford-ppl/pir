@@ -216,6 +216,11 @@ case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Con
   override val typeStr = s"pu_$name"
   cb.predicateUnits += this
   val in = Input(Word(), this, s"${quote(this)}.in")
+  //prt.match {
+    //case cu:ComputeUnit => 
+      //(0 until numCtrs).foreach { i => Input(Word(), this, s"${quote(this)}.in$i") }
+    //case _ =>
+  //}
   val out = Output(Bit(), this, s"${quote(this)}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
@@ -288,7 +293,8 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
   }
 
   def register(implicit sim:Simulator):Unit = {
-    enDelay.out.v.default = false
+    enDelay.in.v.default = false
+    doneDelay.in.v.default = false
   }
 }
 
@@ -314,7 +320,10 @@ class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit)
 
   en.in <== enAnd.out 
 
-  def register(implicit sim:Simulator):Unit = {}
+  def register(implicit sim:Simulator):Unit = {
+    doneXbar.in.v.default = false
+    en.in.v.default = false
+  }
 }
 
 class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox() {
@@ -344,8 +353,11 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   readEn.in <== readAndGate.out
 
   def register(implicit sim:Simulator):Unit = {
-    readEn.out.v.default = false
-    writeEn.out.v.default = false
+    readEn.in.v.default = false
+    writeEn.in.v.default = false
+    writeDoneXbar.in.v.default = false
+    readDoneXbar.in.v.default = false
+    tokenInXbar.in.v.default = false
   }
 }
 
@@ -391,6 +403,7 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
           }
           running.v := (state.v =:= RUNNING)
           en.in.v := fifoAndTree.out.v & (done.pv | running.pv.not)
+          en.in.v.default = false
           state.v.set { statev =>
             If(done.v) {
               statev <<= WAITING
@@ -412,5 +425,6 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
         case Scatter =>
       }
     }
+    en.in.v.default = false
   }
 }

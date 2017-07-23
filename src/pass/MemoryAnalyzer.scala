@@ -240,7 +240,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     cu.cchains.foreach { cc =>
       if (forRead(cc) && forWrite(cc)) {
         val clone = CounterChain.clone(cc)(cu, design)
-        clone.setCopy(cc.original)
+        clone.setCopy(cc.original) //TODO: Hack
         forRead(cc) = false
         forWrite(clone) = false
         forRead(clone) = true

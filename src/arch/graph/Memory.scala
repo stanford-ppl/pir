@@ -118,6 +118,7 @@ trait OnChipMem extends Primitive with Memory {
         }
         If (writeNext.pv) { v <<= v + 1 }
       }
+      writePort.v.valid.default = false
     }
   }
 }
@@ -229,7 +230,7 @@ trait LocalBuffer extends OnChipMem {
       } else { // MultiBuffer
         notEmpty.v := writePort.pv.valid
       }
-      notEmpty.v.default = true
+      notEmpty.v.default = false
       notFull.v.default = true
       notFull.v := count.v < (bufferSizeOf(this) - notFullOffset(this))
       if (mem.isFifo) {

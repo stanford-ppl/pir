@@ -22,12 +22,14 @@ class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) ext
   override def register(implicit sim:Simulator):Unit = {
     sim.mapping.pmmap.get(this).fold {
       out.v := value
+      value.foreach { out.v.default = _ }
     } { c => 
       c.value match {
         case v:Float => out.v := v
         case v:Int => out.v := v
         case v:Boolean => out.v := v
       }
+      out.v.default = c.value
     }
   }
 }
