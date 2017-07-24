@@ -63,7 +63,7 @@ class AppTests extends UnitTest { self =>
             val aon::aov::_ = aos.split("=").toList
             val ao = app.top.sins.filter { _.scalar.name==Some(aon) }.head
             val pao = app.mapping.get.vimap(ao)
-            assert(pao.values(0).asBus.head.value==Some(toValue(aov)), s"ArgOut result incorrect")
+            assert(pao.values(0).asBus.head.value==Some(toValue(aov)), s"ArgOut!=gold result incorrect")
           }
         }
         checkDram.foreach { checkDram =>
@@ -189,7 +189,7 @@ class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
 
-  val simulate = false 
+  val simulate = true
   // Apps 
   //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
@@ -198,15 +198,15 @@ class AppTests extends UnitTest { self =>
   //"GDA" should "success" in { GDA.main(Array("GDA")) }
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
-  //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", debug=true)
-  //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
-  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true)
+  //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", timeOut=30, debug=false)
+  test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
+  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
   //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
-  testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=true)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
@@ -214,7 +214,7 @@ class AppTests extends UnitTest { self =>
   //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
   //testBlockReduce1D(BlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //testBlockReduce1D(ParBlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
-  //test(MetaPipeTest, args="x222=4", argOuts="x223_x227=3", timeOut=40, debug=true)
+  //test(MetaPipeTest, args="x222=4", argOuts="x223_x227=3", timeOut=40, debug=false)
   
   //test(InOutArg, args="x222=4", argOuts="x223_x227=8.0", debug=false)
   //test(ChainTest, args="ai_in=3 ai_out=3", argOuts="x223_x227=8", debug=true, timeOut=80)
