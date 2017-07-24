@@ -206,42 +206,42 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.sbufs.foreach { buf => 
-          buf.readNext <== cb.readDone.out; 
-          buf.readNext <== cb.writeDone.out
-          buf.readNext <== cb.readEn.out; 
-          buf.readNext <== cb.writeEn.out; 
-          //buf.writeNext <== cu.cins.map(_.ic)
+          buf.dequeueEnable <== cb.readDone.out; 
+          buf.dequeueEnable <== cb.writeDone.out
+          buf.dequeueEnable <== cb.readEn.out; 
+          buf.dequeueEnable <== cb.writeEn.out; 
+          //buf.enqueueEnable <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
         cu.vbufs.foreach { buf => 
-          buf.readNext <== cb.writeEn.out; 
+          buf.dequeueEnable <== cb.writeEn.out; 
           buf.predicate <== low.out
         }
         cu.srams.foreach { sram => 
-          sram.readNext <== cb.readDoneDelay.out 
-          sram.writeNext <== cb.writeDoneDelay.out
+          sram.dequeueEnable <== cb.readDoneDelay.out 
+          sram.enqueueEnable <== cb.writeDoneDelay.out
           sram.writeEn <== cb.writeEnDelay.out
           sram.readEn <== cb.readEnDelay.out
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
-          buf.readNext <== cu.ctrs.map(_.done)
-          buf.readNext <== cu.cins.map(_.ic)
-          buf.readNext <== cb.en.out; 
-          //buf.writeNext <== cu.cins.map(_.ic)
+          buf.dequeueEnable <== cu.ctrs.map(_.done)
+          buf.dequeueEnable <== cu.cins.map(_.ic)
+          buf.dequeueEnable <== cb.en.out; 
+          //buf.enqueueEnable <== cu.cins.map(_.ic)
           buf.predicate <== low.out 
           buf.predicate <== cb.fifoPredUnit.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf => 
-          buf.readNext <== cb.done.out
-          //buf.writeNext <== cu.cins.map(_.ic)
+          buf.dequeueEnable <== cb.done.out
+          //buf.enqueueEnable <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
       case (mc:MemoryController, cb:MCCtrlBox) =>
-        //mc.sbufs.foreach { buf => buf.writeNext <== cu.cins.map(_.ic) }
-        mc.sbufs.foreach { buf => buf.readNext <== cb.en.out }
-        mc.data.readNext <== cb.running
+        //mc.sbufs.foreach { buf => buf.enqueueEnable <== cu.cins.map(_.ic) }
+        mc.sbufs.foreach { buf => buf.dequeueEnable <== cb.en.out }
+        mc.data.dequeueEnable <== cb.running
         mc.bufs.foreach { buf => buf.predicate <== low.out }
       case (top:Top, cb:TopCtrlBox) =>
     }

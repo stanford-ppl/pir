@@ -49,10 +49,10 @@ abstract class Controller(implicit design:Design) extends Module {
   def removeChild(c:ComputeUnit) = { _children -= c }
   def addChildren(c:ComputeUnit) = { if (!_children.contains(c)) _children += c }
 
-  private val _consumed = ListBuffer[MultiBuffering]()
-  private val _produced = ListBuffer[MultiBuffering]()
-  def consume(mem:MultiBuffering) = _consumed += mem
-  def produce(mem:MultiBuffering) = _produced += mem
+  private val _consumed = ListBuffer[MultiBuffer]()
+  private val _produced = ListBuffer[MultiBuffer]()
+  def consume(mem:MultiBuffer) = _consumed += mem
+  def produce(mem:MultiBuffer) = _produced += mem
   def consumed = _consumed.toList
   def produced = _produced.toList
   def trueConsumed = consumed.filter { _.trueDep }

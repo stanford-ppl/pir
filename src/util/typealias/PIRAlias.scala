@@ -24,7 +24,7 @@ trait PIRAlias {
   type VFIFO = VectorFIFO
   type FIFO  = pir.graph.FIFO
   type SBuf  = ScalarBuffer
-  type MBuf  = MultiBuffering
+  type MBuf  = MultiBuffer
   type CC    = CounterChain
   type Ctr   = Counter
   type D     = Delay 

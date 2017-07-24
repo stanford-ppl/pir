@@ -39,11 +39,11 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def isFifo = this.isInstanceOf[FIFO]
   def asVFifo = this.asInstanceOf[VectorFIFO]
   def isSRAM = this.isInstanceOf[SRAM]
-  def isMbuffer = this.isInstanceOf[MultiBuffering]
-  def asMbuffer = this.asInstanceOf[MultiBuffering]
+  def isMbuffer = this.isInstanceOf[MultiBuffer]
+  def asMbuffer = this.asInstanceOf[MultiBuffer]
 }
 
-trait MultiBuffering extends OnChipMem {
+trait MultiBuffer extends OnChipMem {
   val design:Design
   var _producer:Controller = _
   var _consumer:Controller = _
@@ -144,7 +144,7 @@ trait VectorMem extends OnChipMem {
  *  calculate write address?
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
-  extends VectorMem with RemoteMem with MultiBuffering {
+  extends VectorMem with RemoteMem with MultiBuffer {
   override val typeStr = "SRAM"
   val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
@@ -188,7 +188,7 @@ trait ScalarMem extends OnChipMem with LocalMem {
 }
 
 case class ScalarBuffer(name:Option[String])(implicit ctrler:ComputeUnit, design: Design) 
-  extends ScalarMem with MultiBuffering {
+  extends ScalarMem with MultiBuffer {
   override val typeStr = "ScalBuf"
   override val size = 1
   override val banking = NoBanking()

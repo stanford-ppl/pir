@@ -128,12 +128,12 @@ trait PIRMetadata extends { self:Design =>
   }
 
   object swapReadCChainOf extends MOneToOneMap with PIRMetadataMaps {
-    type K = MultiBuffering 
+    type K = MultiBuffer
     type V = CounterChain
   }
 
   object swapWriteCChainOf extends MOneToOneMap with PIRMetadataMaps {
-    type K = MultiBuffering 
+    type K = MultiBuffer
     type V = CounterChain
   }
 

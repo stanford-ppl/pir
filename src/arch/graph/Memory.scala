@@ -86,8 +86,8 @@ trait OnChipMem extends Primitive with Memory {
   type P<:PortType
   val readPort:Output[_<:PortType, OnChipMem]
   val writePort:Input[Bus, OnChipMem]
-  val readNext = Input(Bit(), this, s"${this}.readNext")
-  val writeNext = Input(Bit(), this, s"${this}.writeNext")
+  val dequeueEnable = Input(Bit(), this, s"${this}.deqEn")
+  val enqueueEnable = Input(Bit(), this, s"${this}.enqEn")
   val writePtr = Output(Word(), this, s"${this}.writePtr")
   val readPtr = Output(Word(), this, s"${this}.readPtr")
   val count = Output(Word(), this, s"${this}.count")
@@ -104,17 +104,17 @@ trait OnChipMem extends Primitive with Memory {
       readPtr.v.default = 0
       writePtr.v.default = 0
       count.v.default = 0
-      readNext.v.default = false
-      writeNext.v.default = false
-      readPtr.v.set { v => If (readNext.pv) { incPtr(v) } }
-      writePtr.v.set { v => If (writeNext.pv) { incPtr(v) }; updateMemory }
+      dequeueEnable.v.default = false
+      enqueueEnable.v.default = false
+      readPtr.v.set { v => If (dequeueEnable.pv) { incPtr(v) } }
+      writePtr.v.set { v => If (enqueueEnable.pv) { incPtr(v) }; updateMemory }
       count.v.set { v => 
-        If (readNext.pv) { 
+        If (dequeueEnable.pv) { 
           if (sim.inSimulation && v.value==Some(0)) 
             warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) underflow at #$cycle!")
           v <<= v - 1
         }
-        If (writeNext.pv) { v <<= v + 1 }
+        If (enqueueEnable.pv) { v <<= v + 1 }
       }
       writePort.v.valid.default = false
     }
@@ -219,11 +219,11 @@ trait LocalBuffer extends OnChipMem {
       notEmpty.v.default = false
       notFull.v.default = true
       if (mem.isFifo) {
-        fanInOf(readNext).foreach { readNext.v := _.v.asSingle & predicate.v.not }
+        fanInOf(dequeueEnable).foreach { dequeueEnable.v := _.v.asSingle & predicate.v.not }
       }
-      writeNext.v.set { v => 
+      enqueueEnable.v.set { v => 
         v <<= writePort.v.update.valid
-        if (sim.inSimulation && writeNext.v!=Some(false) && (count.v.toInt > bufferSize)) { 
+        if (sim.inSimulation && enqueueEnable.v!=Some(false) && (count.v.toInt > bufferSize)) { 
           warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
         }
       }

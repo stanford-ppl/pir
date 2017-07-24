@@ -168,7 +168,7 @@ object PIRPrinter {
       case p:OnChipMem =>
         fields += s"size=${p.size}"
         fields += s"banking=${p.banking}"
-        p match { case p:MultiBuffering => fields += s"buffering=${p.buffering}"; case _ => }
+        p match { case p:MultiBuffer => fields += s"buffering=${p.buffering}"; case _ => }
       case p:Stage =>
         fields += s"prev=${p.prev.map(quote)}"
         fields += s"next=${p.next.map(quote)}"

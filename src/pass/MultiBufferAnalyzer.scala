@@ -39,7 +39,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     else Some((producer, consumer))
   }
 
-  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffering):Unit = {
+  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = {
     if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
     val readers = buf.readers
     val writer = buf.writer

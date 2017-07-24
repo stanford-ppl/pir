@@ -90,7 +90,7 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
   def mems(ms:List[OnChipMem]) = { ms.foreach { m => if (!_mems.contains(m)) _mems += m } }
   def mems:List[OnChipMem] = _mems.toList
   def fifos:List[FIFO] = mems.collect {case fifo:FIFO => fifo }
-  def mbuffers:List[MultiBuffering] = mems.collect { case buf:MultiBuffering => buf }
+  def mbuffers:List[MultiBuffer] = mems.collect { case buf:MultiBuffer => buf }
   def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
   def sfifos = mems.collect { case fifo:ScalarFIFO => fifo }
   def smems = mems.collect { case smem:ScalarMem => smem }

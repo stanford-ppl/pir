@@ -396,7 +396,9 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectDone(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        //TODO HACK
+        //TODO HACK for case when readCC and writeCC are the same set of counter chain. There will be two copy of the
+        //swapReadCChain in the same controller. the duplicate's original is also swapReadCChain.
+        //However CU.getCC will only return the original copy 
         val readCC = ctrler.cchains.filter { cc => cc.original == swapReadCChainOf(ctrler.sram) && forRead(cc) }.head
         val readDone = readCC.outer.done
         cb.readDone.in.connect(readDone)

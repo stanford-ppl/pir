@@ -31,7 +31,7 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
               bufferSizeOf(pmem) = mem.size + notFullOffset(pmem) + 2 //TODO a little buffer just in case 
               dprintln(s" - notFullOffset=${notFullOffset(pmem)}")
               dprintln(s"- bufferSize=${bufferSizeOf(pmem)}")
-            case mem:MultiBuffering =>
+            case mem:MultiBuffer =>
               val pmem = mp.smmap(mem)
               bufferSizeOf(pmem) = mem.buffering
               dprintln(s"$pmem -> $mem")
