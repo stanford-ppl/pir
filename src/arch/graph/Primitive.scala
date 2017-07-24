@@ -41,15 +41,14 @@ object Const {
 }
 
 class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable) extends Primitive with Simulatable {
+  import spademeta._
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
-  def delay(mapping:PIRMap):Option[Int] = mapping.rtmap.get(this).orElse(staticDelay) 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.spade
-    delay(mapping).foreach { delay =>
-      dprintln(s"${quote(this)}.delay=$delay")
+    delayOf.get(this).orElse(staticDelay).foreach { delay =>
       out.v := in.vAt(delay) 
     }
   }

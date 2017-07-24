@@ -15,6 +15,7 @@ import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 import scala.util.{Try, Success, Failure}
 import scala.language.existentials
+import scala.reflect.{ClassTag, classTag}
 
 trait LocalRouter extends Mapper {
 
@@ -73,76 +74,89 @@ trait LocalRouter extends Mapper {
     (mp, connected)
   }
 
-  def mapFanIn(n:IP, r:PI[PModule], map:M):M = {
+  def mapFanIn[T](pin:PI[PModule], map:M)(implicit ev:ClassTag[T]):M = {
     var mp = map
-    if (!n.isConnected) return mp
-    (n.from.src, r.src) match {
-      case (oSrc@Const(c), piSrc) =>
-        mappingOf[PConst](r).filterNot{ pc => mp.pmmap.pmap.contains(pc) }.headOption.fold {
-          val info = s"${n} is Const, but ${r} cannot be configured to constant"
-          throw InPortRouting(n, r, info, mp)
+    if (mp.fimap.contains(pin)) return mp
+    if (pin.fanIns.size==1) { mp = mp.setFI(pin, pin.fanIns.head); return mp }
+    val pouts = fromInstanceOf[T](pin)
+    if (pouts.size==1) {
+      mp = mp.setFI(pin, pouts.head.asInstanceOf[PO[PModule]])
+    }
+    mp
+  }
+
+  def mapFanIn(in:IP, pin:PI[PModule], map:M):M = {
+    var mp = map
+    if (!in.isConnected || mp.fimap.contains(pin)) return mp
+    val out = in.from
+    (out.src, pin.src) match {
+      case (osrc@Const(c), pisrc) =>
+        mappingOf[PConst](pin).filterNot{ pc => mp.pmmap.pmap.contains(pc) }.headOption.fold {
+          val info = s"$in is Const, but $pin cannot be configured to constant"
+          throw InPortRouting(in, pin, info, mp)
         } { pconst =>
-          mp = mapConst(oSrc, pconst, mp)
-          val (m, connected) = connect(r, pconst.out, mp)
+          mp = mapConst(osrc, pconst, mp)
+          val (m, connected) = connect(pin, pconst.out, mp)
           mp = m
-          if (!connected) throw LocalRouting(s"No connection between $r to constant $pconst", mp)
+          if (!connected) throw LocalRouting(s"No connection between $pin to constant $pconst", mp)
         }
-      case (oSrc@PipeReg(oStage, oReg), piSrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
+      case (osrc@PipeReg(oStage, oReg), pisrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
         val poStage = mp.stmap(oStage)
         val poPpr = poStage.get(piReg)
-        mp = propogate(poPpr, r, mp).getOrElse {
-          throw InPortRouting(n, r, s"Cannot propogate $poPpr to $piSrc", mp)
+        mp = propogate(poPpr, pin, mp).getOrElse {
+          throw InPortRouting(in, pin, s"Cannot propogate $poPpr to $pisrc", mp)
         }
-      case (oSrc@PipeReg(oStage, oReg), piSrc) => // output is from pipeReg and input is to pipeReg
+      case (osrc@PipeReg(oStage, oReg), pisrc) => // output is from pipeReg and input is to pipeReg
         // Register value is passed to a non register input
         // Find pregs mapped to reg. Propogate preg values along the pipeline stages
-        // individually until the output of ppr propogation reaches input r
+        // individually until the output of ppr propogation reaches input pin
         val poStage = mp.stmap(oStage)
         val poPprs = mp.rcmap(oReg).map { poReg => poStage.get(poReg) }
 
         val propogatedMap = poPprs.foldLeft[Option[M]](None) { case (prev, poPpr) =>
-          if (prev.isEmpty) propogate(poPpr, r, mp) else prev
+          if (prev.isEmpty) propogate(poPpr, pin, mp) else prev
         }
         mp = propogatedMap.getOrElse {
-          throw InPortRouting(n, r, s"Cannot connect ${r} to ${oSrc.out}", mp)
+          throw InPortRouting(in, pin, s"Cannot connect $pin to ${osrc.out}", mp)
         }
-      case (os, pis) => 
+      case (osrc, pisrc) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
-        n match {
-          case n if n.isGlobal => 
-            val pop = mp.vimap(n).ic
-            mp = mp.setFI(r, pop)
-          case n => 
-            mp.opmap.get(n.from).foreach { pops =>
-              var pops = mp.opmap(n.from)
+        in match {
+          case in if in.isGlobal => 
+            val pop = mp.vimap(in).ic
+            mp = mp.setFI(pin, pop)
+          case in => 
+            mp.opmap.get(in.from).foreach { pops =>
+              var pops = mp.opmap(in.from)
               val found = pops.foldLeft(false) { 
                 case (false, pop) =>
-                  val (m, connected) = connect(r, pop, mp)
+                  val (m, connected) = connect(pin, pop, mp)
                   mp = m
                   connected
                 case (true, pop) => true
               }
-              if (!found) throw InPortRouting(n, r, s"Cannot connect ${r} to pops=$pops n=$n n.from=${n.from}", mp)
+              if (!found) throw InPortRouting(in, pin, s"Cannot connect $pin to pops=$pops in=$in in.from=${in.from}", mp)
             }
+            mp = mapFanIn(pin, mp)
         }
     }
     mp
   }
 
-  def mapInPort(n:IP, r:PI[PModule], map:M):M = {
+  def mapInPort(in:IP, pin:PI[PModule], map:M):M = {
     var mp = map
-    if (mp.fimap.contains(r) && mp.ipmap.contains(n)) return mp
-    mp = mp.setIP(n, r)
-    mp = mapFanIn(n, r, mp)
+    if (mp.fimap.contains(pin) && mp.ipmap.contains(in)) return mp
+    mp = mp.setIP(in, pin)
+    mp = mapFanIn(in, pin, mp)
     mp
   } 
 
-  def mapOutPort(n:OP, r:PO[_<:PModule], map:M):M = {
+  def mapOutPort(out:OP, pout:PO[_<:PModule], map:M):M = {
     var mp = map
-    mp = mp.setOP(n,r)
-    //dprintln(s"mapping $n -> $r")
-    n.to.foreach { 
+    mp = mp.setOP(out,pout)
+    //dprintln(s"mapping $out -> $pout")
+    out.to.foreach { 
       case ip if (mp.ipmap.contains(ip)) =>
         mp = mapInPort(ip, mp.ipmap(ip), mp)
       case ip =>

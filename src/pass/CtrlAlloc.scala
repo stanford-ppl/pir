@@ -121,7 +121,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       }
     } else {
       cchain.ctrler.ctrlBox match {
-        case cb:StageCtrlBox => cb.doneDelayOut
+        case cb:StageCtrlBox => cb.doneOut
         case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
         case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
       }
@@ -129,18 +129,23 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   }
 
   def connectMemoryControl(ctrler:Controller) = ctrler match { case cu:ComputeUnit =>
-    cu.mbuffers.foreach {
-      case mem if mem.buffering > 1 =>
-        mem.swapRead.connect(getDone(cu, swapReadCChainOf(mem)))
-        mem.swapWrite.connect(getDone(cu, swapWriteCChainOf(mem)))
-      case mem =>
+    cu.mbuffers.foreach { mem =>
+      (mem, ctrler.ctrlBox) match {
+        case (mem:SRAM, cb:MemCtrlBox) if mem.buffering > 1 =>
+          mem.swapRead.connect(cb.readDoneDelay.out)
+          mem.swapWrite.connect(cb.writeDoneDelay.out)
+        case (mem:SRAM, cb:MemCtrlBox) =>
+        case (mem, cb) =>
+          swapReadCChainOf.get(mem).foreach { cc => mem.swapRead.connect(getDone(cu, cc)) }
+          //mem.swapWrite.connect(getDone(cu, swapWriteCChainOf(mem)))
+      }
     }
     //cu.sfifos.foreach { mem =>
       //mem.writer.ctrlBox match {
         //case cb:StageCtrlBox =>
-          //mem.enqueueEnable.connect(cb.enDelayOut)
+          //mem.enqueueEnable.connect(cb.enOut)
         //case cb:MemCtrlBox =>
-          //mem.enqueueEnable.connect(cb.enDelayOut)
+          //mem.enqueueEnable.connect(cb.enOut)
       //}
     //}
     cu.fifos.foreach { mem =>
@@ -154,7 +159,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         case cb:MCCtrlBox if mem.name.get=="data" =>
           //mem.dequeueEnable.connect(cb.running)
         case cb:StageCtrlBox =>
-          mem.dequeueEnable.connect(cb.enOut)
+          mem.dequeueEnable.connect(cb.en.out)
       }
     }
     case _ =>
@@ -163,20 +168,20 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectLast(parent:Controller, last:Controller) = {
     (parent, last, parent.ctrlBox, last.ctrlBox) match {
       case (parent:Top, last:ComputeUnit, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
-        pcb.status.connect(ccb.doneDelayOut)
+        pcb.status.connect(ccb.doneOut)
       case (parent:StreamController, last:MemoryController, pcb:OuterCtrlBox, ccb:MCCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneDelayOut)
+        tk.inc.connect(ccb.doneOut)
         tk.dec.connect(pcb.childrenAndTree.out)
         pcb.childrenAndTree.addInput(tk.out)
       case (parent:StreamController, last:Pipeline, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneDelayOut)
+        tk.inc.connect(ccb.doneOut)
         tk.dec.connect(pcb.childrenAndTree.out)
         pcb.childrenAndTree.addInput(tk.out)
       case (parent:Controller, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneDelayOut)
+        tk.inc.connect(ccb.doneOut)
         tk.dec.connect(pcb.childrenAndTree.out)
         pcb.childrenAndTree.addInput(tk.out)
     }
@@ -216,18 +221,18 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       (ctrler.ctrlBox, head.ctrlBox) match {
         case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isStreaming(head) =>
           val tk = hcb.tokenBuffer(ctrler)
-          tk.inc.connect(pcb.enDelayOut)
-          tk.dec.connect(hcb.enOut)
+          tk.inc.connect(pcb.enOut)
+          tk.dec.connect(hcb.en.out)
           hcb.siblingAndTree.addInput(tk.out)
         case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isPipelining(head) =>
           val tk = hcb.tokenBuffer(ctrler)
-          tk.inc.connect(pcb.enDelayOut)
-          tk.dec.connect(hcb.doneOut)
+          tk.inc.connect(pcb.enOut)
+          tk.dec.connect(hcb.done.out)
           hcb.siblingAndTree.addInput(tk.out)
         case (pcb:TopCtrlBox, hcb:StageCtrlBox) if isPipelining(head) =>
           val tk = hcb.tokenBuffer(ctrler)
           tk.inc.connect(pcb.command)
-          tk.dec.connect(hcb.doneOut)
+          tk.dec.connect(hcb.done.out)
           hcb.siblingAndTree.addInput(tk.out)
       }
     }
@@ -252,7 +257,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     val (dep, token) = tk
     val tb = cb.tokenBuffer(dep)
     tb.inc.connect(token)
-    tb.dec.connect(cb.doneOut)
+    tb.dec.connect(cb.done.out)
     cb.siblingAndTree.addInput(tb.out)
   }
 
@@ -280,7 +285,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       midConsumer
     }
     if (midConsumers.size>1) 
-      connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].doneDelayOut)))
+      connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].doneOut)))
   }
 
   def connectSibling(ctrler:Controller) = {
@@ -333,11 +338,11 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
               val inc = consumer.ctrlBox match {
                 case cmcb:MemCtrlBox if forRead(mem) => cmcb.readDone.out
                 case cmcb:MemCtrlBox if forWrite(mem) => cmcb.readDone.out
-                case cmcb:StageCtrlBox => cmcb.doneDelayOut
+                case cmcb:StageCtrlBox => cmcb.doneOut
               }
               val cd = cb.creditBuffer(mem, mem.buffering)
               cd.inc.connect(inc)
-              cd.dec.connect(cb.doneOut)
+              cd.dec.connect(cb.done.out)
               cb.siblingAndTree.addInput(cd.out)
             case consumer =>
           }
@@ -364,12 +369,12 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
-        localCChainOf(ctrler).inner.en.connect(cb.enOut)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
       case (ctrler:InnerController, cb:InnerCtrlBox) =>
-        localCChainOf(ctrler).inner.en.connect(cb.enOut)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
         chainCChain(compCChainsOf(ctrler))
       case (ctrler:OuterController, cb:OuterCtrlBox) =>
-        localCChainOf(ctrler).inner.en.connect(cb.enOut)
+        localCChainOf(ctrler).inner.en.connect(cb.en.out)
       case (ctrler, cb) =>
     }
     ctrler.ctrlBox match {
@@ -379,9 +384,9 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       case cb:OuterCtrlBox =>
         //cb.en.in.connect(cb.childrenAndTree.out)
       case cb:InnerCtrlBox if isPipelining(ctrler) =>
-        cb.enIn.connect(cb.pipeAndTree.out)
+        cb.en.in.connect(cb.pipeAndTree.out)
       case cb:InnerCtrlBox if isStreaming(ctrler) =>
-        cb.enIn.connect(cb.streamAndTree.out)
+        cb.en.in.connect(cb.streamAndTree.out)
       case cb:MCCtrlBox =>
         //cb.en.in.connect(cb.fifoAndTree.out)
       case cb:TopCtrlBox =>
@@ -399,7 +404,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cb.writeDone.in.connect(writeDone)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
-        cb.doneIn.connect(localCChainOf(ctrler).outer.done)
+        cb.done.in.connect(localCChainOf(ctrler).outer.done)
       case (ctrler, cb) =>
     }
   }

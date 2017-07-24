@@ -146,7 +146,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def copySwapCC(cu:ComputeUnit) = {
     cu match {
-      case cu:MemoryPipeline if cu.sram.buffering > 0 =>
+      case cu:MemoryPipeline =>
         val swapRead = cu.getCopy(swapReadCChainOf(cu.sram))
         forRead(swapRead) = true
         swapRead.counters.foreach(ctr => forRead(ctr) = true)

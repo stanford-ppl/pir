@@ -15,7 +15,7 @@ trait Traversal extends Pass {
     visited.clear()
   }
   
-  def traverse:Unit = visitNode(design.top)
+  def traverse:Unit = design.top.ctrlers.foreach(visitNode)
 
   addPass { traverse }
 
@@ -28,6 +28,12 @@ trait Traversal extends Pass {
   def visitNodeNoCheck(node: Node) : Unit = {
     visited += node
     node match {
+      case node:Module =>
+        node.ins.foreach(visitNode)
+        node.outs.foreach(visitNode)
+      case node =>
+    }
+    node match {
       case n:Controller => 
         n.sins.foreach { si => visitNode(si) }
         n.vins.foreach { vi => visitNode(vi) }
@@ -35,79 +41,25 @@ trait Traversal extends Pass {
         n.vouts.foreach { vo => visitNode(vo) }
         n match {
           case c:Top => 
-            c.compUnits.foreach(n => visitNode(n))
-            visitNode(c.ctrlBox)
           case c:ComputeUnit => {
             c.cchains.foreach { cc => visitNode(cc) }
             c.mems.foreach { s => visitNode(s) }
             c.stages.foreach { s => visitNode(s) }
-            visitNode(c.ctrlBox)
-        }
-      } 
+          }
+        } 
+        visitNode(n.ctrlBox)
       case n:Primitive => n match {
         case p:CounterChain => p.counters.foreach(c => visitNode(c))
-        case p:SRAM => 
-          visitNode(p.readPort)
-          visitNode(p.writePort)
-          visitNode(p.readAddr)
-          visitNode(p.writeAddr)
-          visitNode(p.swapRead)
-          visitNode(p.swapWrite)
-        case p:FIFO => 
-          visitNode(p.readPort)
-          visitNode(p.writePort)
-          visitNode(p.enqueueEnable)
-          visitNode(p.dequeueEnable)
-          visitNode(p.notEmpty)
-          visitNode(p.notFull)
-        case p:ScalarBuffer =>
-          visitNode(p.readPort)
-          visitNode(p.writePort)
-          visitNode(p.swapRead)
-          visitNode(p.swapWrite)
-        case p:ScalarIn =>
-        case p:ScalarOut =>
-        case p:VecIn =>
-        case p:VecOut =>
-        case p:FuncUnit =>
-          p.operands.foreach(visitNode)
-          visitNode(p.out)
         case p:Stage =>
           p.prs.foreach(visitNode)
           p.fu.foreach(visitNode)
-        case p:UDCounter =>
-          visitNode(p.inc)
-          visitNode(p.dec)
-          visitNode(p.out)
-        case p:PipeReg =>
-          visitNode(p.in)
-          visitNode(p.out)
-        case r:ArgIn =>
-        case r:ArgOut =>
-        case p:Reg => 
         case p:CtrlBox =>
           p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
           p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
           p.delays.foreach(visitNode)
           p.predicateUnits.foreach(visitNode)
-        case p:Counter =>
-          visitNode(p.min)
-          visitNode(p.step)
-          visitNode(p.max)
-          visitNode(p.out)
-          visitNode(p.en)
-          visitNode(p.done)
-        case p:Delay =>
-          visitNode(p.in)
-          visitNode(p.out)
-        case p:PredicateUnit =>
-          visitNode(p.in)
-          visitNode(p.out)
+        case _ =>
       }
-      case r:Const[_] =>
-      case p:InPort =>
-      case p:OutPort =>
-      case _ => throw new Exception(s"Don't know how to visit $node")
     }
   }
 }

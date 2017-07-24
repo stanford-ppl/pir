@@ -371,17 +371,17 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
-        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
+        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.done.in))
       case pcb:POCB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
-        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.doneXbar.in))
+        emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.done.in))
       case pcb:PMCB =>
         emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.writeNext))
-        emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDoneXbar.in))
-        emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDoneXbar.in))
+        emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDone.in))
+        emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDone.in))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
       case pcb:PMCCB =>
         emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sbufs.map(_.writeNext))

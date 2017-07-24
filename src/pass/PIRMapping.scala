@@ -24,7 +24,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   val vfifoMapper = new VFifoMapper()
   val sfifoMapper = new SFifoMapper()
   val stageMapper = new StageMapper()
-  val delayMapper = new DelayMapper()
   val ctrlMapper = new CtrlMapper()
   val regAlloc = new RegAlloc() {
     override def finPass(ctrler:Controller)(m:M):M = { 
@@ -47,7 +46,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mp = sfifoMapper.map(ctrler, mp)
     mp = sramMapper.map(ctrler, mp)
     mp = ctrMapper.map(ctrler, mp)
-    mp = delayMapper.map(ctrler, mp)
     mp
   }
   val prescreen = new ResourcePrescreen()

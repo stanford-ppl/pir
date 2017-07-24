@@ -147,35 +147,31 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
 
   def ctrlIns:List[InPort] = {
     val cins = ListBuffer[InPort]()
-    cins ++= udcounters.values.map(_.inc).filter{ _.isGlobal }
-    cins ++= andTrees.flatMap(_.ins).filter { _.isGlobal }
-    cins ++= delays.map(_.in).filter { _.isGlobal }
+    cins ++= udcounters.values.map(_.inc)
+    cins ++= andTrees.flatMap(_.ins)
+    cins ++= delays.map(_.in)
     ctrler match {
       case top:Top =>
       case cu:ComputeUnit => 
-        cins ++= cu.cchains.map(_.inner.en).filter{ _.isGlobal }
-        cins ++= cu.fifos.map { _.enqueueEnable }.filter{_.isGlobal}
-        cins ++= cu.mbuffers.map{ _.swapRead }.filter{ _.isGlobal }
-        cins ++= cu.mbuffers.map{ _.swapWrite }.filter{ _.isGlobal }
+        cins ++= cu.cchains.map(_.inner.en)
+        cins ++= cu.fifos.map { _.enqueueEnable }
+        cins ++= cu.mbuffers.map{ _.swapRead }
+        cins ++= cu.mbuffers.map{ _.swapWrite }
     }
-    cins.toSet.toList
+    cins ++= ins
+    cins.toSet.filter{_.isGlobal}.toList
   }
 
   def ctrlOuts:List[OutPort] = { 
     val couts = ListBuffer[OutPort]()
     ctrler match {
       case cu:ComputeUnit => 
-        couts ++= cu.fifos.map { _.notFull }.filter{ 
-          op =>
-          //println(s"$ctrler op:$op ${op.isGlobal}")
-          op.isGlobal
-        }
-        //couts ++= cu.cchains.map(_.outer.done).filter{ _.isGlobal }
+        couts ++= cu.fifos.map { _.notFull }
       case _ =>
     }
-    //couts ++= andTrees.map{_.out}.filter{_.isGlobal}
-    couts ++= delays.map{_.out}.filter{_.isGlobal}
-    couts.toSet.toList
+    couts ++= delays.map{_.out}
+    couts ++= outs
+    couts.toSet.filter{_.isGlobal}.toList
   }
 
   override def toUpdate = super.toUpdate || tokenOut == null
@@ -195,21 +191,20 @@ object Delay {
 
 trait StageCtrlBox extends CtrlBox {
   val siblingAndTree = AndTree("SiblingAndTree")
-  val enIn = InPort(this, s"$this.enIn")
-  val enOut = OutPort(this, s"$this.enOut")
-  def enDelayOut:OutPort
-  val doneIn = InPort(this, s"$this.doneIn")
-  val doneOut = OutPort(this, s"$this.doneOut")
-  def doneDelayOut:OutPort
-  override def ctrlOuts:List[OutPort] = { 
-    (super.ctrlOuts ++ List(enDelayOut,doneDelayOut).filter { _.isGlobal }).toSet.toList
-  }
+
+  val en = Delay(s"$this.en")
+  val done = Delay(s"$this.done")
+
+  def enOut:OutPort
+  def doneOut:OutPort
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
   extends CtrlBox() with StageCtrlBox {
-  val enDelayOut = OutPort(this, s"$this.enDelayOut")
-  val doneDelayOut = OutPort(this, s"$this.doneDelayOut")
+  val enDelay = Delay(s"$this.enDelay")
+  val doneDelay = Delay(s"$this.doneDelay")
+  def enOut = enDelay.out
+  def doneOut = doneDelay.out
 
   val fifoAndTree = AndTree("FIFOAndTree")
   val tokenInAndTree = AndTree("TokenInAndTree")
@@ -239,8 +234,8 @@ object InnerCtrlBox {
 } 
 
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
-  def enDelayOut = enOut 
-  val doneDelayOut:OutPort = OutPort(this, s"$ctrler.doneDelayOut") 
+  def enOut = en.out
+  val doneOut = OutPort(this, s"$this.doneOut")
   val childrenAndTree = AndTree("ChildrenAndTree")
 }
 object OuterCtrlBox {
@@ -248,34 +243,29 @@ object OuterCtrlBox {
 }
 
 case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox {
-  // Connect to pulser SM if pipelining, connect to sibling and tree if streamming
   val status = InPort(this, s"$this.status")
   val command = OutPort(this, s"$this.command")
-
-  override def ctrlIns:List[InPort]=  {
-    super.ctrlIns ++ List(status).filter { _.isGlobal }
-  }
-
-  override def ctrlOuts:List[OutPort] = { 
-    super.ctrlOuts ++ List(command).filter { _.isGlobal }
-  }
 }
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends CtrlBox() {
-  //def readEnable:InPort = ctrler.getCopy(ctrler.mem.reader.asInstanceOf[ComputeUnit].localCChain).inner.en
-  //def writeEnable:InPort = ctrler.getCopy(ctrler.mem.writer.asInstanceOf[ComputeUnit].localCChain).inner.en
   val tokenInAndTree = AndTree("TokenInAndTree")
   val readFifoAndTree = AndTree("ReadFIFOAndTree")
   val writeFifoAndTree = AndTree("WriteFIFOAndTree")
+
   val readEn = Delay(s"$this.readEn")
-  val writeEn = Delay(s"$this.writeEn")
+  val readEnDelay = Delay(s"$this.readEnDelay")
   val readDone = Delay(s"$this.readDone")
+  val readDoneDelay = Delay(s"$this.readDoneDelay")
+
+  val writeEn = Delay(s"$this.writeEn")
+  val writeEnDelay = Delay(s"$this.writeEnDelay")
   val writeDone = Delay(s"$this.writeDone")
+  val writeDoneDelay = Delay(s"$this.writeDoneDelay")
 }
 
 case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: Design) extends StageCtrlBox() {
-  def enDelayOut = enOut 
-  val doneDelayOut = doneOut 
+  def enOut = en.out
+  def doneOut = done.out
   val fifoAndTree = AndTree("FIFOAndTree")
 }
 

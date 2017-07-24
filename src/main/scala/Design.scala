@@ -63,6 +63,7 @@ trait Design extends PIRMetadata with Collector {
   val resourceAnalyzer = new ResourceAnalysis()
   val powerAnalyzer = new PowerAnalyzer()
   val energyAnalyzer = new EnergyAnalyzer()
+  val delayAnalyzer = new DelayAnalyzer()
 
   /* Transformation */
   val ctrlAlloc = new CtrlAlloc()
@@ -102,7 +103,6 @@ trait Design extends PIRMetadata with Collector {
   val spadeVecDotPrinter = new CUVectorDotPrinter()
   val spadeScalDotPrinter = new CUScalarDotPrinter()
   val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
-  val ctrlPrinter = new CtrlPrinter()
   val mapPrinter = new MapPrinter()
   val pirStat = new PIRStat()
   val pirStatLog = new PIRStatLog()
@@ -140,7 +140,6 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen5
   passes += ctrlDotPrinter 
   passes += pirCtrlDotGen
-  passes += ctrlPrinter 
   passes += pirPrinter
 
   // Mapping
@@ -152,6 +151,7 @@ trait Design extends PIRMetadata with Collector {
 
   // Post-mapping analysis
   passes += pirDataDotGen
+  passes += delayAnalyzer
   passes += fifoAnalyzer
 
   // Codegen
@@ -183,7 +183,6 @@ trait Design extends PIRMetadata with Collector {
         if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
         if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
         if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
-        if (!ctrlPrinter.hasRun) ctrlPrinter.run
         throw e
       case e:Throwable => throw e
     }

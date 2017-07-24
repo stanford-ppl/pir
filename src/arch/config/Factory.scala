@@ -156,16 +156,16 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     import spademeta._
     (cu, cu.ctrlBox) match {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
-        cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.ctrs.foreach { cb.done.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
-        cu.ctrs.foreach { cb.doneXbar.in <== _.done }
+        cu.ctrs.foreach { cb.done.in <== _.done }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.en.out)
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cu.ctrs.foreach { cb.readDoneXbar.in <== _.done }
-        //cu.cins.foreach { cb.readDoneXbar.in <== _.ic }
-        cu.ctrs.foreach { cb.writeDoneXbar.in <== _.done }
-        //cu.cins.foreach { cb.writeDoneXbar.in <== _.ic }
+        cu.ctrs.foreach { cb.readDone.in <== _.done }
+        //cu.cins.foreach { cb.readDone.in <== _.ic }
+        cu.ctrs.foreach { cb.writeDone.in <== _.done }
+        //cu.cins.foreach { cb.writeDone.in <== _.ic }
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.readEn.out)
         cu.ctrs.filter { ctr => isInnerCounter(ctr) }.map(_.en <== cb.writeEn.out)
       case (cu:MemoryController, cb:CtrlBox) =>
@@ -181,18 +181,18 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
-          udc.dec <== cb.doneXbar.out
+          udc.dec <== cb.done.out
           udc.dec <== cb.en.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cb.udcs.foreach { udc =>
           udc.inc <== cu.cins.map{_.ic}
           udc.dec <== cb.childrenAndTree.out
-          udc.dec <== cb.doneXbar.out
+          udc.dec <== cb.done.out
         }
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
-        cb.readUDC.inc <== cb.writeDoneXbar.out
-        cb.readUDC.dec <== cb.readDoneXbar.out
+        cb.readUDC.inc <== cb.writeDone.out
+        cb.readUDC.dec <== cb.readDone.out
       case (mc:MemoryController, cb:CtrlBox) =>
       case (top:Top, cb:TopCtrlBox) =>
     }
@@ -206,11 +206,11 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         cu.sbufs.foreach { buf => 
-          buf.readNext <== cb.readDoneXbar.out; 
-          buf.readNext <== cb.writeDoneXbar.out
+          buf.readNext <== cb.readDone.out; 
+          buf.readNext <== cb.writeDone.out
           buf.readNext <== cb.readEn.out; 
           buf.readNext <== cb.writeEn.out; 
-          buf.writeNext <== cu.cins.map(_.ic)
+          //buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
         cu.vbufs.foreach { buf => 
@@ -218,24 +218,24 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
           buf.predicate <== low.out
         }
         cu.srams.foreach { sram => 
-          sram.readNext <== cb.readDoneXbar.out 
-          sram.writeNext <== cb.writeDoneXbar.out
-          sram.writeEn <== cb.writeEn.out
-          sram.readEn <== cb.readEn.out
+          sram.readNext <== cb.readDoneDelay.out 
+          sram.writeNext <== cb.writeDoneDelay.out
+          sram.writeEn <== cb.writeEnDelay.out
+          sram.readEn <== cb.readEnDelay.out
         }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.bufs.foreach { buf =>
           buf.readNext <== cu.ctrs.map(_.done)
           buf.readNext <== cu.cins.map(_.ic)
           buf.readNext <== cb.en.out; 
-          buf.writeNext <== cu.cins.map(_.ic)
+          //buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out 
           buf.predicate <== cb.fifoPredUnit.out
         }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 
         cu.bufs.foreach { buf => 
-          buf.readNext <== cb.doneXbar.out
-          buf.writeNext <== cu.cins.map(_.ic)
+          buf.readNext <== cb.done.out
+          //buf.writeNext <== cu.cins.map(_.ic)
           buf.predicate <== low.out
         }
       case (mc:MemoryController, cb:MCCtrlBox) =>
@@ -284,8 +284,8 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
         cb.tokenInXbar.in <== cu.cins.map(_.ic)
         cu.couts.foreach { cout => 
           cout.ic <== cu.bufs.map(_.notFull)
-          cout.ic <== cb.writeDoneXbar.out
-          cout.ic <== cb.readDoneXbar.out
+          cout.ic <== cb.writeDone.out
+          cout.ic <== cb.readDone.out
         }
       case (mc:MemoryController, cb:MCCtrlBox) =>
         mc.couts.foreach { cout =>

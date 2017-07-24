@@ -81,57 +81,54 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
     m
   }
 
-  def emitBlock(title:String, node:Node):Unit = {
-    emitBlock(title) {
-      node match {
-        case n:InnerController =>
-          emitBlock(s"mapping =") {
-            regMapToStrs(n).foreach { case (k, v) =>
-              emitln(s"${k}:${v}")
-            }
-          }
-          emitBlock(s"InfGraph =") {
-            n.infGraph.foreach { case (k, v) => 
-              emitln(s"${k}: [${v.mkString(s",")}]")
-            }
-          }
-          super.visitNode(node)
-        case n:OuterController =>
-          super.visitNode(node)
-        case n:Stage =>
-          val strs = ListBuffer[String]()
-          strs += s"par=${parOf.get(n)}"
-          strs += s"prev=${n.prev.map(quote)}"
-          strs += s"next=${n.next.map(quote)}"
-          strs += s"uses:[${n.uses.mkString(",")}]"
-          strs += s"defs:[${n.defs.mkString(",")}]"
-          strs += s"liveIns:[${n.liveIns.mkString(",")}]"
-          strs += s"liveOuts:[${n.liveOuts.mkString(",")}]"
-          strs.foreach(emitln)
-          n.prs.foreach { case pr =>
-           emitln(s"pr=${pr}, in=${pr.in.from}, out=[${pr.out.to.mkString}]")
-          }
-        case n:FIFO =>
-          emitln(s"rp=[${n.readPort.to.mkString(",")}]")
-          emitln(s"wp=${n.writePort.from}")
-        case n:SRAM =>
-          emitln(s"rp=[${n.readPort.to.mkString(",")}]")
-          emitln(s"wp=${n.writePort.from}")
-          emitln(s"ra=${n.readAddr.from}")
-          emitln(s"wa=${n.writeAddr.from}")
-        case _ => super.visitNode(node)
-      }
-    }
-  }
+  def emitBlock[T](node:Node)(block: =>T):T = emitBlock(s"${quote(node)} ${genFields(node)}")(block)
 
   override def visitNode(node: Node) : Unit = {
     node match {
-      case n:Controller => emitBlock(s"${node}${genFields(node)}", node)
-      case n:CounterChain => emitBlock(s"${node}${genFields(node)}", node)
-      case n:Stage => emitBlock(s"${quote(node)}${genFields(node)}", node)
-      case n:UDCounter => // printed in Ctrl.txt
-      case n:OnChipMem => emitBlock(s"${node}${genFields(node)}", node)
-      case _ => emitln(s"${node}${genFields(node)}")
+      case n:Controller => emitBlock(node) {
+        emitln(s"consumed=[${n.consumed.mkString(",")}]")
+        emitln(s"trueConsumed=[${n.trueConsumed.mkString(",")}]")
+        emitln(s"produced=[${n.produced.mkString(",")}]")
+        n match {
+          case n:InnerController =>
+            emitBlock(s"mapping =") {
+              regMapToStrs(n).foreach { case (k, v) =>
+                emitln(s"${k}:${v}")
+              }
+            }
+            emitBlock(s"InfGraph =") {
+              n.infGraph.foreach { case (k, v) => 
+                emitln(s"${k}: [${v.mkString(s",")}]")
+              }
+            }
+          case _ =>
+        }
+        super.visitNode(node)
+      }
+      case n:Stage => emitBlock(node) {
+        super.visitNode(node)
+        emitln(s"uses:[${n.uses.mkString(",")}]")
+        emitln(s"defs:[${n.defs.mkString(",")}]")
+        emitln(s"liveIns:[${n.liveIns.mkString(",")}]")
+        emitln(s"liveOuts:[${n.liveOuts.mkString(",")}]")
+      }
+      case n:PipeReg =>
+        emitln(s"$n in=${n.in.from} out=[${n.out.to.mkString}]")
+      case n:FuncUnit => super.visitNode(node)
+      case n:CtrlBox => emitBlock(node) {
+        super.visitNode(n)
+        emitBlock(s"cins") {
+          n.ctrlIns.foreach{ in => emitln(s"$in.from=${in.from}") }
+        }
+        emitBlock(s"couts") {
+          n.ctrlOuts.foreach{ out => emitln(s"$out.to=[${out.to.mkString(",")}]") }
+        }
+      } 
+      case n:InPort =>
+        emitln(s"$n.from=${n.from}")
+      case n:OutPort =>
+        emitln(s"$n.to=[${n.to.mkString(",")}]")
+      case _ => emitBlock(node) { super.visitNode(node) } 
     }
   }
 
@@ -158,42 +155,25 @@ object PIRPrinter {
     node match {
       case n:ComputeUnit =>
         fields += s"parent=${n.parent}"
-        fields += s"consumed=[${n.consumed.mkString(",")}]"
-        fields += s"trueConsumed=[${n.trueConsumed.mkString(",")}]"
-        fields += s"produced=[${n.produced.mkString(",")}]"
         n match {
-          case n:InnerController =>
-            fields += s"outers=[${n.outers.mkString(s",")}]"
-            n match {
-              case n:MemoryController =>
-                fields += s"mctpe=${n.mctpe}"
-              case _ =>
-            }
-          case n:OuterController =>
+          case n:MemoryController =>
+            fields += s"mctpe=${n.mctpe}"
+          case _ =>
         }
       case p:CounterChain =>
         fields += s"copy=${p.copy.getOrElse("None")}"
         fields += s"copied=[${p.copied.mkString(",")}]"
       case p:Counter => 
-        fields += s"min=${p.min.from}, max=${p.max.from}, step=${p.step.from}"
-        fields += s"en=${p.en.from}, done=[${p.done.to.mkString(",")}]"
         fields += s"par=${p.par}"
       case p:OnChipMem =>
         fields += s"size=${p.size}"
-        fields += s"RP=[${p.readPort.to.mkString(",")}], WP=${p.writePort.from}"
         fields += s"banking=${p.banking}"
-        p match { case p:SRAM => fields += s"RA=${p.readAddr.from}, WA=${p.writeAddr.from}"; case _ => }
-        p match { case p:FIFO => fields += s"wtStart=${p.wtStart}, wtEnd=${p.wtEnd}"; case _ => }
-        p match { case p:MultiBuffering => fields += s"multiBuffer=${p.buffering}"; case _ => }
+        p match { case p:MultiBuffering => fields += s"buffering=${p.buffering}"; case _ => }
       case p:Stage =>
-        p.fu.foreach { fu =>
-          fields += s"fu=${fu}"
-          fields += s"operands=[${fu.operands.map(_.from).mkString(",")}]"
-          fields += s"op=${fu.op}"
-          fields += s"results=[${fu.out.to.mkString(",")}]"
-        }
+        fields += s"prev=${p.prev.map(quote)}"
+        fields += s"next=${p.next.map(quote)}"
         p match {
-          case s:ReduceStage => fields += s"idx=${s.idx}"
+          case s:ReduceStage => fields += s"reduceIdx=${s.idx}"
           case _ =>
         }
       case p:ScalarIn =>
@@ -210,17 +190,14 @@ object PIRPrinter {
         fields += s"vector=${p.vector}, writer=${p.vector.writer}"
       case p:VecOut =>
         fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
-      //case p:UDCounter => 
-      //  fields += s"init=${p.initVal}"
-      case r:PipeReg =>
+      case p:UDCounter => 
+        fields += s"init=${p.initVal}"
       case r:Const[_] => fields += s"${r.value}"
-      case p:Reg => 
       case r:ArgIn =>
       case r:ArgOut =>
       case s:Scalar =>
         val writer = if (s.writer==null) "null" else s.writer.ctrler
         fields += s"writer=${writer} readers=[${s.readers.map(_.ctrler).mkString(",")}]"
-        s match { case s:MultiBuffering => fields += s"multiBuffer=${s.buffering}"; case _ => }
       case v:Vector =>
         val writer = if (v.writer==null) "null" else v.writer.ctrler
         fields += s"writer=${writer} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 

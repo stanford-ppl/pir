@@ -246,10 +246,20 @@ abstract class CtrlBox()(implicit spade:Spade, override val prt:Controller) exte
 
   val fifoAndTree = AndTree("fifoAndTree")
   fifoAndTree <== prt.bufs.map(_.notEmpty) 
+
+  def register(implicit sim:Simulator):Unit = {
+    delays.foreach { delay =>
+      delay.in.v.default = false
+      delay.out.v.default = false
+    }
+  }
 }
 
 abstract class StageCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit) extends CtrlBox {
   import prt.param._
+
+  val en = Delay(Bit(), 0, s"${quote(prt)}.en")
+  val done = Delay(Bit(), 0, s"${quote(prt)}.done")
 
   for (i <- 0 until numUDCs) { UDCounter(idx=i) }
   val siblingAndTree = AndTree("siblingAndTree") 
@@ -258,12 +268,8 @@ abstract class StageCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit
 
 class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit) 
   extends StageCtrlBox {
-  val doneXbar = Delay(Bit(), 0, s"${quote(prt)}.doneXbar")
-
   val doneDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.doneDelay")
-  doneDelay.in <== doneXbar.out
-
-  val en = Delay(Bit(), 0, s"${quote(prt)}.en")
+  doneDelay.in <== done.out
 
   val enDelay = Delay(Bit(), prt.stages.size, s"${quote(prt)}.enDelay")
   enDelay.in <== en.out
@@ -291,24 +297,15 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
     accumPredUnit.in <== (ctr.out, 0)
     fifoPredUnit.in <== (ctr.out, 0) 
   }
-
-  def register(implicit sim:Simulator):Unit = {
-    enDelay.in.v.default = false
-    doneDelay.in.v.default = false
-  }
 }
 
 class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit) 
   extends StageCtrlBox {
-  val doneXbar = Delay(Bit(), 0, s"$prt.doneXbar")
-
   val childrenAndTree = AndTree("childrenAndTree") 
   childrenAndTree <== udcs.map(_.out)
 
-  val en = Delay(Bit(), 0, s"$prt.en")
-
   val udsm = UpDownSM()
-  udsm.doneIn <== doneXbar.out
+  udsm.doneIn <== done.out
   udsm.dec <== childrenAndTree.out
   udsm.inc <== en.out
 
@@ -319,16 +316,9 @@ class OuterCtrlBox()(implicit spade:Spade, override val prt:OuterComputeUnit)
   enAnd <== siblingAndTree.out
 
   en.in <== enAnd.out 
-
-  def register(implicit sim:Simulator):Unit = {
-    doneXbar.in.v.default = false
-    en.in.v.default = false
-  }
 }
 
 class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) extends CtrlBox() {
-  val readDoneXbar = Delay(Bit(), 0, s"$prt.readDoneXbar")
-  val writeDoneXbar = Delay(Bit(), 0, s"$prt.writeDoneXbar")
   val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
 
   val writeFifoAndTree = AndTree("writeFifoAndTree") 
@@ -347,18 +337,23 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   readAndGate <== tokenInAndTree.out
   readAndGate <== readFifoAndTree.out 
 
-  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
-  writeEn.in <== writeFifoAndTree.out
   val readEn = Delay(Bit(),0, s"$prt.readEn") 
   readEn.in <== readAndGate.out
+  val writeEn = Delay(Bit(), 0, s"$prt.writeEn")
+  writeEn.in <== writeFifoAndTree.out
 
-  def register(implicit sim:Simulator):Unit = {
-    readEn.in.v.default = false
-    writeEn.in.v.default = false
-    writeDoneXbar.in.v.default = false
-    readDoneXbar.in.v.default = false
-    tokenInXbar.in.v.default = false
-  }
+  val readEnDelay = Delay(Bit(),0, s"$prt.readEnDelay") 
+  readEnDelay.in <== readEn.out
+  val writeEnDelay = Delay(Bit(),0, s"$prt.writeEnDelay") 
+  writeEnDelay.in <== writeEn.out
+
+  val readDone = Delay(Bit(), 0, s"$prt.readDone")
+  val writeDone = Delay(Bit(), 0, s"$prt.writeDone")
+
+  val readDoneDelay = Delay(Bit(), 0, s"$prt.readDoneDelay")
+  readDoneDelay.in <== readDone.out
+  val writeDoneDelay = Delay(Bit(), 0, s"$prt.writeDoneDelay")
+  writeDoneDelay.in <== writeDone.out
 }
 
 case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends CtrlBox() {
@@ -373,6 +368,7 @@ case class TopCtrlBox()(implicit spade:Spade, override val prt:Top) extends Ctrl
       if (rst) v.setHigh
       else v.setLow
     }
+    super.register
   }
 }
 
@@ -391,8 +387,6 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
     import spademeta._
     clmap.pmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
       state.v.default = WAITING 
-      rdone.v.default = false
-      wdone.v.default = false
       running.v.default = false
       mc.mctpe match {
         case tp if tp.isDense =>
@@ -403,7 +397,6 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
           }
           running.v := (state.v =:= RUNNING)
           en.in.v := fifoAndTree.out.v & (done.pv | running.pv.not)
-          en.in.v.default = false
           state.v.set { statev =>
             If(done.v) {
               statev <<= WAITING
@@ -425,6 +418,6 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
         case Scatter =>
       }
     }
-    en.in.v.default = false
+    super.register
   }
 }

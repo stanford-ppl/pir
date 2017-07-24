@@ -74,25 +74,26 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
     import sim.util._
     // Add delay to output if input is from doneXBar
     clmap.pmap.get(this).foreach { cu =>
-      ctrlBox match {
-        case cb:InnerCtrlBox =>
-        case _ =>
-      }
-      val enable = ctrlBox match {
-        case cb:MemoryCtrlBox => None 
-        case cb:InnerCtrlBox => Some(cb.enDelay.out.v)
-        case _ => None
-      }
-      (souts++vouts).foreach { out =>
-        enable.foreach { en =>
-          fanInOf(out.ic).foreach { pout =>
-            out.ic.v.set { v =>
-              v <<= pout.v
-              v.valid <<= en
-            }
+      (souts++vouts).foreach { 
+        case out if isMapped(out)(mapping) =>
+          this match {
+            case cu:MemoryComputeUnit =>
+              fanInOf(out.ic).foreach { pout =>
+                out.ic.v.set { v =>
+                  v <<= pout.v
+                  v.valid <<= validOf(out).pv // 1 more cycle for sram read
+                }
+              }
+            case cu =>
+              fanInOf(out.ic).foreach { pout =>
+                out.ic.v.set { v =>
+                  v <<= pout.v
+                  v.valid <<= validOf(out).v
+                }
+              }
           }
-        }
-        out.v.valid.default = false
+          out.ic.v.valid.default = false
+        case _ =>
       }
     }
     super.register

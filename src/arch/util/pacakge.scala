@@ -21,21 +21,32 @@ package object util {
 
   def mappingOf[T](io:IO[_,_])(implicit ev:ClassTag[T]):List[T] = io match {
     case in:Input[_,_] => 
-      //println(s"$in.fanIns=[${in.fanIns.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
-      in.fanIns.map(_.src).flatMap {
-        case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
-        case sl:Slice[_,_] => mappingOf[T](sl.in)
-        case bc:BroadCast[_] => mappingOf[T](bc.in)
-        case n => Nil
-      }
+      fromInstanceOf[T](in).map{_.src.asInstanceOf[T]}
     case out:Output[_,_] =>
-      //println(s"$out.fanOuts=[${out.fanOuts.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
-      out.fanOuts.map(_.src).flatMap { 
-        case n if ev.runtimeClass.isInstance(n) => List(n.asInstanceOf[T])
-        case sl:Slice[_,_] => mappingOf[T](sl.out)
-        case bc:BroadCast[_] => mappingOf[T](bc.out)
+      fromInstanceOf[T](out).map{_.src.asInstanceOf[T]}
+  }
+
+  def fromInstanceOf[T](in:Input[_<:PortType,Module])(implicit ev:ClassTag[T]):List[Output[_<:PortType,Module]] = {
+    //println(s"$in.fanIns=[${in.fanIns.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
+    in.fanIns.flatMap { out =>
+      out.src match {
+        case n if ev.runtimeClass.isInstance(n) => List(out.asInstanceOf[Output[_<:PortType, Module]])
+        case sl:Slice[_,_] => fromInstanceOf[T](sl.in)
+        case bc:BroadCast[_] => fromInstanceOf[T](bc.in)
         case n => Nil
       }
+    }
+  }
+
+  def fromInstanceOf[T](out:Output[_<:PortType,Module])(implicit ev:ClassTag[T]):List[Input[_<:PortType,Module]] = {
+    out.fanOuts.flatMap { in =>
+      in.src match {
+        case n if ev.runtimeClass.isInstance(n) => List(in.asInstanceOf[Input[_<:PortType,Module]])
+        case sl:Slice[_,_] => fromInstanceOf[T](sl.out)
+        case bc:BroadCast[_] => fromInstanceOf[T](bc.out)
+        case n => Nil
+      }
+    }
   }
 
   def stageOf(io:IO[_,_]):Option[Stage] = {
@@ -75,6 +86,7 @@ package object util {
           case cb:CtrlBox => mp.pmmap.isMapped(n)
         }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
+      case n:GlobalOutput[_,_] => mp.vomap.pmap.contains(n)
       case n:Output[_,_] => mp.opmap.pmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.prt)

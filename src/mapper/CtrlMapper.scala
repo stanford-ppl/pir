@@ -39,17 +39,14 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     val pcu = pirMap.clmap(cu)
     mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
-    mp = mapEnOut(cu, pcu, mp)
+    mp = mapDelays(cu, pcu, mp)
     mp = mapCounters(cu, pcu, mp)
     mp = mapPredUnits(cu, pcu, mp)
-    mp = mapDone(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
     mp = mapMemoryWrite(cu, pcu, mp)
     mp = mapAndTrees(cu, pcu, mp)
-    mp = mapUDCIns(cu, pcu, mp)
-    mp = mapMemoryRead(cu, pcu, mp)
-    mp = mapEnIn(cu, pcu, mp)
     mp = mapEnAnd(cu, pcu, mp)
+    mp = mapMemoryRead(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
     mp
   }
@@ -71,11 +68,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     (cu, pcu.ctrlBox) match {
       case (cu:OCL, pcb:POCB) =>
         val pin = pcb.enAnd.ins(1)
-        val pout = cu match {
-          case cu:Seq => pin.fanIns.filter{_.src.isInstanceOf[PUDSM]}.head
-          case cu => pin.fanIns.filter{_.src.isInstanceOf[PConst]}.head
+        cu match {
+          case cu:Seq => mp = mapFanIn[PUDSM](pin, mp)
+          case cu => mp = mapFanIn[PConst](pin, mp)
         }
-        mp = mp.setFI(pin, pout)
       case _ =>
     }
     return mp
@@ -87,17 +83,17 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pmem = mp.smmap(mem)
       (mem, pmem) match {
         case (mem:SFIFO, pmem:PSMem) => 
-          mp = mp.setIP(mem.enqueueEnable, pmem.writeNext)
-          mp = mp.setOP(mem.notFull, pmem.notFull)
+          mp = mapInPort(mem.enqueueEnable, pmem.writeNext, mp)
+          mp = mapOutPort(mem.notFull, pmem.notFull, mp)
         case (mem:VFIFO, pmem:PVMem) => // enqueEnable is implicit through databus
-          mp = mp.setIP(mem.enqueueEnable, pmem.writeNext)
-          mp = mp.setOP(mem.notFull, pmem.notFull)
+          mp = mapInPort(mem.enqueueEnable, pmem.writeNext, mp)
+          mp = mapOutPort(mem.notFull, pmem.notFull, mp)
         case (mem:MBuf, pmem:POCM) =>
           mp = mapInPort(mem.swapWrite, pmem.writeNext, mp)
       }
       (mem, pmem) match {
         case (mem:LMem, pmem:PLMem) =>
-          mp = mp.setOP(mem.notEmpty, pmem.notEmpty)
+          mp = mapOutPort(mem.notEmpty, pmem.notEmpty, mp)
         case _ =>
       }
     }
@@ -115,33 +111,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pmem = mp.smmap(fifo)
       mp = mapInPort(fifo.dequeueEnable, pmem.readNext, mp)
       mp = mapInPort(fifo.predicate, pmem.predicate, mp)
-      if (!fifo.predicate.isConnected) {
-        mp = mp.setFI(pmem.predicate, mappingOf[PConst](pmem.predicate).head.out)
-      }
-    }
-    mp
-  }
-
-  def mapDone(cu:CU, pcu:PCL, pirMap:M):M = {
-    var mp = pirMap
-    (cu.ctrlBox, pcu.ctrlBox) match {
-      case (cb:MCB, pcb:PMCB) =>
-        mp = mp.setOP(cb.readDone.out, pcb.readDoneXbar.out)
-        mp = mp.setOP(cb.writeDone.out, pcb.writeDoneXbar.out)
-        mp = mapInPort(cb.writeDone.in, pcb.writeDoneXbar.in, mp)
-        mp = mapInPort(cb.readDone.in, pcb.readDoneXbar.in, mp)
-      case (cb:ICB, pcb:PICB) =>
-        mp = mapInPort(cb.doneIn, pcb.doneXbar.in, mp)
-        mp = mp.setOP(cb.doneOut, pcb.doneXbar.out)
-        mp = mp.setOP(cb.doneDelayOut, pcb.doneDelay.out)
-      case (cb:OCB, pcb:POCB) =>
-        mp = mapInPort(cb.doneIn, pcb.doneXbar.in, mp)
-        mp = mp.setOP(cb.doneOut, pcb.doneXbar.out)
-        mp = mp.setOP(cb.doneDelayOut, pcb.udsm.doneOut)
-      case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileLoad =>
-        mp = mp.setOP(cb.doneOut, pcb.rdone)
-      case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileStore =>
-        mp = mp.setOP(cb.doneOut, pcb.wdone)
+      mp = mapFanIn[PConst](pmem.predicate, mp)
     }
     mp
   }
@@ -149,7 +119,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapAndTree(at:AT, pat:PAT, pirMap:M):M = {
     implicit var mp = pirMap
     mp = mp.setPM(at, pat)
-    mp = mp.setOP(at.out, pat.out)
+    mp = mapOutPort(at.out, pat.out, mp)
     at.ins.foreach { in =>
       val po = if (in.isGlobal) { mp.vimap(in).ic } else { mp.opmap(in.from).head }
       val pins = pat.ins.filter { _.canConnect(po) }
@@ -161,11 +131,9 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
       mp = mp.setIP(in, pin)
       mp = mp.setFI(pin, po)
     }
-    pat.ins.foreach { pin =>
-      if (!isMapped(pin)) {
-        val po = pin.fanIns.filter { _.src.isConst }.head
-        mp = mp.setFI(pin, po)
-      }
+    pat.ins.foreach { 
+      case pin if !isMapped(pin)=> mp = mapFanIn[PConst](pin, mp)
+      case pin =>
     }
     mp
   }
@@ -195,42 +163,43 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  def mapEnOut(cu:CU, pcu:PCL, pirMap:M):M = {
+  def mapDelay(delay:D, pdelay:PD, pirMap:M):M = {
     var mp = pirMap
-    val cb = cu.ctrlBox
-    val pcb = pcu.ctrlBox
-    (cb, pcb) match {
-      case (cb:MCB, pcb:PMCB) =>
-        mp = mp.setOP(cb.readEn.out, pcb.readEn.out)
-        mp = mp.setOP(cb.writeEn.out, pcb.writeEn.out)
-      case (cb:OCB, pcb:POCB) => 
-        mp = mp.setOP(cb.enOut, pcb.en.out)
-      case (cb:ICB, pcb:PICB) =>
-        mp = mp.setOP(cb.enOut, pcb.en.out)
-        mp = mp.setOP(cb.enDelayOut, pcb.enDelay.out)
-      case (cb:MCCB, pcb:PMCCB) =>
-        mp = mp.setOP(cb.enOut, pcb.en.out)
-    }
+    mp = mp.setPM(delay, pdelay)
+    mp = mapInPort(delay.in, pdelay.in, mp)
+    mp = mapOutPort(delay.out, pdelay.out, mp)
     mp
   }
 
-  def mapEnIn(cu:CU, pcu:PCL, pirMap:M):M = {
+  def mapDelays(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
     (cb, pcb) match {
       case (cb:MCB, pcb:PMCB) =>
-        mp = mp.setIP(cb.readEn.in, pcb.readEn.in)
-        mp = mp.setIP(cb.writeEn.in, pcb.writeEn.in)
+        mp = mapDelay(cb.readEn, pcb.readEn, mp)
+        mp = mapDelay(cb.readEnDelay, pcb.readEnDelay, mp)
+        mp = mapDelay(cb.writeEn, pcb.writeEn, mp)
+        mp = mapDelay(cb.writeEnDelay, pcb.writeEnDelay, mp)
+        mp = mapDelay(cb.readDone, pcb.readDone, mp)
+        mp = mapDelay(cb.readDoneDelay, pcb.readDoneDelay, mp)
+        mp = mapDelay(cb.writeDone, pcb.writeDone, mp)
+        mp = mapDelay(cb.writeDoneDelay, pcb.writeDoneDelay, mp)
       case (cb:OCB, pcb:POCB) => 
-        mp = mp.setIP(cb.enIn, pcb.en.in)
+        mp = mapDelay(cb.en, pcb.en, mp)
+        mp = mapDelay(cb.done, pcb.done, mp)
+        mp = mapOutPort(cb.doneOut, pcb.udsm.doneOut, mp) 
       case (cb:ICB, pcb:PICB) =>
-        mp = mapInPort(cb.enIn, pcb.en.in, mp)
-      case (cb:MCCB, pcb:PMCCB) =>
-        mp = mp.setIP(cb.enIn, pcb.en.in)
-      case (cb:CB, pcb:PCB) =>
-        assert(cb.ctrler.isInstanceOf[MC])
-        assert(pcb.prt.isInstanceOf[PMC])
+        mp = mapDelay(cb.en, pcb.en, mp)
+        mp = mapDelay(cb.enDelay, pcb.enDelay, mp)
+        mp = mapDelay(cb.done, pcb.done, mp)
+        mp = mapDelay(cb.doneDelay, pcb.doneDelay, mp)
+      case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileLoad =>
+        mp = mapDelay(cb.en, pcb.en, mp)
+        mp = mapOutPort(cb.doneOut, pcb.rdone, mp)
+      case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileStore =>
+        mp = mapDelay(cb.en, pcb.en, mp)
+        mp = mapOutPort(cb.doneOut, pcb.wdone, mp)
     }
     mp
   }
@@ -239,12 +208,8 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     cu.cchains.flatMap(_.counters).foreach { ctr =>
       val pctr = mp.ctmap(ctr)
-      mp = mp.setIP(ctr.en, pctr.en)
-      mp = mp.setOP(ctr.done, pctr.done)
-    }
-    cu.cchains.flatMap(_.counters).foreach { ctr =>
-      val pctr = mp.ctmap(ctr)
-      mp = mp.setFI(pctr.en, mp.opmap(ctr.en.from).head)
+      mp = mapInPort(ctr.en, pctr.en, mp)
+      mp = mapOutPort(ctr.done, pctr.done, mp)
     }
     mp
   }
@@ -274,19 +239,10 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     cb.udcounters.foreach { case (dep, udc) =>
       val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.pmap.contains(pudc) }.head
-      mp = mp.setPM(udc, pudc).setIP(udc.inc, pudc.inc).setIP(udc.dec, pudc.dec).setOP(udc.out, pudc.out)
-    }
-    mp
-  }
-
-  def mapUDCIns(cu:CU, pcu:PCL, pirMap:M):M = {
-    var mp = pirMap
-    val cb = cu.ctrlBox
-    val pcb = pcu.ctrlBox
-    cb.udcounters.foreach { case (dep, udc) =>
-      val pudc = mp.pmmap(udc)
+      mp = mp.setPM(udc, pudc)
       mp = mapInPort(udc.inc, pudc.inc, mp)
       mp = mapInPort(udc.dec, pudc.dec, mp)
+      mp = mapOutPort(udc.out, pudc.out, mp)
     }
     mp
   }

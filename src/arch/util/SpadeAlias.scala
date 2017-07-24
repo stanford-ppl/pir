@@ -8,6 +8,7 @@ trait SpadeAlias {
   type PModule   = Module
   type PCL       = Controller
   type PCU       = ComputeUnit
+  type PPCU      = PatternComputeUnit
   type PMCU      = MemoryComputeUnit
   //type PMU       = MemoryUnit
   type PSCU      = ScalarComputeUnit
@@ -20,6 +21,7 @@ trait SpadeAlias {
   type PCtr      = Counter
   type PSRAM     = SRAM
   type POCM      = OnChipMem
+  type PD        = Delay[_<:PortType]
   type PFU       = FuncUnit
   type PST       = Stage
   type PEST      = EmptyStage

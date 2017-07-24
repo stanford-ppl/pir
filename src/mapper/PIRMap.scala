@@ -164,7 +164,7 @@ case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
   override type M = CLMap.M
   override type IM = CLMap.IM
   override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmp + rec.swap) }
-  def apply(k:PL):PCU = { map(k).asCU }
+  def apply(k:PL):PCU = { map(k).asInstanceOf[PCU] }
   def apply(k:OCL):POCU = { map(k).asInstanceOf[POCU] }
   def apply(k:MC):PMC = { map(k).asInstanceOf[PMC] }
   def apply(k:MP):PMCU = { map(k).asInstanceOf[PMCU] }
@@ -367,6 +367,7 @@ case class PMMap(map:PMMap.M, pmp:PMMap.IM) extends IBiOneToOneMap {
   def apply(k:UC):PUC = { map(k).asInstanceOf[PUC] }
   def apply(k:MCCB):PMCCB = { map(k).asInstanceOf[PMCCB] }
   def apply(k:OCB):POCB = { map(k).asInstanceOf[POCB] }
+  def apply(k:D):PD = { map(k).asInstanceOf[PD] }
   def pmap(v:PConst):Const = { pmp(v).asInstanceOf[Const] }
   def pmap(v:PUC):UC = { pmp(v).asInstanceOf[UC] }
   def pmap(v:PAT):AT = { pmp(v).asInstanceOf[AT] }

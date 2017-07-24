@@ -63,8 +63,10 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
           declarator(spadeDeclarator).visitNode(smmap(node))
           super.visitNode(node)
         }
-        case node@(_:CounterChain|_:Stage|_:Delay) => 
+        case node@(_:CounterChain|_:Stage) => 
           declare(node) { super.visitNode(node) }
+        case node:Delay =>
+          visitNode(node.out)
         case _ => super.visitNodeNoCheck(node)
       }
     }
@@ -103,12 +105,12 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
             n.stages.foreach(declarator.visitNode)
             emitln(s"$$upscope $$end")
           case n:Top =>
-            emitkv(s"scope module", "scalars")
-            n.scalars.foreach { n => declarator.visitNode(n) }
-            emitln(s"$$upscope $$end")
-            emitkv(s"scope module", "vectors")
-            n.vectors.foreach { n => declarator.visitNode(n) }
-            emitln(s"$$upscope $$end")
+            //emitkv(s"scope module", "scalars")
+            //n.scalars.foreach { n => declarator.visitNode(n) }
+            //emitln(s"$$upscope $$end")
+            //emitkv(s"scope module", "vectors")
+            //n.vectors.foreach { n => declarator.visitNode(n) }
+            //emitln(s"$$upscope $$end")
           case _ =>
         }
       case _ =>

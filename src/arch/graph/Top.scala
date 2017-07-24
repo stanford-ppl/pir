@@ -38,10 +38,10 @@ case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade)
         boundOf.get(sout.scalar) match {
           case Some(b:Int) => 
             psout.ic.v.head.asSingle := b
-            psout.ic.v.valid := true
+            psout.ic.v.valid := validOf(psout).v
           case Some(b:Float) => 
             psout.ic.v.head.asSingle := b
-            psout.ic.v.valid := true
+            psout.ic.v.valid := validOf(psout).v
           case None => warn(s"${sout.scalar} doesn't have a bound")
           case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
         }

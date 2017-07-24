@@ -27,6 +27,7 @@ trait PIRAlias {
   type MBuf  = MultiBuffering
   type CC    = CounterChain
   type Ctr   = Counter
+  type D     = Delay 
   type FU    = FuncUnit
   type ST    = Stage
   //type EST   = EmptyStage
