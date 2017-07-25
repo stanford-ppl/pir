@@ -15,29 +15,38 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class MapPrinter(implicit design: Design) extends Codegen {
-  def shouldRun = Config.debug && design.mapping.nonEmpty
+  def shouldRun = Config.debug
 
-  var mp:PIRMap = _
+  implicit lazy val mp:PIRMap = design.mapping.get
 
   override lazy val stream = newStream("Mapping.log") 
   
   def emit(pin:PI[PModule]) = {
-    val fin = mp.fimap.get(pin).fold("") { from =>
+    val fin = fanInOf(pin).fold("") { from =>
       s" <= ${quote(from)}"
     }
     val ip = mp.ipmap.pmap.get(pin).fold("") { in =>
       s"  (${in})"
     }
-    emitln(s"${quote(pin)}$fin$ip")
-  }
-  def emit(pout:PO[PModule]) = {
-    val fout = mp.fimap.pmap.get(pout).fold("") { to =>
-      s" => [${to.map(quote).mkString(",")}]"
+    val gip = pin match {
+      case pin:PGI[PModule] => mp.vimap.pmap.get(pin).fold("") { in => s" ($in)" }
+      case pin => ""
     }
+    emitln(s"${quote(pin)}$fin$ip$gip")
+  }
+
+  def emit(pout:PO[PModule]) = {
+    val fout = if (fanOutOf(pout).nonEmpty) {
+      s" => [${fanOutOf(pout).map(quote).mkString(",")}]"
+    } else ""
     val op = mp.opmap.pmap.get(pout).fold("") { out =>
       s" (${out})"
     }
-    emitln(s"${quote(pout)}$fout$op")
+    val gop = pout match {
+      case pout:PGO[PModule] => mp.vomap.pmap.get(pout).fold("") { out => s" ($out)" }
+      case pout =>
+    }
+    emitln(s"${quote(pout)}$fout$op$gop")
   }
 
   def emit(m:PModule):Unit = {
@@ -92,10 +101,13 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pcb:PCB):Unit = {
-    pcb.udcs.foreach(emit)
-    pcb.andTrees.foreach(emit)
-    pcb.andGates.foreach(emit)
-    pcb.delays.foreach(emit)
+    val cb = mp.pmmap.pmap.get(pcb)
+    emitModule(pcb, s"${quote(pcb)} -> $cb") {
+      pcb.udcs.foreach(emit)
+      pcb.andTrees.foreach(emit)
+      pcb.andGates.foreach(emit)
+      pcb.delays.foreach(emit)
+    }
   }
 
   def emit(pcl:PCL):Unit = {
@@ -119,10 +131,9 @@ class MapPrinter(implicit design: Design) extends Codegen {
 
   override def initPass = {
     super.initPass
-    if (mp==null) mp = design.mapping.get
   }
 
-  addPass {
+  addPass(canRun=design.mapping.nonEmpty) {
     design.arch.ctrlers.foreach(emit)
     design.arch match {
       case sn:SwitchNetwork =>
@@ -137,7 +148,6 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def print(mapping:PIRMap) = {
-    mp = mapping
     run
   }
 

@@ -23,6 +23,14 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
 
   val readPort: OutPort = OutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
+  /* Control Signals */
+  val enqueueEnable = InPort(this, s"$this.enqEn")
+  val dequeueEnable = InPort(this, s"$this.deqEn")
+  val inc = InPort(this, s"$this.inc")
+  val dec = InPort(this, s"$this.dec")
+  val predicate = InPort(this, s"$this.predicate")
+  val notFull = OutPort(this, s"$this.notFull")
+  val notEmpty = OutPort(this, s"$this.notEmpty")
 
   def isRemoteWrite = this match {
     case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
@@ -41,6 +49,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def isSRAM = this.isInstanceOf[SRAM]
   def isMbuffer = this.isInstanceOf[MultiBuffer]
   def asMbuffer = this.asInstanceOf[MultiBuffer]
+
 }
 
 trait MultiBuffer extends OnChipMem {
@@ -79,17 +88,11 @@ trait MultiBuffer extends OnChipMem {
   var _buffering:Int = _
   def buffering = _buffering
   def buffering(buf:Int):this.type = { _buffering = buf; this }
-  val swapRead = InPort(this, s"$this.swapRead")
-  val swapWrite = InPort(this, s"$this.swapWrite")
 }
+
 trait FIFO extends OnChipMem with LocalMem {
   override val typeStr = "FIFO"
   override val banking = Strided(1)
-  /* Control Signals */
-  val dequeueEnable = InPort(this, s"$this.deqEn")
-  val predicate = InPort(this, s"$this.predicate")
-  val notFull = OutPort(this, s"$this.notFull")
-  val enqueueEnable = InPort(this, s"$this.enqEn")
   override def toUpdate = super.toUpdate
 
   var _wtStart:Option[OutPort] = None
@@ -111,7 +114,6 @@ trait FIFO extends OnChipMem with LocalMem {
 }
 
 trait LocalMem extends OnChipMem {
-  val notEmpty = OutPort(this, s"$this.notEmpty")
   def reader:Controller = {
     val readers = super.readers
     assert(readers.size==1, s"local mem should only have 1 reader, ${this}, ${readers}")

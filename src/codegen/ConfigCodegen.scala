@@ -293,10 +293,10 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     pcl.sbufs.foreach { sbuf =>
       smmap.pmap.get(sbuf).foreach {
         case smem:SBuf =>
-          val sw = if (smem.swapWrite.isConnected) {
-            s"swapWrite=${smem.swapWrite.from}"
+          val sw = if (smem.enqueueEnable.isConnected) {
+            s"enqueueEnable=${smem.enqueueEnable.from}"
           } else {
-            s"swapWrite=NotConnected"
+            s"enqueueEnable=NotConnected"
           }
           emitComment(s"${quote(sbuf)} -> $smem $sw")
         case smem:SFIFO =>
@@ -360,7 +360,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitUDCInits(pcu:PCL) = {
-    val inits = pcu.ctrlBox.udcs.map { _.init(mapping) }
+    val inits = pcu.ctrlBox.udcs.map { _.initVal(mapping) }
     if (inits.nonEmpty && inits.exists{_.nonEmpty})
     emitln(s"${quote(pcu.ctrlBox)}.udcInit=${quote(inits.map(_.getOrElse(-1)))}")
   }

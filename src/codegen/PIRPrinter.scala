@@ -112,9 +112,9 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
         emitln(s"liveIns:[${n.liveIns.mkString(",")}]")
         emitln(s"liveOuts:[${n.liveOuts.mkString(",")}]")
       }
-      case n:PipeReg =>
-        emitln(s"$n in=${n.in.from} out=[${n.out.to.mkString}]")
-      case n:FuncUnit => super.visitNode(node)
+      case n:FuncUnit => 
+        emitln(s"$n.op=${n.op}")
+        super.visitNode(node)
       case n:CtrlBox => emitBlock(node) {
         super.visitNode(n)
         emitBlock(s"cins") {
@@ -128,6 +128,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
         emitln(s"$n.from=${n.from}")
       case n:OutPort =>
         emitln(s"$n.to=[${n.to.mkString(",")}]")
+      case n@(_:PipeReg|_:Delay) => emitln(s"$node ${genFields(node)}")
       case _ => emitBlock(node) { super.visitNode(node) } 
     }
   }
@@ -176,6 +177,12 @@ object PIRPrinter {
           case s:ReduceStage => fields += s"reduceIdx=${s.idx}"
           case _ =>
         }
+      case p:PipeReg =>
+        fields.clear
+        fields += s"in=${p.in.from}, out=[${p.out.to.mkString}]"
+      case p:Delay =>
+        fields.clear
+        fields += s"in=${p.in.from}, out=[${p.out.to.mkString}]"
       case p:ScalarIn =>
         fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
         vecOf.get(p).foreach { vecIn =>

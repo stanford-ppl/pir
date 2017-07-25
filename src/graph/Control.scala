@@ -130,7 +130,6 @@ case class PredicateUnit(name:Option[String], op:FixOp, const:Int) (implicit ctr
 abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Primitive {
   implicit def ctrlBox:CtrlBox = this
   override val name = None
-  override val typeStr = "CtrlBox"
 
   val tokenBuffers = Map[Any, TokenBuffer]() // Mem or Parent
   val creditBuffers = Map[Any, CreditBuffer]()
@@ -154,9 +153,8 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
       case top:Top =>
       case cu:ComputeUnit => 
         cins ++= cu.cchains.map(_.inner.en)
-        cins ++= cu.fifos.map { _.enqueueEnable }
-        cins ++= cu.mbuffers.map{ _.swapRead }
-        cins ++= cu.mbuffers.map{ _.swapWrite }
+        cins ++= cu.mems.map { _.enqueueEnable }
+        cins ++= cu.mems.map { _.dequeueEnable }
     }
     cins ++= ins
     cins.toSet.filter{_.isGlobal}.toList
@@ -166,7 +164,7 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:Design) extends Prim
     val couts = ListBuffer[OutPort]()
     ctrler match {
       case cu:ComputeUnit => 
-        couts ++= cu.fifos.map { _.notFull }
+        couts ++= cu.mems.map { _.notFull }
       case _ =>
     }
     couts ++= delays.map{_.out}
@@ -201,6 +199,7 @@ trait StageCtrlBox extends CtrlBox {
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Design) 
   extends CtrlBox() with StageCtrlBox {
+  override val typeStr = "InnerCtrlBox"
   val enDelay = Delay(s"$this.enDelay")
   val doneDelay = Delay(s"$this.doneDelay")
   def enOut = enDelay.out
@@ -208,13 +207,7 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: Desig
 
   val fifoAndTree = AndTree("FIFOAndTree")
   val tokenInAndTree = AndTree("TokenInAndTree")
-  val pipeAndTree = AndTree("pipeAndTree")
-  pipeAndTree.addInput(siblingAndTree.out)
-  pipeAndTree.addInput(fifoAndTree.out)
-  val streamAndTree = AndTree(s"streamAndTree")
-  streamAndTree.addInput(tokenInAndTree.out)
-  streamAndTree.addInput(siblingAndTree.out)
-  streamAndTree.addInput(fifoAndTree.out)
+
   var accumPredUnit:Option[PredicateUnit] = None
   var fifoPredUnit:Option[PredicateUnit] = None
   def setAccumPredicate(ctr:Counter, op:FixOp, const:Int):PredicateUnit = {
@@ -234,6 +227,7 @@ object InnerCtrlBox {
 } 
 
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox() with StageCtrlBox {
+  override val typeStr = "OuterCtrlBox"
   def enOut = en.out
   val doneOut = OutPort(this, s"$this.doneOut")
   val childrenAndTree = AndTree("ChildrenAndTree")
@@ -243,11 +237,13 @@ object OuterCtrlBox {
 }
 
 case class TopCtrlBox()(implicit override val ctrler:Controller, design: Design) extends CtrlBox {
+  override val typeStr = "TopCtrlBox"
   val status = InPort(this, s"$this.status")
   val command = OutPort(this, s"$this.command")
 }
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Design) extends CtrlBox() {
+  override val typeStr = "MemCtrlBox"
   val tokenInAndTree = AndTree("TokenInAndTree")
   val readFifoAndTree = AndTree("ReadFIFOAndTree")
   val writeFifoAndTree = AndTree("WriteFIFOAndTree")
@@ -264,8 +260,10 @@ case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: Des
 }
 
 case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: Design) extends StageCtrlBox() {
+  override val typeStr = "MCCtrlBox"
   def enOut = en.out
   def doneOut = done.out
+  val running = OutPort(this, s"$this.running")
   val fifoAndTree = AndTree("FIFOAndTree")
 }
 

@@ -209,5 +209,14 @@ trait PIRMetadata extends { self:Design =>
     }
   }
 
+  object backPressureOf extends MOneToOneMap with PIRMetadataMaps {
+    type K = OnChipMem
+    type V = Boolean
+    override def check(rec:(K,V)):Unit = {}
+    override def apply(k:K):V = {
+      super.get(k).getOrElse(true)
+    }
+  }
+
 }
 

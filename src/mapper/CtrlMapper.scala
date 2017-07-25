@@ -38,16 +38,28 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapCtrl(cu:CU, pirMap:M):M = {
     var mp = pirMap
     val pcu = pirMap.clmap(cu)
-    mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
+    mp = mapCtrlBox(cu, pcu, mp)
     mp = mapDelays(cu, pcu, mp)
     mp = mapCounters(cu, pcu, mp)
     mp = mapPredUnits(cu, pcu, mp)
     mp = mapUDCs(cu, pcu, mp)
-    mp = mapMemoryWrite(cu, pcu, mp)
+    mp = mapMemoryControl(cu, pcu, mp)
     mp = mapAndTrees(cu, pcu, mp)
     mp = mapEnAnd(cu, pcu, mp)
-    mp = mapMemoryRead(cu, pcu, mp)
     mp = mapTokenOut(cu, pcu, mp)
+    mp
+  }
+
+  def mapCtrlBox(cu:CU, pcu:PCL, pirMap:M):M = {
+    var mp = pirMap
+    val cb = cu.ctrlBox
+    val pcb = pcu.ctrlBox
+    mp = mp.setPM(cb, pcb)
+    (cb, pcb) match {
+      case (cb:MCCB, pcb:PMCCB) =>
+        mp = mapOutPort(cb.running, pcb.running, mp)
+      case _ =>
+    }
     mp
   }
 
@@ -77,41 +89,27 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     return mp
   }
 
-  def mapMemoryWrite(cu:CU, pcu:PCL, pirMap:M):M = {
-    var mp = pirMap
-    cu.mems.foreach { mem => 
-      val pmem = mp.smmap(mem)
-      (mem, pmem) match {
-        case (mem:SFIFO, pmem:PSMem) => 
-          mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
-          mp = mapOutPort(mem.notFull, pmem.notFull, mp)
-        case (mem:VFIFO, pmem:PVMem) => // enqueEnable is implicit through databus
-          mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
-          mp = mapOutPort(mem.notFull, pmem.notFull, mp)
-        case (mem:MBuf, pmem:POCM) =>
-          mp = mapInPort(mem.swapWrite, pmem.enqueueEnable, mp)
-      }
-      (mem, pmem) match {
-        case (mem:LMem, pmem:PLMem) =>
-          mp = mapOutPort(mem.notEmpty, pmem.notEmpty, mp)
-        case _ =>
-      }
-    }
-    mp
-  }
-
-  def mapMemoryRead(cu:CU, pcu:PCL, pirMap:M):M = {
+  def mapMemoryControl(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     val pcb = pcu.ctrlBox
-    cu.mbuffers.foreach { mbuf => 
-      val pmem = mp.smmap(mbuf)
-      mp = mapInPort(mbuf.swapRead, pmem.dequeueEnable, mp)
-    }
-    cu.fifos.foreach { fifo =>
-      val pmem = mp.smmap(fifo)
-      mp = mapInPort(fifo.dequeueEnable, pmem.dequeueEnable, mp)
-      mp = mapInPort(fifo.predicate, pmem.predicate, mp)
-      mp = mapFanIn[PConst](pmem.predicate, mp)
+    cu.mems.foreach { mem =>
+      val pmem = mp.smmap(mem)
+      mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
+      mp = mapInPort(mem.dequeueEnable, pmem.dequeueEnable, mp)
+      mp = mapInPort(mem.inc, pmem.inc, mp)
+      mp = mapInPort(mem.dec, pmem.dec, mp)
+      mp = mapOutPort(mem.notFull, pmem.notFull, mp)
+      mp = mapOutPort(mem.notEmpty, pmem.notEmpty, mp)
+      (mem, pmem) match {
+        case (mem:FIFO, pmem:PLMem) =>
+          mp = mapInPort(mem.predicate, pmem.predicate, mp)
+        case (mem, pmem) =>
+      }
+      pmem match {
+        case pmem:PLMem =>
+          mp = mapFanIn[PConst](pmem.predicate, mp)
+        case pmem =>
+      }
     }
     mp
   }
@@ -121,7 +119,11 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mp.setPM(at, pat)
     mp = mapOutPort(at.out, pat.out, mp)
     at.ins.foreach { in =>
-      val po = if (in.isGlobal) { mp.vimap(in).ic } else { mp.opmap(in.from).head }
+      val po = if (in.isGlobal) { 
+        mp.vimap(in).ic
+      } else { 
+        mp.opmap(in.from).head
+      }
       val pins = pat.ins.filter { _.canConnect(po) }
       var info = s"Mapping $at to $pat in ${at.ctrler}\n"
       info += s"in=$in, from=${in.from}, po=$po \n"
@@ -147,8 +149,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
         mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
         mp = mapAndTree(cb.fifoAndTree, pcb.fifoAndTree, mp)
         mp = mapAndTree(cb.tokenInAndTree, pcb.tokenInAndTree, mp)
-        mp = mapAndTree(cb.streamAndTree, pcb.streamAndTree, mp)
-        mp = mapAndTree(cb.pipeAndTree, pcb.pipeAndTree, mp)
       case (cb:OCB, pcb:POCB) =>
         mp = mapAndTree(cb.siblingAndTree, pcb.siblingAndTree, mp)
         mp = mapAndTree(cb.childrenAndTree, pcb.childrenAndTree, mp)

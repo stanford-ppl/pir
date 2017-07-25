@@ -35,21 +35,21 @@ object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade, prt:Routable):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
-case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class UDCounter()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "udc"
-  cb._udcs += this
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
   val count = Output(Word(), this, s"${this}.count")
   val out = Output(Bit(), this, s"${this}.out")
-  def init(mp:PIRMap):Option[Int] = {
-    mp.pmmap.pmap.get(this).map { case udc:pir.graph.UDCounter => udc.initVal }
+  def initVal(implicit mp:PIRMap):Option[Int] = {
+    mp.pmmap.pmap.get(this).map { 
+      case udc:pir.graph.UDCounter => udc.initVal
+    }.orElse(if (isMapped(this)) Some(0) else None)
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     if (isMapped(this)(mapping)) {
-      val initVal = init(mapping).getOrElse(0)
       dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)} initVal=$initVal")
       count.v.default = initVal
       count.v.set { countv =>
@@ -58,7 +58,7 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:Ctr
         } else {
           If (inc.pv) { countv <<= countv + 1 }
           If (dec.pv) {
-            if (sim.inSimulation && countv==Some(0)) {
+            if (sim.inSimulation && countv.toInt==0) {
               warn(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle")
             }
             countv <<= countv - 1
@@ -70,7 +70,11 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller, cb:Ctr
   }
 }
 object UDCounter {
-  def apply(idx:Int)(implicit spade:Spade, prt:Controller, cb:CtrlBox):UDCounter = UDCounter().index(idx)
+  def apply(idx:Int)(implicit spade:Spade, prt:Controller, cb:CtrlBox):UDCounter = {
+    val udc = UDCounter().index(idx)
+    cb._udcs += udc
+    udc
+  }
 }
 
 case class AndGate(name:Option[String])(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
@@ -179,6 +183,7 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
   val out = Output(Bit(), this, s"${this}.out")
   val count = Output(Word(), this, s"${this}.count")
   val done = Output(Bit(), this, s"${this}.done") // Initially low
+  val udc = UDCounter()
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
@@ -190,16 +195,10 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
         If (doneOut.v) { donev.setLow }
       }
       notDone.v := done.v.not
-      count.v.set { countv =>
-        if (rst) countv <<= 0 
-        else {
-          Match(
-            (inc.pv & done.pv.not) -> { () => countv <<= countv + 1 },
-            dec.pv -> { () => countv <<= countv - 1 }
-          ) {}
-        }
-      }
-      out.v := (count.v > 0)
+      udc.inc.v := inc.v
+      udc.dec.v := dec.v
+      count.v := udc.count.v
+      out.v := udc.out.v
       notRun.v := out.v.not 
       finished.v := (done.pv & notRun.pv)
       doneOut.v.set { doneOutv =>
@@ -280,16 +279,12 @@ class InnerCtrlBox()(implicit spade:Spade, override val prt:ComputeUnit)
   val tokenInAndTree = AndTree("tokenInAndTree")
   tokenInAndTree <== prt.cins.map(_.ic)
 
-  val pipeAndTree = AndTree("pipeAndTree")
-  pipeAndTree <== siblingAndTree.out
-  pipeAndTree <== fifoAndTree.out
+  val enAnd = AndGate("enAnd")
+  enAnd <== siblingAndTree.out
+  enAnd <== tokenInAndTree.out
+  enAnd <== fifoAndTree.out
 
-  val streamAndTree = AndTree("streamAndTree")
-  streamAndTree <== tokenInAndTree.out
-  streamAndTree <== siblingAndTree.out
-  streamAndTree <== fifoAndTree.out
-  en.in <== pipeAndTree.out // 0
-  en.in <== streamAndTree.out // 1
+  en.in <== enAnd.out
 
   val accumPredUnit = PredicateUnit("accum")
   val fifoPredUnit = PredicateUnit("fifo")
@@ -322,18 +317,16 @@ class MemoryCtrlBox()(implicit spade:Spade, override val prt:MemoryComputeUnit) 
   val tokenInXbar = Delay(Bit(), 0, s"$prt.tokenInXbar")
 
   val writeFifoAndTree = AndTree("writeFifoAndTree") 
-  writeFifoAndTree <== prt.bufs.map(_.notEmpty) 
 
   val readFifoAndTree = AndTree("readFifoAndTree") 
-  readFifoAndTree <== prt.bufs.map(_.notEmpty)
 
   val tokenInAndTree = AndTree("tokenInAndTree")
   tokenInAndTree <== prt.cins.map(_.ic)
 
-  val readUDC = UDCounter()
+  //val readUDC = UDCounter()
 
   val readAndGate = AndGate(s"$prt.readAndGate")
-  readAndGate <== readUDC.out
+  //readAndGate <== readUDC.out
   readAndGate <== tokenInAndTree.out
   readAndGate <== readFifoAndTree.out 
 
