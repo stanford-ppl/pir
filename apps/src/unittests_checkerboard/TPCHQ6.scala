@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object TPCHQ6_cb extends PIRApp {
-  override val arch = {
+  arch = {
     import pir.plasticine.graph._
     import pir.plasticine.main._
     new SwitchNetwork(

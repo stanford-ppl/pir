@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object ParSRAMReadWrite2D_cb extends PIRApp {
-  override val arch = SN(2,2,pattern=Checkerboard)
+  arch = new SN(2,2,pattern=Checkerboard)
   def main(top:Top) = {
     val M = ArgIn("M")
     val N = ArgIn("N")

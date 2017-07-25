@@ -54,7 +54,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls)
 
       // PNodes
-      override val arch = SN(4,4)
+      val arch = SN4x4
 
       val sb = new ScalarBundling()
       sb.run
@@ -88,7 +88,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = SN(2,2)
+      val arch = SN2x2
 
       val sb = new ScalarBundling()
       sb.run
@@ -128,7 +128,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = SN(2,2)
+      val arch = SN2x2
 
       val sb = new ScalarBundling()
       sb.run
@@ -167,7 +167,7 @@ class ScalarBundleTest extends UnitTest { self =>
       top.scalars(sls ++ ais)
 
       // PNodes
-      override val arch = SN(2,2)
+      val arch = SN2x2
 
       val sb = new ScalarBundling()
       sb.run

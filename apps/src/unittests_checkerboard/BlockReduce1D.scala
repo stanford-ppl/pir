@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object BlockReduce1D extends PIRApp {
-  override val arch=SN(3,2,pattern=Checkerboard)
+  arch = new SN(3,2,pattern=Checkerboard)
   def main(top:Top) = {
     val x912_b991_x920_b993_s = Scalar("x912_b991_x920_b993")
     val dstFPGA_oc = OffChip("dstFPGA")

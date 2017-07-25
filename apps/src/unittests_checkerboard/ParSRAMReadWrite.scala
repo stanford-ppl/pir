@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object ParSRAMReadWrite_cb extends PIRApp {
-  override val arch = SN(2,2,pattern=Checkerboard)
+  arch = new SN(2,2,pattern=Checkerboard)
   def main(top:Top) = {
     val x1034_x1079_x1087_v = Vector("x1034_x1079_x1087")
     val x1055_x1064_data_v = Vector("x1055_x1064_data")

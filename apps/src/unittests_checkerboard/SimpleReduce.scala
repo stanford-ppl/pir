@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object SimpleReduce_cb extends PIRApp {
-  override val arch = SN(2,2,pattern=Checkerboard)
+  arch = new SN(2,2,pattern=Checkerboard)
   def main(top:Top) = {
     val x351_x365_argout = ArgOut("x351_x365")
     val x350_argin = ArgIn("x350").bound(10)

@@ -38,6 +38,7 @@ class AppTests extends UnitTest { self =>
   }
   def test(
       app:PIRApp, 
+      arch:Option[Spade]=None,
       args:String="", 
       argOuts:String="", 
       checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, 
@@ -78,6 +79,7 @@ class AppTests extends UnitTest { self =>
       Config.waveform = debug 
       Config.verbose = debug 
       Config.codegen = false
+      arch.foreach { app.arch = _ }
       try {
         runApp
         if (simulate) checkResult
@@ -189,7 +191,7 @@ class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
 
-  val simulate = true
+  val simulate = false
   // Apps 
   //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
@@ -199,14 +201,14 @@ class AppTests extends UnitTest { self =>
   //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
   
   //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", timeOut=30, debug=false)
-  test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
-  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
+  //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
+  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=false) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
   //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=32, debug=false)
   //testDotProduct(DotProductSeq_cb, startA=0, startB=16, N=64, debug=false)
-  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=false)
+  //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=32, debug=true)
   //testDotProduct(DotProductMeta_cb, startA=0, startB=16, N=64, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)

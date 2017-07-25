@@ -16,8 +16,7 @@ import scala.util.{Try, Success, Failure}
 import scala.language.implicitConversions
 
 trait PIRApp extends Design {
-  //override val arch:Spade = SN16x8
-  override val arch:Spade = new SN(numRows=2, numCols=2)
+  var arch:Spade = SN2x2
   override def name:String = this.getClass().getSimpleName().replace("$","")
   
   def setArgs(args: Array[String]):Unit = {

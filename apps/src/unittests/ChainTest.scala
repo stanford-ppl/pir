@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object ChainTest extends PIRApp {
-  override val arch = SN(1,1)
+  arch = SN1x1 
   def main(top:Top) = {
     val x223_x227_argout = ArgOut("x223_x227")
     val x222_argin = ArgIn("ai_in").bound(4)

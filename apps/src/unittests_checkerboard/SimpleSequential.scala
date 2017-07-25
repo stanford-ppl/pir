@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object SimpleSequential_cb extends PIRApp {
-  override val arch = SN(2,2,pattern=Checkerboard)
+  arch = new SN(2,2,pattern=Checkerboard)
   def main(top:Top) = {
     val x347_x355_x357_v = Vector("x347_x355_x357")
     val x342_argin = ArgIn("x342").bound(10)

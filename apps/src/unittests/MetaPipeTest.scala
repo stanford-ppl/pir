@@ -8,7 +8,7 @@ import pir.util._
 import pir.PIRApp
 
 object MetaPipeTest extends PIRApp {
-  override val arch = SN(1,2)
+  arch = SN1x2
   def main(top:Top) = {
     val scalar1 = Scalar()
     val x223_x227_argout = ArgOut("x223_x227")
