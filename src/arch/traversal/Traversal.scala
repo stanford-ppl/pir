@@ -51,7 +51,6 @@ trait Traversal {
       case n:Stage =>
         n.funcUnit.foreach(visitNode)
         n.prs.foreach(visitNode)
-      case n:TopCtrlBox => 
       case n:CtrlBox =>
         n.udcs.foreach(visitNode)
         n.andTrees.foreach(visitNode)
@@ -63,6 +62,8 @@ trait Traversal {
             visitNode(n.udsm)
           case n =>
         }
+      case n:UpDownSM =>
+        visitNode(n.udc)
       case n =>
     }
     node match {

@@ -177,14 +177,13 @@ trait Design extends PIRMetadata with Collector {
       passes.foreach { _.checkRanAll }
       if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
-      case e:PIRException => 
+      case e:Exception => 
         if (!pirPrinter.hasRun) pirPrinter.run
         if (!mapPrinter.hasRun) mapPrinter.run
         if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
         if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
         if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
         throw e
-      case e:Throwable => throw e
     }
   }
 

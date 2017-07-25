@@ -88,33 +88,72 @@ trait OnChipMem extends Primitive with Memory {
   val writePort:Input[Bus, OnChipMem]
   val dequeueEnable = Input(Bit(), this, s"${this}.deqEn")
   val enqueueEnable = Input(Bit(), this, s"${this}.enqEn")
+  val inc = Input(Bit(), this, s"${this}.inc")
+  val dec = Input(Bit(), this, s"${this}.dec")
+  val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
+  val notFull = Output(Bit(), this, s"${this}.notFull")
   val writePtr = Output(Word(), this, s"${this}.writePtr")
   val readPtr = Output(Word(), this, s"${this}.readPtr")
   val count = Output(Word(), this, s"${this}.count")
+  val actualCount = Output(Word(), this, s"${this}.actualCount")
   def asSRAM = this.asInstanceOf[SRAM]
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
   def asBuf = this.asInstanceOf[LocalBuffer]
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
+    import sim.pirmeta._
     sim.mapping.smmap.pmap.get(this).foreach { mem =>
-      def incPtr(v:SingleValue) = {
-        v <<= v + 1; if (v.toInt>=bufferSizeOf(this)) v <<= 0
-      }
+      notEmpty.v.default = false
+      notFull.v.default = true
       readPtr.v.default = 0
       writePtr.v.default = 0
-      count.v.default = 0
       dequeueEnable.v.default = false
       enqueueEnable.v.default = false
+      count.v.default = 0
+      actualCount.v.default = 0
+      val bufferSize = bufferSizeOf(this)
+      this match {
+        case mem:SRAM =>
+          notEmpty.v := count.v > 0
+        case mem:LocalBuffer =>
+          notEmpty.v := eval(BitOr, mem.predicate.v, (count.v > 0))
+      }
+      if (!backPressureOf(mem)) {
+        notFull.v := true
+      } else {
+        notFull.v := count.v < (bufferSize - notFullOffset(this))
+      }
+      def incPtr(v:SingleValue) = {
+        v <<= v + 1; if (v.toInt>=bufferSize) v <<= 0
+      }
       readPtr.v.set { v => If (dequeueEnable.pv) { incPtr(v) } }
       writePtr.v.set { v => If (enqueueEnable.pv) { incPtr(v) }; updateMemory }
+      if (!enqueueEnable.isConnected) { enqueueEnable.v := writePort.v.update.valid }
+      if (!inc.isConnected) { inc.v := enqueueEnable.v }
       count.v.set { v => 
-        If (dequeueEnable.pv) { 
-          if (sim.inSimulation && v.value==Some(0)) 
+        If (dec.pv) { 
+          if (sim.inSimulation && v.toInt==0) 
             warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) underflow at #$cycle!")
           v <<= v - 1
         }
-        If (enqueueEnable.pv) { v <<= v + 1 }
+        If (inc.pv) { 
+          if (sim.inSimulation && (v.toInt >= bufferSize) && backPressureOf(mem))
+            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
+          v <<= v + 1
+        }
+      }
+      actualCount.v.set { v => 
+        If (dequeueEnable.pv) { 
+          if (sim.inSimulation && v.toInt==0) 
+            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) silent underflow at #$cycle!")
+          v <<= v - 1
+        }
+        If (enqueueEnable.pv) { 
+          if (sim.inSimulation && (v.toInt >= bufferSize) && backPressureOf(mem))
+            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) silent overflow at $cycle!")
+          v <<= v + 1
+        }
       }
       writePort.v.valid.default = false
     }
@@ -138,7 +177,6 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
   //val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
-  val writePortDelay = Output(Bus(Word()), this, s"${this}.wpd") // writePort delayed by # writeAddr calculation stages
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -148,18 +186,16 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
     import sim.spademeta._
     import sim.util._
     smmap.pmap.get(this).foreach { mem =>
-      memory = Array.tabulate(bufferSizeOf(this), mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
-      val wdelay = delayOf(prt.asInstanceOf[MemoryComputeUnit].ctrlBox.writeEnDelay)
+      val bufferSize = bufferSizeOf(this)
+      memory = Array.tabulate(bufferSize, mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
 
       writeEn.v.default = false
-      writePortDelay.v := writePort.vAt(wdelay)
-
       readEn.v.default = false
       readOut.v.valid.default = false
 
       setMem { memory =>
         If (writeEn.pv) {
-          writePortDelay.pv.foreach { 
+          writePort.pv.foreach { 
             case (writePort, i) if i < wparOf(mem) =>
               writeAddr.pv.getInt.foreach { writeAddr =>
                 memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
@@ -200,10 +236,9 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
 
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
 trait LocalBuffer extends OnChipMem {
-  val predicate = Input(Bit(), this, s"${this}.predicate")
-  val notEmpty = Output(Bit(), this, s"${this}.notEmpty")
-  val notFull = Output(Bit(), this, s"${this}.notFull")
   type M = Array[P]
+
+  val predicate = Input(Bit(), this, s"${this}.predicate")
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
@@ -214,18 +249,9 @@ trait LocalBuffer extends OnChipMem {
         updateMemory
         v <<= memory(readPtr.v.toInt)
       }
-      notEmpty.v := eval(BitOr, predicate.v, (count.v > 0))
-      notFull.v := count.v < (bufferSize - notFullOffset(this))
-      notEmpty.v.default = false
-      notFull.v.default = true
       if (mem.isFifo) {
         fanInOf(dequeueEnable).foreach { dequeueEnable.v := _.v.asSingle & predicate.v.not }
-      }
-      enqueueEnable.v.set { v => 
-        v <<= writePort.v.update.valid
-        if (sim.inSimulation && enqueueEnable.v!=Some(false) && (count.v.toInt > bufferSize)) { 
-          warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
-        }
+        fanInOf(dec).foreach { dec.v := _.v.asSingle & predicate.v.not }
       }
     }
     super.register
@@ -274,13 +300,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
       assert(mem.isVFifo)
       val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
-      setMem { memory =>
-        If (writePort.pv.update.valid) { //TODO: if valid is X, output should be X
-          if (sim.inSimulation && (count.v.toInt > bufferSize))
-            warn(s"${quote(prt)}.${quote(this)} overflow at #$cycle!")
-          memory(writePtr.pv.toInt) <<= writePort.pv
-        }
-      }
+      setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv }
     }
     super.register
   }

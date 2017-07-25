@@ -83,6 +83,7 @@ package object util {
       case n:UDCounter => 
         n.prt.ctrlBox match {
           case cb:MemoryCtrlBox => true
+          case cb:OuterCtrlBox if cb.udsm.udc == n => true
           case cb:CtrlBox => mp.pmmap.isMapped(n)
         }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
@@ -103,12 +104,19 @@ package object util {
     }
   }
 
-  def fanInOf[P<:PortType](in:Input[P,Module])(implicit sim:Simulator):Option[Output[P,Module]] = {
-    import sim.util._
-    fimap.get(in).fold { 
+  def fanInOf[P<:PortType](in:Input[P,Module])(implicit mp:PIRMap):Option[Output[P,Module]] = {
+    mp.fimap.get(in).fold { 
       if (in.fanIns.size==1) Some(in.fanIns.head) else None
     } { out =>
       Some(out.asInstanceOf[Output[P, Module]])
+    }
+  }
+
+  def fanOutOf[P<:PortType](out:Output[P,Module])(implicit mp:PIRMap):List[Input[P,Module]] = {
+    mp.fimap.pmap.get(out).fold { 
+      if (out.fanOuts.size==1) List(out.fanOuts.head) else Nil
+    } { ins =>
+      ins.map { _.asInstanceOf[Input[P, Module]] }.toList
     }
   }
 

@@ -138,6 +138,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
           }
           buf.buffering(bufSize)
           dprintln(s"$buf buffering=${bufSize}")
+          backPressureOf(buf) = bufSize > 1
         }
       }
     }

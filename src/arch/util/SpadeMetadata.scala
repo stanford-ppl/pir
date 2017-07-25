@@ -40,7 +40,7 @@ trait SpadeMetadata { self:Spade =>
   }
 
   object notFullOffset extends MOneToOneMap {
-    type K = LocalBuffer
+    type K = OnChipMem
     type V = Int
     override def apply(k:K):V = {
       super.get(k).getOrElse(0)

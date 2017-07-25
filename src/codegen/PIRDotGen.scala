@@ -145,7 +145,12 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
         val iter = iterOf.get(n).fold("") { c => s"\n(Iter=$c)"}
         val cycle = cycleOf.get(n).fold("") { c => s"\n(Cycle=$c)"}
         val totalCycle = totalCycleOf.get(n).fold("") { c => s"\n(TotalCycle=$c)"}
-        s"${super.quote(n)}$pcl$head$last$streaming$pipelining$par$rpar$wpar$iter$cycle$totalCycle"
+        val buffering = n match {
+          case n:MemoryPipeline =>
+            s"\n(buffering=${n.sram.buffering})"
+          case n => ""
+        }
+        s"${super.quote(n)}$pcl$head$last$streaming$pipelining$par$rpar$wpar$buffering$iter$cycle$totalCycle"
       case n => super.quote(n)
     }
   }
@@ -167,6 +172,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 
   def emitInputs(cl:Controller):Unit = {
     emitCtrlInputs(cl, cl.cins)
+    emitScalarInputs(cl, cl.sins)
     emitVectorInputs(cl, cl.vins)
   }
 

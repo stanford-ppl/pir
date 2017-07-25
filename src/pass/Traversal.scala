@@ -58,6 +58,7 @@ trait Traversal extends Pass {
           p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
           p.delays.foreach(visitNode)
           p.predicateUnits.foreach(visitNode)
+          p.andTrees.foreach(visitNode)
         case _ =>
       }
     }

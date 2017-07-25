@@ -30,7 +30,6 @@ trait Simulatable extends Module with Evaluation {
   // Check if a mapped simulatable has update function defined on all its io
   def check(implicit sim:Simulator):Unit = {
     import sim.util._
-    implicit val mp:PIRMap = sim.mapping
     ios.foreach { io =>
       if (isMapped(io) && !io.v.isDefined) {
         warn(s"Simulatable ${quote(io.v)} doesn't have a update function!")

@@ -15,7 +15,7 @@ import scala.collection.mutable.ListBuffer
 
 trait SimUtil extends Logger {
   def quote(n:Any):String
-  def mapping:PIRMap
+  implicit def mapping:PIRMap
   def fimap = mapping.fimap
   def clmap = mapping.clmap
   def pmmap = mapping.pmmap
@@ -42,7 +42,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
 
   override def debug = Config.verbose
 
-  lazy val mapping = design.mapping.get
+  implicit lazy val mapping = design.mapping.get
   lazy val util:SimUtil = this
 
   var _inSimulation = false 
