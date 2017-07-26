@@ -4,24 +4,73 @@ import pir._
 import pir.plasticine.graph._
 import pir.plasticine.main._
 import pir.plasticine.util._
+import pir.exceptions.PIRException
+import pir.util.misc._
 import pir.codegen.Logger
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
+import pureconfig._
 import pir.util.enums._
 
 // Common configuration generator 
-class ConfigFactory(implicit spade:Spade) extends Logger {
+object ConfigFactory extends Logger {
 
-    override lazy val stream = newStream("factory.log", spade)
+  case class PlasticineConf(
+    sinUcu: Int,
+    stagesUcu: Int,
+    sinPcu: Int,
+    soutPcu:Int,
+    vinPcu: Int,
+    voutPcu: Int,
+    regsPcu: Int,
+    comp: Int,
+    sinPmu: Int,
+    soutPmu:Int,
+    vinPmu: Int,
+    voutPmu: Int,
+    regsPmu: Int,
+    rw: Int,
+    lanes: Int
+  )
+
+    val defaultPlasticine =  com.typesafe.config.ConfigFactory.parseString("""
+plasticine {
+  sin-ucu = 10
+  stages-ucu = 10
+  sin-pcu = 10
+  sout-pcu = 10
+  vin-pcu = 4
+  vout-pcu = 1
+  regs-pcu = 16
+  comp = 10
+  sin-pmu = 10
+  sout-pmu = 10
+  vin-pmu = 4
+  vout-pmu = 1
+  regs-pmu = 16
+  rw = 10
+  lanes = 16
+}
+  """)
+
+  lazy val mergedPlasticineConf = com.typesafe.config.ConfigFactory.load().withFallback(defaultPlasticine).resolve()
+
+  lazy val plasticineConf = loadConfig[PlasticineConf](mergedPlasticineConf, "plasticine") match {
+    case Right(config) => config
+    case Left(failures) =>
+      errmsg(s"Unable to load plasticine config!")
+      throw PIRException(s"$failures")
+  }
 
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
   def forwardStages(cu:ComputeUnit) = cu match {
-    case cu:MemoryComputeUnit => cu.wastages ++ cu.rastages.headOption.map{ h => List(h) }.getOrElse(Nil)
+    //case cu:MemoryComputeUnit => cu.wastages ++ cu.rastages.headOption.map{ h => List(h) }.getOrElse(Nil)
+    case cu:MemoryComputeUnit => cu.stages
     case cu:OuterComputeUnit => Nil
     case cu:ComputeUnit => List(cu.fustages.head)
   }
@@ -89,8 +138,12 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
       sram.writeAddr <== cu.sbufs.map(_.readPort)
       cu match {
         case cu:MemoryComputeUnit =>
-          cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
-          cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
+          //cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
+          //cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
+          cu.stages.foreach { stage => 
+            sram.readAddr <== (stage.funcUnit.get.out, 0)
+            sram.writeAddr <== (stage.funcUnit.get.out, 0)
+          }
         case _ =>
       }
 
@@ -140,7 +193,7 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     }
 
     forwardStages(cu).foreach { stage =>
-      stage.fu.operands.foreach { oprd => 
+      stage.funcUnit.get.operands.foreach { oprd => 
         cu.ctrs.foreach{ oprd <== _.out }
         cu.srams.foreach { oprd <== _.readPort }
         cu.vbufs.foreach { oprd <== _.readPort }
@@ -274,8 +327,12 @@ class ConfigFactory(implicit spade:Spade) extends Logger {
     (cu, cu.ctrlBox) match {
       case (cu:MemoryComputeUnit, cb:MemoryCtrlBox) => 
         //TODO: map enable once read and write stage can be shared
-        cu.rastages.foreach { _.prs.foreach { _.en <== cb.readEn.out } }
-        cu.wastages.foreach { _.prs.foreach { _.en <== cb.writeEn.out } }
+        //cu.rastages.foreach { _.prs.foreach { _.en <== cb.readEn.out } }
+        //cu.wastages.foreach { _.prs.foreach { _.en <== cb.writeEn.out } }
+        cu.stages.foreach { _.prs.foreach { pr =>
+          pr.en <== cb.writeEn.out
+          pr.en <== cb.readEn.out
+        } }
       case (cu:ComputeUnit, cb:InnerCtrlBox) => 
         cu.stages.foreach { _.prs.foreach { _.en <== cb.en.out } }
       case (cu:OuterComputeUnit, cb:OuterCtrlBox) => 

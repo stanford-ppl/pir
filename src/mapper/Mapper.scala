@@ -26,7 +26,7 @@ trait Mapper { self =>
   implicit val mapper = self
   val exceptLimit:Int = -1
   lazy val excepsStack = Stack[ListBuffer[E]]()
-  def currentExceptScope = excepsStack.lastOption.getOrElse{
+  def currentExceptScope = excepsStack.lastOption.getOrElse {
     val newList = ListBuffer[E]()
     excepsStack.push(newList)
     newList
@@ -88,7 +88,7 @@ trait Mapper { self =>
         finPass(m); m
       case Failure(e) => 
         if (buffer) logger.closeAndWriteBuffer
-        dbeln(mapper, s"$infoStr (failed) $e")
+        dbeln(mapper, s"$infoStr (failed ${currentExceptScope.size}/$exceptLimit) $e")
         failPass(e); throw e
     }
   }

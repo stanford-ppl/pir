@@ -6,7 +6,8 @@ import pir.util.enums._
 import pir.util._
 import pir.graph._
 import pir.exceptions.PIRException
-import plasticine.main._
+import pir.plasticine.main._
+import pir.plasticine.config._
 import pir.codegen.Logger
 
 import org.scalatest._
@@ -202,7 +203,7 @@ class AppTests extends UnitTest { self =>
   
   //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", timeOut=30, debug=false)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
-  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=false) //TODO: fix predicate unit
+  //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
   //test(SimpleSequential_cb, args="x343=1 x342=10", argOuts="x344_x356=10", debug=false)
   //test(SimpleReduce_cb, args="x350=10", argOuts="x351_x365=1200", debug=false)
@@ -223,5 +224,11 @@ class AppTests extends UnitTest { self =>
   //test(ChainTest, args="ai_in=1 ai_out=3", argOuts="x223_x227=0", debug=true, timeOut=80)
   //test(SRAMReadWrite, argOuts="x1026_x1096=41", timeOut=60, debug=true)
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
+  
+  //val simulate = false
+  val arch = SN16x8
+  //val arch = SN4x4
+  // Mapping Test
+  //test(DotProduct, arch=Some(arch), debug=true)
 }
 

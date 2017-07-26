@@ -17,6 +17,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   type R = PReg
   val typeStr = "RegAlloc"
   override def debug = Config.debugRAMapper
+  import pirmeta._
   import spademeta._
 
   def finPass(cu:CL)(m:M):M = m
@@ -85,7 +86,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pctr = pirMap.ctmap(ctr)
           regsOf(pctr.out)
         case ReducePR() => 
-          pcu.asCU.regs.filter(_.is(ReduceReg))
+          val cu = pirMap.clmap.pmap(pcu)
+          if (parOf(cu)>1) pcu.asCU.regs.filter(_.is(ReduceReg))
+          else pcu.asCU.regs
         case VecOutPR(vecOut) =>
           voMap.get(n).map { stack =>
             val pvout = stack.pop()

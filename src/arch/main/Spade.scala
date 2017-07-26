@@ -15,6 +15,10 @@ trait SpadeParam {
   val clockFrequency:Int = 1000000000 //Hz
 }
 
+trait PreLoadSpadeParam extends SpadeParam {
+  override val numLanes = ConfigFactory.plasticineConf.lanes
+}
+
 trait Spade extends SpadeMetadata with SpadeParam {
   implicit def spade:this.type = this
 
@@ -52,8 +56,6 @@ trait Spade extends SpadeMetadata with SpadeParam {
 
   def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
 
-  val factory = new ConfigFactory()
-          
   val dram = DRAM(size=1024) 
 }
 

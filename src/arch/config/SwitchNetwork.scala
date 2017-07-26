@@ -8,14 +8,27 @@ import scala.collection.immutable.{Map => IMap}
 import pir.util.enums._
 import scala.language.existentials
 
-case class SwitchNetworkParam(
-  numArgIns:Int = 6,
-  numArgOuts:Int = 5,
-  numRows:Int = 2,
-  numCols:Int = 2,
-  pattern:Pattern = MixAll
-) extends SpadeParam {
-}
+case class PreloadSwitchNetworkParam (
+  override val numArgIns:Int = 6,
+  override val numArgOuts:Int = 5,
+  override val numRows:Int = 2,
+  override val numCols:Int = 2,
+  override val pattern:Pattern = MixAll
+) extends SwitchNetworkParam (
+  numArgIns = numArgIns,
+  numArgOuts = numArgOuts,
+  numRows = numRows,
+  numCols = numCols,
+  pattern = pattern
+) with PreLoadSpadeParam
+
+class SwitchNetworkParam(
+  val numArgIns:Int = 6,
+  val numArgOuts:Int = 5,
+  val numRows:Int = 2,
+  val numCols:Int = 2,
+  val pattern:Pattern = MixAll
+) extends SpadeParam
 
 abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam()) extends Spade {
   import param._

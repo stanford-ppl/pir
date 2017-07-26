@@ -224,6 +224,9 @@ object Stage {
     reduce(op, init, Left(accumParent))
   }
   def reduce(op:Op, init:Const[_<:AnyVal], accumParent:Either[String, ComputeUnit])(implicit ctrler:InnerController, design:Design):(List[Stage], PipeReg) = {
+    if (ctrler.cchains.isEmpty) {
+      CounterChain.dummy
+    }
     val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
     assert(rest.size==0)
     val numStages = (Math.ceil(Math.log(localCChain.inner.par))/Math.log(2)).toInt 

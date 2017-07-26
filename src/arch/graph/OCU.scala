@@ -15,17 +15,23 @@ import scala.collection.mutable.Set
 
 case class OuterComputeUnitParam (
   sbufSize:Int = 16,
-  vbufSize:Int = 16,
+  numSins:Int = 2,
   numRegs:Int = 0,
+  numStages:Int = 0,
   numCtrs:Int = 6,
   numUDCs:Int = 15
 ) extends ComputeUnitParam() {
+  val numVins:Int = 0
+  val numVouts:Int = 0
+  val numSouts:Int = 0
+  val vbufSize:Int = 0
   val numSRAMs:Int = 0
   val sramSize:Int = 0
   override val numLanes:Int = 1
 
   def config(cu:OuterComputeUnit)(implicit spade:Spade) = {
-    cu.numScalarBufs(4)
+    assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
+    cu.numScalarBufs(numSins)
     cu.genConnections
   }
 }

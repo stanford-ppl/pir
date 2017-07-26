@@ -175,9 +175,9 @@ trait Design extends PIRMetadata with Collector {
       info(s"Configuring spade $arch ...")
       passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
       passes.foreach { _.checkRanAll }
-      if (pirMapping.failed) throw PIRException(s"Mapping Failed")
     } catch {
       case e:Exception => 
+        errmsg(e)
         if (!pirPrinter.hasRun) pirPrinter.run
         if (!mapPrinter.hasRun) mapPrinter.run
         if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run

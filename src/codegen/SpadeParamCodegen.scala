@@ -115,7 +115,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
     cu match {
       case cu:MemoryComputeUnit =>
         emitln(s"override val d = ${cu.fustages.size}")
-        emitln(s"override val wd = ${cu.wastages.size}")
+        //emitln(s"override val wd = ${cu.wastages.size}")
       case cu =>
         emitln(s"override val d = ${cu.fustages.size}")
     }

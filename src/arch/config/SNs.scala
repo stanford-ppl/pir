@@ -36,7 +36,8 @@ object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols
 }
 object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=MixAll) 
-object SN16x8 extends SwitchNetwork(new SwitchNetworkParam(numRows=16, numCols=8, numArgIns=10, numArgOuts=5, pattern=MixAll)) {
+
+object SN16x8 extends SwitchNetwork(PreloadSwitchNetworkParam(numRows=16, numCols=8, numArgIns=10, numArgOuts=5, pattern=Checkerboard)) {
   override lazy val vectorNetwork = new VectorNetwork() {
     // switch to switch channel width
     channelWidth("src"->"sb", "dst"->"sb") = 6
@@ -65,5 +66,5 @@ object SN16x8 extends SwitchNetwork(new SwitchNetworkParam(numRows=16, numCols=8
     // switch to OCU channel width
     channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 4
   }
-
+  config
 }

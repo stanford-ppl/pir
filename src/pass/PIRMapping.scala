@@ -1,4 +1,5 @@
 package pir.pass
+
 import pir.graph._
 import pir._
 import pir.codegen.{Printer, Logger, CUVectorDotPrinter, CUScalarDotPrinter, CUCtrlDotPrinter}
@@ -79,23 +80,24 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Placement & Routing failed")
         e match {
-          case e:CUOutOfSize =>
-            errmsg(e)
-            mapping = Some(e.mapping.asInstanceOf[PIRMap])
-          case e:OutOfResource[_] =>
-            errmsg(e)
-            mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             mapping = Some(m.asInstanceOf[PIRMap])
-            throw e
           case PassThroughException(mapper, e, m) =>
             mapping = Some(m)
-            throw e
           case e:MappingException[_] =>
             mapping = Some(e.mapping.asInstanceOf[PIRMap])
-          case e:PIRException => throw e
-          case e => throw e 
+            (e.mapper, e.mapping) match {
+              case (mapper:VectorRouter, mapping:PIRMap) =>
+                new CUVectorDotPrinter(open=true)(design).print(Some(mapping))
+              case (mapper:ScalarRouter, mapping:PIRMap) =>
+                new CUScalarDotPrinter(open=true)(design).print(Some(mapping))
+              case (mapper:ControlRouter, mapping:PIRMap) =>
+                new CUCtrlDotPrinter(open=true)(design).print(Some(mapping))
+              case _ =>
+            }
+          case e =>
         }
+        throw e
     }
     toc(s"Placement & Routing", "s")
   } 
@@ -105,11 +107,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       var mp = mapping.get
       design.top.ctrlers.foreach { ctrler =>
         mp = mapPrimtivies(ctrler)(mp)
-        ctrler match {
-          case ctrler:pir.graph.MemoryPipeline =>
-            val pmcu = mp.clmap(ctrler)
-          case _ =>
-        }
       }
       mp
     }.map { m =>
@@ -123,21 +120,14 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Local Mapping failed")
         e match {
-          case e:OutOfResource[_] =>
-            err(e)
-            mapping = Some(e.mapping.asInstanceOf[PIRMap])
           case ExceedExceptionLimit(mapper, m) =>
             mapping = Some(m.asInstanceOf[PIRMap])
           case PassThroughException(mapper, e, m) =>
             mapping = Some(m)
           case e:MappingException[_] =>
-            mapping = Some(e.mapping match {
-              case m:PIRMap => m
-              case (m:PIRMap, _) => m
-            })
-          case _ =>
+            mapping = Some(e.mapping.asInstanceOf[PIRMap])
+          case e =>
         }
-        design.mapperLogger.close
         throw e
     }
   }

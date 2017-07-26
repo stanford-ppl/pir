@@ -20,6 +20,11 @@ trait ComputeUnitParam extends ControllerParam {
   val sramSize:Int
   val numUDCs:Int
   val numLanes:Int
+  val numStages:Int
+  val numVins:Int
+  val numVouts:Int
+  val numSins:Int
+  val numSouts:Int
 }
 /*
  * ComputeUnit

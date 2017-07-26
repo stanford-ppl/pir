@@ -22,15 +22,6 @@ abstract class MappingException[M](val mapping:M)(implicit design:Design) extend
   def typeStr = this.getClass().getSimpleName() 
   override def toString = s"[$mapper] $typeStr: $msg"
   if (mapper.exceedExceptLimit) {
-    (mapper, mapping) match {
-      case (mapper:VectorRouter, mapping:PIRMap) =>
-        new CUVectorDotPrinter(open=true)(design).print(Some(mapping))
-      case (mapper:ScalarRouter, mapping:PIRMap) =>
-        new CUScalarDotPrinter(open=true)(design).print(Some(mapping))
-      case (mapper:ControlRouter, mapping:PIRMap) =>
-        new CUCtrlDotPrinter(open=true)(design).print(Some(mapping))
-      case _ =>
-    }
     throw ExceedExceptionLimit(mapper, mapping) 
   } else {
     mapper.addException(this)
