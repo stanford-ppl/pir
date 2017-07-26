@@ -229,6 +229,7 @@ class AppTests extends UnitTest { self =>
   val arch = SN16x8
   //val arch = SN4x4
   // Mapping Test
-  //test(DotProduct, arch=Some(arch), debug=true)
+  //test(DotProduct_op10, arch=Some(arch), debug=true)
+  test(OuterProduct_op1, arch=Some(arch), debug=true)
 }
 

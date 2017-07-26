@@ -38,6 +38,13 @@ object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern
 object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 
 object SN16x8 extends SwitchNetwork(PreloadSwitchNetworkParam(numRows=16, numCols=8, numArgIns=10, numArgOuts=5, pattern=Checkerboard)) {
+
+  override def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit(PreloadPatternComputeParam())
+
+  override def mcuAt(i:Int, j:Int):MemoryComputeUnit = new MemoryComputeUnit(PreloadMemoryComputeParam())
+
+  override def scuAt(i:Int, j:Int):ScalarComputeUnit = new ScalarComputeUnit(PreloadScalarComputeParam())
+
   override lazy val vectorNetwork = new VectorNetwork() {
     // switch to switch channel width
     channelWidth("src"->"sb", "dst"->"sb") = 6

@@ -16,11 +16,17 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // switch to switch channel width
   channelWidth("src"->"sb", "dst"->"sb") = 4
 
-  // switch to CU channel width
-  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "mu", "mcu")) = 1
+  // switch to PCU channel width
+  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "scu")) = roundUp(pcuVins / 4.0) //TODO: saperate scu
 
-  // CU to Switch channel width
-  channelWidth("pos"->"center", "src"->List("pcu", "mu", "mcu"), "dst"->"sb") = 1
+  // PCU to Switch channel width
+  channelWidth("pos"->"center", "src"->List("pcu", "scu"), "dst"->"sb") = roundUp(pcuVouts / 4.0)
+
+  // switch to MCU channel width
+  channelWidth("pos"->"center", "src"->"sb", "dst"->List("mcu")) = roundUp(mcuVins / 4.0) 
+
+  // MCU to Switch channel width
+  channelWidth("pos"->"center", "src"->List("mcu"), "dst"->"sb") = roundUp(mcuVouts / 4.0)
 
   // MC to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 1
@@ -36,16 +42,23 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // switch to switch channel width
   channelWidth("src"->"sb", "dst"->"sb") = 4
 
-  // switch to CU channel width
-  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "mu", "mcu", "scu")) = 1
+  // switch to PCU channel width
+  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "scu")) = roundUp(pcuSins / 4.0) 
 
-  // CU to Switch channel width
-  channelWidth("pos"->"center", "src"->List("pcu", "mu", "mcu", "scu"), "dst"->"sb") = 1
+  // PCU to Switch channel width
+  channelWidth("pos"->"center", "src"->List("pcu", "scu"), "dst"->"sb") = roundUp(pcuSouts / 4.0)
+
+  // switch to MCU channel width
+  channelWidth("pos"->"center", "src"->"sb", "dst"->List("mcu")) = roundUp(mcuSins / 4.0) 
+
+  // MCU to Switch channel width
+  channelWidth("pos"->"center", "src"->List("mcu"), "dst"->"sb") = roundUp(mcuSouts / 4.0)
   
-  // SCU to switch channel width
-  channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"sb") = 2
   // switch to SCU channel width
-  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"scu") = 4
+  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"scu") = roundUp(ucuSins)
+
+  // SCU to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"sb") = roundUp(ucuSouts) - 2
 
   // MC to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 1

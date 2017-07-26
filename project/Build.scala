@@ -13,6 +13,7 @@ object PIRBuild extends Build {
 		scalaVersion := "2.11.5",
 		scalaSource in Compile <<= baseDirectory(_ / "src"),
 		scalaSource in Test <<= baseDirectory(_ / "test"),
+    resourceDirectory in Compile <<= baseDirectory(_ / "resources"),
     logBuffered in Test := false,
 
     libraryDependencies += "org.scala-lang" % "scala-library" % "2.11.5", 

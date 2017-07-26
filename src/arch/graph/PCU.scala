@@ -50,7 +50,7 @@ class PatternComputeUnitParam(
   def config(cu:PatternComputeUnit)(implicit spade:Spade) = {
     val numReduceStages = Math.ceil(Math.log(numLanes) / Math.log(2)).toInt
     val numFrontStages = numStages - (numReduceStages + 2)
-    assert(numFrontStages > 0, s"numFrontStages=$numFrontStages numStage=$numStages")
+    assert(numFrontStages >= 0, s"numFrontStages=$numFrontStages numStage=$numStages")
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
     assert(cu.vins.size >= numVins, s"vins=${cu.vins.size} numVins=${numVins}")
     assert(cu.souts.size >= numSouts, s"souts=${cu.souts.size} numSouts=${numSouts}")

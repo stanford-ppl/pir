@@ -59,7 +59,8 @@ plasticine {
   lazy val mergedPlasticineConf = com.typesafe.config.ConfigFactory.load().withFallback(defaultPlasticine).resolve()
 
   lazy val plasticineConf = loadConfig[PlasticineConf](mergedPlasticineConf, "plasticine") match {
-    case Right(config) => config
+    case Right(config) => 
+      config
     case Left(failures) =>
       errmsg(s"Unable to load plasticine config!")
       throw PIRException(s"$failures")

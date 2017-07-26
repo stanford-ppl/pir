@@ -37,6 +37,21 @@ abstract class GridNetwork()(implicit spade:SwitchNetwork) {
     default=0
   )
 
+  lazy val pcuVins:Int = spade.pcus.headOption.map{ _.param.numVins }.getOrElse(0)
+  lazy val pcuVouts:Int = spade.pcus.headOption.map{ _.param.numVouts }.getOrElse(0)
+  lazy val pcuSins:Int = spade.pcus.headOption.map{ _.param.numSins }.getOrElse(0)
+  lazy val pcuSouts:Int = spade.pcus.headOption.map{ _.param.numSouts }.getOrElse(0)
+
+  lazy val mcuVins:Int = spade.mcus.headOption.map{ _.param.numVins }.getOrElse(0)
+  lazy val mcuVouts:Int = spade.mcus.headOption.map{ _.param.numVouts }.getOrElse(0)
+  lazy val mcuSins:Int = spade.mcus.headOption.map{ _.param.numSins }.getOrElse(0)
+  lazy val mcuSouts:Int = spade.mcus.headOption.map{ _.param.numSouts }.getOrElse(0)
+
+  lazy val ucuSins:Int = spade.scuArray.flatten.headOption.map{ _.param.numSins }.getOrElse(0)
+  lazy val ucuSouts:Int = spade.scuArray.flatten.headOption.map{ _.param.numSouts }.getOrElse(0)
+
+  def roundUp(num:Double):Int = Math.ceil(num).toInt
+
   lazy val numRows = cuArray.head.length
   lazy val numCols = cuArray.length
 
