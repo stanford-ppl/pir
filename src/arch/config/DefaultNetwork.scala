@@ -17,10 +17,10 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   channelWidth("src"->"sb", "dst"->"sb") = 4
 
   // switch to PCU channel width
-  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu", "scu")) = roundUp(pcuVins / 4.0) //TODO: saperate scu
+  channelWidth("pos"->"center", "src"->"sb", "dst"->List("pcu")) = roundUp(pcuVins / 4.0)
 
   // PCU to Switch channel width
-  channelWidth("pos"->"center", "src"->List("pcu", "scu"), "dst"->"sb") = roundUp(pcuVouts / 4.0)
+  channelWidth("pos"->"center", "src"->List("pcu"), "dst"->"sb") = roundUp(pcuVouts / 4.0)
 
   // switch to MCU channel width
   channelWidth("pos"->"center", "src"->"sb", "dst"->List("mcu")) = roundUp(mcuVins / 4.0) 

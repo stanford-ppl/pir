@@ -257,7 +257,7 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
-  addPass(canRun=design.controlAnalyzer.hasRun(1)) {
+  addPass(canRun=design.controlAnalyzer.hasRun(0)) {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
       analyzeCounters(cu)

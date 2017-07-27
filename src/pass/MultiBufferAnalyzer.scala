@@ -17,8 +17,8 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
 
   def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
-    val ra = reader.ancestors
-    val wa = writer.ancestors
+    val ra = ancestorsOf(reader)
+    val wa = ancestorsOf(writer)
     val ca = ra.intersect(wa)
     ca.size match {
       case 0 => throw new Exception(s"$reader and $writer doesn't have common ancestors. \nreader ancestors:$ra \nwriter ancestors: $wa")
@@ -27,8 +27,8 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   }
 
   def findProducerConsumer(reader:Controller, writer:Controller, lca:Controller):Option[(Controller, Controller)] = {
-    val producers = writer.ancestors.intersect(lca.children)
-    val consumers = reader.ancestors.intersect(lca.children)
+    val producers = ancestorsOf(writer).intersect(lca.children)
+    val consumers = ancestorsOf(reader).intersect(lca.children)
     val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
       (lca, lca)
     } else {
@@ -145,9 +145,9 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   }
 
   addPass(design.accessAnalyzer.hasRun, runCount=2) {
-    setProducerConsumer
+    setProducerConsumer // producer consumer
     findBackEdge
-    setBufferSize
+    setBufferSize // buffering, backPressureOf
     //ForwardRef.collectOuters
   } 
 
