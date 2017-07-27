@@ -13,7 +13,7 @@ import pir.util.enums._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
-import scala.collection.mutable.{Map => MMap}
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
@@ -24,11 +24,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
 
   val typeStr = "Prescreen"
 
-  var resMap:Map[N, List[R]] = _ 
-
-  def run = {
-    resMap = qualifyCheck
-  }
+  var resMap = mutable.Map[N,List[R]]()
 
   def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
@@ -51,12 +47,12 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     }
   }
 
-  def quantityCheck(map:Option[MMap[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
+  def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
     if (cls.size > pcls.size) throw new OutOfResource(this, msg, pcls, cls, PIRMap.empty)
     map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
   }
 
-  def logMapping(map:MMap[N, List[R]]) = {
+  def logMapping(map:mutable.Map[N, List[R]]) = {
     mapper.emitBlock(s"qualified resouce") {
       design.top.ctrlers.foreach { cl =>
         mapper.dprintln(s"$cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
@@ -67,7 +63,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def qualifyCheck:Map[N, List[R]] = {
+  def run:Unit = {
     val prts = design.arch.prts
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }
@@ -93,7 +89,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     //info(s"numMC:${mcs.size} numSCU:${scus.size} numPMC:${pmcs.size} numPSCU:${pscus.size}")
     //info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
     //info(s"numCL:${cls.size}")
-    val map = MMap[N, List[R]]()
+    val map = resMap 
     quantityCheck(Some(map), mcs , pmcs, "MemoryController")
     quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
     //quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
@@ -104,7 +100,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     quantityCheck(None     , (scus_offchip ++ scus ++ rcus) , (pscus_offchip ++ pscus ++ pcus), "ComputeUnit")
     quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
     cls.foreach { cl => 
-      val failureInfo = MMap[R, ListBuffer[String]]()
+      val failureInfo = mutable.Map[R, ListBuffer[String]]()
       map += cl -> map(cl).filter { prt =>
         val cons = ListBuffer[(String, Any)]()
         (cl, prt) match {
@@ -148,7 +144,6 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
       }
     }
     logMapping(map)
-    map.toMap
   }
 }
 case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {

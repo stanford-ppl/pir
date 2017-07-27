@@ -165,7 +165,6 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
 
   addPass(canRun=(!design.fusionTransform.shouldRun || design.fusionTransform.hasRun), runCount=1) {
     setStyle
-    setLocalCChain
   }
 
   addPass(canRun=design.multiBufferAnalyzer.hasRun, runCount=1) {

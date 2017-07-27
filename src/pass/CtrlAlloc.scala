@@ -205,11 +205,13 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
       val midParent = if (lastGroups.size==1) parent else {
         dprintln(s"parent=$parent lastGroups:$lastGroups")
         val clone = parent.cloneType("collector")
+        localCChainOf(clone) = CounterChain.dummy(clone.asCU, design)
         isHead(clone) = false 
         isLast(clone) = true
         isStreaming(clone) = isStreaming(lasts.head)
         isPipelining(clone) = isPipelining(lasts.head)
         isTailCollector(clone) = true
+        parOf(clone) = parOf(parent)
         ancestorsOf(clone) = clone :: ancestorsOf(parent)
         descendentsOf(clone) = List(clone)
         clone.asCU.parent(parent)
@@ -279,11 +281,13 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
     val midConsumers = tokenGroups.map { tokens =>
       val midConsumer = if (tokenGroups.size==1) consumer else {
         val clone = consumer.cloneType("splitter")
+        localCChainOf(clone) = CounterChain.dummy(clone.asCU, design)
         isHead(clone) = false
         isLast(clone) = false
         isStreaming(clone) = isStreaming(consumer)
         isPipelining(clone) = isPipelining(consumer)
         isHeadSplitter(clone) = true
+        parOf(clone) = parOf(consumer)
         val _ :: ancestors = ancestorsOf(consumer)
         ancestorsOf(clone) = clone :: ancestors
         descendentsOf(clone) = List(clone)

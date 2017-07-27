@@ -17,11 +17,16 @@ class FusionTransform(implicit design: Design) extends Pass with Logger {
 
   def fuseCUs(parent:OuterController, childCU:ComputeUnit) = {
     implicit val child:ComputeUnit = childCU 
-    dprintln(s"cloning cchain=${localCChainOf(parent)} from $parent to $child")
-    dprintln(s"before=${child.cchains}")
-    val cc = child.cloneCC(localCChainOf(parent))
-    cc.inner.en.connect(localCChainOf(child).outer.done)
-    dprintln(s"after=${child.cchains}")
+    val pcc = localCChainOf(parent)
+    val ccc = localCChainOf(child)
+    dprintln(s"moving counters=${pcc.counters.mkString(",")} in $pcc from $parent to $child")
+    dprintln(s"before=${child.cchains.map{ cc => s"$cc(${cc.counters.mkString(",")})"}}")
+    pcc.counters.reverseIterator.foreach { ctr =>
+      val nctr = Counter(ctr.name, pcc)(child, design)
+      nctr.clone(ctr)
+      ccc.addOuterCounter(nctr)
+    }
+    dprintln(s"after=${child.cchains.map{ cc => s"$cc(${cc.counters.mkString(",")})"}}")
     design.removeNode(parent)
   }
 

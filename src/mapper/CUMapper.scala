@@ -36,7 +36,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
 
-  def resMap:Map[N, List[R]] = design.pirMapping.prescreen.resMap
+  def resMap = design.pirMapping.prescreen.resMap
 
   def place(cl:N, prt:R, m:M):M = {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
@@ -46,7 +46,10 @@ class CUMapper(implicit val design:Design) extends Mapper {
         }
       } match {
         case Success(mp) => mp
-        case Failure(PassThroughException(_, e@ReplaceController(_, mappings, _), _)) if (mappings.contains((cl, prt))) =>
+        case Failure(PassThroughException(_, e@ReplaceController(_, blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
+          blacklist.foreach { case (cl, prt) =>
+            resMap += cl -> resMap(cl).filterNot { _ == prt }
+          }
           throw e
         case Failure(e) => throw e
       }
@@ -99,7 +102,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
 }
 
-case class ReplaceController[M](mapper:Mapper, mappings:List[(CL, PCL)], mp:M)(implicit design:Design) 
+case class ReplaceController[M](mapper:Mapper, blacklist:List[(CL, PCL)], mp:M)(implicit design:Design) 
   extends MappingException(mp) {
-    override val msg = s"Avoid mapping of ${ mappings.map{ case (cl, pcl) => s"$cl -> $pcl"}.mkString(",") }"
+    override val msg = s"Avoid mapping of ${ blacklist.map{ case (cl, pcl) => s"$cl -> $pcl"}.mkString(",") }"
 }
