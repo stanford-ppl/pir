@@ -47,9 +47,6 @@ class CUMapper(implicit val design:Design) extends Mapper {
       } match {
         case Success(mp) => mp
         case Failure(PassThroughException(_, e@ReplaceController(_, blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
-          blacklist.foreach { case (cl, prt) =>
-            resMap += cl -> resMap(cl).filterNot { _ == prt }
-          }
           throw e
         case Failure(e) => throw e
       }
@@ -58,6 +55,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
     mp
   }
 
+  //TODO: change to resFuncWithExcept
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
     implicit val spade:Spade = design.arch
     log((s"$cl resFunc:", true)) {

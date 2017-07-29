@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream
 import scala.collection.mutable.Stack
 
 trait Logger extends Printer {
+  implicit val self:Logger = this
   def debug = Config.debug
   override def pprint(s:String):Unit = if (debug) { super.pprint(s); flush } 
   override def pprintln(s:String):Unit = if (debug) { super.pprintln(s); flush } 

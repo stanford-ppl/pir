@@ -7,7 +7,7 @@ import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object OuterProduct extends PIRApp {
+object OuterProduct_ma extends PIRApp {
   arch = SN2x3
   def main(top:Top) = {
     val x1224_b1338_x1233_b1340_s = Scalar("x1224_b1338_x1233_b1340")

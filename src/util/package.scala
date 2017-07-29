@@ -7,6 +7,7 @@ import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import pir.exceptions._
 import java.lang.Thread
+import pir.codegen.Logger
 import scala.collection.mutable.ListBuffer
 
 package object util {
@@ -60,16 +61,21 @@ package object util {
     list.toList.reverse
   }
 
-  def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design) = {
+  def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design, logger:Logger) = logger.emitBlock(s"fillChain"){
     val pirmeta:PIRMetadata = design 
     import pirmeta._
 
+    logger.dprintln(s"cu=$cu")
+    logger.emitBlock(s"cchains") {
+      cchains.foreach { cc => logger.dprintln(s"${cc} original=${cc.original} from ${cc.original.ctrler}") }
+    }
     val chained = ListBuffer[CounterChain]()
     def prevParent(cc:CounterChain) = {
       val prev = chained.last
       val prevOrig = prev.original
       prevOrig.ctrler.parent match {
-        case prevParent:ComputeUnit => prevParent
+        case prevParent:ComputeUnit => 
+          prevParent
         case top:Top =>
           var info = s"fillChain: ${cchains}\n"
           info += s"prev=$prev cchain.original=$prevOrig\n"
@@ -80,9 +86,15 @@ package object util {
     cchains.foreach { cc =>
       if (chained.nonEmpty) {
         while (prevParent(cc)!=cc.original.ctrler) {
-          val newCC = cu.getCopy(localCChainOf(prevParent(cc)))
+          val pp = prevParent(cc)
+          val newCC = cu.getCopy(localCChainOf(pp))
+          logger.dprintln(s"cc=$cc prevParent=$pp newCC=$newCC")
           forRead(newCC) = forRead(chained.last)
           forWrite(newCC) = forWrite(chained.last)
+          newCC.counters.foreach { ctr => 
+            forRead(ctr) = forRead(newCC)
+            forWrite(ctr) = forWrite(newCC)
+          }
           chained += newCC
         }
       }

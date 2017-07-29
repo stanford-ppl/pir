@@ -7,11 +7,11 @@ import scala.math.max
 import pir.Design
 import pir.graph._
 import pir.util.enums._
-import pir.exceptions._
 import pir.util._
+import pir.codegen.Logger
+import pir.exceptions._
 import scala.reflect.runtime.universe._
 import pir.pass.ForwardRef
-import pir.util._
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: Design) extends Controller with OuterRegBlock {
   override val typeStr = "CU"
@@ -52,8 +52,12 @@ abstract class ComputeUnit(override val name: Option[String])(implicit design: D
 
   def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
-  def getCopy(cchain:CounterChain):CounterChain = {
-    val copy = cchainMap.getOrElseUpdate(cchain.original, CounterChain.copy(cchain.original)(this, design))
+  def getCopy(cchain:CounterChain)(implicit logger:Logger):CounterChain = {
+    val copy = cchainMap.getOrElseUpdate(cchain.original, {
+      val cp = CounterChain.copy(cchain.original)(this, design)
+      logger.dprintln(s"Creating new copy=$cp of $cchain in $this")
+      cp
+    })
     assert(cchainMap.contains(copy.original))
     copy
   }

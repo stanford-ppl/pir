@@ -37,26 +37,17 @@ object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols
 object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 
-object SN16x8 extends SwitchNetwork(PreloadSwitchNetworkParam(numRows=16, numCols=8, numArgIns=10, numArgOuts=5, pattern=Checkerboard)) {
+object SN16x8 extends SwitchNetwork(
+  PreloadSwitchNetworkParam(numRows=16, numCols=8, numArgIns=12, numArgOuts=5, pattern=Checkerboard)
+) {
+  override def pcuAt(i:Int, j:Int):PatternComputeUnit = 
+    new PatternComputeUnit(PreloadPatternComputeParam(numCtrs=12))
 
-  override def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit(PreloadPatternComputeParam())
+  override def mcuAt(i:Int, j:Int):MemoryComputeUnit =
+    new MemoryComputeUnit(PreloadMemoryComputeParam(numCtrs=12, numRegs=23))
 
-  override def mcuAt(i:Int, j:Int):MemoryComputeUnit = new MemoryComputeUnit(PreloadMemoryComputeParam())
-
-  override def scuAt(i:Int, j:Int):ScalarComputeUnit = new ScalarComputeUnit(PreloadScalarComputeParam())
-
-  override lazy val vectorNetwork = new VectorNetwork() {
-    // switch to switch channel width
-    channelWidth("src"->"sb", "dst"->"sb") = 6
-  }
-
-  override lazy val scalarNetwork = new ScalarNetwork() {
-    // switch to switch channel width
-    channelWidth("src"->"sb", "dst"->"sb", "srcDir"->List("NS", "SN")) = 4
-
-    // switch to SCU channel width
-    channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"scu") = 4
-  }
+  override def scuAt(i:Int, j:Int):ScalarComputeUnit = 
+    new ScalarComputeUnit(PreloadScalarComputeParam())
 
   override lazy val ctrlNetwork = new CtrlNetwork() {
     // switch to switch channel width
@@ -70,6 +61,7 @@ object SN16x8 extends SwitchNetwork(PreloadSwitchNetworkParam(numRows=16, numCol
       
     // OCU to switch channel width
     channelWidth("pos"->"center", "src"->"ocu", "dst"->"sb") = 4
+
     // switch to OCU channel width
     channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 4
   }

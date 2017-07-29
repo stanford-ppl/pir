@@ -11,6 +11,7 @@ import scala.language.existentials
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = VectorIO.P
+  override def toString = "VectorNetwork"
   def io(prt:Routable) = prt.vectorIO
 
   // switch to switch channel width
@@ -37,6 +38,7 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ScalarIO.P
+  override def toString = "ScalarNetwork"
   def io(prt:Routable) = prt.scalarIO
 
   // switch to switch channel width
@@ -69,10 +71,11 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"mc") = 2
   
   //// switch to OCU channel width
-  channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 2
+  channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 10
   
   //// Top to switch channel width
   channelWidth("pos"->List("top", "bottom"), "src"->"Top", "dst"->"sb") = 1
+
   //// switch to Top channel width
   channelWidth("pos"->List("top", "bottom"), "src"->"sb", "dst"->"Top") = 1
   
@@ -86,6 +89,7 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
 
 class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   type P = ControlIO.P
+  override def toString = "ControlNetwork"
   def io(prt:Routable) = prt.ctrlIO
 
   // switch to switch channel width

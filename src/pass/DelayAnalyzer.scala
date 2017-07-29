@@ -11,7 +11,7 @@ import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
 class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
-  def shouldRun = Config.mapping
+  def shouldRun = (Config.mapping && Config.ctrl)
   import spademeta._
   import pirmeta._
 

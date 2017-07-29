@@ -4,16 +4,32 @@ import pir._
 import pir.graph._
 import pir.util.maps._
 import scala.collection.mutable
+import scala.util.{Try, Success, Failure}
 
 trait PIRMetadata extends { self:Design =>
 
-  val maps = mutable.ListBuffer[MMap]()
+  val maps = mutable.ListBuffer[PIRMetadataMaps]()
 
   def reset = {
     maps.foreach(_.clear)
   }
 
-  trait PIRMetadataMaps extends MMap { maps += this }
+  def summary(n:Node):List[String] = {
+    maps.flatMap { map => map.getInfo(n) }.toList
+  }
+
+  trait PIRMetadataMaps extends MMap { 
+    maps += this
+    def getInfo(n:Node):Option[String] = {
+      Try {
+        n.asInstanceOf[K] //TODO refactor this 
+      } match {
+        case Success(k) => get(k).map { v => s"${name}=${v}" }
+        case Failure(e) => None
+      }
+    }
+    def info(n:K):String = { s"${name}($n)=${get(n)}" }
+  }
 
   object indexOf extends MOneToOneMap with PIRMetadataMaps {
     type K = Node

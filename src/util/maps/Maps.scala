@@ -12,7 +12,7 @@ trait UniMap {
   type M <: Map[K, VV]
 
   val map:M
-  val name:String = this.getClass().getSimpleName() 
+  val name:String = this.getClass().getSimpleName().replace("$","")
   def apply(n:K):VV = { val m = map; m(n) }
   def get(n:K):Option[VV] =  { val m = map; m.get(n) }
   def contains(k:K) = map.contains(k)

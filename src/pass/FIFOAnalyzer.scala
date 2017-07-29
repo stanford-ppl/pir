@@ -9,7 +9,7 @@ import pir.codegen.Logger
 import scala.collection.mutable._
 
 class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
-  def shouldRun = true
+  def shouldRun = Config.ctrl
   import spademeta._
   override lazy val stream = newStream(s"FIFOAnalyzer.log")
 

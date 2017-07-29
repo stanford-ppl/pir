@@ -135,7 +135,7 @@ trait Design extends PIRMetadata with Collector {
   passes += pirDataDotGen3
   passes += controlAnalyzer // set isHead, isLast, length
   passes += pirDataDotGen4
-  passes += irCheck 
+  //passes += irCheck //TODO
   passes += ctrlAlloc 
   passes += pirDataDotGen5
   passes += ctrlDotPrinter 

@@ -15,7 +15,7 @@ import scala.collection.mutable.Set
 
 case class OuterComputeUnitParam (
   sbufSize:Int = 16,
-  numSins:Int = 2,
+  numSins:Int = 10,
   numRegs:Int = 0,
   numStages:Int = 0,
   numCtrs:Int = 6,

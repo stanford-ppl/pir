@@ -62,6 +62,27 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     localMappingSucceeded = false
   }
 
+  def handle(e:Throwable) = {
+    e match {
+      case ExceedExceptionLimit(mapper, m) =>
+        mapping = Some(m.asInstanceOf[PIRMap])
+      case PassThroughException(mapper, e, m) =>
+        mapping = Some(m)
+      case e:MappingException[_] =>
+        mapping = Some(e.mapping.asInstanceOf[PIRMap])
+        (e.mapper, e.mapping) match {
+          case (mapper:VectorRouter, mapping:PIRMap) =>
+            new CUVectorDotPrinter(open=true)(design).print(Some(mapping))
+          case (mapper:ScalarRouter, mapping:PIRMap) =>
+            new CUScalarDotPrinter(open=true)(design).print(Some(mapping))
+          case (mapper:ControlRouter, mapping:PIRMap) =>
+            new CUCtrlDotPrinter(open=true)(design).print(Some(mapping))
+          case _ =>
+        }
+      case e =>
+    }
+  }
+
   addPass {
     tic
     Try[PIRMap]{
@@ -79,30 +100,13 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       case Failure(e) =>
         placeAndRouteSucceeded = false
         errmsg(s"Placement & Routing failed")
-        e match {
-          case ExceedExceptionLimit(mapper, m) =>
-            mapping = Some(m.asInstanceOf[PIRMap])
-          case PassThroughException(mapper, e, m) =>
-            mapping = Some(m)
-          case e:MappingException[_] =>
-            mapping = Some(e.mapping.asInstanceOf[PIRMap])
-            (e.mapper, e.mapping) match {
-              case (mapper:VectorRouter, mapping:PIRMap) =>
-                new CUVectorDotPrinter(open=true)(design).print(Some(mapping))
-              case (mapper:ScalarRouter, mapping:PIRMap) =>
-                new CUScalarDotPrinter(open=true)(design).print(Some(mapping))
-              case (mapper:ControlRouter, mapping:PIRMap) =>
-                new CUCtrlDotPrinter(open=true)(design).print(Some(mapping))
-              case _ =>
-            }
-          case e =>
-        }
+        handle(e)
         throw e
     }
     toc(s"Placement & Routing", "s")
   } 
 
-  addPass(canRun=placeAndRouteSucceeded && design.ctrlAlloc.hasRun) {
+  addPass(canRun=placeAndRouteSucceeded && (!Config.ctrl || design.ctrlAlloc.hasRun)) {
     Try[PIRMap]{
       var mp = mapping.get
       design.top.ctrlers.foreach { ctrler =>
@@ -119,15 +123,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       case Failure(e) =>
         placeAndRouteSucceeded = false
         errmsg(s"Local Mapping failed")
-        e match {
-          case ExceedExceptionLimit(mapper, m) =>
-            mapping = Some(m.asInstanceOf[PIRMap])
-          case PassThroughException(mapper, e, m) =>
-            mapping = Some(m)
-          case e:MappingException[_] =>
-            mapping = Some(e.mapping.asInstanceOf[PIRMap])
-          case e =>
-        }
+        handle(e)
         throw e
     }
   }
