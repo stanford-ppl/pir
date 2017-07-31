@@ -81,7 +81,8 @@ trait Ops {
   case object FixEql extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a == b         }
   case object FixNeq extends FixOp with CompOp with Op2 { def eval(a:T, b:T) = a != b         }
   case object FixMod extends FixOp             with Op2 { def eval(a:T, b:T) = a % b          }
-  case object FixSra extends FixOp             with Op2 { def eval(a:T, b:T) = a.toInt >> b.toInt}
+  case object FixSra extends FixOp             with Op2 { def eval(a:T, b:T) = a >> b}
+  case object FixSla extends FixOp             with Op2 { def eval(a:T, b:T) = a << b}
   case object FixNeg extends FixOp             with Op1 { def eval(a:T     ) = -a             }
   
   sealed trait FltOp extends Op { type T = Float; _fltOps += this }

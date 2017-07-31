@@ -78,7 +78,6 @@ trait Design extends PIRMetadata with Collector {
   /* Codegen */
   val spadeNetworkCodegen = new SpadeNetworkCodegen()
   val spadeParamCodegen = new SpadeParamCodegen()
-  val pisaCodegen = new PisaCodegen()
   val configCodegen = new ConfigCodegen()
 
   /* Simulator */
@@ -157,7 +156,6 @@ trait Design extends PIRMetadata with Collector {
   // Codegen
   passes += spadeNetworkCodegen 
   passes += spadeParamCodegen 
-  passes += pisaCodegen 
   passes += configCodegen 
 
   // Simulation

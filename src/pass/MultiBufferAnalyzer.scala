@@ -23,8 +23,8 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     cas.head
   }
 
-  def findProducerConsumer(readers:List[Controller], writer:Controller, lca:Controller):Option[(Controller, Controller)] = {
-    val producers = ancestorsOf(writer).intersect(lca.children)
+  def findProducerConsumer(readers:List[Controller], writers:List[Controller], lca:Controller):Option[(Controller, Controller)] = {
+    val producers = ancestorsOf(leastCommonAncestor(writers)).intersect(lca.children)
     val consumers = ancestorsOf(leastCommonAncestor(readers)).intersect(lca.children)
     val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
       (lca, lca)
@@ -38,25 +38,25 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = {
     if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
     val readers = buf.readers
-    val writer = buf.writer
+    val writers = buf.writers
     readers.foreach { reader =>
       reader match {
         case mp:MemoryPipeline => setProducerConsumer(mp, mp.sram)
         case _ =>
       }
     }
-    var lca = leastCommonAncestor(readers :+ writer)
-    var pc = findProducerConsumer(readers, writer, lca)
+    var lca = leastCommonAncestor(readers ++ writers)
+    var pc = findProducerConsumer(readers, writers, lca)
     while (pc.isEmpty) {
       lca = lca.asCU.parent
-      pc = findProducerConsumer(readers, writer, lca)
+      pc = findProducerConsumer(readers, writers, lca)
     }
     val (producer, consumer) = pc.get
 
     buf.producer(producer)
     buf.consumer(consumer) // detect back edge later
     dprintln(s"$cu parent:$lca")
-    dprintln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
+    dprintln(s"$buf writers:${writers.map{writer => s"$writer ${writer.ancestors}"}.mkString(",")}")
     dprintln(s"$buf readers: ${readers.map{reader => s"$reader ${reader.ancestors}"}.mkString(",")}")
     dprintln(s"$buf lca: $lca lca.children:${lca.children}")
     dprintln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")

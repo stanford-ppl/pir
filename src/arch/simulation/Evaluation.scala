@@ -1,7 +1,7 @@
 package pir.plasticine.simulation
 
 import pir.plasticine.main._
-import pir.plasticine.graph._
+import pir.plasticine.graph.{Mux => _, _}
 import pir.util.enums._
 import pir.exceptions._
 import pir.util.misc._

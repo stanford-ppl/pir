@@ -170,13 +170,20 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   type M = Array[Array[Word]]
   var memory:M = _
   val readAddr = Input(Word(), this, s"${this}.ra")
+  val readAddrMux = Mux(s"$this.raMux", Word()) //TODO: connect select for mux
   val writeAddr = Input(Word(), this, s"${this}.wa")
+  val writeAddrMux = Mux(s"$this.waMux", Word())
   val writeEn = Input(Bit(), this, s"${this}.we")
   val readEn = Input(Bit(), this, s"${this}.re")
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
-  //val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
+  val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
   val writePort = Input(Bus(Word()), this, s"${this}.wp")
+  val writePortMux = Mux(s"$this.wpMux", Bus(Word()))
+
+  readAddr <== readAddrMux.out
+  writeAddr <== writeAddrMux.out
+  writePort <== writePortMux.out
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -224,11 +231,13 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
         }
       }
       readPort.v := readOut.pv
-      //DEBUG.v.set { v =>
-        //v.foreach { case (ev, i) =>
-          //ev <<= memory(0)(i+14*16)
-        //}
-      //}
+      // --- DEBUG ---
+      DEBUG.v.set { v =>
+        updateMemory
+        v.foreach { case (ev, i) =>
+          ev <<= memory(0)(i)
+        }
+      }
     }
     super.register
   }

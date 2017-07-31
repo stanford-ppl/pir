@@ -64,4 +64,5 @@ trait PIRAlias {
   type Top   = pir.graph.Top
   type Seq   = Sequential
   type MetaPipe = MetaPipeline
+  type Mux = pir.graph.Mux
 }

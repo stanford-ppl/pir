@@ -5,12 +5,12 @@ import pir.util.misc._
 import pir.util.enums._
 import pir.exceptions.PIRException
 import pir.codegen.{Logger, CSVPrinter, Row}
+import Math._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
-import Math._
 
 class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
   import pirmeta._
@@ -207,38 +207,18 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
       case pr:PipeReg => constProp(pr.in.from.src)
       case fu:FuncUnit => 
         fu.op match {
-          case FixMin =>
+          case op:Op1 =>
+            val op1 = constProp(fu.operands(0))
+            op.eval(op1.asInstanceOf[op.T]).asInstanceOf[Int]
+          case op:Op2 =>
             val op1 = constProp(fu.operands(0))
             val op2 = constProp(fu.operands(1))
-            min(op1, op2)
-          case FixSub =>
-            val op1 = constProp(fu.operands(0))
-            val op2 = constProp(fu.operands(1))
-            op1 - op2
-          case FixAdd =>
-            val op1 = constProp(fu.operands(0))
-            val op2 = constProp(fu.operands(1))
-            op1 + op2
-          case FixMod =>
-            val op1 = constProp(fu.operands(0))
-            val op2 = constProp(fu.operands(1))
-            op1 % op2
-          case FixMul =>
-            val op1 = constProp(fu.operands(0))
-            val op2 = constProp(fu.operands(1))
-            op1 * op2
-          case Mux =>
+            op.eval(op1.asInstanceOf[op.T], op2.asInstanceOf[op.T]).asInstanceOf[Int]
+          case op:Op3 =>
             val op1 = constProp(fu.operands(0))
             val op2 = constProp(fu.operands(1))
             val op3 = constProp(fu.operands(2))
-            if (op3==0) op1 else op2
-          case FixNeq =>
-            val op1 = constProp(fu.operands(0))
-            val op2 = constProp(fu.operands(1))
-            if (op1!=op2) 1 else 0
-          case Bypass =>
-            val op1 = constProp(fu.operands(0))
-            op1
+            op.eval(op1.asInstanceOf[op.T], op2.asInstanceOf[op.T], op3.asInstanceOf[op.T]).asInstanceOf[Int]
           case _ => throw PIRException(s"Don't know how to const propogate $fu ${fu.op}")
         }
       case ScalarIn(_, scalar) => constProp(scalar)

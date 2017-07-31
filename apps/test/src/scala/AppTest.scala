@@ -192,9 +192,8 @@ class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
 
-  val simulate = false
+  val simulate = true
   // Apps 
-  //"OuterProduct" should "success" in { OuterProduct.main(Array("OuterProduct")) }
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
   //"TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
   //"MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
@@ -226,10 +225,18 @@ class AppTests extends UnitTest { self =>
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
   //val simulate = false
-  val arch = SN16x8
+  //val arch = SN16x8
   //val arch = SN4x4
   // Mapping Test
-  //test(DotProduct_op10, arch=Some(arch), debug=true)
-  test(OuterProduct_op1, arch=Some(arch), debug=true)
+  //test(SequentialWrites, arch=Some(arch), debug=true)
+  //test(TensorLoadStore, arch=Some(arch), debug=true)
+
+  //test(DotProduct, arch=Some(arch), debug=true) // op = 10
+  //test(OuterProduct, arch=Some(arch), debug=true)
+  //test(SPMV_CRS, arch=Some(arch), debug=true)
+  //test(BlackScholes, arch=Some(arch), debug=true)
+  //test(Kmeans, arch=Some(arch), debug=true)
+  //test(PageRank, arch=Some(arch), debug=true)
+  //test(Gibbs_Ising2D, arch=Some(arch), debug=true)
 }
 

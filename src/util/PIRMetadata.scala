@@ -109,9 +109,9 @@ trait PIRMetadata extends { self:Design =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object writerOf extends MOneToOneMap with PIRMetadataMaps {
+  object writersOf extends MOneToOneMap with PIRMetadataMaps {
     type K = OnChipMem 
-    type V = Controller
+    type V = List[Controller]
   }
 
   object readersOf extends MOneToOneMap with PIRMetadataMaps {

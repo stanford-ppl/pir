@@ -52,7 +52,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
         cu.stages.reverseIterator.foreach { stage =>
           stage.fu.foreach { fu =>
             fu.op match {
-              case Mux =>
+              case enums.Mux =>
                 val sel::data = fu.operands
                 data.foreach { 
                   _.from.src match {
@@ -133,7 +133,7 @@ class CtrlAlloc(implicit design: Design) extends Pass with Logger {
   def connectMemoryControl(ctrler:Controller) = ctrler match { case cu:ComputeUnit =>
     cu.mems.foreach { mem =>
       (mem, cu.ctrlBox) match {
-        case (mem:FIFO, cb:MemCtrlBox) if mem.readPort.to.exists{ _ == cb.ctrler.sram.writePort } =>
+        case (mem:FIFO, cb:MemCtrlBox) if mem.readPort.to.exists{ in => cb.ctrler.sram.writePortMux.ins.contains(in) } =>
           //mem.enqueueEnable.connect(mem.writePort.valid)
           //mem.inc.connect(mem.writePort.valid)
           mem.dequeueEnable.connect(cb.writeEnDelay.out)

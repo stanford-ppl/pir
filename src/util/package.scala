@@ -9,6 +9,7 @@ import pir.exceptions._
 import java.lang.Thread
 import pir.codegen.Logger
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 package object util {
   implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
@@ -35,7 +36,7 @@ package object util {
     def isAdded(cl:Controller) = list.contains(cl)
     def isDepFree(cl:Controller) = cl match {
       case cl if isTailCollector(cl) => true // list will be reversed
-      case cl:MemoryPipeline => isAdded(cl.sram.writer)
+      case cl:MemoryPipeline => cl.sram.writers.forall(isAdded)
       case cl:ComputeUnit if isStreaming(cl) => cl.isHead || cl.fifos.forall { 
         case fifo if fifo.writer.asCU.parent == cl.parent => isAdded(fifo.writer)
         case fifo => true
@@ -103,13 +104,14 @@ package object util {
     chained.toList
   }
 
-  def sortCChains(cchains:List[CounterChain]) = {
+  def sortCChains(cchains:List[CounterChain])(implicit logger:Logger) = {
+    import logger._
     val ancSize = cchains.map { _.original.ctrler.ancestors.size }
     if (ancSize.size != ancSize.toSet.size) {
       cchains.zip(ancSize).foreach { case (cc,size) =>
-        println(s"ctrler:${cc.ctrler} cchain:$cc original:${cc.original} ${cc.original.ctrler} $size")
+        dprintln(s"ctrler:${cc.ctrler} cchain:$cc original:${cc.original} ${cc.original.ctrler} $size")
       }
-      throw new Exception(s"Don't know how to sort!")
+      throw new Exception(s"Don't know how to sort $cchains!")
     }
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
@@ -133,36 +135,18 @@ package object util {
     else s.toInt
   }
 
-  //def readParOf(node:Node):Int = {
-    //import node.pirmeta._
-    //node match {
-      //case node:SRAM => readParOf(node.ctrler)
-      //case node:MemoryPipeline => readCChainsOf(node).head.inner.par
-    //}
-  //}
-
-  //def writeParOf(node:Node):Int = {
-    //import node.pirmeta._
-    //node match {
-      //case node:SRAM => writeParOf(node.ctrler)
-      //case node:MemoryPipeline => writeCChainsOf(node).head.inner.par
-    //}
-  //}
-
-  //def parOf(node:Node):Int = {
-    //import node.pirmeta._
-    //node match {
-      //case node:Primitive =>
-        //val cu = node.ctrler.asCU
-        //if (forRead(node)) readParOf(cu)
-        //else if (forWrite(node)) writeParOf(cu)
-        //else parOf(cu)
-      //case node:MemoryPipeline =>
-        //err(s"No par defined for $node")
-      //case node:ComputeUnit =>
-        //compCChainsOf(node).head.inner.par
-    //}
-  //}
+  def collect[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+    case x:X => Set(x)
+    case LoadPR(mem) => collect[X](mem)
+    case CtrPR(ctr) => collect[X](ctr)
+    case PipeReg(_, reg) => collect[X](reg) 
+    case x:Counter => collect[X](x.min) ++ collect[X](x.max) ++ collect[X](x.step)
+    case x:CounterChain => x.counters.flatMap(collect[X]).toSet
+    case x:InPort => if (!x.isConnected) Set() else collect[X](x.from.src)
+    case x:Mux => x.ins.flatMap(collect[X]).toSet
+    case x:Iterable[_] => x.flatMap(collect[X]).toSet
+    case _ => Set()
+  }
 
 }
 

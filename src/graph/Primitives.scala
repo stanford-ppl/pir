@@ -417,3 +417,11 @@ case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Module {
   def isInt = value.isInstanceOf[Int]
   def isFloat = value.isInstanceOf[Float]
 }
+
+case class Mux(name:Option[String])(implicit design:Design, ctrler:Controller) extends Primitive {
+  override val typeStr = "Mux"
+  override def toString = name.getOrElse(super.toString)
+  def addInput:InPort = { val i = ins.size; InPort(this, s"$this.in$i") }
+  val sel:InPort = InPort(this, s"${this}.sel") 
+  val out = OutPort(this, s"$this.out")
+}

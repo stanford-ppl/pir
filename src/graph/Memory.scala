@@ -40,8 +40,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
   def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
   def load = readPort
 
-  def writer:Controller = writerOf(this)
   def readers:List[Controller] = readersOf(this)
+  def writers:List[Controller] = writersOf(this)
   def isVFifo = this.isInstanceOf[VectorFIFO]
   def isSFifo = this.isInstanceOf[ScalarFIFO]
   def isFifo = this.isInstanceOf[FIFO]
@@ -91,9 +91,16 @@ trait MultiBuffer extends OnChipMem {
 }
 
 trait FIFO extends OnChipMem with LocalMem {
+  import pirmeta._
   override val typeStr = "FIFO"
   override val banking = Strided(1)
   override def toUpdate = super.toUpdate
+
+  def writer:Controller = {
+    val writers = writersOf(this)
+    assert(writers.size==1, s"FIFO should only have a single writer")
+    writers.head
+  }
 
   var _wtStart:Option[OutPort] = None
   var _wtEnd:Option[OutPort] = None 
@@ -142,7 +149,6 @@ trait VectorMem extends OnChipMem {
  *  @param name: user defined optional name of SRAM 
  *  @param size: size of SRAM in all dimensions 
  *  @param banking: Banking mode of SRAM
- *  @param writeCtr: TODO what was this again? counter that controls the write enable and used to
  *  calculate write address?
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
@@ -150,7 +156,7 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
   override val typeStr = "SRAM"
   val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
-    readAddr.connect(ra); 
+    readAddrMux.addInput.connect(ra); 
     ra.src match {
       case PipeReg(stage,r) =>
         throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
@@ -160,11 +166,19 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
   } 
   val writeAddr: InPort = InPort(this, s"${this}.wa")
   def wtAddr(wa:OutPort):this.type = { 
-    writeAddr.connect(wa)
+    writeAddrMux.addInput.connect(wa)
     this 
   }
-  def writeCtr = writeAddr.from.src.asInstanceOf[Counter].cchain.inner
+  override def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
+
+  val readAddrMux:Mux = Mux(Some(s"$this.readAddrMux"))
+  readAddr.connect(readAddrMux.out)
+  val writeAddrMux:Mux = Mux(Some(s"$this.writeAddrMux"))
+  writeAddr.connect(writeAddrMux.out)
+  val writePortMux:Mux = Mux(Some(s"$this.writePortMux"))
+  writePort.connect(writePortMux.out)
 }
+
 object SRAM {
   def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: Design): SRAM
     = SRAM(None, size, banking)

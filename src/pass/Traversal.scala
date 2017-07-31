@@ -48,19 +48,21 @@ trait Traversal extends Pass {
           }
         } 
         visitNode(n.ctrlBox)
-      case n:Primitive => n match {
-        case p:CounterChain => p.counters.foreach(c => visitNode(c))
-        case p:Stage =>
-          p.prs.foreach(visitNode)
-          p.fu.foreach(visitNode)
-        case p:CtrlBox =>
-          p.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
-          p.creditBuffers.foreach { case (deped, c) => visitNode(c) }
-          p.delays.foreach(visitNode)
-          p.predicateUnits.foreach(visitNode)
-          p.andTrees.foreach(visitNode)
-        case _ =>
-      }
+      case n:CounterChain => n.counters.foreach(c => visitNode(c))
+      case n:Stage =>
+        n.prs.foreach(visitNode)
+        n.fu.foreach(visitNode)
+      case n:CtrlBox =>
+        n.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
+        n.creditBuffers.foreach { case (deped, c) => visitNode(c) }
+        n.delays.foreach(visitNode)
+        n.predicateUnits.foreach(visitNode)
+        n.andTrees.foreach(visitNode)
+      case n:SRAM =>
+        visitNode(n.readAddrMux)
+        visitNode(n.writeAddrMux)
+        visitNode(n.writePortMux)
+      case _ =>
     }
   }
 }

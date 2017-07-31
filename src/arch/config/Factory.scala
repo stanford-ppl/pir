@@ -133,23 +133,23 @@ plasticine {
 
   def connectSRAM(cu:ComputeUnit):Unit = {
     cu.srams.foreach { sram =>
-      sram.readAddr <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
-      sram.readAddr <== cu.sbufs.map(_.readPort)
-      sram.writeAddr <== (cu.ctrs.map(_.out), 0)
-      sram.writeAddr <== cu.sbufs.map(_.readPort)
+      sram.readAddrMux.addInput <== (cu.ctrs.map(_.out), 0) // sram read/write addr can be from all counters
+      sram.readAddrMux.addInput <== cu.sbufs.map(_.readPort)
+      sram.writeAddrMux.addInput <== (cu.ctrs.map(_.out), 0)
+      sram.writeAddrMux.addInput <== cu.sbufs.map(_.readPort)
       cu match {
         case cu:MemoryComputeUnit =>
-          //cu.rastages.foreach { stage => sram.readAddr <== (stage.fu.out, 0) }
-          //cu.wastages.foreach { stage => sram.writeAddr <== (stage.fu.out, 0) }
+          //cu.rastages.foreach { stage => sram.readAddrMux.addInput <== (stage.fu.out, 0) }
+          //cu.wastages.foreach { stage => sram.writeAddrMux.addInput <== (stage.fu.out, 0) }
           cu.stages.foreach { stage => 
-            sram.readAddr <== (stage.funcUnit.get.out, 0)
-            sram.writeAddr <== (stage.funcUnit.get.out, 0)
+            sram.readAddrMux.addInput <== (stage.funcUnit.get.out, 0)
+            sram.writeAddrMux.addInput <== (stage.funcUnit.get.out, 0)
           }
         case _ =>
       }
 
-      sram.writePort <== cu.vbufs.map(_.readPort)
-      cu.sbufs.foreach { sbuf => sram.writePort.sliceHead(sbuf.readPort) }
+      sram.writePortMux.addInput <== cu.vbufs.map(_.readPort)
+      cu.sbufs.foreach { sbuf => sram.writePortMux.addInput.sliceHead(sbuf.readPort) }
     } 
   }
 

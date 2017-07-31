@@ -28,7 +28,7 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
               if (mem.notFull.isConnected) {
                 val fhop = mp.rtmap(mem.writePort.from.src)
                 val bhop = mp.rtmap(mem.notFull.to.head)
-                val pipeDepth = mp.clmap(mem.writer.ctrler).asCU.stages.size
+                val pipeDepth = mem.writers.map{ writer => mp.clmap(writer.ctrler).asCU.stages.size }.max
                 notFullOffset(pmem) = fhop + bhop + pipeDepth
                 dprintln(s" - fhop=$fhop bhop=$bhop pipeDepth=$pipeDepth")
                 bufferSizeOf(pmem) = mem.size + notFullOffset(pmem) + 2 //TODO a little buffer just in case 

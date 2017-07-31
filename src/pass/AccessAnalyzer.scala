@@ -17,13 +17,8 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
   override lazy val stream = newStream(s"AccessAnalyzer.log")
 
   def setWriter(mem:OnChipMem) = {
-    writerOf(mem) = mem.writePort.from.src match {
-      case fifo:FIFO => fifo.writer
-      case VecIn(_, vector) => vector.writer.ctrler
-      case ScalarIn(_, scalar) => scalar.writer.ctrler
-      case p => 
-        throw PIRException(s"Unknown OnChipMem write port ${p} for $mem in ${mem.ctrler}")
-    }
+    writersOf(mem) = (collect[FIFO](mem.writePort).flatMap(fifo => writersOf(fifo)) ++
+                      collect[Input](mem.writePort).map(in => in.variable.writer.ctrler)).toList
   }
 
   def setReader(mem:OnChipMem) = mem match {
@@ -57,8 +52,9 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
       emitBlock(s"$cu") {
         cu.mems.foreach { mem =>
           emitBlock(s"$mem") {
-            dprintln(s"reader = ${readersOf(mem)} = ${mem.ctrler}")
-            dprintln(s"writer = ${writerOf(mem)} = ${mem.ctrler}")
+            dprintln(s"mem.ctrler = ${mem.ctrler}")
+            dprintln(readersOf.info(mem))
+            dprintln(writersOf.info(mem))
           }
         }
       }

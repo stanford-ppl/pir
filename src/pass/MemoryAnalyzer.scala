@@ -28,74 +28,24 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         case st:RAStage => forRead(st) = true
       }
       st.fu.foreach { fu =>
-        fu.operands.foreach { oprd =>
-          (oprd.from.src, st) match {
-            case (p:Counter, st:WAStage) => forWrite(p) = true
-            case (PipeReg(_, CtrPR(p)), st:WAStage) => forWrite(p) = true
-            case (p:Counter, st:RAStage) => forRead(p) = true
-            case (PipeReg(_, CtrPR(p)), st:RAStage) => forRead(p) = true
-            case (p:ScalarMem, st:WAStage) => forWrite(p) = true
-            case (PipeReg(_, LoadPR(p)), st:WAStage) => forWrite(p) = true
-            case (p:ScalarMem, st:RAStage) => forRead(p) = true
-            case (PipeReg(_, LoadPR(p)), st:RAStage) => forRead(p) = true
-            case (p, st) =>
-          }
+        st match {
+          case st:WAStage => 
+            collect[Counter](fu.operands).foreach { p => forWrite(p) = true }
+            collect[ScalarMem](fu.operands).foreach { p => forWrite(p) = true }
+          case st:RAStage =>
+            collect[Counter](fu.operands).foreach { p => forRead(p) = true }
+            collect[ScalarMem](fu.operands).foreach { p => forRead(p) = true }
         }
       }
     }
     if (cu.sram.writePort.isConnected) {
-      cu.sram.writePort.from.src match {
-        case fifo:FIFO => forWrite(fifo) = true
-      }
+      collect[FIFO](cu.sram.writePort).foreach { fifo => forWrite(fifo) = true }
     } else {
       warn(s"${cu.sram} in $cu's writePort is not connected!")
     }
-  }
 
-  def analyzeCounters(cu:ComputeUnit):Unit = cu match {
-    case cu:MemoryPipeline => analyzeCounters(cu)
-    case cu =>
-  }
-
-  def analyzeCounters(cu:MemoryPipeline):Unit = {
-    cu.rdAddrStages.foreach { stage =>
-      stage.fu.foreach { fu =>
-        fu.operands.foreach { oprd => 
-          oprd.from.src match {
-            case ctr:Counter => forRead(ctr) = true
-            case PipeReg(_, CtrPR(ctr)) => forRead(ctr) = true
-            case _ =>
-          }
-        }
-      }
-    }
-    if (cu.sram.readAddr.isConnected) {
-      cu.sram.readAddr.from.src match {
-        case ctr:Counter => forRead(ctr) = true
-        case _ =>
-      }
-    } else {
-      warn(s"${cu.sram} in $cu's readAddr is not connected!")
-    }
-    cu.wtAddrStages.foreach { stage =>
-      stage.fu.foreach { fu =>
-        fu.operands.foreach { oprd => 
-          oprd.from.src match {
-            case ctr:Counter => forWrite(ctr) = true
-            case PipeReg(_, CtrPR(ctr)) => forWrite(ctr) = true
-            case _ =>
-          }
-        }
-      }
-    }
-    if (cu.sram.writeAddr.isConnected) {
-      cu.sram.writeAddr.from.src match {
-        case ctr:Counter => forWrite(ctr) = true
-        case _ =>
-      }
-    } else {
-      warn(s"${cu.sram} in $cu's writeAddr is not connected!")
-    }
+    collect[Counter](cu.sram.readAddrMux).foreach { p => forRead(p) = true }
+    collect[Counter](cu.sram.writeAddrMux).foreach { p => forWrite(p) = true }
   }
 
   def analyzeCChain(cu:MemoryPipeline):Unit = {
@@ -118,33 +68,15 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def analyzeScalarBufs(cu:MemoryPipeline):Unit = emitBlock(s"analyzeScalarBufs($cu)") {
     cu.cchains.foreach { cc =>
-      cc.counters.foreach { ctr =>
-        List(ctr.min, ctr.max, ctr.step).map(_.from.src).foreach {
-          case mem:ScalarMem => 
-            if (forRead(ctr)) { forRead(mem) = true }
-            if (forWrite(ctr)) { forWrite(mem) = true }
-            dprintln(forRead.info(mem))
-            dprintln(forWrite.info(mem))
-          case _ =>
-        }
+      collect[ScalarMem](cc).foreach { mem =>
+        if (forRead(cc)) { forRead(mem) = true }
+        if (forWrite(cc)) { forWrite(mem) = true }
+        dprintln(forRead.info(mem))
+        dprintln(forWrite.info(mem))
       }
     }
-    if (cu.sram.writeAddr.isConnected) {
-      cu.sram.writeAddr.from.src match {
-        case fifo:ScalarFIFO => forWrite(fifo) = true
-        case _ =>
-      }
-    } else {
-      warn(s"${cu.sram} in $cu's writeAddr is not connected!")
-    }
-    if (cu.sram.readAddr.isConnected) {
-      cu.sram.readAddr.from.src match {
-        case fifo:ScalarFIFO => forRead(fifo) = true
-        case _ =>
-      }
-    } else {
-      warn(s"${cu.sram} in $cu's readAddr is not connected!")
-    }
+    collect[ScalarFIFO](cu.sram.writeAddr).foreach { fifo => forWrite(fifo) = true }
+    collect[ScalarFIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
   }
 
   def setSwapCC(cu:ComputeUnit) = emitBlock(s"setSwapCC($cu)") {
@@ -211,14 +143,16 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
     cu match {
       case cu:MemoryPipeline => 
-        rparOf(cu) = cu.sram.readPort.to.head.src match {
-          case o:ScalarOut => 1
-          case o:VecOut => readCChainsOf(cu).head.inner.par
-        }
-        wparOf(cu) = cu.sram.writePort.from.src match {
-          case i:ScalarFIFO => 1
-          case i:VectorFIFO => writeCChainsOf(cu).head.inner.par
-        }
+        rparOf(cu) = readCChainsOf(cu).head.inner.par
+        wparOf(cu) = writeCChainsOf(cu).head.inner.par
+        //rparOf(cu) = cu.sram.readPort.to.head.src match {
+          //case o:ScalarOut => 1
+          //case o:VecOut => readCChainsOf(cu).head.inner.par
+        //}
+        //wparOf(cu) = cu.sram.writePort.from.src match {
+          //case i:ScalarFIFO => 1
+          //case i:VectorFIFO => writeCChainsOf(cu).head.inner.par
+        //}
         cu.mems.foreach { 
           case mem if forRead(mem) => 
             parOf(mem) = rparOf(cu)
@@ -287,7 +221,6 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
   addPass(canRun=design.controlAnalyzer.hasRun(0)) {
     design.top.memCUs.foreach { cu =>
       analyzeStageOperands(cu)
-      analyzeCounters(cu)
       analyzeCChain(cu)
       analyzeScalarBufs(cu)
 

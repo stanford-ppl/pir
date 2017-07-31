@@ -69,7 +69,10 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       case PassThroughException(mapper, e, m) =>
         mapping = Some(m)
       case e:MappingException[_] =>
-        mapping = Some(e.mapping.asInstanceOf[PIRMap])
+        e.mapping match {
+          case m:PIRMap => mapping = Some(m)
+          case (m:PIRMap, _) => mapping = Some(m)
+        }
         (e.mapper, e.mapping) match {
           case (mapper:VectorRouter, mapping:PIRMap) =>
             new CUVectorDotPrinter(open=true)(design).print(Some(mapping))

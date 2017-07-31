@@ -48,6 +48,7 @@ trait Traversal {
           case n:SwitchBox =>
         }
       case n:GlobalIO[_,_] => visitNode(n.ic)
+      case n:SRAM => 
       case n:Stage =>
         n.funcUnit.foreach(visitNode)
         n.prs.foreach(visitNode)

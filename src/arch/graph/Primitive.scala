@@ -9,6 +9,7 @@ import pir.plasticine.simulation._
 import pir.mapper.PIRMap
 
 import scala.language.reflectiveCalls
+import scala.reflect.runtime.universe.{SingleType =>_, _}
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
@@ -40,7 +41,7 @@ object Const {
   def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
-class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable) extends Primitive with Simulatable {
+class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable, ev:TypeTag[P]) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
@@ -56,7 +57,7 @@ class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(impli
 object Delay {
   def apply(tp:Bit, staticDelay:Option[Int], ts:Option[String])
     (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = {
-    val d = new Delay(tp, staticDelay, ts)
+    val d = new Delay(tp, staticDelay, ts)(spade, prt, typeTag[Bit])
     ctrlBox.delays += d
     d
   }
@@ -68,7 +69,30 @@ object Delay {
     (implicit spade:Spade, prt:Routable, ctrlBox:CtrlBox):Delay[Bit] = Delay(tp, Some(delay), None)
 
   def apply[P<:PortType](tp:P, delay:Int,ts:Option[String])
-    (implicit spade:Spade, prt:Routable):Delay[P] = new Delay(tp, Some(delay), ts)(spade, prt)
+    (implicit spade:Spade, prt:Routable, ev:TypeTag[P]):Delay[P] = new Delay(tp, Some(delay), ts)
   def apply[P<:PortType](tp:P,ts:String)
-    (implicit spade:Spade, prt:Routable):Delay[P] = new Delay(tp, None, Some(ts))
+    (implicit spade:Spade, prt:Routable, ev:TypeTag[P]):Delay[P] = new Delay(tp, None, Some(ts))
+}
+case class Mux[P<:PortType](name:Option[String], tp:P)(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
+  import spademeta._
+  override val typeStr = name.getOrElse("mux")
+  val sel = Input(Word(), this, s"${this}.sel")
+  val out = Output(tp.clone, this, s"${this}.out")
+  val _inputs = ListBuffer[Input[P, Module]]()
+  def inputs = _inputs.toList 
+  def addInput:Input[P, Mux[P]] = { val i = inputs.size; val in = Input(tp.clone, this, s"${this}.in$i").index(i); _inputs += in; in }
+  private[plasticine] def <== (outs:List[Output[P, Module]]):Unit = outs.foreach { out => <==(out) }
+  private[plasticine] def <== (out:Output[P, Module]):Unit = {
+    addInput <== out
+  }
+
+  override def register(implicit sim:Simulator):Unit = {
+    sel.v.default = 0
+    //out.v := inputs(sel.v.toInt).v //TODO: support this
+    out.v.set { v => v <<= inputs(sel.v.update.toInt).v.update }
+  }
+}
+object Mux {
+  def apply[P<:PortType](name:String, tp:P)(implicit spade:Spade, prt:Controller):Mux[P] = Mux(Some(name), tp)
+  def apply[P<:PortType](tp:P)(implicit spade:Spade, prt:Controller):Mux[P] = Mux(None, tp)
 }

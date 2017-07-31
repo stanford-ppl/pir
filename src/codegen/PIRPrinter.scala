@@ -86,6 +86,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
   override def visitNode(node: Node) : Unit = {
     node match {
       case n:Controller => emitBlock(node) {
+        emitln(s"children=[${n.children.mkString(",")}]")
         pirmeta.summary(n).foreach(emitln)
         emitln(s"consumed=[${n.consumed.mkString(",")}]")
         emitln(s"trueConsumed=[${n.trueConsumed.mkString(",")}]")
@@ -143,7 +144,6 @@ object PIRPrinter {
     //node.name.foreach { name => fields += s"name=$name" }
     node match {
       case n:Controller =>
-        fields += s"children=[${n.children.mkString(",")}]"
       case n:Primitive => {
         fields ++= pirmeta.summary(node)
       }

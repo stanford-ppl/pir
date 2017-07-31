@@ -59,4 +59,6 @@ trait SpadeAlias {
   type PSB       = SwitchBox
   type PConst    = Const[_<:PortType]
   type PUDSM = UpDownSM
+  type PMux[P<:PortType] = Mux[P]
+
 }

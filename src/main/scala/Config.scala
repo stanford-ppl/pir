@@ -54,7 +54,7 @@ object Config {
   var debugSTMapper = debugMapper && true 
   var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
   
-  var ctrl = false
+  var ctrl = true
   var simulate = false
   var simulationTimeOut = 100
   var verbose = debug & true
