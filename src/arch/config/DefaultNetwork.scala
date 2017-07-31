@@ -71,7 +71,7 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"mc") = 2
   
   //// switch to OCU channel width
-  channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 10
+  channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 5
   
   //// Top to switch channel width
   channelWidth("pos"->List("top", "bottom"), "src"->"Top", "dst"->"sb") = 1

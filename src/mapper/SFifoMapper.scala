@@ -36,18 +36,8 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   // After RegAlloc
   def resFunc(cu:CU)(n:N, m:M, triedRes:List[R]):List[R] = {
     val pcu = m.clmap(cu)
-    //val regs = n.readPort.to.map(_.src).collect{ case pr:PR => pr.reg }
-    //if (regs.isEmpty) { // scalarIn is not used in pipeline stages. Pick whichever is not used
-      //pcu.sbufs
-    //} else if (regs.size==1) {
-      //val preg = m.rcmap(regs.head)
-      //val ppr = pcu.asCU.fustages.head.get(preg)
-      //ppr.in.fanIns.map{_.src}.collect{ case sb:R => sb }
-    //} else {
-      //throw PIRException(s"scalarIn:$n is connected to more than 1 pipeRegs: ${regs.mkString(",")}")
-    //}
-    //dprintln(s"$n read by regs:[${regs.mkString(",")}]")
     val reses = cu match {
+      case cu:MC if n.name=="data" => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
       case cu:MC if cu.mctpe==TileLoad => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
       case cu:MC if cu.mctpe==TileStore => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
       case cu => pcu.sbufs

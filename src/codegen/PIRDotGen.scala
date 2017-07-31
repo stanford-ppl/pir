@@ -56,19 +56,23 @@ trait PIRDotGen extends Codegen with DotCodegen {
   def emitVectorInputs(cl:Controller, vins:List[VecIn]):Unit = {
     vins.foreach { vin => 
       val v = vin.vector
-      val label = v match {
-        case dv:DummyVector => s"$v[\n${dv.scalars.mkString(",\n")}]"
-        case _ => s"$v\n(${v.writer})\n(${v.readers.filter{_.ctrler==cl}.mkString(",")})"
-      }
-      if (v.writer!=null)
+      var label = s"${v.name.get}"
+      if (v.writer != null) label += s"\n(${v.writer})"
+      label += s"\n(${v.readers.filter{_.ctrler==cl}.mkString(",")})"
+      if (v.writer != null) {
         emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
+      } else {
+        emitEdge("NotConnected", cl, DotAttr().label(label).style(bold))
+      }
     }
   }
 
   def emitScalarInputs(cl:Controller, sins:List[ScalarIn]):Unit = {
     sins.foreach { sin => 
       val s = sin.scalar
-      val label = s"$s\n(${s.writer})\n(${s.readers.filter{_.ctrler==cl}.mkString(",")})"
+      var label = s"${s.name.get}"
+      if (s.writer!=null) label += s"\n(${s.writer.ctrler}.${s.writer})s"
+      label += s"\n(${s.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
       if (!s.writerIsEmpty) {
         s.writer.ctrler match {
           case top:Top =>

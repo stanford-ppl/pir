@@ -31,9 +31,13 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         fu.operands.foreach { oprd =>
           (oprd.from.src, st) match {
             case (p:Counter, st:WAStage) => forWrite(p) = true
+            case (PipeReg(_, CtrPR(p)), st:WAStage) => forWrite(p) = true
             case (p:Counter, st:RAStage) => forRead(p) = true
+            case (PipeReg(_, CtrPR(p)), st:RAStage) => forRead(p) = true
             case (p:ScalarMem, st:WAStage) => forWrite(p) = true
+            case (PipeReg(_, LoadPR(p)), st:WAStage) => forWrite(p) = true
             case (p:ScalarMem, st:RAStage) => forRead(p) = true
+            case (PipeReg(_, LoadPR(p)), st:RAStage) => forRead(p) = true
             case (p, st) =>
           }
         }

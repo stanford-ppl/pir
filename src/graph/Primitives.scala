@@ -347,10 +347,10 @@ object RAStage {
     //new Stage(None) with EmptyStage
 //}
 
-abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive {
+abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive { self:Product =>
   import pirmeta._
   lazy val regId:Int = ctrler.newTemp
-  override val typeStr = "reg"
+  override def toString = scala.runtime.ScalaRunTime._toString(this)
   override val name = None
   override def equals(that: Any) = that match {
     case n: Reg => regId == n.regId && ctrler == n.ctrler
@@ -367,8 +367,8 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) exte
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: Design)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: Design)          extends Reg {override val typeStr = "regst"}
-case class RdAddrPR(raPort:InPort)(implicit ctrler:InnerController, design: Design)   extends Reg {override val typeStr = "regra"; }
-case class WtAddrPR(waPort:InPort)(implicit ctrler:InnerController, sAdesign: Design) extends Reg {override val typeStr = "regwa"}
+case class RdAddrPR(raPort:InPort)(implicit ctrler:InnerController, design: Design)         extends Reg {override val typeStr = "regra"; }
+case class WtAddrPR(waPort:InPort)(implicit ctrler:InnerController, sAdesign: Design)       extends Reg {override val typeStr = "regwa"}
 case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: Design)                  extends Reg {override val typeStr = "regct"}
 case class ReducePR()(implicit ctrler:InnerController, design: Design)                      extends Reg {override val typeStr = "regrd"}
 case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: Design)  extends Reg {

@@ -29,6 +29,7 @@ abstract class Controller(implicit design:Design) extends Module {
 
   def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
   def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
+  def newSout(name:String, s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s, ScalarOut(name, s))
   def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
   def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
   def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(name, v))

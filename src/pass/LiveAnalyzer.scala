@@ -20,11 +20,6 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
     design.top.innerCUs.foreach { implicit cu =>
       // Uses in sram and counter
       updatesPrim(cu)
-      // EmptyStage
-      //val empty = 
-        //if (cu.wtAddrStages.size > 0) { stageAnalysis(List(cu.emptyStage)); cu.wtAddrStages.last.last}
-        //else { cu.emptyStage }
-      //val empty = cu.emptyStage
       // Write Addr Stages
       stageAnalysis(cu.wtAddrStages)(cu)
       stageAnalysis(cu.rdAddrStages)(cu)

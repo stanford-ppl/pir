@@ -314,8 +314,10 @@ plasticine {
           buf.dequeueEnable <== cb.en.out
           buf.dec <== cb.en.out
         }
-        mc.data.dequeueEnable <== cb.running
-        mc.data.dec <== cb.running
+        mc.vdata.dequeueEnable <== cb.running
+        mc.sdata.dequeueEnable <== cb.running
+        mc.vdata.dec <== cb.running
+        mc.sdata.dec <== cb.running
         mc.bufs.foreach { buf => buf.predicate <== low.out }
       case (top:Top, cb:TopCtrlBox) =>
     }

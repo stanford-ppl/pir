@@ -16,26 +16,22 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
 
   override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
 
-  def leastCommonAncestor(reader:Controller, writer:Controller):Controller = {
-    val ra = ancestorsOf(reader)
-    val wa = ancestorsOf(writer)
-    val ca = ra.intersect(wa)
-    ca.size match {
-      case 0 => throw new Exception(s"$reader and $writer doesn't have common ancestors. \nreader ancestors:$ra \nwriter ancestors: $wa")
-      case _ => ca.head
-    }
+  def leastCommonAncestor(ctrlers:List[Controller]):Controller = {
+    val cas = ctrlers.map { ctrler => ancestorsOf(ctrler) }.reduce { _ intersect _ }
+    if (cas.size < 0)
+      throw PIRException(s"$ctrlers doesn't share common ancestors")
+    cas.head
   }
 
-  def findProducerConsumer(reader:Controller, writer:Controller, lca:Controller):Option[(Controller, Controller)] = {
+  def findProducerConsumer(readers:List[Controller], writer:Controller, lca:Controller):Option[(Controller, Controller)] = {
     val producers = ancestorsOf(writer).intersect(lca.children)
-    val consumers = ancestorsOf(reader).intersect(lca.children)
+    val consumers = ancestorsOf(leastCommonAncestor(readers)).intersect(lca.children)
     val (producer, consumer) = if (producers.isEmpty || consumers.isEmpty) {
       (lca, lca)
     } else {
       (producers.head, consumers.head)
     }
-    if (isStreaming(producer) || isStreaming(consumer))
-      None
+    if (isStreaming(producer) || isStreaming(consumer)) None
     else Some((producer, consumer))
   }
 
@@ -49,12 +45,11 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
         case _ =>
       }
     }
-    val reader = readers.head //HACK TODO multiple reader should happen only after splitting. shouldn't change control
-    var lca = leastCommonAncestor(reader, writer)
-    var pc = findProducerConsumer(reader, writer, lca)
+    var lca = leastCommonAncestor(readers :+ writer)
+    var pc = findProducerConsumer(readers, writer, lca)
     while (pc.isEmpty) {
       lca = lca.asCU.parent
-      pc = findProducerConsumer(reader, writer, lca)
+      pc = findProducerConsumer(readers, writer, lca)
     }
     val (producer, consumer) = pc.get
 
@@ -62,7 +57,7 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     buf.consumer(consumer) // detect back edge later
     dprintln(s"$cu parent:$lca")
     dprintln(s"$buf writer:$writer writer.ancestors:${writer.ancestors}")
-    dprintln(s"$buf reader:$reader reader.ancestors:${reader.ancestors}")
+    dprintln(s"$buf readers: ${readers.map{reader => s"$reader ${reader.ancestors}"}.mkString(",")}")
     dprintln(s"$buf lca: $lca lca.children:${lca.children}")
     dprintln(s"$buf producer:${buf.producer} consumer:${buf.consumer}")
   }

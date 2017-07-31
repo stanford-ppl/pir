@@ -29,18 +29,20 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
   lazy val roffset = sbufs.filter{ sb => nameOf(sb)=="roffset" }.head
   lazy val wsize = sbufs.filter{ sb => nameOf(sb)=="wsize" }.head
   lazy val rsize = sbufs.filter{ sb => nameOf(sb)=="rsize" }.head
-  lazy val data = vbufs.filter{ vb => nameOf(vb)=="data" }.head
+  lazy val sdata = sbufs.filter{ vb => nameOf(vb)=="sdata" }.head
+  lazy val vdata = vbufs.filter{ vb => nameOf(vb)=="vdata" }.head
   /* Parameters */
   override def config = {
     //assert(sins.size==2)
     //assert(vins.size==1)
-    numScalarBufs(4)
+    numScalarBufs(5)
     numVecBufs(vins.size)
     nameOf(sbufs(0)) = "roffset"
     nameOf(sbufs(1)) = "woffset"
     nameOf(sbufs(2)) = "rsize"
     nameOf(sbufs(3)) = "wsize"
-    nameOf(vbufs(0)) = "data"
+    nameOf(sbufs(4)) = "sdata"
+    nameOf(vbufs(0)) = "vdata"
     genConnections
   }
 
@@ -67,7 +69,7 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
         case TileStore =>
           dram.setMem { memory =>
             If (ctrlBox.running.v) {
-              data.readPort.v.foreach { case (ev, i) =>
+              vdata.readPort.v.foreach { case (ev, i) =>
                 val so = woffset.readPort.v.toInt / 4
                 val sz = wsize.readPort.v.toInt / 4
                 dprintln(s"${quote(this)} TileStore woffset=$so wsize=$sz ${ctrlBox.count.v.update}")

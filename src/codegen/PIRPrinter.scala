@@ -92,11 +92,6 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
         emitln(s"produced=[${n.produced.mkString(",")}]")
         n match {
           case n:InnerController =>
-            emitBlock(s"mapping =") {
-              regMapToStrs(n).foreach { case (k, v) =>
-                emitln(s"${k}:${v}")
-              }
-            }
             emitBlock(s"InfGraph =") {
               n.infGraph.foreach { case (k, v) => 
                 emitln(s"${k}: [${v.mkString(s",")}]")
