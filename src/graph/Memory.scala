@@ -157,11 +157,6 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
   val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
     readAddrMux.addInput.connect(ra); 
-    ra.src match {
-      case PipeReg(stage,r) =>
-        throw PIRException(s"Currently don't support register to readAddr! sram:${this}")
-      case _ =>
-    }
     this
   } 
   val writeAddr: InPort = InPort(this, s"${this}.wa")
@@ -171,11 +166,11 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
   }
   override def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
 
-  val readAddrMux:Mux = Mux(Some(s"$this.readAddrMux"))
+  val readAddrMux:Mux = Mux(Some(s"$this.raMux"))
   readAddr.connect(readAddrMux.out)
-  val writeAddrMux:Mux = Mux(Some(s"$this.writeAddrMux"))
+  val writeAddrMux:Mux = Mux(Some(s"$this.waMux"))
   writeAddr.connect(writeAddrMux.out)
-  val writePortMux:Mux = Mux(Some(s"$this.writePortMux"))
+  val writePortMux:Mux = Mux(Some(s"$this.wpMux"))
   writePort.connect(writePortMux.out)
 }
 

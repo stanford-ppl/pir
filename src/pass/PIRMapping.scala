@@ -66,7 +66,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     e match {
       case ExceedExceptionLimit(mapper, m) =>
         mapping = Some(m.asInstanceOf[PIRMap])
-      case PassThroughException(mapper, e, m) =>
+      case PassThroughException(e, m) =>
         mapping = Some(m)
       case e:MappingException[_] =>
         e.mapping match {

@@ -24,15 +24,6 @@ class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def finPass(cu:CL)(m:M):M = m 
 
-  def mapMux(mux:Mux, pmux:PMux[_], map:M):M = {
-    var mp = map
-    mp = mp.setPM(mux, pmux)
-    (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInPort(n, r, mp) }
-    mp = mapInPort(mux.sel, pmux.sel, mp)
-    mp = mapOutPort(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)
-    mp
-  }
-
   def constrain(n:N, r:R, m:M):M = {
     var mp = m
     mp = m.setSM(n, r)

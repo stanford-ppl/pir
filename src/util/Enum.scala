@@ -151,6 +151,7 @@ FixEql
 FixNeq 
 FixMod 
 FixSra 
+FixSla 
 FixNeg 
 
 FltAdd

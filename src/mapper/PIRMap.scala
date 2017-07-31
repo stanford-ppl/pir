@@ -59,7 +59,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
     try {
       func
     } catch {
-      case e:Exception => throw PassThroughException(mapper, e, this) 
+      case e:Exception => throw PassThroughException(e, this) 
     }
   }
 

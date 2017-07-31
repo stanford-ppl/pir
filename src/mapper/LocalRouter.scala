@@ -164,7 +164,22 @@ trait LocalRouter extends Mapper {
     mp
   }
 
+  def mapMux(mux:Mux, pmux:PMux[_], map:M):M = {
+    var mp = map
+    mp = mp.setPM(mux, pmux)
+    if (pmux.ins.size < mux.ins.size) 
+      throw PassThroughException(MuxUnderSize(s"Mux undersize! pmux.ins=${pmux.ins.size} mux.ins=${mux.ins.size}"), mp)
+    (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInPort(n, r, mp) }
+    mp = mapInPort(mux.sel, pmux.sel, mp)
+    mp = mapOutPort(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)
+    mp
+  }
+
 }
+
+case class MuxUnderSize(info:String) (implicit val mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {
+  override val msg = info
+} 
 case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }

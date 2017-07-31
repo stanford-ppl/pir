@@ -81,6 +81,7 @@ case class Mux[P<:PortType](name:Option[String], tp:P)(implicit spade:Spade, ove
   val _inputs = ListBuffer[Input[P, Module]]()
   def inputs = _inputs.toList 
   def addInput:Input[P, Mux[P]] = { val i = inputs.size; val in = Input(tp.clone, this, s"${this}.in$i").index(i); _inputs += in; in }
+  def addInputs(n:Int):List[Input[P, Mux[P]]] = List.fill(n)(addInput) 
   private[plasticine] def <== (outs:List[Output[P, Module]]):Unit = outs.foreach { out => <==(out) }
   private[plasticine] def <== (out:Output[P, Module]):Unit = {
     addInput <== out

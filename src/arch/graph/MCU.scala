@@ -18,6 +18,7 @@ case class PreloadMemoryComputeParam (
   override val vbufSize:Int = 16,
   override val numRegs:Int = 16,
   override val numCtrs:Int = 8,
+  override val muxSize:Int = 10,
   override val numUDCs:Int = 5
 ) extends MemoryComputeUnitParam (
   sbufSize = sbufSize,
@@ -28,6 +29,7 @@ case class PreloadMemoryComputeParam (
   numSouts = ConfigFactory.plasticineConf.soutPmu,
   numRegs  = ConfigFactory.plasticineConf.regsPmu,
   numStages = ConfigFactory.plasticineConf.rw,
+  muxSize = muxSize,
   numCtrs  = numCtrs,
   numUDCs  = numUDCs  
 ) with PreLoadSpadeParam
@@ -42,6 +44,7 @@ class MemoryComputeUnitParam(
   val numRegs:Int = 16,
   val numStages:Int = 8,
   val numCtrs:Int = 8,
+  val muxSize:Int = 10,
   val numUDCs:Int = 0
 ) extends ComputeUnitParam() {
   val numSRAMs = 1
@@ -50,6 +53,9 @@ class MemoryComputeUnitParam(
 
   /* Parameters */
   def config(cu:MemoryComputeUnit)(implicit spade:Spade) = {
+    cu.sram.writePortMux.addInputs(muxSize)
+    cu.sram.writeAddrMux.addInputs(muxSize)
+    cu.sram.readAddrMux.addInputs(muxSize)
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ otherOps)
     //cu.addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     //cu.addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)

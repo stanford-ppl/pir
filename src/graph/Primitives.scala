@@ -154,7 +154,12 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
         throw PIRException(s"Function Unit can only write to current stage ($stage) but writes to $s")
       case _ =>
     }
-    res.connect(out) 
+    //TODO: Refactor this
+    res.src match {
+      case sram:SRAM if sram.writeAddr==res => sram.wtAddr(out)
+      case sram:SRAM if sram.readAddr==res => sram.rdAddr(out)
+      case _ => res.connect(out) 
+    }
   }
   override def toUpdate = super.toUpdate || operands.map { !_.isConnected }.reduce{_ | _} || !out.isConnected
   val defs:List[Reg] = results.flatMap { _.src match {
@@ -421,7 +426,9 @@ case class Const[T<:AnyVal](value:T)(implicit design: Design) extends Module {
 case class Mux(name:Option[String])(implicit design:Design, ctrler:Controller) extends Primitive {
   override val typeStr = "Mux"
   override def toString = name.getOrElse(super.toString)
-  def addInput:InPort = { val i = ins.size; InPort(this, s"$this.in$i") }
-  val sel:InPort = InPort(this, s"${this}.sel") 
+  val _inputs = ListBuffer[InPort]()
+  val inputs = _inputs.toList
+  val sel = InPort(this, s"${this}.sel") 
   val out = OutPort(this, s"$this.out")
+  def addInput:InPort = { val i = _inputs.size; val in = InPort(this, s"$this.in$i"); _inputs += in; in }
 }

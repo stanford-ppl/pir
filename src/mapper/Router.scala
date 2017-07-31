@@ -420,7 +420,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       )
       if (routes.isEmpty) {
         var info = s"No route available for searching range=[$minHop, $maxHop]\n"
-        throw PassThroughException(this, ReplaceController(this, List(icl -> picl, ocl -> pocl), m), m)
+        throw PassThroughException(ReplaceController(this, List(icl -> picl, ocl -> pocl), m), m)
       }
       //var remain = routes.flatMap { case (pcl, fp) => filterUsedPaths(out, fp, m).map( fp => (pcl, fp)) }
       //remain = remain.diff(triedRes)

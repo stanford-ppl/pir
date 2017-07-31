@@ -46,7 +46,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
         }
       } match {
         case Success(mp) => mp
-        case Failure(PassThroughException(_, e@ReplaceController(_, blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
+        case Failure(PassThroughException(e@ReplaceController(_, blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
           throw e
         case Failure(e) => throw e
       }

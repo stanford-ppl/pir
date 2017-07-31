@@ -192,7 +192,7 @@ class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
 
-  val simulate = true
+  //val simulate = false
   // Apps 
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
   //"TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
@@ -224,9 +224,9 @@ class AppTests extends UnitTest { self =>
   //test(SRAMReadWrite, argOuts="x1026_x1096=41", timeOut=60, debug=true)
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
-  //val simulate = false
-  //val arch = SN16x8
-  //val arch = SN4x4
+  val simulate = false
+  //val arch = SN16x8_LD
+  val arch = SN4x4_LD
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), debug=true)
   //test(TensorLoadStore, arch=Some(arch), debug=true)
@@ -237,6 +237,6 @@ class AppTests extends UnitTest { self =>
   //test(BlackScholes, arch=Some(arch), debug=true)
   //test(Kmeans, arch=Some(arch), debug=true)
   //test(PageRank, arch=Some(arch), debug=true)
-  //test(Gibbs_Ising2D, arch=Some(arch), debug=true)
+  test(Gibbs_Ising2D, arch=Some(arch), debug=true)
 }
 
