@@ -392,7 +392,7 @@ case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: Design)    
 case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: Design)             extends Reg {override val typeStr = "regvo"}
 case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: Design)       extends Reg {override val typeStr = "regsi"}
 case class ScalarOutPR(scalarOut:ScalarOut)(implicit ctrler:ComputeUnit, design: Design)    extends Reg {override val typeStr = "regso"}
-case class TempPR()(implicit ctrler:InnerController, design: Design)                        extends Reg {override val typeStr = "regtp"}
+case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: Design)                        extends Reg {override val typeStr = "regtp"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
  * the PR belongs to

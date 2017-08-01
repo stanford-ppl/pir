@@ -56,6 +56,7 @@ trait PIRMetadata extends { self:Design =>
     override def apply(k:K):V = {
       super.get(k).getOrElse(false)
     }
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object isHead extends MOneToOneMap with PIRMetadataMaps {
@@ -82,7 +83,7 @@ trait PIRMetadata extends { self:Design =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object scuOf extends MBiOneToOneMap {
+  object scuOf extends MBiOneToOneMap with PIRMetadataMaps {
     type K = Controller
     type V = Controller
   }

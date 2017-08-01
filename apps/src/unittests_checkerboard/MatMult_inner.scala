@@ -43,8 +43,8 @@ object MatMult_inner extends PIRApp {
       val x1837 = CounterChain(name = "x1837", ctr1, ctr2).iter(1)
     }
     val x1838_dsp0 = MemoryPipeline(name="x1838_dsp0",parent="x1985") { implicit CU => 
-      val b2033 = CU.temp
-      val b2039 = CU.temp
+      val b2033 = CU.temp()
+      val b2039 = CU.temp()
       val x1941_x1941 = ScalarFIFO(size=1).wtPort(x1838_x1941_s)
       val x1909 = CounterChain.copy("x1943", "x1909")
       val x1946 = CounterChain.copy("x1984", "x1946")
@@ -56,8 +56,8 @@ object MatMult_inner extends PIRApp {
       RAStage(operands=List(b2039, CU.ctr(x1965(0))), op=FixAdd, results=List(x1838_x1969.readAddr))
     }
     val x1838_dsp1 = MemoryPipeline(name="x1838_dsp1",parent="x1985") { implicit CU => 
-      val b2031 = CU.temp
-      val b2033 = CU.temp
+      val b2031 = CU.temp()
+      val b2033 = CU.temp()
       val x1941_x1941 = ScalarFIFO(size=1).wtPort(x1838_x1941_s)
       val x1909 = CounterChain.copy("x1943", "x1909")
       val x1838_x1936 = SRAM(size=256,banking = NoBanking()).wtPort(x1941_x1941.readPort).rdPort(x1838_x1936_x1942_s)
@@ -72,8 +72,8 @@ object MatMult_inner extends PIRApp {
       val x1841 = CounterChain(name = "x1841", ctr3).iter(1)
     }
     val x1842_dsp0 = MemoryPipeline(name="x1842_dsp0",parent="x1944") { implicit CU => 
-      val b2027 = CU.temp
-      val b2019 = CU.temp
+      val b2027 = CU.temp()
+      val b2019 = CU.temp()
       val x1872_x1872 = VectorFIFO(size=1).wtPort(x1847_x1863_data_v)
       val x1865 = CounterChain.copy("x1873", "x1865")
       val x1912 = CounterChain.copy("x1931_0", "x1912")
@@ -86,8 +86,8 @@ object MatMult_inner extends PIRApp {
       RAStage(operands=List(b2027, CU.ctr(x1912(0))), op=FixAdd, results=List(x1842_x1918.readAddr))
     }
     val x1843_dsp0 = MemoryPipeline(name="x1843_dsp0",parent="x1944") { implicit CU => 
-      val b2029 = CU.temp
-      val b2025 = CU.temp
+      val b2029 = CU.temp()
+      val b2025 = CU.temp()
       val x1903_x1903 = VectorFIFO(size=1).wtPort(x1878_x1894_data_v)
       val x1912 = CounterChain.copy("x1931_0", "x1912")
       val x1909 = CounterChain.copy("x1943", "x1909")
@@ -104,10 +104,10 @@ object MatMult_inner extends PIRApp {
       val x1845 = CounterChain(name = "x1845", ctr4).iter(16)
     }
     val x1862_0 = Pipeline(name="x1862_0",parent=x1874) { implicit CU => 
-      val x1851 = CU.temp
-      val x1853 = CU.temp
-      val x1852 = CU.temp
-      val x1850 = CU.temp
+      val x1851 = CU.temp()
+      val x1853 = CU.temp()
+      val x1852 = CU.temp()
+      val x1850 = CU.temp()
       val x1818_x1849 = ScalarBuffer().wtPort(P_argin)
       val x1848 = ScalarBuffer().wtPort(a_addr_da)
       val x1837 = CounterChain.copy("x1985", "x1837")
@@ -135,10 +135,10 @@ object MatMult_inner extends PIRApp {
       val x1876 = CounterChain(name = "x1876", ctr6).iter(16)
     }
     val x1893_0 = Pipeline(name="x1893_0",parent=x1905) { implicit CU => 
-      val x1883 = CU.temp
-      val x1882 = CU.temp
-      val x1884 = CU.temp
-      val x1881 = CU.temp
+      val x1883 = CU.temp()
+      val x1882 = CU.temp()
+      val x1884 = CU.temp()
+      val x1881 = CU.temp()
       val x1817_x1880 = ScalarBuffer().wtPort(N_argin)
       val x1879 = ScalarBuffer().wtPort(b_addr_da)
       val x1841 = CounterChain.copy("x1944", "x1841")
@@ -176,8 +176,8 @@ object MatMult_inner extends PIRApp {
       Stage(operands=List(rr303), op=Bypass, results=List(CU.scalarOut(x1910_x1929_s)))
     }
     val x1942_0 = Pipeline(name="x1942_0",parent=x1943) { implicit CU => 
-      val x1938 = CU.temp
-      val x1939 = CU.temp
+      val x1938 = CU.temp()
+      val x1939 = CU.temp()
       val x1910_x1937 = ScalarBuffer().wtPort(x1910_x1929_s)
       val x1936_x1936 = ScalarFIFO(size=1).wtPort(x1838_x1936_x1942_s)
       val x1841 = CounterChain.copy("x1944", "x1841")
@@ -191,10 +191,10 @@ object MatMult_inner extends PIRApp {
       val x1946 = CounterChain(name = "x1946", ctr11).iter(16)
     }
     val x1963_0 = Pipeline(name="x1963_0",parent=x1984) { implicit CU => 
-      val x1955 = CU.temp
-      val x1953 = CU.temp
-      val x1952 = CU.temp
-      val x1954 = CU.temp
+      val x1955 = CU.temp()
+      val x1953 = CU.temp()
+      val x1952 = CU.temp()
+      val x1954 = CU.temp()
       val x1817_x1951 = ScalarBuffer().wtPort(N_argin)
       val x1950 = ScalarBuffer().wtPort(c_addr_da)
       val x1837 = CounterChain.copy("x1985", "x1837")

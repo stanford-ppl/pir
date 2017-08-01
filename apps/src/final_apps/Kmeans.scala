@@ -46,8 +46,8 @@ object Kmeans extends PIRApp {
     val x3515 = Sequential(name="x3515",parent=x3516) { implicit CU => 
     }
     val x3320_dsp0 = MemoryPipeline(name="x3320_dsp0",parent="x3515") { implicit CU => 
-      val b3631 = CU.temp
-      val b3623 = CU.temp
+      val b3631 = CU.temp()
+      val b3623 = CU.temp()
       val x3342_x3342 =  VectorFIFO(size=1).wtPort(x3326_x3336_data_v)
       val x3324 = CounterChain.copy("x3344", "x3324")
       val x3387 = CounterChain.copy("x3409", "x3387")
@@ -61,8 +61,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3631, CU.ctr(x3387(0))), op=FixAdd, results=List(x3320_x3392.readAddr))
     }
     val x3321_dsp0 = MemoryPipeline(name="x3321_dsp0",parent="x3515") { implicit CU => 
-      val b3651 = CU.temp
-      val b3653 = CU.temp
+      val b3651 = CU.temp()
+      val b3653 = CU.temp()
       val x3476_x3476 =  VectorFIFO(size=1).wtPort(x3321_x3476_v)
       val x3482 = CounterChain.copy("x3489", "x3482")
       val x3467 = CounterChain.copy("x3477_0", "x3467")
@@ -74,8 +74,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3653, CU.ctr(x3482(1))), op=FixAdd, results=List(x3321_x3484.readAddr))
     }
     val x3321_dsp1 = MemoryPipeline(name="x3321_dsp1",parent="x3515") { implicit CU => 
-      val b3633 = CU.temp
-      val b3651 = CU.temp
+      val b3633 = CU.temp()
+      val b3651 = CU.temp()
       val x3476_x3476 =  VectorFIFO(size=1).wtPort(x3321_x3476_v)
       val x3387 = CounterChain.copy("x3409", "x3387")
       val x3467 = CounterChain.copy("x3477_0", "x3467")
@@ -88,8 +88,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3633, CU.ctr(x3387(0))), op=FixAdd, results=List(x3321_x3393.readAddr))
     }
     val x3322_dsp0 = MemoryPipeline(name="x3322_dsp0",parent="x3454") { implicit CU => 
-      val b3649 = CU.temp
-      val b3645 = CU.temp
+      val b3649 = CU.temp()
+      val b3645 = CU.temp()
       val x3451_x3451 =  VectorFIFO(size=1).wtPort(x3322_x3451_v)
       val x3442 = CounterChain.copy("x3452_0", "x3442")
       val x3467 = CounterChain.copy("x3477_0", "x3467")
@@ -101,8 +101,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3649, CU.ctr(x3467(1))), op=FixAdd, results=List(x3322_x3471.readAddr))
     }
     val x3322_dsp1 = MemoryPipeline(name="x3322_dsp1",parent="x3454") { implicit CU => 
-      val b3645 = CU.temp
-      val b3647 = CU.temp
+      val b3645 = CU.temp()
+      val b3647 = CU.temp()
       val x3451_x3451 =  VectorFIFO(size=1).wtPort(x3322_x3451_v)
       val x3442 = CounterChain.copy("x3452_0", "x3442")
       val x3458 = CounterChain.copy("x3464_0", "x3458")
@@ -114,8 +114,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3647, Const(95)), op=FixAdd, results=List(x3322_x3460.readAddr))
     }
     val x3322_dsp2 = MemoryPipeline(name="x3322_dsp2",parent="x3454") { implicit CU => 
-      val b3645 = CU.temp
-      val b3643 = CU.temp
+      val b3645 = CU.temp()
+      val b3643 = CU.temp()
       val x3451_x3451 =  VectorFIFO(size=1).wtPort(x3322_x3451_v)
       val x3442 = CounterChain.copy("x3452_0", "x3442")
       val x3322_x3447 =  SRAM(size=1920,banking = NoBanking()).wtPort(x3451_x3451.readPort).rdPort(x3322_x3447_x3452_v)
@@ -130,8 +130,8 @@ object Kmeans extends PIRApp {
       val x3324 = CounterChain(name = "x3324", ctr1).iter(20)
     }
     val x3335_0 = Pipeline(name="x3335_0",parent=x3344) { implicit CU => 
-      val x3329 = CU.temp
-      val x3328 = CU.temp
+      val x3329 = CU.temp()
+      val x3328 = CU.temp()
       val x3327 =  ScalarBuffer().wtPort(x3327_argin)
       val x3324 = CounterChain.copy("x3344", "x3324")
       var stage: List[Stage] = Nil
@@ -161,8 +161,8 @@ object Kmeans extends PIRApp {
       val x3350 = CounterChain(name = "x3350", ctr4).iter(960000)
     }
     val x3351_dsp0 = MemoryPipeline(name="x3351_dsp0",parent="x3455") { implicit CU => 
-      val b3629 = CU.temp
-      val b3637 = CU.temp
+      val b3629 = CU.temp()
+      val b3637 = CU.temp()
       val x3376_x3376 =  VectorFIFO(size=1).wtPort(x3355_x3368_data_v)
       val x3370 = CounterChain.copy("x3377", "x3370")
       val x3428 = CounterChain.copy("x3439_0", "x3428")
@@ -176,8 +176,8 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3637, CU.ctr(x3428(1))), op=FixAdd, results=List(x3351_x3433.readAddr))
     }
     val x3351_dsp1 = MemoryPipeline(name="x3351_dsp1",parent="x3455") { implicit CU => 
-      val b3635 = CU.temp
-      val b3629 = CU.temp
+      val b3635 = CU.temp()
+      val b3629 = CU.temp()
       val x3376_x3376 =  VectorFIFO(size=1).wtPort(x3355_x3368_data_v)
       val x3370 = CounterChain.copy("x3377", "x3370")
       val x3387 = CounterChain.copy("x3409", "x3387")
@@ -195,9 +195,9 @@ object Kmeans extends PIRApp {
       val x3353 = CounterChain(name = "x3353", ctr5).iter(1)
     }
     val x3367_0 = Pipeline(name="x3367_0",parent=x3378) { implicit CU => 
-      val x3358 = CU.temp
-      val x3359 = CU.temp
-      val x3357 = CU.temp
+      val x3358 = CU.temp()
+      val x3359 = CU.temp()
+      val x3357 = CU.temp()
       val x3356 =  ScalarBuffer().wtPort(x3356_argin)
       val x3350 = CounterChain.copy("x3455", "x3350")
       val x3353 = CounterChain.copy("x3378", "x3353")
@@ -231,9 +231,9 @@ object Kmeans extends PIRApp {
       val x3387 = CounterChain(name = "x3387", ctr9).iter(6)
     }
     val x3409_0 = Pipeline(name="x3409_0",parent=x3409) { implicit CU => 
-      val x3399 = CU.temp
-      val x3401 = CU.temp
-      val x3400 = CU.temp
+      val x3399 = CU.temp()
+      val x3401 = CU.temp()
+      val x3400 = CU.temp()
       val x3394_x3394 =  VectorFIFO(size=1).wtPort(x3351_x3394_x3409_v)
       val x3393_x3393 =  VectorFIFO(size=1).wtPort(x3321_x3393_x3409_v)
       val x3392_x3392 =  VectorFIFO(size=1).wtPort(x3320_x3392_x3409_v)
@@ -257,8 +257,8 @@ object Kmeans extends PIRApp {
       Stage(operands=List(CU.ctr(x3384(0))), op=Bypass, results=List(CU.scalarOut(x3381_x3422_s)))
     }
     val x3425_dsp0 = MemoryPipeline(name="x3425_dsp0",parent="x3454") { implicit CU => 
-      val b3639 = CU.temp
-      val b3641 = CU.temp
+      val b3639 = CU.temp()
+      val b3641 = CU.temp()
       val x3438_x3438 =  VectorFIFO(size=1).wtPort(x3425_x3438_v)
       val x3442 = CounterChain.copy("x3452_0", "x3442")
       val x3428 = CounterChain.copy("x3439_0", "x3428")
@@ -270,7 +270,7 @@ object Kmeans extends PIRApp {
       RAStage(operands=List(b3641, CU.ctr(x3442(1))), op=FixAdd, results=List(x3425_x3446.readAddr))
     }
     val x3439_0 = Pipeline(name="x3439_0",parent=x3454) { implicit CU => 
-      val x3436 = CU.temp
+      val x3436 = CU.temp()
       val x3381_x3434 =  ScalarBuffer().wtPort(x3381_x3422_s)
       val x3433_x3433 =  VectorFIFO(size=1).wtPort(x3351_x3433_x3439_v)
       val ctr10 = Counter(min=Const(0), max=Const(20), step=Const(1), par=1) // Counter
@@ -304,8 +304,8 @@ object Kmeans extends PIRApp {
       Stage(operands=List(CU.load(x3460_x3460), Const(1)), op=FixMax, results=List(CU.vecOut(x3456_x3463_v)))
     }
     val x3477_0 = Pipeline(name="x3477_0",parent=x3478) { implicit CU => 
-      val x3472 = CU.temp
-      val x3474 = CU.temp
+      val x3472 = CU.temp()
+      val x3474 = CU.temp()
       val x3471_x3471 =  VectorFIFO(size=1).wtPort(x3322_x3471_x3477_v)
       val x3470_x3470 =  VectorFIFO(size=1).wtPort(x3456_x3470_x3477_v)
       val ctr15 = Counter(min=Const(0), max=Const(20), step=Const(1), par=1) // Counter
@@ -317,7 +317,7 @@ object Kmeans extends PIRApp {
       Stage(operands=List(x3472, Const(0), x3474), op=Mux, results=List(CU.vecOut(x3321_x3476_v)))
     }
     val x3479_dsp0 = MemoryPipeline(name="x3479_dsp0",parent="x3515") { implicit CU => 
-      val x3486 = CU.temp
+      val x3486 = CU.temp()
       val x3488_x3488 =  VectorFIFO(size=1).wtPort(x3321_x3484_x3489_v)
       val x3482 = CounterChain.copy("x3489", "x3482")
       val x3501 = CounterChain.copy("x3506", "x3501")

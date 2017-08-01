@@ -23,7 +23,7 @@ object ParSRAMReadWrite2D_cb extends PIRApp {
       val ctr1 = Counter(min=Const(0), max=Mbuf.readPort, step=Const(1), par=1) // Counter
       val ctr2 = Counter(min=Const(0), max=Nbuf.readPort, step=Const(1), par=16) // Counter
       val x1047 = CounterChain(name = "x1047", ctr1, ctr2).iter(2)
-      val temp1 = CU.temp
+      val temp1 = CU.temp()
       Stage(operands=List(CU.ctr(x1047(0)), Nbuf.readPort), op=FixMul, results=List(temp1))
       Stage(operands=List(temp1, CU.ctr(x1047(1))), op=FixAdd, results=List(CU.vecOut(x1055_x1064_data_v)))
     }
@@ -34,8 +34,8 @@ object ParSRAMReadWrite2D_cb extends PIRApp {
       val x1047 = CounterChain.copy("x1052", "x1047")
       val x1076 = CounterChain.copy("x1087_0", "x1076")
       val x1034_x1079 =  SRAM(size=64,banking = Strided(1)).wtPort(x1070_x1070.readPort).rdPort(x1034_x1079_x1087_v)
-      val temp1 = CU.temp
-      val temp2 = CU.temp
+      val temp1 = CU.temp()
+      val temp2 = CU.temp()
       WAStage(operands=List(CU.ctr(x1047(0)), Nbuf.readPort), op=FixMul, results=List(temp1))
       WAStage(operands=List(temp1, CU.ctr(x1047(1))), op=FixAdd, results=List(x1034_x1079.writeAddr))
       RAStage(operands=List(CU.ctr(x1076(0)), Nbuf.readPort), op=FixMul, results=List(temp2))

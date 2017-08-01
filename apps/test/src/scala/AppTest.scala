@@ -227,8 +227,8 @@ class AppTests extends UnitTest { self =>
   
   val simulate = false
   val virbose = true
-  //val arch = SN16x8_LD
-  val arch = SN8x8_LD
+  val arch = SN16x8_LD
+  //val arch = SN8x8_LD
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), debug=true)
   //test(TensorLoadStore, arch=Some(arch), debug=true)
@@ -239,6 +239,7 @@ class AppTests extends UnitTest { self =>
   //test(BlackScholes, arch=Some(arch), debug=true)
   //test(Kmeans, arch=Some(arch), debug=true)
   //test(PageRank, arch=Some(arch), debug=true)
-  test(Gibbs_Ising2D, arch=Some(arch), virbose=virbose, debug=true)
+  //test(Gibbs_Ising2D, arch=Some(arch), virbose=virbose, debug=true)
+  test(Backprop, arch=Some(arch), virbose=virbose, debug=true)
 }
 

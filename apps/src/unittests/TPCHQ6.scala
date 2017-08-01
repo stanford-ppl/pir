@@ -99,7 +99,7 @@ object TPCHQ6 extends PIRApp {
       val x1604_unit = CounterChain(name = "x1604_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1595 = Pipeline(name="x1595",parent=x1604) { implicit CU => 
-      val x1589 = CU.temp
+      val x1589 = CU.temp()
       val x1588 =  ScalarBuffer().wtPort(x1588_argin)
       val x1581 = CounterChain.copy("x1697", "x1581")
       val x1595_unit = CounterChain(name = "x1595_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -120,7 +120,7 @@ object TPCHQ6 extends PIRApp {
       val x1623_unit = CounterChain(name = "x1623_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1614 = Pipeline(name="x1614",parent=x1623) { implicit CU => 
-      val x1608 = CU.temp
+      val x1608 = CU.temp()
       val x1607 =  ScalarBuffer().wtPort(x1607_argin)
       val x1581 = CounterChain.copy("x1697", "x1581")
       val x1614_unit = CounterChain(name = "x1614_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -141,7 +141,7 @@ object TPCHQ6 extends PIRApp {
       val x1642_unit = CounterChain(name = "x1642_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1633 = Pipeline(name="x1633",parent=x1642) { implicit CU => 
-      val x1627 = CU.temp
+      val x1627 = CU.temp()
       val x1626 =  ScalarBuffer().wtPort(x1626_argin)
       val x1581 = CounterChain.copy("x1697", "x1581")
       val x1633_unit = CounterChain(name = "x1633_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -162,7 +162,7 @@ object TPCHQ6 extends PIRApp {
       val x1661_unit = CounterChain(name = "x1661_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1652 = Pipeline(name="x1652",parent=x1661) { implicit CU => 
-      val x1646 = CU.temp
+      val x1646 = CU.temp()
       val x1645 =  ScalarBuffer().wtPort(x1645_argin)
       val x1581 = CounterChain.copy("x1697", "x1581")
       val x1652_unit = CounterChain(name = "x1652_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -180,16 +180,16 @@ object TPCHQ6 extends PIRApp {
       val x1655 = CounterChain(name = "x1655", ctr5).iter(2)
     }
     val x1690 = Pipeline(name="x1690",parent=x1697) { implicit CU => 
-      val x1677 = CU.temp
-      val x1679 = CU.temp
-      val x1682 = CU.temp
-      val x1673 = CU.temp
-      val x1685 = CU.temp
-      val x1675 = CU.temp
-      val x1680 = CU.temp
-      val x1683 = CU.temp
-      val x1674 = CU.temp
-      val x1678 = CU.temp
+      val x1677 = CU.temp()
+      val x1679 = CU.temp()
+      val x1682 = CU.temp()
+      val x1673 = CU.temp()
+      val x1685 = CU.temp()
+      val x1675 = CU.temp()
+      val x1680 = CU.temp()
+      val x1683 = CU.temp()
+      val x1674 = CU.temp()
+      val x1678 = CU.temp()
       val x1668_x1668 =  VectorFIFO(size=1).wtPort(x1584_x1668_x1690_v)
       val x1670_x1670 =  VectorFIFO(size=1).wtPort(x1585_x1670_x1690_v)
       val x1667_x1667 =  VectorFIFO(size=1).wtPort(x1582_x1667_x1690_v)

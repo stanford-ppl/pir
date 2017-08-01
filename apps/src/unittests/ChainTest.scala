@@ -23,7 +23,7 @@ object ChainTest extends PIRApp {
       val ctr2 = Counter(Const(0), x222_x225.readPort, Const(1), par=1)
       val cchain = CounterChain(name = "x228_unit", ctr1, ctr2)
       val occhain = CounterChain.copy("x229", "x229_unit")
-      val tmp = CU.temp
+      val tmp = CU.temp()
       Stage(operands=List(CU.ctr(cchain(0)), CU.ctr(cchain(1))), op=FixMul, results=List(tmp))
       Stage(operands=List(CU.ctr(occhain(0)), tmp), op=FixMul, results=List(CU.scalarOut(x223_x227_argout)))
     }

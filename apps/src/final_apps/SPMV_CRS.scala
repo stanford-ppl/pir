@@ -153,9 +153,9 @@ object SPMV_CRS extends PIRApp {
       val x3670 = CounterChain(name = "x3670", ctr1).iter(1)
     }
     val x3681_0 = Pipeline(name="x3681_0",parent=x4026) { implicit CU => 
-      val x3675 = CU.temp
-      val x3674 = CU.temp
-      val x3676 = CU.temp
+      val x3675 = CU.temp()
+      val x3674 = CU.temp()
+      val x3676 = CU.temp()
       val x3670 = CounterChain.copy("x4026", "x3670")
       val x3681_unit = CounterChain(name = "x3681_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(CU.ctr(x3670(0)), Const(495)), op=FixMul, results=List(x3674, CU.scalarOut(x3671_x3678_s)))
@@ -170,9 +170,9 @@ object SPMV_CRS extends PIRApp {
       val x3709_unit = CounterChain(name = "x3709_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3709_0 = Pipeline(name="x3709_0",parent=x3709) { implicit CU => 
-      val x3687 = CU.temp
-      val x3694 = CU.temp
-      val x3686 = CU.temp
+      val x3687 = CU.temp()
+      val x3694 = CU.temp()
+      val x3686 = CU.temp()
       val x3671_x3685 = ScalarBuffer().wtPort(x3671_x3678_s)
       val x3673_x3688 = ScalarBuffer().wtPort(x3673_x3680_s)
       Stage(operands=List(CU.load(x3671_x3685), Const(4)), op=FixMul, results=List(x3686, CU.scalarOut(bus_361_s)))
@@ -182,11 +182,11 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(CU.load(x3673_x3688), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_366_s)))
     }
     val x3709_1 = Pipeline(name="x3709_1",parent=x3709) { implicit CU => 
-      val x3695 = CU.temp
-      val x3692 = CU.temp
-      val x3697 = CU.temp
-      val x3693 = CU.temp
-      val x3691 = CU.temp
+      val x3695 = CU.temp()
+      val x3692 = CU.temp()
+      val x3697 = CU.temp()
+      val x3693 = CU.temp()
+      val x3691 = CU.temp()
       val x3694 = ScalarFIFO(size=1).wtPort(bus_364_s)
       val x3689 = ScalarFIFO(size=1).wtPort(bus_366_s)
       val x3673_x3688 = ScalarBuffer().wtPort(x3673_x3680_s)
@@ -199,8 +199,8 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3697, x3695), op=FixAdd, results=List(CU.scalarOut(x3683_b4066_x3708_b4074_s)))
     }
     val x3709_2 = Pipeline(name="x3709_2",parent=x3709) { implicit CU => 
-      val x3690 = CU.temp
-      val x3699 = CU.temp
+      val x3690 = CU.temp()
+      val x3699 = CU.temp()
       val x3686 = ScalarFIFO(size=1).wtPort(bus_361_s)
       val x3687 = ScalarFIFO(size=1).wtPort(bus_363_s)
       val x3689 = ScalarFIFO(size=1).wtPort(bus_366_s)
@@ -263,9 +263,9 @@ object SPMV_CRS extends PIRApp {
       val x3785_unit = CounterChain(name = "x3785_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3785_0 = Pipeline(name="x3785_0",parent=x3785) { implicit CU => 
-      val x3769 = CU.temp
-      val x3762 = CU.temp
-      val x3761 = CU.temp
+      val x3769 = CU.temp()
+      val x3762 = CU.temp()
+      val x3761 = CU.temp()
       val x3750_x3763 = ScalarBuffer().wtPort(x3750_x3755_s)
       val x3741_x3760 = ScalarBuffer().wtPort(x3741_x3747_s)
       Stage(operands=List(CU.load(x3741_x3760), Const(4)), op=FixMul, results=List(x3761, CU.scalarOut(bus_389_s)))
@@ -275,11 +275,11 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(CU.load(x3750_x3763), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_394_s)))
     }
     val x3785_1 = Pipeline(name="x3785_1",parent=x3785) { implicit CU => 
-      val x3768 = CU.temp
-      val x3766 = CU.temp
-      val x3772 = CU.temp
-      val x3770 = CU.temp
-      val x3767 = CU.temp
+      val x3768 = CU.temp()
+      val x3766 = CU.temp()
+      val x3772 = CU.temp()
+      val x3770 = CU.temp()
+      val x3767 = CU.temp()
       val x3769 = ScalarFIFO(size=1).wtPort(bus_392_s)
       val x3761 = ScalarFIFO(size=1).wtPort(bus_389_s)
       val x3764 = ScalarFIFO(size=1).wtPort(bus_394_s)
@@ -292,8 +292,8 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3772, x3770), op=FixAdd, results=List(CU.scalarOut(x3758_b4079_x3784_b4087_s)))
     }
     val x3785_2 = Pipeline(name="x3785_2",parent=x3785) { implicit CU => 
-      val x3765 = CU.temp
-      val x3774 = CU.temp
+      val x3765 = CU.temp()
+      val x3774 = CU.temp()
       val x3768 = ScalarFIFO(size=1).wtPort(bus_397_s)
       val x3762 = ScalarFIFO(size=1).wtPort(bus_391_s)
       val x3777 = ScalarBuffer().wtPort(cols_dram_da)
@@ -339,9 +339,9 @@ object SPMV_CRS extends PIRApp {
       val x3845_unit = CounterChain(name = "x3845_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3845_0 = Pipeline(name="x3845_0",parent=x3845) { implicit CU => 
-      val x3829 = CU.temp
-      val x3822 = CU.temp
-      val x3821 = CU.temp
+      val x3829 = CU.temp()
+      val x3822 = CU.temp()
+      val x3821 = CU.temp()
       val x3750_x3823 = ScalarBuffer().wtPort(x3750_x3755_s)
       val x3741_x3820 = ScalarBuffer().wtPort(x3741_x3747_s)
       Stage(operands=List(CU.load(x3741_x3820), Const(4)), op=FixMul, results=List(x3821, CU.scalarOut(bus_415_s)))
@@ -351,11 +351,11 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(CU.load(x3750_x3823), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_420_s)))
     }
     val x3845_1 = Pipeline(name="x3845_1",parent=x3845) { implicit CU => 
-      val x3832 = CU.temp
-      val x3827 = CU.temp
-      val x3830 = CU.temp
-      val x3826 = CU.temp
-      val x3828 = CU.temp
+      val x3832 = CU.temp()
+      val x3827 = CU.temp()
+      val x3830 = CU.temp()
+      val x3826 = CU.temp()
+      val x3828 = CU.temp()
       val x3824 = ScalarFIFO(size=1).wtPort(bus_420_s)
       val x3829 = ScalarFIFO(size=1).wtPort(bus_418_s)
       val x3821 = ScalarFIFO(size=1).wtPort(bus_415_s)
@@ -368,8 +368,8 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3832, x3830), op=FixAdd, results=List(CU.scalarOut(x3818_b4092_x3844_b4100_s)))
     }
     val x3845_2 = Pipeline(name="x3845_2",parent=x3845) { implicit CU => 
-      val x3825 = CU.temp
-      val x3834 = CU.temp
+      val x3825 = CU.temp()
+      val x3834 = CU.temp()
       val x3824 = ScalarFIFO(size=1).wtPort(bus_420_s)
       val x3822 = ScalarFIFO(size=1).wtPort(bus_417_s)
       val x3821 = ScalarFIFO(size=1).wtPort(bus_415_s)
@@ -418,10 +418,10 @@ object SPMV_CRS extends PIRApp {
       val x3896_unit = CounterChain(name = "x3896_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3896_0 = Pipeline(name="x3896_0",parent=x3896) { implicit CU => 
-      val x3890 = CU.temp
-      val x3889 = CU.temp
-      val x3891 = CU.temp
-      val x3888 = CU.temp
+      val x3890 = CU.temp()
+      val x3889 = CU.temp()
+      val x3891 = CU.temp()
+      val x3888 = CU.temp()
       val x3878_x3886 = ScalarBuffer().wtPort(x3878_x3883_s)
       Stage(operands=List(CU.load(x3878_x3886), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_443_s)))
       Stage(operands=List(CU.load(x3878_x3886), Const(16)), op=FixMod, results=List(x3888))
@@ -439,9 +439,9 @@ object SPMV_CRS extends PIRApp {
       val x3929_unit = CounterChain(name = "x3929_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3915_0 = Pipeline(name="x3915_0",parent=x3929) { implicit CU => 
-      val x3910 = CU.temp
-      val x3903 = CU.temp
-      val x3912 = CU.temp
+      val x3910 = CU.temp()
+      val x3903 = CU.temp()
+      val x3912 = CU.temp()
       val x3908_x3908 = ScalarFIFO(size=1).wtPort(x3665_x3908_x3915_s)
       val x3878_x3902 = ScalarBuffer().wtPort(x3878_x3883_s)
       val x3904 = ScalarBuffer().wtPort(vec_dram_da)
@@ -480,8 +480,8 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(CU.load(x3930_x3946)), op=Bypass, results=List(CU.scalarOut(x3668_x3948_s)))
     }
     val x3959_0 = Pipeline(name="x3959_0",parent=x4026) { implicit CU => 
-      val x3955 = CU.temp
-      val x3953 = CU.temp
+      val x3955 = CU.temp()
+      val x3953 = CU.temp()
       val x3672_x3954 = ScalarBuffer().wtPort(x3672_x3679_s)
       val x3670 = CounterChain.copy("x4026", "x3670")
       val x3959_unit = CounterChain(name = "x3959_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -499,11 +499,11 @@ object SPMV_CRS extends PIRApp {
       val x3993_unit = CounterChain(name = "x3993_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3993_0 = Pipeline(name="x3993_0",parent=x3993) { implicit CU => 
-      val x3975 = CU.temp
-      val x3974 = CU.temp
-      val x3971 = CU.temp
-      val x3973 = CU.temp
-      val x3968 = CU.temp
+      val x3975 = CU.temp()
+      val x3974 = CU.temp()
+      val x3971 = CU.temp()
+      val x3973 = CU.temp()
+      val x3968 = CU.temp()
       val x3952_x3970 = ScalarBuffer().wtPort(x3952_x3958_s)
       val x3951_x3967 = ScalarBuffer().wtPort(x3951_x3957_s)
       Stage(operands=List(CU.load(x3951_x3967), Const(4)), op=FixMul, results=List(x3968, CU.scalarOut(bus_475_s)))
@@ -514,9 +514,9 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3975, Const(4)), op=FixDiv, results=List(CU.scalarOut(bus_481_s)))
     }
     val x3993_1 = Pipeline(name="x3993_1",parent=x3993) { implicit CU => 
-      val x3969 = CU.temp
-      val x3976 = CU.temp
-      val x3979 = CU.temp
+      val x3969 = CU.temp()
+      val x3976 = CU.temp()
+      val x3979 = CU.temp()
       val x3977 = ScalarFIFO(size=1).wtPort(bus_481_s)
       val x3952_x3970 = ScalarBuffer().wtPort(x3952_x3958_s)
       val x3968 = ScalarFIFO(size=1).wtPort(bus_475_s)
@@ -527,8 +527,8 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3976, CU.load(x3952_x3970)), op=FixAdd, results=List(CU.scalarOut(x3965_x3991_s)))
     }
     val x3993_2 = Pipeline(name="x3993_2",parent=x3993) { implicit CU => 
-      val x3972 = CU.temp
-      val x3981 = CU.temp
+      val x3972 = CU.temp()
+      val x3981 = CU.temp()
       val x3984 = ScalarBuffer().wtPort(result_dram_da)
       val x3975 = ScalarFIFO(size=1).wtPort(bus_480_s)
       val x3969 = ScalarFIFO(size=1).wtPort(bus_482_s)
@@ -540,9 +540,9 @@ object SPMV_CRS extends PIRApp {
       Stage(operands=List(x3972, CU.load(x3984)), op=FixAdd, results=List(CU.scalarOut(x3960_b4103_x3988_b4105_s)))
     }
     val x4010_0 = Pipeline(name="x4010_0",parent=x4011) { implicit CU => 
-      val x4001 = CU.temp
-      val x3998 = CU.temp
-      val x4000 = CU.temp
+      val x4001 = CU.temp()
+      val x3998 = CU.temp()
+      val x4000 = CU.temp()
       val x3964_x3997 = ScalarBuffer().wtPort(x3964_x3990_s)
       val x4005_x4005 = ScalarFIFO(size=1).wtPort(x3668_x4005_x4010_s)
       val x3966_x3994 = ScalarBuffer().wtPort(x3966_x3992_s)

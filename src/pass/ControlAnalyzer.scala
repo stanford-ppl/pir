@@ -81,6 +81,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         dprintln(s"setHead: $ctrler descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
         fifos.isEmpty
     }
+    dprintln(isHead.info(ctrler))
   }
 
   def setLast(ctrler:Controller) = emitBlock(s"setLast: $ctrler") {
@@ -101,9 +102,10 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         dprintln(s"descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
         fifos.isEmpty
     }
+    dprintln(isLast.info(ctrler))
   }
 
-  def setLength(ctrler:Controller) = {
+  def setLength(ctrler:Controller) = emitBlock(s"setLength($ctrler)") {
     var count = 1
     var heads:List[Controller] = ctrler.children.filter{child => !isHead(child) }
     while(heads.size!=0) {
@@ -112,9 +114,10 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       count +=1
     }
     lengthOf(ctrler) = count
+    dprintln(lengthOf.info(ctrler))
   }
 
-  def setSCUs(ctrler:Controller) = {
+  def setSCUs(ctrler:Controller) = emitBlock(s"setSCUs($ctrler)"){
     ctrler match {
       case mc:MemoryController if mc.mctpe == Scatter => 
       case mc:MemoryController if mc.mctpe.isDense =>
@@ -123,6 +126,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
         scuOf(mc) = mc.getFifo("addr").writer.ctrler
       case mc =>
     }
+    dprintln(scuOf.info(ctrler))
   }
 
   def setStyle = {
@@ -173,17 +177,12 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       setHead(ctrler)
       setLast(ctrler)
     }
+  }
+
+  addPass(canRun=(!Config.debug || design.pirDataDotGen4.hasRun) && this.hasRun(2), runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
-      setLength(ctrler)
+      if (Config.ctrl) setLength(ctrler) //TODO: fix this
       setSCUs(ctrler)
-    }
-    design.top.ctrlers.foreach { ctrler =>
-      emitBlock(s"$ctrler") {
-        dprintln(s"isHead = ${isHead(ctrler)}")
-        dprintln(s"isLast = ${isLast(ctrler)}")
-        dprintln(s"length = ${lengthOf(ctrler)}")
-        dprintln(s"scuOf = ${scuOf.get(ctrler)}")
-      }
     }
   }
 

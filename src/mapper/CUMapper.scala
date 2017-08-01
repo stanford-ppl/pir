@@ -77,7 +77,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
         case _ =>
       }
       if (prts.size>1) routers.foreach { router => prts = router.filterPCL(cl, prts, m) }
-      else throw MappingException(m, s"No remaining Controller to map $cl")
+      else if (prts.size==0) throw MappingException(m, s"No remaining Controller to map $cl")
       prts
     }
   }

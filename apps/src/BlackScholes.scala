@@ -267,7 +267,7 @@ object BlackScholes extends PIRApp {
     val x3685 = StreamController(name="x3685",parent=x4150) { implicit CU => 
     }
     val x3676_0 = Pipeline(name="x3676_0",parent=x3685) { implicit CU => 
-      val x3670 = CU.temp
+      val x3670 = CU.temp()
       val x3669 =  ScalarBuffer().wtPort(x3669_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -288,7 +288,7 @@ object BlackScholes extends PIRApp {
     val x3704 = StreamController(name="x3704",parent=x4150) { implicit CU => 
     }
     val x3695_0 = Pipeline(name="x3695_0",parent=x3704) { implicit CU => 
-      val x3689 = CU.temp
+      val x3689 = CU.temp()
       val x3688 =  ScalarBuffer().wtPort(x3688_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -309,7 +309,7 @@ object BlackScholes extends PIRApp {
     val x3723 = StreamController(name="x3723",parent=x4150) { implicit CU => 
     }
     val x3714_0 = Pipeline(name="x3714_0",parent=x3723) { implicit CU => 
-      val x3708 = CU.temp
+      val x3708 = CU.temp()
       val x3707 =  ScalarBuffer().wtPort(x3707_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -330,7 +330,7 @@ object BlackScholes extends PIRApp {
     val x3742 = StreamController(name="x3742",parent=x4150) { implicit CU => 
     }
     val x3733_0 = Pipeline(name="x3733_0",parent=x3742) { implicit CU => 
-      val x3727 = CU.temp
+      val x3727 = CU.temp()
       val x3726 =  ScalarBuffer().wtPort(x3726_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -351,7 +351,7 @@ object BlackScholes extends PIRApp {
     val x3761 = StreamController(name="x3761",parent=x4150) { implicit CU => 
     }
     val x3752_0 = Pipeline(name="x3752_0",parent=x3761) { implicit CU => 
-      val x3746 = CU.temp
+      val x3746 = CU.temp()
       val x3745 =  ScalarBuffer().wtPort(x3745_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -372,7 +372,7 @@ object BlackScholes extends PIRApp {
     val x3780 = StreamController(name="x3780",parent=x4150) { implicit CU => 
     }
     val x3771_0 = Pipeline(name="x3771_0",parent=x3780) { implicit CU => 
-      val x3765 = CU.temp
+      val x3765 = CU.temp()
       val x3764 =  ScalarBuffer().wtPort(x3764_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -393,7 +393,7 @@ object BlackScholes extends PIRApp {
     val x3800 = StreamController(name="x3800",parent=x4150) { implicit CU => 
     }
     val x3791_0 = Pipeline(name="x3791_0",parent=x3800) { implicit CU => 
-      val x3785 = CU.temp
+      val x3785 = CU.temp()
       val x3784 =  ScalarBuffer().wtPort(x3784_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -414,7 +414,7 @@ object BlackScholes extends PIRApp {
     val x3819 = StreamController(name="x3819",parent=x4150) { implicit CU => 
     }
     val x3810_0 = Pipeline(name="x3810_0",parent=x3819) { implicit CU => 
-      val x3804 = CU.temp
+      val x3804 = CU.temp()
       val x3803 =  ScalarBuffer().wtPort(x3803_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -435,7 +435,7 @@ object BlackScholes extends PIRApp {
     val x3838 = StreamController(name="x3838",parent=x4150) { implicit CU => 
     }
     val x3829_0 = Pipeline(name="x3829_0",parent=x3838) { implicit CU => 
-      val x3823 = CU.temp
+      val x3823 = CU.temp()
       val x3822 =  ScalarBuffer().wtPort(x3822_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -456,7 +456,7 @@ object BlackScholes extends PIRApp {
     val x3857 = StreamController(name="x3857",parent=x4150) { implicit CU => 
     }
     val x3848_0 = Pipeline(name="x3848_0",parent=x3857) { implicit CU => 
-      val x3842 = CU.temp
+      val x3842 = CU.temp()
       val x3841 =  ScalarBuffer().wtPort(x3841_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -477,7 +477,7 @@ object BlackScholes extends PIRApp {
     val x3876 = StreamController(name="x3876",parent=x4150) { implicit CU => 
     }
     val x3867_0 = Pipeline(name="x3867_0",parent=x3876) { implicit CU => 
-      val x3861 = CU.temp
+      val x3861 = CU.temp()
       val x3860 =  ScalarBuffer().wtPort(x3860_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -498,7 +498,7 @@ object BlackScholes extends PIRApp {
     val x3895 = StreamController(name="x3895",parent=x4150) { implicit CU => 
     }
     val x3886_0 = Pipeline(name="x3886_0",parent=x3895) { implicit CU => 
-      val x3880 = CU.temp
+      val x3880 = CU.temp()
       val x3879 =  ScalarBuffer().wtPort(x3879_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -521,8 +521,8 @@ object BlackScholes extends PIRApp {
       val x3899 = CounterChain(name = "x3899", ctr14).iter(125)
     }
     val x3994_0 = Pipeline(name="x3994_0",parent=x3994) { implicit CU => 
-      val x3914 = CU.temp
-      val x3909 = CU.temp
+      val x3914 = CU.temp()
+      val x3909 = CU.temp()
       val x3902_x3902 =  VectorFIFO(size=1).wtPort(x3657_x3902_x3994_v)
       val x3904_x3904 =  VectorFIFO(size=1).wtPort(x3661_x3904_x3994_v)
       val x3901_x3901 =  VectorFIFO(size=1).wtPort(x3655_x3901_x3994_v)
@@ -533,7 +533,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3914, Const(0.5)), op=FltMul, results=List(CU.vecOut(bus_537_v)))
     }
     val x3994_1 = Pipeline(name="x3994_1",parent=x3994) { implicit CU => 
-      val x3916 = CU.temp
+      val x3916 = CU.temp()
       val x3905_x3905 =  VectorFIFO(size=1).wtPort(x3663_x3905_x3994_v)
       val x3915 =  VectorFIFO(size=1).wtPort(bus_537_v)
       val x3903_x3903 =  VectorFIFO(size=1).wtPort(x3659_x3903_x3994_v)
@@ -550,9 +550,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3905_x3905)), op=FltSqr, results=List(CU.vecOut(bus_541_v)))
     }
     val x3994_3 = Pipeline(name="x3994_3",parent=x3994) { implicit CU => 
-      val x3921 = CU.temp
-      val x3922 = CU.temp
-      val x3920 = CU.temp
+      val x3921 = CU.temp()
+      val x3922 = CU.temp()
+      val x3920 = CU.temp()
       val x3919 =  VectorFIFO(size=1).wtPort(bus_541_v)
       val x3904_x3904 =  VectorFIFO(size=1).wtPort(x3661_x3904_x3994_v)
       val x3918 =  VectorFIFO(size=1).wtPort(bus_540_v)
@@ -563,10 +563,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3922), op=FltAbs, results=List(CU.vecOut(bus_545_v)))
     }
     val x3994_4 = Pipeline(name="x3994_4",parent=x3994) { implicit CU => 
-      val x3928 = CU.temp
-      val x3924 = CU.temp
-      val x3926 = CU.temp
-      val x3925 = CU.temp
+      val x3928 = CU.temp()
+      val x3924 = CU.temp()
+      val x3926 = CU.temp()
+      val x3925 = CU.temp()
       val x3923 =  VectorFIFO(size=1).wtPort(bus_545_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(CU.load(x3923), CU.load(x3923)), op=FltMul, results=List(x3924))
@@ -577,7 +577,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3928, Const(1)), op=FltAdd, results=List(CU.vecOut(bus_555_v)))
     }
     val x3994_5 = Pipeline(name="x3994_5",parent=x3994) { implicit CU => 
-      val x3930 = CU.temp
+      val x3930 = CU.temp()
       val x3929 =  VectorFIFO(size=1).wtPort(bus_555_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(Const(1), CU.load(x3929)), op=FltDiv, results=List(x3930, CU.vecOut(bus_556_v)))
@@ -585,9 +585,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3930, x3930), op=FltMul, results=List(CU.vecOut(bus_559_v)))
     }
     val x3994_6 = Pipeline(name="x3994_6",parent=x3994) { implicit CU => 
-      val x3935 = CU.temp
-      val x3934 = CU.temp
-      val x3933 = CU.temp
+      val x3935 = CU.temp()
+      val x3934 = CU.temp()
+      val x3933 = CU.temp()
       val x3932 =  VectorFIFO(size=1).wtPort(bus_559_v)
       val x3930 =  VectorFIFO(size=1).wtPort(bus_556_v)
       var stage: List[Stage] = Nil
@@ -598,9 +598,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3934, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_566_v)))
     }
     val x3994_7 = Pipeline(name="x3994_7",parent=x3994) { implicit CU => 
-      val x3938 = CU.temp
-      val x3939 = CU.temp
-      val x3940 = CU.temp
+      val x3938 = CU.temp()
+      val x3939 = CU.temp()
+      val x3940 = CU.temp()
       val x3937 =  VectorFIFO(size=1).wtPort(bus_566_v)
       val x3933 =  VectorFIFO(size=1).wtPort(bus_560_v)
       val x3932 =  VectorFIFO(size=1).wtPort(bus_559_v)
@@ -611,7 +611,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3940, CU.load(x3937)), op=FltAdd, results=List(CU.vecOut(bus_572_v)))
     }
     val x3994_8 = Pipeline(name="x3994_8",parent=x3994) { implicit CU => 
-      val x3942 = CU.temp
+      val x3942 = CU.temp()
       val x3936 =  VectorFIFO(size=1).wtPort(bus_564_v)
       val x3941 =  VectorFIFO(size=1).wtPort(bus_572_v)
       val x3931 =  VectorFIFO(size=1).wtPort(bus_558_v)
@@ -620,10 +620,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3942, CU.load(x3931)), op=FltAdd, results=List(CU.vecOut(bus_574_v)))
     }
     val x3994_9 = Pipeline(name="x3994_9",parent=x3994) { implicit CU => 
-      val x3944 = CU.temp
-      val x3945 = CU.temp
-      val x3947 = CU.temp
-      val x3946 = CU.temp
+      val x3944 = CU.temp()
+      val x3945 = CU.temp()
+      val x3947 = CU.temp()
+      val x3946 = CU.temp()
       val x3943 =  VectorFIFO(size=1).wtPort(bus_574_v)
       val x3922 =  VectorFIFO(size=1).wtPort(bus_544_v)
       val x3927 =  VectorFIFO(size=1).wtPort(bus_551_v)
@@ -641,11 +641,11 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3901_x3901), CU.load(x3948)), op=FltMul, results=List(CU.vecOut(bus_581_v)))
     }
     val x3994_11 = Pipeline(name="x3994_11",parent=x3994) { implicit CU => 
-      val x3954 = CU.temp
-      val x3953 = CU.temp
-      val x3950 = CU.temp
-      val x3952 = CU.temp
-      val x3951 = CU.temp
+      val x3954 = CU.temp()
+      val x3953 = CU.temp()
+      val x3950 = CU.temp()
+      val x3952 = CU.temp()
+      val x3951 = CU.temp()
       val x3920 =  VectorFIFO(size=1).wtPort(bus_542_v)
       val x3922 =  VectorFIFO(size=1).wtPort(bus_544_v)
       var stage: List[Stage] = Nil
@@ -657,9 +657,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3954, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_587_v)))
     }
     val x3994_12 = Pipeline(name="x3994_12",parent=x3994) { implicit CU => 
-      val x3957 = CU.temp
-      val x3956 = CU.temp
-      val x3958 = CU.temp
+      val x3957 = CU.temp()
+      val x3956 = CU.temp()
+      val x3958 = CU.temp()
       val x3951 =  VectorFIFO(size=1).wtPort(bus_583_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(CU.load(x3951), Const(0.2316419)), op=FltMul, results=List(x3956))
@@ -669,9 +669,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3958, x3958), op=FltMul, results=List(CU.vecOut(bus_592_v)))
     }
     val x3994_13 = Pipeline(name="x3994_13",parent=x3994) { implicit CU => 
-      val x3963 = CU.temp
-      val x3962 = CU.temp
-      val x3961 = CU.temp
+      val x3963 = CU.temp()
+      val x3962 = CU.temp()
+      val x3961 = CU.temp()
       val x3958 =  VectorFIFO(size=1).wtPort(bus_590_v)
       val x3960 =  VectorFIFO(size=1).wtPort(bus_592_v)
       var stage: List[Stage] = Nil
@@ -682,9 +682,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3962, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_597_v)))
     }
     val x3994_14 = Pipeline(name="x3994_14",parent=x3994) { implicit CU => 
-      val x3966 = CU.temp
-      val x3967 = CU.temp
-      val x3968 = CU.temp
+      val x3966 = CU.temp()
+      val x3967 = CU.temp()
+      val x3968 = CU.temp()
       val x3965 =  VectorFIFO(size=1).wtPort(bus_597_v)
       val x3961 =  VectorFIFO(size=1).wtPort(bus_593_v)
       val x3960 =  VectorFIFO(size=1).wtPort(bus_592_v)
@@ -695,7 +695,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3968, CU.load(x3965)), op=FltAdd, results=List(CU.vecOut(bus_601_v)))
     }
     val x3994_15 = Pipeline(name="x3994_15",parent=x3994) { implicit CU => 
-      val x3970 = CU.temp
+      val x3970 = CU.temp()
       val x3964 =  VectorFIFO(size=1).wtPort(bus_596_v)
       val x3959 =  VectorFIFO(size=1).wtPort(bus_591_v)
       val x3969 =  VectorFIFO(size=1).wtPort(bus_601_v)
@@ -704,10 +704,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3970, CU.load(x3959)), op=FltAdd, results=List(CU.vecOut(bus_603_v)))
     }
     val x3994_16 = Pipeline(name="x3994_16",parent=x3994) { implicit CU => 
-      val x3975 = CU.temp
-      val x3974 = CU.temp
-      val x3972 = CU.temp
-      val x3973 = CU.temp
+      val x3975 = CU.temp()
+      val x3974 = CU.temp()
+      val x3972 = CU.temp()
+      val x3973 = CU.temp()
       val x3955 =  VectorFIFO(size=1).wtPort(bus_587_v)
       val x3971 =  VectorFIFO(size=1).wtPort(bus_603_v)
       val x3950 =  VectorFIFO(size=1).wtPort(bus_582_v)
@@ -719,9 +719,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x3975, x3972, x3974), op=Mux, results=List(CU.vecOut(bus_608_v)))
     }
     val x3994_17 = Pipeline(name="x3994_17",parent=x3994) { implicit CU => 
-      val x3977 = CU.temp
-      val x3978 = CU.temp
-      val x3979 = CU.temp
+      val x3977 = CU.temp()
+      val x3978 = CU.temp()
+      val x3979 = CU.temp()
       val x3905_x3905 =  VectorFIFO(size=1).wtPort(x3663_x3905_x3994_v)
       val x3902_x3902 =  VectorFIFO(size=1).wtPort(x3657_x3902_x3994_v)
       val x3903_x3903 =  VectorFIFO(size=1).wtPort(x3659_x3903_x3994_v)
@@ -732,9 +732,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3902_x3902), x3979), op=FltMul, results=List(CU.vecOut(bus_612_v)))
     }
     val x3994_18 = Pipeline(name="x3994_18",parent=x3994) { implicit CU => 
-      val x3984 = CU.temp
-      val x3981 = CU.temp
-      val x3983 = CU.temp
+      val x3984 = CU.temp()
+      val x3981 = CU.temp()
+      val x3983 = CU.temp()
       val x3980 =  VectorFIFO(size=1).wtPort(bus_612_v)
       val x3976 =  VectorFIFO(size=1).wtPort(bus_608_v)
       val x3949 =  VectorFIFO(size=1).wtPort(bus_581_v)
@@ -746,9 +746,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3980), x3984), op=FltMul, results=List(CU.vecOut(bus_617_v)))
     }
     val x3994_19 = Pipeline(name="x3994_19",parent=x3994) { implicit CU => 
-      val x3987 = CU.temp
-      val x3988 = CU.temp
-      val x3986 = CU.temp
+      val x3987 = CU.temp()
+      val x3988 = CU.temp()
+      val x3986 = CU.temp()
       val x3985 =  VectorFIFO(size=1).wtPort(bus_617_v)
       val x3901_x3901 =  VectorFIFO(size=1).wtPort(x3655_x3901_x3994_v)
       val x3948 =  VectorFIFO(size=1).wtPort(bus_580_v)
@@ -759,7 +759,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3985), x3988), op=FltSub, results=List(CU.vecOut(bus_621_v)))
     }
     val x3994_20 = Pipeline(name="x3994_20",parent=x3994) { implicit CU => 
-      val x3991 = CU.temp
+      val x3991 = CU.temp()
       val x3982 =  VectorFIFO(size=1).wtPort(bus_614_v)
       val x3989 =  VectorFIFO(size=1).wtPort(bus_621_v)
       val x3906_x3906 =  VectorFIFO(size=1).wtPort(x3653_x3906_x3994_v)
@@ -772,8 +772,8 @@ object BlackScholes extends PIRApp {
       val x3996 = CounterChain(name = "x3996", ctr15).iter(125)
     }
     val x4091_0 = Pipeline(name="x4091_0",parent=x4091) { implicit CU => 
-      val x4011 = CU.temp
-      val x4006 = CU.temp
+      val x4011 = CU.temp()
+      val x4006 = CU.temp()
       val x3998_x3998 =  VectorFIFO(size=1).wtPort(x3656_x3998_x4091_v)
       val x3999_x3999 =  VectorFIFO(size=1).wtPort(x3658_x3999_x4091_v)
       val x4001_x4001 =  VectorFIFO(size=1).wtPort(x3662_x4001_x4091_v)
@@ -784,7 +784,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4011, Const(0.5)), op=FltMul, results=List(CU.vecOut(bus_629_v)))
     }
     val x4091_1 = Pipeline(name="x4091_1",parent=x4091) { implicit CU => 
-      val x4013 = CU.temp
+      val x4013 = CU.temp()
       val x4000_x4000 =  VectorFIFO(size=1).wtPort(x3660_x4000_x4091_v)
       val x4012 =  VectorFIFO(size=1).wtPort(bus_629_v)
       val x4002_x4002 =  VectorFIFO(size=1).wtPort(x3664_x4002_x4091_v)
@@ -801,9 +801,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x4002_x4002)), op=FltSqr, results=List(CU.vecOut(bus_633_v)))
     }
     val x4091_3 = Pipeline(name="x4091_3",parent=x4091) { implicit CU => 
-      val x4018 = CU.temp
-      val x4017 = CU.temp
-      val x4019 = CU.temp
+      val x4018 = CU.temp()
+      val x4017 = CU.temp()
+      val x4019 = CU.temp()
       val x4016 =  VectorFIFO(size=1).wtPort(bus_633_v)
       val x4015 =  VectorFIFO(size=1).wtPort(bus_632_v)
       val x4001_x4001 =  VectorFIFO(size=1).wtPort(x3662_x4001_x4091_v)
@@ -814,10 +814,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4019), op=FltAbs, results=List(CU.vecOut(bus_637_v)))
     }
     val x4091_4 = Pipeline(name="x4091_4",parent=x4091) { implicit CU => 
-      val x4023 = CU.temp
-      val x4022 = CU.temp
-      val x4025 = CU.temp
-      val x4021 = CU.temp
+      val x4023 = CU.temp()
+      val x4022 = CU.temp()
+      val x4025 = CU.temp()
+      val x4021 = CU.temp()
       val x4020 =  VectorFIFO(size=1).wtPort(bus_637_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(CU.load(x4020), CU.load(x4020)), op=FltMul, results=List(x4021))
@@ -828,7 +828,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4025, Const(1)), op=FltAdd, results=List(CU.vecOut(bus_647_v)))
     }
     val x4091_5 = Pipeline(name="x4091_5",parent=x4091) { implicit CU => 
-      val x4027 = CU.temp
+      val x4027 = CU.temp()
       val x4026 =  VectorFIFO(size=1).wtPort(bus_647_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(Const(1), CU.load(x4026)), op=FltDiv, results=List(x4027, CU.vecOut(bus_648_v)))
@@ -836,9 +836,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4027, x4027), op=FltMul, results=List(CU.vecOut(bus_651_v)))
     }
     val x4091_6 = Pipeline(name="x4091_6",parent=x4091) { implicit CU => 
-      val x4031 = CU.temp
-      val x4032 = CU.temp
-      val x4030 = CU.temp
+      val x4031 = CU.temp()
+      val x4032 = CU.temp()
+      val x4030 = CU.temp()
       val x4027 =  VectorFIFO(size=1).wtPort(bus_648_v)
       val x4029 =  VectorFIFO(size=1).wtPort(bus_651_v)
       var stage: List[Stage] = Nil
@@ -849,9 +849,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4031, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_658_v)))
     }
     val x4091_7 = Pipeline(name="x4091_7",parent=x4091) { implicit CU => 
-      val x4035 = CU.temp
-      val x4036 = CU.temp
-      val x4037 = CU.temp
+      val x4035 = CU.temp()
+      val x4036 = CU.temp()
+      val x4037 = CU.temp()
       val x4034 =  VectorFIFO(size=1).wtPort(bus_658_v)
       val x4030 =  VectorFIFO(size=1).wtPort(bus_652_v)
       val x4029 =  VectorFIFO(size=1).wtPort(bus_651_v)
@@ -862,7 +862,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4037, CU.load(x4034)), op=FltAdd, results=List(CU.vecOut(bus_664_v)))
     }
     val x4091_8 = Pipeline(name="x4091_8",parent=x4091) { implicit CU => 
-      val x4039 = CU.temp
+      val x4039 = CU.temp()
       val x4033 =  VectorFIFO(size=1).wtPort(bus_656_v)
       val x4028 =  VectorFIFO(size=1).wtPort(bus_650_v)
       val x4038 =  VectorFIFO(size=1).wtPort(bus_664_v)
@@ -871,10 +871,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4039, CU.load(x4028)), op=FltAdd, results=List(CU.vecOut(bus_666_v)))
     }
     val x4091_9 = Pipeline(name="x4091_9",parent=x4091) { implicit CU => 
-      val x4043 = CU.temp
-      val x4044 = CU.temp
-      val x4041 = CU.temp
-      val x4042 = CU.temp
+      val x4043 = CU.temp()
+      val x4044 = CU.temp()
+      val x4041 = CU.temp()
+      val x4042 = CU.temp()
       val x4040 =  VectorFIFO(size=1).wtPort(bus_666_v)
       val x4019 =  VectorFIFO(size=1).wtPort(bus_636_v)
       val x4024 =  VectorFIFO(size=1).wtPort(bus_643_v)
@@ -892,11 +892,11 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3998_x3998), CU.load(x4045)), op=FltMul, results=List(CU.vecOut(bus_673_v)))
     }
     val x4091_11 = Pipeline(name="x4091_11",parent=x4091) { implicit CU => 
-      val x4049 = CU.temp
-      val x4048 = CU.temp
-      val x4047 = CU.temp
-      val x4050 = CU.temp
-      val x4051 = CU.temp
+      val x4049 = CU.temp()
+      val x4048 = CU.temp()
+      val x4047 = CU.temp()
+      val x4050 = CU.temp()
+      val x4051 = CU.temp()
       val x4017 =  VectorFIFO(size=1).wtPort(bus_634_v)
       val x4019 =  VectorFIFO(size=1).wtPort(bus_636_v)
       var stage: List[Stage] = Nil
@@ -908,9 +908,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4051, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_679_v)))
     }
     val x4091_12 = Pipeline(name="x4091_12",parent=x4091) { implicit CU => 
-      val x4053 = CU.temp
-      val x4054 = CU.temp
-      val x4055 = CU.temp
+      val x4053 = CU.temp()
+      val x4054 = CU.temp()
+      val x4055 = CU.temp()
       val x4048 =  VectorFIFO(size=1).wtPort(bus_675_v)
       var stage: List[Stage] = Nil
       Stage(operands=List(CU.load(x4048), Const(0.2316419)), op=FltMul, results=List(x4053))
@@ -920,9 +920,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4055, x4055), op=FltMul, results=List(CU.vecOut(bus_684_v)))
     }
     val x4091_13 = Pipeline(name="x4091_13",parent=x4091) { implicit CU => 
-      val x4058 = CU.temp
-      val x4059 = CU.temp
-      val x4060 = CU.temp
+      val x4058 = CU.temp()
+      val x4059 = CU.temp()
+      val x4060 = CU.temp()
       val x4055 =  VectorFIFO(size=1).wtPort(bus_682_v)
       val x4057 =  VectorFIFO(size=1).wtPort(bus_684_v)
       var stage: List[Stage] = Nil
@@ -933,9 +933,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4059, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_689_v)))
     }
     val x4091_14 = Pipeline(name="x4091_14",parent=x4091) { implicit CU => 
-      val x4064 = CU.temp
-      val x4063 = CU.temp
-      val x4065 = CU.temp
+      val x4064 = CU.temp()
+      val x4063 = CU.temp()
+      val x4065 = CU.temp()
       val x4062 =  VectorFIFO(size=1).wtPort(bus_689_v)
       val x4057 =  VectorFIFO(size=1).wtPort(bus_684_v)
       val x4058 =  VectorFIFO(size=1).wtPort(bus_685_v)
@@ -946,7 +946,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4065, CU.load(x4062)), op=FltAdd, results=List(CU.vecOut(bus_693_v)))
     }
     val x4091_15 = Pipeline(name="x4091_15",parent=x4091) { implicit CU => 
-      val x4067 = CU.temp
+      val x4067 = CU.temp()
       val x4056 =  VectorFIFO(size=1).wtPort(bus_683_v)
       val x4061 =  VectorFIFO(size=1).wtPort(bus_688_v)
       val x4066 =  VectorFIFO(size=1).wtPort(bus_693_v)
@@ -955,10 +955,10 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4067, CU.load(x4056)), op=FltAdd, results=List(CU.vecOut(bus_695_v)))
     }
     val x4091_16 = Pipeline(name="x4091_16",parent=x4091) { implicit CU => 
-      val x4072 = CU.temp
-      val x4069 = CU.temp
-      val x4071 = CU.temp
-      val x4070 = CU.temp
+      val x4072 = CU.temp()
+      val x4069 = CU.temp()
+      val x4071 = CU.temp()
+      val x4070 = CU.temp()
       val x4052 =  VectorFIFO(size=1).wtPort(bus_679_v)
       val x4047 =  VectorFIFO(size=1).wtPort(bus_674_v)
       val x4068 =  VectorFIFO(size=1).wtPort(bus_695_v)
@@ -970,9 +970,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x4072, x4069, x4071), op=Mux, results=List(CU.vecOut(bus_700_v)))
     }
     val x4091_17 = Pipeline(name="x4091_17",parent=x4091) { implicit CU => 
-      val x4074 = CU.temp
-      val x4076 = CU.temp
-      val x4075 = CU.temp
+      val x4074 = CU.temp()
+      val x4076 = CU.temp()
+      val x4075 = CU.temp()
       val x4000_x4000 =  VectorFIFO(size=1).wtPort(x3660_x4000_x4091_v)
       val x4002_x4002 =  VectorFIFO(size=1).wtPort(x3664_x4002_x4091_v)
       val x3999_x3999 =  VectorFIFO(size=1).wtPort(x3658_x3999_x4091_v)
@@ -983,9 +983,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x3999_x3999), x4076), op=FltMul, results=List(CU.vecOut(bus_704_v)))
     }
     val x4091_18 = Pipeline(name="x4091_18",parent=x4091) { implicit CU => 
-      val x4081 = CU.temp
-      val x4080 = CU.temp
-      val x4078 = CU.temp
+      val x4081 = CU.temp()
+      val x4080 = CU.temp()
+      val x4078 = CU.temp()
       val x4077 =  VectorFIFO(size=1).wtPort(bus_704_v)
       val x4046 =  VectorFIFO(size=1).wtPort(bus_673_v)
       val x4073 =  VectorFIFO(size=1).wtPort(bus_700_v)
@@ -997,9 +997,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x4077), x4081), op=FltMul, results=List(CU.vecOut(bus_709_v)))
     }
     val x4091_19 = Pipeline(name="x4091_19",parent=x4091) { implicit CU => 
-      val x4084 = CU.temp
-      val x4083 = CU.temp
-      val x4085 = CU.temp
+      val x4084 = CU.temp()
+      val x4083 = CU.temp()
+      val x4085 = CU.temp()
       val x3998_x3998 =  VectorFIFO(size=1).wtPort(x3656_x3998_x4091_v)
       val x4082 =  VectorFIFO(size=1).wtPort(bus_709_v)
       val x4045 =  VectorFIFO(size=1).wtPort(bus_672_v)
@@ -1010,7 +1010,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(CU.load(x4082), x4085), op=FltSub, results=List(CU.vecOut(bus_713_v)))
     }
     val x4091_20 = Pipeline(name="x4091_20",parent=x4091) { implicit CU => 
-      val x4088 = CU.temp
+      val x4088 = CU.temp()
       val x4079 =  VectorFIFO(size=1).wtPort(bus_706_v)
       val x4003_x4003 =  VectorFIFO(size=1).wtPort(x3654_x4003_x4091_v)
       val x4086 =  VectorFIFO(size=1).wtPort(bus_713_v)
@@ -1023,7 +1023,7 @@ object BlackScholes extends PIRApp {
     val x4112 = Sequential(name="x4112",parent=x4120) { implicit CU => 
     }
     val x4103_0 = Pipeline(name="x4103_0",parent=x4112) { implicit CU => 
-      val x4097 = CU.temp
+      val x4097 = CU.temp()
       val x4096 =  ScalarBuffer().wtPort(x4096_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil
@@ -1046,7 +1046,7 @@ object BlackScholes extends PIRApp {
     val x4140 = Sequential(name="x4140",parent=x4148) { implicit CU => 
     }
     val x4131_0 = Pipeline(name="x4131_0",parent=x4140) { implicit CU => 
-      val x4125 = CU.temp
+      val x4125 = CU.temp()
       val x4124 =  ScalarBuffer().wtPort(x4124_argin)
       val x3652 = CounterChain.copy("x4150", "x3652")
       var stage: List[Stage] = Nil

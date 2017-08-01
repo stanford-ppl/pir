@@ -749,8 +749,8 @@ object DotProduct extends PIRApp {
       val x3372_unit = CounterChain(name = "x3372_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x3372_0 = Pipeline(name="x3372_0",parent=x3372) { implicit CU => 
-      val x3333 = CU.temp
-      val x3338 = CU.temp
+      val x3333 = CU.temp()
+      val x3338 = CU.temp()
       val x3205_x3341 = ScalarBuffer().wtPort(x3205_x3280_s)
       val x3202_x3337 = ScalarBuffer().wtPort(x3202_x3244_s)
       val x3201_x3331 = ScalarBuffer().wtPort(x3201_x3232_s)
@@ -763,10 +763,10 @@ object DotProduct extends PIRApp {
       Stage(operands=List(CU.load(x3204_x3342), CU.load(x3205_x3341)), op=FixAdd, results=List(CU.scalarOut(bus_2869_s)))
     }
     val x3372_1 = Pipeline(name="x3372_1",parent=x3372) { implicit CU => 
-      val x3353 = CU.temp
-      val x3362 = CU.temp
-      val x3359 = CU.temp
-      val x3348 = CU.temp
+      val x3353 = CU.temp()
+      val x3362 = CU.temp()
+      val x3359 = CU.temp()
+      val x3348 = CU.temp()
       val x3206_x3347 = ScalarBuffer().wtPort(x3206_x3292_s)
       val x3208_x3352 = ScalarBuffer().wtPort(x3208_x3316_s)
       val x3356 = ScalarFIFO(size=1).wtPort(bus_2865_s)

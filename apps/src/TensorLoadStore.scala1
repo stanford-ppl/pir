@@ -71,12 +71,12 @@ object TensorLoadStore extends PIRApp {
       val x5711_unit = CounterChain(name = "x5711_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5330_dsp0 = MemoryPipeline(name="x5330_dsp0",parent="x5711") { implicit CU => 
-      val b5877 = CU.temp
-      val b5870 = CU.temp
-      val b5878 = CU.temp
-      val b5871 = CU.temp
-      val b5869 = CU.temp
-      val b5879 = CU.temp
+      val b5877 = CU.temp()
+      val b5870 = CU.temp()
+      val b5878 = CU.temp()
+      val b5871 = CU.temp()
+      val b5869 = CU.temp()
+      val b5879 = CU.temp()
       val x5378_x5378 = ScalarFIFO(size=1).wtPort(x5330_x5378_s)
       val x5344 = CounterChain.copy("x5380", "x5344")
       val x5409 = CounterChain.copy("x5419_0", "x5409")
@@ -110,11 +110,11 @@ object TensorLoadStore extends PIRApp {
       val x5367_unit = CounterChain(name = "x5367_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5367_0 = Pipeline(name="x5367_0",parent=x5367) { implicit CU => 
-      val x5347 = CU.temp
-      val x5352 = CU.temp
-      val x5348 = CU.temp
-      val x5353 = CU.temp
-      val x5351 = CU.temp
+      val x5347 = CU.temp()
+      val x5352 = CU.temp()
+      val x5348 = CU.temp()
+      val x5353 = CU.temp()
+      val x5351 = CU.temp()
       val x5289_x5350 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5349 = ScalarBuffer().wtPort(R_argin)
       val x5337 = CounterChain.copy("x5429", "x5337")
@@ -127,8 +127,8 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5352, x5353), op=FixAdd, results=List(CU.scalarOut(bus_620_s)))
     }
     val x5367_1 = Pipeline(name="x5367_1",parent=x5367) { implicit CU => 
-      val x5356 = CU.temp
-      val x5355 = CU.temp
+      val x5356 = CU.temp()
+      val x5355 = CU.temp()
       val x5358 = ScalarBuffer().wtPort(srcDRAM3_da)
       val x5354 = ScalarFIFO(size=1).wtPort(bus_620_s)
       val x5337 = CounterChain.copy("x5429", "x5337")
@@ -160,11 +160,11 @@ object TensorLoadStore extends PIRApp {
       val x5407_unit = CounterChain(name = "x5407_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5407_0 = Pipeline(name="x5407_0",parent=x5407) { implicit CU => 
-      val x5391 = CU.temp
-      val x5388 = CU.temp
-      val x5387 = CU.temp
-      val x5393 = CU.temp
-      val x5392 = CU.temp
+      val x5391 = CU.temp()
+      val x5388 = CU.temp()
+      val x5387 = CU.temp()
+      val x5393 = CU.temp()
+      val x5392 = CU.temp()
       val x5289_x5390 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5389 = ScalarBuffer().wtPort(R_argin)
       val x5337 = CounterChain.copy("x5429", "x5337")
@@ -177,8 +177,8 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5392, x5393), op=FixAdd, results=List(CU.scalarOut(bus_641_s)))
     }
     val x5407_1 = Pipeline(name="x5407_1",parent=x5407) { implicit CU => 
-      val x5396 = CU.temp
-      val x5395 = CU.temp
+      val x5396 = CU.temp()
+      val x5395 = CU.temp()
       val x5394 = ScalarFIFO(size=1).wtPort(bus_641_s)
       val x5398 = ScalarBuffer().wtPort(dstDRAM3_da)
       val x5337 = CounterChain.copy("x5429", "x5337")
@@ -199,16 +199,16 @@ object TensorLoadStore extends PIRApp {
       val x5384_b5874_x5421 = ScalarFIFO(name="size",size=1).wtPort(x5384_b5874_x5406_b5876_s)
     }
     val x5430_dsp0 = MemoryPipeline(name="x5430_dsp0",parent="x5711") { implicit CU => 
-      val b5889 = CU.temp
-      val b5886 = CU.temp
-      val b5899 = CU.temp
-      val b5885 = CU.temp
-      val b5898 = CU.temp
-      val b5897 = CU.temp
-      val b5887 = CU.temp
-      val b5896 = CU.temp
-      val b5895 = CU.temp
-      val b5888 = CU.temp
+      val b5889 = CU.temp()
+      val b5886 = CU.temp()
+      val b5899 = CU.temp()
+      val b5885 = CU.temp()
+      val b5898 = CU.temp()
+      val b5897 = CU.temp()
+      val b5887 = CU.temp()
+      val b5896 = CU.temp()
+      val b5895 = CU.temp()
+      val b5888 = CU.temp()
       val x5492_x5492 = ScalarFIFO(size=1).wtPort(x5430_x5492_s)
       val x5448 = CounterChain.copy("x5494", "x5448")
       val x5498 = CounterChain.copy("x5555", "x5498")
@@ -249,9 +249,9 @@ object TensorLoadStore extends PIRApp {
       val x5479_unit = CounterChain(name = "x5479_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5479_0 = Pipeline(name="x5479_0",parent=x5479) { implicit CU => 
-      val x5451 = CU.temp
-      val x5456 = CU.temp
-      val x5458 = CU.temp
+      val x5451 = CU.temp()
+      val x5456 = CU.temp()
+      val x5458 = CU.temp()
       val x5287_x5454 = ScalarBuffer().wtPort(P_argin)
       val x5289_x5457 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5455 = ScalarBuffer().wtPort(R_argin)
@@ -265,11 +265,11 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5288_x5455), CU.load(x5289_x5457)), op=FixMul, results=List(CU.scalarOut(bus_690_s)))
     }
     val x5479_1 = Pipeline(name="x5479_1",parent=x5479) { implicit CU => 
-      val x5464 = CU.temp
-      val x5453 = CU.temp
-      val x5462 = CU.temp
-      val x5463 = CU.temp
-      val x5461 = CU.temp
+      val x5464 = CU.temp()
+      val x5453 = CU.temp()
+      val x5462 = CU.temp()
+      val x5463 = CU.temp()
+      val x5461 = CU.temp()
       val x5452 = ScalarFIFO(size=1).wtPort(bus_689_s)
       val x5460 = ScalarFIFO(size=1).wtPort(bus_688_s)
       val x5289_x5457 = ScalarBuffer().wtPort(C_argin)
@@ -284,7 +284,7 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5463, x5464), op=FixAdd, results=List(CU.scalarOut(bus_696_s)))
     }
     val x5479_2 = Pipeline(name="x5479_2",parent=x5479) { implicit CU => 
-      val x5466 = CU.temp
+      val x5466 = CU.temp()
       val x5468 = ScalarBuffer().wtPort(srcDRAM4_da)
       val x5465 = ScalarFIFO(size=1).wtPort(bus_696_s)
       Stage(operands=List(CU.load(x5465), Const(4)), op=FixMul, results=List(x5466))
@@ -315,9 +315,9 @@ object TensorLoadStore extends PIRApp {
       val x5530_unit = CounterChain(name = "x5530_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5530_0 = Pipeline(name="x5530_0",parent=x5530) { implicit CU => 
-      val x5507 = CU.temp
-      val x5502 = CU.temp
-      val x5509 = CU.temp
+      val x5507 = CU.temp()
+      val x5502 = CU.temp()
+      val x5509 = CU.temp()
       val x5287_x5505 = ScalarBuffer().wtPort(P_argin)
       val x5289_x5508 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5506 = ScalarBuffer().wtPort(R_argin)
@@ -331,11 +331,11 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5288_x5506), CU.load(x5289_x5508)), op=FixMul, results=List(CU.scalarOut(bus_720_s)))
     }
     val x5530_1 = Pipeline(name="x5530_1",parent=x5530) { implicit CU => 
-      val x5514 = CU.temp
-      val x5504 = CU.temp
-      val x5515 = CU.temp
-      val x5513 = CU.temp
-      val x5512 = CU.temp
+      val x5514 = CU.temp()
+      val x5504 = CU.temp()
+      val x5515 = CU.temp()
+      val x5513 = CU.temp()
+      val x5512 = CU.temp()
       val x5503 = ScalarFIFO(size=1).wtPort(bus_719_s)
       val x5289_x5508 = ScalarBuffer().wtPort(C_argin)
       val x5511 = ScalarFIFO(size=1).wtPort(bus_718_s)
@@ -350,7 +350,7 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5514, x5515), op=FixAdd, results=List(CU.scalarOut(bus_726_s)))
     }
     val x5530_2 = Pipeline(name="x5530_2",parent=x5530) { implicit CU => 
-      val x5517 = CU.temp
+      val x5517 = CU.temp()
       val x5516 = ScalarFIFO(size=1).wtPort(bus_726_s)
       val x5519 = ScalarBuffer().wtPort(dstDRAM4_da)
       Stage(operands=List(CU.load(x5516), Const(4)), op=FixMul, results=List(x5517))
@@ -369,20 +369,20 @@ object TensorLoadStore extends PIRApp {
       val x5500_x5546 = VectorFIFO(name="data",size=1).wtPort(x5500_x5543_v)
     }
     val x5557_dsp0 = MemoryPipeline(name="x5557_dsp0",parent="x5711") { implicit CU => 
-      val b5907 = CU.temp
-      val b5920 = CU.temp
-      val b5910 = CU.temp
-      val b5908 = CU.temp
-      val b5921 = CU.temp
-      val b5906 = CU.temp
-      val b5923 = CU.temp
-      val b5918 = CU.temp
-      val b5917 = CU.temp
-      val b5919 = CU.temp
-      val b5911 = CU.temp
-      val b5905 = CU.temp
-      val b5909 = CU.temp
-      val b5922 = CU.temp
+      val b5907 = CU.temp()
+      val b5920 = CU.temp()
+      val b5910 = CU.temp()
+      val b5908 = CU.temp()
+      val b5921 = CU.temp()
+      val b5906 = CU.temp()
+      val b5923 = CU.temp()
+      val b5918 = CU.temp()
+      val b5917 = CU.temp()
+      val b5919 = CU.temp()
+      val b5911 = CU.temp()
+      val b5905 = CU.temp()
+      val b5909 = CU.temp()
+      val b5922 = CU.temp()
       val x5633_x5633 = ScalarFIFO(size=1).wtPort(x5557_x5633_s)
       val x5579 = CounterChain.copy("x5635", "x5579")
       val x5640 = CounterChain.copy("x5709", "x5640")
@@ -430,10 +430,10 @@ object TensorLoadStore extends PIRApp {
       val x5618_unit = CounterChain(name = "x5618_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5618_0 = Pipeline(name="x5618_0",parent=x5618) { implicit CU => 
-      val x5591 = CU.temp
-      val x5592 = CU.temp
-      val x5588 = CU.temp
-      val x5582 = CU.temp
+      val x5591 = CU.temp()
+      val x5592 = CU.temp()
+      val x5588 = CU.temp()
+      val x5582 = CU.temp()
       val x5287_x5587 = ScalarBuffer().wtPort(P_argin)
       val x5289_x5590 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5589 = ScalarBuffer().wtPort(R_argin)
@@ -447,10 +447,10 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5582, x5592), op=FixMul, results=List(CU.scalarOut(bus_785_s)))
     }
     val x5618_1 = Pipeline(name="x5618_1",parent=x5618) { implicit CU => 
-      val x5594 = CU.temp
-      val x5593 = CU.temp
-      val x5596 = CU.temp
-      val x5583 = CU.temp
+      val x5594 = CU.temp()
+      val x5593 = CU.temp()
+      val x5596 = CU.temp()
+      val x5583 = CU.temp()
       val x5287_x5587 = ScalarBuffer().wtPort(P_argin)
       val x5595 = ScalarFIFO(size=1).wtPort(bus_785_s)
       val x5289_x5590 = ScalarBuffer().wtPort(C_argin)
@@ -464,11 +464,11 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5595), x5596), op=FixAdd, results=List(CU.scalarOut(bus_790_s)))
     }
     val x5618_2 = Pipeline(name="x5618_2",parent=x5618) { implicit CU => 
-      val x5600 = CU.temp
-      val x5597 = CU.temp
-      val x5584 = CU.temp
-      val x5585 = CU.temp
-      val x5598 = CU.temp
+      val x5600 = CU.temp()
+      val x5597 = CU.temp()
+      val x5584 = CU.temp()
+      val x5585 = CU.temp()
+      val x5598 = CU.temp()
       val x5289_x5590 = ScalarBuffer().wtPort(C_argin)
       val x5599 = ScalarFIFO(size=1).wtPort(bus_790_s)
       val x5591 = ScalarFIFO(size=1).wtPort(bus_783_s)
@@ -482,8 +482,8 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5599), x5600), op=FixAdd, results=List(CU.scalarOut(bus_796_s)))
     }
     val x5618_3 = Pipeline(name="x5618_3",parent=x5618) { implicit CU => 
-      val x5603 = CU.temp
-      val x5602 = CU.temp
+      val x5603 = CU.temp()
+      val x5602 = CU.temp()
       val x5601 = ScalarFIFO(size=1).wtPort(bus_796_s)
       val x5605 = ScalarBuffer().wtPort(srcDRAM5_da)
       val x5568 = CounterChain.copy("x5710", "x5568")
@@ -517,10 +517,10 @@ object TensorLoadStore extends PIRApp {
       val x5680_unit = CounterChain(name = "x5680_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5680_0 = Pipeline(name="x5680_0",parent=x5680) { implicit CU => 
-      val x5653 = CU.temp
-      val x5654 = CU.temp
-      val x5644 = CU.temp
-      val x5650 = CU.temp
+      val x5653 = CU.temp()
+      val x5654 = CU.temp()
+      val x5644 = CU.temp()
+      val x5650 = CU.temp()
       val x5287_x5649 = ScalarBuffer().wtPort(P_argin)
       val x5289_x5652 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5651 = ScalarBuffer().wtPort(R_argin)
@@ -534,10 +534,10 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(x5644, x5654), op=FixMul, results=List(CU.scalarOut(bus_824_s)))
     }
     val x5680_1 = Pipeline(name="x5680_1",parent=x5680) { implicit CU => 
-      val x5658 = CU.temp
-      val x5656 = CU.temp
-      val x5655 = CU.temp
-      val x5645 = CU.temp
+      val x5658 = CU.temp()
+      val x5656 = CU.temp()
+      val x5655 = CU.temp()
+      val x5645 = CU.temp()
       val x5287_x5649 = ScalarBuffer().wtPort(P_argin)
       val x5289_x5652 = ScalarBuffer().wtPort(C_argin)
       val x5288_x5651 = ScalarBuffer().wtPort(R_argin)
@@ -551,11 +551,11 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5657), x5658), op=FixAdd, results=List(CU.scalarOut(bus_829_s)))
     }
     val x5680_2 = Pipeline(name="x5680_2",parent=x5680) { implicit CU => 
-      val x5660 = CU.temp
-      val x5659 = CU.temp
-      val x5646 = CU.temp
-      val x5647 = CU.temp
-      val x5662 = CU.temp
+      val x5660 = CU.temp()
+      val x5659 = CU.temp()
+      val x5646 = CU.temp()
+      val x5647 = CU.temp()
+      val x5662 = CU.temp()
       val x5289_x5652 = ScalarBuffer().wtPort(C_argin)
       val x5661 = ScalarFIFO(size=1).wtPort(bus_829_s)
       val x5653 = ScalarFIFO(size=1).wtPort(bus_822_s)
@@ -569,8 +569,8 @@ object TensorLoadStore extends PIRApp {
       Stage(operands=List(CU.load(x5661), x5662), op=FixAdd, results=List(CU.scalarOut(bus_835_s)))
     }
     val x5680_3 = Pipeline(name="x5680_3",parent=x5680) { implicit CU => 
-      val x5664 = CU.temp
-      val x5665 = CU.temp
+      val x5664 = CU.temp()
+      val x5665 = CU.temp()
       val x5663 = ScalarFIFO(size=1).wtPort(bus_835_s)
       val x5667 = ScalarBuffer().wtPort(dstDRAM5_da)
       val x5568 = CounterChain.copy("x5710", "x5568")

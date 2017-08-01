@@ -134,7 +134,7 @@ object PageRank extends PIRApp {
     val x3862 = StreamController(name="x3862",parent=x4186) { implicit CU => 
     }
     val x3852_0 = Pipeline(name="x3852_0",parent=x3862) { implicit CU => 
-      val x3845 = CU.temp
+      val x3845 = CU.temp()
       val x3844 =  ScalarBuffer().wtPort(x3844_argin)
       val x3837 = CounterChain.copy("x4186", "x3837")
       var stage: List[Stage] = Nil
@@ -155,7 +155,7 @@ object PageRank extends PIRApp {
     val x3883 = StreamController(name="x3883",parent=x4186) { implicit CU => 
     }
     val x3873_0 = Pipeline(name="x3873_0",parent=x3883) { implicit CU => 
-      val x3866 = CU.temp
+      val x3866 = CU.temp()
       val x3865 =  ScalarBuffer().wtPort(x3865_argin)
       val x3837 = CounterChain.copy("x4186", "x3837")
       var stage: List[Stage] = Nil
@@ -176,7 +176,7 @@ object PageRank extends PIRApp {
     val x3904 = StreamController(name="x3904",parent=x4186) { implicit CU => 
     }
     val x3894_0 = Pipeline(name="x3894_0",parent=x3904) { implicit CU => 
-      val x3887 = CU.temp
+      val x3887 = CU.temp()
       val x3886 =  ScalarBuffer().wtPort(x3886_argin)
       val x3837 = CounterChain.copy("x4186", "x3837")
       var stage: List[Stage] = Nil
@@ -249,8 +249,8 @@ object PageRank extends PIRApp {
     val x3953 = StreamController(name="x3953",parent=x3986) { implicit CU => 
     }
     val x3953_0 = Pipeline(name="x3953_0",parent=x3953) { implicit CU => 
-      val x3928 = CU.temp
-      val x3935 = CU.temp
+      val x3928 = CU.temp()
+      val x3935 = CU.temp()
       val x3908_x3926 =  ScalarBuffer().wtPort(x3908_x3913_s)
       val x3909_x3927 =  ScalarBuffer().wtPort(x3909_x3918_s)
       var stage: List[Stage] = Nil
@@ -260,10 +260,10 @@ object PageRank extends PIRApp {
       Stage(operands=List(CU.load(x3909_x3927), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_521_s)))
     }
     val x3953_1 = Pipeline(name="x3953_1",parent=x3953) { implicit CU => 
-      val x3931 = CU.temp
-      val x3930 = CU.temp
-      val x3933 = CU.temp
-      val x3932 = CU.temp
+      val x3931 = CU.temp()
+      val x3930 = CU.temp()
+      val x3933 = CU.temp()
+      val x3932 = CU.temp()
       val x3928 =  ScalarFIFO(size=1).wtPort(bus_517_s)
       val x3929 =  ScalarFIFO(size=1).wtPort(bus_521_s)
       var stage: List[Stage] = Nil
@@ -275,9 +275,9 @@ object PageRank extends PIRApp {
       Stage(operands=List(x3932, Const(0), x3933), op=Mux, results=List(CU.scalarOut(bus_528_s)))
     }
     val x3953_2 = Pipeline(name="x3953_2",parent=x3953) { implicit CU => 
-      val x3936 = CU.temp
-      val x3949 = CU.temp
-      val x3948 = CU.temp
+      val x3936 = CU.temp()
+      val x3949 = CU.temp()
+      val x3948 = CU.temp()
       val x3929 =  ScalarFIFO(size=1).wtPort(bus_521_s)
       val x3934 =  ScalarFIFO(size=1).wtPort(bus_528_s)
       val x3946 =  ScalarFIFO(size=1).wtPort(bus_520_s)
@@ -291,7 +291,7 @@ object PageRank extends PIRApp {
       Stage(operands=List(x3936, CU.load(x3934)), op=FixAdd, results=List(CU.scalarOut(x3922_b4257_x3945_b4265_s)))
     }
     val x3953_3 = Pipeline(name="x3953_3",parent=x3953) { implicit CU => 
-      val x3938 = CU.temp
+      val x3938 = CU.temp()
       val x3935 =  ScalarFIFO(size=1).wtPort(bus_519_s)
       val x3928 =  ScalarFIFO(size=1).wtPort(bus_517_s)
       val x3925 =  ScalarBuffer().wtPort(x3925_argin)
@@ -328,8 +328,8 @@ object PageRank extends PIRApp {
     val x4018 = StreamController(name="x4018",parent=x4051) { implicit CU => 
     }
     val x4018_0 = Pipeline(name="x4018_0",parent=x4018) { implicit CU => 
-      val x3993 = CU.temp
-      val x4000 = CU.temp
+      val x3993 = CU.temp()
+      val x4000 = CU.temp()
       val x3908_x3991 =  ScalarBuffer().wtPort(x3908_x3913_s)
       val x3909_x3992 =  ScalarBuffer().wtPort(x3909_x3918_s)
       var stage: List[Stage] = Nil
@@ -339,10 +339,10 @@ object PageRank extends PIRApp {
       Stage(operands=List(CU.load(x3909_x3992), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_544_s)))
     }
     val x4018_1 = Pipeline(name="x4018_1",parent=x4018) { implicit CU => 
-      val x3995 = CU.temp
-      val x3997 = CU.temp
-      val x3996 = CU.temp
-      val x3998 = CU.temp
+      val x3995 = CU.temp()
+      val x3997 = CU.temp()
+      val x3996 = CU.temp()
+      val x3998 = CU.temp()
       val x3993 =  ScalarFIFO(size=1).wtPort(bus_540_s)
       val x3994 =  ScalarFIFO(size=1).wtPort(bus_544_s)
       var stage: List[Stage] = Nil
@@ -354,9 +354,9 @@ object PageRank extends PIRApp {
       Stage(operands=List(x3997, Const(0), x3998), op=Mux, results=List(CU.scalarOut(bus_551_s)))
     }
     val x4018_2 = Pipeline(name="x4018_2",parent=x4018) { implicit CU => 
-      val x4001 = CU.temp
-      val x4013 = CU.temp
-      val x4014 = CU.temp
+      val x4001 = CU.temp()
+      val x4013 = CU.temp()
+      val x4014 = CU.temp()
       val x3999 =  ScalarFIFO(size=1).wtPort(bus_551_s)
       val x3909_x3992 =  ScalarBuffer().wtPort(x3909_x3918_s)
       val x3994 =  ScalarFIFO(size=1).wtPort(bus_544_s)
@@ -370,7 +370,7 @@ object PageRank extends PIRApp {
       Stage(operands=List(x4001, CU.load(x3999)), op=FixAdd, results=List(CU.scalarOut(x3987_b4270_x4010_b4278_s)))
     }
     val x4018_3 = Pipeline(name="x4018_3",parent=x4018) { implicit CU => 
-      val x4003 = CU.temp
+      val x4003 = CU.temp()
       val x3993 =  ScalarFIFO(size=1).wtPort(bus_540_s)
       val x4000 =  ScalarFIFO(size=1).wtPort(bus_542_s)
       val x3990 =  ScalarBuffer().wtPort(x3990_argin)
@@ -417,10 +417,10 @@ object PageRank extends PIRApp {
       var stage: List[Stage] = Nil
     }
     val x4074_0 = Pipeline(name="x4074_0",parent=x4154) { implicit CU => 
-      val x4064 = CU.temp
-      val x4067 = CU.temp
-      val x4065 = CU.temp
-      val x4066 = CU.temp
+      val x4064 = CU.temp()
+      val x4067 = CU.temp()
+      val x4065 = CU.temp()
+      val x4066 = CU.temp()
       val ar186 =  ScalarFIFO(size=1).wtPort(x3909_x3918_s)
       val x3909_x4055 =  ScalarBuffer().wtPort(x3909_x3918_s)
       val x4061_x4061 =  VectorFIFO(size=1).wtPort(x3920_x4061_x4074_v)
@@ -459,7 +459,7 @@ object PageRank extends PIRApp {
     val x4114 = StreamController(name="x4114",parent=x4154) { implicit CU => 
     }
     val x4103_0 = Pipeline(name="x4103_0",parent=x4114) { implicit CU => 
-      val x4099 = CU.temp
+      val x4099 = CU.temp()
       val x4096_x4096 =  VectorFIFO(size=1).wtPort(x4075_x4096_x4103_v)
       val x4097 =  ScalarBuffer().wtPort(x4097_argin)
       val ctr11 = Counter(min=Const(0), max=Const(768), step=Const(1), par=1) // Counter
@@ -482,8 +482,8 @@ object PageRank extends PIRApp {
       val x4118 = CounterChain(name = "x4118", ctr13).iter(1)
     }
     val x4144_0 = Pipeline(name="x4144_0",parent=x4144) { implicit CU => 
-      val x4134 = CU.temp
-      val x4133 = CU.temp
+      val x4134 = CU.temp()
+      val x4133 = CU.temp()
       val x4122_x4122 =  VectorFIFO(size=1).wtPort(x3920_x4122_x4144_v)
       val x4125_x4125 =  VectorFIFO(size=1).wtPort(x3838_x4125_x4144_v)
       val x4124_x4124 =  VectorFIFO(size=1).wtPort(x3839_x4124_x4144_v)
@@ -495,8 +495,8 @@ object PageRank extends PIRApp {
       Stage(operands=List(x4134, CU.load(x4124_x4124), CU.load(x4125_x4125)), op=Mux, results=List(CU.scalarOut(bus_602_s)))
     }
     val x4144_1 = Pipeline(name="x4144_1",parent=x4144) { implicit CU => 
-      val x4136 = CU.temp
-      val x4137 = CU.temp
+      val x4136 = CU.temp()
+      val x4137 = CU.temp()
       val x4135 =  ScalarFIFO(size=1).wtPort(bus_602_s)
       val x4123_x4123 =  VectorFIFO(size=1).wtPort(x3921_x4128_x4144_v)
       val x4128_x4128 =  VectorFIFO(size=1).wtPort(x3921_x4128_x4144_v)
@@ -514,8 +514,8 @@ object PageRank extends PIRApp {
       Stage(operands=List(rr609), op=Bypass, results=List(CU.scalarOut(x4115_x4142_s)))
     }
     val x4153_0 = Pipeline(name="x4153_0",parent=x4154) { implicit CU => 
-      val x4148 = CU.temp
-      val x4147 = CU.temp
+      val x4148 = CU.temp()
+      val x4147 = CU.temp()
       val x3809_x4145 =  ScalarBuffer().wtPort(x3809_argin)
       val x4115_x4146 =  ScalarBuffer().wtPort(x4115_x4142_s)
       var stage: List[Stage] = Nil
@@ -528,7 +528,7 @@ object PageRank extends PIRApp {
     val x4176 = Sequential(name="x4176",parent=x4185) { implicit CU => 
     }
     val x4166_0 = Pipeline(name="x4166_0",parent=x4176) { implicit CU => 
-      val x4159 = CU.temp
+      val x4159 = CU.temp()
       val x4158 =  ScalarBuffer().wtPort(x4158_argin)
       val x3837 = CounterChain.copy("x4186", "x3837")
       var stage: List[Stage] = Nil

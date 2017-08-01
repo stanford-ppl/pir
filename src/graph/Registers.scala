@@ -88,8 +88,8 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   def vecOutPR(vo:VecOut):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(vo))
 
-  def tempPR():Reg = {
-    val reg = TempPR()
+  def tempPR(init:Option[AnyVal]):Reg = {
+    val reg = TempPR(init)
     tempRegs += reg 
     reg
   }
@@ -180,7 +180,9 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Create a new logical register 
    * */
-  def temp = tempPR() 
+  def temp() = tempPR(None) 
+  def temp(init:AnyVal) = tempPR(Some(init))
+  def temp(init:Option[AnyVal]) = tempPR(init)
 
  /** Refer to the pipeline register for stage with rid 
   * @param stage: Stage of the pipeline register 

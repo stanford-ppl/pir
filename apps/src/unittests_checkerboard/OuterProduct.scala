@@ -52,8 +52,8 @@ object OuterProduct_cb extends PIRApp {
       val x1222_x1274 = SRAM(size=16,banking = Strided(1)).wtPort(x1263_x1263.readPort).rdPort(x1222_x1274_x1278_v).rdAddr(x1269(1)).wtAddr(x1258(0))
     }
     val x1223_dsp0 = MemoryPipeline(name="x1223_dsp0",parent="x1319") { implicit CU => 
-      val b1345 = CU.temp
-      val b1351 = CU.temp
+      val b1345 = CU.temp()
+      val b1351 = CU.temp()
       val x1277_x1277 = VectorFIFO(size=1).wtPort(x1223_x1277_v)
       val x1269 = CounterChain.copy("x1278_0", "x1269")
       val x1280 = CounterChain.copy("x1318", "x1280")
@@ -68,7 +68,7 @@ object OuterProduct_cb extends PIRApp {
       val x1244_unit = CounterChain(name = "x1244_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1234_0 = Pipeline(name="x1234_0",parent=x1244) { implicit CU => 
-      val x1227 = CU.temp
+      val x1227 = CU.temp()
       val x1226 = ScalarBuffer().wtPort(x1226_argin)
       val x1220 = CounterChain.copy("x1319", "x1220")
       val x1234_unit = CounterChain(name = "x1234_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -89,7 +89,7 @@ object OuterProduct_cb extends PIRApp {
       val x1265_unit = CounterChain(name = "x1265_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x1255_0 = Pipeline(name="x1255_0",parent=x1265) { implicit CU => 
-      val x1248 = CU.temp
+      val x1248 = CU.temp()
       val x1247 = ScalarBuffer().wtPort(x1247_argin)
       val x1220 = CounterChain.copy("x1319", "x1220")
       val x1255_unit = CounterChain(name = "x1255_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -119,10 +119,10 @@ object OuterProduct_cb extends PIRApp {
       val x1280 = CounterChain(name = "x1280", ctr7).iter(16)
     }
     val x1297_0 = Pipeline(name="x1297_0",parent=x1318) { implicit CU => 
-      val x1286 = CU.temp
-      val x1288 = CU.temp
-      val x1287 = CU.temp
-      val x1289 = CU.temp
+      val x1286 = CU.temp()
+      val x1288 = CU.temp()
+      val x1287 = CU.temp()
+      val x1289 = CU.temp()
       val x1204_x1285 = ScalarBuffer().wtPort(x1204_argin)
       val x1284 = ScalarBuffer().wtPort(x1284_argin)
       val x1220 = CounterChain.copy("x1319", "x1220")

@@ -77,7 +77,7 @@ object SGD extends PIRApp {
     val x1879 = StreamController(name="x1879",parent=x1964) { implicit CU => 
     }
     val x1869_0 = Pipeline(name="x1869_0",parent=x1879) { implicit CU => 
-      val x1862 = CU.temp
+      val x1862 = CU.temp()
       val x1861 =  ScalarBuffer().wtPort(x1861_argin)
       val x1858 = CounterChain.copy("x1964", "x1858")
       var stage: List[Stage] = Nil
@@ -124,9 +124,9 @@ object SGD extends PIRApp {
       val x1891 = CounterChain(name = "x1891", ctr5).iter(1)
     }
     val x1907_0 = Pipeline(name="x1907_0",parent=x1919) { implicit CU => 
-      val x1896 = CU.temp
-      val x1897 = CU.temp
-      val x1898 = CU.temp
+      val x1896 = CU.temp()
+      val x1897 = CU.temp()
+      val x1898 = CU.temp()
       val x1894 =  ScalarBuffer().wtPort(x1894_argin)
       val x1884_x1895 =  ScalarBuffer().wtPort(x1884_x1888_s)
       val x1891 = CounterChain.copy("x1919", "x1891")
@@ -166,8 +166,8 @@ object SGD extends PIRApp {
       Stage(operands=List(CU.load(x1941_x1941), CU.load(x1921_x1942)), op=FixSub, results=List(CU.scalarOut(x1882_x1944_s)))
     }
     val x1962_0 = Pipeline(name="x1962_0",parent=x1963) { implicit CU => 
-      val x1958 = CU.temp
-      val x1959 = CU.temp
+      val x1958 = CU.temp()
+      val x1959 = CU.temp()
       val x1952_x1952 =  VectorFIFO(size=1).wtPort(x1852_x1952_x1962_v)
       val x1882_x1954 =  ScalarBuffer().wtPort(x1882_x1944_s)
       val x1831_x1955 =  ScalarBuffer().wtPort(x1831_argin)

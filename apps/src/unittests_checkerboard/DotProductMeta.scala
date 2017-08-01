@@ -45,7 +45,7 @@ object DotProductMeta_cb extends PIRApp {
       val x1053_unit = CounterChain(name = "x1053_unit", Counter(Const(0), Const(1), Const(1), par=1))
     }
     val x1044_0 = Pipeline(name="x1044_0",parent=x1053) { implicit CU => 
-      val x1038 = CU.temp
+      val x1038 = CU.temp()
       val x1037 =  ScalarBuffer().wtPort(x1037_argin)
       val x1032 = CounterChain.copy("x1094", "x1032")
       val x1044_unit = CounterChain(name = "x1044_unit", Counter(Const(0), Const(1), Const(1), par=1))
@@ -66,7 +66,7 @@ object DotProductMeta_cb extends PIRApp {
       val x1072_unit = CounterChain(name = "x1072_unit", Counter(Const(0), Const(1), Const(1), par=1))
     }
     val x1063_0 = Pipeline(name="x1063_0",parent=x1072) { implicit CU => 
-      val x1057 = CU.temp
+      val x1057 = CU.temp()
       val x1056 =  ScalarBuffer().wtPort(x1056_argin)
       val x1032 = CounterChain.copy("x1094", "x1032")
       val x1063_unit = CounterChain(name = "x1063_unit", Counter(Const(0), Const(1), Const(1), par=1))

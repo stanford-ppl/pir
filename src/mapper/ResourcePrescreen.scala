@@ -48,7 +48,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
   }
 
   def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
-    if (Config.verbose) info(s"\n $msg cls=${cls.size} pcls=${pcls.size}")
+    if (Config.verbose) info(s"$msg cls=${cls.size} pcls=${pcls.size}")
     if (cls.size > pcls.size) throw new OutOfResource(msg, pcls, cls, PIRMap.empty)
     map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
   }

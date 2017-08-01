@@ -132,8 +132,9 @@ trait Design extends PIRMetadata with Collector {
   passes += fusionTransform 
   passes += pirPrinter3
   passes += pirDataDotGen3
-  passes += controlAnalyzer // set isHead, isLast, length
+  passes += controlAnalyzer // set isHead, isLast
   passes += pirDataDotGen4
+  passes += controlAnalyzer // set length scusOf
   //passes += irCheck //TODO
   passes += ctrlAlloc 
   passes += pirDataDotGen5

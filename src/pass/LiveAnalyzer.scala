@@ -119,6 +119,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
         s.liveIns.foreach{ r => 
           r match {
             case (_:CtrPR | _:VecInPR | _:ScalarInPR | _:LoadPR) => s.addDef(r)
+            case TempPR(Some(init)) => s.addDef(r)
             case _ => throw PIRException(s"Register ${r} in ${r.ctrler} has no definition!")
           }
         }
@@ -159,6 +160,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
               reg match {
                 case CtrPR(ctr) => pr.in.connect(ctr.out) 
                 case LoadPR(mem) => pr.in.connect(mem.readPort) 
+                case TempPR(Some(init)) => // Initial value
                 //case VecInPR(vecIn) => 
                   //val head = cu.pipeReg(stages.head, reg)
                   //if (stage!=stages.head) {

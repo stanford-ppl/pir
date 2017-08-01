@@ -101,8 +101,8 @@ object GDA extends PIRApp {
       val x2460 = CounterChain(name = "x2460", ctr2).iter(6)
     }
     val x2467_dsp0 = MemoryPipeline(name="x2467_dsp0",parent="x2584") { implicit CU => 
-      val b2706 = CU.temp
-      val b2700 = CU.temp
+      val b2706 = CU.temp()
+      val b2700 = CU.temp()
       val x2581_x2581 = ScalarFIFO(size=1).wtPort(x2467_x2581_s)
       val x2574 = CounterChain.copy("x2582_0", "x2574")
       val x2586 = CounterChain.copy("x2615", "x2586")
@@ -114,8 +114,8 @@ object GDA extends PIRApp {
       RAStage(operands=List(b2706, CU.ctr(x2600(0))), op=FixAdd, results=List(x2467_x2602.readAddr))
     }
     val x2467_dsp1 = MemoryPipeline(name="x2467_dsp1",parent="x2584") { implicit CU => 
-      val b2698 = CU.temp
-      val b2700 = CU.temp
+      val b2698 = CU.temp()
+      val b2700 = CU.temp()
       val x2581_x2581 = ScalarFIFO(size=1).wtPort(x2467_x2581_s)
       val x2574 = CounterChain.copy("x2582_0", "x2574")
       val x2467_x2577 = SRAM(size=9216,banking = NoBanking()).wtPort(x2581_x2581.readPort).rdPort(x2467_x2577_x2582_s)
@@ -136,8 +136,8 @@ object GDA extends PIRApp {
       val x2471_x2535 = SRAM(size=16,banking = Strided(1)).wtPort(x2490_x2490.readPort).rdPort(x2471_x2535_x2545_s).rdAddr(x2527(0)).wtAddr(x2486(0))
     }
     val x2472_dsp0 = MemoryPipeline(name="x2472_dsp0",parent="x2584") { implicit CU => 
-      val b2686 = CU.temp
-      val b2684 = CU.temp
+      val b2686 = CU.temp()
+      val b2684 = CU.temp()
       val x2515_x2515 = VectorFIFO(size=1).wtPort(x2496_x2508_data_v)
       val x2494 = CounterChain.copy("x2517", "x2494")
       val x2510 = CounterChain.copy("x2516", "x2510")
@@ -153,7 +153,7 @@ object GDA extends PIRApp {
       val x2492_unit = CounterChain(name = "x2492_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x2483_0 = Pipeline(name="x2483_0",parent=x2492) { implicit CU => 
-      val x2477 = CU.temp
+      val x2477 = CU.temp()
       val x2476 = ScalarBuffer().wtPort(x2476_argin)
       val x2470 = CounterChain.copy("x2584", "x2470")
       val x2483_unit = CounterChain(name = "x2483_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -175,9 +175,9 @@ object GDA extends PIRApp {
       val x2494 = CounterChain(name = "x2494", ctr5).iter(16)
     }
     val x2507_0 = Pipeline(name="x2507_0",parent=x2517) { implicit CU => 
-      val x2498 = CU.temp
-      val x2499 = CU.temp
-      val x2500 = CU.temp
+      val x2498 = CU.temp()
+      val x2499 = CU.temp()
+      val x2500 = CU.temp()
       val x2497 = ScalarBuffer().wtPort(x2497_argin)
       val x2470 = CounterChain.copy("x2584", "x2470")
       val x2494 = CounterChain.copy("x2517", "x2494")
@@ -198,7 +198,7 @@ object GDA extends PIRApp {
       val x2510 = CounterChain(name = "x2510", ctr6).iter(6)
     }
     val x2522_0 = Pipeline(name="x2522_0",parent=x2584) { implicit CU => 
-      val x2519 = CU.temp
+      val x2519 = CU.temp()
       val x2417_x2518 = ScalarBuffer().wtPort(x2417_argin)
       val x2470 = CounterChain.copy("x2584", "x2470")
       val x2522_unit = CounterChain(name = "x2522_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -206,8 +206,8 @@ object GDA extends PIRApp {
       Stage(operands=List(x2519, Const(16)), op=FixMin, results=List(CU.scalarOut(x2473_x2521_s)))
     }
     val x2524_dsp0 = MemoryPipeline(name="x2524_dsp0",parent="x2571") { implicit CU => 
-      val b2694 = CU.temp
-      val b2696 = CU.temp
+      val b2694 = CU.temp()
+      val b2696 = CU.temp()
       val x2568_x2568 = ScalarFIFO(size=1).wtPort(x2524_x2568_s)
       val x2560 = CounterChain.copy("x2569_0", "x2560")
       val x2574 = CounterChain.copy("x2582_0", "x2574")
@@ -218,8 +218,8 @@ object GDA extends PIRApp {
       RAStage(operands=List(b2696, CU.ctr(x2574(1))), op=FixAdd, results=List(x2524_x2576.readAddr))
     }
     val x2524_dsp1 = MemoryPipeline(name="x2524_dsp1",parent="x2571") { implicit CU => 
-      val b2694 = CU.temp
-      val b2692 = CU.temp
+      val b2694 = CU.temp()
+      val b2692 = CU.temp()
       val x2568_x2568 = ScalarFIFO(size=1).wtPort(x2524_x2568_s)
       val x2560 = CounterChain.copy("x2569_0", "x2560")
       val x2524_x2564 = SRAM(size=9216,banking = NoBanking()).wtPort(x2568_x2568.readPort).rdPort(x2524_x2564_x2569_s)
@@ -246,8 +246,8 @@ object GDA extends PIRApp {
       val x2528_x2552 = SRAM(size=96,banking = Strided(1)).wtPort(x2544_x2544.readPort).rdPort(x2528_x2552_x2557_s).rdAddr(x2548(0)).wtAddr(x2531(0))
     }
     val x2529_dsp0 = MemoryPipeline(name="x2529_dsp0",parent="x2571") { implicit CU => 
-      val b2688 = CU.temp
-      val b2690 = CU.temp
+      val b2688 = CU.temp()
+      val b2690 = CU.temp()
       val x2556_x2556 = VectorFIFO(size=1).wtPort(x2529_x2556_v)
       val x2548 = CounterChain.copy("x2557_0", "x2548")
       val x2560 = CounterChain.copy("x2569_0", "x2560")
@@ -258,8 +258,8 @@ object GDA extends PIRApp {
       RAStage(operands=List(b2690, CU.ctr(x2560(1))), op=FixAdd, results=List(x2529_x2563.readAddr))
     }
     val x2545_0 = Pipeline(name="x2545_0",parent=x2571) { implicit CU => 
-      val x2542 = CU.temp
-      val x2541 = CU.temp
+      val x2542 = CU.temp()
+      val x2541 = CU.temp()
       val x2535_x2535 = ScalarFIFO(size=1).wtPort(x2471_x2535_x2545_s)
       val x2534_x2534 = VectorFIFO(size=1).wtPort(x2472_x2534_x2545_v)
       val x2537_x2537 = VectorFIFO(size=1).wtPort(x2430_x2537_x2545_v)
@@ -302,8 +302,8 @@ object GDA extends PIRApp {
       val x2607_unit = CounterChain(name = "x2607_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x2598_0 = Pipeline(name="x2598_0",parent=x2607) { implicit CU => 
-      val x2592 = CU.temp
-      val x2591 = CU.temp
+      val x2592 = CU.temp()
+      val x2591 = CU.temp()
       val x2590 = ScalarBuffer().wtPort(x2590_argin)
       val x2586 = CounterChain.copy("x2615", "x2586")
       val x2598_unit = CounterChain(name = "x2598_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)

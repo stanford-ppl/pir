@@ -189,8 +189,8 @@ object BFS extends PIRApp {
     val x2097 = StreamController(name="x2097",parent=x2128) { implicit CU => 
     }
     val x2097_0 = Pipeline(name="x2097_0",parent=x2097) { implicit CU => 
-      val x2080 = CU.temp
-      val x2073 = CU.temp
+      val x2080 = CU.temp()
+      val x2073 = CU.temp()
       val x2050_x2071 =  ScalarBuffer().wtPort(x2050_x2058_s)
       val x2052_x2072 =  ScalarBuffer().wtPort(x2052_x2065_s)
       var stage: List[Stage] = Nil
@@ -200,10 +200,10 @@ object BFS extends PIRApp {
       Stage(operands=List(CU.load(x2052_x2072), Const(4)), op=FixMul, results=List(CU.scalarOut(bus_314_s)))
     }
     val x2097_1 = Pipeline(name="x2097_1",parent=x2097) { implicit CU => 
-      val x2077 = CU.temp
-      val x2076 = CU.temp
-      val x2078 = CU.temp
-      val x2075 = CU.temp
+      val x2077 = CU.temp()
+      val x2076 = CU.temp()
+      val x2078 = CU.temp()
+      val x2075 = CU.temp()
       val x2074 =  ScalarFIFO(size=1).wtPort(bus_314_s)
       val x2073 =  ScalarFIFO(size=1).wtPort(bus_310_s)
       var stage: List[Stage] = Nil
@@ -215,9 +215,9 @@ object BFS extends PIRApp {
       Stage(operands=List(x2077, Const(0), x2078), op=Mux, results=List(CU.scalarOut(bus_321_s)))
     }
     val x2097_2 = Pipeline(name="x2097_2",parent=x2097) { implicit CU => 
-      val x2093 = CU.temp
-      val x2081 = CU.temp
-      val x2092 = CU.temp
+      val x2093 = CU.temp()
+      val x2081 = CU.temp()
+      val x2092 = CU.temp()
       val x2080 =  ScalarFIFO(size=1).wtPort(bus_312_s)
       val x2090 =  ScalarFIFO(size=1).wtPort(bus_313_s)
       val x2074 =  ScalarFIFO(size=1).wtPort(bus_314_s)
@@ -231,7 +231,7 @@ object BFS extends PIRApp {
       Stage(operands=List(x2081, CU.load(x2079)), op=FixAdd, results=List(CU.scalarOut(x2067_b2215_x2089_b2223_s)))
     }
     val x2097_3 = Pipeline(name="x2097_3",parent=x2097) { implicit CU => 
-      val x2083 = CU.temp
+      val x2083 = CU.temp()
       val x2070 =  ScalarBuffer().wtPort(x2070_argin)
       val x2080 =  ScalarFIFO(size=1).wtPort(bus_312_s)
       val x2073 =  ScalarFIFO(size=1).wtPort(bus_310_s)
@@ -271,9 +271,9 @@ object BFS extends PIRApp {
       var stage: List[Stage] = Nil
     }
     val x2142_0 = Pipeline(name="x2142_0",parent=x2160) { implicit CU => 
-      val x2137 = CU.temp
-      val x2135 = CU.temp
-      val x2136 = CU.temp
+      val x2137 = CU.temp()
+      val x2135 = CU.temp()
+      val x2136 = CU.temp()
       val x2051_x2133 =  ScalarBuffer().wtPort(x2051_x2062_s)
       val x2049_x2130 =  ScalarBuffer().wtPort(x2049_x2060_s)
       val x2007_x2134 =  ScalarBuffer().wtPort(x2007_x2157_s)

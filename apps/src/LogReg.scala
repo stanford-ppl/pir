@@ -84,8 +84,8 @@ object LogReg extends PIRApp {
       val x2416 = CounterChain(name = "x2416", ctr3).iter(1)
     }
     val x2417_dsp0 = MemoryPipeline(name="x2417_dsp0",parent="x2534") { implicit CU => 
-      val b2640 = CU.temp
-      val b2648 = CU.temp
+      val b2640 = CU.temp()
+      val b2648 = CU.temp()
       val x2445_x2445 = VectorFIFO(size=1).wtPort(x2422_x2436_data_v)
       val x2438 = CounterChain.copy("x2446", "x2438")
       val x2509 = CounterChain.copy("x2519_0", "x2509")
@@ -98,8 +98,8 @@ object LogReg extends PIRApp {
       RAStage(operands=List(b2648, CU.ctr(x2509(0))), op=FixAdd, results=List(x2417_x2514.readAddr))
     }
     val x2417_dsp1 = MemoryPipeline(name="x2417_dsp1",parent="x2534") { implicit CU => 
-      val b2640 = CU.temp
-      val b2646 = CU.temp
+      val b2640 = CU.temp()
+      val b2646 = CU.temp()
       val x2445_x2445 = VectorFIFO(size=1).wtPort(x2422_x2436_data_v)
       val x2438 = CounterChain.copy("x2446", "x2438")
       val x2473 = CounterChain.copy("x2533", "x2473")
@@ -122,9 +122,9 @@ object LogReg extends PIRApp {
       val x2420 = CounterChain(name = "x2420", ctr4).iter(16)
     }
     val x2435_0 = Pipeline(name="x2435_0",parent=x2447) { implicit CU => 
-      val x2426 = CU.temp
-      val x2424 = CU.temp
-      val x2425 = CU.temp
+      val x2426 = CU.temp()
+      val x2424 = CU.temp()
+      val x2425 = CU.temp()
       val x2423 = ScalarBuffer().wtPort(x2423_argin)
       val x2416 = CounterChain.copy("x2534", "x2416")
       val x2420 = CounterChain.copy("x2447", "x2420")
@@ -148,7 +148,7 @@ object LogReg extends PIRApp {
       val x2470_unit = CounterChain(name = "x2470_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x2459_0 = Pipeline(name="x2459_0",parent=x2470) { implicit CU => 
-      val x2451 = CU.temp
+      val x2451 = CU.temp()
       val x2450 = ScalarBuffer().wtPort(x2450_argin)
       val x2416 = CounterChain.copy("x2534", "x2416")
       val x2459_unit = CounterChain(name = "x2459_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -185,10 +185,10 @@ object LogReg extends PIRApp {
       Stage(operands=List(rr411), op=Bypass, results=List(CU.scalarOut(x2476_x2493_s)))
     }
     val x2507_0 = Pipeline(name="x2507_0",parent=x2533) { implicit CU => 
-      val x2501 = CU.temp
-      val x2503 = CU.temp
-      val x2504 = CU.temp
-      val x2502 = CU.temp
+      val x2501 = CU.temp()
+      val x2503 = CU.temp()
+      val x2504 = CU.temp()
+      val x2502 = CU.temp()
       val x2499_x2499 = ScalarFIFO(size=1).wtPort(x2418_x2499_x2507_s)
       val x2476_x2500 = ScalarBuffer().wtPort(x2476_x2493_s)
       val x2507_unit = CounterChain(name = "x2507_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -213,7 +213,7 @@ object LogReg extends PIRApp {
       Stage(operands=List(CU.load(x2525_x2525), CU.load(x2526_x2526)), op=FltAdd, results=List(CU.scalarOut(x2413_x2530_s)))
     }
     val x2545_0 = Pipeline(name="x2545_0",parent=x2548) { implicit CU => 
-      val x2542 = CU.temp
+      val x2542 = CU.temp()
       val x2538_x2538 = ScalarFIFO(size=1).wtPort(x2413_x2538_x2545_s)
       val x2539_x2539 = ScalarFIFO(size=1).wtPort(x2407_x2539_x2545_s)
       val ctr11 = Counter(min=Const(0), max=Const(192), step=Const(1), par=1) // Counter

@@ -52,7 +52,7 @@ object BlockReduce1D extends PIRApp {
       val x930_unit = CounterChain(name = "x930_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x921_0 = Pipeline(name="x921_0",parent=x930) { implicit CU => 
-      val x915 = CU.temp
+      val x915 = CU.temp()
       val x914 = ScalarBuffer().wtPort(srcFPGA_addr_da)
       val x910 = CounterChain.copy("x941", "x910")
       val x921_unit = CounterChain(name = "x921_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -75,8 +75,8 @@ object BlockReduce1D extends PIRApp {
       val ctr3 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1) // Counter
       val x932 = CounterChain(name = "x932", ctr3).iter(16)
       val x910 = CounterChain.copy(x941, "x910")
-      val x1938 = CU.temp
-      val x1939 = CU.temp
+      val x1938 = CU.temp()
+      val x1939 = CU.temp()
       Stage(operands=List(CU.ctr(x910(0)), Const(0)), op=FixEql, results=List(x1938))
       Stage(operands=List(x1938, Const(0), CU.load(x934_x934)), op=Mux, results=List(x1939))
       Stage(operands=List(CU.load(x933_x933), x1939), op=FixAdd, results=List(CU.scalarOut(x907_x938_s)))

@@ -267,8 +267,8 @@ object OuterProduct extends PIRApp {
       val x4354_x4951 = SRAM(size=16,banking = Strided(1)).wtPort(x4831_x4831.readPort).rdPort(x4354_x4951_x4955_v).rdAddr(x4946(1)).wtAddr(x4826(0))
     }
     val x4355_dsp0 = MemoryPipeline(name="x4355_dsp0",parent="x5399") { implicit CU => 
-      val b5521 = CU.temp
-      val b5497 = CU.temp
+      val b5521 = CU.temp()
+      val b5497 = CU.temp()
       val x4846_x4846 = VectorFIFO(size=1).wtPort(x4355_x4846_v)
       val x4838 = CounterChain.copy("x4847_0", "x4838")
       val x4989 = CounterChain.copy("x5028", "x4989")
@@ -280,8 +280,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5521, CU.ctr(x5008(0))), op=FixAdd, results=List(x4355_x5012.readAddr))
     }
     val x4356_dsp0 = MemoryPipeline(name="x4356_dsp0",parent="x5399") { implicit CU => 
-      val b5499 = CU.temp
-      val b5527 = CU.temp
+      val b5499 = CU.temp()
+      val b5527 = CU.temp()
       val x4858_x4858 = VectorFIFO(size=1).wtPort(x4356_x4858_v)
       val x4850 = CounterChain.copy("x4859_0", "x4850")
       val x5030 = CounterChain.copy("x5069", "x5030")
@@ -293,8 +293,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5527, CU.ctr(x5049(0))), op=FixAdd, results=List(x4356_x5053.readAddr))
     }
     val x4357_dsp0 = MemoryPipeline(name="x4357_dsp0",parent="x5399") { implicit CU => 
-      val b5533 = CU.temp
-      val b5501 = CU.temp
+      val b5533 = CU.temp()
+      val b5501 = CU.temp()
       val x4870_x4870 = VectorFIFO(size=1).wtPort(x4357_x4870_v)
       val x4862 = CounterChain.copy("x4871_0", "x4862")
       val x5071 = CounterChain.copy("x5110", "x5071")
@@ -306,8 +306,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5533, CU.ctr(x5090(0))), op=FixAdd, results=List(x4357_x5094.readAddr))
     }
     val x4358_dsp0 = MemoryPipeline(name="x4358_dsp0",parent="x5399") { implicit CU => 
-      val b5503 = CU.temp
-      val b5539 = CU.temp
+      val b5503 = CU.temp()
+      val b5539 = CU.temp()
       val x4882_x4882 = VectorFIFO(size=1).wtPort(x4358_x4882_v)
       val x4874 = CounterChain.copy("x4883_0", "x4874")
       val x5112 = CounterChain.copy("x5151", "x5112")
@@ -319,8 +319,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5539, CU.ctr(x5131(0))), op=FixAdd, results=List(x4358_x5135.readAddr))
     }
     val x4359_dsp0 = MemoryPipeline(name="x4359_dsp0",parent="x5399") { implicit CU => 
-      val b5505 = CU.temp
-      val b5545 = CU.temp
+      val b5505 = CU.temp()
+      val b5545 = CU.temp()
       val x4894_x4894 = VectorFIFO(size=1).wtPort(x4359_x4894_v)
       val x4886 = CounterChain.copy("x4895_0", "x4886")
       val x5153 = CounterChain.copy("x5192", "x5153")
@@ -332,8 +332,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5545, CU.ctr(x5172(0))), op=FixAdd, results=List(x4359_x5176.readAddr))
     }
     val x4360_dsp0 = MemoryPipeline(name="x4360_dsp0",parent="x5399") { implicit CU => 
-      val b5507 = CU.temp
-      val b5551 = CU.temp
+      val b5507 = CU.temp()
+      val b5551 = CU.temp()
       val x4906_x4906 = VectorFIFO(size=1).wtPort(x4360_x4906_v)
       val x4898 = CounterChain.copy("x4907_0", "x4898")
       val x5194 = CounterChain.copy("x5233", "x5194")
@@ -345,8 +345,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5551, CU.ctr(x5213(0))), op=FixAdd, results=List(x4360_x5217.readAddr))
     }
     val x4361_dsp0 = MemoryPipeline(name="x4361_dsp0",parent="x5399") { implicit CU => 
-      val b5557 = CU.temp
-      val b5509 = CU.temp
+      val b5557 = CU.temp()
+      val b5509 = CU.temp()
       val x4918_x4918 = VectorFIFO(size=1).wtPort(x4361_x4918_v)
       val x4910 = CounterChain.copy("x4919_0", "x4910")
       val x5235 = CounterChain.copy("x5274", "x5235")
@@ -358,8 +358,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5557, CU.ctr(x5254(0))), op=FixAdd, results=List(x4361_x5258.readAddr))
     }
     val x4362_dsp0 = MemoryPipeline(name="x4362_dsp0",parent="x5399") { implicit CU => 
-      val b5563 = CU.temp
-      val b5511 = CU.temp
+      val b5563 = CU.temp()
+      val b5511 = CU.temp()
       val x4930_x4930 = VectorFIFO(size=1).wtPort(x4362_x4930_v)
       val x4922 = CounterChain.copy("x4931_0", "x4922")
       val x5276 = CounterChain.copy("x5315", "x5276")
@@ -371,8 +371,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5563, CU.ctr(x5295(0))), op=FixAdd, results=List(x4362_x5299.readAddr))
     }
     val x4363_dsp0 = MemoryPipeline(name="x4363_dsp0",parent="x5399") { implicit CU => 
-      val b5569 = CU.temp
-      val b5513 = CU.temp
+      val b5569 = CU.temp()
+      val b5513 = CU.temp()
       val x4942_x4942 = VectorFIFO(size=1).wtPort(x4363_x4942_v)
       val x4934 = CounterChain.copy("x4943_0", "x4934")
       val x5317 = CounterChain.copy("x5356", "x5317")
@@ -384,8 +384,8 @@ object OuterProduct extends PIRApp {
       RAStage(operands=List(b5569, CU.ctr(x5336(0))), op=FixAdd, results=List(x4363_x5340.readAddr))
     }
     val x4364_dsp0 = MemoryPipeline(name="x4364_dsp0",parent="x5399") { implicit CU => 
-      val b5575 = CU.temp
-      val b5515 = CU.temp
+      val b5575 = CU.temp()
+      val b5515 = CU.temp()
       val x4954_x4954 = VectorFIFO(size=1).wtPort(x4364_x4954_v)
       val x4946 = CounterChain.copy("x4955_0", "x4946")
       val x5358 = CounterChain.copy("x5397", "x5358")
@@ -400,7 +400,7 @@ object OuterProduct extends PIRApp {
       val x4387_unit = CounterChain(name = "x4387_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4377_0 = Pipeline(name="x4377_0",parent=x4387) { implicit CU => 
-      val x4369 = CU.temp
+      val x4369 = CU.temp()
       val x4371 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4377_unit = CounterChain(name = "x4377_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -421,7 +421,7 @@ object OuterProduct extends PIRApp {
       val x4410_unit = CounterChain(name = "x4410_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4400_0 = Pipeline(name="x4400_0",parent=x4410) { implicit CU => 
-      val x4392 = CU.temp
+      val x4392 = CU.temp()
       val x4394 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4400_unit = CounterChain(name = "x4400_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -442,7 +442,7 @@ object OuterProduct extends PIRApp {
       val x4434_unit = CounterChain(name = "x4434_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4424_0 = Pipeline(name="x4424_0",parent=x4434) { implicit CU => 
-      val x4416 = CU.temp
+      val x4416 = CU.temp()
       val x4418 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4424_unit = CounterChain(name = "x4424_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -463,7 +463,7 @@ object OuterProduct extends PIRApp {
       val x4457_unit = CounterChain(name = "x4457_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4447_0 = Pipeline(name="x4447_0",parent=x4457) { implicit CU => 
-      val x4439 = CU.temp
+      val x4439 = CU.temp()
       val x4441 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4447_unit = CounterChain(name = "x4447_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -484,7 +484,7 @@ object OuterProduct extends PIRApp {
       val x4481_unit = CounterChain(name = "x4481_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4471_0 = Pipeline(name="x4471_0",parent=x4481) { implicit CU => 
-      val x4463 = CU.temp
+      val x4463 = CU.temp()
       val x4465 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4471_unit = CounterChain(name = "x4471_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -505,7 +505,7 @@ object OuterProduct extends PIRApp {
       val x4504_unit = CounterChain(name = "x4504_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4494_0 = Pipeline(name="x4494_0",parent=x4504) { implicit CU => 
-      val x4486 = CU.temp
+      val x4486 = CU.temp()
       val x4488 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4494_unit = CounterChain(name = "x4494_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -526,7 +526,7 @@ object OuterProduct extends PIRApp {
       val x4528_unit = CounterChain(name = "x4528_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4518_0 = Pipeline(name="x4518_0",parent=x4528) { implicit CU => 
-      val x4510 = CU.temp
+      val x4510 = CU.temp()
       val x4512 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4518_unit = CounterChain(name = "x4518_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -547,7 +547,7 @@ object OuterProduct extends PIRApp {
       val x4551_unit = CounterChain(name = "x4551_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4541_0 = Pipeline(name="x4541_0",parent=x4551) { implicit CU => 
-      val x4533 = CU.temp
+      val x4533 = CU.temp()
       val x4535 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4541_unit = CounterChain(name = "x4541_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -568,7 +568,7 @@ object OuterProduct extends PIRApp {
       val x4575_unit = CounterChain(name = "x4575_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4565_0 = Pipeline(name="x4565_0",parent=x4575) { implicit CU => 
-      val x4557 = CU.temp
+      val x4557 = CU.temp()
       val x4559 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4565_unit = CounterChain(name = "x4565_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -589,7 +589,7 @@ object OuterProduct extends PIRApp {
       val x4598_unit = CounterChain(name = "x4598_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4588_0 = Pipeline(name="x4588_0",parent=x4598) { implicit CU => 
-      val x4580 = CU.temp
+      val x4580 = CU.temp()
       val x4582 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4588_unit = CounterChain(name = "x4588_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -610,7 +610,7 @@ object OuterProduct extends PIRApp {
       val x4622_unit = CounterChain(name = "x4622_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4612_0 = Pipeline(name="x4612_0",parent=x4622) { implicit CU => 
-      val x4604 = CU.temp
+      val x4604 = CU.temp()
       val x4606 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4612_unit = CounterChain(name = "x4612_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -631,7 +631,7 @@ object OuterProduct extends PIRApp {
       val x4645_unit = CounterChain(name = "x4645_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4635_0 = Pipeline(name="x4635_0",parent=x4645) { implicit CU => 
-      val x4627 = CU.temp
+      val x4627 = CU.temp()
       val x4629 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4635_unit = CounterChain(name = "x4635_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -652,7 +652,7 @@ object OuterProduct extends PIRApp {
       val x4669_unit = CounterChain(name = "x4669_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4659_0 = Pipeline(name="x4659_0",parent=x4669) { implicit CU => 
-      val x4651 = CU.temp
+      val x4651 = CU.temp()
       val x4653 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4659_unit = CounterChain(name = "x4659_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -673,7 +673,7 @@ object OuterProduct extends PIRApp {
       val x4692_unit = CounterChain(name = "x4692_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4682_0 = Pipeline(name="x4682_0",parent=x4692) { implicit CU => 
-      val x4674 = CU.temp
+      val x4674 = CU.temp()
       val x4676 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4682_unit = CounterChain(name = "x4682_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -694,7 +694,7 @@ object OuterProduct extends PIRApp {
       val x4716_unit = CounterChain(name = "x4716_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4706_0 = Pipeline(name="x4706_0",parent=x4716) { implicit CU => 
-      val x4698 = CU.temp
+      val x4698 = CU.temp()
       val x4700 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4706_unit = CounterChain(name = "x4706_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -715,7 +715,7 @@ object OuterProduct extends PIRApp {
       val x4739_unit = CounterChain(name = "x4739_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4729_0 = Pipeline(name="x4729_0",parent=x4739) { implicit CU => 
-      val x4721 = CU.temp
+      val x4721 = CU.temp()
       val x4723 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4729_unit = CounterChain(name = "x4729_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -736,7 +736,7 @@ object OuterProduct extends PIRApp {
       val x4763_unit = CounterChain(name = "x4763_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4753_0 = Pipeline(name="x4753_0",parent=x4763) { implicit CU => 
-      val x4745 = CU.temp
+      val x4745 = CU.temp()
       val x4747 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4753_unit = CounterChain(name = "x4753_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -757,7 +757,7 @@ object OuterProduct extends PIRApp {
       val x4786_unit = CounterChain(name = "x4786_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4776_0 = Pipeline(name="x4776_0",parent=x4786) { implicit CU => 
-      val x4768 = CU.temp
+      val x4768 = CU.temp()
       val x4770 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4776_unit = CounterChain(name = "x4776_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -778,7 +778,7 @@ object OuterProduct extends PIRApp {
       val x4810_unit = CounterChain(name = "x4810_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4800_0 = Pipeline(name="x4800_0",parent=x4810) { implicit CU => 
-      val x4792 = CU.temp
+      val x4792 = CU.temp()
       val x4794 = ScalarBuffer().wtPort(vec1_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4800_unit = CounterChain(name = "x4800_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -799,7 +799,7 @@ object OuterProduct extends PIRApp {
       val x4833_unit = CounterChain(name = "x4833_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x4823_0 = Pipeline(name="x4823_0",parent=x4833) { implicit CU => 
-      val x4815 = CU.temp
+      val x4815 = CU.temp()
       val x4817 = ScalarBuffer().wtPort(vec2_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
       val x4823_unit = CounterChain(name = "x4823_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -904,10 +904,10 @@ object OuterProduct extends PIRApp {
       val x5017_unit = CounterChain(name = "x5017_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5006_0 = Pipeline(name="x5006_0",parent=x5017) { implicit CU => 
-      val x4996 = CU.temp
-      val x4997 = CU.temp
-      val x4995 = CU.temp
-      val x4993 = CU.temp
+      val x4996 = CU.temp()
+      val x4997 = CU.temp()
+      val x4995 = CU.temp()
+      val x4993 = CU.temp()
       val x4318_x4994 = ScalarBuffer().wtPort(sizeB_argin)
       val x4999 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -937,10 +937,10 @@ object OuterProduct extends PIRApp {
       val x5058_unit = CounterChain(name = "x5058_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5047_0 = Pipeline(name="x5047_0",parent=x5058) { implicit CU => 
-      val x5037 = CU.temp
-      val x5036 = CU.temp
-      val x5038 = CU.temp
-      val x5034 = CU.temp
+      val x5037 = CU.temp()
+      val x5036 = CU.temp()
+      val x5038 = CU.temp()
+      val x5034 = CU.temp()
       val x4318_x5035 = ScalarBuffer().wtPort(sizeB_argin)
       val x5040 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -970,10 +970,10 @@ object OuterProduct extends PIRApp {
       val x5099_unit = CounterChain(name = "x5099_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5088_0 = Pipeline(name="x5088_0",parent=x5099) { implicit CU => 
-      val x5077 = CU.temp
-      val x5078 = CU.temp
-      val x5075 = CU.temp
-      val x5079 = CU.temp
+      val x5077 = CU.temp()
+      val x5078 = CU.temp()
+      val x5075 = CU.temp()
+      val x5079 = CU.temp()
       val x4318_x5076 = ScalarBuffer().wtPort(sizeB_argin)
       val x5081 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1003,10 +1003,10 @@ object OuterProduct extends PIRApp {
       val x5140_unit = CounterChain(name = "x5140_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5129_0 = Pipeline(name="x5129_0",parent=x5140) { implicit CU => 
-      val x5119 = CU.temp
-      val x5120 = CU.temp
-      val x5118 = CU.temp
-      val x5116 = CU.temp
+      val x5119 = CU.temp()
+      val x5120 = CU.temp()
+      val x5118 = CU.temp()
+      val x5116 = CU.temp()
       val x4318_x5117 = ScalarBuffer().wtPort(sizeB_argin)
       val x5122 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1036,10 +1036,10 @@ object OuterProduct extends PIRApp {
       val x5181_unit = CounterChain(name = "x5181_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5170_0 = Pipeline(name="x5170_0",parent=x5181) { implicit CU => 
-      val x5161 = CU.temp
-      val x5160 = CU.temp
-      val x5159 = CU.temp
-      val x5157 = CU.temp
+      val x5161 = CU.temp()
+      val x5160 = CU.temp()
+      val x5159 = CU.temp()
+      val x5157 = CU.temp()
       val x4318_x5158 = ScalarBuffer().wtPort(sizeB_argin)
       val x5163 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1069,10 +1069,10 @@ object OuterProduct extends PIRApp {
       val x5222_unit = CounterChain(name = "x5222_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5211_0 = Pipeline(name="x5211_0",parent=x5222) { implicit CU => 
-      val x5198 = CU.temp
-      val x5200 = CU.temp
-      val x5202 = CU.temp
-      val x5201 = CU.temp
+      val x5198 = CU.temp()
+      val x5200 = CU.temp()
+      val x5202 = CU.temp()
+      val x5201 = CU.temp()
       val x4318_x5199 = ScalarBuffer().wtPort(sizeB_argin)
       val x5204 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1102,10 +1102,10 @@ object OuterProduct extends PIRApp {
       val x5263_unit = CounterChain(name = "x5263_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5252_0 = Pipeline(name="x5252_0",parent=x5263) { implicit CU => 
-      val x5243 = CU.temp
-      val x5241 = CU.temp
-      val x5239 = CU.temp
-      val x5242 = CU.temp
+      val x5243 = CU.temp()
+      val x5241 = CU.temp()
+      val x5239 = CU.temp()
+      val x5242 = CU.temp()
       val x4318_x5240 = ScalarBuffer().wtPort(sizeB_argin)
       val x5245 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1135,10 +1135,10 @@ object OuterProduct extends PIRApp {
       val x5304_unit = CounterChain(name = "x5304_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5293_0 = Pipeline(name="x5293_0",parent=x5304) { implicit CU => 
-      val x5282 = CU.temp
-      val x5280 = CU.temp
-      val x5283 = CU.temp
-      val x5284 = CU.temp
+      val x5282 = CU.temp()
+      val x5280 = CU.temp()
+      val x5283 = CU.temp()
+      val x5284 = CU.temp()
       val x4318_x5281 = ScalarBuffer().wtPort(sizeB_argin)
       val x5286 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1168,10 +1168,10 @@ object OuterProduct extends PIRApp {
       val x5345_unit = CounterChain(name = "x5345_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5334_0 = Pipeline(name="x5334_0",parent=x5345) { implicit CU => 
-      val x5323 = CU.temp
-      val x5324 = CU.temp
-      val x5321 = CU.temp
-      val x5325 = CU.temp
+      val x5323 = CU.temp()
+      val x5324 = CU.temp()
+      val x5321 = CU.temp()
+      val x5325 = CU.temp()
       val x4318_x5322 = ScalarBuffer().wtPort(sizeB_argin)
       val x5327 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
@@ -1201,10 +1201,10 @@ object OuterProduct extends PIRApp {
       val x5386_unit = CounterChain(name = "x5386_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
     val x5375_0 = Pipeline(name="x5375_0",parent=x5386) { implicit CU => 
-      val x5362 = CU.temp
-      val x5364 = CU.temp
-      val x5365 = CU.temp
-      val x5366 = CU.temp
+      val x5362 = CU.temp()
+      val x5364 = CU.temp()
+      val x5365 = CU.temp()
+      val x5366 = CU.temp()
       val x4318_x5363 = ScalarBuffer().wtPort(sizeB_argin)
       val x5368 = ScalarBuffer().wtPort(out_da)
       val x4334 = CounterChain.copy("x5399", "x4334")
