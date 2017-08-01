@@ -268,6 +268,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
 }
 
-case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL], mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL], mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Cannot map $to to $topcu because due to incapable of reaching from $fromcu at $frompcu"
 }

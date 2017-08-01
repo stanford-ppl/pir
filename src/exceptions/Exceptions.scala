@@ -16,34 +16,32 @@ object PIRException {
   def apply(s:String) = new {override val msg = s} with PIRException
 }
 
-abstract class MappingException[M](val mapping:M)(implicit design:Design) extends PIRException with scala.util.control.NoStackTrace {
+abstract class MappingException[M](val mapping:M)(implicit design:Design, val mapper:Mapper) extends PIRException with scala.util.control.NoStackTrace {
   def msg:String
-  def mapper:Mapper
   def typeStr = this.getClass().getSimpleName() 
   override def toString = s"[$mapper] $typeStr: $msg"
   if (mapper.exceedExceptLimit) {
-    throw ExceedExceptionLimit(mapper, mapping) 
+    throw ExceedExceptionLimit(mapping) 
   } else {
     mapper.addException(this)
   }
 }
 object MappingException {
-  def apply[M](mper:Mapper, mp:M, info:String)(implicit design:Design):MappingException[M] = {
-    new MappingException(mp)(design) {
+  def apply[M](mp:M, info:String)(implicit design:Design, mapper:Mapper):MappingException[M] = {
+    new MappingException(mp) {
       def msg = info
-      def mapper = mper
       override def typeStr = s"MappingException"
     }
   }
 }
 
-case class NoSolFound[M](mapper:Mapper, exceps:List[MappingException[_]], mp:M)(implicit design:Design) extends MappingException(mp) {
+case class NoSolFound[M](exceps:List[MappingException[_]], mp:M)(implicit design:Design, mapper:Mapper) extends MappingException(mp) {
   override def toString = s"[$mapper] $typeStr"
   override val msg = s"No solution found to map nodes to resources. Exceptions:{\n ${exceps.map(e => s"$e ${e.msg}").mkString("\n")}\n}"
   //override val msg = s"No solution found to map nodes to resources."
 }
 
-case class FailToMapNode[M](mapper:Mapper, n:Any, exceps:List[MappingException[_]], mp:M)(implicit design:Design) extends MappingException(mp) {
+case class FailToMapNode[M](n:Any, exceps:List[MappingException[_]], mp:M)(implicit design:Design, mapper:Mapper) extends MappingException(mp) {
   //override def toString = s"[$mapper] $typeStr $n"
   val s = if (n.isInstanceOf[PRIM]) s"${n} in ${n.asInstanceOf[PRIM].ctrler}" else s"$n"
   //override val msg = s"No resource can map ${s}. Exceptions:\n ${exceps.mkString("\n")}"
@@ -51,11 +49,11 @@ case class FailToMapNode[M](mapper:Mapper, n:Any, exceps:List[MappingException[_
 }
 
 /* Binding succeeded but don't mark resource as used */
-case class ResourceNotUsed[M](mapper:Mapper, n:Node, r:PNode, mp:M)(implicit design:Design) extends MappingException(mp) {
+case class ResourceNotUsed[M](n:Node, r:PNode, mp:M)(implicit design:Design, mapper:Mapper) extends MappingException(mp) {
   override val msg = s"Binding succeeded for $n on $r but don't mark $r as used"
 }
 
-case class OutOfResource[M](mapper:Mapper, msg:String, pnodes:List[PNode], nodes:List[Node], mp:M)(implicit design:Design) extends MappingException(mp) {
+case class OutOfResource[M](msg:String, pnodes:List[PNode], nodes:List[Node], mp:M)(implicit design:Design, mapper:Mapper) extends MappingException(mp) {
   override def toString = s"$msg. numRes:${pnodes.size}, numNode:${nodes.size}."
 }
 
@@ -65,7 +63,7 @@ case class PassThroughException[M](except:Exception, mp:PIRMap)(implicit design:
   override val msg = s"PassThrough: $mapper except:$except"
 }
 
-case class ExceedExceptionLimit[M](mapper:Mapper, mapping:M) extends PIRException {
+case class ExceedExceptionLimit[M](mapping:M)(implicit val mapper:Mapper) extends PIRException {
   println(s"Exiting due to exceed exception limits...")
   override def toString = s"[$mapper] $msg"
   override val msg = s"Exception Limit (=${mapper.exceptLimit}) Exceeded"

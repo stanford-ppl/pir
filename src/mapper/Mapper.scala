@@ -108,6 +108,9 @@ trait Mapper { self =>
   }
 
   def mappingCheck(mapping:PIRMap):Unit = {}
+
+  def checkRemain(mapping:PIRMap) = {}
+
   //def recRes[R,N,M](
   //  n:N,
   //  allRes:List[R],
@@ -147,8 +150,8 @@ trait Mapper { self =>
         constrain(n, res, map, exceps.toList)
       }.flatMap { m => Try(finPass(m)) }) match {
         case Success(m) => return m
-        case Failure(e@NoSolFound(_, es, mp)) => exceps ++= es
-        case Failure(e@FailToMapNode(_, n, es, mp)) => exceps ++= es
+        case Failure(e@NoSolFound(es, mp)) => exceps ++= es
+        case Failure(e@FailToMapNode(n, es, mp)) => exceps ++= es
         case Failure(me:E) => exceps += me // constrain failed
         case Failure(e) => throw e
       }
@@ -161,7 +164,7 @@ trait Mapper { self =>
         case Failure(e) => throw e
       }
     }
-    throw FailToMapNode(this, n, exceps.toList, map)
+    throw FailToMapNode(n, exceps.toList, map)
   }
 
   def bind[R<:PNode,N<:Node,M](
@@ -218,7 +221,7 @@ trait Mapper { self =>
         log(s"Mapping $n", { (m:M) => return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
-            case FailToMapNode(_, n, es, mp) => exceps ++= es
+            case FailToMapNode(n, es, mp) => exceps ++= es
             //case fe:FailToMapNode[_] => exceps += fe//; dprintln(flattenExceptions(fe.exceps)) // recRes failed
             case _ => throw e // Unknown exception
           }
@@ -228,7 +231,7 @@ trait Mapper { self =>
           recRes[R,N,M](n, constrain, rf _, rn _, map)
         } 
       }
-      throw NoSolFound(this, exceps.toList, map) 
+      throw NoSolFound(exceps.toList, map) 
     }
 
     recNode(allNodes, initMap)
@@ -280,8 +283,8 @@ trait Mapper { self =>
           recMap(restRes, remainNodes, mp)
         } match {
           case Success(m) => return m 
-          case Failure(e@NoSolFound(_, es, mp)) => exceps ++= es
-          case Failure(e@FailToMapNode(_, n, es, mp)) => exceps ++= es
+          case Failure(e@NoSolFound(es, mp)) => exceps ++= es
+          case Failure(e@FailToMapNode(n, es, mp)) => exceps ++= es
           case Failure(me:E) => exceps += me // constrains failed
           case Failure(e) => throw e // Unknown exception
         }
@@ -290,7 +293,7 @@ trait Mapper { self =>
         case map:PIRMap => design.pirMapping.mapping = Some(map)
         case _ =>
       }
-      throw FailToMapNode(this, n, exceps.toList, map)
+      throw FailToMapNode(n, exceps.toList, map)
     }
 
     /* Recursively map a list of nodes to a list of resource */
@@ -304,8 +307,8 @@ trait Mapper { self =>
         recRes(remainRes, n, restNodes, recmap)
       } match {
         case Success(m) => return m
-        case Failure(fe@FailToMapNode(_, n, es, mp)) => 
-          throw NoSolFound(this, List(fe), fe.mapping) // recRes failed
+        case Failure(fe@FailToMapNode(n, es, mp)) => 
+          throw NoSolFound(List(fe), fe.mapping) // recRes failed
         case Failure(e) => throw e // Unknown exception
       }
     }
@@ -321,8 +324,8 @@ trait Mapper { self =>
   def flattenExceptions(es:List[E]):Set[E] = {
     es.flatMap { e =>
       e match {
-        case FailToMapNode(mapper, n, exceps, m) => flattenExceptions(exceps)
-        case NoSolFound(mapper, exceps, m) => flattenExceptions(exceps)
+        case FailToMapNode(n, exceps, m) => flattenExceptions(exceps)
+        case NoSolFound(exceps, m) => flattenExceptions(exceps)
         case e => e::Nil
       }
     }.toSet

@@ -14,9 +14,8 @@ import scala.util.{Try, Success, Failure}
 
 class SN(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork (
   new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts, pattern=pattern)) {
-  config
 }
-class SN_LD(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork(
+abstract class SN_LD(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork(
   PreloadSwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts, pattern=pattern)
 ) {
   override def pcuAt(i:Int, j:Int):PatternComputeUnit = 
@@ -27,8 +26,6 @@ class SN_LD(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pat
 
   override def scuAt(i:Int, j:Int):ScalarComputeUnit = 
     new ScalarComputeUnit(PreloadScalarComputeParam())
-
-  config
 }
 
 object SN1x1 extends SN(numRows=1, numCols=1, numArgIns=3, numArgOuts=3, pattern=MixAll) 
@@ -52,8 +49,18 @@ object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols
 object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=MixAll) 
 
-object SN4x4_LD extends SN_LD(numRows=4, numCols=4, numArgIns=12, numArgOuts=5, pattern=Checkerboard) 
+object SN8x8_LD extends SN_LD(numRows=8, numCols=8, numArgIns=12, numArgOuts=5, pattern=Checkerboard) {
+  override lazy val scalarNetwork = new ScalarNetwork() {
+    // switch to switch channel width
+    channelWidth("src"->"sb", "dst"->"sb") = 6
+  }
+  config
+}
 object SN16x8_LD extends SN_LD(numRows=16, numCols=8, numArgIns=12, numArgOuts=5, pattern=Checkerboard) {
+  override lazy val scalarNetwork = new ScalarNetwork() {
+    // switch to switch channel width
+    channelWidth("src"->"sb", "dst"->"sb") = 6
+  }
   override lazy val ctrlNetwork = new CtrlNetwork() {
 
     // switch to switch channel width
@@ -71,4 +78,5 @@ object SN16x8_LD extends SN_LD(numRows=16, numCols=8, numArgIns=12, numArgOuts=5
     // switch to OCU channel width
     channelWidth("pos"->"center", "src"->"sb", "dst"->"ocu") = 4
   }
+  config
 }

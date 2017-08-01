@@ -38,9 +38,9 @@ object Config {
 
   var debug = getProperty("pir.debug", "true") == "true"
   var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
-  var debugVecRouter = debugMapper && false
-  var debugScalRouter = debugMapper && false 
-  var debugCtrlRouter = debugMapper && true
+  var debugVecRouter = debugMapper && true 
+  var debugScalRouter = debugMapper && true 
+  var debugCtrlRouter = debugMapper && false 
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugSIMapper = debugMapper && true 
@@ -57,7 +57,7 @@ object Config {
   var ctrl = false
   var simulate = false
   var simulationTimeOut = 100
-  var verbose = debug & true
+  var verbose = false
   var waveform = true
 
 //plasticine {

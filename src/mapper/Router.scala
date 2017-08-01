@@ -117,7 +117,7 @@ abstract class Router(implicit design:Design) extends Mapper {
         val ocl = ctrler(out)
         var info = s"No resource filtered for $icl.$in[${m.clmap.get(icl).map(quote)}]"
         info += s" from: $ocl.$out[${m.clmap.get(ocl).map(quote)}]" 
-        throw MappingException(this, m, info)
+        throw MappingException(m, info)
       }
       fatpaths.map { _._1 }
     }
@@ -132,7 +132,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     def start(in:I) = ctrler(in)
     val reses = filterTraverse(start _, outins, prts, m, revAdvance _)
     if (reses.isEmpty) 
-      throw MappingException(this, m, s"No prts can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
+      throw MappingException(m, s"No prts can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
     else reses
   }
 
@@ -146,7 +146,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def filterPCL(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     var reses = prts 
-    if (reses.isEmpty) throw MappingException(this, m, s"No prts to filter for $cl")
+    if (reses.isEmpty) throw MappingException(m, s"No prts to filter for $cl")
     reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
     reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
     reses
@@ -393,7 +393,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     val paths:Paths[FEdge] = fatpaths.flatMap { case (reachedCU, fatpath) =>
       slimDown(fatpath, mp).map{ path => (reachedCU, path) }
     }
-    if (paths.isEmpty) throw MappingException(this, mp, s"No valid connected path available")
+    if (paths.isEmpty) throw MappingException(mp, s"No valid connected path available")
     else paths
   }
 
@@ -420,14 +420,14 @@ abstract class Router(implicit design:Design) extends Mapper {
       )
       if (routes.isEmpty) {
         var info = s"No route available for searching range=[$minHop, $maxHop]\n"
-        throw PassThroughException(ReplaceController(this, List(icl -> picl, ocl -> pocl), m), m)
+        throw PassThroughException(ReplaceController(List(icl -> picl, ocl -> pocl), m), m)
       }
       //var remain = routes.flatMap { case (pcl, fp) => filterUsedPaths(out, fp, m).map( fp => (pcl, fp)) }
       //remain = remain.diff(triedRes)
       val remain = routes.diff(triedRes)
       if (remain.isEmpty) {
         var info = s"No remaining route available for triedRes.size=${triedRes.size} searching range=[$minHop, $maxHop]\n"
-        throw MappingException(this, m, info)
+        throw MappingException(m, info)
       }
       slimDown(remain, m)
     }

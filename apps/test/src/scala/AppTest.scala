@@ -44,6 +44,7 @@ class AppTests extends UnitTest { self =>
       argOuts:String="", 
       checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, 
       timeOut:Int=60,
+      virbose:Boolean=false,
       debug:Boolean=false
     ) = {
     s"$app [$args] ($argOuts)" should "success" in { 
@@ -78,7 +79,7 @@ class AppTests extends UnitTest { self =>
       Config.simulationTimeOut = timeOut
       Config.debug = debug
       Config.waveform = debug 
-      Config.verbose = debug 
+      Config.verbose = virbose
       Config.codegen = false
       arch.foreach { app.arch = _ }
       try {
@@ -225,8 +226,9 @@ class AppTests extends UnitTest { self =>
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
   val simulate = false
+  val virbose = true
   //val arch = SN16x8_LD
-  val arch = SN4x4_LD
+  val arch = SN8x8_LD
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), debug=true)
   //test(TensorLoadStore, arch=Some(arch), debug=true)
@@ -237,6 +239,6 @@ class AppTests extends UnitTest { self =>
   //test(BlackScholes, arch=Some(arch), debug=true)
   //test(Kmeans, arch=Some(arch), debug=true)
   //test(PageRank, arch=Some(arch), debug=true)
-  test(Gibbs_Ising2D, arch=Some(arch), debug=true)
+  test(Gibbs_Ising2D, arch=Some(arch), virbose=virbose, debug=true)
 }
 

@@ -62,10 +62,27 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     localMappingSucceeded = false
   }
 
+  def viewRouting(mapper:Mapper):Unit = {
+    mapper match {
+      case mapper:VectorRouter =>
+        new CUVectorDotPrinter(open=true)(design).print(mapping)
+      case mapper:ScalarRouter =>
+        new CUScalarDotPrinter(open=true)(design).print(mapping)
+      case mapper:ControlRouter =>
+        new CUCtrlDotPrinter(open=true)(design).print(mapping)
+      case mapper:CUMapper =>
+        new CUVectorDotPrinter(open=true)(design).print(mapping)
+        new CUScalarDotPrinter(open=true)(design).print(mapping)
+        new CUCtrlDotPrinter(open=true)(design).print(mapping)
+      case _ =>
+    }
+  }
   def handle(e:Throwable) = {
     e match {
-      case ExceedExceptionLimit(mapper, m) =>
+      case e@ExceedExceptionLimit(m) =>
         mapping = Some(m.asInstanceOf[PIRMap])
+        viewRouting(e.mapper)
+        e.mapper.checkRemain(mapping.get)
       case PassThroughException(e, m) =>
         mapping = Some(m)
       case e:MappingException[_] =>
@@ -73,15 +90,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
           case m:PIRMap => mapping = Some(m)
           case (m:PIRMap, _) => mapping = Some(m)
         }
-        (e.mapper, e.mapping) match {
-          case (mapper:VectorRouter, mapping:PIRMap) =>
-            new CUVectorDotPrinter(open=true)(design).print(Some(mapping))
-          case (mapper:ScalarRouter, mapping:PIRMap) =>
-            new CUScalarDotPrinter(open=true)(design).print(Some(mapping))
-          case (mapper:ControlRouter, mapping:PIRMap) =>
-            new CUCtrlDotPrinter(open=true)(design).print(Some(mapping))
-          case _ =>
-        }
+        viewRouting(e.mapper)
       case e =>
     }
   }

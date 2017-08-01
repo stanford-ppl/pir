@@ -132,9 +132,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
 }
 
-case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${quote(c)(design.arch)}" 
 }
-case class InterfereException(r:Reg, itr:Reg, p:PReg, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp){
+case class InterfereException(r:Reg, itr:Reg, p:PReg, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp){
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "
 }

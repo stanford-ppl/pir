@@ -48,7 +48,8 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
   }
 
   def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
-    if (cls.size > pcls.size) throw new OutOfResource(this, msg, pcls, cls, PIRMap.empty)
+    if (Config.verbose) info(s"\n $msg cls=${cls.size} pcls=${pcls.size}")
+    if (cls.size > pcls.size) throw new OutOfResource(msg, pcls, cls, PIRMap.empty)
     map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
   }
 
@@ -146,6 +147,6 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     logMapping(map)
   }
 }
-case class CUOutOfSize(cl:CL, info:String) (implicit val mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {
+case class CUOutOfSize(cl:CL, info:String) (implicit mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {
   override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
 } 

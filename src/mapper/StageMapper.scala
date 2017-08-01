@@ -38,7 +38,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
       val pcu = mp.clmap(cu).asCU
       val nodes = cu.stages
       val reses = pcu.fustages
-      def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfResource(this, s"Not enough Stages in ${pcu} to map ${cu}.", pnodes, nodes, m)
+      def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfResource(s"Not enough Stages in ${pcu} to map ${cu}.", pnodes, nodes, m)
       mp = bindInOrder(reses, nodes, mp, List(mapStage _), finPass(cu) _, oor _)
       mp = stageFowarding(pcu, mp)
       mp
@@ -79,7 +79,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   def typeMismatch(n:N, p:R, map:M):Unit = {
-    throw MappingException(this, map, s"Type Mismatch: $n cannot be mapped to $p")
+    throw MappingException(map, s"Type Mismatch: $n cannot be mapped to $p")
   }
 
   def checkStageType(n:N, p:R, map:M):Unit = {
@@ -144,7 +144,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = map
     val nres = pstage.prs.size
     val nnode = stage.prs.size
-    if (nnode > nres) throw OutOfResource(this, s"Not enough PipeReg in ${pstage} to map ${stage}.", pstage.prs, stage.prs, mp)
+    if (nnode > nres) throw OutOfResource(s"Not enough PipeReg in ${pstage} to map ${stage}.", pstage.prs, stage.prs, mp)
 
     val rcmap = mp.rcmap
     stage.prs.foreach { pr =>
@@ -158,11 +158,11 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 }
-case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"${ps}:[${ps.funcUnit.get.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
 }
-//case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit val mapper:Mapper, design:Design) 
+//case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit mapper:Mapper, design:Design) 
   //extends OutOfResource(mapper, s"Not enough operands in ${ps} to map ${s}.", pnodes, nodes, mp)
-case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit val mapper:Mapper, design:Design) extends MappingException(mp) {
+case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}"
 }

@@ -46,7 +46,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
         }
       } match {
         case Success(mp) => mp
-        case Failure(PassThroughException(e@ReplaceController(_, blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
+        case Failure(PassThroughException(e@ReplaceController(blacklist, _), _)) if (blacklist.contains((cl, prt))) =>
           throw e
         case Failure(e) => throw e
       }
@@ -77,6 +77,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
         case _ =>
       }
       if (prts.size>1) routers.foreach { router => prts = router.filterPCL(cl, prts, m) }
+      else throw MappingException(m, s"No remaining Controller to map $cl")
       prts
     }
   }
@@ -98,9 +99,15 @@ class CUMapper(implicit val design:Design) extends Mapper {
     )
   }
 
+  override def checkRemain(mapping:PIRMap) = {
+    import mapping._
+    val unmapped = design.top.ctrlers.filter { cl => !clmap.contains(cl) }
+    warn(s"Unmapped Controllers(${unmapped.size}): [${unmapped.mkString(",")}]")
+  }
+
 }
 
-case class ReplaceController[M](mapper:Mapper, blacklist:List[(CL, PCL)], mp:M)(implicit design:Design) 
+case class ReplaceController[M](blacklist:List[(CL, PCL)], mp:M)(implicit design:Design, mapper:Mapper) 
   extends MappingException(mp) {
     override val msg = s"Avoid mapping of ${ blacklist.map{ case (cl, pcl) => s"$cl -> $pcl"}.mkString(",") }"
 }

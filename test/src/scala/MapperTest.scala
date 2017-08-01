@@ -27,7 +27,7 @@ class MapperTest extends UnitTest { self =>
       // PNodes
       override val arch = null
       // Mapping
-      val testMapper = new Mapper {
+      implicit val testMapper = new Mapper {
         val typeStr = "TestMapper"
         val design = self
       }
@@ -36,7 +36,7 @@ class MapperTest extends UnitTest { self =>
       // Printer
       def cons(n:R, r:R, m:M):M = {
         if (r > pnodes.size/2 - n) m + (n -> r )
-        else throw MappingException[M](testMapper, m, "constrain failed")
+        else throw MappingException[M](m, "constrain failed")
       }
       intercept[MappingException[M]] {
         val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:M) => m)
@@ -51,7 +51,7 @@ class MapperTest extends UnitTest { self =>
       // PNodes
       override val arch = null
       // Mapping
-      val testMapper = new Mapper {
+      implicit val testMapper = new Mapper {
         val typeStr = "TestMapper"
         val design = self
       }
@@ -67,7 +67,7 @@ class MapperTest extends UnitTest { self =>
         if (resMap(n).contains(r)) {
           m + (n -> r )
         } else throw new {
-          val mapper = testMapper; val msg = "Constrain failed"
+          val msg = "Constrain failed"
         } with MappingException[M](m)
       }
       val mp = testMapper.bindInOrder(pnodes, nodes, Map[Int, Int](), List(cons _), (m:M) => m)
