@@ -227,7 +227,8 @@ class AppTests extends UnitTest { self =>
   
   val simulate = false
   val virbose = true
-  val arch = SN16x8_LD
+  //val arch = SN16x8_LD
+  val arch = SN16x10_LD
   //val arch = SN8x8_LD
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), debug=true)
