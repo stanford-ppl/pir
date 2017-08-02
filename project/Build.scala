@@ -24,7 +24,7 @@ object PIRBuild extends Build {
     retrieveManaged := true,
     javaOptions in (Test) += "-Xdebug",
     javaOptions in (Test) += "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-    javaOptions += "-Xmx2048M",
+    javaOptions += "-Xmx3G",
     //scalacOptions += "-Yno-generic-signatures",
     scalacOptions += "-feature",
     scalacOptions += "-unchecked",

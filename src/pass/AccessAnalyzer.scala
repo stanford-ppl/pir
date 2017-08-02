@@ -17,8 +17,8 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
   override lazy val stream = newStream(s"AccessAnalyzer.log")
 
   def setWriter(mem:OnChipMem) = {
-    writersOf(mem) = (collect[FIFO](mem.writePort).flatMap(fifo => writersOf(fifo)) ++
-                      collect[Input](mem.writePort).map(in => in.variable.writer.ctrler)).toList
+    writersOf(mem) = (collectIn[FIFO](mem.writePort).flatMap(fifo => writersOf(fifo)) ++
+                      collectIn[Input](mem.writePort).map(in => in.variable.writer.ctrler)).toList
   }
 
   def setReader(mem:OnChipMem) = mem match {

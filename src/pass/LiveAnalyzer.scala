@@ -38,26 +38,7 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
   }
 
   private def updatesPrim(implicit cu:ComputeUnit) = {
-    cu match {
-      case icu:InnerController =>
-        icu.mems.foreach { mem =>
-          mem match { 
-            case mem:SRAM => 
-              if (mem.readAddr.isConnected) addLiveOut(mem.readAddr)
-              if (mem.writeAddr.isConnected) addLiveOut(mem.writeAddr)
-            case _ => 
-          }
-          if (mem.writePort.isConnected) addLiveOut(mem.writePort)
-        }
-      case _ =>
-    }
-    cu.cchains.foreach { cc => 
-      cc.counters.foreach { ctr =>
-        addLiveOut(ctr.min)
-        addLiveOut(ctr.max)
-        addLiveOut(ctr.step)
-      }
-    }
+    collectIn[PipeReg](cu.mems ++ cu.cchains).foreach { case PipeReg(stage, reg) => stage.addLiveOut(reg) }
   }
   
   private def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
@@ -138,7 +119,8 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
 
   private def checkLiveness(stages:List[Stage]) = {
     stages.foreach { s =>
-      if ((s.liveIns -- s.liveOuts).size!=0) {
+      var diff = (s.liveIns -- s.liveOuts)
+      if (diff.size!=0) {
         throw PIRException(s"ctrler: ${s.ctrler}, liveIn is not contained by liveOut! stage:${s} liveIns:${s.liveIns} liveOuts:${s.liveOuts}")
       }
     }
@@ -161,18 +143,6 @@ class LiveAnalyzer(implicit design: Design) extends Pass with Logger {
                 case CtrPR(ctr) => pr.in.connect(ctr.out) 
                 case LoadPR(mem) => pr.in.connect(mem.readPort) 
                 case TempPR(Some(init)) => // Initial value
-                //case VecInPR(vecIn) => 
-                  //val head = cu.pipeReg(stages.head, reg)
-                  //if (stage!=stages.head) {
-                    //pr.in.connect(head)
-                  //}
-                  //if (!head.in.isConnected) head.in.connect(vecIn.out)
-                //case ScalarInPR(scalarIn) =>
-                  //val head = cu.pipeReg(stages.head, reg)
-                  //if (stage!=stages.head) {
-                    //pr.in.connect(head)
-                  //}
-                  //if (!head.in.isConnected) head.in.connect(scalarIn.out) 
                 case _ => throw PIRException(s"Cannot forward reg type: ${reg}")
               }
             }

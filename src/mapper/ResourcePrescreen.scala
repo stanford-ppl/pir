@@ -47,10 +47,15 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     }
   }
 
-  def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Unit = {
-    if (Config.verbose) info(s"$msg cls=${cls.size} pcls=${pcls.size}")
-    if (cls.size > pcls.size) throw new OutOfResource(msg, pcls, cls, PIRMap.empty)
-    map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
+  def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Boolean = {
+    if (cls.size > pcls.size) {
+      errmsg(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      false
+    } else {
+      if (Config.verbose) info(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
+      true
+    }
   }
 
   def logMapping(map:mutable.Map[N, List[R]]) = {
@@ -91,17 +96,21 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     //info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
     //info(s"numCL:${cls.size}")
     val map = resMap 
-    quantityCheck(Some(map), mcs , pmcs, "MemoryController")
-    quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
-    //quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
-    quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
-    quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
-    quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
-    quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
-    quantityCheck(None     , (scus_offchip ++ scus ++ rcus) , (pscus_offchip ++ pscus ++ pcus), "ComputeUnit")
-    quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
+    var pass = true
+    pass &= quantityCheck(Some(map), mcs , pmcs, "MemoryController")
+    pass &= quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
+    //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
+    pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
+    pass &= quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
+    pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
+    pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
+    pass &= quantityCheck(None     , (scus_offchip ++ scus ++ rcus) , (pscus_offchip ++ pscus ++ pcus), "ComputeUnit")
+    pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
+    if (!pass) throw MappingException(PIRMap.empty, s"Not enough controller to map $design")
+
+    val failureInfo = mutable.Map[N, mutable.Map[R, ListBuffer[String]]]()
     cls.foreach { cl => 
-      val failureInfo = mutable.Map[R, ListBuffer[String]]()
+      failureInfo += cl -> mutable.Map.empty
       map += cl -> map(cl).filter { prt =>
         val cons = ListBuffer[(String, Any)]()
         (cl, prt) match {
@@ -136,17 +145,19 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
             cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
             cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
         }
-        failureInfo += prt -> ListBuffer[String]()
-        check(cons.toList, failureInfo(prt))
-      }
-      if (map(cl).size==0) {
-        val info = failureInfo.map{ case (prt, info) => s"$prt: [${info.mkString(",")}] \n"}.mkString(",")
-        throw CUOutOfSize(cl, info)
+        failureInfo(cl) += prt -> ListBuffer[String]()
+        check(cons.toList, failureInfo(cl)(prt))
       }
     }
+    val notFit = cls.filter { cl =>
+      if (map(cl).size==0) {
+        emitBlock(s"$cl") {
+          val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
+        }
+      }
+      map(cl).size==0
+    }
+    if (notFit.nonEmpty) throw MappingException(PIRMap.empty, s"[${notFit.mkString(",")}] do not fit in any controller!")
     logMapping(map)
   }
 }
-case class CUOutOfSize(cl:CL, info:String) (implicit mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {
-  override val msg = s"cannot map ${cl} due to resource constrains\n${info}"
-} 

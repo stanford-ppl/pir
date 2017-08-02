@@ -207,6 +207,7 @@ object Stage {
       case o:OutPort => o
       case CtrPR(ctr) if stage.prev.isEmpty => ctr.out
       case LoadPR(mem) if stage.prev.isEmpty => mem.load
+      case r@TempPR(init) if stage.prev.isEmpty => stage.get(r).out // First stage read from initialized register
       case r:Reg => stage.prev.get.get(r).out
       case pr:PipeReg => pr.out
       case c:Const[_] => c.out
@@ -355,7 +356,7 @@ object RAStage {
 abstract class Reg(implicit override val ctrler:ComputeUnit, design:Design) extends Primitive { self:Product =>
   import pirmeta._
   lazy val regId:Int = ctrler.newTemp
-  override def toString = scala.runtime.ScalaRunTime._toString(this)
+  override def toString = scala.runtime.ScalaRunTime._toString(this).replace("(", s"$regId(")
   override val name = None
   override def equals(that: Any) = that match {
     case n: Reg => regId == n.regId && ctrler == n.ctrler

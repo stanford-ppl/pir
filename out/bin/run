@@ -1,23 +1,35 @@
 #!/bin/bash
 
-if [[ $1 == "-c" ]]; then
+
+if [[ $1 == "-"*  ]]; then
+	OPT=$1
+	FILE=$2
+else
+	FILE=$1
+fi
+
+if [[ $OPT == "-"*"t"*  ]]; then
+	scp yaqiz@tucson.stanford.edu:~/pir/out/$FILE.dot $(dirname $FILE)
+fi
+
+if [[ $OPT == "-"*"c"*  ]]; then
 	if [ "$(uname)" == "Darwin" ]; then
 		# Do something under Mac OS X platform        
-		dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && open $2.pdf
-		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && open -a "Safari" $2.svg
+		dot -Kfdp -n -Tpdf -o $FILE.pdf $FILE.dot && open $FILE.pdf
+		#dot -Kfdp -n -Tsvg -o $FILE.svg $FILE.dot && open -a "Safari" $FILE.svg
 	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		# Do something under GNU/Linux platform
-		dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && gnome-open $2.pdf # not tested
-		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && google-chrome $2.svg
+		dot -Kfdp -n -Tpdf -o $FILE.pdf $FILE.dot && gnome-open $FILE.pdf # not tested
+		#dot -Kfdp -n -Tsvg -o $FILE.svg $FILE.dot && google-chrome $FILE.svg # not tested
 	fi
 else
 	if [ "$(uname)" == "Darwin" ]; then
 		# Do something under Mac OS X platform        
-		#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
-		dot -Tsvg -o $1.svg $1.dot && open -a "Safari" $1.svg
+		#dot -Tpdf -o $FILE.pdf $FILE.dot && open $FILE.pdf
+		dot -Tsvg -o $FILE.svg $FILE.dot && open -a "Safari" $FILE.svg
 	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		# Do something under GNU/Linux platform
-		#dot -Tpdf -o $1.pdf $1.dot && open $1.pdf
-		dot -Tsvg -o $1.svg $1.dot && google-chrome $1.svg # not tested
+		#dot -Tpdf -o $FILE.pdf $FILE.dot && open $FILE.pdf
+		dot -Tsvg -o $FILE.svg $FILE.dot && google-chrome $FILE.svg # not tested
 	fi
 fi
