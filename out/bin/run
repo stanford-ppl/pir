@@ -8,7 +8,7 @@ if [[ $1 == "-c" ]]; then
 	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		# Do something under GNU/Linux platform
 		dot -Kfdp -n -Tpdf -o $2.pdf $2.dot && gnome-open $2.pdf # not tested
-		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && open -a "Safari" $2.svg
+		#dot -Kfdp -n -Tsvg -o $2.svg $2.dot && google-chrome $2.svg
 	fi
 else
 	if [ "$(uname)" == "Darwin" ]; then
