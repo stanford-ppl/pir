@@ -30,22 +30,22 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
       st.fu.foreach { fu =>
         st match {
           case st:WAStage => 
-            collect[Counter](fu.operands).foreach { p => forWrite(p) = true }
-            collect[ScalarMem](fu.operands).foreach { p => forWrite(p) = true }
+            collectIn[Counter](fu.operands).foreach { p => forWrite(p) = true }
+            collectIn[ScalarMem](fu.operands).foreach { p => forWrite(p) = true }
           case st:RAStage =>
-            collect[Counter](fu.operands).foreach { p => forRead(p) = true }
-            collect[ScalarMem](fu.operands).foreach { p => forRead(p) = true }
+            collectIn[Counter](fu.operands).foreach { p => forRead(p) = true }
+            collectIn[ScalarMem](fu.operands).foreach { p => forRead(p) = true }
         }
       }
     }
     if (cu.sram.writePort.isConnected) {
-      collect[FIFO](cu.sram.writePort).foreach { fifo => forWrite(fifo) = true }
+      collectIn[FIFO](cu.sram.writePort).foreach { fifo => forWrite(fifo) = true }
     } else {
       warn(s"${cu.sram} in $cu's writePort is not connected!")
     }
 
-    collect[Counter](cu.sram.readAddrMux).foreach { p => forRead(p) = true }
-    collect[Counter](cu.sram.writeAddrMux).foreach { p => forWrite(p) = true }
+    collectIn[Counter](cu.sram.readAddrMux).foreach { p => forRead(p) = true }
+    collectIn[Counter](cu.sram.writeAddrMux).foreach { p => forWrite(p) = true }
   }
 
   def analyzeCChain(cu:MemoryPipeline):Unit = {
@@ -68,15 +68,15 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
 
   def analyzeScalarBufs(cu:MemoryPipeline):Unit = emitBlock(s"analyzeScalarBufs($cu)") {
     cu.cchains.foreach { cc =>
-      collect[ScalarMem](cc).foreach { mem =>
+      collectIn[ScalarMem](cc).foreach { mem =>
         if (forRead(cc)) { forRead(mem) = true }
         if (forWrite(cc)) { forWrite(mem) = true }
         dprintln(forRead.info(mem))
         dprintln(forWrite.info(mem))
       }
     }
-    collect[ScalarFIFO](cu.sram.writeAddr).foreach { fifo => forWrite(fifo) = true }
-    collect[ScalarFIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
+    collectIn[ScalarFIFO](cu.sram.writeAddr).foreach { fifo => forWrite(fifo) = true }
+    collectIn[ScalarFIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
   }
 
   def setSwapCC(cu:ComputeUnit) = emitBlock(s"setSwapCC($cu)") {

@@ -135,16 +135,18 @@ package object util {
     else s.toInt
   }
 
-  def collect[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+  def collectIn[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
     case x:X => Set(x)
-    case LoadPR(mem) => collect[X](mem)
-    case CtrPR(ctr) => collect[X](ctr)
-    case PipeReg(_, reg) => collect[X](reg) 
-    case x:Counter => collect[X](x.min) ++ collect[X](x.max) ++ collect[X](x.step)
-    case x:CounterChain => x.counters.flatMap(collect[X]).toSet
-    case x:InPort => if (!x.isConnected) Set() else collect[X](x.from.src)
-    case x:Mux => x.ins.flatMap(collect[X]).toSet
-    case x:Iterable[_] => x.flatMap(collect[X]).toSet
+    case LoadPR(mem) => collectIn[X](mem)
+    case CtrPR(ctr) => collectIn[X](ctr)
+    case PipeReg(_, reg) => collectIn[X](reg) 
+    case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
+    case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
+    case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
+    case x:Mux => x.ins.flatMap(collectIn[X]).toSet
+    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
+    case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
+    case x:LocalMem => collectIn[X](x.writePort)
     case _ => Set()
   }
 
