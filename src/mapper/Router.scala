@@ -433,7 +433,7 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
 
-  def mapIns(info:String)(ins:List[I], m:M):M = {
+  def mapIns(info:String, check:Option[M => Unit]=None)(ins:List[I], m:M):M = {
 
     val sameSrcMap:Map[CL, Map[O, List[I]]] = ins.groupBy{ in => ctrler(in) }.map { case (ctrler, ins) =>
       ctrler -> ins.groupBy { in => from(in) }
@@ -469,6 +469,7 @@ abstract class Router(implicit design:Design) extends Mapper {
             mp = mp.setFI(to.ic, from.ic)
           }
         }
+        check.foreach { _(mp) }
         mp
       }
     }
@@ -488,20 +489,35 @@ abstract class Router(implicit design:Design) extends Mapper {
     }
   }
 
+  def checkOut(cl:CL, m:M) = {
+    val pcl = m.clmap(cl)
+    val unmapped = outs(cl).filterNot { out => m.vomap.contains(out) }
+    val unused = io(pcl).outs.filterNot { pout => m.vomap.pmap.contains(pout) }
+    if (unused.size < unmapped.size) {
+      var info = s"Not enough pouts for in ${quote(pcl)} to map $cl\n"
+      info += outs(cl).map { out => s"$out -> [${m.vomap.get(out).mkString(",")}]" }.mkString("\n")
+      throw MappingException(m, info)
+    }
+  }
+
   def route(cl:CL, m:M):M = {
     val pcl = m.clmap(cl)
+    // Mapping inputs connecting the outputs
     val outins = outs(cl).flatMap { out =>
       to(out).filter { in => 
         isExtern(in) && !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
       }
     }
     dprintln(s"$cl outs:${outs(cl).mkString(",")} outIns:${outins.mkString(",")}")
-    var mp = mapIns(s"Routing outIns of $cl")(outins, m)
+    var mp = mapIns(s"Routing outIns of $cl at ${quote(pcl)}", Some(checkOut(cl, _)))(outins, m)
+
+    // Mapping inputs of cl
     val inputs = ins(cl).filter { in =>
       !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
     }
     dprintln(s"$cl ins:${ins(cl).mkString(",")} inputs:${inputs.mkString(",")}")
-    mp = mapIns(s"Routing ins of $cl")(inputs, mp)
+    mp = mapIns(s"Routing ins of $cl at ${quote(pcl)}")(inputs, mp)
+
     mp
   }
 

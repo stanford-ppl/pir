@@ -80,7 +80,15 @@ object SN16x8_LD extends SN_LD(numRows=16, numCols=8, numArgIns=12, numArgOuts=5
   }
   config
 }
-object SN16x10_LD extends SN_LD(numRows=16, numCols=10, numArgIns=12, numArgOuts=5, pattern=Checkerboard) {
+object SN16x12_LD extends SN_LD(numRows=16, numCols=12, numArgIns=12, numArgOuts=5, pattern=Checkerboard) {
+  override lazy val scalarNetwork = new ScalarNetwork() {
+    // switch to switch channel width
+    channelWidth("src"->"sb", "dst"->"sb") = 6
+  }
+  config
+}
+
+object SN16x12_LD_HH extends SN_LD(numRows=16, numCols=12, numArgIns=12, numArgOuts=5, pattern=HalfHalf) {
   override lazy val scalarNetwork = new ScalarNetwork() {
     // switch to switch channel width
     channelWidth("src"->"sb", "dst"->"sb") = 6

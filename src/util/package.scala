@@ -30,7 +30,7 @@ package object util {
     }
   }
 
-  def topoSort(ctrler:Controller):List[Controller] = {
+  def topoSort_OLD(ctrler:Controller):List[Controller] = {
     import ctrler.design.pirmeta._
     val list = ListBuffer[Controller]()
     def isAdded(cl:Controller) = list.contains(cl)
@@ -56,6 +56,35 @@ package object util {
             false
           } else { true }
         }
+      }
+    }
+    addCtrler(ctrler)
+    list.toList.reverse
+  }
+
+  def topoSort(ctrler:Controller):List[Controller] = {
+    import ctrler.design.pirmeta._
+    val list = ListBuffer[Controller]()
+    def isAdded(cl:Controller) = list.contains(cl)
+    def isDepFree(cl:Controller):Boolean = cl match {
+      case cl:Top => true
+      case cl if isTailCollector(cl) => true // list will be reversed
+      case cl => cl.children.forall(isDepFree) && (cl.sins ++ cl.vins).forall( in => isAdded(in.writer.ctrler))
+    }
+    def addCtrler(cl:Controller):Unit = {
+      list += cl
+      var children = cl.children
+      while (!children.isEmpty) {
+        var remain = children.filter { child =>
+          if (isDepFree(child)) { addCtrler(child); false } else { true }
+        }
+        // Break the loop by picking ramdom one
+        if (remain.size==children.size) {
+          val head::rest = remain
+          addCtrler(head)
+          remain = rest
+        }
+        children = remain
       }
     }
     addCtrler(ctrler)
