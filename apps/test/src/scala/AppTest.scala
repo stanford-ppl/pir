@@ -44,7 +44,7 @@ class AppTests extends UnitTest { self =>
       argOuts:String="", 
       checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, 
       timeOut:Int=60,
-      verbose:Boolean=false,
+      virbose:Boolean=false,
       debug:Boolean=false
     ) = {
     s"$app [$args] ($argOuts)" should "success" in { 
@@ -79,7 +79,7 @@ class AppTests extends UnitTest { self =>
       Config.simulationTimeOut = timeOut
       Config.debug = debug
       Config.waveform = debug 
-      Config.verbose = verbose 
+      Config.verbose = virbose
       Config.codegen = false
       arch.foreach { app.arch = _ }
       try {
@@ -191,6 +191,8 @@ class AppTests extends UnitTest { self =>
     )
   }
 
+  //intercept[PIRException] {
+
   //val simulate = false
   // Apps 
   //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
@@ -224,22 +226,22 @@ class AppTests extends UnitTest { self =>
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
   val simulate = false
-  val verbose = true
-  val arch = SN16x8_LD
-  //val arch = SN16x10_LD
+  val virbose = true
+  //val arch = SN16x8_LD
+  //val arch = SN16x12_LD_HH
   //val arch = SN8x8_LD
+  val arch = SN2x2
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), debug=true)
   //test(TensorLoadStore, arch=Some(arch), debug=true)
 
-  //test(DotProduct, arch=Some(arch), verbose=verbose, debug=true) // op = 10
-  //test(OuterProduct, arch=Some(arch), verbose=verbose, debug=true)
-  test(SPMV_CRS, arch=Some(arch), verbose=verbose, debug=true)
-  //test(BlackScholes, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Kmeans, arch=Some(arch), verbose=verbose, debug=true)
-  //test(PageRank, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Gibbs_Ising2D, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Backprop, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Kmeans_plasticine, arch=Some(arch), verbose=verbose, debug=true)
+  test(DotProduct, arch=Some(arch), debug=true) // op = 10
+  //test(OuterProduct, arch=Some(arch), debug=true)
+  //test(SPMV_CRS, arch=Some(arch), debug=true)
+  //test(BlackScholes, arch=Some(arch), debug=true)
+  //test(Kmeans, arch=Some(arch), debug=true)
+  //test(PageRank, arch=Some(arch), debug=true)
+  //test(Gibbs_Ising2D, arch=Some(arch), virbose=virbose, debug=true)
+  //test(Backprop, arch=Some(arch), virbose=virbose, debug=true)
 }
 
