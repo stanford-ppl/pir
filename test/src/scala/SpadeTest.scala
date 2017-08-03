@@ -23,6 +23,7 @@ class SpadeTest extends UnitTest { self =>
     val design = new PIRApp { self =>
       def main(top:pir.graph.Top): Any = {}
       arch = SN2x2
+      //arch = new SN(numRows=2, numCols=2, pattern=HalfHalf)
       implicit val spade = arch.asInstanceOf[SwitchNetwork]
       val cu = arch.pcus.head
       info(s"${quote(cu)}.vin=${cu.vins.size}")

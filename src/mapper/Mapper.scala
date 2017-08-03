@@ -43,7 +43,7 @@ trait Mapper { self =>
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design
 
-  def logger = design.mapperLogger
+  implicit def logger = design.mapperLogger
   design.mappers += this
   
   def typeStr:String
@@ -209,6 +209,7 @@ trait Mapper { self =>
     resFunc:(N,M,List[R]) => List[R], //(n, m, triedRes) => List[R]
     finPass: M => M
   ):M = {
+    val total = allNodes.size
     /* Recursively map a list of nodes to a list of resource */
     def recNode(remainNodes:List[N], map:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
@@ -218,7 +219,7 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        log(s"Mapping $n", { (m:M) => return m; () // finPass
+        log(s"Mapping $n (${total-remainNodes.size}/${total})", { (m:M) => return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
             case FailToMapNode(n, es, mp) => exceps ++= es

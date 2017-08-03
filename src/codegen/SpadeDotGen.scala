@@ -95,7 +95,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
     }
     close
     if (open) { 
-      s"out/bin/run -c ${getPath}".replace(".dot", "") !
+      s"out/bin/run -c ${getPath} &".replace(".dot", "") !
     }
   }
 

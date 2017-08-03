@@ -62,33 +62,34 @@ package object util {
     list.toList.reverse
   }
 
-  def topoSort(ctrler:Controller):List[Controller] = {
+  def topoSort(ctrler:Controller)(implicit logger:Logger):List[Controller] = logger.emitBlock(s"topoSort($ctrler)") {
     import ctrler.design.pirmeta._
     val list = ListBuffer[Controller]()
-    def isAdded(cl:Controller) = list.contains(cl)
-    def isDepFree(cl:Controller):Boolean = cl match {
-      case cl:Top => true
-      case cl if isTailCollector(cl) => true // list will be reversed
-      case cl => cl.children.forall(isDepFree) && (cl.sins ++ cl.vins).forall( in => isAdded(in.writer.ctrler))
+    def isDepFree(cl:Controller):Boolean = {
+      descendentsOf(cl).filterNot(_==cl).forall(des => list.contains(des)) && 
+      (cl.souts ++ cl.vouts).forall( out => out.readers.forall(reader => list.contains(reader.ctrler)))
     }
-    def addCtrler(cl:Controller):Unit = {
-      list += cl
-      var children = cl.children
-      while (!children.isEmpty) {
-        var remain = children.filter { child =>
-          if (isDepFree(child)) { addCtrler(child); false } else { true }
-        }
-        // Break the loop by picking ramdom one
-        if (remain.size==children.size) {
-          val head::rest = remain
-          addCtrler(head)
-          remain = rest
-        }
-        children = remain
+    list += ctrler
+    var remain = descendentsOf(ctrler).filterNot(_== ctrler)
+    while (remain.nonEmpty) {
+      val group = remain.toList.groupBy(isDepFree)
+      var free = group.getOrElse(true, Nil)
+      var notfree = group.getOrElse(false, Nil)
+      if (free.isEmpty) {
+        val head::rest = notfree
+        free = free :+ head
+        notfree = rest
+        logger.dprintln(s"Breaking the loop by picking $head")
       }
+      logger.dprintln(s"free=$free")
+      list ++= free
+      remain = notfree
     }
-    addCtrler(ctrler)
-    list.toList.reverse
+    var res = list.toList
+    val head::rest = res
+    res = rest :+ head
+    logger.emitList(s"results") { res.foreach(cl => logger.dprintln(s"$cl") ) }
+    res
   }
 
   def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design, logger:Logger) = logger.emitBlock(s"fillChain"){

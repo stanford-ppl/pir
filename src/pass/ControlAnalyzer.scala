@@ -28,7 +28,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
   }
 
   // Including current CU. From current to leaf children 
-  def findDescendent(ctrler:Controller) = {
+  def findDescendent(ctrler:Controller) = emitBlock(s"findDescendent($ctrler)") {
     val list = ListBuffer[Controller]()
     val queue = Queue[Controller]()
     queue.enqueue(ctrler)
@@ -38,6 +38,7 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       list += curr
     }
     descendentsOf(ctrler) = list.toList
+    dprintln(descendentsOf.info(ctrler))
   }
 
   def setStreaming(ctrler:Controller) = {

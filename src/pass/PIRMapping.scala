@@ -66,9 +66,15 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mapper match {
       case mapper:VectorRouter =>
         new CUVectorDotPrinter(open=true)(design).print(mapping)
+        new CUScalarDotPrinter(open=false)(design).print(mapping)
+        new CUCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ScalarRouter =>
+        new CUVectorDotPrinter(open=false)(design).print(mapping)
         new CUScalarDotPrinter(open=true)(design).print(mapping)
+        new CUCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ControlRouter =>
+        new CUVectorDotPrinter(open=false)(design).print(mapping)
+        new CUScalarDotPrinter(open=false)(design).print(mapping)
         new CUCtrlDotPrinter(open=true)(design).print(mapping)
       case mapper:CUMapper =>
         new CUVectorDotPrinter(open=true)(design).print(mapping)

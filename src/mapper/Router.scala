@@ -130,10 +130,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       }
     }
     def start(in:I) = ctrler(in)
-    val reses = filterTraverse(start _, outins, prts, m, revAdvance _)
-    if (reses.isEmpty) 
-      throw MappingException(m, s"No prts can route outins of $cl. ins:${outins} from:${outins.map(in => from(in))}")
-    else reses
+    filterTraverse(start _, outins, prts, m, revAdvance _)
   }
 
   def filterIns(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {

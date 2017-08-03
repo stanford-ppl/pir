@@ -104,7 +104,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     pass &= quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
     pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
     pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
-    pass &= quantityCheck(None     , (scus_offchip ++ scus ++ rcus) , (pscus_offchip ++ pscus ++ pcus), "ComputeUnit")
+    pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
     pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
     if (!pass) throw MappingException(PIRMap.empty, s"Not enough controller to map $design")
 
