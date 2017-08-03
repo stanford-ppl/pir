@@ -49,8 +49,6 @@ object Backprop extends PIRApp {
     val bus_2176_s = Scalar("bus_2176")
     val bus_2198_s = Scalar("bus_2198")
     val x16909_x17599_s = Scalar("x16909_x17599")
-    val x17401_x17405_s = Scalar("x17401_x17405")
-    val x17113_x17120_s = Scalar("x17113_x17120")
     val x17954_b18442_x17967_b18444_s = Scalar("x17954_b18442_x17967_b18444")
     val x16908_4_s = Scalar("x16908_4")
     val bus_1889_v = Vector("bus_1889")
@@ -99,7 +97,6 @@ object Backprop extends PIRApp {
     val x16997_b18339_x17009_b18341_s = Scalar("x16997_b18339_x17009_b18341")
     val x17053_x17077_s = Scalar("x17053_x17077")
     val x16906_2_s = Scalar("x16906_2")
-    val x17063_x17203_s = Scalar("x17063_x17203")
     val bus_2000_s = Scalar("bus_2000")
     val x16908_0_s = Scalar("x16908_0")
     val bus_2212_s = Scalar("bus_2212")
@@ -147,14 +144,12 @@ object Backprop extends PIRApp {
     val bus_2062_s = Scalar("bus_2062")
     val x16952_x16962_data_v = Vector("x16952_x16962_data")
     val x17058_x17300_s = Scalar("x17058_x17300")
-    val x17112_x17118_s = Scalar("x17112_x17118")
     val x17057_1_s = Scalar("x17057_1")
     val bus_2104_s = Scalar("bus_2104")
     val x17082_b18353_x17108_b18361_s = Scalar("x17082_b18353_x17108_b18361")
     val x16972_b18332_x16984_b18334_s = Scalar("x16972_b18332_x16984_b18334")
     val x16908_2_s = Scalar("x16908_2")
     val bus_2184_s = Scalar("bus_2184")
-    val x16912_x17881_s = Scalar("x16912_x17881")
     val x17479_x17497_s = Scalar("x17479_x17497")
     val bus_1986_s = Scalar("bus_1986")
     val bus_2165_s = Scalar("bus_2165")
@@ -192,19 +187,17 @@ object Backprop extends PIRApp {
     val biases3_dram_da = DRAMAddress("biases3_dram", "biases3_dram")
     val x16912_0_s = Scalar("x16912_0")
     val bus_1850_v = Vector("bus_1850")
-    val x17181_x17188_s = Scalar("x17181_x17188")
     val bus_2095_s = Scalar("bus_2095")
     val x17139_x17146_s = Scalar("x17139_x17146")
     val weights1_dram_oc = OffChip("weights1_dram")
     val x16913_b18320_x16922_b18322_s = Scalar("x16913_b18320_x16922_b18322")
     val x17083_x17110_data_v = Vector("x17083_x17110_data")
-    val x17179_x17184_s = Scalar("x17179_x17184")
     val x16910_4_s = Scalar("x16910_4")
     val x17630_x17646_s = Scalar("x17630_x17646")
     val x17779_x17849_s = Scalar("x17779_x17849")
     val x17883_b18430_x17893_b18432_s = Scalar("x17883_b18430_x17893_b18432")
-    val x16908_3_s = Scalar("x16908_3")
     val bus_1842_v = Vector("bus_1842")
+    val x16908_3_s = Scalar("x16908_3")
     val bus_1884_v = Vector("bus_1884")
     val x17065_0_s = Scalar("x17065_0")
     val bus_1974_s = Scalar("bus_1974")
@@ -241,10 +234,9 @@ object Backprop extends PIRApp {
     val x17056_x17228_s = Scalar("x17056_x17228")
     val bus_1845_v = Vector("bus_1845")
     val x16972_b18333_x16984_b18335_s = Scalar("x16972_b18333_x16984_b18335")
-    val x17111_x17116_s = Scalar("x17111_x17116")
+    val bus_2150_s = Scalar("bus_2150")
     val bus_2022_s = Scalar("bus_2022")
     val x17983_b18448_x17996_b18450_s = Scalar("x17983_b18448_x17996_b18450")
-    val bus_2150_s = Scalar("bus_2150")
     val bus_1843_v = Vector("bus_1843")
     val bus_1942_s = Scalar("bus_1942")
     val bus_1968_s = Scalar("bus_1968")
@@ -296,7 +288,6 @@ object Backprop extends PIRApp {
     val x17648_x17718_s = Scalar("x17648_x17718")
     val x17060_x17274_s = Scalar("x17060_x17274")
     val biases3_dram_oc = OffChip("biases3_dram")
-    val x17441_x17445_s = Scalar("x17441_x17445")
     val x17020_b18344_x17029_b18346_s = Scalar("x17020_b18344_x17029_b18346")
     val x17442_x17459_s = Scalar("x17442_x17459")
     val x17066_x17477_s = Scalar("x17066_x17477")
@@ -315,7 +306,6 @@ object Backprop extends PIRApp {
     val bus_2115_s = Scalar("bus_2115")
     val x17610_x17628_s = Scalar("x17610_x17628")
     val x17068_0_s = Scalar("x17068_0")
-    val x16911_x17047_s = Scalar("x16911_x17047")
     val x16911_5_s = Scalar("x16911_5")
     val bus_1862_v = Vector("bus_1862")
     val x16913_b18321_x16922_b18323_s = Scalar("x16913_b18321_x16922_b18323")
@@ -325,7 +315,6 @@ object Backprop extends PIRApp {
     val bus_1976_s = Scalar("bus_1976")
     val bus_2098_s = Scalar("bus_2098")
     val biases2_dram_da = DRAMAddress("biases2_dram", "biases2_dram")
-    val x17180_x17186_s = Scalar("x17180_x17186")
     val training_data_dram_oc = OffChip("training_data_dram")
     val bus_2060_s = Scalar("bus_2060")
     val bus_2153_s = Scalar("bus_2153")
@@ -624,7 +613,7 @@ object Backprop extends PIRApp {
       val b18428 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17875 = CounterChain.copy("x17882_0", "x17875")
       val x17854 = CounterChain.copy("x17862_0", "x17854")
       val x16911 = SRAM(size=192,name="x16911",banking = Strided(1)).wtPort(x17047.readPort).wtPort(x17753.readPort).wtPort(x17861.readPort).rdPort(x16911_0_s)
@@ -638,7 +627,7 @@ object Backprop extends PIRApp {
       val b18424 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17854 = CounterChain.copy("x17862_0", "x17854")
       val x16911 = SRAM(size=192,name="x16911",banking = Strided(1)).wtPort(x17047.readPort).wtPort(x17753.readPort).wtPort(x17861.readPort).rdPort(x16911_1_s)
       WAStage(operands=List(CU.ctr(x17854(0)), Const(3)), op=FixMul, results=List(b18426))
@@ -651,7 +640,7 @@ object Backprop extends PIRApp {
       val b18422 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17744 = CounterChain.copy("x17760_0", "x17744")
       val x17854 = CounterChain.copy("x17862_0", "x17854")
       val x16911 = SRAM(size=192,name="x16911",banking = Strided(1)).wtPort(x17047.readPort).wtPort(x17753.readPort).wtPort(x17861.readPort).rdPort(x16911_2_s)
@@ -665,7 +654,7 @@ object Backprop extends PIRApp {
       val b18416 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17744 = CounterChain.copy("x17760_0", "x17744")
       val x17854 = CounterChain.copy("x17862_0", "x17854")
       val x16911 = SRAM(size=192,name="x16911",banking = Strided(1)).wtPort(x17047.readPort).wtPort(x17753.readPort).wtPort(x17861.readPort).rdPort(x16911_3_s)
@@ -679,7 +668,7 @@ object Backprop extends PIRApp {
       val b18384 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17400 = CounterChain.copy("x17427", "x17400")
       val x17854 = CounterChain.copy("x17862_0", "x17854")
       val x17408 = CounterChain.copy("x17420_0", "x17408")
@@ -694,7 +683,7 @@ object Backprop extends PIRApp {
       val b18380 = CU.temp(None)
       val x17861 = ScalarFIFO(size=1,name="x17861").wtPort(x16911_x17861_s)
       val x17753 = ScalarFIFO(size=1,name="x17753").wtPort(x16911_x17753_s)
-      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16911_x17047_s)
+      val x17047 = ScalarFIFO(size=1,name="x17047").wtPort(x16912_1_s)
       val x17280 = CounterChain.copy("x17302", "x17280")
       val x17283 = CounterChain.copy("x17295_0", "x17283")
       val x17854 = CounterChain.copy("x17862_0", "x17854")
@@ -707,7 +696,7 @@ object Backprop extends PIRApp {
     val x16912_dsp0 = MemoryPipeline(name="x16912_dsp0",parent="x18033") { implicit CU => 
       val x17876 = CU.temp(None)
       val x17036 = ScalarFIFO(size=1,name="x17036").wtPort(x16912_x17036_s)
-      val x17881 = ScalarFIFO(size=1,name="x17881").wtPort(x16912_x17881_s)
+      val x17881 = ScalarFIFO(size=1,name="x17881").wtPort(x16911_0_s)
       val x17875 = CounterChain.copy("x17882_0", "x17875")
       val x18023 = CounterChain.copy("x18028_0", "x18023")
       val x16912 = SRAM(size=192,name="x16912",banking = Strided(1)).wtPort(x17036.readPort).wtPort(x17881.readPort).rdPort(x16912_0_s).rdAddr(x18023(0))
@@ -718,7 +707,7 @@ object Backprop extends PIRApp {
       val x17042 = CU.temp(None)
       val x17876 = CU.temp(None)
       val x17036 = ScalarFIFO(size=1,name="x17036").wtPort(x16912_x17036_s)
-      val x17881 = ScalarFIFO(size=1,name="x17881").wtPort(x16912_x17881_s)
+      val x17881 = ScalarFIFO(size=1,name="x17881").wtPort(x16911_0_s)
       val x17041 = CounterChain.copy("x17048_0", "x17041")
       val x17875 = CounterChain.copy("x17882_0", "x17875")
       val x16912 = SRAM(size=192,name="x16912",banking = Strided(1)).wtPort(x17036.readPort).wtPort(x17881.readPort).rdPort(x16912_1_s)
@@ -872,12 +861,10 @@ object Backprop extends PIRApp {
       Stage(operands=List(CU.load(x17021)), op=Bypass, results=List(CU.scalarOut(x16912_x17036_s)))
     }
     val x17048_0 = Pipeline(name="x17048_0",parent=x18033) { implicit CU => 
-      val x17045 = ScalarFIFO(size=1,name="x17045").wtPort(x16912_1_s)
       val ctr9 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
       val ctr10 = Counter(min=Const(0), max=Const(3), step=Const(1), par=1) // Counter
       val x17041 = CounterChain(name = "x17041", ctr9, ctr10).iter(192)
       Stage(operands=List(CU.ctr(x17041(0)), Const(3)), op=FixMul, results=List())
-      Stage(operands=List(CU.load(x17045)), op=Bypass, results=List(CU.scalarOut(x16911_x17047_s)))
     }
     val x17872 = Sequential(name="x17872",parent=x18033) { implicit CU => 
       val x16809 = ScalarBuffer(name="x16809").wtPort(iters_argin)
@@ -963,7 +950,7 @@ object Backprop extends PIRApp {
       val x17061 = SRAM(size=3,name="x17061",banking = Strided(1)).wtPort(x17310.readPort).rdPort(x17061_0_s).rdAddr(x17375(0)).wtAddr(x17304(0))
     }
     val x17062_dsp0 = MemoryPipeline(name="x17062_dsp0",parent="x17872") { implicit CU => 
-      val x17111 = ScalarBuffer(name="x17111").wtPort(x17111_x17116_s)
+      val x17111 = ScalarBuffer(name="x17111").wtPort(x17082_b18353_x17108_b18361_s)
       val x17135 = ScalarFIFO(size=1,name="x17135").wtPort(x17062_x17135_s)
       val x17124 = CounterChain.copy("x17136_0", "x17124")
       val x17470 = CounterChain.copy("x17478_0", "x17470")
@@ -971,7 +958,7 @@ object Backprop extends PIRApp {
       WAStage(operands=List(CU.ctr(x17124(0)), CU.load(x17111)), op=FixSub, results=List(x17062.writeAddr))
     }
     val x17062_dsp1 = MemoryPipeline(name="x17062_dsp1",parent="x17872") { implicit CU => 
-      val x17111 = ScalarBuffer(name="x17111").wtPort(x17111_x17116_s)
+      val x17111 = ScalarBuffer(name="x17111").wtPort(x17082_b18353_x17108_b18361_s)
       val x17135 = ScalarFIFO(size=1,name="x17135").wtPort(x17062_x17135_s)
       val x17124 = CounterChain.copy("x17136_0", "x17124")
       val x17211 = CounterChain.copy("x17223_0", "x17211")
@@ -979,8 +966,8 @@ object Backprop extends PIRApp {
       WAStage(operands=List(CU.ctr(x17124(0)), CU.load(x17111)), op=FixSub, results=List(x17062.writeAddr))
     }
     val x17063_dsp0 = MemoryPipeline(name="x17063_dsp0",parent="x17872") { implicit CU => 
-      val x17203 = ScalarFIFO(size=1,name="x17203").wtPort(x17063_x17203_s)
-      val x17179 = ScalarBuffer(name="x17179").wtPort(x17179_x17184_s)
+      val x17203 = ScalarFIFO(size=1,name="x17203").wtPort(x17151_x17178_data_s)
+      val x17179 = ScalarBuffer(name="x17179").wtPort(x17150_b18366_x17176_b18374_s)
       val x17192 = CounterChain.copy("x17204_0", "x17192")
       val x17375 = CounterChain.copy("x17387_0", "x17375")
       val x17063 = SRAM(size=16,name="x17063",banking = Strided(1)).wtPort(x17203.readPort).rdPort(x17063_0_s).rdAddr(x17375(0))
@@ -1098,13 +1085,13 @@ object Backprop extends PIRApp {
     val x17109_0 = Pipeline(name="x17109_0",parent=x17109) { implicit CU => 
       val x17087 = CU.temp(None)
       val x17086 = CU.temp(None)
-      val x17094 = CU.temp(None)
+      val x17107_x17094 = CU.temp(None)
       val x17053 = ScalarBuffer(name="x17053").wtPort(x17053_x17077_s)
       val x17055 = ScalarBuffer(name="x17055").wtPort(x17055_x17079_s)
       Stage(operands=List(CU.load(x17053), Const(2)), op=FixSla, results=List(x17086, CU.scalarOut(bus_1728_s)))
       Stage(operands=List(x17086, Const(64)), op=FixMod, results=List(x17087, CU.scalarOut(bus_1730_s)))
-      Stage(operands=List(x17087, Const(4)), op=FixDiv, results=List(x17094, CU.scalarOut(bus_1732_s), CU.scalarOut(x17082_b18353_x17108_b18361_s)))
-      Stage(operands=List(x17094, CU.load(x17055)), op=FixAdd, results=List(CU.scalarOut(x17082_b18354_x17108_b18362_s)))
+      Stage(operands=List(x17087, Const(4)), op=FixDiv, results=List(x17107_x17094, CU.scalarOut(bus_1732_s), CU.scalarOut(x17082_b18353_x17108_b18361_s)))
+      Stage(operands=List(x17107_x17094, CU.load(x17055)), op=FixAdd, results=List(CU.scalarOut(x17082_b18354_x17108_b18362_s)))
       Stage(operands=List(CU.load(x17055), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1734_s)))
     }
     val x17109_1 = Pipeline(name="x17109_1",parent=x17109) { implicit CU => 
@@ -1145,20 +1132,11 @@ object Backprop extends PIRApp {
     val x17137 = Sequential(name="x17137",parent=x17138) { implicit CU => 
       val x17137_unit = CounterChain(name = "x17137_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x17121_0 = Pipeline(name="x17121_0",parent=x17137) { implicit CU => 
-      val x17082_b18353 = ScalarFIFO(size=16,name="x17082_b18353").wtPort(x17082_b18353_x17108_b18361_s)
-      val x17082_b18352 = ScalarFIFO(size=16,name="x17082_b18352").wtPort(x17082_b18352_x17108_b18360_s)
-      val x17082_b18354 = ScalarFIFO(size=16,name="x17082_b18354").wtPort(x17082_b18354_x17108_b18362_s)
-      val x17121_unit = CounterChain(name = "x17121_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x17082_b18353)), op=Bypass, results=List(CU.scalarOut(x17111_x17116_s)))
-      Stage(operands=List(CU.load(x17082_b18354)), op=Bypass, results=List(CU.scalarOut(x17112_x17118_s)))
-      Stage(operands=List(CU.load(x17082_b18352)), op=Bypass, results=List(CU.scalarOut(x17113_x17120_s)))
-    }
     val x17136_0 = Pipeline(name="x17136_0",parent=x17137) { implicit CU => 
-      val x17112 = ScalarBuffer(name="x17112").wtPort(x17112_x17118_s)
-      val x17111 = ScalarBuffer(name="x17111").wtPort(x17111_x17116_s)
+      val x17112 = ScalarBuffer(name="x17112").wtPort(x17082_b18354_x17108_b18362_s)
+      val x17111 = ScalarBuffer(name="x17111").wtPort(x17082_b18353_x17108_b18361_s)
       val x17083 = VectorFIFO(size=1,name="x17083").wtPort(x17083_x17110_data_v)
-      val x17113 = ScalarBuffer(name="x17113").wtPort(x17113_x17120_s)
+      val x17113 = ScalarBuffer(name="x17113").wtPort(x17082_b18352_x17108_b18360_s)
       val ctr12 = Counter(min=Const(0), max=x17113.readPort, step=Const(1), par=16) // Counter
       val x17124 = CounterChain(name = "x17124", ctr12).iter(1)
       Stage(operands=List(CU.load(x17111), CU.ctr(x17124(0))), op=FixLeq, results=List())
@@ -1183,14 +1161,14 @@ object Backprop extends PIRApp {
     }
     val x17177_0 = Pipeline(name="x17177_0",parent=x17177) { implicit CU => 
       val x17154 = CU.temp(None)
-      val x17162 = CU.temp(None)
+      val x17175_x17162 = CU.temp(None)
       val x17155 = CU.temp(None)
       val x17139 = ScalarBuffer(name="x17139").wtPort(x17139_x17146_s)
       val x17140 = ScalarBuffer(name="x17140").wtPort(x17140_x17147_s)
       Stage(operands=List(CU.load(x17139), Const(2)), op=FixSla, results=List(x17154, CU.scalarOut(bus_1756_s)))
       Stage(operands=List(x17154, Const(64)), op=FixMod, results=List(x17155, CU.scalarOut(bus_1758_s)))
-      Stage(operands=List(x17155, Const(4)), op=FixDiv, results=List(x17162, CU.scalarOut(bus_1760_s), CU.scalarOut(x17150_b18366_x17176_b18374_s)))
-      Stage(operands=List(x17162, CU.load(x17140)), op=FixAdd, results=List(CU.scalarOut(x17150_b18367_x17176_b18375_s)))
+      Stage(operands=List(x17155, Const(4)), op=FixDiv, results=List(x17175_x17162, CU.scalarOut(bus_1760_s), CU.scalarOut(x17150_b18366_x17176_b18374_s)))
+      Stage(operands=List(x17175_x17162, CU.load(x17140)), op=FixAdd, results=List(CU.scalarOut(x17150_b18367_x17176_b18375_s)))
       Stage(operands=List(CU.load(x17140), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1762_s)))
     }
     val x17177_1 = Pipeline(name="x17177_1",parent=x17177) { implicit CU => 
@@ -1231,25 +1209,14 @@ object Backprop extends PIRApp {
     val x17205 = Sequential(name="x17205",parent=x17206) { implicit CU => 
       val x17205_unit = CounterChain(name = "x17205_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x17189_0 = Pipeline(name="x17189_0",parent=x17205) { implicit CU => 
-      val x17150_b18367 = ScalarFIFO(size=16,name="x17150_b18367").wtPort(x17150_b18367_x17176_b18375_s)
-      val x17150_b18366 = ScalarFIFO(size=16,name="x17150_b18366").wtPort(x17150_b18366_x17176_b18374_s)
-      val x17150_b18365 = ScalarFIFO(size=16,name="x17150_b18365").wtPort(x17150_b18365_x17176_b18373_s)
-      val x17189_unit = CounterChain(name = "x17189_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x17150_b18366)), op=Bypass, results=List(CU.scalarOut(x17179_x17184_s)))
-      Stage(operands=List(CU.load(x17150_b18367)), op=Bypass, results=List(CU.scalarOut(x17180_x17186_s)))
-      Stage(operands=List(CU.load(x17150_b18365)), op=Bypass, results=List(CU.scalarOut(x17181_x17188_s)))
-    }
     val x17204_0 = Pipeline(name="x17204_0",parent=x17205) { implicit CU => 
-      val x17180 = ScalarBuffer(name="x17180").wtPort(x17180_x17186_s)
-      val x17179 = ScalarBuffer(name="x17179").wtPort(x17179_x17184_s)
-      val x17151 = ScalarFIFO(size=1,name="x17151").wtPort(x17151_x17178_data_s)
-      val x17181 = ScalarBuffer(name="x17181").wtPort(x17181_x17188_s)
+      val x17180 = ScalarBuffer(name="x17180").wtPort(x17150_b18367_x17176_b18375_s)
+      val x17179 = ScalarBuffer(name="x17179").wtPort(x17150_b18366_x17176_b18374_s)
+      val x17181 = ScalarBuffer(name="x17181").wtPort(x17150_b18365_x17176_b18373_s)
       val ctr13 = Counter(min=Const(0), max=x17181.readPort, step=Const(1), par=1) // Counter
       val x17192 = CounterChain(name = "x17192", ctr13).iter(1)
       Stage(operands=List(CU.load(x17179), CU.ctr(x17192(0))), op=FixLeq, results=List())
       Stage(operands=List(CU.ctr(x17192(0)), CU.load(x17180)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x17151)), op=Bypass, results=List(CU.scalarOut(x17063_x17203_s)))
     }
     val x17230 = MetaPipeline(name="x17230",parent=x17872) { implicit CU => 
       val ctr14 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
@@ -1484,11 +1451,6 @@ object Backprop extends PIRApp {
       val ctr28 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
       val x17400 = CounterChain(name = "x17400", ctr28).iter(64)
     }
-    val x17406_0 = Pipeline(name="x17406_0",parent=x17427) { implicit CU => 
-      val x17404 = ScalarFIFO(size=1,name="x17404").wtPort(x17060_0_s)
-      val x17406_unit = CounterChain(name = "x17406_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x17404)), op=Bypass, results=List(CU.scalarOut(x17401_x17405_s)))
-    }
     val x17420_0 = Pipeline(name="x17420_0",parent=x17427) { implicit CU => 
       val x17412 = ScalarFIFO(size=1,name="x17412").wtPort(x16911_4_s)
       val x17411 = ScalarFIFO(size=1,name="x17411").wtPort(x17065_1_s)
@@ -1499,7 +1461,7 @@ object Backprop extends PIRApp {
       Stage(operands=List(rr1906), op=Bypass, results=List(CU.scalarOut(x17402_x17419_s)))
     }
     val x17426_0 = Pipeline(name="x17426_0",parent=x17427) { implicit CU => 
-      val x17401 = ScalarBuffer(name="x17401").wtPort(x17401_x17405_s)
+      val x17401 = ScalarBuffer(name="x17401").wtPort(x17060_0_s)
       val x17402 = ScalarBuffer(name="x17402").wtPort(x17402_x17419_s)
       val x17426_unit = CounterChain(name = "x17426_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(CU.load(x17401), CU.load(x17402)), op=FixMul, results=List(CU.scalarOut(x17070_x17425_s)))
@@ -1516,11 +1478,6 @@ object Backprop extends PIRApp {
       val ctr32 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
       val x17440 = CounterChain(name = "x17440", ctr32).iter(64)
     }
-    val x17446_0 = Pipeline(name="x17446_0",parent=x17467) { implicit CU => 
-      val x17444 = ScalarFIFO(size=1,name="x17444").wtPort(x17059_0_s)
-      val x17446_unit = CounterChain(name = "x17446_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x17444)), op=Bypass, results=List(CU.scalarOut(x17441_x17445_s)))
-    }
     val x17460_0 = Pipeline(name="x17460_0",parent=x17467) { implicit CU => 
       val x17452 = ScalarFIFO(size=1,name="x17452").wtPort(x16910_4_s)
       val x17451 = ScalarFIFO(size=1,name="x17451").wtPort(x17070_1_s)
@@ -1532,7 +1489,7 @@ object Backprop extends PIRApp {
     }
     val x17466_0 = Pipeline(name="x17466_0",parent=x17467) { implicit CU => 
       val x17442 = ScalarBuffer(name="x17442").wtPort(x17442_x17459_s)
-      val x17441 = ScalarBuffer(name="x17441").wtPort(x17441_x17445_s)
+      val x17441 = ScalarBuffer(name="x17441").wtPort(x17059_0_s)
       val x17466_unit = CounterChain(name = "x17466_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(CU.load(x17441), CU.load(x17442)), op=FixMul, results=List(CU.scalarOut(x17069_x17465_s)))
     }
@@ -2193,12 +2150,10 @@ object Backprop extends PIRApp {
       Stage(operands=List(CU.load(x17866), CU.load(x17780)), op=FixDiv, results=List(CU.scalarOut(x16908_x17870_s)))
     }
     val x17882_0 = Pipeline(name="x17882_0",parent=x18033) { implicit CU => 
-      val x17879 = ScalarFIFO(size=1,name="x17879").wtPort(x16911_0_s)
       val ctr54 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1) // Counter
       val ctr55 = Counter(min=Const(0), max=Const(3), step=Const(1), par=1) // Counter
       val x17875 = CounterChain(name = "x17875", ctr54, ctr55).iter(192)
       Stage(operands=List(CU.ctr(x17875(0)), Const(3)), op=FixMul, results=List())
-      Stage(operands=List(CU.load(x17879)), op=Bypass, results=List(CU.scalarOut(x16912_x17881_s)))
     }
     val x17905 = StreamController(name="x17905",parent=x18033) { implicit CU => 
       val x17905_unit = CounterChain(name = "x17905_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)

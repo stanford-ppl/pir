@@ -35,16 +35,10 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     else Some((producer, consumer))
   }
 
-  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = {
+  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = emitBlock(s"setProducerConsumer($cu, $buf)"){
     if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
     val readers = buf.readers
     val writers = buf.writers
-    readers.foreach { reader =>
-      reader match {
-        case mp:MemoryPipeline => setProducerConsumer(mp, mp.sram)
-        case _ =>
-      }
-    }
     var lca = leastCommonAncestor(readers ++ writers)
     var pc = findProducerConsumer(readers, writers, lca)
     while (pc.isEmpty) {
