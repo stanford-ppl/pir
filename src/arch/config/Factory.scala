@@ -110,9 +110,9 @@ plasticine {
 
   def connectDataIO(cu:Controller):Unit = {
     // Xbar
-    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePortMux.inputs.foreach { _<== sin.ic } } }
     // One to one
-    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
+    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePortMux.inputs.foreach { _ <== vi.ic } }
 
     cu match {
       case cu:MemoryComputeUnit =>

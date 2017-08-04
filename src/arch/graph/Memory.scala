@@ -81,11 +81,14 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
   }
 }
 
-trait OnChipMem extends Primitive with Memory {
+abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primitive with Memory {
   import spademeta._
   type P<:PortType
+
+  def wtp:Bus
   val readPort:Output[_<:PortType, OnChipMem]
-  val writePort:Input[Bus, OnChipMem]
+  val writePort = Input(wtp, this, s"${this}.wp")
+  val writePortMux = Mux(s"$this.wpMux", wtp)
   val dequeueEnable = Input(Bit(), this, s"${this}.deqEn")
   val enqueueEnable = Input(Bit(), this, s"${this}.enqEn")
   val inc = Input(Bit(), this, s"${this}.inc")
@@ -100,6 +103,8 @@ trait OnChipMem extends Primitive with Memory {
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
   def asBuf = this.asInstanceOf[LocalBuffer]
+  writePort <== writePortMux.out
+
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.pirmeta._
@@ -168,6 +173,7 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   type P = Bus 
   type M = Array[Array[Word]]
+  def wtp:Bus = Bus(Word())
   var memory:M = _
   val readAddr = Input(Word(), this, s"${this}.ra")
   val readAddrMux = Mux(s"$this.raMux", Word()) //TODO: connect select for mux
@@ -178,12 +184,9 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
   val readPort = Output(Bus(Word()), this, s"${this}.rp")
   val readOut = Output(Bus(Word()), this, s"${this}.ro")
   val DEBUG = Output(Bus(2*spade.numLanes, Word()), this, s"${this}.DEBUG")
-  val writePort = Input(Bus(Word()), this, s"${this}.wp")
-  val writePortMux = Mux(s"$this.wpMux", Bus(Word()))
 
   readAddr <== readAddrMux.out
   writeAddr <== writeAddrMux.out
-  writePort <== writePortMux.out
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
     memory.foreach { _.foreach { _.zero } }
@@ -269,12 +272,12 @@ trait LocalBuffer extends OnChipMem {
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
+case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalBuffer {
   import spademeta._
   override val typeStr = "sm"
   type P = Word
   var memory:Array[P] = _
-  val writePort = Input(Bus(1,Word()), this, s"${this}.wp")
+  def wtp = Bus(1, Word())
   val readPort = Output(Word(), this, s"${this}.rp")
   def zeroMemory(implicit sim:Simulator):Unit = {
     if (memory==null) return
@@ -292,7 +295,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends LocalBuffer {
+case class VectorMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalBuffer {
   import spademeta._
   override val typeStr = "vm"
   type P = Bus
@@ -301,7 +304,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Routable) extends Local
     memory.foreach { _.foreach { case (v:SingleValue, i) => v.zero } }
   }
   var memory:Array[P] = _
-  val writePort = Input(Bus(Word()), this, s"${this}.wp")
+  def wtp = Bus(1, Bus(Word()))
   val readPort = Output(Bus(Word()), this, s"${this}.rp") 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._

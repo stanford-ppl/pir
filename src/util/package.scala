@@ -30,43 +30,11 @@ package object util {
     }
   }
 
-  def topoSort_OLD(ctrler:Controller):List[Controller] = {
-    import ctrler.design.pirmeta._
-    val list = ListBuffer[Controller]()
-    def isAdded(cl:Controller) = list.contains(cl)
-    def isDepFree(cl:Controller) = cl match {
-      case cl if isTailCollector(cl) => true // list will be reversed
-      case cl:MemoryPipeline => cl.sram.writers.forall(isAdded)
-      case cl:ComputeUnit if isStreaming(cl) => cl.isHead || cl.fifos.forall { 
-        case fifo if fifo.writer.asCU.parent == cl.parent => isAdded(fifo.writer)
-        case fifo => true
-      } 
-      case cl if isPipelining(cl) => cl.isHead || cl.trueConsumed.forall { 
-        case csm:SRAM => isAdded(csm.ctrler) && isAdded(csm.producer)
-        case csm => isAdded(csm.producer)
-      }
-    }
-    def addCtrler(cl:Controller):Unit = {
-      list += cl
-      var children = cl.children.reverse
-      while (!children.isEmpty) {
-        children = children.filter { child =>
-          if (isDepFree(child)) {
-            addCtrler(child)
-            false
-          } else { true }
-        }
-      }
-    }
-    addCtrler(ctrler)
-    list.toList.reverse
-  }
-
   def topoSort(ctrler:Controller)(implicit logger:Logger):List[Controller] = logger.emitBlock(s"topoSort($ctrler)") {
     import ctrler.design.pirmeta._
     val list = ListBuffer[Controller]()
     def isDepFree(cl:Controller):Boolean = {
-      descendentsOf(cl).filterNot(_==cl).forall(des => list.contains(des)) && 
+      descendentsOf(cl).filterNot(_==cl).forall(des => list.contains(des)) &&  //TODO: is children the same?
       (cl.souts ++ cl.vouts).forall( out => out.readers.forall(reader => list.contains(reader.ctrler)))
     }
     list += ctrler
@@ -174,9 +142,21 @@ package object util {
     case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
     case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
     case x:Mux => x.ins.flatMap(collectIn[X]).toSet
-    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
     case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
     case x:LocalMem => collectIn[X](x.writePort)
+    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
+    case _ => Set()
+  }
+
+  def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+    case x:X => Set(x)
+    case x:Input => collectOut[X](x.out)
+    case x:OnChipMem => collectOut[X](x.readPort)
+    case x:Counter => collectOut[X](x.out)
+    case x:PipeReg => collectOut[X](x.out)
+    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
+    case x:OutPort => if (!x.isConnected) Set() else x.to.flatMap(in => collectOut[X](in.src)).toSet
+    case x:Mux => collectOut[X](x.out)
     case _ => Set()
   }
 

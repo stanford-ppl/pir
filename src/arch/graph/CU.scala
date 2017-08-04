@@ -25,6 +25,9 @@ trait ComputeUnitParam extends ControllerParam {
   val numVouts:Int
   val numSins:Int
   val numSouts:Int
+  val sbufSize:Int
+  val vbufSize:Int
+  val muxSize:Int
 }
 /*
  * ComputeUnit

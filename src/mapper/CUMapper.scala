@@ -87,7 +87,6 @@ class CUMapper(implicit val design:Design) extends Mapper {
     dprintln(s"Datapath placement & routing ")
     val nodes = topoSort(design.top)
     val reses = design.arch.prts
-    info(s"Number of cus:${nodes.size}")
     bind(
       allNodes = nodes,
       initMap = m,

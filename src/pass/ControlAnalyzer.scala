@@ -73,9 +73,11 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
       case ctrler:ComputeUnit if isStreaming(ctrler) =>
         val descendents = ctrler.descendents.collect { case cu:ComputeUnit => cu }
         val fifos = descendents.flatMap { _.fifos.filter {
-            _.writer match {
-              case writer:ComputeUnit => writer.ancestors.contains(ctrler.parent)
-              case top:Top => false
+          _.writers.forall { writer =>
+              writer match {
+                case writer:ComputeUnit => writer.ancestors.contains(ctrler.parent)
+                case top:Top => false
+              }
             }
           }
         }
@@ -122,9 +124,9 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     ctrler match {
       case mc:MemoryController if mc.mctpe == Scatter => 
       case mc:MemoryController if mc.mctpe.isDense =>
-        scuOf(mc) = mc.getFifo("offset").writer.ctrler
+        scuOf(mc) = mc.getFifo("offset").writers.head.ctrler
       case mc:MemoryController if mc.mctpe.isSparse =>
-        scuOf(mc) = mc.getFifo("addr").writer.ctrler
+        scuOf(mc) = mc.getFifo("addr").writers.head.ctrler
       case mc =>
     }
     dprintln(scuOf.info(ctrler))

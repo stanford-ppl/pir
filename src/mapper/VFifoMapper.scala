@@ -27,6 +27,7 @@ class VFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = m
     mp = mp.setSM(n, r).setOP(n.readPort, r.readPort)
     mp = mapInPort(n.writePort, r.writePort, mp)
+    mp = mapMux(n.writePortMux, r.writePortMux, mp)
     mp
   }
 

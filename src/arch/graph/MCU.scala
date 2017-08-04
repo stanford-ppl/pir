@@ -53,7 +53,7 @@ class MemoryComputeUnitParam(
 
   /* Parameters */
   def config(cu:MemoryComputeUnit)(implicit spade:Spade) = {
-    cu.sram.writePortMux.addInputs(muxSize)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.sram.writeAddrMux.addInputs(muxSize)
     cu.sram.readAddrMux.addInputs(muxSize)
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ otherOps)

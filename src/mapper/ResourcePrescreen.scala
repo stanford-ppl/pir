@@ -70,6 +70,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
   def run:Unit = {
+    info(s"Number of cls:${design.top.ctrlers.size}")
     val prts = design.arch.prts
     val cls = design.top.ctrlers
     val mcs = cls.collect { case mc:MC => mc }

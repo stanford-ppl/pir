@@ -14,17 +14,15 @@ object DotProduct extends PIRApp {
     val x1112_x1123_s = Scalar("x1112_x1123")
     val N_argin = ArgIn("N").bound(1920000)
     val x1071_b1155_x1080_b1157_s = Scalar("x1071_b1155_x1080_b1157")
-    val x1072_x1082_data_v = Vector("x1072_x1082_data")
-    val x1067_x1088_s = Scalar("x1067_x1088")
+    val x1072_x1082_data_s = Scalar("x1072_x1082_data")
     val a_oc = OffChip("a")
     val x1071_b1154_x1080_b1156_s = Scalar("x1071_b1154_x1080_b1156")
     val a_da = DRAMAddress("a", "a")
     val x1068_0_s = Scalar("x1068_0")
-    val x1068_x1108_s = Scalar("x1068_x1108")
     val b_da = DRAMAddress("b", "b")
     val x1067_0_s = Scalar("x1067_0")
     val x1060_x1133_argout = ArgOut("x1060_x1133")
-    val x1092_x1102_data_v = Vector("x1092_x1102_data")
+    val x1092_x1102_data_s = Scalar("x1092_x1102_data")
     val x1135 = Sequential(name="x1135",parent=top) { implicit CU => 
       val x1135_unit = CounterChain(name = "x1135_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
@@ -34,14 +32,14 @@ object DotProduct extends PIRApp {
       val x1066 = CounterChain(name = "x1066", ctr1).iter(1)
     }
     val x1067_dsp0 = MemoryPipeline(name="x1067_dsp0",parent="x1131") { implicit CU => 
-      val x1088 = ScalarFIFO(size=1,name="x1088").wtPort(x1067_x1088_s)
-      val x1084 = CounterChain.copy("x1089_0", "x1084")
+      val x1088 = ScalarFIFO(size=1,name="x1088").wtPort(x1072_x1082_data_s)
+      val x1084 = CounterChain.copy("x1089", "x1084")
       val x1114 = CounterChain.copy("x1124_0", "x1114")
       val x1067 = SRAM(size=16,name="x1067",banking = Strided(1)).wtPort(x1088.readPort).rdPort(x1067_0_s).rdAddr(x1114(0)).wtAddr(x1084(0))
     }
     val x1068_dsp0 = MemoryPipeline(name="x1068_dsp0",parent="x1131") { implicit CU => 
-      val x1108 = ScalarFIFO(size=1,name="x1108").wtPort(x1068_x1108_s)
-      val x1104 = CounterChain.copy("x1109_0", "x1104")
+      val x1108 = ScalarFIFO(size=1,name="x1108").wtPort(x1092_x1102_data_s)
+      val x1104 = CounterChain.copy("x1109", "x1104")
       val x1114 = CounterChain.copy("x1124_0", "x1114")
       val x1068 = SRAM(size=16,name="x1068",banking = Strided(1)).wtPort(x1108.readPort).rdPort(x1068_0_s).rdAddr(x1114(0)).wtAddr(x1104(0))
     }
@@ -60,13 +58,11 @@ object DotProduct extends PIRApp {
     val x1082 = MemoryController(name="x1082",parent=x1090,offchip=a_oc, mctpe=TileLoad) { implicit CU => 
       val x1071_b1154 = ScalarFIFO(size=1,name="offset").wtPort(x1071_b1154_x1080_b1156_s)
       val x1071_b1155 = ScalarFIFO(size=1,name="size").wtPort(x1071_b1155_x1080_b1157_s)
-      CU.newVout("data", x1072_x1082_data_v)
+      CU.newSout("data", x1072_x1082_data_s)
     }
-    val x1089_0 = Pipeline(name="x1089_0",parent=x1090) { implicit CU => 
-      val x1072 = VectorFIFO(size=1,name="x1072").wtPort(x1072_x1082_data_v)
+    val x1089 = Pipeline(name="x1089",parent=x1090) { implicit CU => 
       val ctr2 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1084 = CounterChain(name = "x1084", ctr2).iter(1)
-      Stage(operands=List(CU.load(x1072)), op=Bypass, results=List(CU.scalarOut(x1067_x1088_s)))
     }
     val x1110 = StreamController(name="x1110",parent=x1131) { implicit CU => 
       val x1110_unit = CounterChain(name = "x1110_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
@@ -83,13 +79,11 @@ object DotProduct extends PIRApp {
     val x1102 = MemoryController(name="x1102",parent=x1110,offchip=b_oc, mctpe=TileLoad) { implicit CU => 
       val x1091_b1159 = ScalarFIFO(size=1,name="size").wtPort(x1091_b1159_x1100_b1161_s)
       val x1091_b1158 = ScalarFIFO(size=1,name="offset").wtPort(x1091_b1158_x1100_b1160_s)
-      CU.newVout("data", x1092_x1102_data_v)
+      CU.newSout("data", x1092_x1102_data_s)
     }
-    val x1109_0 = Pipeline(name="x1109_0",parent=x1110) { implicit CU => 
-      val x1092 = VectorFIFO(size=1,name="x1092").wtPort(x1092_x1102_data_v)
+    val x1109 = Pipeline(name="x1109",parent=x1110) { implicit CU => 
       val ctr3 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1104 = CounterChain(name = "x1104", ctr3).iter(1)
-      Stage(operands=List(CU.load(x1092)), op=Bypass, results=List(CU.scalarOut(x1068_x1108_s)))
     }
     val x1124_0 = Pipeline(name="x1124_0",parent=x1131) { implicit CU => 
       val x1117 = ScalarFIFO(size=1,name="x1117").wtPort(x1068_0_s)

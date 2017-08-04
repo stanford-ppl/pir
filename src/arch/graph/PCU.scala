@@ -18,6 +18,7 @@ case class PreloadPatternComputeParam (
   override val vbufSize:Int = 16,
   override val numRegs:Int = 16,
   override val numCtrs:Int = 8,
+  override val muxSize:Int = 10,
   override val numUDCs:Int = 5
 ) extends PatternComputeUnitParam (
   sbufSize = sbufSize,
@@ -28,6 +29,7 @@ case class PreloadPatternComputeParam (
   numSouts = ConfigFactory.plasticineConf.soutPcu,
   numRegs  = ConfigFactory.plasticineConf.regsPcu,
   numStages = ConfigFactory.plasticineConf.comp,
+  muxSize = muxSize,
   numCtrs  = numCtrs,
   numUDCs  = numUDCs  
 ) with PreLoadSpadeParam
@@ -42,12 +44,14 @@ class PatternComputeUnitParam(
   val numRegs:Int = 16,
   val numStages:Int = 8,
   val numCtrs:Int = 8,
+  val muxSize:Int = 10,
   val numUDCs:Int = 5
 ) extends ComputeUnitParam() {
   val numSRAMs:Int = 0
   val sramSize:Int = 0
 
   def config(cu:PatternComputeUnit)(implicit spade:Spade) = {
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     val numReduceStages = Math.ceil(Math.log(numLanes) / Math.log(2)).toInt
     val numFrontStages = numStages - (numReduceStages + 2)
     assert(numFrontStages >= 0, s"numFrontStages=$numFrontStages numStage=$numStages")
@@ -62,10 +66,10 @@ class PatternComputeUnitParam(
     cu.numVecBufs(cu.vins.size)
     cu.color(0 until numCtrs, CounterReg)
     cu.color(0, ReduceReg).color(1, AccumReg)
-    cu.color(5 until 5 + cu.numScalarBufs, ScalarInReg)
-    cu.color(5 until 5 + cu.souts.size, ScalarOutReg)
-    cu.color(9 until 9 + cu.numVecBufs, VecInReg)
-    cu.color(9 until 9 + cu.vouts.size, VecOutReg)
+    cu.color(numRegs-cu.numScalarBufs until numRegs, ScalarInReg)
+    cu.color(numRegs-cu.souts.size until numRegs, ScalarOutReg)
+    cu.color(numRegs-cu.numVecBufs until numRegs, VecInReg)
+    cu.color(numRegs-cu.vouts.size until numRegs, VecOutReg)
     cu.genConnections
   }
 }

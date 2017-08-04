@@ -30,6 +30,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mp.setSM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)
+    mp = mapMux(n.writePortMux, r.writePortMux, mp)
     mp
   }
 

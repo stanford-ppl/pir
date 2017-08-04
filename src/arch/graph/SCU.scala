@@ -18,6 +18,7 @@ case class PreloadScalarComputeParam(
   override val numSouts:Int = 4,
   override val numRegs:Int = 16,
   override val numCtrs:Int = 6,
+  override val muxSize:Int = 10,
   override val numUDCs:Int = 4
 ) extends ScalarComputeUnitParam(
   sbufSize = sbufSize,
@@ -25,6 +26,7 @@ case class PreloadScalarComputeParam(
   numSouts = numSouts,
   numRegs  = numRegs,
   numStages = ConfigFactory.plasticineConf.stagesUcu,
+  muxSize = muxSize,
   numCtrs  = numCtrs,
   numUDCs  = numUDCs  
 ) with PreLoadSpadeParam
@@ -36,6 +38,7 @@ class ScalarComputeUnitParam (
   val numRegs:Int = 16,
   val numStages:Int = 6,
   val numCtrs:Int = 6,
+  val muxSize:Int = 10,
   val numUDCs:Int = 4
 ) extends ComputeUnitParam() {
   val numVins:Int = 0
@@ -47,6 +50,7 @@ class ScalarComputeUnitParam (
 
   /* Parameters */
   def config(cu:ScalarComputeUnit)(implicit spade:Spade) = {
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ bitOps ++ otherOps)
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
     assert(cu.souts.size >= numSouts, s"souts=${cu.souts.size} numSouts=${numSouts}")
