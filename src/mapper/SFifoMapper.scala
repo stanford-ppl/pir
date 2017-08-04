@@ -35,14 +35,15 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
   }
 
   // After RegAlloc
-  def resFunc(cu:CU)(n:N, m:M, triedRes:List[R]):List[R] = {
+  def resFunc(cu:CU)(n:N, m:M, triedRes:List[R]):List[R] = emitBlock(s"resFunc($cu.$n)"){
     val pcu = m.clmap(cu)
     val reses = cu match {
-      case cu:MC if n.name=="data" => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
+      case cu:MC if n.name.get=="data" => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
       case cu:MC if cu.mctpe==TileLoad => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
       case cu:MC if cu.mctpe==TileStore => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
       case cu => pcu.sbufs
     }
+    dprintln(s"MC filtered reses=[${reses.mkString(",")}]")
     reses.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
   }
 

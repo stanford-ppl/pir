@@ -50,11 +50,11 @@ class ScalarComputeUnitParam (
 
   /* Parameters */
   def config(cu:ScalarComputeUnit)(implicit spade:Spade) = {
-    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ bitOps ++ otherOps)
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
     assert(cu.souts.size >= numSouts, s"souts=${cu.souts.size} numSouts=${numSouts}")
     cu.numScalarBufs(numSins)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.color(1, AccumReg)
     cu.color(0 until numCtrs, CounterReg)
     cu.color(7 until 7 + cu.numScalarBufs, ScalarInReg)

@@ -144,7 +144,7 @@ class AppTests extends UnitTest { self =>
     )
   }
 
-  def testMatMult_inner(app:PIRApp, N:Int, M:Int, P:Int, startA:Int, startB:Int, startC:Int, debug:Boolean=false) = {
+  def testMatMult(app:PIRApp, N:Int, M:Int, P:Int, startA:Int, startB:Int, startC:Int, debug:Boolean=false) = {
     val a = Array.tabulate(M, P){ case (i, j) => startA + i*P + j }
     val b = Array.tabulate(P, N){ case (i, j) => startB + i*N + j }
 
@@ -214,7 +214,7 @@ class AppTests extends UnitTest { self =>
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
   //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
-  //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
+  //testMatMult(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
   //testBlockReduce1D(BlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //testBlockReduce1D(ParBlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //test(MetaPipeTest, args="x222=4", argOuts="x223_x227=3", timeOut=40, debug=false)
@@ -228,8 +228,8 @@ class AppTests extends UnitTest { self =>
   val simulate = false
   val verbose = true
   //val arch = SN16x8_LD
-  val arch = SN16x13_LD
-  //val arch = SN8x8_LD
+  //val arch = SN16x13_LD
+  val arch = SN8x8_LD
   //val arch = SN4x4
   //val arch = new SN(numRows=2, numCols=2, pattern=Checkerboard)
   // Mapping Test
@@ -244,6 +244,7 @@ class AppTests extends UnitTest { self =>
   //test(PageRank, arch=Some(arch), verbose=verbose, debug=true)
   //test(Gibbs_Ising2D, arch=Some(arch), verbose=verbose, debug=true)
   //test(Backprop, arch=Some(arch), verbose=verbose, debug=true)
-  test(PageRank_plasticine, arch=Some(arch), verbose=verbose, debug=true)
+  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, debug=true)
+  test(GEMM_Blocked, arch=Some(arch), verbose=verbose, debug=true)
 }
 

@@ -31,9 +31,9 @@ case class OuterComputeUnitParam (
   override val numLanes:Int = 1
 
   def config(cu:OuterComputeUnit)(implicit spade:Spade) = {
-    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
     cu.numScalarBufs(numSins)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.genConnections
   }
 }

@@ -51,7 +51,6 @@ class PatternComputeUnitParam(
   val sramSize:Int = 0
 
   def config(cu:PatternComputeUnit)(implicit spade:Spade) = {
-    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     val numReduceStages = Math.ceil(Math.log(numLanes) / Math.log(2)).toInt
     val numFrontStages = numStages - (numReduceStages + 2)
     assert(numFrontStages >= 0, s"numFrontStages=$numFrontStages numStage=$numStages")
@@ -64,6 +63,7 @@ class PatternComputeUnitParam(
     cu.addRegstages(numStage=2, numOprds=3, ops)
     cu.numScalarBufs(numSins)
     cu.numVecBufs(cu.vins.size)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.color(0 until numCtrs, CounterReg)
     cu.color(0, ReduceReg).color(1, AccumReg)
     cu.color(numRegs-cu.numScalarBufs until numRegs, ScalarInReg)

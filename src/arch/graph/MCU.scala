@@ -53,9 +53,6 @@ class MemoryComputeUnitParam(
 
   /* Parameters */
   def config(cu:MemoryComputeUnit)(implicit spade:Spade) = {
-    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
-    cu.sram.writeAddrMux.addInputs(muxSize)
-    cu.sram.readAddrMux.addInputs(muxSize)
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ otherOps)
     //cu.addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     //cu.addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
@@ -65,6 +62,9 @@ class MemoryComputeUnitParam(
     assert(cu.vouts.size >= numVouts, s"vouts=${cu.vouts.size} numVouts=${numVouts}")
     cu.numScalarBufs(numSins)
     cu.numVecBufs(cu.vins.size)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
+    cu.sram.writeAddrMux.addInputs(muxSize)
+    cu.sram.readAddrMux.addInputs(muxSize)
     cu.color(0 until numCtrs, CounterReg)
     //cu.color(7, ReadAddrReg).color(8, WriteAddrReg)
     cu.color(7 until 7 + cu.numScalarBufs, ScalarInReg)

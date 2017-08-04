@@ -40,8 +40,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
   val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
-  def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
-
+  override def mems:List[OnChipMem] = sbufs ++ vbufs ++ srams
   def vout = vouts.head
 
   protected val _regstages:ListBuffer[FUStage] = ListBuffer.empty  // Regular Stages

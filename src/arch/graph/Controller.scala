@@ -30,6 +30,7 @@ abstract class Controller(val param:ControllerParam)(implicit spade:Spade) exten
   var vbufs:List[VectorMem] = Nil
   var sbufs:List[ScalarMem] = Nil
   def bufs:List[LocalBuffer] = sbufs ++ vbufs
+  def mems:List[OnChipMem] = sbufs ++ vbufs
   def numScalarBufs(num:Int):this.type = { sbufs = List.tabulate(num)  { i => ScalarMem(sbufSize).index(i) }; this }
   def numScalarBufs:Int = sbufs.size
   def numVecBufs(num:Int):this.type = { vbufs = List.tabulate(num) { i => VectorMem(vbufSize).index(i) }; this }
