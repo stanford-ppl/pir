@@ -49,7 +49,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mp = ctrMapper.map(ctrler, mp)
     mp
   }
-  val prescreen = new ResourcePrescreen()
   val cuMapper = new CUMapper()
 
   val spadeVecDotPrinter = new CUVectorDotPrinter()
@@ -98,13 +97,14 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         }
         viewRouting(e.mapper)
       case e =>
+        e.printStackTrace
     }
+    throw e
   }
 
-  addPass {
+  addPass(canRun=design.prescreen.hasRun){
     tic
     Try[PIRMap]{
-      prescreen.run
       cuMapper.map(PIRMap.empty)
     }.map { m =>
       spadeVecDotPrinter.print(Some(m))
@@ -119,7 +119,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Placement & Routing failed")
         handle(e)
-        throw e
     }
     toc(s"Placement & Routing", "s")
   } 
@@ -142,7 +141,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Local Mapping failed")
         handle(e)
-        throw e
     }
   }
 

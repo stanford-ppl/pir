@@ -17,10 +17,10 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
 
   def leastCommonAncestor(ctrlers:List[Controller]):Controller = {
-    val cas = ctrlers.map { ctrler => ancestorsOf(ctrler) }.reduce { _ intersect _ }
-    if (cas.size < 0)
+    val cas = ctrlers.map { ctrler => ancestorsOf(ctrler) }.reduceOption { _ intersect _ }
+    if (cas.getOrElse(Nil).isEmpty)
       throw PIRException(s"$ctrlers doesn't share common ancestors")
-    cas.head
+    cas.get.head
   }
 
   def findProducerConsumer(readers:List[Controller], writers:List[Controller], lca:Controller):Option[(Controller, Controller)] = {

@@ -143,12 +143,17 @@ trait Mapper { self =>
   ):M = {
     val exceps = ListBuffer[E]()
     val triedRes = ListBuffer[R]()
-    var reses = resFilter(triedRes.toList, exceps.toList)
-    while (reses.size!=0) {
+    def compRes = {
+      Try (resFilter(triedRes.toList, exceps.toList)) match {
+        case Success(rs) => rs
+        case Failure(e:MappingException[_]) => exceps += e; Nil
+        case Failure(e) => throw e
+      }
+    }
+    var reses = compRes 
+    while (reses.nonEmpty) {
       val res = reses.head
-      (Try {
-        constrain(n, res, map, exceps.toList)
-      }.flatMap { m => Try(finPass(m)) }) match {
+      Try (finPass(constrain(n, res, map, exceps.toList))) match {
         case Success(m) => return m
         case Failure(e@NoSolFound(es, mp)) => exceps ++= es
         case Failure(e@FailToMapNode(n, es, mp)) => exceps ++= es
@@ -156,13 +161,7 @@ trait Mapper { self =>
         case Failure(e) => throw e
       }
       triedRes += res
-      reses = Try {
-        resFilter(triedRes.toList, exceps.toList)
-      } match {
-        case Success(rs) => rs
-        case Failure(e:MappingException[_]) => exceps += e; Nil
-        case Failure(e) => throw e
-      }
+      reses = compRes
     }
     throw FailToMapNode(n, exceps.toList, map)
   }
@@ -219,17 +218,17 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        log(s"Mapping $n (${total-remainNodes.size}/${total})", { (m:M) => return m; () // finPass
+        log (s"Mapping $n (${total-remainNodes.size}/${total})", { (m:M) => 
+          return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
             case FailToMapNode(n, es, mp) => exceps ++= es
-            //case fe:FailToMapNode[_] => exceps += fe//; dprintln(flattenExceptions(fe.exceps)) // recRes failed
             case _ => throw e // Unknown exception
           }
         }) { // Block
           def rn(m:M): M = recNode(restNodes, m)
           def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
-          recRes[R,N,M](n, constrain, rf _, rn _, map)
+          recRes[R,N,M](n=n, constrain=constrain, resFilter=rf _, finPass=rn _, map=map)
         } 
       }
       throw NoSolFound(exceps.toList, map) 

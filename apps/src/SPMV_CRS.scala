@@ -8,1696 +8,1576 @@ import pir.PIRApp
 
 object SPMV_CRS extends PIRApp {
   def main(top:Top) = {
-    val x6063_x7076_s = Scalar("x6063_x7076")
-    val bus_1522_s = Scalar("bus_1522")
-    val x6330_x6336_s = Scalar("x6330_x6336")
-    val bus_1648_s = Scalar("bus_1648")
-    val x6838_x6845_s = Scalar("x6838_x6845")
-    val bus_1396_s = Scalar("bus_1396")
-    val x6600_x6629_s = Scalar("x6600_x6629")
-    val x6211_0_s = Scalar("x6211_0")
-    val x6807_b7355_x6834_b7363_s = Scalar("x6807_b7355_x6834_b7363")
-    val x6239_b7279_x6266_b7287_s = Scalar("x6239_b7279_x6266_b7287")
-    val x6946_x6967_s = Scalar("x6946_x6967")
-    val x6088_b7253_x6114_b7261_s = Scalar("x6088_b7253_x6114_b7261")
-    val bus_1586_s = Scalar("bus_1586")
-    val x6460_x6466_s = Scalar("x6460_x6466")
-    val x7083_x7090_s = Scalar("x7083_x7090")
-    val bus_1326_s = Scalar("bus_1326")
-    val x6087_b7250_x6112_b7258_s = Scalar("x6087_b7250_x6112_b7258")
-    val x6239_b7278_x6266_b7286_s = Scalar("x6239_b7278_x6266_b7286")
-    val bus_1452_s = Scalar("bus_1452")
-    val x6429_b7314_x6455_b7322_s = Scalar("x6429_b7314_x6455_b7322")
-    val bus_1771_s = Scalar("bus_1771")
-    val x6240_x6268_data_v = Vector("x6240_x6268_data")
-    val x6769_x6776_s = Scalar("x6769_x6776")
-    val x7156_x7203_v = Vector("x7156_x7203")
-    val x6238_b7275_x6264_b7283_s = Scalar("x6238_b7275_x6264_b7283")
-    val x6430_b7316_x6457_b7324_s = Scalar("x6430_b7316_x6457_b7324")
-    val x6649_x7033_s = Scalar("x6649_x7033")
-    val bus_1346_s = Scalar("bus_1346")
-    val bus_1454_s = Scalar("bus_1454")
-    val bus_1613_s = Scalar("bus_1613")
-    val x6868_b7368_x6895_b7376_s = Scalar("x6868_b7368_x6895_b7376")
-    val bus_1675_s = Scalar("bus_1675")
-    val bus_1475_s = Scalar("bus_1475")
-    val x6806_b7354_x6832_b7362_s = Scalar("x6806_b7354_x6832_b7362")
-    val x6492_x6498_s = Scalar("x6492_x6498")
-    val bus_1651_s = Scalar("bus_1651")
-    val bus_1516_s = Scalar("bus_1516")
-    val x6119_x6126_s = Scalar("x6119_x6126")
-    val x6807_b7356_x6834_b7364_s = Scalar("x6807_b7356_x6834_b7364")
-    val bus_1320_s = Scalar("bus_1320")
-    val x6430_b7318_x6457_b7326_s = Scalar("x6430_b7318_x6457_b7326")
-    val bus_1765_s = Scalar("bus_1765")
-    val x6206_0_s = Scalar("x6206_0")
-    val x6177_x6184_s = Scalar("x6177_x6184")
-    val x7155_b7384_x7183_b7386_s = Scalar("x7155_b7384_x7183_b7386")
-    val bus_1477_s = Scalar("bus_1477")
-    val bus_1764_s = Scalar("bus_1764")
-    val x6599_x6614_s = Scalar("x6599_x6614")
-    val x6117_x6122_s = Scalar("x6117_x6122")
-    val x6677_b7329_x6704_b7337_s = Scalar("x6677_b7329_x6704_b7337")
-    val x6646_0_s = Scalar("x6646_0")
-    val x6900_x6908_s = Scalar("x6900_x6908")
-    val x6206_x6295_s = Scalar("x6206_x6295")
-    val bus_1716_s = Scalar("bus_1716")
-    val bus_1678_s = Scalar("bus_1678")
-    val bus_1590_s = Scalar("bus_1590")
-    val x6145_b7262_x6170_b7270_s = Scalar("x6145_b7262_x6170_b7270")
-    val x6145_b7263_x6170_b7271_s = Scalar("x6145_b7263_x6170_b7271")
-    val x6709_x6717_s = Scalar("x6709_x6717")
-    val x6146_b7265_x6172_b7273_s = Scalar("x6146_b7265_x6172_b7273")
-    val x6300_b7292_x6327_b7300_s = Scalar("x6300_b7292_x6327_b7300")
-    val x7037_x7052_s = Scalar("x7037_x7052")
-    val x6209_x6486_s = Scalar("x6209_x6486")
-    val bus_1588_s = Scalar("bus_1588")
-    val x7100_b7379_x7128_b7381_s = Scalar("x7100_b7379_x7128_b7381")
-    val bus_1619_s = Scalar("bus_1619")
-    val x6645_x6863_s = Scalar("x6645_x6863")
-    val x6369_b7304_x6396_b7312_s = Scalar("x6369_b7304_x6396_b7312")
-    val x6238_b7276_x6264_b7284_s = Scalar("x6238_b7276_x6264_b7284")
-    val x6147_x6174_data_v = Vector("x6147_x6174_data")
-    val x6738_b7344_x6765_b7352_s = Scalar("x6738_b7344_x6765_b7352")
-    val x6868_b7370_x6895_b7378_s = Scalar("x6868_b7370_x6895_b7378")
-    val x6566_x6584_data_s = Scalar("x6566_x6584_data")
-    val x6369_b7303_x6396_b7311_s = Scalar("x6369_b7303_x6396_b7311")
-    val cols_dram_da = DRAMAddress("cols_dram", "cols_dram")
-    val x6061_0_s = Scalar("x6061_0")
-    val x7038_x7067_s = Scalar("x7038_x7067")
-    val x6738_b7343_x6765_b7351_s = Scalar("x6738_b7343_x6765_b7351")
-    val bus_1772_s = Scalar("bus_1772")
-    val x6648_x7000_s = Scalar("x6648_x7000")
-    val bus_1423_s = Scalar("bus_1423")
-    val bus_1592_s = Scalar("bus_1592")
-    val x6737_b7340_x6763_b7348_s = Scalar("x6737_b7340_x6763_b7348")
-    val x6431_x6459_data_v = Vector("x6431_x6459_data")
-    val bus_1350_s = Scalar("bus_1350")
-    val x6269_x6275_s = Scalar("x6269_x6275")
-    val x6970_x6987_s = Scalar("x6970_x6987")
-    val x6089_x6116_data_v = Vector("x6089_x6116_data")
-    val bus_1790_s = Scalar("bus_1790")
-    val x6676_b7328_x6702_b7336_s = Scalar("x6676_b7328_x6702_b7336")
-    val x6088_b7252_x6114_b7260_s = Scalar("x6088_b7252_x6114_b7260")
-    val x6739_x6767_data_v = Vector("x6739_x6767_data")
-    val x6300_b7290_x6327_b7298_s = Scalar("x6300_b7290_x6327_b7298")
-    val x6231_x6236_s = Scalar("x6231_x6236")
-    val x7160_x7186_s = Scalar("x7160_x7186")
-    val rowid_dram_oc = OffChip("rowid_dram")
-    val x6646_x6794_s = Scalar("x6646_x6794")
-    val x7105_x7131_s = Scalar("x7105_x7131")
-    val x6945_x6956_s = Scalar("x6945_x6956")
-    val x6868_b7369_x6895_b7377_s = Scalar("x6868_b7369_x6895_b7377")
-    val bus_1791_s = Scalar("bus_1791")
-    val bus_1615_s = Scalar("bus_1615")
-    val x6062_x6638_s = Scalar("x6062_x6638")
-    val x6066_x6075_s = Scalar("x6066_x6075")
-    val x6300_b7291_x6327_b7299_s = Scalar("x6300_b7291_x6327_b7299")
-    val bus_1322_s = Scalar("bus_1322")
-    val x6837_x6843_s = Scalar("x6837_x6843")
-    val x6270_x6277_s = Scalar("x6270_x6277")
-    val x7158_x7184_s = Scalar("x7158_x7184")
-    val bus_1644_s = Scalar("bus_1644")
-    val x6669_x6674_s = Scalar("x6669_x6674")
-    val cols_dram_oc = OffChip("cols_dram")
-    val x7104_x7130_s = Scalar("x7104_x7130")
-    val x6370_x6398_data_v = Vector("x6370_x6398_data")
-    val x7081_x7089_s = Scalar("x7081_x7089")
-    val x6461_x6468_s = Scalar("x6461_x6468")
-    val x6209_0_s = Scalar("x6209_0")
-    val x6807_b7357_x6834_b7365_s = Scalar("x6807_b7357_x6834_b7365")
-    val bus_1700_s = Scalar("bus_1700")
-    val x6301_x6329_data_v = Vector("x6301_x6329_data")
-    val x6063_x7072_s = Scalar("x6063_x7072")
-    val x6210_0_s = Scalar("x6210_0")
-    val bus_1392_s = Scalar("bus_1392")
-    val x7159_x7185_s = Scalar("x7159_x7185")
-    val bus_1669_s = Scalar("bus_1669")
-    val x6839_x6847_s = Scalar("x6839_x6847")
-    val x6146_b7264_x6172_b7272_s = Scalar("x6146_b7264_x6172_b7272")
-    val x6799_x6804_s = Scalar("x6799_x6804")
-    val x6649_0_s = Scalar("x6649_0")
-    val bus_1344_s = Scalar("bus_1344")
-    val bus_1512_s = Scalar("bus_1512")
-    val x6508_x6529_s = Scalar("x6508_x6529")
-    val x6400_x6407_s = Scalar("x6400_x6407")
-    val x6647_x6924_s = Scalar("x6647_x6924")
-    val x6647_0_s = Scalar("x6647_0")
-    val x6507_x6518_s = Scalar("x6507_x6518")
-    val x6175_x6180_s = Scalar("x6175_x6180")
-    val x6062_x6634_s = Scalar("x6062_x6634")
-    val x6060_0_s = Scalar("x6060_0")
-    val x6207_0_s = Scalar("x6207_0")
-    val x6207_x6425_s = Scalar("x6207_x6425")
-    val x6368_b7301_x6394_b7309_s = Scalar("x6368_b7301_x6394_b7309")
-    val x6215_x6228_s = Scalar("x6215_x6228")
+    val bus_1868_s = Scalar("bus_1868")
+    val x6830_x6841_s = Scalar("x6830_x6841")
+    val x6752_x6782_data_s = Scalar("x6752_x6782_data")
+    val bus_1702_s = Scalar("bus_1702")
+    val x6750_b7691_x6778_b7699_s = Scalar("x6750_b7691_x6778_b7699")
+    val bus_1438_s = Scalar("bus_1438")
+    val bus_1372_s = Scalar("bus_1372")
+    val x7457_x7470_s = Scalar("x7457_x7470")
+    val bus_1403_s = Scalar("bus_1403")
+    val x6687_b7678_x6715_b7686_s = Scalar("x6687_b7678_x6715_b7686")
+    val x6460_x6489_data_s = Scalar("x6460_x6489_data")
+    val x6379_x6387_s = Scalar("x6379_x6387")
+    val x6750_b7692_x6778_b7700_s = Scalar("x6750_b7692_x6778_b7700")
+    val x7356_x7374_data_s = Scalar("x7356_x7374_data")
     val vec_dram_oc = OffChip("vec_dram")
-    val x6677_b7330_x6704_b7338_s = Scalar("x6677_b7330_x6704_b7338")
-    val x6212_x6220_s = Scalar("x6212_x6220")
-    val x7003_x7020_s = Scalar("x7003_x7020")
-    val x6971_x6989_data_s = Scalar("x6971_x6989_data")
-    val bus_1479_s = Scalar("bus_1479")
-    val bus_1419_s = Scalar("bus_1419")
-    val x6650_x6658_s = Scalar("x6650_x6658")
-    val bus_1769_s = Scalar("bus_1769")
-    val x6931_x6942_s = Scalar("x6931_x6942")
-    val x6088_b7251_x6114_b7259_s = Scalar("x6088_b7251_x6114_b7259")
-    val bus_1506_s = Scalar("bus_1506")
-    val bus_1797_s = Scalar("bus_1797")
-    val x6067_x6083_s = Scalar("x6067_x6083")
-    val bus_1481_s = Scalar("bus_1481")
-    val x6399_x6405_s = Scalar("x6399_x6405")
-    val x6898_x6904_s = Scalar("x6898_x6904")
-    val bus_1421_s = Scalar("bus_1421")
-    val result_dram_da = DRAMAddress("result_dram", "result_dram")
-    val x6299_b7289_x6325_b7297_s = Scalar("x6299_b7289_x6325_b7297")
-    val x6899_x6906_s = Scalar("x6899_x6906")
-    val x7101_x7148_v = Vector("x7101_x7148")
-    val x6737_b7341_x6763_b7349_s = Scalar("x6737_b7341_x6763_b7349")
-    val bus_1798_s = Scalar("bus_1798")
-    val bus_1457_s = Scalar("bus_1457")
-    val values_dram_da = DRAMAddress("values_dram", "values_dram")
-    val x6677_b7331_x6704_b7339_s = Scalar("x6677_b7331_x6704_b7339")
-    val x6214_x6221_s = Scalar("x6214_x6221")
-    val x6176_x6182_s = Scalar("x6176_x6182")
-    val x6708_x6715_s = Scalar("x6708_x6715")
-    val bus_1398_s = Scalar("bus_1398")
-    val x6644_0_s = Scalar("x6644_0")
-    val bus_1484_s = Scalar("bus_1484")
-    val x6869_x6897_data_v = Vector("x6869_x6897_data")
-    val x6087_b7249_x6112_b7257_s = Scalar("x6087_b7249_x6112_b7257")
-    val x6060_1_s = Scalar("x6060_1")
-    val bus_1401_s = Scalar("bus_1401")
-    val bus_1394_s = Scalar("bus_1394")
-    val x6678_x6706_data_v = Vector("x6678_x6706_data")
-    val x6806_b7353_x6832_b7361_s = Scalar("x6806_b7353_x6832_b7361")
-    val x6738_b7342_x6765_b7350_s = Scalar("x6738_b7342_x6765_b7350")
-    val x6401_x6409_s = Scalar("x6401_x6409")
-    val x6808_x6836_data_v = Vector("x6808_x6836_data")
-    val bus_1617_s = Scalar("bus_1617")
-    val x6768_x6774_s = Scalar("x6768_x6774")
-    val x6118_x6124_s = Scalar("x6118_x6124")
-    val x6430_b7317_x6457_b7325_s = Scalar("x6430_b7317_x6457_b7325")
-    val bus_1642_s = Scalar("bus_1642")
-    val bus_1671_s = Scalar("bus_1671")
-    val bus_1706_s = Scalar("bus_1706")
-    val values_dram_oc = OffChip("values_dram")
-    val bus_1622_s = Scalar("bus_1622")
-    val x6648_0_s = Scalar("x6648_0")
-    val result_dram_oc = OffChip("result_dram")
-    val x6361_x6366_s = Scalar("x6361_x6366")
-    val x6331_x6338_s = Scalar("x6331_x6338")
-    val x7155_b7383_x7183_b7385_s = Scalar("x7155_b7383_x7183_b7385")
-    val x6565_x6582_s = Scalar("x6565_x6582")
-    val x6770_x6778_s = Scalar("x6770_x6778")
-    val x6064_x6074_s = Scalar("x6064_x6074")
-    val x7084_x7097_s = Scalar("x7084_x7097")
-    val x6532_x6549_s = Scalar("x6532_x6549")
-    val x7103_x7129_s = Scalar("x7103_x7129")
-    val x6061_1_s = Scalar("x6061_1")
-    val x6867_b7366_x6893_b7374_s = Scalar("x6867_b7366_x6893_b7374")
-    val bus_1710_s = Scalar("bus_1710")
-    val x6211_x6595_s = Scalar("x6211_x6595")
-    val x6213_x6227_s = Scalar("x6213_x6227")
-    val x6332_x6340_s = Scalar("x6332_x6340")
-    val x6069_x6084_s = Scalar("x6069_x6084")
-    val x6208_0_s = Scalar("x6208_0")
-    val x6239_b7277_x6266_b7285_s = Scalar("x6239_b7277_x6266_b7285")
-    val x6068_x6076_s = Scalar("x6068_x6076")
-    val x6368_b7302_x6394_b7310_s = Scalar("x6368_b7302_x6394_b7310")
-    val x6210_x6562_s = Scalar("x6210_x6562")
-    val x6493_x6504_s = Scalar("x6493_x6504")
-    val x6271_x6279_s = Scalar("x6271_x6279")
-    val bus_1353_s = Scalar("bus_1353")
-    val x6061_x6199_s = Scalar("x6061_x6199")
-    val bus_1595_s = Scalar("bus_1595")
-    val rowid_dram_da = DRAMAddress("rowid_dram", "rowid_dram")
-    val x6676_b7327_x6702_b7335_s = Scalar("x6676_b7327_x6702_b7335")
-    val x6065_x6082_s = Scalar("x6065_x6082")
-    val x7004_x7022_data_s = Scalar("x7004_x7022_data")
-    val x6652_x6659_s = Scalar("x6652_x6659")
-    val x6063_0_s = Scalar("x6063_0")
-    val x6299_b7288_x6325_b7296_s = Scalar("x6299_b7288_x6325_b7296")
-    val x6062_0_s = Scalar("x6062_0")
-    val x6462_x6470_s = Scalar("x6462_x6470")
-    val x6146_b7266_x6172_b7274_s = Scalar("x6146_b7266_x6172_b7274")
-    val x6644_x6733_s = Scalar("x6644_x6733")
-    val x7100_b7380_x7128_b7382_s = Scalar("x7100_b7380_x7128_b7382")
-    val x7082_x7096_s = Scalar("x7082_x7096")
-    val x6707_x6713_s = Scalar("x6707_x6713")
-    val x6429_b7315_x6455_b7323_s = Scalar("x6429_b7315_x6455_b7323")
-    val bus_1450_s = Scalar("bus_1450")
-    val bus_1428_s = Scalar("bus_1428")
-    val bus_1425_s = Scalar("bus_1425")
-    val bus_1324_s = Scalar("bus_1324")
-    val x6867_b7367_x6893_b7375_s = Scalar("x6867_b7367_x6893_b7375")
-    val x6930_x6936_s = Scalar("x6930_x6936")
-    val x6653_x6666_s = Scalar("x6653_x6666")
-    val bus_1348_s = Scalar("bus_1348")
-    val bus_1448_s = Scalar("bus_1448")
-    val x6651_x6665_s = Scalar("x6651_x6665")
-    val bus_1329_s = Scalar("bus_1329")
-    val x6645_0_s = Scalar("x6645_0")
-    val bus_1673_s = Scalar("bus_1673")
-    val bus_1646_s = Scalar("bus_1646")
-    val x6533_x6551_data_s = Scalar("x6533_x6551_data")
-    val x6208_x6356_s = Scalar("x6208_x6356")
-    val x6060_x6141_s = Scalar("x6060_x6141")
-    val x6369_b7305_x6396_b7313_s = Scalar("x6369_b7305_x6396_b7313")
-    val bus_1795_s = Scalar("bus_1795")
+    val bus_1867_s = Scalar("bus_1867")
+    val bus_1498_s = Scalar("bus_1498")
+    val bus_1659_s = Scalar("bus_1659")
+    val x7020_b7704_x7048_b7712_s = Scalar("x7020_b7704_x7048_b7712")
+    val x6372_x6372_dsp0_bank0_s = Scalar("x6372_x6372_dsp0_bank0")
+    val x6751_b7693_x6780_b7701_s = Scalar("x6751_b7693_x6780_b7701")
+    val x7155_b7733_x7184_b7741_s = Scalar("x7155_b7733_x7184_b7741")
+    val x7455_x7469_s = Scalar("x7455_x7469")
+    val x6926_x6958_s = Scalar("x6926_x6958")
+    val x7298_x7319_s = Scalar("x7298_x7319")
+    val bus_1363_s = Scalar("bus_1363")
+    val x6680_x6685_s = Scalar("x6680_x6685")
+    val x7156_x7186_data_s = Scalar("x7156_x7186_data")
+    val bus_1568_s = Scalar("bus_1568")
+    val bus_1371_s = Scalar("bus_1371")
+    val x6989_x6989_dsp0_bank0_s = Scalar("x6989_x6989_dsp0_bank0")
+    val x7531_x7580_s = Scalar("x7531_x7580")
+    val bus_1731_s = Scalar("bus_1731")
+    val x7147_x7152_s = Scalar("x7147_x7152")
+    val x6751_b7695_x6780_b7703_s = Scalar("x6751_b7695_x6780_b7703")
+    val cols_dram_da = DRAMAddress("cols_dram", "cols_dram")
+    val bus_1870_s = Scalar("bus_1870")
+    val x6688_b7682_x6717_b7690_s = Scalar("x6688_b7682_x6717_b7690")
+    val x7013_x7018_s = Scalar("x7013_x7018")
+    val bus_1508_s = Scalar("bus_1508")
+    val bus_1842_s = Scalar("bus_1842")
+    val x6553_b7653_x6581_b7661_s = Scalar("x6553_b7653_x6581_b7661")
+    val x6988_x6988_dsp0_bank0_s = Scalar("x6988_x6988_dsp0_bank0")
     val vec_dram_da = DRAMAddress("vec_dram", "vec_dram")
-    val x7212 = Sequential(name="x7212",parent=top) { implicit CU => 
-      val x7212_unit = CounterChain(name = "x7212_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7084_b7720_x7113_b7728_s = Scalar("x7084_b7720_x7113_b7728")
+    val bus_1441_s = Scalar("bus_1441")
+    val x6376_x6393_s = Scalar("x6376_x6393")
+    val x6831_x6852_s = Scalar("x6831_x6852")
+    val x6856_x6874_data_s = Scalar("x6856_x6874_data")
+    val bus_1733_s = Scalar("bus_1733")
+    val x6992_x6992_dsp0_bank0_s = Scalar("x6992_x6992_dsp0_bank0")
+    val bus_1528_s = Scalar("bus_1528")
+    val bus_1476_s = Scalar("bus_1476")
+    val x6816_x6827_s = Scalar("x6816_x6827")
+    val x6546_x6551_s = Scalar("x6546_x6551")
+    val x7085_x7115_data_s = Scalar("x7085_x7115_data")
+    val x7355_x7372_s = Scalar("x7355_x7372")
+    val bus_1477_s = Scalar("bus_1477")
+    val x6687_b7679_x6715_b7687_s = Scalar("x6687_b7679_x6715_b7687")
+    val bus_1764_s = Scalar("bus_1764")
+    val x7473_b7756_x7503_b7758_s = Scalar("x7473_b7756_x7503_b7758")
+    val bus_1558_s = Scalar("bus_1558")
+    val bus_1780_s = Scalar("bus_1780")
+    val bus_1537_s = Scalar("bus_1537")
+    val bus_1707_s = Scalar("bus_1707")
+    val x6399_b7628_x6427_b7636_s = Scalar("x6399_b7628_x6427_b7636")
+    val x6889_x6907_data_s = Scalar("x6889_x6907_data")
+    val x7219_x7249_data_s = Scalar("x7219_x7249_data")
+    val bus_1688_s = Scalar("bus_1688")
+    val bus_1362_s = Scalar("bus_1362")
+    val bus_1714_s = Scalar("bus_1714")
+    val x6553_b7652_x6581_b7660_s = Scalar("x6553_b7652_x6581_b7660")
+    val x6554_b7654_x6583_b7662_s = Scalar("x6554_b7654_x6583_b7662")
+    val x7020_b7705_x7048_b7713_s = Scalar("x7020_b7705_x7048_b7713")
+    val x7297_x7308_s = Scalar("x7297_x7308")
+    val x7534_x7562_s = Scalar("x7534_x7562")
+    val bus_1391_s = Scalar("bus_1391")
+    val bus_1861_s = Scalar("bus_1861")
+    val bus_1743_s = Scalar("bus_1743")
+    val x7533_x7561_s = Scalar("x7533_x7561")
+    val bus_1704_s = Scalar("bus_1704")
+    val bus_1398_s = Scalar("bus_1398")
+    val bus_1482_s = Scalar("bus_1482")
+    val x6458_b7639_x6485_b7647_s = Scalar("x6458_b7639_x6485_b7647")
+    val x7154_b7730_x7182_b7738_s = Scalar("x7154_b7730_x7182_b7738")
+    val bus_1536_s = Scalar("bus_1536")
+    val bus_1682_s = Scalar("bus_1682")
+    val x7154_b7731_x7182_b7739_s = Scalar("x7154_b7731_x7182_b7739")
+    val x7217_b7743_x7245_b7751_s = Scalar("x7217_b7743_x7245_b7751")
+    val bus_1530_s = Scalar("bus_1530")
+    val x7323_x7341_data_s = Scalar("x7323_x7341_data")
+    val x7083_b7718_x7111_b7726_s = Scalar("x7083_b7718_x7111_b7726")
+    val bus_1736_s = Scalar("bus_1736")
+    val x6555_x6585_data_s = Scalar("x6555_x6585_data")
+    val bus_1470_s = Scalar("bus_1470")
+    val bus_1843_s = Scalar("bus_1843")
+    val x6525_x6525_dsp0_bank0_s = Scalar("x6525_x6525_dsp0_bank0")
+    val x6372_x6372_dsp1_bank0_s = Scalar("x6372_x6372_dsp1_bank0")
+    val x6459_b7642_x6487_b7650_s = Scalar("x6459_b7642_x6487_b7650")
+    val values_dram_da = DRAMAddress("values_dram", "values_dram")
+    val x6522_x6522_dsp0_bank0_s = Scalar("x6522_x6522_dsp0_bank0")
+    val x6888_x6905_s = Scalar("x6888_x6905")
+    val x7454_x7462_s = Scalar("x7454_x7462")
+    val x7218_b7745_x7247_b7753_s = Scalar("x7218_b7745_x7247_b7753")
+    val bus_1653_s = Scalar("bus_1653")
+    val x7083_b7717_x7111_b7725_s = Scalar("x7083_b7717_x7111_b7725")
+    val x6399_b7629_x6427_b7637_s = Scalar("x6399_b7629_x6427_b7637")
+    val x6617_b7669_x6646_b7677_s = Scalar("x6617_b7669_x6646_b7677")
+    val x6374_x6374_dsp0_bank0_s = Scalar("x6374_x6374_dsp0_bank0")
+    val x6618_x6648_data_s = Scalar("x6618_x6648_data")
+    val bus_1527_s = Scalar("bus_1527")
+    val bus_1840_s = Scalar("bus_1840")
+    val x6815_x6821_s = Scalar("x6815_x6821")
+    val x7530_b7760_x7560_b7762_s = Scalar("x7530_b7760_x7560_b7762")
+    val bus_1365_s = Scalar("bus_1365")
+    val bus_1386_s = Scalar("bus_1386")
+    val x6398_b7627_x6425_b7635_s = Scalar("x6398_b7627_x6425_b7635")
+    val x6526_x6526_dsp0_bank0_s = Scalar("x6526_x6526_dsp0_bank0")
+    val bus_1377_s = Scalar("bus_1377")
+    val bus_1447_s = Scalar("bus_1447")
+    val x7021_b7708_x7050_b7716_s = Scalar("x7021_b7708_x7050_b7716")
+    val x7393_x7425_s = Scalar("x7393_x7425")
+    val bus_1647_s = Scalar("bus_1647")
+    val bus_1705_s = Scalar("bus_1705")
+    val x6993_x6993_dsp0_bank0_s = Scalar("x6993_x6993_dsp0_bank0")
+    val bus_1507_s = Scalar("bus_1507")
+    val bus_1674_s = Scalar("bus_1674")
+    val bus_1642_s = Scalar("bus_1642")
+    val x6524_x6524_dsp0_bank0_s = Scalar("x6524_x6524_dsp0_bank0")
+    val x6378_x6394_s = Scalar("x6378_x6394")
+    val bus_1671_s = Scalar("bus_1671")
+    val values_dram_oc = OffChip("values_dram")
+    val x6554_b7656_x6583_b7664_s = Scalar("x6554_b7656_x6583_b7664")
+    val x6371_x6371_dsp1_bank0_s = Scalar("x6371_x6371_dsp1_bank0")
+    val bus_1683_s = Scalar("bus_1683")
+    val result_dram_oc = OffChip("result_dram")
+    val bus_1468_s = Scalar("bus_1468")
+    val x6398_b7626_x6425_b7634_s = Scalar("x6398_b7626_x6425_b7634")
+    val bus_1513_s = Scalar("bus_1513")
+    val bus_1770_s = Scalar("bus_1770")
+    val bus_1654_s = Scalar("bus_1654")
+    val x6688_b7680_x6717_b7688_s = Scalar("x6688_b7680_x6717_b7688")
+    val bus_1467_s = Scalar("bus_1467")
+    val bus_1866_s = Scalar("bus_1866")
+    val rowid_dram_oc = OffChip("rowid_dram")
+    val x7155_b7732_x7184_b7740_s = Scalar("x7155_b7732_x7184_b7740")
+    val bus_1564_s = Scalar("bus_1564")
+    val bus_1542_s = Scalar("bus_1542")
+    val bus_1838_s = Scalar("bus_1838")
+    val x6855_x6872_s = Scalar("x6855_x6872")
+    val x7478_x7506_s = Scalar("x7478_x7506")
+    val bus_1734_s = Scalar("bus_1734")
+    val x6459_b7641_x6487_b7649_s = Scalar("x6459_b7641_x6487_b7649")
+    val x6617_b7668_x6646_b7676_s = Scalar("x6617_b7668_x6646_b7676")
+    val bus_1833_s = Scalar("bus_1833")
+    val bus_1839_s = Scalar("bus_1839")
+    val x7282_x7288_s = Scalar("x7282_x7288")
+    val x7476_x7504_s = Scalar("x7476_x7504")
+    val bus_1389_s = Scalar("bus_1389")
+    val x6689_x6719_data_s = Scalar("x6689_x6719_data")
+    val x6521_x6521_dsp0_bank0_s = Scalar("x6521_x6521_dsp0_bank0")
+    val bus_1453_s = Scalar("bus_1453")
+    val x7218_b7746_x7247_b7754_s = Scalar("x7218_b7746_x7247_b7754")
+    val x6459_b7643_x6487_b7651_s = Scalar("x6459_b7643_x6487_b7651")
+    val x7530_b7761_x7560_b7763_s = Scalar("x7530_b7761_x7560_b7763")
+    val bus_1397_s = Scalar("bus_1397")
+    val bus_1774_s = Scalar("bus_1774")
+    val x6554_b7655_x6583_b7663_s = Scalar("x6554_b7655_x6583_b7663")
+    val x6751_b7694_x6780_b7702_s = Scalar("x6751_b7694_x6780_b7702")
+    val x6990_x6990_dsp0_bank0_s = Scalar("x6990_x6990_dsp0_bank0")
+    val x7474_x7523_s = Scalar("x7474_x7523")
+    val x7283_x7294_s = Scalar("x7283_x7294")
+    val x6399_b7630_x6427_b7638_s = Scalar("x6399_b7630_x6427_b7638")
+    val x7155_b7734_x7184_b7742_s = Scalar("x7155_b7734_x7184_b7742")
+    val x7217_b7744_x7245_b7752_s = Scalar("x7217_b7744_x7245_b7752")
+    val x6991_x6991_dsp0_bank0_s = Scalar("x6991_x6991_dsp0_bank0")
+    val bus_1644_s = Scalar("bus_1644")
+    val bus_1860_s = Scalar("bus_1860")
+    val x7021_b7707_x7050_b7715_s = Scalar("x7021_b7707_x7050_b7715")
+    val bus_1871_s = Scalar("bus_1871")
+    val x6377_x6386_s = Scalar("x6377_x6386")
+    val cols_dram_oc = OffChip("cols_dram")
+    val x7218_b7747_x7247_b7755_s = Scalar("x7218_b7747_x7247_b7755")
+    val bus_1499_s = Scalar("bus_1499")
+    val bus_1574_s = Scalar("bus_1574")
+    val x6688_b7681_x6717_b7689_s = Scalar("x6688_b7681_x6717_b7689")
+    val x6523_x6523_dsp0_bank0_s = Scalar("x6523_x6523_dsp0_bank0")
+    val bus_1525_s = Scalar("bus_1525")
+    val x6458_b7640_x6485_b7648_s = Scalar("x6458_b7640_x6485_b7648")
+    val x6375_x6385_s = Scalar("x6375_x6385")
+    val x6927_x6973_s = Scalar("x6927_x6973")
+    val x7084_b7721_x7113_b7729_s = Scalar("x7084_b7721_x7113_b7729")
+    val x7022_x7052_data_s = Scalar("x7022_x7052_data")
+    val result_dram_da = DRAMAddress("result_dram", "result_dram")
+    val x6617_b7667_x6646_b7675_s = Scalar("x6617_b7667_x6646_b7675")
+    val x7535_x7563_s = Scalar("x7535_x7563")
+    val x7021_b7706_x7050_b7714_s = Scalar("x7021_b7706_x7050_b7714")
+    val bus_1436_s = Scalar("bus_1436")
+    val x7473_b7757_x7503_b7759_s = Scalar("x7473_b7757_x7503_b7759")
+    val bus_1465_s = Scalar("bus_1465")
+    val bus_1388_s = Scalar("bus_1388")
+    val bus_1439_s = Scalar("bus_1439")
+    val bus_1645_s = Scalar("bus_1645")
+    val x7084_b7719_x7113_b7727_s = Scalar("x7084_b7719_x7113_b7727")
+    val bus_1448_s = Scalar("bus_1448")
+    val bus_1496_s = Scalar("bus_1496")
+    val x6616_b7666_x6644_b7674_s = Scalar("x6616_b7666_x6644_b7674")
+    val x6400_x6429_data_s = Scalar("x6400_x6429_data")
+    val x6373_x6373_dsp0_bank0_s = Scalar("x6373_x6373_dsp0_bank0")
+    val x7477_x7505_s = Scalar("x7477_x7505")
+    val bus_1748_s = Scalar("bus_1748")
+    val bus_1673_s = Scalar("bus_1673")
+    val x7322_x7339_s = Scalar("x7322_x7339")
+    val bus_1501_s = Scalar("bus_1501")
+    val rowid_dram_da = DRAMAddress("rowid_dram", "rowid_dram")
+    val bus_1360_s = Scalar("bus_1360")
+    val bus_1713_s = Scalar("bus_1713")
+    val bus_1719_s = Scalar("bus_1719")
+    val bus_1742_s = Scalar("bus_1742")
+    val bus_1832_s = Scalar("bus_1832")
+    val x6616_b7665_x6644_b7673_s = Scalar("x6616_b7665_x6644_b7673")
+    val x7456_x7463_s = Scalar("x7456_x7463")
+    val bus_1676_s = Scalar("bus_1676")
+    val x7394_x7440_s = Scalar("x7394_x7440")
+    val x6371_x6371_dsp0_bank0_s = Scalar("x6371_x6371_dsp0_bank0")
+    val x6380_x6395_s = Scalar("x6380_x6395")
+    val x7589 = Sequential(name="x7589",parent=top) { implicit CU => 
+      val x7589_unit = CounterChain(name = "x7589_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7211 = MetaPipeline(name="x7211",parent=x7212) { implicit CU => 
+    val x7588 = MetaPipeline(name="x7588",parent=x7589) { implicit CU => 
       val ctr1 = Counter(min=Const(0), max=Const(1), step=Const(1), par=2) // Counter
-      val x6059 = CounterChain(name = "x6059", ctr1).iter(1)
+      val x6370 = CounterChain(name = "x6370", ctr1).iter(1)
     }
-    val x6060_dsp0 = MemoryPipeline(name="x6060_dsp0",parent="x7211") { implicit CU => 
-      val x6141 = ScalarFIFO(size=1,name="x6141").wtPort(x6060_x6141_s)
-      val x6117 = ScalarBuffer(name="x6117").wtPort(x6117_x6122_s)
-      val x6130 = CounterChain.copy("x6142_0", "x6130")
-      val x6205 = CounterChain.copy("x6641", "x6205")
-      val x6060 = SRAM(size=495,name="x6060",banking = Strided(1)).wtPort(x6141.readPort).rdPort(x6060_0_s)
-      WAStage(operands=List(CU.ctr(x6130(0)), CU.load(x6117)), op=FixSub, results=List(x6060.writeAddr))
-      RAStage(operands=List(CU.ctr(x6205(0)), Const(1)), op=FixAdd, results=List(x6060.readAddr))
+    val x6371_dsp0_bank0 = MemoryPipeline(name="x6371_dsp0_bank0",parent="x7588") { implicit CU => 
+      val x6454 = ScalarFIFO(size=1,name="x6454").wtPort(x6400_x6429_data_s)
+      val x6430 = ScalarBuffer(name="x6430").wtPort(x6399_b7629_x6427_b7637_s)
+      val x6443 = CounterChain.copy("x6455_0", "x6443")
+      val x6520 = CounterChain.copy("x6985", "x6520")
+      val x6371 = SRAM(size=495,name="x6371",banking = Strided(1)).wtPort(x6454.readPort).rdPort(x6371_x6371_dsp0_bank0_s)
+      WAStage(operands=List(CU.ctr(x6443(0)), CU.load(x6430)), op=FixSub, results=List(x6371.writeAddr))
+      RAStage(operands=List(CU.ctr(x6520(0)), Const(1)), op=FixAdd, results=List(x6371.readAddr))
+      RAStage(operands=List(CU.ctr(x6520(0)), Const(1)), op=FixAdd, results=List(x6371.readAddr))
     }
-    val x6060_dsp1 = MemoryPipeline(name="x6060_dsp1",parent="x7211") { implicit CU => 
-      val x6141 = ScalarFIFO(size=1,name="x6141").wtPort(x6060_x6141_s)
-      val x6117 = ScalarBuffer(name="x6117").wtPort(x6117_x6122_s)
-      val x6130 = CounterChain.copy("x6142_0", "x6130")
-      val x6205 = CounterChain.copy("x6641", "x6205")
-      val x6060 = SRAM(size=495,name="x6060",banking = Strided(1)).wtPort(x6141.readPort).rdPort(x6060_1_s).rdAddr(x6205(0))
-      WAStage(operands=List(CU.ctr(x6130(0)), CU.load(x6117)), op=FixSub, results=List(x6060.writeAddr))
+    val x6371_dsp1_bank0 = MemoryPipeline(name="x6371_dsp1_bank0",parent="x7588") { implicit CU => 
+      val x6454 = ScalarFIFO(size=1,name="x6454").wtPort(x6400_x6429_data_s)
+      val x6430 = ScalarBuffer(name="x6430").wtPort(x6399_b7629_x6427_b7637_s)
+      val x6443 = CounterChain.copy("x6455_0", "x6443")
+      val x6520 = CounterChain.copy("x6985", "x6520")
+      val x6371 = SRAM(size=495,name="x6371",banking = Strided(1)).wtPort(x6454.readPort).rdPort(x6371_x6371_dsp1_bank0_s).rdAddr(x6520(0)).rdAddr(x6520(0))
+      WAStage(operands=List(CU.ctr(x6443(0)), CU.load(x6430)), op=FixSub, results=List(x6371.writeAddr))
     }
-    val x6061_dsp0 = MemoryPipeline(name="x6061_dsp0",parent="x7211") { implicit CU => 
-      val x6175 = ScalarBuffer(name="x6175").wtPort(x6175_x6180_s)
-      val x6199 = ScalarFIFO(size=1,name="x6199").wtPort(x6061_x6199_s)
-      val x6188 = CounterChain.copy("x6200_0", "x6188")
-      val x6643 = CounterChain.copy("x7079", "x6643")
-      val x6061 = SRAM(size=495,name="x6061",banking = Strided(1)).wtPort(x6199.readPort).rdPort(x6061_0_s)
-      WAStage(operands=List(CU.ctr(x6188(0)), CU.load(x6175)), op=FixSub, results=List(x6061.writeAddr))
-      RAStage(operands=List(CU.ctr(x6643(0)), Const(1)), op=FixAdd, results=List(x6061.readAddr))
+    val x6372_dsp0_bank0 = MemoryPipeline(name="x6372_dsp0_bank0",parent="x7588") { implicit CU => 
+      val x6514 = ScalarFIFO(size=1,name="x6514").wtPort(x6460_x6489_data_s)
+      val x6490 = ScalarBuffer(name="x6490").wtPort(x6459_b7642_x6487_b7650_s)
+      val x6503 = CounterChain.copy("x6515_0", "x6503")
+      val x6987 = CounterChain.copy("x7452", "x6987")
+      val x6372 = SRAM(size=495,name="x6372",banking = Strided(1)).wtPort(x6514.readPort).rdPort(x6372_x6372_dsp0_bank0_s)
+      WAStage(operands=List(CU.ctr(x6503(0)), CU.load(x6490)), op=FixSub, results=List(x6372.writeAddr))
+      RAStage(operands=List(CU.ctr(x6987(0)), Const(1)), op=FixAdd, results=List(x6372.readAddr))
+      RAStage(operands=List(CU.ctr(x6987(0)), Const(1)), op=FixAdd, results=List(x6372.readAddr))
     }
-    val x6061_dsp1 = MemoryPipeline(name="x6061_dsp1",parent="x7211") { implicit CU => 
-      val x6175 = ScalarBuffer(name="x6175").wtPort(x6175_x6180_s)
-      val x6199 = ScalarFIFO(size=1,name="x6199").wtPort(x6061_x6199_s)
-      val x6188 = CounterChain.copy("x6200_0", "x6188")
-      val x6643 = CounterChain.copy("x7079", "x6643")
-      val x6061 = SRAM(size=495,name="x6061",banking = Strided(1)).wtPort(x6199.readPort).rdPort(x6061_1_s).rdAddr(x6643(0))
-      WAStage(operands=List(CU.ctr(x6188(0)), CU.load(x6175)), op=FixSub, results=List(x6061.writeAddr))
+    val x6372_dsp1_bank0 = MemoryPipeline(name="x6372_dsp1_bank0",parent="x7588") { implicit CU => 
+      val x6514 = ScalarFIFO(size=1,name="x6514").wtPort(x6460_x6489_data_s)
+      val x6490 = ScalarBuffer(name="x6490").wtPort(x6459_b7642_x6487_b7650_s)
+      val x6503 = CounterChain.copy("x6515_0", "x6503")
+      val x6987 = CounterChain.copy("x7452", "x6987")
+      val x6372 = SRAM(size=495,name="x6372",banking = Strided(1)).wtPort(x6514.readPort).rdPort(x6372_x6372_dsp1_bank0_s).rdAddr(x6987(0)).rdAddr(x6987(0))
+      WAStage(operands=List(CU.ctr(x6503(0)), CU.load(x6490)), op=FixSub, results=List(x6372.writeAddr))
     }
-    val x6062_dsp0 = MemoryPipeline(name="x6062_dsp0",parent="x7211") { implicit CU => 
-      val x6638 = ScalarFIFO(size=1,name="x6638").wtPort(x6062_x6638_s)
-      val x6634 = ScalarFIFO(size=1,name="x6634").wtPort(x6062_x6634_s)
-      val x7103 = ScalarBuffer(name="x7103").wtPort(x7103_x7129_s)
-      val x6205 = CounterChain.copy("x6641", "x6205")
-      val x7135 = CounterChain.copy("x7149_0", "x7135")
-      val x6062 = SRAM(size=494,name="x6062",banking = Strided(1)).wtPort(x6634.readPort).wtPort(x6638.readPort).rdPort(x6062_0_s).wtAddr(x6205(0))
-      RAStage(operands=List(CU.ctr(x7135(0)), CU.load(x7103)), op=FixSub, results=List(x6062.readAddr))
+    val x6373_dsp0_bank0 = MemoryPipeline(name="x6373_dsp0_bank0",parent="x7588") { implicit CU => 
+      val x7476 = ScalarBuffer(name="x7476").wtPort(x7476_x7504_s)
+      val x6982 = ScalarFIFO(size=1,name="x6982").wtPort(x6927_x6973_s)
+      val x6978 = ScalarFIFO(size=1,name="x6978").wtPort(x6926_x6958_s)
+      val x6520 = CounterChain.copy("x6985", "x6520")
+      val x7510 = CounterChain.copy("x7524_0", "x7510")
+      val x6373 = SRAM(size=494,name="x6373",banking = Strided(1)).wtPort(x6978.readPort).wtPort(x6982.readPort).rdPort(x6373_x6373_dsp0_bank0_s).wtAddr(x6520(0)).wtAddr(x6520(0))
+      RAStage(operands=List(CU.ctr(x7510(0)), CU.load(x7476)), op=FixSub, results=List(x6373.readAddr))
     }
-    val x6063_dsp0 = MemoryPipeline(name="x6063_dsp0",parent="x7211") { implicit CU => 
-      val x7072 = ScalarFIFO(size=1,name="x7072").wtPort(x6063_x7072_s)
-      val x7158 = ScalarBuffer(name="x7158").wtPort(x7158_x7184_s)
-      val x7076 = ScalarFIFO(size=1,name="x7076").wtPort(x6063_x7076_s)
-      val x6643 = CounterChain.copy("x7079", "x6643")
-      val x7190 = CounterChain.copy("x7204_0", "x7190")
-      val x6063 = SRAM(size=494,name="x6063",banking = Strided(1)).wtPort(x7072.readPort).wtPort(x7076.readPort).rdPort(x6063_0_s).wtAddr(x6643(0))
-      RAStage(operands=List(CU.ctr(x7190(0)), CU.load(x7158)), op=FixSub, results=List(x6063.readAddr))
+    val x6374_dsp0_bank0 = MemoryPipeline(name="x6374_dsp0_bank0",parent="x7588") { implicit CU => 
+      val x7449 = ScalarFIFO(size=1,name="x7449").wtPort(x7394_x7440_s)
+      val x7445 = ScalarFIFO(size=1,name="x7445").wtPort(x7393_x7425_s)
+      val x7533 = ScalarBuffer(name="x7533").wtPort(x7533_x7561_s)
+      val x6987 = CounterChain.copy("x7452", "x6987")
+      val x7567 = CounterChain.copy("x7581_0", "x7567")
+      val x6374 = SRAM(size=494,name="x6374",banking = Strided(1)).wtPort(x7445.readPort).wtPort(x7449.readPort).rdPort(x6374_x6374_dsp0_bank0_s).wtAddr(x6987(0)).wtAddr(x6987(0))
+      RAStage(operands=List(CU.ctr(x7567(0)), CU.load(x7533)), op=FixSub, results=List(x6374.readAddr))
     }
-    val x6077_0 = Pipeline(name="x6077_0",parent=x7211) { implicit CU => 
-      val x6072 = CU.temp(None)
-      val x6071 = CU.temp(None)
-      val x6070 = CU.temp(None)
-      val x6059 = CounterChain.copy("x7211", "x6059")
-      val x6077_unit = CounterChain(name = "x6077_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.ctr(x6059(0)), Const(495)), op=FixMul, results=List(x6070, CU.scalarOut(x6064_x6074_s)))
-      Stage(operands=List(CU.ctr(x6059(0)), Const(1)), op=FixAdd, results=List(x6071, CU.scalarOut(x6066_x6075_s)))
-      Stage(operands=List(x6071, Const(495)), op=FixMul, results=List(x6072))
-      Stage(operands=List(x6072, x6070), op=FixSub, results=List(CU.scalarOut(x6068_x6076_s)))
+    val x6388_0 = Pipeline(name="x6388_0",parent=x7588) { implicit CU => 
+      val x6383 = CU.temp(None)
+      val x6382 = CU.temp(None)
+      val x6381 = CU.temp(None)
+      val x6370 = CounterChain.copy("x7588", "x6370")
+      val x6388_unit = CounterChain(name = "x6388_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.ctr(x6370(0)), Const(495)), op=FixMul, results=List(x6381, CU.scalarOut(x6375_x6385_s)))
+      Stage(operands=List(CU.ctr(x6370(0)), Const(1)), op=FixAdd, results=List(x6382, CU.scalarOut(x6377_x6386_s)))
+      Stage(operands=List(x6382, Const(495)), op=FixMul, results=List(x6383))
+      Stage(operands=List(x6383, x6381), op=FixSub, results=List(CU.scalarOut(x6379_x6387_s)))
     }
-    val x6085_0 = Pipeline(name="x6085_0",parent=x7211) { implicit CU => 
-      val x6080 = CU.temp(None)
-      val x6078 = CU.temp(None)
-      val x6079 = CU.temp(None)
-      val x6059 = CounterChain.copy("x7211", "x6059")
-      val x6085_unit = CounterChain(name = "x6085_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.ctr(x6059(0)), Const(495)), op=FixMul, results=List(x6078, CU.scalarOut(x6065_x6082_s)))
-      Stage(operands=List(CU.ctr(x6059(0)), Const(1)), op=FixAdd, results=List(x6079, CU.scalarOut(x6067_x6083_s)))
-      Stage(operands=List(x6079, Const(495)), op=FixMul, results=List(x6080))
-      Stage(operands=List(x6080, x6078), op=FixSub, results=List(CU.scalarOut(x6069_x6084_s)))
+    val x6396_0 = Pipeline(name="x6396_0",parent=x7588) { implicit CU => 
+      val x6391 = CU.temp(None)
+      val x6389 = CU.temp(None)
+      val x6390 = CU.temp(None)
+      val x6370 = CounterChain.copy("x7588", "x6370")
+      val x6396_unit = CounterChain(name = "x6396_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.ctr(x6370(0)), Const(495)), op=FixMul, results=List(x6389, CU.scalarOut(x6376_x6393_s)))
+      Stage(operands=List(CU.ctr(x6370(0)), Const(1)), op=FixAdd, results=List(x6390, CU.scalarOut(x6378_x6394_s)))
+      Stage(operands=List(x6390, Const(495)), op=FixMul, results=List(x6391))
+      Stage(operands=List(x6391, x6389), op=FixSub, results=List(CU.scalarOut(x6380_x6395_s)))
     }
-    val x6144 = StreamController(name="x6144",parent=x7211) { implicit CU => 
-      val x6144_unit = CounterChain(name = "x6144_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6457 = StreamController(name="x6457",parent=x7588) { implicit CU => 
+      val x6457_unit = CounterChain(name = "x6457_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6115 = StreamController(name="x6115",parent=x6144) { implicit CU => 
-      val x6115_unit = CounterChain(name = "x6115_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6115_0 = Pipeline(name="x6115_0",parent=x6115) { implicit CU => 
-      val x6092 = CU.temp(None)
-      val x6093 = CU.temp(None)
-      val x6100 = CU.temp(None)
-      val x6064 = ScalarBuffer(name="x6064").wtPort(x6064_x6074_s)
-      val x6068 = ScalarBuffer(name="x6068").wtPort(x6068_x6076_s)
-      Stage(operands=List(CU.load(x6064), Const(2)), op=FixSla, results=List(x6092, CU.scalarOut(bus_1320_s)))
-      Stage(operands=List(x6092, Const(64)), op=FixMod, results=List(x6093, CU.scalarOut(bus_1322_s)))
-      Stage(operands=List(x6093, Const(4)), op=FixDiv, results=List(x6100, CU.scalarOut(bus_1324_s), CU.scalarOut(x6088_b7252_x6114_b7260_s)))
-      Stage(operands=List(x6100, CU.load(x6068)), op=FixAdd, results=List(CU.scalarOut(x6088_b7253_x6114_b7261_s)))
-      Stage(operands=List(CU.load(x6068), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1326_s)))
-    }
-    val x6115_1 = Pipeline(name="x6115_1",parent=x6115) { implicit CU => 
-      val x6103 = CU.temp(None)
-      val x6098 = CU.temp(None)
-      val x6097 = CU.temp(None)
-      val x6101 = CU.temp(None)
-      val x6099 = CU.temp(None)
-      val x6092 = ScalarFIFO(size=1,name="x6092").wtPort(bus_1320_s)
-      val x6100 = ScalarFIFO(size=1,name="x6100").wtPort(bus_1324_s)
-      val x6095 = ScalarFIFO(size=1,name="x6095").wtPort(bus_1326_s)
-      val x6068 = ScalarBuffer(name="x6068").wtPort(x6068_x6076_s)
-      Stage(operands=List(CU.load(x6092), CU.load(x6095)), op=FixAdd, results=List(x6097))
-      Stage(operands=List(x6097, Const(64)), op=FixMod, results=List(x6098))
-      Stage(operands=List(Const(64), x6098), op=FixSub, results=List(x6099, CU.scalarOut(bus_1329_s)))
-      Stage(operands=List(x6099, Const(4)), op=FixDiv, results=List(x6101))
-      Stage(operands=List(CU.load(x6068), CU.load(x6100)), op=FixAdd, results=List(x6103))
-      Stage(operands=List(x6103, x6101), op=FixAdd, results=List(CU.scalarOut(x6088_b7251_x6114_b7259_s)))
-    }
-    val x6115_2 = Pipeline(name="x6115_2",parent=x6115) { implicit CU => 
-      val x6105 = CU.temp(None)
-      val x6096 = CU.temp(None)
-      val x6092 = ScalarFIFO(size=1,name="x6092").wtPort(bus_1320_s)
-      val x6095 = ScalarFIFO(size=1,name="x6095").wtPort(bus_1326_s)
-      val x6099 = ScalarFIFO(size=1,name="x6099").wtPort(bus_1329_s)
-      val x6093 = ScalarFIFO(size=1,name="x6093").wtPort(bus_1322_s)
-      val x6108 = ScalarBuffer(name="x6108").wtPort(rowid_dram_da)
-      Stage(operands=List(CU.load(x6095), CU.load(x6093)), op=FixAdd, results=List(x6105))
-      Stage(operands=List(x6105, CU.load(x6099)), op=FixAdd, results=List(CU.scalarOut(x6087_b7250_x6112_b7258_s)))
-      Stage(operands=List(CU.load(x6092), CU.load(x6093)), op=FixSub, results=List(x6096))
-      Stage(operands=List(x6096, CU.load(x6108)), op=FixAdd, results=List(CU.scalarOut(x6087_b7249_x6112_b7257_s)))
-    }
-    val x6116 = MemoryController(name="x6116",parent=x6144,offchip=rowid_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6087_b7250 = ScalarFIFO(size=1,name="size").wtPort(x6087_b7250_x6112_b7258_s)
-      val x6087_b7249 = ScalarFIFO(size=1,name="offset").wtPort(x6087_b7249_x6112_b7257_s)
-      CU.newVout("data", x6089_x6116_data_v)
-    }
-    val x6143 = Sequential(name="x6143",parent=x6144) { implicit CU => 
-      val x6143_unit = CounterChain(name = "x6143_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6127_0 = Pipeline(name="x6127_0",parent=x6143) { implicit CU => 
-      val x6088_b7252 = ScalarFIFO(size=16,name="x6088_b7252").wtPort(x6088_b7252_x6114_b7260_s)
-      val x6088_b7251 = ScalarFIFO(size=16,name="x6088_b7251").wtPort(x6088_b7251_x6114_b7259_s)
-      val x6088_b7253 = ScalarFIFO(size=16,name="x6088_b7253").wtPort(x6088_b7253_x6114_b7261_s)
-      val x6127_unit = CounterChain(name = "x6127_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6088_b7252)), op=Bypass, results=List(CU.scalarOut(x6117_x6122_s)))
-      Stage(operands=List(CU.load(x6088_b7253)), op=Bypass, results=List(CU.scalarOut(x6118_x6124_s)))
-      Stage(operands=List(CU.load(x6088_b7251)), op=Bypass, results=List(CU.scalarOut(x6119_x6126_s)))
-    }
-    val x6142_0 = Pipeline(name="x6142_0",parent=x6143) { implicit CU => 
-      val x6118 = ScalarBuffer(name="x6118").wtPort(x6118_x6124_s)
-      val x6117 = ScalarBuffer(name="x6117").wtPort(x6117_x6122_s)
-      val x6119 = ScalarBuffer(name="x6119").wtPort(x6119_x6126_s)
-      val x6089 = VectorFIFO(size=1,name="x6089").wtPort(x6089_x6116_data_v)
-      val ctr2 = Counter(min=Const(0), max=x6119.readPort, step=Const(1), par=16) // Counter
-      val x6130 = CounterChain(name = "x6130", ctr2).iter(1)
-      Stage(operands=List(CU.load(x6117), CU.ctr(x6130(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6130(0)), CU.load(x6118)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6089)), op=Bypass, results=List(CU.scalarOut(x6060_x6141_s)))
-    }
-    val x6202 = StreamController(name="x6202",parent=x7211) { implicit CU => 
-      val x6202_unit = CounterChain(name = "x6202_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6173 = StreamController(name="x6173",parent=x6202) { implicit CU => 
-      val x6173_unit = CounterChain(name = "x6173_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6173_0 = Pipeline(name="x6173_0",parent=x6173) { implicit CU => 
-      val x6150 = CU.temp(None)
-      val x6151 = CU.temp(None)
-      val x6158 = CU.temp(None)
-      val x6069 = ScalarBuffer(name="x6069").wtPort(x6069_x6084_s)
-      val x6065 = ScalarBuffer(name="x6065").wtPort(x6065_x6082_s)
-      Stage(operands=List(CU.load(x6065), Const(2)), op=FixSla, results=List(x6150, CU.scalarOut(bus_1344_s)))
-      Stage(operands=List(x6150, Const(64)), op=FixMod, results=List(x6151, CU.scalarOut(bus_1346_s)))
-      Stage(operands=List(x6151, Const(4)), op=FixDiv, results=List(x6158, CU.scalarOut(bus_1348_s), CU.scalarOut(x6146_b7265_x6172_b7273_s)))
-      Stage(operands=List(x6158, CU.load(x6069)), op=FixAdd, results=List(CU.scalarOut(x6146_b7266_x6172_b7274_s)))
-      Stage(operands=List(CU.load(x6069), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1350_s)))
-    }
-    val x6173_1 = Pipeline(name="x6173_1",parent=x6173) { implicit CU => 
-      val x6155 = CU.temp(None)
-      val x6159 = CU.temp(None)
-      val x6157 = CU.temp(None)
-      val x6156 = CU.temp(None)
-      val x6161 = CU.temp(None)
-      val x6069 = ScalarBuffer(name="x6069").wtPort(x6069_x6084_s)
-      val x6158 = ScalarFIFO(size=1,name="x6158").wtPort(bus_1348_s)
-      val x6153 = ScalarFIFO(size=1,name="x6153").wtPort(bus_1350_s)
-      val x6150 = ScalarFIFO(size=1,name="x6150").wtPort(bus_1344_s)
-      Stage(operands=List(CU.load(x6150), CU.load(x6153)), op=FixAdd, results=List(x6155))
-      Stage(operands=List(x6155, Const(64)), op=FixMod, results=List(x6156))
-      Stage(operands=List(Const(64), x6156), op=FixSub, results=List(x6157, CU.scalarOut(bus_1353_s)))
-      Stage(operands=List(x6157, Const(4)), op=FixDiv, results=List(x6159))
-      Stage(operands=List(CU.load(x6069), CU.load(x6158)), op=FixAdd, results=List(x6161))
-      Stage(operands=List(x6161, x6159), op=FixAdd, results=List(CU.scalarOut(x6146_b7264_x6172_b7272_s)))
-    }
-    val x6173_2 = Pipeline(name="x6173_2",parent=x6173) { implicit CU => 
-      val x6163 = CU.temp(None)
-      val x6154 = CU.temp(None)
-      val x6157 = ScalarFIFO(size=1,name="x6157").wtPort(bus_1353_s)
-      val x6150 = ScalarFIFO(size=1,name="x6150").wtPort(bus_1344_s)
-      val x6151 = ScalarFIFO(size=1,name="x6151").wtPort(bus_1346_s)
-      val x6166 = ScalarBuffer(name="x6166").wtPort(rowid_dram_da)
-      val x6153 = ScalarFIFO(size=1,name="x6153").wtPort(bus_1350_s)
-      Stage(operands=List(CU.load(x6153), CU.load(x6151)), op=FixAdd, results=List(x6163))
-      Stage(operands=List(x6163, CU.load(x6157)), op=FixAdd, results=List(CU.scalarOut(x6145_b7263_x6170_b7271_s)))
-      Stage(operands=List(CU.load(x6150), CU.load(x6151)), op=FixSub, results=List(x6154))
-      Stage(operands=List(x6154, CU.load(x6166)), op=FixAdd, results=List(CU.scalarOut(x6145_b7262_x6170_b7270_s)))
-    }
-    val x6174 = MemoryController(name="x6174",parent=x6202,offchip=rowid_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6145_b7263 = ScalarFIFO(size=1,name="size").wtPort(x6145_b7263_x6170_b7271_s)
-      val x6145_b7262 = ScalarFIFO(size=1,name="offset").wtPort(x6145_b7262_x6170_b7270_s)
-      CU.newVout("data", x6147_x6174_data_v)
-    }
-    val x6201 = Sequential(name="x6201",parent=x6202) { implicit CU => 
-      val x6201_unit = CounterChain(name = "x6201_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6185_0 = Pipeline(name="x6185_0",parent=x6201) { implicit CU => 
-      val x6146_b7266 = ScalarFIFO(size=16,name="x6146_b7266").wtPort(x6146_b7266_x6172_b7274_s)
-      val x6146_b7265 = ScalarFIFO(size=16,name="x6146_b7265").wtPort(x6146_b7265_x6172_b7273_s)
-      val x6146_b7264 = ScalarFIFO(size=16,name="x6146_b7264").wtPort(x6146_b7264_x6172_b7272_s)
-      val x6185_unit = CounterChain(name = "x6185_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6146_b7265)), op=Bypass, results=List(CU.scalarOut(x6175_x6180_s)))
-      Stage(operands=List(CU.load(x6146_b7266)), op=Bypass, results=List(CU.scalarOut(x6176_x6182_s)))
-      Stage(operands=List(CU.load(x6146_b7264)), op=Bypass, results=List(CU.scalarOut(x6177_x6184_s)))
-    }
-    val x6200_0 = Pipeline(name="x6200_0",parent=x6201) { implicit CU => 
-      val x6175 = ScalarBuffer(name="x6175").wtPort(x6175_x6180_s)
-      val x6147 = VectorFIFO(size=1,name="x6147").wtPort(x6147_x6174_data_v)
-      val x6177 = ScalarBuffer(name="x6177").wtPort(x6177_x6184_s)
-      val x6176 = ScalarBuffer(name="x6176").wtPort(x6176_x6182_s)
-      val ctr3 = Counter(min=Const(0), max=x6177.readPort, step=Const(1), par=16) // Counter
-      val x6188 = CounterChain(name = "x6188", ctr3).iter(1)
-      Stage(operands=List(CU.load(x6175), CU.ctr(x6188(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6188(0)), CU.load(x6176)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6147)), op=Bypass, results=List(CU.scalarOut(x6061_x6199_s)))
-    }
-    val x6641 = MetaPipeline(name="x6641",parent=x7211) { implicit CU => 
-      val ctr4 = Counter(min=Const(0), max=Const(494), step=Const(1), par=2) // Counter
-      val x6205 = CounterChain(name = "x6205", ctr4).iter(247)
-    }
-    val x6206_dsp0 = MemoryPipeline(name="x6206_dsp0",parent="x6641") { implicit CU => 
-      val x6269 = ScalarBuffer(name="x6269").wtPort(x6269_x6275_s)
-      val x6295 = ScalarFIFO(size=1,name="x6295").wtPort(x6206_x6295_s)
-      val x6283 = CounterChain.copy("x6296_0", "x6283")
-      val x6536 = CounterChain.copy("x6550_0", "x6536")
-      val x6206 = SRAM(size=494,name="x6206",banking = Strided(1)).wtPort(x6295.readPort).rdPort(x6206_0_s).rdAddr(x6536(0))
-      WAStage(operands=List(CU.ctr(x6283(0)), CU.load(x6269)), op=FixSub, results=List(x6206.writeAddr))
-    }
-    val x6207_dsp0 = MemoryPipeline(name="x6207_dsp0",parent="x6641") { implicit CU => 
-      val x6399 = ScalarBuffer(name="x6399").wtPort(x6399_x6405_s)
-      val x6425 = ScalarFIFO(size=1,name="x6425").wtPort(x6207_x6425_s)
-      val x6413 = CounterChain.copy("x6426_0", "x6413")
-      val x6569 = CounterChain.copy("x6583_0", "x6569")
-      val x6207 = SRAM(size=494,name="x6207",banking = Strided(1)).wtPort(x6425.readPort).rdPort(x6207_0_s).rdAddr(x6569(0))
-      WAStage(operands=List(CU.ctr(x6413(0)), CU.load(x6399)), op=FixSub, results=List(x6207.writeAddr))
-    }
-    val x6208_dsp0 = MemoryPipeline(name="x6208_dsp0",parent="x6641") { implicit CU => 
-      val x6330 = ScalarBuffer(name="x6330").wtPort(x6330_x6336_s)
-      val x6356 = ScalarFIFO(size=1,name="x6356").wtPort(x6208_x6356_s)
-      val x6344 = CounterChain.copy("x6357_0", "x6344")
-      val x6603 = CounterChain.copy("x6615_0", "x6603")
-      val x6208 = SRAM(size=494,name="x6208",banking = Strided(1)).wtPort(x6356.readPort).rdPort(x6208_0_s).rdAddr(x6603(0))
-      WAStage(operands=List(CU.ctr(x6344(0)), CU.load(x6330)), op=FixSub, results=List(x6208.writeAddr))
-    }
-    val x6209_dsp0 = MemoryPipeline(name="x6209_dsp0",parent="x6641") { implicit CU => 
-      val x6486 = ScalarFIFO(size=1,name="x6486").wtPort(x6209_x6486_s)
-      val x6460 = ScalarBuffer(name="x6460").wtPort(x6460_x6466_s)
-      val x6474 = CounterChain.copy("x6487_0", "x6474")
-      val x6618 = CounterChain.copy("x6630_0", "x6618")
-      val x6209 = SRAM(size=494,name="x6209",banking = Strided(1)).wtPort(x6486.readPort).rdPort(x6209_0_s).rdAddr(x6618(0))
-      WAStage(operands=List(CU.ctr(x6474(0)), CU.load(x6460)), op=FixSub, results=List(x6209.writeAddr))
-    }
-    val x6210_dsp0 = MemoryPipeline(name="x6210_dsp0",parent="x6641") { implicit CU => 
-      val x6562 = ScalarFIFO(size=1,name="x6562").wtPort(x6210_x6562_s)
-      val x6554 = CounterChain.copy("x6563_0", "x6554")
-      val x6603 = CounterChain.copy("x6615_0", "x6603")
-      val x6210 = SRAM(size=494,name="x6210",banking = Strided(1)).wtPort(x6562.readPort).rdPort(x6210_0_s).rdAddr(x6603(0)).wtAddr(x6554(0))
-    }
-    val x6211_dsp0 = MemoryPipeline(name="x6211_dsp0",parent="x6641") { implicit CU => 
-      val x6595 = ScalarFIFO(size=1,name="x6595").wtPort(x6211_x6595_s)
-      val x6587 = CounterChain.copy("x6596_0", "x6587")
-      val x6618 = CounterChain.copy("x6630_0", "x6618")
-      val x6211 = SRAM(size=494,name="x6211",banking = Strided(1)).wtPort(x6595.readPort).rdPort(x6211_0_s).rdAddr(x6618(0)).wtAddr(x6587(0))
-    }
-    val x6222_0 = Pipeline(name="x6222_0",parent=x6641) { implicit CU => 
-      val x6219 = ScalarFIFO(size=1,name="x6219").wtPort(x6060_0_s)
-      val x6217 = ScalarFIFO(size=1,name="x6217").wtPort(x6060_1_s)
-      val x6222_unit = CounterChain(name = "x6222_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6217)), op=Bypass, results=List(CU.scalarOut(x6212_x6220_s)))
-      Stage(operands=List(CU.load(x6219)), op=Bypass, results=List(CU.scalarOut(x6214_x6221_s)))
-    }
-    val x6229_0 = Pipeline(name="x6229_0",parent=x6641) { implicit CU => 
-      val x6224 = ScalarFIFO(size=1,name="x6224").wtPort(x6060_1_s)
-      val x6226 = ScalarFIFO(size=1,name="x6226").wtPort(x6060_0_s)
-      val x6229_unit = CounterChain(name = "x6229_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6224)), op=Bypass, results=List(CU.scalarOut(x6213_x6227_s)))
-      Stage(operands=List(CU.load(x6226)), op=Bypass, results=List(CU.scalarOut(x6215_x6228_s)))
-    }
-    val x6237_0 = Pipeline(name="x6237_0",parent=x6641) { implicit CU => 
-      val x6214 = ScalarBuffer(name="x6214").wtPort(x6214_x6221_s)
-      val x6212 = ScalarBuffer(name="x6212").wtPort(x6212_x6220_s)
-      val x6237_unit = CounterChain(name = "x6237_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6214), CU.load(x6212)), op=FixSub, results=List(CU.scalarOut(x6231_x6236_s)))
-    }
-    val x6298 = StreamController(name="x6298",parent=x6641) { implicit CU => 
-      val x6298_unit = CounterChain(name = "x6298_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6267 = StreamController(name="x6267",parent=x6298) { implicit CU => 
-      val x6267_unit = CounterChain(name = "x6267_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6267_0 = Pipeline(name="x6267_0",parent=x6267) { implicit CU => 
-      val x6244 = CU.temp(None)
-      val x6243 = CU.temp(None)
-      val x6251 = CU.temp(None)
-      val x6231 = ScalarBuffer(name="x6231").wtPort(x6231_x6236_s)
-      val x6212 = ScalarBuffer(name="x6212").wtPort(x6212_x6220_s)
-      Stage(operands=List(CU.load(x6212), Const(2)), op=FixSla, results=List(x6243, CU.scalarOut(bus_1392_s)))
-      Stage(operands=List(x6243, Const(64)), op=FixMod, results=List(x6244, CU.scalarOut(bus_1394_s)))
-      Stage(operands=List(x6244, Const(4)), op=FixDiv, results=List(x6251, CU.scalarOut(bus_1396_s), CU.scalarOut(x6239_b7278_x6266_b7286_s)))
-      Stage(operands=List(x6251, CU.load(x6231)), op=FixAdd, results=List(CU.scalarOut(x6239_b7279_x6266_b7287_s)))
-      Stage(operands=List(CU.load(x6231), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1398_s)))
-    }
-    val x6267_1 = Pipeline(name="x6267_1",parent=x6267) { implicit CU => 
-      val x6249 = CU.temp(None)
-      val x6252 = CU.temp(None)
-      val x6250 = CU.temp(None)
-      val x6254 = CU.temp(None)
-      val x6248 = CU.temp(None)
-      val x6243 = ScalarFIFO(size=1,name="x6243").wtPort(bus_1392_s)
-      val x6231 = ScalarBuffer(name="x6231").wtPort(x6231_x6236_s)
-      val x6246 = ScalarFIFO(size=1,name="x6246").wtPort(bus_1398_s)
-      val x6251 = ScalarFIFO(size=1,name="x6251").wtPort(bus_1396_s)
-      Stage(operands=List(CU.load(x6243), CU.load(x6246)), op=FixAdd, results=List(x6248))
-      Stage(operands=List(x6248, Const(64)), op=FixMod, results=List(x6249))
-      Stage(operands=List(Const(64), x6249), op=FixSub, results=List(x6250, CU.scalarOut(bus_1401_s)))
-      Stage(operands=List(x6250, Const(4)), op=FixDiv, results=List(x6252))
-      Stage(operands=List(CU.load(x6231), CU.load(x6251)), op=FixAdd, results=List(x6254))
-      Stage(operands=List(x6254, x6252), op=FixAdd, results=List(CU.scalarOut(x6239_b7277_x6266_b7285_s)))
-    }
-    val x6267_2 = Pipeline(name="x6267_2",parent=x6267) { implicit CU => 
-      val x6256 = CU.temp(None)
-      val x6247 = CU.temp(None)
-      val x6259 = ScalarBuffer(name="x6259").wtPort(cols_dram_da)
-      val x6246 = ScalarFIFO(size=1,name="x6246").wtPort(bus_1398_s)
-      val x6244 = ScalarFIFO(size=1,name="x6244").wtPort(bus_1394_s)
-      val x6243 = ScalarFIFO(size=1,name="x6243").wtPort(bus_1392_s)
-      val x6250 = ScalarFIFO(size=1,name="x6250").wtPort(bus_1401_s)
-      Stage(operands=List(CU.load(x6246), CU.load(x6244)), op=FixAdd, results=List(x6256))
-      Stage(operands=List(x6256, CU.load(x6250)), op=FixAdd, results=List(CU.scalarOut(x6238_b7276_x6264_b7284_s)))
-      Stage(operands=List(CU.load(x6243), CU.load(x6244)), op=FixSub, results=List(x6247))
-      Stage(operands=List(x6247, CU.load(x6259)), op=FixAdd, results=List(CU.scalarOut(x6238_b7275_x6264_b7283_s)))
-    }
-    val x6268 = MemoryController(name="x6268",parent=x6298,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6238_b7275 = ScalarFIFO(size=1,name="offset").wtPort(x6238_b7275_x6264_b7283_s)
-      val x6238_b7276 = ScalarFIFO(size=1,name="size").wtPort(x6238_b7276_x6264_b7284_s)
-      CU.newVout("data", x6240_x6268_data_v)
-    }
-    val x6297 = Sequential(name="x6297",parent=x6298) { implicit CU => 
-      val x6297_unit = CounterChain(name = "x6297_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6280_0 = Pipeline(name="x6280_0",parent=x6297) { implicit CU => 
-      val x6239_b7278 = ScalarFIFO(size=16,name="x6239_b7278").wtPort(x6239_b7278_x6266_b7286_s)
-      val x6239_b7277 = ScalarFIFO(size=16,name="x6239_b7277").wtPort(x6239_b7277_x6266_b7285_s)
-      val x6239_b7279 = ScalarFIFO(size=16,name="x6239_b7279").wtPort(x6239_b7279_x6266_b7287_s)
-      val x6280_unit = CounterChain(name = "x6280_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6239_b7278)), op=Bypass, results=List(CU.scalarOut(x6269_x6275_s)))
-      Stage(operands=List(CU.load(x6239_b7279)), op=Bypass, results=List(CU.scalarOut(x6270_x6277_s)))
-      Stage(operands=List(CU.load(x6239_b7277)), op=Bypass, results=List(CU.scalarOut(x6271_x6279_s)))
-    }
-    val x6296_0 = Pipeline(name="x6296_0",parent=x6297) { implicit CU => 
-      val x6240 = VectorFIFO(size=1,name="x6240").wtPort(x6240_x6268_data_v)
-      val x6270 = ScalarBuffer(name="x6270").wtPort(x6270_x6277_s)
-      val x6269 = ScalarBuffer(name="x6269").wtPort(x6269_x6275_s)
-      val x6271 = ScalarBuffer(name="x6271").wtPort(x6271_x6279_s)
-      val ctr5 = Counter(min=Const(0), max=x6271.readPort, step=Const(1), par=16) // Counter
-      val x6283 = CounterChain(name = "x6283", ctr5).iter(1)
-      Stage(operands=List(CU.load(x6269), CU.ctr(x6283(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6283(0)), CU.load(x6270)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6240)), op=Bypass, results=List(CU.scalarOut(x6206_x6295_s)))
-    }
-    val x6359 = StreamController(name="x6359",parent=x6641) { implicit CU => 
-      val x6359_unit = CounterChain(name = "x6359_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6328 = StreamController(name="x6328",parent=x6359) { implicit CU => 
-      val x6328_unit = CounterChain(name = "x6328_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6328_0 = Pipeline(name="x6328_0",parent=x6328) { implicit CU => 
-      val x6304 = CU.temp(None)
-      val x6312 = CU.temp(None)
-      val x6305 = CU.temp(None)
-      val x6231 = ScalarBuffer(name="x6231").wtPort(x6231_x6236_s)
-      val x6212 = ScalarBuffer(name="x6212").wtPort(x6212_x6220_s)
-      Stage(operands=List(CU.load(x6212), Const(2)), op=FixSla, results=List(x6304, CU.scalarOut(bus_1419_s)))
-      Stage(operands=List(x6304, Const(64)), op=FixMod, results=List(x6305, CU.scalarOut(bus_1421_s)))
-      Stage(operands=List(x6305, Const(4)), op=FixDiv, results=List(x6312, CU.scalarOut(bus_1423_s), CU.scalarOut(x6300_b7291_x6327_b7299_s)))
-      Stage(operands=List(x6312, CU.load(x6231)), op=FixAdd, results=List(CU.scalarOut(x6300_b7292_x6327_b7300_s)))
-      Stage(operands=List(CU.load(x6231), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1425_s)))
-    }
-    val x6328_1 = Pipeline(name="x6328_1",parent=x6328) { implicit CU => 
-      val x6313 = CU.temp(None)
-      val x6311 = CU.temp(None)
-      val x6310 = CU.temp(None)
-      val x6315 = CU.temp(None)
-      val x6309 = CU.temp(None)
-      val x6307 = ScalarFIFO(size=1,name="x6307").wtPort(bus_1425_s)
-      val x6231 = ScalarBuffer(name="x6231").wtPort(x6231_x6236_s)
-      val x6312 = ScalarFIFO(size=1,name="x6312").wtPort(bus_1423_s)
-      val x6304 = ScalarFIFO(size=1,name="x6304").wtPort(bus_1419_s)
-      Stage(operands=List(CU.load(x6304), CU.load(x6307)), op=FixAdd, results=List(x6309))
-      Stage(operands=List(x6309, Const(64)), op=FixMod, results=List(x6310))
-      Stage(operands=List(Const(64), x6310), op=FixSub, results=List(x6311, CU.scalarOut(bus_1428_s)))
-      Stage(operands=List(x6311, Const(4)), op=FixDiv, results=List(x6313))
-      Stage(operands=List(CU.load(x6231), CU.load(x6312)), op=FixAdd, results=List(x6315))
-      Stage(operands=List(x6315, x6313), op=FixAdd, results=List(CU.scalarOut(x6300_b7290_x6327_b7298_s)))
-    }
-    val x6328_2 = Pipeline(name="x6328_2",parent=x6328) { implicit CU => 
-      val x6317 = CU.temp(None)
-      val x6308 = CU.temp(None)
-      val x6307 = ScalarFIFO(size=1,name="x6307").wtPort(bus_1425_s)
-      val x6320 = ScalarBuffer(name="x6320").wtPort(values_dram_da)
-      val x6304 = ScalarFIFO(size=1,name="x6304").wtPort(bus_1419_s)
-      val x6305 = ScalarFIFO(size=1,name="x6305").wtPort(bus_1421_s)
-      val x6311 = ScalarFIFO(size=1,name="x6311").wtPort(bus_1428_s)
-      Stage(operands=List(CU.load(x6307), CU.load(x6305)), op=FixAdd, results=List(x6317))
-      Stage(operands=List(x6317, CU.load(x6311)), op=FixAdd, results=List(CU.scalarOut(x6299_b7289_x6325_b7297_s)))
-      Stage(operands=List(CU.load(x6304), CU.load(x6305)), op=FixSub, results=List(x6308))
-      Stage(operands=List(x6308, CU.load(x6320)), op=FixAdd, results=List(CU.scalarOut(x6299_b7288_x6325_b7296_s)))
-    }
-    val x6329 = MemoryController(name="x6329",parent=x6359,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6299_b7289 = ScalarFIFO(size=1,name="size").wtPort(x6299_b7289_x6325_b7297_s)
-      val x6299_b7288 = ScalarFIFO(size=1,name="offset").wtPort(x6299_b7288_x6325_b7296_s)
-      CU.newVout("data", x6301_x6329_data_v)
-    }
-    val x6358 = Sequential(name="x6358",parent=x6359) { implicit CU => 
-      val x6358_unit = CounterChain(name = "x6358_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6341_0 = Pipeline(name="x6341_0",parent=x6358) { implicit CU => 
-      val x6300_b7290 = ScalarFIFO(size=16,name="x6300_b7290").wtPort(x6300_b7290_x6327_b7298_s)
-      val x6300_b7292 = ScalarFIFO(size=16,name="x6300_b7292").wtPort(x6300_b7292_x6327_b7300_s)
-      val x6300_b7291 = ScalarFIFO(size=16,name="x6300_b7291").wtPort(x6300_b7291_x6327_b7299_s)
-      val x6341_unit = CounterChain(name = "x6341_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6300_b7291)), op=Bypass, results=List(CU.scalarOut(x6330_x6336_s)))
-      Stage(operands=List(CU.load(x6300_b7292)), op=Bypass, results=List(CU.scalarOut(x6331_x6338_s)))
-      Stage(operands=List(CU.load(x6300_b7290)), op=Bypass, results=List(CU.scalarOut(x6332_x6340_s)))
-    }
-    val x6357_0 = Pipeline(name="x6357_0",parent=x6358) { implicit CU => 
-      val x6301 = VectorFIFO(size=1,name="x6301").wtPort(x6301_x6329_data_v)
-      val x6330 = ScalarBuffer(name="x6330").wtPort(x6330_x6336_s)
-      val x6332 = ScalarBuffer(name="x6332").wtPort(x6332_x6340_s)
-      val x6331 = ScalarBuffer(name="x6331").wtPort(x6331_x6338_s)
-      val ctr6 = Counter(min=Const(0), max=x6332.readPort, step=Const(1), par=16) // Counter
-      val x6344 = CounterChain(name = "x6344", ctr6).iter(1)
-      Stage(operands=List(CU.load(x6330), CU.ctr(x6344(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6344(0)), CU.load(x6331)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6301)), op=Bypass, results=List(CU.scalarOut(x6208_x6356_s)))
-    }
-    val x6367_0 = Pipeline(name="x6367_0",parent=x6641) { implicit CU => 
-      val x6213 = ScalarBuffer(name="x6213").wtPort(x6213_x6227_s)
-      val x6215 = ScalarBuffer(name="x6215").wtPort(x6215_x6228_s)
-      val x6367_unit = CounterChain(name = "x6367_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6215), CU.load(x6213)), op=FixSub, results=List(CU.scalarOut(x6361_x6366_s)))
-    }
-    val x6428 = StreamController(name="x6428",parent=x6641) { implicit CU => 
+    val x6428 = StreamController(name="x6428",parent=x6457) { implicit CU => 
       val x6428_unit = CounterChain(name = "x6428_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6397 = StreamController(name="x6397",parent=x6428) { implicit CU => 
-      val x6397_unit = CounterChain(name = "x6397_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6428_0 = Pipeline(name="x6428_0",parent=x6428) { implicit CU => 
+      val x6404 = CU.temp(None)
+      val x6403 = CU.temp(None)
+      val x6426_x6413 = CU.temp(None)
+      val x6375 = ScalarBuffer(name="x6375").wtPort(x6375_x6385_s)
+      val x6379 = ScalarBuffer(name="x6379").wtPort(x6379_x6387_s)
+      Stage(operands=List(CU.load(x6375), Const(2)), op=FixSla, results=List(x6403, CU.scalarOut(bus_1360_s)))
+      Stage(operands=List(x6403, Const(64)), op=FixMod, results=List(x6404, CU.scalarOut(bus_1362_s)))
+      Stage(operands=List(x6404, Const(2)), op=FixSra, results=List(x6426_x6413, CU.scalarOut(bus_1363_s), CU.scalarOut(x6399_b7629_x6427_b7637_s)))
+      Stage(operands=List(x6426_x6413, CU.load(x6379)), op=FixAdd, results=List(CU.scalarOut(x6399_b7630_x6427_b7638_s)))
+      Stage(operands=List(CU.load(x6379), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1365_s)))
     }
-    val x6397_0 = Pipeline(name="x6397_0",parent=x6397) { implicit CU => 
-      val x6373 = CU.temp(None)
-      val x6381 = CU.temp(None)
-      val x6374 = CU.temp(None)
-      val x6213 = ScalarBuffer(name="x6213").wtPort(x6213_x6227_s)
-      val x6361 = ScalarBuffer(name="x6361").wtPort(x6361_x6366_s)
-      Stage(operands=List(CU.load(x6213), Const(2)), op=FixSla, results=List(x6373, CU.scalarOut(bus_1448_s)))
-      Stage(operands=List(x6373, Const(64)), op=FixMod, results=List(x6374, CU.scalarOut(bus_1450_s)))
-      Stage(operands=List(x6374, Const(4)), op=FixDiv, results=List(x6381, CU.scalarOut(bus_1452_s), CU.scalarOut(x6369_b7304_x6396_b7312_s)))
-      Stage(operands=List(x6381, CU.load(x6361)), op=FixAdd, results=List(CU.scalarOut(x6369_b7305_x6396_b7313_s)))
-      Stage(operands=List(CU.load(x6361), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1454_s)))
+    val x6428_1 = Pipeline(name="x6428_1",parent=x6428) { implicit CU => 
+      val x6411 = CU.temp(None)
+      val x6409 = CU.temp(None)
+      val x6408 = CU.temp(None)
+      val x6412 = CU.temp(None)
+      val x6410 = CU.temp(None)
+      val x6406 = ScalarFIFO(size=1,name="x6406").wtPort(bus_1365_s)
+      val x6403 = ScalarFIFO(size=1,name="x6403").wtPort(bus_1360_s)
+      Stage(operands=List(CU.load(x6403), CU.load(x6406)), op=FixAdd, results=List(x6408))
+      Stage(operands=List(x6408, Const(64)), op=FixMod, results=List(x6409))
+      Stage(operands=List(x6409, Const(0)), op=FixEql, results=List(x6410))
+      Stage(operands=List(Const(64), x6409), op=FixSub, results=List(x6411))
+      Stage(operands=List(x6410, Const(0), x6411), op=Mux, results=List(x6412, CU.scalarOut(bus_1371_s)))
+      Stage(operands=List(x6412, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1372_s)))
     }
-    val x6397_1 = Pipeline(name="x6397_1",parent=x6397) { implicit CU => 
-      val x6379 = CU.temp(None)
-      val x6378 = CU.temp(None)
-      val x6384 = CU.temp(None)
-      val x6380 = CU.temp(None)
-      val x6382 = CU.temp(None)
-      val x6376 = ScalarFIFO(size=1,name="x6376").wtPort(bus_1454_s)
-      val x6373 = ScalarFIFO(size=1,name="x6373").wtPort(bus_1448_s)
-      val x6381 = ScalarFIFO(size=1,name="x6381").wtPort(bus_1452_s)
-      val x6361 = ScalarBuffer(name="x6361").wtPort(x6361_x6366_s)
-      Stage(operands=List(CU.load(x6373), CU.load(x6376)), op=FixAdd, results=List(x6378))
-      Stage(operands=List(x6378, Const(64)), op=FixMod, results=List(x6379))
-      Stage(operands=List(Const(64), x6379), op=FixSub, results=List(x6380, CU.scalarOut(bus_1457_s)))
-      Stage(operands=List(x6380, Const(4)), op=FixDiv, results=List(x6382))
-      Stage(operands=List(CU.load(x6361), CU.load(x6381)), op=FixAdd, results=List(x6384))
-      Stage(operands=List(x6384, x6382), op=FixAdd, results=List(CU.scalarOut(x6369_b7303_x6396_b7311_s)))
+    val x6428_2 = Pipeline(name="x6428_2",parent=x6428) { implicit CU => 
+      val x6418 = CU.temp(None)
+      val x6416 = CU.temp(None)
+      val x6404 = ScalarFIFO(size=1,name="x6404").wtPort(bus_1362_s)
+      val x6412 = ScalarFIFO(size=1,name="x6412").wtPort(bus_1371_s)
+      val x6406 = ScalarFIFO(size=1,name="x6406").wtPort(bus_1365_s)
+      val x6403 = ScalarFIFO(size=1,name="x6403").wtPort(bus_1360_s)
+      val x6379 = ScalarBuffer(name="x6379").wtPort(x6379_x6387_s)
+      val x6414 = ScalarFIFO(size=1,name="x6414").wtPort(bus_1372_s)
+      val x6413 = ScalarFIFO(size=1,name="x6413").wtPort(bus_1363_s)
+      Stage(operands=List(CU.load(x6379), CU.load(x6413)), op=FixAdd, results=List(x6416))
+      Stage(operands=List(x6416, CU.load(x6414)), op=FixAdd, results=List(CU.scalarOut(x6399_b7628_x6427_b7636_s)))
+      Stage(operands=List(CU.load(x6406), CU.load(x6404)), op=FixAdd, results=List(x6418))
+      Stage(operands=List(x6418, CU.load(x6412)), op=FixAdd, results=List(CU.scalarOut(x6398_b7627_x6425_b7635_s)))
+      Stage(operands=List(CU.load(x6403), CU.load(x6404)), op=FixSub, results=List(CU.scalarOut(bus_1377_s)))
     }
-    val x6397_2 = Pipeline(name="x6397_2",parent=x6397) { implicit CU => 
-      val x6386 = CU.temp(None)
-      val x6377 = CU.temp(None)
-      val x6380 = ScalarFIFO(size=1,name="x6380").wtPort(bus_1457_s)
-      val x6389 = ScalarBuffer(name="x6389").wtPort(cols_dram_da)
-      val x6374 = ScalarFIFO(size=1,name="x6374").wtPort(bus_1450_s)
-      val x6373 = ScalarFIFO(size=1,name="x6373").wtPort(bus_1448_s)
-      val x6376 = ScalarFIFO(size=1,name="x6376").wtPort(bus_1454_s)
-      Stage(operands=List(CU.load(x6376), CU.load(x6374)), op=FixAdd, results=List(x6386))
-      Stage(operands=List(x6386, CU.load(x6380)), op=FixAdd, results=List(CU.scalarOut(x6368_b7302_x6394_b7310_s)))
-      Stage(operands=List(CU.load(x6373), CU.load(x6374)), op=FixSub, results=List(x6377))
-      Stage(operands=List(x6377, CU.load(x6389)), op=FixAdd, results=List(CU.scalarOut(x6368_b7301_x6394_b7309_s)))
+    val x6428_3 = Pipeline(name="x6428_3",parent=x6428) { implicit CU => 
+      val x6407 = ScalarFIFO(size=1,name="x6407").wtPort(bus_1377_s)
+      val x6421 = ScalarBuffer(name="x6421").wtPort(rowid_dram_da)
+      Stage(operands=List(CU.load(x6407), CU.load(x6421)), op=FixAdd, results=List(CU.scalarOut(x6398_b7626_x6425_b7634_s)))
     }
-    val x6398 = MemoryController(name="x6398",parent=x6428,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6368_b7302 = ScalarFIFO(size=1,name="size").wtPort(x6368_b7302_x6394_b7310_s)
-      val x6368_b7301 = ScalarFIFO(size=1,name="offset").wtPort(x6368_b7301_x6394_b7309_s)
-      CU.newVout("data", x6370_x6398_data_v)
+    val x6429 = MemoryController(name="x6429",parent=x6457,offchip=rowid_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6398_b7627 = ScalarFIFO(size=1,name="size").wtPort(x6398_b7627_x6425_b7635_s)
+      val x6398_b7626 = ScalarFIFO(size=1,name="offset").wtPort(x6398_b7626_x6425_b7634_s)
+      CU.newSout("data", x6400_x6429_data_s)
     }
-    val x6427 = Sequential(name="x6427",parent=x6428) { implicit CU => 
-      val x6427_unit = CounterChain(name = "x6427_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6456 = Sequential(name="x6456",parent=x6457) { implicit CU => 
+      val x6456_unit = CounterChain(name = "x6456_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6410_0 = Pipeline(name="x6410_0",parent=x6427) { implicit CU => 
-      val x6369_b7305 = ScalarFIFO(size=16,name="x6369_b7305").wtPort(x6369_b7305_x6396_b7313_s)
-      val x6369_b7304 = ScalarFIFO(size=16,name="x6369_b7304").wtPort(x6369_b7304_x6396_b7312_s)
-      val x6369_b7303 = ScalarFIFO(size=16,name="x6369_b7303").wtPort(x6369_b7303_x6396_b7311_s)
-      val x6410_unit = CounterChain(name = "x6410_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6369_b7304)), op=Bypass, results=List(CU.scalarOut(x6399_x6405_s)))
-      Stage(operands=List(CU.load(x6369_b7305)), op=Bypass, results=List(CU.scalarOut(x6400_x6407_s)))
-      Stage(operands=List(CU.load(x6369_b7303)), op=Bypass, results=List(CU.scalarOut(x6401_x6409_s)))
+    val x6455_0 = Pipeline(name="x6455_0",parent=x6456) { implicit CU => 
+      val x6432 = ScalarBuffer(name="x6432").wtPort(x6399_b7628_x6427_b7636_s)
+      val x6431 = ScalarBuffer(name="x6431").wtPort(x6399_b7630_x6427_b7638_s)
+      val x6430 = ScalarBuffer(name="x6430").wtPort(x6399_b7629_x6427_b7637_s)
+      val ctr2 = Counter(min=Const(0), max=x6432.readPort, step=Const(1), par=16) // Counter
+      val x6443 = CounterChain(name = "x6443", ctr2).iter(1)
+      Stage(operands=List(CU.load(x6430), CU.ctr(x6443(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6443(0)), CU.load(x6431)), op=FixLt, results=List())
     }
-    val x6426_0 = Pipeline(name="x6426_0",parent=x6427) { implicit CU => 
-      val x6399 = ScalarBuffer(name="x6399").wtPort(x6399_x6405_s)
-      val x6401 = ScalarBuffer(name="x6401").wtPort(x6401_x6409_s)
-      val x6400 = ScalarBuffer(name="x6400").wtPort(x6400_x6407_s)
-      val x6370 = VectorFIFO(size=1,name="x6370").wtPort(x6370_x6398_data_v)
-      val ctr7 = Counter(min=Const(0), max=x6401.readPort, step=Const(1), par=16) // Counter
-      val x6413 = CounterChain(name = "x6413", ctr7).iter(1)
-      Stage(operands=List(CU.load(x6399), CU.ctr(x6413(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6413(0)), CU.load(x6400)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6370)), op=Bypass, results=List(CU.scalarOut(x6207_x6425_s)))
+    val x6517 = StreamController(name="x6517",parent=x7588) { implicit CU => 
+      val x6517_unit = CounterChain(name = "x6517_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6489 = StreamController(name="x6489",parent=x6641) { implicit CU => 
-      val x6489_unit = CounterChain(name = "x6489_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6458 = StreamController(name="x6458",parent=x6489) { implicit CU => 
-      val x6458_unit = CounterChain(name = "x6458_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6458_0 = Pipeline(name="x6458_0",parent=x6458) { implicit CU => 
-      val x6434 = CU.temp(None)
-      val x6442 = CU.temp(None)
-      val x6435 = CU.temp(None)
-      val x6213 = ScalarBuffer(name="x6213").wtPort(x6213_x6227_s)
-      val x6361 = ScalarBuffer(name="x6361").wtPort(x6361_x6366_s)
-      Stage(operands=List(CU.load(x6213), Const(2)), op=FixSla, results=List(x6434, CU.scalarOut(bus_1475_s)))
-      Stage(operands=List(x6434, Const(64)), op=FixMod, results=List(x6435, CU.scalarOut(bus_1477_s)))
-      Stage(operands=List(x6435, Const(4)), op=FixDiv, results=List(x6442, CU.scalarOut(bus_1479_s), CU.scalarOut(x6430_b7317_x6457_b7325_s)))
-      Stage(operands=List(x6442, CU.load(x6361)), op=FixAdd, results=List(CU.scalarOut(x6430_b7318_x6457_b7326_s)))
-      Stage(operands=List(CU.load(x6361), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1481_s)))
-    }
-    val x6458_1 = Pipeline(name="x6458_1",parent=x6458) { implicit CU => 
-      val x6440 = CU.temp(None)
-      val x6441 = CU.temp(None)
-      val x6443 = CU.temp(None)
-      val x6439 = CU.temp(None)
-      val x6445 = CU.temp(None)
-      val x6442 = ScalarFIFO(size=1,name="x6442").wtPort(bus_1479_s)
-      val x6434 = ScalarFIFO(size=1,name="x6434").wtPort(bus_1475_s)
-      val x6437 = ScalarFIFO(size=1,name="x6437").wtPort(bus_1481_s)
-      val x6361 = ScalarBuffer(name="x6361").wtPort(x6361_x6366_s)
-      Stage(operands=List(CU.load(x6434), CU.load(x6437)), op=FixAdd, results=List(x6439))
-      Stage(operands=List(x6439, Const(64)), op=FixMod, results=List(x6440))
-      Stage(operands=List(Const(64), x6440), op=FixSub, results=List(x6441, CU.scalarOut(bus_1484_s)))
-      Stage(operands=List(x6441, Const(4)), op=FixDiv, results=List(x6443))
-      Stage(operands=List(CU.load(x6361), CU.load(x6442)), op=FixAdd, results=List(x6445))
-      Stage(operands=List(x6445, x6443), op=FixAdd, results=List(CU.scalarOut(x6430_b7316_x6457_b7324_s)))
-    }
-    val x6458_2 = Pipeline(name="x6458_2",parent=x6458) { implicit CU => 
-      val x6447 = CU.temp(None)
-      val x6438 = CU.temp(None)
-      val x6435 = ScalarFIFO(size=1,name="x6435").wtPort(bus_1477_s)
-      val x6437 = ScalarFIFO(size=1,name="x6437").wtPort(bus_1481_s)
-      val x6441 = ScalarFIFO(size=1,name="x6441").wtPort(bus_1484_s)
-      val x6450 = ScalarBuffer(name="x6450").wtPort(values_dram_da)
-      val x6434 = ScalarFIFO(size=1,name="x6434").wtPort(bus_1475_s)
-      Stage(operands=List(CU.load(x6437), CU.load(x6435)), op=FixAdd, results=List(x6447))
-      Stage(operands=List(x6447, CU.load(x6441)), op=FixAdd, results=List(CU.scalarOut(x6429_b7315_x6455_b7323_s)))
-      Stage(operands=List(CU.load(x6434), CU.load(x6435)), op=FixSub, results=List(x6438))
-      Stage(operands=List(x6438, CU.load(x6450)), op=FixAdd, results=List(CU.scalarOut(x6429_b7314_x6455_b7322_s)))
-    }
-    val x6459 = MemoryController(name="x6459",parent=x6489,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6429_b7314 = ScalarFIFO(size=1,name="offset").wtPort(x6429_b7314_x6455_b7322_s)
-      val x6429_b7315 = ScalarFIFO(size=1,name="size").wtPort(x6429_b7315_x6455_b7323_s)
-      CU.newVout("data", x6431_x6459_data_v)
-    }
-    val x6488 = Sequential(name="x6488",parent=x6489) { implicit CU => 
+    val x6488 = StreamController(name="x6488",parent=x6517) { implicit CU => 
       val x6488_unit = CounterChain(name = "x6488_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6471_0 = Pipeline(name="x6471_0",parent=x6488) { implicit CU => 
-      val x6430_b7317 = ScalarFIFO(size=16,name="x6430_b7317").wtPort(x6430_b7317_x6457_b7325_s)
-      val x6430_b7316 = ScalarFIFO(size=16,name="x6430_b7316").wtPort(x6430_b7316_x6457_b7324_s)
-      val x6430_b7318 = ScalarFIFO(size=16,name="x6430_b7318").wtPort(x6430_b7318_x6457_b7326_s)
-      val x6471_unit = CounterChain(name = "x6471_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6430_b7317)), op=Bypass, results=List(CU.scalarOut(x6460_x6466_s)))
-      Stage(operands=List(CU.load(x6430_b7318)), op=Bypass, results=List(CU.scalarOut(x6461_x6468_s)))
-      Stage(operands=List(CU.load(x6430_b7316)), op=Bypass, results=List(CU.scalarOut(x6462_x6470_s)))
+    val x6488_0 = Pipeline(name="x6488_0",parent=x6488) { implicit CU => 
+      val x6486_x6473 = CU.temp(None)
+      val x6464 = CU.temp(None)
+      val x6463 = CU.temp(None)
+      val x6380 = ScalarBuffer(name="x6380").wtPort(x6380_x6395_s)
+      val x6376 = ScalarBuffer(name="x6376").wtPort(x6376_x6393_s)
+      Stage(operands=List(CU.load(x6376), Const(2)), op=FixSla, results=List(x6463, CU.scalarOut(bus_1386_s)))
+      Stage(operands=List(x6463, Const(64)), op=FixMod, results=List(x6464, CU.scalarOut(bus_1388_s)))
+      Stage(operands=List(x6464, Const(2)), op=FixSra, results=List(x6486_x6473, CU.scalarOut(bus_1389_s), CU.scalarOut(x6459_b7642_x6487_b7650_s)))
+      Stage(operands=List(x6486_x6473, CU.load(x6380)), op=FixAdd, results=List(CU.scalarOut(x6459_b7643_x6487_b7651_s)))
+      Stage(operands=List(CU.load(x6380), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1391_s)))
     }
-    val x6487_0 = Pipeline(name="x6487_0",parent=x6488) { implicit CU => 
-      val x6462 = ScalarBuffer(name="x6462").wtPort(x6462_x6470_s)
-      val x6461 = ScalarBuffer(name="x6461").wtPort(x6461_x6468_s)
-      val x6431 = VectorFIFO(size=1,name="x6431").wtPort(x6431_x6459_data_v)
-      val x6460 = ScalarBuffer(name="x6460").wtPort(x6460_x6466_s)
-      val ctr8 = Counter(min=Const(0), max=x6462.readPort, step=Const(1), par=16) // Counter
-      val x6474 = CounterChain(name = "x6474", ctr8).iter(1)
-      Stage(operands=List(CU.load(x6460), CU.ctr(x6474(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6474(0)), CU.load(x6461)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6431)), op=Bypass, results=List(CU.scalarOut(x6209_x6486_s)))
+    val x6488_1 = Pipeline(name="x6488_1",parent=x6488) { implicit CU => 
+      val x6470 = CU.temp(None)
+      val x6469 = CU.temp(None)
+      val x6468 = CU.temp(None)
+      val x6472 = CU.temp(None)
+      val x6471 = CU.temp(None)
+      val x6466 = ScalarFIFO(size=1,name="x6466").wtPort(bus_1391_s)
+      val x6463 = ScalarFIFO(size=1,name="x6463").wtPort(bus_1386_s)
+      Stage(operands=List(CU.load(x6463), CU.load(x6466)), op=FixAdd, results=List(x6468))
+      Stage(operands=List(x6468, Const(64)), op=FixMod, results=List(x6469))
+      Stage(operands=List(x6469, Const(0)), op=FixEql, results=List(x6470))
+      Stage(operands=List(Const(64), x6469), op=FixSub, results=List(x6471))
+      Stage(operands=List(x6470, Const(0), x6471), op=Mux, results=List(x6472, CU.scalarOut(bus_1397_s)))
+      Stage(operands=List(x6472, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1398_s)))
     }
-    val x6499_0 = Pipeline(name="x6499_0",parent=x6641) { implicit CU => 
-      val x6214 = ScalarBuffer(name="x6214").wtPort(x6214_x6221_s)
-      val x6212 = ScalarBuffer(name="x6212").wtPort(x6212_x6220_s)
-      val x6499_unit = CounterChain(name = "x6499_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6214), CU.load(x6212)), op=FixSub, results=List(CU.scalarOut(x6492_x6498_s)))
+    val x6488_2 = Pipeline(name="x6488_2",parent=x6488) { implicit CU => 
+      val x6476 = CU.temp(None)
+      val x6478 = CU.temp(None)
+      val x6380 = ScalarBuffer(name="x6380").wtPort(x6380_x6395_s)
+      val x6466 = ScalarFIFO(size=1,name="x6466").wtPort(bus_1391_s)
+      val x6473 = ScalarFIFO(size=1,name="x6473").wtPort(bus_1389_s)
+      val x6474 = ScalarFIFO(size=1,name="x6474").wtPort(bus_1398_s)
+      val x6463 = ScalarFIFO(size=1,name="x6463").wtPort(bus_1386_s)
+      val x6472 = ScalarFIFO(size=1,name="x6472").wtPort(bus_1397_s)
+      val x6464 = ScalarFIFO(size=1,name="x6464").wtPort(bus_1388_s)
+      Stage(operands=List(CU.load(x6380), CU.load(x6473)), op=FixAdd, results=List(x6476))
+      Stage(operands=List(x6476, CU.load(x6474)), op=FixAdd, results=List(CU.scalarOut(x6459_b7641_x6487_b7649_s)))
+      Stage(operands=List(CU.load(x6466), CU.load(x6464)), op=FixAdd, results=List(x6478))
+      Stage(operands=List(x6478, CU.load(x6472)), op=FixAdd, results=List(CU.scalarOut(x6458_b7640_x6485_b7648_s)))
+      Stage(operands=List(CU.load(x6463), CU.load(x6464)), op=FixSub, results=List(CU.scalarOut(bus_1403_s)))
     }
-    val x6505_0 = Pipeline(name="x6505_0",parent=x6641) { implicit CU => 
-      val x6213 = ScalarBuffer(name="x6213").wtPort(x6213_x6227_s)
-      val x6215 = ScalarBuffer(name="x6215").wtPort(x6215_x6228_s)
-      val x6505_unit = CounterChain(name = "x6505_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6215), CU.load(x6213)), op=FixSub, results=List(CU.scalarOut(x6493_x6504_s)))
+    val x6488_3 = Pipeline(name="x6488_3",parent=x6488) { implicit CU => 
+      val x6467 = ScalarFIFO(size=1,name="x6467").wtPort(bus_1403_s)
+      val x6481 = ScalarBuffer(name="x6481").wtPort(rowid_dram_da)
+      Stage(operands=List(CU.load(x6467), CU.load(x6481)), op=FixAdd, results=List(CU.scalarOut(x6458_b7639_x6485_b7647_s)))
     }
-    val x6519 = StreamController(name="x6519",parent=x6641) { implicit CU => 
-      val x6519_unit = CounterChain(name = "x6519_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6489 = MemoryController(name="x6489",parent=x6517,offchip=rowid_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6458_b7640 = ScalarFIFO(size=1,name="size").wtPort(x6458_b7640_x6485_b7648_s)
+      val x6458_b7639 = ScalarFIFO(size=1,name="offset").wtPort(x6458_b7639_x6485_b7647_s)
+      CU.newSout("data", x6460_x6489_data_s)
     }
-    val x6519_0 = Pipeline(name="x6519_0",parent=x6519) { implicit CU => 
-      val x6511 = CU.temp(None)
-      val x6514 = CU.temp(None)
-      val x6513 = CU.temp(None)
-      val x6512 = CU.temp(None)
-      val x6492 = ScalarBuffer(name="x6492").wtPort(x6492_x6498_s)
-      Stage(operands=List(CU.load(x6492), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1506_s)))
-      Stage(operands=List(CU.load(x6492), Const(16)), op=FixMod, results=List(x6511))
-      Stage(operands=List(x6511, Const(0)), op=FixEql, results=List(x6512))
-      Stage(operands=List(CU.load(x6492), Const(16)), op=FixAdd, results=List(x6513))
-      Stage(operands=List(x6513, x6511), op=FixSub, results=List(x6514))
-      Stage(operands=List(x6512, CU.load(x6492), x6514), op=Mux, results=List(CU.scalarOut(bus_1512_s)))
+    val x6516 = Sequential(name="x6516",parent=x6517) { implicit CU => 
+      val x6516_unit = CounterChain(name = "x6516_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6519_1 = Pipeline(name="x6519_1",parent=x6519) { implicit CU => 
-      val x6515 = ScalarFIFO(size=1,name="x6515").wtPort(bus_1512_s)
-      val x6510 = ScalarFIFO(size=1,name="x6510").wtPort(bus_1506_s)
-      Stage(operands=List(CU.load(x6510), Const(16), CU.load(x6515)), op=Mux, results=List(CU.scalarOut(x6507_x6518_s)))
+    val x6515_0 = Pipeline(name="x6515_0",parent=x6516) { implicit CU => 
+      val x6492 = ScalarBuffer(name="x6492").wtPort(x6459_b7641_x6487_b7649_s)
+      val x6491 = ScalarBuffer(name="x6491").wtPort(x6459_b7643_x6487_b7651_s)
+      val x6490 = ScalarBuffer(name="x6490").wtPort(x6459_b7642_x6487_b7650_s)
+      val ctr3 = Counter(min=Const(0), max=x6492.readPort, step=Const(1), par=16) // Counter
+      val x6503 = CounterChain(name = "x6503", ctr3).iter(1)
+      Stage(operands=List(CU.load(x6490), CU.ctr(x6503(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6503(0)), CU.load(x6491)), op=FixLt, results=List())
     }
-    val x6530 = StreamController(name="x6530",parent=x6641) { implicit CU => 
-      val x6530_unit = CounterChain(name = "x6530_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6985 = MetaPipeline(name="x6985",parent=x7588) { implicit CU => 
+      val ctr4 = Counter(min=Const(0), max=Const(494), step=Const(1), par=2) // Counter
+      val x6520 = CounterChain(name = "x6520", ctr4).iter(247)
     }
-    val x6530_0 = Pipeline(name="x6530_0",parent=x6530) { implicit CU => 
-      val x6522 = CU.temp(None)
-      val x6523 = CU.temp(None)
-      val x6525 = CU.temp(None)
-      val x6524 = CU.temp(None)
-      val x6493 = ScalarBuffer(name="x6493").wtPort(x6493_x6504_s)
-      Stage(operands=List(CU.load(x6493), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1516_s)))
-      Stage(operands=List(CU.load(x6493), Const(16)), op=FixMod, results=List(x6522))
-      Stage(operands=List(x6522, Const(0)), op=FixEql, results=List(x6523))
-      Stage(operands=List(CU.load(x6493), Const(16)), op=FixAdd, results=List(x6524))
-      Stage(operands=List(x6524, x6522), op=FixSub, results=List(x6525))
-      Stage(operands=List(x6523, CU.load(x6493), x6525), op=Mux, results=List(CU.scalarOut(bus_1522_s)))
+    val x6521_dsp0_bank0 = MemoryPipeline(name="x6521_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6586 = ScalarBuffer(name="x6586").wtPort(x6554_b7655_x6583_b7663_s)
+      val x6612 = ScalarFIFO(size=1,name="x6612").wtPort(x6555_x6585_data_s)
+      val x6600 = CounterChain.copy("x6613_0", "x6600")
+      val x6859 = CounterChain.copy("x6873_0", "x6859")
+      val x6521 = SRAM(size=494,name="x6521",banking = Strided(1)).wtPort(x6612.readPort).rdPort(x6521_x6521_dsp0_bank0_s).rdAddr(x6859(0))
+      WAStage(operands=List(CU.ctr(x6600(0)), CU.load(x6586)), op=FixSub, results=List(x6521.writeAddr))
     }
-    val x6530_1 = Pipeline(name="x6530_1",parent=x6530) { implicit CU => 
-      val x6521 = ScalarFIFO(size=1,name="x6521").wtPort(bus_1516_s)
-      val x6526 = ScalarFIFO(size=1,name="x6526").wtPort(bus_1522_s)
-      Stage(operands=List(CU.load(x6521), Const(16), CU.load(x6526)), op=Mux, results=List(CU.scalarOut(x6508_x6529_s)))
+    val x6522_dsp0_bank0 = MemoryPipeline(name="x6522_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6746 = ScalarFIFO(size=1,name="x6746").wtPort(x6689_x6719_data_s)
+      val x6720 = ScalarBuffer(name="x6720").wtPort(x6688_b7681_x6717_b7689_s)
+      val x6734 = CounterChain.copy("x6747_0", "x6734")
+      val x6892 = CounterChain.copy("x6906_0", "x6892")
+      val x6522 = SRAM(size=494,name="x6522",banking = Strided(1)).wtPort(x6746.readPort).rdPort(x6522_x6522_dsp0_bank0_s).rdAddr(x6892(0))
+      WAStage(operands=List(CU.ctr(x6734(0)), CU.load(x6720)), op=FixSub, results=List(x6522.writeAddr))
     }
-    val x6564 = StreamController(name="x6564",parent=x6641) { implicit CU => 
-      val x6564_unit = CounterChain(name = "x6564_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6523_dsp0_bank0 = MemoryPipeline(name="x6523_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6649 = ScalarBuffer(name="x6649").wtPort(x6617_b7668_x6646_b7676_s)
+      val x6675 = ScalarFIFO(size=1,name="x6675").wtPort(x6618_x6648_data_s)
+      val x6663 = CounterChain.copy("x6676_0", "x6663")
+      val x6947 = CounterChain.copy("x6959_0", "x6947")
+      val x6523 = SRAM(size=494,name="x6523",banking = Strided(1)).wtPort(x6675.readPort).rdPort(x6523_x6523_dsp0_bank0_s).rdAddr(x6947(0))
+      WAStage(operands=List(CU.ctr(x6663(0)), CU.load(x6649)), op=FixSub, results=List(x6523.writeAddr))
     }
-    val x6550_0 = Pipeline(name="x6550_0",parent=x6564) { implicit CU => 
-      val x6538 = CU.temp(None)
-      val x6545 = CU.temp(None)
-      val x6547 = CU.temp(None)
-      val x6543 = ScalarFIFO(size=1,name="x6543").wtPort(x6206_0_s)
-      val x6507 = ScalarBuffer(name="x6507").wtPort(x6507_x6518_s)
-      val x6492 = ScalarBuffer(name="x6492").wtPort(x6492_x6498_s)
-      val x6539 = ScalarBuffer(name="x6539").wtPort(vec_dram_da)
-      val ctr9 = Counter(min=Const(0), max=x6507.readPort, step=Const(1), par=1) // Counter
-      val x6536 = CounterChain(name = "x6536", ctr9).iter(1)
-      Stage(operands=List(CU.load(x6492), CU.ctr(x6536(0))), op=FixLeq, results=List(x6538))
-      Stage(operands=List(CU.load(x6543), Const(2)), op=FixSla, results=List(x6545))
-      Stage(operands=List(x6545, CU.load(x6539)), op=FixAdd, results=List(x6547))
-      Stage(operands=List(x6538, CU.load(x6539), x6547), op=Mux, results=List(CU.scalarOut(x6532_x6549_s)))
+    val x6524_dsp0_bank0 = MemoryPipeline(name="x6524_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6809 = ScalarFIFO(size=1,name="x6809").wtPort(x6752_x6782_data_s)
+      val x6783 = ScalarBuffer(name="x6783").wtPort(x6751_b7694_x6780_b7702_s)
+      val x6797 = CounterChain.copy("x6810_0", "x6797")
+      val x6962 = CounterChain.copy("x6974_0", "x6962")
+      val x6524 = SRAM(size=494,name="x6524",banking = Strided(1)).wtPort(x6809.readPort).rdPort(x6524_x6524_dsp0_bank0_s).rdAddr(x6962(0))
+      WAStage(operands=List(CU.ctr(x6797(0)), CU.load(x6783)), op=FixSub, results=List(x6524.writeAddr))
     }
-    val x6551 = MemoryController(name="x6551",parent=x6564,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
-      val x6532 = ScalarFIFO(size=1,name="addr").wtPort(x6532_x6549_s)
-      CU.newSout("data", x6533_x6551_data_s)
+    val x6525_dsp0_bank0 = MemoryPipeline(name="x6525_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6885 = ScalarFIFO(size=1,name="x6885").wtPort(x6856_x6874_data_s)
+      val x6877 = CounterChain.copy("x6886", "x6877")
+      val x6947 = CounterChain.copy("x6959_0", "x6947")
+      val x6525 = SRAM(size=494,name="x6525",banking = Strided(1)).wtPort(x6885.readPort).rdPort(x6525_x6525_dsp0_bank0_s).rdAddr(x6947(0)).wtAddr(x6877(0))
     }
-    val x6563_0 = Pipeline(name="x6563_0",parent=x6564) { implicit CU => 
-      val x6507 = ScalarBuffer(name="x6507").wtPort(x6507_x6518_s)
-      val x6533 = ScalarFIFO(size=1,name="x6533").wtPort(x6533_x6551_data_s)
-      val ctr10 = Counter(min=Const(0), max=x6507.readPort, step=Const(1), par=1) // Counter
-      val x6554 = CounterChain(name = "x6554", ctr10).iter(1)
-      Stage(operands=List(CU.load(x6533)), op=Bypass, results=List(CU.scalarOut(x6210_x6562_s)))
+    val x6526_dsp0_bank0 = MemoryPipeline(name="x6526_dsp0_bank0",parent="x6985") { implicit CU => 
+      val x6918 = ScalarFIFO(size=1,name="x6918").wtPort(x6889_x6907_data_s)
+      val x6910 = CounterChain.copy("x6919", "x6910")
+      val x6962 = CounterChain.copy("x6974_0", "x6962")
+      val x6526 = SRAM(size=494,name="x6526",banking = Strided(1)).wtPort(x6918.readPort).rdPort(x6526_x6526_dsp0_bank0_s).rdAddr(x6962(0)).wtAddr(x6910(0))
     }
-    val x6597 = StreamController(name="x6597",parent=x6641) { implicit CU => 
-      val x6597_unit = CounterChain(name = "x6597_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6552_0 = Pipeline(name="x6552_0",parent=x6985) { implicit CU => 
+      val x6527 = ScalarBuffer(name="x6527").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6529 = ScalarBuffer(name="x6529").wtPort(x6371_x6371_dsp0_bank0_s)
+      val x6552_unit = CounterChain(name = "x6552_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6529), CU.load(x6527)), op=FixSub, results=List(CU.scalarOut(x6546_x6551_s)))
     }
-    val x6583_0 = Pipeline(name="x6583_0",parent=x6597) { implicit CU => 
-      val x6578 = CU.temp(None)
-      val x6580 = CU.temp(None)
+    val x6615 = StreamController(name="x6615",parent=x6985) { implicit CU => 
+      val x6615_unit = CounterChain(name = "x6615_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x6584 = StreamController(name="x6584",parent=x6615) { implicit CU => 
+      val x6584_unit = CounterChain(name = "x6584_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x6584_0 = Pipeline(name="x6584_0",parent=x6584) { implicit CU => 
+      val x6559 = CU.temp(None)
+      val x6558 = CU.temp(None)
+      val x6582_x6568 = CU.temp(None)
+      val x6546 = ScalarBuffer(name="x6546").wtPort(x6546_x6551_s)
+      val x6527 = ScalarBuffer(name="x6527").wtPort(x6371_x6371_dsp1_bank0_s)
+      Stage(operands=List(CU.load(x6527), Const(2)), op=FixSla, results=List(x6558, CU.scalarOut(bus_1436_s)))
+      Stage(operands=List(x6558, Const(64)), op=FixMod, results=List(x6559, CU.scalarOut(bus_1438_s)))
+      Stage(operands=List(x6559, Const(2)), op=FixSra, results=List(x6582_x6568, CU.scalarOut(bus_1439_s), CU.scalarOut(x6554_b7655_x6583_b7663_s)))
+      Stage(operands=List(x6582_x6568, CU.load(x6546)), op=FixAdd, results=List(CU.scalarOut(x6554_b7656_x6583_b7664_s)))
+      Stage(operands=List(CU.load(x6546), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1441_s)))
+    }
+    val x6584_1 = Pipeline(name="x6584_1",parent=x6584) { implicit CU => 
+      val x6565 = CU.temp(None)
+      val x6567 = CU.temp(None)
+      val x6566 = CU.temp(None)
+      val x6564 = CU.temp(None)
+      val x6563 = CU.temp(None)
+      val x6561 = ScalarFIFO(size=1,name="x6561").wtPort(bus_1441_s)
+      val x6558 = ScalarFIFO(size=1,name="x6558").wtPort(bus_1436_s)
+      Stage(operands=List(CU.load(x6558), CU.load(x6561)), op=FixAdd, results=List(x6563))
+      Stage(operands=List(x6563, Const(64)), op=FixMod, results=List(x6564))
+      Stage(operands=List(x6564, Const(0)), op=FixEql, results=List(x6565))
+      Stage(operands=List(Const(64), x6564), op=FixSub, results=List(x6566))
+      Stage(operands=List(x6565, Const(0), x6566), op=Mux, results=List(x6567, CU.scalarOut(bus_1447_s)))
+      Stage(operands=List(x6567, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1448_s)))
+    }
+    val x6584_2 = Pipeline(name="x6584_2",parent=x6584) { implicit CU => 
       val x6571 = CU.temp(None)
-      val x6572 = ScalarBuffer(name="x6572").wtPort(vec_dram_da)
-      val x6508 = ScalarBuffer(name="x6508").wtPort(x6508_x6529_s)
-      val x6493 = ScalarBuffer(name="x6493").wtPort(x6493_x6504_s)
-      val x6576 = ScalarFIFO(size=1,name="x6576").wtPort(x6207_0_s)
-      val ctr11 = Counter(min=Const(0), max=x6508.readPort, step=Const(1), par=1) // Counter
-      val x6569 = CounterChain(name = "x6569", ctr11).iter(1)
-      Stage(operands=List(CU.load(x6493), CU.ctr(x6569(0))), op=FixLeq, results=List(x6571))
-      Stage(operands=List(CU.load(x6576), Const(2)), op=FixSla, results=List(x6578))
-      Stage(operands=List(x6578, CU.load(x6572)), op=FixAdd, results=List(x6580))
-      Stage(operands=List(x6571, CU.load(x6572), x6580), op=Mux, results=List(CU.scalarOut(x6565_x6582_s)))
+      val x6573 = CU.temp(None)
+      val x6561 = ScalarFIFO(size=1,name="x6561").wtPort(bus_1441_s)
+      val x6559 = ScalarFIFO(size=1,name="x6559").wtPort(bus_1438_s)
+      val x6569 = ScalarFIFO(size=1,name="x6569").wtPort(bus_1448_s)
+      val x6567 = ScalarFIFO(size=1,name="x6567").wtPort(bus_1447_s)
+      val x6546 = ScalarBuffer(name="x6546").wtPort(x6546_x6551_s)
+      val x6558 = ScalarFIFO(size=1,name="x6558").wtPort(bus_1436_s)
+      val x6568 = ScalarFIFO(size=1,name="x6568").wtPort(bus_1439_s)
+      Stage(operands=List(CU.load(x6546), CU.load(x6568)), op=FixAdd, results=List(x6571))
+      Stage(operands=List(x6571, CU.load(x6569)), op=FixAdd, results=List(CU.scalarOut(x6554_b7654_x6583_b7662_s)))
+      Stage(operands=List(CU.load(x6561), CU.load(x6559)), op=FixAdd, results=List(x6573))
+      Stage(operands=List(x6573, CU.load(x6567)), op=FixAdd, results=List(CU.scalarOut(x6553_b7653_x6581_b7661_s)))
+      Stage(operands=List(CU.load(x6558), CU.load(x6559)), op=FixSub, results=List(CU.scalarOut(bus_1453_s)))
     }
-    val x6584 = MemoryController(name="x6584",parent=x6597,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
-      val x6565 = ScalarFIFO(size=1,name="addr").wtPort(x6565_x6582_s)
-      CU.newSout("data", x6566_x6584_data_s)
+    val x6584_3 = Pipeline(name="x6584_3",parent=x6584) { implicit CU => 
+      val x6562 = ScalarFIFO(size=1,name="x6562").wtPort(bus_1453_s)
+      val x6576 = ScalarBuffer(name="x6576").wtPort(cols_dram_da)
+      Stage(operands=List(CU.load(x6562), CU.load(x6576)), op=FixAdd, results=List(CU.scalarOut(x6553_b7652_x6581_b7660_s)))
     }
-    val x6596_0 = Pipeline(name="x6596_0",parent=x6597) { implicit CU => 
-      val x6566 = ScalarFIFO(size=1,name="x6566").wtPort(x6566_x6584_data_s)
-      val x6508 = ScalarBuffer(name="x6508").wtPort(x6508_x6529_s)
-      val ctr12 = Counter(min=Const(0), max=x6508.readPort, step=Const(1), par=1) // Counter
-      val x6587 = CounterChain(name = "x6587", ctr12).iter(1)
-      Stage(operands=List(CU.load(x6566)), op=Bypass, results=List(CU.scalarOut(x6211_x6595_s)))
+    val x6585 = MemoryController(name="x6585",parent=x6615,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6553_b7652 = ScalarFIFO(size=1,name="offset").wtPort(x6553_b7652_x6581_b7660_s)
+      val x6553_b7653 = ScalarFIFO(size=1,name="size").wtPort(x6553_b7653_x6581_b7661_s)
+      CU.newSout("data", x6555_x6585_data_s)
     }
-    val x6615_0 = Pipeline(name="x6615_0",parent=x6641) { implicit CU => 
-      val x6606 = ScalarFIFO(size=1,name="x6606").wtPort(x6208_0_s)
-      val x6492 = ScalarBuffer(name="x6492").wtPort(x6492_x6498_s)
-      val x6607 = ScalarFIFO(size=1,name="x6607").wtPort(x6210_0_s)
-      val ctr13 = Counter(min=Const(0), max=x6492.readPort, step=Const(1), par=16) // Counter
-      val x6603 = CounterChain(name = "x6603", ctr13).iter(1)
-      Stage(operands=List(CU.load(x6606), CU.load(x6607)), op=FixMul, results=List(CU.reduce))
-      val (_, rr1550) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x6615_0")
-      Stage(operands=List(rr1550), op=Bypass, results=List(CU.scalarOut(x6599_x6614_s)))
+    val x6614 = Sequential(name="x6614",parent=x6615) { implicit CU => 
+      val x6614_unit = CounterChain(name = "x6614_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6630_0 = Pipeline(name="x6630_0",parent=x6641) { implicit CU => 
-      val x6622 = ScalarFIFO(size=1,name="x6622").wtPort(x6211_0_s)
-      val x6493 = ScalarBuffer(name="x6493").wtPort(x6493_x6504_s)
-      val x6621 = ScalarFIFO(size=1,name="x6621").wtPort(x6209_0_s)
-      val ctr14 = Counter(min=Const(0), max=x6493.readPort, step=Const(1), par=16) // Counter
-      val x6618 = CounterChain(name = "x6618", ctr14).iter(1)
-      Stage(operands=List(CU.load(x6621), CU.load(x6622)), op=FixMul, results=List(CU.reduce))
-      val (_, rr1557) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x6630_0")
-      Stage(operands=List(rr1557), op=Bypass, results=List(CU.scalarOut(x6600_x6629_s)))
+    val x6613_0 = Pipeline(name="x6613_0",parent=x6614) { implicit CU => 
+      val x6588 = ScalarBuffer(name="x6588").wtPort(x6554_b7654_x6583_b7662_s)
+      val x6587 = ScalarBuffer(name="x6587").wtPort(x6554_b7656_x6583_b7664_s)
+      val x6586 = ScalarBuffer(name="x6586").wtPort(x6554_b7655_x6583_b7663_s)
+      val ctr5 = Counter(min=Const(0), max=x6588.readPort, step=Const(1), par=16) // Counter
+      val x6600 = CounterChain(name = "x6600", ctr5).iter(1)
+      Stage(operands=List(CU.load(x6586), CU.ctr(x6600(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6600(0)), CU.load(x6587)), op=FixLt, results=List())
     }
-    val x6635_0 = Pipeline(name="x6635_0",parent=x6641) { implicit CU => 
-      val x6599 = ScalarBuffer(name="x6599").wtPort(x6599_x6614_s)
-      val x6635_unit = CounterChain(name = "x6635_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6599)), op=Bypass, results=List(CU.scalarOut(x6062_x6634_s)))
+    val x6678 = StreamController(name="x6678",parent=x6985) { implicit CU => 
+      val x6678_unit = CounterChain(name = "x6678_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6639_0 = Pipeline(name="x6639_0",parent=x6641) { implicit CU => 
-      val x6600 = ScalarBuffer(name="x6600").wtPort(x6600_x6629_s)
-      val x6639_unit = CounterChain(name = "x6639_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6600)), op=Bypass, results=List(CU.scalarOut(x6062_x6638_s)))
+    val x6647 = StreamController(name="x6647",parent=x6678) { implicit CU => 
+      val x6647_unit = CounterChain(name = "x6647_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7079 = MetaPipeline(name="x7079",parent=x7211) { implicit CU => 
-      val ctr15 = Counter(min=Const(0), max=Const(494), step=Const(1), par=2) // Counter
-      val x6643 = CounterChain(name = "x6643", ctr15).iter(247)
+    val x6647_0 = Pipeline(name="x6647_0",parent=x6647) { implicit CU => 
+      val x6622 = CU.temp(None)
+      val x6621 = CU.temp(None)
+      val x6645_x6631 = CU.temp(None)
+      val x6546 = ScalarBuffer(name="x6546").wtPort(x6546_x6551_s)
+      val x6527 = ScalarBuffer(name="x6527").wtPort(x6371_x6371_dsp1_bank0_s)
+      Stage(operands=List(CU.load(x6527), Const(2)), op=FixSla, results=List(x6621, CU.scalarOut(bus_1465_s)))
+      Stage(operands=List(x6621, Const(64)), op=FixMod, results=List(x6622, CU.scalarOut(bus_1467_s)))
+      Stage(operands=List(x6622, Const(2)), op=FixSra, results=List(x6645_x6631, CU.scalarOut(bus_1468_s), CU.scalarOut(x6617_b7668_x6646_b7676_s)))
+      Stage(operands=List(x6645_x6631, CU.load(x6546)), op=FixAdd, results=List(CU.scalarOut(x6617_b7669_x6646_b7677_s)))
+      Stage(operands=List(CU.load(x6546), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1470_s)))
     }
-    val x6644_dsp0 = MemoryPipeline(name="x6644_dsp0",parent="x7079") { implicit CU => 
-      val x6707 = ScalarBuffer(name="x6707").wtPort(x6707_x6713_s)
-      val x6733 = ScalarFIFO(size=1,name="x6733").wtPort(x6644_x6733_s)
-      val x6721 = CounterChain.copy("x6734_0", "x6721")
-      val x6974 = CounterChain.copy("x6988_0", "x6974")
-      val x6644 = SRAM(size=494,name="x6644",banking = Strided(1)).wtPort(x6733.readPort).rdPort(x6644_0_s).rdAddr(x6974(0))
-      WAStage(operands=List(CU.ctr(x6721(0)), CU.load(x6707)), op=FixSub, results=List(x6644.writeAddr))
+    val x6647_1 = Pipeline(name="x6647_1",parent=x6647) { implicit CU => 
+      val x6626 = CU.temp(None)
+      val x6628 = CU.temp(None)
+      val x6630 = CU.temp(None)
+      val x6627 = CU.temp(None)
+      val x6629 = CU.temp(None)
+      val x6624 = ScalarFIFO(size=1,name="x6624").wtPort(bus_1470_s)
+      val x6621 = ScalarFIFO(size=1,name="x6621").wtPort(bus_1465_s)
+      Stage(operands=List(CU.load(x6621), CU.load(x6624)), op=FixAdd, results=List(x6626))
+      Stage(operands=List(x6626, Const(64)), op=FixMod, results=List(x6627))
+      Stage(operands=List(x6627, Const(0)), op=FixEql, results=List(x6628))
+      Stage(operands=List(Const(64), x6627), op=FixSub, results=List(x6629))
+      Stage(operands=List(x6628, Const(0), x6629), op=Mux, results=List(x6630, CU.scalarOut(bus_1476_s)))
+      Stage(operands=List(x6630, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1477_s)))
     }
-    val x6645_dsp0 = MemoryPipeline(name="x6645_dsp0",parent="x7079") { implicit CU => 
-      val x6837 = ScalarBuffer(name="x6837").wtPort(x6837_x6843_s)
-      val x6863 = ScalarFIFO(size=1,name="x6863").wtPort(x6645_x6863_s)
-      val x6851 = CounterChain.copy("x6864_0", "x6851")
-      val x7007 = CounterChain.copy("x7021_0", "x7007")
-      val x6645 = SRAM(size=494,name="x6645",banking = Strided(1)).wtPort(x6863.readPort).rdPort(x6645_0_s).rdAddr(x7007(0))
-      WAStage(operands=List(CU.ctr(x6851(0)), CU.load(x6837)), op=FixSub, results=List(x6645.writeAddr))
+    val x6647_2 = Pipeline(name="x6647_2",parent=x6647) { implicit CU => 
+      val x6636 = CU.temp(None)
+      val x6634 = CU.temp(None)
+      val x6630 = ScalarFIFO(size=1,name="x6630").wtPort(bus_1476_s)
+      val x6546 = ScalarBuffer(name="x6546").wtPort(x6546_x6551_s)
+      val x6621 = ScalarFIFO(size=1,name="x6621").wtPort(bus_1465_s)
+      val x6624 = ScalarFIFO(size=1,name="x6624").wtPort(bus_1470_s)
+      val x6632 = ScalarFIFO(size=1,name="x6632").wtPort(bus_1477_s)
+      val x6622 = ScalarFIFO(size=1,name="x6622").wtPort(bus_1467_s)
+      val x6631 = ScalarFIFO(size=1,name="x6631").wtPort(bus_1468_s)
+      Stage(operands=List(CU.load(x6546), CU.load(x6631)), op=FixAdd, results=List(x6634))
+      Stage(operands=List(x6634, CU.load(x6632)), op=FixAdd, results=List(CU.scalarOut(x6617_b7667_x6646_b7675_s)))
+      Stage(operands=List(CU.load(x6624), CU.load(x6622)), op=FixAdd, results=List(x6636))
+      Stage(operands=List(x6636, CU.load(x6630)), op=FixAdd, results=List(CU.scalarOut(x6616_b7666_x6644_b7674_s)))
+      Stage(operands=List(CU.load(x6621), CU.load(x6622)), op=FixSub, results=List(CU.scalarOut(bus_1482_s)))
     }
-    val x6646_dsp0 = MemoryPipeline(name="x6646_dsp0",parent="x7079") { implicit CU => 
-      val x6794 = ScalarFIFO(size=1,name="x6794").wtPort(x6646_x6794_s)
-      val x6768 = ScalarBuffer(name="x6768").wtPort(x6768_x6774_s)
-      val x6782 = CounterChain.copy("x6795_0", "x6782")
-      val x7041 = CounterChain.copy("x7053_0", "x7041")
-      val x6646 = SRAM(size=494,name="x6646",banking = Strided(1)).wtPort(x6794.readPort).rdPort(x6646_0_s).rdAddr(x7041(0))
-      WAStage(operands=List(CU.ctr(x6782(0)), CU.load(x6768)), op=FixSub, results=List(x6646.writeAddr))
+    val x6647_3 = Pipeline(name="x6647_3",parent=x6647) { implicit CU => 
+      val x6625 = ScalarFIFO(size=1,name="x6625").wtPort(bus_1482_s)
+      val x6639 = ScalarBuffer(name="x6639").wtPort(values_dram_da)
+      Stage(operands=List(CU.load(x6625), CU.load(x6639)), op=FixAdd, results=List(CU.scalarOut(x6616_b7665_x6644_b7673_s)))
     }
-    val x6647_dsp0 = MemoryPipeline(name="x6647_dsp0",parent="x7079") { implicit CU => 
-      val x6898 = ScalarBuffer(name="x6898").wtPort(x6898_x6904_s)
-      val x6924 = ScalarFIFO(size=1,name="x6924").wtPort(x6647_x6924_s)
-      val x6912 = CounterChain.copy("x6925_0", "x6912")
-      val x7056 = CounterChain.copy("x7068_0", "x7056")
-      val x6647 = SRAM(size=494,name="x6647",banking = Strided(1)).wtPort(x6924.readPort).rdPort(x6647_0_s).rdAddr(x7056(0))
-      WAStage(operands=List(CU.ctr(x6912(0)), CU.load(x6898)), op=FixSub, results=List(x6647.writeAddr))
+    val x6648 = MemoryController(name="x6648",parent=x6678,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6616_b7666 = ScalarFIFO(size=1,name="size").wtPort(x6616_b7666_x6644_b7674_s)
+      val x6616_b7665 = ScalarFIFO(size=1,name="offset").wtPort(x6616_b7665_x6644_b7673_s)
+      CU.newSout("data", x6618_x6648_data_s)
     }
-    val x6648_dsp0 = MemoryPipeline(name="x6648_dsp0",parent="x7079") { implicit CU => 
-      val x7000 = ScalarFIFO(size=1,name="x7000").wtPort(x6648_x7000_s)
-      val x6992 = CounterChain.copy("x7001_0", "x6992")
-      val x7041 = CounterChain.copy("x7053_0", "x7041")
-      val x6648 = SRAM(size=494,name="x6648",banking = Strided(1)).wtPort(x7000.readPort).rdPort(x6648_0_s).rdAddr(x7041(0)).wtAddr(x6992(0))
+    val x6677 = Sequential(name="x6677",parent=x6678) { implicit CU => 
+      val x6677_unit = CounterChain(name = "x6677_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6649_dsp0 = MemoryPipeline(name="x6649_dsp0",parent="x7079") { implicit CU => 
-      val x7033 = ScalarFIFO(size=1,name="x7033").wtPort(x6649_x7033_s)
-      val x7025 = CounterChain.copy("x7034_0", "x7025")
-      val x7056 = CounterChain.copy("x7068_0", "x7056")
-      val x6649 = SRAM(size=494,name="x6649",banking = Strided(1)).wtPort(x7033.readPort).rdPort(x6649_0_s).rdAddr(x7056(0)).wtAddr(x7025(0))
+    val x6676_0 = Pipeline(name="x6676_0",parent=x6677) { implicit CU => 
+      val x6650 = ScalarBuffer(name="x6650").wtPort(x6617_b7669_x6646_b7677_s)
+      val x6649 = ScalarBuffer(name="x6649").wtPort(x6617_b7668_x6646_b7676_s)
+      val x6651 = ScalarBuffer(name="x6651").wtPort(x6617_b7667_x6646_b7675_s)
+      val ctr6 = Counter(min=Const(0), max=x6651.readPort, step=Const(1), par=16) // Counter
+      val x6663 = CounterChain(name = "x6663", ctr6).iter(1)
+      Stage(operands=List(CU.load(x6649), CU.ctr(x6663(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6663(0)), CU.load(x6650)), op=FixLt, results=List())
     }
-    val x6660_0 = Pipeline(name="x6660_0",parent=x7079) { implicit CU => 
-      val x6655 = ScalarFIFO(size=1,name="x6655").wtPort(x6061_1_s)
-      val x6657 = ScalarFIFO(size=1,name="x6657").wtPort(x6061_0_s)
-      val x6660_unit = CounterChain(name = "x6660_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6655)), op=Bypass, results=List(CU.scalarOut(x6650_x6658_s)))
-      Stage(operands=List(CU.load(x6657)), op=Bypass, results=List(CU.scalarOut(x6652_x6659_s)))
+    val x6686_0 = Pipeline(name="x6686_0",parent=x6985) { implicit CU => 
+      val x6528 = ScalarBuffer(name="x6528").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6530 = ScalarBuffer(name="x6530").wtPort(x6371_x6371_dsp0_bank0_s)
+      val x6686_unit = CounterChain(name = "x6686_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6530), CU.load(x6528)), op=FixSub, results=List(CU.scalarOut(x6680_x6685_s)))
     }
-    val x6667_0 = Pipeline(name="x6667_0",parent=x7079) { implicit CU => 
-      val x6662 = ScalarFIFO(size=1,name="x6662").wtPort(x6061_1_s)
-      val x6664 = ScalarFIFO(size=1,name="x6664").wtPort(x6061_0_s)
-      val x6667_unit = CounterChain(name = "x6667_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6662)), op=Bypass, results=List(CU.scalarOut(x6651_x6665_s)))
-      Stage(operands=List(CU.load(x6664)), op=Bypass, results=List(CU.scalarOut(x6653_x6666_s)))
+    val x6749 = StreamController(name="x6749",parent=x6985) { implicit CU => 
+      val x6749_unit = CounterChain(name = "x6749_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6675_0 = Pipeline(name="x6675_0",parent=x7079) { implicit CU => 
-      val x6650 = ScalarBuffer(name="x6650").wtPort(x6650_x6658_s)
-      val x6652 = ScalarBuffer(name="x6652").wtPort(x6652_x6659_s)
-      val x6675_unit = CounterChain(name = "x6675_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6652), CU.load(x6650)), op=FixSub, results=List(CU.scalarOut(x6669_x6674_s)))
-    }
-    val x6736 = StreamController(name="x6736",parent=x7079) { implicit CU => 
-      val x6736_unit = CounterChain(name = "x6736_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6705 = StreamController(name="x6705",parent=x6736) { implicit CU => 
-      val x6705_unit = CounterChain(name = "x6705_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6705_0 = Pipeline(name="x6705_0",parent=x6705) { implicit CU => 
-      val x6689 = CU.temp(None)
-      val x6682 = CU.temp(None)
-      val x6681 = CU.temp(None)
-      val x6650 = ScalarBuffer(name="x6650").wtPort(x6650_x6658_s)
-      val x6669 = ScalarBuffer(name="x6669").wtPort(x6669_x6674_s)
-      Stage(operands=List(CU.load(x6650), Const(2)), op=FixSla, results=List(x6681, CU.scalarOut(bus_1586_s)))
-      Stage(operands=List(x6681, Const(64)), op=FixMod, results=List(x6682, CU.scalarOut(bus_1588_s)))
-      Stage(operands=List(x6682, Const(4)), op=FixDiv, results=List(x6689, CU.scalarOut(bus_1590_s), CU.scalarOut(x6677_b7330_x6704_b7338_s)))
-      Stage(operands=List(x6689, CU.load(x6669)), op=FixAdd, results=List(CU.scalarOut(x6677_b7331_x6704_b7339_s)))
-      Stage(operands=List(CU.load(x6669), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1592_s)))
-    }
-    val x6705_1 = Pipeline(name="x6705_1",parent=x6705) { implicit CU => 
-      val x6688 = CU.temp(None)
-      val x6687 = CU.temp(None)
-      val x6690 = CU.temp(None)
-      val x6686 = CU.temp(None)
-      val x6692 = CU.temp(None)
-      val x6684 = ScalarFIFO(size=1,name="x6684").wtPort(bus_1592_s)
-      val x6681 = ScalarFIFO(size=1,name="x6681").wtPort(bus_1586_s)
-      val x6689 = ScalarFIFO(size=1,name="x6689").wtPort(bus_1590_s)
-      val x6669 = ScalarBuffer(name="x6669").wtPort(x6669_x6674_s)
-      Stage(operands=List(CU.load(x6681), CU.load(x6684)), op=FixAdd, results=List(x6686))
-      Stage(operands=List(x6686, Const(64)), op=FixMod, results=List(x6687))
-      Stage(operands=List(Const(64), x6687), op=FixSub, results=List(x6688, CU.scalarOut(bus_1595_s)))
-      Stage(operands=List(x6688, Const(4)), op=FixDiv, results=List(x6690))
-      Stage(operands=List(CU.load(x6669), CU.load(x6689)), op=FixAdd, results=List(x6692))
-      Stage(operands=List(x6692, x6690), op=FixAdd, results=List(CU.scalarOut(x6677_b7329_x6704_b7337_s)))
-    }
-    val x6705_2 = Pipeline(name="x6705_2",parent=x6705) { implicit CU => 
-      val x6685 = CU.temp(None)
-      val x6694 = CU.temp(None)
-      val x6684 = ScalarFIFO(size=1,name="x6684").wtPort(bus_1592_s)
-      val x6688 = ScalarFIFO(size=1,name="x6688").wtPort(bus_1595_s)
-      val x6697 = ScalarBuffer(name="x6697").wtPort(cols_dram_da)
-      val x6681 = ScalarFIFO(size=1,name="x6681").wtPort(bus_1586_s)
-      val x6682 = ScalarFIFO(size=1,name="x6682").wtPort(bus_1588_s)
-      Stage(operands=List(CU.load(x6684), CU.load(x6682)), op=FixAdd, results=List(x6694))
-      Stage(operands=List(x6694, CU.load(x6688)), op=FixAdd, results=List(CU.scalarOut(x6676_b7328_x6702_b7336_s)))
-      Stage(operands=List(CU.load(x6681), CU.load(x6682)), op=FixSub, results=List(x6685))
-      Stage(operands=List(x6685, CU.load(x6697)), op=FixAdd, results=List(CU.scalarOut(x6676_b7327_x6702_b7335_s)))
-    }
-    val x6706 = MemoryController(name="x6706",parent=x6736,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6676_b7328 = ScalarFIFO(size=1,name="size").wtPort(x6676_b7328_x6702_b7336_s)
-      val x6676_b7327 = ScalarFIFO(size=1,name="offset").wtPort(x6676_b7327_x6702_b7335_s)
-      CU.newVout("data", x6678_x6706_data_v)
-    }
-    val x6735 = Sequential(name="x6735",parent=x6736) { implicit CU => 
-      val x6735_unit = CounterChain(name = "x6735_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x6718_0 = Pipeline(name="x6718_0",parent=x6735) { implicit CU => 
-      val x6677_b7329 = ScalarFIFO(size=16,name="x6677_b7329").wtPort(x6677_b7329_x6704_b7337_s)
-      val x6677_b7331 = ScalarFIFO(size=16,name="x6677_b7331").wtPort(x6677_b7331_x6704_b7339_s)
-      val x6677_b7330 = ScalarFIFO(size=16,name="x6677_b7330").wtPort(x6677_b7330_x6704_b7338_s)
+    val x6718 = StreamController(name="x6718",parent=x6749) { implicit CU => 
       val x6718_unit = CounterChain(name = "x6718_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6677_b7330)), op=Bypass, results=List(CU.scalarOut(x6707_x6713_s)))
-      Stage(operands=List(CU.load(x6677_b7331)), op=Bypass, results=List(CU.scalarOut(x6708_x6715_s)))
-      Stage(operands=List(CU.load(x6677_b7329)), op=Bypass, results=List(CU.scalarOut(x6709_x6717_s)))
     }
-    val x6734_0 = Pipeline(name="x6734_0",parent=x6735) { implicit CU => 
-      val x6707 = ScalarBuffer(name="x6707").wtPort(x6707_x6713_s)
-      val x6709 = ScalarBuffer(name="x6709").wtPort(x6709_x6717_s)
-      val x6678 = VectorFIFO(size=1,name="x6678").wtPort(x6678_x6706_data_v)
-      val x6708 = ScalarBuffer(name="x6708").wtPort(x6708_x6715_s)
-      val ctr16 = Counter(min=Const(0), max=x6709.readPort, step=Const(1), par=16) // Counter
-      val x6721 = CounterChain(name = "x6721", ctr16).iter(1)
-      Stage(operands=List(CU.load(x6707), CU.ctr(x6721(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6721(0)), CU.load(x6708)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6678)), op=Bypass, results=List(CU.scalarOut(x6644_x6733_s)))
+    val x6718_0 = Pipeline(name="x6718_0",parent=x6718) { implicit CU => 
+      val x6693 = CU.temp(None)
+      val x6692 = CU.temp(None)
+      val x6716_x6702 = CU.temp(None)
+      val x6528 = ScalarBuffer(name="x6528").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6680 = ScalarBuffer(name="x6680").wtPort(x6680_x6685_s)
+      Stage(operands=List(CU.load(x6528), Const(2)), op=FixSla, results=List(x6692, CU.scalarOut(bus_1496_s)))
+      Stage(operands=List(x6692, Const(64)), op=FixMod, results=List(x6693, CU.scalarOut(bus_1498_s)))
+      Stage(operands=List(x6693, Const(2)), op=FixSra, results=List(x6716_x6702, CU.scalarOut(bus_1499_s), CU.scalarOut(x6688_b7681_x6717_b7689_s)))
+      Stage(operands=List(x6716_x6702, CU.load(x6680)), op=FixAdd, results=List(CU.scalarOut(x6688_b7682_x6717_b7690_s)))
+      Stage(operands=List(CU.load(x6680), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1501_s)))
     }
-    val x6797 = StreamController(name="x6797",parent=x7079) { implicit CU => 
-      val x6797_unit = CounterChain(name = "x6797_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6718_1 = Pipeline(name="x6718_1",parent=x6718) { implicit CU => 
+      val x6698 = CU.temp(None)
+      val x6700 = CU.temp(None)
+      val x6701 = CU.temp(None)
+      val x6699 = CU.temp(None)
+      val x6697 = CU.temp(None)
+      val x6695 = ScalarFIFO(size=1,name="x6695").wtPort(bus_1501_s)
+      val x6692 = ScalarFIFO(size=1,name="x6692").wtPort(bus_1496_s)
+      Stage(operands=List(CU.load(x6692), CU.load(x6695)), op=FixAdd, results=List(x6697))
+      Stage(operands=List(x6697, Const(64)), op=FixMod, results=List(x6698))
+      Stage(operands=List(x6698, Const(0)), op=FixEql, results=List(x6699))
+      Stage(operands=List(Const(64), x6698), op=FixSub, results=List(x6700))
+      Stage(operands=List(x6699, Const(0), x6700), op=Mux, results=List(x6701, CU.scalarOut(bus_1507_s)))
+      Stage(operands=List(x6701, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1508_s)))
     }
-    val x6766 = StreamController(name="x6766",parent=x6797) { implicit CU => 
-      val x6766_unit = CounterChain(name = "x6766_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6718_2 = Pipeline(name="x6718_2",parent=x6718) { implicit CU => 
+      val x6705 = CU.temp(None)
+      val x6707 = CU.temp(None)
+      val x6703 = ScalarFIFO(size=1,name="x6703").wtPort(bus_1508_s)
+      val x6692 = ScalarFIFO(size=1,name="x6692").wtPort(bus_1496_s)
+      val x6695 = ScalarFIFO(size=1,name="x6695").wtPort(bus_1501_s)
+      val x6693 = ScalarFIFO(size=1,name="x6693").wtPort(bus_1498_s)
+      val x6680 = ScalarBuffer(name="x6680").wtPort(x6680_x6685_s)
+      val x6701 = ScalarFIFO(size=1,name="x6701").wtPort(bus_1507_s)
+      val x6702 = ScalarFIFO(size=1,name="x6702").wtPort(bus_1499_s)
+      Stage(operands=List(CU.load(x6680), CU.load(x6702)), op=FixAdd, results=List(x6705))
+      Stage(operands=List(x6705, CU.load(x6703)), op=FixAdd, results=List(CU.scalarOut(x6688_b7680_x6717_b7688_s)))
+      Stage(operands=List(CU.load(x6695), CU.load(x6693)), op=FixAdd, results=List(x6707))
+      Stage(operands=List(x6707, CU.load(x6701)), op=FixAdd, results=List(CU.scalarOut(x6687_b7679_x6715_b7687_s)))
+      Stage(operands=List(CU.load(x6692), CU.load(x6693)), op=FixSub, results=List(CU.scalarOut(bus_1513_s)))
     }
-    val x6766_0 = Pipeline(name="x6766_0",parent=x6766) { implicit CU => 
-      val x6742 = CU.temp(None)
-      val x6750 = CU.temp(None)
-      val x6743 = CU.temp(None)
-      val x6650 = ScalarBuffer(name="x6650").wtPort(x6650_x6658_s)
-      val x6669 = ScalarBuffer(name="x6669").wtPort(x6669_x6674_s)
-      Stage(operands=List(CU.load(x6650), Const(2)), op=FixSla, results=List(x6742, CU.scalarOut(bus_1613_s)))
-      Stage(operands=List(x6742, Const(64)), op=FixMod, results=List(x6743, CU.scalarOut(bus_1615_s)))
-      Stage(operands=List(x6743, Const(4)), op=FixDiv, results=List(x6750, CU.scalarOut(bus_1617_s), CU.scalarOut(x6738_b7343_x6765_b7351_s)))
-      Stage(operands=List(x6750, CU.load(x6669)), op=FixAdd, results=List(CU.scalarOut(x6738_b7344_x6765_b7352_s)))
-      Stage(operands=List(CU.load(x6669), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1619_s)))
+    val x6718_3 = Pipeline(name="x6718_3",parent=x6718) { implicit CU => 
+      val x6696 = ScalarFIFO(size=1,name="x6696").wtPort(bus_1513_s)
+      val x6710 = ScalarBuffer(name="x6710").wtPort(cols_dram_da)
+      Stage(operands=List(CU.load(x6696), CU.load(x6710)), op=FixAdd, results=List(CU.scalarOut(x6687_b7678_x6715_b7686_s)))
     }
-    val x6766_1 = Pipeline(name="x6766_1",parent=x6766) { implicit CU => 
-      val x6751 = CU.temp(None)
-      val x6747 = CU.temp(None)
-      val x6748 = CU.temp(None)
-      val x6753 = CU.temp(None)
-      val x6749 = CU.temp(None)
-      val x6750 = ScalarFIFO(size=1,name="x6750").wtPort(bus_1617_s)
-      val x6742 = ScalarFIFO(size=1,name="x6742").wtPort(bus_1613_s)
-      val x6745 = ScalarFIFO(size=1,name="x6745").wtPort(bus_1619_s)
-      val x6669 = ScalarBuffer(name="x6669").wtPort(x6669_x6674_s)
-      Stage(operands=List(CU.load(x6742), CU.load(x6745)), op=FixAdd, results=List(x6747))
-      Stage(operands=List(x6747, Const(64)), op=FixMod, results=List(x6748))
-      Stage(operands=List(Const(64), x6748), op=FixSub, results=List(x6749, CU.scalarOut(bus_1622_s)))
-      Stage(operands=List(x6749, Const(4)), op=FixDiv, results=List(x6751))
-      Stage(operands=List(CU.load(x6669), CU.load(x6750)), op=FixAdd, results=List(x6753))
-      Stage(operands=List(x6753, x6751), op=FixAdd, results=List(CU.scalarOut(x6738_b7342_x6765_b7350_s)))
+    val x6719 = MemoryController(name="x6719",parent=x6749,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6687_b7679 = ScalarFIFO(size=1,name="size").wtPort(x6687_b7679_x6715_b7687_s)
+      val x6687_b7678 = ScalarFIFO(size=1,name="offset").wtPort(x6687_b7678_x6715_b7686_s)
+      CU.newSout("data", x6689_x6719_data_s)
     }
-    val x6766_2 = Pipeline(name="x6766_2",parent=x6766) { implicit CU => 
+    val x6748 = Sequential(name="x6748",parent=x6749) { implicit CU => 
+      val x6748_unit = CounterChain(name = "x6748_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x6747_0 = Pipeline(name="x6747_0",parent=x6748) { implicit CU => 
+      val x6722 = ScalarBuffer(name="x6722").wtPort(x6688_b7680_x6717_b7688_s)
+      val x6721 = ScalarBuffer(name="x6721").wtPort(x6688_b7682_x6717_b7690_s)
+      val x6720 = ScalarBuffer(name="x6720").wtPort(x6688_b7681_x6717_b7689_s)
+      val ctr7 = Counter(min=Const(0), max=x6722.readPort, step=Const(1), par=16) // Counter
+      val x6734 = CounterChain(name = "x6734", ctr7).iter(1)
+      Stage(operands=List(CU.load(x6720), CU.ctr(x6734(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6734(0)), CU.load(x6721)), op=FixLt, results=List())
+    }
+    val x6812 = StreamController(name="x6812",parent=x6985) { implicit CU => 
+      val x6812_unit = CounterChain(name = "x6812_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x6781 = StreamController(name="x6781",parent=x6812) { implicit CU => 
+      val x6781_unit = CounterChain(name = "x6781_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x6781_0 = Pipeline(name="x6781_0",parent=x6781) { implicit CU => 
+      val x6756 = CU.temp(None)
       val x6755 = CU.temp(None)
-      val x6746 = CU.temp(None)
-      val x6745 = ScalarFIFO(size=1,name="x6745").wtPort(bus_1619_s)
-      val x6749 = ScalarFIFO(size=1,name="x6749").wtPort(bus_1622_s)
-      val x6742 = ScalarFIFO(size=1,name="x6742").wtPort(bus_1613_s)
-      val x6743 = ScalarFIFO(size=1,name="x6743").wtPort(bus_1615_s)
-      val x6758 = ScalarBuffer(name="x6758").wtPort(values_dram_da)
-      Stage(operands=List(CU.load(x6745), CU.load(x6743)), op=FixAdd, results=List(x6755))
-      Stage(operands=List(x6755, CU.load(x6749)), op=FixAdd, results=List(CU.scalarOut(x6737_b7341_x6763_b7349_s)))
-      Stage(operands=List(CU.load(x6742), CU.load(x6743)), op=FixSub, results=List(x6746))
-      Stage(operands=List(x6746, CU.load(x6758)), op=FixAdd, results=List(CU.scalarOut(x6737_b7340_x6763_b7348_s)))
+      val x6779_x6765 = CU.temp(None)
+      val x6528 = ScalarBuffer(name="x6528").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6680 = ScalarBuffer(name="x6680").wtPort(x6680_x6685_s)
+      Stage(operands=List(CU.load(x6528), Const(2)), op=FixSla, results=List(x6755, CU.scalarOut(bus_1525_s)))
+      Stage(operands=List(x6755, Const(64)), op=FixMod, results=List(x6756, CU.scalarOut(bus_1527_s)))
+      Stage(operands=List(x6756, Const(2)), op=FixSra, results=List(x6779_x6765, CU.scalarOut(bus_1528_s), CU.scalarOut(x6751_b7694_x6780_b7702_s)))
+      Stage(operands=List(x6779_x6765, CU.load(x6680)), op=FixAdd, results=List(CU.scalarOut(x6751_b7695_x6780_b7703_s)))
+      Stage(operands=List(CU.load(x6680), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1530_s)))
     }
-    val x6767 = MemoryController(name="x6767",parent=x6797,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6737_b7341 = ScalarFIFO(size=1,name="size").wtPort(x6737_b7341_x6763_b7349_s)
-      val x6737_b7340 = ScalarFIFO(size=1,name="offset").wtPort(x6737_b7340_x6763_b7348_s)
-      CU.newVout("data", x6739_x6767_data_v)
+    val x6781_1 = Pipeline(name="x6781_1",parent=x6781) { implicit CU => 
+      val x6761 = CU.temp(None)
+      val x6764 = CU.temp(None)
+      val x6762 = CU.temp(None)
+      val x6760 = CU.temp(None)
+      val x6763 = CU.temp(None)
+      val x6755 = ScalarFIFO(size=1,name="x6755").wtPort(bus_1525_s)
+      val x6758 = ScalarFIFO(size=1,name="x6758").wtPort(bus_1530_s)
+      Stage(operands=List(CU.load(x6755), CU.load(x6758)), op=FixAdd, results=List(x6760))
+      Stage(operands=List(x6760, Const(64)), op=FixMod, results=List(x6761))
+      Stage(operands=List(x6761, Const(0)), op=FixEql, results=List(x6762))
+      Stage(operands=List(Const(64), x6761), op=FixSub, results=List(x6763))
+      Stage(operands=List(x6762, Const(0), x6763), op=Mux, results=List(x6764, CU.scalarOut(bus_1536_s)))
+      Stage(operands=List(x6764, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1537_s)))
     }
-    val x6796 = Sequential(name="x6796",parent=x6797) { implicit CU => 
-      val x6796_unit = CounterChain(name = "x6796_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6781_2 = Pipeline(name="x6781_2",parent=x6781) { implicit CU => 
+      val x6768 = CU.temp(None)
+      val x6770 = CU.temp(None)
+      val x6758 = ScalarFIFO(size=1,name="x6758").wtPort(bus_1530_s)
+      val x6766 = ScalarFIFO(size=1,name="x6766").wtPort(bus_1537_s)
+      val x6755 = ScalarFIFO(size=1,name="x6755").wtPort(bus_1525_s)
+      val x6764 = ScalarFIFO(size=1,name="x6764").wtPort(bus_1536_s)
+      val x6680 = ScalarBuffer(name="x6680").wtPort(x6680_x6685_s)
+      val x6756 = ScalarFIFO(size=1,name="x6756").wtPort(bus_1527_s)
+      val x6765 = ScalarFIFO(size=1,name="x6765").wtPort(bus_1528_s)
+      Stage(operands=List(CU.load(x6680), CU.load(x6765)), op=FixAdd, results=List(x6768))
+      Stage(operands=List(x6768, CU.load(x6766)), op=FixAdd, results=List(CU.scalarOut(x6751_b7693_x6780_b7701_s)))
+      Stage(operands=List(CU.load(x6758), CU.load(x6756)), op=FixAdd, results=List(x6770))
+      Stage(operands=List(x6770, CU.load(x6764)), op=FixAdd, results=List(CU.scalarOut(x6750_b7692_x6778_b7700_s)))
+      Stage(operands=List(CU.load(x6755), CU.load(x6756)), op=FixSub, results=List(CU.scalarOut(bus_1542_s)))
     }
-    val x6779_0 = Pipeline(name="x6779_0",parent=x6796) { implicit CU => 
-      val x6738_b7344 = ScalarFIFO(size=16,name="x6738_b7344").wtPort(x6738_b7344_x6765_b7352_s)
-      val x6738_b7343 = ScalarFIFO(size=16,name="x6738_b7343").wtPort(x6738_b7343_x6765_b7351_s)
-      val x6738_b7342 = ScalarFIFO(size=16,name="x6738_b7342").wtPort(x6738_b7342_x6765_b7350_s)
-      val x6779_unit = CounterChain(name = "x6779_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6738_b7343)), op=Bypass, results=List(CU.scalarOut(x6768_x6774_s)))
-      Stage(operands=List(CU.load(x6738_b7344)), op=Bypass, results=List(CU.scalarOut(x6769_x6776_s)))
-      Stage(operands=List(CU.load(x6738_b7342)), op=Bypass, results=List(CU.scalarOut(x6770_x6778_s)))
+    val x6781_3 = Pipeline(name="x6781_3",parent=x6781) { implicit CU => 
+      val x6773 = ScalarBuffer(name="x6773").wtPort(values_dram_da)
+      val x6759 = ScalarFIFO(size=1,name="x6759").wtPort(bus_1542_s)
+      Stage(operands=List(CU.load(x6759), CU.load(x6773)), op=FixAdd, results=List(CU.scalarOut(x6750_b7691_x6778_b7699_s)))
     }
-    val x6795_0 = Pipeline(name="x6795_0",parent=x6796) { implicit CU => 
-      val x6770 = ScalarBuffer(name="x6770").wtPort(x6770_x6778_s)
-      val x6739 = VectorFIFO(size=1,name="x6739").wtPort(x6739_x6767_data_v)
-      val x6769 = ScalarBuffer(name="x6769").wtPort(x6769_x6776_s)
-      val x6768 = ScalarBuffer(name="x6768").wtPort(x6768_x6774_s)
-      val ctr17 = Counter(min=Const(0), max=x6770.readPort, step=Const(1), par=16) // Counter
-      val x6782 = CounterChain(name = "x6782", ctr17).iter(1)
-      Stage(operands=List(CU.load(x6768), CU.ctr(x6782(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6782(0)), CU.load(x6769)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6739)), op=Bypass, results=List(CU.scalarOut(x6646_x6794_s)))
+    val x6782 = MemoryController(name="x6782",parent=x6812,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x6750_b7691 = ScalarFIFO(size=1,name="offset").wtPort(x6750_b7691_x6778_b7699_s)
+      val x6750_b7692 = ScalarFIFO(size=1,name="size").wtPort(x6750_b7692_x6778_b7700_s)
+      CU.newSout("data", x6752_x6782_data_s)
     }
-    val x6805_0 = Pipeline(name="x6805_0",parent=x7079) { implicit CU => 
-      val x6653 = ScalarBuffer(name="x6653").wtPort(x6653_x6666_s)
-      val x6651 = ScalarBuffer(name="x6651").wtPort(x6651_x6665_s)
-      val x6805_unit = CounterChain(name = "x6805_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6653), CU.load(x6651)), op=FixSub, results=List(CU.scalarOut(x6799_x6804_s)))
+    val x6811 = Sequential(name="x6811",parent=x6812) { implicit CU => 
+      val x6811_unit = CounterChain(name = "x6811_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6866 = StreamController(name="x6866",parent=x7079) { implicit CU => 
-      val x6866_unit = CounterChain(name = "x6866_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6810_0 = Pipeline(name="x6810_0",parent=x6811) { implicit CU => 
+      val x6785 = ScalarBuffer(name="x6785").wtPort(x6751_b7693_x6780_b7701_s)
+      val x6784 = ScalarBuffer(name="x6784").wtPort(x6751_b7695_x6780_b7703_s)
+      val x6783 = ScalarBuffer(name="x6783").wtPort(x6751_b7694_x6780_b7702_s)
+      val ctr8 = Counter(min=Const(0), max=x6785.readPort, step=Const(1), par=16) // Counter
+      val x6797 = CounterChain(name = "x6797", ctr8).iter(1)
+      Stage(operands=List(CU.load(x6783), CU.ctr(x6797(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x6797(0)), CU.load(x6784)), op=FixLt, results=List())
     }
-    val x6835 = StreamController(name="x6835",parent=x6866) { implicit CU => 
-      val x6835_unit = CounterChain(name = "x6835_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6822_0 = Pipeline(name="x6822_0",parent=x6985) { implicit CU => 
+      val x6527 = ScalarBuffer(name="x6527").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6529 = ScalarBuffer(name="x6529").wtPort(x6371_x6371_dsp0_bank0_s)
+      val x6822_unit = CounterChain(name = "x6822_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6529), CU.load(x6527)), op=FixSub, results=List(CU.scalarOut(x6815_x6821_s)))
     }
-    val x6835_0 = Pipeline(name="x6835_0",parent=x6835) { implicit CU => 
-      val x6811 = CU.temp(None)
-      val x6819 = CU.temp(None)
-      val x6812 = CU.temp(None)
-      val x6799 = ScalarBuffer(name="x6799").wtPort(x6799_x6804_s)
-      val x6651 = ScalarBuffer(name="x6651").wtPort(x6651_x6665_s)
-      Stage(operands=List(CU.load(x6651), Const(2)), op=FixSla, results=List(x6811, CU.scalarOut(bus_1642_s)))
-      Stage(operands=List(x6811, Const(64)), op=FixMod, results=List(x6812, CU.scalarOut(bus_1644_s)))
-      Stage(operands=List(x6812, Const(4)), op=FixDiv, results=List(x6819, CU.scalarOut(bus_1646_s), CU.scalarOut(x6807_b7356_x6834_b7364_s)))
-      Stage(operands=List(x6819, CU.load(x6799)), op=FixAdd, results=List(CU.scalarOut(x6807_b7357_x6834_b7365_s)))
-      Stage(operands=List(CU.load(x6799), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1648_s)))
+    val x6828_0 = Pipeline(name="x6828_0",parent=x6985) { implicit CU => 
+      val x6528 = ScalarBuffer(name="x6528").wtPort(x6371_x6371_dsp1_bank0_s)
+      val x6530 = ScalarBuffer(name="x6530").wtPort(x6371_x6371_dsp0_bank0_s)
+      val x6828_unit = CounterChain(name = "x6828_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6530), CU.load(x6528)), op=FixSub, results=List(CU.scalarOut(x6816_x6827_s)))
     }
-    val x6835_1 = Pipeline(name="x6835_1",parent=x6835) { implicit CU => 
-      val x6817 = CU.temp(None)
-      val x6818 = CU.temp(None)
-      val x6820 = CU.temp(None)
-      val x6822 = CU.temp(None)
-      val x6816 = CU.temp(None)
-      val x6799 = ScalarBuffer(name="x6799").wtPort(x6799_x6804_s)
-      val x6814 = ScalarFIFO(size=1,name="x6814").wtPort(bus_1648_s)
-      val x6811 = ScalarFIFO(size=1,name="x6811").wtPort(bus_1642_s)
-      val x6819 = ScalarFIFO(size=1,name="x6819").wtPort(bus_1646_s)
-      Stage(operands=List(CU.load(x6811), CU.load(x6814)), op=FixAdd, results=List(x6816))
-      Stage(operands=List(x6816, Const(64)), op=FixMod, results=List(x6817))
-      Stage(operands=List(Const(64), x6817), op=FixSub, results=List(x6818, CU.scalarOut(bus_1651_s)))
-      Stage(operands=List(x6818, Const(4)), op=FixDiv, results=List(x6820))
-      Stage(operands=List(CU.load(x6799), CU.load(x6819)), op=FixAdd, results=List(x6822))
-      Stage(operands=List(x6822, x6820), op=FixAdd, results=List(CU.scalarOut(x6807_b7355_x6834_b7363_s)))
+    val x6842 = StreamController(name="x6842",parent=x6985) { implicit CU => 
+      val x6842_unit = CounterChain(name = "x6842_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6835_2 = Pipeline(name="x6835_2",parent=x6835) { implicit CU => 
-      val x6824 = CU.temp(None)
-      val x6815 = CU.temp(None)
-      val x6811 = ScalarFIFO(size=1,name="x6811").wtPort(bus_1642_s)
-      val x6818 = ScalarFIFO(size=1,name="x6818").wtPort(bus_1651_s)
-      val x6812 = ScalarFIFO(size=1,name="x6812").wtPort(bus_1644_s)
-      val x6814 = ScalarFIFO(size=1,name="x6814").wtPort(bus_1648_s)
-      val x6827 = ScalarBuffer(name="x6827").wtPort(cols_dram_da)
-      Stage(operands=List(CU.load(x6814), CU.load(x6812)), op=FixAdd, results=List(x6824))
-      Stage(operands=List(x6824, CU.load(x6818)), op=FixAdd, results=List(CU.scalarOut(x6806_b7354_x6832_b7362_s)))
-      Stage(operands=List(CU.load(x6811), CU.load(x6812)), op=FixSub, results=List(x6815))
-      Stage(operands=List(x6815, CU.load(x6827)), op=FixAdd, results=List(CU.scalarOut(x6806_b7353_x6832_b7361_s)))
+    val x6842_0 = Pipeline(name="x6842_0",parent=x6842) { implicit CU => 
+      val x6834 = CU.temp(None)
+      val x6835 = CU.temp(None)
+      val x6836 = CU.temp(None)
+      val x6837 = CU.temp(None)
+      val x6815 = ScalarBuffer(name="x6815").wtPort(x6815_x6821_s)
+      Stage(operands=List(CU.load(x6815), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1558_s)))
+      Stage(operands=List(CU.load(x6815), Const(16)), op=FixMod, results=List(x6834))
+      Stage(operands=List(x6834, Const(0)), op=FixEql, results=List(x6835))
+      Stage(operands=List(CU.load(x6815), Const(16)), op=FixAdd, results=List(x6836))
+      Stage(operands=List(x6836, x6834), op=FixSub, results=List(x6837))
+      Stage(operands=List(x6835, CU.load(x6815), x6837), op=Mux, results=List(CU.scalarOut(bus_1564_s)))
     }
-    val x6836 = MemoryController(name="x6836",parent=x6866,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6806_b7353 = ScalarFIFO(size=1,name="offset").wtPort(x6806_b7353_x6832_b7361_s)
-      val x6806_b7354 = ScalarFIFO(size=1,name="size").wtPort(x6806_b7354_x6832_b7362_s)
-      CU.newVout("data", x6808_x6836_data_v)
+    val x6842_1 = Pipeline(name="x6842_1",parent=x6842) { implicit CU => 
+      val x6838 = ScalarFIFO(size=1,name="x6838").wtPort(bus_1564_s)
+      val x6833 = ScalarFIFO(size=1,name="x6833").wtPort(bus_1558_s)
+      Stage(operands=List(CU.load(x6833), Const(16), CU.load(x6838)), op=Mux, results=List(CU.scalarOut(x6830_x6841_s)))
     }
-    val x6865 = Sequential(name="x6865",parent=x6866) { implicit CU => 
-      val x6865_unit = CounterChain(name = "x6865_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6853 = StreamController(name="x6853",parent=x6985) { implicit CU => 
+      val x6853_unit = CounterChain(name = "x6853_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6848_0 = Pipeline(name="x6848_0",parent=x6865) { implicit CU => 
-      val x6807_b7356 = ScalarFIFO(size=16,name="x6807_b7356").wtPort(x6807_b7356_x6834_b7364_s)
-      val x6807_b7355 = ScalarFIFO(size=16,name="x6807_b7355").wtPort(x6807_b7355_x6834_b7363_s)
-      val x6807_b7357 = ScalarFIFO(size=16,name="x6807_b7357").wtPort(x6807_b7357_x6834_b7365_s)
-      val x6848_unit = CounterChain(name = "x6848_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6807_b7356)), op=Bypass, results=List(CU.scalarOut(x6837_x6843_s)))
-      Stage(operands=List(CU.load(x6807_b7357)), op=Bypass, results=List(CU.scalarOut(x6838_x6845_s)))
-      Stage(operands=List(CU.load(x6807_b7355)), op=Bypass, results=List(CU.scalarOut(x6839_x6847_s)))
+    val x6853_0 = Pipeline(name="x6853_0",parent=x6853) { implicit CU => 
+      val x6845 = CU.temp(None)
+      val x6846 = CU.temp(None)
+      val x6848 = CU.temp(None)
+      val x6847 = CU.temp(None)
+      val x6816 = ScalarBuffer(name="x6816").wtPort(x6816_x6827_s)
+      Stage(operands=List(CU.load(x6816), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1568_s)))
+      Stage(operands=List(CU.load(x6816), Const(16)), op=FixMod, results=List(x6845))
+      Stage(operands=List(x6845, Const(0)), op=FixEql, results=List(x6846))
+      Stage(operands=List(CU.load(x6816), Const(16)), op=FixAdd, results=List(x6847))
+      Stage(operands=List(x6847, x6845), op=FixSub, results=List(x6848))
+      Stage(operands=List(x6846, CU.load(x6816), x6848), op=Mux, results=List(CU.scalarOut(bus_1574_s)))
     }
-    val x6864_0 = Pipeline(name="x6864_0",parent=x6865) { implicit CU => 
-      val x6839 = ScalarBuffer(name="x6839").wtPort(x6839_x6847_s)
-      val x6808 = VectorFIFO(size=1,name="x6808").wtPort(x6808_x6836_data_v)
-      val x6838 = ScalarBuffer(name="x6838").wtPort(x6838_x6845_s)
-      val x6837 = ScalarBuffer(name="x6837").wtPort(x6837_x6843_s)
-      val ctr18 = Counter(min=Const(0), max=x6839.readPort, step=Const(1), par=16) // Counter
-      val x6851 = CounterChain(name = "x6851", ctr18).iter(1)
-      Stage(operands=List(CU.load(x6837), CU.ctr(x6851(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6851(0)), CU.load(x6838)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6808)), op=Bypass, results=List(CU.scalarOut(x6645_x6863_s)))
+    val x6853_1 = Pipeline(name="x6853_1",parent=x6853) { implicit CU => 
+      val x6849 = ScalarFIFO(size=1,name="x6849").wtPort(bus_1574_s)
+      val x6844 = ScalarFIFO(size=1,name="x6844").wtPort(bus_1568_s)
+      Stage(operands=List(CU.load(x6844), Const(16), CU.load(x6849)), op=Mux, results=List(CU.scalarOut(x6831_x6852_s)))
     }
-    val x6927 = StreamController(name="x6927",parent=x7079) { implicit CU => 
-      val x6927_unit = CounterChain(name = "x6927_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6887 = StreamController(name="x6887",parent=x6985) { implicit CU => 
+      val x6887_unit = CounterChain(name = "x6887_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6896 = StreamController(name="x6896",parent=x6927) { implicit CU => 
-      val x6896_unit = CounterChain(name = "x6896_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6873_0 = Pipeline(name="x6873_0",parent=x6887) { implicit CU => 
+      val x6868 = CU.temp(None)
+      val x6870 = CU.temp(None)
+      val x6861 = CU.temp(None)
+      val x6866 = ScalarFIFO(size=1,name="x6866").wtPort(x6521_x6521_dsp0_bank0_s)
+      val x6830 = ScalarBuffer(name="x6830").wtPort(x6830_x6841_s)
+      val x6815 = ScalarBuffer(name="x6815").wtPort(x6815_x6821_s)
+      val x6862 = ScalarBuffer(name="x6862").wtPort(vec_dram_da)
+      val ctr9 = Counter(min=Const(0), max=x6830.readPort, step=Const(1), par=1) // Counter
+      val x6859 = CounterChain(name = "x6859", ctr9).iter(1)
+      Stage(operands=List(CU.load(x6815), CU.ctr(x6859(0))), op=FixLeq, results=List(x6861))
+      Stage(operands=List(CU.load(x6866), Const(2)), op=FixSla, results=List(x6868))
+      Stage(operands=List(x6868, CU.load(x6862)), op=FixAdd, results=List(x6870))
+      Stage(operands=List(x6861, CU.load(x6862), x6870), op=Mux, results=List(CU.scalarOut(x6855_x6872_s)))
     }
-    val x6896_0 = Pipeline(name="x6896_0",parent=x6896) { implicit CU => 
-      val x6873 = CU.temp(None)
-      val x6880 = CU.temp(None)
-      val x6872 = CU.temp(None)
-      val x6799 = ScalarBuffer(name="x6799").wtPort(x6799_x6804_s)
-      val x6651 = ScalarBuffer(name="x6651").wtPort(x6651_x6665_s)
-      Stage(operands=List(CU.load(x6651), Const(2)), op=FixSla, results=List(x6872, CU.scalarOut(bus_1669_s)))
-      Stage(operands=List(x6872, Const(64)), op=FixMod, results=List(x6873, CU.scalarOut(bus_1671_s)))
-      Stage(operands=List(x6873, Const(4)), op=FixDiv, results=List(x6880, CU.scalarOut(bus_1673_s), CU.scalarOut(x6868_b7369_x6895_b7377_s)))
-      Stage(operands=List(x6880, CU.load(x6799)), op=FixAdd, results=List(CU.scalarOut(x6868_b7370_x6895_b7378_s)))
-      Stage(operands=List(CU.load(x6799), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1675_s)))
+    val x6874 = MemoryController(name="x6874",parent=x6887,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
+      val x6855 = ScalarFIFO(size=1,name="addr").wtPort(x6855_x6872_s)
+      CU.newSout("data", x6856_x6874_data_s)
     }
-    val x6896_1 = Pipeline(name="x6896_1",parent=x6896) { implicit CU => 
-      val x6883 = CU.temp(None)
-      val x6881 = CU.temp(None)
-      val x6878 = CU.temp(None)
-      val x6877 = CU.temp(None)
-      val x6879 = CU.temp(None)
-      val x6872 = ScalarFIFO(size=1,name="x6872").wtPort(bus_1669_s)
-      val x6875 = ScalarFIFO(size=1,name="x6875").wtPort(bus_1675_s)
-      val x6799 = ScalarBuffer(name="x6799").wtPort(x6799_x6804_s)
-      val x6880 = ScalarFIFO(size=1,name="x6880").wtPort(bus_1673_s)
-      Stage(operands=List(CU.load(x6872), CU.load(x6875)), op=FixAdd, results=List(x6877))
-      Stage(operands=List(x6877, Const(64)), op=FixMod, results=List(x6878))
-      Stage(operands=List(Const(64), x6878), op=FixSub, results=List(x6879, CU.scalarOut(bus_1678_s)))
-      Stage(operands=List(x6879, Const(4)), op=FixDiv, results=List(x6881))
-      Stage(operands=List(CU.load(x6799), CU.load(x6880)), op=FixAdd, results=List(x6883))
-      Stage(operands=List(x6883, x6881), op=FixAdd, results=List(CU.scalarOut(x6868_b7368_x6895_b7376_s)))
+    val x6886 = Pipeline(name="x6886",parent=x6887) { implicit CU => 
+      val x6830 = ScalarBuffer(name="x6830").wtPort(x6830_x6841_s)
+      val x6815 = ScalarBuffer(name="x6815").wtPort(x6815_x6821_s)
+      val ctr10 = Counter(min=Const(0), max=x6830.readPort, step=Const(1), par=1) // Counter
+      val x6877 = CounterChain(name = "x6877", ctr10).iter(1)
     }
-    val x6896_2 = Pipeline(name="x6896_2",parent=x6896) { implicit CU => 
-      val x6876 = CU.temp(None)
-      val x6885 = CU.temp(None)
-      val x6872 = ScalarFIFO(size=1,name="x6872").wtPort(bus_1669_s)
-      val x6879 = ScalarFIFO(size=1,name="x6879").wtPort(bus_1678_s)
-      val x6875 = ScalarFIFO(size=1,name="x6875").wtPort(bus_1675_s)
-      val x6873 = ScalarFIFO(size=1,name="x6873").wtPort(bus_1671_s)
-      val x6888 = ScalarBuffer(name="x6888").wtPort(values_dram_da)
-      Stage(operands=List(CU.load(x6875), CU.load(x6873)), op=FixAdd, results=List(x6885))
-      Stage(operands=List(x6885, CU.load(x6879)), op=FixAdd, results=List(CU.scalarOut(x6867_b7367_x6893_b7375_s)))
-      Stage(operands=List(CU.load(x6872), CU.load(x6873)), op=FixSub, results=List(x6876))
-      Stage(operands=List(x6876, CU.load(x6888)), op=FixAdd, results=List(CU.scalarOut(x6867_b7366_x6893_b7374_s)))
+    val x6920 = StreamController(name="x6920",parent=x6985) { implicit CU => 
+      val x6920_unit = CounterChain(name = "x6920_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6897 = MemoryController(name="x6897",parent=x6927,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
-      val x6867_b7367 = ScalarFIFO(size=1,name="size").wtPort(x6867_b7367_x6893_b7375_s)
-      val x6867_b7366 = ScalarFIFO(size=1,name="offset").wtPort(x6867_b7366_x6893_b7374_s)
-      CU.newVout("data", x6869_x6897_data_v)
+    val x6906_0 = Pipeline(name="x6906_0",parent=x6920) { implicit CU => 
+      val x6901 = CU.temp(None)
+      val x6903 = CU.temp(None)
+      val x6894 = CU.temp(None)
+      val x6895 = ScalarBuffer(name="x6895").wtPort(vec_dram_da)
+      val x6831 = ScalarBuffer(name="x6831").wtPort(x6831_x6852_s)
+      val x6816 = ScalarBuffer(name="x6816").wtPort(x6816_x6827_s)
+      val x6899 = ScalarFIFO(size=1,name="x6899").wtPort(x6522_x6522_dsp0_bank0_s)
+      val ctr11 = Counter(min=Const(0), max=x6831.readPort, step=Const(1), par=1) // Counter
+      val x6892 = CounterChain(name = "x6892", ctr11).iter(1)
+      Stage(operands=List(CU.load(x6816), CU.ctr(x6892(0))), op=FixLeq, results=List(x6894))
+      Stage(operands=List(CU.load(x6899), Const(2)), op=FixSla, results=List(x6901))
+      Stage(operands=List(x6901, CU.load(x6895)), op=FixAdd, results=List(x6903))
+      Stage(operands=List(x6894, CU.load(x6895), x6903), op=Mux, results=List(CU.scalarOut(x6888_x6905_s)))
     }
-    val x6926 = Sequential(name="x6926",parent=x6927) { implicit CU => 
-      val x6926_unit = CounterChain(name = "x6926_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6907 = MemoryController(name="x6907",parent=x6920,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
+      val x6888 = ScalarFIFO(size=1,name="addr").wtPort(x6888_x6905_s)
+      CU.newSout("data", x6889_x6907_data_s)
     }
-    val x6909_0 = Pipeline(name="x6909_0",parent=x6926) { implicit CU => 
-      val x6868_b7368 = ScalarFIFO(size=16,name="x6868_b7368").wtPort(x6868_b7368_x6895_b7376_s)
-      val x6868_b7370 = ScalarFIFO(size=16,name="x6868_b7370").wtPort(x6868_b7370_x6895_b7378_s)
-      val x6868_b7369 = ScalarFIFO(size=16,name="x6868_b7369").wtPort(x6868_b7369_x6895_b7377_s)
-      val x6909_unit = CounterChain(name = "x6909_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6868_b7369)), op=Bypass, results=List(CU.scalarOut(x6898_x6904_s)))
-      Stage(operands=List(CU.load(x6868_b7370)), op=Bypass, results=List(CU.scalarOut(x6899_x6906_s)))
-      Stage(operands=List(CU.load(x6868_b7368)), op=Bypass, results=List(CU.scalarOut(x6900_x6908_s)))
+    val x6919 = Pipeline(name="x6919",parent=x6920) { implicit CU => 
+      val x6831 = ScalarBuffer(name="x6831").wtPort(x6831_x6852_s)
+      val x6816 = ScalarBuffer(name="x6816").wtPort(x6816_x6827_s)
+      val ctr12 = Counter(min=Const(0), max=x6831.readPort, step=Const(1), par=1) // Counter
+      val x6910 = CounterChain(name = "x6910", ctr12).iter(1)
     }
-    val x6925_0 = Pipeline(name="x6925_0",parent=x6926) { implicit CU => 
-      val x6869 = VectorFIFO(size=1,name="x6869").wtPort(x6869_x6897_data_v)
-      val x6898 = ScalarBuffer(name="x6898").wtPort(x6898_x6904_s)
-      val x6900 = ScalarBuffer(name="x6900").wtPort(x6900_x6908_s)
-      val x6899 = ScalarBuffer(name="x6899").wtPort(x6899_x6906_s)
-      val ctr19 = Counter(min=Const(0), max=x6900.readPort, step=Const(1), par=16) // Counter
-      val x6912 = CounterChain(name = "x6912", ctr19).iter(1)
-      Stage(operands=List(CU.load(x6898), CU.ctr(x6912(0))), op=FixLeq, results=List())
-      Stage(operands=List(CU.ctr(x6912(0)), CU.load(x6899)), op=FixLt, results=List())
-      Stage(operands=List(CU.load(x6869)), op=Bypass, results=List(CU.scalarOut(x6647_x6924_s)))
+    val x6959_0 = Pipeline(name="x6959_0",parent=x6985) { implicit CU => 
+      val x6815 = ScalarBuffer(name="x6815").wtPort(x6815_x6821_s)
+      val x6951 = ScalarFIFO(size=1,name="x6951").wtPort(x6525_x6525_dsp0_bank0_s)
+      val x6950 = ScalarFIFO(size=1,name="x6950").wtPort(x6523_x6523_dsp0_bank0_s)
+      val ctr13 = Counter(min=Const(0), max=x6815.readPort, step=Const(1), par=16) // Counter
+      val x6947 = CounterChain(name = "x6947", ctr13).iter(1)
+      Stage(operands=List(CU.load(x6950), CU.load(x6951)), op=FixMul, results=List(CU.reduce))
+      val (_, rr1606) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x6959_0")
+      Stage(operands=List(rr1606), op=Bypass, results=List(CU.scalarOut(x6926_x6958_s)))
     }
-    val x6937_0 = Pipeline(name="x6937_0",parent=x7079) { implicit CU => 
-      val x6650 = ScalarBuffer(name="x6650").wtPort(x6650_x6658_s)
-      val x6652 = ScalarBuffer(name="x6652").wtPort(x6652_x6659_s)
-      val x6937_unit = CounterChain(name = "x6937_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6652), CU.load(x6650)), op=FixSub, results=List(CU.scalarOut(x6930_x6936_s)))
+    val x6974_0 = Pipeline(name="x6974_0",parent=x6985) { implicit CU => 
+      val x6966 = ScalarFIFO(size=1,name="x6966").wtPort(x6526_x6526_dsp0_bank0_s)
+      val x6816 = ScalarBuffer(name="x6816").wtPort(x6816_x6827_s)
+      val x6965 = ScalarFIFO(size=1,name="x6965").wtPort(x6524_x6524_dsp0_bank0_s)
+      val ctr14 = Counter(min=Const(0), max=x6816.readPort, step=Const(1), par=16) // Counter
+      val x6962 = CounterChain(name = "x6962", ctr14).iter(1)
+      Stage(operands=List(CU.load(x6965), CU.load(x6966)), op=FixMul, results=List(CU.reduce))
+      val (_, rr1613) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x6974_0")
+      Stage(operands=List(rr1613), op=Bypass, results=List(CU.scalarOut(x6927_x6973_s)))
     }
-    val x6943_0 = Pipeline(name="x6943_0",parent=x7079) { implicit CU => 
-      val x6653 = ScalarBuffer(name="x6653").wtPort(x6653_x6666_s)
-      val x6651 = ScalarBuffer(name="x6651").wtPort(x6651_x6665_s)
-      val x6943_unit = CounterChain(name = "x6943_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x6653), CU.load(x6651)), op=FixSub, results=List(CU.scalarOut(x6931_x6942_s)))
+    val x7452 = MetaPipeline(name="x7452",parent=x7588) { implicit CU => 
+      val ctr15 = Counter(min=Const(0), max=Const(494), step=Const(1), par=2) // Counter
+      val x6987 = CounterChain(name = "x6987", ctr15).iter(247)
     }
-    val x6957 = StreamController(name="x6957",parent=x7079) { implicit CU => 
-      val x6957_unit = CounterChain(name = "x6957_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6988_dsp0_bank0 = MemoryPipeline(name="x6988_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7053 = ScalarBuffer(name="x7053").wtPort(x7021_b7707_x7050_b7715_s)
+      val x7079 = ScalarFIFO(size=1,name="x7079").wtPort(x7022_x7052_data_s)
+      val x7067 = CounterChain.copy("x7080_0", "x7067")
+      val x7326 = CounterChain.copy("x7340_0", "x7326")
+      val x6988 = SRAM(size=494,name="x6988",banking = Strided(1)).wtPort(x7079.readPort).rdPort(x6988_x6988_dsp0_bank0_s).rdAddr(x7326(0))
+      WAStage(operands=List(CU.ctr(x7067(0)), CU.load(x7053)), op=FixSub, results=List(x6988.writeAddr))
     }
-    val x6957_0 = Pipeline(name="x6957_0",parent=x6957) { implicit CU => 
-      val x6950 = CU.temp(None)
-      val x6949 = CU.temp(None)
-      val x6951 = CU.temp(None)
-      val x6952 = CU.temp(None)
-      val x6930 = ScalarBuffer(name="x6930").wtPort(x6930_x6936_s)
-      Stage(operands=List(CU.load(x6930), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1700_s)))
-      Stage(operands=List(CU.load(x6930), Const(16)), op=FixMod, results=List(x6949))
-      Stage(operands=List(x6949, Const(0)), op=FixEql, results=List(x6950))
-      Stage(operands=List(CU.load(x6930), Const(16)), op=FixAdd, results=List(x6951))
-      Stage(operands=List(x6951, x6949), op=FixSub, results=List(x6952))
-      Stage(operands=List(x6950, CU.load(x6930), x6952), op=Mux, results=List(CU.scalarOut(bus_1706_s)))
+    val x6989_dsp0_bank0 = MemoryPipeline(name="x6989_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7187 = ScalarBuffer(name="x7187").wtPort(x7155_b7733_x7184_b7741_s)
+      val x7213 = ScalarFIFO(size=1,name="x7213").wtPort(x7156_x7186_data_s)
+      val x7201 = CounterChain.copy("x7214_0", "x7201")
+      val x7359 = CounterChain.copy("x7373_0", "x7359")
+      val x6989 = SRAM(size=494,name="x6989",banking = Strided(1)).wtPort(x7213.readPort).rdPort(x6989_x6989_dsp0_bank0_s).rdAddr(x7359(0))
+      WAStage(operands=List(CU.ctr(x7201(0)), CU.load(x7187)), op=FixSub, results=List(x6989.writeAddr))
     }
-    val x6957_1 = Pipeline(name="x6957_1",parent=x6957) { implicit CU => 
-      val x6953 = ScalarFIFO(size=1,name="x6953").wtPort(bus_1706_s)
-      val x6948 = ScalarFIFO(size=1,name="x6948").wtPort(bus_1700_s)
-      Stage(operands=List(CU.load(x6948), Const(16), CU.load(x6953)), op=Mux, results=List(CU.scalarOut(x6945_x6956_s)))
+    val x6990_dsp0_bank0 = MemoryPipeline(name="x6990_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7116 = ScalarBuffer(name="x7116").wtPort(x7084_b7720_x7113_b7728_s)
+      val x7142 = ScalarFIFO(size=1,name="x7142").wtPort(x7085_x7115_data_s)
+      val x7130 = CounterChain.copy("x7143_0", "x7130")
+      val x7414 = CounterChain.copy("x7426_0", "x7414")
+      val x6990 = SRAM(size=494,name="x6990",banking = Strided(1)).wtPort(x7142.readPort).rdPort(x6990_x6990_dsp0_bank0_s).rdAddr(x7414(0))
+      WAStage(operands=List(CU.ctr(x7130(0)), CU.load(x7116)), op=FixSub, results=List(x6990.writeAddr))
     }
-    val x6968 = StreamController(name="x6968",parent=x7079) { implicit CU => 
-      val x6968_unit = CounterChain(name = "x6968_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x6991_dsp0_bank0 = MemoryPipeline(name="x6991_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7250 = ScalarBuffer(name="x7250").wtPort(x7218_b7746_x7247_b7754_s)
+      val x7276 = ScalarFIFO(size=1,name="x7276").wtPort(x7219_x7249_data_s)
+      val x7264 = CounterChain.copy("x7277_0", "x7264")
+      val x7429 = CounterChain.copy("x7441_0", "x7429")
+      val x6991 = SRAM(size=494,name="x6991",banking = Strided(1)).wtPort(x7276.readPort).rdPort(x6991_x6991_dsp0_bank0_s).rdAddr(x7429(0))
+      WAStage(operands=List(CU.ctr(x7264(0)), CU.load(x7250)), op=FixSub, results=List(x6991.writeAddr))
     }
-    val x6968_0 = Pipeline(name="x6968_0",parent=x6968) { implicit CU => 
-      val x6962 = CU.temp(None)
-      val x6963 = CU.temp(None)
-      val x6960 = CU.temp(None)
-      val x6961 = CU.temp(None)
-      val x6931 = ScalarBuffer(name="x6931").wtPort(x6931_x6942_s)
-      Stage(operands=List(CU.load(x6931), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1710_s)))
-      Stage(operands=List(CU.load(x6931), Const(16)), op=FixMod, results=List(x6960))
-      Stage(operands=List(x6960, Const(0)), op=FixEql, results=List(x6961))
-      Stage(operands=List(CU.load(x6931), Const(16)), op=FixAdd, results=List(x6962))
-      Stage(operands=List(x6962, x6960), op=FixSub, results=List(x6963))
-      Stage(operands=List(x6961, CU.load(x6931), x6963), op=Mux, results=List(CU.scalarOut(bus_1716_s)))
+    val x6992_dsp0_bank0 = MemoryPipeline(name="x6992_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7352 = ScalarFIFO(size=1,name="x7352").wtPort(x7323_x7341_data_s)
+      val x7344 = CounterChain.copy("x7353", "x7344")
+      val x7414 = CounterChain.copy("x7426_0", "x7414")
+      val x6992 = SRAM(size=494,name="x6992",banking = Strided(1)).wtPort(x7352.readPort).rdPort(x6992_x6992_dsp0_bank0_s).rdAddr(x7414(0)).wtAddr(x7344(0))
     }
-    val x6968_1 = Pipeline(name="x6968_1",parent=x6968) { implicit CU => 
-      val x6964 = ScalarFIFO(size=1,name="x6964").wtPort(bus_1716_s)
-      val x6959 = ScalarFIFO(size=1,name="x6959").wtPort(bus_1710_s)
-      Stage(operands=List(CU.load(x6959), Const(16), CU.load(x6964)), op=Mux, results=List(CU.scalarOut(x6946_x6967_s)))
+    val x6993_dsp0_bank0 = MemoryPipeline(name="x6993_dsp0_bank0",parent="x7452") { implicit CU => 
+      val x7385 = ScalarFIFO(size=1,name="x7385").wtPort(x7356_x7374_data_s)
+      val x7377 = CounterChain.copy("x7386", "x7377")
+      val x7429 = CounterChain.copy("x7441_0", "x7429")
+      val x6993 = SRAM(size=494,name="x6993",banking = Strided(1)).wtPort(x7385.readPort).rdPort(x6993_x6993_dsp0_bank0_s).rdAddr(x7429(0)).wtAddr(x7377(0))
     }
-    val x7002 = StreamController(name="x7002",parent=x7079) { implicit CU => 
-      val x7002_unit = CounterChain(name = "x7002_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7019_0 = Pipeline(name="x7019_0",parent=x7452) { implicit CU => 
+      val x6994 = ScalarBuffer(name="x6994").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x6996 = ScalarBuffer(name="x6996").wtPort(x6372_x6372_dsp0_bank0_s)
+      val x7019_unit = CounterChain(name = "x7019_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6996), CU.load(x6994)), op=FixSub, results=List(CU.scalarOut(x7013_x7018_s)))
     }
-    val x6988_0 = Pipeline(name="x6988_0",parent=x7002) { implicit CU => 
-      val x6985 = CU.temp(None)
-      val x6976 = CU.temp(None)
-      val x6983 = CU.temp(None)
-      val x6981 = ScalarFIFO(size=1,name="x6981").wtPort(x6644_0_s)
-      val x6945 = ScalarBuffer(name="x6945").wtPort(x6945_x6956_s)
-      val x6930 = ScalarBuffer(name="x6930").wtPort(x6930_x6936_s)
-      val x6977 = ScalarBuffer(name="x6977").wtPort(vec_dram_da)
-      val ctr20 = Counter(min=Const(0), max=x6945.readPort, step=Const(1), par=1) // Counter
-      val x6974 = CounterChain(name = "x6974", ctr20).iter(1)
-      Stage(operands=List(CU.load(x6930), CU.ctr(x6974(0))), op=FixLeq, results=List(x6976))
-      Stage(operands=List(CU.load(x6981), Const(2)), op=FixSla, results=List(x6983))
-      Stage(operands=List(x6983, CU.load(x6977)), op=FixAdd, results=List(x6985))
-      Stage(operands=List(x6976, CU.load(x6977), x6985), op=Mux, results=List(CU.scalarOut(x6970_x6987_s)))
+    val x7082 = StreamController(name="x7082",parent=x7452) { implicit CU => 
+      val x7082_unit = CounterChain(name = "x7082_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x6989 = MemoryController(name="x6989",parent=x7002,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
-      val x6970 = ScalarFIFO(size=1,name="addr").wtPort(x6970_x6987_s)
-      CU.newSout("data", x6971_x6989_data_s)
+    val x7051 = StreamController(name="x7051",parent=x7082) { implicit CU => 
+      val x7051_unit = CounterChain(name = "x7051_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7001_0 = Pipeline(name="x7001_0",parent=x7002) { implicit CU => 
-      val x6945 = ScalarBuffer(name="x6945").wtPort(x6945_x6956_s)
-      val x6971 = ScalarFIFO(size=1,name="x6971").wtPort(x6971_x6989_data_s)
-      val ctr21 = Counter(min=Const(0), max=x6945.readPort, step=Const(1), par=1) // Counter
-      val x6992 = CounterChain(name = "x6992", ctr21).iter(1)
-      Stage(operands=List(CU.load(x6971)), op=Bypass, results=List(CU.scalarOut(x6648_x7000_s)))
+    val x7051_0 = Pipeline(name="x7051_0",parent=x7051) { implicit CU => 
+      val x7025 = CU.temp(None)
+      val x7026 = CU.temp(None)
+      val x7049_x7035 = CU.temp(None)
+      val x6994 = ScalarBuffer(name="x6994").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x7013 = ScalarBuffer(name="x7013").wtPort(x7013_x7018_s)
+      Stage(operands=List(CU.load(x6994), Const(2)), op=FixSla, results=List(x7025, CU.scalarOut(bus_1642_s)))
+      Stage(operands=List(x7025, Const(64)), op=FixMod, results=List(x7026, CU.scalarOut(bus_1644_s)))
+      Stage(operands=List(x7026, Const(2)), op=FixSra, results=List(x7049_x7035, CU.scalarOut(bus_1645_s), CU.scalarOut(x7021_b7707_x7050_b7715_s)))
+      Stage(operands=List(x7049_x7035, CU.load(x7013)), op=FixAdd, results=List(CU.scalarOut(x7021_b7708_x7050_b7716_s)))
+      Stage(operands=List(CU.load(x7013), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1647_s)))
     }
-    val x7035 = StreamController(name="x7035",parent=x7079) { implicit CU => 
-      val x7035_unit = CounterChain(name = "x7035_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7051_1 = Pipeline(name="x7051_1",parent=x7051) { implicit CU => 
+      val x7033 = CU.temp(None)
+      val x7030 = CU.temp(None)
+      val x7032 = CU.temp(None)
+      val x7031 = CU.temp(None)
+      val x7034 = CU.temp(None)
+      val x7028 = ScalarFIFO(size=1,name="x7028").wtPort(bus_1647_s)
+      val x7025 = ScalarFIFO(size=1,name="x7025").wtPort(bus_1642_s)
+      Stage(operands=List(CU.load(x7025), CU.load(x7028)), op=FixAdd, results=List(x7030))
+      Stage(operands=List(x7030, Const(64)), op=FixMod, results=List(x7031))
+      Stage(operands=List(x7031, Const(0)), op=FixEql, results=List(x7032))
+      Stage(operands=List(Const(64), x7031), op=FixSub, results=List(x7033))
+      Stage(operands=List(x7032, Const(0), x7033), op=Mux, results=List(x7034, CU.scalarOut(bus_1653_s)))
+      Stage(operands=List(x7034, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1654_s)))
     }
-    val x7021_0 = Pipeline(name="x7021_0",parent=x7035) { implicit CU => 
-      val x7009 = CU.temp(None)
-      val x7016 = CU.temp(None)
-      val x7018 = CU.temp(None)
-      val x6946 = ScalarBuffer(name="x6946").wtPort(x6946_x6967_s)
-      val x6931 = ScalarBuffer(name="x6931").wtPort(x6931_x6942_s)
-      val x7014 = ScalarFIFO(size=1,name="x7014").wtPort(x6645_0_s)
-      val x7010 = ScalarBuffer(name="x7010").wtPort(vec_dram_da)
-      val ctr22 = Counter(min=Const(0), max=x6946.readPort, step=Const(1), par=1) // Counter
-      val x7007 = CounterChain(name = "x7007", ctr22).iter(1)
-      Stage(operands=List(CU.load(x6931), CU.ctr(x7007(0))), op=FixLeq, results=List(x7009))
-      Stage(operands=List(CU.load(x7014), Const(2)), op=FixSla, results=List(x7016))
-      Stage(operands=List(x7016, CU.load(x7010)), op=FixAdd, results=List(x7018))
-      Stage(operands=List(x7009, CU.load(x7010), x7018), op=Mux, results=List(CU.scalarOut(x7003_x7020_s)))
+    val x7051_2 = Pipeline(name="x7051_2",parent=x7051) { implicit CU => 
+      val x7040 = CU.temp(None)
+      val x7038 = CU.temp(None)
+      val x7034 = ScalarFIFO(size=1,name="x7034").wtPort(bus_1653_s)
+      val x7028 = ScalarFIFO(size=1,name="x7028").wtPort(bus_1647_s)
+      val x7026 = ScalarFIFO(size=1,name="x7026").wtPort(bus_1644_s)
+      val x7036 = ScalarFIFO(size=1,name="x7036").wtPort(bus_1654_s)
+      val x7035 = ScalarFIFO(size=1,name="x7035").wtPort(bus_1645_s)
+      val x7013 = ScalarBuffer(name="x7013").wtPort(x7013_x7018_s)
+      val x7025 = ScalarFIFO(size=1,name="x7025").wtPort(bus_1642_s)
+      Stage(operands=List(CU.load(x7013), CU.load(x7035)), op=FixAdd, results=List(x7038))
+      Stage(operands=List(x7038, CU.load(x7036)), op=FixAdd, results=List(CU.scalarOut(x7021_b7706_x7050_b7714_s)))
+      Stage(operands=List(CU.load(x7028), CU.load(x7026)), op=FixAdd, results=List(x7040))
+      Stage(operands=List(x7040, CU.load(x7034)), op=FixAdd, results=List(CU.scalarOut(x7020_b7705_x7048_b7713_s)))
+      Stage(operands=List(CU.load(x7025), CU.load(x7026)), op=FixSub, results=List(CU.scalarOut(bus_1659_s)))
     }
-    val x7022 = MemoryController(name="x7022",parent=x7035,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
-      val x7003 = ScalarFIFO(size=1,name="addr").wtPort(x7003_x7020_s)
-      CU.newSout("data", x7004_x7022_data_s)
+    val x7051_3 = Pipeline(name="x7051_3",parent=x7051) { implicit CU => 
+      val x7029 = ScalarFIFO(size=1,name="x7029").wtPort(bus_1659_s)
+      val x7043 = ScalarBuffer(name="x7043").wtPort(cols_dram_da)
+      Stage(operands=List(CU.load(x7029), CU.load(x7043)), op=FixAdd, results=List(CU.scalarOut(x7020_b7704_x7048_b7712_s)))
     }
-    val x7034_0 = Pipeline(name="x7034_0",parent=x7035) { implicit CU => 
-      val x6946 = ScalarBuffer(name="x6946").wtPort(x6946_x6967_s)
-      val x7004 = ScalarFIFO(size=1,name="x7004").wtPort(x7004_x7022_data_s)
-      val ctr23 = Counter(min=Const(0), max=x6946.readPort, step=Const(1), par=1) // Counter
-      val x7025 = CounterChain(name = "x7025", ctr23).iter(1)
-      Stage(operands=List(CU.load(x7004)), op=Bypass, results=List(CU.scalarOut(x6649_x7033_s)))
+    val x7052 = MemoryController(name="x7052",parent=x7082,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x7020_b7705 = ScalarFIFO(size=1,name="size").wtPort(x7020_b7705_x7048_b7713_s)
+      val x7020_b7704 = ScalarFIFO(size=1,name="offset").wtPort(x7020_b7704_x7048_b7712_s)
+      CU.newSout("data", x7022_x7052_data_s)
     }
-    val x7053_0 = Pipeline(name="x7053_0",parent=x7079) { implicit CU => 
-      val x7045 = ScalarFIFO(size=1,name="x7045").wtPort(x6648_0_s)
-      val x7044 = ScalarFIFO(size=1,name="x7044").wtPort(x6646_0_s)
-      val x6930 = ScalarBuffer(name="x6930").wtPort(x6930_x6936_s)
-      val ctr24 = Counter(min=Const(0), max=x6930.readPort, step=Const(1), par=16) // Counter
-      val x7041 = CounterChain(name = "x7041", ctr24).iter(1)
-      Stage(operands=List(CU.load(x7044), CU.load(x7045)), op=FixMul, results=List(CU.reduce))
-      val (_, rr1744) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x7053_0")
-      Stage(operands=List(rr1744), op=Bypass, results=List(CU.scalarOut(x7037_x7052_s)))
+    val x7081 = Sequential(name="x7081",parent=x7082) { implicit CU => 
+      val x7081_unit = CounterChain(name = "x7081_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7068_0 = Pipeline(name="x7068_0",parent=x7079) { implicit CU => 
-      val x7060 = ScalarFIFO(size=1,name="x7060").wtPort(x6649_0_s)
-      val x6931 = ScalarBuffer(name="x6931").wtPort(x6931_x6942_s)
-      val x7059 = ScalarFIFO(size=1,name="x7059").wtPort(x6647_0_s)
-      val ctr25 = Counter(min=Const(0), max=x6931.readPort, step=Const(1), par=16) // Counter
-      val x7056 = CounterChain(name = "x7056", ctr25).iter(1)
-      Stage(operands=List(CU.load(x7059), CU.load(x7060)), op=FixMul, results=List(CU.reduce))
-      val (_, rr1751) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x7068_0")
-      Stage(operands=List(rr1751), op=Bypass, results=List(CU.scalarOut(x7038_x7067_s)))
+    val x7080_0 = Pipeline(name="x7080_0",parent=x7081) { implicit CU => 
+      val x7054 = ScalarBuffer(name="x7054").wtPort(x7021_b7708_x7050_b7716_s)
+      val x7053 = ScalarBuffer(name="x7053").wtPort(x7021_b7707_x7050_b7715_s)
+      val x7055 = ScalarBuffer(name="x7055").wtPort(x7021_b7706_x7050_b7714_s)
+      val ctr16 = Counter(min=Const(0), max=x7055.readPort, step=Const(1), par=16) // Counter
+      val x7067 = CounterChain(name = "x7067", ctr16).iter(1)
+      Stage(operands=List(CU.load(x7053), CU.ctr(x7067(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x7067(0)), CU.load(x7054)), op=FixLt, results=List())
     }
-    val x7073_0 = Pipeline(name="x7073_0",parent=x7079) { implicit CU => 
-      val x7037 = ScalarBuffer(name="x7037").wtPort(x7037_x7052_s)
-      val x7073_unit = CounterChain(name = "x7073_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x7037)), op=Bypass, results=List(CU.scalarOut(x6063_x7072_s)))
+    val x7145 = StreamController(name="x7145",parent=x7452) { implicit CU => 
+      val x7145_unit = CounterChain(name = "x7145_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7077_0 = Pipeline(name="x7077_0",parent=x7079) { implicit CU => 
-      val x7038 = ScalarBuffer(name="x7038").wtPort(x7038_x7067_s)
-      val x7077_unit = CounterChain(name = "x7077_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.load(x7038)), op=Bypass, results=List(CU.scalarOut(x6063_x7076_s)))
+    val x7114 = StreamController(name="x7114",parent=x7145) { implicit CU => 
+      val x7114_unit = CounterChain(name = "x7114_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7091_0 = Pipeline(name="x7091_0",parent=x7211) { implicit CU => 
-      val x7085 = CU.temp(None)
-      val x7087 = CU.temp(None)
-      val x6066 = ScalarBuffer(name="x6066").wtPort(x6066_x6075_s)
-      val x6059 = CounterChain.copy("x7211", "x6059")
-      val x7091_unit = CounterChain(name = "x7091_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.ctr(x6059(0)), Const(494)), op=FixMul, results=List(x7085, CU.scalarOut(x7081_x7089_s)))
-      Stage(operands=List(CU.load(x6066), Const(494)), op=FixMul, results=List(x7087))
-      Stage(operands=List(x7087, x7085), op=FixSub, results=List(CU.scalarOut(x7083_x7090_s)))
+    val x7114_0 = Pipeline(name="x7114_0",parent=x7114) { implicit CU => 
+      val x7112_x7098 = CU.temp(None)
+      val x7089 = CU.temp(None)
+      val x7088 = CU.temp(None)
+      val x6994 = ScalarBuffer(name="x6994").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x7013 = ScalarBuffer(name="x7013").wtPort(x7013_x7018_s)
+      Stage(operands=List(CU.load(x6994), Const(2)), op=FixSla, results=List(x7088, CU.scalarOut(bus_1671_s)))
+      Stage(operands=List(x7088, Const(64)), op=FixMod, results=List(x7089, CU.scalarOut(bus_1673_s)))
+      Stage(operands=List(x7089, Const(2)), op=FixSra, results=List(x7112_x7098, CU.scalarOut(bus_1674_s), CU.scalarOut(x7084_b7720_x7113_b7728_s)))
+      Stage(operands=List(x7112_x7098, CU.load(x7013)), op=FixAdd, results=List(CU.scalarOut(x7084_b7721_x7113_b7729_s)))
+      Stage(operands=List(CU.load(x7013), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1676_s)))
     }
-    val x7098_0 = Pipeline(name="x7098_0",parent=x7211) { implicit CU => 
-      val x7092 = CU.temp(None)
+    val x7114_1 = Pipeline(name="x7114_1",parent=x7114) { implicit CU => 
+      val x7095 = CU.temp(None)
+      val x7093 = CU.temp(None)
+      val x7096 = CU.temp(None)
+      val x7097 = CU.temp(None)
       val x7094 = CU.temp(None)
-      val x6067 = ScalarBuffer(name="x6067").wtPort(x6067_x6083_s)
-      val x6059 = CounterChain.copy("x7211", "x6059")
-      val x7098_unit = CounterChain(name = "x7098_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(CU.ctr(x6059(0)), Const(494)), op=FixMul, results=List(x7092, CU.scalarOut(x7082_x7096_s)))
-      Stage(operands=List(CU.load(x6067), Const(494)), op=FixMul, results=List(x7094))
-      Stage(operands=List(x7094, x7092), op=FixSub, results=List(CU.scalarOut(x7084_x7097_s)))
+      val x7091 = ScalarFIFO(size=1,name="x7091").wtPort(bus_1676_s)
+      val x7088 = ScalarFIFO(size=1,name="x7088").wtPort(bus_1671_s)
+      Stage(operands=List(CU.load(x7088), CU.load(x7091)), op=FixAdd, results=List(x7093))
+      Stage(operands=List(x7093, Const(64)), op=FixMod, results=List(x7094))
+      Stage(operands=List(x7094, Const(0)), op=FixEql, results=List(x7095))
+      Stage(operands=List(Const(64), x7094), op=FixSub, results=List(x7096))
+      Stage(operands=List(x7095, Const(0), x7096), op=Mux, results=List(x7097, CU.scalarOut(bus_1682_s)))
+      Stage(operands=List(x7097, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1683_s)))
     }
-    val x7154 = StreamController(name="x7154",parent=x7211) { implicit CU => 
-      val x7154_unit = CounterChain(name = "x7154_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7114_2 = Pipeline(name="x7114_2",parent=x7114) { implicit CU => 
+      val x7103 = CU.temp(None)
+      val x7101 = CU.temp(None)
+      val x7097 = ScalarFIFO(size=1,name="x7097").wtPort(bus_1682_s)
+      val x7091 = ScalarFIFO(size=1,name="x7091").wtPort(bus_1676_s)
+      val x7099 = ScalarFIFO(size=1,name="x7099").wtPort(bus_1683_s)
+      val x7088 = ScalarFIFO(size=1,name="x7088").wtPort(bus_1671_s)
+      val x7013 = ScalarBuffer(name="x7013").wtPort(x7013_x7018_s)
+      val x7089 = ScalarFIFO(size=1,name="x7089").wtPort(bus_1673_s)
+      val x7098 = ScalarFIFO(size=1,name="x7098").wtPort(bus_1674_s)
+      Stage(operands=List(CU.load(x7013), CU.load(x7098)), op=FixAdd, results=List(x7101))
+      Stage(operands=List(x7101, CU.load(x7099)), op=FixAdd, results=List(CU.scalarOut(x7084_b7719_x7113_b7727_s)))
+      Stage(operands=List(CU.load(x7091), CU.load(x7089)), op=FixAdd, results=List(x7103))
+      Stage(operands=List(x7103, CU.load(x7097)), op=FixAdd, results=List(CU.scalarOut(x7083_b7718_x7111_b7726_s)))
+      Stage(operands=List(CU.load(x7088), CU.load(x7089)), op=FixSub, results=List(CU.scalarOut(bus_1688_s)))
     }
-    val x7150 = Sequential(name="x7150",parent=x7154) { implicit CU => 
-      val x7150_unit = CounterChain(name = "x7150_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7114_3 = Pipeline(name="x7114_3",parent=x7114) { implicit CU => 
+      val x7092 = ScalarFIFO(size=1,name="x7092").wtPort(bus_1688_s)
+      val x7106 = ScalarBuffer(name="x7106").wtPort(values_dram_da)
+      Stage(operands=List(CU.load(x7092), CU.load(x7106)), op=FixAdd, results=List(CU.scalarOut(x7083_b7717_x7111_b7725_s)))
     }
-    val x7132 = StreamController(name="x7132",parent=x7150) { implicit CU => 
-      val x7132_unit = CounterChain(name = "x7132_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7115 = MemoryController(name="x7115",parent=x7145,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x7083_b7718 = ScalarFIFO(size=1,name="size").wtPort(x7083_b7718_x7111_b7726_s)
+      val x7083_b7717 = ScalarFIFO(size=1,name="offset").wtPort(x7083_b7717_x7111_b7725_s)
+      CU.newSout("data", x7085_x7115_data_s)
     }
-    val x7132_0 = Pipeline(name="x7132_0",parent=x7132) { implicit CU => 
-      val x7114 = CU.temp(None)
-      val x7108 = CU.temp(None)
-      val x7113 = CU.temp(None)
-      val x7111 = CU.temp(None)
-      val x7115 = CU.temp(None)
-      val x7081 = ScalarBuffer(name="x7081").wtPort(x7081_x7089_s)
-      val x7083 = ScalarBuffer(name="x7083").wtPort(x7083_x7090_s)
-      Stage(operands=List(CU.load(x7081), Const(2)), op=FixSla, results=List(x7108, CU.scalarOut(bus_1764_s)))
-      Stage(operands=List(CU.load(x7083), Const(2)), op=FixSla, results=List(x7111, CU.scalarOut(bus_1765_s)))
-      Stage(operands=List(x7108, x7111), op=FixAdd, results=List(x7113))
-      Stage(operands=List(x7113, Const(64)), op=FixMod, results=List(x7114))
-      Stage(operands=List(Const(64), x7114), op=FixSub, results=List(x7115, CU.scalarOut(bus_1769_s)))
-      Stage(operands=List(x7115, Const(4)), op=FixDiv, results=List(CU.scalarOut(bus_1771_s)))
+    val x7144 = Sequential(name="x7144",parent=x7145) { implicit CU => 
+      val x7144_unit = CounterChain(name = "x7144_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7132_1 = Pipeline(name="x7132_1",parent=x7132) { implicit CU => 
-      val x7116 = CU.temp(None)
-      val x7109 = CU.temp(None)
-      val x7119 = CU.temp(None)
-      val x7083 = ScalarBuffer(name="x7083").wtPort(x7083_x7090_s)
-      val x7117 = ScalarFIFO(size=1,name="x7117").wtPort(bus_1771_s)
-      val x7108 = ScalarFIFO(size=1,name="x7108").wtPort(bus_1764_s)
-      Stage(operands=List(CU.load(x7108), Const(64)), op=FixMod, results=List(x7109, CU.scalarOut(bus_1772_s)))
-      Stage(operands=List(x7109, Const(4)), op=FixDiv, results=List(x7116, CU.scalarOut(x7103_x7129_s)))
-      Stage(operands=List(CU.load(x7083), x7116), op=FixAdd, results=List(x7119))
-      Stage(operands=List(x7119, CU.load(x7117)), op=FixAdd, results=List(CU.scalarOut(x7105_x7131_s)))
-      Stage(operands=List(x7116, CU.load(x7083)), op=FixAdd, results=List(CU.scalarOut(x7104_x7130_s)))
+    val x7143_0 = Pipeline(name="x7143_0",parent=x7144) { implicit CU => 
+      val x7117 = ScalarBuffer(name="x7117").wtPort(x7084_b7721_x7113_b7729_s)
+      val x7116 = ScalarBuffer(name="x7116").wtPort(x7084_b7720_x7113_b7728_s)
+      val x7118 = ScalarBuffer(name="x7118").wtPort(x7084_b7719_x7113_b7727_s)
+      val ctr17 = Counter(min=Const(0), max=x7118.readPort, step=Const(1), par=16) // Counter
+      val x7130 = CounterChain(name = "x7130", ctr17).iter(1)
+      Stage(operands=List(CU.load(x7116), CU.ctr(x7130(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x7130(0)), CU.load(x7117)), op=FixLt, results=List())
     }
-    val x7132_2 = Pipeline(name="x7132_2",parent=x7132) { implicit CU => 
-      val x7121 = CU.temp(None)
-      val x7112 = CU.temp(None)
-      val x7111 = ScalarFIFO(size=1,name="x7111").wtPort(bus_1765_s)
-      val x7115 = ScalarFIFO(size=1,name="x7115").wtPort(bus_1769_s)
-      val x7108 = ScalarFIFO(size=1,name="x7108").wtPort(bus_1764_s)
-      val x7109 = ScalarFIFO(size=1,name="x7109").wtPort(bus_1772_s)
-      val x7124 = ScalarBuffer(name="x7124").wtPort(result_dram_da)
-      Stage(operands=List(CU.load(x7111), CU.load(x7109)), op=FixAdd, results=List(x7121))
-      Stage(operands=List(x7121, CU.load(x7115)), op=FixAdd, results=List(CU.scalarOut(x7100_b7380_x7128_b7382_s)))
-      Stage(operands=List(CU.load(x7108), CU.load(x7109)), op=FixSub, results=List(x7112))
-      Stage(operands=List(x7112, CU.load(x7124)), op=FixAdd, results=List(CU.scalarOut(x7100_b7379_x7128_b7381_s)))
+    val x7153_0 = Pipeline(name="x7153_0",parent=x7452) { implicit CU => 
+      val x6997 = ScalarBuffer(name="x6997").wtPort(x6372_x6372_dsp0_bank0_s)
+      val x6995 = ScalarBuffer(name="x6995").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x7153_unit = CounterChain(name = "x7153_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6997), CU.load(x6995)), op=FixSub, results=List(CU.scalarOut(x7147_x7152_s)))
     }
-    val x7149_0 = Pipeline(name="x7149_0",parent=x7150) { implicit CU => 
-      val x7137 = CU.temp(None)
-      val x7140 = CU.temp(None)
-      val x7139 = CU.temp(None)
-      val x7144 = ScalarFIFO(size=1,name="x7144").wtPort(x6062_0_s)
-      val x7105 = ScalarBuffer(name="x7105").wtPort(x7105_x7131_s)
-      val x7104 = ScalarBuffer(name="x7104").wtPort(x7104_x7130_s)
-      val x7103 = ScalarBuffer(name="x7103").wtPort(x7103_x7129_s)
-      val ctr26 = Counter(min=Const(0), max=x7105.readPort, step=Const(1), par=16) // Counter
-      val x7135 = CounterChain(name = "x7135", ctr26).iter(1)
-      Stage(operands=List(CU.load(x7103), CU.ctr(x7135(0))), op=FixLeq, results=List(x7137))
-      Stage(operands=List(CU.ctr(x7135(0)), CU.load(x7104)), op=FixLt, results=List(x7139))
-      Stage(operands=List(x7137, x7139), op=BitAnd, results=List(x7140))
-      Stage(operands=List(x7140, CU.load(x7144), Const(0)), op=Mux, results=List(CU.vecOut(x7101_x7148_v)))
+    val x7216 = StreamController(name="x7216",parent=x7452) { implicit CU => 
+      val x7216_unit = CounterChain(name = "x7216_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7151 = MemoryController(name="x7151",parent=x7154,offchip=result_dram_oc, mctpe=TileStore) { implicit CU => 
-      val x7100_b7380 = ScalarFIFO(size=1,name="size").wtPort(x7100_b7380_x7128_b7382_s)
-      val x7100_b7379 = ScalarFIFO(size=1,name="offset").wtPort(x7100_b7379_x7128_b7381_s)
-      val x7101 = VectorFIFO(size=1,name="data").wtPort(x7101_x7148_v)
+    val x7185 = StreamController(name="x7185",parent=x7216) { implicit CU => 
+      val x7185_unit = CounterChain(name = "x7185_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x7209 = StreamController(name="x7209",parent=x7211) { implicit CU => 
-      val x7209_unit = CounterChain(name = "x7209_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    val x7185_0 = Pipeline(name="x7185_0",parent=x7185) { implicit CU => 
+      val x7183_x7169 = CU.temp(None)
+      val x7159 = CU.temp(None)
+      val x7160 = CU.temp(None)
+      val x7147 = ScalarBuffer(name="x7147").wtPort(x7147_x7152_s)
+      val x6995 = ScalarBuffer(name="x6995").wtPort(x6372_x6372_dsp1_bank0_s)
+      Stage(operands=List(CU.load(x6995), Const(2)), op=FixSla, results=List(x7159, CU.scalarOut(bus_1702_s)))
+      Stage(operands=List(x7159, Const(64)), op=FixMod, results=List(x7160, CU.scalarOut(bus_1704_s)))
+      Stage(operands=List(x7160, Const(2)), op=FixSra, results=List(x7183_x7169, CU.scalarOut(bus_1705_s), CU.scalarOut(x7155_b7733_x7184_b7741_s)))
+      Stage(operands=List(x7183_x7169, CU.load(x7147)), op=FixAdd, results=List(CU.scalarOut(x7155_b7734_x7184_b7742_s)))
+      Stage(operands=List(CU.load(x7147), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1707_s)))
     }
-    val x7205 = Sequential(name="x7205",parent=x7209) { implicit CU => 
-      val x7205_unit = CounterChain(name = "x7205_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x7187 = StreamController(name="x7187",parent=x7205) { implicit CU => 
-      val x7187_unit = CounterChain(name = "x7187_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-    }
-    val x7187_0 = Pipeline(name="x7187_0",parent=x7187) { implicit CU => 
+    val x7185_1 = Pipeline(name="x7185_1",parent=x7185) { implicit CU => 
       val x7166 = CU.temp(None)
       val x7168 = CU.temp(None)
-      val x7169 = CU.temp(None)
-      val x7170 = CU.temp(None)
-      val x7163 = CU.temp(None)
-      val x7084 = ScalarBuffer(name="x7084").wtPort(x7084_x7097_s)
-      val x7082 = ScalarBuffer(name="x7082").wtPort(x7082_x7096_s)
-      Stage(operands=List(CU.load(x7082), Const(2)), op=FixSla, results=List(x7163, CU.scalarOut(bus_1790_s)))
-      Stage(operands=List(CU.load(x7084), Const(2)), op=FixSla, results=List(x7166, CU.scalarOut(bus_1791_s)))
-      Stage(operands=List(x7163, x7166), op=FixAdd, results=List(x7168))
-      Stage(operands=List(x7168, Const(64)), op=FixMod, results=List(x7169))
-      Stage(operands=List(Const(64), x7169), op=FixSub, results=List(x7170, CU.scalarOut(bus_1795_s)))
-      Stage(operands=List(x7170, Const(4)), op=FixDiv, results=List(CU.scalarOut(bus_1797_s)))
-    }
-    val x7187_1 = Pipeline(name="x7187_1",parent=x7187) { implicit CU => 
-      val x7171 = CU.temp(None)
       val x7164 = CU.temp(None)
-      val x7174 = CU.temp(None)
-      val x7084 = ScalarBuffer(name="x7084").wtPort(x7084_x7097_s)
-      val x7172 = ScalarFIFO(size=1,name="x7172").wtPort(bus_1797_s)
-      val x7163 = ScalarFIFO(size=1,name="x7163").wtPort(bus_1790_s)
-      Stage(operands=List(CU.load(x7163), Const(64)), op=FixMod, results=List(x7164, CU.scalarOut(bus_1798_s)))
-      Stage(operands=List(x7164, Const(4)), op=FixDiv, results=List(x7171, CU.scalarOut(x7158_x7184_s)))
-      Stage(operands=List(CU.load(x7084), x7171), op=FixAdd, results=List(x7174))
-      Stage(operands=List(x7174, CU.load(x7172)), op=FixAdd, results=List(CU.scalarOut(x7160_x7186_s)))
-      Stage(operands=List(x7171, CU.load(x7084)), op=FixAdd, results=List(CU.scalarOut(x7159_x7185_s)))
-    }
-    val x7187_2 = Pipeline(name="x7187_2",parent=x7187) { implicit CU => 
-      val x7176 = CU.temp(None)
+      val x7165 = CU.temp(None)
       val x7167 = CU.temp(None)
-      val x7179 = ScalarBuffer(name="x7179").wtPort(result_dram_da)
-      val x7166 = ScalarFIFO(size=1,name="x7166").wtPort(bus_1791_s)
-      val x7163 = ScalarFIFO(size=1,name="x7163").wtPort(bus_1790_s)
-      val x7164 = ScalarFIFO(size=1,name="x7164").wtPort(bus_1798_s)
-      val x7170 = ScalarFIFO(size=1,name="x7170").wtPort(bus_1795_s)
-      Stage(operands=List(CU.load(x7166), CU.load(x7164)), op=FixAdd, results=List(x7176))
-      Stage(operands=List(x7176, CU.load(x7170)), op=FixAdd, results=List(CU.scalarOut(x7155_b7384_x7183_b7386_s)))
-      Stage(operands=List(CU.load(x7163), CU.load(x7164)), op=FixSub, results=List(x7167))
-      Stage(operands=List(x7167, CU.load(x7179)), op=FixAdd, results=List(CU.scalarOut(x7155_b7383_x7183_b7385_s)))
+      val x7162 = ScalarFIFO(size=1,name="x7162").wtPort(bus_1707_s)
+      val x7159 = ScalarFIFO(size=1,name="x7159").wtPort(bus_1702_s)
+      Stage(operands=List(CU.load(x7159), CU.load(x7162)), op=FixAdd, results=List(x7164))
+      Stage(operands=List(x7164, Const(64)), op=FixMod, results=List(x7165))
+      Stage(operands=List(x7165, Const(0)), op=FixEql, results=List(x7166))
+      Stage(operands=List(Const(64), x7165), op=FixSub, results=List(x7167))
+      Stage(operands=List(x7166, Const(0), x7167), op=Mux, results=List(x7168, CU.scalarOut(bus_1713_s)))
+      Stage(operands=List(x7168, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1714_s)))
     }
-    val x7204_0 = Pipeline(name="x7204_0",parent=x7205) { implicit CU => 
-      val x7192 = CU.temp(None)
-      val x7195 = CU.temp(None)
-      val x7194 = CU.temp(None)
-      val x7158 = ScalarBuffer(name="x7158").wtPort(x7158_x7184_s)
-      val x7199 = ScalarFIFO(size=1,name="x7199").wtPort(x6063_0_s)
-      val x7160 = ScalarBuffer(name="x7160").wtPort(x7160_x7186_s)
-      val x7159 = ScalarBuffer(name="x7159").wtPort(x7159_x7185_s)
-      val ctr27 = Counter(min=Const(0), max=x7160.readPort, step=Const(1), par=16) // Counter
-      val x7190 = CounterChain(name = "x7190", ctr27).iter(1)
-      Stage(operands=List(CU.load(x7158), CU.ctr(x7190(0))), op=FixLeq, results=List(x7192))
-      Stage(operands=List(CU.ctr(x7190(0)), CU.load(x7159)), op=FixLt, results=List(x7194))
-      Stage(operands=List(x7192, x7194), op=BitAnd, results=List(x7195))
-      Stage(operands=List(x7195, CU.load(x7199), Const(0)), op=Mux, results=List(CU.vecOut(x7156_x7203_v)))
+    val x7185_2 = Pipeline(name="x7185_2",parent=x7185) { implicit CU => 
+      val x7172 = CU.temp(None)
+      val x7174 = CU.temp(None)
+      val x7159 = ScalarFIFO(size=1,name="x7159").wtPort(bus_1702_s)
+      val x7169 = ScalarFIFO(size=1,name="x7169").wtPort(bus_1705_s)
+      val x7162 = ScalarFIFO(size=1,name="x7162").wtPort(bus_1707_s)
+      val x7147 = ScalarBuffer(name="x7147").wtPort(x7147_x7152_s)
+      val x7160 = ScalarFIFO(size=1,name="x7160").wtPort(bus_1704_s)
+      val x7170 = ScalarFIFO(size=1,name="x7170").wtPort(bus_1714_s)
+      val x7168 = ScalarFIFO(size=1,name="x7168").wtPort(bus_1713_s)
+      Stage(operands=List(CU.load(x7147), CU.load(x7169)), op=FixAdd, results=List(x7172))
+      Stage(operands=List(x7172, CU.load(x7170)), op=FixAdd, results=List(CU.scalarOut(x7155_b7732_x7184_b7740_s)))
+      Stage(operands=List(CU.load(x7162), CU.load(x7160)), op=FixAdd, results=List(x7174))
+      Stage(operands=List(x7174, CU.load(x7168)), op=FixAdd, results=List(CU.scalarOut(x7154_b7731_x7182_b7739_s)))
+      Stage(operands=List(CU.load(x7159), CU.load(x7160)), op=FixSub, results=List(CU.scalarOut(bus_1719_s)))
     }
-    val x7206 = MemoryController(name="x7206",parent=x7209,offchip=result_dram_oc, mctpe=TileStore) { implicit CU => 
-      val x7156 = VectorFIFO(size=1,name="data").wtPort(x7156_x7203_v)
-      val x7155_b7383 = ScalarFIFO(size=1,name="offset").wtPort(x7155_b7383_x7183_b7385_s)
-      val x7155_b7384 = ScalarFIFO(size=1,name="size").wtPort(x7155_b7384_x7183_b7386_s)
+    val x7185_3 = Pipeline(name="x7185_3",parent=x7185) { implicit CU => 
+      val x7163 = ScalarFIFO(size=1,name="x7163").wtPort(bus_1719_s)
+      val x7177 = ScalarBuffer(name="x7177").wtPort(cols_dram_da)
+      Stage(operands=List(CU.load(x7163), CU.load(x7177)), op=FixAdd, results=List(CU.scalarOut(x7154_b7730_x7182_b7738_s)))
+    }
+    val x7186 = MemoryController(name="x7186",parent=x7216,offchip=cols_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x7154_b7730 = ScalarFIFO(size=1,name="offset").wtPort(x7154_b7730_x7182_b7738_s)
+      val x7154_b7731 = ScalarFIFO(size=1,name="size").wtPort(x7154_b7731_x7182_b7739_s)
+      CU.newSout("data", x7156_x7186_data_s)
+    }
+    val x7215 = Sequential(name="x7215",parent=x7216) { implicit CU => 
+      val x7215_unit = CounterChain(name = "x7215_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7214_0 = Pipeline(name="x7214_0",parent=x7215) { implicit CU => 
+      val x7189 = ScalarBuffer(name="x7189").wtPort(x7155_b7732_x7184_b7740_s)
+      val x7188 = ScalarBuffer(name="x7188").wtPort(x7155_b7734_x7184_b7742_s)
+      val x7187 = ScalarBuffer(name="x7187").wtPort(x7155_b7733_x7184_b7741_s)
+      val ctr18 = Counter(min=Const(0), max=x7189.readPort, step=Const(1), par=16) // Counter
+      val x7201 = CounterChain(name = "x7201", ctr18).iter(1)
+      Stage(operands=List(CU.load(x7187), CU.ctr(x7201(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x7201(0)), CU.load(x7188)), op=FixLt, results=List())
+    }
+    val x7279 = StreamController(name="x7279",parent=x7452) { implicit CU => 
+      val x7279_unit = CounterChain(name = "x7279_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7248 = StreamController(name="x7248",parent=x7279) { implicit CU => 
+      val x7248_unit = CounterChain(name = "x7248_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7248_0 = Pipeline(name="x7248_0",parent=x7248) { implicit CU => 
+      val x7222 = CU.temp(None)
+      val x7246_x7232 = CU.temp(None)
+      val x7223 = CU.temp(None)
+      val x7147 = ScalarBuffer(name="x7147").wtPort(x7147_x7152_s)
+      val x6995 = ScalarBuffer(name="x6995").wtPort(x6372_x6372_dsp1_bank0_s)
+      Stage(operands=List(CU.load(x6995), Const(2)), op=FixSla, results=List(x7222, CU.scalarOut(bus_1731_s)))
+      Stage(operands=List(x7222, Const(64)), op=FixMod, results=List(x7223, CU.scalarOut(bus_1733_s)))
+      Stage(operands=List(x7223, Const(2)), op=FixSra, results=List(x7246_x7232, CU.scalarOut(bus_1734_s), CU.scalarOut(x7218_b7746_x7247_b7754_s)))
+      Stage(operands=List(x7246_x7232, CU.load(x7147)), op=FixAdd, results=List(CU.scalarOut(x7218_b7747_x7247_b7755_s)))
+      Stage(operands=List(CU.load(x7147), Const(2)), op=FixSla, results=List(CU.scalarOut(bus_1736_s)))
+    }
+    val x7248_1 = Pipeline(name="x7248_1",parent=x7248) { implicit CU => 
+      val x7227 = CU.temp(None)
+      val x7229 = CU.temp(None)
+      val x7230 = CU.temp(None)
+      val x7231 = CU.temp(None)
+      val x7228 = CU.temp(None)
+      val x7225 = ScalarFIFO(size=1,name="x7225").wtPort(bus_1736_s)
+      val x7222 = ScalarFIFO(size=1,name="x7222").wtPort(bus_1731_s)
+      Stage(operands=List(CU.load(x7222), CU.load(x7225)), op=FixAdd, results=List(x7227))
+      Stage(operands=List(x7227, Const(64)), op=FixMod, results=List(x7228))
+      Stage(operands=List(x7228, Const(0)), op=FixEql, results=List(x7229))
+      Stage(operands=List(Const(64), x7228), op=FixSub, results=List(x7230))
+      Stage(operands=List(x7229, Const(0), x7230), op=Mux, results=List(x7231, CU.scalarOut(bus_1742_s)))
+      Stage(operands=List(x7231, Const(2)), op=FixSra, results=List(CU.scalarOut(bus_1743_s)))
+    }
+    val x7248_2 = Pipeline(name="x7248_2",parent=x7248) { implicit CU => 
+      val x7235 = CU.temp(None)
+      val x7237 = CU.temp(None)
+      val x7147 = ScalarBuffer(name="x7147").wtPort(x7147_x7152_s)
+      val x7225 = ScalarFIFO(size=1,name="x7225").wtPort(bus_1736_s)
+      val x7223 = ScalarFIFO(size=1,name="x7223").wtPort(bus_1733_s)
+      val x7233 = ScalarFIFO(size=1,name="x7233").wtPort(bus_1743_s)
+      val x7232 = ScalarFIFO(size=1,name="x7232").wtPort(bus_1734_s)
+      val x7222 = ScalarFIFO(size=1,name="x7222").wtPort(bus_1731_s)
+      val x7231 = ScalarFIFO(size=1,name="x7231").wtPort(bus_1742_s)
+      Stage(operands=List(CU.load(x7147), CU.load(x7232)), op=FixAdd, results=List(x7235))
+      Stage(operands=List(x7235, CU.load(x7233)), op=FixAdd, results=List(CU.scalarOut(x7218_b7745_x7247_b7753_s)))
+      Stage(operands=List(CU.load(x7225), CU.load(x7223)), op=FixAdd, results=List(x7237))
+      Stage(operands=List(x7237, CU.load(x7231)), op=FixAdd, results=List(CU.scalarOut(x7217_b7744_x7245_b7752_s)))
+      Stage(operands=List(CU.load(x7222), CU.load(x7223)), op=FixSub, results=List(CU.scalarOut(bus_1748_s)))
+    }
+    val x7248_3 = Pipeline(name="x7248_3",parent=x7248) { implicit CU => 
+      val x7226 = ScalarFIFO(size=1,name="x7226").wtPort(bus_1748_s)
+      val x7240 = ScalarBuffer(name="x7240").wtPort(values_dram_da)
+      Stage(operands=List(CU.load(x7226), CU.load(x7240)), op=FixAdd, results=List(CU.scalarOut(x7217_b7743_x7245_b7751_s)))
+    }
+    val x7249 = MemoryController(name="x7249",parent=x7279,offchip=values_dram_oc, mctpe=TileLoad) { implicit CU => 
+      val x7217_b7744 = ScalarFIFO(size=1,name="size").wtPort(x7217_b7744_x7245_b7752_s)
+      val x7217_b7743 = ScalarFIFO(size=1,name="offset").wtPort(x7217_b7743_x7245_b7751_s)
+      CU.newSout("data", x7219_x7249_data_s)
+    }
+    val x7278 = Sequential(name="x7278",parent=x7279) { implicit CU => 
+      val x7278_unit = CounterChain(name = "x7278_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7277_0 = Pipeline(name="x7277_0",parent=x7278) { implicit CU => 
+      val x7252 = ScalarBuffer(name="x7252").wtPort(x7218_b7745_x7247_b7753_s)
+      val x7251 = ScalarBuffer(name="x7251").wtPort(x7218_b7747_x7247_b7755_s)
+      val x7250 = ScalarBuffer(name="x7250").wtPort(x7218_b7746_x7247_b7754_s)
+      val ctr19 = Counter(min=Const(0), max=x7252.readPort, step=Const(1), par=16) // Counter
+      val x7264 = CounterChain(name = "x7264", ctr19).iter(1)
+      Stage(operands=List(CU.load(x7250), CU.ctr(x7264(0))), op=FixLeq, results=List())
+      Stage(operands=List(CU.ctr(x7264(0)), CU.load(x7251)), op=FixLt, results=List())
+    }
+    val x7289_0 = Pipeline(name="x7289_0",parent=x7452) { implicit CU => 
+      val x6994 = ScalarBuffer(name="x6994").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x6996 = ScalarBuffer(name="x6996").wtPort(x6372_x6372_dsp0_bank0_s)
+      val x7289_unit = CounterChain(name = "x7289_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6996), CU.load(x6994)), op=FixSub, results=List(CU.scalarOut(x7282_x7288_s)))
+    }
+    val x7295_0 = Pipeline(name="x7295_0",parent=x7452) { implicit CU => 
+      val x6997 = ScalarBuffer(name="x6997").wtPort(x6372_x6372_dsp0_bank0_s)
+      val x6995 = ScalarBuffer(name="x6995").wtPort(x6372_x6372_dsp1_bank0_s)
+      val x7295_unit = CounterChain(name = "x7295_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.load(x6997), CU.load(x6995)), op=FixSub, results=List(CU.scalarOut(x7283_x7294_s)))
+    }
+    val x7309 = StreamController(name="x7309",parent=x7452) { implicit CU => 
+      val x7309_unit = CounterChain(name = "x7309_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7309_0 = Pipeline(name="x7309_0",parent=x7309) { implicit CU => 
+      val x7303 = CU.temp(None)
+      val x7304 = CU.temp(None)
+      val x7301 = CU.temp(None)
+      val x7302 = CU.temp(None)
+      val x7282 = ScalarBuffer(name="x7282").wtPort(x7282_x7288_s)
+      Stage(operands=List(CU.load(x7282), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1764_s)))
+      Stage(operands=List(CU.load(x7282), Const(16)), op=FixMod, results=List(x7301))
+      Stage(operands=List(x7301, Const(0)), op=FixEql, results=List(x7302))
+      Stage(operands=List(CU.load(x7282), Const(16)), op=FixAdd, results=List(x7303))
+      Stage(operands=List(x7303, x7301), op=FixSub, results=List(x7304))
+      Stage(operands=List(x7302, CU.load(x7282), x7304), op=Mux, results=List(CU.scalarOut(bus_1770_s)))
+    }
+    val x7309_1 = Pipeline(name="x7309_1",parent=x7309) { implicit CU => 
+      val x7305 = ScalarFIFO(size=1,name="x7305").wtPort(bus_1770_s)
+      val x7300 = ScalarFIFO(size=1,name="x7300").wtPort(bus_1764_s)
+      Stage(operands=List(CU.load(x7300), Const(16), CU.load(x7305)), op=Mux, results=List(CU.scalarOut(x7297_x7308_s)))
+    }
+    val x7320 = StreamController(name="x7320",parent=x7452) { implicit CU => 
+      val x7320_unit = CounterChain(name = "x7320_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7320_0 = Pipeline(name="x7320_0",parent=x7320) { implicit CU => 
+      val x7314 = CU.temp(None)
+      val x7313 = CU.temp(None)
+      val x7312 = CU.temp(None)
+      val x7315 = CU.temp(None)
+      val x7283 = ScalarBuffer(name="x7283").wtPort(x7283_x7294_s)
+      Stage(operands=List(CU.load(x7283), Const(16)), op=FixLt, results=List(CU.scalarOut(bus_1774_s)))
+      Stage(operands=List(CU.load(x7283), Const(16)), op=FixMod, results=List(x7312))
+      Stage(operands=List(x7312, Const(0)), op=FixEql, results=List(x7313))
+      Stage(operands=List(CU.load(x7283), Const(16)), op=FixAdd, results=List(x7314))
+      Stage(operands=List(x7314, x7312), op=FixSub, results=List(x7315))
+      Stage(operands=List(x7313, CU.load(x7283), x7315), op=Mux, results=List(CU.scalarOut(bus_1780_s)))
+    }
+    val x7320_1 = Pipeline(name="x7320_1",parent=x7320) { implicit CU => 
+      val x7316 = ScalarFIFO(size=1,name="x7316").wtPort(bus_1780_s)
+      val x7311 = ScalarFIFO(size=1,name="x7311").wtPort(bus_1774_s)
+      Stage(operands=List(CU.load(x7311), Const(16), CU.load(x7316)), op=Mux, results=List(CU.scalarOut(x7298_x7319_s)))
+    }
+    val x7354 = StreamController(name="x7354",parent=x7452) { implicit CU => 
+      val x7354_unit = CounterChain(name = "x7354_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7340_0 = Pipeline(name="x7340_0",parent=x7354) { implicit CU => 
+      val x7328 = CU.temp(None)
+      val x7335 = CU.temp(None)
+      val x7337 = CU.temp(None)
+      val x7329 = ScalarBuffer(name="x7329").wtPort(vec_dram_da)
+      val x7333 = ScalarFIFO(size=1,name="x7333").wtPort(x6988_x6988_dsp0_bank0_s)
+      val x7297 = ScalarBuffer(name="x7297").wtPort(x7297_x7308_s)
+      val x7282 = ScalarBuffer(name="x7282").wtPort(x7282_x7288_s)
+      val ctr20 = Counter(min=Const(0), max=x7297.readPort, step=Const(1), par=1) // Counter
+      val x7326 = CounterChain(name = "x7326", ctr20).iter(1)
+      Stage(operands=List(CU.load(x7282), CU.ctr(x7326(0))), op=FixLeq, results=List(x7328))
+      Stage(operands=List(CU.load(x7333), Const(2)), op=FixSla, results=List(x7335))
+      Stage(operands=List(x7335, CU.load(x7329)), op=FixAdd, results=List(x7337))
+      Stage(operands=List(x7328, CU.load(x7329), x7337), op=Mux, results=List(CU.scalarOut(x7322_x7339_s)))
+    }
+    val x7341 = MemoryController(name="x7341",parent=x7354,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
+      val x7322 = ScalarFIFO(size=1,name="addr").wtPort(x7322_x7339_s)
+      CU.newSout("data", x7323_x7341_data_s)
+    }
+    val x7353 = Pipeline(name="x7353",parent=x7354) { implicit CU => 
+      val x7297 = ScalarBuffer(name="x7297").wtPort(x7297_x7308_s)
+      val x7282 = ScalarBuffer(name="x7282").wtPort(x7282_x7288_s)
+      val ctr21 = Counter(min=Const(0), max=x7297.readPort, step=Const(1), par=1) // Counter
+      val x7344 = CounterChain(name = "x7344", ctr21).iter(1)
+    }
+    val x7387 = StreamController(name="x7387",parent=x7452) { implicit CU => 
+      val x7387_unit = CounterChain(name = "x7387_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7373_0 = Pipeline(name="x7373_0",parent=x7387) { implicit CU => 
+      val x7368 = CU.temp(None)
+      val x7361 = CU.temp(None)
+      val x7370 = CU.temp(None)
+      val x7362 = ScalarBuffer(name="x7362").wtPort(vec_dram_da)
+      val x7283 = ScalarBuffer(name="x7283").wtPort(x7283_x7294_s)
+      val x7298 = ScalarBuffer(name="x7298").wtPort(x7298_x7319_s)
+      val x7366 = ScalarFIFO(size=1,name="x7366").wtPort(x6989_x6989_dsp0_bank0_s)
+      val ctr22 = Counter(min=Const(0), max=x7298.readPort, step=Const(1), par=1) // Counter
+      val x7359 = CounterChain(name = "x7359", ctr22).iter(1)
+      Stage(operands=List(CU.load(x7283), CU.ctr(x7359(0))), op=FixLeq, results=List(x7361))
+      Stage(operands=List(CU.load(x7366), Const(2)), op=FixSla, results=List(x7368))
+      Stage(operands=List(x7368, CU.load(x7362)), op=FixAdd, results=List(x7370))
+      Stage(operands=List(x7361, CU.load(x7362), x7370), op=Mux, results=List(CU.scalarOut(x7355_x7372_s)))
+    }
+    val x7374 = MemoryController(name="x7374",parent=x7387,offchip=vec_dram_oc, mctpe=Gather) { implicit CU => 
+      val x7355 = ScalarFIFO(size=1,name="addr").wtPort(x7355_x7372_s)
+      CU.newSout("data", x7356_x7374_data_s)
+    }
+    val x7386 = Pipeline(name="x7386",parent=x7387) { implicit CU => 
+      val x7283 = ScalarBuffer(name="x7283").wtPort(x7283_x7294_s)
+      val x7298 = ScalarBuffer(name="x7298").wtPort(x7298_x7319_s)
+      val ctr23 = Counter(min=Const(0), max=x7298.readPort, step=Const(1), par=1) // Counter
+      val x7377 = CounterChain(name = "x7377", ctr23).iter(1)
+    }
+    val x7426_0 = Pipeline(name="x7426_0",parent=x7452) { implicit CU => 
+      val x7418 = ScalarFIFO(size=1,name="x7418").wtPort(x6992_x6992_dsp0_bank0_s)
+      val x7417 = ScalarFIFO(size=1,name="x7417").wtPort(x6990_x6990_dsp0_bank0_s)
+      val x7282 = ScalarBuffer(name="x7282").wtPort(x7282_x7288_s)
+      val ctr24 = Counter(min=Const(0), max=x7282.readPort, step=Const(1), par=16) // Counter
+      val x7414 = CounterChain(name = "x7414", ctr24).iter(1)
+      Stage(operands=List(CU.load(x7417), CU.load(x7418)), op=FixMul, results=List(CU.reduce))
+      val (_, rr1812) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x7426_0")
+      Stage(operands=List(rr1812), op=Bypass, results=List(CU.scalarOut(x7393_x7425_s)))
+    }
+    val x7441_0 = Pipeline(name="x7441_0",parent=x7452) { implicit CU => 
+      val x7433 = ScalarFIFO(size=1,name="x7433").wtPort(x6993_x6993_dsp0_bank0_s)
+      val x7283 = ScalarBuffer(name="x7283").wtPort(x7283_x7294_s)
+      val x7432 = ScalarFIFO(size=1,name="x7432").wtPort(x6991_x6991_dsp0_bank0_s)
+      val ctr25 = Counter(min=Const(0), max=x7283.readPort, step=Const(1), par=16) // Counter
+      val x7429 = CounterChain(name = "x7429", ctr25).iter(1)
+      Stage(operands=List(CU.load(x7432), CU.load(x7433)), op=FixMul, results=List(CU.reduce))
+      val (_, rr1819) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x7441_0")
+      Stage(operands=List(rr1819), op=Bypass, results=List(CU.scalarOut(x7394_x7440_s)))
+    }
+    val x7464_0 = Pipeline(name="x7464_0",parent=x7588) { implicit CU => 
+      val x7458 = CU.temp(None)
+      val x7460 = CU.temp(None)
+      val x6377 = ScalarBuffer(name="x6377").wtPort(x6377_x6386_s)
+      val x6370 = CounterChain.copy("x7588", "x6370")
+      val x7464_unit = CounterChain(name = "x7464_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.ctr(x6370(0)), Const(494)), op=FixMul, results=List(x7458, CU.scalarOut(x7454_x7462_s)))
+      Stage(operands=List(CU.load(x6377), Const(494)), op=FixMul, results=List(x7460))
+      Stage(operands=List(x7460, x7458), op=FixSub, results=List(CU.scalarOut(x7456_x7463_s)))
+    }
+    val x7471_0 = Pipeline(name="x7471_0",parent=x7588) { implicit CU => 
+      val x7467 = CU.temp(None)
+      val x7465 = CU.temp(None)
+      val x6378 = ScalarBuffer(name="x6378").wtPort(x6378_x6394_s)
+      val x6370 = CounterChain.copy("x7588", "x6370")
+      val x7471_unit = CounterChain(name = "x7471_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+      Stage(operands=List(CU.ctr(x6370(0)), Const(494)), op=FixMul, results=List(x7465, CU.scalarOut(x7455_x7469_s)))
+      Stage(operands=List(CU.load(x6378), Const(494)), op=FixMul, results=List(x7467))
+      Stage(operands=List(x7467, x7465), op=FixSub, results=List(CU.scalarOut(x7457_x7470_s)))
+    }
+    val x7529 = StreamController(name="x7529",parent=x7588) { implicit CU => 
+      val x7529_unit = CounterChain(name = "x7529_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7525 = Sequential(name="x7525",parent=x7529) { implicit CU => 
+      val x7525_unit = CounterChain(name = "x7525_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7507 = StreamController(name="x7507",parent=x7525) { implicit CU => 
+      val x7507_unit = CounterChain(name = "x7507_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7507_0 = Pipeline(name="x7507_0",parent=x7507) { implicit CU => 
+      val x7486 = CU.temp(None)
+      val x7487 = CU.temp(None)
+      val x7484 = CU.temp(None)
+      val x7481 = CU.temp(None)
+      val x7454 = ScalarBuffer(name="x7454").wtPort(x7454_x7462_s)
+      val x7456 = ScalarBuffer(name="x7456").wtPort(x7456_x7463_s)
+      Stage(operands=List(CU.load(x7454), Const(2)), op=FixSla, results=List(x7481, CU.scalarOut(bus_1832_s)))
+      Stage(operands=List(CU.load(x7456), Const(2)), op=FixSla, results=List(x7484, CU.scalarOut(bus_1833_s)))
+      Stage(operands=List(x7481, x7484), op=FixAdd, results=List(x7486))
+      Stage(operands=List(x7486, Const(64)), op=FixMod, results=List(x7487))
+      Stage(operands=List(x7487, Const(0)), op=FixEql, results=List(CU.scalarOut(bus_1838_s)))
+      Stage(operands=List(Const(64), x7487), op=FixSub, results=List(CU.scalarOut(bus_1839_s)))
+    }
+    val x7507_1 = Pipeline(name="x7507_1",parent=x7507) { implicit CU => 
+      val x7482 = CU.temp(None)
+      val x7491 = CU.temp(None)
+      val x7490 = CU.temp(None)
+      val x7494 = CU.temp(None)
+      val x7492 = CU.temp(None)
+      val x7489 = ScalarFIFO(size=1,name="x7489").wtPort(bus_1839_s)
+      val x7456 = ScalarBuffer(name="x7456").wtPort(x7456_x7463_s)
+      val x7481 = ScalarFIFO(size=1,name="x7481").wtPort(bus_1832_s)
+      val x7488 = ScalarFIFO(size=1,name="x7488").wtPort(bus_1838_s)
+      Stage(operands=List(CU.load(x7488), Const(0), CU.load(x7489)), op=Mux, results=List(x7490, CU.scalarOut(bus_1840_s)))
+      Stage(operands=List(x7490, Const(2)), op=FixSra, results=List(x7492))
+      Stage(operands=List(CU.load(x7481), Const(64)), op=FixMod, results=List(x7482, CU.scalarOut(bus_1842_s)))
+      Stage(operands=List(x7482, Const(2)), op=FixSra, results=List(x7491, CU.scalarOut(bus_1843_s), CU.scalarOut(x7476_x7504_s)))
+      Stage(operands=List(CU.load(x7456), x7491), op=FixAdd, results=List(x7494))
+      Stage(operands=List(x7494, x7492), op=FixAdd, results=List(CU.scalarOut(x7478_x7506_s)))
+    }
+    val x7507_2 = Pipeline(name="x7507_2",parent=x7507) { implicit CU => 
+      val x7485 = CU.temp(None)
+      val x7496 = CU.temp(None)
+      val x7499 = ScalarBuffer(name="x7499").wtPort(result_dram_da)
+      val x7491 = ScalarFIFO(size=1,name="x7491").wtPort(bus_1843_s)
+      val x7481 = ScalarFIFO(size=1,name="x7481").wtPort(bus_1832_s)
+      val x7456 = ScalarBuffer(name="x7456").wtPort(x7456_x7463_s)
+      val x7482 = ScalarFIFO(size=1,name="x7482").wtPort(bus_1842_s)
+      val x7484 = ScalarFIFO(size=1,name="x7484").wtPort(bus_1833_s)
+      val x7490 = ScalarFIFO(size=1,name="x7490").wtPort(bus_1840_s)
+      Stage(operands=List(CU.load(x7491), CU.load(x7456)), op=FixAdd, results=List(CU.scalarOut(x7477_x7505_s)))
+      Stage(operands=List(CU.load(x7484), CU.load(x7482)), op=FixAdd, results=List(x7496))
+      Stage(operands=List(x7496, CU.load(x7490)), op=FixAdd, results=List(CU.scalarOut(x7473_b7757_x7503_b7759_s)))
+      Stage(operands=List(CU.load(x7481), CU.load(x7482)), op=FixSub, results=List(x7485))
+      Stage(operands=List(x7485, CU.load(x7499)), op=FixAdd, results=List(CU.scalarOut(x7473_b7756_x7503_b7758_s)))
+    }
+    val x7524_0 = Pipeline(name="x7524_0",parent=x7525) { implicit CU => 
+      val x7514 = CU.temp(None)
+      val x7512 = CU.temp(None)
+      val x7522_x7515 = CU.temp(None)
+      val x7476 = ScalarBuffer(name="x7476").wtPort(x7476_x7504_s)
+      val x7478 = ScalarBuffer(name="x7478").wtPort(x7478_x7506_s)
+      val x7519 = ScalarFIFO(size=1,name="x7519").wtPort(x6373_x6373_dsp0_bank0_s)
+      val x7477 = ScalarBuffer(name="x7477").wtPort(x7477_x7505_s)
+      val ctr26 = Counter(min=Const(0), max=x7478.readPort, step=Const(1), par=16) // Counter
+      val x7510 = CounterChain(name = "x7510", ctr26).iter(1)
+      Stage(operands=List(CU.load(x7476), CU.ctr(x7510(0))), op=FixLeq, results=List(x7512))
+      Stage(operands=List(CU.ctr(x7510(0)), CU.load(x7477)), op=FixLt, results=List(x7514))
+      Stage(operands=List(x7512, x7514), op=BitAnd, results=List(x7522_x7515))
+      Stage(operands=List(x7522_x7515, CU.load(x7519), Const(0)), op=Mux, results=List(CU.scalarOut(x7474_x7523_s)))
+    }
+    val x7526 = MemoryController(name="x7526",parent=x7529,offchip=result_dram_oc, mctpe=TileStore) { implicit CU => 
+      val x7473_b7757 = ScalarFIFO(size=1,name="size").wtPort(x7473_b7757_x7503_b7759_s)
+      val x7473_b7756 = ScalarFIFO(size=1,name="offset").wtPort(x7473_b7756_x7503_b7758_s)
+      val x7474 = ScalarFIFO(size=1,name="data").wtPort(x7474_x7523_s)
+    }
+    val x7586 = StreamController(name="x7586",parent=x7588) { implicit CU => 
+      val x7586_unit = CounterChain(name = "x7586_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7582 = Sequential(name="x7582",parent=x7586) { implicit CU => 
+      val x7582_unit = CounterChain(name = "x7582_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7564 = StreamController(name="x7564",parent=x7582) { implicit CU => 
+      val x7564_unit = CounterChain(name = "x7564_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
+    }
+    val x7564_0 = Pipeline(name="x7564_0",parent=x7564) { implicit CU => 
+      val x7541 = CU.temp(None)
+      val x7544 = CU.temp(None)
+      val x7543 = CU.temp(None)
+      val x7538 = CU.temp(None)
+      val x7455 = ScalarBuffer(name="x7455").wtPort(x7455_x7469_s)
+      val x7457 = ScalarBuffer(name="x7457").wtPort(x7457_x7470_s)
+      Stage(operands=List(CU.load(x7455), Const(2)), op=FixSla, results=List(x7538, CU.scalarOut(bus_1860_s)))
+      Stage(operands=List(CU.load(x7457), Const(2)), op=FixSla, results=List(x7541, CU.scalarOut(bus_1861_s)))
+      Stage(operands=List(x7538, x7541), op=FixAdd, results=List(x7543))
+      Stage(operands=List(x7543, Const(64)), op=FixMod, results=List(x7544))
+      Stage(operands=List(x7544, Const(0)), op=FixEql, results=List(CU.scalarOut(bus_1866_s)))
+      Stage(operands=List(Const(64), x7544), op=FixSub, results=List(CU.scalarOut(bus_1867_s)))
+    }
+    val x7564_1 = Pipeline(name="x7564_1",parent=x7564) { implicit CU => 
+      val x7549 = CU.temp(None)
+      val x7548 = CU.temp(None)
+      val x7551 = CU.temp(None)
+      val x7539 = CU.temp(None)
+      val x7547 = CU.temp(None)
+      val x7457 = ScalarBuffer(name="x7457").wtPort(x7457_x7470_s)
+      val x7546 = ScalarFIFO(size=1,name="x7546").wtPort(bus_1867_s)
+      val x7538 = ScalarFIFO(size=1,name="x7538").wtPort(bus_1860_s)
+      val x7545 = ScalarFIFO(size=1,name="x7545").wtPort(bus_1866_s)
+      Stage(operands=List(CU.load(x7545), Const(0), CU.load(x7546)), op=Mux, results=List(x7547, CU.scalarOut(bus_1868_s)))
+      Stage(operands=List(x7547, Const(2)), op=FixSra, results=List(x7549))
+      Stage(operands=List(CU.load(x7538), Const(64)), op=FixMod, results=List(x7539, CU.scalarOut(bus_1870_s)))
+      Stage(operands=List(x7539, Const(2)), op=FixSra, results=List(x7548, CU.scalarOut(bus_1871_s), CU.scalarOut(x7533_x7561_s)))
+      Stage(operands=List(CU.load(x7457), x7548), op=FixAdd, results=List(x7551))
+      Stage(operands=List(x7551, x7549), op=FixAdd, results=List(CU.scalarOut(x7535_x7563_s)))
+    }
+    val x7564_2 = Pipeline(name="x7564_2",parent=x7564) { implicit CU => 
+      val x7542 = CU.temp(None)
+      val x7553 = CU.temp(None)
+      val x7538 = ScalarFIFO(size=1,name="x7538").wtPort(bus_1860_s)
+      val x7556 = ScalarBuffer(name="x7556").wtPort(result_dram_da)
+      val x7539 = ScalarFIFO(size=1,name="x7539").wtPort(bus_1870_s)
+      val x7457 = ScalarBuffer(name="x7457").wtPort(x7457_x7470_s)
+      val x7547 = ScalarFIFO(size=1,name="x7547").wtPort(bus_1868_s)
+      val x7541 = ScalarFIFO(size=1,name="x7541").wtPort(bus_1861_s)
+      val x7548 = ScalarFIFO(size=1,name="x7548").wtPort(bus_1871_s)
+      Stage(operands=List(CU.load(x7548), CU.load(x7457)), op=FixAdd, results=List(CU.scalarOut(x7534_x7562_s)))
+      Stage(operands=List(CU.load(x7541), CU.load(x7539)), op=FixAdd, results=List(x7553))
+      Stage(operands=List(x7553, CU.load(x7547)), op=FixAdd, results=List(CU.scalarOut(x7530_b7761_x7560_b7763_s)))
+      Stage(operands=List(CU.load(x7538), CU.load(x7539)), op=FixSub, results=List(x7542))
+      Stage(operands=List(x7542, CU.load(x7556)), op=FixAdd, results=List(CU.scalarOut(x7530_b7760_x7560_b7762_s)))
+    }
+    val x7581_0 = Pipeline(name="x7581_0",parent=x7582) { implicit CU => 
+      val x7571 = CU.temp(None)
+      val x7569 = CU.temp(None)
+      val x7579_x7572 = CU.temp(None)
+      val x7535 = ScalarBuffer(name="x7535").wtPort(x7535_x7563_s)
+      val x7576 = ScalarFIFO(size=1,name="x7576").wtPort(x6374_x6374_dsp0_bank0_s)
+      val x7534 = ScalarBuffer(name="x7534").wtPort(x7534_x7562_s)
+      val x7533 = ScalarBuffer(name="x7533").wtPort(x7533_x7561_s)
+      val ctr27 = Counter(min=Const(0), max=x7535.readPort, step=Const(1), par=16) // Counter
+      val x7567 = CounterChain(name = "x7567", ctr27).iter(1)
+      Stage(operands=List(CU.load(x7533), CU.ctr(x7567(0))), op=FixLeq, results=List(x7569))
+      Stage(operands=List(CU.ctr(x7567(0)), CU.load(x7534)), op=FixLt, results=List(x7571))
+      Stage(operands=List(x7569, x7571), op=BitAnd, results=List(x7579_x7572))
+      Stage(operands=List(x7579_x7572, CU.load(x7576), Const(0)), op=Mux, results=List(CU.scalarOut(x7531_x7580_s)))
+    }
+    val x7583 = MemoryController(name="x7583",parent=x7586,offchip=result_dram_oc, mctpe=TileStore) { implicit CU => 
+      val x7530_b7760 = ScalarFIFO(size=1,name="offset").wtPort(x7530_b7760_x7560_b7762_s)
+      val x7531 = ScalarFIFO(size=1,name="data").wtPort(x7531_x7580_s)
+      val x7530_b7761 = ScalarFIFO(size=1,name="size").wtPort(x7530_b7761_x7560_b7763_s)
     }
     
   }

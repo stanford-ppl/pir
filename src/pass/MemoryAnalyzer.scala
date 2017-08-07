@@ -158,11 +158,20 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
     }
   }
 
+  //TODO: Fix this for multiple reader and writer
+  def sortCChains(cchains:List[CounterChain]):List[CounterChain] = {
+    val ancSize = cchains.map { _.original.ctrler.ancestors.size }
+    cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
+  }
+
+  //TODO: fix this for multiple reader and writer
   def analyzeAddrCalc(cu:ComputeUnit) = emitBlock(s"analyzeAddrCalc($cu)"){
     val readCCs = cu.cchains.filter { cc => forRead(cc) }
-    readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
+    //readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
+    readCChainsOf(cu) = sortCChains(readCCs)
     val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
-    writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
+    //writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
+    writeCChainsOf(cu) = sortCChains(writeCCs)
     val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
     compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
     dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")

@@ -64,6 +64,7 @@ trait Design extends PIRMetadata with Collector {
   val powerAnalyzer = new PowerAnalyzer()
   val energyAnalyzer = new EnergyAnalyzer()
   val delayAnalyzer = new DelayAnalyzer()
+  val prescreen = new ResourcePrescreen()
 
   /* Transformation */
   val ctrlAlloc = new CtrlAlloc()
@@ -143,6 +144,7 @@ trait Design extends PIRMetadata with Collector {
   passes += pirPrinter
 
   // Mapping
+  passes += prescreen
   passes += pirMapping 
   passes += mapPrinter
   passes += spadeVecDotPrinter 

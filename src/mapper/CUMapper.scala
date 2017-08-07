@@ -37,7 +37,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
 
-  def resMap = design.pirMapping.prescreen.resMap
+  def resMap = design.prescreen.resMap
 
   def place(cl:N, prt:R, m:M):M = {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {

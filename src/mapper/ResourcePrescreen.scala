@@ -4,7 +4,7 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
-import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
+import pir.codegen.{Logger, CSVPrinter}
 import pir.pass.{Pass}
 import pir.plasticine.main._
 import pir.util.misc._
@@ -17,12 +17,18 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class ResourcePrescreen(implicit val design:Design) extends Mapper {
+class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   import pirmeta._
   type N = CL
   type R = PCL
 
-  val typeStr = "Prescreen"
+  override lazy val stream = newStream(s"Prescreen.log")
+
+  override def shouldRun = true
+
+  val summary = new CSVPrinter {
+    override lazy val stream = newStream(Config.outDir, s"AppStats.csv", append=true)
+  }
 
   var resMap = mutable.Map[N,List[R]]()
 
@@ -59,37 +65,83 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
   }
 
   def logMapping(map:mutable.Map[N, List[R]]) = {
-    mapper.emitBlock(s"qualified resouce") {
+    emitBlock(s"qualified resouce") {
       design.top.ctrlers.foreach { cl =>
-        mapper.dprintln(s"$cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
+        dprintln(s"$cl -> [${map(cl).map{ pcl => quote(pcl)}.reduce(_ + "," + _)}]")
       }
     }
+  }
+
+  lazy val prts = design.arch.prts
+  lazy val cls = design.top.ctrlers
+  lazy val mcs = cls.collect { case mc:MC => mc }
+  lazy val pmcs = design.arch.mcs 
+  lazy val scus_offchip = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
+  lazy val pscus_offchip = design.arch.asInstanceOf[SwitchNetwork].scuArray.flatten
+  lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(scus_offchip)
+  lazy val pscus = design.arch.scus.diff(pscus_offchip)
+  lazy val mps = cls.collect { case mp:MP => mp }
+  //lazy val mcusgrp = mps.groupBy { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
+  //lazy val mcus = mcusgrp.getOrElse(true, Nil)
+  //lazy val mus = mcusgrp.getOrElse(false, Nil) 
+  lazy val mcus = mps
+  lazy val pmcus = design.arch.mcus 
+  //lazy val pmus = design.arch.mus
+  lazy val ocus = cls.collect { case ocu:OCL => ocu }
+  lazy val pocus = design.arch.ocus 
+  lazy val rcus = cls.collect { case cu:PL => cu }.diff(scus_offchip).diff(scus).diff(mcus)
+  lazy val pcus = design.arch.pcus 
+
+  def avgCnt[E](list:List[E], cnt: E => Float) = if (list.size==0) 0 else list.map { e => cnt(e) }.sum.toFloat / list.size
+
+  def maxCnt[E](list:List[E], cnt: E => Float) = if (list.size==0) 0 else list.map { e => cnt(e) }.max
+
+  def avgLanes(cus:List[CU]) = avgCnt(cus, (cu:CU) => parOf(cu) ) 
+
+  def avgStages(cus:List[CU]) = avgCnt(cus, (cu:CU) => cu.stages.size ) 
+
+  def avgRegs(cus:List[CU]) = avgCnt(cus, (cu:CU) => avgCnt(cu.stages, (st:ST) => st.prs.size))
+
+  def maxStages(cus:List[CU]) = maxCnt(cus, (cu:CU) => cu.stages.size ) 
+
+  def maxRegs(cus:List[CU]) = maxCnt(cus, (cu:CU) => maxCnt(cu.stages, (st:ST) => st.prs.size))
+
+  addPass {
+    val row = summary.addRow
+    row += "App"           -> design.name
+    row += "cls" -> cls.size
+    row += "mcs" -> mcs.size
+    row += "pcus" -> rcus.size
+    row += "scus" -> scus.size
+    row += "scus(MC)" -> scus_offchip.size
+    row += "mcus" -> mps.size
+    row += "ocus" -> ocus.size
+    row += "pcuAvgStages" -> avgStages(rcus)
+    row += "pcuMaxStages" -> maxStages(rcus)
+    row += "scuAvgStages" -> avgStages(scus_offchip)
+    row += "scuMaxStages" -> maxStages(scus_offchip)
+    row += "scuAvgStages(MC)" -> avgStages(scus)
+    row += "scuMaxStages(MC)" -> maxStages(scus)
+    row += "mcuAvgStages" -> avgStages(mps) 
+    row += "mcuMaxStages" -> maxStages(mps) 
+    row += "pcuAvgRegs" -> avgRegs(rcus)
+    row += "pcuMaxRegs" -> maxRegs(rcus)
+    row += "scuAvgRegs" -> avgRegs(scus)
+    row += "scuMaxRegs" -> maxRegs(scus)
+    row += "scuAvgRegs(MC)" -> avgRegs(scus_offchip)
+    row += "scuMaxRegs(MC)" -> maxRegs(scus_offchip)
+    row += "mcuAvgRegs(MC)" -> avgRegs(mcus)
+    row += "mcuMaxRegs(MC)" -> maxRegs(mcus)
+    row += "cuAvgLane(MC)" -> avgLanes(rcus ++ scus) 
+    summary.emitFile
+    summary.close
   }
 
   /* 
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
-  def run:Unit = {
-    info(s"Number of cls:${design.top.ctrlers.size}")
-    val prts = design.arch.prts
-    val cls = design.top.ctrlers
-    val mcs = cls.collect { case mc:MC => mc }
-    val pmcs = design.arch.mcs 
-    val scus_offchip = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
-    val pscus_offchip = design.arch.asInstanceOf[SwitchNetwork].scuArray.flatten
-    val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(scus_offchip)
-    val pscus = design.arch.scus.diff(pscus_offchip)
-    val mps = cls.collect { case mp:MP => mp }
-    //val mcusgrp = mps.groupBy { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
-    //val mcus = mcusgrp.getOrElse(true, Nil)
-    //val mus = mcusgrp.getOrElse(false, Nil) 
-    val mcus = mps
-    val pmcus = design.arch.mcus 
-    //val pmus = design.arch.mus
-    val ocus = cls.collect { case ocu:OCL => ocu }
-    val pocus = design.arch.ocus 
-    val rcus = cls.collect { case cu:PL => cu }.diff(scus_offchip).diff(scus).diff(mcus)
-    val pcus = design.arch.pcus 
+  addPass {
+    //info(s"Number of cls:${design.top.ctrlers.size}")
     //info(s"numPCU:${if (scus.size==0) rcus.size - mcs.size else rcus.size} numPCU:${pcus.size}")
     //info(s"numMCU:${mcus.size} numPMCU:${pmcus.size}")
     //info(s"numSCU:${scus.size} numPSCU:${pscus.size}")
@@ -107,7 +159,7 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
     pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
     pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
     pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
-    if (!pass) throw MappingException(PIRMap.empty, s"Not enough controller to map $design")
+    if (!pass) throw PIRException(s"Not enough controller to map $design")
 
     val failureInfo = mutable.Map[N, mutable.Map[R, ListBuffer[String]]]()
     cls.foreach { cl => 
@@ -158,7 +210,12 @@ class ResourcePrescreen(implicit val design:Design) extends Mapper {
       }
       map(cl).size==0
     }
-    if (notFit.nonEmpty) throw MappingException(PIRMap.empty, s"[${notFit.mkString(",")}] do not fit in any controller!")
+    if (notFit.nonEmpty) throw PIRException(s"[${notFit.mkString(",")}] do not fit in any controller!")
     logMapping(map)
+  }
+
+  override def finPass = {
+    close
+    super.finPass
   }
 }

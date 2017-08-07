@@ -102,14 +102,14 @@ package object util {
     chained.toList
   }
 
-  def sortCChains(cchains:List[CounterChain])(implicit logger:Logger) = {
+  def sortCChains(cchains:List[CounterChain])(implicit logger:Logger):List[CounterChain] = {
     import logger._
     val ancSize = cchains.map { _.original.ctrler.ancestors.size }
     if (ancSize.size != ancSize.toSet.size) {
       cchains.zip(ancSize).foreach { case (cc,size) =>
         dprintln(s"ctrler:${cc.ctrler} cchain:$cc original:${cc.original} ${cc.original.ctrler} $size")
       }
-      throw new Exception(s"Don't know how to sort $cchains!")
+      throw new Exception(s"Don' how to sort $cchains!")
     }
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }

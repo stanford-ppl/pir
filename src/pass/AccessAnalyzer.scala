@@ -20,6 +20,9 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
     writersOf(mem) = (collectIn[FIFO](mem.writePort).flatMap(fifo => writersOf(fifo)) ++
                       collectIn[Input](mem.writePort).map(in => in.variable.writer.ctrler)).toList
     dprintln(writersOf.info(mem))
+    if (writersOf(mem).isEmpty) {
+      err(s"${mem.ctrler}.$mem does not have writer!")
+    }
   }
 
   def setReader(mem:OnChipMem) = emitBlock(s"setReader($mem)"){
@@ -39,6 +42,9 @@ class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
         }
     }
     dprintln(readersOf.info(mem))
+    if (readersOf(mem).isEmpty) {
+      warn(s"${mem.ctrler}.$mem does not have reader!")
+    }
   }
 
   def setAccess = {
