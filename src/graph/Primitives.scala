@@ -142,9 +142,16 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
 class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: Design) extends Primitive {
   override val typeStr = "FU"
   override val name = None
-  val operands = List.tabulate(oprds.size) { i => 
+  val operands = oprds.zipWithIndex.map { case (oprd, i) => 
     val in = InPort(this, s"${this}.oprd($i)")
-    in.connect(oprds(i))
+    oprd.src match {
+      case PipeReg(s, r) if (s!=stage && s!=stage.prev.get) =>
+        throw PIRException(s"Function Unit can only write to current stage ($stage) but writes to $s")
+      case PipeReg(s, r) =>
+        s.addUse(r)
+        in.connect(oprd)
+      case _ => in.connect(oprd)
+    }
     in
   }
   val out = OutPort(this, s"${this}.out")
@@ -152,10 +159,9 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
     res.src match {
       case PipeReg(s, r) if (s!=stage) => 
         throw PIRException(s"Function Unit can only write to current stage ($stage) but writes to $s")
-      case _ =>
-    }
-    //TODO: Refactor this
-    res.src match {
+      case PipeReg(s, r) =>
+        res.connect(out)
+        s.addDef(r)
       case sram:SRAM if sram.writeAddr==res => sram.wtAddr(out)
       case sram:SRAM if sram.readAddr==res => sram.rdAddr(out)
       case _ => res.connect(out) 
@@ -183,6 +189,9 @@ class Stage(override val name:Option[String])(implicit override val ctrler:Compu
   var liveOuts:ISet[Reg] = ISet.empty
   var prev:Option[Stage] = None
   var next:Option[Stage] = None
+  def allPrevs:List[Stage] = {
+    prev.map { prev => prev.allPrevs :+ prev }.getOrElse(Nil)
+  }
   override def toUpdate = super.toUpdate || fu==null || (fu.isDefined && fu.get.toUpdate) 
 
   def addUse(reg:Reg):Unit = { uses += reg }
@@ -208,6 +217,7 @@ object Stage {
       case CtrPR(ctr) if stage.prev.isEmpty => ctr.out
       case LoadPR(mem) if stage.prev.isEmpty => mem.load
       case r@TempPR(init) if stage.prev.isEmpty => stage.get(r).out // First stage read from initialized register
+      case r@TempPR(init) if !stage.allPrevs.exists{_.defs.contains(r) } => stage.get(r).out
       case r:Reg => stage.prev.get.get(r).out
       case pr:PipeReg => pr.out
       case c:Const[_] => c.out
