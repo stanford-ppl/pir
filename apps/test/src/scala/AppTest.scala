@@ -224,21 +224,21 @@ class AppTests extends UnitTest { self =>
   val simulate = false
   val verbose = true
   val mapping = true
-  //val arch = SN16x8_LD
+  val arch = SN16x8_LD
   //val arch = SN16x13_LD
-  val arch = SN8x8_LD
+  //val arch = SN8x8_LD
   //val arch = SN4x4
   //val arch = new SN(numRows=2, numCols=2, pattern=Checkerboard)
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), mapping=mapping, debug=true)
   //test(TensorLoadStore, arch=Some(arch), mapping=mapping, debug=true)
 
-  //test(DotProduct, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(OuterProduct, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  
-  test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(DotProduct           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+
+  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)

@@ -67,9 +67,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
             case ScalarOutPR(so) =>
               mp.vomap.get(so).foreach { _.foreach { pso => mp = mp.setFI(pso.ic, ppr.out.sliceHead.out) } }
             case VecOutPR(vo) =>
-              mp.vomap.get(vo).foreach { _.foreach { pvo => // One VecOut can be mapped to multiple pvouts 
-                if (regsOf(pvo.ic).contains(pr)) mp = mp.setFI(pvo.ic, ppr.out)
-              } }
+              mp.vomap.get(vo).foreach { _.foreach { pvo => mp = mp.setFI(pvo.ic, ppr.out) } }
             case _ =>
           }
         }

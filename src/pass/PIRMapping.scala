@@ -97,7 +97,8 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         }
         viewRouting(e.mapper)
       case e =>
-        e.printStackTrace
+        dprintln(e)
+        dprintln(e.getStackTrace.mkString("\n"))
     }
     throw e
   }

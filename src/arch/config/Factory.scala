@@ -120,11 +120,13 @@ plasticine {
         cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
       case cu:ComputeUnit =>
         val voRegs = cu.regs.filter(_.is(VecOutReg))
-        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
-        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+        //assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+        //(cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+        // Xbar
+        cu.vouts.foreach { vout => voRegs.foreach { reg => vout.ic <== cu.stages.last.get(reg).out } }
         // Xbar
         val soRegs = cu.regs.filter(_.is(ScalarOutReg))
-        cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
+        cu.souts.foreach { sout => soRegs.foreach { reg => sout.ic <== (cu.stages.last.get(reg).out, 0) } }
       case cu:MemoryController =>
       case cu:Top =>
     }
