@@ -3,14 +3,14 @@ package pir.codegen
 import pir._
 import pir.mapper.PIRMap
 import pir.pass.Pass
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.pass.Traversal
 import pir.graph._
-import pir.plasticine.util.{quote => _, _}
+import pir.spade.util.{quote => _, _}
 import pir.util.misc._
 import pir.util.typealias._ 
 import pir.exceptions.PIRException
-import pir.plasticine.simulation._
+import pir.spade.simulation._
 
 import scala.language.reflectiveCalls
 import scala.language.existentials
@@ -143,7 +143,7 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
     }
   }
 
-  override def declare(io:pir.plasticine.graph.IO[_<:pir.plasticine.graph.PortType, _<:PModule], prefix:Option[String]=None) = {
+  override def declare(io:pir.spade.graph.IO[_<:pir.spade.graph.PortType, _<:PModule], prefix:Option[String]=None) = {
     track(io)
     super.declare(io, prefix)
   }

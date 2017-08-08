@@ -1,12 +1,12 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.graph._
 import pir.util.enums._
 import pir.codegen._
-import pir.plasticine.main._
-import pir.plasticine.config._
-import pir.plasticine.util._
-import pir.plasticine.simulation._
+import pir.spade.main._
+import pir.spade.config._
+import pir.spade.util._
+import pir.spade.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -129,12 +129,12 @@ class Input[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(implic
   val _fanIns = ListBuffer[O]()
   def fanIns = _fanIns.toList
   def connect(n:O):Unit = { _fanIns += n; n.connectedTo(this) }
-  private[plasticine] def <==(n:O) = { connect(n) }
-  private[plasticine] def <==(ns:List[O]) = ns.foreach(n => connect(n))
-  private[plasticine] def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
-  private[plasticine] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
-  private[plasticine] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
-  private[plasticine] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
+  private[spade] def <==(n:O) = { connect(n) }
+  private[spade] def <==(ns:List[O]) = ns.foreach(n => connect(n))
+  private[spade] def <==(r:PipeReg):Unit = { this.asBus.connect(r.out) }
+  private[spade] def <==(n:Output[Bus, Module], i:Int) = n.slice(i, this)
+  private[spade] def <==(ns:List[Output[Bus, Module]], i:Int) = ns.foreach(_.slice(i, this))
+  private[spade] def <-- (n:Output[_, Module]) = n.broadcast(this.asBus)
   def ms = s"${this}=fanIns[${_fanIns.mkString(",")}]"
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanIns.contains(n)
@@ -192,8 +192,8 @@ class Output[P<:PortType, +S<:Module](tp:P, src:S, sf: Option[()=>String])(impli
   val _fanOuts = ListBuffer[I]()
   def fanOuts = _fanOuts.toList
   def connectedTo(n:I):Unit = _fanOuts += n
-  private[plasticine] def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
-  private[plasticine] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
+  private[spade] def ==>(n:I):Unit = { n.connect(this.asInstanceOf[n.O]) }
+  private[spade] def ==>(ns:List[I]):Unit = ns.foreach { n => ==>(n) }
   def mt = s"${this}=fanOuts[${_fanOuts.mkString(",")}]" 
   def canConnect(n:IO[_<:PortType, Module]):Boolean = {
     _fanOuts.contains(n)

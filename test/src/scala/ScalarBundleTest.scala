@@ -6,7 +6,7 @@ import pir.util.misc._
 import pir.util.enums._
 import pir.graph._
 import pir.pass._
-import pir.plasticine.config._
+import pir.spade.config._
 import pir.codegen._
 
 import org.scalatest.{ Sequential => _, _ }

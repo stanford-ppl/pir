@@ -1,9 +1,9 @@
-package pir.plasticine.config
+package pir.spade.config
                           
 import pir._
-import pir.plasticine.graph._
-import pir.plasticine.main._
-import pir.plasticine.util._
+import pir.spade.graph._
+import pir.spade.main._
+import pir.spade.util._
 import pir.exceptions.PIRException
 import pir.util.misc._
 import pir.codegen.Logger

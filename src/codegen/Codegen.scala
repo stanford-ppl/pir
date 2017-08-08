@@ -4,7 +4,7 @@ import pir.graph._
 import pir.pass.Traversal
 import pir.Design
 import pir.pass.Pass
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.typealias._
 
 import scala.collection.mutable.Set

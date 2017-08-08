@@ -1,8 +1,8 @@
 package pir.codegen
 
 import pir.Design
-import pir.plasticine.main._
-import pir.plasticine.graph._
+import pir.spade.main._
+import pir.spade.graph._
 
 import scala.collection.mutable._
 import java.io.OutputStream

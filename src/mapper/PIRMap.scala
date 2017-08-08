@@ -65,7 +65,7 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
 
   def quote(n:Any)(implicit design:Design) = n match {
     case n:Node => pir.util.quote(n)
-    case n:PNode => pir.plasticine.util.quote(n)(design.arch)
+    case n:PNode => pir.spade.util.quote(n)(design.arch)
     case n => s"$n"
   }
 

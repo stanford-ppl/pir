@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir.Design
 import pir.graph.{AccumPR, Const}
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.typealias._
 import pir.util.enums._
 import pir.Config
@@ -640,7 +640,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     case n:PSRAM =>
       s"${quote(n.prt)}.scratchpad"
     case n =>
-      pir.plasticine.util.quote(n)
+      pir.spade.util.quote(n)
   }
 
   def quote(n:Op) = n match {

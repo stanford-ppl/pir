@@ -5,9 +5,9 @@ import pir.util.enums._
 import pir.graph.{Const, ScalarOutPR, VecOutPR}
 import pir.pass.{PIRMapping}
 import pir.util._
-import pir.plasticine.main._
-import pir.plasticine.graph.{Const => PConst, PipeReg => PPR, _}
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.graph.{Const => PConst, PipeReg => PPR, _}
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.collection.immutable.Set

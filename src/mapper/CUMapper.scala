@@ -6,8 +6,8 @@ import pir.codegen.Printer
 import pir.exceptions._
 import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
 import pir.pass.{PIRMapping}
-import pir.plasticine.main._
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.util._
 import pir.util.misc._
 import pir.util.topoSort
 import pir.util.enums._

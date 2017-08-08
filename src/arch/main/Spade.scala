@@ -1,12 +1,12 @@
-package pir.plasticine.main
+package pir.spade.main
 
-import pir.plasticine.graph._
+import pir.spade.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
-import pir.plasticine.simulation._
-import pir.plasticine.util._
-import pir.plasticine.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
+import pir.spade.config.ConfigFactory
 import pir.util.misc._
 
 trait SpadeParam {

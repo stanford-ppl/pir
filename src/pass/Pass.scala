@@ -4,8 +4,8 @@ import pir.Design
 import pir.Config
 import pir.util._
 import pir.util.misc._
-import pir.plasticine.util.SpadeMetadata
-import pir.plasticine.main._
+import pir.spade.util.SpadeMetadata
+import pir.spade.main._
 import pir.util.typealias._
 import pir.util.PIRMetadata
 
@@ -47,7 +47,7 @@ abstract class Pass(implicit val design:Design) {
 
   def quote(n:Any):String = n match {
     case n:Node => pir.util.quote(n) 
-    case n:PNode => pir.plasticine.util.quote(n)
+    case n:PNode => pir.spade.util.quote(n)
   }
 
   val passes = mutable.ListBuffer[(() => Boolean, () => Any)]()

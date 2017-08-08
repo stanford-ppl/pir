@@ -1,12 +1,12 @@
-package pir.plasticine.simulation
+package pir.spade.simulation
 
-import pir.plasticine.main._
-import pir.plasticine.graph.{Mux => _, _}
+import pir.spade.main._
+import pir.spade.graph.{Mux => _, _}
 import pir.util.enums._
 import pir.exceptions._
 import pir.util.misc._
 import pir.Config
-import pir.plasticine.util._
+import pir.spade.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map

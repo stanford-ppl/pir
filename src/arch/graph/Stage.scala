@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.graph._
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.util._
-import pir.plasticine.simulation._
+import pir.spade.main._
+import pir.spade.util._
+import pir.spade.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer

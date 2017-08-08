@@ -3,9 +3,9 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR, LoadPR}
-import pir.plasticine.graph.{PipeReg => PPR}
-import pir.plasticine.util._
-import pir.plasticine.main._
+import pir.spade.graph.{PipeReg => PPR}
+import pir.spade.util._
+import pir.spade.main._
 import pir.exceptions._
 import pir.util.PIRMetadata
 

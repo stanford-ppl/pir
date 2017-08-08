@@ -1,12 +1,12 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.graph._
 import pir.util.enums._
 import pir.util.misc._
 import pir.util.pipelinedBy
-import pir.plasticine.main._
-import pir.plasticine.util._
-import pir.plasticine.simulation._
+import pir.spade.main._
+import pir.spade.util._
+import pir.spade.simulation._
 import pir.mapper.PIRMap
 
 import scala.language.reflectiveCalls
@@ -81,8 +81,8 @@ case class AndGate(name:Option[String])(implicit spade:Spade, override val prt:C
   cb.andGates += this
   override val typeStr = name.getOrElse("ag")
   val out = Output(Bit(), this, s"${this}.out")
-  private[plasticine] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
-  private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
+  private[spade] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
+  private[spade] def <== (out:Output[Bit, Module]):Unit = {
     val i = ins.size
     val in = Input(Bit(), this, s"${this}.in$i").index(i)
     in <== out
@@ -108,8 +108,8 @@ case class AndTree(name:Option[String])(implicit spade:Spade, override val prt:C
   override val typeStr = name.getOrElse("at")
   cb.andTrees += this
   val out = Output(Bit(), this, s"${this}.out")
-  private[plasticine] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
-  private[plasticine] def <== (out:Output[Bit, Module]):Unit = {
+  private[spade] def <== (outs:List[Output[Bit, Module]]):Unit = outs.foreach { out => <==(out) }
+  private[spade] def <== (out:Output[Bit, Module]):Unit = {
     val i = ins.size
     val in = Input(Bit(), this, s"${this}.in$i").index(i)
     in <== Const(true).out

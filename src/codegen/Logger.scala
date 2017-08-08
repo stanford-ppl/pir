@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir._
 import pir.exceptions._
-import pir.plasticine.main.Spade
+import pir.spade.main.Spade
 import pir.pass.Pass
 
 import java.io.PrintWriter

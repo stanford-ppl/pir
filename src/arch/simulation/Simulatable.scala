@@ -1,15 +1,15 @@
-package pir.plasticine.simulation
+package pir.spade.simulation
 
 import pir._
 import pir.mapper.PIRMap
 import pir.codegen.Logger
 import pir.pass.Pass
-import pir.plasticine.main._
-import pir.plasticine.graph._
-import pir.plasticine.traversal._
+import pir.spade.main._
+import pir.spade.graph._
+import pir.spade.traversal._
 import pir.exceptions.PIRException
 import pir.util.misc._
-import pir.plasticine.util._
+import pir.spade.util._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer

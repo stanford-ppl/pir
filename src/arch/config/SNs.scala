@@ -1,7 +1,7 @@
-package pir.plasticine.config
+package pir.spade.config
                           
-import pir.plasticine.graph._
-import pir.plasticine.main._
+import pir.spade.graph._
+import pir.spade.main._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls

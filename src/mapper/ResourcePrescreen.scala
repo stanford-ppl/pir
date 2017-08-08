@@ -6,7 +6,7 @@ import pir.codegen.Printer
 import pir.exceptions._
 import pir.codegen.{Logger, CSVPrinter}
 import pir.pass.{Pass}
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.misc._
 import pir.util.topoSort
 import pir.util.enums._

@@ -2,12 +2,12 @@ package pir.mapper
 import pir.{Config}
 import pir.Design
 import pir.util.typealias._
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.enums._
 import pir.pass.{PIRMapping}
 import pir.codegen.{CUCtrlDotPrinter}
 import pir.exceptions._
-import pir.plasticine.util._
+import pir.spade.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue

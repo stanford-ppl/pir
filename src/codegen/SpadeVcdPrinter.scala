@@ -3,13 +3,13 @@ package pir.codegen
 import pir._
 import pir.mapper.PIRMap
 import pir.pass.Pass
-import pir.plasticine.main._
-import pir.plasticine.graph._
-import pir.plasticine.traversal._
-import pir.plasticine.util.{quote => _, _}
+import pir.spade.main._
+import pir.spade.graph._
+import pir.spade.traversal._
+import pir.spade.util.{quote => _, _}
 import pir.util.misc._
 import pir.exceptions.PIRException
-import pir.plasticine.simulation._
+import pir.spade.simulation._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer

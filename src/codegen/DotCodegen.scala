@@ -1,7 +1,7 @@
 package pir.codegen
 
 import pir.Design
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.typealias._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
@@ -139,7 +139,7 @@ trait DotCodegen extends Printer with DotEnum {
           case _ => pout.src.toString
         }
       case n:Node => pir.util.quote(n)
-      case n:PNode => pir.plasticine.util.quote(n)
+      case n:PNode => pir.spade.util.quote(n)
       case _ => s"$n"
     } 
   }

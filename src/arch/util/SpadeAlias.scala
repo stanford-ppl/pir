@@ -1,6 +1,6 @@
-package pir.plasticine.util.typealias
+package pir.spade.util.typealias
 
-import pir.plasticine.graph._
+import pir.spade.graph._
 
 trait SpadeAlias {
   // Spade Nodes
@@ -16,7 +16,7 @@ trait SpadeAlias {
   type PMC       = MemoryController
   type PTop      = Top
   type PRT       = Routable 
-  type PReg      = pir.plasticine.graph.ArchReg
+  type PReg      = pir.spade.graph.ArchReg
   type PPR       = PipeReg
   type PCtr      = Counter
   type PSRAM     = SRAM

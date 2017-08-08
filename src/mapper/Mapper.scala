@@ -4,10 +4,10 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.util.misc._
 import pir.codegen.{CUDotPrinter}
-import pir.plasticine.main._
-import pir.plasticine.graph.{ Node => PNode }
+import pir.spade.main._
+import pir.spade.graph.{ Node => PNode }
 import pir.codegen.{Logger}
-import pir.plasticine.util.SpadeMetadata
+import pir.spade.util.SpadeMetadata
 import pir.util.PIRMetadata
 import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
 
@@ -64,7 +64,7 @@ trait Mapper { self =>
 
   def quote(n:Any)(implicit spade:Spade):String = n match {
     case n:Node => pir.util.quote(n) 
-    case n:PNode => pir.plasticine.util.quote(n)
+    case n:PNode => pir.spade.util.quote(n)
     case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
   }
 

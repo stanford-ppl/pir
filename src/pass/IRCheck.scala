@@ -1,7 +1,7 @@
 package pir.pass
 import pir.graph.{Const => _, _}
 import pir._
-import pir.plasticine.main._
+import pir.spade.main._
 import pir.util.typealias._
 import pir.util._
 import pir.util.misc._

@@ -1,15 +1,14 @@
-package pir.plasticine
+package pir.spade
 
-import pir.plasticine.main.Spade
-import pir.plasticine.graph._
-import pir.plasticine.simulation._
+import pir.spade.main.Spade
+import pir.spade.graph._
+import pir.spade.simulation._
 import pir.exceptions.PIRException
 import pir.mapper.PIRMap
 import pir.Design
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.Set
 import scala.language.implicitConversions
 import scala.reflect.{ClassTag, classTag}
 
@@ -30,7 +29,7 @@ package object util {
     //println(s"$in.fanIns=[${in.fanIns.map(n => s"($n, ${ev.runtimeClass.isInstance(n)})").mkString("\n")}]")
     in.fanIns.flatMap { out =>
       out.src match {
-        case n if ev.runtimeClass.isInstance(n) => List(out.asInstanceOf[Output[_<:PortType, Module]])
+        case n:T => List(out)
         case sl:Slice[_,_] => fromInstanceOf[T](sl.in)
         case bc:BroadCast[_] => fromInstanceOf[T](bc.in)
         case n => Nil
@@ -41,7 +40,7 @@ package object util {
   def fromInstanceOf[T](out:Output[_<:PortType,Module])(implicit ev:ClassTag[T]):List[Input[_<:PortType,Module]] = {
     out.fanOuts.flatMap { in =>
       in.src match {
-        case n if ev.runtimeClass.isInstance(n) => List(in.asInstanceOf[Input[_<:PortType,Module]])
+        case n:T => List(in);
         case sl:Slice[_,_] => fromInstanceOf[T](sl.out)
         case bc:BroadCast[_] => fromInstanceOf[T](bc.out)
         case n => Nil
@@ -55,6 +54,39 @@ package object util {
       case fu:FuncUnit => Some(fu.stage)
       case _ => None
     }
+  }
+
+  def collectIn[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+    case x:X => Set(x)
+    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
+    case x:GlobalInput[_,_] => Set() // Do not cross CU boundary
+    case x:GlobalOutput[_,_] => collectIn[X](x.src) ++ collectIn[X](x.ic)
+    case x:Input[_,_] => collectIn[X](x.fanIns)
+    case x:Output[_,_] => collectIn[X](x.src)
+    case x:Slice[_, _] => collectIn[X](x.in)
+    case x:BroadCast[_] => collectIn[X](x.in)
+    case x:PipeReg => collectIn[X](x.in)
+    case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
+    case x:Mux[_] => x.ins.flatMap(collectIn[X]).toSet
+    case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
+    case x:LocalBuffer => collectIn[X](x.writePort)
+    case _ => Set()
+  }
+
+  def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+    case x:X => Set(x)
+    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
+    case x:GlobalInput[_,_] => collectOut[X](x.src) ++ collectOut[X](x.ic)
+    case x:GlobalOutput[_,_] => Set() // Do not cross CU boundary
+    case x:Input[_,_] => collectOut[X](x.src)
+    case x:Output[_,_] => collectOut[X](x.fanOuts)
+    case x:Slice[_, _] => collectOut[X](x.out)
+    case x:BroadCast[_] => collectOut[X](x.out)
+    case x:PipeReg => collectOut[X](x.out)
+    case x:Counter => collectOut[X](x.out)
+    case x:Mux[_] => collectOut[X](x.out)
+    case x:OnChipMem => collectOut[X](x.readPort)
+    case _ => Set()
   }
 
   def quote(n:Node)(implicit spade:Spade):String = {
