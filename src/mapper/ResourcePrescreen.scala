@@ -189,6 +189,10 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
             cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
             cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
             cons += (("srams"	    , (cu.srams, pcu.srams)))
+            cu.srams.zip(pcu.srams).headOption.foreach { case (sram, psram) =>
+              cons += (("sramSize"	    , (sram.size, psram.bankSize(sram.banking))))
+              cons += (("sramBanks"	    , (sram.banks, psram.banks)))
+            }
             cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
           case (cu:OCL, pocu:POCU) =>
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))

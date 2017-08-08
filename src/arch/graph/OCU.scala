@@ -28,7 +28,7 @@ case class OuterComputeUnitParam (
   val vbufSize:Int = 0
   val numSRAMs:Int = 0
   val sramSize:Int = 0
-  override val numLanes:Int = 1
+  override lazy val numLanes:Int = 1
 
   def config(cu:OuterComputeUnit)(implicit spade:Spade) = {
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")

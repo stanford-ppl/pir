@@ -153,43 +153,43 @@ object BlackScholes extends PIRApp {
       val x6649 = ScalarFIFO(size=1,name="x6649").wtPort(x6633_x6643_data_s)
       val x6645 = CounterChain.copy("x6650", "x6645")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6623 = SRAM(size=16,name="x6623",banking = Strided(1)).wtPort(x6649.readPort).rdPort(x6623_x6623_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6645(0))
+      val x6623 = SRAM(size=16,name="x6623",banking = Strided(1,16)).wtPort(x6649.readPort).rdPort(x6623_x6623_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6645(0))
     }
     val x6624_dsp0_bank0 = MemoryPipeline(name="x6624_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6669 = ScalarFIFO(size=1,name="x6669").wtPort(x6653_x6663_data_s)
       val x6665 = CounterChain.copy("x6670", "x6665")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6624 = SRAM(size=16,name="x6624",banking = Strided(1)).wtPort(x6669.readPort).rdPort(x6624_x6624_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6665(0))
+      val x6624 = SRAM(size=16,name="x6624",banking = Strided(1,16)).wtPort(x6669.readPort).rdPort(x6624_x6624_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6665(0))
     }
     val x6625_dsp0_bank0 = MemoryPipeline(name="x6625_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6689 = ScalarFIFO(size=1,name="x6689").wtPort(x6673_x6683_data_s)
       val x6685 = CounterChain.copy("x6690", "x6685")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6625 = SRAM(size=16,name="x6625",banking = Strided(1)).wtPort(x6689.readPort).rdPort(x6625_x6625_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6685(0))
+      val x6625 = SRAM(size=16,name="x6625",banking = Strided(1,16)).wtPort(x6689.readPort).rdPort(x6625_x6625_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6685(0))
     }
     val x6626_dsp0_bank0 = MemoryPipeline(name="x6626_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6709 = ScalarFIFO(size=1,name="x6709").wtPort(x6693_x6703_data_s)
       val x6705 = CounterChain.copy("x6710", "x6705")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6626 = SRAM(size=16,name="x6626",banking = Strided(1)).wtPort(x6709.readPort).rdPort(x6626_x6626_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6705(0))
+      val x6626 = SRAM(size=16,name="x6626",banking = Strided(1,16)).wtPort(x6709.readPort).rdPort(x6626_x6626_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6705(0))
     }
     val x6627_dsp0_bank0 = MemoryPipeline(name="x6627_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6729 = ScalarFIFO(size=1,name="x6729").wtPort(x6713_x6723_data_s)
       val x6725 = CounterChain.copy("x6730", "x6725")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6627 = SRAM(size=16,name="x6627",banking = Strided(1)).wtPort(x6729.readPort).rdPort(x6627_x6627_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6725(0))
+      val x6627 = SRAM(size=16,name="x6627",banking = Strided(1,16)).wtPort(x6729.readPort).rdPort(x6627_x6627_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6725(0))
     }
     val x6628_dsp0_bank0 = MemoryPipeline(name="x6628_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6749 = ScalarFIFO(size=1,name="x6749").wtPort(x6733_x6743_data_s)
       val x6745 = CounterChain.copy("x6750", "x6745")
       val x6754 = CounterChain.copy("x6944", "x6754")
-      val x6628 = SRAM(size=16,name="x6628",banking = Strided(1)).wtPort(x6749.readPort).rdPort(x6628_x6628_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6745(0))
+      val x6628 = SRAM(size=16,name="x6628",banking = Strided(1,16)).wtPort(x6749.readPort).rdPort(x6628_x6628_dsp0_bank0_s).rdAddr(x6754(0)).wtAddr(x6745(0))
     }
     val x6629_dsp0_bank0 = MemoryPipeline(name="x6629_dsp0_bank0",parent="x6971") { implicit CU => 
       val x6943 = ScalarFIFO(size=1,name="x6943").wtPort(x6629_x6943_s)
       val x6754 = CounterChain.copy("x6944", "x6754")
       val x6960 = CounterChain.copy("x6966", "x6960")
-      val x6629 = SRAM(size=16,name="x6629",banking = Strided(1)).wtPort(x6943.readPort).rdPort(x6629_x6629_dsp0_bank0_s).rdAddr(x6960(0)).wtAddr(x6754(0))
+      val x6629 = SRAM(size=16,name="x6629",banking = Strided(1,16)).wtPort(x6943.readPort).rdPort(x6629_x6629_dsp0_bank0_s).rdAddr(x6960(0)).wtAddr(x6754(0))
     }
     val x6651 = StreamController(name="x6651",parent=x6971) { implicit CU => 
       val x6651_unit = CounterChain(name = "x6651_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)

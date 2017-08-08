@@ -37,7 +37,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
   import param._
   //override implicit val ctrler:ComputeUnit = this 
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
-  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
+  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize, spade.numLanes).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
   override def mems:List[OnChipMem] = sbufs ++ vbufs ++ srams

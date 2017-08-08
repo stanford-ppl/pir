@@ -36,7 +36,12 @@ package object enums extends Ops {
   case object Gather extends MCType 
   
   sealed trait Banking
-  case class Strided(stride:Int) extends Banking
+  case class Strided(stride:Int, banks:Int) extends Banking
+  object Strided {
+    def apply(stride:Int):Strided = {
+      Strided(stride, 16) //TODO: rewrite app and fix this
+    }
+  }
   case class Diagonal(stride1:Int, stride2:Int) extends Banking
   case class Duplicated() extends Banking
   case class NoBanking() extends Banking

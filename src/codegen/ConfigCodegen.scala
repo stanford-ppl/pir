@@ -461,7 +461,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     smmap.pmap.get(psram).foreach { case sram:SRAM =>
       emitComment(s"$psram -> $sram")
       val stride = sram.banking match {
-        case Strided(stride) => stride
+        case Strided(stride, banks) => stride
         case _ => -1 //TODO
       }
       emitln(s"${quote(psram)}.stride = $stride")

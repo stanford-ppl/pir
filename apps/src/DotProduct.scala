@@ -35,13 +35,13 @@ object DotProduct extends PIRApp {
       val x1088 = ScalarFIFO(size=1,name="x1088").wtPort(x1072_x1082_data_s)
       val x1084 = CounterChain.copy("x1089", "x1084")
       val x1114 = CounterChain.copy("x1124_0", "x1114")
-      val x1067 = SRAM(size=16,name="x1067",banking = Strided(1)).wtPort(x1088.readPort).rdPort(x1067_0_s).rdAddr(x1114(0)).wtAddr(x1084(0))
+      val x1067 = SRAM(size=16,name="x1067",banking = Strided(1, 1)).wtPort(x1088.readPort).rdPort(x1067_0_s).rdAddr(x1114(0)).wtAddr(x1084(0))
     }
     val x1068_dsp0 = MemoryPipeline(name="x1068_dsp0",parent="x1131") { implicit CU => 
       val x1108 = ScalarFIFO(size=1,name="x1108").wtPort(x1092_x1102_data_s)
       val x1104 = CounterChain.copy("x1109", "x1104")
       val x1114 = CounterChain.copy("x1124_0", "x1114")
-      val x1068 = SRAM(size=16,name="x1068",banking = Strided(1)).wtPort(x1108.readPort).rdPort(x1068_0_s).rdAddr(x1114(0)).wtAddr(x1104(0))
+      val x1068 = SRAM(size=16,name="x1068",banking = Strided(1, 1)).wtPort(x1108.readPort).rdPort(x1068_0_s).rdAddr(x1114(0)).wtAddr(x1104(0))
     }
     val x1090 = StreamController(name="x1090",parent=x1131) { implicit CU => 
       val x1090_unit = CounterChain(name = "x1090_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)

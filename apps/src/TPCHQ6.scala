@@ -70,49 +70,49 @@ object TPCHQ6 extends PIRApp {
       val x2031 = ScalarFIFO(size=1,name="x2031").wtPort(x2015_x2025_data_s)
       val x2027 = CounterChain.copy("x2032", "x2027")
       val x2182 = CounterChain.copy("x2206", "x2182")
-      val x2004 = SRAM(size=384,name="x2004",banking = Strided(1)).wtPort(x2031.readPort).rdPort(x2004_x2004_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2027(0))
+      val x2004 = SRAM(size=384,name="x2004",banking = Strided(1,16)).wtPort(x2031.readPort).rdPort(x2004_x2004_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2027(0))
     }
     val x2005_dsp0_bank0 = MemoryPipeline(name="x2005_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2114 = ScalarFIFO(size=1,name="x2114").wtPort(x2098_x2108_data_s)
       val x2110 = CounterChain.copy("x2115", "x2110")
       val x2208 = CounterChain.copy("x2232", "x2208")
-      val x2005 = SRAM(size=384,name="x2005",banking = Strided(1)).wtPort(x2114.readPort).rdPort(x2005_x2005_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2110(0))
+      val x2005 = SRAM(size=384,name="x2005",banking = Strided(1,16)).wtPort(x2114.readPort).rdPort(x2005_x2005_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2110(0))
     }
     val x2006_dsp0_bank0 = MemoryPipeline(name="x2006_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2051 = ScalarFIFO(size=1,name="x2051").wtPort(x2035_x2045_data_s)
       val x2047 = CounterChain.copy("x2052", "x2047")
       val x2182 = CounterChain.copy("x2206", "x2182")
-      val x2006 = SRAM(size=384,name="x2006",banking = Strided(1)).wtPort(x2051.readPort).rdPort(x2006_x2006_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2047(0))
+      val x2006 = SRAM(size=384,name="x2006",banking = Strided(1,16)).wtPort(x2051.readPort).rdPort(x2006_x2006_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2047(0))
     }
     val x2007_dsp0_bank0 = MemoryPipeline(name="x2007_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2134 = ScalarFIFO(size=1,name="x2134").wtPort(x2118_x2128_data_s)
       val x2130 = CounterChain.copy("x2135", "x2130")
       val x2208 = CounterChain.copy("x2232", "x2208")
-      val x2007 = SRAM(size=384,name="x2007",banking = Strided(1)).wtPort(x2134.readPort).rdPort(x2007_x2007_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2130(0))
+      val x2007 = SRAM(size=384,name="x2007",banking = Strided(1,16)).wtPort(x2134.readPort).rdPort(x2007_x2007_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2130(0))
     }
     val x2008_dsp0_bank0 = MemoryPipeline(name="x2008_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2071 = ScalarFIFO(size=1,name="x2071").wtPort(x2055_x2065_data_s)
       val x2067 = CounterChain.copy("x2072", "x2067")
       val x2182 = CounterChain.copy("x2206", "x2182")
-      val x2008 = SRAM(size=384,name="x2008",banking = Strided(1)).wtPort(x2071.readPort).rdPort(x2008_x2008_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2067(0))
+      val x2008 = SRAM(size=384,name="x2008",banking = Strided(1,16)).wtPort(x2071.readPort).rdPort(x2008_x2008_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2067(0))
     }
     val x2009_dsp0_bank0 = MemoryPipeline(name="x2009_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2154 = ScalarFIFO(size=1,name="x2154").wtPort(x2138_x2148_data_s)
       val x2150 = CounterChain.copy("x2155", "x2150")
       val x2208 = CounterChain.copy("x2232", "x2208")
-      val x2009 = SRAM(size=384,name="x2009",banking = Strided(1)).wtPort(x2154.readPort).rdPort(x2009_x2009_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2150(0))
+      val x2009 = SRAM(size=384,name="x2009",banking = Strided(1,16)).wtPort(x2154.readPort).rdPort(x2009_x2009_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2150(0))
     }
     val x2010_dsp0_bank0 = MemoryPipeline(name="x2010_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2091 = ScalarFIFO(size=1,name="x2091").wtPort(x2075_x2085_data_s)
       val x2087 = CounterChain.copy("x2092", "x2087")
       val x2182 = CounterChain.copy("x2206", "x2182")
-      val x2010 = SRAM(size=384,name="x2010",banking = Strided(1)).wtPort(x2091.readPort).rdPort(x2010_x2010_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2087(0))
+      val x2010 = SRAM(size=384,name="x2010",banking = Strided(1,16)).wtPort(x2091.readPort).rdPort(x2010_x2010_dsp0_bank0_s).rdAddr(x2182(0)).wtAddr(x2087(0))
     }
     val x2011_dsp0_bank0 = MemoryPipeline(name="x2011_dsp0_bank0",parent="x2244") { implicit CU => 
       val x2174 = ScalarFIFO(size=1,name="x2174").wtPort(x2158_x2168_data_s)
       val x2170 = CounterChain.copy("x2175", "x2170")
       val x2208 = CounterChain.copy("x2232", "x2208")
-      val x2011 = SRAM(size=384,name="x2011",banking = Strided(1)).wtPort(x2174.readPort).rdPort(x2011_x2011_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2170(0))
+      val x2011 = SRAM(size=384,name="x2011",banking = Strided(1,16)).wtPort(x2174.readPort).rdPort(x2011_x2011_dsp0_bank0_s).rdAddr(x2208(0)).wtAddr(x2170(0))
     }
     val x2033 = StreamController(name="x2033",parent=x2244) { implicit CU => 
       val x2033_unit = CounterChain(name = "x2033_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)

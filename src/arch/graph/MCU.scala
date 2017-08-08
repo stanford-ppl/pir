@@ -48,8 +48,8 @@ class MemoryComputeUnitParam(
   val numUDCs:Int = 0
 ) extends ComputeUnitParam() {
   val numSRAMs = 1
-  val sramSize = 512
-  override val numLanes = 1
+  val sramSize = 512 * 1024 / 4
+  override lazy val numLanes = 1
 
   /* Parameters */
   def config(cu:MemoryComputeUnit)(implicit spade:Spade) = {

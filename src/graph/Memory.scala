@@ -157,6 +157,12 @@ trait VectorMem extends OnChipMem {
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
   extends VectorMem with RemoteMem with MultiBuffer {
   override val typeStr = "SRAM"
+  def banks = banking match {
+    case Strided(stride, banks) => banks
+    case Diagonal(_, _) => throw PIRException(s"Not supporting diagnoal banking at the moment")
+    case NoBanking() => 1
+    case Duplicated() => throw PIRException(s"Shouldn't matching Duplicated. No support in pirgen yet")
+  }
   val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
     readAddrMux.addInput.connect(ra); 

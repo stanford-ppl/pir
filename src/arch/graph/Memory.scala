@@ -167,12 +167,19 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
 
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
-case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMem {
+case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   type P = Bus 
   type M = Array[Array[Word]]
+  def bankSize(banking:Banking) = {
+    banking match {
+      case Strided(stride, banks) => size / this.banks
+      case NoBanking() => size
+      case _ => throw PIRException(s"Not supported banking $banking")
+    }
+  }
   def wtp:Bus = Bus(Word())
   var memory:M = _
   val readAddr = Input(Word(), this, s"${this}.ra")
@@ -217,7 +224,7 @@ case class SRAM(size:Int)(implicit spade:Spade, prt:Controller) extends OnChipMe
       }
       def calcReadAddr(ra:Int, i:Int) = mem.banking match {
         case Diagonal(_,_) => throw PIRException(s"Not supporting diagonal banking at the moment")
-        case Strided(stride) => ra + i * stride
+        case Strided(stride, banks) => ra + i * stride
         case Duplicated() => ra
         case NoBanking() => ra
       }

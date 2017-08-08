@@ -223,7 +223,7 @@ class AppTests extends UnitTest { self =>
   
   val simulate = false
   val verbose = true
-  val mapping = true
+  val mapping = false
   val arch = SN16x8_LD
   //val arch = SN16x13_LD
   //val arch = SN8x8_LD
@@ -235,14 +235,15 @@ class AppTests extends UnitTest { self =>
 
   //test(DotProduct           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-
-  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+
+  test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 

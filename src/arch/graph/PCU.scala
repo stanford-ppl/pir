@@ -58,7 +58,7 @@ class PatternComputeUnitParam(
     assert(cu.vins.size >= numVins, s"vins=${cu.vins.size} numVins=${numVins}")
     assert(cu.souts.size >= numSouts, s"souts=${cu.souts.size} numSouts=${numSouts}")
     assert(cu.vouts.size >= numVouts, s"vouts=${cu.vouts.size} numVouts=${numVouts}")
-    cu.addRegstages(numStage=2, numOprds=3, ops)
+    cu.addRegstages(numStage=numFrontStages, numOprds=3, ops)
     cu.addRdstages(numStage=numReduceStages, numOprds=3, ops)
     cu.addRegstages(numStage=2, numOprds=3, ops)
     cu.numScalarBufs(numSins)

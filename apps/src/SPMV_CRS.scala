@@ -101,7 +101,7 @@ object SPMV_CRS extends PIRApp {
       val x3827 = ScalarBuffer(name="x3827").wtPort(x3796_b4193_x3824_b4201_s)
       val x3840 = CounterChain.copy("x3852_0", "x3840")
       val x3856 = CounterChain.copy("x4085", "x3856")
-      val x3782 = SRAM(size=495,name="x3782",banking = Strided(1)).wtPort(x3851.readPort).rdPort(x3782_x3782_dsp0_bank0_s)
+      val x3782 = SRAM(size=495,name="x3782",banking = Strided(1,16)).wtPort(x3851.readPort).rdPort(x3782_x3782_dsp0_bank0_s)
       WAStage(operands=List(CU.ctr(x3840(0)), CU.load(x3827)), op=FixSub, results=List(x3782.writeAddr))
       RAStage(operands=List(CU.ctr(x3856(0)), Const(1)), op=FixAdd, results=List(x3782.readAddr))
     }
@@ -110,7 +110,7 @@ object SPMV_CRS extends PIRApp {
       val x3827 = ScalarBuffer(name="x3827").wtPort(x3796_b4193_x3824_b4201_s)
       val x3840 = CounterChain.copy("x3852_0", "x3840")
       val x3856 = CounterChain.copy("x4085", "x3856")
-      val x3782 = SRAM(size=495,name="x3782",banking = Strided(1)).wtPort(x3851.readPort).rdPort(x3782_x3782_dsp1_bank0_s).rdAddr(x3856(0))
+      val x3782 = SRAM(size=495,name="x3782",banking = Strided(1,16)).wtPort(x3851.readPort).rdPort(x3782_x3782_dsp1_bank0_s).rdAddr(x3856(0))
       WAStage(operands=List(CU.ctr(x3840(0)), CU.load(x3827)), op=FixSub, results=List(x3782.writeAddr))
     }
     val x3783_dsp0_bank0 = MemoryPipeline(name="x3783_dsp0_bank0",parent="x4152") { implicit CU => 
@@ -118,7 +118,7 @@ object SPMV_CRS extends PIRApp {
       val x4083 = ScalarFIFO(size=1,name="x4083").wtPort(x4057_x4079_s)
       val x3856 = CounterChain.copy("x4085", "x3856")
       val x4132 = CounterChain.copy("x4146_0", "x4132")
-      val x3783 = SRAM(size=494,name="x3783",banking = Strided(1)).wtPort(x4083.readPort).rdPort(x3783_x3783_dsp0_bank0_s).wtAddr(x3856(0))
+      val x3783 = SRAM(size=494,name="x3783",banking = Strided(1,16)).wtPort(x4083.readPort).rdPort(x3783_x3783_dsp0_bank0_s).wtAddr(x3856(0))
       RAStage(operands=List(CU.ctr(x4132(0)), CU.load(x4098)), op=FixSub, results=List(x3783.readAddr))
     }
     val x3794_0 = Pipeline(name="x3794_0",parent=x4152) { implicit CU => 
@@ -212,7 +212,7 @@ object SPMV_CRS extends PIRApp {
       val x3909 = ScalarBuffer(name="x3909").wtPort(x3877_b4206_x3906_b4214_s)
       val x3923 = CounterChain.copy("x3936_0", "x3923")
       val x4026 = CounterChain.copy("x4040_0", "x4026")
-      val x3857 = SRAM(size=494,name="x3857",banking = Strided(1)).wtPort(x3935.readPort).rdPort(x3857_x3857_dsp0_bank0_s).rdAddr(x4026(0))
+      val x3857 = SRAM(size=494,name="x3857",banking = Strided(1,16)).wtPort(x3935.readPort).rdPort(x3857_x3857_dsp0_bank0_s).rdAddr(x4026(0))
       WAStage(operands=List(CU.ctr(x3923(0)), CU.load(x3909)), op=FixSub, results=List(x3857.writeAddr))
     }
     val x3858_dsp0_bank0 = MemoryPipeline(name="x3858_dsp0_bank0",parent="x4085") { implicit CU => 
@@ -220,14 +220,14 @@ object SPMV_CRS extends PIRApp {
       val x3972 = ScalarBuffer(name="x3972").wtPort(x3940_b4219_x3969_b4227_s)
       val x3986 = CounterChain.copy("x3999_0", "x3986")
       val x4068 = CounterChain.copy("x4080_0", "x4068")
-      val x3858 = SRAM(size=494,name="x3858",banking = Strided(1)).wtPort(x3998.readPort).rdPort(x3858_x3858_dsp0_bank0_s).rdAddr(x4068(0))
+      val x3858 = SRAM(size=494,name="x3858",banking = Strided(1,16)).wtPort(x3998.readPort).rdPort(x3858_x3858_dsp0_bank0_s).rdAddr(x4068(0))
       WAStage(operands=List(CU.ctr(x3986(0)), CU.load(x3972)), op=FixSub, results=List(x3858.writeAddr))
     }
     val x3859_dsp0_bank0 = MemoryPipeline(name="x3859_dsp0_bank0",parent="x4085") { implicit CU => 
       val x4052 = ScalarFIFO(size=1,name="x4052").wtPort(x4023_x4041_data_s)
       val x4044 = CounterChain.copy("x4053", "x4044")
       val x4068 = CounterChain.copy("x4080_0", "x4068")
-      val x3859 = SRAM(size=494,name="x3859",banking = Strided(1)).wtPort(x4052.readPort).rdPort(x3859_x3859_dsp0_bank0_s).rdAddr(x4068(0)).wtAddr(x4044(0))
+      val x3859 = SRAM(size=494,name="x3859",banking = Strided(1,16)).wtPort(x4052.readPort).rdPort(x3859_x3859_dsp0_bank0_s).rdAddr(x4068(0)).wtAddr(x4044(0))
     }
     val x3875_0 = Pipeline(name="x3875_0",parent=x4085) { implicit CU => 
       val x3860 = ScalarBuffer(name="x3860").wtPort(x3782_x3782_dsp1_bank0_s)

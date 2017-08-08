@@ -26,6 +26,9 @@ class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def constrain(n:N, r:R, m:M):M = {
     var mp = m
+    val bankSize = r.bankSize(n.banking)
+    if (n.size > bankSize) throw MappingException(m, s"$n'size=${n.size} > $r.bankSize=${bankSize}")
+    if (n.banks > r.banks) throw MappingException(m, s"$n.banks=${n.banks} > $r.banks=${r.banks}")
     mp = m.setSM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)

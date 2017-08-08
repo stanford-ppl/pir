@@ -18,12 +18,15 @@ class SN(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, patter
 }
 abstract class SN_LD(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork(
   PreloadSwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts, pattern=pattern)
-) {
+) with PreLoadSpadeParam {
+  override def toString = s"SN${numRows}x${numCols}_LD"
+
   override def pcuAt(i:Int, j:Int):PatternComputeUnit = 
     new PatternComputeUnit(PreloadPatternComputeParam(numCtrs=12))
 
-  override def mcuAt(i:Int, j:Int):MemoryComputeUnit =
+  override def mcuAt(i:Int, j:Int):MemoryComputeUnit = {
     new MemoryComputeUnit(PreloadMemoryComputeParam(numCtrs=12, numRegs=23))
+  }
 
   override def scuAt(i:Int, j:Int):ScalarComputeUnit = 
     new ScalarComputeUnit(PreloadScalarComputeParam())
