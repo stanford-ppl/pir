@@ -57,6 +57,7 @@ object SPMV_CRS extends PIRApp {
     val cols_dram_oc = OffChip("cols_dram")
     val x4010_x4020_s = Scalar("x4010_x4020")
     val x4095_b4230_x4125_b4232_s = Scalar("x4095_b4230_x4125_b4232")
+    val bus_419_v = Vector("bus_419")
     val bus_347_s = Scalar("bus_347")
     val x3876_b4203_x3904_b4211_s = Scalar("x3876_b4203_x3904_b4211")
     val bus_401_s = Scalar("bus_401")
@@ -219,14 +220,14 @@ object SPMV_CRS extends PIRApp {
       val x3998 = ScalarFIFO(size=1,name="x3998").wtPort(x3941_x3971_data_s)
       val x3972 = ScalarBuffer(name="x3972").wtPort(x3940_b4219_x3969_b4227_s)
       val x3986 = CounterChain.copy("x3999_0", "x3986")
-      val x4068 = CounterChain.copy("x4080_0", "x4068")
+      val x4068 = CounterChain.copy("x4080", "x4068")
       val x3858 = SRAM(size=494,name="x3858",banking = Strided(1,16)).wtPort(x3998.readPort).rdPort(x3858_x3858_dsp0_bank0_s).rdAddr(x4068(0))
       WAStage(operands=List(CU.ctr(x3986(0)), CU.load(x3972)), op=FixSub, results=List(x3858.writeAddr))
     }
     val x3859_dsp0_bank0 = MemoryPipeline(name="x3859_dsp0_bank0",parent="x4085") { implicit CU => 
       val x4052 = ScalarFIFO(size=1,name="x4052").wtPort(x4023_x4041_data_s)
       val x4044 = CounterChain.copy("x4053", "x4044")
-      val x4068 = CounterChain.copy("x4080_0", "x4068")
+      val x4068 = CounterChain.copy("x4080", "x4068")
       val x3859 = SRAM(size=494,name="x3859",banking = Strided(1,16)).wtPort(x4052.readPort).rdPort(x3859_x3859_dsp0_bank0_s).rdAddr(x4068(0)).wtAddr(x4044(0))
     }
     val x3875_0 = Pipeline(name="x3875_0",parent=x4085) { implicit CU => 
@@ -432,14 +433,20 @@ object SPMV_CRS extends PIRApp {
       val ctr7 = Counter(min=Const(0), max=x4010.readPort, step=Const(1), par=1) // Counter
       val x4044 = CounterChain(name = "x4044", ctr7).iter(1)
     }
-    val x4080_0 = Pipeline(name="x4080_0",parent=x4085) { implicit CU => 
-      val x4072 = ScalarFIFO(size=1,name="x4072").wtPort(x3859_x3859_dsp0_bank0_s)
+    val x4080 = StreamController(name="x4080",parent=x4085) { implicit CU => 
       val x4003 = ScalarBuffer(name="x4003").wtPort(x4003_x4008_s)
-      val x4071 = ScalarFIFO(size=1,name="x4071").wtPort(x3858_x3858_dsp0_bank0_s)
       val ctr8 = Counter(min=Const(0), max=x4003.readPort, step=Const(1), par=16) // Counter
       val x4068 = CounterChain(name = "x4068", ctr8).iter(1)
-      Stage(operands=List(CU.load(x4071), CU.load(x4072)), op=FixMul, results=List(CU.reduce))
-      val (_, rr421) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x4080_0")
+    }
+    val x4080_0 = Pipeline(name="x4080_0",parent=x4080) { implicit CU => 
+      val x4072 = ScalarFIFO(size=1,name="x4072").wtPort(x3859_x3859_dsp0_bank0_s)
+      val x4071 = ScalarFIFO(size=1,name="x4071").wtPort(x3858_x3858_dsp0_bank0_s)
+      Stage(operands=List(CU.load(x4071), CU.load(x4072)), op=FixMul, results=List(CU.vecOut(bus_419_v)))
+    }
+    val x4080_1 = Pipeline(name="x4080_1",parent=x4080) { implicit CU => 
+      val rr419 = VectorFIFO(size=1,name="rr419").wtPort(bus_419_v)
+      Stage(operands=List(CU.load(rr419)), op=Bypass, results=List(CU.reduce))
+      val (_, rr421) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x4080")
       Stage(operands=List(rr421), op=Bypass, results=List(CU.scalarOut(x4057_x4079_s)))
     }
     val x4094_0 = Pipeline(name="x4094_0",parent=x4152) { implicit CU => 

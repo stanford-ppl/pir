@@ -238,12 +238,12 @@ class AppTests extends UnitTest { self =>
   //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 
-  test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 

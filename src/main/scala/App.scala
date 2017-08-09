@@ -21,12 +21,13 @@ trait PIRApp extends Design {
   
   def setArgs(args: Array[String]):Unit = {
     args.foreach { 
+      case arg if arg.contains("--arch") => arch = ConfigFactory.getArch(arg.split("=")(1))
+      case arg if arg.contains("--") => Config.setOption(arg.replace("--","").trim)
       case arg if arg.contains("=") =>
         val k::v::_ = arg.split("=").toList
         top.argIns.filter {_.name==Some(k)}.foreach { argIn =>
           argIn.bound(toValue(v))
         }
-      case arg => 
     }
   }
 

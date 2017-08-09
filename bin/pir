@@ -14,5 +14,4 @@ fi
 
 sbtArgs=${argsArray[@]:0:$#}
 
-echo "Running $sbtArgs.."
 sbt "; project apps; run-main $sbtArgs"

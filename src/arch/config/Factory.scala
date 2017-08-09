@@ -66,6 +66,15 @@ plasticine {
       throw PIRException(s"$failures")
   }
 
+  def getArch(name:String) = {
+    name match {
+      case "SN16x13_LD" => SN16x13_LD
+      case "SN16x8_LD" => SN16x8_LD
+      case "SN8x8_LD" => SN8x8_LD
+      case "SN4x4" => SN4x4
+    }
+  }
+
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
