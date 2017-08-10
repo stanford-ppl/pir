@@ -150,7 +150,7 @@ trait VectorMem extends OnChipMem {
 
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
- *  @param size: size of SRAM in all dimensions 
+ *  @param size: size of each bank 
  *  @param banking: Banking mode of SRAM
  *  calculate write address?
  */
