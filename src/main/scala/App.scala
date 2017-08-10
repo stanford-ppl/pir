@@ -28,6 +28,7 @@ trait PIRApp extends Design {
         top.argIns.filter {_.name==Some(k)}.foreach { argIn =>
           argIn.bound(toValue(v))
         }
+      case arg =>
     }
   }
 
