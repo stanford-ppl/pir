@@ -10,6 +10,7 @@ import scala.reflect.runtime.universe._
 import pir.{Design, Config}
 import pir.graph._
 import pir.util.enums._
+import pir.util._
 import pir.pass.ForwardRef
 import pir.exceptions._
 
@@ -206,27 +207,19 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
       p.src match {
         case Const(c) => Const(c).out
         case s:ScalarBuffer =>
-          val ScalarIn(n, scalar) = s.writePort.from.src
+          val writers = collectIn[ScalarIn](s.writePort).map{_.scalar}
           val sb = ctrler.smems.filter { smem =>
-            val ScalarIn(_, s) = smem.writePort.from.src
-            s == scalar
+            collectIn[ScalarIn](smem.writePort).map{_.scalar} == writers
           }.headOption.getOrElse {
-            val sb = ScalarBuffer()(ctrler, design).wtPort(scalar)
+            val sb = ScalarBuffer()(ctrler, design)
+            writers.foreach { scalar =>
+              sb.wtPort(scalar)
+            }
             ctrler.mems(List(sb))
             sb
           }
           //val smem = design.scalMemInsertion.insertScalarMem(sin)
           sb.load
-        case s:ScalarIn => // Before scalar buffer/fifo insersion
-          val cu = ctrler.asInstanceOf[ComputeUnit]
-          val sin = cu.newSin(s.scalar)
-          sin.out
-        //case s:PipeReg => // Outdated
-          //assert(s.stage.isInstanceOf[EmptyStage])
-          //assert(s.reg.isInstanceOf[ScalarInPR])
-          //val ScalarIn(n, scalar) = s.reg.asInstanceOf[ScalarInPR].scalarIn
-          //val cu = ctrler.asInstanceOf[ComputeUnit]
-          //cu.scalarIn(cu.emptyStage, scalar).out
         case _ => throw new Exception(s"Don't know how to copy port") //TODO
       }
     }

@@ -1,4 +1,4 @@
-package pir.plasticine.simulation
+package pir.spade.simulation
 
 import pir._
 import pir.mapper.PIRMap
@@ -6,9 +6,9 @@ import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 import pir.pass.Pass
 import pir.util.misc._
 import pir.util.PIRMetadata
-import pir.plasticine.main._
-import pir.plasticine.graph._
-import pir.plasticine.traversal._
+import pir.spade.main._
+import pir.spade.graph._
+import pir.spade.traversal._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
@@ -133,18 +133,18 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
       case PipeReg(stage, reg) => s"${quote(stage)}.${quote(reg)}"
       case n:ArchReg => s"reg[${n.index}]"
       case n:Primitive if indexOf.get(n).nonEmpty => 
-        s"${n.typeStr}[${n.index}]".replace(s"${pir.plasticine.util.quote(n.prt)}", quote(n.prt))
+        s"${n.typeStr}[${n.index}]".replace(s"${pir.spade.util.quote(n.prt)}", quote(n.prt))
       case n:Routable => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
       case n:IO[_,_] =>  
-        var q = pir.plasticine.util.quote(n).replace(pir.plasticine.util.quote(n.src), quote(n.src))
+        var q = pir.spade.util.quote(n).replace(pir.spade.util.quote(n.src), quote(n.src))
         n.src match {
-          case n:Primitive => q = q.replace(pir.plasticine.util.quote(n.prt), quote(n.prt))
+          case n:Primitive => q = q.replace(pir.spade.util.quote(n.prt), quote(n.prt))
           case _ =>
         }
         q
       case n:Value if n.parent.nonEmpty => s"${quote(n.parent.get)}.$n"
       case n:PortType => s"${quote(n.io)}.$n"
-      case n:Node => pir.plasticine.util.quote(n)
+      case n:Node => pir.spade.util.quote(n)
       case n => s"$n"
     }
   }

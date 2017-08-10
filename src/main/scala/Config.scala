@@ -1,5 +1,7 @@
 package pir
 
+import scala.collection.mutable
+
 object Config {
   private def getProperty(prop: String, default: String) = {
     val p1 = System.getProperty(prop)
@@ -11,11 +13,34 @@ object Config {
     else if (p1 != null) p1 else if (p2 != null) p2 else default
   }
 
+  val optMap = mutable.Map[String, String => Any]()
+
+  def register[T](key:String, default:T)(update:String => Unit) = {
+    optMap += key -> update 
+    default
+  }
+
+  def setOption(opt:String):Unit = {
+    val (key, value) = if (opt.contains("=")) {
+      val key::value::_ = opt.split("=").toList
+      (key, value)
+    } else {
+      (opt, "true")
+    }
+    optMap(key)(value)
+  }
+
   // Properties go here
-  var test = getProperty("pir.test", "false") == "true"
-  var codegen = true
-  var genDot = getProperty("pir.dot", "true") == "true"
-  var mapping = true
+  var test:Boolean = register("test", false) { v => test = v == "true" }
+  var codegen:Boolean = register("codegen", false) { v => codegen = v == "true" }
+  var genDot:Boolean = register("dot", false) { v => genDot = v == "true" }
+  var mapping:Boolean = register("mapping", false) { v => mapping = v == "true" }
+  var ctrl:Boolean = register("ctrl", false) { v => ctrl = v == "true" }
+  var simulate:Boolean = register("simulate", false) { v => simulate = v == "true" }
+  var verbose:Boolean = register("verbose", false) { v => verbose = v == "true" }
+  var waveform:Boolean = register("waveform", true) { v => waveform = v == "true" }
+  var simulationTimeOut:Int = register("time-out", 100) { v => simulationTimeOut = v.toInt }
+
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
   var outDir = getProperty("pir.outDir", "out")
@@ -36,8 +61,8 @@ object Config {
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
   var debugLog = getProperty("pir.debugLog", "Debug.log")
 
-  var debug = getProperty("pir.debug", "true") == "true"
-  var debugMapper = debug && getProperty("pir.debugMapper", "true") == "true"
+  var debug:Boolean = register("debug", true) { v => debug = v == "true" }
+  var debugMapper:Boolean = debug && register("debug-mapper", true) { v => debugMapper = v == "true" }
   var debugVecRouter = debugMapper && true 
   var debugScalRouter = debugMapper && true 
   var debugCtrlRouter = debugMapper && false 
@@ -52,14 +77,8 @@ object Config {
   var debugCtrMapper = debugMapper && true 
   var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
-  var debugCodegen = debug && getProperty("pir.debugCodegen", "true") == "true"
+  var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
   
-  var ctrl = false
-  var simulate = false
-  var simulationTimeOut = 100
-  var verbose = false
-  var waveform = true
-
 //plasticine {
   //sin-ucu = 4
   //stages-ucu = 4

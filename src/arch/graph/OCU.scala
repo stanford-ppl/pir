@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.config.ConfigFactory
-import pir.plasticine.simulation._
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.language.reflectiveCalls
@@ -19,6 +19,7 @@ case class OuterComputeUnitParam (
   numRegs:Int = 0,
   numStages:Int = 0,
   numCtrs:Int = 6,
+  muxSize:Int = 10,
   numUDCs:Int = 15
 ) extends ComputeUnitParam() {
   val numVins:Int = 0
@@ -27,11 +28,12 @@ case class OuterComputeUnitParam (
   val vbufSize:Int = 0
   val numSRAMs:Int = 0
   val sramSize:Int = 0
-  override val numLanes:Int = 1
+  override lazy val numLanes:Int = 1
 
   def config(cu:OuterComputeUnit)(implicit spade:Spade) = {
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")
     cu.numScalarBufs(numSins)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.genConnections
   }
 }

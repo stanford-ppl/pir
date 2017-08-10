@@ -1,9 +1,9 @@
-package pir.plasticine.config
+package pir.spade.config
                           
 import pir._
-import pir.plasticine.graph._
-import pir.plasticine.main._
-import pir.plasticine.util._
+import pir.spade.graph._
+import pir.spade.main._
+import pir.spade.util._
 import pir.exceptions.PIRException
 import pir.util.misc._
 import pir.codegen.Logger
@@ -66,6 +66,15 @@ plasticine {
       throw PIRException(s"$failures")
   }
 
+  def getArch(name:String) = {
+    name match {
+      case "SN16x13_LD" => SN16x13_LD
+      case "SN16x8_LD" => SN16x8_LD
+      case "SN8x8_LD" => SN8x8_LD
+      case "SN4x4" => SN4x4
+    }
+  }
+
   // input <== output: input can be configured to output
   // input <== outputs: input can be configured to 1 of the outputs
   
@@ -110,9 +119,9 @@ plasticine {
 
   def connectDataIO(cu:Controller):Unit = {
     // Xbar
-    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePort <== sin.ic } }
+    cu.sins.foreach { sin => cu.sbufs.foreach { sbuf => sbuf.writePortMux.inputs.foreach { _<== sin.ic } } }
     // One to one
-    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePort <== vi.ic }
+    (cu.vins, cu.vbufs).zipped.foreach { case (vi, vbuf) => vbuf.writePortMux.inputs.foreach { _ <== vi.ic } }
 
     cu match {
       case cu:MemoryComputeUnit =>
@@ -120,11 +129,13 @@ plasticine {
         cu.souts.foreach { _.ic <== (cu.sram.readPort,0) }
       case cu:ComputeUnit =>
         val voRegs = cu.regs.filter(_.is(VecOutReg))
-        assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
-        (cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+        //assert(cu.vouts.size == voRegs.size, s"cu:${cu} vouts:${cu.vouts.size} voRegs:${voRegs.size}")
+        //(cu.vouts, voRegs).zipped.foreach { case (vo, reg) => vo.ic <== cu.stages.last.get(reg).out }
+        // Xbar
+        cu.vouts.foreach { vout => voRegs.foreach { reg => vout.ic <== cu.stages.last.get(reg).out } }
         // Xbar
         val soRegs = cu.regs.filter(_.is(ScalarOutReg))
-        cu.souts.foreach { sout => soRegs.foreach { soReg => sout.ic <== (cu.stages.last.get(soReg).out, 0) } }
+        cu.souts.foreach { sout => soRegs.foreach { reg => sout.ic <== (cu.stages.last.get(reg).out, 0) } }
       case cu:MemoryController =>
       case cu:Top =>
     }

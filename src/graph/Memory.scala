@@ -23,6 +23,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
 
   val readPort: OutPort = OutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
+  val writePortMux:Mux = Mux(Some(s"$this.wpMux"))
+  writePort.connect(writePortMux.out)
   /* Control Signals */
   val enqueueEnable = InPort(this, s"$this.enqEn")
   val dequeueEnable = InPort(this, s"$this.deqEn")
@@ -37,7 +39,8 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:Design
     case _ => writePort.from.src.isInstanceOf[VecIn]
   } 
 
-  def wtPort(wp:OutPort):this.type = { writePort.connect(wp); this } 
+  def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
+
   def load = readPort
 
   def readers:List[Controller] = readersOf(this)
@@ -96,11 +99,11 @@ trait FIFO extends OnChipMem with LocalMem {
   override val banking = Strided(1)
   override def toUpdate = super.toUpdate
 
-  def writer:Controller = {
-    val writers = writersOf(this)
-    assert(writers.size==1, s"FIFO should only have a single writer")
-    writers.head
-  }
+  //def writer:Controller = {
+    //val writers = writersOf(this)
+    //assert(writers.size==1, s"FIFO should only have a single writer")
+    //writers.head
+  //}
 
   var _wtStart:Option[OutPort] = None
   var _wtEnd:Option[OutPort] = None 
@@ -147,13 +150,19 @@ trait VectorMem extends OnChipMem {
 
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
- *  @param size: size of SRAM in all dimensions 
+ *  @param size: size of each bank 
  *  @param banking: Banking mode of SRAM
  *  calculate write address?
  */
 case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: Design) 
   extends VectorMem with RemoteMem with MultiBuffer {
   override val typeStr = "SRAM"
+  def banks = banking match {
+    case Strided(stride, banks) => banks
+    case Diagonal(_, _) => throw PIRException(s"Not supporting diagnoal banking at the moment")
+    case NoBanking() => 1
+    case Duplicated() => throw PIRException(s"Shouldn't matching Duplicated. No support in pirgen yet")
+  }
   val readAddr: InPort = InPort(this, s"${this}.ra")
   def rdAddr(ra:OutPort):this.type = { 
     readAddrMux.addInput.connect(ra); 
@@ -164,14 +173,11 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
     writeAddrMux.addInput.connect(wa)
     this 
   }
-  override def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
 
   val readAddrMux:Mux = Mux(Some(s"$this.raMux"))
   readAddr.connect(readAddrMux.out)
   val writeAddrMux:Mux = Mux(Some(s"$this.waMux"))
   writeAddr.connect(writeAddrMux.out)
-  val writePortMux:Mux = Mux(Some(s"$this.wpMux"))
-  writePort.connect(writePortMux.out)
 }
 
 object SRAM {

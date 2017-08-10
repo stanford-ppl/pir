@@ -6,8 +6,8 @@ import pir.util.enums._
 import pir.util._
 import pir.graph._
 import pir.exceptions.PIRException
-import pir.plasticine.main._
-import pir.plasticine.config._
+import pir.spade.main._
+import pir.spade.config._
 import pir.codegen.Logger
 
 import org.scalatest._
@@ -44,6 +44,7 @@ class AppTests extends UnitTest { self =>
       argOuts:String="", 
       checkDram: Option[Array[Option[AnyVal]] => Boolean]=None, 
       timeOut:Int=60,
+      mapping:Boolean=true,
       verbose:Boolean=false,
       debug:Boolean=false
     ) = {
@@ -79,7 +80,8 @@ class AppTests extends UnitTest { self =>
       Config.simulationTimeOut = timeOut
       Config.debug = debug
       Config.waveform = debug 
-      Config.verbose = verbose 
+      Config.verbose = verbose
+      Config.mapping = mapping
       Config.codegen = false
       arch.foreach { app.arch = _ }
       try {
@@ -144,7 +146,7 @@ class AppTests extends UnitTest { self =>
     )
   }
 
-  def testMatMult_inner(app:PIRApp, N:Int, M:Int, P:Int, startA:Int, startB:Int, startC:Int, debug:Boolean=false) = {
+  def testMatMult(app:PIRApp, N:Int, M:Int, P:Int, startA:Int, startB:Int, startC:Int, debug:Boolean=false) = {
     val a = Array.tabulate(M, P){ case (i, j) => startA + i*P + j }
     val b = Array.tabulate(P, N){ case (i, j) => startB + i*N + j }
 
@@ -191,14 +193,10 @@ class AppTests extends UnitTest { self =>
     )
   }
 
+  //intercept[PIRException] {
+
   //val simulate = false
-  // Apps 
-  //"BlackScholes" should "success" in { BlackScholes.main(Array("BlackScholes")) }
-  //"TPCHQ6" should "success" in { TPCHQ6.main(Array("TPCHQ6")) }
-  //"MatMult_inner" should "success" in { MatMult_inner.main(Array("MatMult_inner")) }
-  //"GDA" should "success" in { GDA.main(Array("GDA")) }
-  //"LogReg" should "success" in { LogReg.main(Array("LogReg")) }
-  
+  // UnitTest 
   //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", timeOut=30, debug=false)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
   //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
@@ -212,7 +210,7 @@ class AppTests extends UnitTest { self =>
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=32, debug=false)
   //testTPCHQ6(TPCHQ6_cb, startA=0, startB=10, startC=20, startD=30, N=64, debug=false)
   //testOuterProduct(OuterProduct_cb, startA=0, startB=100, startC=200, N=16, debug=false)
-  //testMatMult_inner(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
+  //testMatMult(MatMult_inner, N=16, M=16, P=16, startA=0, startB=20, startC=40, debug=true)
   //testBlockReduce1D(BlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //testBlockReduce1D(ParBlockReduce1D, numTile=2, tileSize=16, startSrc=20, startDst=0, debug=false)
   //test(MetaPipeTest, args="x222=4", argOuts="x223_x227=3", timeOut=40, debug=false)
@@ -225,21 +223,27 @@ class AppTests extends UnitTest { self =>
   
   val simulate = false
   val verbose = true
+  val mapping = false
   val arch = SN16x8_LD
-  //val arch = SN16x10_LD
+  //val arch = SN16x13_LD
   //val arch = SN8x8_LD
+  //val arch = SN4x4
+  //val arch = new SN(numRows=2, numCols=2, pattern=Checkerboard)
   // Mapping Test
-  //test(SequentialWrites, arch=Some(arch), debug=true)
-  //test(TensorLoadStore, arch=Some(arch), debug=true)
+  //test(SequentialWrites, arch=Some(arch), mapping=mapping, debug=true)
+  //test(TensorLoadStore, arch=Some(arch), mapping=mapping, debug=true)
 
-  //test(DotProduct, arch=Some(arch), verbose=verbose, debug=true) // op = 10
-  //test(OuterProduct, arch=Some(arch), verbose=verbose, debug=true)
-  test(SPMV_CRS, arch=Some(arch), verbose=verbose, debug=true)
-  //test(BlackScholes, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Kmeans, arch=Some(arch), verbose=verbose, debug=true)
-  //test(PageRank, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Gibbs_Ising2D, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Backprop, arch=Some(arch), verbose=verbose, debug=true)
-  //test(Kmeans_plasticine, arch=Some(arch), verbose=verbose, debug=true)
+  //test(DotProduct           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+
+  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 

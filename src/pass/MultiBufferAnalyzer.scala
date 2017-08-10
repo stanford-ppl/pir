@@ -17,10 +17,10 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
   override lazy val stream = newStream(s"MultiBufferAnalyzer.log")
 
   def leastCommonAncestor(ctrlers:List[Controller]):Controller = {
-    val cas = ctrlers.map { ctrler => ancestorsOf(ctrler) }.reduce { _ intersect _ }
-    if (cas.size < 0)
+    val cas = ctrlers.map { ctrler => ancestorsOf(ctrler) }.reduceOption { _ intersect _ }
+    if (cas.getOrElse(Nil).isEmpty)
       throw PIRException(s"$ctrlers doesn't share common ancestors")
-    cas.head
+    cas.get.head
   }
 
   def findProducerConsumer(readers:List[Controller], writers:List[Controller], lca:Controller):Option[(Controller, Controller)] = {
@@ -35,16 +35,10 @@ class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
     else Some((producer, consumer))
   }
 
-  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = {
+  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = emitBlock(s"setProducerConsumer($cu, $buf)"){
     if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
     val readers = buf.readers
     val writers = buf.writers
-    readers.foreach { reader =>
-      reader match {
-        case mp:MemoryPipeline => setProducerConsumer(mp, mp.sram)
-        case _ =>
-      }
-    }
     var lca = leastCommonAncestor(readers ++ writers)
     var pc = findProducerConsumer(readers, writers, lca)
     while (pc.isEmpty) {

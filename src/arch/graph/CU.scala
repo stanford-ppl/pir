@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.config.ConfigFactory
-import pir.plasticine.simulation._
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.language.reflectiveCalls
@@ -25,6 +25,9 @@ trait ComputeUnitParam extends ControllerParam {
   val numVouts:Int
   val numSins:Int
   val numSouts:Int
+  val sbufSize:Int
+  val vbufSize:Int
+  val muxSize:Int
 }
 /*
  * ComputeUnit
@@ -34,11 +37,10 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
   import param._
   //override implicit val ctrler:ComputeUnit = this 
   val regs:List[ArchReg] = List.tabulate(numRegs) { ir => ArchReg().index(ir) }
-  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize).index(i) }
+  val srams:List[SRAM] = List.tabulate(numSRAMs) { i => SRAM(sramSize, spade.numLanes).index(i) }
   val ctrs:List[Counter] = List.tabulate(numCtrs) { i => Counter().index(i) }
   //var sbufs:List[ScalarMem] = Nil // in Controller
-  def mems:List[OnChipMem] = srams ++ sbufs ++ vbufs
-
+  override def mems:List[OnChipMem] = sbufs ++ vbufs ++ srams
   def vout = vouts.head
 
   protected val _regstages:ListBuffer[FUStage] = ListBuffer.empty  // Regular Stages

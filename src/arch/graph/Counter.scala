@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.graph._
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.util._
-import pir.plasticine.simulation._
+import pir.spade.main._
+import pir.spade.util._
+import pir.spade.simulation._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
@@ -17,12 +17,12 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
   import spademeta._
   override val typeStr = "ctr"
   //override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
-  val min = Input(Word(), this, s"${this}.min")
-  val max = Input(Word(), this, s"${this}.max")
-  val step = Input(Word(), this, s"${this}.step")
-  val out = Output(Bus(prt.param.numLanes, Word()), this, s"${this}.out")
-  val en = Input(Bit(), this, s"${this}.en")
-  val done = Output(Bit(), this, s"${this}.done")
+  val min = Input(Word(), this, s"$this.min")
+  val max = Input(Word(), this, s"$this.max")
+  val step = Input(Word(), this, s"$this.step")
+  val out = Output(Bus(prt.param.numLanes, Word()), this, s"$this.out")
+  val en = Input(Bit(), this, s"$this.en")
+  val done = Output(Bit(), this, s"$this.done")
   def isDep(c:Counter) = en.canConnect(c.done)
 
   override def register(implicit sim:Simulator):Unit = {

@@ -30,36 +30,34 @@ package object util {
     }
   }
 
-  def topoSort(ctrler:Controller):List[Controller] = {
+  def topoSort(ctrler:Controller)(implicit logger:Logger):List[Controller] = logger.emitBlock(s"topoSort($ctrler)") {
     import ctrler.design.pirmeta._
     val list = ListBuffer[Controller]()
-    def isAdded(cl:Controller) = list.contains(cl)
-    def isDepFree(cl:Controller) = cl match {
-      case cl if isTailCollector(cl) => true // list will be reversed
-      case cl:MemoryPipeline => cl.sram.writers.forall(isAdded)
-      case cl:ComputeUnit if isStreaming(cl) => cl.isHead || cl.fifos.forall { 
-        case fifo if fifo.writer.asCU.parent == cl.parent => isAdded(fifo.writer)
-        case fifo => true
-      } 
-      case cl if isPipelining(cl) => cl.isHead || cl.trueConsumed.forall { 
-        case csm:SRAM => isAdded(csm.ctrler) && isAdded(csm.producer)
-        case csm => isAdded(csm.producer)
-      }
+    def isDepFree(cl:Controller):Boolean = {
+      descendentsOf(cl).filterNot(_==cl).forall(des => list.contains(des)) &&  //TODO: is children the same?
+      (cl.souts ++ cl.vouts).forall( out => out.readers.forall(reader => list.contains(reader.ctrler)))
     }
-    def addCtrler(cl:Controller):Unit = {
-      list += cl
-      var children = cl.children.reverse
-      while (!children.isEmpty) {
-        children = children.filter { child =>
-          if (isDepFree(child)) {
-            addCtrler(child)
-            false
-          } else { true }
-        }
+    list += ctrler
+    var remain = descendentsOf(ctrler).filterNot(_== ctrler)
+    while (remain.nonEmpty) {
+      val group = remain.toList.groupBy(isDepFree)
+      var free = group.getOrElse(true, Nil)
+      var notfree = group.getOrElse(false, Nil)
+      if (free.isEmpty) {
+        val head::rest = notfree
+        free = free :+ head
+        notfree = rest
+        logger.dprintln(s"Breaking the loop by picking $head")
       }
+      logger.dprintln(s"free=$free")
+      list ++= free
+      remain = notfree
     }
-    addCtrler(ctrler)
-    list.toList.reverse
+    var res = list.toList
+    val head::rest = res
+    res = rest :+ head
+    logger.emitList(s"results") { res.foreach(cl => logger.dprintln(s"$cl") ) }
+    res
   }
 
   def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design, logger:Logger) = logger.emitBlock(s"fillChain"){
@@ -104,14 +102,14 @@ package object util {
     chained.toList
   }
 
-  def sortCChains(cchains:List[CounterChain])(implicit logger:Logger) = {
+  def sortCChains(cchains:List[CounterChain])(implicit logger:Logger):List[CounterChain] = {
     import logger._
     val ancSize = cchains.map { _.original.ctrler.ancestors.size }
     if (ancSize.size != ancSize.toSet.size) {
       cchains.zip(ancSize).foreach { case (cc,size) =>
         dprintln(s"ctrler:${cc.ctrler} cchain:$cc original:${cc.original} ${cc.original.ctrler} $size")
       }
-      throw new Exception(s"Don't know how to sort $cchains!")
+      throw new Exception(s"Don' how to sort $cchains!")
     }
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
@@ -144,9 +142,21 @@ package object util {
     case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
     case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
     case x:Mux => x.ins.flatMap(collectIn[X]).toSet
-    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
     case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
     case x:LocalMem => collectIn[X](x.writePort)
+    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
+    case _ => Set()
+  }
+
+  def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
+    case x:X => Set(x)
+    case x:Input => collectOut[X](x.out)
+    case x:OnChipMem => collectOut[X](x.readPort)
+    case x:Counter => collectOut[X](x.out)
+    case x:PipeReg => collectOut[X](x.out)
+    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
+    case x:OutPort => if (!x.isConnected) Set() else x.to.flatMap(in => collectOut[X](in.src)).toSet
+    case x:Mux => collectOut[X](x.out)
     case _ => Set()
   }
 

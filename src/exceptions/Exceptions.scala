@@ -1,7 +1,7 @@
 package pir.exceptions
 import pir._
 import pir.util.typealias._
-import pir.plasticine.config._
+import pir.spade.config._
 import pir.mapper._
 import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
 

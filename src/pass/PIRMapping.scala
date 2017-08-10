@@ -49,7 +49,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mp = ctrMapper.map(ctrler, mp)
     mp
   }
-  val prescreen = new ResourcePrescreen()
   val cuMapper = new CUMapper()
 
   val spadeVecDotPrinter = new CUVectorDotPrinter()
@@ -66,9 +65,15 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     mapper match {
       case mapper:VectorRouter =>
         new CUVectorDotPrinter(open=true)(design).print(mapping)
+        new CUScalarDotPrinter(open=false)(design).print(mapping)
+        new CUCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ScalarRouter =>
+        new CUVectorDotPrinter(open=false)(design).print(mapping)
         new CUScalarDotPrinter(open=true)(design).print(mapping)
+        new CUCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ControlRouter =>
+        new CUVectorDotPrinter(open=false)(design).print(mapping)
+        new CUScalarDotPrinter(open=false)(design).print(mapping)
         new CUCtrlDotPrinter(open=true)(design).print(mapping)
       case mapper:CUMapper =>
         new CUVectorDotPrinter(open=true)(design).print(mapping)
@@ -92,13 +97,15 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         }
         viewRouting(e.mapper)
       case e =>
+        dprintln(e)
+        dprintln(e.getStackTrace.mkString("\n"))
     }
+    throw e
   }
 
-  addPass {
+  addPass(canRun=design.prescreen.hasRun){
     tic
     Try[PIRMap]{
-      prescreen.run
       cuMapper.map(PIRMap.empty)
     }.map { m =>
       spadeVecDotPrinter.print(Some(m))
@@ -113,7 +120,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Placement & Routing failed")
         handle(e)
-        throw e
     }
     toc(s"Placement & Routing", "s")
   } 
@@ -136,7 +142,6 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
         placeAndRouteSucceeded = false
         errmsg(s"Local Mapping failed")
         handle(e)
-        throw e
     }
   }
 

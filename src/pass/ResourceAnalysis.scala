@@ -4,7 +4,7 @@ import pir._
 import pir.util.misc._
 import pir.exceptions.PIRException
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
-import pir.plasticine.main.SwitchNetwork
+import pir.spade.main.SwitchNetwork
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
 
@@ -49,6 +49,10 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   val cinPinUsed = Map[PNode, Util]()
   val coutPinUsed = Map[PNode, Util]()
 
+  val sChannelUsed = Map[PNode, Util]()
+  val vChannelUsed = Map[PNode, Util]()
+  val cChannelUsed = Map[PNode, Util]()
+
   var pcuUtil = Util.empty
   var mcuUtil = Util.empty
   var ocuUtil = Util.empty
@@ -60,6 +64,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   var totalRegUtil = Util.empty
   var totalCtrUtil = Util.empty
   var totalFUUtil = Util.empty
+
   var totalSBufUtil = Util.empty
   var totalVBufUtil = Util.empty
   var totalSinPinUtil = Util.empty
@@ -69,11 +74,12 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   var totalCinPinUtil = Util.empty
   var totalCoutPinUtil = Util.empty
 
+  var totalSChannelUtil = Util.empty
+  var totalVChannelUtil = Util.empty
+  var totalCChannelUtil = Util.empty
+
   def parOf(prt:PCL):Int = {
-    prt match {
-      case prt:PMCU => 1
-      case prt => mp.clmap.pmap.get(prt).fold(-1) { cl => pirmeta.parOf(cl) }
-    }
+    mp.clmap.pmap.get(prt).fold(-1) { cl => pirmeta.parOf(cl) }
   }
 
   def sum(list:List[Util]):Util = list.reduceOption[Util]{ _ + _ }.getOrElse(Util.empty)
@@ -81,7 +87,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def count(list:List[_]):Util = {
     sum(list.map {
       case x:List[_] => count(x)
-      case (x:Option[_]) => Util(if (x.isEmpty) 0 else 1, 1)
+      case (x:Option[_]) => Util(used=if (x.isEmpty) 0 else 1, total=1) // Not Mapped
       case x:Util => x
     })
   }
@@ -89,18 +95,10 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def collectRegUtil(prt:PRT) = prt match {
     case prt:PCU if mp.clmap.pmap.contains(prt) =>
       regUsed += prt -> count(prt.stages.map { pstage => pstage.prs.map { ppr => mp.fimap.get(ppr.in) } }).map {
-        //case (used, total) => (used * parOf(prt), total * prt.numLanes)
-        case (used, total) => (used * parOf(prt), 8 * prt.param.numLanes * prt.stages.size) // assuming using 8 registers per stage
+        case (used, total) => (used * parOf(prt), total * prt.param.numLanes)
       }
     case prt =>
       regUsed += prt -> Util.empty
-  }
-
-  def collectCtrUtil(prt:PRT) = prt match {
-    case prt:PCU =>
-      ctrUsed += prt -> count(prt.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
-    case prt =>
-      ctrUsed += prt -> Util.empty
   }
 
   def collectFUUtil(prt:PRT) = prt match {
@@ -112,42 +110,37 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
       fuUsed += prt -> Util.empty
   }
 
-  def collectVBufUtil(prt:PRT) = prt match {
+  def collectCtrUtil(prt:PRT) = prt match {
     case prt:PCU =>
-      vBufUsed += prt -> count(prt.vbufs.map { vbuf => mp.smmap.pmap.get(vbuf) })
+      ctrUsed += prt -> count(prt.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
     case prt =>
-      vBufUsed += prt -> Util.empty
+      ctrUsed += prt -> Util.empty
   }
 
-  def collectSBufUtil(prt:PRT) = prt match {
+  def collectBufUtil(map:Map[PNode, Util], prt:PRT)(bufs:PCU => List[PLMem]) = prt match {
     case prt:PCU =>
-      sBufUsed += prt -> count(prt.sbufs.map { sbuf => mp.smmap.pmap.get(sbuf) })
+      map += prt -> count(bufs(prt).map { buf => mp.smmap.pmap.get(buf) })
     case prt =>
-      sBufUsed += prt -> Util.empty
+      map += prt -> Util.empty
   }
 
-  def collectSinPinUtil(prt:PRT) = {
-    sinPinUsed += prt -> count(prt.sins.map { in => mp.vimap.pmap.get(in) })
+  def collectPinUtil(map: Map[PNode, Util], prt:PRT)(ios:PRT => List[PGIO[PModule]]) = {
+    map += prt -> count(ios(prt).map { 
+      case io:PGI[_] => mp.vimap.pmap.get(io)
+      case io:PGO[_] => mp.vomap.pmap.get(io)
+    })
   }
 
-  def collectSoutPinUtil(prt:PRT) = {
-    soutPinUsed += prt -> count(prt.souts.map { out => mp.vomap.pmap.get(out) })
+  def channels(ins:List[PGI[PModule]]) = {
+    ins.filter { _.fanIns.forall { _.src.isInstanceOf[PSB] } }
   }
 
-  def collectVinPinUtil(prt:PRT) = {
-    vinPinUsed += prt -> count(prt.vins.map { in => mp.vimap.pmap.get(in) })
-  }
-
-  def collectVoutPinUtil(prt:PRT) =  {
-    voutPinUsed += prt -> count(prt.vouts.map { out => mp.vomap.pmap.get(out) })
-  }
-
-  def collectCinPinUtil(prt:PRT) = {
-    cinPinUsed += prt -> count(prt.cins.map { in => mp.vimap.pmap.get(in) })
-  }
-
-  def collectCoutPinUtil(prt:PRT) =  {
-    coutPinUsed += prt -> count(prt.couts.map { out => mp.vomap.pmap.get(out) })
+  def collectChannelUtil(map: Map[PNode, Util], prt:PRT)(ins:PRT => List[PGI[PModule]]) = {
+    prt match {
+      case prt:PSB =>
+        map += prt -> count(channels(ins(prt)).map { in => mp.vimap.pmap.get(in) })
+      case prt =>
+    }
   }
 
   addPass {
@@ -155,23 +148,28 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
       collectRegUtil(cl)
       collectCtrUtil(cl)
       collectFUUtil(cl)
-      collectSBufUtil(cl)
-      collectVBufUtil(cl)
-      collectSinPinUtil(cl)
-      collectSoutPinUtil(cl)
-      collectVinPinUtil(cl)
-      collectVoutPinUtil(cl)
-      collectCinPinUtil(cl)
-      collectCoutPinUtil(cl)
+      collectBufUtil(sBufUsed, cl) { prt => prt.sbufs }
+      collectBufUtil(vBufUsed, cl) { prt => prt.vbufs }
+      collectPinUtil(sinPinUsed, cl) { prt => prt.sins }
+      collectPinUtil(vinPinUsed, cl) { prt => prt.vins }
+      collectPinUtil(cinPinUsed, cl) { prt => prt.cins }
+      collectPinUtil(soutPinUsed, cl) { prt => prt.souts }
+      collectPinUtil(voutPinUsed, cl) { prt => prt.vouts }
+      collectPinUtil(coutPinUsed, cl) { prt => prt.couts }
+      //collectChannelUtil(sChannelUsed, cl) { prt => prt.sins }
+      //collectChannelUtil(vChannelUsed, cl) { prt => prt.vins }
+      //collectChannelUtil(cChannelUsed, cl) { prt => prt.cins }
     }
     pcuUtil = count(spade.pcus.map(pcu => mp.clmap.pmap.get(pcu)))
     mcuUtil = count(spade.mcus.map(pcu => mp.clmap.pmap.get(pcu)))
     scuUtil = count(spade.scus.map(pcu => mp.clmap.pmap.get(pcu)))
     ocuUtil = count(spade.ocus.map(pcu => mp.clmap.pmap.get(pcu)))
     mcUtil = count(spade.mcs.map(pcu => mp.clmap.pmap.get(pcu)))
+
     slinkUtil = count(spade.sbs.map(sb => sb.sins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
     vlinkUtil = count(spade.sbs.map(sb => sb.vins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
     clinkUtil = count(spade.sbs.map(sb => sb.cins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
+
     totalRegUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => regUsed(pcu)))
     totalFUUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => fuUsed(pcu)))
     totalSBufUtil = count(spade.cus.filter(pcu => mp.clmap.pmap.contains(pcu)).map(pcu => sBufUsed(pcu)))

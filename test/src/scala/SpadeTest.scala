@@ -3,10 +3,10 @@ package pir.test
 import pir._
 import pir.util.misc._
 import pir.pass._
-import pir.plasticine.config._
-import pir.plasticine.main._
-import pir.plasticine.graph._
-import pir.plasticine.util._
+import pir.spade.config._
+import pir.spade.main._
+import pir.spade.graph._
+import pir.spade.util._
 import pir.exceptions._
 import pir.codegen._
 
@@ -19,18 +19,21 @@ import scala.language.postfixOps
 
 class SpadeTest extends UnitTest { self =>
 
-  "SN2x2" should "success" taggedAs(ARCH) in {
+  "SpadeTest" should "success" taggedAs(ARCH) in {
     val design = new PIRApp { self =>
       def main(top:pir.graph.Top): Any = {}
-      arch = SN2x2
+      //arch = SN2x2
+      arch = SN16x8_LD
+      //arch = new SN(numRows=2, numCols=2, pattern=HalfHalf)
       implicit val spade = arch.asInstanceOf[SwitchNetwork]
       val cu = arch.pcus.head
-      info(s"${quote(cu)}.vin=${cu.vins.size}")
-      info(s"${quote(cu)}.vout=${cu.vouts.size}")
-      info(s"${quote(cu)}.cin=${cu.cins.size}")
-      info(s"${quote(cu)}.cout=${cu.couts.size}")
-      info(s"${quote(cu)}.sin=${cu.sins.size}")
-      info(s"${quote(cu)}.sout=${cu.souts.size}")
+      info(s"${arch} ${quote(cu)}.vin=${cu.vins.size}")
+      info(s"${arch} ${quote(cu)}.vout=${cu.vouts.size}")
+      info(s"${arch} ${quote(cu)}.cin=${cu.cins.size}")
+      info(s"${arch} ${quote(cu)}.cout=${cu.couts.size}")
+      info(s"${arch} ${quote(cu)}.sin=${cu.sins.size}")
+      info(s"${arch} ${quote(cu)}.sout=${cu.souts.size}")
+      info(s"${arch} ${quote(cu)}.stages=${cu.stages.size}")
       info(s"numLanes=${spade.numLanes}")
       info(s"wordWidth=${spade.wordWidth}")
       emitBlock("regs") {

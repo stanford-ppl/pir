@@ -1,10 +1,10 @@
-package pir.plasticine.config
+package pir.spade.config
 
-import pir.plasticine.main._
-import pir.plasticine.graph._
+import pir.spade.main._
+import pir.spade.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
-import pir.plasticine.config._
+import pir.spade.config._
 import scala.collection.immutable.{Map => IMap}
 import pir.util.enums._
 import scala.language.existentials

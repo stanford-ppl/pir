@@ -25,7 +25,7 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
 
   // Not used. Doens't work when addr calculation is splitted 
   def hackLen(mc:MemoryController) = {
-    val lenWritter = lenOf(mc).writer.ctrler
+    val lenWritter = lenOf(mc).writers.head.ctrler
     lenWritter.asInstanceOf[ComputeUnit].stages.flatMap{ 
       _.fu.fold(List[Node]())(_.operands.map(_.from.src)) }.collect { 
         case Const(c:Int) => c
@@ -266,7 +266,7 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
             case cu:ComputeUnit => cu.fifos
             case cu => Nil
           }
-          var writers = fifos.map { _.writer }
+          var writers = fifos.map { _.writers.head } //TODO
           dprintln(s"$cl fifowriters:[${fifos.zip(writers).map { case (fifo,writer) => s"$fifo $writer"}.mkString(",")}]" )
           writers = writers.filter { writer => cl.parent.descendents.contains(writer)}
           dprintln(s"$cl.parent= ${cl.parent} parent descendents:${cl.parent.descendents}" )

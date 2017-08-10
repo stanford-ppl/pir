@@ -6,7 +6,8 @@ import pir.codegen.Printer
 import pir.exceptions._
 import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
 import pir.pass.{PIRMapping}
-import pir.plasticine.main._
+import pir.spade.main._
+import pir.spade.util._
 import pir.util.misc._
 import pir.util.topoSort
 import pir.util.enums._
@@ -36,7 +37,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
   def finPass(m:M):M = m
   override def debug = Config.debugCUMapper
 
-  def resMap = design.pirMapping.prescreen.resMap
+  def resMap = design.prescreen.resMap
 
   def place(cl:N, prt:R, m:M):M = {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
@@ -84,12 +85,8 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
   def map(m:M):M = {
     dprintln(s"Datapath placement & routing ")
-    val nodes = design.top.ctrlers//topoSort(design.top)
+    val nodes = topoSort(design.top)
     val reses = design.arch.prts
-    emitBlock(s"topoSort:") {
-      nodes.foreach{ n => dprintln(s"$n") }
-    }
-    info(s"Number of cus:${nodes.size}")
     bind(
       allNodes = nodes,
       initMap = m,
@@ -109,5 +106,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
 case class ReplaceController[M](blacklist:List[(CL, PCL)], mp:M)(implicit design:Design, mapper:Mapper) 
   extends MappingException(mp) {
-    override val msg = s"Avoid mapping of ${ blacklist.map{ case (cl, pcl) => s"$cl -> $pcl"}.mkString(",") }"
+  implicit def spade:Spade = design.arch
+
+    override val msg = s"Avoid mapping of ${ blacklist.map{ case (cl, pcl) => s"$cl -> ${quote(pcl)}"}.mkString(",") }"
 }

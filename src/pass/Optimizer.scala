@@ -13,7 +13,7 @@ class Optimizer(implicit design: Design) extends Pass with Logger {
   import pirmeta._
   override lazy val stream = newStream(s"Optimizer.log")
 
-  addPass(canRun=design.memoryAnalyzer.hasRun) {
+  addPass(canRun=design.memoryAnalyzer.hasRun || !Config.ctrl) {
     // No longer need info by dummy CUs
     design.top.compUnits.foreach { cu =>
       if (cu.children.isEmpty && cu.stages.isEmpty && cu.mems.isEmpty && cu.sins.isEmpty && cu.vins.isEmpty) {

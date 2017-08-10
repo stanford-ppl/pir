@@ -3,11 +3,11 @@ import pir.util.typealias._
 import pir.graph._
 import pir._
 import pir.codegen.DotCodegen
-import pir.plasticine.graph._
+import pir.spade.graph._
 import pir.codegen.DotCodegen
 import pir.exceptions._
-import pir.plasticine.util._
-import pir.plasticine.main.Spade
+import pir.spade.util._
+import pir.spade.main.Spade
 import pir.util.enums._
 
 import scala.collection.mutable
@@ -26,7 +26,8 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   def map(cu:CL, pirMap:M):M = {
     cu match {
-      case cu:ICL => map(cu, pirMap)
+      case cu:MC => finPass(cu)(pirMap)
+      case cu:ICL => finPass(cu)(map(cu, pirMap))
       case cu => finPass(cu)(pirMap)
     }
   } 
@@ -35,12 +36,12 @@ class RegAlloc(implicit val design:Design) extends Mapper {
     var mp = pirMap
     mp = preColor(cu, mp)
     mp = color(cu, mp)
-    finPass(cu)(mp)
+    mp
   }
 
   def resFunc(cu:ICL, allRes:N => List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
     val infs = cu.infGraph(n)
-    allRes(n).diff(triedRes).filterNot{ r => 
+    allRes(n).diff(triedRes).filterNot { r => 
       m.rcmap.pmap.get(r).fold (false) { regs =>
         dprintln(s"${quote(r)} <- [${regs.mkString(",")}]")
         regs.exists { mapped => infs.contains(mapped) }
@@ -61,20 +62,32 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   /* Register coloring for registers with predefined colors */
   private def preColor(cu:ICL, pirMap:M):M = {
     val pcu = pirMap.clmap(cu)
+    val pregs = pcu.asCU.regs
     val regs = mutable.ListBuffer[Reg]()
     cu.regs.foreach {
-      case reg@VecOutPR(vo) if pirMap.vomap.contains(vo) =>
-        val pvos = pirMap.vomap(vo)
-        voMap += reg -> mutable.Stack() 
-        dprintln(s"$vo -> ${quote(pvos)}")
-        pvos.foreach { pvo =>
-          voMap(reg).push(pvo)
-          regs += reg
-        }
+      //case reg@VecOutPR(out) if pirMap.vomap.contains(out) =>
+        //val pout = pirMap.vomap(out)
+        //dprintln(s"$out -> ${quote(pout)}")
+        //pout.foreach { pvo => regs += reg }
       case reg if reg.isTemp =>
       case reg => regs += reg
     }
     def allRes(n:N):List[R] = {
+      def allRes(n:N, out:O) = {
+        val regTp = out match {
+          case out:SO => ScalarOutReg
+          case out:VO => VecOutReg
+        }
+        val pregs = pirMap.vomap.get(out).map { pouts =>
+          dprintln(s"out=$out -> pouts:$pouts")
+          pirMap.vomap(out).foldLeft(regsOf(pouts.head.ic)) { case (pregs, pouts) =>
+            dprintln(s"regsOf($pouts) = ${regsOf(pouts)}")
+            pregs intersect regsOf(pouts.ic)
+          }
+        }.getOrElse(pcu.asCU.regs.filter{_.is(regTp)})
+        dprintln(s"allRes(reg=$n) pregs=$pregs")
+        pregs
+      }
       n match {
         case LoadPR(mem) => 
           val pmem = pirMap.smmap(mem)
@@ -87,24 +100,14 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           regsOf(pctr.out)
         case ReducePR() => 
           val cu = pirMap.clmap.pmap(pcu)
-          if (parOf(cu)>1) pcu.asCU.regs.filter(_.is(ReduceReg))
-          else pcu.asCU.regs
-        case VecOutPR(vecOut) =>
-          voMap.get(n).map { stack =>
-            val pvout = stack.pop()
-            regsOf(pvout.ic)
-          }.getOrElse(pcu.asCU.regs.filter{_.is(VecOutReg)})
-        case ScalarOutPR(scalarOut) =>
-          pirMap.vomap.get(scalarOut).map { psos =>
-            dprintln(s"$n -> $psos")
-            psos.foldLeft(regsOf(psos.head.ic)) { case (prev, pso) => 
-              dprintln(s"regsOf($pso) = ${regsOf(pso)}")
-              prev intersect regsOf(pso.ic)
-            }
-          }.getOrElse(pcu.asCU.regs.filter(_.is(ScalarOutReg)))
-        case AccumPR(init) => pcu.asCU.regs.filter(_.is(AccumReg))
+          if (parOf(cu)>1) pregs.filter(_.is(ReduceReg))
+          else pregs 
+        case VecOutPR(out) => allRes(n, out)
+        case ScalarOutPR(out) => allRes(n, out)
+        case AccumPR(init) => pregs.filter(_.is(AccumReg))
       }
     }
+
     log(s"precolor $cu") {
       bind(
         allNodes=regs.toList,

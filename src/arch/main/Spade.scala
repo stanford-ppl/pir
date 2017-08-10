@@ -1,22 +1,22 @@
-package pir.plasticine.main
+package pir.spade.main
 
-import pir.plasticine.graph._
+import pir.spade.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
-import pir.plasticine.simulation._
-import pir.plasticine.util._
-import pir.plasticine.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
+import pir.spade.config.ConfigFactory
 import pir.util.misc._
 
 trait SpadeParam {
-  val wordWidth = 32
-  val numLanes = 16
-  val clockFrequency:Int = 1000000000 //Hz
+  lazy val wordWidth = 32
+  lazy val numLanes = 16
+  lazy val clockFrequency:Int = 1000000000 //Hz
 }
 
 trait PreLoadSpadeParam extends SpadeParam {
-  override val numLanes = ConfigFactory.plasticineConf.lanes
+  override lazy val numLanes = ConfigFactory.plasticineConf.lanes
 }
 
 trait Spade extends SpadeMetadata with SpadeParam {

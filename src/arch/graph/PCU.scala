@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.config.ConfigFactory
-import pir.plasticine.simulation._
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.language.reflectiveCalls
@@ -18,6 +18,7 @@ case class PreloadPatternComputeParam (
   override val vbufSize:Int = 16,
   override val numRegs:Int = 16,
   override val numCtrs:Int = 8,
+  override val muxSize:Int = 10,
   override val numUDCs:Int = 5
 ) extends PatternComputeUnitParam (
   sbufSize = sbufSize,
@@ -28,6 +29,7 @@ case class PreloadPatternComputeParam (
   numSouts = ConfigFactory.plasticineConf.soutPcu,
   numRegs  = ConfigFactory.plasticineConf.regsPcu,
   numStages = ConfigFactory.plasticineConf.comp,
+  muxSize = muxSize,
   numCtrs  = numCtrs,
   numUDCs  = numUDCs  
 ) with PreLoadSpadeParam
@@ -42,6 +44,7 @@ class PatternComputeUnitParam(
   val numRegs:Int = 16,
   val numStages:Int = 8,
   val numCtrs:Int = 8,
+  val muxSize:Int = 10,
   val numUDCs:Int = 5
 ) extends ComputeUnitParam() {
   val numSRAMs:Int = 0
@@ -55,17 +58,18 @@ class PatternComputeUnitParam(
     assert(cu.vins.size >= numVins, s"vins=${cu.vins.size} numVins=${numVins}")
     assert(cu.souts.size >= numSouts, s"souts=${cu.souts.size} numSouts=${numSouts}")
     assert(cu.vouts.size >= numVouts, s"vouts=${cu.vouts.size} numVouts=${numVouts}")
-    cu.addRegstages(numStage=2, numOprds=3, ops)
+    cu.addRegstages(numStage=numFrontStages, numOprds=3, ops)
     cu.addRdstages(numStage=numReduceStages, numOprds=3, ops)
     cu.addRegstages(numStage=2, numOprds=3, ops)
     cu.numScalarBufs(numSins)
     cu.numVecBufs(cu.vins.size)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
     cu.color(0 until numCtrs, CounterReg)
     cu.color(0, ReduceReg).color(1, AccumReg)
-    cu.color(5 until 5 + cu.numScalarBufs, ScalarInReg)
-    cu.color(5 until 5 + cu.souts.size, ScalarOutReg)
-    cu.color(9 until 9 + cu.numVecBufs, VecInReg)
-    cu.color(9 until 9 + cu.vouts.size, VecOutReg)
+    cu.color(numRegs-cu.numScalarBufs until numRegs, ScalarInReg)
+    cu.color(numRegs-cu.souts.size until numRegs, ScalarOutReg)
+    cu.color(numRegs-cu.numVecBufs until numRegs, VecInReg)
+    cu.color(numRegs-cu.vouts.size until numRegs, VecOutReg)
     cu.genConnections
   }
 }

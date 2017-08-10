@@ -1,6 +1,6 @@
-package pir.plasticine.traversal
-import pir.plasticine.main._
-import pir.plasticine.graph._
+package pir.spade.traversal
+import pir.spade.main._
+import pir.spade.graph._
 import scala.collection.mutable.Set
 
 trait Traversal {

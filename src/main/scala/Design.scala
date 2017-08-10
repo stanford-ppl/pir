@@ -4,12 +4,12 @@ import graph._
 import pass._
 import mapper._
 import pir.codegen._
-import plasticine.config._
+import spade.config._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.simulation._
+import pir.spade.main._
+import pir.spade.simulation._
 
 //import analysis._
 
@@ -64,6 +64,7 @@ trait Design extends PIRMetadata with Collector {
   val powerAnalyzer = new PowerAnalyzer()
   val energyAnalyzer = new EnergyAnalyzer()
   val delayAnalyzer = new DelayAnalyzer()
+  val prescreen = new ResourcePrescreen()
 
   /* Transformation */
   val ctrlAlloc = new CtrlAlloc()
@@ -143,6 +144,7 @@ trait Design extends PIRMetadata with Collector {
   passes += pirPrinter
 
   // Mapping
+  passes += prescreen
   passes += pirMapping 
   passes += mapPrinter
   passes += spadeVecDotPrinter 

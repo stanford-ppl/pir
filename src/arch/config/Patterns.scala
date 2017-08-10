@@ -1,7 +1,7 @@
-package pir.plasticine.config
+package pir.spade.config
                           
-import pir.plasticine.graph._
-import pir.plasticine.main._
+import pir.spade.graph._
+import pir.spade.main._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
@@ -28,5 +28,14 @@ case object MixAll extends Pattern {
       else sn.mcuAt(i,j)
     }
     else sn.scuAt(i,j)
+  }
+}
+case object HalfHalf extends Pattern {
+  def cuAt(sn:SwitchNetwork)(i:Int, j:Int):ComputeUnit = {
+    if (i % 2 == 0) {
+      if (j % 2 == 0) sn.pcuAt(i,j) else sn.mcuAt(i,j)
+    } else {
+      if (j % 2 == 0) sn.mcuAt(i,j) else sn.scuAt(i,j)
+    }
   }
 }

@@ -62,7 +62,9 @@ trait Traversal extends Pass {
         visitNode(n.readAddrMux)
         visitNode(n.writeAddrMux)
         visitNode(n.writePortMux)
-      case _ =>
+      case n:OnChipMem =>
+        visitNode(n.writePortMux)
+      case n =>
     }
   }
 }

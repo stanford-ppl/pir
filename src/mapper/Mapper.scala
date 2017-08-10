@@ -4,10 +4,10 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.util.misc._
 import pir.codegen.{CUDotPrinter}
-import pir.plasticine.main._
-import pir.plasticine.graph.{ Node => PNode }
+import pir.spade.main._
+import pir.spade.graph.{ Node => PNode }
 import pir.codegen.{Logger}
-import pir.plasticine.util.SpadeMetadata
+import pir.spade.util.SpadeMetadata
 import pir.util.PIRMetadata
 import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
 
@@ -43,7 +43,7 @@ trait Mapper { self =>
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design
 
-  def logger = design.mapperLogger
+  implicit def logger = design.mapperLogger
   design.mappers += this
   
   def typeStr:String
@@ -64,7 +64,7 @@ trait Mapper { self =>
 
   def quote(n:Any)(implicit spade:Spade):String = n match {
     case n:Node => pir.util.quote(n) 
-    case n:PNode => pir.plasticine.util.quote(n)
+    case n:PNode => pir.spade.util.quote(n)
     case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
   }
 
@@ -143,12 +143,17 @@ trait Mapper { self =>
   ):M = {
     val exceps = ListBuffer[E]()
     val triedRes = ListBuffer[R]()
-    var reses = resFilter(triedRes.toList, exceps.toList)
-    while (reses.size!=0) {
+    def compRes = {
+      Try (resFilter(triedRes.toList, exceps.toList)) match {
+        case Success(rs) => rs
+        case Failure(e:MappingException[_]) => exceps += e; Nil
+        case Failure(e) => throw e
+      }
+    }
+    var reses = compRes 
+    while (reses.nonEmpty) {
       val res = reses.head
-      (Try {
-        constrain(n, res, map, exceps.toList)
-      }.flatMap { m => Try(finPass(m)) }) match {
+      Try (finPass(constrain(n, res, map, exceps.toList))) match {
         case Success(m) => return m
         case Failure(e@NoSolFound(es, mp)) => exceps ++= es
         case Failure(e@FailToMapNode(n, es, mp)) => exceps ++= es
@@ -156,13 +161,7 @@ trait Mapper { self =>
         case Failure(e) => throw e
       }
       triedRes += res
-      reses = Try {
-        resFilter(triedRes.toList, exceps.toList)
-      } match {
-        case Success(rs) => rs
-        case Failure(e:MappingException[_]) => exceps += e; Nil
-        case Failure(e) => throw e
-      }
+      reses = compRes
     }
     throw FailToMapNode(n, exceps.toList, map)
   }
@@ -209,6 +208,7 @@ trait Mapper { self =>
     resFunc:(N,M,List[R]) => List[R], //(n, m, triedRes) => List[R]
     finPass: M => M
   ):M = {
+    val total = allNodes.size
     /* Recursively map a list of nodes to a list of resource */
     def recNode(remainNodes:List[N], map:M):M = {
       if (remainNodes.size==0) { //Successfully mapped all nodes
@@ -218,17 +218,17 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        log(s"Mapping $n", { (m:M) => return m; () // finPass
+        log (s"Mapping $n (${total-remainNodes.size}/${total})", { (m:M) => 
+          return m; () // finPass
         }, { (e:Throwable) => // Failpass
           e match {
             case FailToMapNode(n, es, mp) => exceps ++= es
-            //case fe:FailToMapNode[_] => exceps += fe//; dprintln(flattenExceptions(fe.exceps)) // recRes failed
             case _ => throw e // Unknown exception
           }
         }) { // Block
           def rn(m:M): M = recNode(restNodes, m)
           def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
-          recRes[R,N,M](n, constrain, rf _, rn _, map)
+          recRes[R,N,M](n=n, constrain=constrain, resFilter=rf _, finPass=rn _, map=map)
         } 
       }
       throw NoSolFound(exceps.toList, map) 

@@ -1,9 +1,9 @@
-package pir.plasticine.main
+package pir.spade.main
 
-import pir.plasticine.graph._
+import pir.spade.graph._
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
-import pir.plasticine.config._
+import pir.spade.config._
 import scala.collection.immutable.{Map => IMap}
 import pir.util.enums._
 import scala.language.existentials

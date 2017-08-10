@@ -1,9 +1,9 @@
-package pir.plasticine.util
+package pir.spade.util
 
 import pir.util.maps._
-import pir.plasticine.graph._
-import pir.plasticine.config._
-import pir.plasticine.main._
+import pir.spade.graph._
+import pir.spade.config._
+import pir.spade.main._
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

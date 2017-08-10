@@ -5,9 +5,9 @@ import pir.util.enums._
 import pir.graph.{Const, PipeReg}
 import pir.pass.{PIRMapping}
 import pir.util._
-import pir.plasticine.main._
-import pir.plasticine.graph.{PipeReg => PPR}
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.graph.{PipeReg => PPR}
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.collection.immutable.Set
@@ -167,8 +167,8 @@ trait LocalRouter extends Mapper {
   def mapMux(mux:Mux, pmux:PMux[_], map:M):M = {
     var mp = map
     mp = mp.setPM(mux, pmux)
-    if (pmux.ins.size < mux.ins.size) 
-      throw PassThroughException(MuxUnderSize(s"Mux undersize! pmux.ins=${pmux.ins.size} mux.ins=${mux.ins.size}"), mp)
+    if (pmux.ins.size < mux.ins.size) throw PassThroughException(
+        MuxUnderSize(s"${quote(pmux.prt)}.$pmux undersize! $pmux.ins=${pmux.ins.size} $mux.ins=${mux.ins.size}"), mp)
     (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInPort(n, r, mp) }
     mp = mapInPort(mux.sel, pmux.sel, mp)
     mp = mapOutPort(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)

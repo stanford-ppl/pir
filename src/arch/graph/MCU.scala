@@ -1,11 +1,11 @@
-package pir.plasticine.graph
+package pir.spade.graph
 
 import pir.util.enums._
 import pir.util.misc._
-import pir.plasticine.main._
-import pir.plasticine.config.ConfigFactory
-import pir.plasticine.simulation._
-import pir.plasticine.util._
+import pir.spade.main._
+import pir.spade.config.ConfigFactory
+import pir.spade.simulation._
+import pir.spade.util._
 import pir.exceptions._
 
 import scala.language.reflectiveCalls
@@ -48,14 +48,11 @@ class MemoryComputeUnitParam(
   val numUDCs:Int = 0
 ) extends ComputeUnitParam() {
   val numSRAMs = 1
-  val sramSize = 512
-  override val numLanes = 1
+  val sramSize = 512 * 1024 / 4
+  override lazy val numLanes = 1
 
   /* Parameters */
   def config(cu:MemoryComputeUnit)(implicit spade:Spade) = {
-    cu.sram.writePortMux.addInputs(muxSize)
-    cu.sram.writeAddrMux.addInputs(muxSize)
-    cu.sram.readAddrMux.addInputs(muxSize)
     cu.addRegstages(numStage=numStages, numOprds=3, fixOps ++ otherOps)
     //cu.addWAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
     //cu.addRAstages(numStage=3, numOprds=3, fixOps ++ otherOps)
@@ -65,6 +62,9 @@ class MemoryComputeUnitParam(
     assert(cu.vouts.size >= numVouts, s"vouts=${cu.vouts.size} numVouts=${numVouts}")
     cu.numScalarBufs(numSins)
     cu.numVecBufs(cu.vins.size)
+    cu.mems.foreach(_.writePortMux.addInputs(muxSize))
+    cu.sram.writeAddrMux.addInputs(muxSize)
+    cu.sram.readAddrMux.addInputs(muxSize)
     cu.color(0 until numCtrs, CounterReg)
     //cu.color(7, ReadAddrReg).color(8, WriteAddrReg)
     cu.color(7 until 7 + cu.numScalarBufs, ScalarInReg)

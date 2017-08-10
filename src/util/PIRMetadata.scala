@@ -113,11 +113,13 @@ trait PIRMetadata extends { self:Design =>
   object writersOf extends MOneToOneMap with PIRMetadataMaps {
     type K = OnChipMem 
     type V = List[Controller]
+    override def check(rec:(K,V)):Unit = {}
   }
 
   object readersOf extends MOneToOneMap with PIRMetadataMaps {
     type K = OnChipMem 
     type V = List[Controller]
+    override def check(rec:(K,V)):Unit = {}
   }
 
   /* counters for read address calculation. 

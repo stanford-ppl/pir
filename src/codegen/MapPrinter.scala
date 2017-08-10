@@ -5,8 +5,8 @@ import pir.mapper.PIRMap
 import pir.util._
 import pir.util.misc._
 import pir.util.typealias._
-import pir.plasticine.util._
-import pir.plasticine.main._
+import pir.spade.util._
+import pir.spade.main._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -15,7 +15,7 @@ import scala.collection.mutable.HashMap
 import java.io.File
 
 class MapPrinter(implicit design: Design) extends Codegen {
-  def shouldRun = Config.debug
+  def shouldRun = Config.debug && Config.mapping
 
   implicit lazy val mp:PIRMap = design.mapping.get
 

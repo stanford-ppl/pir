@@ -3,9 +3,9 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.graph.{PipeReg => PR, VecInPR, LoadPR}
-import pir.plasticine.graph.{PipeReg => PPR}
-import pir.plasticine.util._
-import pir.plasticine.main._
+import pir.spade.graph.{PipeReg => PPR}
+import pir.spade.util._
+import pir.spade.main._
 import pir.exceptions._
 import pir.util.PIRMetadata
 
@@ -26,6 +26,9 @@ class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def constrain(n:N, r:R, m:M):M = {
     var mp = m
+    val bankSize = r.bankSize(n.banking)
+    if (n.size > bankSize) throw MappingException(m, s"$n'size=${n.size} > $r.bankSize=${bankSize}")
+    if (n.banks > r.banks) throw MappingException(m, s"$n.banks=${n.banks} > $r.banks=${r.banks}")
     mp = m.setSM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)

@@ -1,15 +1,15 @@
 import pir.graph.{Mux => _, _}
 import pir.codegen._
-import pir.plasticine.config._
+import pir.spade.config._
 import pir.Design
 import pir.util.enums._
 import pir.util._
 import pir.PIRApp
 
-object TPCHQ6 extends PIRApp {
+object TPCHQ6_unit extends PIRApp {
   arch = {
-    import pir.plasticine.graph._
-    import pir.plasticine.main._
+    import pir.spade.graph._
+    import pir.spade.main._
     new SwitchNetwork(
       new SwitchNetworkParam(numRows=4, numCols=4, numArgIns=5, numArgOuts=3)
     ) {
