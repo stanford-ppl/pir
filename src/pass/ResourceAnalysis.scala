@@ -195,8 +195,8 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
       //totAlus += inner.stages.size * numLanes 
       //totSrams += inner.vouts.size
     //}
-    //val groups = design.top.innerCUs.groupBy { cu => cu.isInstanceOf[MemoryController] }
-    //design.pirStat.numCUs(cu=groups(false).size, mc=groups(true).size)
+    //val (mcs, cus) = design.top.innerCUs.partition { cu => cu.isInstanceOf[MemoryController] }
+    //design.pirStat.numCUs(cu=cus.size, mc=mcs.size)
     //design.pirStat.numRegs(totRegs, numPRegs * design.top.innerCUs.size)
     //design.pirStat.numStages(totAlus, numAlus * design.top.innerCUs.size)
     //design.pirStat.numSrams(totSrams, numSrams * design.top.innerCUs.size)

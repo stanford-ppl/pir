@@ -81,9 +81,7 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(scus_offchip)
   lazy val pscus = design.arch.scus.diff(pscus_offchip)
   lazy val mps = cls.collect { case mp:MP => mp }
-  //lazy val mcusgrp = mps.groupBy { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
-  //lazy val mcus = mcusgrp.getOrElse(true, Nil)
-  //lazy val mus = mcusgrp.getOrElse(false, Nil) 
+  //lazy val (mcus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
   lazy val mcus = mps
   lazy val pmcus = design.arch.mcus 
   //lazy val pmus = design.arch.mus

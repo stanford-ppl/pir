@@ -40,9 +40,7 @@ package object util {
     list += ctrler
     var remain = descendentsOf(ctrler).filterNot(_== ctrler)
     while (remain.nonEmpty) {
-      val group = remain.toList.groupBy(isDepFree)
-      var free = group.getOrElse(true, Nil)
-      var notfree = group.getOrElse(false, Nil)
+      var (free, notfree) = remain.toList.partition(isDepFree)
       if (free.isEmpty) {
         val head::rest = notfree
         free = free :+ head
