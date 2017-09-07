@@ -1,6 +1,7 @@
 # Plasticine IR 
 
-Internal IR to target Plasticine from Spatial
+Internal IR to target Plasticine architecture (https://github.com/raghup17/plasticine.git) from Spatial
+(https://github.com/stanford-ppl/spatial-lang.git)
 
 ## Cloning and installation
 ~~~~
@@ -12,7 +13,7 @@ Internal IR to target Plasticine from Spatial
 
 ## Directory structure
 ~~~~
-  dhdl
+  pir 
   ├── apps........................ PIR applications. New applications must be added to this folder
   │   ├── src
   │   ├── test
