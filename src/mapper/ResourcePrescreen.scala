@@ -21,6 +21,9 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   import pirmeta._
   type N = CL
   type R = PCL
+  type M = mutable.Map[N, List[R]]
+
+  val resMap:M = mutable.Map[N,List[R]]()
 
   override lazy val stream = newStream(s"Prescreen.log")
 
@@ -29,8 +32,6 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   val summary = new CSVPrinter {
     override lazy val stream = newStream(Config.outDir, s"AppStats.csv", append=true)
   }
-
-  var resMap = mutable.Map[N,List[R]]()
 
   def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
@@ -53,14 +54,97 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     }
   }
 
-  def quantityCheck(map:Option[mutable.Map[N, List[R]]], cls:List[CL], pcls:List[PCL], msg:String):Boolean = {
+  def quantityCheck(map:Option[M], cls:List[CL], pcls:List[PCL], msg:String):Boolean = {
     if (cls.size > pcls.size) {
-      errmsg(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      if (Config.mapping) {
+        errmsg(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      } else {
+        warn(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      }
       false
     } else {
       if (Config.verbose) info(s"$msg cls=${cls.size} pcls=${pcls.size}")
       map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
       true
+    }
+  }
+
+  def controllerCheck:Boolean = {
+    val map = resMap 
+    var pass = true
+    pass &= quantityCheck(Some(map), mcs , pmcs, "MemoryController")
+    pass &= quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
+    //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
+    pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
+    pass &= quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
+    pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
+    pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
+    pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
+    pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
+    if (!pass && Config.mapping) throw PIRException(s"Not enough controller to map $design")
+    return pass
+  }
+
+  def primitiveCheck:Boolean = {
+    val map = resMap 
+    val failureInfo = mutable.Map[N, mutable.Map[R, ListBuffer[String]]]()
+    cls.foreach { cl => 
+      failureInfo += cl -> mutable.Map.empty
+      map += cl -> map(cl).filter { prt =>
+        val cons = ListBuffer[(String, Any)]()
+        (cl, prt) match {
+          case (cl:Top, pcu:PTop) =>
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
+          case (mc:MC, pcu:PMC) =>
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
+            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
+            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
+          case (cu:ICL, pcu:PCU)  =>
+            val pcu = prt.asInstanceOf[PCU]
+            cons += (("reg"	      , (cu.infGraph, pcu.regs)))
+            cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
+            cons += (("stage"	    , (cu.stages, pcu.stages)))
+            cons += (("udc"	      , (cu.ctrlBox.udcounters, pcu.ctrlBox.udcs)))
+            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
+            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
+            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
+            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
+            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
+            cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
+            cons += (("srams"	    , (cu.srams, pcu.srams)))
+            cu.srams.zip(pcu.srams).headOption.foreach { case (sram, psram) =>
+              cons += (("sramSize"	    , (sram.size, psram.bankSize(sram.banking))))
+              cons += (("sramBanks"	    , (sram.banks, psram.banks)))
+            }
+            cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
+          case (cu:OCL, pocu:POCU) =>
+            cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
+            cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
+            cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
+            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
+            cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
+            cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
+        }
+        failureInfo(cl) += prt -> ListBuffer[String]()
+        check(cons.toList, failureInfo(cl)(prt))
+      }
+    }
+    val notFit = cls.filter { cl =>
+      if (map(cl).size==0) {
+        emitBlock(s"$cl") {
+          val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
+        }
+      }
+      map(cl).size==0
+    }
+    if (notFit.nonEmpty) {
+      if (Config.mapping) throw PIRException(s"[${notFit.mkString(",")}] do not fit in any controller!")
+      else return false
+    } else {
+      return true
     }
   }
 
@@ -139,81 +223,9 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
    * Filter qualified resource. Create a mapping between cus and qualified pcus for each cu
    * */
   addPass {
-    //info(s"Number of cls:${design.top.ctrlers.size}")
-    //info(s"numPCU:${if (scus.size==0) rcus.size - mcs.size else rcus.size} numPCU:${pcus.size}")
-    //info(s"numMCU:${mcus.size} numPMCU:${pmcus.size}")
-    //info(s"numSCU:${scus.size} numPSCU:${pscus.size}")
-    //info(s"numMC:${mcs.size} numSCU:${scus.size} numPMC:${pmcs.size} numPSCU:${pscus.size}")
-    //info(s"numOCU:${ocus.size} numPOCU:${pocus.size}")
-    //info(s"numCL:${cls.size}")
-    val map = resMap 
-    var pass = true
-    pass &= quantityCheck(Some(map), mcs , pmcs, "MemoryController")
-    pass &= quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
-    //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
-    pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
-    pass &= quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
-    pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
-    pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
-    pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
-    pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
-    if (!pass) throw PIRException(s"Not enough controller to map $design")
-
-    val failureInfo = mutable.Map[N, mutable.Map[R, ListBuffer[String]]]()
-    cls.foreach { cl => 
-      failureInfo += cl -> mutable.Map.empty
-      map += cl -> map(cl).filter { prt =>
-        val cons = ListBuffer[(String, Any)]()
-        (cl, prt) match {
-          case (cl:Top, pcu:PTop) =>
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
-          case (mc:MC, pcu:PMC) =>
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
-            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
-            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
-          case (cu:ICL, pcu:PCU)  =>
-            val pcu = prt.asInstanceOf[PCU]
-            cons += (("reg"	      , (cu.infGraph, pcu.regs)))
-            cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
-            cons += (("stage"	    , (cu.stages, pcu.stages)))
-            cons += (("udc"	      , (cu.ctrlBox.udcounters, pcu.ctrlBox.udcs)))
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
-            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
-            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
-            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
-            cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
-            cons += (("srams"	    , (cu.srams, pcu.srams)))
-            cu.srams.zip(pcu.srams).headOption.foreach { case (sram, psram) =>
-              cons += (("sramSize"	    , (sram.size, psram.bankSize(sram.banking))))
-              cons += (("sramBanks"	    , (sram.banks, psram.banks)))
-            }
-            cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
-          case (cu:OCL, pocu:POCU) =>
-            cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
-            cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
-            cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
-            cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
-        }
-        failureInfo(cl) += prt -> ListBuffer[String]()
-        check(cons.toList, failureInfo(cl)(prt))
-      }
-    }
-    val notFit = cls.filter { cl =>
-      if (map(cl).size==0) {
-        emitBlock(s"$cl") {
-          val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
-        }
-      }
-      map(cl).size==0
-    }
-    if (notFit.nonEmpty) throw PIRException(s"[${notFit.mkString(",")}] do not fit in any controller!")
-    logMapping(map)
+    var pass = controllerCheck
+    if (pass) pass = primitiveCheck
+    if (pass) logMapping(resMap)
   }
 
   override def finPass = {

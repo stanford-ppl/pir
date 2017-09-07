@@ -57,6 +57,15 @@ class AppTests extends UnitTest { self =>
             app.simulator.run
           }
         } else {
+          var configs = ""
+          configs += s" --simulate=$simulate"
+          configs += s" --simulationTimeOut=$timeOut"
+          configs += s" --debug=$debug"
+          configs += s" --waveform=true"
+          configs += s" --verbose=$verbose"
+          configs += s" --mapping=$mapping"
+          configs += s" --codegen=false"
+          arch.foreach { arch => configs += s"--arch=$arch" }
           app.main(args)
         }
       }
@@ -76,14 +85,6 @@ class AppTests extends UnitTest { self =>
           assert(checkDram(dram), s"DRAM result incorrect")
         }
       }
-      Config.simulate = simulate
-      Config.simulationTimeOut = timeOut
-      Config.debug = debug
-      Config.waveform = debug 
-      Config.verbose = verbose
-      Config.mapping = mapping
-      Config.codegen = false
-      arch.foreach { app.arch = _ }
       try {
         runApp
         if (simulate) checkResult
@@ -232,18 +233,17 @@ class AppTests extends UnitTest { self =>
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), mapping=mapping, debug=true)
   //test(TensorLoadStore, arch=Some(arch), mapping=mapping, debug=true)
-
-  //test(DotProduct           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-
-  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(DotProduct         , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(SYRK_col                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 
