@@ -38,14 +38,20 @@ class MemoryAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       }
     }
-    if (cu.sram.writePort.isConnected) {
-      collectIn[FIFO](cu.sram.writePort).foreach { fifo => forWrite(fifo) = true }
-    } else {
+    if (!cu.sram.writePort.isConnected) {
       warn(s"${cu.sram} in $cu's writePort is not connected!")
     }
 
-    collectIn[Counter](cu.sram.readAddrMux).foreach { p => forRead(p) = true }
-    collectIn[Counter](cu.sram.writeAddrMux).foreach { p => forWrite(p) = true }
+    val forWrites = Set[Node]()
+    val forReads = Set[Node]()
+    forWrites ++= collectIn[FIFO](cu.sram.writePort)
+    forWrites ++= collectIn[Counter](cu.sram.writeAddrMux)
+    forWrites ++= collectIn[FIFO](cu.sram.writeAddrMux)
+    forReads  ++= collectIn[Counter](cu.sram.readAddrMux)
+    forReads  ++= collectIn[FIFO](cu.sram.readAddrMux)
+
+    forWrites.foreach { fifo => forWrite(fifo) = true }
+    forReads.foreach { p => forRead(p) = true }
   }
 
   def analyzeCChain(cu:MemoryPipeline):Unit = {

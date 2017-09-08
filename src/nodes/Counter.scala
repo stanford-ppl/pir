@@ -85,6 +85,11 @@ case class CounterChain(name:Option[String], cc:Option[Either[String, CounterCha
     counters(num)
   }
 
+  def iterIdx(ctrIdx:Int, iterIdx:Int):this.type = {
+    apply(ctrIdx).iterIdx(iterIdx)
+    this
+  }
+
   def copy(cp:CounterChain):Unit = {
     assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
     this.setCopy(cp)
@@ -168,6 +173,13 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   val en:InPort = InPort(this, s"${this}.en")
   val done:OutPort = OutPort(this, s"${this}.done")
   var par:Int = 1
+  var _iterIdx:Option[Int] = None
+  def iterIdx:Option[Int] = _iterIdx
+  def iterIdx(ii:Int) = _iterIdx = Some(ii)
+
+
+  override def toUpdate = super.toUpdate || cchain==null
+
   var _cchain:CounterChain = _
   def cchain:CounterChain = _cchain
   def cchain(cc:CounterChain):Counter = {
@@ -176,7 +188,6 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
     _cchain = cc
     this
   }
-  override def toUpdate = super.toUpdate || cchain==null
 
   def isInner = { 
     if (Config.ctrl) {

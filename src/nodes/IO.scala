@@ -15,6 +15,7 @@ class Range (s:OutPort, e:OutPort) {
 
 abstract class Port(implicit val src:Module, design:Design) extends Node {
   src.addIO(this)
+  def isConnected:Boolean
   def isOutput = this.isInstanceOf[OutPort]
   def isInput = this.isInstanceOf[InPort]
   def asOutput = this.asInstanceOf[OutPort]
