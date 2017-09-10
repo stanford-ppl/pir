@@ -457,6 +457,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitSRAM(psram:PSRAM) = {
+    import pir.util.collectIn
     val pcu = psram.prt
     smmap.pmap.get(psram).foreach { case sram:SRAM =>
       emitComment(s"$psram -> $sram")
@@ -466,9 +467,9 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       }
       emitln(s"${quote(psram)}.stride = $stride")
       emitln(s"${quote(psram)}.numBufs = ${sram.buffering}")
-      val fifo = sram.writePort.from.src.asInstanceOf[FIFO]
-      val pin = vimap(fifo.writePort.from.src)
-      emitln(s"${quote(psram.prt)}.wdataSelect = ${pin.index}") //TODO:add mux for selecting scalar/vector input 
+      val fifo = collectIn[FIFO](sram.writePort).head
+      val pin = vimap(collectIn[I](fifo.writePort).head)
+      emitln(s"${quote(psram.prt)}.wdataSelect = ${pin.index}") //TODO: handle config for multiple selections
       emitln(s"${quote(psram.prt)}.waddrSelect = ${lookUp(psram.writeAddr)}")
       emitln(s"${quote(psram.prt)}.raddrSelect = ${lookUp(psram.readAddr)}")
     }

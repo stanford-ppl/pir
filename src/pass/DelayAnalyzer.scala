@@ -48,12 +48,10 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
             case top:Top => 
               mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.doneDelay).out }
             case _ =>
-              in.out.to.head.src match {
-                case mem:LocalMem if mem.isFifo =>
-                  mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.enDelay).out }
-                case mem:LocalMem if mem.isMbuffer =>
-                  mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.doneDelay).out }
-              }
+              if (collectOut[FIFO](in).nonEmpty)
+                mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.enDelay).out }
+              else if (collectOut[MultiBuffer](in).nonEmpty)
+                mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.doneDelay).out }
           }
         }
       case cu:Top =>

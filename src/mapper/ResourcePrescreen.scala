@@ -33,6 +33,27 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     override lazy val stream = newStream(Config.outDir, s"AppStats.csv", append=true)
   }
 
+  lazy val prts = design.arch.prts
+  lazy val cls = design.top.ctrlers
+  lazy val mcs = cls.collect { case mc:MC => mc }
+  lazy val pmcs = design.arch.mcs 
+  lazy val sags = design.top.innerCUs.filter{ cu => sagOf.pmap.contains(cu) } //TODO
+  lazy val psags = design.arch.asInstanceOf[SwitchNetwork].sramAGs.flatten
+  lazy val dags = design.top.innerCUs.filter{ cu => dagOf.pmap.contains(cu) } 
+  lazy val pdags = design.arch.asInstanceOf[SwitchNetwork].dramAGs.flatten
+  lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(dags)
+  lazy val pscus = design.arch.scus.diff(pdags)
+  lazy val mps = cls.collect { case mp:MP => mp }
+  //lazy val (mcus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
+  lazy val mcus = mps
+  lazy val pmcus = design.arch.mcus 
+  //lazy val pmus = design.arch.mus
+  lazy val ocus = cls.collect { case ocu:OCL => ocu }
+  lazy val pocus = design.arch.ocus 
+  lazy val rcus = cls.collect { case cu:PL => cu }.diff(dags).diff(scus).diff(mcus)
+  lazy val pcus = design.arch.pcus 
+
+
   def check(info:String, cond:Any):(Boolean,String) = {
       cond match {
         case cond:Boolean => 
@@ -77,6 +98,7 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
     pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
     pass &= quantityCheck(Some(map), dags , pdags, "DramAddrGen")
+    pass &= quantityCheck(Some(map), sags , psags, "SramAddrGen")
     pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
     pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
     pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
@@ -155,24 +177,6 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
       }
     }
   }
-
-  lazy val prts = design.arch.prts
-  lazy val cls = design.top.ctrlers
-  lazy val mcs = cls.collect { case mc:MC => mc }
-  lazy val pmcs = design.arch.mcs 
-  lazy val dags = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
-  lazy val pdags = design.arch.asInstanceOf[SwitchNetwork].dramAGs.flatten
-  lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(dags)
-  lazy val pscus = design.arch.scus.diff(pdags)
-  lazy val mps = cls.collect { case mp:MP => mp }
-  //lazy val (mcus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
-  lazy val mcus = mps
-  lazy val pmcus = design.arch.mcus 
-  //lazy val pmus = design.arch.mus
-  lazy val ocus = cls.collect { case ocu:OCL => ocu }
-  lazy val pocus = design.arch.ocus 
-  lazy val rcus = cls.collect { case cu:PL => cu }.diff(dags).diff(scus).diff(mcus)
-  lazy val pcus = design.arch.pcus 
 
   def avgCnt[E](list:List[E], cnt: E => Float) = if (list.size==0) 0 else list.map { e => cnt(e) }.sum.toFloat / list.size
 

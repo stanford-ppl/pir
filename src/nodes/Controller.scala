@@ -59,7 +59,7 @@ abstract class Controller(implicit design:Design) extends Module {
   def trueConsumed = consumed.filter { _.trueDep }
   def trueProduced = produced.filter { _.trueDep }
   def writtenMems:List[OnChipMem] = {
-    (souts ++ vouts).flatMap{_.readers.flatMap{ _.out.to }}.map{_.src}.collect{ case ocm:OnChipMem => ocm }.toList
+    collectOut[OnChipMem]((souts ++ vouts).flatMap{_.readers}).toList
   }
 
   def length = lengthOf(this)

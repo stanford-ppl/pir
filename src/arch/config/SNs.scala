@@ -32,10 +32,11 @@ abstract class SN_LD(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:I
     new ScalarComputeUnit(PreloadScalarComputeParam())
 }
 
-object SN1x1 extends SN(numRows=1, numCols=1, numArgIns=3, numArgOuts=3, pattern=MixAll) 
-object SN1x2 extends SN(numRows=1, numCols=2, numArgIns=3, numArgOuts=3, pattern=MixAll) 
-object SN2x2 extends SN(numRows=2, numCols=2, numArgIns=3, numArgOuts=3, pattern=MixAll) 
-object SN2x3 extends SN(numRows=2, numCols=3, numArgIns=3, numArgOuts=3, pattern=MixAll) 
+object SN1x1 extends SN(numRows=1, numCols=1, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
+object SN1x2 extends SN(numRows=1, numCols=2, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
+object SN2x2 extends SN(numRows=2, numCols=2, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
+object SN2x3 extends SN(numRows=2, numCols=3, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
+
 object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols=2, numArgIns=3, numArgOuts=3)) {
   override lazy val ctrlNetwork = new CtrlNetwork {
     channelWidth("pos"->List("left", "right")) = 0
@@ -50,8 +51,9 @@ object SN2x2Test extends SwitchNetwork(new SwitchNetworkParam(numRows=2, numCols
   }
   config
 }
-object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern=MixAll) 
-object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=MixAll) 
+
+object SN4x4 extends SN(numRows=4, numCols=4, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
+object SN8x8 extends SN(numRows=8, numCols=8, numArgIns=3, numArgOuts=3, pattern=Checkerboard) 
 
 object SN8x8_LD extends SN_LD(numRows=8, numCols=8, numArgIns=12, numArgOuts=5, pattern=Checkerboard) {
   override lazy val scalarNetwork = new ScalarNetwork() {

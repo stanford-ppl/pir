@@ -83,7 +83,14 @@ trait PIRMetadata extends { self:Design =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object scuOf extends MBiOneToOneMap with PIRMetadataMaps {
+  /* DramAddrGen of MemoryController*/
+  object dagOf extends MBiOneToOneMap with PIRMetadataMaps {
+    type K = Controller
+    type V = Controller
+  }
+
+  /* SramAddrGen of MemoryController*/
+  object sagOf extends MBiOneToOneMap with PIRMetadataMaps {
     type K = Controller
     type V = Controller
   }

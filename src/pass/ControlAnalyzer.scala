@@ -120,16 +120,32 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
     dprintln(lengthOf.info(ctrler))
   }
 
-  def setSCUs(ctrler:Controller) = emitBlock(s"setSCUs($ctrler)"){
+  def setDAG(ctrler:Controller) = emitBlock(s"setDAG($ctrler)"){
     ctrler match {
-      case mc:MemoryController if mc.mctpe == Scatter => 
       case mc:MemoryController if mc.mctpe.isDense =>
-        scuOf(mc) = mc.getFifo("offset").writers.head.ctrler
+        dagOf(mc) = mc.getFifo("offset").writers.head.ctrler
+        dprintln(dagOf.info(ctrler))
       case mc:MemoryController if mc.mctpe.isSparse =>
-        scuOf(mc) = mc.getFifo("addr").writers.head.ctrler
+        dagOf(mc) = mc.getFifo("addr").writers.head.ctrler
+        dprintln(dagOf.info(ctrler))
       case mc =>
     }
-    dprintln(scuOf.info(ctrler))
+  }
+
+  def setSAG(ctrler:Controller) = emitBlock(s"setSAG($ctrler)"){
+    ctrler match {
+      case mc:MemoryController if mc.mctpe==TileLoad || mc.mctpe==Gather =>
+        def writtenCtrler(cu:ComputeUnit) = {
+          val cls = cu.writtenFIFOs.map { _.ctrler }.toSet
+          dprintln(s"writtenCtrler: $cls")
+          cls
+        }
+        mc.parent.children.filter { cu => 
+          cu != mc && (writtenCtrler(mc) == writtenCtrler(cu))
+        }.foreach { cu => sagOf(mc) = cu }
+        dprintln(sagOf.info(ctrler))
+      case mc =>
+    }
   }
 
   def setStyle = {
@@ -185,7 +201,8 @@ class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
   addPass(canRun=(!Config.debug || design.pirDataDotGen4.hasRun) && this.hasRun(2), runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
       if (Config.ctrl) setLength(ctrler) //TODO: fix this
-      setSCUs(ctrler)
+      setDAG(ctrler)
+      setSAG(ctrler)
     }
   }
 
