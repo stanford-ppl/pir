@@ -3,7 +3,7 @@ import pir._
 import pir.util.typealias._
 import pir.spade.config._
 import pir.mapper._
-import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
+import pir.codegen._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

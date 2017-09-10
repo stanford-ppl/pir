@@ -22,8 +22,8 @@ class SpadeTest extends UnitTest { self =>
   "SpadeTest" should "success" taggedAs(ARCH) in {
     val design = new PIRApp { self =>
       def main(top:pir.graph.Top): Any = {}
-      //arch = SN2x2
-      arch = SN16x8_LD
+      arch = SN2x2
+      //arch = SN16x8_LD
       //arch = new SN(numRows=2, numCols=2, pattern=HalfHalf)
       implicit val spade = arch.asInstanceOf[SwitchNetwork]
       val cu = arch.pcus.head
@@ -41,14 +41,14 @@ class SpadeTest extends UnitTest { self =>
           info(s"reg=${quote(reg)} colors=[${reg.colors.mkString(",")}]")
         } }
       }
-      new CUCtrlDotPrinter().print
-      s"out/bin/run -c out/${arch}/CtrlNetwork".replace(".dot", "") !
+      new SpadeCtrlDotPrinter().print
+      s"out/bin/run -cp out/${arch}/CtrlNetwork".replace(".dot", "") !
 
-      new CUScalarDotPrinter().print
-      s"out/bin/run -c out/${arch}/ScalNetwork".replace(".dot", "") !
+      //new SpadeScalarDotPrinter().print
+      //s"out/bin/run -cp out/${arch}/ScalNetwork".replace(".dot", "") !
 
-      new CUVectorDotPrinter().print
-      s"out/bin/run -c out/${arch}/VecNetwork".replace(".dot", "") !
+      //new SpadeVectorDotPrinter().print
+      //s"out/bin/run -cp out/${arch}/VecNetwork".replace(".dot", "") !
 
       //new SpadePrinter().run //this prints architecture in detail but is slow
       //new SpadeNetworkCodegen().run

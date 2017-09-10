@@ -4,7 +4,7 @@ import pir.{Design, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
-import pir.codegen.{CUCtrlDotPrinter, CUVectorDotPrinter}
+import pir.codegen._
 import pir.pass.{PIRMapping}
 import pir.spade.main._
 import pir.spade.util._

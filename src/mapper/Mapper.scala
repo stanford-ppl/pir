@@ -3,13 +3,11 @@ package pir.mapper
 import pir.{Design, Config}
 import pir.util.typealias._
 import pir.util.misc._
-import pir.codegen.{CUDotPrinter}
 import pir.spade.main._
 import pir.spade.graph.{ Node => PNode }
-import pir.codegen.{Logger}
 import pir.spade.util.SpadeMetadata
 import pir.util.PIRMetadata
-import pir.codegen.{CUCtrlDotPrinter, CUScalarDotPrinter, CUVectorDotPrinter}
+import pir.codegen._
 
 import java.lang.Thread
 import scala.collection.immutable.Set
@@ -353,15 +351,15 @@ trait Mapper { self =>
     if (open) {
       this match {
         case router:VectorRouter =>
-          new CUVectorDotPrinter(open)(design).print(mp)
+          new SpadeVectorDotPrinter(open)(design).print(mp)
         case router:ScalarRouter =>
-          new CUScalarDotPrinter(open)(design).print(mp)
+          new SpadeScalarDotPrinter(open)(design).print(mp)
         case router:ControlRouter =>
-          new CUCtrlDotPrinter(open)(design).print(mp)
+          new SpadeCtrlDotPrinter(open)(design).print(mp)
         case router:CUMapper =>
-          new CUVectorDotPrinter(open)(design).print(mp)
-          //new CUScalarDotPrinter(true, true)(design).print(Some(mp))
-          //new CUCtrlDotPrinter(true, true)(design).print(Some(mp))
+          new SpadeVectorDotPrinter(open)(design).print(mp)
+          new SpadeScalarDotPrinter(open)(design).print(mp)
+          new SpadeCtrlDotPrinter(open)(design).print(mp)
       }
     }
   }

@@ -5,7 +5,7 @@ import pir.util.typealias._
 import pir.spade.main._
 import pir.util.enums._
 import pir.pass.{PIRMapping}
-import pir.codegen.{CUCtrlDotPrinter}
+import pir.codegen._
 import pir.exceptions._
 import pir.spade.util._
 

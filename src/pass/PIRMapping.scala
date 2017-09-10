@@ -2,7 +2,7 @@ package pir.pass
 
 import pir.graph._
 import pir._
-import pir.codegen.{Printer, Logger, CUVectorDotPrinter, CUScalarDotPrinter, CUCtrlDotPrinter}
+import pir.codegen._
 import pir.mapper._
 import pir.exceptions._
 import scala.util.{Try, Success, Failure}
@@ -51,9 +51,9 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   }
   val cuMapper = new CUMapper()
 
-  val spadeVecDotPrinter = new CUVectorDotPrinter()
-  val spadeScalDotPrinter = new CUScalarDotPrinter()
-  val spadeCtrlDotPrinter = new CUCtrlDotPrinter()
+  val spadeVecDotPrinter = new SpadeVectorDotPrinter()
+  val spadeScalDotPrinter = new SpadeScalarDotPrinter()
+  val spadeCtrlDotPrinter = new SpadeCtrlDotPrinter()
 
   override def reset = {
     mapping = None
@@ -64,21 +64,21 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   def viewRouting(mapper:Mapper):Unit = {
     mapper match {
       case mapper:VectorRouter =>
-        new CUVectorDotPrinter(open=true)(design).print(mapping)
-        new CUScalarDotPrinter(open=false)(design).print(mapping)
-        new CUCtrlDotPrinter(open=false)(design).print(mapping)
+        new SpadeVectorDotPrinter(open=true)(design).print(mapping)
+        new SpadeScalarDotPrinter(open=false)(design).print(mapping)
+        new SpadeCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ScalarRouter =>
-        new CUVectorDotPrinter(open=false)(design).print(mapping)
-        new CUScalarDotPrinter(open=true)(design).print(mapping)
-        new CUCtrlDotPrinter(open=false)(design).print(mapping)
+        new SpadeVectorDotPrinter(open=false)(design).print(mapping)
+        new SpadeScalarDotPrinter(open=true)(design).print(mapping)
+        new SpadeCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ControlRouter =>
-        new CUVectorDotPrinter(open=false)(design).print(mapping)
-        new CUScalarDotPrinter(open=false)(design).print(mapping)
-        new CUCtrlDotPrinter(open=true)(design).print(mapping)
+        new SpadeVectorDotPrinter(open=false)(design).print(mapping)
+        new SpadeScalarDotPrinter(open=false)(design).print(mapping)
+        new SpadeCtrlDotPrinter(open=true)(design).print(mapping)
       case mapper:CUMapper =>
-        new CUVectorDotPrinter(open=true)(design).print(mapping)
-        new CUScalarDotPrinter(open=true)(design).print(mapping)
-        new CUCtrlDotPrinter(open=true)(design).print(mapping)
+        new SpadeVectorDotPrinter(open=true)(design).print(mapping)
+        new SpadeScalarDotPrinter(open=true)(design).print(mapping)
+        new SpadeCtrlDotPrinter(open=true)(design).print(mapping)
       case _ =>
     }
   }

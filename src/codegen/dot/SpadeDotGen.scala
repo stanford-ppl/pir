@@ -22,7 +22,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
+abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
   import spademeta._
 
   val scale:Int
@@ -269,8 +269,8 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
 
 }
 
-class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
-  extends CUDotPrinter(file, open) { 
+class SpadeCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
+  extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
@@ -282,8 +282,8 @@ class CUCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
   def io(prt:Routable) = prt.ctrlIO
 }
 
-class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) 
-  extends CUDotPrinter(file, open) { 
+class SpadeScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+  extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
@@ -296,8 +296,8 @@ class CUScalarDotPrinter(file:String, open:Boolean)(implicit design:Design)
 
 }
 
-class CUVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) 
-  extends CUDotPrinter(file, open) { 
+class SpadeVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+  extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:Design) = this(file, false)
