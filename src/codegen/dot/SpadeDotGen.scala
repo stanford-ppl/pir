@@ -112,7 +112,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
         case pscu:PSCU if (x<0) | (x>=numCols) => Some(x, y-0.3)
         case ppcu:PPCU if (x<0) | (x>=numCols) => Some(x, y-0.7)
         case pmc:PMC => Some((x, y-0.5))
-        case pocu:POCU => Some((x-0.3, y-0.3))
+        case pocu:POCU => Some((x-0.2, y-0.35))
         case psb:PSB => Some((x-0.5, y-0.5))
         case ptop:PTop => None
         case pcu => Some((x, y))
