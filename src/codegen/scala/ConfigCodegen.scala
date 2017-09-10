@@ -40,7 +40,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def sbs = spade.sbArray
   def cus = spade.cuArray
   def ocus = spade.ocuArray
-  def scus = spade.scuArray
+  def dags = spade.dramAGs
   def mcs = spade.mcArray
 
   override implicit lazy val spade = design.arch.asSwitchNetwork
@@ -533,7 +533,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     ocus.foreach {
       _.foreach { cu => emitCUBit(cu) }
     }
-    scus.foreach {
+    dags.foreach {
       _.foreach { cu => emitCUBit(cu) }
     }
     mcs.foreach {
@@ -573,7 +573,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitLambda(s"val lcus = Array.tabulate(${ocus.size}, ${ocus.head.size})", "case (i,j)") {
       emitln(s"SwitchCUBits.zeroes(switchCUParams(i)(j))")
     }
-    emitLambda(s"val scus = Array.tabulate(${scus.size}, ${scus.head.size})", "case (i,j)") {
+    emitLambda(s"val dags = Array.tabulate(${dags.size}, ${dags.head.size})", "case (i,j)") {
       emitln(s"ScalarCUBits.zeroes(scalarCUParams(i)(j))")
     }
     emitLambda(s"val mcs = Array.tabulate(${mcs.size}, ${mcs.head.size})", "case (i,j)") {
@@ -588,7 +588,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComma(s"scalarSwitch=ssbs")
       emitComma(s"controlSwitch=csbs")
       emitComma(s"switchCU=lcus")
-      emitComma(s"scalarCU=scus")
+      emitComma(s"scalarCU=dags")
       emitComma(s"memoryChannel=mcs")
       emitComma(s"argOutMuxSelect=${quote(top.sins.map { in => muxIdx(in) })}")
       assert(top.cins.size==1)
@@ -606,8 +606,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     case n:PSCU =>
       val (x, y) = coordOf(n)
       x match {
-        case -1 => s"scus(0)($y)"
-        case `numCols` => s"scus(1)($y)"
+        case -1 => s"dags(0)($y)"
+        case `numCols` => s"dags(1)($y)"
         case _ => s"cus($x)($y).asSCUBits"
       }
     case n:PMC =>

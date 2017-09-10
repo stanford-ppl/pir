@@ -16,25 +16,35 @@ import scala.collection.mutable.Set
 case class PreloadPatternComputeParam (
   override val sbufSize:Int = 16,
   override val vbufSize:Int = 16,
-  override val numRegs:Int = 16,
   override val numCtrs:Int = 8,
   override val muxSize:Int = 10,
   override val numUDCs:Int = 5
 ) extends PatternComputeUnitParam (
-  sbufSize = sbufSize,
-  vbufSize = vbufSize,
   numVins = ConfigFactory.plasticineConf.vinPcu,
   numVouts = ConfigFactory.plasticineConf.voutPcu,
   numSins = ConfigFactory.plasticineConf.sinPcu,
   numSouts = ConfigFactory.plasticineConf.soutPcu,
   numRegs  = ConfigFactory.plasticineConf.regsPcu,
-  numStages = ConfigFactory.plasticineConf.comp,
-  muxSize = muxSize,
-  numCtrs  = numCtrs,
-  numUDCs  = numUDCs  
+  numStages = ConfigFactory.plasticineConf.comp
 ) with PreLoadSpadeParam
 
-class PatternComputeUnitParam(
+case class SRAMAddrGenParam (
+  override val sbufSize:Int = 16,
+  override val vbufSize:Int = 16,
+  override val numVins:Int = 4,
+  override val numVouts:Int = 2,
+  override val numSins:Int = 4,
+  override val numSouts:Int = 2,
+  override val numRegs:Int = 5,
+  override val numStages:Int = 4,
+  override val numCtrs:Int = 4,
+  override val muxSize:Int = 3,
+  override val numUDCs:Int = 5
+) extends PatternComputeUnitParam (
+  reduction = false
+) with PreLoadSpadeParam
+
+class PatternComputeUnitParam (
   val sbufSize:Int = 16,
   val vbufSize:Int = 16,
   val numVins:Int = 4,
@@ -45,13 +55,14 @@ class PatternComputeUnitParam(
   val numStages:Int = 8,
   val numCtrs:Int = 8,
   val muxSize:Int = 10,
-  val numUDCs:Int = 5
+  val numUDCs:Int = 5,
+  val reduction:Boolean = true
 ) extends ComputeUnitParam() {
   val numSRAMs:Int = 0
   val sramSize:Int = 0
 
   def config(cu:PatternComputeUnit)(implicit spade:Spade) = {
-    val numReduceStages = Math.ceil(Math.log(numLanes) / Math.log(2)).toInt
+    val numReduceStages = if (reduction) Math.ceil(Math.log(numLanes) / Math.log(2)).toInt else 0
     val numFrontStages = numStages - (numReduceStages + 2)
     assert(numFrontStages >= 0, s"numFrontStages=$numFrontStages numStage=$numStages")
     assert(cu.sins.size >= numSins, s"sins=${cu.sins.size} numSins=${numSins}")

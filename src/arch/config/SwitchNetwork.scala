@@ -37,61 +37,55 @@ abstract class SwitchNetwork(val param:SwitchNetworkParam=new SwitchNetworkParam
   
   override def toString = s"SN${numRows}x${numCols}"
 
-  override def prts = super.prts ++ sbs
-
   def diameter = Math.max(
                   numRows + numCols, // Allow top left to talk to top right
                   Math.ceil(numRows*1.0/2).toInt+3 // allow top to talk to middle CUs
                 )
 
-  // Top level controller ~= Host
+  /* --- Controller at specific coordinate --- */
+  def cuAt(x:Int, y:Int) = param.pattern.cuAt(this)(x,y)
+
+  def pcuAt(x:Int, y:Int):PatternComputeUnit = {
+    val param = if (x>0 && x<numCols) new PatternComputeUnitParam()
+                else new SRAMAddrGenParam()
+    new PatternComputeUnit(param).coord(x,y)
+  }
+
+  def mcuAt(x:Int, y:Int):MemoryComputeUnit = new MemoryComputeUnit().coord(x,y)
+
+  def scuAt(x:Int, y:Int):ScalarComputeUnit = new ScalarComputeUnit().coord(x,y)
+
+  def mcAt(x:Int, y:Int):MemoryController = new MemoryController().coord(x,y)
+
+  def ocuAt(x:Int, y:Int):OuterComputeUnit = new OuterComputeUnit().coord(x,y)
+
+  /* --- Controller Instantiation --- */
   val top = Top()
   
-  def cuAt(i:Int, j:Int) = param.pattern.cuAt(this)(i,j)
+  val cuArray:List[List[Controller]] = List.tabulate(numCols, numRows) { case (x, y) => cuAt(x, y) }
 
-  def pcuAt(i:Int, j:Int):PatternComputeUnit = new PatternComputeUnit()
+  val dramAGs = List.tabulate(2, numRows+1) { case (x, y) => if (x==0) scuAt(-1, y) else scuAt(numCols, y) }
 
-  def mcuAt(i:Int, j:Int):MemoryComputeUnit = new MemoryComputeUnit()
+  val sramAGs = List.tabulate(2, numRows+1) { case (x, y) => if (x==0) pcuAt(-1, y) else pcuAt(numCols, y) }
 
-  //def muAt(i:Int, j:Int):MemoryUnit = new MemoryUnit()
+  val mcArray = List.tabulate(2, numRows+1) { case (x, y) => if (x==0) mcAt(-1, y) else mcAt(numCols, y) }
 
-  def scuAt(i:Int, j:Int):ScalarComputeUnit = new ScalarComputeUnit()
+  val sbArray:List[List[SwitchBox]] = List.tabulate(numCols+1, numRows+1) { case (x, y) => SwitchBox().coord(x,y) }
 
-  def mcAt(i:Int, j:Int):MemoryController = new MemoryController()
+  val ocuArray = List.tabulate(numCols+1, numRows+1) { case (x, y) => ocuAt(x, y) }
 
-  def ocuAt(i:Int, j:Int):OuterComputeUnit = new OuterComputeUnit()
+  /* --- All Controllers --- */
+  val prts = top :: 
+                cuArray.flatten ++ 
+                dramAGs.flatten ++ 
+                sramAGs.flatten ++ 
+                mcArray.flatten ++ 
+                sbArray.flatten ++ 
+                ocuArray.flatten
 
-  val cuArray:List[List[Controller]] = List.tabulate(numCols, numRows) { case (x, y) => cuAt(x, y).coord(x, y) }
+  val sbs:List[SwitchBox] = sbArray.flatten
 
-  val scuArray = List.tabulate(2, numRows+1) { case (x, y) => 
-    val scu = scuAt(x, y)
-    if (x==0) {
-      scu.coord(-1, y)
-    } else {
-      scu.coord(numCols, y)
-    }
-    scu
-  }
-  def scus = scuArray.flatten ++ cuArray.flatten.collect { case cu:ScalarComputeUnit => cu }
-  val mcArray = List.tabulate(2, numRows+1) { case (x, y) => 
-    val mc = mcAt(x, y)
-    if (x==0) {
-      mc.coord(-1, y)
-    } else {
-      mc.coord(numCols, y)
-    }
-    mc
-  }
-  def mcs = mcArray.flatten
-  lazy val mcus = cuArray.flatten.collect { case mcu:MemoryComputeUnit => mcu }
-  //lazy val mus = cuArray.flatten.collect { case mcu:MemoryUnit => mcu }
-  lazy val pcus = cuArray.flatten.collect { case pcu:PatternComputeUnit => pcu }
-  val ocuArray = List.tabulate(numCols+1, numRows+1) { case (x, y) => ocuAt(x, y).coord(x, y) }
-  def ocus:List[OuterComputeUnit] = ocuArray.flatten
-
-  val sbArray:List[List[SwitchBox]] = List.tabulate(numCols+1, numRows+1) { case (x, y) => SwitchBox().coord(x, y) }
-  def sbs:List[SwitchBox] = sbArray.flatten
-
+  /* --- Network --- */
   lazy val ctrlNetwork:GridNetwork = new CtrlNetwork()
 
   lazy val vectorNetwork:GridNetwork = new VectorNetwork()

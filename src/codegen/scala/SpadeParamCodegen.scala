@@ -27,7 +27,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
   lazy val mcus = spade.mcus
   lazy val cus = spade.cuArray
   lazy val ocus = spade.ocuArray
-  lazy val scus = spade.scuArray
+  lazy val dags = spade.dramAGs
   lazy val mcs = spade.mcArray
   lazy val sbs = spade.sbArray
 
@@ -94,7 +94,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       emitln(s"override val scalarSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ScalarSwitchParams](${sbs.head.size}))")
       emitln(s"override val controlSwitchParams = Array.fill(${sbs.size})(Array.ofDim[ControlSwitchParams](${sbs.head.size}))")
       emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
-      emitln(s"override val scalarCUParams = Array.fill(${scus.size})(Array.ofDim[ScalarCUParams](${scus.head.size}))")
+      emitln(s"override val scalarCUParams = Array.fill(${dags.size})(Array.ofDim[ScalarCUParams](${dags.head.size}))")
       emitln(s"override val memoryChannelParams = Array.fill(${mcs.size})(Array.ofDim[MemoryChannelParams](${mcs.head.size}))")
       emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
       emitln(s"override val numDoneConnections = ${spade.top.cins.head.fanIns.size}")
@@ -156,7 +156,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       }
     }}
 
-    scus.headOption.foreach { _.headOption.foreach { scu =>
+    dags.headOption.foreach { _.headOption.foreach { scu =>
       emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
         emitln(s"override val w = ${spade.wordWidth}")
         emitln(s"override val numCounters = ${scu.param.numCtrs}")
@@ -198,7 +198,7 @@ class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodeg
       }
     }
 
-    scus.foreach { row =>
+    dags.foreach { row =>
       row.foreach { cu =>
         val param = s"GeneratedScalarCUParams(numScalarIn=${cu.sins.size}, numScalarOut=${cu.souts.size}, numControlIn=${cu.cins.size}, numControlOut=${cu.couts.size})"
         emitln(s"${quote(cu)} = $param")

@@ -9,6 +9,8 @@ fi
 
 if [[ $OPT == "-"*"t"*  ]]; then
 	scp yaqiz@tucson.stanford.edu:~/pir/out/$FILE.dot $(dirname $FILE)
+elif [[ $OPT == "-"*"l"*  ]]; then
+	scp yaqiz@london.stanford.edu:~/pir/out/$FILE.dot $(dirname $FILE)
 fi
 
 if [[ $OPT == "-"*"p"*  ]]; then

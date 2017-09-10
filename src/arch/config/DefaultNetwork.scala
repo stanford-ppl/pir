@@ -29,11 +29,18 @@ class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // MCU to Switch channel width
   channelWidth("pos"->"center", "src"->List("mcu"), "dst"->"sb") = roundUp(mcuVouts / 4.0)
 
-  // MC to switch channel width
-  channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 1
+  // switch to SAG channel width
+  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"pcu") = 4 
+
+  // SAG to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"pcu", "dst"->"sb") = 2 
+
   // switch to MC channel width
   channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"mc") = 1
     
+  // MC to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 1
+
 }
 
 class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
@@ -56,18 +63,25 @@ class ScalarNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // MCU to Switch channel width
   channelWidth("pos"->"center", "src"->List("mcu"), "dst"->"sb") = roundUp(mcuSouts / 4.0)
   
-  // switch to SCU channel width
+  // switch to DAG channel width
   channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"scu") = roundUp(ucuSins)
 
-  // SCU to switch channel width
+  // DAG to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"sb") = roundUp(ucuSouts) - 2
+
+  // switch to SAG channel width
+  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"pcu") = 4 
+
+  // SAG to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"pcu", "dst"->"sb") = 2 
+
+  // switch to MC channel width
+  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"mc") = 1
 
   // MC to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 1
-  // switch to MC channel width
-  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"mc") = 1
     
-  // SCU to MC channel width
+  // DAG to MC channel width
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"mc") = 2
   
   //// switch to OCU channel width
@@ -101,17 +115,25 @@ class CtrlNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {
   // CU to Switch channel width
   channelWidth("pos"->"center", "src"->List("pcu", "mu", "mcu", "scu"), "dst"->"sb") = 2
 
-  // SCU to switch channel width
+  // DAG to switch channel width
   channelWidth("pos"->List("left", "right"), "src"->"scu", "dst"->"sb") = 1
-  // switch to SCU channel width
+
+  // switch to DAG channel width
   channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"scu") = 1
 
-  // MC to switch channel width
-  channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 2
+  // switch to SAG channel width
+  channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"pcu") = 2
+
+  // SAG to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"pcu", "dst"->"sb") = 2 
+
   // switch to MC channel width
   channelWidth("pos"->List("left", "right"), "src"->"sb", "dst"->"mc") = 1
 
-  // MC to SCU channel width
+  // MC to switch channel width
+  channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"sb") = 2
+
+  // MC to DAG channel width
   channelWidth("pos"->List("left", "right"), "src"->"mc", "dst"->"scu") = 2
     
   // OCU to switch channel width

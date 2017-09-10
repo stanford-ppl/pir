@@ -40,6 +40,7 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
   //val mode:Mode = OnlyOCU 
   
   def linkColor = Color("indianred1") 
+
   def color(prt:PRT):Color = prt match {
     case pscu:PSCU => Color("palevioletred1")
     case pmcu:PMCU => Color("lightseagreen")
@@ -99,10 +100,43 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
     }
   }
 
-  def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
+  /*
+   * Position of Controller / SwitchBox as a function of coordinate
+   * */
+  def setPos(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
     val spade = design.arch.asInstanceOf[SwitchNetwork]
     import spade.param._
-    var attr = DotAttr().shape(Mrecord)
+
+    coordOf.get(prt).foreach { case (x,y) =>
+      val coord:Option[(Double, Double)] = prt match {
+        case pscu:PSCU if (x<0) | (x>=numCols) => Some(x, y-0.3)
+        case ppcu:PPCU if (x<0) | (x>=numCols) => Some(x, y-0.7)
+        case pmc:PMC => Some((x, y-0.5))
+        case pocu:POCU => Some((x-0.3, y-0.3))
+        case psb:PSB => Some((x-0.5, y-0.5))
+        case ptop:PTop => None
+        case pcu => Some((x, y))
+      }
+      coord.foreach { case (x,y) => attr.pos((x*scale, y*scale)) }
+    }
+
+  }
+
+  def setColor(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
+    // Color node if any of the inputs is mapped
+    mapping.foreach { mp => 
+      prt match {
+        case prt:PCL =>
+          if (mp.clmap.pmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(prt))
+        case prt =>
+          if (io(prt).ins.exists(in => mp.fimap.contains(in)))
+            attr.style(filled).fillcolor(color(prt))
+      }
+    }
+  }
+
+  def setLabel(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
     def mappedLabel(prt:PCL):String = {
       mapping.fold(quote(prt)) { mp => mp.clmap.pmap.get(prt).fold(quote(prt)) { cl => s"${quote(prt)}|$cl"} }
     }
@@ -140,32 +174,23 @@ abstract class CUDotPrinter(fn:String, open:Boolean)(implicit design:Design) ext
         }.getOrElse(quote(psb))
     }
     val label = s"{${recs.mkString("|")}}"
-    coordOf.get(prt).foreach { case (x,y) =>
-      prt match {
-        case pscu:PSCU if (x<0) | (x>=numCols) => attr.pos((x*scale, (y-0.3)*scale))
-        case pmc:PMC => attr.pos((x*scale, (y-0.7)*scale))
-        case pocu:POCU => attr.pos(((x-0.3)*scale, (y-0.3)*scale))
-        case psb:PSB => attr.pos(((x-0.5)*scale, (y-0.5)*scale))
-        case ptop:PTop =>
-        case pcu => attr.pos((x*scale, y*scale))
-      }
-    }
-    mapping.foreach { mp => 
-      prt match {
-        case prt:PCL =>
-          if (mp.clmap.pmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(prt))
-        case prt =>
-          if (io(prt).ins.exists(in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(prt))
-      }
-    }
+    attr.label(label)
+  }
+
+  def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
+    val spade = design.arch.asInstanceOf[SwitchNetwork]
+    import spade.param._
+
+    var attr = DotAttr().shape(Mrecord)
+    setLabel(prt, attr, mapping)
+    setPos(prt, attr, mapping)
+    setColor(prt, attr, mapping)
     prt match {
       case ptop:PTop => s"$ptop" 
-        emitNode(quote(ptop, false), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, numRows*scale))
-        emitNode(quote(ptop, true), label, DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, -scale))
+        emitNode(quote(ptop, false), DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, numRows*scale))
+        emitNode(quote(ptop, true), DotAttr.copy(attr).pos( (numCols/2-1)*scale+scale/2, -scale))
       case _ =>
-        emitNode(prt, label, attr)
+        emitNode(prt, attr)
     }
   }
 

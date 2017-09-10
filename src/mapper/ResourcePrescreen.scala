@@ -76,7 +76,7 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     pass &= quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
     //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
     pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
-    pass &= quantityCheck(Some(map), scus_offchip , pscus_offchip, "ScalarComputeUnit(MC)")
+    pass &= quantityCheck(Some(map), dags , pdags, "DramAddrGen")
     pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
     pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
     pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
@@ -160,10 +160,10 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   lazy val cls = design.top.ctrlers
   lazy val mcs = cls.collect { case mc:MC => mc }
   lazy val pmcs = design.arch.mcs 
-  lazy val scus_offchip = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
-  lazy val pscus_offchip = design.arch.asInstanceOf[SwitchNetwork].scuArray.flatten
-  lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(scus_offchip)
-  lazy val pscus = design.arch.scus.diff(pscus_offchip)
+  lazy val dags = design.top.innerCUs.filter{ cu => scuOf.pmap.contains(cu) } 
+  lazy val pdags = design.arch.asInstanceOf[SwitchNetwork].dramAGs.flatten
+  lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(dags)
+  lazy val pscus = design.arch.scus.diff(pdags)
   lazy val mps = cls.collect { case mp:MP => mp }
   //lazy val (mcus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
   lazy val mcus = mps
@@ -171,7 +171,7 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   //lazy val pmus = design.arch.mus
   lazy val ocus = cls.collect { case ocu:OCL => ocu }
   lazy val pocus = design.arch.ocus 
-  lazy val rcus = cls.collect { case cu:PL => cu }.diff(scus_offchip).diff(scus).diff(mcus)
+  lazy val rcus = cls.collect { case cu:PL => cu }.diff(dags).diff(scus).diff(mcus)
   lazy val pcus = design.arch.pcus 
 
   def avgCnt[E](list:List[E], cnt: E => Float) = if (list.size==0) 0 else list.map { e => cnt(e) }.sum.toFloat / list.size
@@ -195,13 +195,13 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     row += "mcs" -> mcs.size
     row += "pcus" -> rcus.size
     row += "scus" -> scus.size
-    row += "scus(MC)" -> scus_offchip.size
+    row += "scus(MC)" -> dags.size
     row += "mcus" -> mps.size
     row += "ocus" -> ocus.size
     row += "pcuAvgStages" -> avgStages(rcus)
     row += "pcuMaxStages" -> maxStages(rcus)
-    row += "scuAvgStages" -> avgStages(scus_offchip)
-    row += "scuMaxStages" -> maxStages(scus_offchip)
+    row += "scuAvgStages" -> avgStages(dags)
+    row += "scuMaxStages" -> maxStages(dags)
     row += "scuAvgStages(MC)" -> avgStages(scus)
     row += "scuMaxStages(MC)" -> maxStages(scus)
     row += "mcuAvgStages" -> avgStages(mps) 
@@ -210,8 +210,8 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
     row += "pcuMaxRegs" -> maxRegs(rcus)
     row += "scuAvgRegs" -> avgRegs(scus)
     row += "scuMaxRegs" -> maxRegs(scus)
-    row += "scuAvgRegs(MC)" -> avgRegs(scus_offchip)
-    row += "scuMaxRegs(MC)" -> maxRegs(scus_offchip)
+    row += "scuAvgRegs(MC)" -> avgRegs(dags)
+    row += "scuMaxRegs(MC)" -> maxRegs(dags)
     row += "mcuAvgRegs(MC)" -> avgRegs(mcus)
     row += "mcuMaxRegs(MC)" -> maxRegs(mcus)
     row += "cuAvgLane(MC)" -> avgLanes(rcus ++ scus) 

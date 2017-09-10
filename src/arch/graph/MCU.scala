@@ -21,17 +21,12 @@ case class PreloadMemoryComputeParam (
   override val muxSize:Int = 10,
   override val numUDCs:Int = 5
 ) extends MemoryComputeUnitParam (
-  sbufSize = sbufSize,
-  vbufSize = vbufSize,
   numVins = ConfigFactory.plasticineConf.vinPmu,
   numVouts = ConfigFactory.plasticineConf.voutPmu,
   numSins = ConfigFactory.plasticineConf.sinPmu,
   numSouts = ConfigFactory.plasticineConf.soutPmu,
   numRegs  = ConfigFactory.plasticineConf.regsPmu,
-  numStages = ConfigFactory.plasticineConf.rw,
-  muxSize = muxSize,
-  numCtrs  = numCtrs,
-  numUDCs  = numUDCs  
+  numStages = ConfigFactory.plasticineConf.rw
 ) with PreLoadSpadeParam
 
 class MemoryComputeUnitParam(

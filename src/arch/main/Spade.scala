@@ -24,19 +24,18 @@ trait Spade extends SpadeMetadata with SpadeParam {
 
   override def toString = getClass().getSimpleName().replace("$", "")
   def top:Top
-  def pcus:List[PatternComputeUnit]
-  def mcus:List[MemoryComputeUnit]
-  def scus:List[ScalarComputeUnit]
-  //def mus:List[MemoryUnit]
-  def ocus:List[OuterComputeUnit]
-  def mcs:List[MemoryController]
+
+  def prts:List[Routable]
+
+  lazy val ctrlers:List[Controller]      = prts.collect    { case cl:Controller          => cl }
+  lazy val cus:List[ComputeUnit]         = ctrlers.collect { case cu:ComputeUnit         => cu }
+  lazy val pcus:List[PatternComputeUnit] = ctrlers.collect { case pcu:PatternComputeUnit => pcu }
+  lazy val mcus:List[MemoryComputeUnit]  = ctrlers.collect { case mcu:MemoryComputeUnit  => mcu }
+  lazy val scus:List[ScalarComputeUnit]  = ctrlers.collect { case scu:ScalarComputeUnit  => scu }
+  lazy val ocus:List[OuterComputeUnit]   = ctrlers.collect { case ocu:OuterComputeUnit   => ocu }
+  lazy val mcs:List[MemoryController]    = ctrlers.collect { case mc:MemoryController    => mc }
 
   def diameter:Int
-
-  def cus = pcus ++ mcus ++ scus ++ ocus
-  def ctrlers = top :: cus ++ mcs// ++ mus
-
-  def prts:List[Routable] = ctrlers
 
   def numCUs = (pcus ++ mcus).size
 

@@ -21,14 +21,8 @@ case class PreloadScalarComputeParam(
   override val muxSize:Int = 10,
   override val numUDCs:Int = 4
 ) extends ScalarComputeUnitParam(
-  sbufSize = sbufSize,
   numSins = ConfigFactory.plasticineConf.sinUcu,
-  numSouts = numSouts,
-  numRegs  = numRegs,
-  numStages = ConfigFactory.plasticineConf.stagesUcu,
-  muxSize = muxSize,
-  numCtrs  = numCtrs,
-  numUDCs  = numUDCs  
+  numStages = ConfigFactory.plasticineConf.stagesUcu
 ) with PreLoadSpadeParam
 
 class ScalarComputeUnitParam (
