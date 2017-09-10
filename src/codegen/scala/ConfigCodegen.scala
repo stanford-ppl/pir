@@ -24,23 +24,15 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   val traitName = appName + "Trait"
   lazy val dir = sys.env("PLASTICINE_HOME") + s"/src/main/scala/apps/$design"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
-
-  def mapping = design.mapping.get
-  def fimap = mapping.fimap
-  def clmap = mapping.clmap
-  def ctmap = mapping.ctmap
-  def smmap = mapping.smmap
-  def stmap = mapping.stmap
-  def pmmap = mapping.pmmap
-  def ipmap = mapping.ipmap
-  def vimap = mapping.vimap
-  def vomap = mapping.vomap
+  lazy val mapping = design.mapping.get
+  import mapping._
 
   def top = spade.top
   def sbs = spade.sbArray
   def cus = spade.cuArray
   def ocus = spade.ocuArray
   def dags = spade.dramAGs
+  def sags = spade.sramAGs
   def mcs = spade.mcArray
 
   override implicit lazy val spade = design.arch.asSwitchNetwork
