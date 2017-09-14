@@ -27,7 +27,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def constrain(n:N, r:R, map:M):M = {
     var mp = map
-    mp = mp.setSM(n, r)
+    mp = mp.setPM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)
     mp = mapMux(n.writePortMux, r.writePortMux, mp)
@@ -44,7 +44,7 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
       case cu => pcu.sbufs
     }
     dprintln(s"MC filtered reses=[${reses.mkString(",")}]")
-    reses.diff(triedRes).filterNot{ r => m.smmap.pmap.contains(r) }
+    reses.diff(triedRes).filterNot{ r => m.pmmap.contains(r) }
   }
 
   def map(cu:CU, pirMap:M):M = {

@@ -114,7 +114,6 @@ class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter
   }
 
   def addAll = {
-    sim.dprintln(s"${sim.mapping.ctmap.keys}")
     adder.traverse
     val sb = spade.asInstanceOf[SwitchNetwork].sbs.head
     val out = sb.ctrlIO.outs.head

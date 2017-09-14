@@ -1,7 +1,6 @@
 package pir.spade.simulation
 
 import pir._
-import pir.mapper.PIRMap
 import pir.codegen.Logger
 import pir.pass.Pass
 import pir.spade.main._

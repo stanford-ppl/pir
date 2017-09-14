@@ -1,6 +1,5 @@
 package pir.spade.config
                           
-import pir._
 import pir.spade.graph._
 import pir.spade.main._
 import pir.spade.util._

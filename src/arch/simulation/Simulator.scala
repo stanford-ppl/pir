@@ -9,6 +9,7 @@ import pir.util.PIRMetadata
 import pir.spade.main._
 import pir.spade.graph._
 import pir.spade.traversal._
+import pir.spade.util.SpadeMetadata
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
@@ -21,28 +22,27 @@ trait SimUtil extends Logger {
   def pmmap = mapping.pmmap
   def vimap = mapping.vimap
   def vomap = mapping.vomap
-  def stmap = mapping.stmap
   def ipmap = mapping.ipmap
   def opmap = mapping.opmap
-  def smmap = mapping.smmap
-  def ctmap = mapping.ctmap
-  def rcmap = mapping.rcmap
   def rtmap = mapping.rtmap
+  def rcmap = mapping.rcmap
+  def cfmap = mapping.cfmap
   def pirmeta:PIRMetadata
   def rst:Boolean
   def cycle:Int
 }
 
-class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
+class Simulator(val mapping: PIRMap)(implicit design:Design) extends SimUtil with Logger {
 
-  def shouldRun = Config.simulate && design.pirMapping.succeeded
+  implicit def spade = design.arch
+  val spademeta:SpadeMetadata = spade
+  val pirmeta:PIRMetadata = design
   implicit val sim:Simulator = this
   lazy val vcds:List[VcdPrinter] = 
     if (Config.simulate && Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
 
   override def debug = Config.verbose
 
-  implicit lazy val mapping = design.mapping.get
   lazy val util:SimUtil = this
 
   var _inSimulation = false 
@@ -69,8 +69,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     else false
   } 
 
-  override def reset = {
-    super.reset
+  def reset = {
     rst = false
     timeOut = false
     done = false
@@ -80,9 +79,8 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     spade.simulatable.foreach { m => m.reset }
   }
 
-  override def initPass = {
+  def initPass = {
     vcds.foreach { vcds => vcds.emitHeader }
-    super.initPass
     tic
   }
 
@@ -110,7 +108,7 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     _inSimulation = false
   }
 
-  addPass {
+  def run = {
     register
     dprintln(s"\n\nDefault values ...")
     vcds.foreach { _.emitSignals }
@@ -118,10 +116,9 @@ class Simulator(implicit design: Design) extends Pass with Logger with SimUtil {
     simulate
   }
 
-  override def finPass = {
+  def finPass = {
     close
     vcds.foreach { _.close }
-    super.finPass
     toc("Simulation","s")
   }
 

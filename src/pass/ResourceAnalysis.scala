@@ -103,7 +103,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
 
   def collectFUUtil(prt:PRT) = prt match {
     case prt:PCU if mp.clmap.pmap.contains(prt) =>
-      fuUsed += prt -> count(prt.stages.map { pst => mp.stmap.pmap.get(pst) }).map {
+      fuUsed += prt -> count(prt.stages.map { pst => mp.pmmap.pmap.get(pst) }).map {
         case (used, total) => (used * parOf(prt), total * prt.param.numLanes)
       }
     case prt =>
@@ -112,14 +112,14 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
 
   def collectCtrUtil(prt:PRT) = prt match {
     case prt:PCU =>
-      ctrUsed += prt -> count(prt.ctrs.map { pctr => mp.ctmap.pmap.get(pctr) })
+      ctrUsed += prt -> count(prt.ctrs.map { pctr => mp.pmmap.get(pctr) })
     case prt =>
       ctrUsed += prt -> Util.empty
   }
 
   def collectBufUtil(map:Map[PNode, Util], prt:PRT)(bufs:PCU => List[PLMem]) = prt match {
     case prt:PCU =>
-      map += prt -> count(bufs(prt).map { buf => mp.smmap.pmap.get(buf) })
+      map += prt -> count(bufs(prt).map { buf => mp.pmmap.get(buf) })
     case prt =>
       map += prt -> Util.empty
   }

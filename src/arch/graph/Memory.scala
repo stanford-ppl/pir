@@ -34,7 +34,7 @@ trait Memory extends Module with Simulatable {
         } catch {
           case e:Exception =>
             val info = this match {
-              case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${smmap.pmap.get(mem)})"
+              case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${pmmap.get(mem)})"
               case mem:DRAM => s"dram"
             }
             errmsg(s"[$info #$cycle]: ${e.toString}")
@@ -108,7 +108,7 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.pirmeta._
-    sim.mapping.smmap.pmap.get(this).foreach { mem =>
+    sim.mapping.pmmap.get(this).foreach { mem =>
       notEmpty.v.default = false
       notFull.v.default = true
       readPtr.v.default = 0
@@ -202,7 +202,7 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
     import sim.pirmeta._
     import sim.spademeta._
     import sim.util._
-    smmap.pmap.get(this).foreach { mem =>
+    pmmap.get(this).foreach { mem =>
       val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize, mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
 
@@ -262,7 +262,7 @@ trait LocalBuffer extends OnChipMem {
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.spademeta._
-    sim.mapping.smmap.pmap.get(this).foreach { mem =>
+    sim.mapping.pmmap.get(this).foreach { mem =>
       val bufferSize = bufferSizeOf(this)
       readPort.v.set { v => 
         updateMemory
@@ -292,7 +292,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends Loc
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    smmap.pmap.get(this).foreach { mem =>
+    pmmap.get(this).foreach { mem =>
       val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
@@ -315,7 +315,7 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Controller) extends Loc
   val readPort = Output(Bus(Word()), this, s"${this}.rp") 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    smmap.pmap.get(this).foreach { mem =>
+    pmmap.get(this).foreach { mem =>
       assert(mem.isVFifo)
       val bufferSize = bufferSizeOf(this)
       memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }

@@ -22,8 +22,8 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
     design.top.ctrlers.foreach {
       case cu:MemoryPipeline =>
         val pmcu = mp.clmap(cu)
-        val rstages = pmcu.stages.filter { pst => mp.stmap.pmap.get(pst).fold(false) { st => forRead(st) } }
-        val wstages = pmcu.stages.filter { pst => mp.stmap.pmap.get(pst).fold(false) { st => forWrite(st) } }
+        val rstages = pmcu.stages.filter { pst => mp.pmmap.pmap.get(pst).fold(false) { st => forRead(st) } }
+        val wstages = pmcu.stages.filter { pst => mp.pmmap.pmap.get(pst).fold(false) { st => forWrite(st) } }
         val ridxs = rstages.map(_.index)
         val widxs = wstages.map(_.index)
         val rdelay = (if (ridxs.nonEmpty) ridxs.max - ridxs.min else 0)

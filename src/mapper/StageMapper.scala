@@ -51,8 +51,8 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var preLiveOuts:Set[Reg] = Set.empty
     pcu.stages.foreach { pstage =>
       val ppregs:Set[PReg] = preLiveOuts.flatMap {reg => mp.rcmap(reg) }
-      if (mp.stmap.pmap.contains(pstage)) {
-        val stage = mp.stmap.pmap(pstage)
+      if (mp.pmmap.contains(pstage)) {
+        val stage = mp.pmmap(pstage)
         preLiveOuts = stage.liveOuts 
       } else {
         pstage.prs.foreach { ppr =>
@@ -93,7 +93,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     log(s"Try $n -> ${quote(p)}") {
       var mp = map
       checkStageType(n, p, mp)
-      mp = mp.setST(n, p)
+      mp = mp.setPM(n, p)
       mp = mapFUOut(n, p, mp)
       mp = mapPROut(n, p, mp)
       mp = mapFUIn(n, p, mp)

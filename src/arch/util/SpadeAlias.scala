@@ -1,10 +1,13 @@
-package pir.spade.util.typealias
+package pir.spade.util
 
 import pir.spade.graph._
+
+package object typealias extends SpadeAlias
 
 trait SpadeAlias {
   // Spade Nodes
   type PNode     = Node
+  type PConfig   = Configuration
   type PModule   = Module
   type PCL       = Controller
   type PCU       = ComputeUnit

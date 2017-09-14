@@ -38,10 +38,17 @@ case class OuterComputeUnitParam (
   }
 }
 
+case class OuterComputeUnitConfig (
+  isSeq:Boolean,
+  isMeta:Boolean
+) extends Configuration
+
 class OuterComputeUnit(override val param:OuterComputeUnitParam=new OuterComputeUnitParam())(implicit spade:Spade) 
-  extends ComputeUnit(param) {
+  extends ComputeUnit(param) with Configurable {
   import spademeta._
   import param._
+
+  type CT = OuterComputeUnitConfig
   override val typeStr = "ocu"
   override def config = param.config(this)
 

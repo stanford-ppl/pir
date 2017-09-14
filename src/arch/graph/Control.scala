@@ -131,7 +131,12 @@ object AndTree {
   def apply()(implicit spade:Spade, prt:Controller, cb:CtrlBox):AndTree = AndTree(None)
 }
 
-case class PulserSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
+case class PulserSMConfig (
+  pulserLength:Int
+) extends Configuration
+
+case class PulserSM()(implicit spade:Spade, override val prt:OuterComputeUnit) extends Primitive with Simulatable with Configurable {
+  type CT = PulserSMConfig
   val done = Input(Bit(), this, s"${this}.done")
   val en = Input(Bit(), this, s"${this}.en")
   val init = Input(Bit(), this, s"${this}.init")
@@ -141,16 +146,16 @@ case class PulserSM()(implicit spade:Spade, override val prt:Controller) extends
   val state = Output(Bit(), this, s"${this}.state")
   var pulseLength = 1
   override def register(implicit sim:Simulator):Unit = {
-    import sim.pirmeta._
     import sim.util._
-    clmap.pmap.get(prt).foreach { cu =>
-      if (cu.isSeq || cu.isMeta) {
+    cfmap.get(prt).foreach { cuconfig:OuterComputeUnitConfig =>
+      val config = cfmap(this)
+      if (cuconfig.isSeq || cuconfig.isMeta) {
         state.v.default = INIT 
         out.v.set { outv =>
           If (state.v =:= INIT) {
             If(init.v) {
               outv.setHigh
-              pulseLength = lengthOf(cu) / pipelinedBy(cu)(sim.design)
+              pulseLength = config.pulserLength// lengthOf(cu) / pipelinedBy(cu)(sim.design)
               state.v <<= RUNNING
             }
           } 

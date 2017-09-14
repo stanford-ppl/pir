@@ -28,7 +28,7 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     import sim.mapping._
-    ctmap.pmap.get(this).foreach { ctr =>
+    pmmap.get(this).foreach { ctr =>
       val cu = ctr.ctrler
       val prevCtr = fimap(en).src match {
         case c:Counter => Some(c)

@@ -93,7 +93,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     var mp = pirMap
     val pcb = pcu.ctrlBox
     cu.mems.foreach { mem =>
-      val pmem = mp.smmap(mem)
+      val pmem = mp.pmmap(mem)
       mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
       mp = mapInPort(mem.dequeueEnable, pmem.dequeueEnable, mp)
       mp = mapInPort(mem.inc, pmem.inc, mp)
@@ -207,7 +207,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
   def mapCounters(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     cu.cchains.flatMap(_.counters).foreach { ctr =>
-      val pctr = mp.ctmap(ctr)
+      val pctr = mp.pmmap(ctr)
       mp = mapInPort(ctr.en, pctr.en, mp)
       mp = mapOutPort(ctr.done, pctr.done, mp)
     }

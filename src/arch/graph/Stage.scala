@@ -85,7 +85,7 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
         }
       }
     }
-    stmap.pmap.get(stage).foreach { st =>
+    pmmap.get(stage).foreach { st =>
 
       val inputOps = st match {
         case st:pir.graph.AccumStage =>

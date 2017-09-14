@@ -102,7 +102,7 @@ trait LocalRouter extends Mapper {
         }
       case (osrc@PipeReg(oStage, oReg), pisrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
-        val poStage = mp.stmap(oStage)
+        val poStage = mp.pmmap(oStage)
         val poPpr = poStage.get(piReg)
         mp = propogate(poPpr, pin, mp).getOrElse {
           throw InPortRouting(in, pin, s"Cannot propogate $poPpr to $pisrc", mp)
@@ -111,7 +111,7 @@ trait LocalRouter extends Mapper {
         // Register value is passed to a non register input
         // Find pregs mapped to reg. Propogate preg values along the pipeline stages
         // individually until the output of ppr propogation reaches input pin
-        val poStage = mp.stmap(oStage)
+        val poStage = mp.pmmap(oStage)
         val poPprs = mp.rcmap(oReg).map { poReg => poStage.get(poReg) }
 
         val propogatedMap = poPprs.foldLeft[Option[M]](None) { case (prev, poPpr) =>

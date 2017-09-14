@@ -46,13 +46,11 @@ class CtrDotPrinter(fn:String)(implicit design:Design) extends DotCodegen {
   }
 
   def emitMapping(pctrs:List[PCtr], mapping:PIRMap) = {
-    val map = mapping.ctmap.map
-    val pmap = mapping.ctmap.pmap
     pctrs.foreach { pctr =>
       val recs = ListBuffer[String]()
       val da = DotAttr().shape(Mrecord)
       recs += s"<en> en"
-      recs += s"{${pctr}|${pmap.get(pctr).fold("no mapping"){c => da.color(red); c.toString }}}"
+      recs += s"{${pctr}|${mapping.pmmap.get(pctr).fold("no mapping"){c => da.color(red); c.toString }}}"
       recs += s"<done> done"
       val label = recs.mkString(s"|")
       emitNode(pctr, label, da)

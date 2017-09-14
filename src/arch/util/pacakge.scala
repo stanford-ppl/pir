@@ -107,11 +107,8 @@ package object util {
     node match {
       case n:Controller => mp.clmap.isMapped(n)
       case n:DRAM => true
-      case n:OnChipMem => mp.smmap.isMapped(n)
-      case n:Counter => mp.ctmap.isMapped(n)
-      case n:Stage => mp.stmap.isMapped(n)
-      case n:PipeReg => isMapped(n.in)
       case n:FuncUnit => isMapped(n.stage)
+      case n:PipeReg => isMapped(n.in)
       case n:UDCounter => 
         n.prt.ctrlBox match {
           case cb:MemoryCtrlBox => true
@@ -132,6 +129,7 @@ package object util {
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
       case n:PredicateUnit => isMapped(n.in) 
+      case n:Primitive => mp.pmmap.isMapped(n)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }

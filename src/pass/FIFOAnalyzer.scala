@@ -19,11 +19,11 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
         emitBlock(s"${quote(mp.clmap(cu))} -> $cu") {
           cu.mems.foreach { 
             case mem:SRAM =>
-              val pmem = mp.smmap(mem)
+              val pmem = mp.pmmap(mem)
               dprintln(s"$mem -> $pmem")
               bufferSizeOf(pmem) = mem.buffering
             case mem =>
-              val pmem = mp.smmap(mem)
+              val pmem = mp.pmmap(mem)
               dprintln(s"$mem -> $pmem")
               if (mem.notFull.isConnected) {
                 val fhop = mp.rtmap(collectIn[Input](mem.writePort).head)

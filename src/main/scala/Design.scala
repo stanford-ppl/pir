@@ -82,7 +82,7 @@ trait Design extends PIRMetadata with Collector {
   val configCodegen = new ConfigCodegen()
 
   /* Simulator */
-  val simulator = new Simulator()
+  val simulator = new SpadeSimulator()
 
   /* Debug */
   val spadePrinter = new SpadePrinter()

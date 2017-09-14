@@ -53,21 +53,22 @@ class MapPrinter(implicit design: Design) extends Codegen {
     emitModule(m, s"${quote(m)}") {}
   }
 
+  //TODO: merge with ocm
   def emit(pctr:PCtr):Unit = {
-    mp.ctmap.pmap.get(pctr).foreach { ctr =>
+    mp.pmmap.get(pctr).foreach { ctr =>
       emitModule(pctr, s"${quote(pctr)} -> $ctr") {}
     }
   }
 
   def emit(pmem:POCM):Unit = {
-    mp.smmap.pmap.get(pmem).foreach { mem =>
+    mp.pmmap.get(pmem).foreach { mem =>
       emitModule(pmem, s"${quote(pmem)} -> $mem") {}
     }
   }
 
   def emit(pst:PST):Unit = {
-    emitList(s"${quote(pst)} <- ${mp.stmap.pmap.get(pst)}"){
-      mp.stmap.pmap.get(pst).foreach { st =>
+    emitList(s"${quote(pst)} <- ${mp.pmmap.pmap.get(pst)}"){
+      mp.pmmap.get(pst).foreach { st =>
         pst.funcUnit.foreach { pfu =>
           val fu = st.fu.get
           emitln(s"$pfu <- $fu")

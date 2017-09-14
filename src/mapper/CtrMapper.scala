@@ -76,12 +76,12 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     //if (n.id==507){
       //new CtrDotPrinter().print(allRes, m)
     //}
-    val remainRes = allRes.diff(triedRes).filter( pc => !m.ctmap.pmap.contains(pc))
+    val remainRes = allRes.diff(triedRes).filter( pc => !m.pmmap.contains(pc))
     val ptop = design.arch.top
     val enCtrs = if (Config.ctrl) {
       n.en.from.src match {
         case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
-          m.ctmap.get(dep).fold(remainRes) { pdep =>
+          m.pmmap.get(dep).fold(remainRes) { pdep =>
             pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
           }
           // Inner most counter or copied inner most counter whose enable is routed fron network
@@ -94,7 +94,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
       n.done.to.map { done =>
         done.src match {
           case deped:Ctr if n.ctrler==deped.ctrler =>
-            m.ctmap.get(deped).fold(remainRes) { pdeped =>
+            m.pmmap.get(deped).fold(remainRes) { pdeped =>
               pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
             }
           case _ => remainRes
@@ -117,8 +117,8 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapInPort(n.max, p.max, mp)
     mp = mapInPort(n.step, p.step, mp)
     mp = mapOutPort(n.out, p.out, mp)
-    mp = mp.setCT(n,p)
-    dprintln(s"mapping $n -> ${mp.ctmap(n)}")
+    mp = mp.setPM(n,p)
+    dprintln(s"mapping $n -> ${mp.pmmap(n)}")
     mp
   }
 

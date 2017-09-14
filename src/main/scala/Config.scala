@@ -32,7 +32,7 @@ object Config {
 
   // Properties go here
   var test:Boolean = register("test", false) { v => test = v == "true" }
-  var codegen:Boolean = register("codegen", true) { v => codegen = v == "true" }
+  var codegen:Boolean = register("codegen", false) { v => codegen = v == "true" }
   var genDot:Boolean = register("dot", true) { v => genDot = v == "true" }
   var mapping:Boolean = register("mapping", true) { v => mapping = v == "true" }
   var ctrl:Boolean = register("ctrl", true) { v => ctrl = v == "true" }
