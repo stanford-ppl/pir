@@ -12,26 +12,24 @@ import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 import scala.language.existentials
 
-case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap, 
+case class PIRMap(vimap:VIMap, vomap:VOMap, 
   mkmap:MKMap, 
   fimap:FIMap, rcmap:RCMap,
   ipmap:IPMap, opmap:OPMap, pmmap:PMMap, 
   rtmap:RTMap, cfmap:CFMap
   ) {
 
-  def set(cp:CLMap):PIRMap = PIRMap(cp   , vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:VIMap):PIRMap = PIRMap(clmap, cp   , vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:VOMap):PIRMap = PIRMap(clmap, vimap, cp   , mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:MKMap):PIRMap = PIRMap(clmap, vimap, vomap, cp   , fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:FIMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, cp   , rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:RCMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, cp   , ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:IPMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, rcmap, cp   , opmap, pmmap, rtmap, cfmap)
-  def set(cp:OPMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, rcmap, ipmap, cp   , pmmap, rtmap, cfmap)
-  def set(cp:PMMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, cp   , rtmap, cfmap)
-  def set(cp:RTMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, cp   , cfmap)
-  def set(cp:CFMap):PIRMap = PIRMap(clmap, vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:VIMap):PIRMap = PIRMap(cp   , vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:VOMap):PIRMap = PIRMap(vimap, cp   , mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:MKMap):PIRMap = PIRMap(vimap, vomap, cp   , fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:FIMap):PIRMap = PIRMap(vimap, vomap, mkmap, cp   , rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:RCMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, cp   , ipmap, opmap, pmmap, rtmap, cfmap)
+  def set(cp:IPMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, cp   , opmap, pmmap, rtmap, cfmap)
+  def set(cp:OPMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, cp   , pmmap, rtmap, cfmap)
+  def set(cp:PMMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, cp   , rtmap, cfmap)
+  def set(cp:RTMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, cp   , cfmap)
+  def set(cp:CFMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
 
-  def setCL(k:CLMap.K, v:CLMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(clmap + ((k, v))))
   def setVI(k:VIMap.K, v:VIMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vimap + ((k, v))))
   def setVO(k:VOMap.K, v:VOMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vomap + ((k, v))))
   def setMK(k:MKMap.K, v:MKMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(mkmap + ((k, v))))
@@ -62,13 +60,13 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
     design.top.ctrlers.foreach { cl => 
       cl match {
         case cl:CL =>
-          if (clmap.map.contains(cl)) {
-            val pcl = clmap.map(cl)
+          if (pmmap.contains(cl)) {
+            val pcl = pmmap.map(cl)
             p.emitBlock( s"$cl -> ${quote(pcl)}" ) {
               vimap.printMap(quote _, cl.vins)
               cl match {
                 case cu:CU =>
-                  val pcu = clmap.map(cu).asInstanceOf[PCU]
+                  val pcu = pmmap.map(cu).asInstanceOf[PCU]
                   cu match {
                     case icl:ICL => pmmap.printMap(quote _, icl.mems)
                     case _ =>
@@ -112,13 +110,13 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
     import p._
     //fimap.printMap(quote _)
     design.arch.ctrlers.foreach { pcl => 
-      if (clmap.pmap.contains(pcl)) {
-        val cl = clmap.pmap(pcl)
+      if (pmmap.contains(pcl)) {
+        val cl = pmmap(pcl)
         emitBlock( s"${quote(pcl)} <- $cl" ) {
           vimap.printMap(quote _, cl.vins)
           pcl match {
             case pcu:PCU =>
-              val cu = clmap.pmap(pcu).asInstanceOf[CU]
+              val cu = pmmap(pcu).asInstanceOf[CU]
               pmmap.printPMap(pcu.mems)
               pmmap.printPMap(pcu.ctrs)
               rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
@@ -137,32 +135,10 @@ case class PIRMap(clmap:CLMap, vimap:VIMap, vomap:VOMap,
 }
 object PIRMap {
   def empty:PIRMap = 
-    PIRMap(CLMap.empty, VIMap.empty, VOMap.empty, MKMap.empty,
+    PIRMap(VIMap.empty, VOMap.empty, MKMap.empty,
            FIMap.empty,
            RCMap.empty, IPMap.empty, OPMap.empty,
            PMMap.empty, RTMap.empty, CFMap.empty)
-}
-
-case class CLMap(map:CLMap.M, pmp:CLMap.IM) extends IBiOneToOneMap {
-  type K = CLMap.K
-  type V = CLMap.V
-  override type M = CLMap.M
-  override type IM = CLMap.IM
-  override def + (rec:(K,V)) = { super.check(rec); CLMap(map + rec, pmp + rec.swap) }
-  def apply(k:PL):PCU = { map(k).asInstanceOf[PCU] }
-  def apply(k:OCL):POCU = { map(k).asInstanceOf[POCU] }
-  def apply(k:MC):PMC = { map(k).asInstanceOf[PMC] }
-  def apply(k:MP):PMCU = { map(k).asInstanceOf[PMCU] }
-  def apply(k:Top):PTop = { map(k).asInstanceOf[PTop] }
-  def pmap:IM = pmp
-  def pmap(v:PCU):CU = pmp(v).asInstanceOf[CU]
-  def pmap(v:PMCU):MP = pmp(v).asInstanceOf[MP]
-  def pmap(v:PMC):MC = pmp(v).asInstanceOf[MC]
-}
-object CLMap extends IBiOneToOneObj {
-  type K = CL
-  type V = PCL
-  def empty:CLMap = CLMap(Map.empty, Map.empty)
 }
 
 /* A mapping between a Input (VecIn or ScalarIn) with PInBus */
@@ -281,33 +257,58 @@ case class PMMap(map:PMMap.M, pmap:PMMap.IM) extends IBiOneToOneMap {
   override type IM = PMMap.IM
   override def + (rec:(K,V)) = { super.check(rec); PMMap(map + rec, pmap + rec.swap) }
 
-  def apply(k:LUT):PLUT = { map(k).asInstanceOf[PLUT] }
-  def apply(k:Const):PConst = { map(k).asInstanceOf[PConst] }
-  def apply(k:UC):PUC = { map(k).asInstanceOf[PUC] }
-  def apply(k:MCCB):PMCCB = { map(k).asInstanceOf[PMCCB] }
-  def apply(k:OCB):POCB = { map(k).asInstanceOf[POCB] }
-  def apply(k:D):PD = { map(k).asInstanceOf[PD] }
-  def apply(k:CB):PCB = { map(k).asInstanceOf[PCB] }
-  def apply(k:OCM):POCM = { map(k).asInstanceOf[POCM] }
-  def apply(k:Ctr):PCtr = { map(k).asInstanceOf[PCtr] }
-  def apply(k:ST):PST = { map(k).asInstanceOf[PST] }
+  def cast[T](x:Any):T = x.asInstanceOf[T]
 
-  def apply(v:PConst):Const = { pmap(v).asInstanceOf[Const] }
-  def apply(v:PUC):UC = { pmap(v).asInstanceOf[UC] }
-  def apply(v:PAT):AT = { pmap(v).asInstanceOf[AT] }
-  def apply(v:PPDU):PDU = { pmap(v).asInstanceOf[PDU] }
-  def apply(v:POCM):OCM = { pmap(v).asInstanceOf[OCM] }
-  def apply(v:PCtr):Ctr = { pmap(v).asInstanceOf[Ctr] }
-  def apply(v:PST):ST = { pmap(v).asInstanceOf[ST] }
+  def apply(k:CL):PCL       = cast(map(k))
+  def apply(k:PL):PPCU      = cast(map(k))
+  def apply(k:MP):PMCU      = cast(map(k))
+  def apply(k:Top):PTop     = cast(map(k))
+  def apply(k:MC):PMC       = cast(map(k))
+  def apply(k:Ctr):PCtr     = cast(map(k))
+  def apply(k:OCM):POCM     = cast(map(k))
+  def apply(k:ST):PST       = cast(map(k))
+  def apply(k:Const):PConst = cast(map(k))
+  def apply(k:LUT):PLUT     = cast(map(k))
+  def apply(k:UC):PUC       = cast(map(k))
+  def apply(k:MCCB):PMCCB   = cast(map(k))
+  def apply(k:OCB):POCB     = cast(map(k))
+  def apply(k:D):PD         = cast(map(k))
+  def apply(k:CB):PCB       = cast(map(k))
 
-  def get(v:Ctr):Option[PCtr] = { map.get(v).map { _.asInstanceOf[PCtr] } }
-  def get(v:OCM):Option[POCM] = { map.get(v).map { _.asInstanceOf[POCM] } }
-  def get(v:ST):Option[PST] = { map.get(v).map { _.asInstanceOf[PST] } }
+  def apply(v:PCL):CL       = cast(pmap(v))
+  def apply(v:PMCU):MP      = cast(pmap(v))
+  def apply(v:PTop):Top     = cast(pmap(v))
+  def apply(v:PMC):MC       = cast(pmap(v))
+  def apply(v:PCtr):Ctr     = cast(pmap(v))
+  def apply(v:POCM):OCM     = cast(pmap(v))
+  def apply(v:PST):ST       = cast(pmap(v))
+  def apply(v:PConst):Const = cast(pmap(v))
+  def apply(v:PLUT):LUT     = cast(pmap(v))
+  def apply(v:PUC):UC       = cast(pmap(v))
+  def apply(v:PAT):AT       = cast(pmap(v))
+  def apply(v:PPDU):PDU     = cast(pmap(v))
 
-  def get(v:PConst):Option[Const] = { pmap.get(v).map { _.asInstanceOf[Const] } }
-  def get(v:PCtr):Option[Ctr] = { pmap.get(v).map { _.asInstanceOf[Ctr] } }
-  def get(v:POCM):Option[OCM] = { pmap.get(v).map { _.asInstanceOf[OCM] } }
-  def get(v:PST):Option[ST] = { pmap.get(v).map { _.asInstanceOf[ST] } }
+  def get(v:CL):Option[PCL]       = cast(map.get(v))
+  def get(v:MP):Option[PMCU]      = cast(map.get(v))
+  def get(v:Top):Option[PTop]     = cast(map.get(v))
+  def get(v:MC):Option[PMC]       = cast(map.get(v))
+  def get(v:Ctr):Option[PCtr]     = cast(map.get(v))
+  def get(v:OCM):Option[POCM]     = cast(map.get(v))
+  def get(v:ST):Option[PST]       = cast(map.get(v))
+  def get(v:Const):Option[PConst] = cast(map.get(v))
+  def get(v:LUT):Option[PLUT]     = cast(map.get(v))
+  def get(v:UC):Option[PUC]       = cast(map.get(v))
+
+  def get(v:PCL):Option[CL]       = cast(pmap.get(v))
+  def get(v:PMCU):Option[MP]      = cast(pmap.get(v))
+  def get(v:PTop):Option[Top]     = cast(pmap.get(v))
+  def get(v:PMC):Option[MC]       = cast(pmap.get(v))
+  def get(v:PCtr):Option[Ctr]     = cast(pmap.get(v))
+  def get(v:POCM):Option[OCM]     = cast(pmap.get(v))
+  def get(v:PST):Option[ST]       = cast(pmap.get(v))
+  def get(v:PConst):Option[Const] = cast(pmap.get(v))
+  def get(v:PLUT):Option[LUT]     = cast(pmap.get(v))
+  def get(v:PUC):Option[UC]       = cast(pmap.get(v))
 
   def contains(v:V) = pmap.contains(v)
 }

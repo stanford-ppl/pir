@@ -21,7 +21,7 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
     val mp = design.mapping.get
     design.top.ctrlers.foreach {
       case cu:MemoryPipeline =>
-        val pmcu = mp.clmap(cu)
+        val pmcu = mp.pmmap(cu)
         val rstages = pmcu.stages.filter { pst => mp.pmmap.pmap.get(pst).fold(false) { st => forRead(st) } }
         val wstages = pmcu.stages.filter { pst => mp.pmmap.pmap.get(pst).fold(false) { st => forWrite(st) } }
         val ridxs = rstages.map(_.index)
@@ -37,7 +37,7 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
           mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.readEnDelay).out }
         }
       case cu:Pipeline =>
-        val pcu = mp.clmap(cu)
+        val pcu = mp.pmmap(cu)
         val delay = pcu.stages.size
         dprintln(s"$cu(${quote(pcu)}) delay=$delay")
         delayOf(mp.pmmap(cu.ctrlBox.enDelay)) = delay
@@ -55,7 +55,7 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
           }
         }
       case cu:Top =>
-        val pcu = mp.clmap(cu)
+        val pcu = mp.pmmap(cu)
         (cu.souts ++ cu.vouts).foreach { out =>  
           mp.vomap(out).foreach { pout => validOf(pout) = pcu.ctrlBox.command }
         }

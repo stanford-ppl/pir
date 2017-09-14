@@ -16,7 +16,7 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
   addPass(canRun=design.pirMapping.succeeded) {
     design.mapping.foreach { mp =>
       design.top.compUnits.foreach { cu =>
-        emitBlock(s"${quote(mp.clmap(cu))} -> $cu") {
+        emitBlock(s"${quote(mp.pmmap(cu))} -> $cu") {
           cu.mems.foreach { 
             case mem:SRAM =>
               val pmem = mp.pmmap(mem)
@@ -28,7 +28,7 @@ class FIFOAnalyzer(implicit design: Design) extends Pass with Logger {
               if (mem.notFull.isConnected) {
                 val fhop = mp.rtmap(collectIn[Input](mem.writePort).head)
                 val bhop = mp.rtmap(mem.notFull.to.head)
-                val pipeDepth = mem.writers.map{ writer => mp.clmap(writer.ctrler).asCU.stages.size }.max
+                val pipeDepth = mem.writers.map{ writer => mp.pmmap(writer.ctrler).asCU.stages.size }.max
                 notFullOffset(pmem) = fhop + bhop + pipeDepth
                 dprintln(s" - fhop=$fhop bhop=$bhop pipeDepth=$pipeDepth")
                 bufferSizeOf(pmem) = mem.size + notFullOffset(pmem) + 2 //TODO a little buffer just in case 

@@ -41,7 +41,7 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
 
   def timeOf(n:PRT):Double = {
     n match {
-      case n:PCL => mp.clmap.pmap.get(n).fold(0.0) { cl => timeOf(cl) }
+      case n:PCL => mp.pmmap.get(n).fold(0.0) { cl => timeOf(cl) }
     }
   }
 
@@ -74,7 +74,7 @@ class EnergyAnalyzer(implicit design: Design) extends Pass {
   def compEnergy(prt:PCU):Unit = {
     prt match {
       case prt:PMCU =>
-        mp.clmap.pmap.get(prt).fold {
+        mp.pmmap.get(prt).fold {
           regEnergy += prt -> 0 
           ctrEnergy += prt -> 0 
           fuEnergy += prt -> 0

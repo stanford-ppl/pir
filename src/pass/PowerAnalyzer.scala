@@ -64,7 +64,7 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
   def compPower(prt:PCU):Unit = {
     prt match {
       case prt:PCL =>
-        mp.clmap.pmap.get(prt).fold {
+        mp.pmmap.get(prt).fold {
           regPower += prt -> 0 
           ctrPower += prt -> 0 
           fuPower += prt -> 0
@@ -131,10 +131,10 @@ class PowerAnalyzer(implicit design: Design) extends Pass {
 
   def DCPower = {
     spade.prts.map {
-      case prt:PMCU if mp.clmap.pmap.contains(prt) => totalMCUPower += unitMCUPower
-      case prt:PSCU if mp.clmap.pmap.contains(prt) => totalSCUPower += unitSCUPower
-      case prt:POCU if mp.clmap.pmap.contains(prt) => totalOCUPower += unitOCUPower
-      case prt:PCU if mp.clmap.pmap.contains(prt) => totalPCUPower += unitPCUPower
+      case prt:PMCU if mp.pmmap.contains(prt) => totalMCUPower += unitMCUPower
+      case prt:PSCU if mp.pmmap.contains(prt) => totalSCUPower += unitSCUPower
+      case prt:POCU if mp.pmmap.contains(prt) => totalOCUPower += unitOCUPower
+      case prt:PCU if mp.pmmap.contains(prt) => totalPCUPower += unitPCUPower
       case prt =>
     }
   }

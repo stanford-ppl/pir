@@ -61,7 +61,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
   /* Register coloring for registers with predefined colors */
   private def preColor(cu:ICL, pirMap:M):M = {
-    val pcu = pirMap.clmap(cu)
+    val pcu = pirMap.pmmap(cu)
     val pregs = pcu.asCU.regs
     val regs = mutable.ListBuffer[Reg]()
     cu.regs.foreach {
@@ -99,7 +99,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
           val pctr = pirMap.pmmap(ctr)
           regsOf(pctr.out)
         case ReducePR() => 
-          val cu = pirMap.clmap.pmap(pcu)
+          val cu = pirMap.pmmap(pcu)
           if (parOf(cu)>1) pregs.filter(_.is(ReduceReg))
           else pregs 
         case VecOutPR(out) => allRes(n, out)
@@ -120,7 +120,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   }
 
   private def color(cu:ICL, pirMap:M) = {
-    val pcu = pirMap.clmap(cu)
+    val pcu = pirMap.pmmap(cu)
     val regs:List[N] = cu.regs.filter{_.isTemp}
     log(s"color $cu") {
       bind(

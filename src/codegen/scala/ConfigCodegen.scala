@@ -172,7 +172,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCtrBits(pcu:PCU) = {
-    val cu = clmap.pmap(pcu)
+    val cu = pmmap(pcu)
     pcu.ctrs.foreach { pctr =>
       pmmap.get(pctr).foreach { ctr =>
         val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})"
@@ -182,7 +182,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCChainBis(pcu:PCU) = {
-    val cu = clmap.pmap(pcu)
+    val cu = pmmap(pcu)
     val pctrs = pcu.ctrs
     val chain = List.tabulate(pctrs.size-1) { i =>
       if (pmmap.contains(pctrs(i)) && pmmap.contains(pctrs(i+1))) {
@@ -217,7 +217,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitStageBits(pcu:PCU) = {
-    val cu = clmap.pmap(pcu)
+    val cu = pmmap(pcu)
     pcu.fustages.foreach { pst =>
       pmmap.get(pst).fold {
         cu match {
@@ -260,7 +260,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     val pcb = pcu.ctrlBox
     pcb match {
       case pcb:PICB =>
-        val cu = clmap.pmap(pcu)
+        val cu = pmmap(pcu)
         emitComment(s"$cu isPipelining=${isPipelining(cu)} isStreaming=${isStreaming(cu)}")
         emitln(s"${quote(pcb)}.streamingMuxSelect = ${muxIdx(pcb.en.in)}")
       case pcb =>
@@ -268,7 +268,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def commentUDCs(pcu:PCU) = {
-    clmap.pmap.get(pcu).foreach { cu =>
+    pmmap.get(pcu).foreach { cu =>
       emitComment(s"$cu.udcounters=[${cu.ctrlBox.udcounters.mkString(",")}]")
     }
     val udcs = pcu.ctrlBox.udcs.map { pudc =>
@@ -301,7 +301,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitPulserSM(pcu:PCU) = {
-    val cu = clmap.pmap(pcu)
+    val cu = pmmap(pcu)
     cu match {
       case cu:Seq =>
         emitln(s"${quote(pcu.ctrlBox)}.pulserMax=1")
@@ -483,7 +483,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitCUBit(pcu:PCL) = {
-    clmap.pmap.get(pcu).foreach { cu =>
+    pmmap.get(pcu).foreach { cu =>
       emitComment(s"Configuring ${quote(pcu)} <- $cu")
       pcu match {
         case pcu:POCU =>
@@ -504,12 +504,12 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def commentMC(pmc:PMC) = {
-    val mc = clmap.pmap(pmc)
+    val mc = pmmap(pmc)
     emitComment(s"mctpe=${mc.mctpe}")
   }
 
   def emitMCBit(pmc:PMC) = {
-    clmap.pmap.get(pmc).foreach { mc =>
+    pmmap.get(pmc).foreach { mc =>
       emitComment(s"Configuring ${quote(pmc)} <- $mc")
       commentMC(pmc)
       emitScalarInXbar(pmc)

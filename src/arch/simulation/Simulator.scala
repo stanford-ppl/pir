@@ -18,7 +18,6 @@ trait SimUtil extends Logger {
   def quote(n:Any):String
   implicit def mapping:PIRMap
   def fimap = mapping.fimap
-  def clmap = mapping.clmap
   def pmmap = mapping.pmmap
   def vimap = mapping.vimap
   def vomap = mapping.vomap

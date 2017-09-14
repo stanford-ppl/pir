@@ -80,7 +80,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     // Add delay to output if input is from doneXBar
-    clmap.pmap.get(this).foreach { cu =>
+    pmmap.get(this).foreach { cu =>
       (souts++vouts).foreach { 
         case out if isMapped(out)(mapping) =>
           this match {

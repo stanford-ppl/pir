@@ -138,7 +138,7 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
   override def quote(n:Any):String = {
     n match {
       case n:Controller => 
-        val pcl = design.mapping.fold("") { mp => mp.clmap.get(n).fold(""){ pcl => s"\n${quote(pcl)}" } }
+        val pcl = design.mapping.fold("") { mp => mp.pmmap.get(n).fold(""){ pcl => s"\n${quote(pcl)}" } }
         val head = if (isHead.get(n)==Some(true)) s"\n(HEAD)" else ""
         val last = if (isLast.get(n)==Some(true)) s"\n(LAST)" else ""
         val streaming = if (isStreaming.get(n)==Some(true)) s"\n(Streaming)" else ""

@@ -112,7 +112,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pcl:PCL):Unit = {
-    mp.clmap.pmap.get(pcl).foreach { cl =>
+    mp.pmmap.get(pcl).foreach { cl =>
       emitModule(pcl, s"${quote(pcl)} -> $cl") {
         (cl, pcl) match {
           case (cu:CU, pcu:PCU) =>

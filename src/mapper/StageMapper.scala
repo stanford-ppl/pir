@@ -35,7 +35,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     if (cu.stages.isEmpty) return cuMap
     log(cu) {
       var mp = cuMap
-      val pcu = mp.clmap(cu).asCU
+      val pcu = mp.pmmap(cu).asCU
       val nodes = cu.stages
       val reses = pcu.fustages
       def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfResource(s"Not enough Stages in ${pcu} to map ${cu}.", pnodes, nodes, m)

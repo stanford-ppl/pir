@@ -75,7 +75,7 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
 
   def declare(n:Node)(finPass: => Unit):Unit = {
     val qt = n match {
-      //case n:Controller => s"${quote(n)}@${quote(clmap(n))}"
+      //case n:Controller => s"${quote(n)}@${quote(pmmap(n))}"
       //case n:OnChipMem => s"${quote(n)}@${quote(pmmap(n))}"
       //case n:Primitive if pmmap.contains(n) => s"${quote(n)}@${quote(pmmap(n))}"
       case n => s"${quote(n)}"

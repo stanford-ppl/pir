@@ -93,13 +93,13 @@ abstract class Router(implicit design:Design) extends Mapper {
   def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]):List[PCL] = {
     inputs.foldLeft(reses) { case (reses, in) =>
       val scl = start(in)
-      val spcu = m.clmap(scl)
+      val spcu = m.pmmap(scl)
       def validCons(reached:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
         var header = s"validCons(in:$in($scl) start:${quote(spcu)} reached:${quote(reached)}, fatpath:${fatpath.size})"
         header += s" minHop:$minHop maxHop:$maxHop"
         var valid = true
         valid = logCond(header, valid, reses.contains(reached), s"invalid res")
-        valid = logCond(header, valid, !m.clmap.pmap.contains(reached), s"res $reached is used ")
+        valid = logCond(header, valid, !m.pmmap.contains(reached), s"res $reached is used ")
         if (valid) Some(fatpath) else None
       }
       var fatpaths = advanceFunc(
@@ -115,8 +115,8 @@ abstract class Router(implicit design:Design) extends Mapper {
         val out = from(in)
         val icl = ctrler(in)
         val ocl = ctrler(out)
-        var info = s"No resource filtered for $icl.$in[${m.clmap.get(icl).map(quote)}]"
-        info += s" from: $ocl.$out[${m.clmap.get(ocl).map(quote)}]" 
+        var info = s"No resource filtered for $icl.$in[${m.pmmap.get(icl).map(quote)}]"
+        info += s" from: $ocl.$out[${m.pmmap.get(ocl).map(quote)}]" 
         throw MappingException(m, info)
       }
       fatpaths.map { _._1 }
@@ -126,7 +126,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def filterOutIns(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     val outins:List[I] = outs(cl).flatMap { out =>
       to(out).filter { in => 
-        !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
+        !m.vimap.contains(in) && m.pmmap.contains(ctrler(in))
       }
     }
     def start(in:I) = ctrler(in)
@@ -135,7 +135,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def filterIns(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     val inputs:List[I] = ins(cl).filter { in =>
-      !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
+      !m.vimap.contains(in) && m.pmmap.contains(ctrler(from(in)))
     }
     def start(in:I) = ctrler(from(in))
     filterTraverse(start _, inputs, prts, m, fwdAdvance _)
@@ -398,10 +398,10 @@ abstract class Router(implicit design:Design) extends Mapper {
 
   def resFilter(in:I, m:M, triedRes:Paths[FEdge]):Paths[FEdge] = {
     val icl = ctrler(in)
-    val picl = m.clmap(icl)
+    val picl = m.pmmap(icl)
     val out = from(in) 
     val ocl = ctrler(out)
-    val pocl = m.clmap(ocl)
+    val pocl = m.pmmap(ocl)
     def filterUsed(prt:PRT, fatpath:FatPath[FEdge]):Option[FatPath[FEdge]] = {
       val (heads, last) = fatpath.splitAt(fatpath.size-1)
       filterUsedFatEdge(out, last.head, m).map{ last => heads :+ last }
@@ -487,7 +487,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def checkOut(cl:CL, m:M) = {
-    val pcl = m.clmap(cl)
+    val pcl = m.pmmap(cl)
     val unmapped = outs(cl).filterNot { out => m.vomap.contains(out) }
     val unused = io(pcl).outs.filterNot { pout => m.vomap.pmap.contains(pout) }
     if (unused.size < unmapped.size) {
@@ -498,11 +498,11 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 
   def route(cl:CL, m:M):M = {
-    val pcl = m.clmap(cl)
+    val pcl = m.pmmap(cl)
     // Mapping inputs connecting the outputs
     val outins = outs(cl).flatMap { out =>
       to(out).filter { in => 
-        isExtern(in) && !m.vimap.contains(in) && m.clmap.contains(ctrler(in))
+        isExtern(in) && !m.vimap.contains(in) && m.pmmap.contains(ctrler(in))
       }
     }
     dprintln(s"$cl outs:${outs(cl).mkString(",")} outIns:${outins.mkString(",")}")
@@ -510,7 +510,7 @@ abstract class Router(implicit design:Design) extends Mapper {
 
     // Mapping inputs of cl
     val inputs = ins(cl).filter { in =>
-      !m.vimap.contains(in) && m.clmap.contains(ctrler(from(in)))
+      !m.vimap.contains(in) && m.pmmap.contains(ctrler(from(in)))
     }
     dprintln(s"$cl ins:${ins(cl).mkString(",")} inputs:${inputs.mkString(",")}")
     mp = mapIns(s"Routing ins of $cl at ${quote(pcl)}")(inputs, mp)

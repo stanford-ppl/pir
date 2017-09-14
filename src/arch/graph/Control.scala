@@ -383,7 +383,7 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import spademeta._
-    clmap.pmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
+    pmmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
       state.v.default = WAITING 
       running.v.default = false
       mc.mctpe match {

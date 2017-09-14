@@ -53,7 +53,7 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     val dram = spade.dram
-    clmap.pmap.get(this).foreach { case mc:pir.graph.MemoryController =>
+    pmmap.get(this).foreach { case mc:pir.graph.MemoryController =>
       mc.mctpe match {
         case TileLoad =>
           vouts.foreach { vout =>

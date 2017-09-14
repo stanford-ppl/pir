@@ -42,7 +42,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
   def place(cl:N, prt:R, m:M):M = {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
       Try {
-        routers.foldLeft(m.setCL(cl, prt)) { case (pm, router) =>
+        routers.foldLeft(m.setPM(cl, prt)) { case (pm, router) =>
           router.route(cl, pm)
         }
       } match {
@@ -61,30 +61,30 @@ class CUMapper(implicit val design:Design) extends Mapper {
     implicit val spade:Spade = design.arch
     log((s"$cl resFunc:", true)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
-      var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.clmap.pmap.contains(prt) )
+      var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )
       dprintln(s"--not mapped and not tried:[${prts.mkString(",")}]")
       cl match {
         case cl:MC if cl.mctpe==Scatter =>
         case cl:MC => 
           dagOf.get(cl).foreach { dag =>
-            if (m.clmap.contains(dag)) {
-              prts = prts.filter{ prt => prt.coord == m.clmap(dag).coord }
+            if (m.pmmap.contains(dag)) {
+              prts = prts.filter{ prt => prt.coord == m.pmmap(dag).coord }
             }
           }
           sagOf.get(cl).foreach { sag =>
-            if (m.clmap.contains(sag)) {
-              prts = prts.filter{ prt => prt.coord == m.clmap(sag).coord }
+            if (m.pmmap.contains(sag)) {
+              prts = prts.filter{ prt => prt.coord == m.pmmap(sag).coord }
             }
           }
         case cu:CU if dagOf.pmap.contains(cu) =>
           val mc = dagOf.pmap(cu)
-          if (m.clmap.contains(mc)) {
-            prts = prts.filter{ prt => prt.coord == m.clmap(mc).coord }
+          if (m.pmmap.contains(mc)) {
+            prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
           }
         case cu:CU if sagOf.pmap.contains(cu) =>
           val mc = sagOf.pmap(cu)
-          if (m.clmap.contains(mc)) {
-            prts = prts.filter{ prt => prt.coord == m.clmap(mc).coord }
+          if (m.pmmap.contains(mc)) {
+            prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
           }
         case _ =>
       }
@@ -109,7 +109,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
   override def checkRemain(mapping:PIRMap) = {
     import mapping._
-    val unmapped = design.top.ctrlers.filter { cl => !clmap.contains(cl) }
+    val unmapped = design.top.ctrlers.filter { cl => !pmmap.contains(cl) }
     warn(s"Unmapped Controllers(${unmapped.size}): [${unmapped.mkString(",")}]")
   }
 

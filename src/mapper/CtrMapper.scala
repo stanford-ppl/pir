@@ -58,7 +58,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     log((cu, false)) {
       // Mapping inner counter first converges faster
       val ctrs = sortCChains(cu.cchains) //++ cu.mems.collect{case f:FOW => f.dummyCtr}
-      val pctrs = pirMap.clmap(cu) match {
+      val pctrs = pirMap.pmmap(cu) match {
         case pcu:PCU => pcu.ctrs
         case _ => Nil
       }

@@ -32,7 +32,7 @@ class OutputMapper(implicit val design:Design) extends Mapper {
   }
 
   def map(scl:CL, cuMap:M):M = {
-    val pcl = cuMap.clmap(scl).asInstanceOf[PCL]
+    val pcl = cuMap.pmmap(scl).asInstanceOf[PCL]
     scl match {
       case top:Top =>
         bind(pcl.vouts, scl.vouts, cuMap, mapVecOut(scl) _, finPass(scl) _)
