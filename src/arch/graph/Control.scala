@@ -54,6 +54,7 @@ with Configurable {
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     cfmap.get(this).foreach { config =>
+      dprintln(s"${quote(this)} -> ${config.name} initVal=${config.initVal}")
       count.v.default = config.initVal
       count.v.set { countv =>
         if (rst) {
@@ -148,6 +149,7 @@ case class PulserSM()(implicit spade:Spade, override val prt:OuterComputeUnit) e
   val RUNNING = true
   val state = Output(Bit(), this, s"${this}.state")
   var pulseLength = 1
+
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     cfmap.get(prt).foreach { cuconfig:OuterComputeUnitConfig =>
@@ -179,7 +181,14 @@ case class PulserSM()(implicit spade:Spade, override val prt:OuterComputeUnit) e
   }
 }
 
-case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
+case class UpDownSMConfig (
+  name:String
+) extends Configuration
+
+case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable with Configurable {
+
+  type CT = UpDownSMConfig
+
   val doneIn = Input(Bit(), this, s"${this}.doneIn")
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
@@ -195,8 +204,8 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    if (isMapped(this)(mapping)) {
-      dprintln(s"${quote(this)} -> ${pmmap.get(this)}")
+    cfmap.get(this).foreach { config =>
+      dprintln(s"${quote(this)} -> ${config.name}")
       done.v.default = false 
       done.v.set { donev =>
         If (doneIn.v) { donev.setHigh }
