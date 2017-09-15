@@ -25,6 +25,10 @@ case class FIMap(map:FIMap.M, pmap:FIMap.IM) extends IBiManyToOneMap {
     FIMap(map + rec, npmap)
   }
   def get(k:PGI[_<:PModule]) = { map.get(k).asInstanceOf[Option[PGO[_<:PModule]]] }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object FIMap extends IBiManyToOneObj {
   type K = PI[_<:PModule]
@@ -37,11 +41,12 @@ case class CFMap(map:CFMap.M) extends IOneToOneMap {
   type V = CFMap.V
   override type M = CFMap.M
   override def + (rec:(K,V)) = { super.check(rec); CFMap(map + rec) }
-  def apply(n:Configurable) = n.toConfig(map(n))
-  def get(n:Configurable) = map.get(n).map{ c => n.toConfig(c) }
+
+  override def apply(n:Configurable) = n.toConfig(map(n))
+  override def get(n:Configurable) = map.get(n).map{ c => n.toConfig(c) }
 }
 object CFMap extends IOneToOneObj {
-  type K = PNode 
-  type V = PConfig
+  type K = Configurable
+  type V = Configuration
   def empty:CFMap = CFMap(Map.empty)
 }

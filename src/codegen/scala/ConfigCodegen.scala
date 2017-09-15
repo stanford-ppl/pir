@@ -128,7 +128,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         case s:PSMem => ("ScalarFIFOSrc", s.index)
         case s:PVMem => ("VectorFIFOSrc", s.index)
         case s:PConst =>
-          val const = pmmap.pmap(s)
+          val const = pmmap(s)
           const match {
             case s:Const[_] if s.isBool => ("ConstSrc", s.value)
             case s:Const[_] if s.isInt => ("ConstSrc", s.value)
@@ -149,7 +149,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def lookUp(n:PO[PModule]):List[String] = {
-    fimap.pmap(n).toList.map { i =>
+    fimap(n).toList.map { i =>
       val (src,value) =  i.propogate.src match {
         case s:PPR =>
           n.src match {
@@ -167,7 +167,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def lookUp(n:PAT):List[Int] = {
-    //n.ins.map { in => if (ipmap.pmap.contains(in)) 1 else 0 }
+    //n.ins.map { in => if (ipmap.contains(in)) 1 else 0 }
     n.ins.map { in => muxIdx(in) }
   }
 
@@ -232,8 +232,8 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
         emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
         emitln(s"${quote(pst)}.opC = ${lookUp(pfu.operands(2))}")
         emitln(s"${quote(pst)}.opcode = ${quote(fu.op)}")
-        assert(fimap.pmap(pfu.out).size==1)
-        if (fimap.pmap(pfu.out).head.isSrcSlice) {
+        assert(fimap(pfu.out).size==1)
+        if (fimap(pfu.out).head.isSrcSlice) {
           emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out.sliceHead.out))}")
         } else {
           emitln(s"${quote(pst)}.res = ${quote(lookUp(pfu.out))}")
@@ -272,7 +272,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
       emitComment(s"$cu.udcounters=[${cu.ctrlBox.udcounters.mkString(",")}]")
     }
     val udcs = pcu.ctrlBox.udcs.map { pudc =>
-      pmmap.pmap.get(pudc).map { udc =>
+      pmmap.get(pudc).map { udc =>
         s"${udc}"
       }
     }
@@ -339,11 +339,11 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   def commentIO(pios:List[PGIO[PModule]]) = {
     pios.foreach { 
       case pin:PGI[PModule] =>
-        vimap.pmap.get(pin).foreach { ins =>
+        vimap.get(pin).foreach { ins =>
           emitComment(s"${quote(pin)} -> ${ins.map(in => s"${in}(from:${from(in)} at ${ctrler(from(in))})").mkString(",")}")
         }
       case pout:PGO[PModule] =>
-        vomap.pmap.get(pout).foreach { out =>
+        vomap.get(pout).foreach { out =>
           emitComment(s"${quote(pout)} -> ${out}(to:${to(out).map{ in => s"$in at ${ctrler(in)}"}.mkString(",")})")
         }
     }
@@ -538,7 +538,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
 
   def commentArgIns = {
     top.souts.foreach { psout =>
-      vomap.pmap.get(psout).foreach { sout =>
+      vomap.get(psout).foreach { sout =>
         emitComment(s"${quote(psout)} -> $sout")
       }
     }

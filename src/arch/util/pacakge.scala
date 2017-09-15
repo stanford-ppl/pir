@@ -116,8 +116,8 @@ package object util {
           case cb:CtrlBox => mp.pmmap.isMapped(n)
         }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
-      case n:GlobalOutput[_,_] => mp.vomap.pmap.contains(n)
-      case n:Output[_,_] => mp.opmap.pmap.contains(n)
+      case n:GlobalOutput[_,_] => mp.vomap.contains(n)
+      case n:Output[_,_] => mp.opmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.prt)
       case n:PulserSM => isMapped(n.prt) && !mp.pmmap(n.prt).isSC
@@ -143,7 +143,7 @@ package object util {
   }
 
   def fanOutOf[P<:PortType](out:Output[P,Module])(implicit mp:PIRMap):List[Input[P,Module]] = {
-    mp.fimap.pmap.get(out).fold { 
+    mp.fimap.get(out).fold { 
       if (out.fanOuts.size==1) List(out.fanOuts.head) else Nil
     } { ins =>
       ins.map { _.asInstanceOf[Input[P, Module]] }.toList

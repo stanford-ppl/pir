@@ -91,7 +91,7 @@ trait LocalRouter extends Mapper {
     val out = in.from
     (out.src, pin.src) match {
       case (osrc@Const(c), pisrc) =>
-        mappingOf[PConst](pin).filterNot{ pc => mp.pmmap.pmap.contains(pc) }.headOption.fold {
+        mappingOf[PConst](pin).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
           val info = s"$in is Const, but $pin cannot be configured to constant"
           throw InPortRouting(in, pin, info, mp)
         } { pconst =>

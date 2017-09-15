@@ -25,11 +25,11 @@ class MapPrinter(implicit design: Design) extends Codegen {
     val fin = fanInOf(pin).fold("") { from =>
       s" <= ${quote(from)}"
     }
-    val ip = mp.ipmap.pmap.get(pin).fold("") { in =>
+    val ip = mp.ipmap.get(pin).fold("") { in =>
       s"  (${in})"
     }
     val gip = pin match {
-      case pin:PGI[PModule] => mp.vimap.pmap.get(pin).fold("") { in => s" ($in)" }
+      case pin:PGI[PModule] => mp.vimap.get(pin).fold("") { in => s" ($in)" }
       case pin => ""
     }
     emitln(s"${quote(pin)}$fin$ip$gip")
@@ -39,11 +39,11 @@ class MapPrinter(implicit design: Design) extends Codegen {
     val fout = if (fanOutOf(pout).nonEmpty) {
       s" => [${fanOutOf(pout).map(quote).mkString(",")}]"
     } else ""
-    val op = mp.opmap.pmap.get(pout).fold("") { out =>
+    val op = mp.opmap.get(pout).fold("") { out =>
       s" (${out})"
     }
     val gop = pout match {
-      case pout:PGO[PModule] => mp.vomap.pmap.get(pout).fold("") { out => s" ($out)" }
+      case pout:PGO[PModule] => mp.vomap.get(pout).fold("") { out => s" ($out)" }
       case pout =>
     }
     emitln(s"${quote(pout)}$fout$op$gop")
@@ -67,7 +67,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pst:PST):Unit = {
-    emitList(s"${quote(pst)} <- ${mp.pmmap.pmap.get(pst)}"){
+    emitList(s"${quote(pst)} <- ${mp.pmmap.get(pst)}"){
       mp.pmmap.get(pst).foreach { st =>
         pst.funcUnit.foreach { pfu =>
           val fu = st.fu.get
@@ -81,7 +81,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(preg:PReg):Unit = {
-    mp.rcmap.pmap.get(preg).foreach { regs =>
+    mp.rcmap.get(preg).foreach { regs =>
       emitln(s"${quote(preg)} -> [${regs.mkString(",")}]")
     }
   }
@@ -93,7 +93,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pprim:PPRIM):Unit = {
-    val title = mp.pmmap.pmap.get(pprim).fold {
+    val title = mp.pmmap.get(pprim).fold {
       s"${quote(pprim)}"
     } { prim =>
       s"${prim} -> ${quote(pprim)}"
@@ -102,7 +102,7 @@ class MapPrinter(implicit design: Design) extends Codegen {
   }
 
   def emit(pcb:PCB):Unit = {
-    val cb = mp.pmmap.pmap.get(pcb)
+    val cb = mp.pmmap.get(pcb)
     emitModule(pcb, s"${quote(pcb)} -> $cb") {
       pcb.udcs.foreach(emit)
       pcb.andTrees.foreach(emit)

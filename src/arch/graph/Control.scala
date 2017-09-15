@@ -35,6 +35,7 @@ object TokenDownLUT {
   def apply(idx:Int, numIns:Int)(implicit spade:Spade, prt:Routable):TokenDownLUT = 
     TokenDownLUT(numIns).index(idx)
 }
+
 case class UDCounter()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
   import spademeta._
   override val typeStr = "udc"
@@ -43,14 +44,14 @@ case class UDCounter()(implicit spade:Spade, override val prt:Controller) extend
   val count = Output(Word(), this, s"${this}.count")
   val out = Output(Bit(), this, s"${this}.out")
   def initVal(implicit mp:PIRMap):Option[Int] = {
-    mp.pmmap.pmap.get(this).map { 
+    mp.pmmap.get(this).map { 
       case udc:pir.graph.UDCounter => udc.initVal
     }.orElse(if (isMapped(this)) Some(0) else None)
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     if (isMapped(this)(mapping)) {
-      dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)} initVal=$initVal")
+      dprintln(s"${quote(this)} -> ${pmmap.get(this)} initVal=$initVal")
       count.v.default = initVal
       count.v.set { countv =>
         if (rst) {
@@ -193,7 +194,7 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     if (isMapped(this)(mapping)) {
-      dprintln(s"${quote(this)} -> ${pmmap.pmap.get(this)}")
+      dprintln(s"${quote(this)} -> ${pmmap.get(this)}")
       done.v.default = false 
       done.v.set { donev =>
         If (doneIn.v) { donev.setHigh }
@@ -228,9 +229,8 @@ case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Con
   val out = Output(Bit(), this, s"${quote(this)}.out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    import sim.pirmeta._
     import pir.util.typealias._
-    pmmap.pmap.get(this).fold {
+    pmmap.get(this).fold {
       out.v := false
     } { case pdu:PDU =>
       out.v := eval(pdu.op, in.v, pdu.const)

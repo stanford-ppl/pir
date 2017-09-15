@@ -34,7 +34,7 @@ case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade)
     import sim.pirmeta._
     import sim.util._
     souts.foreach { psout =>
-      vomap.pmap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
+      vomap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
         boundOf.get(sout.scalar) match {
           case Some(b:Int) => 
             psout.ic.v.head.asSingle := b

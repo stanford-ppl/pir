@@ -86,7 +86,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
 
   def printStage(pst:PST)(implicit p:Printer, design:Design):Unit = {
     import p._
-    emitBlock(s"${quote(pst)} <- ${pmmap.pmap.get(pst)}"){
+    emitBlock(s"${quote(pst)} <- ${pmmap.get(pst)}"){
       pst.prs.foreach { ppr =>
         fimap.get(ppr.in).foreach { from =>
           emitln(s"${quote(ppr)}.in <= $from")
@@ -98,7 +98,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
             emitln(s"${oprd} <= $from")
           }
         }
-        pmmap.pmap.get(pst).foreach { 
+        pmmap.get(pst).foreach { 
           case st:ST => emitln(s"$fu.op=${st.fu.get.op}")
           case _ =>
         }
@@ -156,6 +156,10 @@ case class VIMap(map:VIMap.M, pmap:VIMap.IM) extends IBiManyToOneMap {
   }
   def apply(n:VI):PGI[PModule] = { map(n).asGlobal }
   def apply(n:SI):PGI[PModule] = { map(n).asGlobal }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object VIMap extends IBiManyToOneObj {
   type K = Node //InPort or VecIn
@@ -178,6 +182,10 @@ case class VOMap(map:VOMap.M, pmap:VOMap.IM) extends IBiOneToManyMap {
   }
   def apply(n:VO):Set[PGO[PModule]] = { map(n) }
   def apply(n:SO):Set[PGO[PModule]] = { map(n) }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object VOMap extends IBiOneToManyObj {
   type K = Node //OutPort or VecOut
@@ -211,6 +219,10 @@ case class RCMap(map:RCMap.M, pmap:RCMap.IM) extends IBiManyToManyMap {
     val v:V = rec._2
     RCMap(map + ((k, fset)), pmap + ((v, rset)))
   }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object RCMap extends IBiManyToManyObj {
   type K = Reg 
@@ -224,6 +236,10 @@ case class IPMap(map:IPMap.M, pmap:IPMap.IM) extends IBiOneToOneMap {
   override type M = IPMap.M
   override type IM = IPMap.IM
   override def + (rec:(K,V)) = { super.check(rec); IPMap(map + rec, pmap + rec.swap) }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object IPMap extends IBiOneToOneObj {
   type K = IP 
@@ -242,6 +258,10 @@ case class OPMap(map:OPMap.M, pmap:OPMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     OPMap(newmap, pmap + rec.swap)
   }
+
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
+  def contains(v:V) = pmap.contains(v)
 }
 object OPMap extends IBiOneToManyObj {
   type K = OP
@@ -260,7 +280,7 @@ case class PMMap(map:PMMap.M, pmap:PMMap.IM) extends IBiOneToOneMap {
   def cast[T](x:Any):T = x.asInstanceOf[T]
 
   def apply(k:CL):PCL       = cast(map(k))
-  def apply(k:PL):PPCU      = cast(map(k))
+  def apply(k:PL):PCU       = cast(map(k))
   def apply(k:MP):PMCU      = cast(map(k))
   def apply(k:Top):PTop     = cast(map(k))
   def apply(k:MC):PMC       = cast(map(k))
@@ -310,6 +330,8 @@ case class PMMap(map:PMMap.M, pmap:PMMap.IM) extends IBiOneToOneMap {
   def get(v:PLUT):Option[LUT]     = cast(pmap.get(v))
   def get(v:PUC):Option[UC]       = cast(pmap.get(v))
 
+  def apply(v:V):KK = pmap(v)
+  def get(v:V):Option[KK]         = pmap.get(v)
   def contains(v:V) = pmap.contains(v)
 }
 object PMMap extends IBiOneToOneObj {

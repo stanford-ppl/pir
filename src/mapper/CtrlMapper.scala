@@ -238,7 +238,7 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
     cb.udcounters.foreach { case (dep, udc) =>
-      val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.pmap.contains(pudc) }.head
+      val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.contains(pudc) }.head
       mp = mp.setPM(udc, pudc)
       mp = mapInPort(udc.inc, pudc.inc, mp)
       mp = mapInPort(udc.dec, pudc.dec, mp)

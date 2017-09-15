@@ -8,7 +8,7 @@ import scala.collection.Set
 trait BiMap extends UniMap {
   type KK
   type IM <: Map[V, KK]
-  def pmap:IM
+  protected def pmap:IM
   def printPMap(ks:List[V])(implicit p:Printer):Unit = {
     if (ks.size!=0) {
       p.emitBlock(name) {

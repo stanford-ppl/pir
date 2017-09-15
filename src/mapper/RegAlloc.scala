@@ -42,7 +42,7 @@ class RegAlloc(implicit val design:Design) extends Mapper {
   def resFunc(cu:ICL, allRes:N => List[R])(n:N, m:M, triedRes:List[R]):List[R] = {
     val infs = cu.infGraph(n)
     allRes(n).diff(triedRes).filterNot { r => 
-      m.rcmap.pmap.get(r).fold (false) { regs =>
+      m.rcmap.get(r).fold (false) { regs =>
         dprintln(s"${quote(r)} <- [${regs.mkString(",")}]")
         regs.exists { mapped => infs.contains(mapped) }
       }

@@ -203,7 +203,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) exte
         if (m.fimap.get(pin).fold(false){ _ == pout }) {
           attr.color(linkColor).style(bold)
           val label = ListBuffer[String]()
-          m.vimap.pmap.get(pin).foreach { ins =>
+          m.vimap.get(pin).foreach { ins =>
             ins.foreach {
               case vi:VI => label += s"${vi.vector}"
               case si:SI => label += s"${si.scalar}"
@@ -226,7 +226,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) exte
               //case _ =>
             //}
           }
-          m.vomap.pmap.get(pout).foreach { out =>
+          m.vomap.get(pout).foreach { out =>
             out match {
               case vo:VO => label += s"${vo.vector}"
               case so:SO => label += s"${so.scalar}"

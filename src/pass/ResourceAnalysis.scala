@@ -103,7 +103,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
 
   def collectFUUtil(prt:PRT) = prt match {
     case prt:PCU if mp.pmmap.contains(prt) =>
-      fuUsed += prt -> count(prt.stages.map { pst => mp.pmmap.pmap.get(pst) }).map {
+      fuUsed += prt -> count(prt.stages.map { pst => mp.pmmap.get(pst) }).map {
         case (used, total) => (used * parOf(prt), total * prt.param.numLanes)
       }
     case prt =>
@@ -126,8 +126,8 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
 
   def collectPinUtil(map: Map[PNode, Util], prt:PRT)(ios:PRT => List[PGIO[PModule]]) = {
     map += prt -> count(ios(prt).map { 
-      case io:PGI[_] => mp.vimap.pmap.get(io)
-      case io:PGO[_] => mp.vomap.pmap.get(io)
+      case io:PGI[_] => mp.vimap.get(io)
+      case io:PGO[_] => mp.vomap.get(io)
     })
   }
 
@@ -138,7 +138,7 @@ class ResourceAnalysis(implicit design: Design) extends Pass {
   def collectChannelUtil(map: Map[PNode, Util], prt:PRT)(ins:PRT => List[PGI[PModule]]) = {
     prt match {
       case prt:PSB =>
-        map += prt -> count(channels(ins(prt)).map { in => mp.vimap.pmap.get(in) })
+        map += prt -> count(channels(ins(prt)).map { in => mp.vimap.get(in) })
       case prt =>
     }
   }

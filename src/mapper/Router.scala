@@ -289,7 +289,7 @@ abstract class Router(implicit design:Design) extends Mapper {
       val pimk = map.mkmap.get(pi)
       val edgeMatch = pomk.fold(true) { _ == out } && pimk.fold(true) { _ == out }
       dprintln(!edgeMatch, s"${quote(edge)} not match outMarker=${pomk} inMarker=${pimk}")
-      val ins = map.vimap.pmap.get(pi)
+      val ins = map.vimap.get(pi)
       val inputSrcMatch = ins.fold(true) { ins => from(ins.head.asInstanceOf[I]) == out }
       dprintln(!inputSrcMatch, s"${quote(edge)} not match input source vimap=${ins}")
       val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
@@ -489,7 +489,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   def checkOut(cl:CL, m:M) = {
     val pcl = m.pmmap(cl)
     val unmapped = outs(cl).filterNot { out => m.vomap.contains(out) }
-    val unused = io(pcl).outs.filterNot { pout => m.vomap.pmap.contains(pout) }
+    val unused = io(pcl).outs.filterNot { pout => m.vomap.contains(pout) }
     if (unused.size < unmapped.size) {
       var info = s"Not enough pouts for in ${quote(pcl)} to map $cl\n"
       info += outs(cl).map { out => s"$out -> [${m.vomap.get(out).mkString(",")}]" }.mkString("\n")
