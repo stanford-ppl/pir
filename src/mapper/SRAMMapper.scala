@@ -8,7 +8,6 @@ import pir.spade.util._
 import pir.spade.main._
 import pir.exceptions._
 import pir.util.PIRMetadata
-import pir.spade.graph.{SRAM => _, _}
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
@@ -30,17 +29,7 @@ class SramMapper(implicit val design:Design) extends Mapper with LocalRouter {
     val sizePerBuffer = r.size / n.buffering
     if (n.size > sizePerBuffer) throw MappingException(m, s"$n'size=${n.size} > $r.sizePerBuffer=$sizePerBuffer")
     if (n.banks > r.banks) throw MappingException(m, s"$n.banks=${n.banks} > $r.banks=${r.banks}")
-    val config = SRAMConfig (
-      name=s"${n.ctrler}.${n}", 
-      rpar = rparOf(n),
-      wpar = wparOf(n),
-      bufferSize = n.buffering,
-      notFullOffset = 0,
-      backPressure = backPressureOf(n),
-      banking = n.banking,
-      size = n.size
-    )
-    mp = m.setPM(n, r).setCF(r, config)
+    mp = m.setPM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)
     mp = mapInPort(n.writeAddr, r.writeAddr, mp)

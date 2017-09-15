@@ -118,7 +118,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapInPort(n.max, p.max, mp)
     mp = mapInPort(n.step, p.step, mp)
     mp = mapOutPort(n.out, p.out, mp)
-    mp = mp.setPM(n,p).setCF(p, CounterConfig(n.par))
+    mp = mp.setPM(n,p)
     dprintln(s"mapping $n -> ${mp.pmmap(n)}")
     mp
   }

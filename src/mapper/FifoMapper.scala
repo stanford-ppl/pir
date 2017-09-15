@@ -26,40 +26,9 @@ class FifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
   def finPass(cu:CL)(m:M):M = m 
 
-  def analyze(n:N, map:M):(Int,Int) = {
-    val cu = n.ctrler
-    if (n.notFull.isConnected) {
-      val fhop = map.rtmap(pir.util.collectIn[I](n.writePort).head)
-      val bhop = map.rtmap(n.notFull.to.head)
-      val pipeDepth = n.writers.map{ writer => map.pmmap(writer.ctrler).asCU.stages.size }.max
-      val notFullOffset = fhop + bhop + pipeDepth
-      dprintln(s" - fhop=$fhop bhop=$bhop pipeDepth=$pipeDepth")
-      val bufferSize = n.size + notFullOffset + 2 //TODO a little buffer just in case 
-      (bufferSize, notFullOffset)
-    } else {
-      val bufferSize = (n, cu) match {
-        case (n:FIFO, cu:MP) if n.readPort.to.exists{ _ == cu.sram.writePort} =>
-          n.size + delayOf(map.pmmap(cu.ctrlBox.writeEnDelay))
-        case (n:FIFO, cu) =>
-          n.size
-        case (n:MBuf, cu) =>
-          n.buffering
-      }
-      (bufferSize, 0)
-    }
-  }
-
   def constrain(n:N, r:R, map:M):M = {
     var mp = map
-    val (bufferSize, notFullOffset) = analyze(n, map)
-    val config = LocalMemConfig (
-      name=s"${n.ctrler}.$n",
-      isFifo=n.isFifo,
-      backPressure=backPressureOf(n),
-      bufferSize=bufferSize,
-      notFullOffset=notFullOffset
-    )
-    mp = mp.setPM(n, r).setCF(r, config)
+    mp = mp.setPM(n, r)
     mp = mapOutPort(n.readPort, r.readPort, mp)
     mp = mapInPort(n.writePort, r.writePort, mp)
     mp = mapMux(n.writePortMux, r.writePortMux, mp)

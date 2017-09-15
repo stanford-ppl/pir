@@ -14,13 +14,16 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
 
   def shouldRun = Config.mapping
 
-  var mapping:Option[PIRMap] = None
+  def mapping:Option[PIRMap] = design.mapping
+  def mapping_=(m:Option[PIRMap]):Unit = design.mapping = m
   var placeAndRouteSucceeded = false
   var localMappingSucceeded = false
+  var configSucceeded = false
   def succeeded = placeAndRouteSucceeded & localMappingSucceeded 
 
   def failed = !succeeded && Config.mapping
 
+  val configMapper = new ConfigMapper()
   val sramMapper = new SramMapper()
   //val vfifoMapper = new VFifoMapper()
   //val sfifoMapper = new SFifoMapper()
@@ -143,6 +146,24 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
       case Failure(e) =>
         placeAndRouteSucceeded = false
         errmsg(s"Local Mapping failed")
+        handle(e)
+    }
+  }
+
+  addPass(canRun=localMappingSucceeded) {
+    Try[PIRMap]{
+      var mp = mapping.get
+      mp = configMapper.map(mp)
+      mp
+    }.map { m =>
+      mapping = Some(m)
+    } match {
+      case Success(_) =>
+        configSucceeded = true
+        success(s"Configuration succeeded") 
+      case Failure(e) =>
+        configSucceeded = false
+        errmsg(s"Configuration failed")
         handle(e)
     }
   }

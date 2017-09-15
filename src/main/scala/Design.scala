@@ -107,7 +107,7 @@ trait Design extends PIRMetadata with Collector {
   val pirStatLog = new PIRStatLog()
   val irCheck = new IRCheck() 
 
-  def mapping:Option[PIRMap] = pirMapping.mapping
+  var mapping:Option[PIRMap] = None
 
   // Pre-mapping Analysis and Transformation 
   //passes += spadePrinter 
