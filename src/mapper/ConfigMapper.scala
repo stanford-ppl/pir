@@ -5,7 +5,7 @@ import pir.util._
 import pir.exceptions._
 import pir.util.misc._
 import pir.codegen.Logger
-import pir.spade.graph.{SRAM => _, _}
+import pir.spade.graph.{SRAM => _, Top => _, _}
 import pir.util.typealias._
 
 import scala.collection.mutable._
@@ -69,22 +69,48 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     mp.setCF(pctr, CounterConfig(ctr.par))
   }
 
+  def config(pudc:PUC, mp:M):M = {
+    if (pir.spade.util.isMapped(pudc)(mp)) {
+      val udc = mp.pmmap.get(pudc)
+      val initVal = udc.map { _.initVal }.getOrElse(0)
+      dprintln(s"${quote(this)} -> $udc initVal=$initVal")
+      mp.setCF(pudc, UDCounterConfig(initVal=initVal, name=s"$udc"))
+    } else mp
+  }
+
   def config(cu:CU, map:M):M = {
     var mp = map
+    cu.mems.foreach { 
+      case mem:SRAM => mp = config(mem, mp)
+      case mem:LMem => mp = config(mem, mp)
+    }
+    cu.cchains.foreach { 
+      _.counters.foreach { ctr => mp = config(ctr, mp) }
+    }
+    mp
+  }
+
+  def config(cb:CB, map:M):M = {
+    var mp = map
+    val pcb = mp.pmmap(cb)
+    pcb.udcs.foreach { pudc => mp = config(pudc, mp) }
+    mp
+  }
+
+  def config(cu:CL, map:M):M = {
+    var mp = map
     emitBlock(s"${quote(mp.pmmap(cu))} -> $cu") {
-      cu.mems.foreach { 
-        case mem:SRAM => mp = config(mem, mp)
-        case mem:LMem => mp = config(mem, mp)
+      cu match {
+        case cu:CU => mp = config(cu, mp)
+        case cu:Top => 
       }
-      cu.cchains.foreach { 
-        _.counters.foreach { ctr => mp = config(ctr, mp) }
-      }
+      mp = config(cu.ctrlBox, mp)
     }
     mp
   }
 
   def map(mp:M):M = {
-    design.top.compUnits.foldLeft(mp) { case (mp, cu) => config(cu, mp) }
+    design.top.ctrlers.foldLeft(mp) { case (mp, cu) => config(cu, mp) }
   }
 
 }

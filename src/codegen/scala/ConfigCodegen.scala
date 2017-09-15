@@ -350,7 +350,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitUDCInits(pcu:PCL) = {
-    val inits = pcu.ctrlBox.udcs.map { _.initVal(mapping) }
+    val inits = pcu.ctrlBox.udcs.map { pudc => cfmap.get(pudc).map { _.initVal } }
     if (inits.nonEmpty && inits.exists{_.nonEmpty})
     emitln(s"${quote(pcu.ctrlBox)}.udcInit=${quote(inits.map(_.getOrElse(-1)))}")
   }

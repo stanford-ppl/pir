@@ -36,31 +36,33 @@ object TokenDownLUT {
     TokenDownLUT(numIns).index(idx)
 }
 
-case class UDCounter()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
+case class UDCounterConfig (
+  initVal:Int,
+  name:String
+) extends Configuration
+
+case class UDCounter()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable 
+with Configurable {
   import spademeta._
+  type CT = UDCounterConfig
+
   override val typeStr = "udc"
   val inc = Input(Bit(), this, s"${this}.inc")
   val dec = Input(Bit(), this, s"${this}.dec")
   val count = Output(Word(), this, s"${this}.count")
   val out = Output(Bit(), this, s"${this}.out")
-  def initVal(implicit mp:PIRMap):Option[Int] = {
-    mp.pmmap.get(this).map { 
-      case udc:pir.graph.UDCounter => udc.initVal
-    }.orElse(if (isMapped(this)) Some(0) else None)
-  }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    if (isMapped(this)(mapping)) {
-      dprintln(s"${quote(this)} -> ${pmmap.get(this)} initVal=$initVal")
-      count.v.default = initVal
+    cfmap.get(this).foreach { config =>
+      count.v.default = config.initVal
       count.v.set { countv =>
         if (rst) {
-          countv <<= initVal
+          countv <<= config.initVal
         } else {
           If (inc.pv) { countv <<= countv + 1 }
           If (dec.pv) {
             if (sim.inSimulation && countv.toInt==0) {
-              warn(s"${quote(this)} of ${quote(prt)} underflow at cycle #$cycle")
+              warn(s"${quote(this)}(${config.name}) of ${quote(prt)} underflow at cycle #$cycle")
             }
             countv <<= countv - 1
           }
