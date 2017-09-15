@@ -12,7 +12,7 @@ trait MMap extends UniMap {
 
 trait MBiMap extends BiMap with MMap {
   override type IM = Map[V, KK]
-  override def clear = { super.clear; pmap.clear }
+  override def clear = { super.clear; imap.clear }
 }
 
 trait MOneToOneMap extends OneToOneMap with MMap {
@@ -24,8 +24,8 @@ trait MOneToOneMap extends OneToOneMap with MMap {
 
 trait MBiOneToOneMap extends MOneToOneMap with BiOneToOneMap with MBiMap {
   override type IM = Map[V, KK]
-  val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n, v); pmap += (v -> n) }
+  val imap:IM = Map.empty
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n, v); imap += (v -> n) }
 }
 
 trait MOneToManyMap extends OneToManyMap with MMap {
@@ -37,20 +37,20 @@ trait MOneToManyMap extends OneToManyMap with MMap {
 
 trait MBiOneToManyMap extends MOneToManyMap with BiOneToManyMap with MBiMap {
   override type IM = Map[V, KK]
-  val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); pmap += (v -> n) } 
+  val imap:IM = Map.empty
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); imap += (v -> n) } 
 }
 
 trait MBiManyToOne extends MOneToOneMap with BiManyToOneMap with MMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
-  val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); pmap.getOrElseUpdate(v, Set[K]()) += n } 
+  val imap:IM = Map.empty
+  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); imap.getOrElseUpdate(v, Set[K]()) += n } 
 }
 
 trait MBiManyToMany extends MOneToManyMap with BiManyToManyMap with MBiMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
-  val pmap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { super.update(n,v); pmap.getOrElseUpdate(v, Set[K]()) += n } 
+  val imap:IM = Map.empty
+  override def update(n:K, v:V):Unit = { super.update(n,v); imap.getOrElseUpdate(v, Set[K]()) += n } 
 }

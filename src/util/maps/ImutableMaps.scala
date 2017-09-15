@@ -36,7 +36,7 @@ trait IBiOneToOneMap extends IOneToOneMap with BiOneToOneMap {
     type K = IBiOneToOneMap.this.K
     type V = IBiOneToOneMap.this.V
     val map = IBiOneToOneMap.this.map + rec 
-    val pmap = IBiOneToOneMap.this.pmap + rec.swap
+    val imap = IBiOneToOneMap.this.imap + rec.swap
   }
 }
 trait IBiOneToOneObj extends IOneToOneObj with IBiMapObj {
@@ -68,7 +68,7 @@ trait IBiOneToManyMap extends IOneToManyMap with BiOneToManyMap {
     val mp = IBiOneToManyMap.this.map
     val set = mp.getOrElse(rec._1, Set.empty) + rec._2
     val map = mp + (rec._1 -> set)
-    val pmap = IBiOneToManyMap.this.pmap + rec.swap
+    val imap = IBiOneToManyMap.this.imap + rec.swap
   }
 }
 
@@ -84,9 +84,9 @@ trait IBiManyToOneMap extends IOneToOneMap with BiManyToOneMap {
     type K = IBiManyToOneMap.this.K
     type V = IBiManyToOneMap.this.V
     val map = IBiManyToOneMap.this.map + rec 
-    val pmp = IBiManyToOneMap.this.pmap
+    val pmp = IBiManyToOneMap.this.imap
     val pset = pmp.getOrElse(rec._2, Set.empty) + rec._1
-    val pmap = pmp + (rec._2 -> pset)
+    val imap = pmp + (rec._2 -> pset)
   }
 }
 
@@ -103,9 +103,9 @@ trait IBiManyToManyMap extends IOneToManyMap with BiManyToManyMap {
     val mp = IBiManyToManyMap.this.map
     val set = mp.getOrElse(rec._1, Set.empty) + rec._2
     val map = mp + (rec._1 -> set)
-    val pmp = IBiManyToManyMap.this.pmap
+    val pmp = IBiManyToManyMap.this.imap
     val pset = pmp.getOrElse(rec._2, Set.empty) + rec._1
-    val pmap = pmp + (rec._2 -> pset)
+    val imap = pmp + (rec._2 -> pset)
   }
 }
 trait IBiManyToManyObj extends IOneToManyObj with IBiMapObj {

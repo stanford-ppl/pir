@@ -37,9 +37,9 @@ class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
   lazy val cls = design.top.ctrlers
   lazy val mcs = cls.collect { case mc:MC => mc }
   lazy val pmcs = design.arch.mcs 
-  lazy val sags = design.top.innerCUs.filter{ cu => sagOf.pmap.contains(cu) } //TODO
+  lazy val sags = design.top.innerCUs.filter{ cu => sagOf.icontains(cu) } //TODO
   lazy val psags = design.arch.asInstanceOf[SwitchNetwork].sramAGs.flatten
-  lazy val dags = design.top.innerCUs.filter{ cu => dagOf.pmap.contains(cu) } 
+  lazy val dags = design.top.innerCUs.filter{ cu => dagOf.icontains(cu) } 
   lazy val pdags = design.arch.asInstanceOf[SwitchNetwork].dramAGs.flatten
   lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(dags)
   lazy val pscus = design.arch.scus.diff(pdags)

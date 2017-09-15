@@ -61,7 +61,7 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
       }
     }
     pcu.stages.last.prs.foreach { case ppr@PPR(ps, pr) =>
-      mp.rcmap.pmap.get(pr).foreach { regs =>
+      mp.rcmap.get(pr).foreach { regs =>
         regs.foreach { reg =>
           reg match {
             case ScalarOutPR(so) =>

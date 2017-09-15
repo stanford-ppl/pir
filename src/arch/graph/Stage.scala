@@ -25,7 +25,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
     import sim.util._
     implicit val mp = sim.mapping
     fimap.get(this).foreach { _ =>
-      val inits = rcmap.pmap(reg).flatMap{_.getInit}
+      val inits = rcmap(reg).flatMap{_.getInit}
       assert(inits.size<=1)
       if (inits.nonEmpty) {
         dprintln(s"${quote(in.v)}.init = ${inits.head}")

@@ -8,7 +8,7 @@ import scala.reflect.runtime.universe._
 import scala.language.existentials
 
 /* FanIn map: a mapping between a PInput and the POutput it connects to */
-case class FIMap(map:FIMap.M, pmap:FIMap.IM) extends IBiManyToOneMap {
+case class FIMap(map:FIMap.M, imap:FIMap.IM) extends IBiManyToOneMap {
   type K = FIMap.K
   type V = FIMap.V
   override type M = FIMap.M
@@ -19,16 +19,16 @@ case class FIMap(map:FIMap.M, pmap:FIMap.IM) extends IBiManyToOneMap {
   }
   override def + (rec:(K,V)) = { 
     check(rec); 
-    val set:Set[K] = (pmap.getOrElse(rec._2, Set.empty) + rec._1)
+    val set:Set[K] = (imap.getOrElse(rec._2, Set.empty) + rec._1)
     val v:V = rec._2
-    val npmap:IM = pmap + ((v, set))
+    val npmap:IM = imap + ((v, set))
     FIMap(map + rec, npmap)
   }
   def get(k:PGI[_<:PModule]) = { map.get(k).asInstanceOf[Option[PGO[_<:PModule]]] }
 
-  def apply(v:V):KK = pmap(v)
-  def get(v:V):Option[KK]         = pmap.get(v)
-  def contains(v:V) = pmap.contains(v)
+  def apply(v:V):KK = imap(v)
+  def get(v:V):Option[KK]         = imap.get(v)
+  def contains(v:V) = imap.contains(v)
 }
 object FIMap extends IBiManyToOneObj {
   type K = PI[_<:PModule]

@@ -76,13 +76,13 @@ class CUMapper(implicit val design:Design) extends Mapper {
               prts = prts.filter{ prt => prt.coord == m.pmmap(sag).coord }
             }
           }
-        case cu:CU if dagOf.pmap.contains(cu) =>
-          val mc = dagOf.pmap(cu)
+        case cu:CU if dagOf.icontains(cu) =>
+          val mc = dagOf.imap(cu)
           if (m.pmmap.contains(mc)) {
             prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
           }
-        case cu:CU if sagOf.pmap.contains(cu) =>
-          val mc = sagOf.pmap(cu)
+        case cu:CU if sagOf.icontains(cu) =>
+          val mc = sagOf.imap(cu)
           if (m.pmmap.contains(mc)) {
             prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
           }
