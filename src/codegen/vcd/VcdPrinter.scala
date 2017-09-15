@@ -17,8 +17,7 @@ import scala.collection.mutable.ListBuffer
 abstract class VcdPrinter(implicit val sim:Simulator, val design: Design) extends SpadeVcdDeclarator with PIRVcdDeclarator with Printer {
   lazy val spademeta:SpadeMetadata = design.arch
   implicit lazy val spade:Spade = design.arch
-  import sim.quote
-  import sim.mapping._ 
+  import sim.util._ 
 
   def qv(x:Any):String = x match {
     case x:SingleValue => qv(x.value)

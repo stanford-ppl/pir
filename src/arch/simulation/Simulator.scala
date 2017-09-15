@@ -31,8 +31,9 @@ trait SimUtil extends Logger {
   def cycle:Int
 }
 
-class Simulator(val mapping: PIRMap)(implicit design:Design) extends SimUtil with Logger {
+class Simulator()(implicit design:Design) extends SimUtil with Logger {
 
+  var mapping:PIRMap = _
   implicit def spade = design.arch
   val spademeta:SpadeMetadata = spade
   val pirmeta:PIRMetadata = design
@@ -107,7 +108,8 @@ class Simulator(val mapping: PIRMap)(implicit design:Design) extends SimUtil wit
     _inSimulation = false
   }
 
-  def run = {
+  def run(mapping:PIRMap) = {
+    this.mapping = mapping
     register
     dprintln(s"\n\nDefault values ...")
     vcds.foreach { _.emitSignals }

@@ -6,7 +6,7 @@ import pir.spade.simulation.Simulator
 class SpadeSimulator(implicit design: Design) extends Pass {
 
   def shouldRun = Config.simulate && design.pirMapping.succeeded
-  lazy val simulator = new Simulator(design.mapping.get)
+  lazy val simulator = new Simulator()
 
   override def reset = {
     super.reset
@@ -19,7 +19,7 @@ class SpadeSimulator(implicit design: Design) extends Pass {
   }
 
   addPass {
-    simulator.run
+    simulator.run(design.mapping.get)
   }
 
   override def finPass = {
