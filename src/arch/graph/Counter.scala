@@ -13,9 +13,15 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
 /** Physical Counter  */
-case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive with Simulatable {
+case class CounterConfig (
+  par:Int
+) extends Configuration
+
+case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive with Simulatable 
+with Configurable {
   import spademeta._
   override val typeStr = "ctr"
+  type CT = CounterConfig
   //override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
   val min = Input(Word(), this, s"$this.min")
   val max = Input(Word(), this, s"$this.max")
@@ -26,15 +32,13 @@ case class Counter()(implicit spade:Spade, prt:ComputeUnit) extends Primitive wi
   def isDep(c:Counter) = en.canConnect(c.done)
 
   override def register(implicit sim:Simulator):Unit = {
-    import sim.pirmeta._
     import sim.util._
-    pmmap.get(this).foreach { ctr =>
-      val cu = ctr.ctrler
+    cfmap.get(this).foreach { cf =>
       val prevCtr = fimap(en).src match {
         case c:Counter => Some(c)
         case _ => None
       }
-      val ctrPar = ctr.par 
+      val ctrPar = cf.par 
       sim.dprintln(s"$this ctrPar = $ctrPar")
       val head = out.v.head.asSingle
       out.v.foreach { 

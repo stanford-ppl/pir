@@ -57,7 +57,6 @@ trait Design extends PIRMetadata with Collector {
   val memoryAnalyzer = new MemoryAnalyzer()
   val accessAnalyzer = new AccessAnalyzer()
   val livenessAnalyzer = new LiveAnalyzer()
-  val fifoAnalyzer = new FIFOAnalyzer()
   val contentionAnalyzer = new ContentionAnalysis()
   val latencyAnalyzer = new LatencyAnalysis()
   val resourceAnalyzer = new ResourceAnalysis()
@@ -154,7 +153,6 @@ trait Design extends PIRMetadata with Collector {
   // Post-mapping analysis
   passes += pirDataDotGen
   passes += delayAnalyzer
-  passes += fifoAnalyzer
 
   // Codegen
   passes += spadeNetworkCodegen 

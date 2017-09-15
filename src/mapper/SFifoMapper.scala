@@ -34,7 +34,6 @@ class SFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 
-  // After RegAlloc
   def resFunc(cu:CU)(n:N, m:M, triedRes:List[R]):List[R] = emitBlock(s"resFunc($cu.$n)"){
     val pcu = m.pmmap(cu)
     val reses = cu match {

@@ -39,19 +39,6 @@ trait SpadeMetadata { self:Spade =>
     type V = String 
   }
 
-  object notFullOffset extends MOneToOneMap {
-    type K = OnChipMem
-    type V = Int
-    override def apply(k:K):V = {
-      super.get(k).getOrElse(0)
-    }
-  }
-
-  object bufferSizeOf extends MOneToOneMap {
-    type K = OnChipMem
-    type V = Int
-  }
-
   object delayOf extends MOneToOneMap {
     type K = Delay[_]
     type V = Int

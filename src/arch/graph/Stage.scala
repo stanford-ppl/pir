@@ -21,7 +21,6 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
   val in = Input(Bus(prt.param.numLanes, Word()), this, s"$this.in")
   val out = Output(Bus(prt.param.numLanes, Word()), this, s"${this}.out")
   override def register(implicit sim:Simulator):Unit = {
-    import sim.pirmeta._
     import sim.util._
     implicit val mp = sim.mapping
     fimap.get(this).foreach { _ =>
@@ -67,6 +66,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
  * */
 case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spade, override val prt:ComputeUnit)
   extends Primitive with Simulatable {
+
   import spademeta._
   override val typeStr = "fu"
   val operands = List.tabulate(numOprds) { i => Input(Bus(prt.param.numLanes, Word()), this, s"$this.oprd[$i]") } 
@@ -138,12 +138,18 @@ case class FuncUnit(numOprds:Int, ops:List[Op], stage:Stage)(implicit spade:Spad
   }
 }
 
+case class StageConfig(
+  par:Int
+) extends Configuration
 /*
  * Phyical stage. 1 column of FU and Pipeline Register block accross lanes. 
  * @param reg Logical registers in current register block
  * */
-class Stage(regs:List[ArchReg])(implicit spade:Spade, override val prt:ComputeUnit) extends Primitive {
+class Stage(regs:List[ArchReg])(implicit spade:Spade, override val prt:ComputeUnit) extends Primitive 
+  with Configurable {
   import spademeta._
+  type CT = StageConfig
+
   val funcUnit:Option[FuncUnit] = None
   val _prs = Map[ArchReg, PipeReg]() // Mapping between logical register and physical register
   regs.foreach { reg => _prs += (reg -> PipeReg(this, reg)) }

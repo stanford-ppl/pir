@@ -20,7 +20,16 @@ trait Logger extends Printer {
   override def pprintln:Unit = if (debug) { super.pprintln; flush } 
 
   def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
+
+  override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = { 
+    emitBSln(bs, b, None)
+    val res = block
+    if (res!=(())) dprintln(s"result=$res")
+    emitBEln(None, b, es.map(es => es()))
+    res
+  }
   def emitBlock[T](header:String, s:String)(block: =>T):T = emitBlock(promp(Some(header), s))(block)
+
   def dprintln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitln(promp(header, s))
   def dprint(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emit(promp(header, s))
   def dprintln(pred:Boolean, header:String, s:Any):Unit = dprintln(pred, Some(header), s) 

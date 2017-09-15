@@ -13,7 +13,11 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
-trait Memory extends Module with Simulatable {
+trait MemoryConfig extends Configuration {
+  val name:String
+}
+trait Memory extends Module with Simulatable with Configurable {
+  type CT <: MemoryConfig
   val size:Int
   var updatedMemory = false
   type M
@@ -24,7 +28,7 @@ trait Memory extends Module with Simulatable {
     val stackTrace = getStackTrace(1, 20)
     memoryFuncs += ((f,stackTrace))
   }
-  final def updateMemory(implicit sim:Simulator):Unit = {
+  final def updateMemory(config:MemoryConfig)(implicit sim:Simulator):Unit = {
     import sim.util._
     if (!updatedMemory) {
       memoryFuncs.foreach { case (f, stackTrace) => 
@@ -34,7 +38,7 @@ trait Memory extends Module with Simulatable {
         } catch {
           case e:Exception =>
             val info = this match {
-              case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${pmmap.get(mem)})"
+              case mem:OnChipMem => s"${quote(mem.prt)}.${quote(mem)}(${config.name})" //TODO
               case mem:DRAM => s"dram"
             }
             errmsg(s"[$info #$cycle]: ${e.toString}")
@@ -47,10 +51,9 @@ trait Memory extends Module with Simulatable {
     }
   }
   override def updateModule(implicit sim:Simulator):Unit = {
+    import sim.util._
     super.updateModule
-    if (isMapped(this)(sim.mapping)) {
-      updateMemory
-    }
+    cfmap.get(this).foreach { config => updateMemory(config) }
   }
   override def clearModule(implicit sim:Simulator):Unit = {
     super.clearModule
@@ -63,6 +66,7 @@ trait Memory extends Module with Simulatable {
   }
 }
 
+case class DRAMConfig() extends MemoryConfig { val name="dram" }
 case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable {
   import spademeta._
   override val typeStr = "dram"
@@ -71,6 +75,10 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
   val dramDefault:Array[AnyVal] = Array.tabulate(size) { i => i }
 
   def getValue:Array[Option[AnyVal]] = memory.map(_.value)
+
+  val config = DRAMConfig()
+
+  def updateMemory(implicit sim:Simulator):Unit = super.updateMemory(config)(sim)
 
   override def register(implicit sim:Simulator):Unit = {
     memory.zipWithIndex.foreach { case (v, i) => v.default = dramDefault(i) }
@@ -81,7 +89,14 @@ case class DRAM(size:Int)(implicit spade:Spade) extends Memory with Simulatable 
   }
 }
 
+trait OnChipMemConfig extends MemoryConfig {
+  val backPressure:Boolean
+  val bufferSize:Int
+  val notFullOffset:Int
+}
+
 abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primitive with Memory {
+  type CT <: OnChipMemConfig
   import spademeta._
   type P<:PortType
 
@@ -102,13 +117,13 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
   def asSRAM = this.asInstanceOf[SRAM]
   def asVBuf = this.asInstanceOf[VectorMem]
   def asSBuf = this.asInstanceOf[ScalarMem]
-  def asBuf = this.asInstanceOf[LocalBuffer]
+  def asBuf = this.asInstanceOf[LocalMem]
   writePort <== writePortMux.out
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    import sim.pirmeta._
-    sim.mapping.pmmap.get(this).foreach { mem =>
+    //import sim.pirmeta._
+    cfmap.get(this).foreach { config =>
       notEmpty.v.default = false
       notFull.v.default = true
       readPtr.v.default = 0
@@ -117,46 +132,45 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
       enqueueEnable.v.default = false
       count.v.default = 0
       actualCount.v.default = 0
-      val bufferSize = bufferSizeOf(this)
       this match {
         case mem:SRAM =>
           notEmpty.v := count.v > 0
-        case mem:LocalBuffer =>
+        case mem:LocalMem =>
           notEmpty.v := eval(BitOr, mem.predicate.v, (count.v > 0))
       }
-      if (!backPressureOf(mem)) {
+      if (!config.backPressure) {
         notFull.v := true
       } else {
-        notFull.v := count.v < (bufferSize - notFullOffset(this))
+        notFull.v := count.v < (config.bufferSize - config.notFullOffset)
       }
       def incPtr(v:SingleValue) = {
-        v <<= v + 1; if (v.toInt>=bufferSize) v <<= 0
+        v <<= v + 1; if (v.toInt>=config.bufferSize) v <<= 0
       }
       readPtr.v.set { v => If (dequeueEnable.pv) { incPtr(v) } }
-      writePtr.v.set { v => If (enqueueEnable.pv) { incPtr(v) }; updateMemory }
+      writePtr.v.set { v => If (enqueueEnable.pv) { incPtr(v) }; updateMemory(config) }
       if (!enqueueEnable.isConnected) { enqueueEnable.v := writePort.v.update.valid }
       if (!inc.isConnected) { inc.v := enqueueEnable.v }
       count.v.set { v => 
         If (dec.pv) { 
           if (sim.inSimulation && v.toInt==0) 
-            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) underflow at #$cycle!")
+            warn(s"${quote(prt)}.${quote(this)}(${config.name}) underflow at #$cycle!")
           v <<= v - 1
         }
         If (inc.pv) { 
-          if (sim.inSimulation && (v.toInt >= bufferSize) && backPressureOf(mem))
-            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) overflow at $cycle!")
+          if (sim.inSimulation && (v.toInt >= config.bufferSize) && config.backPressure)
+            warn(s"${quote(prt)}.${quote(this)}(${config.name}) overflow at $cycle!")
           v <<= v + 1
         }
       }
       actualCount.v.set { v => 
         If (dequeueEnable.pv) { 
           if (sim.inSimulation && v.toInt==0) 
-            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) silent underflow at #$cycle!")
+            warn(s"${quote(prt)}.${quote(this)}(${config.name}) silent underflow at #$cycle!")
           v <<= v - 1
         }
         If (enqueueEnable.pv) { 
-          if (sim.inSimulation && (v.toInt >= bufferSize) && backPressureOf(mem))
-            warn(s"${quote(prt)}.${quote(this)}(${mem.ctrler}.${mem}) silent overflow at $cycle!")
+          if (sim.inSimulation && (v.toInt >= config.bufferSize) && config.backPressure)
+            warn(s"${quote(prt)}.${quote(this)}(${config.name}) silent overflow at $cycle!")
           v <<= v + 1
         }
       }
@@ -165,21 +179,25 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
   }
 }
 
+case class SRAMConfig (
+  name:String,
+  rpar:Int,
+  wpar:Int,
+  banking:Banking,
+  bufferSize:Int, // number of buffers for multibuffer 
+  notFullOffset:Int,
+  backPressure:Boolean,
+  size:Int // size of each buffer 
+) extends OnChipMemConfig
 /** Physical SRAM 
  *  @param numPort: number of banks. Usually equals to number of lanes in CU */
 case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) extends OnChipMem {
   import spademeta._
   override val typeStr = "sram"
   override def toString =s"${super.toString}${indexOf.get(this).fold(""){idx=>s"[$idx]"}}"
+  type CT = SRAMConfig
   type P = Bus 
   type M = Array[Array[Word]]
-  def bankSize(banking:Banking) = {
-    banking match {
-      case Strided(stride, banks) => size / this.banks
-      case NoBanking() => size
-      case _ => throw PIRException(s"Not supported banking $banking")
-    }
-  }
   def wtp:Bus = Bus(Word())
   var memory:M = _
   val readAddr = Input(Word(), this, s"${this}.ra")
@@ -199,12 +217,11 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
     memory.foreach { _.foreach { _.zero } }
   }
   override def register(implicit sim:Simulator):Unit = {
-    import sim.pirmeta._
+    //import sim.pirmeta._
     import sim.spademeta._
     import sim.util._
-    pmmap.get(this).foreach { mem =>
-      val bufferSize = bufferSizeOf(this)
-      memory = Array.tabulate(bufferSize, mem.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
+    cfmap.get(this).foreach { config =>
+      memory = Array.tabulate(config.bufferSize, config.size) { case (i,j) => Word(s"$this.array[$i,$j]") }
 
       writeEn.v.default = false
       readEn.v.default = false
@@ -213,7 +230,7 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
       setMem { memory =>
         If (writeEn.pv) {
           writePort.pv.foreach { 
-            case (writePort, i) if i < wparOf(mem) =>
+            case (writePort, i) if i < config.wpar =>
               writeAddr.pv.getInt.foreach { writeAddr =>
                 memory(writePtr.pv.toInt)(writeAddr + i) <<= writePort
               }
@@ -222,16 +239,16 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
         }
         //DEBUG.v.update
       }
-      def calcReadAddr(ra:Int, i:Int) = mem.banking match {
+      def calcReadAddr(ra:Int, i:Int) = config.banking match {
         case Diagonal(_,_) => throw PIRException(s"Not supporting diagonal banking at the moment")
         case Strided(stride, banks) => ra + i * stride
         case Duplicated() => ra
         case NoBanking() => ra
       }
       readOut.v.set { v => 
-        updateMemory
+        updateMemory(config)
         v.foreach { 
-          case (ev, i) if i < rparOf(mem) =>
+          case (ev, i) if i < config.rpar =>
             readAddr.v.getInt.fold {
               ev.asSingle <<= None
             } { readAddr =>
@@ -243,7 +260,7 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
       readPort.v := readOut.pv
       // --- DEBUG ---
       DEBUG.v.set { v =>
-        updateMemory
+        updateMemory(config)
         v.foreach { case (ev, i) =>
           ev <<= memory(0)(i)
         }
@@ -253,22 +270,29 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
   }
 }
 
+case class LocalMemConfig (
+  name:String,
+  isFifo:Boolean,
+  backPressure:Boolean,
+  notFullOffset:Int,
+  bufferSize:Int // number of buffers for multibuffer 
+) extends OnChipMemConfig
 /* Scalar Buffer between the bus inputs/outputs and first/last stage */
-trait LocalBuffer extends OnChipMem {
+trait LocalMem extends OnChipMem {
   type M = Array[P]
+  type CT = LocalMemConfig
 
   val predicate = Input(Bit(), this, s"${this}.predicate")
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.spademeta._
-    sim.mapping.pmmap.get(this).foreach { mem =>
-      val bufferSize = bufferSizeOf(this)
+    cfmap.get(this).foreach { config =>
       readPort.v.set { v => 
-        updateMemory
+        updateMemory(config)
         v <<= memory(readPtr.v.toInt)
       }
-      if (mem.isFifo) {
+      if (config.isFifo) {
         fanInOf(dequeueEnable).foreach { dequeueEnable.v := _.v.asSingle & predicate.v.not }
         fanInOf(dec).foreach { dec.v := _.v.asSingle & predicate.v.not }
       }
@@ -279,7 +303,7 @@ trait LocalBuffer extends OnChipMem {
 
 /* Scalar buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalBuffer {
+case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalMem {
   import spademeta._
   override val typeStr = "sm"
   type P = Word
@@ -292,9 +316,8 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends Loc
   }
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    pmmap.get(this).foreach { mem =>
-      val bufferSize = bufferSizeOf(this)
-      memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
+    cfmap.get(this).foreach { config =>
+      memory = Array.tabulate(config.bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv.head }
     }
     super.register
@@ -302,7 +325,7 @@ case class ScalarMem(size:Int)(implicit spade:Spade, prt:Controller) extends Loc
 }
 /* Vector buffer between bus input and the empty stage. (Is an IR but doesn't physically 
  * exist). Input connects to 1 out port of the InBus */
-case class VectorMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalBuffer {
+case class VectorMem(size:Int)(implicit spade:Spade, prt:Controller) extends LocalMem {
   import spademeta._
   override val typeStr = "vm"
   type P = Bus
@@ -315,10 +338,8 @@ case class VectorMem(size:Int)(implicit spade:Spade, prt:Controller) extends Loc
   val readPort = Output(Bus(Word()), this, s"${this}.rp") 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    pmmap.get(this).foreach { mem =>
-      assert(mem.isVFifo)
-      val bufferSize = bufferSizeOf(this)
-      memory = Array.tabulate(bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
+    cfmap.get(this).foreach { config =>
+      memory = Array.tabulate(config.bufferSize) { i => readPort.tp.clone(s"$this.array[$i]") }
       setMem { memory => memory(writePtr.pv.toInt) <<= writePort.pv }
     }
     super.register

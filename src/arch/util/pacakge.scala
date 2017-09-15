@@ -69,7 +69,7 @@ package object util {
     case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
     case x:Mux[_] => x.ins.flatMap(collectIn[X]).toSet
     case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
-    case x:LocalBuffer => collectIn[X](x.writePort)
+    case x:LocalMem => collectIn[X](x.writePort)
     case _ => Set()
   }
 

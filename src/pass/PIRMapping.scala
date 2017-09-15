@@ -22,8 +22,9 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   def failed = !succeeded && Config.mapping
 
   val sramMapper = new SramMapper()
-  val vfifoMapper = new VFifoMapper()
-  val sfifoMapper = new SFifoMapper()
+  //val vfifoMapper = new VFifoMapper()
+  //val sfifoMapper = new SFifoMapper()
+  val fifoMapper = new FifoMapper()
   val stageMapper = new StageMapper()
   val ctrlMapper = new CtrlMapper()
   val regAlloc = new RegAlloc() {
@@ -43,8 +44,9 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   }
   def mapPrimtivies(ctrler:Controller)(m:PIRMap):PIRMap = {
     var mp = m
-    mp = vfifoMapper.map(ctrler, mp) 
-    mp = sfifoMapper.map(ctrler, mp)
+    //mp = vfifoMapper.map(ctrler, mp) 
+    //mp = sfifoMapper.map(ctrler, mp)
+    mp = fifoMapper.map(ctrler, mp)
     mp = sramMapper.map(ctrler, mp)
     mp = ctrMapper.map(ctrler, mp)
     mp

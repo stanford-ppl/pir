@@ -131,6 +131,10 @@ package object util {
     else s.toInt
   }
 
+  def collectIn[X](x:Any, logger:Logger)(implicit ev:ClassTag[X]):Set[X] = logger.emitBlock(s"collectIn($x)") {
+    collectIn(x)(ev)
+  }
+
   def collectIn[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
     case x:X => Set(x)
     case LoadPR(mem) => collectIn[X](mem)
@@ -139,6 +143,7 @@ package object util {
     case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
     case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
     case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
+    case x:OutPort => collectIn[X](x.src)
     case x:Mux => x.ins.flatMap(collectIn[X]).toSet
     case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
     case x:LocalMem => collectIn[X](x.writePort)
@@ -154,6 +159,7 @@ package object util {
     case x:PipeReg => collectOut[X](x.out)
     case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
     case x:OutPort => if (!x.isConnected) Set() else x.to.flatMap(in => collectOut[X](in.src)).toSet
+    case x:InPort => collectOut[X](x.src)
     case x:Mux => collectOut[X](x.out)
     case _ => Set()
   }

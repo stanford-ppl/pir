@@ -6,6 +6,7 @@ import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pir.exceptions._
 import pir.graph.Const
+import pir.spade.graph._
 import pir.spade.util._
 
 import scala.collection.immutable.Set
@@ -117,7 +118,7 @@ class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp = mapInPort(n.max, p.max, mp)
     mp = mapInPort(n.step, p.step, mp)
     mp = mapOutPort(n.out, p.out, mp)
-    mp = mp.setPM(n,p)
+    mp = mp.setPM(n,p).setCF(p, CounterConfig(n.par))
     dprintln(s"mapping $n -> ${mp.pmmap(n)}")
     mp
   }
