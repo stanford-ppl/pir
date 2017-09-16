@@ -35,9 +35,16 @@ case class MCParam (
   }
 }
 
-class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends Controller(param) {
+case class MemoryControllerConfig (
+  mctpe:MCType
+) extends Configuration
+
+class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends Controller(param) 
+  with Configurable {
   import spademeta._
   import param._
+  type CT = MemoryControllerConfig
+
   override val typeStr = "mc"
   lazy val ctrlBox:MCCtrlBox = new MCCtrlBox()
 
@@ -53,8 +60,8 @@ class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     val dram = spade.dram
-    pmmap.get(this).foreach { case mc:pir.graph.MemoryController =>
-      mc.mctpe match {
+    cfmap.get(this).foreach { config => 
+      config.mctpe match {
         case TileLoad =>
           vouts.foreach { vout =>
             vout.ic.v.set { v =>

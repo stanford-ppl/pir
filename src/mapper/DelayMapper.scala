@@ -1,26 +1,28 @@
-package pir.pass
+package pir.mapper
 import pir.graph._
 import pir._
 import pir.util._
 import pir.util.misc._
 import pir.exceptions._
 import pir.codegen.Logger
+import pir.spade.graph.{SRAM => _, Top => _, Const => _, _}
 
 import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
-  def shouldRun = (Config.mapping && Config.ctrl)
-  import spademeta._
+class DelayMapper(implicit val design: Design) extends Mapper {
+  def shouldRun = Config.ctrl && Config.mapping
+
+  val typeStr = "DelayMapper"
   import pirmeta._
+  import spademeta._
 
-  override lazy val stream = newStream(s"DelayAnalyzer.log")
-
-  addPass (canRun=design.pirMapping.succeeded) {
-    val mp = design.mapping.get
+  def map(m:M):M = {
+    var mp = m
     design.top.ctrlers.foreach {
       case cu:MemoryPipeline =>
+        // Set delay
         val pmcu = mp.pmmap(cu)
         val rstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forRead(st) } }
         val wstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forWrite(st) } }
@@ -29,19 +31,27 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
         val rdelay = (if (ridxs.nonEmpty) ridxs.max - ridxs.min else 0)
         val wdelay = if (widxs.nonEmpty) widxs.max - widxs.min else 0
         dprintln(s"$cu(${quote(pmcu)}) rdelay=$rdelay wdelay=$wdelay")
-        delayOf(pmcu.ctrlBox.readEnDelay) = rdelay
-        delayOf(pmcu.ctrlBox.readDoneDelay) = rdelay
-        delayOf(pmcu.ctrlBox.writeEnDelay) = wdelay
-        delayOf(pmcu.ctrlBox.writeDoneDelay) = wdelay
+        mp = mp.setCF(pmcu.ctrlBox.readEnDelay, DelayConfig(rdelay))
+        mp = mp.setCF(pmcu.ctrlBox.readDoneDelay, DelayConfig(rdelay))
+        mp = mp.setCF(pmcu.ctrlBox.writeEnDelay, DelayConfig(wdelay))
+        mp = mp.setCF(pmcu.ctrlBox.writeDoneDelay, DelayConfig(wdelay))
+
+        // Set valid
+        //mp = mp.setCF(pmcu, ComputeUnitConfig(outputValid = mp.pmmap(cu.ctrlBox.readEnDelay).out))
         (cu.souts ++ cu.vouts).foreach { out =>  
-          mp.vomap(out).foreach { pout => validOf(pout) = mp.pmmap(cu.ctrlBox.readEnDelay).out }
+          mp.vomap(out).foreach { pout => 
+            validOf(pout) = mp.pmmap(cu.ctrlBox.readEnDelay).out
+          }
         }
       case cu:Pipeline =>
+        // Set delay
         val pcu = mp.pmmap(cu)
         val delay = pcu.stages.size
         dprintln(s"$cu(${quote(pcu)}) delay=$delay")
-        delayOf(mp.pmmap(cu.ctrlBox.enDelay)) = delay
-        delayOf(mp.pmmap(cu.ctrlBox.doneDelay)) = delay
+        mp = mp.setCF(mp.pmmap(cu.ctrlBox.enDelay), DelayConfig(delay))
+        mp = mp.setCF(mp.pmmap(cu.ctrlBox.doneDelay), DelayConfig(delay))
+
+        // Set valid
         (cu.souts ++ cu.vouts).foreach { out =>
           val in = out.readers.head
           in.ctrler match {
@@ -61,6 +71,7 @@ class DelayAnalyzer(implicit design: Design) extends Pass with Logger {
         }
       case _ =>
     }
-  } 
+    mp
+  }
 
 }

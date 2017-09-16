@@ -181,13 +181,7 @@ case class PulserSM()(implicit spade:Spade, override val prt:OuterComputeUnit) e
   }
 }
 
-case class UpDownSMConfig (
-  name:String
-) extends Configuration
-
-case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable with Configurable {
-
-  type CT = UpDownSMConfig
+case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends Primitive with Simulatable {
 
   val doneIn = Input(Bit(), this, s"${this}.doneIn")
   val inc = Input(Bit(), this, s"${this}.inc")
@@ -204,8 +198,7 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    cfmap.get(this).foreach { config =>
-      dprintln(s"${quote(this)} -> ${config.name}")
+    if (isMapped(this)) {
       done.v.default = false 
       done.v.set { donev =>
         If (doneIn.v) { donev.setHigh }
@@ -228,7 +221,16 @@ case class UpDownSM()(implicit spade:Spade, override val prt:Controller) extends
   }
 }
 
-case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive with Simulatable {
+case class PredicateUnitConfig  (
+  op:Op,
+  const:Int
+) extends Configuration
+
+case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Controller, cb:CtrlBox) extends Primitive 
+  with Simulatable with Configurable {
+
+  type CT = PredicateUnitConfig
+
   override val typeStr = s"pu_$name"
   cb.predicateUnits += this
   val in = Input(Word(), this, s"${quote(this)}.in")
@@ -241,10 +243,10 @@ case class PredicateUnit(name:String)(implicit spade:Spade, override val prt:Con
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import pir.util.typealias._
-    pmmap.get(this).fold {
+    cfmap.get(this).fold {
       out.v := false
-    } { case pdu:PDU =>
-      out.v := eval(pdu.op, in.v, pdu.const)
+    } { config => 
+      out.v := eval(config.op, in.v, config.const)
     }
   }
 }
@@ -394,10 +396,10 @@ class MCCtrlBox()(implicit spade:Spade, override val prt:MemoryController) exten
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import spademeta._
-    pmmap.get(prt).foreach { case mc:pir.graph.MemoryController =>
+    cfmap.get(prt).foreach { config => 
       state.v.default = WAITING 
       running.v.default = false
-      mc.mctpe match {
+      config.mctpe match {
         case tp if tp.isDense =>
           val (done, size) = tp match {
             case TileLoad => (rdone, prt.rsize)

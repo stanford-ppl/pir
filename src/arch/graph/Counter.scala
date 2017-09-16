@@ -1,8 +1,5 @@
 package pir.spade.graph
 
-import pir.graph._
-import pir.util.enums._
-import pir.util.misc._
 import pir.spade.main._
 import pir.spade.util._
 import pir.spade.simulation._

@@ -24,6 +24,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   def failed = !succeeded && Config.mapping
 
   val configMapper = new ConfigMapper()
+  val delayMapper = new ConfigMapper()
   val sramMapper = new SramMapper()
   //val vfifoMapper = new VFifoMapper()
   //val sfifoMapper = new SFifoMapper()
@@ -153,6 +154,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
   addPass(canRun=localMappingSucceeded) {
     Try[PIRMap]{
       var mp = mapping.get
+      mp = delayMapper.map(mp)
       mp = configMapper.map(mp)
       mp
     }.map { m =>

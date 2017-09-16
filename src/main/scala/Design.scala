@@ -62,7 +62,6 @@ trait Design extends PIRMetadata with Collector {
   val resourceAnalyzer = new ResourceAnalysis()
   val powerAnalyzer = new PowerAnalyzer()
   val energyAnalyzer = new EnergyAnalyzer()
-  val delayAnalyzer = new DelayAnalyzer()
   val prescreen = new ResourcePrescreen()
 
   /* Transformation */
@@ -152,7 +151,6 @@ trait Design extends PIRMetadata with Collector {
 
   // Post-mapping analysis
   passes += pirDataDotGen
-  passes += delayAnalyzer
 
   // Codegen
   passes += spadeNetworkCodegen 

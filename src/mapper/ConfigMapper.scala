@@ -1,11 +1,11 @@
 package pir.mapper
-import pir.graph._
+import pir.graph.{Const => _, _}
 import pir._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
 import pir.codegen.Logger
-import pir.spade.graph.{SRAM => _, Top => _, _}
+import pir.spade.graph.{SRAM => _, Top => _, Const => _, _}
 import pir.util.typealias._
 
 import scala.collection.mutable._
@@ -46,7 +46,7 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     } else {
       val bufferSize = (m, cu) match {
         case (m:FIFO, cu:MP) if m.readPort.to.exists{ _ == cu.sram.writePort} =>
-          m.size + delayOf(mp.pmmap(cu.ctrlBox.writeEnDelay))
+          m.size + mp.cfmap(mp.pmmap(cu.ctrlBox.writeEnDelay)).delay
         case (m:FIFO, cu) =>
           m.size
         case (m:MBuf, cu) =>
@@ -73,9 +73,33 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     if (pir.spade.util.isMapped(pudc)(mp)) {
       val udc = mp.pmmap.get(pudc)
       val initVal = udc.map { _.initVal }.getOrElse(0)
-      dprintln(s"${quote(this)} -> $udc initVal=$initVal")
+      dprintln(s"$pudc -> $udc initVal=$initVal")
       mp.setCF(pudc, UDCounterConfig(initVal=initVal, name=s"$udc"))
     } else mp
+  }
+
+  def config(ppdu:PPDU, mp:M):M = {
+    mp.pmmap.get(ppdu).fold(mp) { pdu =>
+      mp.setCF(ppdu, PredicateUnitConfig(const=pdu.const, op=pdu.op))
+    }
+  }
+
+  def config(mc:MC, mp:M):M = {
+    val pmc = mp.pmmap(mc)
+    mp.setCF(pmc, MemoryControllerConfig(mctpe=mc.mctpe))
+  }
+
+  def config(cb:CB, map:M):M = {
+    var mp = map
+    val pcb = mp.pmmap(cb)
+    pcb.udcs.foreach { pudc => mp = config(pudc, mp) }
+    pcb.predicateUnits.foreach { ppdu => mp = config(ppdu, mp) }
+
+    cb match {
+      case ocb:OCB => mp = config(ocb, mp)
+      case _ =>
+    }
+    mp
   }
 
   def config(cu:CU, map:M):M = {
@@ -90,13 +114,6 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     mp
   }
 
-  def config(cb:CB, map:M):M = {
-    var mp = map
-    val pcb = mp.pmmap(cb)
-    pcb.udcs.foreach { pudc => mp = config(pudc, mp) }
-    mp
-  }
-
   def config(cu:CL, map:M):M = {
     var mp = map
     emitBlock(s"${quote(mp.pmmap(cu))} -> $cu") {
@@ -104,13 +121,28 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
         case cu:CU => mp = config(cu, mp)
         case cu:Top => 
       }
+      cu match {
+        case mc:MC => mp = config(mc, mp)
+        case _ =>
+      }
       mp = config(cu.ctrlBox, mp)
     }
     mp
   }
 
-  def map(mp:M):M = {
-    design.top.ctrlers.foldLeft(mp) { case (mp, cu) => config(cu, mp) }
+  def config(c:Const, mp:M) = {
+    val pc = mp.pmmap(c)
+    mp.setCF(pc, ConstConfig(c.value))
+  }
+
+  def map(map:M):M = {
+    var mp = map
+    mp = design.top.ctrlers.foldLeft(mp) { case (mp, cu) => config(cu, mp) }
+    mp.pmmap.keys.foreach {
+      case n:Const => mp = config(n, mp)
+      case _ =>
+    }
+    mp
   }
 
 }

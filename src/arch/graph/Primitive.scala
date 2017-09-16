@@ -16,21 +16,25 @@ import scala.collection.mutable.Set
 
 abstract class Primitive(implicit spade:Spade, val prt:Routable) extends Module
 
-class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) extends Simulatable {
+case class ConstConfig(value:AnyVal) extends Configuration
+class Const[P<:SingleType](tp:P, value:Option[AnyVal])(implicit spade:Spade) 
+  extends Simulatable with Configurable {
+  type CT = ConstConfig
   override val typeStr = "const"
   val out:Output[P, this.type] = Output(tp.clone, this, s"$this.out")
 
   override def register(implicit sim:Simulator):Unit = {
-    sim.mapping.pmmap.get(this).fold {
+    import sim.util._
+    cfmap.get(this).fold {
       out.v := value
       value.foreach { out.v.default = _ }
-    } { c => 
-      c.value match {
+    } { config => 
+      config.value match {
         case v:Float => out.v := v
         case v:Int => out.v := v
         case v:Boolean => out.v := v
       }
-      out.v.default = c.value
+      out.v.default = config.value
     }
   }
 }
@@ -41,15 +45,18 @@ object Const {
   def apply(v:Float)(implicit spade:Spade):Const[Word] = new Const(Word(), Some(v))
 }
 
-class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable, ev:TypeTag[P]) extends Primitive with Simulatable {
+case class DelayConfig (delay:Int) extends Configuration
+class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(implicit spade:Spade, prt:Routable, ev:TypeTag[P]) 
+  extends Primitive with Simulatable with Configurable {
   import spademeta._
+  type CT = DelayConfig
   override val typeStr = ts.getOrElse("delay")
   val in = Input(tp, this, s"${this}_in(0)")
   val out = Output(tp.clone, this, s"${this}_out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     import sim.spade
-    delayOf.get(this).orElse(staticDelay).foreach { delay =>
+    cfmap.get(this).map { _.delay }.orElse(staticDelay).foreach { delay =>
       out.v := in.vAt(delay) 
     }
   }

@@ -294,6 +294,7 @@ case class PMMap(map:PMMap.M, imap:PMMap.IM) extends IBiOneToOneMap {
   def apply(k:OCB):POCB     = cast(map(k))
   def apply(k:D):PD         = cast(map(k))
   def apply(k:CB):PCB       = cast(map(k))
+  def apply(k:PDU):PPDU       = cast(map(k))
 
   def apply(v:PCL):CL       = cast(imap(v))
   def apply(v:PMCU):MP      = cast(imap(v))
@@ -318,6 +319,7 @@ case class PMMap(map:PMMap.M, imap:PMMap.IM) extends IBiOneToOneMap {
   def get(v:Const):Option[PConst] = cast(map.get(v))
   def get(v:LUT):Option[PLUT]     = cast(map.get(v))
   def get(v:UC):Option[PUC]       = cast(map.get(v))
+  def get(v:PDU):Option[PPDU]       = cast(map.get(v))
 
   def get(v:PCL):Option[CL]       = cast(imap.get(v))
   def get(v:PMCU):Option[MP]      = cast(imap.get(v))
@@ -329,6 +331,7 @@ case class PMMap(map:PMMap.M, imap:PMMap.IM) extends IBiOneToOneMap {
   def get(v:PConst):Option[Const] = cast(imap.get(v))
   def get(v:PLUT):Option[LUT]     = cast(imap.get(v))
   def get(v:PUC):Option[UC]       = cast(imap.get(v))
+  def get(v:PPDU):Option[PDU]       = cast(imap.get(v))
 
   def apply(v:V):KK = imap(v)
   def get(v:V):Option[KK]         = imap.get(v)

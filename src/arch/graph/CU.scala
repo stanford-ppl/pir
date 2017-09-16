@@ -29,10 +29,17 @@ trait ComputeUnitParam extends ControllerParam {
   val vbufSize:Int
   val muxSize:Int
 }
+
+class ComputeUnitConfig (
+  val outputValid:Output[Bit, ComputeUnit] // TODO change to a map per ouput bases
+) extends Configuration
 /*
  * ComputeUnit
  * */
-abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) {
+abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) 
+with Configurable {
+
+  type CT <: ComputeUnitConfig
   import spademeta._
   import param._
   //override implicit val ctrler:ComputeUnit = this 
@@ -80,7 +87,7 @@ abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:S
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
     // Add delay to output if input is from doneXBar
-    pmmap.get(this).foreach { cu =>
+    cfmap.get(this).foreach { config =>
       (souts++vouts).foreach { 
         case out if isMapped(out)(mapping) =>
           this match {

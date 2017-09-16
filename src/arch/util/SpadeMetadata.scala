@@ -39,14 +39,6 @@ trait SpadeMetadata { self:Spade =>
     type V = String 
   }
 
-  object delayOf extends MOneToOneMap {
-    type K = Delay[_]
-    type V = Int
-    override def apply(k:K):V = {
-      super.get(k).getOrElse(0)
-    }
-  }
-
   object validOf extends MOneToOneMap {
     type K = GlobalOutput[_<:PortType, Module] 
     type V = Output[_<:PortType, Module]
