@@ -120,7 +120,6 @@ package object util {
       case n:Output[_,_] => mp.opmap.contains(n)
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.prt)
-      case n:PulserSM => isMapped(n.prt) && !mp.pmmap(n.prt).isSC
       case n:UpDownSM => isMapped(n.prt)
       case n:Const[_] => mp.pmmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 

@@ -122,7 +122,6 @@ abstract class OnChipMem(implicit spade:Spade, ctrler:Controller) extends Primit
 
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    //import sim.pirmeta._
     cfmap.get(this).foreach { config =>
       notEmpty.v.default = false
       notFull.v.default = true
@@ -217,7 +216,6 @@ case class SRAM(size:Int, banks:Int)(implicit spade:Spade, prt:Controller) exten
     memory.foreach { _.foreach { _.zero } }
   }
   override def register(implicit sim:Simulator):Unit = {
-    //import sim.pirmeta._
     import sim.spademeta._
     import sim.util._
     cfmap.get(this).foreach { config =>

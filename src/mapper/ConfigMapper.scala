@@ -158,10 +158,11 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
   def config(cu:Top, map:M):M = {
     var mp = map
     val pcu = mp.pmmap(cu)
+    val bounds = cu.souts.flatMap { sout => mp.vomap(sout).map { _ -> boundOf.get(sout) } }
     val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
       mp.vomap(out).map { _ -> pcu.ctrlBox.command }
     }
-    mp = mp.setCF(pcu, new ControllerConfig(outputValid.toMap))
+    mp = mp.setCF(pcu, new TopConfig(bounds.toMap, outputValid.toMap))
     mp
   }
 

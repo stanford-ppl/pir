@@ -17,13 +17,20 @@ case class TopParam (
 ) extends ControllerParam {
 }
 
+case class TopConfig (
+  bounds:Map[GlobalOutput[_<:PortType, Module], Option[AnyVal]],
+  override val outputValid:Map[GlobalOutput[_<:PortType, Module], Output[_<:PortType, Module]]
+) extends ControllerConfig(outputValid)
+
 /* Top-level controller (host)
  * @param argIns argument inputs. scalar inputs to the accelerator
  * @param argOuts argument outputs. scalar outputs to the accelerator
  * @param argInBuses output buses argIns are mapped to
  * @param argOutBuses input buses argOuts are mapped to
  * */
-case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade) extends Controller(param) { self =>
+case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade) extends Controller(param) with Configurable { self =>
+
+  type CT = TopConfig
   import spademeta._
   import param._
 
@@ -31,19 +38,18 @@ case class Top(override val param:TopParam=new TopParam())(implicit spade:Spade)
   override def register(implicit sim:Simulator):Unit = {
     import sim.pirmeta._
     import sim.util._
+    val bounds = cfmap(this).bounds
     souts.foreach { psout =>
-      vomap.get(psout).foreach { case sout:pir.graph.ScalarOut =>
-        boundOf.get(sout.scalar) match {
-          case Some(b:Int) => 
-            psout.ic.v.head.asSingle := b
-            psout.ic.v.valid := validOf(psout).v
-          case Some(b:Float) => 
-            psout.ic.v.head.asSingle := b
-            psout.ic.v.valid := validOf(psout).v
-          case None => warn(s"${sout.scalar} doesn't have a bound")
-          case b => err(s"Don't know how to simulate bound:$b of ${sout.scalar}")
-        }
-      }
+      bounds.get(psout).foreach { _ match {
+        case Some(b:Int) => 
+          psout.ic.v.head.asSingle := b
+          psout.ic.v.valid := validOf(psout).v
+        case Some(b:Float) => 
+          psout.ic.v.head.asSingle := b
+          psout.ic.v.valid := validOf(psout).v
+        case None => warn(s"$psout doesn't have a bound")
+        case b => err(s"Don't know how to simulate bound:$b of $psout")
+      } }
     }
     super.register
   }
