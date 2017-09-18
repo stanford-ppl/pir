@@ -30,16 +30,11 @@ trait ComputeUnitParam extends ControllerParam {
   val muxSize:Int
 }
 
-class ComputeUnitConfig (
-  val outputValid:Output[Bit, ComputeUnit] // TODO change to a map per ouput bases
-) extends Configuration
 /*
  * ComputeUnit
  * */
-abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) 
-with Configurable {
+abstract class ComputeUnit(override val param:ComputeUnitParam)(implicit spade:Spade) extends Controller(param) {
 
-  type CT <: ComputeUnitConfig
   import spademeta._
   import param._
   //override implicit val ctrler:ComputeUnit = this 

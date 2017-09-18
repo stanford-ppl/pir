@@ -39,10 +39,9 @@ case class OuterComputeUnitParam (
 }
 
 case class OuterComputeUnitConfig (
-  override val outputValid:Output[Bit, ComputeUnit],
   isSeq:Boolean,
   isMeta:Boolean
-) extends ComputeUnitConfig(outputValid)
+) extends ControllerConfig(Map.empty)
 
 class OuterComputeUnit(override val param:OuterComputeUnitParam=new OuterComputeUnitParam())(implicit spade:Spade) 
   extends ComputeUnit(param) with Configurable {

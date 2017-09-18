@@ -95,10 +95,80 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     pcb.udcs.foreach { pudc => mp = config(pudc, mp) }
     pcb.predicateUnits.foreach { ppdu => mp = config(ppdu, mp) }
 
-    cb match {
-      case ocb:OCB => mp = config(ocb, mp)
-      case _ =>
+    mp
+  }
+
+  def config(cu:MP, map:M):M = {
+    var mp = map
+    val pmcu = mp.pmmap(cu)
+
+    // Set valid
+    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
+      mp.vomap(out).map { pout => 
+        pout -> mp.pmmap(cu.ctrlBox.readEnDelay).out
+      }
     }
+    mp = mp.setCF(pmcu, new ControllerConfig(outputValid.toMap))
+
+    // Set delay
+    val rstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forRead(st) } }
+    val wstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forWrite(st) } }
+    val ridxs = rstages.map(_.index)
+    val widxs = wstages.map(_.index)
+    val rdelay = (if (ridxs.nonEmpty) ridxs.max - ridxs.min else 0)
+    val wdelay = if (widxs.nonEmpty) widxs.max - widxs.min else 0
+    dprintln(s"$cu(${quote(pmcu)}) rdelay=$rdelay wdelay=$wdelay")
+    mp = mp.setCF(pmcu.ctrlBox.readEnDelay, DelayConfig(rdelay))
+    mp = mp.setCF(pmcu.ctrlBox.readDoneDelay, DelayConfig(rdelay))
+    mp = mp.setCF(pmcu.ctrlBox.writeEnDelay, DelayConfig(wdelay))
+    mp = mp.setCF(pmcu.ctrlBox.writeDoneDelay, DelayConfig(wdelay))
+
+    mp
+  }
+
+  def config(cu:PL, map:M):M = {
+    var mp = map
+    val pcu = mp.pmmap(cu)
+
+    // Set valid
+    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>
+      val in = out.readers.head
+      in.ctrler match {
+        case top:Top => 
+          mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }
+        case _ =>
+          if (collectOut[FIFO](in).nonEmpty)
+            mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.enDelay).out }
+          else if (collectOut[MultiBuffer](in).nonEmpty)
+            mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }
+          else Nil
+      }
+    }
+    mp = mp.setCF(pcu, new ControllerConfig(outputValid.toMap))
+    
+    // Set delay
+    val delay = pcu.stages.size
+    dprintln(s"$cu(${quote(pcu)}) delay=$delay")
+    mp = mp.setCF(mp.pmmap(cu.ctrlBox.enDelay), DelayConfig(delay))
+    mp = mp.setCF(mp.pmmap(cu.ctrlBox.doneDelay), DelayConfig(delay))
+
+    mp
+  }
+
+  def config(cu:Top, map:M):M = {
+    var mp = map
+    val pcu = mp.pmmap(cu)
+    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
+      mp.vomap(out).map { _ -> pcu.ctrlBox.command }
+    }
+    mp = mp.setCF(pcu, new ControllerConfig(outputValid.toMap))
+    mp
+  }
+
+  def config(cu:OCL, map:M):M = {
+    var mp = map
+    val pcu = mp.pmmap(cu)
+    mp = mp.setCF(pcu, new OuterComputeUnitConfig(isSeq=cu.isSeq, isMeta=cu.isMeta))
     mp
   }
 
@@ -111,6 +181,12 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     cu.cchains.foreach { 
       _.counters.foreach { ctr => mp = config(ctr, mp) }
     }
+    cu match {
+      case cu:MP => mp = config(cu, map)
+      case cu:PL => mp = config(cu, map) 
+      case mc:MC => mp = config(mc, mp)
+      case ocu:OCL => mp = config(ocu, mp)
+    }
     mp
   }
 
@@ -119,11 +195,7 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     emitBlock(s"${quote(mp.pmmap(cu))} -> $cu") {
       cu match {
         case cu:CU => mp = config(cu, mp)
-        case cu:Top => 
-      }
-      cu match {
-        case mc:MC => mp = config(mc, mp)
-        case _ =>
+        case cu:Top =>  mp = config(cu, mp)
       }
       mp = config(cu.ctrlBox, mp)
     }

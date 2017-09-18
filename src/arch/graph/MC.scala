@@ -37,7 +37,7 @@ case class MCParam (
 
 case class MemoryControllerConfig (
   mctpe:MCType
-) extends Configuration
+) extends ControllerConfig(Map.empty) // No need to configure output valid
 
 class MemoryController(param:MCParam = MCParam())(implicit spade:Spade) extends Controller(param) 
   with Configurable {
