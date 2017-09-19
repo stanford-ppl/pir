@@ -1,6 +1,6 @@
 package pir.spade.util
 
-import pir.util.maps._
+import pirc.collection.mutable._
 import pir.spade.node._
 import pir.spade.network._
 import pir.spade.main._

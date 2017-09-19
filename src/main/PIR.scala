@@ -6,10 +6,11 @@ import mapper._
 import pir.codegen._
 import spade.util._
 import pir.util._
-import pir.exceptions._
+import pirc.exceptions._
 import pir.util.misc._
 import pir.spade.main._
 import pir.spade.simulation._
+import pirc._
 
 //import analysis._
 
@@ -24,7 +25,7 @@ import scala.collection.mutable.{Set,Map}
 import java.nio.file.{Paths, Files}
 import scala.io.Source
 
-trait PIR extends pir.util.Design with PIRMetadata with Collector {
+trait PIR extends Design with PIRMetadata with Collector {
 
   implicit def design: PIR = this
   val pirmeta:PIRMetadata = this

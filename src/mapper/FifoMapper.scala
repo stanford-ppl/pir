@@ -6,8 +6,8 @@ import pir.node.{PipeReg => PR, VecInPR, LoadPR}
 import pir.spade.node.{PipeReg => PPR}
 import pir.spade.util._
 import pir.spade.main._
-import pir.exceptions._
-import pir.util.enums._
+import pirc.exceptions._
+import pirc.enums._
 import pir.util.PIRMetadata
 import pir.spade.node._
 

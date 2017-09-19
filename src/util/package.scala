@@ -5,7 +5,7 @@ import pir.util.misc._
 import mapper._
 import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
-import pir.exceptions._
+import pirc.exceptions._
 import java.lang.Thread
 import pir.codegen.Logger
 import scala.collection.mutable.ListBuffer

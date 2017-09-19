@@ -4,7 +4,7 @@ import pir.util.typealias._
 import pir.pass.{PIRMapping}
 import pir.codegen.{CtrDotPrinter}
 import pir.util._
-import pir.exceptions._
+import pirc.exceptions._
 import pir.node.Const
 import pir.spade.node._
 import pir.spade.util._

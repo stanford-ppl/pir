@@ -3,14 +3,14 @@ import pir.node._
 import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
-import pir.exceptions._
+import pirc.exceptions._
 import pir.codegen._
 import pir.pass.{PIRMapping}
 import pir.spade.main._
 import pir.spade.util._
 import pir.util.misc._
 import pir.util.topoSort
-import pir.util.enums._
+import pirc.enums._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

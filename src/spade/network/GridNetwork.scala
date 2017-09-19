@@ -3,9 +3,11 @@ package pir.spade.network
 import pir.spade.node._
 import scala.language.implicitConversions
 import pir.spade.main._
-import pir.util.enums._
+import pirc.enums._
+import pirc.collection.mutable._
+
 import scala.language.existentials
-import pir.util.tables.mutable._
+
 
 abstract class GridNetwork()(implicit spade:SwitchNetwork) {
   import spade._

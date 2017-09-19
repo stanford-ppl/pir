@@ -2,7 +2,7 @@ package pir.mapper
 import pir.node.{Const => _, _}
 import pir._
 import pir.util._
-import pir.exceptions._
+import pirc.exceptions._
 import pir.util.misc._
 import pir.codegen.Logger
 import pir.spade.node.{SRAM => _, Top => _, Const => _, _}

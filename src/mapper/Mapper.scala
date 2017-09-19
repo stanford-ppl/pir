@@ -15,7 +15,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.util.{Try, Success, Failure}
-import pir.exceptions._
+import pirc.exceptions._
 
 trait Mapper { self =>
   type M = PIRMap 

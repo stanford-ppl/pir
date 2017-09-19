@@ -4,7 +4,7 @@ import pir.PIR
 import pir.node.{AccumPR, Const}
 import pir.spade.main._
 import pir.util.typealias._
-import pir.util.enums._
+import pirc.enums._
 import pir.Config
 
 import scala.collection.mutable.ListBuffer

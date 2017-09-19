@@ -5,10 +5,10 @@ import pir._
 import pir.codegen.DotCodegen
 import pir.spade.node._
 import pir.codegen.DotCodegen
-import pir.exceptions._
+import pirc.exceptions._
 import pir.spade.util._
 import pir.spade.main.Spade
-import pir.util.enums._
+import pirc.enums._
 
 import scala.collection.mutable
 

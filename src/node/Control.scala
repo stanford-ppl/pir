@@ -9,8 +9,8 @@ import scala.math.max
 import scala.reflect.runtime.universe._
 import pir.PIR
 import pir.node._
-import pir.util.enums._
-import pir.exceptions._
+import pirc.enums._
+import pirc.exceptions._
 import pir.pass.ForwardRef
 
 

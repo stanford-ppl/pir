@@ -2,8 +2,8 @@ package pir.spade.simulation
 
 import pir.spade.main._
 import pir.spade.node.{Mux => _, _}
-import pir.util.enums._
-import pir.exceptions._
+import pirc.enums._
+import pirc.exceptions._
 import pir.util.misc._
 import pir.Config
 import pir.spade.util._

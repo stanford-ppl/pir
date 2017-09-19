@@ -4,15 +4,11 @@ import pir.spade.network._
 import pir.spade.node._
 import pir.spade.main._
 
-import pir.util.enums._
+import pirc.enums._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.immutable.{Map => IMap}
 import scala.reflect.runtime.universe._
-import scala.util.{Try, Success, Failure}
 
 class SN(numRows:Int=2, numCols:Int=2, numArgIns:Int=3, numArgOuts:Int=3, pattern:Pattern=MixAll) extends SwitchNetwork (
   new SwitchNetworkParam(numRows=numRows, numCols=numCols, numArgIns=numArgIns, numArgOuts=numArgOuts, pattern=pattern)) {

@@ -1,10 +1,10 @@
 package pir.codegen
 
 import pir._
-import pir.exceptions._
+import pirc.exceptions._
 import pir.spade.main.Spade
 import pir.pass.Pass
-import pir.util.Design
+import pirc._
 
 import java.nio.file.{Paths, Files}
 import java.io.PrintWriter

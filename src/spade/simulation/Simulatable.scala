@@ -6,7 +6,6 @@ import pir.pass.Pass
 import pir.spade.main._
 import pir.spade.node._
 import pir.spade.traversal._
-import pir.exceptions.PIRException
 import pir.util.misc._
 import pir.spade.util._
 

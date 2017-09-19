@@ -2,10 +2,10 @@ package pir.mapper
 import pir._
 import pir.codegen.{Printer}
 import pir.util.typealias._
-import pir.util.maps._
+import pirc.collection.immutable._
 
 import pir.pass.PIRMapping
-import pir.exceptions._
+import pirc.exceptions._
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer

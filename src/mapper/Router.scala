@@ -7,7 +7,7 @@ import pir.codegen.{DotCodegen, Printer}
 import pir.pass.{PIRMapping}
 import pir.spade.node.{Node => PNode}
 import pir.spade.main._
-import pir.exceptions._
+import pirc.exceptions._
 import scala.language.existentials
 
 import scala.collection.immutable.Set

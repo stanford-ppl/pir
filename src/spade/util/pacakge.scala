@@ -3,7 +3,7 @@ package pir.spade
 import pir.spade.main.Spade
 import pir.spade.node._
 import pir.spade.simulation._
-import pir.exceptions.PIRException
+import pirc.exceptions.PIRException
 import pir.mapper.PIRMap
 import pir.PIR
 

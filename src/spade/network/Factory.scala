@@ -3,7 +3,6 @@ package pir.spade.network
 import pir.spade.node._
 import pir.spade.main._
 import pir.spade.util._
-import pir.exceptions.PIRException
 import pir.util.misc._
 import pir.codegen.Logger
 import pir.spade.arch._
@@ -13,7 +12,7 @@ import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 import pureconfig._
-import pir.util.enums._
+import pirc.enums._
 
 // Common configuration generator 
 object ConfigFactory extends Logger {
@@ -62,8 +61,7 @@ plasticine {
     case Right(config) => 
       config
     case Left(failures) =>
-      errmsg(s"Unable to load plasticine config!")
-      throw PIRException(s"$failures")
+      err(s"Unable to load plasticine config!")
   }
 
   def getArch(name:String) = {

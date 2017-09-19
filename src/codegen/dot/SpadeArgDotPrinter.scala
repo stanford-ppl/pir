@@ -5,7 +5,7 @@ import pir.codegen._
 import pir.util._
 import pir.util.typealias._
 import pir.mapper.{PIRMap}
-import pir.exceptions._
+import pirc.exceptions._
 import pir.util.misc._
 import pir.spade.main._
 import pir.spade.node._

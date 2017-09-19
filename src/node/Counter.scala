@@ -9,10 +9,10 @@ import scala.math.max
 import scala.reflect.runtime.universe._
 import pir.{PIR, Config}
 import pir.node._
-import pir.util.enums._
+import pirc.enums._
 import pir.util._
 import pir.pass.ForwardRef
-import pir.exceptions._
+import pirc.exceptions._
 
 case class CounterChain(name:Option[String], cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   import pirmeta._

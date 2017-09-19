@@ -2,7 +2,7 @@ package pir.node
 
 import pir.PIR
 import pir.node._
-import pir.exceptions._
+import pirc.exceptions._
 import pir.util.misc._
 
 import scala.collection.mutable.Set

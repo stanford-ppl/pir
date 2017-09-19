@@ -2,8 +2,8 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util.misc._
-import pir.util.enums._
-import pir.exceptions.PIRException
+import pirc.enums._
+import pirc.exceptions.PIRException
 import pir.codegen.{Logger, CSVPrinter, Row}
 import Math._
 

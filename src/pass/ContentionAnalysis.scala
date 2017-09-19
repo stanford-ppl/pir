@@ -2,7 +2,6 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util.misc._
-import pir.exceptions.PIRException
 import pir.codegen.Logger
 
 import scala.collection.mutable.Set

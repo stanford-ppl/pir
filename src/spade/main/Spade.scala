@@ -7,7 +7,7 @@ import scala.collection.mutable.ListBuffer
 import pir.spade.simulation._
 import pir.spade.util._
 import pir.util.misc._
-import pir.util.Design
+import pirc._
 
 trait SpadeParam {
   lazy val wordWidth = 32

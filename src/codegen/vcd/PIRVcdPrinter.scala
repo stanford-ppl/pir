@@ -9,7 +9,6 @@ import pir.spade.util.{quote => _, _}
 import pir.util.misc._
 import pir.util.typealias._ 
 import pir.util.PIRMetadata
-import pir.exceptions.PIRException
 import pir.spade.simulation._
 
 import scala.language.reflectiveCalls

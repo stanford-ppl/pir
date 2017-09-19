@@ -1,8 +1,9 @@
 package pir.mapper
 import pir._
-import pir.util.maps._
 import pir.spade.node._
 import pir.spade.util.typealias._
+
+import pirc.collection.immutable._
 
 import scala.reflect.runtime.universe._
 import scala.language.existentials

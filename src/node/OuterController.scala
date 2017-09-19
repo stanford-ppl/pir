@@ -1,7 +1,7 @@
 package pir.node
 
 import pir.PIR
-import pir.exceptions._
+import pirc.exceptions._
 import pir.util._
 import scala.reflect.runtime.universe._
 import pir.codegen.Logger

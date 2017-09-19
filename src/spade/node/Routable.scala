@@ -1,11 +1,11 @@
 package pir.spade.node
 
-import pir.util.enums._
+import pirc.enums._
 import pir.util.misc._
 import pir.spade.main._
 import pir.spade.simulation._
 import pir.spade.util._
-import pir.exceptions._
+import pirc.exceptions._
 
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
