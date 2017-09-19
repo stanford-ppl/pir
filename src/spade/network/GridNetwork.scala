@@ -1,11 +1,11 @@
 package pir.spade.network
 
 import pir.spade.node._
-import scala.language.implicitConversions
 import pir.spade.main._
 import pirc.enums._
 import pirc.collection.mutable._
 
+import scala.language.implicitConversions
 import scala.language.existentials
 
 

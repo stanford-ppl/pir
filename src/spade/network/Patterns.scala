@@ -2,15 +2,11 @@ package pir.spade.network
                           
 import pir.spade.node._
 import pir.spade.main._
+import pirc.enums._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.immutable.{Map => IMap}
 import scala.reflect.runtime.universe._
-import pirc.enums._
-import scala.util.{Try, Success, Failure}
 
 sealed trait Pattern {
   def cuAt(sn:SwitchNetwork)(i:Int, j:Int):ComputeUnit

@@ -3,9 +3,10 @@ package pir.spade.network
 import pir.spade.node._
 import pir.spade.main._
 import pir.spade.util._
-import pirc.util._
-import pir.codegen.Logger
 import pir.spade.arch._
+import pirc.util._
+
+import pir.codegen.Logger
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls

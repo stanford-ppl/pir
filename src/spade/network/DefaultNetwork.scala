@@ -2,9 +2,8 @@ package pir.spade.network
 
 import pir.spade.main._
 import pir.spade.node._
+
 import scala.language.implicitConversions
-import scala.collection.mutable.Map
-import scala.collection.immutable.{Map => IMap}
 import scala.language.existentials
 
 class VectorNetwork()(implicit spade:SwitchNetwork) extends GridNetwork() {

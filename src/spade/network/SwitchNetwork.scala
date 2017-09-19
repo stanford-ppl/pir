@@ -2,11 +2,11 @@ package pir.spade.network
 
 import pir.spade.main._
 import pir.spade.node._
-import scala.language.implicitConversions
-import scala.collection.mutable.Map
 import pir.spade.network._
-import scala.collection.immutable.{Map => IMap}
+
 import pirc.enums._
+
+import scala.language.implicitConversions
 import scala.language.existentials
 
 case class PreloadSwitchNetworkParam (
