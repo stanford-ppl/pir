@@ -1,13 +1,10 @@
 package pir.spade.node
 
-import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-
 import pir.spade.main._
 import pir.spade.util._
 import pir.spade.simulation._
+
+import scala.language.reflectiveCalls
 
 /** Physical Counter  */
 case class CounterConfig (

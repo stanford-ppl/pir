@@ -1,7 +1,5 @@
 package pir.spade.node
 
-import pir.node._
-import pirc.enums._
 import pir.codegen._
 
 import pir.spade.main._
@@ -9,10 +7,11 @@ import pir.spade.util._
 import pir.spade.simulation._
 import pir.spade.network._
 
+import pirc.enums._
+
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.Set
 import scala.language.existentials
 
 trait PortType extends Value {

@@ -1,16 +1,13 @@
 package pir.spade.node
 
-import pir.node._
-import pirc.enums._
-import pirc.util._
 import pir.spade.main._
 import pir.spade.util._
 import pir.spade.simulation._
 
+import pirc.enums._
+
 import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.Set
 
 /* Phyiscal pipeline register */
 case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val prt:ComputeUnit) extends Primitive with Simulatable {

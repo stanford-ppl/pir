@@ -2,15 +2,13 @@ package pir.spade.simulation
 
 import pir._
 import pir.codegen.Logger
-import pir.pass.Pass
+
 import pir.spade.main._
 import pir.spade.node._
 import pir.spade.traversal._
-import pirc.util._
 import pir.spade.util._
 
-import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
+import pirc.util._
 
 trait Simulatable extends Module with Evaluation {
   spade.simulatable += this

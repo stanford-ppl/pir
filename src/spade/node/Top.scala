@@ -1,14 +1,12 @@
 package pir.spade.node
 
-import pirc.util._
 import pir.spade.main._
 import pir.spade.simulation._
 import pir.spade.util._
 
+import pirc.util._
+
 import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.Set
 
 case class TopParam (
   sbufSize:Int = 16,

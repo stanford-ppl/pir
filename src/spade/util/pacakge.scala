@@ -3,12 +3,11 @@ package pir.spade
 import pir.spade.main.Spade
 import pir.spade.node._
 import pir.spade.simulation._
-import pirc.exceptions.PIRException
-import pir.mapper.PIRMap
-import pir.PIR
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
+import pirc.exceptions.PIRException
+
+import pir.mapper.PIRMap
+
 import scala.language.implicitConversions
 import scala.reflect.{ClassTag, classTag}
 

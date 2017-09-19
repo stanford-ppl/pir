@@ -1,12 +1,10 @@
 package pir.spade.util
 
-import pirc.collection.mutable._
 import pir.spade.node._
 import pir.spade.network._
 import pir.spade.main._
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
+
+import pirc.collection.mutable._
 
 trait SpadeMetadata { self:Spade =>
   /* Coordinate of a spade node. Used for pisa and dot codegen */

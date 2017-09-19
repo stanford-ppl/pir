@@ -1,7 +1,9 @@
 package pir.spade.traversal
+
 import pir.spade.main._
 import pir.spade.node._
 import pir.spade.network._
+
 import scala.collection.mutable.Set
 
 trait Traversal {

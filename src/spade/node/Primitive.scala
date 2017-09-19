@@ -1,18 +1,14 @@
 package pir.spade.node
 
-import pir.node._
-import pirc.enums._
-import pirc.util._
 import pir.spade.main._
 import pir.spade.util._
 import pir.spade.simulation._
-import pir.mapper.PIRMap
+
+import pirc.enums._
 
 import scala.language.reflectiveCalls
 import scala.reflect.runtime.universe.{SingleType =>_, _}
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
 
 abstract class Primitive(implicit spade:Spade, val prt:Routable) extends Module
 

@@ -1,17 +1,15 @@
 package pir.spade.node
 
-import pirc.enums._
-import pirc.util._
-import pirc.exceptions._
-
 import pir.spade.main._
 import pir.spade.simulation._
 import pir.spade.util._
 
+import pirc.enums._
+import pirc.util._
+import pirc.exceptions._
+
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.Set
 
 trait ComputeUnitParam extends ControllerParam {
   val numRegs:Int

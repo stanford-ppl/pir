@@ -1,17 +1,11 @@
 package pir.spade.node
 
-import pirc.enums._
-import pirc.util._
 import pir.spade.main._
 import pir.spade.network._
 import pir.spade.simulation._
 import pir.spade.util._
-import pirc.exceptions._
 
 import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.Set
 
 
 /* Switch box (6 inputs 6 outputs) */

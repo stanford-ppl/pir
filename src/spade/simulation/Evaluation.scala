@@ -2,16 +2,11 @@ package pir.spade.simulation
 
 import pir.spade.main._
 import pir.spade.node.{Mux => _, _}
-import pirc.enums._
-import pirc.exceptions._
-import pirc.util._
-import pir.Config
 import pir.spade.util._
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-//import scala.reflect.{ClassTag, classTag}
+import pirc.enums._
+import pirc.exceptions._
+
 import scala.reflect.runtime.universe._
 import scala.language.implicitConversions
 

@@ -1,12 +1,11 @@
 package pir.spade.node
 
-import pir.node._
-import pirc.enums._
 import pir.spade.main._
 import pir.spade.util._
 
+import pirc.enums._
+
 import scala.language.reflectiveCalls
-import scala.collection.mutable.Map
 import scala.collection.mutable.Set
 
 /* Logical register (1 row of pipeline registers for all stages) */
