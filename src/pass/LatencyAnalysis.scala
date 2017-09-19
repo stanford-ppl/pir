@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.misc._
 import pir.util.enums._
@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
+class LatencyAnalysis(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = design.pirMapping.succeeded && design.controlAnalyzer.hasRun && design.contentionAnalyzer.hasRun
@@ -128,40 +128,40 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
   
 
   //
-  //offchipLat += (1  , "DotProductDesign", TileLoad)  -> 788
-  //offchipLat += (1  , "OuterProductDesign", TileLoad)    -> 56
-  //offchipLat += (48 , "OuterProductDesign", TileStore)  -> 1324
-  //offchipLat += (1  , "TPCHQ6Design", TileLoad)  -> 788
-  //offchipLat += (1  , "BlackScholesDesign", TileLoad)  -> 788
-  //offchipLat += (1  , "BlackScholesDesign", TileStore) -> 847
-  //offchipLat += (16 , "MatMult_innerDesign", TileLoad)   -> 385
-  //offchipLat += (48 , "MatMult_innerDesign", TileLoad)   -> 1078
-  //offchipLat += (16 , "MatMult_innerDesign", TileStore)  -> 469
+  //offchipLat += (1  , "DotProductPIR", TileLoad)  -> 788
+  //offchipLat += (1  , "OuterProductPIR", TileLoad)    -> 56
+  //offchipLat += (48 , "OuterProductPIR", TileStore)  -> 1324
+  //offchipLat += (1  , "TPCHQ6PIR", TileLoad)  -> 788
+  //offchipLat += (1  , "BlackScholesPIR", TileLoad)  -> 788
+  //offchipLat += (1  , "BlackScholesPIR", TileStore) -> 847
+  //offchipLat += (16 , "MatMult_innerPIR", TileLoad)   -> 385
+  //offchipLat += (48 , "MatMult_innerPIR", TileLoad)   -> 1078
+  //offchipLat += (16 , "MatMult_innerPIR", TileStore)  -> 469
 
-  //offchipLat += (16 , "MatMult_outerDesign", TileLoad)   -> 385
-  //offchipLat += (48 , "MatMult_outerDesign", TileLoad)   -> 1078
-  //offchipLat += (16 , "MatMult_outerDesign", TileStore)  -> 469
+  //offchipLat += (16 , "MatMult_outerPIR", TileLoad)   -> 385
+  //offchipLat += (48 , "MatMult_outerPIR", TileLoad)   -> 1078
+  //offchipLat += (16 , "MatMult_outerPIR", TileStore)  -> 469
 
-  //offchipLat += (1, "LogRegDesign", TileStore)  -> 469
-  //offchipLat += (1, "LogRegDesign", TileStore)  -> 469
-  //offchipLat += (1, "LogRegDesign", TileStore)  -> 469
-  //offchipLat += (1, "LogRegDesign", TileStore)  -> 469
+  //offchipLat += (1, "LogRegPIR", TileStore)  -> 469
+  //offchipLat += (1, "LogRegPIR", TileStore)  -> 469
+  //offchipLat += (1, "LogRegPIR", TileStore)  -> 469
+  //offchipLat += (1, "LogRegPIR", TileStore)  -> 469
 
-  //offchipLat += (1, "SGDDesign", TileStore)  -> 469
-  //offchipLat += (1, "SGDDesign", TileStore)  -> 469
-  //offchipLat += (1, "SGDDesign", TileStore)  -> 469
+  //offchipLat += (1, "SGDPIR", TileStore)  -> 469
+  //offchipLat += (1, "SGDPIR", TileStore)  -> 469
+  //offchipLat += (1, "SGDPIR", TileStore)  -> 469
 
-  //offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469
-  //offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469
-  //offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469
-  //offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469
-  //offchipLat += (1, "Kmeans_fissionDesign", TileStore)  -> 469
+  //offchipLat += (1, "Kmeans_fissionPIR", TileStore)  -> 469
+  //offchipLat += (1, "Kmeans_fissionPIR", TileStore)  -> 469
+  //offchipLat += (1, "Kmeans_fissionPIR", TileStore)  -> 469
+  //offchipLat += (1, "Kmeans_fissionPIR", TileStore)  -> 469
+  //offchipLat += (1, "Kmeans_fissionPIR", TileStore)  -> 469
 
-  //offchipLat += (1, "GDADesign", TileStore)  -> 469
-  //offchipLat += (1, "GDADesign", TileStore)  -> 469
-  //offchipLat += (1, "GDADesign", TileStore)  -> 469
-  //offchipLat += (1, "GDADesign", TileStore)  -> 469
-  //offchipLat += (1, "GDADesign", TileStore)  -> 469
+  //offchipLat += (1, "GDAPIR", TileStore)  -> 469
+  //offchipLat += (1, "GDAPIR", TileStore)  -> 469
+  //offchipLat += (1, "GDAPIR", TileStore)  -> 469
+  //offchipLat += (1, "GDAPIR", TileStore)  -> 469
+  //offchipLat += (1, "GDAPIR", TileStore)  -> 469
   //def offchipLatency(mc:MemoryController) = {
     ////val len = constOf.getOrElseUpdate(mc.len, constProp(mc.len))
     //val len = constOf.getOrElseUpdate(lenOf(mc), hackLen2(mc))
@@ -173,21 +173,21 @@ class LatencyAnalysis(implicit design: Design) extends Pass with Logger {
       //sizeSet += comb
     //}
     //////contentionOf(mc) * numBytes / 64 * 40 //TODO
-    ////if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerDesign", TileLoad)) {
-    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerDesign", TileStore)) {
+    ////if ((numRow.toInt, s"$design", mc.mctpe) == (16 , "MatMult_outerPIR", TileLoad)) {
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "MatMult_outerPIR", TileStore)) {
 
-    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegDesign"*/ 768, TileLoad)) { 758
-    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 4, TileLoad)) {
-    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegDesign"*/ 768, TileStore)) {
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (10, /*"LogRegPIR"*/ 768, TileLoad)) { 758
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegPIR"*/ 4, TileLoad)) {
+    ////} else if ((numRow.toInt, numBytes, mc.mctpe) == (1, /*"LogRegPIR"*/ 768, TileStore)) {
 
-    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
-    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDDesign", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDPIR", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDPIR", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDPIR", TileStore)) { 
+    ////} else if ((numRow.toInt, s"$design", mc.mctpe) == (1, "SGDPIR", TileStore)) { 
 
-    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileStore)) { 
-    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 64  , "ConvolutionDesign", TileLoad)) { 
-    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionDesign", TileLoad)) { 
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionPIR", TileStore)) { 
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 64  , "ConvolutionPIR", TileLoad)) { 
+    ////} else if ((numRow.toInt, numBytes, s"$design", mc.mctpe) == (1, 1024, "ConvolutionPIR", TileLoad)) { 
     ////}
     ////val comb = (numRow.toInt, s"$design", mc.mctpe)
     //offchipLat(comb) / 4 

@@ -4,7 +4,7 @@ import pir._
 import pir.util._
 import pir.util.misc._
 import pir.spade.util._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.spade.main._
 
 import scala.collection.mutable.ListBuffer
@@ -13,7 +13,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class SpadePrinter(implicit design: Design) extends Codegen {
+class SpadePrinter(implicit design: PIR) extends Codegen {
   def shouldRun = Config.debug
 
   override lazy val stream = newStream(Config.spadeFile, design.arch) 

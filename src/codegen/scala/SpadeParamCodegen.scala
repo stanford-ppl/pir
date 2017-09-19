@@ -1,8 +1,8 @@
 package pir.codegen
 
-import pir.Design
+import pir.PIR
 import pir.spade.main._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.Config
 
 import scala.collection.mutable.ListBuffer
@@ -12,7 +12,7 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class SpadeParamCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
+class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
   import spade.param._

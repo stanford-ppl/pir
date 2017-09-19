@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir._
 import pir.codegen._
-import pir.graph._
+import pir.node._
 import pir.util.misc._
 
 import scala.collection.mutable.ListBuffer
@@ -11,13 +11,13 @@ import scala.collection.mutable.Map
 import java.io.File
 import scala.language.implicitConversions
 
-class CtrlDotGen(implicit design: Design) extends Codegen with DotCodegen {
+class CtrlDotGen(implicit design: PIR) extends Codegen with DotCodegen {
   def shouldRun = Config.debug && Config.ctrl
 
   override lazy val stream = newStream(Config.ctrlDot)
 
   override def initPass = {
-    emitBSln("digraph G")
+    emitBSln("dinode G")
     //emitln(s"splines=ortho;")
   }
 

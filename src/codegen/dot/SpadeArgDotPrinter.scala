@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.codegen._
 import pir.util._
 import pir.util.typealias._
@@ -8,8 +8,9 @@ import pir.mapper.{PIRMap}
 import pir.exceptions._
 import pir.util.misc._
 import pir.spade.main._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.spade.util._
+import pir.spade.network._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -22,10 +23,10 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen { 
+class ArgDotPrinter(fn:String)(implicit design:PIR) extends DotCodegen { 
   override lazy val stream = newStream(fn)
 
-  def this()(implicit design:Design) = this(Config.spadeArgInOut)
+  def this()(implicit design:PIR) = this(Config.spadeArgInOut)
 
   def print(pcus:List[PCU], ptop:PTop) = {
     emitBlock("digraph G") {
@@ -44,7 +45,7 @@ class ArgDotPrinter(fn:String)(implicit design:Design) extends DotCodegen {
   }
 }
 object ArgDotPrinter{
-  def print(ptop:PTop)(printer:DotCodegen)(implicit design:Design) = {
+  def print(ptop:PTop)(printer:DotCodegen)(implicit design:PIR) = {
     implicit def spade = design.arch
     def quote(n:Any) = printer.quote(n)
     ptop.vins.foreach { vin =>

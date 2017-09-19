@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.misc._
 import pir.util.enums._
@@ -13,9 +13,9 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class PIRStat(implicit design:Design) extends Printer {
+class PIRStat(implicit design:PIR) extends Printer {
   override lazy val stream:OutputStream = newStream(s"PIRStat.log", append=true) 
-  def cycle(cycle:Long)(implicit design: Design) = {
+  def cycle(cycle:Long)(implicit design: PIR) = {
     val latency = cycle / Math.pow(10,9)
     emit(s"[${design}] ${new java.sql.Timestamp(System.currentTimeMillis())} cycle:$cycle, latency:${latency}s, ")
     flush
@@ -38,11 +38,11 @@ class PIRStat(implicit design:Design) extends Printer {
   }
 }
 
-class PIRStatLog(fn:String)(implicit design: Design) extends Traversal with Printer {
+class PIRStatLog(fn:String)(implicit design: PIR) extends Traversal with Printer {
   override def shouldRun = true
   import pirmeta._
 
-  def this()(implicit design: Design) = {
+  def this()(implicit design: PIR) = {
     this(s"${design}.stat")
   }
   override lazy val stream:OutputStream = newStream(fn) 

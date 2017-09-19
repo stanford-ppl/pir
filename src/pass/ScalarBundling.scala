@@ -1,6 +1,6 @@
 package pir.pass
 
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.util.misc._
@@ -11,7 +11,7 @@ import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
 import scala.collection.mutable.{ Map => MMap }
 
-class ScalarBundling(implicit design: Design) extends Pass {
+class ScalarBundling(implicit design: PIR) extends Pass {
   def shouldRun = true 
   import pirmeta._
 

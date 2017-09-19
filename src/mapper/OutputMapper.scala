@@ -8,7 +8,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class OutputMapper(implicit val design:Design) extends Mapper {
+class OutputMapper(implicit val design:PIR) extends Mapper {
   type N = VO 
   type R = PGO[_<:PModule]
   val typeStr = "SOMapper"

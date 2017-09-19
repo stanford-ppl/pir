@@ -1,17 +1,17 @@
 package pir.pass
-import pir.graph.{Const => _, _}
+import pir.node.{Const => _, _}
 import pir._
-import pir.spade.main._
 import pir.util.typealias._
 import pir.util._
 import pir.util.misc._
 import pir.exceptions._
 import pir.codegen.PIRPrinter
+import pir.spade.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap
 
-class IRCheck(implicit design: Design) extends Pass {
+class IRCheck(implicit design: PIR) extends Pass {
   import pirmeta._
 
   override def toString = "IRCheck"

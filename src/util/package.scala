@@ -1,6 +1,6 @@
 package pir
 
-import pir.graph._
+import pir.node._
 import pir.util.misc._
 import mapper._
 import pir.codegen.{Printer, Logger}
@@ -18,11 +18,11 @@ package object util {
   implicit def ctr_to_port(ctr:Counter):OutPort = ctr.out
   implicit def const_to_port(const:Const[_<:AnyVal]):OutPort = const.out
   implicit def mExcep_to_string(e:MappingException[_]):String = e.toString
-  implicit def range_to_bound(r:Range)(implicit design:Design) = r by Const(1) 
-  implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:Design): (OutPort, OutPort, OutPort) =
+  implicit def range_to_bound(r:Range)(implicit design:PIR) = r by Const(1) 
+  implicit def sRange_to_bound(r:scala.collection.immutable.Range)(implicit design:PIR): (OutPort, OutPort, OutPort) =
     (Const(r.min.toInt).out, Const(r.max.toInt+1).out, Const(r.step.toInt).out)
 
-  def quote(n:Node)(implicit design:Design) = {
+  def quote(n:Node)(implicit design:PIR) = {
     val pirmeta: PIRMetadata = design
     import pirmeta._
     n match {
@@ -58,7 +58,7 @@ package object util {
     res
   }
 
-  def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:Design, logger:Logger) = logger.emitBlock(s"fillChain"){
+  def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:PIR, logger:Logger) = logger.emitBlock(s"fillChain"){
     val pirmeta:PIRMetadata = design 
     import pirmeta._
 
@@ -112,7 +112,7 @@ package object util {
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
 
-  def pipelinedBy(ctrler:Controller)(implicit design:Design) = {
+  def pipelinedBy(ctrler:Controller)(implicit design:PIR) = {
     import design.pirmeta._
     ctrler match {
       case ctrler:StreamController => -1
@@ -140,6 +140,7 @@ package object util {
     case LoadPR(mem) => collectIn[X](mem)
     case CtrPR(ctr) => collectIn[X](ctr)
     case PipeReg(_, reg) => collectIn[X](reg) 
+    case x:FuncUnit => collectIn[X](x.operands)
     case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
     case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
     case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
@@ -151,6 +152,27 @@ package object util {
     case _ => Set()
   }
 
+  def filterIn[X](x:X, target:Any):Iterable[X] = filterIn(Set(x), target)
+
+  def filterIn[X](xs:Iterable[X], target:Any):Iterable[X] = xs.filter { x =>
+    (x match {
+      case `target` => Set(x)
+      case LoadPR(mem) => filterIn(mem, target)
+      case CtrPR(ctr) => filterIn(ctr, target)
+      case PipeReg(_, reg) => filterIn(reg, target) 
+      case x:FuncUnit => filterIn(x.operands, target)
+      case x:Counter => filterIn(x.min, target) ++ filterIn(x.max, target) ++ filterIn(x.step, target)
+      case x:CounterChain => x.counters.flatMap(ctr => filterIn(ctr, target)).toSet
+      case x:InPort => if (!x.isConnected) Set() else filterIn(x.from.src, target)
+      case x:OutPort => filterIn(x.src, target)
+      case x:Mux => x.ins.flatMap(in => filterIn(in, target)).toSet
+      case x:SRAM => filterIn(x.readAddr, target) ++ filterIn(x.writeAddr, target) ++ filterIn(x.writePort, target)
+      case x:LocalMem => filterIn(x.writePort, target)
+      case x:Iterable[_] => x.flatMap(x => filterIn(x, target)).toSet
+      case _ => Set()
+    }).nonEmpty
+  }
+    
   def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
     case x:X => Set(x)
     case x:Input => collectOut[X](x.out)

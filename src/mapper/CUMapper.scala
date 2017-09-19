@@ -1,6 +1,6 @@
 package pir.mapper
-import pir.graph._
-import pir.{Design, Config}
+import pir.node._
+import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
@@ -18,7 +18,7 @@ import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class CUMapper(implicit val design:Design) extends Mapper {
+class CUMapper(implicit val design:PIR) extends Mapper {
   import pirmeta._
   type N = CL
   type R = PCL
@@ -115,7 +115,7 @@ class CUMapper(implicit val design:Design) extends Mapper {
 
 }
 
-case class ReplaceController[M](blacklist:List[(CL, PCL)], mp:M)(implicit design:Design, mapper:Mapper) 
+case class ReplaceController[M](blacklist:List[(CL, PCL)], mp:M)(implicit design:PIR, mapper:Mapper) 
   extends MappingException(mp) {
   implicit def spade:Spade = design.arch
 

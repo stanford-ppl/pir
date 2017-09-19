@@ -1,6 +1,6 @@
 package pir.pass
-import pir.graph._
-import pir.Design
+import pir.node._
+import pir.PIR
 import pir.Config
 import pir.util._
 import pir.util.misc._
@@ -11,7 +11,7 @@ import pir.util.PIRMetadata
 
 import scala.collection.mutable
 
-abstract class Pass(implicit val design:Design) {
+abstract class Pass(implicit val design:PIR) {
   implicit lazy val spade:Spade = design.arch
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design

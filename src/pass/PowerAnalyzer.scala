@@ -1,12 +1,12 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.misc._
 import pir.exceptions.PIRException
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
-import pir.spade.main.SwitchNetwork
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
+import pir.spade.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -14,7 +14,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 import Math._
 
-class PowerAnalyzer(implicit design: Design) extends Pass {
+class PowerAnalyzer(implicit design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
   import design.resourceAnalyzer._

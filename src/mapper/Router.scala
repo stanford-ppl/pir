@@ -1,11 +1,11 @@
 package pir.mapper
-import pir.graph._
-import pir.{Config, Design}
+import pir.node._
+import pir.{Config, PIR}
 import pir.util.typealias._
 import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
 import pir.pass.{PIRMapping}
-import pir.spade.graph.{Node => PNode}
+import pir.spade.node.{Node => PNode}
 import pir.spade.main._
 import pir.exceptions._
 import scala.language.existentials
@@ -17,7 +17,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue
 import scala.util.{Failure, Success, Try}
 
-abstract class Router(implicit design:Design) extends Mapper {
+abstract class Router(implicit design:PIR) extends Mapper {
   import spademeta._
 
   lazy val minHop = 1
@@ -539,7 +539,7 @@ abstract class Router(implicit design:Design) extends Mapper {
   }
 }
 
-class VectorRouter()(implicit val design:Design) extends Router {
+class VectorRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "VecRouter"
 
   type I = VI
@@ -562,7 +562,7 @@ class VectorRouter()(implicit val design:Design) extends Router {
 
 }
 
-class ScalarRouter()(implicit val design:Design) extends Router {
+class ScalarRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "ScalRouter"
 
   type I = SI
@@ -584,7 +584,7 @@ class ScalarRouter()(implicit val design:Design) extends Router {
   def outs(cl:CL):List[O] = cl.souts
 }
 
-class ControlRouter()(implicit val design:Design) extends Router {
+class ControlRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "CtrlRouter"
 
   type I = IP

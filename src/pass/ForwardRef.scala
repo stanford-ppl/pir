@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.enums._
 import pir.util._
@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ForwardRef(implicit design: Design) extends Pass{
+class ForwardRef(implicit design: PIR) extends Pass{
   def shouldRun = true 
 
   private val nameMap = Map[String, Node]()
@@ -57,7 +57,7 @@ object ForwardRef {
   def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
   // Collect outer controllers that are in the same CU
   
-  //def collectMCParent(implicit design:Design) = {
+  //def collectMCParent(implicit design:PIR) = {
     //design.top.innerCUs.foreach { inner =>
       ////TODO: hack add dep and parent of MemoryController here
       //inner match {
@@ -86,7 +86,7 @@ object ForwardRef {
     //}
   //}
 
-  //def collectOuters(implicit design:Design) = {
+  //def collectOuters(implicit design:PIR) = {
     //design.top.innerCUs.foreach { inner =>
       //val outers = ListBuffer[OuterController]()
       //var child:ComputeUnit = inner

@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.exceptions._
@@ -9,7 +9,7 @@ import pir.codegen.Logger
 
 import scala.collection.mutable._
 
-class ControlAnalyzer(implicit design: Design) extends Pass with Logger {
+class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true
   import pirmeta._
   import spademeta._

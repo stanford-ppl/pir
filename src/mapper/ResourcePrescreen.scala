@@ -1,6 +1,6 @@
 package pir.mapper
-import pir.graph._
-import pir.{Design, Config}
+import pir.node._
+import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.codegen.Printer
 import pir.exceptions._
@@ -10,6 +10,8 @@ import pir.spade.main._
 import pir.util.misc._
 import pir.util.topoSort
 import pir.util.enums._
+import pir.spade.arch._
+import pir.spade.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
@@ -17,7 +19,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class ResourcePrescreen(implicit design:Design) extends Pass with Logger {
+class ResourcePrescreen(implicit design:PIR) extends Pass with Logger {
   import pirmeta._
   type N = CL
   type R = PCL

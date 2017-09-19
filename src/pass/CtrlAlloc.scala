@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.enums._
 import pir.codegen.Logger
@@ -10,7 +10,7 @@ import pir.spade.util._
 
 import scala.collection.mutable._
 
-class CtrlAlloc(implicit design: Design) extends Pass with Logger {
+class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = Config.ctrl

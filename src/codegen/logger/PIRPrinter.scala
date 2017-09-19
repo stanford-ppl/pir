@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.util.misc._
@@ -14,12 +14,12 @@ import java.io.OutputStream
 import java.io.File
 import pir.util._
 
-class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traversal with Logger {
+class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal with Logger {
   import design.pirmeta._
 
   def shouldRun = Config.debug
 
-  def this()(implicit design: Design) = {
+  def this()(implicit design: PIR) = {
     this(Config.pirFile)
   }
   override lazy val stream:OutputStream = newStream(fn) 
@@ -136,7 +136,7 @@ class PIRPrinter(fn:String)(implicit design: Design) extends Codegen with Traver
   }
 }
 object PIRPrinter {
-  def genFields(node:Node)(implicit design:Design):List[String] = {
+  def genFields(node:Node)(implicit design:PIR):List[String] = {
     val pirmeta:PIRMetadata = design
     import pirmeta._
 

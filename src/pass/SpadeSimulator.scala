@@ -3,7 +3,7 @@ package pir.pass
 import pir._
 import pir.spade.simulation.Simulator
 
-class SpadeSimulator(implicit design: Design) extends Pass {
+class SpadeSimulator(implicit design: PIR) extends Pass {
 
   def shouldRun = Config.simulate && design.pirMapping.succeeded
   lazy val simulator = new Simulator()

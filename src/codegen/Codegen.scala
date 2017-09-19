@@ -1,8 +1,8 @@
 package pir.codegen
 
-import pir.graph._
+import pir.node._
 import pir.pass.Traversal
-import pir.Design
+import pir.PIR
 import pir.pass.Pass
 import pir.spade.main._
 import pir.util.typealias._
@@ -11,7 +11,7 @@ import scala.collection.mutable.Set
 import java.io.PrintWriter
 import java.io.{File, FileInputStream, FileOutputStream}
 
-abstract class Codegen(implicit design:Design) extends Pass with Printer {
+abstract class Codegen(implicit design:PIR) extends Pass with Printer {
 
   def deleteFiles(file: File): Unit = {
     if (file.isDirectory) {

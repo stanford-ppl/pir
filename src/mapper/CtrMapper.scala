@@ -5,8 +5,8 @@ import pir.pass.{PIRMapping}
 import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pir.exceptions._
-import pir.graph.Const
-import pir.spade.graph._
+import pir.node.Const
+import pir.spade.node._
 import pir.spade.util._
 
 import scala.collection.immutable.Set
@@ -15,7 +15,7 @@ import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 
-class CtrMapper(implicit val design:Design) extends Mapper with LocalRouter {
+class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type R = PCtr
   type N = Ctr
   import spademeta._

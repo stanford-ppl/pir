@@ -2,11 +2,11 @@ package pir.mapper
 import pir._
 import pir.util.typealias._
 import pir.util.enums._
-import pir.graph.{Const, PipeReg}
+import pir.node.{Const, PipeReg}
 import pir.pass.{PIRMapping}
 import pir.util._
 import pir.spade.main._
-import pir.spade.graph.{PipeReg => PPR}
+import pir.spade.node.{PipeReg => PPR}
 import pir.spade.util._
 import pir.exceptions._
 
@@ -177,12 +177,12 @@ trait LocalRouter extends Mapper {
 
 }
 
-case class MuxUnderSize(info:String) (implicit mapper:Mapper, design:Design) extends MappingException(PIRMap.empty) {
+case class MuxUnderSize(info:String) (implicit mapper:Mapper, design:PIR) extends MappingException(PIRMap.empty) {
   override val msg = info
 } 
-case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }
-case class LocalRouting(info:String, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class LocalRouting(info:String, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"${info}"
 }

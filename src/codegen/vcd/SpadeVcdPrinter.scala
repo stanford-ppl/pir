@@ -1,15 +1,13 @@
 package pir.codegen
 
 import pir._
-import pir.mapper.PIRMap
-import pir.pass.Pass
 import pir.spade.main._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.spade.traversal._
 import pir.spade.util.{quote => _, _}
+import pir.spade.simulation._
 import pir.util.misc._
 import pir.exceptions.PIRException
-import pir.spade.simulation._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
@@ -79,10 +77,9 @@ trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
 
 }
 
-class SpadeVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
+class SpadeVcdPrinter(implicit sim:Simulator, spade: Spade) extends VcdPrinter {
   override lazy val stream = newStream("sim.vcd") 
   import sim.util._
-  implicit def mapping:PIRMap = sim.mapping
 
   def declareAll = {
     addAll

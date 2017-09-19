@@ -30,18 +30,18 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
   def set(cp:RTMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, cp   , cfmap)
   def set(cp:CFMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
 
-  def setVI(k:VIMap.K, v:VIMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vimap + ((k, v))))
-  def setVO(k:VOMap.K, v:VOMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(vomap + ((k, v))))
-  def setMK(k:MKMap.K, v:MKMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(mkmap + ((k, v))))
-  def setFI(k:FIMap.K, v:FIMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(fimap + ((k, v))))
-  def setRC(k:RCMap.K, v:RCMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(rcmap + ((k, v))))
-  def setIP(k:IPMap.K, v:IPMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(ipmap + ((k, v))))
-  def setOP(k:OPMap.K, v:OPMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(opmap + ((k, v))))
-  def setPM(k:PMMap.K, v:PMMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(pmmap + ((k, v))))
-  def setRT(k:RTMap.K, v:RTMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(rtmap + ((k, v))))
-  def setCF(k:CFMap.K, v:CFMap.V)(implicit mper:Mapper, design:Design):PIRMap = wrap(set(cfmap + ((k, v))))
+  def setVI(k:VIMap.K, v:VIMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(vimap + ((k, v))))
+  def setVO(k:VOMap.K, v:VOMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(vomap + ((k, v))))
+  def setMK(k:MKMap.K, v:MKMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(mkmap + ((k, v))))
+  def setFI(k:FIMap.K, v:FIMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(fimap + ((k, v))))
+  def setRC(k:RCMap.K, v:RCMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(rcmap + ((k, v))))
+  def setIP(k:IPMap.K, v:IPMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(ipmap + ((k, v))))
+  def setOP(k:OPMap.K, v:OPMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(opmap + ((k, v))))
+  def setPM(k:PMMap.K, v:PMMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(pmmap + ((k, v))))
+  def setRT(k:RTMap.K, v:RTMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(rtmap + ((k, v))))
+  def setCF(k:CFMap.K, v:CFMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(cfmap + ((k, v))))
 
-  def wrap(func: => PIRMap)(implicit mapper:Mapper, design:Design):PIRMap = {
+  def wrap(func: => PIRMap)(implicit mapper:Mapper, design:PIR):PIRMap = {
     try {
       func
     } catch {
@@ -49,13 +49,13 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
     }
   }
 
-  def quote(n:Any)(implicit design:Design) = n match {
+  def quote(n:Any)(implicit design:PIR) = n match {
     case n:Node => pir.util.quote(n)
     case n:PNode => pir.spade.util.quote(n)(design.arch)
     case n => s"$n"
   }
 
-  def printMap(implicit p:Printer, design:Design):Unit = {
+  def printMap(implicit p:Printer, design:PIR):Unit = {
     fimap.printMap(quote _)
     design.top.ctrlers.foreach { cl => 
       cl match {
@@ -84,7 +84,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
     }
   }
 
-  def printStage(pst:PST)(implicit p:Printer, design:Design):Unit = {
+  def printStage(pst:PST)(implicit p:Printer, design:PIR):Unit = {
     import p._
     emitBlock(s"${quote(pst)} <- ${pmmap.get(pst)}"){
       pst.prs.foreach { ppr =>
@@ -106,7 +106,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
     }
   }
 
-  def printPMap(implicit p:Printer, design:Design):Unit = {
+  def printPMap(implicit p:Printer, design:PIR):Unit = {
     import p._
     //fimap.printMap(quote _)
     design.arch.ctrlers.foreach { pcl => 

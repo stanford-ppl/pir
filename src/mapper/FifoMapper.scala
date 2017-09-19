@@ -1,22 +1,22 @@
 package pir.mapper
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
-import pir.graph.{PipeReg => PR, VecInPR, LoadPR}
-import pir.spade.graph.{PipeReg => PPR}
+import pir.node.{PipeReg => PR, VecInPR, LoadPR}
+import pir.spade.node.{PipeReg => PPR}
 import pir.spade.util._
 import pir.spade.main._
 import pir.exceptions._
 import pir.util.enums._
 import pir.util.PIRMetadata
-import pir.spade.graph._
+import pir.spade.node._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class FifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
+class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = LMem
   type R = PLMem
   val typeStr = "FifoMapper"

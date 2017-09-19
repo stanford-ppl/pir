@@ -1,6 +1,6 @@
 package pir.pass
 
-import pir.graph._
+import pir.node._
 import pir._
 import pir.codegen._
 import pir.mapper._
@@ -8,7 +8,7 @@ import pir.exceptions._
 import scala.util.{Try, Success, Failure}
 import pir.util.misc._
 
-class PIRMapping(implicit design: Design) extends Pass with Logger {
+class PIRMapping(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(Config.mapFile)
 
@@ -178,7 +178,7 @@ class PIRMapping(implicit design: Design) extends Pass with Logger {
     super.finPass
   }
 
-  //def printMap(mapping:PIRMap)(implicit design:Design) = {
+  //def printMap(mapping:PIRMap)(implicit design:PIR) = {
     //if (Config.debug) {
       //emitTitleComment(s"Mapping")
       //mapping.printPMap(this, design)

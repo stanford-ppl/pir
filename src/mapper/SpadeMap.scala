@@ -1,7 +1,7 @@
 package pir.mapper
 import pir._
 import pir.util.maps._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.spade.util.typealias._
 
 import scala.reflect.runtime.universe._

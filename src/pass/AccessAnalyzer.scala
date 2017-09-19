@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.util.misc._
@@ -10,7 +10,7 @@ import scala.collection.mutable.Set
 import scala.collection.immutable.{Set => ISet}
 import scala.collection.mutable.Map
 
-class AccessAnalyzer(implicit design: Design) extends Pass with Logger {
+class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 
   import pirmeta._
 

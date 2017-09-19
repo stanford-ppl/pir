@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util.misc._
 import pir.exceptions.PIRException
@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ContentionAnalysis(implicit design: Design) extends Pass with Logger {
+class ContentionAnalysis(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = true

@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.codegen.Logger
@@ -9,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class ScalarMemInsertion(implicit design: Design) extends Pass with Logger {
+class ScalarMemInsertion(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 
 
   override lazy val stream = newStream(s"ScalarMemInsertion.log")

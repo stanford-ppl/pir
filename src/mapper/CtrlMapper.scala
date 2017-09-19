@@ -1,6 +1,6 @@
 package pir.mapper
 import pir.{Config}
-import pir.Design
+import pir.PIR
 import pir.util.typealias._
 import pir.spade.main._
 import pir.util.enums._
@@ -17,7 +17,7 @@ import scala.collection.mutable.{ Map => MMap }
 import scala.util.{Try, Success, Failure}
 import scala.language.existentials
 
-class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
+class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   import pirmeta._
 
   val typeStr = "CtrlMapper"
@@ -268,6 +268,6 @@ class CtrlMapper(implicit val design:Design) extends Mapper with LocalRouter {
 
 }
 
-case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL], mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class NotReachable(to:CL, topcu:PCL, fromcu:CL, frompcu:Option[PCL], mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"Cannot map $to to $topcu because due to incapable of reaching from $fromcu at $frompcu"
 }

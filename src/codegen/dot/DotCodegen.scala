@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.Design
+import pir.PIR
 import pir.spade.main._
 import pir.util.typealias._
 import scala.language.implicitConversions
@@ -123,7 +123,7 @@ trait DotCodegen extends Printer with DotEnum {
 			block
 		}
   }
-  def quote(n:Any)(implicit design:Design) = {
+  def quote(n:Any)(implicit design:PIR) = {
     implicit val spade:Spade = design.arch
     n match {
       case pin:PI[_] =>

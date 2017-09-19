@@ -1,16 +1,17 @@
 package pir.mapper
-import pir.graph.{Const => _, _}
+import pir.node.{Const => _, _}
 import pir._
 import pir.util._
 import pir.exceptions._
 import pir.util.misc._
 import pir.codegen.Logger
-import pir.spade.graph.{SRAM => _, Top => _, Const => _, _}
+import pir.spade.node.{SRAM => _, Top => _, Const => _, _}
 import pir.util.typealias._
+import scala.language.existentials
 
 import scala.collection.mutable._
 
-class ConfigMapper(implicit val design: Design) extends Mapper {
+class ConfigMapper(implicit val design: PIR) extends Mapper {
   def shouldRun = Config.ctrl && Config.mapping
   import pirmeta._
   import spademeta._
@@ -84,11 +85,6 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     }
   }
 
-  def config(mc:MC, mp:M):M = {
-    val pmc = mp.pmmap(mc)
-    mp.setCF(pmc, MemoryControllerConfig(mctpe=mc.mctpe))
-  }
-
   def config(cb:CB, map:M):M = {
     var mp = map
     val pcb = mp.pmmap(cb)
@@ -96,6 +92,29 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
     pcb.predicateUnits.foreach { ppdu => mp = config(ppdu, mp) }
 
     mp
+  }
+
+  def config(st:ST, map:M):M = {
+    var mp = map
+    val pst = mp.pmmap(st)
+    val par = parOf(st)
+    val op = st.fu.get.op
+    val isReduce = st.isInstanceOf[pir.node.ReduceStage]
+    // Pass through operand in accumulation
+    val accumInput = st match {
+      case st:pir.node.AccumStage =>
+        val operands = st.fu.get.operands
+        val accOprd = filterIn(operands, st.acc)
+        Some(mp.ipmap((operands diff accOprd.toSeq).head))
+      case _ => None
+    }
+    mp = mp.setCF(pst, StageConfig(par, op, isReduce, accumInput))
+    mp
+  }
+
+  def config(mc:MC, mp:M):M = {
+    val pmc = mp.pmmap(mc)
+    mp.setCF(pmc, MemoryControllerConfig(mctpe=mc.mctpe))
   }
 
   def config(cu:MP, map:M):M = {
@@ -175,13 +194,18 @@ class ConfigMapper(implicit val design: Design) extends Mapper {
 
   def config(cu:CU, map:M):M = {
     var mp = map
+
     cu.mems.foreach { 
       case mem:SRAM => mp = config(mem, mp)
       case mem:LMem => mp = config(mem, mp)
     }
+
     cu.cchains.foreach { 
       _.counters.foreach { ctr => mp = config(ctr, mp) }
     }
+
+    cu.stages.foreach { st => mp = config(st, mp) }
+
     cu match {
       case cu:MP => mp = config(cu, map)
       case cu:PL => mp = config(cu, map) 

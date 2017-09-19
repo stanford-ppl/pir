@@ -1,7 +1,7 @@
 package pir.codegen
 
-import pir.Design
-import pir.graph.{AccumPR, Const}
+import pir.PIR
+import pir.node.{AccumPR, Const}
 import pir.spade.main._
 import pir.util.typealias._
 import pir.util.enums._
@@ -14,7 +14,7 @@ import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
 
-class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen with MultiFileCodegen {
+class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = design.pirMapping.succeeded && Config.codegen
   import spademeta._
   import pirmeta.{indexOf => _, _}
@@ -45,7 +45,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
     emitln(s"import plasticine.arch._")
     emitln(s"import chisel3._")
     emitln(s"import plasticine.spade._")
-    emitln(s"import plasticine.pisa.PISADesign")
+    emitln(s"import plasticine.pisa.PISAPIR")
     emitln(s"import plasticine.pisa.ir.{SrcValueTuple => $SVT, _}")
     emitln(s"import chisel3.util._")
     emitln(s"import scala.collection.mutable.ListBuffer")
@@ -57,7 +57,7 @@ class ConfigCodegen(implicit design: Design) extends Codegen with ScalaCodegen w
   }
 
   def emitAppObject {
-    emitln(s"object $appName extends PISADesign with $traitName")
+    emitln(s"object $appName extends PISAPIR with $traitName")
   }
 
   override def splitPreHeader:Unit = {

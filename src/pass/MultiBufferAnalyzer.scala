@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.exceptions._
 import pir.codegen.Logger
@@ -10,7 +10,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class MultiBufferAnalyzer(implicit design: Design) extends Pass with Logger {
+class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
   def shouldRun = true 
 

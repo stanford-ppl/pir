@@ -1,5 +1,5 @@
 package pir.pass
-import pir.graph._
+import pir.node._
 import pir._
 import pir.util._
 import pir.util.misc._
@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class FusionTransform(implicit design: Design) extends Pass with Logger {
+class FusionTransform(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 
   import design.pirmeta._
 

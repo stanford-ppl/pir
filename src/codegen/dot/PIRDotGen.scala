@@ -1,8 +1,8 @@
 package pir.codegen
 
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.codegen._
-import pir.graph._
+import pir.node._
 import pir.mapper.PIRMap
 import pir.util.misc._
 
@@ -17,7 +17,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def horizontal:Boolean
 
-  def design:Design
+  def design:PIR
 
   addPass {
     emitBlock("digraph G") {
@@ -117,7 +117,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
   }
 }
 
-class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
+class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen { 
   import pirmeta._
 
   def shouldRun = Config.debug
@@ -126,7 +126,7 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 
   override lazy val stream = newStream(fn)
 
-  def this()(implicit design:Design) = {
+  def this()(implicit design:PIR) = {
     this(Config.pirDot)
   }
 
@@ -162,7 +162,7 @@ class PIRDataDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 }
 
 
-class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen { 
+class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen { 
   def shouldRun = Config.debug & Config.ctrl
 
   def horizontal:Boolean = true
@@ -170,7 +170,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:Design) extends PIRDotGen {
 
   override lazy val stream = newStream(fn)
 
-  def this()(implicit design:Design) = {
+  def this()(implicit design:PIR) = {
     this(Config.pirCtrlDot)
   }
 

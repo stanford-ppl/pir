@@ -1,6 +1,6 @@
 package pir.util
 
-import pir.graph._
+import pir.node._
 import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import java.lang.Thread

@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.codegen._
 import pir.util._
 import pir.util.typealias._
@@ -8,8 +8,9 @@ import pir.mapper.{PIRMap}
 import pir.exceptions._
 import pir.util.misc._
 import pir.spade.main._
-import pir.spade.graph._
+import pir.spade.node._
 import pir.spade.util._
+import pir.spade.network._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -22,7 +23,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) extends Codegen with DotCodegen {
+abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends Codegen with DotCodegen {
   import spademeta._
 
   val scale:Int
@@ -194,7 +195,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) exte
     }
   }
 
-  def emitInput(pin:PGI[PRT], mapping:Option[PIRMap])(implicit design:Design) = {
+  def emitInput(pin:PGI[PRT], mapping:Option[PIRMap])(implicit design:PIR) = {
     val prt:PRT = pin.src
     pin.fanIns.foreach { po =>
       val pout = po.asGlobal
@@ -269,26 +270,26 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:Design) exte
 
 }
 
-class SpadeCtrlDotPrinter(file:String, open:Boolean)(implicit design:Design)
+class SpadeCtrlDotPrinter(file:String, open:Boolean)(implicit design:PIR)
   extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false)
-  def this(open:Boolean)(implicit design:Design) = this(Config.spadeCtrlNetwork, open)
-  def this()(implicit design:Design) = this(false)
+  def this(file:String)(implicit design:PIR) = this(file, false)
+  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeCtrlNetwork, open)
+  def this()(implicit design:PIR) = this(false)
 
   val scale = 20
 
   def io(prt:Routable) = prt.ctrlIO
 }
 
-class SpadeScalarDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+class SpadeScalarDotPrinter(file:String, open:Boolean)(implicit design:PIR) 
   extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false)
-  def this(open:Boolean)(implicit design:Design) = this(Config.spadeScalarNetwork, open)
-  def this()(implicit design:Design) = this(false)
+  def this(file:String)(implicit design:PIR) = this(file, false)
+  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeScalarNetwork, open)
+  def this()(implicit design:PIR) = this(false)
   
   val scale = 15
 
@@ -296,13 +297,13 @@ class SpadeScalarDotPrinter(file:String, open:Boolean)(implicit design:Design)
 
 }
 
-class SpadeVectorDotPrinter(file:String, open:Boolean)(implicit design:Design) 
+class SpadeVectorDotPrinter(file:String, open:Boolean)(implicit design:PIR) 
   extends SpadeDotGen(file, open) { 
   def shouldRun = Config.debug
 
-  def this(file:String)(implicit design:Design) = this(file, false)
-  def this(open:Boolean)(implicit design:Design) = this(Config.spadeVectorNetwork, open)
-  def this()(implicit design:Design) = this(false)
+  def this(file:String)(implicit design:PIR) = this(file, false)
+  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeVectorNetwork, open)
+  def this()(implicit design:PIR) = this(false)
   
   val scale = 15
 

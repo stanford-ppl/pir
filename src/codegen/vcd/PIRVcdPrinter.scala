@@ -2,13 +2,13 @@ package pir.codegen
 
 import pir._
 import pir.mapper.PIRMap
-import pir.pass.Pass
 import pir.spade.main._
 import pir.pass.Traversal
-import pir.graph._
+import pir.node._
 import pir.spade.util.{quote => _, _}
 import pir.util.misc._
 import pir.util.typealias._ 
+import pir.util.PIRMetadata
 import pir.exceptions.PIRException
 import pir.spade.simulation._
 
@@ -17,7 +17,7 @@ import scala.language.existentials
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-trait PIRVcdDeclarator { self:VcdPrinter =>
+trait PIRVcdDeclarator { self:PIRVcdPrinter =>
   import sim.util.{quote => _, _}
   val pirDeclarator:PIRVcdDeclarator = this
 
@@ -120,9 +120,10 @@ trait PIRVcdDeclarator { self:VcdPrinter =>
   }
 
 }
-class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
+class PIRVcdPrinter(implicit sim:Simulator, val design: PIR) extends VcdPrinter with PIRVcdDeclarator {
   override lazy val stream = newStream("sim_pir.vcd") 
   import sim.util._
+  val pirmeta:PIRMetadata = design
   implicit def mapping:PIRMap = sim.mapping
 
   def declareAll = {
@@ -143,7 +144,7 @@ class PIRVcdPrinter(implicit sim:Simulator, design: Design) extends VcdPrinter {
     }
   }
 
-  override def declare(io:pir.spade.graph.IO[_<:pir.spade.graph.PortType, _<:PModule], prefix:Option[String]=None) = {
+  override def declare(io:pir.spade.node.IO[_<:pir.spade.node.PortType, _<:PModule], prefix:Option[String]=None) = {
     track(io)
     super.declare(io, prefix)
   }

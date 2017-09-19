@@ -1,10 +1,10 @@
 package pir.mapper
 
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.util.misc._
 import pir.spade.main._
-import pir.spade.graph.{ Node => PNode }
+import pir.spade.node.{ Node => PNode }
 import pir.spade.util.SpadeMetadata
 import pir.util.PIRMetadata
 import pir.codegen._
@@ -36,7 +36,7 @@ trait Mapper { self =>
     currentExceptScope += e
   }
 
-  implicit def design:Design
+  implicit def design:PIR
   implicit def spade:Spade = design.arch
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design

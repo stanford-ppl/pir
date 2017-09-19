@@ -1,12 +1,12 @@
 package pir.util
 
 import pir._
-import pir.graph._
+import pir.node._
 import pir.util.maps._
 import scala.collection.mutable
 import scala.util.{Try, Success, Failure}
 
-trait PIRMetadata extends { self:Design =>
+trait PIRMetadata extends { self:PIR =>
 
   val maps = mutable.ListBuffer[PIRMetadataMaps]()
 

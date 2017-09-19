@@ -1,9 +1,9 @@
 package pir.mapper
-import pir.{Design, Config}
+import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
-import pir.graph.{PipeReg => PR, VecInPR, LoadPR}
-import pir.spade.graph.{PipeReg => PPR}
+import pir.node.{PipeReg => PR, VecInPR, LoadPR}
+import pir.spade.node.{PipeReg => PPR}
 import pir.spade.util._
 import pir.spade.main._
 import pir.exceptions._
@@ -13,7 +13,7 @@ import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.immutable.Map
 
-class VFifoMapper(implicit val design:Design) extends Mapper with LocalRouter {
+class VFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = VFIFO
   type R = PVMem
   val typeStr = "VecFifoMapper"

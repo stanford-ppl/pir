@@ -1,9 +1,9 @@
 package pir.mapper
 import pir.util.typealias._
-import pir.graph._
+import pir.node._
 import pir._
 import pir.codegen.DotCodegen
-import pir.spade.graph._
+import pir.spade.node._
 import pir.codegen.DotCodegen
 import pir.exceptions._
 import pir.spade.util._
@@ -12,7 +12,7 @@ import pir.util.enums._
 
 import scala.collection.mutable
 
-class RegAlloc(implicit val design:Design) extends Mapper {
+class RegAlloc(implicit val design:PIR) extends Mapper {
   type N = Reg
   type R = PReg
   val typeStr = "RegAlloc"
@@ -135,9 +135,9 @@ class RegAlloc(implicit val design:Design) extends Mapper {
 
 }
 
-case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class PreColorInterfere(r1:Reg, r2:Reg, c:PReg, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"Interfering $r1 and $r2 in ${r1.ctrler} have the same predefined color ${quote(c)(design.arch)}" 
 }
-case class InterfereException(r:Reg, itr:Reg, p:PReg, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp){
+case class InterfereException(r:Reg, itr:Reg, p:PReg, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp){
   override val msg = s"Cannot allocate $r to $p due to interference with $itr "
 }

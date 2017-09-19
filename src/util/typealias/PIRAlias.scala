@@ -1,10 +1,10 @@
 package pir.util.typealias
 
-import pir.graph._
+import pir.node._
 
 trait PIRAlias {
   // PIR Nodes 
-  type Node  = pir.graph.Node
+  type Node  = pir.node.Node
   type CL    = Controller
   type ICL   = InnerController
   type OCL   = OuterController
@@ -14,15 +14,15 @@ trait PIRAlias {
   type PL    = Pipeline
   type MC    = MemoryController
   type PRIM  = Primitive
-  type Reg   = pir.graph.Reg
+  type Reg   = pir.node.Reg
   type PR    = PipeReg
   type OCM   = OnChipMem
-  type SRAM  = pir.graph.SRAM
+  type SRAM  = pir.node.SRAM
   type SMem  = ScalarMem
   type LMem  = LocalMem
   type SFIFO = ScalarFIFO
   type VFIFO = VectorFIFO
-  type FIFO  = pir.graph.FIFO
+  type FIFO  = pir.node.FIFO
   type SBuf  = ScalarBuffer
   type MBuf  = MultiBuffer
   type CC    = CounterChain
@@ -42,7 +42,7 @@ trait PIRAlias {
   type DVO   = DummyVecOut
   type I     = Input
   type O     = Output
-  type IO    = pir.graph.IO
+  type IO    = pir.node.IO
   type PT    = Port
   type IP    = InPort
   type OP    = OutPort
@@ -54,15 +54,15 @@ trait PIRAlias {
   type OCB   = OuterCtrlBox
   type TCB   = TopCtrlBox
   type MCCB  = MCCtrlBox 
-  type LUT   = pir.graph.LUT
+  type LUT   = pir.node.LUT
   type TOLUT = TokenOutLUT
   type TDLUT = TokenDownLUT
-  type EnLUT = pir.graph.EnLUT
+  type EnLUT = pir.node.EnLUT
   type AT    = AndTree
   type UC    = UDCounter
-  type Const = pir.graph.Const[_<:AnyVal]
-  type Top   = pir.graph.Top
+  type Const = pir.node.Const[_<:AnyVal]
+  type Top   = pir.node.Top
   type Seq   = Sequential
   type MetaPipe = MetaPipeline
-  type Mux = pir.graph.Mux
+  type Mux = pir.node.Mux
 }

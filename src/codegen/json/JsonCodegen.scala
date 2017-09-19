@@ -2,8 +2,8 @@ package pir.codegen
 
 import pir._
 import pir.util._
-import pir.spade.graph._
-import pir.graph._
+import pir.spade.node._
+import pir.node._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

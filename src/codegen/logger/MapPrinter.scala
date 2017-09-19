@@ -14,7 +14,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.File
 
-class MapPrinter(implicit design: Design) extends Codegen {
+class MapPrinter(implicit design: PIR) extends Codegen {
   def shouldRun = Config.debug && Config.mapping
 
   implicit lazy val mp:PIRMap = design.mapping.get

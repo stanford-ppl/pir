@@ -2,11 +2,11 @@ package pir.mapper
 import pir._
 import pir.util.typealias._
 import pir.util.enums._
-import pir.graph.{Const, ScalarOutPR, VecOutPR}
+import pir.node.{Const, ScalarOutPR, VecOutPR}
 import pir.pass.{PIRMapping}
 import pir.util._
 import pir.spade.main._
-import pir.spade.graph.{Const => PConst, PipeReg => PPR, _}
+import pir.spade.node.{Const => PConst, PipeReg => PPR, _}
 import pir.spade.util._
 import pir.exceptions._
 
@@ -16,7 +16,7 @@ import scala.collection.immutable.Map
 import scala.util.{Try, Success, Failure}
 import scala.language.existentials
 
-class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
+class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   type R = PST
   type N = ST
@@ -156,11 +156,11 @@ class StageMapper(implicit val design:Design) extends Mapper with LocalRouter {
     mp
   }
 }
-case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"${ps}:[${ps.funcUnit.get.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
 }
-//case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit mapper:Mapper, design:Design) 
+//case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit mapper:Mapper, design:PIR) 
   //extends OutOfResource(mapper, s"Not enough operands in ${ps} to map ${s}.", pnodes, nodes, mp)
-case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit mapper:Mapper, design:Design) extends MappingException(mp) {
+case class StageRouting(n:ST, p:PST, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}"
 }
