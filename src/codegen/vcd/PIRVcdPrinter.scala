@@ -6,7 +6,7 @@ import pir.spade.main._
 import pir.pass.Traversal
 import pir.node._
 import pir.spade.util.{quote => _, _}
-import pir.util.misc._
+import pirc.util._
 import pir.util.typealias._ 
 import pir.util.PIRMetadata
 import pir.spade.simulation._

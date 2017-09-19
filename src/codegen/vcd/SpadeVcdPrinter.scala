@@ -6,7 +6,7 @@ import pir.spade.node._
 import pir.spade.traversal._
 import pir.spade.util.{quote => _, _}
 import pir.spade.simulation._
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer

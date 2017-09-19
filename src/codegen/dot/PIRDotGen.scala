@@ -4,7 +4,7 @@ import pir.{PIR, Config}
 import pir.codegen._
 import pir.node._
 import pir.mapper.PIRMap
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

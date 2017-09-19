@@ -4,7 +4,7 @@ import pir.spade.main._
 import pir.spade.node._
 import pirc.enums._
 import pirc.exceptions._
-import pir.util.misc._
+import pirc.util._
 import pir.Config
 import pir.spade.util._
 

@@ -7,7 +7,6 @@ import pir.spade.traversal._
 import pir.spade.util.{quote => _, _}
 import pir.spade.simulation._
 import pir.util.misc._
-import pir.exceptions.PIRException
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer

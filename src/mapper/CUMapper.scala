@@ -8,7 +8,7 @@ import pir.codegen._
 import pir.pass.{PIRMapping}
 import pir.spade.main._
 import pir.spade.util._
-import pir.util.misc._
+import pirc.util._
 import pir.util.topoSort
 import pirc.enums._
 

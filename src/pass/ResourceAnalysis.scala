@@ -1,7 +1,7 @@
 package pir.pass
 import pir.node._
 import pir._
-import pir.util.misc._
+import pirc.util._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}

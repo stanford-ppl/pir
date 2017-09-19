@@ -2,7 +2,7 @@ package pir.mapper
 
 import pir.{PIR, Config}
 import pir.util.typealias._
-import pir.util.misc._
+import pirc.util._
 import pir.spade.main._
 import pir.spade.node.{ Node => PNode }
 import pir.spade.util.SpadeMetadata
@@ -330,8 +330,8 @@ trait Mapper { self =>
   }
 
     // DEBUG
-  def breakPoint(mp:Option[M], info:String, interactive:Boolean):Unit = if (debug) {
-    pir.util.misc.bp(info)
+  def breakPoint(mp:Option[M], msg:String, interactive:Boolean):Unit = if (debug) {
+    bp(msg)
     //val arch = design.arch.asInstanceOf[SwitchNetwork]
     //val ocu = arch.ocuArray(0)(4)
     //ocu.ctrlIO.ins.foreach { pin =>
@@ -343,7 +343,7 @@ trait Mapper { self =>
       answer match {
         case "o" => open = true
         case "q" =>
-          pir.util.misc.info(s"Stop debugging routing and exiting...")
+          info(s"Stop debugging routing and exiting...")
           System.exit(-1)
         case _ =>
       }
@@ -364,12 +364,12 @@ trait Mapper { self =>
     }
   }
 
-  def breakPoint(mp:M, info:String, interactive:Boolean):Unit = if (debug) {
-    breakPoint(Some(mp), info, interactive)
+  def breakPoint(mp:M, msg:String, interactive:Boolean):Unit = if (debug) {
+    breakPoint(Some(mp), msg, interactive)
   }
 
-  def breakPoint(info:String, interactive:Boolean):Unit = if (debug) {
-    breakPoint(None, info, interactive)
+  def breakPoint(msg:String, interactive:Boolean):Unit = if (debug) {
+    breakPoint(None, msg, interactive)
   }
     // DEBUG --
 }

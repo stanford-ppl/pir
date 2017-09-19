@@ -4,7 +4,7 @@ import pir._
 import pir.mapper.PIRMap
 import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 import pir.pass.Pass
-import pir.util.misc._
+import pirc.util._
 import pir.util.PIRMetadata
 import pir.spade.main._
 import pir.spade.node._

@@ -6,7 +6,7 @@ import pir.codegen._
 import pir.mapper._
 import pirc.exceptions._
 import scala.util.{Try, Success, Failure}
-import pir.util.misc._
+import pirc.util._
 
 class PIRMapping(implicit design: PIR) extends Pass with Logger {
 

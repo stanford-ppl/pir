@@ -3,7 +3,7 @@ import pir.node._
 import pir._
 import pirc.enums._
 import pir.util._
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

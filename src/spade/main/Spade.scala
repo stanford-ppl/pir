@@ -1,13 +1,14 @@
 package pir.spade.main
 
 import pir.spade.node._
-import scala.language.implicitConversions
-import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
 import pir.spade.simulation._
 import pir.spade.util._
 import pir.util.misc._
 import pirc._
+
+import scala.language.implicitConversions
+import scala.collection.mutable.Map
+import scala.collection.mutable.ListBuffer
 
 trait SpadeParam {
   lazy val wordWidth = 32

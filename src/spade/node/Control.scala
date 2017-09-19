@@ -2,7 +2,7 @@ package pir.spade.node
 
 import pir.node._
 import pirc.enums._
-import pir.util.misc._
+import pirc.util._
 import pir.util.pipelinedBy
 import pir.mapper.PIRMap
 

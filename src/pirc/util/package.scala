@@ -1,4 +1,4 @@
-package pir.util
+package pirc
 
 import pir.node._
 import pir.codegen.{Printer, Logger}
@@ -7,7 +7,7 @@ import java.lang.Thread
 import pirc.exceptions._
 import scala.collection.mutable.Stack
 
-package object misc extends Printer {
+package object util extends Printer {
   val times = Stack[Long]()
   def tic = {
     times.push(System.nanoTime())

@@ -3,7 +3,7 @@ import pir.node._
 import pir._
 import pir.util._
 import pirc.exceptions._
-import pir.util.misc._
+import pirc.util._
 import pirc.enums._
 import pir.codegen.Logger
 

@@ -1,6 +1,6 @@
 package pir.spade.node
 
-import pir.util.misc._
+import pirc.util._
 import pir.spade.main._
 import pir.spade.simulation._
 import pir.spade.util._

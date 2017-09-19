@@ -3,7 +3,7 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util._
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.{ Set => MSet }
 import scala.collection.mutable.ListBuffer

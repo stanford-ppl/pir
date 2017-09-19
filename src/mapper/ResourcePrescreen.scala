@@ -7,7 +7,7 @@ import pirc.exceptions._
 import pir.codegen.{Logger, CSVPrinter}
 import pir.pass.{Pass}
 import pir.spade.main._
-import pir.util.misc._
+import pirc.util._
 import pir.util.topoSort
 import pirc.enums._
 import pir.spade.arch._

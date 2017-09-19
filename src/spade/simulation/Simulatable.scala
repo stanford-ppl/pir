@@ -6,7 +6,7 @@ import pir.pass.Pass
 import pir.spade.main._
 import pir.spade.node._
 import pir.spade.traversal._
-import pir.util.misc._
+import pirc.util._
 import pir.spade.util._
 
 import scala.collection.mutable.Map

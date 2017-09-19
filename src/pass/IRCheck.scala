@@ -3,7 +3,7 @@ import pir.node.{Const => _, _}
 import pir._
 import pir.util.typealias._
 import pir.util._
-import pir.util.misc._
+import pirc.util._
 import pirc.exceptions._
 import pir.codegen.PIRPrinter
 import pir.spade.util._

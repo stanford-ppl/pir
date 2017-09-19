@@ -6,7 +6,7 @@ import pir.util._
 import pir.util.typealias._
 import pir.mapper.{PIRMap}
 import pirc.exceptions._
-import pir.util.misc._
+import pirc.util._
 import pir.spade.main._
 import pir.spade.node._
 import pir.spade.util._

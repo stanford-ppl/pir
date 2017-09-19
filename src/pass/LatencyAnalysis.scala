@@ -1,7 +1,7 @@
 package pir.pass
 import pir.node._
 import pir._
-import pir.util.misc._
+import pirc.util._
 import pirc.enums._
 import pirc.exceptions.PIRException
 import pir.codegen.{Logger, CSVPrinter, Row}

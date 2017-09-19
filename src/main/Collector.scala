@@ -6,7 +6,7 @@ import mapper._
 import pir.codegen._
 import pir.util._
 import pirc.exceptions._
-import pir.util.misc._
+import pirc.util._
 import pir.spade.main._
 import pir.spade.simulation._
 import spade.util._

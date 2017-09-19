@@ -3,7 +3,7 @@ package pir.codegen
 import pir._
 import pir.mapper.PIRMap
 import pir.util._
-import pir.util.misc._
+import pirc.util._
 import pir.util.typealias._
 import pir.spade.util._
 import pir.spade.main._

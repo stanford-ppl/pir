@@ -3,7 +3,7 @@ import pir.node._
 import pir._
 import pirc.exceptions._
 import pir.codegen.Logger
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

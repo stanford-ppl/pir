@@ -53,7 +53,7 @@ class ScalarMemInsertion(implicit design: PIR) extends Pass with Logger {
   } 
 
   override def finPass = {
-    misc.endInfo("Finishing scalar buffer insertion")
+    pirc.util.endInfo("Finishing scalar buffer insertion")
     super.finPass
   }
 

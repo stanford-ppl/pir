@@ -13,7 +13,7 @@ import pir.node._
 import pirc.enums._
 import pirc.exceptions._
 import pir.pass.ForwardRef
-import pir.util.misc._
+import pirc.util._
 import pir.mapper.PIRMap
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:PIR) extends Primitive {

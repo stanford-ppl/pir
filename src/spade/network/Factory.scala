@@ -3,7 +3,7 @@ package pir.spade.network
 import pir.spade.node._
 import pir.spade.main._
 import pir.spade.util._
-import pir.util.misc._
+import pirc.util._
 import pir.codegen.Logger
 import pir.spade.arch._
 

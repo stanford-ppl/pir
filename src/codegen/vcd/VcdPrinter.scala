@@ -5,7 +5,7 @@ import pir.spade.main._
 import pir.spade.node._
 import pir.spade.traversal._
 import pir.spade.util.{quote => _, _}
-import pir.util.misc._
+import pirc.util._
 import pir.spade.simulation._
 import pirc._
 

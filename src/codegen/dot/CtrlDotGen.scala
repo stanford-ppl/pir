@@ -3,7 +3,7 @@ package pir.codegen
 import pir._
 import pir.codegen._
 import pir.node._
-import pir.util.misc._
+import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

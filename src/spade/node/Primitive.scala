@@ -2,7 +2,7 @@ package pir.spade.node
 
 import pir.node._
 import pirc.enums._
-import pir.util.misc._
+import pirc.util._
 import pir.spade.main._
 import pir.spade.util._
 import pir.spade.simulation._
