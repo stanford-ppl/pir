@@ -3,8 +3,9 @@ package pir.spade.main
 import pir.spade.node._
 import pir.spade.simulation._
 import pir.spade.util._
-import pir.util.misc._
+
 import pirc._
+import pirc.util._
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
@@ -57,6 +58,8 @@ trait Spade extends Design with SpadeMetadata with SpadeParam {
   def asSwitchNetwork = this.asInstanceOf[SwitchNetwork]
 
   val dram = DRAM(size=1024) 
+
+  def handle(e:Exception):Unit = throw e
 }
 
 trait PointToPointNetwork extends Spade {

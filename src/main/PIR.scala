@@ -1,26 +1,26 @@
 package pir
 
-import node._
-import pass._
-import mapper._
+import pir.node._
+import pir.pass._
+import pir.mapper._
 import pir.codegen._
-import spade.util._
 import pir.util._
-import pirc.exceptions._
-import pirc.util._
+
+import pir.spade.util._
 import pir.spade.main._
 import pir.spade.simulation._
-import pirc._
 
-//import analysis._
+import pirc.exceptions._
+import pirc.util._
+import pirc._
 
 import scala.util.{Try, Success, Failure}
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Queue
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.Stack
+import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.{Set,Map}
 import java.nio.file.{Paths, Files}
 import scala.io.Source
@@ -36,17 +36,9 @@ trait PIR extends Design with PIRMetadata with Collector {
   override def reset = {
     super[Collector].reset
     super[PIRMetadata].reset
-    passes.foreach(_.reset)
+    super[Design].reset
     top = null
   }
-
-  val mappers = ListBuffer[Mapper]()
-  val mapperLogger = new Logger {
-    override lazy val stream = newStream(Config.mapperLog)
-  }
-
-  /* Compiler Passes */
-  val passes = ListBuffer[Pass]()
 
   /* Analysis */
   val forwardRef = new ForwardRef()
@@ -105,6 +97,11 @@ trait PIR extends Design with PIRMetadata with Collector {
   val irCheck = new IRCheck() 
 
   var mapping:Option[PIRMap] = None
+
+  val mappers = ListBuffer[Mapper]()
+  val mapperLogger = new Logger {
+    override lazy val stream = newStream(Config.mapperLog)
+  }
 
   // Pre-mapping Analysis and Transformation 
   //passes += spadePrinter 
@@ -165,22 +162,18 @@ trait PIR extends Design with PIRMetadata with Collector {
   passes += powerAnalyzer 
   //passes += energyAnalyzer 
 
-  def run = {
-    try {
-      info(s"Configuring spade $arch ...")
-      passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
-      passes.foreach { _.checkRanAll }
-    } catch {
-      case e:Exception => 
-        errmsg(e)
-        if (!pirPrinter.hasRun) pirPrinter.run
-        if (!mapPrinter.hasRun) mapPrinter.run
-        if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
-        if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
-        if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
-        throw e
-    }
+  override def run = {
+    info(s"Configuring spade $arch ...")
+    super.run
   }
 
+  def handle(e:Exception) = {
+    if (!pirPrinter.hasRun) pirPrinter.run
+    if (!mapPrinter.hasRun) mapPrinter.run
+    if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
+    if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
+    if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
+    throw e
+  }
 }
 
