@@ -3,7 +3,7 @@ package pir.mapper
 import pir.{PIR, Config}
 import pir.util.typealias._
 import pirc.util._
-import spade.main._
+import spade._
 import spade.node.{ Node => PNode }
 import spade.util.SpadeMetadata
 import pir.util.PIRMetadata

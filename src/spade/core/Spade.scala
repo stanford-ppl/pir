@@ -1,4 +1,4 @@
-package spade.main
+package spade
 
 import spade.node._
 import spade.simulation._

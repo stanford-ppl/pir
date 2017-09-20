@@ -2,7 +2,7 @@ package spade.node
 
 import pir.codegen._
 
-import spade.main._
+import spade._
 import spade.util._
 import spade.simulation._
 import spade.network._

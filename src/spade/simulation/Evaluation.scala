@@ -1,6 +1,6 @@
 package spade.simulation
 
-import spade.main._
+import spade._
 import spade.node.{Mux => _, _}
 import spade.util._
 

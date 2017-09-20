@@ -6,7 +6,7 @@ import pir.codegen.Printer
 import pirc.exceptions._
 import pir.codegen._
 import pir.pass.{PIRMapping}
-import spade.main._
+import spade._
 import spade.util._
 import pirc.util._
 import pir.util.topoSort

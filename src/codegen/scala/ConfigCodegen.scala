@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir.PIR
 import pir.node.{AccumPR, Const}
-import spade.main._
+import spade._
 import pir.util.typealias._
 import pirc.enums._
 import pir.Config

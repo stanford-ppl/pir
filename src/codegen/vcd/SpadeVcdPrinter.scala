@@ -1,7 +1,7 @@
 package pir.codegen
 
 import pir._
-import spade.main._
+import spade._
 import spade.node._
 import spade.traversal._
 import spade.util.{quote => _, _}

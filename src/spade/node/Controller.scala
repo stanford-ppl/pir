@@ -4,14 +4,9 @@ import pirc.enums._
 import pirc.util._
 import pirc.exceptions._
 
-import spade.main._
+import spade._
 import spade.simulation._
 import spade.util._
-
-import scala.language.reflectiveCalls
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.{Map => MMap}
-import scala.collection.mutable.Set
 
 trait ControllerParam extends SpadeParam {
   val sbufSize:Int

@@ -1,6 +1,6 @@
 package spade.node
 
-import spade.main._
+import spade._
 import spade.util._
 import spade.simulation._
 

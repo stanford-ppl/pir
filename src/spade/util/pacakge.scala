@@ -1,6 +1,5 @@
 package spade
 
-import spade.main.Spade
 import spade.node._
 import spade.simulation._
 
@@ -13,7 +12,7 @@ import scala.reflect.{ClassTag, classTag}
 
 package object util {
 
-  type Spade = spade.main.Spade
+  type Spade = spade.Spade
   type SwitchNetwork = spade.network.SwitchNetwork
   val ConfigFactory = spade.network.ConfigFactory
 

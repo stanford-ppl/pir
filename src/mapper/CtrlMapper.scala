@@ -2,7 +2,7 @@ package pir.mapper
 import pir.{Config}
 import pir.PIR
 import pir.util.typealias._
-import spade.main._
+import spade._
 import pirc.enums._
 import pir.pass.{PIRMapping}
 import pir.codegen._

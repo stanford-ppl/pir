@@ -4,7 +4,7 @@ import pir.node._
 import pir.pass.Traversal
 import pir.PIR
 import pir.pass.Pass
-import spade.main._
+import spade._
 import pir.util.typealias._
 
 import scala.collection.mutable.Set

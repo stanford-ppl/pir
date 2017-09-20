@@ -7,7 +7,7 @@ import spade.node._
 import pir.codegen.DotCodegen
 import pirc.exceptions._
 import spade.util._
-import spade.main.Spade
+import spade.Spade
 import pirc.enums._
 
 import scala.collection.mutable

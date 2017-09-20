@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir._
 import pir.mapper.PIRMap
-import spade.main._
+import spade._
 import pir.pass.Traversal
 import pir.node._
 import spade.util.{quote => _, _}

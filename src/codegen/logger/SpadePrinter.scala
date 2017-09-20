@@ -5,7 +5,7 @@ import pir.util._
 import pirc.util._
 import spade.util._
 import spade.node._
-import spade.main._
+import spade._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

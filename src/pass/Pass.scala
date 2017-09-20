@@ -5,7 +5,7 @@ import pir.Config
 import pir.util._
 import pirc.util._
 import spade.util.SpadeMetadata
-import spade.main._
+import spade._
 import pir.util.typealias._
 import pir.util.PIRMetadata
 

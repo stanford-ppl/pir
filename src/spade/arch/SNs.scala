@@ -2,7 +2,7 @@ package spade.arch
                           
 import spade.network._
 import spade.node._
-import spade.main._
+import spade._
 
 import pirc.enums._
 

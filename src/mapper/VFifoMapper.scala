@@ -5,7 +5,7 @@ import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
 import spade.node.{PipeReg => PPR}
 import spade.util._
-import spade.main._
+import spade._
 import pirc.exceptions._
 
 import scala.collection.mutable.ListBuffer

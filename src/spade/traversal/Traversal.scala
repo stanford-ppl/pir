@@ -1,6 +1,6 @@
 package spade.traversal
 
-import spade.main._
+import spade._
 import spade.node._
 import spade.network._
 

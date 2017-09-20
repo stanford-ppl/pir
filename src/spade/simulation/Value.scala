@@ -1,6 +1,6 @@
 package spade.simulation
 
-import spade.main._
+import spade._
 import spade.node._
 import pirc.enums._
 import pirc.exceptions._

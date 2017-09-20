@@ -6,7 +6,7 @@ import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
 import pir.pass.{PIRMapping}
 import spade.node.{Node => PNode}
-import spade.main._
+import spade._
 import pirc.exceptions._
 import scala.language.existentials
 

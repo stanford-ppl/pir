@@ -6,7 +6,7 @@ import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 import pir.pass.Pass
 import pirc.util._
 import pir.util.PIRMetadata
-import spade.main._
+import spade._
 import spade.node._
 import spade.traversal._
 import spade.util.SpadeMetadata

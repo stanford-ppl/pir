@@ -1,7 +1,7 @@
 package spade.network
                           
 import spade.node._
-import spade.main._
+import spade._
 import pirc.enums._
 
 import scala.language.implicitConversions

@@ -3,7 +3,7 @@ package spade.simulation
 import pir._
 import pir.codegen.Logger
 
-import spade.main._
+import spade._
 import spade.node._
 import spade.traversal._
 import spade.util._

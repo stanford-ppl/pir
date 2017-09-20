@@ -1,7 +1,6 @@
 package spade.node
 
-trait Configuration {
-}
+trait Configuration
 
 trait Configurable extends Node {
   type CT <: Configuration

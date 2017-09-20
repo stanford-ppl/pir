@@ -7,7 +7,7 @@ import pir.codegen._
 import pir.util._
 import pirc.exceptions._
 import pirc.util._
-import spade.main._
+import spade._
 import spade.simulation._
 import spade.util._
 

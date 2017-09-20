@@ -2,7 +2,7 @@ package spade.util
 
 import spade.node._
 import spade.network._
-import spade.main._
+import spade._
 
 import pirc.collection.mutable._
 

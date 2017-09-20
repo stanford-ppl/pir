@@ -5,7 +5,7 @@ import pirc.enums._
 import pir.node.{Const, PipeReg}
 import pir.pass.{PIRMapping}
 import pir.util._
-import spade.main._
+import spade._
 import spade.node.{PipeReg => PPR}
 import spade.util._
 import pirc.exceptions._
