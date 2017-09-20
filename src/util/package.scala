@@ -1,15 +1,17 @@
 package pir
 
 import pir.node._
-import pir.util.misc._
-import mapper._
+import pir.mapper._
 import pir.codegen.{Printer, Logger}
-import scala.language.implicitConversions
+
+import pirc.util._
 import pirc.exceptions._
-import java.lang.Thread
-import pir.codegen.Logger
-import scala.collection.mutable.ListBuffer
+
+import scala.language.implicitConversions
 import scala.reflect.ClassTag
+import scala.collection.mutable.ListBuffer
+
+import java.lang.Thread
 
 package object util {
   implicit def pr_to_inport(pr:PipeReg):InPort = pr.in
