@@ -7,10 +7,10 @@ import pir.util.typealias._
 import pir.mapper.{PIRMap}
 import pirc.exceptions._
 import pirc.util._
-import pir.spade.main._
-import pir.spade.node._
-import pir.spade.util._
-import pir.spade.network._
+import spade.main._
+import spade.node._
+import spade.util._
+import spade.network._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

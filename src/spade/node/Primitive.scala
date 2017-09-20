@@ -1,8 +1,8 @@
-package pir.spade.node
+package spade.node
 
-import pir.spade.main._
-import pir.spade.util._
-import pir.spade.simulation._
+import spade.main._
+import spade.util._
+import spade.simulation._
 
 import pirc.enums._
 
@@ -51,7 +51,6 @@ class Delay[P<:PortType](tp:P, staticDelay:Option[Int], ts:Option[String])(impli
   val out = Output(tp.clone, this, s"${this}_out")
   override def register(implicit sim:Simulator):Unit = {
     import sim.util._
-    import sim.spade
     cfmap.get(this).map { _.delay }.orElse(staticDelay).foreach { delay =>
       out.v := in.vAt(delay) 
     }

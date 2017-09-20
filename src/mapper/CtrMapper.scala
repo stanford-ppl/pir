@@ -6,8 +6,8 @@ import pir.codegen.{CtrDotPrinter}
 import pir.util._
 import pirc.exceptions._
 import pir.node.Const
-import pir.spade.node._
-import pir.spade.util._
+import spade.node._
+import spade.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

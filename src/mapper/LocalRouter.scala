@@ -5,9 +5,9 @@ import pirc.enums._
 import pir.node.{Const, PipeReg}
 import pir.pass.{PIRMapping}
 import pir.util._
-import pir.spade.main._
-import pir.spade.node.{PipeReg => PPR}
-import pir.spade.util._
+import spade.main._
+import spade.node.{PipeReg => PPR}
+import spade.util._
 import pirc.exceptions._
 
 import scala.collection.immutable.Set

@@ -6,7 +6,7 @@ import pir.codegen.Logger
 import pirc.exceptions._
 import pirc.util._
 import pir.util._
-import pir.spade.util._
+import spade.util._
 
 import scala.collection.mutable._
 

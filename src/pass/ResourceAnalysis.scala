@@ -1,11 +1,14 @@
 package pir.pass
-import pir.node._
+
 import pir._
-import pirc.util._
+import pir.node._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
-import pir.spade.util._
+
+import spade.util._
+
+import pirc.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -31,7 +34,8 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   lazy val mp = design.mapping.get
-  override lazy val spade = design.arch.asInstanceOf[SwitchNetwork]
+  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
+  import arch._
 
   val activeCycle = Map[PNode, Long]()
 
@@ -143,7 +147,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   addPass {
-    spade.prts.foreach { cl =>
+    arch.prts.foreach { cl =>
       collectRegUtil(cl)
       collectCtrUtil(cl)
       collectFUUtil(cl)
@@ -159,26 +163,26 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
       //collectChannelUtil(vChannelUsed, cl) { prt => prt.vins }
       //collectChannelUtil(cChannelUsed, cl) { prt => prt.cins }
     }
-    pcuUtil = count(spade.pcus.map(pcu => mp.pmmap.get(pcu)))
-    mcuUtil = count(spade.mcus.map(pcu => mp.pmmap.get(pcu)))
-    scuUtil = count(spade.scus.map(pcu => mp.pmmap.get(pcu)))
-    ocuUtil = count(spade.ocus.map(pcu => mp.pmmap.get(pcu)))
-    mcUtil = count(spade.mcs.map(pcu => mp.pmmap.get(pcu)))
+    pcuUtil = count(arch.pcus.map(pcu => mp.pmmap.get(pcu)))
+    mcuUtil = count(arch.mcus.map(pcu => mp.pmmap.get(pcu)))
+    scuUtil = count(arch.scus.map(pcu => mp.pmmap.get(pcu)))
+    ocuUtil = count(arch.ocus.map(pcu => mp.pmmap.get(pcu)))
+    mcUtil = count(arch.mcs.map(pcu => mp.pmmap.get(pcu)))
 
-    slinkUtil = count(spade.sbs.map(sb => sb.sins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
-    vlinkUtil = count(spade.sbs.map(sb => sb.vins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
-    clinkUtil = count(spade.sbs.map(sb => sb.cins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
+    slinkUtil = count(arch.sbs.map(sb => sb.sins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
+    vlinkUtil = count(sbs.map(sb => sb.vins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
+    clinkUtil = count(sbs.map(sb => sb.cins.filter{_.connectedToSwitch}.map( in => mp.fimap.get(in)) ))
 
-    totalRegUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => regUsed(pcu)))
-    totalFUUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => fuUsed(pcu)))
-    totalSBufUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => sBufUsed(pcu)))
-    totalVBufUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => vBufUsed(pcu)))
-    totalSinPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => sinPinUsed(pcu)))
-    totalSoutPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => soutPinUsed(pcu)))
-    totalVinPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => vinPinUsed(pcu)))
-    totalVoutPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => voutPinUsed(pcu)))
-    totalCinPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => cinPinUsed(pcu)))
-    totalCoutPinUtil = count(spade.cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => coutPinUsed(pcu)))
+    totalRegUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => regUsed(pcu)))
+    totalFUUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => fuUsed(pcu)))
+    totalSBufUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => sBufUsed(pcu)))
+    totalVBufUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => vBufUsed(pcu)))
+    totalSinPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => sinPinUsed(pcu)))
+    totalSoutPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => soutPinUsed(pcu)))
+    totalVinPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => vinPinUsed(pcu)))
+    totalVoutPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => voutPinUsed(pcu)))
+    totalCinPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => cinPinUsed(pcu)))
+    totalCoutPinUtil = count(cus.filter(pcu => mp.pmmap.contains(pcu)).map(pcu => coutPinUsed(pcu)))
 
     //var totRegs = 0
     //var totAlus = 0
@@ -212,8 +216,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   def emitSummary = {
-    val spade = design.arch.asInstanceOf[SwitchNetwork]
-    import spade.param._
+    import arch.param._
     val row = summary.addRow
     row += "App"           -> design.name
     row += "numRow"        -> numRows

@@ -1,8 +1,8 @@
-package pir.spade
+package spade
 
-import pir.spade.main.Spade
-import pir.spade.node._
-import pir.spade.simulation._
+import spade.main.Spade
+import spade.node._
+import spade.simulation._
 
 import pirc.exceptions.PIRException
 
@@ -13,9 +13,9 @@ import scala.reflect.{ClassTag, classTag}
 
 package object util {
 
-  type Spade = pir.spade.main.Spade
-  type SwitchNetwork = pir.spade.network.SwitchNetwork
-  val ConfigFactory = pir.spade.network.ConfigFactory
+  type Spade = spade.main.Spade
+  type SwitchNetwork = spade.network.SwitchNetwork
+  val ConfigFactory = spade.network.ConfigFactory
 
   implicit def pr_to_ip(pr:PipeReg):Input[Bus, PipeReg] = pr.in
   implicit def pr_to_op(pr:PipeReg):Output[Bus, PipeReg] = pr.out

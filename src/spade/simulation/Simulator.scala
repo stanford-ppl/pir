@@ -1,4 +1,4 @@
-package pir.spade.simulation
+package spade.simulation
 
 import pir._
 import pir.mapper.PIRMap
@@ -6,10 +6,10 @@ import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 import pir.pass.Pass
 import pirc.util._
 import pir.util.PIRMetadata
-import pir.spade.main._
-import pir.spade.node._
-import pir.spade.traversal._
-import pir.spade.util.SpadeMetadata
+import spade.main._
+import spade.node._
+import spade.traversal._
+import spade.util.SpadeMetadata
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
@@ -33,8 +33,8 @@ trait SimUtil extends Logger {
 class Simulator()(implicit design:PIR) extends SimUtil with Logger {
 
   var mapping:PIRMap = _
-  implicit def spade = design.arch
-  val spademeta:SpadeMetadata = spade
+  implicit def arch = design.arch
+  val spademeta:SpadeMetadata = arch 
   implicit val sim:Simulator = this
   lazy val vcds:List[VcdPrinter] = 
     if (Config.simulate && Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
@@ -58,7 +58,7 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
   var done = false
 
   def finishSimulation:Boolean = {
-    if (spade.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
+    if (arch.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
     else if (cycle >= Config.simulationTimeOut) { 
       timeOut = true
       warn(s"Simulation time out at #${cycle}!")
@@ -74,7 +74,7 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
     _inSimulation = false
     _inRegistration = false
     cycle = 0
-    spade.simulatable.foreach { m => m.reset }
+    arch.simulatable.foreach { m => m.reset }
   }
 
   def initPass = {
@@ -85,12 +85,12 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
   def register = {
     dprintln(s"\n\nRegistering update functions ...")
     _inRegistration = true
-    spade.simulatable.foreach { s => s.registerAll; s.zeroModule }
-    spade.simulatable.foreach { s => s.updateModule; }
-    spade.simulatable.foreach { s => s.clearModule; s.zeroModule }
+    arch.simulatable.foreach { s => s.registerAll; s.zeroModule }
+    arch.simulatable.foreach { s => s.updateModule; }
+    arch.simulatable.foreach { s => s.clearModule; s.zeroModule }
     _inRegistration = false
-    spade.simulatable.foreach { s => s.check }
-    info(s"# ios simulated: ${spade.simulatable.map(_.ios.size).sum}")
+    arch.simulatable.foreach { s => s.check }
+    info(s"# ios simulated: ${arch.simulatable.map(_.ios.size).sum}")
   }
 
   def simulate = {
@@ -98,9 +98,9 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
     _inSimulation = true
     while (!finishSimulation) {
       rst = if (cycle == 1) true else false
-      spade.simulatable.foreach(_.updateModule)
+      arch.simulatable.foreach(_.updateModule)
       vcds.foreach(_.emitSignals)
-      spade.simulatable.foreach(_.clearModule)
+      arch.simulatable.foreach(_.clearModule)
       cycle += 1
     }
     _inSimulation = false
@@ -129,18 +129,18 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
       case PipeReg(stage, reg) => s"${quote(stage)}.${quote(reg)}"
       case n:ArchReg => s"reg[${n.index}]"
       case n:Primitive if indexOf.get(n).nonEmpty => 
-        s"${n.typeStr}[${n.index}]".replace(s"${pir.spade.util.quote(n.prt)}", quote(n.prt))
+        s"${n.typeStr}[${n.index}]".replace(s"${spade.util.quote(n.prt)}", quote(n.prt))
       case n:Routable => coordOf.get(n).fold(s"$n") { case (x,y) => s"${n.typeStr}[$x,$y]" }
       case n:IO[_,_] =>  
-        var q = pir.spade.util.quote(n).replace(pir.spade.util.quote(n.src), quote(n.src))
+        var q = spade.util.quote(n).replace(spade.util.quote(n.src), quote(n.src))
         n.src match {
-          case n:Primitive => q = q.replace(pir.spade.util.quote(n.prt), quote(n.prt))
+          case n:Primitive => q = q.replace(spade.util.quote(n.prt), quote(n.prt))
           case _ =>
         }
         q
       case n:Value if n.parent.nonEmpty => s"${quote(n.parent.get)}.$n"
       case n:PortType => s"${quote(n.io)}.$n"
-      case n:Node => pir.spade.util.quote(n)
+      case n:Node => spade.util.quote(n)
       case n => s"$n"
     }
   }

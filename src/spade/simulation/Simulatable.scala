@@ -1,12 +1,12 @@
-package pir.spade.simulation
+package spade.simulation
 
 import pir._
 import pir.codegen.Logger
 
-import pir.spade.main._
-import pir.spade.node._
-import pir.spade.traversal._
-import pir.spade.util._
+import spade.main._
+import spade.node._
+import spade.traversal._
+import spade.util._
 
 import pirc.util._
 

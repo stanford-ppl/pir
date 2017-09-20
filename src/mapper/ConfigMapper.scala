@@ -5,9 +5,10 @@ import pir.util._
 import pirc.exceptions._
 import pirc.util._
 import pir.codegen.Logger
-import pir.spade.node.{SRAM => _, Top => _, Const => _, _}
+import spade.node.{SRAM => _, Top => _, Const => _, _}
 import pir.util.typealias._
 import scala.language.existentials
+import spade.util.isMapped
 
 import scala.collection.mutable._
 
@@ -71,7 +72,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
   }
 
   def config(pudc:PUC, mp:M):M = {
-    if (pir.spade.util.isMapped(pudc)(mp)) {
+    if (isMapped(pudc)(mp)) {
       val udc = mp.pmmap.get(pudc)
       val initVal = udc.map { _.initVal }.getOrElse(0)
       dprintln(s"$pudc -> $udc initVal=$initVal")

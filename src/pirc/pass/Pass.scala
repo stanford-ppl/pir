@@ -2,7 +2,7 @@ package pirc.pass
 
 import pir.util._
 import pirc.util._
-import pir.spade.main._
+import spade.main._
 import pir.util.typealias._
 
 import scala.collection.mutable

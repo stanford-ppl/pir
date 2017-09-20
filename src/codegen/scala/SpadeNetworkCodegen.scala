@@ -1,8 +1,8 @@
 package pir.codegen
 
 import pir.PIR
-import pir.spade.main._
-import pir.spade.node._
+import spade.main._
+import spade.node._
 import pir.Config
 
 import scala.collection.mutable.ListBuffer
@@ -15,13 +15,13 @@ import java.io.File
 class SpadeNetworkCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
-  import spade.param._
+  import arch.param._
 
   val traitName = s"PlasticineArch"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/arch/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala") 
   
-  override implicit lazy val spade = design.arch.asSwitchNetwork
+  override implicit lazy val arch = design.arch.asSwitchNetwork
 
   override def splitPreHeader:Unit = {
     emitHeader
@@ -65,7 +65,7 @@ class SpadeNetworkCodegen(implicit design: PIR) extends Codegen with ScalaCodege
 
   def emitNetwork = {
     emitComment("VectorNetwork Connection")
-    spade.prts.foreach { prt =>
+    arch.prts.foreach { prt =>
       prt.vectorIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qv(out)} <> ${qv(in)}")
@@ -73,7 +73,7 @@ class SpadeNetworkCodegen(implicit design: PIR) extends Codegen with ScalaCodege
       }
     }
     emitComment("ScalarNetwork Connection")
-    spade.prts.foreach { prt =>
+    arch.prts.foreach { prt =>
       prt.scalarIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qs(out)} <> ${qs(in, from=out)}")
@@ -81,7 +81,7 @@ class SpadeNetworkCodegen(implicit design: PIR) extends Codegen with ScalaCodege
       }
     }
     emitComment("ControlNetwork Connection")
-    spade.prts.foreach { prt =>
+    arch.prts.foreach { prt =>
       prt.ctrlIO.outs.foreach { out =>
         out.fanOuts.foreach { in =>
           emitln(s"${qc(out)} <> ${qc(in, from=out)}")

@@ -1,7 +1,7 @@
-package pir.spade.network
+package spade.network
 
-import pir.spade.main._
-import pir.spade.node._
+import spade.main._
+import spade.node._
 
 import scala.language.implicitConversions
 import scala.language.existentials

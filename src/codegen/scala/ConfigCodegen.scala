@@ -2,7 +2,7 @@ package pir.codegen
 
 import pir.PIR
 import pir.node.{AccumPR, Const}
-import pir.spade.main._
+import spade.main._
 import pir.util.typealias._
 import pirc.enums._
 import pir.Config
@@ -18,7 +18,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   def shouldRun = design.pirMapping.succeeded && Config.codegen
   import spademeta._
   import pirmeta.{indexOf => _, _}
-  import spade.param._
+  import arch.param._
 
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
@@ -27,15 +27,15 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   lazy val mapping = design.mapping.get
   import mapping._
 
-  def top = spade.top
-  def sbs = spade.sbArray
-  def cus = spade.cuArray
-  def ocus = spade.ocuArray
-  def dags = spade.dramAGs
-  def sags = spade.sramAGs
-  def mcs = spade.mcArray
+  def top = arch.top
+  def sbs = arch.sbArray
+  def cus = arch.cuArray
+  def ocus = arch.ocuArray
+  def dags = arch.dramAGs
+  def sags = arch.sramAGs
+  def mcs = arch.mcArray
 
-  override implicit lazy val spade = design.arch.asSwitchNetwork
+  override implicit lazy val arch = design.arch.asSwitchNetwork
 
   //val SVT = "SrcValueTuple"
   val SVT = "SVT"
@@ -545,8 +545,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   }
 
   def emitPlasticineBits = {
-    val cuArray = spade.cuArray
-    emitLambda(s"val cus:Array[Array[CUBits]] = Array.tabulate(${cuArray.size}, ${cuArray.head.size})", "case (i,j)") {
+    emitLambda(s"val cus:Array[Array[CUBits]] = Array.tabulate(${cus.size}, ${cus.head.size})", "case (i,j)") {
       emitBlock(s"cuParams(i)(j) match") {
         emitln("case p:PCUParams => PCUBits.zeroes(p)")
         emitln("case p:PMUParams => PMUBits.zeroes(p)")
@@ -630,8 +629,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
       s"${quote(n.prt)}.control"
     case n:PSRAM =>
       s"${quote(n.prt)}.scratchpad"
-    case n =>
-      pir.spade.util.quote(n)
+    case n => super.quote(n)
   }
 
   def quote(n:Op) = n match {

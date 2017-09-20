@@ -6,8 +6,8 @@ import pir.codegen.Printer
 import pirc.exceptions._
 import pir.codegen._
 import pir.pass.{PIRMapping}
-import pir.spade.main._
-import pir.spade.util._
+import spade.main._
+import spade.util._
 import pirc.util._
 import pir.util.topoSort
 import pirc.enums._
@@ -58,7 +58,6 @@ class CUMapper(implicit val design:PIR) extends Mapper {
 
   //TODO: change to resFuncWithExcept
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
-    implicit val spade:Spade = design.arch
     log((s"$cl resFunc:", true)) {
       dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
       var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )

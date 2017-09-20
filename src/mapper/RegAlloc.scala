@@ -3,11 +3,11 @@ import pir.util.typealias._
 import pir.node._
 import pir._
 import pir.codegen.DotCodegen
-import pir.spade.node._
+import spade.node._
 import pir.codegen.DotCodegen
 import pirc.exceptions._
-import pir.spade.util._
-import pir.spade.main.Spade
+import spade.util._
+import spade.main.Spade
 import pirc.enums._
 
 import scala.collection.mutable

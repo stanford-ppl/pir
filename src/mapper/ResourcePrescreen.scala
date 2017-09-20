@@ -6,12 +6,12 @@ import pir.codegen.Printer
 import pirc.exceptions._
 import pir.codegen.{Logger, CSVPrinter}
 import pir.pass.{Pass}
-import pir.spade.main._
+import spade.main._
 import pirc.util._
 import pir.util.topoSort
 import pirc.enums._
-import pir.spade.arch._
-import pir.spade.util._
+import spade.arch._
+import spade.util._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

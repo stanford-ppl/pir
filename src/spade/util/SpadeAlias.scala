@@ -1,6 +1,6 @@
-package pir.spade.util
+package spade.util
 
-import pir.spade.node._
+import spade.node._
 
 package object typealias extends SpadeAlias
 
@@ -19,7 +19,7 @@ trait SpadeAlias {
   type PMC       = MemoryController
   type PTop      = Top
   type PRT       = Routable 
-  type PReg      = pir.spade.node.ArchReg
+  type PReg      = spade.node.ArchReg
   type PPR       = PipeReg
   type PCtr      = Counter
   type PSRAM     = SRAM

@@ -2,12 +2,12 @@ package pir.mapper
 import pir.{Config}
 import pir.PIR
 import pir.util.typealias._
-import pir.spade.main._
+import spade.main._
 import pirc.enums._
 import pir.pass.{PIRMapping}
 import pir.codegen._
 import pirc.exceptions._
-import pir.spade.util._
+import spade.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Queue

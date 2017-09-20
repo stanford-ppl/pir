@@ -3,13 +3,13 @@ import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
-import pir.spade.node.{PipeReg => PPR}
-import pir.spade.util._
-import pir.spade.main._
+import spade.node.{PipeReg => PPR}
+import spade.util._
+import spade.main._
 import pirc.exceptions._
 import pirc.enums._
 import pir.util.PIRMetadata
-import pir.spade.node._
+import spade.node._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.immutable.Set
@@ -46,7 +46,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val vis = pir.util.collectIn[VI](n.writePort)
     assert(vis.size==1, s"Vector FIFO can only have a single writer! ${n.ctrler}.$n's writer ${vis}")
     val pvi = m.vimap(vis.head)
-    val rs = pir.spade.util.collectOut[R](pvi)
+    val rs = spade.util.collectOut[R](pvi)
     assert(rs.size==1, s"$pvi connect to multiple vfifos=${rs}")
     List(rs.head)
   }

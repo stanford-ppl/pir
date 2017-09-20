@@ -1,8 +1,8 @@
 package pir.codegen
 
 import pir.PIR
-import pir.spade.main._
-import pir.spade.node._
+import spade.main._
+import spade.node._
 import pir.Config
 
 import scala.collection.mutable.ListBuffer
@@ -15,21 +15,21 @@ import java.io.File
 class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
-  import spade.param._
+  import arch.param._
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
   override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
 
-  override implicit lazy val spade = design.arch.asSwitchNetwork
+  override implicit lazy val arch = design.arch.asSwitchNetwork
 
-  lazy val pcus = spade.pcus
-  lazy val mcus = spade.mcus
-  lazy val cus = spade.cuArray
-  lazy val ocus = spade.ocuArray
-  lazy val dags = spade.dramAGs
-  lazy val mcs = spade.mcArray
-  lazy val sbs = spade.sbArray
+  lazy val pcus = arch.pcus
+  lazy val mcus = arch.mcus
+  lazy val cus = arch.cuArray
+  lazy val ocus = arch.ocuArray
+  lazy val dags = arch.dramAGs
+  lazy val mcs = arch.mcArray
+  lazy val sbs = arch.sbArray
 
   override def splitPreHeader:Unit = {
     emitHeader
@@ -80,13 +80,13 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
     emitBlock(s"override lazy val fringeParams = new FringeParams") {
       emitln(s"override val numArgIns = ${numArgIns}")
       emitln(s"override val numArgOuts = ${numArgOuts}")
-      emitln(s"override val dataWidth = ${spade.wordWidth}")
+      emitln(s"override val dataWidth = ${arch.wordWidth}")
     }
   }
 
   def emitPlasticineParams = {
     emitBlock(s"override lazy val plasticineParams = new PlasticineParams") {
-      emitln(s"override val w = ${spade.wordWidth}")
+      emitln(s"override val w = ${arch.wordWidth}")
       emitln(s"override val numRows = ${numRows}")
       emitln(s"override val numCols = ${numCols}")
       emitln(s"override val cuParams = Array.fill(${cus.size})(Array.ofDim[CUParams](${cus.head.size}))")
@@ -96,8 +96,8 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
       emitln(s"override val switchCUParams = Array.fill(${sbs.size})(Array.ofDim[SwitchCUParams](${sbs.head.size}))")
       emitln(s"override val scalarCUParams = Array.fill(${dags.size})(Array.ofDim[ScalarCUParams](${dags.head.size}))")
       emitln(s"override val memoryChannelParams = Array.fill(${mcs.size})(Array.ofDim[MemoryChannelParams](${mcs.head.size}))")
-      emitln(s"override val numArgOutSelections = ${quote(spade.top.sins.map(_.fanIns.size))}")
-      emitln(s"override val numDoneConnections = ${spade.top.cins.head.fanIns.size}")
+      emitln(s"override val numArgOutSelections = ${quote(arch.top.sins.map(_.fanIns.size))}")
+      emitln(s"override val numDoneConnections = ${arch.top.cins.head.fanIns.size}")
     }
   }
 
@@ -124,8 +124,8 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
   def emitParamClass = {
     pcus.headOption.foreach { pcu =>
       emitBlock(s"case class GeneratedPCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PCUParams") {
-        emitln(s"override val w = ${spade.wordWidth}")
-        emitln(s"override val v = ${spade.numLanes}")
+        emitln(s"override val w = ${arch.wordWidth}")
+        emitln(s"override val v = ${arch.numLanes}")
         emitln(s"override val numCounters = ${pcu.param.numCtrs}")
         emitln(s"override val numUDCs = ${pcu.param.numUDCs}")
         emitRegs(pcu)
@@ -137,8 +137,8 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
     mcus.headOption.foreach { mcu =>
       emitBlock(s"case class GeneratedPMUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numVectorIn:Int, override val numVectorOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends PMUParams") {
-        emitln(s"override val w = ${spade.wordWidth}")
-        emitln(s"override val v = ${spade.numLanes}")
+        emitln(s"override val w = ${arch.wordWidth}")
+        emitln(s"override val v = ${arch.numLanes}")
         emitln(s"override val numCounters = ${mcu.param.numCtrs}")
         emitln(s"override val numUDCs = ${mcu.param.numUDCs}")
         emitRegs(mcu)
@@ -149,7 +149,7 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
     ocus.headOption.foreach { _.headOption.foreach { ocu =>
       emitBlock(s"case class GeneratedSwitchCUParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends SwitchCUParams") {
-        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val w = ${arch.wordWidth}")
         emitln(s"override val numCounters = ${ocu.param.numCtrs}")
         emitln(s"override val numUDCs = ${ocu.param.numUDCs}")
         emitln(s"override val numScalarOut = 0")
@@ -158,7 +158,7 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
     dags.headOption.foreach { _.headOption.foreach { scu =>
       emitBlock(s"case class GeneratedScalarCUParams(override val numScalarIn:Int, override val numScalarOut:Int, override val numControlIn:Int, override val numControlOut:Int) extends ScalarCUParams") {
-        emitln(s"override val w = ${spade.wordWidth}")
+        emitln(s"override val w = ${arch.wordWidth}")
         emitln(s"override val numCounters = ${scu.param.numCtrs}")
         emitln(s"override val numUDCs = ${scu.param.numUDCs}")
         emitRegs(scu)
@@ -169,8 +169,8 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
     mcs.headOption.foreach { _.headOption.foreach { mc =>
       emitBlock(s"case class GeneratedMemoryChannelParams(override val numScalarIn:Int, override val numControlIn:Int, override val numControlOut:Int) extends MemoryChannelParams") {
-        emitln(s"override val w = ${spade.wordWidth}")
-        emitln(s"override val v = ${spade.numLanes}")
+        emitln(s"override val w = ${arch.wordWidth}")
+        emitln(s"override val v = ${arch.numLanes}")
       }
     }}
 
@@ -214,8 +214,8 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
     sbs.foreach { row =>
       row.foreach { sb =>
-        emitln(s"${qv(sb)} = VectorSwitchParams(numIns=${sb.vins.size}, numOuts=${sb.vouts.size}, v=${spade.numLanes}, w=${spade.wordWidth})")
-        emitln(s"${qs(sb)} = ScalarSwitchParams(numIns=${sb.sins.size}, numOuts=${sb.souts.size}, w=${spade.wordWidth})")
+        emitln(s"${qv(sb)} = VectorSwitchParams(numIns=${sb.vins.size}, numOuts=${sb.vouts.size}, v=${arch.numLanes}, w=${arch.wordWidth})")
+        emitln(s"${qs(sb)} = ScalarSwitchParams(numIns=${sb.sins.size}, numOuts=${sb.souts.size}, w=${arch.wordWidth})")
         emitln(s"${qc(sb)} = ControlSwitchParams(numIns=${sb.cins.size}, numOuts=${sb.couts.size})")
       }
     }

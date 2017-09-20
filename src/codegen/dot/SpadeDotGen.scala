@@ -7,10 +7,10 @@ import pir.util.typealias._
 import pir.mapper.{PIRMap}
 import pirc.exceptions._
 import pirc.util._
-import pir.spade.main._
-import pir.spade.node._
-import pir.spade.util._
-import pir.spade.network._
+import spade.main._
+import spade.node._
+import spade.util._
+import spade.network._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -26,11 +26,13 @@ import scala.language.existentials
 abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends Codegen with DotCodegen {
   import spademeta._
 
+  override implicit lazy val arch:SwitchNetwork = design.arch.asInstanceOf[SwitchNetwork]
+
   val scale:Int
 
   def io(prt:Routable):GridIO[_<:PortType, Routable]
 
-  override lazy val stream = if (design.mapping.isDefined) newStream(fn) else newStream(fn, design.arch)
+  override lazy val stream = if (design.mapping.isDefined) newStream(fn)(arch) else newStream(fn, design.arch)
 
   trait Mode
   object OnlyOCU extends Mode
@@ -105,8 +107,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
    * Position of Controller / SwitchBox as a function of coordinate
    * */
   def setPos(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
-    val spade = design.arch.asInstanceOf[SwitchNetwork]
-    import spade.param._
+    import arch.param._
 
     coordOf.get(prt).foreach { case (x,y) =>
       val coord:Option[(Double, Double)] = prt match {
@@ -179,8 +180,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
   }
 
   def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
-    val spade = design.arch.asInstanceOf[SwitchNetwork]
-    import spade.param._
+    import arch.param._
 
     var attr = DotAttr().shape(Mrecord)
     setLabel(prt, attr, mapping)
@@ -247,12 +247,8 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
           attr.label.foreach { l => attr.label(l + s"\n(o-${indexOf(pout)})") }
           s"$from"
         case from:PTop =>
-          spade match {
-            case sn:SwitchNetwork =>
-              val bottom = coordOf(pin.src)._2==0 
-              quote(from, bottom)
-            case pn:PointToPointNetwork => quote(from)
-          }
+          val bottom = coordOf(pin.src)._2==0 
+          quote(from, bottom)
         case from => s"$from:$pout"
       }
       emitEdge(from, to, attr)

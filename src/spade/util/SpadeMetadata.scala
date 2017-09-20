@@ -1,8 +1,8 @@
-package pir.spade.util
+package spade.util
 
-import pir.spade.node._
-import pir.spade.network._
-import pir.spade.main._
+import spade.node._
+import spade.network._
+import spade.main._
 
 import pirc.collection.mutable._
 

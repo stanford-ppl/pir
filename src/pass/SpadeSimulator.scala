@@ -1,7 +1,7 @@
 package pir.pass
 
 import pir._
-import pir.spade.simulation.Simulator
+import spade.simulation.Simulator
 
 class SpadeSimulator(implicit design: PIR) extends Pass {
 

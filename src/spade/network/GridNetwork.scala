@@ -1,7 +1,7 @@
-package pir.spade.network
+package spade.network
 
-import pir.spade.node._
-import pir.spade.main._
+import spade.node._
+import spade.main._
 import pirc.enums._
 import pirc.collection.mutable._
 

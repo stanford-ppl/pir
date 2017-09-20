@@ -1,8 +1,8 @@
-package pir.spade.traversal
+package spade.traversal
 
-import pir.spade.main._
-import pir.spade.node._
-import pir.spade.network._
+import spade.main._
+import spade.node._
+import spade.network._
 
 import scala.collection.mutable.Set
 

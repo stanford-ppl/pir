@@ -1,4 +1,4 @@
-package pir.spade.node
+package spade.node
 
 trait Configuration {
 }

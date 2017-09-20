@@ -5,7 +5,7 @@ import pirc.util._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
-import pir.spade.util._
+import spade.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -17,6 +17,7 @@ class EnergyAnalyzer(implicit design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
   import design.resourceAnalyzer._
+
   def shouldRun = design.pirMapping.succeeded
 
   val summary = new CSVPrinter {
@@ -32,10 +33,11 @@ class EnergyAnalyzer(implicit design: PIR) extends Pass {
   }
 
   lazy val mp = design.mapping.get
-  override lazy val spade = design.arch.asInstanceOf[SwitchNetwork]
+  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
+  import arch._
 
   def timeOf(n:CL):Double = {
-    totalCycleOf(n) * 1.0 / spade.clockFrequency
+    totalCycleOf(n) * 1.0 / arch.clockFrequency
   }
 
   def timeOf(n:PRT):Double = {
@@ -125,7 +127,7 @@ class EnergyAnalyzer(implicit design: PIR) extends Pass {
     prtEnergy += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
-          case out:VO => spade.numLanes * regUnitPower * writeTime(out.ctrler)
+          case out:VO => arch.numLanes * regUnitPower * writeTime(out.ctrler)
           case out:SO => regUnitPower * timeOf(out.ctrler)
           case out:OP => 0.0
         }
@@ -144,7 +146,7 @@ class EnergyAnalyzer(implicit design: PIR) extends Pass {
 
   addPass {
     assert(design.latencyAnalyzer.hasRun)
-    spade.prts.foreach { prt =>
+    arch.prts.foreach { prt =>
       compEnergy(prt)
     }
   } 
@@ -167,19 +169,19 @@ class EnergyAnalyzer(implicit design: PIR) extends Pass {
     row += "totalVFifoEnergy" -> vBufEnergy.map { case (n, e) => e }.sum
     row += "totalSramEnergy" -> sramEnergy.map { case (n, e) => e }.sum
     row += "totalFUEnergy" -> fuEnergy.map { case (n, e) => e }.sum
-    row += "totalPCUEnergy" -> spade.pcus.map { cu => prtEnergy(cu) }.sum
-    row += "totalPMUEnergy" -> spade.mcus.map { cu => prtEnergy(cu) }.sum
-    row += "totalSCUEnergy" -> spade.scus.map { cu => prtEnergy(cu) }.sum
-    row += "totalOCUEnergy" -> spade.ocus.map { cu => prtEnergy(cu) }.sum
-    row += "totalSwitchEnergy" -> spade.sbs.map { sb => prtEnergy(sb) }.sum
-    val totalEnergy = spade.prts.map(prt => prtEnergy(prt)).sum
+    row += "totalPCUEnergy" -> pcus.map { cu => prtEnergy(cu) }.sum
+    row += "totalPMUEnergy" -> mcus.map { cu => prtEnergy(cu) }.sum
+    row += "totalSCUEnergy" -> scus.map { cu => prtEnergy(cu) }.sum
+    row += "totalOCUEnergy" -> ocus.map { cu => prtEnergy(cu) }.sum
+    row += "totalSwitchEnergy" -> sbs.map { sb => prtEnergy(sb) }.sum
+    val totalEnergy = prts.map(prt => prtEnergy(prt)).sum
     row += "totalEnergy" -> totalEnergy
     row += "totalPower" -> totalEnergy / timeOf(design.top) 
     summary.emitFile
   }
 
   def emitDetail = {
-    spade.cus.foreach { cl =>
+    cus.foreach { cl =>
       val row = detail.addRow
       row += s"cu" -> s"$cl"
       row += s"regEnergy" -> regEnergy(cl)

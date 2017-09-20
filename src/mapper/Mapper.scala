@@ -3,9 +3,9 @@ package pir.mapper
 import pir.{PIR, Config}
 import pir.util.typealias._
 import pirc.util._
-import pir.spade.main._
-import pir.spade.node.{ Node => PNode }
-import pir.spade.util.SpadeMetadata
+import spade.main._
+import spade.node.{ Node => PNode }
+import spade.util.SpadeMetadata
 import pir.util.PIRMetadata
 import pir.codegen._
 
@@ -37,7 +37,7 @@ trait Mapper { self =>
   }
 
   implicit def design:PIR
-  implicit def spade:Spade = design.arch
+  implicit def arch:Spade = design.arch
   lazy val spademeta: SpadeMetadata = design.arch
   lazy val pirmeta:PIRMetadata = design
 
@@ -60,9 +60,9 @@ trait Mapper { self =>
   def emitBlock[T](block: =>T):T = logger.emitBlock(block) 
   def emitBlock[T](s:String)(block: =>T):T = logger.emitBlock(s"$mapper", s)(block) 
 
-  def quote(n:Any)(implicit spade:Spade):String = n match {
+  def quote(n:Any)(implicit arch:Spade):String = n match {
     case n:Node => pir.util.quote(n) 
-    case n:PNode => pir.spade.util.quote(n)
+    case n:PNode => spade.util.quote(n)
     case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
   }
 

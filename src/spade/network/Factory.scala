@@ -1,9 +1,9 @@
-package pir.spade.network
+package spade.network
                           
-import pir.spade.node._
-import pir.spade.main._
-import pir.spade.util._
-import pir.spade.arch._
+import spade.node._
+import spade.main._
+import spade.util._
+import spade.arch._
 import pirc.util._
 
 import pir.codegen.Logger

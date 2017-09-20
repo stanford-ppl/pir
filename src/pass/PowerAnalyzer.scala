@@ -5,7 +5,7 @@ import pirc.util._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
-import pir.spade.util._
+import spade.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -32,7 +32,8 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   }
 
   lazy val mp = design.mapping.get
-  override lazy val spade = design.arch.asInstanceOf[SwitchNetwork]
+  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
+  import arch._
 
   val regPower = Map[PNode, Double]()
   val ctrPower = Map[PNode, Double]()
@@ -95,7 +96,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
     prtPower += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
-          case out:VO => spade.numLanes * regUnitPower
+          case out:VO => arch.numLanes * regUnitPower
           case out:SO => regUnitPower
           case out:OP => 0.0
         }
@@ -113,7 +114,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   }
 
   addPass {
-    //spade.prts.foreach { prt =>
+    //arch.prts.foreach { prt =>
       //compPower(prt)
     //}
     DCPower
@@ -129,7 +130,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   }
 
   def DCPower = {
-    spade.prts.map {
+    prts.map {
       case prt:PMCU if mp.pmmap.contains(prt) => totalMCUPower += unitMCUPower
       case prt:PSCU if mp.pmmap.contains(prt) => totalSCUPower += unitSCUPower
       case prt:POCU if mp.pmmap.contains(prt) => totalOCUPower += unitOCUPower
@@ -140,7 +141,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
 
   def emitSummary = {
     val row = summary.addRow
-    val totalSwitchPower = spade.sbs.map { sb => prtPower.getOrElse(sb, 0.0) }.sum //TODO
+    val totalSwitchPower = sbs.map { sb => prtPower.getOrElse(sb, 0.0) }.sum //TODO
     row += "App"           -> design.name
     row += "totalRegPower" -> regPower.map { case (n, e) => e }.sum
     row += "totalCtrPower" -> ctrPower.map { case (n, e) => e }.sum
@@ -148,12 +149,12 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
     row += "totalVFifoPower" -> vBufPower.map { case (n, e) => e }.sum
     row += "totalSramPower" -> sramPower.map { case (n, e) => e }.sum
     row += "totalFUPower" -> fuPower.map { case (n, e) => e }.sum
-    row += "totalPCUPower" -> spade.pcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum //TODO remove getOrElse
-    row += "totalPMUPower" -> spade.mcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
-    row += "totalSCUPower" -> spade.scus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
-    row += "totalOCUPower" -> spade.ocus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalPCUPower" -> pcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum //TODO remove getOrElse
+    row += "totalPMUPower" -> mcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalSCUPower" -> scus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalOCUPower" -> ocus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
     row += "totalSwitchPower" -> totalSwitchPower
-    row += "totalPower" -> spade.prts.map(prt => prtPower.getOrElse(prt, 0.0)).sum
+    row += "totalPower" -> prts.map(prt => prtPower.getOrElse(prt, 0.0)).sum
     row += "DCtotalPCUPower" -> totalPCUPower
     row += "DCtotalPMUPower" -> totalMCUPower
     row += "DCtotalSCUPower" -> totalSCUPower
@@ -163,7 +164,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   }
 
   def emitDetail = {
-    spade.cus.foreach { cl =>
+    cus.foreach { cl =>
       val row = detail.addRow
       row += s"cu" -> s"$cl"
       row += s"regPower" -> regPower(cl)

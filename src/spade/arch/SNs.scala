@@ -1,8 +1,8 @@
-package pir.spade.arch
+package spade.arch
                           
-import pir.spade.network._
-import pir.spade.node._
-import pir.spade.main._
+import spade.network._
+import spade.node._
+import spade.main._
 
 import pirc.enums._
 

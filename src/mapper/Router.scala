@@ -5,8 +5,8 @@ import pir.util.typealias._
 import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
 import pir.pass.{PIRMapping}
-import pir.spade.node.{Node => PNode}
-import pir.spade.main._
+import spade.node.{Node => PNode}
+import spade.main._
 import pirc.exceptions._
 import scala.language.existentials
 
@@ -39,7 +39,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
   type AdvanceCons[E<:Edge] = (PSB, FatPath[E]) => Option[FatPath[E]]
   type AdvanceFunc[E<:Edge] = (PCL, Option[ValidCons[E]], Option[AdvanceCons[E]], Option[PRT], Int, Int) => FatPaths[E] 
 
-  def quote[T](n:T)(implicit spade:Spade, ev:TypeTag[T]):String = {
+  def quote[T](n:T)(implicit arch:Spade, ev:TypeTag[T]):String = {
     n match {
       case io:PIO[_] => s"${super.quote(io.src)}.${io}" 
       case n if typeOf[T] =:= typeOf[FEdge] =>

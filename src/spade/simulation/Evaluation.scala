@@ -1,8 +1,8 @@
-package pir.spade.simulation
+package spade.simulation
 
-import pir.spade.main._
-import pir.spade.node.{Mux => _, _}
-import pir.spade.util._
+import spade.main._
+import spade.node.{Mux => _, _}
+import spade.util._
 
 import pirc.enums._
 import pirc.exceptions._

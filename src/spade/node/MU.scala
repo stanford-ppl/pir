@@ -1,8 +1,8 @@
-package pir.spade.node
+package spade.node
 
-import pir.spade.main._
-import pir.spade.simulation._
-import pir.spade.util._
+import spade.main._
+import spade.simulation._
+import spade.util._
 
 import pirc.exceptions._
 import pirc.enums._

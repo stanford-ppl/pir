@@ -3,9 +3,9 @@ import pir.{PIR, Config}
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
-import pir.spade.node.{PipeReg => PPR}
-import pir.spade.util._
-import pir.spade.main._
+import spade.node.{PipeReg => PPR}
+import spade.util._
+import spade.main._
 import pirc.exceptions._
 import pir.util.PIRMetadata
 

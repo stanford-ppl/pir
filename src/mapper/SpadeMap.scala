@@ -1,7 +1,7 @@
 package pir.mapper
 import pir._
-import pir.spade.node._
-import pir.spade.util.typealias._
+import spade.node._
+import spade.util.typealias._
 
 import pirc.collection.immutable._
 
