@@ -4,7 +4,7 @@ import pir._
 import pir.node._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
-import pir.codegen.{Logger, CSVPrinter, Row}
+import pirc.codegen._
 
 import spade._
 

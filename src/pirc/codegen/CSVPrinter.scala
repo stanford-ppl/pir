@@ -1,8 +1,4 @@
-package pir.codegen
-
-import pir.PIR
-import spade._
-import spade.node._
+package pirc.codegen
 
 import scala.collection.mutable._
 import java.io.OutputStream

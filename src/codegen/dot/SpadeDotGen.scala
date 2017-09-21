@@ -35,7 +35,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
 
   def io(prt:Routable):GridIO[_<:PortType, Routable]
 
-  override lazy val stream = if (design.mapping.isDefined) newStream(fn)(arch) else newStream(fn, design.arch)
+  override lazy val stream = if (design.mapping.isDefined) newStream(fn)(design) else newStream(fn)(design.arch)
 
   trait Mode
   object OnlyOCU extends Mode

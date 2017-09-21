@@ -1,16 +1,9 @@
-package pir.codegen
+package pirc.codegen
 
-import pirc.exceptions._
-import spade.Spade
-import pir.pass.Pass
 import pirc._
 
-import java.nio.file.{Paths, Files}
-import java.io.PrintWriter
-import java.io.File
-import java.io.FileOutputStream
-import java.io.OutputStream
-import java.io.ByteArrayOutputStream
+import java.nio.file._
+import java.io._
 import scala.collection.mutable.Stack
 
 trait Printer {
@@ -127,7 +120,6 @@ trait Printer {
   def newStream(fname:String)(implicit design:Design):FileOutputStream = { newStream(s"${Config.outDir}/$design", fname) }
   def newStream(fname:String, append:Boolean)(implicit design:Design):FileOutputStream =
     newStream(s"${Config.outDir}/$design", fname, append)
-  def newStream(fname:String, spade:Spade):FileOutputStream = { newStream(s"${Config.outDir}/$spade", fname) }
 
   /* A temporary stream to write all data */
   val buffers = Stack[ByteArrayOutputStream]()

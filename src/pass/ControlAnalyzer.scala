@@ -2,7 +2,6 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util._
-import pir.codegen.Logger
 import pirc.exceptions._
 import pirc.util._
 import pirc.enums._

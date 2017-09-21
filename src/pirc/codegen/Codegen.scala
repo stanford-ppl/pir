@@ -10,7 +10,7 @@ import scala.collection.mutable.Set
 import java.io.PrintWriter
 import java.io.{File, FileInputStream, FileOutputStream}
 
-trait Codegen extends Pass with pir.codegen.Printer {
+trait Codegen extends Pass with Printer {
 
   def deleteFiles(file: File): Unit = {
     if (file.isDirectory) {

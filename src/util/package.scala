@@ -2,8 +2,8 @@ package pir
 
 import pir.node._
 import pir.mapper._
-import pir.codegen.{Printer, Logger}
 
+import pirc._
 import pirc.util._
 import pirc.exceptions._
 

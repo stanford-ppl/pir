@@ -1,7 +1,6 @@
 package pirc
 
 import pir.node._
-import pir.codegen.{Printer, Logger}
 import scala.language.implicitConversions
 import java.lang.Thread
 import pirc.exceptions._

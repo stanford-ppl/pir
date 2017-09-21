@@ -4,9 +4,9 @@ import pir._
 import pirc.util._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
-import pir.codegen.{Logger, CSVPrinter, Row}
 import spade._
 import pirc._
+import pirc.codegen._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
@@ -14,7 +14,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 import Math._
 
-class EnergyAnalyzer(implicit design: PIR) extends Pass {
+class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
   import design.resourceAnalyzer._

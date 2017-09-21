@@ -1,15 +1,18 @@
 package pir.mapper
-import pir.node.{Const => _, _}
+
 import pir._
+import pir.node.{Const => _, _}
 import pir.util._
-import pirc.exceptions._
-import pirc.util._
-import pir.codegen.Logger
-import spade.node.{SRAM => _, Top => _, Const => _, _}
 import pir.util.typealias._
-import scala.language.existentials
+
+import spade.node.{SRAM => _, Top => _, Const => _, _}
 import spade.util.isMapped
 
+import pirc.exceptions._
+import pirc.util._
+import pirc._
+
+import scala.language.existentials
 import scala.collection.mutable._
 
 class ConfigMapper(implicit val design: PIR) extends Mapper {

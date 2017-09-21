@@ -2,9 +2,10 @@ package pir.codegen
 
 import pir.node._
 import pir._
+import pir.pass._
 import pirc.util._
 import pirc.enums._
-import pir.pass._
+import pirc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

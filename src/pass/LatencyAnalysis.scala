@@ -3,20 +3,21 @@ import pir.node._
 import pir._
 import pirc.util._
 import pirc.enums._
-import pirc.exceptions.PIRException
-import pir.codegen.{Logger, CSVPrinter, Row}
 import Math._
+import pirc._
+import pirc.exceptions.PIRException
+import pirc.codegen._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
-class LatencyAnalysis(implicit design: PIR) extends Pass with Logger {
+class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = design.pirMapping.succeeded && design.controlAnalyzer.hasRun && design.contentionAnalyzer.hasRun
-  override lazy val stream = newStream(s"LatencyAnalysis.log")
+  override lazy val stream = newStream(s"LatencyAnalysis.log")(design)
 
   val latency = Map[Controller,List[Int]]()
   lazy val mp = design.mapping.get

@@ -1,7 +1,7 @@
 package pirc.collection.immutable
 
+import pirc._
 import pirc.collection._
-import pir.codegen.{Printer}
 import pirc.exceptions._
 
 import scala.collection.immutable.Map

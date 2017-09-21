@@ -1,7 +1,6 @@
 package spade.simulation
 
 import pir._
-import pir.codegen.Logger
 
 import spade._
 import spade.util._

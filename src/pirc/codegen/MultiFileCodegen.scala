@@ -1,15 +1,6 @@
-package pir.codegen
+package pirc.codegen
 
-import pir.PIR
-import spade._
-import spade.node._
-
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
 import java.io.OutputStream
-import java.io.File
 
 trait MultiFileCodegen extends Printer {
   var lineNumber:Int = 0

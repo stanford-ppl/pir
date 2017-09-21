@@ -1,17 +1,18 @@
 package pir.node
 
+import pir._
+import pir.util._
+import pir.pass.ForwardRef
+
+import pirc._
+import pirc.enums._
+import pirc.exceptions._
+
+import scala.reflect.runtime.universe._
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 import scala.math.max
-import pir.PIR
-import pir.node._
-import pirc.enums._
-import pir.util._
-import pir.codegen.Logger
-import pirc.exceptions._
-import scala.reflect.runtime.universe._
-import pir.pass.ForwardRef
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: PIR) extends Controller with OuterRegBlock {
   override val typeStr = "CU"

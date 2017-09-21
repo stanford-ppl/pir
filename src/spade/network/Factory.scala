@@ -1,19 +1,19 @@
 package spade.network
                           
-import spade.node._
 import spade._
+import spade.node._
 import spade.util._
 import spade.arch._
-import pirc.util._
 
-import pir.codegen.Logger
+import pirc._
+import pirc.util._
+import pirc.enums._
 
 import scala.language.implicitConversions
 import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 import pureconfig._
-import pirc.enums._
 
 // Common configuration generator 
 object ConfigFactory extends Logger {

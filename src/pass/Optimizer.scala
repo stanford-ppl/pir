@@ -4,7 +4,7 @@ import pir._
 import pir.util._
 import pirc.exceptions._
 import pirc.util._
-import pir.codegen.Logger
+import pirc._
 
 import scala.collection.mutable._
 

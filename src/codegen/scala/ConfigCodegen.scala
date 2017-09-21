@@ -8,6 +8,7 @@ import pirc.enums._
 import pir._
 import pirc.util._
 import pirc._
+import pirc.codegen._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

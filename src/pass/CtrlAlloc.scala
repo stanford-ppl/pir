@@ -2,11 +2,11 @@ package pir.pass
 import pir.node._
 import pir._
 import pirc.enums._
-import pir.codegen.Logger
 import pirc.exceptions._
-import pirc.util._
 import pir.util._
 import spade.util._
+import pirc._
+import pirc.util._
 
 import scala.collection.mutable._
 

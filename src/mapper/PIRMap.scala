@@ -1,13 +1,13 @@
 package pir.mapper
 import pir._
-import pir.codegen.{Printer}
+import pir.pass.PIRMapping
 import pir.util.typealias._
-import pirc.collection.immutable._
 
 import spade.config._
 
-import pir.pass.PIRMapping
+import pirc._
 import pirc.exceptions._
+import pirc.collection.immutable._
 
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap

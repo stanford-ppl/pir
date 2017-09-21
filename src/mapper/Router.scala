@@ -1,15 +1,18 @@
 package pir.mapper
+
 import pir.node._
 import pir._
 import pir.util.typealias._
-import scala.reflect.runtime.universe._
-import pir.codegen.{DotCodegen, Printer}
 import pir.pass.{PIRMapping}
+
 import spade.node.{Node => PNode}
 import spade._
-import pirc.exceptions._
-import scala.language.existentials
 
+import pirc._
+import pirc.exceptions._
+
+import scala.language.existentials
+import scala.reflect.runtime.universe._
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable

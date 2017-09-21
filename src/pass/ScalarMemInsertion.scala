@@ -2,7 +2,7 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util._
-import pir.codegen.Logger
+import pirc._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

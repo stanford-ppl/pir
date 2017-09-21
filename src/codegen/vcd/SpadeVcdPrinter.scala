@@ -11,7 +11,7 @@ import pirc.util._
 import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
-trait SpadeVcdDeclarator extends Printer { self:VcdPrinter =>
+trait SpadeVcdDeclarator { self:VcdPrinter =>
   val spadeDeclarator:SpadeVcdDeclarator = this
   private val _tracking = ListBuffer[Simulatable]()
   def tracking(self:SpadeVcdDeclarator):Iterable[Simulatable] = _tracking

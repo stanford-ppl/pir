@@ -1,6 +1,6 @@
 package pirc.collection
 
-import pir.codegen.{Printer}
+import pirc._
 import pirc.exceptions._
 
 import scala.collection.Map

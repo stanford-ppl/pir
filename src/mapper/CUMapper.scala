@@ -2,7 +2,6 @@ package pir.mapper
 import pir.node._
 import pir._
 import pir.util.typealias._
-import pir.codegen.Printer
 import pirc.exceptions._
 import pir.codegen._
 import pir.pass.{PIRMapping}

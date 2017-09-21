@@ -1,9 +1,4 @@
-package pir.codegen
-
-import pir._
-import pir.pass.Pass
-
-import spade.Spade
+package pirc.codegen
 
 import pirc._
 import pirc.exceptions._

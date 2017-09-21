@@ -7,6 +7,7 @@ import pir.mapper._
 import pirc.exceptions._
 import scala.util.{Try, Success, Failure}
 import pirc.util._
+import pirc._
 
 class PIRMapping(implicit design: PIR) extends Pass with Logger {
 

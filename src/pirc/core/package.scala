@@ -4,7 +4,8 @@ package object pirc {
 
   /* codegen */
   //type Codegen = pirc.codegen.Codegen
-  //type Printer = pirc.codegen.Printer
+  type Printer = pirc.codegen.Printer
+  type Logger = pirc.codegen.Logger
 
   /* pass */
   type Pass = pirc.pass.Pass

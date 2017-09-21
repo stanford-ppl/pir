@@ -1,10 +1,10 @@
 package pir.codegen
 
-import pir.PIR
+import pir._
 import spade._
 import spade.node._
-import pir._
 import pirc._
+import pirc.codegen._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

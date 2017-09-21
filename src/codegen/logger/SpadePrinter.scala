@@ -17,7 +17,7 @@ import java.io.File
 class SpadePrinter(implicit design: PIR) extends Codegen {
   def shouldRun = Config.debug
 
-  override lazy val stream = newStream(SpadeConfig.spadeFile, design.arch) 
+  override lazy val stream = newStream(SpadeConfig.spadeFile)(design.arch) 
   
   def emitIO(prt:GridIO[_<:PortType, _<:Routable]):Unit = {
     emitBlock(s"ins") {
