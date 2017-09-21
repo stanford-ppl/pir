@@ -1,13 +1,10 @@
 package spade.node
 
 import spade._
-import spade.simulation._
 import spade.util._
 
 import pirc.enums._
 import pirc.util._
-
-import scala.language.reflectiveCalls
 
 case class OuterComputeUnitParam (
   sbufSize:Int = 16,

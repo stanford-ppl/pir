@@ -2,15 +2,11 @@ package spade.node
 
 import spade._
 import spade.util._
-import spade.simulation._
 
 import pirc.enums._
 import pirc.util._
 
-import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
 
 abstract class LUT(implicit spade:Spade, prt:Routable) extends Node {
   val numIns:Int

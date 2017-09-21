@@ -2,11 +2,9 @@ package spade.node
 
 import spade._
 import spade.util._
-import spade.simulation._
 
 import pirc.enums._
 
-import scala.language.reflectiveCalls
 import scala.reflect.runtime.universe.{SingleType =>_, _}
 import scala.collection.mutable.ListBuffer
 

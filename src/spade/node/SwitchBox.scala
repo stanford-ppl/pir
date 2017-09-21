@@ -1,12 +1,7 @@
 package spade.node
 
 import spade._
-import spade.network._
-import spade.simulation._
 import spade.util._
-
-import scala.language.reflectiveCalls
-
 
 /* Switch box (6 inputs 6 outputs) */
 case class SwitchBox()(implicit spade:SwitchNetwork) extends Routable {

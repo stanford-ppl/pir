@@ -5,7 +5,7 @@ import pirc.util._
 import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
 import pir.codegen.{Logger, CSVPrinter, Row}
-import spade.util._
+import spade._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer

@@ -5,7 +5,6 @@ import pirc.util._
 import pirc.exceptions._
 
 import spade._
-import spade.simulation._
 import spade.util._
 
 trait ControllerParam extends SpadeParam {

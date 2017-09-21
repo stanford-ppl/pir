@@ -1,10 +1,7 @@
 package spade.node
 
 import spade._
-import spade.simulation._
 import spade.util._
-
-import scala.language.reflectiveCalls
 
 /* Routable element at interconnection level */
 trait Routable extends Module with Simulatable {

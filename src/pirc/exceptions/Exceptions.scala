@@ -2,7 +2,6 @@ package pirc.exceptions
 
 import pir._
 import pir.util.typealias._
-import spade.util._
 import pir.mapper._
 import pir.codegen._
 

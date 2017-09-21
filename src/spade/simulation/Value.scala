@@ -1,19 +1,16 @@
 package spade.simulation
 
-import spade._
-import spade.node._
 import pirc.enums._
 import pirc.exceptions._
 import pirc.util._
 import pir.Config
+
+import spade._
 import spade.util._
+import spade.node._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Set
-//import scala.reflect.{ClassTag, classTag}
 import scala.reflect.runtime.universe.{SingleType =>_, _}
-import scala.language.implicitConversions
 
 trait Val[P<:PortType]{ self:IO[P, Module] =>
   private lazy val _values = ListBuffer[P]() // from current to previous value

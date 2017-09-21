@@ -9,7 +9,6 @@ import pirc.exceptions._
 import pirc.util._
 import spade._
 import spade.simulation._
-import spade.util._
 
 //import analysis._
 

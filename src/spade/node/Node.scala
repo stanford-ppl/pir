@@ -4,7 +4,6 @@ import spade._
 import spade.util._
 
 import scala.collection.mutable.ListBuffer
-import scala.language.reflectiveCalls
 
 /* Spade Node */
 class Node(implicit val spade:Spade) { 

@@ -1,14 +1,11 @@
 package spade.node
 
 import spade._
-import spade.simulation._
 import spade.util._
 
 import pirc.enums._
 import pirc.util._
 import pirc.exceptions._
-
-import scala.language.reflectiveCalls
 
 case class MCParam (
   sbufSize:Int = 16,

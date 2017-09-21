@@ -6,7 +6,7 @@ import pir.util._
 import pirc.util._
 import pirc.exceptions._
 import pir.codegen.PIRPrinter
-import spade.util._
+import spade._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap

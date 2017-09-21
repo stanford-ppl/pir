@@ -2,13 +2,11 @@ package spade.node
 
 import spade._
 import spade.util._
-import spade.simulation._
 
 import pirc.enums._
 import pirc.util._
 import pirc.exceptions._
 
-import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 
 trait MemoryConfig extends Configuration {

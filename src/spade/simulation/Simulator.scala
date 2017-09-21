@@ -3,16 +3,12 @@ package spade.simulation
 import pir._
 import pir.mapper.PIRMap
 import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
-import pir.pass.Pass
-import pirc.util._
-import pir.util.PIRMetadata
+
 import spade._
 import spade.node._
-import spade.traversal._
 import spade.util.SpadeMetadata
 
-import scala.collection.mutable.Map
-import scala.collection.mutable.ListBuffer
+import pirc.util._
 
 trait SimUtil extends Logger {
   def quote(n:Any):String

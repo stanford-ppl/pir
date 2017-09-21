@@ -2,9 +2,6 @@ package spade.node
 
 import spade._
 import spade.util._
-import spade.simulation._
-
-import scala.language.reflectiveCalls
 
 /** Physical Counter  */
 case class CounterConfig (

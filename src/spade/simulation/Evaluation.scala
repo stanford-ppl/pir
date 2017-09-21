@@ -1,13 +1,11 @@
 package spade.simulation
 
 import spade._
-import spade.node.{Mux => _, _}
 import spade.util._
 
 import pirc.enums._
 import pirc.exceptions._
 
-import scala.reflect.runtime.universe._
 import scala.language.implicitConversions
 
 trait Evaluation {

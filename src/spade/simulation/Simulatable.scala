@@ -4,8 +4,6 @@ import pir._
 import pir.codegen.Logger
 
 import spade._
-import spade.node._
-import spade.traversal._
 import spade.util._
 
 import pirc.util._

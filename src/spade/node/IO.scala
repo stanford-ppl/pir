@@ -4,15 +4,11 @@ import pir.codegen._
 
 import spade._
 import spade.util._
-import spade.simulation._
-import spade.network._
 
 import pirc.enums._
 
-import scala.language.reflectiveCalls
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.language.existentials
 
 trait PortType extends Value {
   private var _io:IO[_, Module] = _

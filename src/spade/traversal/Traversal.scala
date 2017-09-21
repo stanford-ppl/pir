@@ -2,7 +2,6 @@ package spade.traversal
 
 import spade._
 import spade.node._
-import spade.network._
 
 import scala.collection.mutable.Set
 

@@ -5,7 +5,6 @@ import pir.mapper.PIRMap
 import spade._
 import pir.pass.Traversal
 import pir.node._
-import spade.util.{quote => _, _}
 import pirc.util._
 import pir.util.typealias._ 
 import pir.util.PIRMetadata
