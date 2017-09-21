@@ -1,6 +1,6 @@
 package pir.mapper
+
 import pir._
-import pir.pass.PIRMapping
 import pir.util.typealias._
 
 import spade.config._
@@ -8,12 +8,6 @@ import spade.config._
 import pirc._
 import pirc.exceptions._
 import pirc.collection.immutable._
-
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.mutable.ListBuffer
-import scala.reflect.runtime.universe._
-import scala.language.existentials
 
 case class PIRMap(vimap:VIMap, vomap:VOMap, 
   mkmap:MKMap, 

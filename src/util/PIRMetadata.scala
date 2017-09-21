@@ -2,7 +2,9 @@ package pir.util
 
 import pir._
 import pir.node._
+
 import pirc.collection.mutable._
+
 import scala.collection.mutable
 import scala.util.{Try, Success, Failure}
 

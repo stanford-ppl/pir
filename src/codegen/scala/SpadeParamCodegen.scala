@@ -1,17 +1,14 @@
 package pir.codegen
 
 import pir._
+
 import spade._
 import spade.node._
+
 import pirc._
 import pirc.codegen._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.OutputStream
-import java.io.File
 
 class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
@@ -20,7 +17,7 @@ class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen 
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
-  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
+  override lazy val stream = newStream(dir, s"$traitName.scala")
 
   override implicit lazy val arch = design.arch.asSwitchNetwork
 

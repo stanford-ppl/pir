@@ -2,7 +2,6 @@ package pirc.collection.mutable
 
 import pirc._
 import pirc.collection._
-import pirc.exceptions._
 
 import scala.collection.mutable.Map
 import scala.collection.mutable.Set

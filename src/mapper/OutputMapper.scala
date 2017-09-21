@@ -1,12 +1,7 @@
 package pir.mapper
+
 import pir._
 import pir.util.typealias._
-import pirc.enums._
-import pir.pass.PIRMapping
-
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.Map
 
 class OutputMapper(implicit val design:PIR) extends Mapper {
   type N = VO 

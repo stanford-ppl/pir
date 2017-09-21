@@ -1,14 +1,10 @@
 package pir.pass
-import pir.node._
+
 import pir._
-import pir.util._
+import pir.node._
 
 import pirc._
 import pirc.util._
-
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
 
 class FusionTransform(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 

@@ -1,15 +1,12 @@
 package pir.pass
 
-import pir.node._
 import pir._
-import pir.util._
+import pir.node._
+
 import pirc.util._
 
-import scala.collection.mutable.{ Set => MSet }
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
 import scala.collection.mutable.Stack
-import scala.collection.mutable.{ Map => MMap }
 
 class ScalarBundling(implicit design: PIR) extends Pass {
   def shouldRun = true 

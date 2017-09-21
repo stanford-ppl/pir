@@ -1,19 +1,16 @@
 package pir.mapper
-import pir.node._
+
 import pir._
+import pir.util.topoSort
 import pir.util.typealias._
-import pirc.exceptions._
-import pir.codegen._
-import pir.pass.{PIRMapping}
+
 import spade._
 import spade.util._
-import pirc.util._
-import pir.util.topoSort
-import pirc.enums._
 
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.mutable.{Map => MMap}
+import pirc.util._
+import pirc.enums._
+import pirc.exceptions._
+
 import scala.collection.mutable.ListBuffer
 import scala.util.{Try, Success, Failure}
 

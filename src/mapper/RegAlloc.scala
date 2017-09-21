@@ -1,14 +1,13 @@
 package pir.mapper
-import pir.util.typealias._
-import pir.node._
+
 import pir._
-import pir.codegen.DotCodegen
-import spade.node._
-import pir.codegen.DotCodegen
-import pirc.exceptions._
+import pir.node._
+import pir.util.typealias._
+
 import spade.util._
-import spade.Spade
+
 import pirc.enums._
+import pirc.exceptions._
 
 import scala.collection.mutable
 

@@ -13,10 +13,14 @@ package object spade {
   type BusValue = spade.simulation.BusValue
 
   /* network */
+  val ConfigFactory = spade.network.ConfigFactory
   type SwitchNetwork = spade.network.SwitchNetwork
   type GridNetwork = spade.network.GridNetwork
 
   /* config */
   type SpadeMap = spade.config.SpadeMap
+
+  /* util */
+  type SpadeMetadata = spade.util.SpadeMetadata
   /* ------------- Alias (END) ------- **/
 }

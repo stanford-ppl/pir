@@ -1,19 +1,12 @@
 package pir.node
 
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Map
-import scala.math.max
-import scala.reflect.runtime.universe._
 import pir._
-import pir.node._
-import pirc.enums._
 import pir.util._
 import pir.pass.ForwardRef
-import pirc.exceptions._
+
 import pirc._
+
+import scala.collection.mutable.ListBuffer
 
 case class CounterChain(name:Option[String], cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   import pirmeta._

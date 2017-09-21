@@ -10,5 +10,9 @@ package object pirc {
   /* pass */
   type Pass = pirc.pass.Pass
 
+  /* exceptions */
+  type PIRException = pirc.exceptions.PIRException
+  val PIRException = pirc.exceptions.PIRException
+
   /* ------------- Alias (END) ------- **/
 }

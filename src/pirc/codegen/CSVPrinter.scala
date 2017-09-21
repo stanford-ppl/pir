@@ -1,8 +1,6 @@
 package pirc.codegen
 
 import scala.collection.mutable._
-import java.io.OutputStream
-import java.io.File
 
 class Row(implicit csv:CSVPrinter) {
   val cell:Map[String, Any] = Map.empty

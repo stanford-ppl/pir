@@ -1,27 +1,15 @@
 package pir.codegen
 
 import pir._
-import pir.codegen._
-import pir.util._
 import pir.util.typealias._
-import pir.mapper.{PIRMap}
 
 import spade._
 import spade.node._
-import spade.util._
-import spade.network._
 
 import pirc._
-import pirc.exceptions._
 import pirc.util._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.File
-import scala.reflect.runtime.universe._
 import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
@@ -80,9 +68,9 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
           //emitln(s"splines=ortho;")
           val prts = mode match {
             case NoOCU =>
-              sn.prts.filterNot{_.isInstanceOf[OuterComputeUnit]}
+              sn.prts.filterNot{_.isInstanceOf[POCU]}
             case OnlyOCU =>
-              sn.prts.filter{ prt => prt.isInstanceOf[ScalarComputeUnit] && prt.isInstanceOf[OuterComputeUnit]}
+              sn.prts.filter{ prt => prt.isInstanceOf[PSCU] && prt.isInstanceOf[POCU]}
             case AllCU =>
               sn.prts
           }
@@ -90,9 +78,9 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
             emitPRTs(prt, mapping )
             val ins =  mode match {
               case NoOCU =>
-                io(prt).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+                io(prt).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[POCU]}
               case OnlyOCU =>
-                io(prt).ins.filter{ in => in.fanIns.head.src.isInstanceOf[ScalarComputeUnit] && in.fanIns.head.src.isInstanceOf[OuterComputeUnit]}
+                io(prt).ins.filter{ in => in.fanIns.head.src.isInstanceOf[PSCU] && in.fanIns.head.src.isInstanceOf[POCU]}
               case AllCU =>
                 io(prt).ins
             }

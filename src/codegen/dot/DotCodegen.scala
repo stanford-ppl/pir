@@ -1,12 +1,9 @@
 package pir.codegen
 
-import pir.PIR
+import pir._
 import pir.util.typealias._
 import spade._
 import pirc._
-
-import scala.collection.mutable.Map
-import scala.language.implicitConversions
 
 trait DotCodegen extends pirc.codegen.DotCodegen {
   def quote(n:Any)(implicit design:PIR) = {

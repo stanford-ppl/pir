@@ -24,9 +24,6 @@ package object util {
   type Configurable = spade.config.Configurable
   type Configuration = spade.config.Configuration
 
-  /* network */
-  val ConfigFactory = spade.network.ConfigFactory
-
   /* ------------- Alias (END) ------- **/
 
   implicit def pr_to_ip(pr:PipeReg):Input[Bus, PipeReg] = pr.in

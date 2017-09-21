@@ -1,21 +1,17 @@
 package pir.codegen
 
-import pir.PIR
-import pir.node.{AccumPR, Const}
-import spade._
-import pir.util.typealias._
-import pirc.enums._
 import pir._
-import pirc.util._
+import pir.node.{AccumPR, Const}
+import pir.util.typealias._
+
+import spade._
+
 import pirc._
+import pirc.util._
+import pirc.enums._
 import pirc.codegen._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.OutputStream
-import java.io.File
 
 class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = design.pirMapping.succeeded && Config.codegen
@@ -26,7 +22,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
   lazy val dir = sys.env("PLASTICINE_HOME") + s"/src/main/scala/apps/$design"
-  override lazy val stream:OutputStream = newStream(dir, s"$traitName.scala")
+  override lazy val stream = newStream(dir, s"$traitName.scala")
   lazy val mapping = design.mapping.get
   import mapping._
 

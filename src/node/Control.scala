@@ -1,18 +1,11 @@
 package pir.node
 
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Map
-import scala.math.max
-import scala.reflect.runtime.universe._
-import pir.PIR
-import pir.node._
-import pirc.enums._
-import pirc.exceptions._
-import pir.pass.ForwardRef
+import pir._
 
+import pirc.enums._
+
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map
 
 abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:PIR) extends Primitive()(ctrlBox.ctrler, design) {
 }

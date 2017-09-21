@@ -1,7 +1,5 @@
 package pirc.codegen
 
-import java.io.OutputStream
-
 trait MultiFileCodegen extends Printer {
   var lineNumber:Int = 0
   var fileNumber:Int = 0
@@ -41,7 +39,7 @@ trait MultiFileCodegen extends Printer {
   def openFile = {
     fileNumber += 1
     printer = new Printer {
-      override lazy val stream:OutputStream = newStream(dir, s"$traitName$fileNumber.scala") 
+      override lazy val stream = newStream(dir, s"$traitName$fileNumber.scala") 
     }
     lineNumber = 0
     splitPreHeader

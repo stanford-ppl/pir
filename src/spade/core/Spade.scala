@@ -1,7 +1,6 @@
 package spade
 
 import spade.node._
-import spade.simulation._
 import spade.util._
 
 import pirc._

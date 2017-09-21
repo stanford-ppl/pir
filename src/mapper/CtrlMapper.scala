@@ -1,19 +1,14 @@
 package pir.mapper
+
 import pir._
 import pir.util.typealias._
+
 import spade._
-import pirc.enums._
-import pir.pass.{PIRMapping}
-import pir.codegen._
-import pirc.exceptions._
 import spade.util._
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
-import scala.collection.immutable.Set
-import scala.collection.immutable.Map
-import scala.collection.mutable.{ Map => MMap }
-import scala.util.{Try, Success, Failure}
+import pirc.enums._
+import pirc.exceptions._
+
 import scala.language.existentials
 
 class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {

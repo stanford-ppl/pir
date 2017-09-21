@@ -1,20 +1,16 @@
 package pir.node
 
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Map
-import scala.math.max
-import scala.reflect.runtime.universe._
-import scala.language.existentials
 import pir._
-import pir.node._
-import pirc.enums._
-import pirc.exceptions._
 import pir.pass.ForwardRef
 import pir.util._
 
+import pirc._
+import pirc.enums._
+
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.reflect.runtime.universe._
+import scala.language.existentials
 
 abstract class Primitive(implicit val ctrler:Controller, design:PIR) extends Module 
 /** Counter node. Represents a chain of counters where each counter counts upto a certain max value. When
@@ -179,14 +175,14 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
 class Stage(override val name:Option[String])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "Stage"
   var fu:Option[FuncUnit] = _
-  val _prs:Map[Reg, PipeReg] = Map.empty
+  val _prs = mutable.Map[Reg, PipeReg]()
   def prs:List[PipeReg] = _prs.values.toList
   def get(reg:Reg) = _prs.getOrElseUpdate(reg, PipeReg(this, reg))
   def remove(reg:Reg) = _prs -= reg
-  val defs:Set[Reg] = Set.empty
-  val uses:Set[Reg] = Set.empty
-  var liveIns:ISet[Reg] = ISet.empty
-  var liveOuts:ISet[Reg] = ISet.empty
+  val defs:mutable.Set[Reg] = mutable.Set.empty
+  val uses:mutable.Set[Reg] = mutable.Set.empty
+  var liveIns:Set[Reg] = Set.empty
+  var liveOuts:Set[Reg] = Set.empty
   var prev:Option[Stage] = None
   var next:Option[Stage] = None
   def allPrevs:List[Stage] = {

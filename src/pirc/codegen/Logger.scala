@@ -1,14 +1,8 @@
 package pirc.codegen
 
 import pirc._
-import pirc.exceptions._
 
-import java.io.PrintWriter
-import java.io.File
 import java.io.FileOutputStream
-import java.io.OutputStream
-import java.io.ByteArrayOutputStream
-import scala.collection.mutable.Stack
 
 trait Logger extends Printer {
   implicit val self:Logger = this

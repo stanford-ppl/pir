@@ -1,15 +1,10 @@
 package pir.codegen
 
 import pir._
-import pir.codegen._
 import pir.node._
 import pirc.util._
 
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import java.io.File
-import scala.language.implicitConversions
 
 class CtrlDotGen(implicit design: PIR) extends Codegen with DotCodegen {
   def shouldRun = PIRConfig.debug && PIRConfig.ctrl

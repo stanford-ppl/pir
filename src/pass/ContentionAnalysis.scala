@@ -1,11 +1,11 @@
 package pir.pass
-import pir.node._
+
 import pir._
+import pir.node._
 
 import pirc._
 import pirc.util._
 
-import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 

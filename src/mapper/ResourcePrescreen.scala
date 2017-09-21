@@ -1,24 +1,19 @@
 package pir.mapper
-import pir.node._
+
 import pir._
+import pir.node._
 import pir.util.typealias._
-import pirc.exceptions._
 import pir.pass.{Pass}
+
 import spade._
-import pir.util.topoSort
-import spade.arch._
-import spade.util._
 
 import pirc._
 import pirc.util._
 import pirc.codegen._
 import pirc.enums._
 
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.{Try, Success, Failure}
 
 class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logger {
   import pirmeta._

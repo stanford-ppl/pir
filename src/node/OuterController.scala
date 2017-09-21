@@ -1,10 +1,7 @@
 package pir.node
 
-import pir.PIR
-import pir.util._
+import pir._
 import pirc._
-import pirc.exceptions._
-import scala.reflect.runtime.universe._
 
 abstract class OuterController(name:Option[String])(implicit design:PIR) extends ComputeUnit(name) {
 

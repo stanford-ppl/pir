@@ -1,13 +1,9 @@
 package pir.pass
-import pir.node._
-import pir.PIR
+
 import pir._
-import pir.util._
-import pirc.util._
-import spade.util.SpadeMetadata
-import spade._
 import pir.util.typealias._
-import pir.util.PIRMetadata
+
+import spade._
 
 import scala.collection.mutable
 

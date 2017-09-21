@@ -1,20 +1,12 @@
 package pir.node
 
-import pir.util._
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Map
+import pir._
+
+import pirc._
+import pirc.enums._
+
 import scala.math.max
 import scala.reflect.runtime.universe._
-import pir._
-import pir.node._
-import pirc.enums._
-import pirc.exceptions._
-import pir.pass.ForwardRef
-import pirc.util._
-import pir.mapper.PIRMap
 
 abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:PIR) extends Primitive {
   import pirmeta._

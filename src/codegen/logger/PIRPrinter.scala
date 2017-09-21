@@ -1,19 +1,17 @@
 package pir.codegen
 
-import pir.node._
 import pir._
-import pir.util._
-import pirc.util._
+import pir.node._
 import pir.pass.Traversal
 import pir.util._
+
 import pirc._
+import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
-import java.io.OutputStream
-import java.io.File
 
 
 class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal with Logger {
@@ -24,7 +22,7 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
   def this()(implicit design: PIR) = {
     this(PIRConfig.pirFile)
   }
-  override lazy val stream:OutputStream = newStream(fn) 
+  override lazy val stream = newStream(fn) 
 
   override def initPass() = {
     super.initPass

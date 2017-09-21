@@ -1,7 +1,6 @@
 package pirc.collection
 
 import pirc._
-import pirc.exceptions._
 
 import scala.collection.Map
 import scala.collection.Set

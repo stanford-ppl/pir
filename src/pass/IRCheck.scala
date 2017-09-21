@@ -1,12 +1,14 @@
 package pir.pass
-import pir.node.{Const => _, _}
+
 import pir._
+import pir.node.{Const => _, _}
 import pir.util.typealias._
-import pir.util._
-import pirc.util._
-import pirc.exceptions._
 import pir.codegen.PIRPrinter
+
 import spade._
+
+import pirc.util._
+import pirc._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.HashMap

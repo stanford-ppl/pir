@@ -1,10 +1,10 @@
 package pirc
 
-import pir.node._
-import scala.language.implicitConversions
-import java.lang.Thread
 import pirc.exceptions._
+
+import scala.language.implicitConversions
 import scala.collection.mutable.Stack
+import java.lang.Thread
 
 package object util extends Printer {
   val times = Stack[Long]()

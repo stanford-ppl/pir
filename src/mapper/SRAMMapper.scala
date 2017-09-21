@@ -1,18 +1,12 @@
 package pir.mapper
+
 import pir._
 import pir.util.typealias._
-import pir.pass.PIRMapping
-import pir.node.{PipeReg => PR, VecInPR, LoadPR}
-import spade.node.{PipeReg => PPR}
-import spade.util._
-import spade._
-import pirc.exceptions._
-import pir.util.PIRMetadata
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.Map
+import spade._
+import spade.util._
+
+import pirc.exceptions._
 
 class SramMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = SRAM

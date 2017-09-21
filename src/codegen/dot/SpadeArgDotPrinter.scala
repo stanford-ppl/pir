@@ -1,27 +1,11 @@
 package pir.codegen
 
 import pir._
-import pir.codegen._
-import pir.util._
 import pir.util.typealias._
-import pir.mapper.{PIRMap}
-import pirc.exceptions._
-import pirc.util._
+
 import spade._
-import spade.node._
-import spade.util._
-import spade.network._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.File
-import scala.reflect.runtime.universe._
-import sys.process._
-import scala.language.postfixOps
-import scala.language.existentials
 
 class ArgDotPrinter(fn:String)(implicit design:PIR) extends DotCodegen { 
   override lazy val stream = newStream(fn)

@@ -1,7 +1,6 @@
 package pir.node
 
 import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
 trait OuterRegBlock { self:ComputeUnit =>

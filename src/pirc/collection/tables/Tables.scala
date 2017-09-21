@@ -1,6 +1,6 @@
 package pirc.collection
 
-import pirc.exceptions._
+import pirc._
 
 import scala.collection._
 

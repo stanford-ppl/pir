@@ -1,24 +1,16 @@
 package pir.mapper
 
-import pir.node._
 import pir._
 import pir.util.typealias._
-import pir.pass.{PIRMapping}
 
-import spade.node.{Node => PNode}
 import spade._
 
 import pirc._
-import pirc.exceptions._
 
 import scala.language.existentials
 import scala.reflect.runtime.universe._
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Queue
-import scala.util.{Failure, Success, Try}
 
 abstract class Router(implicit design:PIR) extends Mapper {
   import spademeta._
@@ -213,7 +205,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
       advanceCons:AdvanceCons[E]
     ):FatPaths[E] = {
     val result = ListBuffer[(PCL, FatPath[E])]()
-    val fatpaths = Queue[(List[PSB], FatPath[E])]()
+    val fatpaths = mutable.Queue[(List[PSB], FatPath[E])]()
     fatpaths += ((Nil, Nil))
     val thresh = 2
     def shouldVisit(visited:List[PSB], psb:PSB):Boolean = { // reduce exponential space to quadratic space

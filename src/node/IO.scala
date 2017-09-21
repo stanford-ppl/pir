@@ -1,11 +1,9 @@
 package pir.node
 
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.math.max
 import pir._
-import pir.node._
+
+import scala.collection.mutable.ListBuffer
+import scala.math.max
 
 class Range (s:OutPort, e:OutPort) {
   val start:OutPort = s

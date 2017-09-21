@@ -4,26 +4,13 @@ import pir.node._
 import pir.pass._
 import pir.mapper._
 import pir.codegen._
-import pir.util._
 
-import spade.util._
 import spade._
-import spade.simulation._
 
-import pirc.exceptions._
-import pirc.util._
 import pirc._
+import pirc.util._
 
-import scala.util.{Try, Success, Failure}
-
-import scala.language.implicitConversions
-import scala.collection.mutable.Queue
-import scala.collection.mutable.HashMap
-import scala.collection.mutable.Stack
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.{Set,Map}
-import java.nio.file.{Paths, Files}
-import scala.io.Source
 
 trait PIR extends Design with PIRMetadata with Collector {
 

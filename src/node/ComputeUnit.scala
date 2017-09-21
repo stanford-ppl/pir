@@ -6,13 +6,9 @@ import pir.pass.ForwardRef
 
 import pirc._
 import pirc.enums._
-import pirc.exceptions._
 
-import scala.reflect.runtime.universe._
-import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.math.max
 
 abstract class ComputeUnit(override val name: Option[String])(implicit design: PIR) extends Controller with OuterRegBlock {
   override val typeStr = "CU"

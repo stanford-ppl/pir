@@ -1,8 +1,5 @@
 package pirc.codegen
 
-import java.io.OutputStream
-import java.io.File
-
 trait ScalaCodegen extends Printer {
   def emitComment(s:Any) = {
     emitln(s"// $s")

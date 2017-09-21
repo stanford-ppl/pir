@@ -1,13 +1,11 @@
 package pir.pass
-import pir.node._
-import pir._
-import pirc._
-import pirc.exceptions._
-import pirc.util._
 
-import scala.collection.mutable.Set
+import pir._
+import pir.node._
+
+import pirc._
+
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
 import scala.collection.mutable.Queue
 
 class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {

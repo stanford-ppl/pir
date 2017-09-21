@@ -1,17 +1,8 @@
 package pir.node
 
-import scala.collection.mutable.Set
+import pir._
+import pirc._
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.math.max
-import pir.PIR
-import pir.node._
-import pirc.enums._
-import pirc.exceptions._
-import pir.util._
-import scala.reflect.runtime.universe._
-import pir.pass.ForwardRef
-import pir.util._
 
 case class Top()(implicit design: PIR) extends Controller { self =>
   implicit val top:Controller = self

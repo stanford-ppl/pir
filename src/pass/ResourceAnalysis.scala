@@ -1,20 +1,14 @@
 package pir.pass
 
 import pir._
-import pir.node._
-import pir.mapper.{StageMapper, PIRMap, RegAlloc}
 import pir.util.typealias._
-import pirc.codegen._
 
 import spade._
 
 import pirc._
-import pirc.util._
+import pirc.codegen._
 
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.Queue
 import Math._
 
 class ResourceAnalysis(implicit design: PIR) extends Pass {
@@ -212,7 +206,6 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
     emitDetail
     summary.close
     detail.close
-    close
     super.finPass
   }
 

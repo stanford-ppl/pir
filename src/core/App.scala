@@ -1,20 +1,13 @@
 package pir
 
-import node._
-import pass._
-import mapper._
-import pir.codegen._
-import spade.util._
+import pir.node._
 import pir.util._
+
 import spade._
-import spade.simulation._
 import spade.arch._
 
 import pirc._
 import pirc.util._
-import pirc.exceptions._
-
-import scala.util.{Try, Success, Failure}
 
 import scala.language.implicitConversions
 

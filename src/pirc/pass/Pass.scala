@@ -1,9 +1,6 @@
 package pirc.pass
 
-import pir.util._
 import pirc.util._
-import spade._
-import pir.util.typealias._
 
 import scala.collection.mutable
 

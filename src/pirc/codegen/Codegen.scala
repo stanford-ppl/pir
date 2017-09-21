@@ -6,8 +6,6 @@ import spade._
 
 import pirc.pass.Pass
 
-import scala.collection.mutable.Set
-import java.io.PrintWriter
 import java.io.{File, FileInputStream, FileOutputStream}
 
 trait Codegen extends Pass with Printer {

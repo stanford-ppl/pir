@@ -1,19 +1,15 @@
 package pir.mapper
+
 import pir._
-import pir.util.typealias._
-import pirc.enums._
 import pir.node.{Const, PipeReg}
-import pir.pass.{PIRMapping}
-import pir.util._
+import pir.util.typealias._
+
 import spade._
 import spade.node.{PipeReg => PPR}
 import spade.util._
+
 import pirc.exceptions._
 
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.Map
-import scala.util.{Try, Success, Failure}
 import scala.language.existentials
 import scala.reflect.{ClassTag, classTag}
 

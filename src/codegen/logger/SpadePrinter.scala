@@ -1,18 +1,12 @@
 package pir.codegen
 
 import pir._
-import pir.util._
-import spade.util._
-import spade.node._
+
 import spade._
+import spade.node._
+
 import pirc._
 import pirc.util._
-
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.File
 
 class SpadePrinter(implicit design: PIR) extends Codegen {
   def shouldRun = Config.debug

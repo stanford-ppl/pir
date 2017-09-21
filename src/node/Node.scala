@@ -1,12 +1,9 @@
 package pir.node
 
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
-import scala.math.max
 import pir._
-import pir.node._
-import pir.util._
+
+import scala.collection.mutable.ListBuffer
+import scala.math.max
 
 /** Base class for all PIR nodes. 
   * @param name: optional user name for a node 

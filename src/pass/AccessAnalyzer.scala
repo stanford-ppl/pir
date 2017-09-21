@@ -1,15 +1,11 @@
 package pir.pass
-import pir.node._
+
 import pir._
+import pir.node._
 import pir.util._
 
 import pirc._
 import pirc.util._
-import pirc.exceptions._
-
-import scala.collection.mutable.Set
-import scala.collection.immutable.{Set => ISet}
-import scala.collection.mutable.Map
 
 class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 

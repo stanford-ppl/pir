@@ -1,13 +1,10 @@
 package pir.pass
-import pir.node._
-import pir._
-import pir.util._
-import pirc._
 
-import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map
-import scala.collection.mutable.Queue
+import pir._
+import pir.node._
+import pir.util._
+
+import pirc._
 
 class ScalarMemInsertion(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 

@@ -1,13 +1,14 @@
 package pir.pass
 
-import pir.node._
 import pir._
+import pir.node._
 import pir.codegen._
 import pir.mapper._
+
+import pirc._
+import pirc.util._
 import pirc.exceptions._
 import scala.util.{Try, Success, Failure}
-import pirc.util._
-import pirc._
 
 class PIRMapping(implicit design: PIR) extends Pass with Logger {
 

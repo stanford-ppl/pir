@@ -1,20 +1,14 @@
 package pir.mapper
+
 import pir._
 import pir.util.typealias._
-import pirc.enums._
 import pir.node.{Const, ScalarOutPR, VecOutPR}
-import pir.pass.{PIRMapping}
-import pir.util._
+
 import spade._
 import spade.node.{Const => PConst, PipeReg => PPR, _}
-import spade.util._
-import pirc.exceptions._
 
-import scala.collection.immutable.Set
-import scala.collection.immutable.HashMap
-import scala.collection.immutable.Map
-import scala.util.{Try, Success, Failure}
-import scala.language.existentials
+import pirc.enums._
+import pirc.exceptions._
 
 class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 

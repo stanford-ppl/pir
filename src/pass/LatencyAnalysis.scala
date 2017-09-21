@@ -1,17 +1,14 @@
 package pir.pass
-import pir.node._
+
 import pir._
-import pirc.util._
-import pirc.enums._
-import Math._
+import pir.node._
+
 import pirc._
-import pirc.exceptions.PIRException
-import pirc.codegen._
+import pirc.enums._
 
 import scala.collection.mutable.Set
-import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
-import scala.collection.mutable.Queue
+import Math._
 
 class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logger {
   import pirmeta._

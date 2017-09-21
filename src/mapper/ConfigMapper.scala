@@ -1,19 +1,15 @@
 package pir.mapper
 
 import pir._
-import pir.node.{Const => _, _}
 import pir.util._
 import pir.util.typealias._
 
 import spade.node.{SRAM => _, Top => _, Const => _, _}
 import spade.util.isMapped
 
-import pirc.exceptions._
-import pirc.util._
 import pirc._
 
 import scala.language.existentials
-import scala.collection.mutable._
 
 class ConfigMapper(implicit val design: PIR) extends Mapper {
   def shouldRun = PIRConfig.ctrl && PIRConfig.mapping
@@ -172,7 +168,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
         case _ =>
           if (collectOut[FIFO](in).nonEmpty)
             mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.enDelay).out }
-          else if (collectOut[MultiBuffer](in).nonEmpty)
+          else if (collectOut[MBuf](in).nonEmpty)
             mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }
           else Nil
       }

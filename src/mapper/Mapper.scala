@@ -2,21 +2,18 @@ package pir.mapper
 
 import pir._
 import pir.util.typealias._
-import spade._
-import spade.node.{ Node => PNode }
-import spade.util.SpadeMetadata
-import pir.util.PIRMetadata
 import pir.codegen._
+
+import spade._
+
 import pirc._
 import pirc.util._
+import pirc.exceptions._
 
-import java.lang.Thread
-import scala.collection.immutable.Set
-import scala.collection.immutable.Map
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
 import scala.util.{Try, Success, Failure}
-import pirc.exceptions._
+import java.lang.Thread
 
 trait Mapper { self =>
   type M = PIRMap 

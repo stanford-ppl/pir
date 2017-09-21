@@ -2,7 +2,6 @@ package pirc.codegen
 
 import pirc._
 
-
 class CollectionStatus {
   var firstPair = true 
   var inScope = true 

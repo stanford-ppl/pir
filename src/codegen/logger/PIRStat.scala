@@ -1,21 +1,17 @@
 package pir.codegen
 
-import pir.node._
 import pir._
+import pir.node._
 import pir.pass._
+
+import pirc._
 import pirc.util._
 import pirc.enums._
-import pirc._
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Set
-import scala.collection.mutable.Map
-import scala.collection.mutable.HashMap
-import java.io.OutputStream
-import java.io.File
 
 class PIRStat(implicit design:PIR) extends Printer {
-  override lazy val stream:OutputStream = newStream(s"PIRStat.log", append=true) 
+  override lazy val stream = newStream(s"PIRStat.log", append=true) 
   def cycle(cycle:Long)(implicit design: PIR) = {
     val latency = cycle / Math.pow(10,9)
     emit(s"[${design}] ${new java.sql.Timestamp(System.currentTimeMillis())} cycle:$cycle, latency:${latency}s, ")
@@ -46,7 +42,7 @@ class PIRStatLog(fn:String)(implicit design: PIR) extends Traversal with Printer
   def this()(implicit design: PIR) = {
     this(s"${design}.stat")
   }
-  override lazy val stream:OutputStream = newStream(fn) 
+  override lazy val stream = newStream(fn) 
 
   override def initPass() = {
     super.initPass
