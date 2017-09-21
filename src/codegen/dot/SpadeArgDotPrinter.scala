@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.{PIR, Config}
+import pir._
 import pir.codegen._
 import pir.util._
 import pir.util.typealias._
@@ -26,7 +26,7 @@ import scala.language.existentials
 class ArgDotPrinter(fn:String)(implicit design:PIR) extends DotCodegen { 
   override lazy val stream = newStream(fn)
 
-  def this()(implicit design:PIR) = this(Config.spadeArgInOut)
+  def this()(implicit design:PIR) = this(SpadeConfig.spadeArgInOut)
 
   def print(pcus:List[PCU], ptop:PTop) = {
     emitBlock("digraph G") {

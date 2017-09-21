@@ -24,7 +24,7 @@ import scala.language.existentials
 
 class CtrDotPrinter(fn:String)(implicit design:PIR) extends DotCodegen { 
 
-  def this()(implicit design:PIR) = this(Config.spadeCtr)
+  def this()(implicit design:PIR) = this(SpadeConfig.spadeCtr)
 
   override lazy val stream = newStream(fn) 
 

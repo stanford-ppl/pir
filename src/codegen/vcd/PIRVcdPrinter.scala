@@ -16,7 +16,8 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.ListBuffer
 
 trait PIRVcdDeclarator { self:PIRVcdPrinter =>
-  import sim.util.{quote => _, _}
+  import mapping._
+
   val pirDeclarator:PIRVcdDeclarator = this
 
   private val _tracking = ListBuffer[PIO[PModule]]()
@@ -118,11 +119,11 @@ trait PIRVcdDeclarator { self:PIRVcdPrinter =>
   }
 
 }
-class PIRVcdPrinter(implicit sim:Simulator, val design: PIR) extends VcdPrinter with PIRVcdDeclarator {
+class PIRVcdPrinter(mp:PIRMap)(implicit sim:Simulator, val design: PIR) extends VcdPrinter with PIRVcdDeclarator {
   override lazy val stream = newStream("sim_pir.vcd") 
   import sim.util._
   val pirmeta:PIRMetadata = design
-  implicit def mapping:PIRMap = sim.mapping
+  implicit val mapping:PIRMap = mp 
 
   def declareAll = {
     traverse(pirDeclarator)

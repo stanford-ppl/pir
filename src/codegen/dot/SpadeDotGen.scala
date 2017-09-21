@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.{PIR, Config}
+import pir._
 import pir.codegen._
 import pir.util._
 import pir.util.typealias._
@@ -271,7 +271,7 @@ class SpadeCtrlDotPrinter(file:String, open:Boolean)(implicit design:PIR)
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeCtrlNetwork, open)
+  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeCtrlNetwork, open)
   def this()(implicit design:PIR) = this(false)
 
   val scale = 20
@@ -284,7 +284,7 @@ class SpadeScalarDotPrinter(file:String, open:Boolean)(implicit design:PIR)
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeScalarNetwork, open)
+  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeScalarNetwork, open)
   def this()(implicit design:PIR) = this(false)
   
   val scale = 15
@@ -298,7 +298,7 @@ class SpadeVectorDotPrinter(file:String, open:Boolean)(implicit design:PIR)
   def shouldRun = Config.debug
 
   def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(Config.spadeVectorNetwork, open)
+  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeVectorNetwork, open)
   def this()(implicit design:PIR) = this(false)
   
   val scale = 15

@@ -50,6 +50,8 @@ case class CFMap(map:CFMap.M) extends IOneToOneMap {
 
   override def apply(n:Configurable) = n.toConfig(map(n))
   override def get(n:Configurable) = map.get(n).map{ c => n.toConfig(c) }
+
+  def isMapped(n:K) = map.contains(n)
 }
 object CFMap extends IOneToOneObj {
   type K = Configurable

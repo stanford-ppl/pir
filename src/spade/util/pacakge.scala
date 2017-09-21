@@ -115,41 +115,40 @@ package object util {
     }
   }
 
-  def isMapped(node:Node)(implicit mp: PIRMap):Boolean = {
+  def isMapped(node:Node)(implicit mp: SpadeMap):Boolean = {
     node match {
       case n:Primitive if !isMapped(n.prt) => return false
       case n =>
     }
     node match {
-      case n:Controller => mp.pmmap.isMapped(n)
       case n:DRAM => true
+      case n:Controller => mp.cfmap.isMapped(n)
       case n:FuncUnit => isMapped(n.stage)
       case n:PipeReg => isMapped(n.in)
       case n:UDCounter => 
         n.prt.ctrlBox match {
           case cb:MemoryCtrlBox => true
           case cb:OuterCtrlBox if cb.udsm.udc == n => true
-          case cb:CtrlBox => mp.pmmap.isMapped(n)
+          case cb:CtrlBox => mp.cfmap.isMapped(n)
         }
       case n:Input[_,_] => mp.fimap.contains(n) || n.fanIns.size==1
-      case n:GlobalOutput[_,_] => mp.vomap.contains(n)
-      case n:Output[_,_] => mp.opmap.contains(n)
+      case n:Output[_,_] => mp.fimap.contains(n) || n.fanOuts.size==1
       case n:SwitchBox => n.ios.exists(isMapped)
       case n:CtrlBox => isMapped(n.prt)
       case n:UpDownSM => isMapped(n.prt)
-      case n:Const[_] => mp.pmmap.isMapped(n)
+      case n:Const[_] => mp.cfmap.isMapped(n)
       case n:BroadCast[_] => isMapped(n.in) 
       case n:Slice[_,_] => isMapped(n.in) 
       case n:Delay[_] => isMapped(n.prt)
       case n:AndTree => n.ins.exists(isMapped)
       case n:AndGate => n.ins.exists(isMapped)
       case n:PredicateUnit => isMapped(n.in) 
-      case n:Primitive => mp.pmmap.isMapped(n)
+      case n:Primitive => mp.cfmap.isMapped(n)
       case n => throw PIRException(s"Don't know how to check whether $n is mapped")
     }
   }
 
-  def fanInOf[P<:PortType](in:Input[P,Module])(implicit mp:PIRMap):Option[Output[P,Module]] = {
+  def fanInOf[P<:PortType](in:Input[P,Module])(implicit mp:SpadeMap):Option[Output[P,Module]] = {
     mp.fimap.get(in).fold { 
       if (in.fanIns.size==1) Some(in.fanIns.head) else None
     } { out =>
@@ -157,7 +156,7 @@ package object util {
     }
   }
 
-  def fanOutOf[P<:PortType](out:Output[P,Module])(implicit mp:PIRMap):List[Input[P,Module]] = {
+  def fanOutOf[P<:PortType](out:Output[P,Module])(implicit mp:SpadeMap):List[Input[P,Module]] = {
     mp.fimap.get(out).fold { 
       if (out.fanOuts.size==1) List(out.fanOuts.head) else Nil
     } { ins =>

@@ -1,39 +1,32 @@
 package spade.simulation
 
-import pir._
-import pir.mapper.PIRMap
 import pir.codegen.{Logger,VcdPrinter, SpadeVcdPrinter, PIRVcdPrinter}
 
 import spade._
 import spade.node._
 import spade.util.SpadeMetadata
 
+import pirc._
 import pirc.util._
+
+import scala.collection.mutable.ListBuffer
 
 trait SimUtil extends Logger with SpadeMap {
   def quote(n:Any):String
-  implicit def mapping:PIRMap
+  var mapping:SpadeMap = _
   def fimap = mapping.fimap
-  def pmmap = mapping.pmmap
-  def vimap = mapping.vimap
-  def vomap = mapping.vomap
-  def ipmap = mapping.ipmap
-  def opmap = mapping.opmap
   def cfmap = mapping.cfmap
   def rst:Boolean
   def cycle:Int
 }
 
-class Simulator()(implicit design:PIR) extends SimUtil with Logger {
+class Simulator(implicit arch:Spade, design:Design) extends SimUtil with Logger {
 
-  var mapping:PIRMap = _
-  implicit def arch = design.arch
   val spademeta:SpadeMetadata = arch 
   implicit val sim:Simulator = this
-  lazy val vcds:List[VcdPrinter] = 
-    if (Config.simulate && Config.waveform) List(new PIRVcdPrinter, new SpadeVcdPrinter) else Nil
+  lazy val vcds = ListBuffer[VcdPrinter]()
 
-  override def debug = Config.verbose
+  override def debug = SpadeConfig.verbose
 
   lazy val util:SimUtil = this
 
@@ -42,7 +35,7 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
   var _inRegistration = false 
   def inRegistration = _inRegistration
 
-  override lazy val stream = newStream("sim.log")(design)
+  override lazy val stream = newStream("sim.log")(design) //TODO: change this to app specific
 
   val period = 1; //ns per cycle
   var cycle = 0
@@ -53,7 +46,7 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
 
   def finishSimulation:Boolean = {
     if (arch.top.ctrlBox.status.vAt(3).isHigh.getOrElse(false)) { done = true; true }
-    else if (cycle >= Config.simulationTimeOut) { 
+    else if (cycle >= SpadeConfig.simulationTimeOut) { 
       timeOut = true
       warn(s"Simulation time out at #${cycle}!")
       true 
@@ -73,7 +66,6 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
 
   def initPass = {
     vcds.foreach { vcds => vcds.emitHeader }
-    tic
   }
 
   def register = {
@@ -100,19 +92,19 @@ class Simulator()(implicit design:PIR) extends SimUtil with Logger {
     _inSimulation = false
   }
 
-  def run(mapping:PIRMap) = {
-    this.mapping = mapping
+  def run = {
+    tic
     register
     dprintln(s"\n\nDefault values ...")
     vcds.foreach { _.emitSignals }
     cycle += 1
     simulate
+    toc("Simulation","s")
   }
 
   def finPass = {
     close
     vcds.foreach { _.close }
-    toc("Simulation","s")
   }
 
   override def quote(n:Any):String = {
