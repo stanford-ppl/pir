@@ -37,18 +37,30 @@ val bldSettings = Defaults.defaultSettings ++ Seq (
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
 )
 
+lazy val pirc = Project("pirc", 
+  file("./pirc"), 
+  settings = bldSettings
+)
+
+lazy val spade = Project("spade", 
+  file("./spade"), 
+  settings = bldSettings,
+  dependencies = Seq(pirc % "compile->compile")
+)
+
 lazy val pir = Project("pir", 
-  file("."), 
-  settings=bldSettings
+  file("./pir"), 
+  settings = bldSettings,
+  dependencies = Seq(pirc % "compile->compile", spade % "compile->compile")
 )
 
-lazy val apps = Project("apps", file("apps"), 
+lazy val apps = Project("apps", 
+  file("apps"), 
   settings = bldSettings, 
-  dependencies=Seq(pir % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
+  dependencies = Seq(pir % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
 )
 
-//libraryDependencies += "org.encog" % "encog-core" % "3.3.0"
-
+// sbt command alias
 addCommandAlias("make", ";project pir; compile")
 addCommandAlias("makeapps", ";project apps; compile")
 addCommandAlias("apps", ";project apps; test")
