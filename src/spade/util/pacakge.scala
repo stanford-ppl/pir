@@ -12,17 +12,22 @@ import scala.reflect.{ClassTag, classTag}
 
 package object util {
 
-  /** Alias **/
+  /* ------------- Alias ------------- **/
 
   /* node */
   type Node = spade.node.Node
   type Module = spade.node.Module
   //type PortType = spade.node.PortType
   //type IO[P<:PortType, +S<:Module] = spade.node.IO[P,S]
+  
+  /* config */
+  type Configurable = spade.config.Configurable
+  type Configuration = spade.config.Configuration
 
+  /* network */
   val ConfigFactory = spade.network.ConfigFactory
 
-  /** Alias (END) **/
+  /* ------------- Alias (END) ------- **/
 
   implicit def pr_to_ip(pr:PipeReg):Input[Bus, PipeReg] = pr.in
   implicit def pr_to_op(pr:PipeReg):Output[Bus, PipeReg] = pr.out

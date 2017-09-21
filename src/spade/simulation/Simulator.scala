@@ -10,7 +10,7 @@ import spade.util.SpadeMetadata
 
 import pirc.util._
 
-trait SimUtil extends Logger {
+trait SimUtil extends Logger with SpadeMap {
   def quote(n:Any):String
   implicit def mapping:PIRMap
   def fimap = mapping.fimap
@@ -19,8 +19,6 @@ trait SimUtil extends Logger {
   def vomap = mapping.vomap
   def ipmap = mapping.ipmap
   def opmap = mapping.opmap
-  def rtmap = mapping.rtmap
-  def rcmap = mapping.rcmap
   def cfmap = mapping.cfmap
   def rst:Boolean
   def cycle:Int

@@ -1,4 +1,6 @@
-package spade.node
+package spade.config
+
+import spade.util._
 
 trait Configuration
 

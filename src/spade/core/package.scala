@@ -2,7 +2,7 @@
 import spade.node._
 
 package object spade {
-  /** Alias **/
+  /* ------------- Alias ------------- **/
 
   /* simulation */
   type Simulator = spade.simulation.Simulator
@@ -16,5 +16,7 @@ package object spade {
   type SwitchNetwork = spade.network.SwitchNetwork
   type GridNetwork = spade.network.GridNetwork
 
-  /** Alias (END) **/
+  /* config */
+  type SpadeMap = spade.config.SpadeMap
+  /* ------------- Alias (END) ------- **/
 }

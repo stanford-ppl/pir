@@ -7,11 +7,15 @@ import pirc.enums._
 
 import scala.collection.mutable.Map
 
+case class PipeRegConfig(init:Option[AnyVal]) extends Configuration
+
 /* Phyiscal pipeline register */
-case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val prt:ComputeUnit) extends Primitive with Simulatable {
+case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val prt:ComputeUnit) extends Primitive with Simulatable with Configurable {
   import spademeta._
   override val typeStr = "pr"
   override def toString = s"pr(${quote(stage)},${quote(reg)})"
+  type CT = PipeRegConfig
+
   val en = Input(Bit(), this, s"$this.en")
   val in = Input(Bus(prt.param.numLanes, Word()), this, s"$this.in")
   val out = Output(Bus(prt.param.numLanes, Word()), this, s"${this}.out")
@@ -19,10 +23,9 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
     import sim.util._
     implicit val mp = sim.mapping
     fimap.get(this).foreach { _ =>
-      val inits = rcmap(reg).flatMap{_.getInit}
-      assert(inits.size<=1)
-      if (inits.nonEmpty) {
-        dprintln(s"${quote(in.v)}.init = ${inits.head}")
+      val init = cfmap.get(this).map{_.init}.getOrElse(None)
+      if (init.nonEmpty) {
+        dprintln(s"${quote(in.v)}.init = $init")
       }
       prt.ctrlBox match {
         case cb:InnerCtrlBox =>
@@ -34,7 +37,7 @@ case class PipeReg(stage:Stage, reg:ArchReg)(implicit spade:Spade, override val 
       in.v.foreachv { case (v, i) =>
         v.set { v =>
           Match(
-            (sim.rst & (i==0)) -> { () => if (inits.nonEmpty) v.asSingle <<= inits.head },
+            (sim.rst & (i==0)) -> { () => v.asSingle <<= init },
             en.v -> { () => v <<= fimap(in).v.asBus.value(i) }
           ) {}
         }

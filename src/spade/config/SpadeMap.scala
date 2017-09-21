@@ -1,5 +1,5 @@
-package pir.mapper
-import pir._
+package spade.config
+
 import spade.node._
 import spade.util.typealias._
 
@@ -7,6 +7,11 @@ import pirc.collection.immutable._
 
 import scala.reflect.runtime.universe._
 import scala.language.existentials
+
+trait SpadeMap {
+  def fimap:FIMap
+  def cfmap:CFMap
+}
 
 /* FanIn map: a mapping between a PInput and the POutput it connects to */
 case class FIMap(map:FIMap.M, imap:FIMap.IM) extends IBiManyToOneMap {

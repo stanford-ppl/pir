@@ -91,12 +91,22 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val pcb = mp.pmmap(cb)
     pcb.udcs.foreach { pudc => mp = config(pudc, mp) }
     pcb.predicateUnits.foreach { ppdu => mp = config(ppdu, mp) }
+    mp
+  }
 
+  def config(pr:PR, map:M):M = {
+    var mp = map
+    val pstage = mp.pmmap(pr.stage)
+    mp.rcmap(pr.reg).foreach { preg => 
+      val ppr = pstage.get(preg)
+      mp = mp.setCF(ppr, PipeRegConfig(pr.reg.getInit))
+    }
     mp
   }
 
   def config(st:ST, map:M):M = {
     var mp = map
+    st.prs.foreach { pr => mp = config(pr, mp) }
     val pst = mp.pmmap(st)
     val par = parOf(st)
     val op = st.fu.get.op

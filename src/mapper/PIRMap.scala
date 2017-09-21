@@ -4,8 +4,11 @@ import pir.codegen.{Printer}
 import pir.util.typealias._
 import pirc.collection.immutable._
 
+import spade.config._
+
 import pir.pass.PIRMapping
 import pirc.exceptions._
+
 import scala.collection.immutable.Set
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.ListBuffer
@@ -17,7 +20,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
   fimap:FIMap, rcmap:RCMap,
   ipmap:IPMap, opmap:OPMap, pmmap:PMMap, 
   rtmap:RTMap, cfmap:CFMap
-  ) {
+  ) extends SpadeMap {
 
   def set(cp:VIMap):PIRMap = PIRMap(cp   , vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
   def set(cp:VOMap):PIRMap = PIRMap(vimap, cp   , mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
@@ -133,6 +136,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
     }
   }
 }
+
 object PIRMap {
   def empty:PIRMap = 
     PIRMap(VIMap.empty, VOMap.empty, MKMap.empty,
