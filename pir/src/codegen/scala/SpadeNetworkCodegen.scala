@@ -13,13 +13,12 @@ import scala.collection.mutable.ListBuffer
 class SpadeNetworkCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
-  import arch.param._
+  import arch.topParam._
 
   val traitName = s"PlasticineArch"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/arch/gen"
   override lazy val stream = newStream(dir, s"$traitName.scala") 
   
-  override implicit lazy val arch = design.arch.asSwitchNetwork
 
   override def splitPreHeader:Unit = {
     emitHeader

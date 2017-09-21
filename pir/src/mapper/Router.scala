@@ -16,7 +16,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
   import spademeta._
 
   lazy val minHop = 1
-  lazy val maxHop = design.arch.diameter
+  lazy val maxHop = design.arch.top.diameter
   override val exceptLimit = 200
 
   type I<:Node

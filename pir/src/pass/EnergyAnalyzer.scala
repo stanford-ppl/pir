@@ -14,7 +14,7 @@ import Math._
 
 class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
   import pirmeta._
-  import spademeta._
+  import arch._
   import design.resourceAnalyzer._
 
   def shouldRun = design.pirMapping.succeeded
@@ -24,16 +24,14 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
   }
 
   val detail = new CSVPrinter {
-    override lazy val stream = newStream(s"EnergyDetail.csv", append=false)
+    override lazy val stream = newStream(s"EnergyDetail.csv", append=false)(design)
   }
 
   val logger = new Logger {
-    override lazy val stream = newStream(s"EnergyAnalyzer.log")
+    override lazy val stream = newStream(s"EnergyAnalyzer.log")(design)
   }
 
   lazy val mp = design.mapping.get
-  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
-  import arch._
 
   def timeOf(n:CL):Double = {
     totalCycleOf(n) * 1.0 / arch.clockFrequency

@@ -13,13 +13,11 @@ import scala.collection.mutable.ListBuffer
 class SpadeParamCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with MultiFileCodegen {
   def shouldRun = Config.codegen
   import spademeta._
-  import arch.param._
+  import arch.topParam._
 
   val traitName = s"GeneratedParams"
   lazy val dir = sys.env("PLASTICINE_HOME") + "/src/main/scala/spade/gen"
   override lazy val stream = newStream(dir, s"$traitName.scala")
-
-  override implicit lazy val arch = design.arch.asSwitchNetwork
 
   lazy val pcus = arch.pcus
   lazy val mcus = arch.mcus

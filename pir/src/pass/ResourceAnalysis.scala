@@ -14,6 +14,7 @@ import Math._
 class ResourceAnalysis(implicit design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
+  import arch.top._
   def shouldRun = design.pirMapping.succeeded
 
   val summary = new CSVPrinter {
@@ -21,16 +22,14 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   val detail = new CSVPrinter {
-    override lazy val stream = newStream(s"UtilizationDetail.csv", append=false)
+    override lazy val stream = newStream(s"UtilizationDetail.csv", append=false)(design)
   }
 
   val logger = new Logger {
-    override lazy val stream = newStream(s"ResourceAnalysis.log")
+    override lazy val stream = newStream(s"ResourceAnalysis.log")(design)
   }
 
   lazy val mp = design.mapping.get
-  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
-  import arch._
 
   val activeCycle = Map[PNode, Long]()
 
@@ -210,7 +209,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   def emitSummary = {
-    import arch.param._
+    import arch.topParam._
     val row = summary.addRow
     row += "App"           -> design.name
     row += "numRow"        -> numRows
@@ -279,7 +278,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
 
   def logResults = {
     import logger._
-    spade.cus.foreach { pcl =>
+    cus.foreach { pcl =>
       val cl = mp.pmmap.get(pcl)
       logger.emitBlock(s"${quote(pcl)} -> $cl parOf(${quote(pcl)}) = ${parOf(pcl)}") {
         regUsed.get(pcl).foreach { util => dprintln(s"reg:$util")}

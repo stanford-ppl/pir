@@ -9,6 +9,7 @@ import pirc._
 import pirc.util._
 
 class SpadePrinter(implicit design: PIR) extends Codegen {
+
   def shouldRun = Config.debug
 
   override lazy val stream = newStream(SpadeConfig.spadeFile)(design.arch) 
@@ -33,7 +34,7 @@ class SpadePrinter(implicit design: PIR) extends Codegen {
   }
 
   addPass {
-    design.arch.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
+    design.arch.top.ctrlers.foreach { ctrler => emitBlock(s"${ctrler}") {
       emitIO(ctrler)
       ctrler.sbufs.foreach { s => emitModule(s) }
       ctrler match {
@@ -64,11 +65,7 @@ class SpadePrinter(implicit design: PIR) extends Codegen {
         }
       }
     }
-    design.arch match {
-      case sn:SwitchNetwork =>
-        sn.sbs.foreach { sb => emitIO(sb) }
-      case pn:PointToPointNetwork =>
-    }
+    design.arch.top.sbs.foreach { sb => emitIO(sb) }
   }
 
   def emitCtrlBox(cb:CtrlBox) = cb match {

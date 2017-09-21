@@ -15,6 +15,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
   import design.resourceAnalyzer._
+  import arch.top._
   def shouldRun = design.pirMapping.succeeded
 
   val summary = new CSVPrinter {
@@ -22,16 +23,14 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
   }
 
   val detail = new CSVPrinter {
-    override lazy val stream = newStream(s"PowerDetail.csv", append=false)
+    override lazy val stream = newStream(s"PowerDetail.csv", append=false)(design)
   }
 
   val logger = new Logger {
-    override lazy val stream = newStream(s"PowerAnalyzer.log")
+    override lazy val stream = newStream(s"PowerAnalyzer.log")(design)
   }
 
   lazy val mp = design.mapping.get
-  override lazy val arch = design.arch.asInstanceOf[SwitchNetwork]
-  import arch._
 
   val regPower = Map[PNode, Double]()
   val ctrPower = Map[PNode, Double]()

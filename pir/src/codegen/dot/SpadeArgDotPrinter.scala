@@ -34,22 +34,12 @@ object ArgDotPrinter{
     def quote(n:Any) = printer.quote(n)
     ptop.vins.foreach { vin =>
       vin.fanIns.foreach { vout =>
-        spade match {
-          case sn:SwitchNetwork =>
-            printer.emitEdge(quote(vout), quote(ptop))
-          case pn:PointToPointNetwork =>
-            printer.emitEdge(quote(vout), quote(ptop))
-        }
+        printer.emitEdge(quote(vout), quote(ptop))
       }
     }
     ptop.vouts.foreach { vout =>
       vout.fanOuts.foreach { vin =>
-        spade match {
-          case sn:SwitchNetwork =>
-            printer.emitEdge(quote(ptop), quote(vin))
-          case pn:PointToPointNetwork =>
-            printer.emitEdge(ptop, quote(vin))
-        }
+        printer.emitEdge(quote(ptop), quote(vin))
       }
     }
   }

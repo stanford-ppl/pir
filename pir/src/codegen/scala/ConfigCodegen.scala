@@ -17,7 +17,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   def shouldRun = design.pirMapping.succeeded && Config.codegen
   import spademeta._
   import pirmeta.{indexOf => _, _}
-  import arch.param._
+  import arch.topParam._
 
   val appName = s"$design".replace(s"$$", "")
   val traitName = appName + "Trait"
@@ -33,8 +33,6 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   def dags = arch.dramAGs
   def sags = arch.sramAGs
   def mcs = arch.mcArray
-
-  override implicit lazy val arch = design.arch.asSwitchNetwork
 
   //val SVT = "SrcValueTuple"
   val SVT = "SVT"

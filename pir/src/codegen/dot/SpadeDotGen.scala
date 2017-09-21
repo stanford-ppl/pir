@@ -17,8 +17,6 @@ import scala.language.existentials
 abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends Codegen with DotCodegen {
   import spademeta._
 
-  override implicit lazy val arch:SwitchNetwork = design.arch.asInstanceOf[SwitchNetwork]
-
   val scale:Int
 
   def io(prt:Routable):GridIO[_<:PortType, Routable]
@@ -62,30 +60,25 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
 
   def print(mapping:Option[PIRMap]):Unit = {
     emitBlock("digraph G") {
-      design.arch match {
-        case pn:PointToPointNetwork =>
-        case sn:SwitchNetwork =>
-          //emitln(s"splines=ortho;")
-          val prts = mode match {
-            case NoOCU =>
-              sn.prts.filterNot{_.isInstanceOf[POCU]}
-            case OnlyOCU =>
-              sn.prts.filter{ prt => prt.isInstanceOf[PSCU] && prt.isInstanceOf[POCU]}
-            case AllCU =>
-              sn.prts
-          }
-          prts.foreach { prt =>
-            emitPRTs(prt, mapping )
-            val ins =  mode match {
-              case NoOCU =>
-                io(prt).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[POCU]}
-              case OnlyOCU =>
-                io(prt).ins.filter{ in => in.fanIns.head.src.isInstanceOf[PSCU] && in.fanIns.head.src.isInstanceOf[POCU]}
-              case AllCU =>
-                io(prt).ins
-            }
-            ins.foreach { in => emitInput(in, mapping) }
-          }
+      val prts = mode match {
+        case NoOCU =>
+          arch.top.prts.filterNot{_.isInstanceOf[POCU]}
+        case OnlyOCU =>
+          arch.top.prts.filter{ prt => prt.isInstanceOf[PSCU] && prt.isInstanceOf[POCU]}
+        case AllCU =>
+          arch.top.prts
+      }
+      prts.foreach { prt =>
+        emitPRTs(prt, mapping )
+        val ins =  mode match {
+          case NoOCU =>
+            io(prt).ins.filterNot{ in => in.fanIns.head.src.isInstanceOf[POCU]}
+          case OnlyOCU =>
+            io(prt).ins.filter{ in => in.fanIns.head.src.isInstanceOf[PSCU] && in.fanIns.head.src.isInstanceOf[POCU]}
+          case AllCU =>
+            io(prt).ins
+        }
+        ins.foreach { in => emitInput(in, mapping) }
       }
     }
     close
@@ -98,7 +91,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
    * Position of Controller / SwitchBox as a function of coordinate
    * */
   def setPos(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
-    import arch.param._
+    import arch.topParam._
 
     coordOf.get(prt).foreach { case (x,y) =>
       val coord:Option[(Double, Double)] = prt match {
@@ -171,7 +164,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
   }
 
   def emitPRTs(prt:PRT, mapping:Option[PIRMap]) = {
-    import arch.param._
+    import arch.topParam._
 
     var attr = DotAttr().shape(Mrecord)
     setLabel(prt, attr, mapping)
