@@ -6,11 +6,13 @@ import mapper._
 import pir.codegen._
 import spade.util._
 import pir.util._
-import pirc.exceptions._
-import pirc.util._
 import spade._
 import spade.simulation._
 import spade.arch._
+
+import pirc._
+import pirc.util._
+import pirc.exceptions._
 
 import scala.util.{Try, Success, Failure}
 
@@ -23,7 +25,10 @@ trait PIRApp extends PIR {
   def setArgs(args: Array[String]):Unit = {
     args.foreach { 
       case arg if arg.contains("--arch") => arch = ConfigFactory.getArch(arg.split("=")(1))
-      case arg if arg.contains("--") => Config.setOption(arg.replace("--","").trim)
+      case arg if arg.contains("--") => 
+        Config.setOption(arg.replace("--","").trim)
+        PIRConfig.setOption(arg.replace("--","").trim)
+        SpadeConfig.setOption(arg.replace("--","").trim)
       case arg if arg.contains("=") =>
         val k::v::_ = arg.split("=").toList
         top.argIns.filter {_.name==Some(k)}.foreach { argIn =>

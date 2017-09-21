@@ -1,7 +1,7 @@
 package pir.pass
 import pir.node._
 import pir.PIR
-import pir.Config
+import pir._
 import pir.util._
 import pirc.util._
 import spade.util.SpadeMetadata

@@ -1,5 +1,5 @@
 package pir.mapper
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
@@ -18,7 +18,7 @@ class SramMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = SRAM
   type R = PSRAM
   val typeStr = "SramMapper"
-  override def debug = Config.debugSramMapper
+  override def debug = PIRConfig.debugSramMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

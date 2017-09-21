@@ -1,7 +1,6 @@
 package pirc
 
 import pirc.util._
-import pirc.pass.Pass
 
 import scala.collection.mutable.ListBuffer
 

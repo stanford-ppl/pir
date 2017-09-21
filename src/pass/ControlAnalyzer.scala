@@ -2,10 +2,11 @@ package pir.pass
 import pir.node._
 import pir._
 import pir.util._
+import pir.codegen.Logger
 import pirc.exceptions._
 import pirc.util._
 import pirc.enums._
-import pir.codegen.Logger
+import pirc._
 
 import scala.collection.mutable._
 
@@ -200,7 +201,7 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   addPass(canRun=(!Config.debug || design.pirDataDotGen4.hasRun) && this.hasRun(2), runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
-      if (Config.ctrl) setLength(ctrler) //TODO: fix this
+      if (PIRConfig.ctrl) setLength(ctrler) //TODO: fix this
       setDAG(ctrler)
       setSAG(ctrler)
     }

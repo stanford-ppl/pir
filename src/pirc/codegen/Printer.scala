@@ -1,6 +1,5 @@
 package pir.codegen
 
-import pir._
 import pirc.exceptions._
 import spade.Spade
 import pir.pass.Pass

@@ -25,9 +25,8 @@ object SpadeConfig extends GlobalConfig {
   var spadeCtrlNetwork = getProperty("spade_ctrl_network", "CtrlNetwork.dot")
   var spadeArgInOut = getProperty("spade_arginout", "ArgInOut.dot")
   var spadeCtr = getProperty("spade_ctr", "PCtr.dot")
-  var debugLog = getProperty("pir.debugLog", "Debug.log")
 
-  var debug:Boolean = register("debug", true) { v => debug = v == "true" }
+  def debug = Config.debug
   var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
   
 }

@@ -12,9 +12,9 @@ import java.io.File
 import scala.language.implicitConversions
 
 class CtrlDotGen(implicit design: PIR) extends Codegen with DotCodegen {
-  def shouldRun = Config.debug && Config.ctrl
+  def shouldRun = PIRConfig.debug && PIRConfig.ctrl
 
-  override lazy val stream = newStream(Config.ctrlDot)
+  override lazy val stream = newStream(PIRConfig.ctrlDot)
 
   override def initPass = {
     emitBSln("dinode G")

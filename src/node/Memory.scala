@@ -8,7 +8,7 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
 import scala.reflect.runtime.universe._
-import pir.{PIR, Config}
+import pir._
 import pir.node._
 import pirc.enums._
 import pirc.exceptions._

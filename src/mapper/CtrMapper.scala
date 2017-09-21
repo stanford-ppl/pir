@@ -21,7 +21,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   import spademeta._
   import pirmeta._
   val typeStr = "CtrMapper"
-  override def debug = Config.debugCtrMapper
+  override def debug = PIRConfig.debugCtrMapper
   override val exceptLimit = 200
   
   def finPass(cu:CL)(m:M):M = m
@@ -47,7 +47,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       ctrs.toList
     }
     val unSorted = cchains.flatMap(_.counters)
-    if (Config.ctrl) {
+    if (PIRConfig.ctrl) {
       assert(unSorted.size==sorted.size, s"unSorted=${unSorted.size} sorted=${sorted.size}, cchains:${cchains}")
       sorted
     } else {
@@ -79,7 +79,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     //}
     val remainRes = allRes.diff(triedRes).filter( pc => !m.pmmap.contains(pc))
     val ptop = design.arch.top
-    val enCtrs = if (Config.ctrl) {
+    val enCtrs = if (PIRConfig.ctrl) {
       n.en.from.src match {
         case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
           m.pmmap.get(dep).fold(remainRes) { pdep =>
@@ -91,7 +91,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     } else {
       remainRes
     }
-    val doneCtrs = if (Config.ctrl) {
+    val doneCtrs = if (PIRConfig.ctrl) {
       n.done.to.map { done =>
         done.src match {
           case deped:Ctr if n.ctrler==deped.ctrler =>

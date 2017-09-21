@@ -1,7 +1,8 @@
 package pir.pass
 import pir.node._
 import pir.PIR
-import pir.Config
+import pir._
+import pirc._
 import pirc.exceptions._
 
 import scala.collection.mutable.Set

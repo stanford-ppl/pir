@@ -1,15 +1,18 @@
 package pir.codegen
 
-import pir.{PIR, Config}
+import pir._
 import pir.codegen._
 import pir.util._
 import pir.util.typealias._
 import pir.mapper.{PIRMap}
-import pirc.exceptions._
-import pirc.util._
+
 import spade._
 import spade.node._
 import spade.util._
+
+import pirc._
+import pirc.exceptions._
+import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set

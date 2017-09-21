@@ -8,6 +8,7 @@ import pir.codegen.{Logger, CSVPrinter, Row}
 
 import spade._
 
+import pirc._
 import pirc.util._
 
 import scala.collection.mutable.Set

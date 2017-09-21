@@ -10,9 +10,9 @@ import pirc.util._
 
 class PIRMapping(implicit design: PIR) extends Pass with Logger {
 
-  override lazy val stream = newStream(Config.mapFile)
+  override lazy val stream = newStream(PIRConfig.mapFile)
 
-  def shouldRun = Config.mapping
+  def shouldRun = PIRConfig.mapping
 
   def mapping:Option[PIRMap] = design.mapping
   def mapping_=(m:Option[PIRMap]):Unit = design.mapping = m
@@ -21,7 +21,7 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
   var configSucceeded = false
   def succeeded = placeAndRouteSucceeded & localMappingSucceeded 
 
-  def failed = !succeeded && Config.mapping
+  def failed = !succeeded && PIRConfig.mapping
 
   val configMapper = new ConfigMapper()
   val sramMapper = new SramMapper()
@@ -129,7 +129,7 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
     toc(s"Placement & Routing", "s")
   } 
 
-  addPass(canRun=placeAndRouteSucceeded && (!Config.ctrl || design.ctrlAlloc.hasRun)) {
+  addPass(canRun=placeAndRouteSucceeded && (!PIRConfig.ctrl || design.ctrlAlloc.hasRun)) {
     Try[PIRMap]{
       var mp = mapping.get
       design.top.ctrlers.foreach { ctrler =>

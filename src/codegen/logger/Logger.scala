@@ -1,9 +1,12 @@
 package pir.codegen
 
 import pir._
-import pirc.exceptions._
-import spade.Spade
 import pir.pass.Pass
+
+import spade.Spade
+
+import pirc._
+import pirc.exceptions._
 
 import java.io.PrintWriter
 import java.io.File

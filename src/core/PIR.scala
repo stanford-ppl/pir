@@ -100,7 +100,7 @@ trait PIR extends Design with PIRMetadata with Collector {
 
   val mappers = ListBuffer[Mapper]()
   val mapperLogger = new Logger {
-    override lazy val stream = newStream(Config.mapperLog)
+    override lazy val stream = newStream(PIRConfig.mapperLog)
   }
 
   // Pre-mapping Analysis and Transformation 

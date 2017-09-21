@@ -1,5 +1,5 @@
 package pir.mapper
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
@@ -8,6 +8,7 @@ import spade.util._
 import spade._
 import pirc.exceptions._
 import pirc.enums._
+import pirc._
 import pir.util.PIRMetadata
 
 import scala.collection.mutable.ListBuffer
@@ -19,7 +20,7 @@ class SFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = SMem
   type R = PSMem
   val typeStr = "ScalFifoMapper"
-  override def debug = Config.debugSFifoMapper
+  override def debug = PIRConfig.debugSFifoMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

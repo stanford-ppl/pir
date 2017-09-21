@@ -2,10 +2,11 @@ package pir.codegen
 
 import pir._
 import pir.util._
-import pirc.util._
 import spade.util._
 import spade.node._
 import spade._
+import pirc._
+import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -16,7 +17,7 @@ import java.io.File
 class SpadePrinter(implicit design: PIR) extends Codegen {
   def shouldRun = Config.debug
 
-  override lazy val stream = newStream(Config.spadeFile, design.arch) 
+  override lazy val stream = newStream(SpadeConfig.spadeFile, design.arch) 
   
   def emitIO(prt:GridIO[_<:PortType, _<:Routable]):Unit = {
     emitBlock(s"ins") {

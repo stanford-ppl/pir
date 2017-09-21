@@ -31,3 +31,11 @@ trait GlobalConfig {
   }
 }
 
+object Config extends GlobalConfig {
+  var codegen:Boolean = register("codegen", false) { v => codegen = v == "true" }
+
+  var debug:Boolean = register("debug", true) { v => debug = v == "true" }
+  var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
+  var outDir = getProperty("pir.outDir", "out")
+  var verbose:Boolean = register("verbose", false) { v => verbose = v == "true" }
+}

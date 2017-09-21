@@ -21,7 +21,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type R = PST
   type N = ST
   val typeStr = "StageMapper"
-  override def debug = Config.debugSTMapper
+  override def debug = PIRConfig.debugSTMapper
   override val exceptLimit = 200
 
   def finPass(cu:CL)(m:M):M = m

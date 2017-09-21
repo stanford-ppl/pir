@@ -7,12 +7,13 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.Map
 import scala.math.max
 import scala.reflect.runtime.universe._
-import pir.{PIR, Config}
+import pir._
 import pir.node._
 import pirc.enums._
 import pir.util._
 import pir.pass.ForwardRef
 import pirc.exceptions._
+import pirc._
 
 case class CounterChain(name:Option[String], cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   import pirmeta._
@@ -190,7 +191,7 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   }
 
   def isInner = { 
-    if (Config.ctrl) {
+    if (PIRConfig.ctrl) {
       assert(en.isConnected, s"${this}.en is not connected")
       !en.from.src.isInstanceOf[Counter]
     } else {

@@ -13,7 +13,7 @@ import scala.collection.mutable._
 class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
 
-  def shouldRun = Config.ctrl
+  def shouldRun = PIRConfig.ctrl
 
   override lazy val stream = newStream(s"CtrlAlloc.log")
 

@@ -1,6 +1,6 @@
 package pir.mapper
 import pir.node._
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
 import pir.codegen.Printer
 import pirc.exceptions._
@@ -35,7 +35,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   routers += new ControlRouter()
 
   def finPass(m:M):M = m
-  override def debug = Config.debugCUMapper
+  override def debug = PIRConfig.debugCUMapper
 
   def resMap = design.prescreen.resMap
 

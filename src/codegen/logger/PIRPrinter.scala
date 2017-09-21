@@ -5,6 +5,8 @@ import pir._
 import pir.util._
 import pirc.util._
 import pir.pass.Traversal
+import pir.util._
+import pirc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Set
@@ -12,7 +14,7 @@ import scala.collection.mutable.Map
 import scala.collection.mutable.HashMap
 import java.io.OutputStream
 import java.io.File
-import pir.util._
+
 
 class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal with Logger {
   import design.pirmeta._
@@ -20,7 +22,7 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
   def shouldRun = Config.debug
 
   def this()(implicit design: PIR) = {
-    this(Config.pirFile)
+    this(PIRConfig.pirFile)
   }
   override lazy val stream:OutputStream = newStream(fn) 
 

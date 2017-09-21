@@ -13,7 +13,7 @@ import spade.util.isMapped
 import scala.collection.mutable._
 
 class ConfigMapper(implicit val design: PIR) extends Mapper {
-  def shouldRun = Config.ctrl && Config.mapping
+  def shouldRun = PIRConfig.ctrl && PIRConfig.mapping
   import pirmeta._
   import spademeta._
 

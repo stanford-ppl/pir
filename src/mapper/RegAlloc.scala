@@ -16,7 +16,7 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
   type N = Reg
   type R = PReg
   val typeStr = "RegAlloc"
-  override def debug = Config.debugRAMapper
+  override def debug = PIRConfig.debugRAMapper
   import pirmeta._
   import spademeta._
 

@@ -1,6 +1,6 @@
 package pir.codegen
 
-import pir.{PIR, Config}
+import pir._
 import pir.codegen._
 import pir.node._
 import pir.mapper.PIRMap
@@ -120,14 +120,14 @@ trait PIRDotGen extends Codegen with DotCodegen {
 class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen { 
   import pirmeta._
 
-  def shouldRun = Config.debug
+  def shouldRun = PIRConfig.debug
 
   def horizontal:Boolean = false
 
   override lazy val stream = newStream(fn)
 
   def this()(implicit design:PIR) = {
-    this(Config.pirDot)
+    this(PIRConfig.pirDot)
   }
 
   def emitInputs(cl:Controller):Unit = {
@@ -163,7 +163,7 @@ class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
 
 
 class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen { 
-  def shouldRun = Config.debug & Config.ctrl
+  def shouldRun = PIRConfig.debug & PIRConfig.ctrl
 
   def horizontal:Boolean = true
   //def horizontal:Boolean = false
@@ -171,7 +171,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
   override lazy val stream = newStream(fn)
 
   def this()(implicit design:PIR) = {
-    this(Config.pirCtrlDot)
+    this(PIRConfig.pirCtrlDot)
   }
 
   def emitInputs(cl:Controller):Unit = {

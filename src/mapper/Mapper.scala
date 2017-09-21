@@ -1,13 +1,14 @@
 package pir.mapper
 
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
-import pirc.util._
 import spade._
 import spade.node.{ Node => PNode }
 import spade.util.SpadeMetadata
 import pir.util.PIRMetadata
 import pir.codegen._
+import pirc._
+import pirc.util._
 
 import java.lang.Thread
 import scala.collection.immutable.Set
@@ -47,7 +48,7 @@ trait Mapper { self =>
   def typeStr:String
   override def toString = s"$typeStr"
 
-  def debug = Config.debugMapper
+  def debug = PIRConfig.debugMapper
   def dprintln(s:Any):Unit = logger.dprintln(s"$this", s)
   def dprint(s:Any):Unit = logger.dprint(s"$this", s)
   def dprintln(p:Boolean, s:Any):Unit = logger.dprintln(p && debug, s"$this", s)

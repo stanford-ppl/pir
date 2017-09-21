@@ -4,19 +4,18 @@ import pirc._
 
 import scala.collection.mutable
 
-object Config extends GlobalConfig {
+object PIRConfig extends GlobalConfig {
 
   // Properties go here
   var test:Boolean = register("test", false) { v => test = v == "true" }
-  var codegen:Boolean = register("codegen", false) { v => codegen = v == "true" }
   var genDot:Boolean = register("dot", true) { v => genDot = v == "true" }
   var mapping:Boolean = register("mapping", true) { v => mapping = v == "true" }
   var ctrl:Boolean = register("ctrl", true) { v => ctrl = v == "true" }
-  var verbose:Boolean = register("verbose", false) { v => verbose = v == "true" }
+  def codegen = Config.codegen
+  def verbose = Config.verbose
 
   var genPisa = getProperty("pir.pisa", "false") == "true" && codegen
   var quick = getProperty("pir.quick", "false") == "true"
-  var outDir = getProperty("pir.outDir", "out")
 
   var pirFile = getProperty("pir.pirfile", "PIR.log")
   var pirDot = getProperty("pir.pir_network", "PIR.dot")
@@ -29,7 +28,8 @@ object Config extends GlobalConfig {
   var mapperLog = getProperty("pir.mapperLog", "Mapper.log")
   var debugLog = getProperty("pir.debugLog", "Debug.log")
 
-  var debug:Boolean = register("debug", true) { v => debug = v == "true" }
+  def debug = Config.debug
+  def debugCodegen = Config.debugCodegen
   var debugMapper:Boolean = debug && register("debug-mapper", true) { v => debugMapper = v == "true" }
   var debugVecRouter = debugMapper && true 
   var debugScalRouter = debugMapper && true 
@@ -45,6 +45,5 @@ object Config extends GlobalConfig {
   var debugCtrMapper = debugMapper && true 
   var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
-  var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
 
 }

@@ -1,6 +1,6 @@
 package pir.mapper
 import pir.node._
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
 import pir.codegen.Printer
 import pirc.exceptions._
@@ -9,6 +9,7 @@ import pir.pass.{Pass}
 import spade._
 import pirc.util._
 import pir.util.topoSort
+import pirc._
 import pirc.enums._
 import spade.arch._
 import spade.util._
@@ -79,7 +80,7 @@ class ResourcePrescreen(implicit design:PIR) extends Pass with Logger {
 
   def quantityCheck(map:Option[M], cls:List[CL], pcls:List[PCL], msg:String):Boolean = {
     if (cls.size > pcls.size) {
-      if (Config.mapping) {
+      if (PIRConfig.mapping) {
         errmsg(s"$msg cls=${cls.size} pcls=${pcls.size}")
       } else {
         warn(s"$msg cls=${cls.size} pcls=${pcls.size}")
@@ -105,7 +106,7 @@ class ResourcePrescreen(implicit design:PIR) extends Pass with Logger {
     pass &= quantityCheck(Some(map), rcus , pcus, "PatternComputeUnit")
     pass &= quantityCheck(None     , (scus ++ rcus) , (pscus ++ pcus), "ComputeUnit")
     pass &= quantityCheck(Some(map), List(design.top), List(design.arch.top), "Top")
-    if (!pass && Config.mapping) throw PIRException(s"Not enough controller to map $design")
+    if (!pass && PIRConfig.mapping) throw PIRException(s"Not enough controller to map $design")
     return pass
   }
 
@@ -165,7 +166,7 @@ class ResourcePrescreen(implicit design:PIR) extends Pass with Logger {
       map(cl).size==0
     }
     if (notFit.nonEmpty) {
-      if (Config.mapping) throw PIRException(s"[${notFit.mkString(",")}] do not fit in any controller!")
+      if (PIRConfig.mapping) throw PIRException(s"[${notFit.mkString(",")}] do not fit in any controller!")
       else return false
     } else {
       return true

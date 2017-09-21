@@ -12,7 +12,7 @@ class OutputMapper(implicit val design:PIR) extends Mapper {
   type N = VO 
   type R = PGO[_<:PModule]
   val typeStr = "SOMapper"
-  override def debug = Config.debugSOMapper
+  override def debug = PIRConfig.debugSOMapper
 
   def finPass(scl:CL)(m:M):M = m
 

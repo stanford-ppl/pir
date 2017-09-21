@@ -1,5 +1,5 @@
 package pir.mapper
-import pir.{PIR, Config}
+import pir._
 import pir.util.typealias._
 import pir.pass.PIRMapping
 import pir.node.{PipeReg => PR, VecInPR, LoadPR}
@@ -17,7 +17,7 @@ class VFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type N = VFIFO
   type R = PVMem
   val typeStr = "VecFifoMapper"
-  override def debug = Config.debugVFifoMapper
+  override def debug = PIRConfig.debugVFifoMapper
   import pirmeta.{indexOf => _, _}
   import spademeta._
 

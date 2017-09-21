@@ -1,6 +1,6 @@
 package pir.mapper
 import pir.node._
-import pir.{Config, PIR}
+import pir._
 import pir.util.typealias._
 import scala.reflect.runtime.universe._
 import pir.codegen.{DotCodegen, Printer}
@@ -545,7 +545,7 @@ class VectorRouter()(implicit val design:PIR) extends Router {
   type I = VI
   type O = VO
 
-  override def debug:Boolean = Config.debugVecRouter
+  override def debug:Boolean = PIRConfig.debugVecRouter
 
   def io(prt:PRT):PGrid[PRT] = prt.vectorIO
 
@@ -568,7 +568,7 @@ class ScalarRouter()(implicit val design:PIR) extends Router {
   type I = SI
   type O = SO
 
-  override def debug:Boolean = Config.debugScalRouter 
+  override def debug:Boolean = PIRConfig.debugScalRouter 
 
   def io(prt:PRT):PGrid[PRT] = prt.scalarIO
 
@@ -590,7 +590,7 @@ class ControlRouter()(implicit val design:PIR) extends Router {
   type I = IP
   type O = OP
 
-  override def debug:Boolean = Config.debugCtrlRouter
+  override def debug:Boolean = PIRConfig.debugCtrlRouter
 
   def io(prt:PRT):PGrid[PRT] = prt.ctrlIO
 

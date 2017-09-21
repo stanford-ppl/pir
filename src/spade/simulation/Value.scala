@@ -3,7 +3,7 @@ package spade.simulation
 import pirc.enums._
 import pirc.exceptions._
 import pirc.util._
-import pir.Config
+import pir._
 
 import spade._
 import spade.util._

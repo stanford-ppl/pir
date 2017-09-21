@@ -1,6 +1,5 @@
 package pir.mapper
-import pir.{Config}
-import pir.PIR
+import pir._
 import pir.util.typealias._
 import spade._
 import pirc.enums._
@@ -21,7 +20,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   import pirmeta._
 
   val typeStr = "CtrlMapper"
-  override def debug = Config.debugCtrlMapper
+  override def debug = PIRConfig.debugCtrlMapper
 
   def finPass(cu:CL)(m:M):M = m
 
