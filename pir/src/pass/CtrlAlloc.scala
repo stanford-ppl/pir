@@ -54,7 +54,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         cu.stages.reverseIterator.foreach { stage =>
           stage.fu.foreach { fu =>
             fu.op match {
-              case pirc.enums.Mux =>
+              case MuxOp =>
                 val sel::data = fu.operands
                 data.foreach { 
                   _.from.src match {

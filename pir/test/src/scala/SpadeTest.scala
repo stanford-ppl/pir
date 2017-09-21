@@ -3,7 +3,7 @@ package pir.test
 import pir._
 import pir.util.misc._
 import pir.pass._
-import pir.spade.config._
+import spade.arch._
 import pir.spade.main._
 import pir.spade.graph._
 import pir.spade.util._

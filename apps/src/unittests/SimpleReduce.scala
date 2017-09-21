@@ -1,9 +1,7 @@
-import pir.graph.{Mux => _, _}
-import pir.codegen._
-import pir.spade.config._
-import pir.util.enums._
-import pir.util._
-import pir.PIRApp
+import pir._
+import pir.node._
+import spade.arch._
+import pirc.enums._
 
 object SimpleReduce extends PIRApp {
   arch = SN2x2

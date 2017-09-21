@@ -7,7 +7,7 @@ import pir.util.enums._
 import pir.graph._
 import pir.mapper._
 import pir.pass._
-import pir.spade.config._
+import spade.arch._
 
 import org.scalatest._
 import scala.language.reflectiveCalls

@@ -116,7 +116,7 @@ trait Ops {
   case object BitXnor extends BitOp with Op2 { def eval(a:T, b:T) = a == b }
   case object BitXor  extends BitOp with Op2 { def eval(a:T, b:T) = a != b }
 
-  case object Mux    extends Op with Op3 { 
+  case object MuxOp   extends Op with Op3 { 
     type T = AnyVal 
     _otherOps += this
     def eval(s:T, a:T, b:T) = {
@@ -183,7 +183,7 @@ BitNot
 BitXnor
 BitXor 
        
-Mux    
+MuxOp
 Bypass 
 
 }

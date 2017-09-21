@@ -7,7 +7,7 @@ import pir.util._
 import pir.graph._
 import pir.exceptions.PIRException
 import pir.spade.main._
-import pir.spade.config._
+import spade.arch._
 import pir.codegen.Logger
 
 import org.scalatest._

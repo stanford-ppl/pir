@@ -1,19 +1,15 @@
-import pir.graph.{Mux => _, _}
-import pir.codegen._
-import pir.spade.config._
-import pir.util.enums._
-import pir.util._
-import pir.PIRApp
+import pir._
+import pir.node._
+import spade.arch._
+import pirc.enums._
 
 object TPCHQ6_unit extends PIRApp {
   arch = {
-    import pir.spade.graph._
-    import pir.spade.main._
-    new SwitchNetwork(
-      new SwitchNetworkParam(numRows=4, numCols=4, numArgIns=5, numArgOuts=3)
-    ) {
+    import spade.node._
+    import spade._
+    new Spade {
       override def pcuAt(i:Int, j:Int) = {
-        new PatternComputeUnit(new PatternComputeUnitParam{
+        new PatternComputeUnitParam{
           override val numRegs = 20
           override def config(cu:PatternComputeUnit)(implicit spade:Spade) = {
             cu.addRegstages(numStage=13, numOprds=3, ops)
@@ -29,7 +25,7 @@ object TPCHQ6_unit extends PIRApp {
             cu.color(9 until 9 + cu.vouts.size, VecOutReg)
             cu.genConnections
           }
-        })
+        }
       }
       config
     }
@@ -205,7 +201,7 @@ object TPCHQ6_unit extends PIRApp {
       Stage(operands=List(CU.load(x1669_x1669), Const(24)), op=FixLt, results=List(x1682))
       Stage(operands=List(x1680, x1682), op=BitAnd, results=List(x1683))
       Stage(operands=List(CU.load(x1670_x1670), CU.load(x1668_x1668)), op=FixMul, results=List(x1685))
-      Stage(operands=List(x1683, x1685, Const(0)), op=Mux, results=List(CU.reduce))
+      Stage(operands=List(x1683, x1685, Const(0)), op=MuxOp, results=List(CU.reduce))
       val (_, rr163) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x1690")
       Stage(operands=List(rr163), op=Bypass, results=List(CU.scalarOut(x1663_x1688_s)))
     }
