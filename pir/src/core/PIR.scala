@@ -16,6 +16,7 @@ trait PIR extends Design with PIRMetadata with Collector {
 
   implicit def design: PIR = this
   val pirmeta:PIRMetadata = this
+  val configs = List(Config, SpadeConfig, PIRConfig)
 
   def arch:Spade
   var top:Top = _
@@ -24,7 +25,13 @@ trait PIR extends Design with PIRMetadata with Collector {
     super[Collector].reset
     super[PIRMetadata].reset
     super[Design].reset
+    arch.reset
     top = null
+  }
+
+  val mappers = ListBuffer[Mapper]()
+  val mapperLogger = new Logger {
+    override lazy val stream = newStream(PIRConfig.mapperLog)
   }
 
   /* Analysis */
@@ -52,15 +59,12 @@ trait PIR extends Design with PIRMetadata with Collector {
   val pirMapping = new PIRMapping()
 
   /* Codegen */
-  val spadeNetworkCodegen = new SpadeNetworkCodegen()
-  val spadeParamCodegen = new SpadeParamCodegen()
   val configCodegen = new ConfigCodegen()
 
   /* Simulator */
   val simulator = new SpadeSimulator()
 
   /* Debug */
-  val spadePrinter = new SpadePrinter()
   val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
   val pirPrinter1 = new PIRPrinter("PIR1.log") 
   val pirPrinter2 = new PIRPrinter("PIR2.log") 
@@ -85,13 +89,7 @@ trait PIR extends Design with PIRMetadata with Collector {
 
   var mapping:Option[PIRMap] = None
 
-  val mappers = ListBuffer[Mapper]()
-  val mapperLogger = new Logger {
-    override lazy val stream = newStream(PIRConfig.mapperLog)
-  }
-
   // Pre-mapping Analysis and Transformation 
-  //passes += spadePrinter 
   passes += forwardRef
   passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
   passes += scalMemInsertion
@@ -135,8 +133,6 @@ trait PIR extends Design with PIRMetadata with Collector {
   passes += pirDataDotGen
 
   // Codegen
-  passes += spadeNetworkCodegen 
-  passes += spadeParamCodegen 
   passes += configCodegen 
 
   // Simulation

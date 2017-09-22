@@ -1,6 +1,6 @@
 import pir._
 import pir.node._
-import spade.arch._
+import arch._
 import pirc.enums._
 
 object TPCHQ6_unit extends PIRApp {
@@ -27,7 +27,6 @@ object TPCHQ6_unit extends PIRApp {
           }
         }
       }
-      config
     }
   }
   def main(top:Top) = {

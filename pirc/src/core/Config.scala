@@ -27,7 +27,7 @@ trait GlobalConfig {
     } else {
       (opt, "true")
     }
-    optMap(key)(value)
+    if (optMap.contains(key)) optMap(key)(value)
   }
 }
 

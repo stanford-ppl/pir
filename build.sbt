@@ -38,26 +38,33 @@ val bldSettings = Defaults.defaultSettings ++ Seq (
 )
 
 lazy val pirc = Project("pirc", 
-  file("./pirc"), 
+  file("pirc/"), 
   settings = bldSettings
 )
 
 lazy val spade = Project("spade", 
-  file("./spade"), 
+  file("spade/"), 
   settings = bldSettings,
   dependencies = Seq(pirc % "compile->compile")
 )
 
-lazy val pir = Project("pir", 
-  file("./pir"), 
+lazy val arch = Project("arch", 
+  file("spade/arch"), 
   settings = bldSettings,
-  dependencies = Seq(pirc % "compile->compile", spade % "compile->compile")
+  dependencies = Seq(spade % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
+)
+
+lazy val pir = Project("pir", 
+  file("pir/"), 
+  settings = bldSettings,
+  dependencies = Seq(pirc % "compile->compile", spade % "compile->compile", arch % "compile->compile")
 )
 
 lazy val apps = Project("apps", 
-  file("apps"), 
+  file("pir/apps"), 
   settings = bldSettings, 
-  dependencies = Seq(pir % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
+ // Allow ScalaTest of apps accesss ScalaTest of pir
+  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile")
 )
 
 // sbt command alias
@@ -65,6 +72,6 @@ addCommandAlias("make", ";project pir; compile")
 addCommandAlias("makeapps", ";project apps; compile")
 addCommandAlias("apps", ";project apps; test")
 addCommandAlias("pir", "; project apps; run-main")
-addCommandAlias("d", "; project apps; run-main DotProductPar1")
+addCommandAlias("spade", "; project arch; run-main")
 addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 addCommandAlias("arch", s"""; project pir; test-only -- -n "ARCH"""")

@@ -1,6 +1,6 @@
 import pir._
 import pir.node._
-import spade.arch._
+import arch._
 import pirc.enums._
 
 object DotProductMeta extends PIRApp {

@@ -1,5 +1,6 @@
 package pirc
 
+import pirc._
 import pirc.util._
 
 import scala.collection.mutable.ListBuffer
@@ -28,5 +29,17 @@ trait Design {
         handle(e)
     }
   }
+
+  val configs:List[GlobalConfig]
+
+  def setArgs(args: Array[String]):Unit = {
+    args.foreach { 
+      case arg if arg.contains("--") => 
+        configs.foreach(_.setOption(arg.replace("--", "")))
+      case arg =>
+    }
+  }
+
+  def main(args: Array[String]): Unit
 
 }

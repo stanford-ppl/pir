@@ -113,7 +113,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
     mapping.foreach { mp => 
       prt match {
         case prt:PCL =>
-          if (mp.pmmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
+          if (mp.cfmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
             attr.style(filled).fillcolor(color(prt))
         case prt =>
           if (io(prt).ins.exists(in => mp.fimap.contains(in)))
@@ -124,7 +124,7 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
 
   def setLabel(prt:PRT, attr:DotAttr, mapping:Option[PIRMap]) = {
     def mappedLabel(prt:PCL):String = {
-      mapping.fold(quote(prt)) { mp => mp.pmmap.get(prt).fold(quote(prt)) { cl => s"${quote(prt)}|$cl"} }
+      mapping.fold(quote(prt)) { mp => mp.cfmap.get(prt).fold(quote(prt)) { config => s"${quote(prt)}|${config}"} }
     }
     val recs = ListBuffer[String]()
     prt match {
@@ -194,22 +194,6 @@ abstract class SpadeDotGen(fn:String, open:Boolean)(implicit design:PIR) extends
               case si:SI => label += s"${si.scalar}"
               case ip:IP => label += s"${ip}"
             }
-            //pout.src match {
-              //case cl@(_:PCU | _:PTop | _:PMC) if m.pmmap.contains(cl) =>
-                //in match {
-                  //case vi:VI => s"${vi.vector}"
-                  //case si:SI => s"${si.vector}"
-                  ////case op:OP => ""
-                //}
-              //case psb:PSB => s"\n(o-${indexOf(pout)})"
-            //}
-            //val cl = m.pmmap(prt)
-            //in match {
-              //case op:OP =>
-                //val to = op.to.filter{_.asInstanceOf[CIP].ctrler==cl}
-                //label += s"to:[${to.mkString(",\n")}]\nfrom:${op}" 
-              //case _ =>
-            //}
           }
           m.vomap.get(pout).foreach { out =>
             out match {
