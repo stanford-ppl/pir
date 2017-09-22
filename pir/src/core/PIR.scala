@@ -29,133 +29,134 @@ trait PIR extends Design with PIRMetadata with Collector {
     top = null
   }
 
-  val mappers = ListBuffer[Mapper]()
-  val mapperLogger = new Logger {
-    override lazy val stream = newStream(PIRConfig.mapperLog)
+  lazy val mappers = ListBuffer[Mapper]()
+  lazy val mapperLogger = new Logger {
+     override lazy val stream = newStream(PIRConfig.mapperLog)
   }
 
   /* Analysis */
-  val forwardRef = new ForwardRef()
-  val controlAnalyzer = new ControlAnalyzer()
-  val multiBufferAnalyzer = new MultiBufferAnalyzer() 
-  val memoryAnalyzer = new MemoryAnalyzer()
-  val accessAnalyzer = new AccessAnalyzer()
-  val livenessAnalyzer = new LiveAnalyzer()
-  val contentionAnalyzer = new ContentionAnalysis()
-  val latencyAnalyzer = new LatencyAnalysis()
-  val resourceAnalyzer = new ResourceAnalysis()
-  val powerAnalyzer = new PowerAnalyzer()
-  val energyAnalyzer = new EnergyAnalyzer()
-  val prescreen = new ResourcePrescreen()
+  lazy val forwardRef = new ForwardRef()
+  lazy val controlAnalyzer = new ControlAnalyzer()
+  lazy val multiBufferAnalyzer = new MultiBufferAnalyzer() 
+  lazy val memoryAnalyzer = new MemoryAnalyzer()
+  lazy val accessAnalyzer = new AccessAnalyzer()
+  lazy val livenessAnalyzer = new LiveAnalyzer()
+  lazy val contentionAnalyzer = new ContentionAnalysis()
+  lazy val latencyAnalyzer = new LatencyAnalysis()
+  lazy val resourceAnalyzer = new ResourceAnalysis()
+  lazy val powerAnalyzer = new PowerAnalyzer()
+  lazy val energyAnalyzer = new EnergyAnalyzer()
+  lazy val prescreen = new ResourcePrescreen()
 
   /* Transformation */
-  val ctrlAlloc = new CtrlAlloc()
-  val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
-  val fusionTransform = new FusionTransform()
-  val scalarBundling = new ScalarBundling() { override def shouldRun = false }
-  val optimizer = new Optimizer()
+  lazy val ctrlAlloc = new CtrlAlloc()
+  lazy val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
+  lazy val fusionTransform = new FusionTransform()
+  lazy val scalarBundling = new ScalarBundling() { override def shouldRun = false }
+  lazy val optimizer = new Optimizer()
 
   /* Mapping */
-  val pirMapping = new PIRMapping()
+  lazy val pirMapping = new PIRMapping()
 
   /* Codegen */
-  val configCodegen = new ConfigCodegen()
+  lazy val configCodegen = new ConfigCodegen()
 
   /* Simulator */
-  val simulator = new SpadeSimulator()
+  lazy val simulator = new SpadeSimulator()
 
   /* Debug */
-  val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
-  val pirPrinter1 = new PIRPrinter("PIR1.log") 
-  val pirPrinter2 = new PIRPrinter("PIR2.log") 
-  val pirPrinter3 = new PIRPrinter("PIR3.log") 
-  val pirPrinter = new PIRPrinter()
-  val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
-  val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
-  val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
-  val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
-  val pirDataDotGen5 = new PIRDataDotGen("PIR.dot")
-  val pirDataDotGen = new PIRDataDotGen("PIR.dot")
-  val pirCtrlDotGen = new PIRCtrlDotGen()
-  val argDotPrinter = new ArgDotPrinter()
-  val ctrDotPrinter = new CtrDotPrinter()
-  val spadeVecDotPrinter = new SpadeVectorDotPrinter()
-  val spadeScalDotPrinter = new SpadeScalarDotPrinter()
-  val spadeCtrlDotPrinter = new SpadeCtrlDotPrinter()
-  val mapPrinter = new MapPrinter()
-  val pirStat = new PIRStat()
-  val pirStatLog = new PIRStatLog()
-  val irCheck = new IRCheck() 
+  lazy val ctrlDotPrinter = new CtrlDotGen() { override def shouldRun = false }
+  lazy val pirPrinter1 = new PIRPrinter("PIR1.log") 
+  lazy val pirPrinter2 = new PIRPrinter("PIR2.log") 
+  lazy val pirPrinter3 = new PIRPrinter("PIR3.log") 
+  lazy val pirPrinter = new PIRPrinter()
+  lazy val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
+  lazy val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
+  lazy val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
+  lazy val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
+  lazy val pirDataDotGen5 = new PIRDataDotGen("PIR.dot")
+  lazy val pirDataDotGen = new PIRDataDotGen("PIR.dot")
+  lazy val pirCtrlDotGen = new PIRCtrlDotGen()
+  lazy val argDotPrinter = new ArgDotPrinter()
+  lazy val ctrDotPrinter = new CtrDotPrinter()
+  lazy val plasticineVecDotPrinter = new PlasticineVectorDotPrinter()
+  lazy val plasticineScalDotPrinter = new PlasticineScalarDotPrinter()
+  lazy val plasticineCtrlDotPrinter = new PlasticineCtrlDotPrinter()
+  lazy val mapPrinter = new MapPrinter()
+  lazy val pirStat = new PIRStat()
+  lazy val pirStatLog = new PIRStatLog()
+  lazy val irCheck = new IRCheck() 
 
   var mapping:Option[PIRMap] = None
 
-  // Pre-mapping Analysis and Transformation 
-  passes += forwardRef
-  passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
-  passes += scalMemInsertion
-  passes += pirPrinter1
-  passes += scalarBundling
-  passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
-  passes += pirPrinter2
-  passes += pirDataDotGen1
-  passes += accessAnalyzer
-  passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
-  passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
-                              // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
-                              // rparOf, wparOf
-  passes += accessAnalyzer
-  passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
-  passes += livenessAnalyzer 
-  passes += optimizer
-  passes += pirDataDotGen2
-  passes += fusionTransform 
-  passes += pirPrinter3
-  passes += pirDataDotGen3
-  passes += controlAnalyzer // set isHead, isLast
-  passes += pirDataDotGen4
-  passes += controlAnalyzer // set length scusOf
-  //passes += irCheck //TODO
-  passes += ctrlAlloc 
-  passes += pirDataDotGen5
-  passes += ctrlDotPrinter 
-  passes += pirCtrlDotGen
-  passes += pirPrinter
-
-  // Mapping
-  passes += prescreen
-  passes += pirMapping 
-  passes += mapPrinter
-  passes += spadeVecDotPrinter 
-  passes += spadeScalDotPrinter 
-  passes += spadeCtrlDotPrinter 
-
-  // Post-mapping analysis
-  passes += pirDataDotGen
-
-  // Codegen
-  passes += configCodegen 
-
-  // Simulation
-  passes += simulator
-
-  // Statistics
-  passes += contentionAnalyzer
-  //passes += latencyAnalyzer
-  passes += resourceAnalyzer
-  passes += powerAnalyzer 
-  //passes += energyAnalyzer 
-
   override def run = {
     info(s"Configuring spade $arch ...")
+
+    // Pre-mapping Analysis and Transformation 
+    passes += forwardRef
+    passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
+    passes += scalMemInsertion
+    passes += pirPrinter1
+    passes += scalarBundling
+    passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
+    passes += pirPrinter2
+    passes += pirDataDotGen1
+    passes += accessAnalyzer
+    passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
+    passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
+                                // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
+                                // rparOf, wparOf
+    passes += accessAnalyzer
+    passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
+    passes += livenessAnalyzer 
+    passes += optimizer
+    passes += pirDataDotGen2
+    passes += fusionTransform 
+    passes += pirPrinter3
+    passes += pirDataDotGen3
+    passes += controlAnalyzer // set isHead, isLast
+    passes += pirDataDotGen4
+    passes += controlAnalyzer // set length scusOf
+    //passes += irCheck //TODO
+    passes += ctrlAlloc 
+    passes += pirDataDotGen5
+    passes += ctrlDotPrinter 
+    passes += pirCtrlDotGen
+    passes += pirPrinter
+
+    // Mapping
+    passes += prescreen
+    passes += pirMapping 
+    passes += mapPrinter
+    passes += plasticineVecDotPrinter 
+    passes += plasticineScalDotPrinter 
+    passes += plasticineCtrlDotPrinter 
+
+    // Post-mapping analysis
+    passes += pirDataDotGen
+
+    // Codegen
+    passes += configCodegen 
+
+    // Simulation
+    passes += simulator
+
+    // Statistics
+    passes += contentionAnalyzer
+    //passes += latencyAnalyzer
+    passes += resourceAnalyzer
+    passes += powerAnalyzer 
+    //passes += energyAnalyzer 
+
     super.run
   }
 
   def handle(e:Exception) = {
     if (!pirPrinter.hasRun) pirPrinter.run
     if (!mapPrinter.hasRun) mapPrinter.run
-    if (!spadeVecDotPrinter.hasRun) spadeVecDotPrinter.run
-    if (!spadeScalDotPrinter.hasRun) spadeScalDotPrinter.run
-    if (!spadeCtrlDotPrinter.hasRun) spadeCtrlDotPrinter.run
+    if (!plasticineVecDotPrinter.hasRun) plasticineVecDotPrinter.run
+    if (!plasticineScalDotPrinter.hasRun) plasticineScalDotPrinter.run
+    if (!plasticineCtrlDotPrinter.hasRun) plasticineCtrlDotPrinter.run
     throw e
   }
 }

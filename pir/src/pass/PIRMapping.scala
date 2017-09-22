@@ -58,9 +58,9 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
   }
   val cuMapper = new CUMapper()
 
-  val spadeVecDotPrinter = new SpadeVectorDotPrinter()
-  val spadeScalDotPrinter = new SpadeScalarDotPrinter()
-  val spadeCtrlDotPrinter = new SpadeCtrlDotPrinter()
+  val plasticineVecDotPrinter = new PlasticineVectorDotPrinter()
+  val plasticineScalDotPrinter = new PlasticineScalarDotPrinter()
+  val plasticineCtrlDotPrinter = new PlasticineCtrlDotPrinter()
 
   override def reset = {
     mapping = None
@@ -71,21 +71,21 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
   def viewRouting(mapper:Mapper):Unit = {
     mapper match {
       case mapper:VectorRouter =>
-        new SpadeVectorDotPrinter(open=true)(design).print(mapping)
-        new SpadeScalarDotPrinter(open=false)(design).print(mapping)
-        new SpadeCtrlDotPrinter(open=false)(design).print(mapping)
+        new PlasticineVectorDotPrinter(open=true)(design).print(mapping)
+        new PlasticineScalarDotPrinter(open=false)(design).print(mapping)
+        new PlasticineCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ScalarRouter =>
-        new SpadeVectorDotPrinter(open=false)(design).print(mapping)
-        new SpadeScalarDotPrinter(open=true)(design).print(mapping)
-        new SpadeCtrlDotPrinter(open=false)(design).print(mapping)
+        new PlasticineVectorDotPrinter(open=false)(design).print(mapping)
+        new PlasticineScalarDotPrinter(open=true)(design).print(mapping)
+        new PlasticineCtrlDotPrinter(open=false)(design).print(mapping)
       case mapper:ControlRouter =>
-        new SpadeVectorDotPrinter(open=false)(design).print(mapping)
-        new SpadeScalarDotPrinter(open=false)(design).print(mapping)
-        new SpadeCtrlDotPrinter(open=true)(design).print(mapping)
+        new PlasticineVectorDotPrinter(open=false)(design).print(mapping)
+        new PlasticineScalarDotPrinter(open=false)(design).print(mapping)
+        new PlasticineCtrlDotPrinter(open=true)(design).print(mapping)
       case mapper:CUMapper =>
-        new SpadeVectorDotPrinter(open=true)(design).print(mapping)
-        new SpadeScalarDotPrinter(open=true)(design).print(mapping)
-        new SpadeCtrlDotPrinter(open=true)(design).print(mapping)
+        new PlasticineVectorDotPrinter(open=true)(design).print(mapping)
+        new PlasticineScalarDotPrinter(open=true)(design).print(mapping)
+        new PlasticineCtrlDotPrinter(open=true)(design).print(mapping)
       case _ =>
     }
   }
@@ -115,9 +115,9 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
     Try[PIRMap]{
       cuMapper.map(PIRMap.empty)
     }.map { m =>
-      spadeVecDotPrinter.print(Some(m))
-      spadeScalDotPrinter.print(Some(m))
-      spadeCtrlDotPrinter.print(Some(m))
+      plasticineVecDotPrinter.print(Some(m))
+      plasticineScalDotPrinter.print(Some(m))
+      plasticineCtrlDotPrinter.print(Some(m))
       mapping = Some(m)
     } match {
       case Success(_) =>

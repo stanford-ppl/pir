@@ -124,7 +124,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
 
   def config(mc:MC, mp:M):M = {
     val pmc = mp.pmmap(mc)
-    mp.setCF(pmc, MemoryControllerConfig(mctpe=mc.mctpe))
+    mp.setCF(pmc, MemoryControllerConfig(name=s"$mc", mctpe=mc.mctpe))
   }
 
   def config(cu:MP, map:M):M = {
@@ -137,7 +137,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
         pout -> mp.pmmap(cu.ctrlBox.readEnDelay).out
       }
     }
-    mp = mp.setCF(pmcu, new ControllerConfig(outputValid.toMap))
+    mp = mp.setCF(pmcu, new ControllerConfig(name=s"$cu", outputValid.toMap))
 
     // Set delay
     val rstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forRead(st) } }
@@ -173,7 +173,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
           else Nil
       }
     }
-    mp = mp.setCF(pcu, new ControllerConfig(outputValid.toMap))
+    mp = mp.setCF(pcu, new ControllerConfig(name=s"$cu", outputValid.toMap))
     
     // Set delay
     val delay = pcu.stages.size
@@ -191,14 +191,14 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
       mp.vomap(out).map { _ -> pcu.ctrlBox.command }
     }
-    mp = mp.setCF(pcu, new TopConfig(bounds.toMap, outputValid.toMap))
+    mp = mp.setCF(pcu, new TopConfig(name=s"$cu", bounds.toMap, outputValid.toMap))
     mp
   }
 
   def config(cu:OCL, map:M):M = {
     var mp = map
     val pcu = mp.pmmap(cu)
-    mp = mp.setCF(pcu, new OuterComputeUnitConfig(isSeq=cu.isSeq, isMeta=cu.isMeta))
+    mp = mp.setCF(pcu, new OuterComputeUnitConfig(name=s"$cu",isSeq=cu.isSeq, isMeta=cu.isMeta))
     mp
   }
 
