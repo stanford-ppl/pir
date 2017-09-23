@@ -8,7 +8,7 @@ import pirc.enums._
 
 import scala.reflect.runtime.universe._
 
-class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffChip)(implicit design: PIR) extends InnerController(name) { 
+class MemoryController(val mctpe:MCType, val offchip:OffChip)(implicit design: PIR) extends InnerController() { 
   override val typeStr = "MemoryController"
   import pirmeta._
   
@@ -29,5 +29,5 @@ class MemoryController(name: Option[String], val mctpe:MCType, val offchip:OffCh
 object MemoryController {
   def apply[P](name:String, parent:P, mctpe:MCType, offchip:OffChip)(block: MemoryController => Any)
     (implicit design: PIR): MemoryController 
-    = new MemoryController(Some(name), mctpe, offchip).parent(parent).updateBlock(block)
+    = new MemoryController(mctpe, offchip).name(name).parent(parent).updateBlock(block)
 }

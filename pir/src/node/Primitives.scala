@@ -35,7 +35,7 @@ trait VectorIO[T <: IO] { self:T =>
   def isConnected:Boolean
 }
 
-case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Controller, design: PIR) 
+case class ScalarIn(scalar:Scalar)(implicit ctrler:Controller, design: PIR) 
   extends Input {
   scalar.addReader(this)
   override val typeStr = "ScalIn"
@@ -49,13 +49,11 @@ case class ScalarIn(name: Option[String], scalar:Scalar)(implicit ctrler:Control
 }
 
 object ScalarIn {
-  def apply(scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarIn = 
-    ScalarIn(None, scalar)
   def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarIn =
-    ScalarIn(Some(name), scalar)
+    ScalarIn(scalar).name(name)
 }
 
-case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val ctrler:Controller, design: PIR) extends Output{
+case class ScalarOut(scalar:Scalar)(implicit override val ctrler:Controller, design: PIR) extends Output{
   scalar.setWriter(this)
   override val typeStr = "ScalOut"
   override def equals(that: Any) = that match {
@@ -66,13 +64,11 @@ case class ScalarOut(name: Option[String], scalar:Scalar)(implicit override val 
   def readers = scalar.readers.toList
 }
 object ScalarOut {
-  def apply(scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarOut = 
-    ScalarOut(None, scalar)
   def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarOut = 
-    ScalarOut(Some(name), scalar)
+    ScalarOut(scalar).name(name)
 }
 
-case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller, design: PIR) 
+case class VecIn(vector:Vector)(implicit ctrler:Controller, design: PIR) 
   extends Input with VectorIO[Input] {
   vector.addReader(this)
   override val typeStr = "VecIn"
@@ -100,18 +96,16 @@ case class VecIn(name: Option[String], vector:Vector)(implicit ctrler:Controller
   }
 }
 object VecIn {
-  def apply(vector:Vector)(implicit ctrler:Controller, design: PIR):VecIn = 
-    VecIn(None, vector)
   def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: PIR):VecIn = 
-    VecIn(Some(name), vector)
+    VecIn(vector).name(name)
 }
 
-class DummyVecIn(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecIn(name, vector) {
+class DummyVecIn(override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecIn(vector) {
   override val typeStr = "DVecIn"
   override def writer:DummyVecOut = vector.writer
 }
 
-class VecOut(val name: Option[String], val vector:Vector)(implicit override val ctrler:Controller, design: PIR) extends Output with VectorIO[Output] {
+class VecOut(val vector:Vector)(implicit override val ctrler:Controller, design: PIR) extends Output with VectorIO[Output] {
   vector.setWriter(this)
   override val typeStr = "VecOut"
   override def equals(that: Any) = that match {
@@ -124,12 +118,12 @@ class VecOut(val name: Option[String], val vector:Vector)(implicit override val 
 }
 object VecOut {
   def apply(vector:Vector)(implicit ctrler:Controller, design: PIR):VecOut = 
-    new VecOut(None, vector)
+    new VecOut(vector)
   def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: PIR):VecOut = 
-    new VecOut(Some(name), vector)
+    new VecOut(vector).name(name)
 }
 
-class DummyVecOut(name: Option[String], override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecOut(name, vector) {
+class DummyVecOut(override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecOut(vector) {
   override val typeStr = "DVecOut"
   def scalarOuts = vector.scalars.map(_.writer)
   override def readers:List[DummyVecIn] = vector.readers.toList
@@ -137,7 +131,6 @@ class DummyVecOut(name: Option[String], override val vector:DummyVector)(implici
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: PIR) extends Primitive {
   override val typeStr = "FU"
-  override val name = None
   val operands = oprds.zipWithIndex.map { case (oprd, i) => 
     val in = InPort(this, s"${this}.oprd($i)")
     oprd.src match {
@@ -172,7 +165,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
   def writesTo(reg:Reg) = defs.contains(reg) 
 }
 
-class Stage(override val name:Option[String])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
+class Stage(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "Stage"
   var fu:Option[FuncUnit] = _
   val _prs = mutable.Map[Reg, PipeReg]()
@@ -202,7 +195,7 @@ object Stage {
   /* No Sugar API */
   def apply(operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:PIR):Unit= {
-    val stage = LocalStage(None) 
+    val stage = new LocalStage
     Stage(stage, operands, op, results)
   }
   def apply(stage:Stage, operands:List[Any], op:Op, results:List[Any])
@@ -242,7 +235,7 @@ object Stage {
     val localCChain::rest = ctrler.cchains.filter { !_.isCopy }
     assert(rest.size==0)
     val numStages = (Math.ceil(Math.log(localCChain.inner.par))/Math.log(2)).toInt 
-    val rdstages = List.tabulate(numStages) {i => ReduceStage(None) }
+    val rdstages = List.tabulate(numStages) {i => ReduceStage() }
     rdstages.foreach { stage =>
       val preg = ctrler.reduce(ctrler.stages.last)
       val creg = ctrler.reduce(stage)
@@ -262,23 +255,18 @@ object Stage {
     (rdstages :+ accstage, areg)
   }
 }
-trait LocalStage extends Stage { override val typeStr = s"LStage" }
-object LocalStage {
-  def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: PIR) =
-    new Stage(name) with LocalStage
-}
-case class ReduceStage(override val name:Option[String])(implicit ctrler:ComputeUnit, design: PIR)
- extends Stage(name) with LocalStage {
+class LocalStage(implicit ctrler:ComputeUnit, design: PIR) extends Stage { override val typeStr = s"LStage" }
+case class ReduceStage()(implicit ctrler:ComputeUnit, design: PIR)
+ extends LocalStage {
   lazy val idx:Int = ctrler.stages.collect{ case rs:ReduceStage => rs }.indexOf(this)
   override val typeStr = s"RedStage"
 }
 
-case class AccumStage(acc:AccumPR)(implicit ctrler:ComputeUnit, design: PIR) extends Stage(None) with LocalStage {
+case class AccumStage(acc:AccumPR)(implicit ctrler:ComputeUnit, design: PIR) extends LocalStage {
   override def toUpdate = super.toUpdate || acc==null
   override val typeStr = s"AccStage"
 }
-class WAStage (override val name:Option[String])
-  (implicit ctrler:ComputeUnit, design: PIR) extends Stage(name) {
+class WAStage (implicit ctrler:ComputeUnit, design: PIR) extends Stage {
   override val typeStr = "WAStage"
   var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
@@ -308,10 +296,9 @@ object WAStage {
     val stage = WAStage(Nil) 
     Stage(stage, operands, op, results)
   }
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new WAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new WAStage().updateSRAMs(srams)
 }
-class RAStage (override val name:Option[String])
-  (implicit ctrler:ComputeUnit, design: PIR) extends Stage(name) {
+class RAStage (implicit ctrler:ComputeUnit, design: PIR) extends Stage {
   override val typeStr = "RAStage"
   var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
@@ -342,24 +329,13 @@ object RAStage {
     val stage = RAStage(Nil) 
     Stage(stage, operands, op, results)
   }
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new RAStage(None).updateSRAMs(srams)
+  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new RAStage().updateSRAMs(srams)
 }
-//trait EmptyStage extends Stage {
-  //override val typeStr = "EmptyStage"
-  //fu = None
-//}
-//object EmptyStage {
-  //def apply(name:Option[String])(implicit ctrler:ComputeUnit, design: PIR):EmptyStage  = 
-    //new Stage(name) with EmptyStage
-  //def apply()(implicit ctrler:ComputeUnit, design: PIR):EmptyStage  = 
-    //new Stage(None) with EmptyStage
-//}
 
 abstract class Reg(implicit override val ctrler:ComputeUnit, design:PIR) extends Primitive { self:Product =>
   import pirmeta._
   lazy val regId:Int = ctrler.newTemp
   override def toString = scala.runtime.ScalaRunTime._toString(this).replace("(", s"$regId(")
-  override val name = None
   override def equals(that: Any) = that match {
     case n: Reg => regId == n.regId && ctrler == n.ctrler
     case _ => false 
@@ -391,11 +367,11 @@ case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, desig
     }
   }
 }
-case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: PIR)                extends Reg {override val typeStr = "regvi"}
-case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: PIR)             extends Reg {override val typeStr = "regvo"}
-case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: PIR)       extends Reg {override val typeStr = "regsi"}
-case class ScalarOutPR(scalarOut:ScalarOut)(implicit ctrler:ComputeUnit, design: PIR)    extends Reg {override val typeStr = "regso"}
-case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: PIR)                        extends Reg {override val typeStr = "regtp"}
+case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: PIR)             extends Reg {override val typeStr = "regvi"}
+case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: PIR)          extends Reg {override val typeStr = "regvo"}
+case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: PIR)    extends Reg {override val typeStr = "regsi"}
+case class ScalarOutPR(scalarOut:ScalarOut)(implicit ctrler:ComputeUnit, design: PIR) extends Reg {override val typeStr = "regso"}
+case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: PIR)  extends Reg {override val typeStr = "regtp"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
  * the PR belongs to
@@ -403,7 +379,6 @@ case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: 
  * @param regId Register ID the PipeReg mapped to
  **/
 case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: PIR) extends Primitive{
-  override val name = None
   val in:InPort = InPort(this, s"${this}.in") 
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   def read:OutPort = out
@@ -418,7 +393,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: PIR
 
 case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
   override val typeStr = "Const"
-  val name:Option[String] = Some(s"$value")
+  this.name(value.toString)
   val out = OutPort(this, s"Const${id}(${value})")
 
   def isBool = value.isInstanceOf[Boolean]
@@ -426,9 +401,8 @@ case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
   def isFloat = value.isInstanceOf[Float]
 }
 
-case class Mux(name:Option[String])(implicit design:PIR, ctrler:Controller) extends Primitive {
+case class Mux()(implicit design:PIR, ctrler:Controller) extends Primitive {
   override val typeStr = "Mux"
-  override def toString = name.getOrElse(super.toString)
   val _inputs = ListBuffer[InPort]()
   val inputs = _inputs.toList
   val sel = InPort(this, s"${this}.sel") 

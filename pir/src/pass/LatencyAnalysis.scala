@@ -60,7 +60,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
           //if (consts.size>1) throw PIRException(s"Got more than 1 valid constant for ${mc} ${fu.ctrler} $fu ${fu.op} $consts")
           //if (consts.size==1) return Some(consts.head)
 
-        case ScalarIn(_,scalar) => constProp(scalar)
+        case ScalarIn(scalar) => constProp(scalar)
         case ctr:Counter => None
         case s:ScalarOut => constProp(s.in.from)
         case s:Scalar => constProp(s.writer)
@@ -219,7 +219,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
             op.eval(op1.asInstanceOf[op.T], op2.asInstanceOf[op.T], op3.asInstanceOf[op.T]).asInstanceOf[Int]
           case _ => throw PIRException(s"Don't know how to const propogate $fu ${fu.op}")
         }
-      case ScalarIn(_, scalar) => constProp(scalar)
+      case ScalarIn(scalar) => constProp(scalar)
       case ctr:Counter => 0
       case s:ScalarOut => constProp(s.in.from)
       case n:ArgIn => boundOf.get(n) match {

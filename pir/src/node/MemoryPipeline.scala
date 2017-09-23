@@ -5,7 +5,7 @@ import pir._
 import pirc._
 
 /* Memory Pipeline */
-class MemoryPipeline(override val name: Option[String])(implicit design: PIR) extends InnerController(name) {
+class MemoryPipeline(implicit design: PIR) extends InnerController {
   import pirmeta._
 
   override val typeStr = "MemPipe"
@@ -27,15 +27,13 @@ class MemoryPipeline(override val name: Option[String])(implicit design: PIR) ex
   def data = dataOut.vector
 }
 object MemoryPipeline {
-  def apply(name: Option[String])(implicit design: PIR):MemoryPipeline =
-    new MemoryPipeline(name)
   /* Sugar API */
   def apply[P](parent:P) (block: MemoryPipeline => Any) (implicit design:PIR):MemoryPipeline =
-    MemoryPipeline(None).parent(parent).updateBlock(block)
+    new MemoryPipeline().parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P) (block:MemoryPipeline => Any) (implicit design:PIR):MemoryPipeline =
-    MemoryPipeline(Some(name)).parent(parent).updateBlock(block)
+    new MemoryPipeline().name(name).parent(parent).updateBlock(block)
   def apply[P](name:String) (block:MemoryPipeline => Any) (implicit design:PIR):MemoryPipeline =
-    MemoryPipeline(Some(name)).updateBlock(block)
+    new MemoryPipeline().name(name).updateBlock(block)
 }
 
 

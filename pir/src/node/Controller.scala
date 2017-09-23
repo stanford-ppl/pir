@@ -24,10 +24,10 @@ abstract class Controller(implicit design:PIR) extends Module {
 
   def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
   def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
-  def newSout(name:String, s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s, ScalarOut(name, s))
+  def newSout(name:String, s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s, ScalarOut(s).name(name))
   def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
   def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
-  def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(name, v))
+  def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v).name(name))
 
   def cins:List[InPort] = ctrlBox.ctrlIns
   def couts:List[OutPort] = ctrlBox.ctrlOuts 
@@ -82,9 +82,9 @@ abstract class Controller(implicit design:PIR) extends Module {
 
   def cloneType(name:Option[String] = None):Controller = {
     val clone = this match {
-      case _:Sequential => new Sequential(Some(s"${this}_${name.getOrElse("clone")}"))
-      case _:MetaPipeline => new MetaPipeline(Some(s"${this}_${name.getOrElse("clone")}"))
-      case _:StreamController => new StreamController(Some(s"${this}_${name.getOrElse("clone")}"))
+      case _:Sequential => new Sequential().name(s"${this}_${name.getOrElse("clone")}")
+      case _:MetaPipeline => new MetaPipeline().name(s"${this}_${name.getOrElse("clone")}")
+      case _:StreamController => new StreamController().name(s"${this}_${name.getOrElse("clone")}")
       case _ => throw PIRException(s"Cannot clone $this")
     }
     design.top.addCtrler(clone)

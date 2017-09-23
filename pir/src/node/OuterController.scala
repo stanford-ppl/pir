@@ -3,7 +3,7 @@ package pir.node
 import pir._
 import pirc._
 
-abstract class OuterController(name:Option[String])(implicit design:PIR) extends ComputeUnit(name) {
+abstract class OuterController(implicit design:PIR) extends ComputeUnit {
 
   override def toUpdate = super.toUpdate
 

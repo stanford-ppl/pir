@@ -15,7 +15,7 @@ abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:PIR) e
 
   val readPort: OutPort = OutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
-  val writePortMux:Mux = Mux(Some(s"$this.wpMux"))
+  val writePortMux:Mux = new Mux().name(s"$this.wpMux")
   writePort.connect(writePortMux.out)
   /* Control Signals */
   val enqueueEnable = InPort(this, s"$this.enqEn")
@@ -146,7 +146,7 @@ trait VectorMem extends OnChipMem {
  *  @param banking: Banking mode of SRAM
  *  calculate write address?
  */
-case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: PIR) 
+case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: PIR) 
   extends VectorMem with RemoteMem with MultiBuffer {
   override val typeStr = "SRAM"
   def banks = banking match {
@@ -166,28 +166,24 @@ case class SRAM(name: Option[String], size: Int, banking:Banking)(implicit overr
     this 
   }
 
-  val readAddrMux:Mux = Mux(Some(s"$this.raMux"))
+  val readAddrMux:Mux = new Mux().name(s"$this.raMux")
   readAddr.connect(readAddrMux.out)
-  val writeAddrMux:Mux = Mux(Some(s"$this.waMux"))
+  val writeAddrMux:Mux = Mux().name(s"$this.waMux")
   writeAddr.connect(writeAddrMux.out)
 }
 
 object SRAM {
-  def apply(size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: PIR): SRAM
-    = SRAM(None, size, banking)
   def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: PIR): SRAM
-    = SRAM(Some(name), size, banking)
+    = SRAM(size, banking).name(name)
 }
 
-class VectorFIFO(val name: Option[String], val size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
+case class VectorFIFO(size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
   extends VectorMem with FIFO {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {
-  def apply(size:Int)(implicit ctrler:ComputeUnit, design: PIR): VectorFIFO
-    = new VectorFIFO(None, size)
   def apply(name:String, size:Int)(implicit ctrler:ComputeUnit, design: PIR): VectorFIFO
-    = new VectorFIFO(Some(name), size)
+    = new VectorFIFO(size).name(name)
 }
 
 trait ScalarMem extends OnChipMem with LocalMem {
@@ -196,29 +192,29 @@ trait ScalarMem extends OnChipMem with LocalMem {
   def wtPort(scalarOut:ScalarOut):this.type = { wtPort(scalarOut.scalar) }
 }
 
-case class ScalarBuffer(name:Option[String])(implicit ctrler:ComputeUnit, design: PIR) 
+case class ScalarBuffer()(implicit ctrler:ComputeUnit, design: PIR) 
   extends ScalarMem with MultiBuffer {
   override val typeStr = "ScalBuf"
   override val size = 1
   override val banking = NoBanking()
 }
 object ScalarBuffer {
-  def apply()(implicit ctrler:ComputeUnit, design: PIR):ScalarBuffer
-    = ScalarBuffer(None)
   def apply(name:String)(implicit ctrler:ComputeUnit, design: PIR):ScalarBuffer
-    = ScalarBuffer(Some(name))
+    = ScalarBuffer().name(name)
 }
 
-class ScalarFIFO(val name: Option[String], val size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
+class ScalarFIFO(val size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
   extends ScalarMem with FIFO {
   override val typeStr = "ScalarFIFO"
 }
 object ScalarFIFO {
   def apply(size:Int)(implicit ctrler:ComputeUnit, design: PIR): ScalarFIFO
-    = new ScalarFIFO(None, size)
+    = new ScalarFIFO(size)
   def apply(name:String, size:Int)(implicit ctrler:ComputeUnit, design: PIR): ScalarFIFO
-    = new ScalarFIFO(Some(name), size)
+    = new ScalarFIFO(size).name(name)
 }
 
 case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: PIR) 
-  extends ScalarFIFO(Some(s"${mc}CommandFIFO"), 1000)
+  extends ScalarFIFO(1000) {
+    this.name(s"${mc}CommandFIFO")
+  }

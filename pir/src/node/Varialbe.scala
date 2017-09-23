@@ -13,7 +13,7 @@ trait Variable extends Node {
 }
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
-class Scalar(val name:Option[String])(implicit design: PIR) extends Variable {
+class Scalar()(implicit design: PIR) extends Variable {
   override val typeStr = "Scalar"
   var _writer:ScalarOut = _ 
   def writerIsEmpty = _writer == null
@@ -34,11 +34,11 @@ class Scalar(val name:Option[String])(implicit design: PIR) extends Variable {
   override def toUpdate = super.toUpdate || writer==null
 }
 object Scalar {
-  def apply(name:String)(implicit design: PIR):Scalar = new Scalar(Some(name)) 
-  def apply()(implicit design: PIR):Scalar = new Scalar(None) 
+  def apply(name:String)(implicit design: PIR):Scalar = new Scalar().name(name) 
+  def apply()(implicit design: PIR):Scalar = new Scalar() 
 }
 
-case class DRAMAddress(override val name:Option[String])(implicit design:PIR) extends Scalar(name) with ArgIn {
+case class DRAMAddress()(implicit design:PIR) extends ArgIn {
   override val typeStr = "DramAddress"
   private var _offchip:Either[String, OffChip] = _
   def setOffChip(offchip:String):Unit = { 
@@ -49,27 +49,26 @@ case class DRAMAddress(override val name:Option[String])(implicit design:PIR) ex
 }
 object DRAMAddress {
   def apply(name:String, offchip:String)(implicit design:PIR):DRAMAddress = {
-    val da = DRAMAddress(Some(name))
+    val da = DRAMAddress().name(name)
     da.setOffChip(offchip)
     da
   }
 }
 
-trait ArgIn extends Scalar { 
+class ArgIn(implicit design:PIR) extends Scalar { 
   override val typeStr = "ArgIn"
 }
 object ArgIn {
-  def apply() (implicit design: PIR):Scalar = new Scalar(None) with ArgIn
-  def apply(name:String) (implicit design: PIR):Scalar = new Scalar(Some(name)) with ArgIn
+  def apply() (implicit design: PIR):Scalar = new ArgIn()
+  def apply(name:String) (implicit design: PIR):Scalar = new ArgIn().name(name)
 }
 
-trait ArgOut extends Scalar{ override val typeStr = "ArgOut" }
+case class ArgOut()(implicit design: PIR) extends Scalar { override val typeStr = "ArgOut" }
 object ArgOut {
-  def apply() (implicit design: PIR):Scalar = new Scalar(None) with ArgOut
-  def apply(name:String) (implicit design: PIR):Scalar = new Scalar(Some(name)) with ArgOut
+  def apply(name:String) (implicit design: PIR):Scalar = new ArgOut().name(name) 
 }
 
-class Vector(val name:Option[String])(implicit design: PIR) extends Variable {
+class Vector(implicit design: PIR) extends Variable {
   override val typeStr = "Vector"
   private var _writer:VecOut = _
   def writer:VecOut = {
@@ -87,11 +86,11 @@ class Vector(val name:Option[String])(implicit design: PIR) extends Variable {
   override def toUpdate = super.toUpdate || writer==null
 }
 object Vector {
-  def apply(name:String)(implicit design: PIR):Vector = new Vector(Some(name)) 
-  def apply()(implicit design: PIR):Vector = new Vector(None) 
+  def apply()(implicit design: PIR):Vector = new Vector() 
+  def apply(name:String)(implicit design: PIR):Vector = new Vector().name(name)
 }
 
-class DummyVector(name:Option[String])(implicit design:PIR) extends Vector(name) {
+class DummyVector(implicit design:PIR) extends Vector {
   override val typeStr = "DVector"
   override def writer:DummyVecOut = super.writer.asInstanceOf[DummyVecOut]
   override def readers:List[DummyVecIn] = super.readers.asInstanceOf[List[DummyVecIn]]
@@ -111,11 +110,10 @@ class DummyVector(name:Option[String])(implicit design:PIR) extends Vector(name)
   }
 }
 
-case class OffChip(name:Option[String])(implicit design: PIR) extends Node{
+case class OffChip()(implicit design: PIR) extends Node{
   override val typeStr = "OffChip"
 }
 object OffChip {
-  def apply()(implicit design:PIR):OffChip = OffChip(None)
-  def apply(name:String)(implicit design:PIR):OffChip = OffChip(Some(name))
+  def apply(name:String)(implicit design:PIR):OffChip = OffChip().name(name)
 }
 

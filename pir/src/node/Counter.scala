@@ -8,7 +8,7 @@ import pirc._
 
 import scala.collection.mutable.ListBuffer
 
-case class CounterChain(name:Option[String], cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
+case class CounterChain(cc:Option[Either[String, CounterChain]])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   import pirmeta._
 
   override val typeStr = "CC"
@@ -66,8 +66,8 @@ case class CounterChain(name:Option[String], cc:Option[Either[String, CounterCha
     _counters.insert(0, ctr)
   }
 
-  def this(name:Option[String], ctrs:Counter*)(implicit ctrler:ComputeUnit, design: PIR) = {
-    this(name, None)
+  def this(ctrs:Counter*)(implicit ctrler:ComputeUnit, design: PIR) = {
+    this(None)
     ctrs.foreach { ctr => addCounter(ctr) }
   }
 
@@ -114,7 +114,7 @@ case class CounterChain(name:Option[String], cc:Option[Either[String, CounterCha
 }
 object CounterChain {
   def apply(name:String, ctrs: Counter*)(implicit ctrler:ComputeUnit, design: PIR):CounterChain =
-    new CounterChain(Some(name), ctrs:_*)
+    new CounterChain(ctrs:_*).name(name)
   /*
    * @param from: User defined name for Controller of the copying CounterChain 
    * @param name: User defined name for Primitive 
@@ -133,31 +133,32 @@ object CounterChain {
    * @param from: full name of Primitive 
    * */
   def copy(from:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
-    val cc = new CounterChain(Some(s"${from}_copy"), Some(Left(from)))
+    val cc = new CounterChain(Some(Left(from))).name(s"${from}_copy")
     def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
     design.updateLater(from, updateFunc _ )
     cc
   }
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
-    val cc = new CounterChain(Some(s"${from}_copy"), Some(Right(from)))
+    val cc = new CounterChain(Some(Right(from))).name(s"${from}_copy")
     cc.copy(from)
     cc
   }
   def clone(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
-    val cc = CounterChain(from.name, None)
+    val cc = CounterChain(None)
+    from.name.foreach { name => cc.name(name) }
     cc.clone(from)
     cc
   }
   def dummy(implicit ctrler:ComputeUnit, design: PIR) = {
     import design.pirmeta._
-    val cc = CounterChain(Some(s"dummy"), None)
+    val cc = CounterChain(None).name("dummy")
     cc.addCounter(DummyCounter(cc))
     iterOf(cc) = 1
     cc
   }
 }
 
-class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
+class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -235,11 +236,8 @@ class Counter(val name:Option[String])(implicit override val ctrler:ComputeUnit,
   } 
 }
 object Counter {
-  def apply(name:Option[String], cc:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):Counter = {
-    new Counter(name).cchain(cc)
-  }
   def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: PIR):Counter = { 
-    val c = new Counter(None)
+    val c = new Counter()
     c.min.connect(min)
     c.max.connect(max)
     c.step.connect(step)
@@ -247,11 +245,17 @@ object Counter {
     c 
   }
   def apply(cchain:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):Counter = 
-    Counter(None, cchain)
+    new Counter().cchain(cchain)
+  def apply(name:Option[String], cchain:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):Counter =  {
+    val ctr = Counter(cchain)
+    name.foreach { name => ctr.name(name) }
+    ctr
+  }
 }
 
 case class DummyCounter(cc:CounterChain)(implicit override val ctrler:ComputeUnit, design: PIR)
-  extends Counter(Some(s"dummyCtr")) {
+  extends Counter() {
+  this.name(s"dummyCtr")
   this.cchain(cc)
   this.min.connect(Const(-1).out)
   this.max.connect(Const(-1).out)

@@ -23,7 +23,6 @@ abstract class UDCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimi
  * which case used for handling token from parent and collect token from last stage. */
 case class TokenBuffer(dep:Any)
   (implicit ctrlBox:CtrlBox, design:PIR) extends UDCounter{
-  override val name = None
   override val typeStr = "TokBuf"
   val initVal = 0
   def initOnStart = false
@@ -31,7 +30,6 @@ case class TokenBuffer(dep:Any)
 }
 case class CreditBuffer(deped:Any, initVal:Int)(implicit ctrlBox:CtrlBox, design:PIR) 
   extends UDCounter{
-  override val name = None
   override val typeStr = "CredBuf"
   def initOnStart = true 
   ctrler.ctrlBox.creditBuffers += deped -> this
@@ -44,7 +42,6 @@ object TransferFunction {
   }
 }
 abstract class LUT(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
-  override val name = None
   val transFunc:TransferFunction
   val numIns:Int
   (0 until numIns).foreach { i => InPort(this,s"${this}.in$i") }
@@ -89,7 +86,7 @@ object EnLUT {
     lut
   }
 }
-class AndTree(val name:Option[String])(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
+class AndTree(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   override val typeStr = "AndTree"
   val out = OutPort(this, s"$this.out")
   ctrlBox.andTrees += this
@@ -105,15 +102,15 @@ class AndTree(val name:Option[String])(implicit ctrlBox:CtrlBox, design:PIR) ext
 }
 object AndTree {
   def apply(inputs:OutPort*)(implicit ctrlBox:CtrlBox, design:PIR):AndTree = {
-    val at = new AndTree(None)
+    val at = new AndTree()
     at.addInputs(inputs.toList)
     at
   }
-  def apply(n:String)(implicit ctrlBox:CtrlBox, design:PIR):AndTree = new AndTree(Some(n))
-  def apply()(implicit ctrlBox:CtrlBox, design:PIR):AndTree = new AndTree(None)
+  def apply(name:String)(implicit ctrlBox:CtrlBox, design:PIR):AndTree = new AndTree().name(name)
+  def apply()(implicit ctrlBox:CtrlBox, design:PIR):AndTree = new AndTree()
 }
 
-case class PredicateUnit(name:Option[String], op:FixOp, const:Int) (implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
+case class PredicateUnit(op:FixOp, const:Int) (implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   ctrlBox.predicateUnits += this
   override val typeStr = "PredicateUnit"
   val in = InPort(this, s"$this.in")
@@ -122,7 +119,6 @@ case class PredicateUnit(name:Option[String], op:FixOp, const:Int) (implicit ctr
 
 abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primitive {
   implicit def ctrlBox:CtrlBox = this
-  override val name = None
 
   val tokenBuffers = Map[Any, TokenBuffer]() // Mem or Parent
   val creditBuffers = Map[Any, CreditBuffer]()
@@ -168,16 +164,15 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
   override def toUpdate = super.toUpdate || tokenOut == null
 }
 
-class Delay(val name:Option[String])(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
+class Delay()(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   override val typeStr = "Delay"
-  override def toString = name.getOrElse(super.toString)
   val in = InPort(this, s"$this.in") 
   val out = OutPort(this, s"$this.out")
   ctrlBox.delays += this
 }
 object Delay {
-  def apply(n:String)(implicit ctrlBox:CtrlBox, design:PIR):Delay = new Delay(Some(n))
-  def apply()(implicit ctrlBox:CtrlBox, design:PIR):Delay = new Delay(None)
+  def apply(n:String)(implicit ctrlBox:CtrlBox, design:PIR):Delay = new Delay().name(n)
+  def apply()(implicit ctrlBox:CtrlBox, design:PIR):Delay = new Delay()
 }
 
 trait StageCtrlBox extends CtrlBox {
@@ -204,13 +199,13 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: PIR)
   var accumPredUnit:Option[PredicateUnit] = None
   var fifoPredUnit:Option[PredicateUnit] = None
   def setAccumPredicate(ctr:Counter, op:FixOp, const:Int):PredicateUnit = {
-    accumPredUnit = Some(PredicateUnit(Some("accumPredUnit"), op, const))
+    accumPredUnit = Some(PredicateUnit(op, const).name("accumPredUnit"))
     accumPredUnit.foreach{ _.in.connect(ctr.out) }
     accumPredUnit.get
   }
   def setFifoPredicate(ctr:Counter, op:FixOp, const:Int):PredicateUnit = {
     assert(fifoPredUnit.isEmpty, s"Assume a single FifoPredicateUnit in each controller $ctrler")
-    fifoPredUnit = Some(PredicateUnit(Some("fifoPredUnit"), op, const))
+    fifoPredUnit = Some(PredicateUnit(op, const).name("fifoPredUnit"))
     fifoPredUnit.foreach{ _.in.connect(ctr.out) }
     fifoPredUnit.get
   }

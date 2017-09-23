@@ -4,7 +4,7 @@ import pir._
 
 import scala.collection.mutable.ListBuffer
 
-abstract class InnerController(name:Option[String])(implicit design:PIR) extends ComputeUnit(name)
+abstract class InnerController(implicit design:PIR) extends ComputeUnit
  with InnerRegBlock {
   import pirmeta._
 

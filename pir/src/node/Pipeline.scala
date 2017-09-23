@@ -3,18 +3,14 @@ package pir.node
 import pir._
 import pirc._
 
-class Pipeline(name:Option[String])(implicit design:PIR) extends InnerController(name) { self =>
+class Pipeline(implicit design:PIR) extends InnerController { self =>
   override val typeStr = "PipeCU"
 
   override lazy val ctrlBox:InnerCtrlBox = InnerCtrlBox()
 }
 object Pipeline {
-  def apply[P](name: Option[String], parent:P)(block: Pipeline => Any)(implicit design: PIR):Pipeline = {
-    new Pipeline(name).parent(parent).updateBlock(block)
-  }
-  /* Sugar API */
   def apply [P](parent:P) (block: Pipeline => Any) (implicit design:PIR):Pipeline =
-    apply(None, parent)(block)
+    new Pipeline().parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P) (block:Pipeline => Any) (implicit design:PIR):Pipeline =
-    apply(Some(name), parent)(block)
+    new Pipeline().name(name).parent(parent).updateBlock(block)
 }

@@ -4,20 +4,16 @@ import pir._
 
 import pirc._
 
-class Sequential(name:Option[String])(implicit design:PIR) extends OuterController(name) {
+class Sequential(implicit design:PIR) extends OuterController {
   override val typeStr = "SeqCU"
 }
 object Sequential {
-  def apply[P](name: Option[String], parent:P) (block: Sequential => Any)
-                (implicit design: PIR):Sequential = {
-    new Sequential(name).parent(parent).updateBlock(block)
-  }
   /* Sugar API */
   def apply[P](parent:P) (block: Sequential => Any)
                  (implicit design:PIR):Sequential =
-    Sequential(None, parent)(block)
+    new Sequential().parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P) (block:Sequential => Any)
                  (implicit design:PIR):Sequential =
-    Sequential(Some(name), parent)(block)
+    new Sequential().name(name).parent(parent).updateBlock(block)
 }
 

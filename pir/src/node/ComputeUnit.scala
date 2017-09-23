@@ -10,7 +10,7 @@ import pirc.enums._
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-abstract class ComputeUnit(override val name: Option[String])(implicit design: PIR) extends Controller with OuterRegBlock {
+abstract class ComputeUnit(implicit design: PIR) extends Controller with OuterRegBlock {
   override val typeStr = "CU"
   import pirmeta._
 

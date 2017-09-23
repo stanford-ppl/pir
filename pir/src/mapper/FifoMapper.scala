@@ -10,7 +10,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   type R = PLMem
   val typeStr = "FifoMapper"
   override def debug = PIRConfig.debugSFifoMapper
-  import pirmeta.{indexOf => _, _}
+  import pirmeta.{indexOf => _, nameOf => _, _}
   import spademeta._
 
   def finPass(cu:CL)(m:M):M = m 

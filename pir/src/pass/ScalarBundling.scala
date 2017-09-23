@@ -32,7 +32,7 @@ class ScalarBundling(implicit design: PIR) extends Pass {
     while (grps.size!=0) {
       val (readers, sos) = grps.pop
       val vec = if (sos.size >= par || freeVecs.isEmpty) {
-        val v = new DummyVector(None); vecs += v; v
+        val v = new DummyVector(); vecs += v; v
       } else { 
         freeVecs.pop 
       }

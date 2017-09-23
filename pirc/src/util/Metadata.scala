@@ -10,7 +10,6 @@ trait Metadata extends { self:Design =>
   val maps = scala.collection.mutable.ListBuffer[MetadataMaps]()
 
   def reset = {
-    info(s"Reseting $name metadata")
     maps.foreach(_.reset)
   }
 

@@ -3,21 +3,16 @@ package pir.node
 import pir._
 import pirc._
 
-class StreamController(name:Option[String])(implicit design:PIR) extends OuterController(name) {
+class StreamController(implicit design:PIR) extends OuterController {
   override val typeStr = "StreamCtrler"
 }
 object StreamController {
-  def apply[P](name: Option[String], parent:P) (block: StreamController => Any)
-                (implicit design: PIR):StreamController = {
-    new StreamController(name).parent(parent).updateBlock(block)
-  }
-  /* Sugar API */
   def apply [P](parent:P) (block: StreamController => Any)
                  (implicit design:PIR):StreamController =
-    StreamController(None, parent)(block)
+    new StreamController().parent(parent).updateBlock(block)
   def apply[P](name:String, parent:P) (block:StreamController => Any)
                  (implicit design:PIR):StreamController =
-    StreamController(Some(name), parent)(block)
+    new StreamController().name(name).parent(parent).updateBlock(block)
 }
 
 

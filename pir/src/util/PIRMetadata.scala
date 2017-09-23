@@ -8,6 +8,12 @@ import pirc.collection.mutable._
 
 trait PIRMetadata extends Metadata { self:PIR =>
 
+  object nameOf extends MOneToOneMap with MetadataMaps {
+    type K = Node
+    type V = String
+    override def reset = {} // set during graph construction
+  }
+
   object indexOf extends MOneToOneMap with MetadataMaps {
     type K = Node
     type V = Int

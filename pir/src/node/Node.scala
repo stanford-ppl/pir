@@ -13,7 +13,6 @@ abstract class Node (implicit val design: PIR) {
   val pirmeta:PIRMetadata = design
   import pirmeta._
 
-  val name:Option[String]
   val typeStr:String
 	design.addNode(this)
   val id : Int = design.nextId // Unique id for each node
@@ -25,8 +24,10 @@ abstract class Node (implicit val design: PIR) {
     case _ => super.equals(that)
   }
 
-  override def toString = s"${typeStr}${id}${name.fold("")(n => s"_${n}")}" 
+  override def toString = s"${typeStr}${id}${nameOf.get(this).fold("")(n => s"_${n}")}" 
   def bound(b:AnyVal):this.type = { boundOf(this) = b; this }
+  def name(n:String):this.type = { nameOf(this) = n; this }
+  def name:Option[String] = nameOf.get(this)
 }
 
 trait Module extends Node {
