@@ -36,6 +36,11 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //connectLastsRec(design.top)
   }
 
+  def OCU_MAX_CIN = {
+    val ocu = arch.ocus.head
+    ocu.cins.size
+  }
+
   def setPredicate(ctrler:Controller) = {
     setAccumPredicate(ctrler)
     setFifoPredicate(ctrler)
@@ -181,17 +186,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     (parent, last, parent.ctrlBox, last.ctrlBox) match {
       case (parent:Top, last:ComputeUnit, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
         pcb.status.connect(ccb.doneOut)
-      case (parent:StreamController, last:MemoryController, pcb:OuterCtrlBox, ccb:MCCtrlBox) =>
-        val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneOut)
-        tk.dec.connect(pcb.childrenAndTree.out)
-        pcb.childrenAndTree.addInput(tk.out)
-      case (parent:StreamController, last:Pipeline, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
-        val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneOut)
-        tk.dec.connect(pcb.childrenAndTree.out)
-        pcb.childrenAndTree.addInput(tk.out)
-      case (parent:Controller, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
+      case (parent:OuterController, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
         tk.inc.connect(ccb.doneOut)
         tk.dec.connect(pcb.childrenAndTree.out)
@@ -201,7 +196,12 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
     if (lasts.isEmpty) return
-    dprintln(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}") //TODO fix this for smv
+    if (OCU_MAX_CIN-parent.cins.size == 0) {
+      errmsg(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}")
+      parent.cins.foreach { cin =>
+        errmsg(s"parent.cin=${cin.from}")
+      }
+    }
     val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
       val midParent = if (lastGroups.size==1) parent else {
@@ -236,12 +236,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
     heads.foreach { head =>
       (ctrler.ctrlBox, head.ctrlBox) match {
-        case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isStreaming(head) =>
-          val tk = hcb.tokenBuffer(ctrler)
-          tk.inc.connect(pcb.enOut)
-          tk.dec.connect(hcb.en.out)
-          hcb.siblingAndTree.addInput(tk.out)
-        case (pcb:OuterCtrlBox, hcb:StageCtrlBox) if isPipelining(head) =>
+        case (pcb:OuterCtrlBox, hcb:StageCtrlBox) =>
           val tk = hcb.tokenBuffer(ctrler)
           tk.inc.connect(pcb.enOut)
           tk.dec.connect(hcb.done.out)

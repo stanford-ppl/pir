@@ -42,10 +42,13 @@ package object util extends Printer {
   def startInfo(s:String) = emit(s"[pir] ${s}")
   def endInfo(s:String) = { emitln(s" ${s}") }
   def success(s:Any) = emitln(s"\n[${Console.GREEN}success${Console.RESET}] ${s}")
-  def warn(s:Any) = emitln(s"\n[${Console.YELLOW}warning${Console.RESET}] ${s}")
-  def errmsg(s:Any) = { emitln(s"\n[${Console.RED}error${Console.RESET}] ${s}") }
+  def warn(s:Any):Unit = emitln(s"\n[${Console.YELLOW}warning${Console.RESET}] ${s}")
+  def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
+  def errmsg(s:Any):Unit = { emitln(s"\n[${Console.RED}error${Console.RESET}] ${s}") }
+  def errmsg(predicate:Boolean, s:Any):Unit = if (predicate) errmsg(s) 
   def bp(s:Any) = emitln(s"[${Console.RED}break${Console.RESET}]${s}")
-  def err(s:Any) = { errmsg(s); throw PIRException(s"$s") }
+  def err(s:Any):Unit = { errmsg(s); throw PIRException(s"$s") }
+  def err(predicate:Boolean, s:Any):Unit = if (predicate) err(s) 
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()
