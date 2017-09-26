@@ -138,12 +138,12 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
     cins ++= udcounters.values.map(_.inc)
     cins ++= andTrees.flatMap(_.ins)
     cins ++= delays.map(_.in)
+    cins ++= ctrler.mems.map { _.enqueueEnable }
+    cins ++= ctrler.mems.map { _.dequeueEnable }
     ctrler match {
       case top:Top =>
       case cu:ComputeUnit => 
         cins ++= cu.cchains.map(_.inner.en)
-        cins ++= cu.mems.map { _.enqueueEnable }
-        cins ++= cu.mems.map { _.dequeueEnable }
     }
     cins ++= ins
     cins.toSet.filter{_.isGlobal}.toList
@@ -151,11 +151,7 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
 
   def ctrlOuts:List[OutPort] = { 
     val couts = ListBuffer[OutPort]()
-    ctrler match {
-      case cu:ComputeUnit => 
-        couts ++= cu.mems.map { _.notFull }
-      case _ =>
-    }
+    couts ++= ctrler.mems.map { _.notFull }
     couts ++= delays.map{_.out}
     couts ++= outs
     couts.toSet.filter{_.isGlobal}.toList

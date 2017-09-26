@@ -8,8 +8,10 @@ import pirc.enums._
 import scala.math.max
 import scala.reflect.runtime.universe._
 
-abstract class OnChipMem(implicit override val ctrler:ComputeUnit, design:PIR) extends Primitive {
+abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primitive {
   import pirmeta._
+  ctrler.mems(List(this))
+
   val size:Int
   val banking:Banking
 
@@ -177,12 +179,12 @@ object SRAM {
     = SRAM(size, banking).name(name)
 }
 
-case class VectorFIFO(size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
+case class VectorFIFO(size: Int)(implicit ctrler:Controller, design: PIR) 
   extends VectorMem with FIFO {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {
-  def apply(name:String, size:Int)(implicit ctrler:ComputeUnit, design: PIR): VectorFIFO
+  def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): VectorFIFO
     = new VectorFIFO(size).name(name)
 }
 
@@ -192,25 +194,25 @@ trait ScalarMem extends OnChipMem with LocalMem {
   def wtPort(scalarOut:ScalarOut):this.type = { wtPort(scalarOut.scalar) }
 }
 
-case class ScalarBuffer()(implicit ctrler:ComputeUnit, design: PIR) 
+case class ScalarBuffer()(implicit ctrler:Controller, design: PIR) 
   extends ScalarMem with MultiBuffer {
   override val typeStr = "ScalBuf"
   override val size = 1
   override val banking = NoBanking()
 }
 object ScalarBuffer {
-  def apply(name:String)(implicit ctrler:ComputeUnit, design: PIR):ScalarBuffer
+  def apply(name:String)(implicit ctrler:Controller, design: PIR):ScalarBuffer
     = ScalarBuffer().name(name)
 }
 
-class ScalarFIFO(val size: Int)(implicit ctrler:ComputeUnit, design: PIR) 
+class ScalarFIFO(val size: Int)(implicit ctrler:Controller, design: PIR) 
   extends ScalarMem with FIFO {
   override val typeStr = "ScalarFIFO"
 }
 object ScalarFIFO {
-  def apply(size:Int)(implicit ctrler:ComputeUnit, design: PIR): ScalarFIFO
+  def apply(size:Int)(implicit ctrler:Controller, design: PIR): ScalarFIFO
     = new ScalarFIFO(size)
-  def apply(name:String, size:Int)(implicit ctrler:ComputeUnit, design: PIR): ScalarFIFO
+  def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): ScalarFIFO
     = new ScalarFIFO(size).name(name)
 }
 

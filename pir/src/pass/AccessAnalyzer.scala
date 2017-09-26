@@ -45,9 +45,9 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
   def setAccess = {
-    design.top.compUnits.foreach { cu =>
-      emitBlock(s"setAccess($cu)") {
-        cu.mems.foreach { mem =>
+    design.top.ctrlers.foreach { cl =>
+      emitBlock(s"setAccess($cl)") {
+        cl.mems.foreach { mem =>
           setWriter(mem)
           setReader(mem)
         }

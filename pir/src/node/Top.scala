@@ -62,7 +62,7 @@ case class Top()(implicit design: PIR) extends Controller { self =>
 
   override def toUpdate = super.toUpdate || innerCUs == null || outerCUs == null
 
-  def updateBlock(block:Top => Any)(implicit design: PIR):Top = {
+  override def updateBlock(block:this.type => Any)(implicit design: PIR):this.type = {
     val (inners, outers, memcus, scalars, vectors) = 
       design.addBlock[InnerController, OuterController, MemoryPipeline, Scalar, Vector](block(this), 
                       (n:Node) => n.isInstanceOf[InnerController],
@@ -79,7 +79,11 @@ case class Top()(implicit design: PIR) extends Controller { self =>
         case a:ArgIn => 
           super.newSout(a)
         case a:ArgOut => 
-          super.newSin(a)
+          val sin = super.newSin(a)
+          val sbuf = ScalarBuffer()(this, design)
+          sbuf.wtPort(sin)
+          InPort(this, s"$this.in").connect(sbuf.readPort)
+          super.mems(List(sbuf))
         case _ => 
       }
     }

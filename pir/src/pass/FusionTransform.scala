@@ -12,8 +12,8 @@ class FusionTransform(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"FusionTransform.log")
 
-  def fuseCUs(parent:OuterController, childCU:ComputeUnit) = {
-    implicit val child:ComputeUnit = childCU 
+  def fuseCUs(parent:OuterController, childCU:Controller) = {
+    implicit val child:ComputeUnit = childCU.asInstanceOf[ComputeUnit]
     val pcc = localCChainOf(parent)
     val ccc = localCChainOf(child)
     dprintln(s"moving counters=${pcc.counters.mkString(",")} in $pcc from $parent to $child")

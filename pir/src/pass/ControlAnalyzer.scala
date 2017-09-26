@@ -21,8 +21,8 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
     val list = ListBuffer[Controller]()
     var curr:Controller = ctrler
     list += curr
-    while (!curr.isInstanceOf[Top]) {
-      curr = curr.asInstanceOf[ComputeUnit].parent
+    while (curr.parent.nonEmpty) {
+      curr = curr.parent.get
       list += curr
     }
     ancestorsOf(ctrler) = list.toList
@@ -43,70 +43,53 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
   def setStreaming(ctrler:Controller) = {
-    isStreaming(ctrler) = ctrler match {
-      case cu:ComputeUnit =>
-        cu.parent match {
-          case parent:StreamController => true
-          case parent => false
-        }
-      case top:Top => false
+    isStreaming(ctrler) = ctrler.parent match {
+      case Some(parent:StreamController) => true
+      case parent => false
     }
   }
 
   def setPipelining(ctrler:Controller) = {
-    isPipelining(ctrler) = ctrler match {
-      case cu:ComputeUnit =>
-        cu.parent match {
-          case parent:StreamController => false
-          case parent:MetaPipeline => true
-          case parent:Sequential => true
-          case parent:Top => true
-        }
-      case top:Top => true
+    isPipelining(ctrler) = ctrler.parent match {
+      case Some(parent:StreamController) => false
+      case parent => true
     }
   }
 
-  def setHead(ctrler:Controller) = emitBlock(s"setHead: $ctrler") {
-    isHead(ctrler) = ctrler match {
-      case ctrler:MemoryPipeline => false
-      case ctrler if isPipelining(ctrler) =>
-        ctrler.trueConsumed.isEmpty
-      case ctrler:ComputeUnit if isStreaming(ctrler) =>
-        val descendents = ctrler.descendents.collect { case cu:ComputeUnit => cu }
-        val fifos = descendents.flatMap { _.fifos.filter {
-          _.writers.forall { writer =>
-              writer match {
-                case writer:ComputeUnit => writer.ancestors.contains(ctrler.parent)
-                case top:Top => false
-              }
+  def setHead(ctrler:Controller) = isHead(ctrler) = emitBlock(s"setHead($ctrler)") {
+    ctrler.parent match {
+      case None => true
+      case Some(parent) =>
+        descendentsOf(ctrler).forall { descendent =>
+          emitBlock(s"descendent=$descendent") {
+            descendent.mems.forall { mem => 
+              dprintln(s"mem=$mem")
+              writersOf(mem).forall { writer =>
+                dprintln(s"ancestorsOf(writer=$writer)=${ancestorsOf(writer)}")
+                !ancestorsOf(writer).contains(parent) || writer.ctrler.isInstanceOf[Top]
+              } 
             }
           }
         }
-        dprintln(s"setHead: $ctrler descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
-        fifos.isEmpty
     }
-    dprintln(isHead.info(ctrler))
   }
 
-  def setLast(ctrler:Controller) = emitBlock(s"setLast: $ctrler") {
-    isLast(ctrler) = ctrler match {
-      case ctrler:MemoryPipeline => false
-      case ctrler if isPipelining(ctrler) =>
-        dprintln(s"trueProduced:[${ctrler.trueProduced.mkString(",")}]")
-        ctrler.trueProduced.isEmpty
-      case ctrler:ComputeUnit if isStreaming(ctrler) =>
-        val descendents = ctrler.descendents.collect { case cu:ComputeUnit => cu }
-        val fifos = descendents.flatMap { _.writtenFIFOs.filter {
-            _.reader match {
-              case reader:ComputeUnit => reader.ancestors.contains(ctrler.parent)
-              case top:Top => false
+  def setLast(ctrler:Controller) = isLast(ctrler) = emitBlock(s"setLast($ctrler)") {
+    ctrler.parent match {
+      case None => true
+      case Some(parent) =>
+        descendentsOf(ctrler).forall { descendent =>
+          emitBlock(s"descendent=$descendent") {
+            descendent.writtenMems.forall { mem => 
+              dprintln(s"writtenMem=$mem")
+              readersOf(mem).forall { reader =>
+                dprintln(s"ancestorsOf(reader=$reader)=${ancestorsOf(reader)}")
+                !ancestorsOf(reader).contains(parent)
+              } 
             }
           }
         }
-        dprintln(s"descendents:[${descendents.mkString(",")}] fifos:[${fifos.mkString(",")}]")
-        fifos.isEmpty
     }
-    dprintln(isLast.info(ctrler))
   }
 
   def setLength(ctrler:Controller) = emitBlock(s"setLength($ctrler)") {
@@ -136,12 +119,12 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
   def setSAG(ctrler:Controller) = emitBlock(s"setSAG($ctrler)"){
     ctrler match {
       case mc:MemoryController if mc.mctpe==TileLoad || mc.mctpe==Gather =>
-        def writtenCtrler(cu:ComputeUnit) = {
+        def writtenCtrler(cu:Controller) = {
           val cls = cu.writtenFIFOs.map { _.ctrler }.toSet
           dprintln(s"writtenCtrler: $cls")
           cls
         }
-        mc.parent.children.filter { cu => 
+        mc.parent.get.children.filter { cu => 
           cu != mc && (writtenCtrler(mc) == writtenCtrler(cu))
         }.foreach { cu => sagOf(mc) = cu }
         dprintln(sagOf.info(ctrler))

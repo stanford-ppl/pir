@@ -16,8 +16,8 @@ class ScalarMemInsertion(implicit design: PIR) extends Pass with Logger {
   }
 
   def insertScalarMem(sin:ScalarIn):ScalarMem = {
-    val cu = sin.ctrler.asInstanceOf[ComputeUnit]
-    val mem:ScalarMem = cu.parent match {
+    val cu = sin.ctrler.asCU
+    val mem:ScalarMem = cu.parent.get match {
       case parent:StreamController if parent.children.contains(sin.writer.ctrler) => // insert fifo
         cu.getRetimingFIFO(sin.scalar).asInstanceOf[ScalarFIFO]
       case _ => cu.getScalarBuffer(sin.scalar)

@@ -33,7 +33,7 @@ object PIRConfig extends GlobalConfig {
   var debugMapper:Boolean = debug && register("debug-mapper", true) { v => debugMapper = v == "true" }
   var debugVecRouter = debugMapper && true 
   var debugScalRouter = debugMapper && true 
-  var debugCtrlRouter = debugMapper && false 
+  var debugCtrlRouter = debugMapper && false
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugSIMapper = debugMapper && true 
@@ -45,5 +45,6 @@ object PIRConfig extends GlobalConfig {
   var debugCtrMapper = debugMapper && true 
   var debugRAMapper = debugMapper && true 
   var debugSTMapper = debugMapper && true 
+  var openDot:Boolean = register("open", false) { v => openDot = v == "true" }
 
 }

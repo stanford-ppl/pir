@@ -62,13 +62,14 @@ package object util {
       val prev = chained.last
       val prevOrig = prev.original
       prevOrig.ctrler.parent match {
-        case prevParent:ComputeUnit => 
+        case Some(prevParent:ComputeUnit) => 
           prevParent
-        case top:Top =>
+        case Some(top) =>
           var info = s"fillChain: ${cchains}\n"
           info += s"prev=$prev cchain.original=$prevOrig\n"
           info += s"original.ctrler=${prevOrig.ctrler}'s parent is Top! curr=${cc} in ${cc.ctrler}" 
           throw new Exception(info)
+        case None => throw new Exception("shouldn't happen")
       }
     }
     cchains.foreach { cc =>

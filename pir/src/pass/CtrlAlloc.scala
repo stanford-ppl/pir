@@ -194,13 +194,12 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def connectLasts(parent:Controller, lasts:List[Controller]):Unit = {
+  def connectLasts(parent:Controller, lasts:List[Controller]):Unit = emitBlock(s"connectLasts(parent=$parent)") {
+    dprintln(s"lasts=$lasts")
     if (lasts.isEmpty) return
-    if (OCU_MAX_CIN-parent.cins.size == 0) {
-      errmsg(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}")
-      parent.cins.foreach { cin =>
-        errmsg(s"parent.cin=${cin.from}")
-      }
+    dprintln(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}")
+    parent.cins.foreach { cin =>
+      dprintln(s"parent.cin=${cin.from}")
     }
     val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
     val midParents = lastGroups.map { lasts =>
@@ -338,16 +337,16 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //}
     // Backward pressure
     // - FIFO.notFull
-    (ctrler, ctrler.ctrlBox) match {
-      case (cu:ComputeUnit, cb:InnerCtrlBox) =>
-        cu.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
+    ctrler.ctrlBox match {
+      case cb:InnerCtrlBox =>
+        ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
           cb.tokenInAndTree.addInput(mem.notFull)
         }
-      case (cu:ComputeUnit, cb:MemCtrlBox) =>
-        cu.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
+      case cb:MemCtrlBox =>
+        ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
           cb.tokenInAndTree.addInput(mem.notFull)
         }
-      case (cu, cb) =>
+      case _ =>
     }
     // - Credit
     //(ctrler, ctrler.ctrlBox) match {

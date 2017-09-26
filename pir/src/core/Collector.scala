@@ -36,15 +36,15 @@ trait Collector { design:PIR =>
         n.cchains.foreach { cc => design.removeNode(cc) }
         n.children.foreach { child =>
           child.parent(n.parent)
-          n.parent.addChildren(child) 
+          n.parent.foreach { _.addChildren(child) }
           n.removeChild(child)
         }
         n.cchains.foreach { cc => design.removeNode(cc) }
-        n.parent.removeChild(n)
+        n.parent.foreach { _.removeChild(n) }
         n.removeParent
       case n:InnerController =>
         design.top.removeCtrler(n)
-        n.parent.removeChild(n)
+        n.parent.foreach { _.removeChild(n) }
         n.removeParent
       case n:CounterChain =>
         n.counters.foreach { ctr => design.removeNode(ctr) }

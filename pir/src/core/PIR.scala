@@ -75,7 +75,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
   lazy val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
   lazy val pirDataDotGen5 = new PIRDataDotGen("PIR.dot")
-  lazy val pirDataDotGen = new PIRDataDotGen("PIR.dot")
+  lazy val pirDataDotGen = new PIRDataDotGen("PIR.dot", PIRConfig.openDot)
   lazy val pirCtrlDotGen = new PIRCtrlDotGen()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()

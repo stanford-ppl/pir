@@ -222,9 +222,6 @@ trait PIRMetadata extends Metadata { self:PIR =>
     type K = OnChipMem
     type V = Boolean
     override def check(rec:(K,V)):Unit = {}
-    override def apply(k:K):V = {
-      super.get(k).getOrElse(true)
-    }
   }
 
 }

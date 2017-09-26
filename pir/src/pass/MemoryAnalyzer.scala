@@ -215,7 +215,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         cu.rdAddrStages.foreach { st => parOf(st) = 1 }
         cu.wtAddrStages.foreach { st => parOf(st) = 1 }
       case cu if isStreaming(cu) =>
-        parOf(cu) = localCChainOf(cu.parent).inner.par //TODO: fix for nested streaming controller
+        parOf(cu) = localCChainOf(cu.parent.get).inner.par //TODO: fix for nested streaming controller
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
         cu.stages.foreach { st => parOf(st) = parOf(cu) }
       case cu =>

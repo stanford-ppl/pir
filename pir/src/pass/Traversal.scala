@@ -39,11 +39,11 @@ trait Traversal extends Pass {
         n.vins.foreach { vi => visitNode(vi) }
         n.souts.foreach { so => visitNode(so) }
         n.vouts.foreach { vo => visitNode(vo) }
+        n.mems.foreach { s => visitNode(s) }
         n match {
           case c:Top => 
           case c:ComputeUnit => {
             c.cchains.foreach { cc => visitNode(cc) }
-            c.mems.foreach { s => visitNode(s) }
             c.stages.foreach { s => visitNode(s) }
           }
         } 

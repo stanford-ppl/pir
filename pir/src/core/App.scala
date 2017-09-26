@@ -37,10 +37,10 @@ trait PIRApp extends PIR {
   def main(top:Top): Any 
   def main(args: Array[String]): Unit = {
     info(s"args=[${args.mkString(", ")}]")
-    setArgs(args)
     reset
-    arch.top.config
     top = Top().updateBlock(main) 
+    setArgs(args)
+    arch.top.config
     endInfo(s"Finishing graph construction for ${this}")
     run
   }

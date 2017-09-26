@@ -256,7 +256,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
 
   /* Latency of the outer controller if only run 1 iteration */
   def singleIterLatency(cl:Controller):Long = {
-    def accumLatency(cl:ComputeUnit):Long = {
+    def accumLatency(cl:Controller):Long = {
       val prevs = (cl match {
         case cl if isStreaming(cl) & isHead(cl) => Nil 
         case cl if isStreaming(cl) => 
@@ -266,8 +266,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
           }
           var writers = fifos.map { _.writers.head } //TODO
           dprintln(s"$cl fifowriters:[${fifos.zip(writers).map { case (fifo,writer) => s"$fifo $writer"}.mkString(",")}]" )
-          writers = writers.filter { writer => cl.parent.descendents.contains(writer)}
-          dprintln(s"$cl.parent= ${cl.parent} parent descendents:${cl.parent.descendents}" )
+          writers = writers.filter { writer => cl.parent.get.descendents.contains(writer)}
+          dprintln(s"$cl.parent= ${cl.parent} parent descendents:${cl.parent.get.descendents}" )
           dprintln(s"$cl filtered writers:[${writers.mkString(",")}]" )
           writers
         case cl if isPipelining(cl) => cl.trueConsumed.map(_.producer)
@@ -275,7 +275,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
       dprintln(s"prevs:[${prevs.mkString(",")}]")
       val myLat = cycle(cl)
       if (prevs.size==0) myLat 
-      else myLat + prevs.map{ dep => accumLatency(dep.asCU) }.reduce[Long]{ case (a,b) => max(a,b) }
+      else myLat + prevs.map{ dep => accumLatency(dep) }.reduce[Long]{ case (a,b) => max(a,b) }
     }
     val lasts = cl.children.filter {_.isLast}
     val singleLat = lasts.map { child => accumLatency(child) }.reduce[Long]{ case (a,b) => max(a,b) }

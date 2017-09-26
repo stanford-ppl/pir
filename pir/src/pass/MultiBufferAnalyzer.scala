@@ -33,14 +33,14 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
     else Some((producer, consumer))
   }
 
-  def setProducerConsumer(cu:ComputeUnit, buf:MultiBuffer):Unit = emitBlock(s"setProducerConsumer($cu, $buf)"){
+  def setProducerConsumer(cu:Controller, buf:MultiBuffer):Unit = emitBlock(s"setProducerConsumer($cu, $buf)"){
     if (buf.producer!=null && buf.consumer!=null && cu.parent!=null) return
     val readers = buf.readers
     val writers = buf.writers
     var lca = leastCommonAncestor(readers ++ writers)
     var pc = findProducerConsumer(readers, writers, lca)
     while (pc.isEmpty) {
-      lca = lca.asCU.parent
+      lca = lca.parent.get
       pc = findProducerConsumer(readers, writers, lca)
     }
     val (producer, consumer) = pc.get
@@ -56,7 +56,7 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   def setProducerConsumer:Unit = {
     dprintln(s"Set producer consumer ...")
-    design.top.compUnits.foreach { cu =>
+    design.top.ctrlers.foreach { cu =>
       emitBlock(s"$cu") {
         cu.mbuffers.foreach { buf =>
           setProducerConsumer(cu, buf)
@@ -101,12 +101,12 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   def setBufferSize:Unit = {
     dprintln(s"Set BufferSize ...")
-    design.top.compUnits.foreach { cu =>
+    design.top.ctrlers.foreach { cu =>
       emitBlock(s"$cu") {
         cu.mbuffers.foreach { buf =>
           val bufSize = buf.producer match {
             case top:Top => 1
-            case cu:ComputeUnit => cu.parent match {
+            case cu:ComputeUnit => cu.parent.get match {
               case m:MetaPipeline =>
                 var next = List(buf.producer)
                 var dist = 1
@@ -127,6 +127,9 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
           dprintln(s"$buf buffering=${bufSize}")
           backPressureOf(buf) = bufSize > 1
         }
+      }
+      cu.fifos.foreach { fifo =>
+        backPressureOf(fifo) = true
       }
     }
   }
