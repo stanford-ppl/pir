@@ -18,7 +18,7 @@ trait Metadata extends { self:Design =>
       Try {
         n.asInstanceOf[map.K]
       } match {
-        case Success(n) => Some(map.info(n))
+        case Success(n) => map.get(n).map { v => s"${map.name}=$v" }
         case Failure(e) => None
       }
     }.toList
