@@ -56,7 +56,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def map(cu:CU, pirMap:M):M = {
     log(cu) {
       bind[R,N,M](
-        allNodes=cu.smems,
+        allNodes=cu.lmems,
         initMap=pirMap, 
         constrain=constrain _,
         resFunc=resFunc _, //(n, m, triedRes) => List[R]

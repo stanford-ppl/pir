@@ -45,7 +45,6 @@ package object util {
     var res = list.toList
     val head::rest = res
     res = rest :+ head
-    logger.emitList(s"results") { res.foreach(cl => logger.dprintln(s"$cl") ) }
     res
   }
 

@@ -16,7 +16,13 @@ trait Logger extends Printer {
   override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = { 
     emitBSln(bs, b, None)
     val res = block
-    if (res!=(())) dprintln(s"result=$res")
+    res match {
+      case res:Unit =>
+      case res:List[_] =>
+        dprintln(s"result =")
+        res.foreach { res => dprintln(s" - $res") }
+      case res => dprintln(s"result=$res")
+    }
     emitBEln(None, b, es.map(es => es()))
     res
   }
