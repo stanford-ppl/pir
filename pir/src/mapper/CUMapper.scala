@@ -55,9 +55,9 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   //TODO: change to resFuncWithExcept
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
     log((s"$cl resFunc:", true)) {
-      dprintln(s"--triedRes:[${triedRes.mkString(",")}]")
+      dprintln(s"triedRes:[${triedRes.mkString(",")}]")
       var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )
-      dprintln(s"--not mapped and not tried:[${prts.mkString(",")}]")
+      dprintln(s"not mapped and not tried:[${prts.mkString(",")}]")
       cl match {
         case cl:MC if cl.mctpe==Scatter =>
         case cl:MC => 

@@ -282,19 +282,19 @@ abstract class Router(implicit design:PIR) extends Mapper {
       val (po, pi) = edge
       val pomk = map.mkmap.get(po)
       val pimk = map.mkmap.get(pi)
-      val edgeMatch = pomk.fold(true) { _ == out } && pimk.fold(true) { _ == out }
-      dprintln(!edgeMatch, s"${quote(edge)} not match outMarker=${pomk} inMarker=${pimk}")
-      val ins = map.vimap.get(pi)
-      val inputSrcMatch = ins.fold(true) { ins => from(ins.head.asInstanceOf[I]) == out }
-      dprintln(!inputSrcMatch, s"${quote(edge)} not match input source vimap=${ins}")
+      val markerMatch = pomk.fold(true) { _ == out } && pimk.fold(true) { _ == out }
+      dprintln(!markerMatch, s"markerMistmatch: ${quote(edge)} outMarker=${pomk} != inMarker=${pimk}")
+      //val ins = map.vimap.get(pi)
+      //val inputSrcMatch = ins.fold(true) { ins => from(ins.head.asInstanceOf[I]) == out }
+      //dprintln(!inputSrcMatch, s"${quote(edge)} not match input source vimap=${ins}")
       val edgeTaken = map.fimap.get(pi).fold(false) { _ != po }
       dprintln(edgeTaken, s"${quote(edge)} edge is taken")
       // check whether marker of the switch is the same
       val switchTaken = map.fimap.get(po.ic).fold(false) { piic =>
-        map.mkmap.get(piic.src.asInstanceOf[PGI[PModule]]).fold(false) { _ == out }
+        map.mkmap.get(piic.src.asInstanceOf[PGI[PModule]]).fold(false) { _ != out }
       }
       dprintln(switchTaken, s"$po's switch is taken ${pi}")
-      edgeMatch && inputSrcMatch && !edgeTaken && !switchTaken
+      markerMatch && /*inputSrcMatch &&*/ !edgeTaken && !switchTaken
     }
     if (filtered.isEmpty) None else Some(filtered)
   }
