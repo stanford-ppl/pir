@@ -224,5 +224,15 @@ trait PIRMetadata extends Metadata { self:PIR =>
     override def check(rec:(K,V)):Unit = {}
   }
 
+  object producersOf extends MOneToOneMap with MetadataMaps {
+    type K = OnChipMem
+    type V = Controller
+  }
+
+  object consumersOf extends MOneToOneMap with MetadataMaps {
+    type K = OnChipMem
+    type V = Controller
+  }
+
 }
 

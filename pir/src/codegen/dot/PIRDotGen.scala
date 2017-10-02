@@ -9,8 +9,6 @@ import scala.language.postfixOps
 
 trait PIRDotGen extends Codegen with DotCodegen {
 
-  var open = false
-
   def horizontal:Boolean
 
   def design:PIR
@@ -23,11 +21,12 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
+  def open = {
+    s"out/bin/run ${getPath} &".replace(".dot", "") !
+  }
+
   override def finPass = {
     super.finPass
-    if (open) { 
-      s"out/bin/run ${getPath} &".replace(".dot", "") !
-    }
     close
   }
 
@@ -119,6 +118,8 @@ trait PIRDotGen extends Codegen with DotCodegen {
 class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen { 
   import pirmeta._
 
+  design.pirDataDotGens += this
+
   def shouldRun = PIRConfig.debug
 
   def horizontal:Boolean = false
@@ -127,11 +128,6 @@ class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
 
   def this()(implicit design:PIR) = {
     this(PIRConfig.pirDot)
-  }
-
-  def this(fn:String, open:Boolean)(implicit design:PIR) = {
-    this(fn)
-    this.open = open
   }
 
   def emitInputs(cl:Controller):Unit = {

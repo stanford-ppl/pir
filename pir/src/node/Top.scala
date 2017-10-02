@@ -8,7 +8,7 @@ case class Top()(implicit design: PIR) extends Controller { self =>
   implicit val top:Controller = self
   import pirmeta._
 
-  override val name = Some("Top")
+  nameOf(this) = "top"
   override val typeStr = "Top"
 
   /* Fields */

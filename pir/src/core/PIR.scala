@@ -70,12 +70,13 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val pirPrinter2 = new PIRPrinter("PIR2.log") 
   lazy val pirPrinter3 = new PIRPrinter("PIR3.log") 
   lazy val pirPrinter = new PIRPrinter()
+  lazy val pirDataDotGens = ListBuffer[PIRDataDotGen]()
   lazy val pirDataDotGen1 = new PIRDataDotGen("PIR1.dot")
   lazy val pirDataDotGen2 = new PIRDataDotGen("PIR2.dot")
   lazy val pirDataDotGen3 = new PIRDataDotGen("PIR3.dot")
   lazy val pirDataDotGen4 = new PIRDataDotGen("PIR4.dot")
   lazy val pirDataDotGen5 = new PIRDataDotGen("PIR.dot")
-  lazy val pirDataDotGen = new PIRDataDotGen("PIR.dot", PIRConfig.openDot)
+  lazy val pirDataDotGen = new PIRDataDotGen("PIR.dot")
   lazy val pirCtrlDotGen = new PIRCtrlDotGen()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
@@ -153,6 +154,8 @@ trait PIR extends Design with PIRMetadata with Collector {
 
   def handle(e:Exception) = {
     if (!pirPrinter.hasRun) pirPrinter.run
+    if (PIRConfig.openDot) 
+      pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
     if (!mapPrinter.hasRun) mapPrinter.run
     if (!plasticineVecDotPrinter.hasRun) plasticineVecDotPrinter.run
     if (!plasticineScalDotPrinter.hasRun) plasticineScalDotPrinter.run

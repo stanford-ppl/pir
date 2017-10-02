@@ -12,6 +12,7 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   import pirmeta._
   ctrler.mems(List(this))
 
+  val type:BufferType
   val size:Int
   val banking:Banking
 
@@ -47,10 +48,6 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   def isMbuffer = this.isInstanceOf[MultiBuffer]
   def asMbuffer = this.asInstanceOf[MultiBuffer]
 
-}
-
-trait MultiBuffer extends OnChipMem {
-  val design:PIR
   var _producer:Controller = _
   var _consumer:Controller = _
   def producer:Controller = _producer
@@ -85,26 +82,6 @@ trait MultiBuffer extends OnChipMem {
   var _buffering:Int = _
   def buffering = _buffering
   def buffering(buf:Int):this.type = { _buffering = buf; this }
-}
-
-trait FIFO extends OnChipMem with LocalMem {
-  import pirmeta._
-  override val typeStr = "FIFO"
-  override val banking = Strided(1)
-  override def toUpdate = super.toUpdate
-
-  //def writer:Controller = {
-    //val writers = writersOf(this)
-    //assert(writers.size==1, s"FIFO should only have a single writer")
-    //writers.head
-  //}
-
-  var _wtStart:Option[OutPort] = None
-  var _wtEnd:Option[OutPort] = None 
-  def wtStart(op:OutPort):this.type = { _wtStart = Some(op); this }
-  def wtEnd(op:OutPort):this.type = { _wtEnd = Some(op); this }
-  def wtStart:Option[OutPort] = _wtStart
-  def wtEnd:Option[OutPort] = _wtEnd 
 
   def isOfsFIFO:Boolean = {
     ctrler match {
@@ -114,7 +91,6 @@ trait FIFO extends OnChipMem with LocalMem {
       case _ => false
     }
   }
-
 }
 
 trait LocalMem extends OnChipMem {
