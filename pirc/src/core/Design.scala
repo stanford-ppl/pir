@@ -20,14 +20,8 @@ trait Design {
   def handle(e:Exception):Unit
 
   def run = {
-    try {
-      passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
-      passes.foreach { _.checkRanAll }
-    } catch {
-      case e:Exception => 
-        errmsg(e)
-        handle(e)
-    }
+    passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
+    passes.foreach { _.checkRanAll }
   }
 
   val configs:List[GlobalConfig]

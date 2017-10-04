@@ -129,13 +129,20 @@ class DummyVecOut(override val vector:DummyVector)(implicit ctrler:Controller, d
   override def readers:List[DummyVecIn] = vector.readers.toList
 }
 
-class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])(implicit ctrler:Controller, design: PIR) extends Primitive {
+class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])
+  (implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "FU"
   val operands = oprds.zipWithIndex.map { case (oprd, i) => 
     val in = InPort(this, s"${this}.oprd($i)")
     oprd.src match {
       case PipeReg(s, r) if (s!=stage && s!=stage.prev.get) =>
-        throw PIRException(s"Function Unit can only write to current stage ($stage) but writes to $s")
+        var info = s"ctrler:${ctrler}\n"
+        info += s"stages:\n"
+        ctrler.stages.foreach { stage =>
+          if (stage.fu != null) // Refactor this
+          info += s"$stage(op=${stage.fu.get.op})\n"
+        }
+        throw PIRException(s"Function Unit can only read from current stage($stage) or previous stage(${stage.prev}) but reads from $s\n$info")
       case PipeReg(s, r) =>
         s.addUse(r)
         in.connect(oprd)
@@ -219,16 +226,16 @@ object Stage {
     stage.fu = Some(new FuncUnit(stage, oprds, op, res))
   }
   //TODO check init type matches with op type
-  def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:PIR):(List[Stage], PipeReg) = {
+  def reduce(op:Op, init:Const[_<:AnyVal])(implicit ctrler:InnerController, design:PIR):(List[Stage], Reg) = {
     reduce(op, init, Right(ctrler))
   }
-  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:ComputeUnit)(implicit ctrler:InnerController, design:PIR):(List[Stage], PipeReg) = {
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:ComputeUnit)(implicit ctrler:InnerController, design:PIR):(List[Stage], Reg) = {
     reduce(op, init, Right(accumParent))
   }
-  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:String)(implicit ctrler:InnerController, design:PIR):(List[Stage], PipeReg) = {
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:String)(implicit ctrler:InnerController, design:PIR):(List[Stage], Reg) = {
     reduce(op, init, Left(accumParent))
   }
-  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:Either[String, ComputeUnit])(implicit ctrler:InnerController, design:PIR):(List[Stage], PipeReg) = {
+  def reduce(op:Op, init:Const[_<:AnyVal], accumParent:Either[String, ComputeUnit])(implicit ctrler:InnerController, design:PIR):(List[Stage], Reg) = {
     if (ctrler.cchains.isEmpty) {
       CounterChain.dummy
     }
@@ -252,7 +259,7 @@ object Stage {
       op=op, 
       results=List(areg.in)
     )
-    (rdstages :+ accstage, areg)
+    (rdstages :+ accstage, acc)
   }
 }
 class LocalStage(implicit ctrler:ComputeUnit, design: PIR) extends Stage { override val typeStr = s"LStage" }
