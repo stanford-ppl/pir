@@ -5,13 +5,35 @@ import pir.node._
 
 import pirc.util._
 import pirc.collection.mutable._
+import scala.reflect.ClassTag
 
 trait PIRMetadata extends Metadata { self:PIR =>
 
-  object nameOf extends MOneToOneMap with MetadataMaps {
+  object nameOf extends MBiManyToOneMap with MetadataMaps {
     type K = Node
     type V = String
     override def reset = {} // set during graph construction
+
+    override def update(k:K, v:V) = {
+      val name = k match {
+        case k:Primitive => getPrimName(k.ctrler, v)
+        case k => v 
+      }
+      super.update(k,name)
+    }
+
+    def apply[T<:Node](v:V)(implicit ev:ClassTag[T]) = {
+      imap(v).collect { case k:T => k }
+    }
+    def find[T<:Node](v:V)(implicit ev:ClassTag[T]) =  {
+      val nodes = apply(v) 
+      assert(nodes.size==1, s"${nodes.size} number of nodes named $v: ${nodes}")
+      nodes.head
+    }
+    def contains(v:V) = imap.contains(v)
+
+    def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
+    def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
   }
 
   object indexOf extends MOneToOneMap with MetadataMaps {
@@ -224,14 +246,16 @@ trait PIRMetadata extends Metadata { self:PIR =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object producersOf extends MOneToOneMap with MetadataMaps {
-    type K = OnChipMem
+  object producerOf extends MBiManyToOneMap with MetadataMaps {
+    type K = (OnChipMem, Controller) // (MultiBuffer, Writer)
     type V = Controller
+    def apply(v:V) = imap.getOrElse(v, Set[K]())
   }
 
-  object consumersOf extends MOneToOneMap with MetadataMaps {
-    type K = OnChipMem
+  object consumerOf extends MBiManyToOneMap with MetadataMaps {
+    type K = (OnChipMem, Controller) // (MultiBuffer, Reader)
     type V = Controller
+    def apply(v:V) = imap.getOrElse(v, Set[K]())
   }
 
 }

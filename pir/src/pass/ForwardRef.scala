@@ -10,51 +10,17 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
 class ForwardRef(implicit design: PIR) extends Pass{
+  import pirmeta._
+
   def shouldRun = true 
 
-  private val nameMap = Map[String, Node]()
-
-  override def reset = nameMap.clear()
   addPass {
-    design.allNodes.foreach(n => addName(n))
-    design.toUpdate.foreach { case (k,f) =>
-      val n:Node = getByName(k)
-      f(n)
-    }
+    design.toUpdate.foreach { f => f() }
     design.toUpdate.clear
-    //ForwardRef.collectMCParent
   } 
-
-  def addName(n:Node):Unit = n.name.foreach { name => 
-    n match {
-      case c:Controller => 
-        assert(!nameMap.contains(name), s"Already create controller with name ${name}: ${n}")
-        nameMap += (name -> c)
-      case c:OffChip => 
-        assert(!nameMap.contains(name), s"Already create name ${name}: ${n}")
-        nameMap += (name -> c)
-      case p:Primitive =>
-        val s = ForwardRef.getPrimName(p.ctrler, name)
-        assert(!nameMap.contains(s),
-          s"Already create primitive with name ${s} for controller ${p.ctrler}")
-        nameMap += (s -> p)
-      case w:Scalar =>
-      case w:Vector =>
-      case w:Port =>
-      case Const(c) =>
-        //assert(false, "No support for adding name for wire yet!")
-    }
-  }
-
-  def getByName(s:String):Node = {
-    assert(nameMap.contains(s), s"No node defined with name:${s} \nnameMap:${nameMap}")
-    nameMap(s)
-  }
 
 }
 object ForwardRef {
-  def getPrimName(ctrler:Controller, name:String) = s"${ctrler.name.fold("")(cn => s"${cn}_")}${name}"
-  def getPrimName(ctrler:String, name:String) = s"${ctrler}_${name}"
   // Collect outer controllers that are in the same CU
   
   //def collectMCParent(implicit design:PIR) = {

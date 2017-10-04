@@ -92,17 +92,17 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def setLength(ctrler:Controller) = emitBlock(s"setLength($ctrler)") {
-    var count = 1
-    var heads:List[Controller] = ctrler.children.filter{child => !isHead(child) }
-    while(heads.size!=0) {
-      // Collect consumers that are not Top
-      heads = heads.flatMap { _.trueProduced.map { _.consumer } }.toSet.toList
-      count +=1
-    }
-    lengthOf(ctrler) = count
-    dprintln(lengthOf.info(ctrler))
-  }
+  //def setLength(ctrler:Controller) = emitBlock(s"setLength($ctrler)") {
+    //var count = 1
+    //var heads:List[Controller] = ctrler.children.filter{child => !isHead(child) }
+    //while(heads.size!=0) {
+      //// Collect consumers that are not Top
+      //heads = heads.flatMap { _.produced.map { _.consumer } }.toSet.toList
+      //count +=1
+    //}
+    //lengthOf(ctrler) = count
+    //dprintln(lengthOf.info(ctrler))
+  //}
 
   def setDAG(ctrler:Controller) = emitBlock(s"setDAG($ctrler)"){
     ctrler match {
@@ -184,7 +184,7 @@ class ControlAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   addPass(canRun=(!Config.debug || design.pirDataDotGen4.hasRun) && this.hasRun(2), runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
-      if (PIRConfig.ctrl) setLength(ctrler) //TODO: fix this
+      //if (PIRConfig.ctrl) setLength(ctrler) //TODO: fix this
       setDAG(ctrler)
       setSAG(ctrler)
     }

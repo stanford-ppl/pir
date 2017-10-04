@@ -12,7 +12,6 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   import pirmeta._
   ctrler.mems(List(this))
 
-  val type:BufferType
   val size:Int
   val banking:Banking
 
@@ -48,35 +47,21 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   def isMbuffer = this.isInstanceOf[MultiBuffer]
   def asMbuffer = this.asInstanceOf[MultiBuffer]
 
-  var _producer:Controller = _
-  var _consumer:Controller = _
-  def producer:Controller = _producer
-  def consumer:Controller = _consumer
-  var trueDep:Boolean = true // Whether the consumer is a true dependency
-
-  def producer[T](pd:T):this.type = {
-    pd match {
-      case pd:String =>
-        design.updateLater(pd, (n:Node) => producer(n.asInstanceOf[Controller]))
-      case pd:Controller =>
-        this._producer = pd
-        pd.produce(this)
-    }
+  def producer(writer:String, pd:String):this.type = {
+    design.updateLater { producer(nameOf.find[Controller](writer), nameOf.find[Controller](pd)) }
     this
   }
-  def consumer[T](cs:T):this.type = {
-    cs match {
-      case cs:String =>
-        design.updateLater(cs, (n:Node) => consumer(n.asInstanceOf[Controller]))
-      case cs:Controller =>
-        this._consumer = cs
-        cs.consume(this)
-    }
+  def producer(writer:Controller, pd:Controller):this.type = {
+    producerOf((this, writer)) = pd
     this
   }
-  def consumer[T](cs:T, trueDep:Boolean):this.type = {
-    this.trueDep = trueDep
-    consumer(cs)
+  def consumer(reader:String, cs:String):this.type = {
+    design.updateLater { consumer(nameOf.find[Controller](reader), nameOf.find[Controller](cs)) }
+    this
+  }
+  def consumer(reader:Controller, cs:Controller):this.type = {
+    consumerOf((this, reader)) = cs
+    this
   }
 
   var _buffering:Int = _
@@ -93,6 +78,10 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   }
 }
 
+trait MultiBuffer extends OnChipMem {}
+trait FIFO extends OnChipMem {
+  val banking = NoBanking()
+}
 trait LocalMem extends OnChipMem {
   def reader:Controller = {
     val readers = super.readers

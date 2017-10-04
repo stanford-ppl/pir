@@ -89,7 +89,6 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
         emitln(s"children=[${n.children.mkString(",")}]")
         pirmeta.summary(n).foreach(emitln)
         emitln(s"consumed=[${n.consumed.mkString(",")}]")
-        emitln(s"trueConsumed=[${n.trueConsumed.mkString(",")}]")
         emitln(s"produced=[${n.produced.mkString(",")}]")
         n match {
           case n:InnerController =>

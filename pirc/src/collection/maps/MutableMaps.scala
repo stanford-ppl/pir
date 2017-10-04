@@ -42,7 +42,7 @@ trait MBiOneToManyMap extends MOneToManyMap with BiOneToManyMap with MBiMap {
   override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); imap += (v -> n) } 
 }
 
-trait MBiManyToOne extends MOneToOneMap with BiManyToOneMap with MMap {
+trait MBiManyToOneMap extends MOneToOneMap with BiManyToOneMap with MMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
   val imap:IM = Map.empty

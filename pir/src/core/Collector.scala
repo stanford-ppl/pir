@@ -12,7 +12,7 @@ trait Collector { design:PIR =>
 
   //TODO use collect to implement this
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
-  val toUpdate = ListBuffer[(String, Node => Unit)]()
+  val toUpdate = ListBuffer[(() => Unit)]()
   val allNodes = ListBuffer[Node]()
 
   def reset = {
@@ -181,6 +181,6 @@ trait Collector { design:PIR =>
     (l1, l2, l3, l4, l5, l6)
   }
 
-  def updateLater(s:String, f:Node => Unit) = { val u = (s,f); toUpdate += u }
+  def updateLater(f: => Unit):Unit = { toUpdate += f _ }
 
 }

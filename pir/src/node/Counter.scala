@@ -120,22 +120,24 @@ object CounterChain {
    * @param name: User defined name for Primitive 
    * */
   def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
-    copy(ForwardRef.getPrimName(from, name))
+    import design.pirmeta._
+    copy(nameOf.getPrimName(from, name))
   }
   /*
    * @param from: Controller of the copying CounterChain 
    * @param name: User defined name for Primitive 
    * */
   def copy(from:ComputeUnit, name:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
-    copy(ForwardRef.getPrimName(from, name))
+    import design.pirmeta._
+    copy(nameOf.getPrimName(from, name))
   }
   /*
    * @param from: full name of Primitive 
    * */
   def copy(from:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+    import design.pirmeta._
     val cc = new CounterChain(Some(Left(from))).name(s"${from}_copy")
-    def updateFunc(cp:Node) = cc.copy(cp.asInstanceOf[CounterChain])
-    design.updateLater(from, updateFunc _ )
+    design.updateLater{ cc.copy(nameOf.find[CounterChain](from)) }
     cc
   }
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {

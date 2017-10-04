@@ -270,7 +270,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
           dprintln(s"$cl.parent= ${cl.parent} parent descendents:${cl.parent.get.descendents}" )
           dprintln(s"$cl filtered writers:[${writers.mkString(",")}]" )
           writers
-        case cl if isPipelining(cl) => cl.trueConsumed.map(_.producer)
+        //case cl if isPipelining(cl) => cl.consumed.map(_.producer)
       }).toSet
       dprintln(s"prevs:[${prevs.mkString(",")}]")
       val myLat = cycle(cl)

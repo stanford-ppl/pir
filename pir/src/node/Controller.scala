@@ -44,14 +44,8 @@ abstract class Controller(implicit design:PIR) extends Module {
   def removeChild(c:Controller) = { _children -= c }
   def addChildren(c:Controller) = { if (!_children.contains(c)) _children += c }
 
-  private val _consumed = ListBuffer[MultiBuffer]()
-  private val _produced = ListBuffer[MultiBuffer]()
-  def consume(mem:MultiBuffer) = _consumed += mem
-  def produce(mem:MultiBuffer) = _produced += mem
-  def consumed = _consumed.toList
-  def produced = _produced.toList
-  def trueConsumed = consumed.filter { _.trueDep }
-  def trueProduced = produced.filter { _.trueDep }
+  def produced = producerOf(this) 
+  def consumed = consumerOf(this)
 
   /* Memories */
   val _mems = ListBuffer[OnChipMem]()
@@ -97,7 +91,7 @@ abstract class Controller(implicit design:PIR) extends Module {
   def parent[T](parent:T):this.type = {
     parent match {
       case p:String =>
-        design.updateLater(p, (n:Node) => this.parent(n.asInstanceOf[Controller]))
+        design.updateLater { this.parent(nameOf.find[Controller](p)) }
       case p:Controller =>
         _parent = Some(p)
         p.addChildren(this)

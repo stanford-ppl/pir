@@ -270,66 +270,25 @@ class WAStage (implicit ctrler:ComputeUnit, design: PIR) extends Stage {
   override val typeStr = "WAStage"
   var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
-
-  def updateSRAM(n:Node) = {
-    srams match {
-      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
-      case Right(l) => l += n.asInstanceOf[SRAM]
-    }
-  }
-  def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):WAStage = {
-    typeOf[T] match {
-      case t if t =:= typeOf[String] => 
-        this.srams = Left(srams.asInstanceOf[List[String]])
-        srams.asInstanceOf[List[String]].foreach { s =>
-          design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
-        }
-      case t if t <:< typeOf[SRAM] => 
-        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
-    }
-    this
-  }
 }
 object WAStage {
   def apply(operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:PIR):Unit= {
-    val stage = WAStage(Nil) 
+    val stage = new WAStage
     Stage(stage, operands, op, results)
   }
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new WAStage().updateSRAMs(srams)
 }
 class RAStage (implicit ctrler:ComputeUnit, design: PIR) extends Stage {
   override val typeStr = "RAStage"
   var srams:Either[List[String], ListBuffer[SRAM]] = _
   override def toUpdate = super.toUpdate || srams==null
-
-  def updateSRAM(n:Node) = {
-    srams match {
-      case Left(_) => srams = Right(ListBuffer(n.asInstanceOf[SRAM]))
-      case Right(l) => l += n.asInstanceOf[SRAM]
-    }
-  }
-
-  def updateSRAMs[T](srams:List[T])(implicit ev:TypeTag[T]):RAStage = {
-    typeOf[T] match {
-      case t if t =:= typeOf[String] => 
-        this.srams = Left(srams.asInstanceOf[List[String]])
-        srams.asInstanceOf[List[String]].foreach { s =>
-          design.updateLater(ForwardRef.getPrimName(ctrler, s), updateSRAM _)
-        }
-      case t if t <:< typeOf[SRAM] => 
-        this.srams = Right(srams.asInstanceOf[List[SRAM]].to[ListBuffer])
-    }
-    this
-  }
 }
 object RAStage {
   def apply(operands:List[Any], op:Op, results:List[Any])
             (implicit ctrler:InnerController, design:PIR):Unit= {
-    val stage = RAStage(Nil) 
+    val stage = new RAStage
     Stage(stage, operands, op, results)
   }
-  def apply[T](srams:List[T])(implicit ev:TypeTag[T], ctrler:InnerController, design: PIR)  = new RAStage().updateSRAMs(srams)
 }
 
 abstract class Reg(implicit override val ctrler:ComputeUnit, design:PIR) extends Primitive { self:Product =>

@@ -44,12 +44,12 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
   }
 
   def readTime(n:CL):Double = n match {
-    case n:MP => timeOf(n.sram.consumer)
+    //case n:MP => timeOf(n.sram.consumer)
     case n => timeOf(n)
   }
 
   def writeTime(n:CL):Double = n match {
-    case n:MP => timeOf(n.sram.producer)
+    //case n:MP => timeOf(n.sram.producer)
     case n => timeOf(n)
   }
 

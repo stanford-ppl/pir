@@ -87,70 +87,70 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     collectIn[ScalarFIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
   }
 
-  def setSwapCC(mem:MultiBuffer):Unit = emitBlock(s"setSwapCC($mem)") {
-    if (swapReadCChainOf.contains(mem) && swapWriteCChainOf.contains(mem)) return
-    mem.consumer match {
-      case cu:MemoryPipeline => 
-        dprintln(s"${mem.ctrler}.$mem.consumer=$cu")
-        if (mem.ctrler==cu) {
-          if (forRead(mem)) swapReadCChainOf(mem) = readCChainsOf(cu).last
-          else if (forWrite(mem)) swapReadCChainOf(mem) = writeCChainsOf(cu).last
-        } else { //Read remotely
-          val readers = mem.readPort.to.flatMap { _.src match {
-            case out:Output => out.readers.filter { _.ctrler == cu }
-            case _ => Nil
-          } }
-          dprintln(s"readers=$readers")
-          dprintln(s"collectOut[LocalMem]=${collectOut[LocalMem](readers)}")
-          val isForRead = collectOut[LocalMem](readers).exists(r => forRead(r))
-          val isForWrite = collectOut[LocalMem](readers).exists(r => forWrite(r))
-          assert(!(isForRead && isForWrite), 
-            s"${mem.ctrler}.$mem in is used both for read and for write in $cu. Don't know what is swap")
-          assert(isForRead || isForWrite, 
-            s"${mem.ctrler}.$mem is not used forRead or forWrite in $cu")
-          if (isForRead) {
-            swapReadCChainOf(mem) = readCChainsOf(cu).lastOption.getOrElse {
-              setSwapCC(cu.sram)
-              swapReadCChainOf(cu.sram)
-            }
-          } else if (isForWrite) {
-            swapReadCChainOf(mem) = writeCChainsOf(cu).lastOption.getOrElse {
-              setSwapCC(cu.sram)
-              swapWriteCChainOf(cu.sram)
-            }
-          }
-        }
-      case cu:ComputeUnit => swapReadCChainOf(mem) = localCChainOf(cu)
-      case _ =>
-    }
-    mem.producer match {
-      case cu:MemoryPipeline => swapWriteCChainOf(mem) = readCChainsOf(cu).last
-      case cu:ComputeUnit => swapWriteCChainOf(mem) = localCChainOf(cu)
-      case _ =>
-    }
-    dprintln(s"swapReadCChainOf($mem) = ${swapReadCChainOf.get(mem)} buffering=${mem.buffering}")
-    dprintln(s"swapWriteCChainOf($mem) = ${swapWriteCChainOf.get(mem)} buffering=${mem.buffering}")
-  }
+  //def setSwapCC(mem:MultiBuffer):Unit = emitBlock(s"setSwapCC($mem)") {
+    //if (swapReadCChainOf.contains(mem) && swapWriteCChainOf.contains(mem)) return
+    //mem.consumer match {
+      //case cu:MemoryPipeline => 
+        //dprintln(s"${mem.ctrler}.$mem.consumer=$cu")
+        //if (mem.ctrler==cu) {
+          //if (forRead(mem)) swapReadCChainOf(mem) = readCChainsOf(cu).last
+          //else if (forWrite(mem)) swapReadCChainOf(mem) = writeCChainsOf(cu).last
+        //} else { //Read remotely
+          //val readers = mem.readPort.to.flatMap { _.src match {
+            //case out:Output => out.readers.filter { _.ctrler == cu }
+            //case _ => Nil
+          //} }
+          //dprintln(s"readers=$readers")
+          //dprintln(s"collectOut[LocalMem]=${collectOut[LocalMem](readers)}")
+          //val isForRead = collectOut[LocalMem](readers).exists(r => forRead(r))
+          //val isForWrite = collectOut[LocalMem](readers).exists(r => forWrite(r))
+          //assert(!(isForRead && isForWrite), 
+            //s"${mem.ctrler}.$mem in is used both for read and for write in $cu. Don't know what is swap")
+          //assert(isForRead || isForWrite, 
+            //s"${mem.ctrler}.$mem is not used forRead or forWrite in $cu")
+          //if (isForRead) {
+            //swapReadCChainOf(mem) = readCChainsOf(cu).lastOption.getOrElse {
+              //setSwapCC(cu.sram)
+              //swapReadCChainOf(cu.sram)
+            //}
+          //} else if (isForWrite) {
+            //swapReadCChainOf(mem) = writeCChainsOf(cu).lastOption.getOrElse {
+              //setSwapCC(cu.sram)
+              //swapWriteCChainOf(cu.sram)
+            //}
+          //}
+        //}
+      //case cu:ComputeUnit => swapReadCChainOf(mem) = localCChainOf(cu)
+      //case _ =>
+    //}
+    //mem.producer match {
+      //case cu:MemoryPipeline => swapWriteCChainOf(mem) = readCChainsOf(cu).last
+      //case cu:ComputeUnit => swapWriteCChainOf(mem) = localCChainOf(cu)
+      //case _ =>
+    //}
+    //dprintln(s"swapReadCChainOf($mem) = ${swapReadCChainOf.get(mem)} buffering=${mem.buffering}")
+    //dprintln(s"swapWriteCChainOf($mem) = ${swapWriteCChainOf.get(mem)} buffering=${mem.buffering}")
+  //}
 
-  def setSwapCC(cu:ComputeUnit):Unit = emitBlock(s"setSwapCC($cu)") {
-    cu.mbuffers.foreach { mem => setSwapCC(mem) }
-  }
+  //def setSwapCC(cu:ComputeUnit):Unit = emitBlock(s"setSwapCC($cu)") {
+    //cu.mbuffers.foreach { mem => setSwapCC(mem) }
+  //}
 
-  def copySwapCC(cu:ComputeUnit) = emitBlock(s"copySwapCC($cu)") {
-    cu match {
-      case cu:MemoryPipeline =>
-        val swapRead = cu.getCopy(swapReadCChainOf(cu.sram))
-        forRead(swapRead) = true
-        swapRead.counters.foreach(ctr => forRead(ctr) = true)
-        val swapWrite = cu.getCopy(swapWriteCChainOf(cu.sram))
-        forWrite(swapWrite) = true
-        swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
-        dprintln(s"swapRead=$swapRead")
-        dprintln(s"swapWrite=$swapWrite")
-        analyzeScalarBufs(cu)
-      case cu =>
-    }
-  }
+  //def copySwapCC(cu:ComputeUnit) = emitBlock(s"copySwapCC($cu)") {
+    //cu match {
+      //case cu:MemoryPipeline =>
+        //val swapRead = cu.getCopy(swapReadCChainOf(cu.sram))
+        //forRead(swapRead) = true
+        //swapRead.counters.foreach(ctr => forRead(ctr) = true)
+        //val swapWrite = cu.getCopy(swapWriteCChainOf(cu.sram))
+        //forWrite(swapWrite) = true
+        //swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
+        //dprintln(s"swapRead=$swapRead")
+        //dprintln(s"swapWrite=$swapWrite")
+        //analyzeScalarBufs(cu)
+      //case cu =>
+    //}
+  //}
 
   def copyAccumCC(cu:ComputeUnit) = emitBlock(s"copyAccumCC($cu)"){
     cu match {
@@ -300,8 +300,8 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
       analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
     }
     design.top.compUnits.foreach { cu =>
-      setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
-      copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
+      //setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
+      //copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
       analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
       analyzeScalarBufs(cu) // set forRead, forWrite
       duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
