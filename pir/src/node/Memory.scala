@@ -28,11 +28,6 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   val notFull = OutPort(this, s"$this.notFull")
   val notEmpty = OutPort(this, s"$this.notEmpty")
 
-  def isRemoteWrite = this match {
-    case _:CommandFIFO => writePort.from.src.isInstanceOf[ScalarIn] 
-    case _ => writePort.from.src.isInstanceOf[VecIn]
-  } 
-
   def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
 
   def load = readPort
@@ -181,7 +176,3 @@ object ScalarFIFO {
     = new ScalarFIFO(size).name(name)
 }
 
-case class CommandFIFO(mc:MemoryController)(implicit ctrler:InnerController, design: PIR) 
-  extends ScalarFIFO(1000) {
-    this.name(s"${mc}CommandFIFO")
-  }
