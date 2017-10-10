@@ -133,8 +133,22 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
       //}
     //}
   //}
+  
+  def setBackPressure = {
+    design.top.ctrlers.foreach { cu =>
+      emitBlock(s"$cu") {
+        cu.mbuffers.foreach { buf =>
+          backPressureOf(buf) = buf.buffering > 1
+        }
+        cu.fifos.foreach { fifo =>
+          backPressureOf(fifo) = true
+        }
+      }
+    }
+  }
 
   addPass(design.accessAnalyzer.hasRun, runCount=2) {
+    setBackPressure
     //setProducerConsumer // producer consumer
     //findBackEdge
     //setBufferSize // buffering, backPressureOf

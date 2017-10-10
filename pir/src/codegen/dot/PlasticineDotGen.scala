@@ -82,15 +82,13 @@ abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR)
         val label = ListBuffer[String]()
         m.vimap.get(pin).foreach { ins =>
           ins.foreach {
-            case vi:VI => label += s"${vi.vector}"
-            case si:SI => label += s"${si.scalar}"
+            case vi:GI => label += s"${vi.variable}"
             case ip:IP => label += s"${ip}"
           }
         }
         m.vomap.get(pout).foreach { out =>
           out match {
-            case vo:VO => label += s"${vo.vector}"
-            case so:SO => label += s"${so.scalar}"
+            case vo:GO => label += s"${vo.variable}"
             case op:OP => label += s"${op}"
           }
         }

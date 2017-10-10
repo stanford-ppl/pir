@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe._
 import scala.language.existentials
 
-abstract class Primitive(implicit val ctrler:Controller, design:PIR) extends Module 
+trait Primitive extends Module { implicit def ctrler:Controller }
 /** Counter node. Represents a chain of counters where each counter counts upto a certain max value. When
  *  the topmost counter reaches its maximum value, the entire counter chain ''saturates'' and does not
  *  wrap around.
@@ -20,114 +20,6 @@ abstract class Primitive(implicit val ctrler:Controller, design:PIR) extends Mod
  *  Each tuple represents the (max, stride) for one level in the loop.
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
-
-trait IO extends Primitive
-trait Input extends IO {
-  def writer:Output
-  def variable:Variable
-  def out:OutPort
-}
-trait Output extends IO {
-  def readers:List[Input]
-}
-trait VectorIO[T <: IO] { self:T => 
-  def vector:Vector
-  def isConnected:Boolean
-}
-
-case class ScalarIn(scalar:Scalar)(implicit ctrler:Controller, design: PIR) 
-  extends Input {
-  scalar.addReader(this)
-  override val typeStr = "ScalIn"
-  override def equals(that: Any) = that match {
-    case n: ScalarIn => n.scalar==scalar && n.ctrler == ctrler 
-    case _ => super.equals(that)
-  }
-  override def variable:Scalar = scalar
-  override def writer = scalar.writer
-  val out = OutPort(this, s"${this}.out")
-}
-
-object ScalarIn {
-  def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarIn =
-    ScalarIn(scalar).name(name)
-}
-
-case class ScalarOut(scalar:Scalar)(implicit override val ctrler:Controller, design: PIR) extends Output{
-  scalar.setWriter(this)
-  override val typeStr = "ScalOut"
-  override def equals(that: Any) = that match {
-    case n: ScalarOut => n.scalar==scalar && n.ctrler == ctrler 
-    case _ => super.equals(that)
-  }
-  val in = InPort(this, s"${this}.in")
-  def readers = scalar.readers.toList
-}
-object ScalarOut {
-  def apply(name:String, scalar:Scalar)(implicit ctrler:Controller, design: PIR):ScalarOut = 
-    ScalarOut(scalar).name(name)
-}
-
-case class VecIn(vector:Vector)(implicit ctrler:Controller, design: PIR) 
-  extends Input with VectorIO[Input] {
-  vector.addReader(this)
-  override val typeStr = "VecIn"
-  val out = OutPort(this, {s"${this}.out"}) 
-  override def equals(that: Any) = that match {
-    case n: VecIn => n.vector==vector && n.ctrler == ctrler 
-    case _ => super.equals(that)
-  }
-  override def variable:Vector = vector
-  override def writer = vector.writer
-  def isConnected = writer!=null
-
-  /* Associated TokenIn for this VecIn */
-  def tokenIn:Option[InPort] = {
-    ctrler match {
-      case c:Controller =>
-        val cins = c.cins.filter{_.asInstanceOf[InPort].ctrler==writer.ctrler}
-        if (cins.size==0) None
-        else {
-          assert(cins.size==1, s"$this should only have <= one tokenIn associated with but has ${cins}")
-          Some(cins.head)
-        }
-      case _ => None
-    }
-  }
-}
-object VecIn {
-  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: PIR):VecIn = 
-    VecIn(vector).name(name)
-}
-
-class DummyVecIn(override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecIn(vector) {
-  override val typeStr = "DVecIn"
-  override def writer:DummyVecOut = vector.writer
-}
-
-class VecOut(val vector:Vector)(implicit override val ctrler:Controller, design: PIR) extends Output with VectorIO[Output] {
-  vector.setWriter(this)
-  override val typeStr = "VecOut"
-  override def equals(that: Any) = that match {
-    case n: VecOut => n.vector==vector && n.ctrler == ctrler 
-    case _ => super.equals(that)
-  }
-  val in = InPort(this, s"${this}.in")
-  def isConnected = vector.readers.size!=0
-  def readers = vector.readers
-}
-object VecOut {
-  def apply(vector:Vector)(implicit ctrler:Controller, design: PIR):VecOut = 
-    new VecOut(vector)
-  def apply(name:String, vector:Vector)(implicit ctrler:Controller, design: PIR):VecOut = 
-    new VecOut(vector).name(name)
-}
-
-class DummyVecOut(override val vector:DummyVector)(implicit ctrler:Controller, design: PIR) extends VecOut(vector) {
-  override val typeStr = "DVecOut"
-  def scalarOuts = vector.scalars.map(_.writer)
-  override def readers:List[DummyVecIn] = vector.readers.toList
-}
 
 class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])
   (implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
@@ -333,10 +225,10 @@ case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, desig
     }
   }
 }
-case class VecInPR(vecIn:VecIn)(implicit ctrler:ComputeUnit, design: PIR)             extends Reg {override val typeStr = "regvi"}
-case class VecOutPR(vecOut:VecOut)(implicit ctrler:ComputeUnit, design: PIR)          extends Reg {override val typeStr = "regvo"}
-case class ScalarInPR(scalarIn:ScalarIn)(implicit ctrler:ComputeUnit, design: PIR)    extends Reg {override val typeStr = "regsi"}
-case class ScalarOutPR(scalarOut:ScalarOut)(implicit ctrler:ComputeUnit, design: PIR) extends Reg {override val typeStr = "regso"}
+case class VecInPR(vecIn:GlobalInput)(implicit ctrler:ComputeUnit, design: PIR)             extends Reg {override val typeStr = "regvi"}
+case class VecOutPR(vecOut:GlobalOutput)(implicit ctrler:ComputeUnit, design: PIR)          extends Reg {override val typeStr = "regvo"}
+case class ScalarInPR(scalarIn:GlobalInput)(implicit ctrler:ComputeUnit, design: PIR)    extends Reg {override val typeStr = "regsi"}
+case class ScalarOutPR(scalarOut:GlobalOutput)(implicit ctrler:ComputeUnit, design: PIR) extends Reg {override val typeStr = "regso"}
 case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: PIR)  extends Reg {override val typeStr = "regtp"}
 /*
  * A Pipeline Register keeping track of which stage (column) and which logical register (row)
@@ -344,7 +236,7 @@ case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: 
  * @param n Optional user defined name
  * @param regId Register ID the PipeReg mapped to
  **/
-case class PipeReg(stage:Stage, reg:Reg)(implicit ctrler:Controller, design: PIR) extends Primitive{
+case class PipeReg(stage:Stage, reg:Reg)(implicit val ctrler:Controller, design: PIR) extends Primitive{
   val in:InPort = InPort(this, s"${this}.in") 
   val out:OutPort = OutPort(this, {s"${this}.out"}) 
   def read:OutPort = out
@@ -367,7 +259,7 @@ case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
   def isFloat = value.isInstanceOf[Float]
 }
 
-case class Mux()(implicit design:PIR, ctrler:Controller) extends Primitive {
+case class Mux()(implicit design:PIR, val ctrler:Controller) extends Primitive {
   override val typeStr = "Mux"
   val _inputs = ListBuffer[InPort]()
   val inputs = _inputs.toList

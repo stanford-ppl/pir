@@ -12,30 +12,26 @@ abstract class Controller(implicit design:PIR) extends Module {
   implicit def ctrler:this.type = this
   import pirmeta._
 
-  val sinMap = Map[Scalar, ScalarIn]()
-  val soutMap = Map[Scalar, ScalarOut]()
-  val vinMap = Map[Vector, VecIn]()
-  val voutMap = Map[Vector, VecOut]()
+  val ioMap = Map[Variable, GlobalIO]()
 
-  def sins = sinMap.values.toList
-  def souts = soutMap.values.toList
-  def vins = vinMap.values.toList 
-  def vouts = voutMap.values.toList
-  def newSin(s:Scalar):ScalarIn = sinMap.getOrElseUpdate(s, ScalarIn(s))
-  def newSout(s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s,ScalarOut(s))
-  def newSout(name:String, s:Scalar):ScalarOut = soutMap.getOrElseUpdate(s, ScalarOut(s).name(name))
-  def newVin(v:Vector):VecIn = vinMap.getOrElseUpdate(v,VecIn(v))
-  def newVout(v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v))
-  def newVout(name:String, v:Vector):VecOut = voutMap.getOrElseUpdate(v, VecOut(v).name(name))
+  lazy val gins = ioMap.values.collect { case io:GlobalInput => io }
+  lazy val gouts = ioMap.values.collect { case io:GlobalOutput => io}
 
-  def cins:List[InPort] = ctrlBox.ctrlIns
-  def couts:List[OutPort] = ctrlBox.ctrlOuts 
+  lazy val cins = gins.filter {_.isControl } ++ ctrlBox.ctrlIns
+  lazy val couts = gouts.filter {_.isControl } ++ ctrlBox.ctrlOuts
+  lazy val sins = gins.filter {_.isScalar }
+  lazy val souts = gouts.filter {_.isScalar }
+  lazy val vins = gins.filter {_.isVector }
+  lazy val vouts = gouts.filter {_.isVector }
 
-  // No need to consider scalar after bundling
-  def readers:List[Controller] = voutMap.keys.flatMap {
-    _.readers.map{ _.ctrler }
-  }.toList
-  def writers:List[Controller] = vinMap.keys.map(_.writer.ctrler).toList
+  def newIn(v:Variable) = ioMap.getOrElseUpdate(v, GlobalInput(v)).asInput
+  def newOut(v:Variable) = ioMap.getOrElseUpdate(v, GlobalOutput(v)).asOutput
+  def newOut(name:String, v:Variable) = ioMap.getOrElseUpdate(v, GlobalOutput(v).name(name)).asOutput
+
+  //def readers:List[Controller] = ioMap.keys.flatMap {
+    //_.readers.map{ _.ctrler }
+  //}.toList
+  //def writers:List[Controller] = ioMap.keys.map(_.writer.ctrler).toList
 
   def ctrlBox:CtrlBox
 
@@ -60,7 +56,7 @@ abstract class Controller(implicit design:PIR) extends Module {
   def srams = mems.collect { case mem:SRAM => mem }
   def lmems = mems.collect { case mem:LocalMem => mem }
   def writtenMems:List[OnChipMem] = {
-    collectOut[OnChipMem]((souts ++ vouts).flatMap{_.readers}).toList
+    collectOut[OnChipMem](outs.flatMap{_.to}).toList
   }
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
   def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }
@@ -71,7 +67,9 @@ abstract class Controller(implicit design:PIR) extends Module {
       val fifo = variable match {
         case v:Vector => VectorFIFO(size = 10)
         case v:Scalar => ScalarFIFO(size = 10)
+        case v:Control => ControlFIFO(size = 10)
       }
+      fifo.wtPort(variable)
       mems(List(fifo))
       fifo
     })
@@ -85,6 +83,13 @@ abstract class Controller(implicit design:PIR) extends Module {
     })
   }
 
+  def getFifo(name:String) = fifos.filter { _.name.fold{false} { _.contains(name) } }.head
+  def getBus(name:String) = {
+    (gins ++ gouts).filter { io =>
+    val nameOpt:Option[String] = io.name
+    nameOpt.fold(false) { name => name.contains(name)}
+  }.map{_.variable}.head
+  }
 
   private var _parent:Option[Controller] = None
   def parent:Option[Controller] = { _parent }

@@ -120,11 +120,11 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
           n.ctrlOuts.foreach{ out => emitln(s"$out.to=[${out.to.mkString(",")}]") }
         }
       } 
+      case n@(_:PipeReg|_:Delay|_:GlobalIO) => emitln(s"$node ${genFields(node)}")
       case n:InPort =>
         emitln(s"$n.from=${n.from}")
       case n:OutPort =>
         emitln(s"$n.to=[${n.to.mkString(",")}]")
-      case n@(_:PipeReg|_:Delay) => emitln(s"$node ${genFields(node)}")
       case _ => emitBlock(node) { super.visitNode(node) } 
     }
   }
@@ -176,20 +176,16 @@ object PIRPrinter {
       case p:Delay =>
         fields.clear
         fields += s"in=${p.in.from}, out=[${p.out.to.mkString}]"
-      case p:ScalarIn =>
-        fields += s"scalar=${p.scalar}, writer=${p.scalar.writer}"
+      case p:GlobalInput =>
+        fields += s"variable=${p.variable}, writer=${p.variable.writer}"
         vecOf.get(p).foreach { vecIn =>
           fields += s"vecIn=${vecIn}"
         }
-      case p:ScalarOut =>
-        fields += s"scalar=${p.scalar}, readers=[${p.scalar.readers.mkString(",")}]"
+      case p:GlobalOutput =>
+        fields += s"variable=${p.variable}, readers=[${p.variable.readers.mkString(",")}]"
         vecOf.get(p).foreach { vecOut =>
           fields += s"vecOut=${vecOut}"
         }
-      case p:VecIn =>
-        fields += s"vector=${p.vector}, writer=${p.vector.writer}"
-      case p:VecOut =>
-        fields += s"vector=${p.vector}, readers=[${p.vector.readers.mkString(",")}]"
       case p:UDCounter => 
         fields += s"init=${p.initVal}"
       case r:Const[_] => fields += s"${r.value}"
@@ -201,10 +197,6 @@ object PIRPrinter {
       case v:Vector =>
         val writer = if (v.writer==null) "null" else v.writer.ctrler
         fields += s"writer=${writer} readers=[${v.readers.map(_.ctrler).mkString(",")}]" 
-        v match {
-          case n:DummyVector => fields += s"scalars=(${n.scalars.mkString(",")})" 
-          case _ =>
-        }
       case _ =>
     }
     fields.toList

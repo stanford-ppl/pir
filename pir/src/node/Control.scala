@@ -7,7 +7,8 @@ import pirc.enums._
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:PIR) extends Primitive()(ctrlBox.ctrler, design) {
+abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:PIR) extends Primitive {
+  def ctrler = ctrlBox.ctrler 
 }
 
 abstract class UDCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {

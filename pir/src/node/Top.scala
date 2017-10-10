@@ -77,9 +77,9 @@ case class Top()(implicit design: PIR) extends Controller { self =>
     this.scalars(scalars)
     scalars.foreach { s => s match {
         case a:ArgIn => 
-          super.newSout(a)
+          super.newOut(a)
         case a:ArgOut => 
-          val sin = super.newSin(a)
+          val sin = super.newIn(a)
           val sbuf = ScalarBuffer()(this, design)
           sbuf.wtPort(sin)
           InPort(this, s"$this.in").connect(sbuf.readPort)

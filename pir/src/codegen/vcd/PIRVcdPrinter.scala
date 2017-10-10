@@ -34,11 +34,11 @@ trait PIRVcdDeclarator { self:PIRVcdPrinter =>
           visited += node
           val pio = vomap(n.writer).head
           declare(pio, Some(s"$n"))
-        case io:Input =>
+        case io:GlobalInput =>
           visited += node
           val pio = vimap(io)
           declare(pio, Some(s"${self.quote(io)}"))
-        case io:Output =>
+        case io:GlobalOutput =>
           visited += node
           val pio = vomap(io).head
           declare(pio, Some(s"${self.quote(io)}"))

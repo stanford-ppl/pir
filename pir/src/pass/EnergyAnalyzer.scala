@@ -124,8 +124,8 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
     prtEnergy += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
-          case out:VO => arch.numLanes * regUnitPower * writeTime(out.ctrler)
-          case out:SO => regUnitPower * timeOf(out.ctrler)
+          case out:GO if out.isVector => arch.numLanes * regUnitPower * writeTime(out.ctrler)
+          case out:GO if out.isScalar => regUnitPower * timeOf(out.ctrler)
           case out:OP => 0.0
         }
       }

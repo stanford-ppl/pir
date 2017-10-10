@@ -32,7 +32,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def vResFunc(n:VFIFO, m:M, triedRes:List[R]):List[R] = {
-    val vis = pir.util.collectIn[VI](n.writePort)
+    val vis = pir.util.collectIn[GI](n.writePort)
     assert(vis.size==1, s"Vector FIFO can only have a single writer! ${n.ctrler}.$n's writer ${vis}")
     val pvi = m.vimap(vis.head)
     val rs = spade.util.collectOut[R](pvi)

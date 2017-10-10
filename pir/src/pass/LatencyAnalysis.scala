@@ -33,6 +33,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
   def hackLen2(mc:MemoryController):Int = {
     def constProp(node:Node):Option[Int] = {
       val const:Option[Int] = node match {
+        case GlobalInput(variable) => constProp(variable)
+        case s:GlobalOutput => constProp(s.in.from)
         case op:OutPort => constProp(op.src) 
         case ip:InPort => constProp(ip.from)
         case Const(c:Int) => Some(c)
@@ -60,9 +62,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
           //if (consts.size>1) throw PIRException(s"Got more than 1 valid constant for ${mc} ${fu.ctrler} $fu ${fu.op} $consts")
           //if (consts.size==1) return Some(consts.head)
 
-        case ScalarIn(scalar) => constProp(scalar)
         case ctr:Counter => None
-        case s:ScalarOut => constProp(s.in.from)
         case s:Scalar => constProp(s.writer)
         case n => throw PIRException(s"Don't know how to const propogate $n") 
       }
@@ -197,6 +197,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
 
   def constProp(node:Node):Int = {
     val const:Int = node match {
+      case GlobalInput(scalar) => constProp(scalar)
+      case s:GlobalOutput => constProp(s.in.from)
       case op:OutPort => constProp(op.src) 
       case ip:InPort => constProp(ip.from)
       case Const(c:Int) => c
@@ -219,9 +221,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
             op.eval(op1.asInstanceOf[op.T], op2.asInstanceOf[op.T], op3.asInstanceOf[op.T]).asInstanceOf[Int]
           case _ => throw PIRException(s"Don't know how to const propogate $fu ${fu.op}")
         }
-      case ScalarIn(scalar) => constProp(scalar)
       case ctr:Counter => 0
-      case s:ScalarOut => constProp(s.in.from)
       case n:ArgIn => boundOf.get(n) match {
           case Some(c:Int) => c
           case _ => throw PIRException(s"Don't know how to const propogate ArgIn $n")
@@ -234,7 +234,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
   }
 
   def getConst(n:Node) = {
-    constOf.getOrElseUpdate(n, constProp(n))
+    constOf.getOrElseUpdate(n) {constProp(n)}
   }
 
   def iter(ctr:Counter):Int = {
@@ -251,7 +251,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
   }
 
   def cycle(cl:Controller) = {
-    cycleOf.getOrElseUpdate(cl, calcLatency(cl))
+    cycleOf.getOrElseUpdate(cl) {calcLatency(cl)}
   }
 
   /* Latency of the outer controller if only run 1 iteration */

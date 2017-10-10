@@ -308,40 +308,15 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
     }
   }
 
-  def from(io:Node) = {
-    io match {
-      case io:I => io.writer
-      case io:IP => io.from
-    }
-  }
-
-  def to(io:Node) = {
-    io match {
-      case io:O => io.readers
-      case io:OP => io.to
-    }
-  }
-
-  def ctrler(io:Node) = {
-    io match {
-      case io:IO => io.ctrler
-      case io:PT =>
-        io.src match {
-          case prim:PRIM => prim.ctrler
-          case cl:CL => cl
-        }
-    }
-  }
-
   def commentIO(pios:List[PGIO[PModule]]) = {
     pios.foreach { 
       case pin:PGI[PModule] =>
         vimap.get(pin).foreach { ins =>
-          emitComment(s"${quote(pin)} -> ${ins.map(in => s"${in}(from:${from(in)} at ${ctrler(from(in))})").mkString(",")}")
+          emitComment(s"${quote(pin)} -> ${ins.map(in => s"${in}(from:${in.from} at ${in.from.ctrler})").mkString(",")}")
         }
       case pout:PGO[PModule] =>
         vomap.get(pout).foreach { out =>
-          emitComment(s"${quote(pout)} -> ${out}(to:${to(out).map{ in => s"$in at ${ctrler(in)}"}.mkString(",")})")
+          emitComment(s"${quote(pout)} -> ${out}(to:${out.to.map{ in => s"$in at ${in.ctrler}"}.mkString(",")})")
         }
     }
   }
@@ -455,7 +430,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
       emitln(s"${quote(psram)}.stride = $stride")
       emitln(s"${quote(psram)}.numBufs = ${sram.buffering}")
       val fifo = collectIn[FIFO](sram.writePort).head
-      val pin = vimap(collectIn[I](fifo.writePort).head)
+      val pin = vimap(collectIn[GI](fifo.writePort).head)
       emitln(s"${quote(psram.prt)}.wdataSelect = ${pin.index}") //TODO: handle config for multiple selections
       emitln(s"${quote(psram.prt)}.waddrSelect = ${lookUp(psram.writeAddr)}")
       emitln(s"${quote(psram.prt)}.raddrSelect = ${lookUp(psram.readAddr)}")

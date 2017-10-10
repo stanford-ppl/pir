@@ -66,7 +66,7 @@ class PIRStatLog(fn:String)(implicit design: PIR) extends Traversal with Printer
           case n:MemoryController =>
             fields += s"contention=${contentionOf(n)}"
             n.mctpe match {
-              case (TileLoad | TileStore) => fields += s"len=${constOf(n.len)}"
+              case (TileLoad | TileStore) => fields += s"len=${constOf(n.getBus("size"))}"
               case _ =>
             }
           case _ =>

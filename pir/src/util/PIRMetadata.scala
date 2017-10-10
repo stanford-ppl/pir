@@ -43,7 +43,7 @@ trait PIRMetadata extends Metadata { self:PIR =>
 
   object vecOf extends MOneToOneMap with MetadataMaps {
     type K = Node
-    type V = VectorIO[_]
+    type V = GlobalIO 
   }
 
   object forRead extends MOneToOneMap with MetadataMaps {

@@ -39,7 +39,7 @@ if [[ $EXT == "pdf"  ]]; then
 elif [[ $EXT == "svg" ]]; then
 	if [ "$(uname)" == "Darwin" ]; then
 		# Do something under Mac OS X platform        
-		open -a "Safari" $FILE.svg
+		open -a "Google Chrome" $FILE.svg
 	elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 		# Do something under GNU/Linux platform
 		google-chrome $FILE.svg # not tested

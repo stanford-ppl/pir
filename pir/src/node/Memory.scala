@@ -8,16 +8,17 @@ import pirc.enums._
 import scala.math.max
 import scala.reflect.runtime.universe._
 
-abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primitive {
+abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Primitive {
   import pirmeta._
   ctrler.mems(List(this))
 
   val size:Int
   val banking:Banking
+  var copy:Option[OnChipMem] = None
 
   val readPort: OutPort = OutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
-  val writePortMux:Mux = new Mux().name(s"$this.wpMux")
+  val writePortMux:Mux = new Mux().name(s"${this}.wpMux")
   writePort.connect(writePortMux.out)
   /* Control Signals */
   val enqueueEnable = InPort(this, s"$this.enqEn")
@@ -28,7 +29,13 @@ abstract class OnChipMem(implicit ctrler:Controller, design:PIR) extends Primiti
   val notFull = OutPort(this, s"$this.notFull")
   val notEmpty = OutPort(this, s"$this.notEmpty")
 
-  def wtPort(wp:OutPort):this.type = { writePortMux.addInput.connect(wp); this } 
+  def rdPort(port:InPort):this.type = { readPort.connect(port); this } 
+  def rdPort(out:GlobalOutput):this.type = { rdPort(out.in); this }
+  def rdPort(variable:Variable):this.type = { rdPort(ctrler.newOut(variable)) }
+
+  def wtPort(port:OutPort):this.type = { writePortMux.addInput.connect(port); this } 
+  def wtPort(in:GlobalInput):this.type = { wtPort(in.out) }
+  def wtPort(variable:Variable):this.type = { wtPort(ctrler.newIn(variable)) }
 
   def load = readPort
 
@@ -84,23 +91,9 @@ trait LocalMem extends OnChipMem {
     readers.head
   }
 }
-trait RemoteMem extends OnChipMem { self:VectorMem =>
-  def rdPort(scalar:Scalar):this.type = { rdPort(ctrler.newSout(scalar)) }
-  def rdPort(scalarOut:ScalarOut):this.type = { scalarOut.in.connect(readPort); this }
-  def rdPort(vec:Vector):this.type = { rdPort(ctrler.newVout(vec)) }
-  def rdPort(vecOut:VecOut):this.type = { vecOut.in.connect(readPort); this }
-  //override def wtPort(vecIn:VecIn):this.type = { // Move this insertion to spatial
-    //val fifo = ctrler.getRetimingFIFO(vecIn.vector)
-    //fifo.wtPort(vecIn.out)
-    //wtPort(fifo.load)
-  //}
-}
+trait RemoteMem extends OnChipMem
 
-trait VectorMem extends OnChipMem {
-  def wtPort(vecIn:VecIn):this.type = { wtPort(vecIn.out) }
-  def wtPort(vec:Vector):this.type = { wtPort(ctrler.newVin(vec)) }
-  def wtPort(vecOut:VecOut):this.type = { wtPort(vecOut.vector) }
-}
+trait VectorMem extends OnChipMem
 
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
@@ -140,7 +133,7 @@ object SRAM {
 }
 
 case class VectorFIFO(size: Int)(implicit ctrler:Controller, design: PIR) 
-  extends VectorMem with FIFO {
+  extends VectorMem with FIFO with LocalMem {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {
@@ -148,11 +141,7 @@ object VectorFIFO {
     = new VectorFIFO(size).name(name)
 }
 
-trait ScalarMem extends OnChipMem with LocalMem {
-  def wtPort(scalarIn:ScalarIn):this.type = { wtPort(scalarIn.out) }
-  def wtPort(scalar:Scalar):this.type = { wtPort(ctrler.newSin(scalar)) }
-  def wtPort(scalarOut:ScalarOut):this.type = { wtPort(scalarOut.scalar) }
-}
+trait ScalarMem extends OnChipMem with LocalMem
 
 case class ScalarBuffer()(implicit ctrler:Controller, design: PIR) 
   extends ScalarMem with MultiBuffer {
@@ -174,5 +163,18 @@ object ScalarFIFO {
     = new ScalarFIFO(size)
   def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): ScalarFIFO
     = new ScalarFIFO(size).name(name)
+}
+
+trait ControlMem extends OnChipMem with LocalMem
+
+class ControlFIFO(val size: Int)(implicit ctrler:Controller, design: PIR) 
+  extends ControlMem with FIFO {
+  override val typeStr = "ControlFIFO"
+}
+object ControlFIFO {
+  def apply(size:Int)(implicit ctrler:Controller, design: PIR): ControlFIFO
+    = new ControlFIFO(size)
+  def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): ControlFIFO
+    = new ControlFIFO(size).name(name)
 }
 

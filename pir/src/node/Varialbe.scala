@@ -8,30 +8,34 @@ import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 
 trait Variable extends Node {
-  def writer:Output
-  def readers:List[Input]
+  private val _readers:Set[GlobalInput] = Set[GlobalInput]() 
+  def par:Int
+  def readers:List[GlobalInput] = _readers.toList
+  def addReader(r:GlobalInput) = { _readers += r; if (!writerIsEmpty) writer.connect(r); this }
+  def removeReader(r:GlobalInput) = { _readers -= r; if (!writerIsEmpty) writer.disconnect(r) }
+
+  private var _writer:GlobalOutput = _ 
+  def writer:GlobalOutput = _writer
+  def writerIsEmpty = writer == null
+  def setWriter(w:GlobalOutput) = { 
+    assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")
+    _writer = w
+    readers.foreach { r => writer.connect(r) }
+    this 
+  }
+}
+
+class Control()(implicit design: PIR) extends Variable {
+  def par:Int = 1 //TODO
+}
+object Control {
+  def apply(name:String)(implicit design: PIR):Control = new Control().name(name) 
+  def apply()(implicit design: PIR):Control = new Control() 
 }
 /* Register declared outside CU for communication between two CU. Only a symbol to keep track of
  * the scalar value, not a real register */
 class Scalar()(implicit design: PIR) extends Variable {
-  override val typeStr = "Scalar"
-  var _writer:ScalarOut = _ 
-  def writerIsEmpty = _writer == null
-  def writer:ScalarOut = {
-    if (_writer==null)
-      warn(s"$this has no writer")
-    _writer
-  }
-  private val _readers:Set[ScalarIn] = Set[ScalarIn]() 
-  def readers:List[ScalarIn] = _readers.toList
-  def removeReader(r:ScalarIn) = _readers -= r
-  def addReader(r:ScalarIn) = { _readers += r; this }
-  def setWriter(w:ScalarOut) = { 
-    assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")
-    _writer = w; this 
-  }
-  var dummyVector:DummyVector = _
-  override def toUpdate = super.toUpdate || writer==null
+  def par:Int = 1 //TODO
 }
 object Scalar {
   def apply(name:String)(implicit design: PIR):Scalar = new Scalar().name(name) 
@@ -55,9 +59,7 @@ object DRAMAddress {
   }
 }
 
-class ArgIn(implicit design:PIR) extends Scalar { 
-  override val typeStr = "ArgIn"
-}
+class ArgIn(implicit design:PIR) extends Scalar
 object ArgIn {
   def apply() (implicit design: PIR):Scalar = new ArgIn()
   def apply(name:String) (implicit design: PIR):Scalar = new ArgIn().name(name)
@@ -69,45 +71,11 @@ object ArgOut {
 }
 
 class Vector(implicit design: PIR) extends Variable {
-  override val typeStr = "Vector"
-  private var _writer:VecOut = _
-  def writer:VecOut = {
-    if (_writer==null)
-      warn(s"$this has no writer")
-    _writer
-  }
-  private val _readers:Set[VecIn] = Set.empty
-  def readers:List[VecIn] = _readers.toList
-  def addReader(r:VecIn) = { _readers += r; this }
-  def setWriter(w:VecOut) = {
-    assert(_writer == null, s"Already set ${this}'s writer to ${_writer}, but trying to reset to ${w}")
-    _writer = w; this
-  }
-  override def toUpdate = super.toUpdate || writer==null
+  def par:Int = 16 //TODO
 }
 object Vector {
   def apply()(implicit design: PIR):Vector = new Vector() 
   def apply(name:String)(implicit design: PIR):Vector = new Vector().name(name)
-}
-
-class DummyVector(implicit design:PIR) extends Vector {
-  override val typeStr = "DVector"
-  override def writer:DummyVecOut = super.writer.asInstanceOf[DummyVecOut]
-  override def readers:List[DummyVecIn] = super.readers.asInstanceOf[List[DummyVecIn]]
-  val scalars = Set[Scalar]()
-  def isFull = scalars.size==design.arch.numLanes
-  def remainSpace = design.arch.numLanes - scalars.size
-  def addScalar(s:Scalar) = { 
-    assert(scalars.size < design.arch.numLanes) 
-    scalars += s
-  }
-  override def setWriter(w:VecOut) = {
-    val writerCtrlers = scalars.map(_.writer.ctrler).toSet
-    assert(writerCtrlers.size==1, 
-      s"bundled scalars have more than 1 writers scalars:${scalars} writers: ${writerCtrlers}")
-    assert(w.ctrler==writerCtrlers.head)
-    super.setWriter(w)
-  }
 }
 
 case class OffChip()(implicit design: PIR) extends Node{

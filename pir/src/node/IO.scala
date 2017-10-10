@@ -21,24 +21,26 @@ abstract class Port(implicit val src:Module, design:PIR) extends Node {
 
   def ctrler:Controller = src match {
     case p:Primitive => p.ctrler
-    case top:Top => top
-    case mc:MemoryController => mc
+    case ctrler:Controller => ctrler
   }
 
   def isGlobal:Boolean
 }
 class InPort(implicit src:Module, design:PIR) extends Port {
-  override val name=None
   override val typeStr = "InPort"
-  var from:OutPort = _
+  var _from:OutPort = _
+  def from:OutPort = _from
   def isConnected = from!=null
-  def connect(o:OutPort) = { 
-    if (isConnected) assert(from == o, s"${this}(id=$id) is already connected to ${from} but trying to reconnect to $o")
-    from = o; 
-    if (!o.to.contains(this)) o.to += this
+  def connect(o:OutPort):Unit = { 
+    if (isConnected) {
+      assert(from == o, s"${this}(id=$id) is already connected to ${from} but trying to reconnect to $o")
+    } else {
+      _from = o; 
+      o.connect(this)
+    }
   }
   def isConnectedTo(o:OutPort) = { from == o }
-  def disconnect = { if (isConnected) from.to -= this; from = null }
+  def disconnect:Unit = if (isConnected) { from.disconnect(this); _from = null }
 
   def isGlobal:Boolean = { isConnected && !from.src.isConst && from.ctrler != ctrler }
 }
@@ -48,15 +50,24 @@ object InPort {
     new InPort()(s, design) {override def toString = toStr}
   }
 }
-/**
- * A type representing a group of wires in pir
- */
 class OutPort(implicit src:Module, design:PIR) extends Port {
-  val to:ListBuffer[InPort] = new ListBuffer[InPort]()
+  val _to:ListBuffer[InPort] = new ListBuffer[InPort]()
+  def to:List[InPort] = _to.toList
   def isConnected = to.size!=0
   def isConnectedTo(i:InPort) = { to.contains(i) }
-  def disconnect = { to.foreach { _.disconnect}; assert(to.isEmpty) }
-  override val name=None
+  def connect(i:InPort):Unit = {
+    if (!_to.contains(i)) {
+      _to += i;
+      i.connect(this)
+    }
+  } 
+  def disconnect:Unit = { to.foreach { _.disconnect }; assert(to.isEmpty) }
+  def disconnect(in:InPort):Unit = { 
+    if (isConnectedTo(in)) {
+      in.disconnect
+      _to -= in
+    }
+  } 
   override val typeStr = "OutPort"
   def width(implicit design:PIR) = design.arch.wordWidth
   def by(step:OutPort)(implicit design:PIR) = (Const(0).out, this, step)
@@ -73,4 +84,33 @@ object OutPort {
     new OutPort()(s, design) { override def toString = toStr; t.connect(this)}
   }
 }
+
+trait GlobalIO extends Port with Primitive {
+  val variable:Variable
+  override def equals(that: Any) = that match {
+    case io:GlobalIO => io.variable==variable && io.ctrler == ctrler && this.isInput == io.isInput
+    case _ => super.equals(that)
+  }
+
+  override def asInput = this.asInstanceOf[GlobalInput]
+  override def asOutput = this.asInstanceOf[GlobalOutput]
+  def isControl = variable.isInstanceOf[Control]
+  def isScalar = variable.isInstanceOf[Scalar]
+  def isVector = variable.isInstanceOf[Vector]
+}
+
+case class GlobalInput(variable:Variable)(implicit ctrler:Controller, design:PIR) extends InPort with GlobalIO {
+  variable.addReader(this)
+  //def writer:Output[Variable] = variable.writer
+  val out = OutPort(this, s"${this}.out")
+  override def from:GlobalOutput = super.from.asInstanceOf[GlobalOutput]
+}
+
+case class GlobalOutput(variable:Variable)(implicit ctrler:Controller, design:PIR) extends OutPort with GlobalIO {
+  variable.setWriter(this)
+  //def readers:List[Input[Variable]]
+  val in = InPort(this, s"${this}.in")
+  override def to:List[GlobalInput] = super.to.map{_.asInstanceOf[GlobalInput]}
+}
+
 

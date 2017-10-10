@@ -93,8 +93,8 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
     prtPower += psb -> (psb.outs.map { pout => 
       mp.mkmap.get(pout).fold(0.0) { out =>
         out match {
-          case out:VO => arch.numLanes * regUnitPower
-          case out:SO => regUnitPower
+          case out:GO if out.isVector => arch.numLanes * regUnitPower
+          case out:GO if out.isScalar => regUnitPower
           case out:OP => 0.0
         }
       }

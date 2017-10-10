@@ -19,12 +19,6 @@ class MemoryPipeline(implicit design: PIR) extends InnerController {
     assert(rms.size==1)
     rms.head
   }
-  lazy val dataOut = {
-    val dout = sram.readPort.to.map{_.src}.collect{ case vo:VecOut => vo}.head
-    dout.in.connect(sram.load)
-    dout
-  }
-  def data = dataOut.vector
 }
 object MemoryPipeline {
   /* Sugar API */

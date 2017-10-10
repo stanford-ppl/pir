@@ -15,14 +15,14 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"MemoryAnalyzer.log")
 
-  def analyzeStageOperands(cu:ComputeUnit):Unit = {
+  def markStageOperands(cu:ComputeUnit):Unit = {
     cu match {
-      case cu:MemoryPipeline => analyzeStageOperands(cu)
+      case cu:MemoryPipeline => markStageOperands(cu)
       case cu =>
     }
   }
 
-  def analyzeStageOperands(cu:MemoryPipeline):Unit = {
+  def markStageOperands(cu:MemoryPipeline):Unit = {
     (cu.wtAddrStages ++ cu.rdAddrStages).foreach { st =>
       st match {
         case st:WAStage => forWrite(st) = true
@@ -55,7 +55,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     forReads.foreach { p => forRead(p) = true }
   }
 
-  def analyzeCChain(cu:MemoryPipeline):Unit = {
+  def markCChain(cu:MemoryPipeline):Unit = {
     cu.cchains.foreach { cc =>
       if (cc.counters.exists(cc => forWrite(cc))) {
         forWrite(cc) = true
@@ -68,12 +68,12 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def analyzeScalarBufs(cu:ComputeUnit):Unit = cu match {
-    case cu:MemoryPipeline => analyzeScalarBufs(cu)
+  def markLocalMem(cu:ComputeUnit):Unit = cu match {
+    case cu:MemoryPipeline => markLocalMem(cu)
     case cu =>
   }
 
-  def analyzeScalarBufs(cu:MemoryPipeline):Unit = emitBlock(s"analyzeScalarBufs($cu)") {
+  def markLocalMem(cu:MemoryPipeline):Unit = emitBlock(s"markLocalMem($cu)") {
     cu.cchains.foreach { cc =>
       dprintln(s"cc=$cc collectIn[ScalarMem]=${collectIn[ScalarMem](cc)}")
       collectIn[ScalarMem](cc).foreach { mem =>
@@ -83,8 +83,9 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         dprintln(forWrite.info(mem))
       }
     }
-    collectIn[ScalarFIFO](cu.sram.writeAddr).foreach { fifo => forWrite(fifo) = true }
-    collectIn[ScalarFIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
+    collectIn[FIFO](cu.sram.writePort).foreach { fifo => forWrite(fifo) = true }
+    collectIn[FIFO](cu.sram.writeAddr).foreach { fifo => forWrite(fifo) = true }
+    collectIn[FIFO](cu.sram.readAddr).foreach { fifo => forRead(fifo) = true }
   }
 
   //def setSwapCC(mem:MultiBuffer):Unit = emitBlock(s"setSwapCC($mem)") {
@@ -147,10 +148,31 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         //swapWrite.counters.foreach(ctr => forWrite(ctr) = true)
         //dprintln(s"swapRead=$swapRead")
         //dprintln(s"swapWrite=$swapWrite")
-        //analyzeScalarBufs(cu)
+        //markLocalMem(cu)
       //case cu =>
     //}
   //}
+  
+  def copySwapCC(mem:OnChipMem, access:ComputeUnit, topCtrler:Controller):Unit = {
+    if (!access.containsCopy(localCChainOf(topCtrler))) {
+      access.getCopy(localCChainOf(topCtrler))
+      fillChain(access, sortCChains(access.cchains))
+      collectIn[OnChipMem](access.cchains).foreach(copySwapCC)
+    }
+  }
+
+  def copySwapCC(mem:OnChipMem):Unit = {
+    mem.writers.foreach { writer =>
+      producerOf.get((mem, writer)).foreach { producer => copySwapCC(mem, writer.asCU, producer) }
+    }
+    mem.readers.foreach { reader =>
+      consumerOf.get((mem, reader)).foreach { consumer => copySwapCC(mem, reader.asCU, consumer) }
+    }
+  }
+
+  def copySwapCC(cu:ComputeUnit):Unit = emitBlock(s"copySwapCC($cu)") {
+    cu.mems.foreach { mem => copySwapCC(mem) }
+  }
 
   def copyAccumCC(cu:ComputeUnit) = emitBlock(s"copyAccumCC($cu)"){
     cu match {
@@ -174,11 +196,11 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
   //TODO: fix this for multiple reader and writer
   def analyzeAddrCalc(cu:ComputeUnit) = emitBlock(s"analyzeAddrCalc($cu)"){
     val readCCs = cu.cchains.filter { cc => forRead(cc) }
-    //readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
-    readCChainsOf(cu) = sortCChains(readCCs)
+    readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
+    //readCChainsOf(cu) = sortCChains(readCCs)
     val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
-    //writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
-    writeCChainsOf(cu) = sortCChains(writeCCs)
+    writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
+    //writeCChainsOf(cu) = sortCChains(writeCCs)
     val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
     compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
     dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
@@ -186,23 +208,21 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     dprintln(s"compCChains:[${compCChainsOf(cu).mkString(",")}]")
   }
 
-  def setPar(cu:ComputeUnit) = {
-    cu.cchains.foreach { cc =>
-      cc.counters.foreach { ctr => parOf(ctr) = ctr.par }
-    }
+  def setPar(cu:ComputeUnit) = emitBlock(s"setPar($cu)"){
+    cu.cchains.foreach { cc => cc.counters.foreach { ctr => parOf(ctr) = ctr.par } }
     cu match {
       case cu:MemoryPipeline => 
         parOf(cu) = 1
-        rparOf(cu) = readCChainsOf(cu).head.inner.par
-        wparOf(cu) = writeCChainsOf(cu).head.inner.par
-        //rparOf(cu) = cu.sram.readPort.to.head.src match {
-          //case o:ScalarOut => 1
-          //case o:VecOut => readCChainsOf(cu).head.inner.par
-        //}
-        //wparOf(cu) = cu.sram.writePort.from.src match {
-          //case i:ScalarFIFO => 1
-          //case i:VectorFIFO => writeCChainsOf(cu).head.inner.par
-        //}
+        val rpars = cu.srams.flatMap { sram => 
+          collectOut[GlobalOutput](sram.readPort).map { _.variable.par }
+        } 
+        val wpars = cu.srams.flatMap { sram => 
+          collectIn[GlobalInput](sram.writePort).map { _.variable.par }
+        } 
+        assert(rpars.size==1, s"$cu's rpars=$rpars")
+        assert(wpars.size==1, s"$cu's wpars=$wpars")
+        rparOf(cu) = rpars.head 
+        wparOf(cu) = wpars.head 
         cu.mems.foreach { 
           case mem if forRead(mem) => 
             parOf(mem) = rparOf(cu)
@@ -214,20 +234,20 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         }
         cu.rdAddrStages.foreach { st => parOf(st) = 1 }
         cu.wtAddrStages.foreach { st => parOf(st) = 1 }
-      case cu if isStreaming(cu) =>
-        parOf(cu) = localCChainOf(cu.parent.get).inner.par //TODO: fix for nested streaming controller
-        cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
-        cu.stages.foreach { st => parOf(st) = parOf(cu) }
-      case cu =>
-        val cc = compCChainsOf(cu).head
-        if (!cu.ancestors.contains(cc.original.ctrler)) { // Addresss calculation
-          parOf(cu) = 1
-        } else {
-          parOf(cu) = cc.inner.par
+      case cu:MemoryController =>
+        cu.mems.foreach { mem =>
+          parOf(mem) = collectIn[GlobalInput](mem.writePort).map{_.variable.par}.head
         }
+        parOf(cu) = cu.getBus("data").par
+      case cu =>
+        val cc = localCChainOf(cu) 
+        parOf(cu) = cc.inner.par
         cu.mems.foreach { mem => parOf(mem) = parOf(cu) }
         cu.stages.foreach { st => parOf(st) = parOf(cu) }
     }
+    dprintln(parOf.info(cu))
+    dprintln(rparOf.info(cu))
+    dprintln(wparOf.info(cu))
   }
 
   def swapCounter(ip:InPort, ccFrom:CounterChain, ccTo:CounterChain) = {
@@ -270,9 +290,10 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   addPass(canRun=design.controlAnalyzer.hasRun(0)) {
     design.top.memCUs.foreach { cu =>
-      analyzeStageOperands(cu)
-      analyzeCChain(cu)
-      analyzeScalarBufs(cu)
+      copySwapCC(cu) // use producerOf, consumerOf, make copy of CounterChains
+      markStageOperands(cu)
+      markCChain(cu)
+      markLocalMem(cu)
 
       emitBlock(s"$cu") {
         cu.stages.foreach { st =>
@@ -293,18 +314,13 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     design.top.innerCUs.foreach { cu =>
       copyAccumCC(cu) // use localCChainOf
     }
-  }
 
-  addPass(canRun=design.multiBufferAnalyzer.hasRun(0), 1) {
-    design.top.compUnits.foreach { cu =>
-      analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
-    }
     design.top.compUnits.foreach { cu =>
       //setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
       //copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
-      analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
-      analyzeScalarBufs(cu) // set forRead, forWrite
-      duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
+      //analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
+      markLocalMem(cu) // set forRead, forWrite
+      //duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
       setPar(cu) // use forRead, forWrite, set parOf, rparOf, wparOf
       emitBlock(s"$cu") {
         cu.cchains.foreach { cchain =>

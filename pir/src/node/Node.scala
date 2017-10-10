@@ -13,7 +13,7 @@ abstract class Node (implicit val design: PIR) {
   val pirmeta:PIRMetadata = design
   import pirmeta._
 
-  val typeStr:String
+  val typeStr:String = this.getClass.getSimpleName()
 	design.addNode(this)
   val id : Int = design.nextId // Unique id for each node
   def toUpdate:Boolean = false // Whether fields of the node is not yet defined, 

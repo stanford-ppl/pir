@@ -52,7 +52,6 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val ctrlAlloc = new CtrlAlloc()
   lazy val scalMemInsertion = new ScalarMemInsertion() { override def shouldRun = false }
   lazy val fusionTransform = new FusionTransform()
-  lazy val scalarBundling = new ScalarBundling() { override def shouldRun = false }
   lazy val optimizer = new Optimizer()
 
   /* Mapping */
@@ -98,13 +97,12 @@ trait PIR extends Design with PIRMetadata with Collector {
     passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
     passes += scalMemInsertion
     passes += pirPrinter1
-    passes += scalarBundling
+    passes += accessAnalyzer
     passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
     passes += pirPrinter2
     passes += pirDataDotGen1
-    passes += accessAnalyzer
     passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
-    passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
+    //passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
                                 // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
                                 // rparOf, wparOf
     passes += accessAnalyzer

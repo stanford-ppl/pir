@@ -26,7 +26,7 @@ package object util {
     val list = ListBuffer[Controller]()
     def isDepFree(cl:Controller):Boolean = {
       descendentsOf(cl).filterNot(_==cl).forall(des => list.contains(des)) &&  //TODO: is children the same?
-      (cl.souts ++ cl.vouts).forall( out => out.readers.forall(reader => list.contains(reader.ctrler)))
+      (cl.souts ++ cl.vouts).forall( out => out.to.forall(reader => list.contains(reader.ctrler)))
     }
     list += ctrler
     var remain = descendentsOf(ctrler).filterNot(_== ctrler)
@@ -128,52 +128,43 @@ package object util {
 
   def collectIn[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
     case x:X => Set(x)
+    case x:GlobalInput => Set() // Stop at CU boundary
     case LoadPR(mem) => collectIn[X](mem)
     case CtrPR(ctr) => collectIn[X](ctr)
     case PipeReg(_, reg) => collectIn[X](reg) 
-    case x:FuncUnit => collectIn[X](x.operands)
-    case x:Counter => collectIn[X](x.min) ++ collectIn[X](x.max) ++ collectIn[X](x.step)
     case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
+    case x:Module => collectIn[X](x.ins)
     case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
     case x:OutPort => collectIn[X](x.src)
-    case x:Mux => x.ins.flatMap(collectIn[X]).toSet
-    case x:SRAM => collectIn[X](x.readAddr) ++ collectIn[X](x.writeAddr) ++ collectIn[X](x.writePort)
-    case x:LocalMem => collectIn[X](x.writePort)
     case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
     case _ => Set()
   }
 
-  def filterIn[X](x:X, target:Any):Iterable[X] = filterIn(Set(x), target)
+  def filterIn[X](x:X, predicate: Any => Boolean):Iterable[X] = filterIn(Set(x), predicate)
 
-  def filterIn[X](xs:Iterable[X], target:Any):Iterable[X] = xs.filter { x =>
+  def filterIn[X](xs:Iterable[X], predicate: Any => Boolean):Iterable[X] = xs.filter { x =>
     (x match {
-      case `target` => Set(x)
-      case LoadPR(mem) => filterIn(mem, target)
-      case CtrPR(ctr) => filterIn(ctr, target)
-      case PipeReg(_, reg) => filterIn(reg, target) 
-      case x:FuncUnit => filterIn(x.operands, target)
-      case x:Counter => filterIn(x.min, target) ++ filterIn(x.max, target) ++ filterIn(x.step, target)
-      case x:CounterChain => x.counters.flatMap(ctr => filterIn(ctr, target)).toSet
-      case x:InPort => if (!x.isConnected) Set() else filterIn(x.from.src, target)
-      case x:OutPort => filterIn(x.src, target)
-      case x:Mux => x.ins.flatMap(in => filterIn(in, target)).toSet
-      case x:SRAM => filterIn(x.readAddr, target) ++ filterIn(x.writeAddr, target) ++ filterIn(x.writePort, target)
-      case x:LocalMem => filterIn(x.writePort, target)
-      case x:Iterable[_] => x.flatMap(x => filterIn(x, target)).toSet
+      case x if predicate(x) => Set(x)
+      case x:GlobalInput => Set() // Stop at CU boundary
+      case LoadPR(mem) => filterIn(mem, predicate)
+      case CtrPR(ctr) => filterIn(ctr, predicate)
+      case PipeReg(_, reg) => filterIn(reg, predicate) 
+      case x:CounterChain => x.counters.flatMap(ctr => filterIn(ctr, predicate)).toSet
+      case x:Module => filterIn(x.ins, predicate) 
+      case x:InPort => if (!x.isConnected) Set() else filterIn(x.from.src, predicate)
+      case x:OutPort => filterIn(x.src, predicate)
+      case x:Iterable[_] => x.flatMap(x => filterIn(x, predicate)).toSet
       case _ => Set()
     }).nonEmpty
   }
     
   def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
     case x:X => Set(x)
-    case x:Input => collectOut[X](x.out)
-    case x:OnChipMem => collectOut[X](x.readPort)
-    case x:Counter => collectOut[X](x.out)
-    case x:PipeReg => collectOut[X](x.out)
-    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
+    case x:GlobalOutput => Set() // Stop at CU boundary
+    case x:Module => collectOut[X](x.outs)
     case x:OutPort => if (!x.isConnected) Set() else x.to.flatMap(in => collectOut[X](in.src)).toSet
     case x:InPort => collectOut[X](x.src)
-    case x:Mux => collectOut[X](x.out)
+    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
     case _ => Set()
   }
 

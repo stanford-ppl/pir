@@ -59,14 +59,14 @@ trait Collector { design:PIR =>
         design.removeNode(n.readPort)
         design.removeNode(n.writePort.from)
         design.removeNode(n.writePort)
-      case n:ScalarIn =>
+      case n:GlobalInput =>
         design.removeNode(n.out)
-        n.scalar.removeReader(n)
-        if (n.scalar.readers.isEmpty) {
-          design.removeNode(n.scalar.writer)
-          design.removeNode(n.scalar)
+        n.variable.removeReader(n)
+        if (n.variable.readers.isEmpty) {
+          design.removeNode(n.variable.writer)
+          design.removeNode(n.variable)
         }
-      case n:ScalarOut => throw new Exception(s"TODO")
+      case n:GlobalOutput => throw new Exception(s"TODO")
       case n:InPort =>
         n.disconnect
       case n:OutPort =>

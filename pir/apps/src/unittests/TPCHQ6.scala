@@ -104,7 +104,7 @@ object TPCHQ6_unit extends PIRApp {
     val x1596 = MemoryController(name="x1596",parent=x1604,offchip=x1566_oc, mctpe=TileLoad) { implicit CU => 
       val x1586_b1725_x1596 =  ScalarFIFO(name="offset",size=1).wtPort(x1586_b1725_x1594_b1727_s)
       val x1586_b1726_x1596 =  ScalarFIFO(name="size",size=1).wtPort(x1586_b1726_x1594_b1728_s)
-      CU.newVout("data", x1587_x1596_data_v)
+      CU.newOut("data", x1587_x1596_data_v)
     }
     val x1603 = Pipeline(name="x1603",parent=x1604) { implicit CU => 
       val ctr2 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16) // Counter
@@ -125,7 +125,7 @@ object TPCHQ6_unit extends PIRApp {
     val x1615 = MemoryController(name="x1615",parent=x1623,offchip=x1568_oc, mctpe=TileLoad) { implicit CU => 
       val x1605_b1730_x1615 =  ScalarFIFO(name="size",size=1).wtPort(x1605_b1730_x1613_b1732_s)
       val x1605_b1729_x1615 =  ScalarFIFO(name="offset",size=1).wtPort(x1605_b1729_x1613_b1731_s)
-      CU.newVout("data", x1606_x1615_data_v)
+      CU.newOut("data", x1606_x1615_data_v)
     }
     val x1622 = Pipeline(name="x1622",parent=x1623) { implicit CU => 
       val ctr3 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16) // Counter
@@ -146,7 +146,7 @@ object TPCHQ6_unit extends PIRApp {
     val x1634 = MemoryController(name="x1634",parent=x1642,offchip=x1570_oc, mctpe=TileLoad) { implicit CU => 
       val x1624_b1734_x1634 =  ScalarFIFO(name="size",size=1).wtPort(x1624_b1734_x1632_b1736_s)
       val x1624_b1733_x1634 =  ScalarFIFO(name="offset",size=1).wtPort(x1624_b1733_x1632_b1735_s)
-      CU.newVout("data", x1625_x1634_data_v)
+      CU.newOut("data", x1625_x1634_data_v)
     }
     val x1641 = Pipeline(name="x1641",parent=x1642) { implicit CU => 
       val ctr4 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16) // Counter
@@ -167,7 +167,7 @@ object TPCHQ6_unit extends PIRApp {
     val x1653 = MemoryController(name="x1653",parent=x1661,offchip=x1572_oc, mctpe=TileLoad) { implicit CU => 
       val x1643_b1737_x1653 =  ScalarFIFO(name="offset",size=1).wtPort(x1643_b1737_x1651_b1739_s)
       val x1643_b1738_x1653 =  ScalarFIFO(name="size",size=1).wtPort(x1643_b1738_x1651_b1740_s)
-      CU.newVout("data", x1644_x1653_data_v)
+      CU.newOut("data", x1644_x1653_data_v)
     }
     val x1660 = Pipeline(name="x1660",parent=x1661) { implicit CU => 
       val ctr5 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16) // Counter

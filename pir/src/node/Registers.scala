@@ -11,11 +11,11 @@ trait OuterRegBlock { self:ComputeUnit =>
   val infGraph:Map[Reg, Set[Reg]] = Map.empty
   def regs = infGraph.keys.toList
 
-  val scalarInRegs  = Map[ScalarIn, ScalarInPR]()
+  val scalarInRegs  = Map[GlobalInput, ScalarInPR]()
   val loadRegs   = Map[OnChipMem, LoadPR]()
   def reset      = { regId = 0; loadRegs.clear; scalarInRegs.clear }
 
-  def scalarInPR(s:ScalarIn):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(s))
+  def scalarInPR(s:GlobalInput):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(s))
   def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(s))
 
 
@@ -58,9 +58,9 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
   lazy val reduceReg  = ReducePR()
-  val scalarOutRegs = Map[ScalarOut, ScalarOutPR]()
-  val vecInRegs     = Map[VecIn, VecInPR]()
-  val vecOutRegs     = Map[VecOut, VecOutPR]()
+  val scalarOutRegs = Map[GlobalOutput, ScalarOutPR]()
+  val vecInRegs     = Map[GlobalInput, VecInPR]()
+  val vecOutRegs     = Map[GlobalOutput, VecOutPR]()
   val storeRegs  = Map[OnChipMem, StorePR]()
   val wtAddrRegs = Map[SRAM, WtAddrPR]()
   //val rdAddrRegs = Map[SRAM, RdAddrPR]()
@@ -81,11 +81,11 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
     acc
   }
 
-  def scalarOutPR(s:ScalarOut):ScalarOutPR = scalarOutRegs.getOrElseUpdate(s, ScalarOutPR(s))
+  def scalarOutPR(s:GlobalOutput):ScalarOutPR = scalarOutRegs.getOrElseUpdate(s, ScalarOutPR(s))
 
-  def vecInPR(vo:VecIn):VecInPR = vecInRegs.getOrElseUpdate(vo, VecInPR(vo))
+  def vecInPR(vo:GlobalInput):VecInPR = vecInRegs.getOrElseUpdate(vo, VecInPR(vo))
 
-  def vecOutPR(vo:VecOut):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(vo))
+  def vecOutPR(vo:GlobalOutput):VecOutPR = vecOutRegs.getOrElseUpdate(vo, VecOutPR(vo))
 
   def tempPR(init:Option[AnyVal]):Reg = {
     val reg = TempPR(init)
@@ -138,13 +138,13 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   *  the register that connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:ScalarOut):PipeReg = stage.get(scalarOutPR(s))
+  def scalarOut(stage:Stage, s:GlobalOutput):PipeReg = stage.get(scalarOutPR(s))
  /** Create a pipeline register and a scalar buffer for a stage. 
   *  The pipeline register connects to the scalarOut buffer
   * @param stage: Stage of the pipeline register 
   */
-  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newSout(s))
-  def scalarOut(s:Scalar):Reg = scalarOutPR(newSout(s))
+  def scalarOut(stage:Stage, s:Scalar):PipeReg = scalarOut(stage, newOut(s))
+  def scalarOut(s:Scalar):Reg = scalarOutPR(newOut(s))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU input ports in streaming communication 
   * @param stage: Stage of the pipeline register 
@@ -169,13 +169,13 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   * @param vo: VecOut of current ComputeUnit. One per CU 
   */
-  def vecOut(stage:Stage, vo:VecOut):PipeReg = stage.get(vecOutPR(vo))
+  def vecOut(stage:Stage, vo:GlobalOutput):PipeReg = stage.get(vecOutPR(vo))
  /** Create a pipeline register for a stage corresponding to 
   *  the register that directly connects to CU output ports 
   * @param stage: Stage of the pipeline register 
   */
-  def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newVout(vec))
-  def vecOut(vec:Vector):Reg = vecOutPR(newVout(vec))
+  def vecOut(stage:Stage, vec:Vector):PipeReg = vecOut(stage, newOut(vec))
+  def vecOut(vec:Vector):Reg = vecOutPR(newOut(vec))
 
   /* Create a new logical register 
    * */

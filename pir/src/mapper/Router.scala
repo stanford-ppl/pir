@@ -19,8 +19,8 @@ abstract class Router(implicit design:PIR) extends Mapper {
   lazy val maxHop = design.arch.top.diameter
   override val exceptLimit = 200
 
-  type I<:Node
-  type O<:Node
+  type I<:IP
+  type O<:OP
   type R = (PCL, Path[FEdge])
   type Edge = (PGIO[PRT], PGIO[PRT])
   type FEdge = (PGO[PRT], PGI[PRT])
@@ -72,7 +72,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
   //def quote[T](n:T)(implicit ev:TypeTag[T]):String = n match {
   //}
 
-  def ctrler(io:Node):CL
+  def ctrler(io:PT):CL
   def from(in:I):O
   def to(out:O):List[I]
   def ins(cl:CL):List[I]
@@ -442,14 +442,12 @@ abstract class Router(implicit design:PIR) extends Mapper {
         sameSrcMap(ctrler(in))(out).foreach { in =>
           mp = mp.setVI(in, pin).setVO(out, pout).setRT(in, path.size).setMK(pout, out).setMK(pin, out)
           in match {
-            case in:VI => mp = mp.setOP(in.out, pin.ic)
-            case in:SI => mp = mp.setOP(in.out, pin.ic)
+            case in:GI => mp = mp.setOP(in.out, pin.ic)
             case in =>
           }
           //One from(n) may map to multiple pout. but ipmap is not a one to many map
           //from(n) match {
-            //case f:VO => mp = mp.setIP(f.in, pout.ic)
-            //case f:SO => mp = mp.setIP(f.in, pout.ic)
+            //case f:GO => mp = mp.setIP(f.in, pout.ic)
             //case n =>
           //}
         }
@@ -521,8 +519,6 @@ abstract class Router(implicit design:PIR) extends Mapper {
       }
       outs(ctrler).foreach { out =>
         (out match {
-          case vo:VO if vo.readers.size!=0 => Some(out)
-          case so:SO if so.readers.size!=0 => Some(out)
           case co:OP if co.to.size!=0 => Some(out)
           case out => None
         }).foreach { out =>
@@ -537,46 +533,36 @@ abstract class Router(implicit design:PIR) extends Mapper {
 class VectorRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "VecRouter"
 
-  type I = VI
-  type O = VO
+  type I = GI
+  type O = GO
 
   override def debug:Boolean = PIRConfig.debugVecRouter
 
   def io(prt:PRT):PGrid[PRT] = prt.vectorIO
 
-  def ctrler(io:Node):CL = {
-    io match {
-      case in:I => in.ctrler
-      case out:O => out.ctrler
-    }
-  }
-  def from(in:I):O = in.writer
-  def to(out:O) = out.readers
-  def ins(cl:CL):List[I] = cl.vins
-  def outs(cl:CL):List[O] = cl.vouts
+  def ctrler(io:PT):CL = io.ctrler
+  def from(in:I):O = in.from
+  def to(out:O) = out.to.toList
+  def ins(cl:CL) = cl.vins.toList
+  def outs(cl:CL) = cl.vouts.toList
 
 }
 
 class ScalarRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "ScalRouter"
 
-  type I = SI
-  type O = SO
+  type I = GI
+  type O = GO
 
   override def debug:Boolean = PIRConfig.debugScalRouter 
 
   def io(prt:PRT):PGrid[PRT] = prt.scalarIO
 
-  def ctrler(io:Node):CL = {
-    io match {
-      case in:I => in.ctrler
-      case out:O => out.ctrler
-    }
-  }
-  def from(in:I):O = in.writer
-  def to(out:O) = out.readers
-  def ins(cl:CL):List[I] = cl.sins
-  def outs(cl:CL):List[O] = cl.souts
+  def ctrler(io:PT):CL = io.ctrler
+  def from(in:I):O = in.from
+  def to(out:O) = out.to.toList
+  def ins(cl:CL) = cl.sins.toList
+  def outs(cl:CL) = cl.souts.toList
 }
 
 class ControlRouter()(implicit val design:PIR) extends Router {
@@ -589,14 +575,9 @@ class ControlRouter()(implicit val design:PIR) extends Router {
 
   def io(prt:PRT):PGrid[PRT] = prt.ctrlIO
 
-  def ctrler(io:Node):CL = {
-    io match {
-      case in:I => in.src.asInstanceOf[PRIM].ctrler
-      case out:O => out.src.asInstanceOf[PRIM].ctrler
-    }
-  }
+  def ctrler(io:PT):CL = io.ctrler
   def from(in:I):O = in.from
   def to(out:O) = out.to.toList
-  def ins(cl:CL):List[I] = cl.cins
-  def outs(cl:CL):List[O] = cl.couts
+  def ins(cl:CL) = cl.cins.toList
+  def outs(cl:CL) = cl.couts.toList
 }

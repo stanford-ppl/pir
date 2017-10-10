@@ -60,7 +60,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
           if (pmmap.contains(cl)) {
             val pcl = pmmap.map(cl)
             p.emitBlock( s"$cl -> ${quote(pcl)}" ) {
-              vimap.printMap(quote _, cl.vins)
+              vimap.printMap(quote _, cl.vins.toList)
               cl match {
                 case cu:CU =>
                   val pcu = pmmap.map(cu).asInstanceOf[PCU]
@@ -110,7 +110,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
       if (pmmap.contains(pcl)) {
         val cl = pmmap(pcl)
         emitBlock( s"${quote(pcl)} <- $cl" ) {
-          vimap.printMap(quote _, cl.vins)
+          vimap.printMap(quote _, cl.vins.toList)
           pcl match {
             case pcu:PCU =>
               val cu = pmmap(pcu).asInstanceOf[CU]
@@ -152,15 +152,14 @@ case class VIMap(map:VIMap.M, imap:VIMap.IM) extends IBiManyToOneMap {
     val npmap:IM = imap + ((v, set))
     VIMap(map + rec, npmap)
   }
-  def apply(n:VI):PGI[PModule] = { map(n).asGlobal }
-  def apply(n:SI):PGI[PModule] = { map(n).asGlobal }
+  def apply(n:GI):PGI[PModule] = { map(n).asGlobal }
 
   def apply(v:V):KK = imap(v)
   def get(v:V):Option[KK]         = imap.get(v)
   def contains(v:V) = imap.contains(v)
 }
 object VIMap extends IBiManyToOneObj {
-  type K = Node //InPort or VecIn
+  type K = IP 
   type V = PGI[PModule]
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
@@ -178,15 +177,14 @@ case class VOMap(map:VOMap.M, imap:VOMap.IM) extends IBiOneToManyMap {
     val newmap = map + (rec._1 -> set)
     VOMap(newmap, imap + rec.swap)
   }
-  def apply(n:VO):Set[PGO[PModule]] = { map(n) }
-  def apply(n:SO):Set[PGO[PModule]] = { map(n) }
+  def apply(n:GO):Set[PGO[PModule]] = { map(n) }
 
   def apply(v:V):KK = imap(v)
   def get(v:V):Option[KK]         = imap.get(v)
   def contains(v:V) = imap.contains(v)
 }
 object VOMap extends IBiOneToManyObj {
-  type K = Node //OutPort or VecOut
+  type K = OP
   type V = PGO[PModule]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }

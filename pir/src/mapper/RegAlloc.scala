@@ -72,10 +72,10 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
       case reg => regs += reg
     }
     def allRes(n:N):List[R] = {
-      def allRes(n:N, out:O) = {
+      def allRes(n:N, out:GO) = {
         val regTp = out match {
-          case out:SO => ScalarOutReg
-          case out:VO => VecOutReg
+          case out if out.isScalar => ScalarOutReg
+          case out if out.isVector => VecOutReg
         }
         val pregs = pirMap.vomap.get(out).map { pouts =>
           dprintln(s"out=$out -> pouts:$pouts")

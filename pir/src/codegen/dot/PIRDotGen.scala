@@ -51,28 +51,14 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def emitInputs(cl:Controller):Unit
 
-  def emitVectorInputs(cl:Controller, vins:List[VecIn]):Unit = {
-    vins.foreach { vin => 
-      val v = vin.vector
+  def emitGlobalInputs(cl:Controller, gins:Iterable[GlobalInput]):Unit = {
+    gins.foreach { in => 
+      val v = in.variable
       var label = s"${v.name.get}"
-      if (v.writer != null) label += s"\n(${v.writer})"
-      label += s"\n(${v.readers.filter{_.ctrler==cl}.mkString(",")})"
-      if (v.writer != null) {
-        emitEdge(v.writer.ctrler, cl, DotAttr().label(label).style(bold))
-      } else {
-        emitEdge("NotConnected", cl, DotAttr().label(label).style(bold))
-      }
-    }
-  }
-
-  def emitScalarInputs(cl:Controller, sins:List[ScalarIn]):Unit = {
-    sins.foreach { sin => 
-      val s = sin.scalar
-      var label = s"${s.name.get}"
-      if (s.writer!=null) label += s"\n(${s.writer.ctrler}.${s.writer})s"
-      label += s"\n(${s.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
-      if (!s.writerIsEmpty) {
-        s.writer.ctrler match {
+      if (!v.writerIsEmpty) label += s"\n(${v.writer.ctrler}.${v.writer})"
+      label += s"\n(${v.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
+      if (!v.writerIsEmpty) {
+        v.writer.ctrler match {
           case top:Top =>
           case w => emitEdge(w, cl, DotAttr().label(label))
         }
@@ -82,7 +68,7 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
-  def emitCtrlInputs(cl:Controller, cins:List[InPort]):Unit = {
+  def emitCtrlInputs(cl:Controller, cins:Iterable[InPort]):Unit = {
     def q(cp:Port) = cp.src match {
       case cb:CtrlBox => 
         val attrs = s"${cp}".split("\\.")
@@ -131,8 +117,7 @@ class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
   }
 
   def emitInputs(cl:Controller):Unit = {
-    emitScalarInputs(cl, cl.sins)
-    emitVectorInputs(cl, cl.vins)
+    emitGlobalInputs(cl, cl.gins.collect { case in:GlobalInput => in } )
   }
 
   override def quote(n:Any):String = {
@@ -176,8 +161,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
 
   def emitInputs(cl:Controller):Unit = {
     emitCtrlInputs(cl, cl.cins)
-    emitScalarInputs(cl, cl.sins)
-    emitVectorInputs(cl, cl.vins)
+    emitGlobalInputs(cl, cl.gins.collect{ case in:GlobalInput => in})
   }
 
 }

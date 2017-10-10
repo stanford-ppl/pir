@@ -166,16 +166,25 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
           mem.dequeueEnable.connect(cb.en.out)
           mem.dec.connect(cb.en.out)
         case (mem:SRAM, cb:MemCtrlBox) =>
-          mem.enqueueEnable.connect(cb.writeDoneDelay.out)
+          //mem.enqueueEnable.connect(cb.writeDoneDelay.out)
           //mem.inc.connect(cb.writeDone.out)
-          mem.dequeueEnable.connect(cb.readDoneDelay.out)
-          mem.dec.connect(cb.readDone.out)
-        case (mem:MultiBuffer, cb) =>
+          //mem.dequeueEnable.connect(cb.readDoneDelay.out)
+          //mem.dec.connect(cb.readDone.out)
+          
+          mem.enqueueEnable.connect(cb.writeDone.out)
+          mem.dequeueEnable.connect(cb.readDone.out)
+        case (mem:MultiBuffer, cb) => // LocalMem
           //mem.inc.connect(mem.writePort.valid)
           //mem.enqueueEnable.connect(mem.writePort.valid)
-          swapReadCChainOf.get(mem).foreach { cc => 
-            mem.dequeueEnable.connect(getDone(cu, cc))
-            mem.dec.connect(getDone(cu, cc))
+          //swapReadCChainOf.get(mem).foreach { cc => 
+            //mem.dequeueEnable.connect(getDone(cu, cc))
+            //mem.dec.connect(getDone(cu, cc))
+          //}
+          mem.readers.foreach { reader =>
+            assert(mem.ctrler == reader)
+            consumerOf.get((mem, reader)).foreach { consumer =>
+              mem.dequeueEnable.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
+            }
           }
       }
     }
@@ -318,7 +327,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         cu.lmems.foreach { mem => cb.fifoAndTree.addInput(mem.notEmpty) }
       case _ =>
     }
-    // - Token
+    // - Token 
     //(ctrler, ctrler.ctrlBox) match {
       //case (cu:ComputeUnit, cb:OuterCtrlBox) if isStreaming(cu) =>
       //case (cu:ComputeUnit, cb:StageCtrlBox) if isPipelining(cu) =>
@@ -382,18 +391,20 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   def connectEnable(ctrler:Controller) = {
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
-        writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEn.out) }
-        chainCChain(readCChainsOf(ctrler))
-        chainCChain(writeCChainsOf(ctrler))
+        //readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
+        //writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEn.out) }
+        //chainCChain(readCChainsOf(ctrler))
+        //chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
         localCChainOf(ctrler).inner.en.connect(cb.en.out)
+        chainCChain(sortCChains(ctrler.cchains))
       case (ctrler:InnerController, cb:InnerCtrlBox) =>
         localCChainOf(ctrler).inner.en.connect(cb.en.out)
-        chainCChain(compCChainsOf(ctrler))
+        chainCChain(sortCChains(ctrler.cchains))
       case (ctrler:OuterController, cb:OuterCtrlBox) =>
         localCChainOf(ctrler).inner.en.connect(cb.en.out)
+        chainCChain(sortCChains(ctrler.cchains))
       case (ctrler, cb) =>
     }
   }
@@ -404,11 +415,35 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         //TODO HACK for case when readCC and writeCC are the same set of counter chain. There will be two copy of the
         //swapReadCChain in the same controller. the duplicate's original is also swapReadCChain.
         //However CU.getCC will only return the original copy 
-        val readCC = ctrler.cchains.filter { cc => cc.original == swapReadCChainOf(ctrler.sram) && forRead(cc) }.head
-        val readDone = readCC.outer.done
-        cb.readDone.in.connect(readDone)
-        val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.sram)).outer.done
-        cb.writeDone.in.connect(writeDone)
+        //val readCC = ctrler.cchains.filter { cc => cc.original == swapReadCChainOf(ctrler.sram) && forRead(cc) }.head
+        //val readDone = readCC.outer.done
+        //cb.readDone.in.connect(readDone)
+        //val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.sram)).outer.done
+        //cb.writeDone.in.connect(writeDone)
+        
+        val mem = ctrler.sram
+        val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
+        forWrite(wfifo) = true
+        mem.writers.foreach { writer =>
+          producerOf.get((mem,writer)).foreach { producer =>
+            val bus = Control(s"${ctrler}_${mem}_wdone")
+            val out = writer.newOut(bus)
+            out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
+            wfifo.wtPort(bus)
+          }
+        }
+        cb.writeDone.in.connect(wfifo.readPort)
+        val rfifo = ControlFIFO(s"${mem}_rdone", size=10)(mem.ctrler, design)
+        forRead(rfifo) = true
+        mem.readers.foreach { reader =>
+          consumerOf.get((mem, reader)).foreach { consumer =>
+            val bus = Control(s"${ctrler}_${mem}_rdone")
+            val out = reader.newOut(bus)
+            out.in.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
+            rfifo.wtPort(bus)
+          }
+        }
+        cb.readDone.in.connect(rfifo.readPort)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
         cb.done.in.connect(localCChainOf(ctrler).outer.done)
@@ -419,6 +454,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   override def finPass = {
     design.top.compUnits.foreach {
       case cu:MemoryController =>
+      case cu:MemoryPipeline =>
       case cu => assert(cu.cchains.nonEmpty, s"$cu's cchain is empty")
     }
     //design.top.compUnits.foreach { cu =>

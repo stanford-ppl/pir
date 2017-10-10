@@ -13,34 +13,50 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"AccessAnalyzer.log")
 
-  def setWriter(mem:OnChipMem) = emitBlock(s"setWriter($mem)") {
-    writersOf(mem) = (collectIn[FIFO](mem.writePort).flatMap(fifo => writersOf(fifo)) ++
-                      collectIn[Input](mem.writePort).map(in => in.variable.writer.ctrler)).toList
-    dprintln(writersOf.info(mem))
-    if (writersOf(mem).isEmpty) {
-      err(s"${mem.ctrler}.$mem does not have writer!")
+  def setWriter(mem:OnChipMem) = writersOf.getOrElseUpdate(mem) { 
+    emitBlock(s"setWriter($mem)") {
+      val res = (collectIn[GlobalInput](mem.writePort).map(in => in.from.ctrler)).toList
+      if (res.isEmpty) {
+        err(s"${mem.ctrler}.$mem does not have writer!")
+      }
+      res
     }
   }
 
-  def setReader(mem:OnChipMem) = emitBlock(s"setReader($mem)"){
-    mem match {
-      case mem:LocalMem => readersOf(mem) = List(mem.ctrler)
-      case mem:RemoteMem =>
-        if (!mem.readPort.isConnected)
-          warn(s"$mem.readPort in ${mem.ctrler} is not connected")
-        readersOf(mem) = mem.readPort.to.head.src match {
-          case vo:VecOut => 
-            vo.vector.readers.map(_.ctrler)
-          case so:ScalarOut =>
-            so.scalar.readers.map(_.ctrler)
-          case cu:Controller => List(cu)
-          case p:Primitive => List(p.ctrler)
-          case p => throw new Exception(s"Unknown OnChipMem read port ${p} for $this in ${mem.ctrler}")
-        }
+  def setReader(mem:OnChipMem) = readersOf.getOrElseUpdate(mem) {
+    emitBlock(s"setReader($mem)"){
+      val res = mem match {
+        case mem:LocalMem => List(mem.ctrler)
+        case mem:RemoteMem =>
+          if (!mem.readPort.isConnected)
+            warn(s"$mem.readPort in ${mem.ctrler} is not connected")
+          mem.readPort.to.head.src match {
+            case o:GlobalOutput => o.to.map(_.ctrler)
+            case cu:Controller => List(cu)
+            case p:Primitive => List(p.ctrler)
+            case p => throw new Exception(s"Unknown OnChipMem read port ${p} for $this in ${mem.ctrler}")
+          }
+      }
+      if (res.isEmpty) {
+        warn(s"${mem.ctrler}.$mem does not have reader!")
+      }
+      res
     }
-    dprintln(readersOf.info(mem))
-    if (readersOf(mem).isEmpty) {
-      warn(s"${mem.ctrler}.$mem does not have reader!")
+  }
+
+  def resolveCopy(mem:OnChipMem) {
+    mem.copy.foreach { orig =>
+      mem.writers.foreach { writer =>
+        producerOf.get((orig, writer)).foreach { producer =>
+          producerOf((mem, writer)) = producer
+        }
+      }
+      mem.readers.foreach { reader =>
+        consumerOf.get((orig, reader)).foreach { consumer =>
+          // Assume only localMem can be copy
+          consumerOf((mem, mem.ctrler)) = consumer
+        }
+      }
     }
   }
 
@@ -50,6 +66,7 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
         cl.mems.foreach { mem =>
           setWriter(mem)
           setReader(mem)
+          resolveCopy(mem)
         }
       }
     }

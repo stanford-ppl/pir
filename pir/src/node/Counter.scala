@@ -161,6 +161,7 @@ object CounterChain {
 }
 
 class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
+  import design.pirmeta._
   override val typeStr = "Ctr"
   /* Fields */
   val min:InPort = InPort(this, s"${this}.min")
@@ -215,14 +216,13 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
       p.src match {
         case Const(c) => Const(c).out
         case s:ScalarBuffer =>
-          val writers = collectIn[ScalarIn](s.writePort).map{_.scalar}
+          val vars = collectIn[GlobalInput](s.writePort).map{_.variable}
           val sb = ctrler.smems.filter { smem =>
-            collectIn[ScalarIn](smem.writePort).map{_.scalar} == writers
+            collectIn[GlobalInput](smem.writePort).map{_.variable} == vars 
           }.headOption.getOrElse {
             val sb = ScalarBuffer()(ctrler, design)
-            writers.foreach { scalar =>
-              sb.wtPort(scalar)
-            }
+            sb.copy = Some(s)
+            vars.foreach { v => sb.wtPort(v) }
             ctrler.mems(List(sb))
             sb
           }

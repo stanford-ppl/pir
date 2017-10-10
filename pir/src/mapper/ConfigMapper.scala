@@ -37,7 +37,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val pm = mp.pmmap(m)
     val cu = m.ctrler
     val (bufferSize, notFullOffset) = if (m.notFull.isConnected) {
-      val fhop = mp.rtmap(pir.util.collectIn[I](m.writePort).head)
+      val fhop = mp.rtmap(pir.util.collectIn[GI](m.writePort).head)
       val bhop = mp.rtmap(m.notFull.to.head)
       val pipeDepth = m.writers.map{ writer => mp.pmmap(writer.ctrler).asCU.stages.size }.max
       val notFullOffset = fhop + bhop + pipeDepth
@@ -114,7 +114,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val accumInput = st match {
       case st:pir.node.AccumStage =>
         val operands = st.fu.get.operands
-        val accOprd = filterIn(operands, st.acc)
+        val accOprd = filterIn(operands, (_:Any) == st.acc)
         Some(mp.ipmap((operands diff accOprd.toSeq).head))
       case _ => None
     }
@@ -161,7 +161,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
 
     // Set valid
     val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>
-      val in = out.readers.head
+      val in = out.to.head
       in.ctrler match {
         case top:Top => 
           mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }

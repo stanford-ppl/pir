@@ -76,7 +76,7 @@ object OuterProduct_ma extends PIRApp {
     val x1235 = MemoryController(name="x1235",parent=x1244,offchip=x1208_oc, mctpe=TileLoad) { implicit CU => 
       val x1224_b1338_x1235 = ScalarFIFO(name="size",size=1).wtPort(x1224_b1338_x1233_b1340_s)
       val x1224_b1337_x1235 = ScalarFIFO(name="offset",size=1).wtPort(x1224_b1337_x1233_b1339_s)
-      CU.newVout("data", x1225_x1235_data_v)
+      CU.newOut("data", x1225_x1235_data_v)
     }
     val x1243 = Pipeline(name="x1243",parent=x1244) { implicit CU => 
       val ctr3 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
@@ -97,7 +97,7 @@ object OuterProduct_ma extends PIRApp {
     val x1256 = MemoryController(name="x1256",parent=x1265,offchip=x1210_oc, mctpe=TileLoad) { implicit CU => 
       val x1245_b1342_x1256 = ScalarFIFO(name="size",size=1).wtPort(x1245_b1342_x1254_b1344_s)
       val x1245_b1341_x1256 = ScalarFIFO(name="offset",size=1).wtPort(x1245_b1341_x1254_b1343_s)
-      CU.newVout("data", x1246_x1256_data_v)
+      CU.newOut("data", x1246_x1256_data_v)
     }
     val x1264 = Pipeline(name="x1264",parent=x1265) { implicit CU => 
       val ctr4 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
