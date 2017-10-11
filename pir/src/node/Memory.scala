@@ -18,13 +18,11 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
 
   val readPort: OutPort = OutPort(this, s"${this}.rp") 
   val writePort: InPort = InPort(this, s"${this}.wp")
-  val writePortMux:Mux = new Mux().name(s"${this}.wpMux")
+  val writePortMux= new ValidMux().name(s"${this}.wpMux")
   writePort.connect(writePortMux.out)
   /* Control Signals */
   val enqueueEnable = InPort(this, s"$this.enqEn")
   val dequeueEnable = InPort(this, s"$this.deqEn")
-  val inc = InPort(this, s"$this.inc")
-  val dec = InPort(this, s"$this.dec")
   val predicate = InPort(this, s"$this.predicate")
   val notFull = OutPort(this, s"$this.notFull")
   val notEmpty = OutPort(this, s"$this.notEmpty")
@@ -121,9 +119,9 @@ case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryP
     this 
   }
 
-  val readAddrMux:Mux = new Mux().name(s"$this.raMux")
+  val readAddrMux = new ValidMux().name(s"$this.raMux")
   readAddr.connect(readAddrMux.out)
-  val writeAddrMux:Mux = Mux().name(s"$this.waMux")
+  val writeAddrMux = ValidMux().name(s"$this.waMux")
   writeAddr.connect(writeAddrMux.out)
 }
 

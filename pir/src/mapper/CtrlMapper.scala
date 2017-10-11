@@ -90,8 +90,6 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       val pmem = mp.pmmap(mem)
       mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
       mp = mapInPort(mem.dequeueEnable, pmem.dequeueEnable, mp)
-      mp = mapInPort(mem.inc, pmem.inc, mp)
-      mp = mapInPort(mem.dec, pmem.dec, mp)
       mp = mapOutPort(mem.notFull, pmem.notFull, mp)
       mp = mapOutPort(mem.notEmpty, pmem.notEmpty, mp)
       (mem, pmem) match {

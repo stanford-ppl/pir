@@ -259,11 +259,16 @@ case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
   def isFloat = value.isInstanceOf[Float]
 }
 
-case class Mux()(implicit design:PIR, val ctrler:Controller) extends Primitive {
+trait MuxLike extends Primitive {
   override val typeStr = "Mux"
   val _inputs = ListBuffer[InPort]()
   val inputs = _inputs.toList
   val sel = InPort(this, s"${this}.sel") 
   val out = OutPort(this, s"$this.out")
   def addInput:InPort = { val i = _inputs.size; val in = InPort(this, s"$this.in$i"); _inputs += in; in }
+}
+
+case class Mux()(implicit design:PIR, val ctrler:Controller) extends MuxLike
+case class ValidMux()(implicit design:PIR, val ctrler:Controller) extends MuxLike {
+  val valid = OutPort(this, s"$this.valid")
 }

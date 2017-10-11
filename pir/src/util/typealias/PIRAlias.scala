@@ -58,5 +58,6 @@ trait PIRAlias {
   type Top   = pir.node.Top
   type Seq   = Sequential
   type MetaPipe = MetaPipeline
-  type Mux = pir.node.Mux
+  type Mux = MuxLike
+  type VMux = ValidMux
 }

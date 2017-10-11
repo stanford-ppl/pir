@@ -277,7 +277,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   }
 
   def commentSBufs(pcl:PCL) = {
-    pcl.sbufs.foreach { sbuf =>
+    pcl.sfifos.foreach { sbuf =>
       pmmap.get(sbuf).foreach {
         case smem:SBuf =>
           val sw = if (smem.enqueueEnable.isConnected) {
@@ -331,22 +331,22 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
     pcl.ctrlBox match {
       case pcb:PICB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.enqueueEnable))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sfifos.map(_.enqueueEnable))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.done.in))
       case pcb:POCB =>
         emitXbar(s"${quote(pcb)}.incrementXbar", pcb.udcs.map(_.inc))
         emitln(s"${quote(pcb)}.udcDecSelect=${quote(pcb.udcs.map(udc => muxIdx(udc.dec)))}")
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.enqueueEnable))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sfifos.map(_.enqueueEnable))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
         emitXbar(s"${quote(pcb)}.doneXbar", List(pcb.done.in))
       case pcb:PMCB =>
-        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sbufs.map(_.enqueueEnable))
+        emitXbar(s"${quote(pcb)}.swapWriteXbar", pcl.sfifos.map(_.enqueueEnable))
         emitXbar(s"${quote(pcb)}.readDoneXbar", List(pcb.readDone.in))
         emitXbar(s"${quote(pcb)}.writeDoneXbar", List(pcb.writeDone.in))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
       case pcb:PMCCB =>
-        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sbufs.map(_.enqueueEnable))
+        emitXbar(s"${quote(pcb)}.tokenInXbar", pcb.prt.sfifos.map(_.enqueueEnable))
         emitXbar(s"${quote(pcb)}.tokenOutXbar", pcl.couts.map(_.ic))
     }
   }
@@ -378,7 +378,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
     val pcb = pcu.ctrlBox
     pcu match {
       case pcu:PMCU =>
-        val idxes = pcu.sbufs.map(sbuf => muxIdx(sbuf.dequeueEnable))
+        val idxes = pcu.sfifos.map(sbuf => muxIdx(sbuf.dequeueEnable))
         emitln(s"${quote(pcb)}.scalarSwapReadSelect = ${quote(idxes)}")
       case pcu =>
     }
@@ -405,9 +405,9 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   }
 
   def emitScalarInXbar(pcl:PCL) = {
-    val sins = pcl.sbufs.map { sbuf => fimap.get(sbuf.writePort).map { po => po.src } }
+    val sins = pcl.sfifos.map { sbuf => fimap.get(sbuf.writePort).map { po => po.src } }
     emitComment(s"${quote(pcl)}.scalarInXbar=[${sins.mkString(",")}]")
-    emitXbar(s"${quote(pcl)}.scalarInXbar", pcl.sbufs.map(_.writePort))
+    emitXbar(s"${quote(pcl)}.scalarInXbar", pcl.sfifos.map(_.writePort))
   }
 
   def emitScalarOutXbar(pcu:PCU) = {
@@ -445,7 +445,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   }
 
   def emitScalarNBuffer(pcu:PCU) = {
-    val nbufs = pcu.sbufs.map { psbuf =>
+    val nbufs = pcu.sfifos.map { psbuf =>
       pmmap.get(psbuf).fold(-1) {
         case smem:SBuf => smem.buffering
         case smem:SFIFO => 0

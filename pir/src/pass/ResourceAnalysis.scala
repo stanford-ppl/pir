@@ -145,8 +145,8 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
       collectRegUtil(cl)
       collectCtrUtil(cl)
       collectFUUtil(cl)
-      collectBufUtil(sBufUsed, cl) { prt => prt.sbufs }
-      collectBufUtil(vBufUsed, cl) { prt => prt.vbufs }
+      collectBufUtil(sBufUsed, cl) { prt => prt.sfifos }
+      collectBufUtil(vBufUsed, cl) { prt => prt.vfifos }
       collectPinUtil(sinPinUsed, cl) { prt => prt.sins }
       collectPinUtil(vinPinUsed, cl) { prt => prt.vins }
       collectPinUtil(cinPinUsed, cl) { prt => prt.cins }

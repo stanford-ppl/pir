@@ -160,7 +160,7 @@ trait LocalRouter extends Mapper {
     mp
   }
 
-  def mapMux(mux:Mux, pmux:PMux[_], map:M):M = {
+  def mapMux(mux:Mux, pmux:PMux[_<:PortType], map:M):M = {
     var mp = map
     mp = mp.setPM(mux, pmux)
     if (pmux.ins.size < mux.ins.size) throw PassThroughException(
@@ -168,6 +168,11 @@ trait LocalRouter extends Mapper {
     (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInPort(n, r, mp) }
     mp = mapInPort(mux.sel, pmux.sel, mp)
     mp = mapOutPort(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)
+    (mux, pmux) match {
+      case (mux:VMux, pmux:PVMux[_]) =>
+        mp = mapOutPort(mux.valid, pmux.valid, mp)
+      case _ =>
+    }
     mp
   }
 

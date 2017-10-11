@@ -143,43 +143,67 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         case (mem:FIFO, cb:MemCtrlBox) if mem.readPort.to.exists{ in => cb.ctrler.sram.writePortMux.ins.contains(in) } =>
           //mem.enqueueEnable.connect(mem.writePort.valid)
           //mem.inc.connect(mem.writePort.valid)
-          mem.dequeueEnable.connect(cb.writeEnDelay.out)
-          mem.dec.connect(cb.writeEn.out)
-        case (mem:FIFO, cb:MemCtrlBox) if forRead(mem) =>
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //mem.inc.connect(mem.writePort.valid)
-          mem.dequeueEnable.connect(cb.readEn.out)
-          mem.dec.connect(cb.readEn.out)
-        case (mem:FIFO, cb:MemCtrlBox) if forWrite(mem) =>
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //mem.inc.connect(mem.writePort.valid)
+          //mem.dequeueEnable.connect(cb.writeEnDelay.out)
           mem.dequeueEnable.connect(cb.writeEn.out)
-          mem.dec.connect(cb.writeEn.out)
+        case (mem:FIFO, cb:MemCtrlBox) if forRead(mem) =>
+          mem.enqueueEnable.connect(mem.writePortMux.valid)
+          mem.dequeueEnable.connect(cb.readEn.out)
+        case (mem:FIFO, cb:MemCtrlBox) if forWrite(mem) =>
+          mem.enqueueEnable.connect(mem.writePortMux.valid)
+          mem.dequeueEnable.connect(cb.writeEn.out)
         case (mem:FIFO, cb:MCCtrlBox) if mem.name.get=="data" =>
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //mem.inc.connect(mem.writePort.valid)
+          mem.enqueueEnable.connect(mem.writePortMux.valid)
           mem.dequeueEnable.connect(cb.running)
-          mem.dec.connect(cb.running)
         case (mem:FIFO, cb:StageCtrlBox) =>
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //mem.inc.connect(mem.writePort.valid)
+          mem.enqueueEnable.connect(mem.writePortMux.valid)
           mem.dequeueEnable.connect(cb.en.out)
-          mem.dec.connect(cb.en.out)
         case (mem:SRAM, cb:MemCtrlBox) =>
           //mem.enqueueEnable.connect(cb.writeDoneDelay.out)
           //mem.inc.connect(cb.writeDone.out)
           //mem.dequeueEnable.connect(cb.readDoneDelay.out)
           //mem.dec.connect(cb.readDone.out)
-          
-          mem.enqueueEnable.connect(cb.writeDone.out)
-          mem.dequeueEnable.connect(cb.readDone.out)
-        case (mem:MultiBuffer, cb) => // LocalMem
+          val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
+          forWrite(wfifo) = true
+          mem.writers.foreach { writer =>
+            producerOf.get((mem,writer)).foreach { producer =>
+              val bus = Control(s"${ctrler}_${mem}_wdone")
+              val out = writer.newOut(bus)
+              out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
+              wfifo.wtPort(bus)
+            }
+          }
+          mem.enqueueEnable.connect(wfifo.readPort)
+          val rfifo = ControlFIFO(s"${mem}_rdone", size=10)(mem.ctrler, design)
+          forRead(rfifo) = true
+          mem.readers.foreach { reader =>
+            consumerOf.get((mem, reader)).foreach { consumer =>
+              val bus = Control(s"${ctrler}_${mem}_rdone")
+              val out = reader.newOut(bus)
+              out.in.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
+              rfifo.wtPort(bus)
+            }
+          }
+          mem.dequeueEnable.connect(rfifo.readPort)
+        case (mem:MultiBuffer, cb:StageCtrlBox) => // LocalMem
           //mem.inc.connect(mem.writePort.valid)
           //mem.enqueueEnable.connect(mem.writePort.valid)
           //swapReadCChainOf.get(mem).foreach { cc => 
             //mem.dequeueEnable.connect(getDone(cu, cc))
             //mem.dec.connect(getDone(cu, cc))
           //}
+          val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
+          wfifo.enqueueEnable.connect(mem.writePortMux.valid)
+          wfifo.dequeueEnable.connect(cb.en.out)
+          mem.writers.foreach { writer =>
+            producerOf.get((mem,writer)).foreach { producer =>
+              val bus = Control(s"${ctrler}_${mem}_wdone")
+              val out = writer.newOut(bus)
+              out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
+              wfifo.wtPort(bus)
+            }
+          }
+          mem.enqueueEnable.connect(wfifo.readPort)
+
           mem.readers.foreach { reader =>
             assert(mem.ctrler == reader)
             consumerOf.get((mem, reader)).foreach { consumer =>
@@ -420,30 +444,6 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         //cb.readDone.in.connect(readDone)
         //val writeDone = ctrler.getCC(swapWriteCChainOf(ctrler.sram)).outer.done
         //cb.writeDone.in.connect(writeDone)
-        
-        val mem = ctrler.sram
-        val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
-        forWrite(wfifo) = true
-        mem.writers.foreach { writer =>
-          producerOf.get((mem,writer)).foreach { producer =>
-            val bus = Control(s"${ctrler}_${mem}_wdone")
-            val out = writer.newOut(bus)
-            out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
-            wfifo.wtPort(bus)
-          }
-        }
-        cb.writeDone.in.connect(wfifo.readPort)
-        val rfifo = ControlFIFO(s"${mem}_rdone", size=10)(mem.ctrler, design)
-        forRead(rfifo) = true
-        mem.readers.foreach { reader =>
-          consumerOf.get((mem, reader)).foreach { consumer =>
-            val bus = Control(s"${ctrler}_${mem}_rdone")
-            val out = reader.newOut(bus)
-            out.in.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
-            rfifo.wtPort(bus)
-          }
-        }
-        cb.readDone.in.connect(rfifo.readPort)
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) =>
         cb.done.in.connect(localCChainOf(ctrler).outer.done)

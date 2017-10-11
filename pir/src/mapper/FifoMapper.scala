@@ -44,10 +44,10 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val cu = n.ctrler
     val pcu = m.pmmap(cu)
     val reses = cu match {
-      case cu:MC if n.name.get=="data" => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
-      case cu:MC if cu.mctpe==TileLoad => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
-      case cu:MC if cu.mctpe==TileStore => pcu.sbufs.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
-      case cu => pcu.sbufs
+      case cu:MC if n.name.get=="data" => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
+      case cu:MC if cu.mctpe==TileLoad => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
+      case cu:MC if cu.mctpe==TileStore => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
+      case cu => pcu.sfifos
     }
     dprintln(s"MC filtered reses=[${reses.mkString(",")}]")
     reses.diff(triedRes).filterNot{ r => m.pmmap.contains(r) }

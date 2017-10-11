@@ -133,7 +133,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
             cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
             cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
             cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
-            cons += (("sbufs"	    , (cu.smems, pcu.sbufs)))
+            cons += (("sfifos"	    , (cu.smems, pcu.sfifos)))
             cons += (("srams"	    , (cu.srams, pcu.srams)))
             cu.srams.zip(pcu.srams).headOption.foreach { case (sram, psram) =>
               cons += (("sramSize"	    , (sram.size, psram.size / sram.buffering)))
@@ -146,7 +146,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
             cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
             cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
             cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
-            cons += (("sbufs"	    , (cu.smems, pocu.sbufs)))
+            cons += (("sfifos"	    , (cu.smems, pocu.sfifos)))
         }
         failureInfo(cl) += prt -> ListBuffer[String]()
         check(cons.toList, failureInfo(cl)(prt))
