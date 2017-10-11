@@ -240,13 +240,39 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     case _ =>
   }
 
+  def connectHeads(ctrler:Controller) = {
+    //val heads = ctrler.children.filter{_.isHead}
+    val heads = ctrler.children.filter { case c:OuterController => true; case c:InnerController => c.isHead }
+    dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
+    heads.foreach { head =>
+      val enOut = ctrler.ctrlBox match {
+        case pcb:OuterCtrlBox => pcb.enOut
+        case pcb:TopCtrlBox => pcb.command
+      }
+      val hcb = head.ctrlBox.asInstanceOf[StageCtrlBox]
+      val tk = hcb.tokenBuffer(ctrler)
+      val bus = Control(s"${ctrler}.enOut")
+      val out = ctrler.newOut(bus)
+      val in = hcb.ctrler.newIn(bus)
+      out.in.connect(enOut)
+      tk.inc.connect(in.out)
+      tk.dec.connect(hcb.done.out)
+      hcb.siblingAndTree.addInput(tk.out)
+    }
+  }
+
   def connectLast(parent:Controller, last:Controller) = {
+    val bus = Control(s"$last.doneOut")
+    val out = last.newOut(bus)
+    val in = parent.newIn(bus)
     (parent, last, parent.ctrlBox, last.ctrlBox) match {
       case (parent:Top, last:ComputeUnit, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
-        pcb.status.connect(ccb.doneOut)
+        out.in.connect(ccb.doneOut)
+        pcb.status.connect(in.out)
       case (parent:OuterController, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
-        tk.inc.connect(ccb.doneOut)
+        out.in.connect(ccb.doneOut)
+        tk.inc.connect(in.out)
         tk.dec.connect(pcb.childrenAndTree.out)
         pcb.childrenAndTree.addInput(tk.out)
     }
@@ -285,26 +311,6 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       midParent
     }
     if (midParents.size>1) connectLasts(parent, midParents)
-  }
-
-  def connectHeads(ctrler:Controller) = {
-    //val heads = ctrler.children.filter{_.isHead}
-    val heads = ctrler.children.filter { case c:OuterController => true; case c:InnerController => c.isHead }
-    dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
-    heads.foreach { head =>
-      (ctrler.ctrlBox, head.ctrlBox) match {
-        case (pcb:OuterCtrlBox, hcb:StageCtrlBox) =>
-          val tk = hcb.tokenBuffer(ctrler)
-          tk.inc.connect(pcb.enOut)
-          tk.dec.connect(hcb.done.out)
-          hcb.siblingAndTree.addInput(tk.out)
-        case (pcb:TopCtrlBox, hcb:StageCtrlBox) if isPipelining(head) =>
-          val tk = hcb.tokenBuffer(ctrler)
-          tk.inc.connect(pcb.command)
-          tk.dec.connect(hcb.done.out)
-          hcb.siblingAndTree.addInput(tk.out)
-      }
-    }
   }
 
   def connectLasts(ctrler:Controller):Unit = {
@@ -395,16 +401,21 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //}
     // Backward pressure
     // - FIFO.notFull
-    ctrler.ctrlBox match {
-      case cb:InnerCtrlBox =>
-        ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
-          cb.tokenInAndTree.addInput(mem.notFull)
-        }
-      case cb:MemCtrlBox =>
-        ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
-          cb.tokenInAndTree.addInput(mem.notFull)
-        }
-      case _ =>
+    val andTree = ctrler.ctrlBox match {
+      case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
+      case cb:MemCtrlBox => Some(cb.tokenInAndTree)
+      case _ => None
+    }
+    andTree.foreach { at =>
+      ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
+        val bus = collectOut[GlobalOutput](mem.notFull).headOption.fold[Variable] {
+          val bus = Control(s"$mem.notFull")
+          mem.ctrler.newOut(bus)
+          bus
+        } { _.variable }
+        val in = ctrler.newIn(bus)
+        at.addInput(in.out)
+      }
     }
     // - Credit
     //(ctrler, ctrler.ctrlBox) match {

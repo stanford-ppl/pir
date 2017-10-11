@@ -111,11 +111,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     mp = mp.setPM(at, pat)
     mp = mapOutput(at.out, pat.out, mp)
     at.ins.foreach { in =>
-      val po = if (in.isGlobal) { 
-        mp.vimap(in).ic
-      } else { 
-        mp.opmap(in.from).head
-      }
+      val po = mp.opmap(in.from).head
       val pins = pat.ins.filter { _.canConnect(po) }
       var info = s"Mapping $at to $pat in ${at.ctrler}\n"
       info += s"in=$in, from=${in.from}, po=$po \n"

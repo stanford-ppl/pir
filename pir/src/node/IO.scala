@@ -2,6 +2,8 @@ package pir.node
 
 import pir._
 
+import pirc._
+
 import scala.collection.mutable.ListBuffer
 import scala.math.max
 
@@ -37,6 +39,12 @@ class Input(implicit src:Module, design:PIR) extends IO {
     } else {
       _from = o; 
       o.connect(this)
+      this match {
+        case in:GlobalInput =>
+        case _ if isGlobal =>
+          throw PIRException(s"Only GlobalIO can go across CU boundary! in=${this.ctrler}.$this out=${o.ctrler}.$o")
+        case _ =>
+      }
     }
   }
   def isConnectedTo(o:Output) = { from == o }

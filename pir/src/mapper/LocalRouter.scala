@@ -118,24 +118,18 @@ trait LocalRouter extends Mapper {
         }
       case (osrc, pisrc) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
-        in match {
-          case in if in.isGlobal => 
-            val pop = mp.vimap(in).ic
-            mp = mp.setFI(pin, pop)
-          case in => 
-            mp.opmap.get(in.from).foreach { pops =>
-              var pops = mp.opmap(in.from)
-              val found = pops.foldLeft(false) { 
-                case (false, pop) =>
-                  val (m, connected) = connect(pin, pop, mp)
-                  mp = m
-                  connected
-                case (true, pop) => true
-              }
-              if (!found) throw InputRouting(in, pin, s"Cannot connect $pin to pops=$pops in=$in in.from=${in.from}", mp)
-            }
-            mp = mapFanIn(pin, mp)
+        mp.opmap.get(in.from).foreach { pops =>
+          var pops = mp.opmap(in.from)
+          val found = pops.foldLeft(false) { 
+            case (false, pop) =>
+              val (m, connected) = connect(pin, pop, mp)
+              mp = m
+              connected
+            case (true, pop) => true
+          }
+          if (!found) throw InputRouting(in, pin, s"Cannot connect $pin to pops=$pops in=$in in.from=${in.from}", mp)
         }
+        mp = mapFanIn(pin, mp)
     }
     mp
   }
