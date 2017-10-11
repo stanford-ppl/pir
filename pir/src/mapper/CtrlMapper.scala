@@ -210,18 +210,19 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     var mp = pirMap
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
-    cb.ctrlOuts.foreach { co =>
-      (co.src, pcb) match {
-        case (cb:TCB, pcb:PTCB) =>
-          mp.vomap(co).foreach { pco =>
-            mp = mp.setFI(pco.ic, pcb.command )
-          }
-        case (_, _) =>
-          mp.vomap(co).foreach { pco =>
-            mp = mp.setFI(pco.ic, mp.opmap(co).head)
-          }
-      }
-    }
+    //TODO
+    //cb.ctrlOuts.foreach { co =>
+      //(co.src, pcb) match {
+        //case (cb:TCB, pcb:PTCB) =>
+          //mp.vomap(co).foreach { pco =>
+            //mp = mp.setFI(pco.ic, pcb.command )
+          //}
+        //case (_, _) =>
+          //mp.vomap(co).foreach { pco =>
+            //mp = mp.setFI(pco.ic, mp.opmap(co).head)
+          //}
+      //}
+    //}
     mp
   }
 

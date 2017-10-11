@@ -113,12 +113,6 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
         super.visitNode(node)
       case n:CtrlBox => emitBlock(node) {
         super.visitNode(n)
-        emitBlock(s"cins") {
-          n.ctrlIns.foreach{ in => emitln(s"$in.from=${in.from}") }
-        }
-        emitBlock(s"couts") {
-          n.ctrlOuts.foreach{ out => emitln(s"$out.to=[${out.to.mkString(",")}]") }
-        }
       } 
       case n@(_:PipeReg|_:Delay|_:GlobalIO) => emitln(s"$node ${genFields(node)}")
       case n:InPort =>

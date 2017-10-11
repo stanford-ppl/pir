@@ -17,8 +17,8 @@ abstract class Controller(implicit design:PIR) extends Module {
   lazy val gins = ioMap.values.collect { case io:GlobalInput => io }
   lazy val gouts = ioMap.values.collect { case io:GlobalOutput => io}
 
-  lazy val cins = gins.filter {_.isControl } ++ ctrlBox.ctrlIns
-  lazy val couts = gouts.filter {_.isControl } ++ ctrlBox.ctrlOuts
+  lazy val cins = gins.filter {_.isControl }
+  lazy val couts = gouts.filter {_.isControl }
   lazy val sins = gins.filter {_.isScalar }
   lazy val souts = gouts.filter {_.isScalar }
   lazy val vins = gins.filter {_.isVector }

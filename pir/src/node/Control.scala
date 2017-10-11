@@ -134,30 +134,6 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
   def creditBuffer(deped:Any, initVal:Int):CreditBuffer = { CreditBuffer(deped, initVal) }
   def enLut(outs:List[OutPort], transFunc:TransferFunction) = { EnLUT(outs.size, transFunc) }
 
-  def ctrlIns:List[InPort] = {
-    val cins = ListBuffer[InPort]()
-    cins ++= udcounters.values.map(_.inc)
-    cins ++= andTrees.flatMap(_.ins)
-    cins ++= delays.map(_.in)
-    cins ++= ctrler.mems.map { _.enqueueEnable }
-    cins ++= ctrler.mems.map { _.dequeueEnable }
-    ctrler match {
-      case top:Top =>
-      case cu:ComputeUnit => 
-        cins ++= cu.cchains.map(_.inner.en)
-    }
-    cins ++= ins
-    cins.toSet.filter{_.isGlobal}.toList
-  }
-
-  def ctrlOuts:List[OutPort] = { 
-    val couts = ListBuffer[OutPort]()
-    couts ++= ctrler.mems.map { _.notFull }
-    couts ++= delays.map{_.out}
-    couts ++= outs
-    couts.toSet.filter{_.isGlobal}.toList
-  }
-
   override def toUpdate = super.toUpdate || tokenOut == null
 }
 

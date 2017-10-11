@@ -103,6 +103,7 @@ case class GlobalInput(variable:Variable)(implicit ctrler:Controller, design:PIR
   variable.addReader(this)
   //def writer:Output[Variable] = variable.writer
   val out = OutPort(this, s"${this}.out")
+  val valid = OutPort(this, s"${this}.valid")
   override def from:GlobalOutput = super.from.asInstanceOf[GlobalOutput]
 }
 
@@ -110,6 +111,7 @@ case class GlobalOutput(variable:Variable)(implicit ctrler:Controller, design:PI
   variable.setWriter(this)
   //def readers:List[Input[Variable]]
   val in = InPort(this, s"${this}.in")
+  val valid = InPort(this, s"${this}.valid")
   override def to:List[GlobalInput] = super.to.map{_.asInstanceOf[GlobalInput]}
 }
 

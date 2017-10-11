@@ -4,8 +4,6 @@ import pir._
 import pir.node._
 import pir.util._
 
-import spade.util._
-
 import pirc._
 import pirc.util._
 import pirc.enums._
@@ -26,6 +24,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
     design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
+      connectValid(ctrler)
       connectMemoryControl(ctrler)
     }
     topoSort(design.top).reverse.foreach { ctrler =>
@@ -137,14 +136,31 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
   }
 
+  def connectValid(ctrler:Controller) = emitBlock(s"connectValid($ctrler)") { ctrler match {
+    case cu:MemoryController =>
+      cu.gouts.foreach { _.valid.connect(cu.ctrlBox.running) }
+    case cu:Top =>
+      cu.gouts.foreach { _.valid.connect(cu.ctrlBox.command) }
+    case cu:ComputeUnit =>
+      cu.gouts.foreach { out =>
+        val writtenMems = collectOut[OnChipMem](out.to.head)
+        writtenMems.collect { case mem:FIFO => mem }.headOption.foreach { mem =>
+          val en = cu.ctrlBox match {
+            case cb:MemCtrlBox => cb.readEn.out
+            case cb:StageCtrlBox => cb.en.out
+          }
+          out.valid.connect(en)
+        }
+        writtenMems.collect{ case mem:MultiBuffer => mem }.headOption.foreach { mem =>
+          val cc = cu.getCC(localCChainOf(producerOf((mem, cu))))
+          out.valid.connect(cc.outer.done)
+        }
+      }
+  }}
+
   def connectMemoryControl(ctrler:Controller) = ctrler match { case cu:ComputeUnit =>
     cu.mems.foreach { mem =>
       (mem, cu.ctrlBox) match {
-        case (mem:FIFO, cb:MemCtrlBox) if mem.readPort.to.exists{ in => cb.ctrler.sram.writePortMux.ins.contains(in) } =>
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //mem.inc.connect(mem.writePort.valid)
-          //mem.dequeueEnable.connect(cb.writeEnDelay.out)
-          mem.dequeueEnable.connect(cb.writeEn.out)
         case (mem:FIFO, cb:MemCtrlBox) if forRead(mem) =>
           mem.enqueueEnable.connect(mem.writePortMux.valid)
           mem.dequeueEnable.connect(cb.readEn.out)
@@ -412,7 +428,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def connectEnable(ctrler:Controller) = {
+  def connectEnable(ctrler:Controller) = emitBlock(s"connectEnable($ctrler)"){
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
         //readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
@@ -433,7 +449,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def connectDone(ctrler:Controller) = {
+  def connectDone(ctrler:Controller) = emitBlock(s"connectDone($ctrler)"){
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
         //TODO HACK for case when readCC and writeCC are the same set of counter chain. There will be two copy of the

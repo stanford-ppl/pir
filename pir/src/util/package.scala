@@ -122,22 +122,21 @@ package object util {
     else s.toInt
   }
 
-  def collectIn[X](x:Any, logger:Logger)(implicit ev:ClassTag[X]):Set[X] = logger.emitBlock(s"collectIn($x)") {
-    collectIn(x)(ev)
-  }
-
-  def collectIn[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
-    case x:X => Set(x)
-    case x:GlobalInput => Set() // Stop at CU boundary
-    case LoadPR(mem) => collectIn[X](mem)
-    case CtrPR(ctr) => collectIn[X](ctr)
-    case PipeReg(_, reg) => collectIn[X](reg) 
-    case x:CounterChain => x.counters.flatMap(collectIn[X]).toSet
-    case x:Module => collectIn[X](x.ins)
-    case x:InPort => if (!x.isConnected) Set() else collectIn[X](x.from.src)
-    case x:OutPort => collectIn[X](x.src)
-    case x:Iterable[_] => x.flatMap(collectIn[X]).toSet
-    case _ => Set()
+  def collectIn[X](x:Any, logger:Option[Logger] = None)(implicit ev:ClassTag[X]):Set[X] = {
+    def f(x:Any) = x match {
+      case x:X => Set(x)
+      case x:GlobalInput => Set[X]() // Stop at CU boundary
+      case LoadPR(mem) => collectIn[X](mem, logger)
+      case CtrPR(ctr) => collectIn[X](ctr, logger)
+      case PipeReg(_, reg) => collectIn[X](reg, logger) 
+      case x:CounterChain => x.counters.flatMap(x => collectIn[X](x, logger)).toSet
+      case x:Module => collectIn[X](x.ins, logger)
+      case x:InPort => if (!x.isConnected) Set[X]() else collectIn[X](x.from.src, logger)
+      case x:OutPort => collectIn[X](x.src, logger)
+      case x:Iterable[_] => x.flatMap(x => collectIn[X](x, logger)).toSet
+      case _ => Set[X]()
+    }
+    logger.fold(f(x)) { _.emitBlock(s"collectIn($x)") {f(x)} }
   }
 
   def filterIn[X](x:X, predicate: Any => Boolean):Iterable[X] = filterIn(Set(x), predicate)
@@ -158,14 +157,17 @@ package object util {
     }).nonEmpty
   }
     
-  def collectOut[X](x:Any)(implicit ev:ClassTag[X]):Set[X] = x match {
-    case x:X => Set(x)
-    case x:GlobalOutput => Set() // Stop at CU boundary
-    case x:Module => collectOut[X](x.outs)
-    case x:OutPort => if (!x.isConnected) Set() else x.to.flatMap(in => collectOut[X](in.src)).toSet
-    case x:InPort => collectOut[X](x.src)
-    case x:Iterable[_] => x.flatMap(collectOut[X]).toSet
-    case _ => Set()
+  def collectOut[X](x:Any, logger:Option[Logger]=None)(implicit ev:ClassTag[X]):Set[X] = {
+    def f(x:Any) = x match {
+      case x:X => Set(x)
+      case x:GlobalOutput => Set[X]() // Stop at CU boundary
+      case x:Module => collectOut[X](x.outs, logger)
+      case x:OutPort => if (!x.isConnected) Set[X]() else x.to.flatMap(in => collectOut[X](in.src, logger)).toSet
+      case x:InPort => collectOut[X](x.src, logger)
+      case x:Iterable[_] => x.flatMap(x => collectOut[X](x, logger)).toSet
+      case _ => Set[X]()
+    }
+    logger.fold(f(x)) { _.emitBlock(s"collectOut($x)") {f(x)} }
   }
 
 }
