@@ -20,7 +20,7 @@ class VFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def constrain(n:N, r:R, m:M):M = {
     var mp = m
     mp = mp.setPM(n, r).setOP(n.readPort, r.readPort)
-    mp = mapInPort(n.writePort, r.writePort, mp)
+    mp = mapInput(n.writePort, r.writePort, mp)
     mp = mapMux(n.writePortMux, r.writePortMux, mp)
     mp
   }

@@ -95,7 +95,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
         out match {
           case out:GO if out.isVector => arch.numLanes * regUnitPower
           case out:GO if out.isScalar => regUnitPower
-          case out:OP => 0.0
+          case out:O => 0.0
         }
       }
     }).sum

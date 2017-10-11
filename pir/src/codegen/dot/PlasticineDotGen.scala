@@ -83,13 +83,13 @@ abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR)
         m.vimap.get(pin).foreach { ins =>
           ins.foreach {
             case vi:GI => label += s"${vi.variable}"
-            case ip:IP => label += s"${ip}"
+            case ip:I => label += s"${ip}"
           }
         }
         m.vomap.get(pout).foreach { out =>
           out match {
             case vo:GO => label += s"${vo.variable}"
-            case op:OP => label += s"${op}"
+            case op:O => label += s"${op}"
           }
         }
         attr.label(label.mkString("\n"))

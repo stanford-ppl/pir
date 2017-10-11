@@ -159,7 +159,7 @@ case class VIMap(map:VIMap.M, imap:VIMap.IM) extends IBiManyToOneMap {
   def contains(v:V) = imap.contains(v)
 }
 object VIMap extends IBiManyToOneObj {
-  type K = IP 
+  type K = I 
   type V = PGI[PModule]
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
@@ -184,7 +184,7 @@ case class VOMap(map:VOMap.M, imap:VOMap.IM) extends IBiOneToManyMap {
   def contains(v:V) = imap.contains(v)
 }
 object VOMap extends IBiOneToManyObj {
-  type K = OP
+  type K = O
   type V = PGO[PModule]
   def empty:VOMap = VOMap(Map.empty, Map.empty)
 }
@@ -197,7 +197,7 @@ case class MKMap(map:MKMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); MKMap(map + rec) }
 }
 object MKMap extends IOneToOneObj {
-  type K = PIO[PModule] //InPort or VecIn
+  type K = PIO[PModule] //Input or VecIn
   type V = Node
   def empty:MKMap = MKMap(Map.empty)
 }
@@ -225,7 +225,7 @@ object RCMap extends IBiManyToManyObj {
   type V = PReg 
   def empty:RCMap = RCMap(Map.empty, Map.empty)
 }
-/* A mapping between InPort and PInPort */
+/* A mapping between Input and PInput */
 case class IPMap(map:IPMap.M, imap:IPMap.IM) extends IBiOneToOneMap {
   type K = IPMap.K
   type V = IPMap.V
@@ -238,11 +238,11 @@ case class IPMap(map:IPMap.M, imap:IPMap.IM) extends IBiOneToOneMap {
   def contains(v:V) = imap.contains(v)
 }
 object IPMap extends IBiOneToOneObj {
-  type K = IP 
+  type K = I 
   type V = PI[_<:PModule]
   def empty:IPMap = IPMap(Map.empty, Map.empty)
 }
-/* A mapping between OutPort and the POutPort */
+/* A mapping between Output and the POutput */
 case class OPMap(map:OPMap.M, imap:OPMap.IM) extends IBiOneToManyMap {
   type K = OPMap.K
   type V = OPMap.V
@@ -260,7 +260,7 @@ case class OPMap(map:OPMap.M, imap:OPMap.IM) extends IBiOneToManyMap {
   def contains(v:V) = imap.contains(v)
 }
 object OPMap extends IBiOneToManyObj {
-  type K = OP
+  type K = O
   type V = PO[PModule]
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
@@ -346,7 +346,7 @@ case class RTMap(map:RTMap.M) extends IOneToOneMap {
   override def + (rec:(K,V)) = { super.check(rec); RTMap(map + rec) }
 }
 object RTMap extends IOneToOneObj {
-  type K = Any //InPort or VecIn or Delay
+  type K = Any //Input or VecIn or Delay
   type V = Int 
   def empty:RTMap = RTMap(Map.empty)
 }

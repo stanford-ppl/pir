@@ -111,7 +111,7 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   * @param stage: Stage of the pipeline register 
   * @param c: counter 
   */
-  def ctr(stage:Stage, c:Counter):OutPort = stage.get(ctrPR(c)).out
+  def ctr(stage:Stage, c:Counter):Output = stage.get(ctrPR(c)).out
   
   /* Create a new logical accumulator register */
   def accum(init:Const[_<:AnyVal]):AccumPR = accumPR(init)

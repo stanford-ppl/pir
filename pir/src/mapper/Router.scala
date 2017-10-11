@@ -19,8 +19,8 @@ abstract class Router(implicit design:PIR) extends Mapper {
   lazy val maxHop = design.arch.top.diameter
   override val exceptLimit = 200
 
-  type I<:IP
-  type O<:OP
+  type I<:pir.util.typealias.I
+  type O<:pir.util.typealias.O
   type R = (PCL, Path[FEdge])
   type Edge = (PGIO[PRT], PGIO[PRT])
   type FEdge = (PGO[PRT], PGI[PRT])
@@ -72,7 +72,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
   //def quote[T](n:T)(implicit ev:TypeTag[T]):String = n match {
   //}
 
-  def ctrler(io:PT):CL
+  def ctrler(io:IO):CL
   def from(in:I):O
   def to(out:O):List[I]
   def ins(cl:CL):List[I]
@@ -518,13 +518,8 @@ abstract class Router(implicit design:PIR) extends Mapper {
           throw PIRException(s"${in} in ${ctrler} from ${from(in)} wasn't mapped")
       }
       outs(ctrler).foreach { out =>
-        (out match {
-          case co:OP if co.to.size!=0 => Some(out)
-          case out => None
-        }).foreach { out =>
-          if(!mapping.vomap.contains(out))
+        if(out.isConnected && !mapping.vomap.contains(out))
             throw PIRException(s"${out} in ${ctrler} to [${to(out).mkString(",")}] wasn't mapped")
-        }
       }
     }
   }
@@ -540,7 +535,7 @@ class VectorRouter()(implicit val design:PIR) extends Router {
 
   def io(prt:PRT):PGrid[PRT] = prt.vectorIO
 
-  def ctrler(io:PT):CL = io.ctrler
+  def ctrler(io:IO):CL = io.ctrler
   def from(in:I):O = in.from
   def to(out:O) = out.to.toList
   def ins(cl:CL) = cl.vins.toList
@@ -558,7 +553,7 @@ class ScalarRouter()(implicit val design:PIR) extends Router {
 
   def io(prt:PRT):PGrid[PRT] = prt.scalarIO
 
-  def ctrler(io:PT):CL = io.ctrler
+  def ctrler(io:IO):CL = io.ctrler
   def from(in:I):O = in.from
   def to(out:O) = out.to.toList
   def ins(cl:CL) = cl.sins.toList
@@ -568,14 +563,14 @@ class ScalarRouter()(implicit val design:PIR) extends Router {
 class ControlRouter()(implicit val design:PIR) extends Router {
   override val typeStr = "CtrlRouter"
 
-  type I = IP
-  type O = OP
+  type I = pir.util.typealias.I
+  type O = pir.util.typealias.O
 
   override def debug:Boolean = PIRConfig.debugCtrlRouter
 
   def io(prt:PRT):PGrid[PRT] = prt.ctrlIO
 
-  def ctrler(io:PT):CL = io.ctrler
+  def ctrler(io:IO):CL = io.ctrler
   def from(in:I):O = in.from
   def to(out:O) = out.to.toList
   def ins(cl:CL) = cl.cins.toList

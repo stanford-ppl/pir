@@ -115,7 +115,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
     }
   }
 
-  def lookUp(n:IP):String = { lookUp(ipmap(n)) }
+  def lookUp(n:I):String = { lookUp(ipmap(n)) }
 
   def lookUp(n:PI[PModule]):String = fimap.get(n) match {
     case None => s"$SVT()"

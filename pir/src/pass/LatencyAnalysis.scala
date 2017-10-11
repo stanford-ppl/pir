@@ -35,8 +35,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
       val const:Option[Int] = node match {
         case GlobalInput(variable) => constProp(variable)
         case s:GlobalOutput => constProp(s.in.from)
-        case op:OutPort => constProp(op.src) 
-        case ip:InPort => constProp(ip.from)
+        case op:Output => constProp(op.src) 
+        case ip:Input => constProp(ip.from)
         case Const(c:Int) => Some(c)
         case PipeReg(stage, ScalarInPR(scalarIn)) => constProp(scalarIn)
         case PipeReg(stage, CtrPR(ctr)) => None 
@@ -199,8 +199,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
     val const:Int = node match {
       case GlobalInput(scalar) => constProp(scalar)
       case s:GlobalOutput => constProp(s.in.from)
-      case op:OutPort => constProp(op.src) 
-      case ip:InPort => constProp(ip.from)
+      case op:Output => constProp(op.src) 
+      case ip:Input => constProp(ip.from)
       case Const(c:Int) => c
       case PipeReg(stage, ScalarInPR(scalarIn)) => constProp(scalarIn)
       case PipeReg(stage, CtrPR(ctr)) => constProp(ctr)

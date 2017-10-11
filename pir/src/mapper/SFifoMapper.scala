@@ -22,8 +22,8 @@ class SFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def constrain(n:N, r:R, map:M):M = {
     var mp = map
     mp = mp.setPM(n, r)
-    mp = mapOutPort(n.readPort, r.readPort, mp)
-    mp = mapInPort(n.writePort, r.writePort, mp)
+    mp = mapOutput(n.readPort, r.readPort, mp)
+    mp = mapInput(n.writePort, r.writePort, mp)
     mp = mapMux(n.writePortMux, r.writePortMux, mp)
     mp
   }

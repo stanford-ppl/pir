@@ -126,7 +126,7 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
         out match {
           case out:GO if out.isVector => arch.numLanes * regUnitPower * writeTime(out.ctrler)
           case out:GO if out.isScalar => regUnitPower * timeOf(out.ctrler)
-          case out:OP => 0.0
+          case out:O => 0.0
         }
       }
     }).sum

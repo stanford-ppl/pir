@@ -37,9 +37,9 @@ trait PIRAlias {
   type GI    = GlobalInput
   type GO    = GlobalOutput
   type GIO   = GlobalIO
-  type PT    = Port
-  type IP    = InPort
-  type OP    = OutPort
+  type IO    = pir.node.IO
+  type I    = Input
+  type O    = Output
   type PDU   = PredicateUnit
   type CB    = CtrlBox
   type MCB   = MemCtrlBox

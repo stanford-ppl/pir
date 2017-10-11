@@ -250,7 +250,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     dprintln(wparOf.info(cu))
   }
 
-  def swapCounter(ip:InPort, ccFrom:CounterChain, ccTo:CounterChain) = {
+  def swapCounter(ip:Input, ccFrom:CounterChain, ccTo:CounterChain) = {
     ip.from.src match {
       case ctr:Counter if ccFrom.counters.contains(ctr) =>
         val idx = ccFrom.counters.indexOf(ctr)

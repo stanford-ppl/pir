@@ -164,12 +164,12 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
   import design.pirmeta._
   override val typeStr = "Ctr"
   /* Fields */
-  val min:InPort = InPort(this, s"${this}.min")
-  val max:InPort = InPort(this, s"${this}.max")
-  val step:InPort = InPort(this, s"${this}.step")
-  val out:OutPort = OutPort(this, {s"${this}.out"}) 
-  val en:InPort = InPort(this, s"${this}.en")
-  val done:OutPort = OutPort(this, s"${this}.done")
+  val min:Input = Input(this, s"${this}.min")
+  val max:Input = Input(this, s"${this}.max")
+  val step:Input = Input(this, s"${this}.step")
+  val out:Output = Output(this, {s"${this}.out"}) 
+  val en:Input = Input(this, s"${this}.en")
+  val done:Output = Output(this, s"${this}.done")
   var par:Int = 1
   var _iterIdx:Option[Int] = None
   def iterIdx:Option[Int] = _iterIdx
@@ -212,7 +212,7 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
       s"Overriding existing counter ${this} with min ${c.max}")
     assert(step.from==null, 
       s"Overriding existing counter ${this} with min ${c.step}")
-    def copyOutPort(p:OutPort):OutPort = {
+    def copyOutput(p:Output):Output = {
       p.src match {
         case Const(c) => Const(c).out
         case s:ScalarBuffer =>
@@ -231,14 +231,14 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
         case _ => throw new Exception(s"Don't know how to copy port") //TODO
       }
     }
-    min.connect(copyOutPort(c.min.from))
-    max.connect(copyOutPort(c.max.from))
-    step.connect(copyOutPort(c.step.from))
+    min.connect(copyOutput(c.min.from))
+    max.connect(copyOutput(c.max.from))
+    step.connect(copyOutput(c.step.from))
     par = c.par
   } 
 }
 object Counter {
-  def apply(min:OutPort, max:OutPort, step:OutPort, par:Int)(implicit ctrler:ComputeUnit, design: PIR):Counter = { 
+  def apply(min:Output, max:Output, step:Output, par:Int)(implicit ctrler:ComputeUnit, design: PIR):Counter = { 
     val c = new Counter()
     c.min.connect(min)
     c.max.connect(max)
@@ -262,7 +262,7 @@ case class DummyCounter(cc:CounterChain)(implicit override val ctrler:ComputeUni
   this.min.connect(Const(-1).out)
   this.max.connect(Const(-1).out)
   this.step.connect(Const(-1).out)
-  //val dummyCtrl = OutPort(this, s"${this}.dummyEn")
+  //val dummyCtrl = Output(this, s"${this}.dummyEn")
   //this.en.connect(dummyCtrl)
   override def toUpdate = false
 }

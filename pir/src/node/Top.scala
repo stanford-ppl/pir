@@ -82,7 +82,7 @@ case class Top()(implicit design: PIR) extends Controller { self =>
           val sin = super.newIn(a)
           val sbuf = ScalarBuffer()(this, design)
           sbuf.wtPort(sin)
-          InPort(this, s"$this.in").connect(sbuf.readPort)
+          Input(this, s"$this.in").connect(sbuf.readPort)
           super.mems(List(sbuf))
         case _ => 
       }

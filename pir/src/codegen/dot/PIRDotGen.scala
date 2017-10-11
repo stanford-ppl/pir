@@ -68,8 +68,8 @@ trait PIRDotGen extends Codegen with DotCodegen {
     }
   }
 
-  def emitCtrlInputs(cl:Controller, cins:Iterable[InPort]):Unit = {
-    def q(cp:Port) = cp.src match {
+  def emitCtrlInputs(cl:Controller, cins:Iterable[Input]):Unit = {
+    def q(cp:IO) = cp.src match {
       case cb:CtrlBox => 
         val attrs = s"${cp}".split("\\.")
         if (attrs.size==2)

@@ -42,11 +42,11 @@ trait PIRVcdDeclarator { self:PIRVcdPrinter =>
           visited += node
           val pio = vomap(io).head
           declare(pio, Some(s"${self.quote(io)}"))
-        case io:InPort =>
+        case io:Input =>
           visited += node
           val pio = if (io.isGlobal) vimap.get(io) else ipmap.get(io)
           pio.foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
-        case io:OutPort =>
+        case io:Output =>
           visited += node
           if (io.isGlobal) vomap(io).foreach { pio => declare(pio, Some(s"${self.quote(io)}")) }
           else opmap.get(io).foreach { pios => declare(pios.head, Some(s"${self.quote(io)}")) }

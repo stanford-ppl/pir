@@ -81,7 +81,7 @@ trait LocalRouter extends Mapper {
     mp
   }
 
-  def mapFanIn(in:IP, pin:PI[PModule], map:M):M = {
+  def mapFanIn(in:I, pin:PI[PModule], map:M):M = {
     var mp = map
     if (!in.isConnected || mp.fimap.contains(pin)) return mp
     val out = in.from
@@ -89,7 +89,7 @@ trait LocalRouter extends Mapper {
       case (osrc@Const(c), pisrc) =>
         mappingOf[PConst](pin).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
           val info = s"$in is Const, but $pin cannot be configured to constant"
-          throw InPortRouting(in, pin, info, mp)
+          throw InputRouting(in, pin, info, mp)
         } { pconst =>
           mp = mapConst(osrc, pconst, mp)
           val (m, connected) = connect(pin, pconst.out, mp)
@@ -101,7 +101,7 @@ trait LocalRouter extends Mapper {
         val poStage = mp.pmmap(oStage)
         val poPpr = poStage.get(piReg)
         mp = propogate(poPpr, pin, mp).getOrElse {
-          throw InPortRouting(in, pin, s"Cannot propogate $poPpr to $pisrc", mp)
+          throw InputRouting(in, pin, s"Cannot propogate $poPpr to $pisrc", mp)
         }
       case (osrc@PipeReg(oStage, oReg), pisrc) => // output is from pipeReg and input is to pipeReg
         // Register value is passed to a non register input
@@ -114,7 +114,7 @@ trait LocalRouter extends Mapper {
           if (prev.isEmpty) propogate(poPpr, pin, mp) else prev
         }
         mp = propogatedMap.getOrElse {
-          throw InPortRouting(in, pin, s"Cannot connect $pin to ${osrc.out}", mp)
+          throw InputRouting(in, pin, s"Cannot connect $pin to ${osrc.out}", mp)
         }
       case (osrc, pisrc) => 
         // src of the inport doesn't belong to a stage and inport is not from a PipeReg
@@ -132,7 +132,7 @@ trait LocalRouter extends Mapper {
                   connected
                 case (true, pop) => true
               }
-              if (!found) throw InPortRouting(in, pin, s"Cannot connect $pin to pops=$pops in=$in in.from=${in.from}", mp)
+              if (!found) throw InputRouting(in, pin, s"Cannot connect $pin to pops=$pops in=$in in.from=${in.from}", mp)
             }
             mp = mapFanIn(pin, mp)
         }
@@ -140,7 +140,7 @@ trait LocalRouter extends Mapper {
     mp
   }
 
-  def mapInPort(in:IP, pin:PI[PModule], map:M):M = {
+  def mapInput(in:I, pin:PI[PModule], map:M):M = {
     var mp = map
     if (mp.fimap.contains(pin) && mp.ipmap.contains(in)) return mp
     mp = mp.setIP(in, pin)
@@ -148,13 +148,13 @@ trait LocalRouter extends Mapper {
     mp
   } 
 
-  def mapOutPort(out:OP, pout:PO[_<:PModule], map:M):M = {
+  def mapOutput(out:O, pout:PO[_<:PModule], map:M):M = {
     var mp = map
     mp = mp.setOP(out,pout)
     //dprintln(s"mapping $out -> $pout")
     out.to.foreach { 
       case ip if (mp.ipmap.contains(ip)) =>
-        mp = mapInPort(ip, mp.ipmap(ip), mp)
+        mp = mapInput(ip, mp.ipmap(ip), mp)
       case ip =>
     }
     mp
@@ -165,12 +165,12 @@ trait LocalRouter extends Mapper {
     mp = mp.setPM(mux, pmux)
     if (pmux.ins.size < mux.ins.size) throw PassThroughException(
         MuxUnderSize(s"${quote(pmux.prt)}.$pmux undersize! $pmux.ins=${pmux.ins.size} $mux.ins=${mux.ins.size}"), mp)
-    (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInPort(n, r, mp) }
-    mp = mapInPort(mux.sel, pmux.sel, mp)
-    mp = mapOutPort(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)
+    (mux.ins, pmux.ins).zipped.foreach { case (n, r) => mp = mapInput(n, r, mp) }
+    mp = mapInput(mux.sel, pmux.sel, mp)
+    mp = mapOutput(mux.out, pmux.out.asInstanceOf[PO[PModule]], mp)
     (mux, pmux) match {
       case (mux:VMux, pmux:PVMux[_]) =>
-        mp = mapOutPort(mux.valid, pmux.valid, mp)
+        mp = mapOutput(mux.valid, pmux.valid, mp)
       case _ =>
     }
     mp
@@ -181,7 +181,7 @@ trait LocalRouter extends Mapper {
 case class MuxUnderSize(info:String) (implicit mapper:Mapper, design:PIR) extends MappingException(PIRMap.empty) {
   override val msg = info
 } 
-case class InPortRouting(n:IP, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
+case class InputRouting(n:I, p:PI[_<:PModule], info:String, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
   override val msg = s"Fail to map ${n} to ${p}. info:${info}"
 }
 case class LocalRouting(info:String, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {

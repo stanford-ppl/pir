@@ -16,22 +16,22 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   val banking:Banking
   var copy:Option[OnChipMem] = None
 
-  val readPort: OutPort = OutPort(this, s"${this}.rp") 
-  val writePort: InPort = InPort(this, s"${this}.wp")
+  val readPort: Output = Output(this, s"${this}.rp") 
+  val writePort: Input = Input(this, s"${this}.wp")
   val writePortMux= new ValidMux().name(s"${this}.wpMux")
   writePort.connect(writePortMux.out)
   /* Control Signals */
-  val enqueueEnable = InPort(this, s"$this.enqEn")
-  val dequeueEnable = InPort(this, s"$this.deqEn")
-  val predicate = InPort(this, s"$this.predicate")
-  val notFull = OutPort(this, s"$this.notFull")
-  val notEmpty = OutPort(this, s"$this.notEmpty")
+  val enqueueEnable = Input(this, s"$this.enqEn")
+  val dequeueEnable = Input(this, s"$this.deqEn")
+  val predicate = Input(this, s"$this.predicate")
+  val notFull = Output(this, s"$this.notFull")
+  val notEmpty = Output(this, s"$this.notEmpty")
 
-  def rdPort(port:InPort):this.type = { readPort.connect(port); this } 
+  def rdPort(port:Input):this.type = { readPort.connect(port); this } 
   def rdPort(out:GlobalOutput):this.type = { rdPort(out.in); this }
   def rdPort(variable:Variable):this.type = { rdPort(ctrler.newOut(variable)) }
 
-  def wtPort(port:OutPort):this.type = { writePortMux.addInput.connect(port); this } 
+  def wtPort(port:Output):this.type = { writePortMux.addInput.connect(port); this } 
   def wtPort(in:GlobalInput):this.type = { wtPort(in.out) }
   def wtPort(variable:Variable):this.type = { wtPort(ctrler.newIn(variable)) }
 
@@ -108,13 +108,13 @@ case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryP
     case NoBanking() => 1
     case Duplicated() => throw PIRException(s"Shouldn't matching Duplicated. No support in pirgen yet")
   }
-  val readAddr: InPort = InPort(this, s"${this}.ra")
-  def rdAddr(ra:OutPort):this.type = { 
+  val readAddr: Input = Input(this, s"${this}.ra")
+  def rdAddr(ra:Output):this.type = { 
     readAddrMux.addInput.connect(ra); 
     this
   } 
-  val writeAddr: InPort = InPort(this, s"${this}.wa")
-  def wtAddr(wa:OutPort):this.type = { 
+  val writeAddr: Input = Input(this, s"${this}.wa")
+  def wtAddr(wa:Output):this.type = { 
     writeAddrMux.addInput.connect(wa)
     this 
   }

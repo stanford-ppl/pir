@@ -16,24 +16,24 @@ class CtrlDotGen(implicit design: PIR) extends Codegen with DotCodegen {
     //emitln(s"splines=ortho;")
   }
 
-  def q(in:InPort) = in.src
-  def q(out:OutPort) = out.src
+  def q(in:Input) = in.src
+  def q(out:Output) = out.src
 
   override def reset = { emittedEdges.clear; super.reset}
-  val emittedEdges = Set[(OutPort, InPort)]() 
-  def emitEdge(to:InPort):Unit = { if (to.isConnected) emitEdge(to.from, to) }
-  def emitEdge(to:InPort, label:String):Unit = 
+  val emittedEdges = Set[(Output, Input)]() 
+  def emitEdge(to:Input):Unit = { if (to.isConnected) emitEdge(to.from, to) }
+  def emitEdge(to:Input, label:String):Unit = 
     if (to.isConnected) emitEdge(to.from, to, DotAttr().label(label))
-  def emitEdge(to:InPort, attr:DotAttr):Unit = 
+  def emitEdge(to:Input, attr:DotAttr):Unit = 
     if (to.isConnected) emitEdge(to.from, to, attr)
-  def emitEdge(from:OutPort, to:InPort):Unit = {
+  def emitEdge(from:Output, to:Input):Unit = {
     if (!emittedEdges.contains((from, to))) {
       emitEdge(q(from), q(to))
       val t = (from, to)
       emittedEdges += t
     }
   }
-  def emitEdge(from:OutPort, to:InPort, attr:DotAttr):Unit = {
+  def emitEdge(from:Output, to:Input, attr:DotAttr):Unit = {
     if (!emittedEdges.contains((from, to))) {
       emitEdge(q(from), q(to), attr)
       val t = (from, to)

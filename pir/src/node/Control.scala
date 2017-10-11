@@ -14,10 +14,10 @@ abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:PIR) extends Primi
 abstract class UDCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   val initVal:Int
   def initOnStart:Boolean
-  val inc = InPort(this, s"${this}.inc")
-  val dec = InPort(this, s"${this}.dec")
-  val init = InPort(this, s"${this}.init")
-  val out = OutPort(this, s"${this}.out")
+  val inc = Input(this, s"${this}.inc")
+  val dec = Input(this, s"${this}.dec")
+  val init = Input(this, s"${this}.init")
+  val out = Output(this, s"${this}.out")
 }
 /* TokenBuffer represents the forward data dependency.
  * @param dep depended compute unit where data is from. None if if allocated in first stage, in
@@ -36,17 +36,17 @@ case class CreditBuffer(deped:Any, initVal:Int)(implicit ctrlBox:CtrlBox, design
   ctrler.ctrlBox.creditBuffers += deped -> this
 }
 
-case class TransferFunction(tf:(Map[OutPort, Int], List[Boolean]) => Boolean, info:String)
+case class TransferFunction(tf:(Map[Output, Int], List[Boolean]) => Boolean, info:String)
 object TransferFunction {
-  def apply(info:String)(transFunc:(Map[OutPort, Int], List[Boolean]) => Boolean):TransferFunction = {
+  def apply(info:String)(transFunc:(Map[Output, Int], List[Boolean]) => Boolean):TransferFunction = {
     TransferFunction(transFunc, info)
   }
 }
 abstract class LUT(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   val transFunc:TransferFunction
   val numIns:Int
-  (0 until numIns).foreach { i => InPort(this,s"${this}.in$i") }
-  val out = OutPort(this, s"${this}.out")
+  (0 until numIns).foreach { i => Input(this,s"${this}.in$i") }
+  val out = Output(this, s"${this}.out")
 }
 case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
               (implicit ctrlBox:CtrlBox, design:PIR) extends LUT {
@@ -54,8 +54,8 @@ case class TokenDownLUT(numIns:Int, transFunc:TransferFunction)
   //ctrler.ctrlBox.tokDownLUTs += this
 }
 object TokenDownLUT {
-  def apply(cu:Controller, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit design:PIR):OutPort = {
+  def apply(cu:Controller, outs:List[Output], transFunc:TransferFunction)
+  (implicit design:PIR):Output = {
     val lut = TokenDownLUT(outs.size, transFunc)(cu.ctrlBox, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     lut.out
@@ -67,8 +67,8 @@ case class TokenOutLUT(numIns:Int, transFunc:TransferFunction)
   //ctrler.ctrlBox.tokOutLUTs += this
 }
 object TokenOutLUT {
-  def apply(cu:Controller, outs:List[OutPort], transFunc:TransferFunction)
-  (implicit design: PIR):OutPort = {
+  def apply(cu:Controller, outs:List[Output], transFunc:TransferFunction)
+  (implicit design: PIR):Output = {
     val lut = TokenOutLUT(outs.size, transFunc)(cu.ctrlBox, design)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
     lut.out
@@ -80,7 +80,7 @@ case class EnLUT(numIns:Int, transFunc:TransferFunction)
   //ctrler.ctrlBox.enLUTs += this
 }
 object EnLUT {
-  def apply(outs:List[OutPort], transFunc:TransferFunction)
+  def apply(outs:List[Output], transFunc:TransferFunction)
   (implicit ctrlBox:CtrlBox, design:PIR):EnLUT = {
     val lut = EnLUT(outs.size, transFunc)
     lut.ins.zipWithIndex.foreach { case (in, i) => in.connect(outs(i)) }
@@ -89,20 +89,20 @@ object EnLUT {
 }
 class AndTree(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   override val typeStr = "AndTree"
-  val out = OutPort(this, s"$this.out")
+  val out = Output(this, s"$this.out")
   ctrlBox.andTrees += this
-  def addInput(input:OutPort):InPort = {
+  def addInput(input:Output):Input = {
     val idx = ins.size
-    val ip = InPort(this, s"$this.in${idx}")
+    val ip = Input(this, s"$this.in${idx}")
     ip.connect(input)
     ip
   }
-  def addInputs(inputs:List[OutPort]) = {
+  def addInputs(inputs:List[Output]) = {
     inputs.map(input => addInput(input))
  }
 }
 object AndTree {
-  def apply(inputs:OutPort*)(implicit ctrlBox:CtrlBox, design:PIR):AndTree = {
+  def apply(inputs:Output*)(implicit ctrlBox:CtrlBox, design:PIR):AndTree = {
     val at = new AndTree()
     at.addInputs(inputs.toList)
     at
@@ -114,8 +114,8 @@ object AndTree {
 case class PredicateUnit(op:FixOp, const:Int) (implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   ctrlBox.predicateUnits += this
   override val typeStr = "PredicateUnit"
-  val in = InPort(this, s"$this.in")
-  val out = OutPort(this, s"$this.out")
+  val in = Input(this, s"$this.in")
+  val out = Output(this, s"$this.out")
 }
 
 abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primitive {
@@ -127,20 +127,20 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
   val andTrees = ListBuffer[AndTree]()
   val delays = ListBuffer[Delay]()
   val predicateUnits = ListBuffer[PredicateUnit]()
-  var tokenOut:Option[OutPort] = None 
+  var tokenOut:Option[Output] = None 
   // only outer controller have token down, which is the init signal first child stage
 
   def tokenBuffer(dep:Any):TokenBuffer = { TokenBuffer(dep) }
   def creditBuffer(deped:Any, initVal:Int):CreditBuffer = { CreditBuffer(deped, initVal) }
-  def enLut(outs:List[OutPort], transFunc:TransferFunction) = { EnLUT(outs.size, transFunc) }
+  def enLut(outs:List[Output], transFunc:TransferFunction) = { EnLUT(outs.size, transFunc) }
 
   override def toUpdate = super.toUpdate || tokenOut == null
 }
 
 class Delay()(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   override val typeStr = "Delay"
-  val in = InPort(this, s"$this.in") 
-  val out = OutPort(this, s"$this.out")
+  val in = Input(this, s"$this.in") 
+  val out = Output(this, s"$this.out")
   ctrlBox.delays += this
 }
 object Delay {
@@ -154,8 +154,8 @@ trait StageCtrlBox extends CtrlBox {
   val en = Delay(s"$this.en")
   val done = Delay(s"$this.done")
 
-  def enOut:OutPort
-  def doneOut:OutPort
+  def enOut:Output
+  def doneOut:Output
 }
 
 class InnerCtrlBox()(implicit override val ctrler:InnerController, design: PIR) 
@@ -190,7 +190,7 @@ object InnerCtrlBox {
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: PIR) extends CtrlBox() with StageCtrlBox {
   override val typeStr = "OuterCtrlBox"
   def enOut = en.out
-  val doneOut = OutPort(this, s"$this.doneOut")
+  val doneOut = Output(this, s"$this.doneOut")
   val childrenAndTree = AndTree("ChildrenAndTree")
 }
 object OuterCtrlBox {
@@ -199,8 +199,8 @@ object OuterCtrlBox {
 
 case class TopCtrlBox()(implicit override val ctrler:Controller, design: PIR) extends CtrlBox {
   override val typeStr = "TopCtrlBox"
-  val status = InPort(this, s"$this.status")
-  val command = OutPort(this, s"$this.command")
+  val status = Input(this, s"$this.status")
+  val command = Output(this, s"$this.command")
 }
 
 case class MemCtrlBox()(implicit override val ctrler:MemoryPipeline, design: PIR) extends CtrlBox() {
@@ -224,7 +224,7 @@ case class MCCtrlBox()(implicit override val ctrler:MemoryController, design: PI
   override val typeStr = "MCCtrlBox"
   def enOut = en.out
   def doneOut = done.out
-  val running = OutPort(this, s"$this.running")
+  val running = Output(this, s"$this.running")
   val fifoAndTree = AndTree("FIFOAndTree")
 }
 

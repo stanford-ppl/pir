@@ -131,8 +131,8 @@ package object util {
       case PipeReg(_, reg) => collectIn[X](reg, logger) 
       case x:CounterChain => x.counters.flatMap(x => collectIn[X](x, logger)).toSet
       case x:Module => collectIn[X](x.ins, logger)
-      case x:InPort => if (!x.isConnected) Set[X]() else collectIn[X](x.from.src, logger)
-      case x:OutPort => collectIn[X](x.src, logger)
+      case x:Input => if (!x.isConnected) Set[X]() else collectIn[X](x.from.src, logger)
+      case x:Output => collectIn[X](x.src, logger)
       case x:Iterable[_] => x.flatMap(x => collectIn[X](x, logger)).toSet
       case _ => Set[X]()
     }
@@ -150,8 +150,8 @@ package object util {
       case PipeReg(_, reg) => filterIn(reg, predicate) 
       case x:CounterChain => x.counters.flatMap(ctr => filterIn(ctr, predicate)).toSet
       case x:Module => filterIn(x.ins, predicate) 
-      case x:InPort => if (!x.isConnected) Set() else filterIn(x.from.src, predicate)
-      case x:OutPort => filterIn(x.src, predicate)
+      case x:Input => if (!x.isConnected) Set() else filterIn(x.from.src, predicate)
+      case x:Output => filterIn(x.src, predicate)
       case x:Iterable[_] => x.flatMap(x => filterIn(x, predicate)).toSet
       case _ => Set()
     }).nonEmpty
@@ -162,8 +162,8 @@ package object util {
       case x:X => Set(x)
       case x:GlobalOutput => Set[X]() // Stop at CU boundary
       case x:Module => collectOut[X](x.outs, logger)
-      case x:OutPort => if (!x.isConnected) Set[X]() else x.to.flatMap(in => collectOut[X](in.src, logger)).toSet
-      case x:InPort => collectOut[X](x.src, logger)
+      case x:Output => if (!x.isConnected) Set[X]() else x.to.flatMap(in => collectOut[X](in.src, logger)).toSet
+      case x:Input => collectOut[X](x.src, logger)
       case x:Iterable[_] => x.flatMap(x => collectOut[X](x, logger)).toSet
       case _ => Set[X]()
     }

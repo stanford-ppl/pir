@@ -32,15 +32,15 @@ abstract class Node (implicit val design: PIR) {
 
 trait Module extends Node {
   implicit val self:Module = this
-  val _ins = ListBuffer[InPort]()
-  def ins:List[InPort] = _ins.toList
-  val _outs = ListBuffer[OutPort]()
-  def outs:List[OutPort] = _outs.toList
-  def addIO(io:Port) = io match {
-    case input:InPort => _ins += input
-    case output:OutPort => _outs += output
+  val _ins = ListBuffer[Input]()
+  def ins:List[Input] = _ins.toList
+  val _outs = ListBuffer[Output]()
+  def outs:List[Output] = _outs.toList
+  def addIO(io:IO) = io match {
+    case input:Input => _ins += input
+    case output:Output => _outs += output
   }
-  def ios:List[Port] = ins ++ outs
+  def ios:List[IO] = ins ++ outs
 
   def isConst:Boolean = this.isInstanceOf[Const[_]]
 

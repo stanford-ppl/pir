@@ -49,7 +49,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     ctrler match {
       case cu:Pipeline =>
         val lookUp = Map[Reg, FIFO]()
-        def addPredicate(mem:FIFO, sel:InPort) = {
+        def addPredicate(mem:FIFO, sel:Input) = {
           sel.from.src match {
             case PipeReg(stage, reg) => lookUp += reg -> mem
             case _ => throw PIRException(s"Not supported format for FIFO Predicate in ${ctrler}")
@@ -158,6 +158,15 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       }
   }}
 
+  // - write to FIFO, enqueuEnable is from valid along data
+  // - write to Local MultiBuffer, enqueueEnable is valid along data, valid is from producer's done
+  //   copy in writer 
+  // - write to remote MultiBuffer, enqueueEnable is sent through explicit control FIFO, set to be
+  //   producer's done copy in writer
+  // - read from FIFO, dequeueEnable is from local controller enable
+  // - read from Local MultiBuffer, dequeuenable is from local copy of consumer's done
+  // - read from Remote Multibuffer, dequeueable is from controlFIFO sent from reader, set to be
+  //   copy of consumer's done in reader controller.
   def connectMemoryControl(ctrler:Controller) = ctrler match { case cu:ComputeUnit =>
     cu.mems.foreach { mem =>
       (mem, cu.ctrlBox) match {
@@ -312,7 +321,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     lasts.foreach(connectLastsRec)
   }
 
-  def connectToken(consumer:Controller, tk:(Any, OutPort)):Unit = {
+  def connectToken(consumer:Controller, tk:(Any, Output)):Unit = {
     val cb = consumer.ctrlBox.asInstanceOf[StageCtrlBox]
     val (dep, token) = tk
     val tb = cb.tokenBuffer(dep)
@@ -321,7 +330,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     cb.siblingAndTree.addInput(tb.out)
   }
 
-  def connectTokens(consumer:Controller, tokens:List[(Any, OutPort)]):Unit = {
+  def connectTokens(consumer:Controller, tokens:List[(Any, Output)]):Unit = {
     val tokenGroups = if (tokens.size==0) Nil else tokens.grouped(OCU_MAX_CIN - consumer.cins.size).toList
     val midConsumers = tokenGroups.map { tokens =>
       val midConsumer = if (tokenGroups.size==1) consumer else {

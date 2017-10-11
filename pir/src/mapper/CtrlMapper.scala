@@ -51,7 +51,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     mp = mp.setPM(cb, pcb)
     (cb, pcb) match {
       case (cb:MCCB, pcb:PMCCB) =>
-        mp = mapOutPort(cb.running, pcb.running, mp)
+        mp = mapOutput(cb.running, pcb.running, mp)
       case _ =>
     }
     mp
@@ -63,8 +63,8 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
     mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
-    mp = mapInPort(cb.status, pcb.status, mp)
-    mp = mapOutPort(cb.command, pcb.command, mp)
+    mp = mapInput(cb.status, pcb.status, mp)
+    mp = mapOutput(cb.command, pcb.command, mp)
     mp = mapTokenOut(cu, pcu, mp)
     mp
   }
@@ -88,13 +88,13 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val pcb = pcu.ctrlBox
     cu.mems.foreach { mem =>
       val pmem = mp.pmmap(mem)
-      mp = mapInPort(mem.enqueueEnable, pmem.enqueueEnable, mp)
-      mp = mapInPort(mem.dequeueEnable, pmem.dequeueEnable, mp)
-      mp = mapOutPort(mem.notFull, pmem.notFull, mp)
-      mp = mapOutPort(mem.notEmpty, pmem.notEmpty, mp)
+      mp = mapInput(mem.enqueueEnable, pmem.enqueueEnable, mp)
+      mp = mapInput(mem.dequeueEnable, pmem.dequeueEnable, mp)
+      mp = mapOutput(mem.notFull, pmem.notFull, mp)
+      mp = mapOutput(mem.notEmpty, pmem.notEmpty, mp)
       (mem, pmem) match {
         case (mem:FIFO, pmem:PLMem) =>
-          mp = mapInPort(mem.predicate, pmem.predicate, mp)
+          mp = mapInput(mem.predicate, pmem.predicate, mp)
         case (mem, pmem) =>
       }
       pmem match {
@@ -109,7 +109,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def mapAndTree(at:AT, pat:PAT, pirMap:M):M = {
     implicit var mp = pirMap
     mp = mp.setPM(at, pat)
-    mp = mapOutPort(at.out, pat.out, mp)
+    mp = mapOutput(at.out, pat.out, mp)
     at.ins.foreach { in =>
       val po = if (in.isGlobal) { 
         mp.vimap(in).ic
@@ -158,8 +158,8 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def mapDelay(delay:D, pdelay:PD, pirMap:M):M = {
     var mp = pirMap
     mp = mp.setPM(delay, pdelay)
-    mp = mapInPort(delay.in, pdelay.in, mp)
-    mp = mapOutPort(delay.out, pdelay.out, mp)
+    mp = mapInput(delay.in, pdelay.in, mp)
+    mp = mapOutput(delay.out, pdelay.out, mp)
     mp
   }
 
@@ -180,7 +180,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       case (cb:OCB, pcb:POCB) => 
         mp = mapDelay(cb.en, pcb.en, mp)
         mp = mapDelay(cb.done, pcb.done, mp)
-        mp = mapOutPort(cb.doneOut, pcb.udsm.doneOut, mp) 
+        mp = mapOutput(cb.doneOut, pcb.udsm.doneOut, mp) 
       case (cb:ICB, pcb:PICB) =>
         mp = mapDelay(cb.en, pcb.en, mp)
         mp = mapDelay(cb.enDelay, pcb.enDelay, mp)
@@ -188,10 +188,10 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
         mp = mapDelay(cb.doneDelay, pcb.doneDelay, mp)
       case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileLoad =>
         mp = mapDelay(cb.en, pcb.en, mp)
-        mp = mapOutPort(cb.doneOut, pcb.rdone, mp)
+        mp = mapOutput(cb.doneOut, pcb.rdone, mp)
       case (cb:MCCB, pcb:PMCCB) if cb.ctrler.mctpe==TileStore =>
         mp = mapDelay(cb.en, pcb.en, mp)
-        mp = mapOutPort(cb.doneOut, pcb.wdone, mp)
+        mp = mapOutput(cb.doneOut, pcb.wdone, mp)
     }
     mp
   }
@@ -200,8 +200,8 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     var mp = pirMap
     cu.cchains.flatMap(_.counters).foreach { ctr =>
       val pctr = mp.pmmap(ctr)
-      mp = mapInPort(ctr.en, pctr.en, mp)
-      mp = mapOutPort(ctr.done, pctr.done, mp)
+      mp = mapInput(ctr.en, pctr.en, mp)
+      mp = mapOutput(ctr.done, pctr.done, mp)
     }
     mp
   }
@@ -233,9 +233,9 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     cb.udcounters.foreach { case (dep, udc) =>
       val pudc = pcb.udcs.filterNot { pudc => mp.pmmap.contains(pudc) }.head
       mp = mp.setPM(udc, pudc)
-      mp = mapInPort(udc.inc, pudc.inc, mp)
-      mp = mapInPort(udc.dec, pudc.dec, mp)
-      mp = mapOutPort(udc.out, pudc.out, mp)
+      mp = mapInput(udc.inc, pudc.inc, mp)
+      mp = mapInput(udc.dec, pudc.dec, mp)
+      mp = mapOutput(udc.out, pudc.out, mp)
     }
     mp
   }
@@ -246,13 +246,13 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       case (cu:ICB, pcb:PICB) =>
         cu.accumPredUnit.foreach { pu =>
           mp = mp.setPM(pu, pcb.accumPredUnit)
-          mp = mapInPort(pu.in, pcb.accumPredUnit.in, mp)
-          mp = mapOutPort(pu.out, pcb.accumPredUnit.out, mp)
+          mp = mapInput(pu.in, pcb.accumPredUnit.in, mp)
+          mp = mapOutput(pu.out, pcb.accumPredUnit.out, mp)
         }
         cu.fifoPredUnit.foreach { pu =>
           mp = mp.setPM(pu, pcb.fifoPredUnit)
-          mp = mapInPort(pu.in, pcb.fifoPredUnit.in, mp)
-          mp = mapOutPort(pu.out, pcb.fifoPredUnit.out, mp)
+          mp = mapInput(pu.in, pcb.fifoPredUnit.in, mp)
+          mp = mapOutput(pu.out, pcb.fifoPredUnit.out, mp)
         }
       case (cu, pcb) =>
     }

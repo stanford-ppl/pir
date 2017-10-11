@@ -21,11 +21,11 @@ trait Primitive extends Module { implicit def ctrler:Controller }
  *  Maximum values and strides are specified in the order of topmost to bottommost counter.
  */
 
-class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InPort])
+class FuncUnit(val stage:Stage, oprds:List[Output], var op:Op, results:List[Input])
   (implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "FU"
   val operands = oprds.zipWithIndex.map { case (oprd, i) => 
-    val in = InPort(this, s"${this}.oprd($i)")
+    val in = Input(this, s"${this}.oprd($i)")
     oprd.src match {
       case PipeReg(s, r) if (s!=stage && s!=stage.prev.get) =>
         var info = s"ctrler:${ctrler}\n"
@@ -42,7 +42,7 @@ class FuncUnit(val stage:Stage, oprds:List[OutPort], var op:Op, results:List[InP
     }
     in
   }
-  val out = OutPort(this, s"${this}.out")
+  val out = Output(this, s"${this}.out")
   results.foreach { res => 
     res.src match {
       case PipeReg(s, r) if (s!=stage) => 
@@ -101,7 +101,7 @@ object Stage {
             (implicit ctrler:InnerController, design:PIR):Unit= {
     ctrler.addStage(stage)
     val oprds = operands.map { 
-      case o:OutPort => o
+      case o:Output => o
       case CtrPR(ctr) if stage.prev.isEmpty => ctr.out
       case LoadPR(mem) if stage.prev.isEmpty => mem.load
       case r@TempPR(init) if stage.prev.isEmpty => stage.get(r).out // First stage read from initialized register
@@ -111,7 +111,7 @@ object Stage {
       case c:Const[_] => c.out
     }
     val res = results.map {
-      case i:InPort => i
+      case i:Input => i
       case r:Reg => stage.get(r).in
       case pr:PipeReg => pr.in
     }
@@ -209,8 +209,8 @@ abstract class Reg(implicit override val ctrler:ComputeUnit, design:PIR) extends
 }
 case class LoadPR(mem:OnChipMem)(implicit ctrler:ComputeUnit, design: PIR)               extends Reg {override val typeStr = "regld"}
 case class StorePR(mem:OnChipMem)(implicit ctrler:InnerController, design: PIR)          extends Reg {override val typeStr = "regst"}
-case class RdAddrPR(raPort:InPort)(implicit ctrler:InnerController, design: PIR)         extends Reg {override val typeStr = "regra"; }
-case class WtAddrPR(waPort:InPort)(implicit ctrler:InnerController, sAdesign: PIR)       extends Reg {override val typeStr = "regwa"}
+case class RdAddrPR(raPort:Input)(implicit ctrler:InnerController, design: PIR)         extends Reg {override val typeStr = "regra"; }
+case class WtAddrPR(waPort:Input)(implicit ctrler:InnerController, sAdesign: PIR)       extends Reg {override val typeStr = "regwa"}
 case class CtrPR(ctr:Counter)(implicit ctrler:ComputeUnit, design: PIR)                  extends Reg {override val typeStr = "regct"}
 case class ReducePR()(implicit ctrler:InnerController, design: PIR)                      extends Reg {override val typeStr = "regrd"}
 case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:InnerController, design: PIR)  extends Reg {
@@ -237,10 +237,10 @@ case class TempPR(init:Option[AnyVal])(implicit ctrler:InnerController, design: 
  * @param regId Register ID the PipeReg mapped to
  **/
 case class PipeReg(stage:Stage, reg:Reg)(implicit val ctrler:Controller, design: PIR) extends Primitive{
-  val in:InPort = InPort(this, s"${this}.in") 
-  val out:OutPort = OutPort(this, {s"${this}.out"}) 
-  def read:OutPort = out
-  def write(p:OutPort):Unit = in.connect(p) 
+  val in:Input = Input(this, s"${this}.in") 
+  val out:Output = Output(this, {s"${this}.out"}) 
+  def read:Output = out
+  def write(p:Output):Unit = in.connect(p) 
   override val typeStr = "PR"
   override def toString = s"PR(${quote(stage)}, ${quote(reg)})" 
   override def equals(that: Any) = that match {
@@ -252,7 +252,7 @@ case class PipeReg(stage:Stage, reg:Reg)(implicit val ctrler:Controller, design:
 case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
   override val typeStr = "Const"
   this.name(value.toString)
-  val out = OutPort(this, s"Const${id}(${value})")
+  val out = Output(this, s"Const${id}(${value})")
 
   def isBool = value.isInstanceOf[Boolean]
   def isInt = value.isInstanceOf[Int]
@@ -261,14 +261,14 @@ case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
 
 trait MuxLike extends Primitive {
   override val typeStr = "Mux"
-  val _inputs = ListBuffer[InPort]()
+  val _inputs = ListBuffer[Input]()
   val inputs = _inputs.toList
-  val sel = InPort(this, s"${this}.sel") 
-  val out = OutPort(this, s"$this.out")
-  def addInput:InPort = { val i = _inputs.size; val in = InPort(this, s"$this.in$i"); _inputs += in; in }
+  val sel = Input(this, s"${this}.sel") 
+  val out = Output(this, s"$this.out")
+  def addInput:Input = { val i = _inputs.size; val in = Input(this, s"$this.in$i"); _inputs += in; in }
 }
 
 case class Mux()(implicit design:PIR, val ctrler:Controller) extends MuxLike
 case class ValidMux()(implicit design:PIR, val ctrler:Controller) extends MuxLike {
-  val valid = OutPort(this, s"$this.valid")
+  val valid = Output(this, s"$this.valid")
 }

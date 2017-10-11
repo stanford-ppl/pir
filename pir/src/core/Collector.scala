@@ -67,9 +67,9 @@ trait Collector { design:PIR =>
           design.removeNode(n.variable)
         }
       case n:GlobalOutput => throw new Exception(s"TODO")
-      case n:InPort =>
+      case n:Input =>
         n.disconnect
-      case n:OutPort =>
+      case n:Output =>
         n.disconnect
       case _ =>
     }

@@ -102,7 +102,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val pfu = p.asInstanceOf[PFUST].fu
     // Check Operand 
     fu.operands.zipWithIndex.foreach { case (oprd,i) =>
-      mp = mapInPort(oprd, pfu.operands(i), mp)
+      mp = mapInput(oprd, pfu.operands(i), mp)
     }
     mp
   }
@@ -114,7 +114,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     // Check Operation 
     if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, mp)
     // Check Result 
-    mp = mapOutPort(fu.out, pfu.out, mp)
+    mp = mapOutput(fu.out, pfu.out, mp)
     mp 
   }
 
@@ -143,7 +143,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       if (stage.liveOuts.contains(pr.reg)) {
         rcmap(pr.reg).foreach { preg =>
           val ppr = pstage.get(preg)
-          mp = mapOutPort(pr.out, ppr.out, mp)
+          mp = mapOutput(pr.out, ppr.out, mp)
         }
       }
     }

@@ -104,10 +104,10 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def mapCtr(n:N, p:R, map:M):M = {
     var mp = map
-    mp = mapInPort(n.min, p.min, mp)
-    mp = mapInPort(n.max, p.max, mp)
-    mp = mapInPort(n.step, p.step, mp)
-    mp = mapOutPort(n.out, p.out, mp)
+    mp = mapInput(n.min, p.min, mp)
+    mp = mapInput(n.max, p.max, mp)
+    mp = mapInput(n.step, p.step, mp)
+    mp = mapOutput(n.out, p.out, mp)
     mp = mp.setPM(n,p)
     dprintln(s"mapping $n -> ${mp.pmmap(n)}")
     mp

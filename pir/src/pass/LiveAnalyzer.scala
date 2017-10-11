@@ -56,7 +56,7 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
    *    make sure only first stage can do so.
    * 4. Constant: Directly feed to ALU, no impact
    * */
-  private def addOpd(port:InPort, stage:Stage, stages:List[Stage]) (implicit cu:ComputeUnit) = {
+  private def addOpd(port:Input, stage:Stage, stages:List[Stage]) (implicit cu:ComputeUnit) = {
     (port.from.src , cu) match {
       case (pr@PipeReg(s, reg@(_:CtrPR | _:VecInPR | _:ScalarInPR | _:LoadPR)), cu) => 
         s.addLiveOut(reg) 
@@ -76,14 +76,14 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
 
-  private def addRes(res:OutPort, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def addRes(res:Output, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
     val stage = stages(i)
     res.to.foreach { in =>
       (in, in.src) match {
-        case (p:InPort, src@PipeReg(s,reg@(_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR))) =>
+        case (p:Input, src@PipeReg(s,reg@(_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR))) =>
           s.addDef(reg)
           stages.last.addLiveOut(reg)
-        case (p:InPort, src@PipeReg(s,reg)) =>
+        case (p:Input, src@PipeReg(s,reg)) =>
           s.addDef(reg)
         case _ =>
       }
