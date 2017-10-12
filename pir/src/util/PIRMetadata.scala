@@ -134,6 +134,18 @@ trait PIRMetadata extends Metadata { self:PIR =>
     override def check(rec:(K,V)):Unit = {}
   }
 
+  object waddrserOf extends MOneToOneMap with MetadataMaps {
+    type K = OnChipMem 
+    type V = List[Controller]
+    override def check(rec:(K,V)):Unit = {}
+  }
+
+  object raddrserOf extends MOneToOneMap with MetadataMaps {
+    type K = OnChipMem 
+    type V = List[Controller]
+    override def check(rec:(K,V)):Unit = {}
+  }
+
   /* counters for read address calculation. 
    * inner counter comes first */
   object readCChainsOf extends MOneToOneMap with MetadataMaps {

@@ -7,15 +7,17 @@ import pirc._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
+import scala.reflect.runtime.universe._
 
 abstract class Controller(implicit design:PIR) extends Module {
   implicit def ctrler:this.type = this
   import pirmeta._
 
-  val ioMap = Map[Variable, GlobalIO]()
+  val ginMap = Map[Variable, GlobalInput]()
+  val goutList = ListBuffer[GlobalOutput]()
 
-  lazy val gins = ioMap.values.collect { case io:GlobalInput => io }
-  lazy val gouts = ioMap.values.collect { case io:GlobalOutput => io}
+  lazy val gins = ginMap.values.toList
+  lazy val gouts = goutList.toList
 
   lazy val cins = gins.filter {_.isControl }
   lazy val couts = gouts.filter {_.isControl }
@@ -24,9 +26,24 @@ abstract class Controller(implicit design:PIR) extends Module {
   lazy val vins = gins.filter {_.isVector }
   lazy val vouts = gouts.filter {_.isVector }
 
-  def newIn(v:Variable) = ioMap.getOrElseUpdate(v, GlobalInput(v)).asInput
-  def newOut(v:Variable) = ioMap.getOrElseUpdate(v, GlobalOutput(v)).asOutput
-  def newOut(name:String, v:Variable) = ioMap.getOrElseUpdate(v, GlobalOutput(v).name(name)).asOutput
+  def newIn(v:Variable) = ginMap.getOrElseUpdate(v, GlobalInput(v))
+  def newOut[T<:Variable](out:Output)(implicit ev:TypeTag[T]):GlobalOutput = 
+  goutList.filter{ gout => !gout.in.isConnected && gout.in.from == out }.headOption.getOrElse {
+    val bus = if (typeOf[T] =:= typeOf[Vector]) {
+      Vector(s"${this}.$out")
+    } else if (typeOf[T] =:= typeOf[Scalar]) {
+      Scalar(s"${this}.$out")
+    } else {
+      Control(s"${this}.$out")
+    }
+    GlobalOutput(bus)
+  }
+  def newOut[T<:Variable](v:Variable)(implicit ev:TypeTag[T]):GlobalOutput = { 
+    val out = GlobalOutput(v)
+    goutList += out
+    out
+  }
+  def newOut(name:String, v:Variable):GlobalOutput = newOut(v).name(name)
 
   //def readers:List[Controller] = ioMap.keys.flatMap {
     //_.readers.map{ _.ctrler }
@@ -61,18 +78,23 @@ abstract class Controller(implicit design:PIR) extends Module {
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
   def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }
 
-  val retiming:Map[Variable, FIFO] = Map.empty
-  def getRetimingFIFO(variable:Variable):FIFO = {
-    retiming.getOrElseUpdate(variable, {
-      val fifo = variable match {
+  val retiming:Map[GlobalInput, FIFO] = Map.empty
+  def getRetimingFIFO(gin:GlobalInput):FIFO = {
+    retiming.getOrElseUpdate(gin, {
+      val fifo = gin.variable match {
         case v:Vector => VectorFIFO(size = 10)
         case v:Scalar => ScalarFIFO(size = 10)
         case v:Control => ControlFIFO(size = 10)
       }
-      fifo.wtPort(variable)
+      backPressureOf(fifo) = true
+      fifo.wtPort(gin)
       mems(List(fifo))
       fifo
     })
+  }
+  def getRetimingFIFO(variable:Variable):FIFO = {
+    val gin = newIn(variable)
+    getRetimingFIFO(gin)
   }
   val scalarBuf:Map[Variable, ScalarBuffer] = Map.empty
   def getScalarBuffer(scalar:Scalar):ScalarBuffer = {

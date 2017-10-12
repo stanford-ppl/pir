@@ -64,7 +64,7 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
     this
   }
 
-  var _buffering:Int = _
+  var _buffering:Int = 1
   def buffering = _buffering
   def buffering(buf:Int):this.type = { _buffering = buf; this }
 

@@ -13,6 +13,36 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"AccessAnalyzer.log")
 
+  def setRaddrser(mem:OnChipMem) = raddrserOf.getOrElseUpdate(mem) { 
+    mem match {
+      case mem:SRAM =>
+        emitBlock(s"setRaddrser($mem)") {
+          val res = (collectIn[GlobalInput](mem.readAddr).map(in => in.from.ctrler)).toList
+          if (res.isEmpty) {
+            err(s"${mem.ctrler}.$mem does not have raddrser!")
+          }
+          res
+        }
+      case _ =>
+        readersOf(mem)
+    }
+  }
+
+  def setWaddrser(mem:OnChipMem) = waddrserOf.getOrElseUpdate(mem) { 
+    mem match {
+      case mem:SRAM =>
+        emitBlock(s"setWaddrser($mem)") {
+          val res = (collectIn[GlobalInput](mem.writeAddr).map(in => in.from.ctrler)).toList
+          if (res.isEmpty) {
+            err(s"${mem.ctrler}.$mem does not have waddrser!")
+          }
+          res
+        }
+      case _ =>
+        writersOf(mem)
+    }
+  }
+
   def setWriter(mem:OnChipMem) = writersOf.getOrElseUpdate(mem) { 
     emitBlock(s"setWriter($mem)") {
       val res = (collectIn[GlobalInput](mem.writePort).map(in => in.from.ctrler)).toList
@@ -66,6 +96,8 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
         cl.mems.foreach { mem =>
           setWriter(mem)
           setReader(mem)
+          setWaddrser(mem)
+          setRaddrser(mem)
           resolveCopy(mem)
         }
       }

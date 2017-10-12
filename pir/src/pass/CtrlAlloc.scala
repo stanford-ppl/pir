@@ -24,7 +24,6 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     }
     design.top.ctrlers.foreach { ctrler =>
       connectEnable(ctrler)
-      connectValid(ctrler)
       connectMemoryControl(ctrler)
     }
     topoSort(design.top).reverse.foreach { ctrler =>
@@ -119,44 +118,61 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   /*
    * Use local copy if existed. Otherwise route the done
    * */
-  def getDone(current:ComputeUnit, cchain:CounterChain) = {
-    if (current.containsCopy(cchain)) {
-      val lcchain = current.getCC(cchain)
-      current.ctrlBox match {
-        case cb:StageCtrlBox => current.getCC(lcchain).outer.done
-        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == lcchain) => cb.readDone.out
-        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == lcchain) => cb.writeDone.out
-      }
-    } else {
-      cchain.ctrler.ctrlBox match {
-        case cb:StageCtrlBox => cb.doneOut
-        case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
-        case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
-      }
+  //def getDone(current:ComputeUnit, cchain:CounterChain) = {
+    //if (current.containsCopy(cchain)) {
+      //val lcchain = current.getCC(cchain)
+      //current.ctrlBox match {
+        //case cb:StageCtrlBox => current.getCC(lcchain).outer.done
+        //case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == lcchain) => cb.readDone.out
+        //case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == lcchain) => cb.writeDone.out
+      //}
+    //} else {
+      //cchain.ctrler.ctrlBox match {
+        //case cb:StageCtrlBox => cb.doneOut
+        //case cb:MemCtrlBox if (readCChainsOf(cb.ctrler).last == cchain) => cb.readDone.out
+        //case cb:MemCtrlBox if (writeCChainsOf(cb.ctrler).last == cchain) => cb.writeDone.out
+      //}
+    //}
+  //}
+
+  // EnqueueEnable signal in waddrser
+  def getEnqueueEnable(mem:OnChipMem, waddrser:Controller) = {
+    mem match {
+      case mem:MultiBuffer =>
+        producerOf.get((mem, waddrser)).fold{
+          waddrser match {
+            case top:Top => top.ctrlBox.command
+            case cu:ComputeUnit => localCChainOf(waddrser).outer.done
+          }
+        } { producer =>
+          waddrser.asCU.getCC(localCChainOf(producer)).outer.done
+        }
+      case mem:FIFO =>
+        waddrser.ctrlBox match {
+          case cb:MCCtrlBox => cb.running
+          case cb:MemCtrlBox => cb.readEn.out
+          case cb:StageCtrlBox => cb.en.out
+        }
     }
   }
 
-  def connectValid(ctrler:Controller) = emitBlock(s"connectValid($ctrler)") { ctrler match {
-    case cu:MemoryController =>
-      cu.gouts.foreach { _.valid.connect(cu.ctrlBox.running) }
-    case cu:Top =>
-      cu.gouts.foreach { _.valid.connect(cu.ctrlBox.command) }
-    case cu:ComputeUnit =>
-      cu.gouts.foreach { out =>
-        val writtenMems = collectOut[OnChipMem](out.to.head)
-        writtenMems.collect { case mem:FIFO => mem }.headOption.foreach { mem =>
-          val en = cu.ctrlBox match {
-            case cb:MemCtrlBox => cb.readEn.out
-            case cb:StageCtrlBox => cb.en.out
-          }
-          out.valid.connect(en)
+  // DequeueEnable signal in raddrser
+  def getDequeueEnable(mem:OnChipMem, raddrser:Controller) = {
+    mem match {
+      case mem:MultiBuffer =>
+        consumerOf.get((mem, raddrser)).fold {
+          localCChainOf(raddrser).outer.done
+        } { consumer =>
+          raddrser.asCU.getCC(localCChainOf(consumer)).outer.done
         }
-        writtenMems.collect{ case mem:MultiBuffer => mem }.headOption.foreach { mem =>
-          val cc = cu.getCC(localCChainOf(producerOf((mem, cu))))
-          out.valid.connect(cc.outer.done)
+      case mem:FIFO =>
+        raddrser.ctrlBox match {
+          case cb:MemCtrlBox if forRead(mem) => cb.readEn.out
+          case cb:MemCtrlBox if forWrite(mem) => cb.writeEn.out
+          case cb:StageCtrlBox => cb.en.out
         }
-      }
-  }}
+    }
+  }
 
   // - write to FIFO, enqueuEnable is from valid along data
   // - write to Local MultiBuffer, enqueueEnable is valid along data, valid is from producer's done
@@ -167,80 +183,64 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   // - read from Local MultiBuffer, dequeuenable is from local copy of consumer's done
   // - read from Remote Multibuffer, dequeueable is from controlFIFO sent from reader, set to be
   //   copy of consumer's done in reader controller.
-  def connectMemoryControl(ctrler:Controller) = ctrler match { case cu:ComputeUnit =>
-    cu.mems.foreach { mem =>
-      (mem, cu.ctrlBox) match {
-        case (mem:FIFO, cb:MemCtrlBox) if forRead(mem) =>
-          mem.enqueueEnable.connect(mem.writePortMux.valid)
-          mem.dequeueEnable.connect(cb.readEn.out)
-        case (mem:FIFO, cb:MemCtrlBox) if forWrite(mem) =>
-          mem.enqueueEnable.connect(mem.writePortMux.valid)
-          mem.dequeueEnable.connect(cb.writeEn.out)
-        case (mem:FIFO, cb:MCCtrlBox) if mem.name.get=="data" =>
-          mem.enqueueEnable.connect(mem.writePortMux.valid)
-          mem.dequeueEnable.connect(cb.running)
-        case (mem:FIFO, cb:StageCtrlBox) =>
-          mem.enqueueEnable.connect(mem.writePortMux.valid)
-          mem.dequeueEnable.connect(cb.en.out)
-        case (mem:SRAM, cb:MemCtrlBox) =>
-          //mem.enqueueEnable.connect(cb.writeDoneDelay.out)
-          //mem.inc.connect(cb.writeDone.out)
-          //mem.dequeueEnable.connect(cb.readDoneDelay.out)
-          //mem.dec.connect(cb.readDone.out)
-          val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
-          forWrite(wfifo) = true
-          mem.writers.foreach { writer =>
-            producerOf.get((mem,writer)).foreach { producer =>
-              val bus = Control(s"${ctrler}_${mem}_wdone")
-              val out = writer.newOut(bus)
-              out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
-              wfifo.wtPort(bus)
-            }
-          }
-          mem.enqueueEnable.connect(wfifo.readPort)
-          val rfifo = ControlFIFO(s"${mem}_rdone", size=10)(mem.ctrler, design)
-          forRead(rfifo) = true
-          mem.readers.foreach { reader =>
-            consumerOf.get((mem, reader)).foreach { consumer =>
-              val bus = Control(s"${ctrler}_${mem}_rdone")
-              val out = reader.newOut(bus)
-              out.in.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
-              rfifo.wtPort(bus)
-            }
-          }
-          mem.dequeueEnable.connect(rfifo.readPort)
-        case (mem:MultiBuffer, cb:StageCtrlBox) => // LocalMem
-          //mem.inc.connect(mem.writePort.valid)
-          //mem.enqueueEnable.connect(mem.writePort.valid)
-          //swapReadCChainOf.get(mem).foreach { cc => 
-            //mem.dequeueEnable.connect(getDone(cu, cc))
-            //mem.dec.connect(getDone(cu, cc))
-          //}
-          val wfifo = ControlFIFO(s"${mem}_wdone", size=10)(mem.ctrler, design)
-          wfifo.enqueueEnable.connect(mem.writePortMux.valid)
-          wfifo.dequeueEnable.connect(cb.en.out)
-          mem.writers.foreach { writer =>
-            producerOf.get((mem,writer)).foreach { producer =>
-              val bus = Control(s"${ctrler}_${mem}_wdone")
-              val out = writer.newOut(bus)
-              out.in.connect(writer.asCU.getCC(localCChainOf(producer)).outer.done)
-              wfifo.wtPort(bus)
-            }
-          }
-          mem.enqueueEnable.connect(wfifo.readPort)
-
-          mem.readers.foreach { reader =>
-            assert(mem.ctrler == reader)
-            consumerOf.get((mem, reader)).foreach { consumer =>
-              mem.dequeueEnable.connect(reader.asCU.getCC(localCChainOf(consumer)).outer.done)
-            }
-          }
-      }
+ 
+  def connectGlobal(out:Output, in:Input, retime:Boolean=false):Option[FIFO] = emitBlock(s"connectGlobal($out, $in, $retime)"){
+    val writer = out.ctrler
+    val reader = in.ctrler
+    val gout = writer.newOut[Control](out)
+    val bus = gout.variable
+    val gin = reader.newIn(bus)
+    gout.in.connect(out)
+    if (retime) {
+      val fifo = reader.getRetimingFIFO(gin)
+      readersOf(fifo) = List(reader)
+      writersOf(fifo) = List(writer)
+      in.connect(fifo.readPort)
+      Some(fifo)
+    } else {
+      in.connect(gin.out)
+      None
     }
-    case _ =>
   }
 
-  def connectHeads(ctrler:Controller) = {
+  def connectWrite(mem:OnChipMem, waddrser:Controller):Unit = emitBlock(s"connectWrite($mem, $waddrser)"){
+    val enqueueEnable = getEnqueueEnable(mem, waddrser)
+    mem match {
+      case mem:SRAM => // Route through control network
+        val fifo = connectGlobal(enqueueEnable, mem.enqueueEnable, retime=true).get
+        forWrite(fifo) = true
+        connectWrite(fifo, waddrser)
+        connectRead(fifo, mem.ctrler)
+      case mem => // FIFO, Scalar/Control MultiBuffer: Route alone data path
+        collectIn[GlobalInput](mem.writePortMux).map{ in =>
+          val out = in.from
+          out.valid.connect(enqueueEnable)
+        }
+        mem.enqueueEnable.connect(mem.writePortMux.valid)
+    }
+  }
+
+  def connectRead(mem:OnChipMem, raddrser:Controller):Unit = emitBlock(s"connectRead($mem, $raddrser)"){
+    val dequeueEnable = getDequeueEnable(mem, raddrser)
+    mem match {
+      case mem:RemoteMem => // Route through control network
+        val fifo = connectGlobal(dequeueEnable, mem.dequeueEnable, retime=true).get
+        forRead(fifo) = true
+        connectWrite(fifo, raddrser)
+        connectRead(fifo, mem.ctrler)
+      case mem:LocalMem => // Locally connected
+        mem.dequeueEnable.connect(dequeueEnable)
+    }
+  }
+
+  def connectMemoryControl(ctrler:Controller) = emitBlock(s"connectMemoryControl($ctrler)"){
+    ctrler.mems.foreach { mem =>
+      waddrserOf(mem).foreach { waddrser => connectWrite(mem, waddrser) }
+      raddrserOf(mem).foreach { raddrser => connectRead(mem, raddrser) }
+    }
+  }
+
+  def connectHeads(ctrler:Controller) = emitBlock(s"connectHeads($ctrler)") {
     //val heads = ctrler.children.filter{_.isHead}
     val heads = ctrler.children.filter { case c:OuterController => true; case c:InnerController => c.isHead }
     dprintln(s"$ctrler heads:[${heads.mkString(",")}]")
@@ -251,28 +251,19 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       }
       val hcb = head.ctrlBox.asInstanceOf[StageCtrlBox]
       val tk = hcb.tokenBuffer(ctrler)
-      val bus = Control(s"${ctrler}.enOut")
-      val out = ctrler.newOut(bus)
-      val in = hcb.ctrler.newIn(bus)
-      out.in.connect(enOut)
-      tk.inc.connect(in.out)
+      connectGlobal(enOut, tk.inc)
       tk.dec.connect(hcb.done.out)
       hcb.siblingAndTree.addInput(tk.out)
     }
   }
 
   def connectLast(parent:Controller, last:Controller) = {
-    val bus = Control(s"$last.doneOut")
-    val out = last.newOut(bus)
-    val in = parent.newIn(bus)
     (parent, last, parent.ctrlBox, last.ctrlBox) match {
       case (parent:Top, last:ComputeUnit, pcb:TopCtrlBox, ccb:StageCtrlBox) =>
-        out.in.connect(ccb.doneOut)
-        pcb.status.connect(in.out)
+        connectGlobal(ccb.doneOut, pcb.status)
       case (parent:OuterController, last:ComputeUnit, pcb:OuterCtrlBox, ccb:StageCtrlBox) =>
         val tk = pcb.tokenBuffer(last)
-        out.in.connect(ccb.doneOut)
-        tk.inc.connect(in.out)
+        connectGlobal(ccb.doneOut, tk.inc)
         tk.dec.connect(pcb.childrenAndTree.out)
         pcb.childrenAndTree.addInput(tk.out)
     }
@@ -280,37 +271,38 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
 
   def connectLasts(parent:Controller, lasts:List[Controller]):Unit = emitBlock(s"connectLasts(parent=$parent)") {
     dprintln(s"lasts=$lasts")
-    if (lasts.isEmpty) return
-    dprintln(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}")
-    parent.cins.foreach { cin =>
-      dprintln(s"parent.cin=${cin.from}")
-    }
-    val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
-    val midParents = lastGroups.map { lasts =>
-      val midParent = if (lastGroups.size==1) parent else {
-        dprintln(s"parent=$parent lastGroups:$lastGroups")
-        val clone = parent.cloneType("collector")
-        localCChainOf(clone) = CounterChain.dummy(clone.asCU, design)
-        isHead(clone) = false 
-        isLast(clone) = true
-        isStreaming(clone) = isStreaming(lasts.head)
-        isPipelining(clone) = isPipelining(lasts.head)
-        isTailCollector(clone) = true
-        parOf(clone) = parOf(parent)
-        ancestorsOf(clone) = clone :: ancestorsOf(parent)
-        descendentsOf(clone) = List(clone)
-        clone.asCU.parent(parent)
-        connectDone(clone)
-        connectEnable(clone)
-        clone
+    if (!lasts.isEmpty) {
+      dprintln(s"OCU_MAX_CIN=$OCU_MAX_CIN parent.cins=${parent.cins.size}")
+      parent.cins.foreach { cin =>
+        dprintln(s"parent.cin=${cin.from}")
       }
-      dprintln(s"$parent midParent:$midParent lasts:[${lasts.mkString(",")}]")
-      lasts.foreach { last =>
-        connectLast(midParent, last)
+      val lastGroups = lasts.grouped(OCU_MAX_CIN - parent.cins.size).toList
+      val midParents = lastGroups.map { lasts =>
+        val midParent = if (lastGroups.size==1) parent else {
+          dprintln(s"parent=$parent lastGroups:$lastGroups")
+          val clone = parent.cloneType("collector")
+          localCChainOf(clone) = CounterChain.dummy(clone.asCU, design)
+          isHead(clone) = false 
+          isLast(clone) = true
+          isStreaming(clone) = isStreaming(lasts.head)
+          isPipelining(clone) = isPipelining(lasts.head)
+          isTailCollector(clone) = true
+          parOf(clone) = parOf(parent)
+          ancestorsOf(clone) = clone :: ancestorsOf(parent)
+          descendentsOf(clone) = List(clone)
+          clone.asCU.parent(parent)
+          connectDone(clone)
+          connectEnable(clone)
+          clone
+        }
+        dprintln(s"$parent midParent:$midParent lasts:[${lasts.mkString(",")}]")
+        lasts.foreach { last =>
+          connectLast(midParent, last)
+        }
+        midParent
       }
-      midParent
+      if (midParents.size>1) connectLasts(parent, midParents)
     }
-    if (midParents.size>1) connectLasts(parent, midParents)
   }
 
   def connectLasts(ctrler:Controller):Unit = {
@@ -365,7 +357,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].doneOut)))
   }
 
-  def connectSibling(ctrler:Controller) = {
+  def connectSibling(ctrler:Controller) = emitBlock(s"connectSibling"){
     // Forward dependency
     // - FIFO.notEmpty + Mbuffer.valid
     (ctrler, ctrler.ctrlBox) match {
@@ -401,21 +393,17 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //}
     // Backward pressure
     // - FIFO.notFull
-    val andTree = ctrler.ctrlBox match {
-      case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
-      case cb:MemCtrlBox => Some(cb.tokenInAndTree)
-      case _ => None
-    }
-    andTree.foreach { at =>
-      ctrler.writtenMems.filter{ mem => backPressureOf(mem) }.foreach { mem => 
-        val bus = collectOut[GlobalOutput](mem.notFull).headOption.fold[Variable] {
-          val bus = Control(s"$mem.notFull")
-          mem.ctrler.newOut(bus)
-          bus
-        } { _.variable }
-        val in = ctrler.newIn(bus)
-        at.addInput(in.out)
-      }
+    ctrler.mems.foreach { 
+      case mem if backPressureOf(mem) =>
+        mem.writers.foreach { writer =>
+          val andTree = writer.ctrlBox match {
+            case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
+            case cb:MemCtrlBox => Some(cb.tokenInAndTree)
+            case _ => None
+          }
+          andTree.foreach { at => connectGlobal(mem.notFull, at.addInput) }
+        }
+      case mem =>
     }
     // - Credit
     //(ctrler, ctrler.ctrlBox) match {

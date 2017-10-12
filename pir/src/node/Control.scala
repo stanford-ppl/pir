@@ -91,9 +91,12 @@ class AndTree(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   override val typeStr = "AndTree"
   val out = Output(this, s"$this.out")
   ctrlBox.andTrees += this
-  def addInput(input:Output):Input = {
+  def addInput:Input = {
     val idx = ins.size
-    val ip = Input(this, s"$this.in${idx}")
+    Input(this, s"$this.in${idx}")
+  }
+  def addInput(input:Output):Input = {
+    val ip = addInput
     ip.connect(input)
     ip
   }

@@ -162,11 +162,11 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
   def copySwapCC(mem:OnChipMem):Unit = {
-    mem.writers.foreach { writer =>
-      producerOf.get((mem, writer)).foreach { producer => copySwapCC(mem, writer.asCU, producer) }
+    waddrserOf(mem).foreach { waddrser =>
+      producerOf.get((mem, waddrser)).foreach { producer => copySwapCC(mem, waddrser.asCU, producer) }
     }
-    mem.readers.foreach { reader =>
-      consumerOf.get((mem, reader)).foreach { consumer => copySwapCC(mem, reader.asCU, consumer) }
+    raddrserOf(mem).foreach { raddrser =>
+      consumerOf.get((mem, raddrser)).foreach { consumer => copySwapCC(mem, raddrser.asCU, consumer) }
     }
   }
 
