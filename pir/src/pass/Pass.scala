@@ -16,6 +16,8 @@ abstract class Pass(implicit val design:PIR) extends pirc.pass.Pass {
   def quote(n:Any):String = n match {
     case n:Node => pir.util.quote(n) 
     case n:PNode => spade.util.quote(n)
+    case n:Iterable[_] => 
+      s"[${n.map(quote).mkString(",")}]"
   }
 
 }

@@ -56,8 +56,8 @@ trait PIRDotGen extends Codegen with DotCodegen {
       val attr = DotAttr()
       val v = in.variable
       var label = s"${v.name.get}"
-      if (!v.writerIsEmpty) label += s"\n(${v.writer.ctrler}.${v.writer})"
-      label += s"\n(${v.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
+      if (PIRConfig.verbose && !v.writerIsEmpty) label += s"\n(${v.writer.ctrler}.${v.writer})"
+      if (PIRConfig.verbose) label += s"\n(${v.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
       attr.label(label)
       v match {
         case v:Vector => attr.style(bold)
@@ -167,7 +167,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
   }
 
   def emitInputs(cl:Controller):Unit = {
-    emitCtrlInputs(cl, cl.cins)
+    //emitCtrlInputs(cl, cl.cins)
     emitGlobalInputs(cl, cl.gins)
   }
 

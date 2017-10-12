@@ -16,12 +16,16 @@ trait Logger extends Printer {
   override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = { 
     emitBSln(bs, b, None)
     val res = block
+    val resHeader = s"result${bs.fold("") { bs => s" [$bs]"}} ="
     res match {
       case res:Unit =>
-      case res:List[_] =>
-        dprintln(s"result =")
+      case res:Iterable[_] =>
+        dprintln(resHeader)
         res.foreach { res => dprintln(s" - $res") }
-      case res => dprintln(s"result=$res")
+      case res:Iterator[_] =>
+        dprintln(resHeader)
+        res.foreach { res => dprintln(s" - $res") }
+      case res => dprintln(resHeader + s" $res")
     }
     emitBEln(None, b, es.map(es => es()))
     res

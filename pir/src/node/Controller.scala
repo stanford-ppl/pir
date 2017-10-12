@@ -73,7 +73,13 @@ abstract class Controller(implicit design:PIR) extends Module {
   def srams = mems.collect { case mem:SRAM => mem }
   def lmems = mems.collect { case mem:LocalMem => mem }
   def writtenMems:List[OnChipMem] = {
-    collectOut[OnChipMem](outs.flatMap{_.to}).toList
+    def f(x:Any):Iterable[Any] = x match {
+      case x:GlobalInput => f(x.out)
+      case x:ValidMux => f(x.out)
+      case x:CtrlPrimitive => Nil
+      case x => visitOut(x)
+    }
+    collectOut[OnChipMem](outs.flatMap{_.to}, visitOut=f _).toList
   }
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
   def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }

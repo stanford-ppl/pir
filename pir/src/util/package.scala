@@ -122,50 +122,48 @@ package object util {
     else s.toInt
   }
 
-  def collectIn[X](x:Any, logger:Option[Logger] = None)(implicit ev:ClassTag[X]):Set[X] = {
+  def visitIn(x:Any):Iterable[Any] = x match {
+    case x:GlobalInput => Set() // Stop at CU boundary
+    case x:Input => if (!x.isConnected) Set() else Set(x.from)
+    case x:Output => Set(x.src) 
+    case x:CounterChain => x.counters.toSet
+    case LoadPR(mem) => Set(mem) 
+    case CtrPR(ctr) => Set(ctr) 
+    case PipeReg(_, reg) => Set(reg) 
+    case x:Module => x.ins
+  }
+
+  def visitOut(x:Any):Iterable[Any] = x match {
+    case x:GlobalOutput => Set() // Stop at CU boundary
+    case x:Input => Set(x.src) 
+    case x:Output => if (!x.isConnected) Set() else x.to 
+    case x:Module => x.outs 
+  }
+
+  def collectIn[X](x:Any, visitIn:Any => Iterable[Any] = visitIn, logger:Option[Logger] = None)(implicit ev:ClassTag[X]):Set[X] = {
+    def collect(x:Any):Set[X] = collectIn[X](x, visitIn, logger)
     def f(x:Any) = x match {
       case x:X => Set(x)
-      case x:GlobalInput => Set[X]() // Stop at CU boundary
-      case LoadPR(mem) => collectIn[X](mem, logger)
-      case CtrPR(ctr) => collectIn[X](ctr, logger)
-      case PipeReg(_, reg) => collectIn[X](reg, logger) 
-      case x:CounterChain => x.counters.flatMap(x => collectIn[X](x, logger)).toSet
-      case x:Module => collectIn[X](x.ins, logger)
-      case x:Input => if (!x.isConnected) Set[X]() else collectIn[X](x.from.src, logger)
-      case x:Output => collectIn[X](x.src, logger)
-      case x:Iterable[_] => x.flatMap(x => collectIn[X](x, logger)).toSet
-      case _ => Set[X]()
+      case x:Iterable[_] => x.flatMap(x => collect(x)).toSet
+      case x => collect(visitIn(x))
     }
     logger.fold(f(x)) { _.emitBlock(s"collectIn($x)") {f(x)} }
   }
 
-  def filterIn[X](x:X, predicate: Any => Boolean):Iterable[X] = filterIn(Set(x), predicate)
-
-  def filterIn[X](xs:Iterable[X], predicate: Any => Boolean):Iterable[X] = xs.filter { x =>
-    (x match {
-      case x if predicate(x) => Set(x)
-      case x:GlobalInput => Set() // Stop at CU boundary
-      case LoadPR(mem) => filterIn(mem, predicate)
-      case CtrPR(ctr) => filterIn(ctr, predicate)
-      case PipeReg(_, reg) => filterIn(reg, predicate) 
-      case x:CounterChain => x.counters.flatMap(ctr => filterIn(ctr, predicate)).toSet
-      case x:Module => filterIn(x.ins, predicate) 
-      case x:Input => if (!x.isConnected) Set() else filterIn(x.from.src, predicate)
-      case x:Output => filterIn(x.src, predicate)
-      case x:Iterable[_] => x.flatMap(x => filterIn(x, predicate)).toSet
-      case _ => Set()
-    }).nonEmpty
+  def existsIn(x:Any, visitIn:Any => Iterable[Any] = visitIn)(predicate: Any => Boolean):Boolean = {
+    x match {
+      case x if predicate(x) => true
+      case x:Iterable[_] => x.exists(x => existsIn(x)(predicate))
+      case x => existsIn(visitIn(x))(predicate)
+    }
   }
     
-  def collectOut[X](x:Any, logger:Option[Logger]=None)(implicit ev:ClassTag[X]):Set[X] = {
+  def collectOut[X](x:Any, visitOut:Any => Iterable[Any] = visitOut, logger:Option[Logger]=None)(implicit ev:ClassTag[X]):Set[X] = {
+    def collect(x:Any):Set[X] = collectOut[X](x, visitOut, logger)
     def f(x:Any) = x match {
       case x:X => Set(x)
-      case x:GlobalOutput => Set[X]() // Stop at CU boundary
-      case x:Module => collectOut[X](x.outs, logger)
-      case x:Output => if (!x.isConnected) Set[X]() else x.to.flatMap(in => collectOut[X](in.src, logger)).toSet
-      case x:Input => collectOut[X](x.src, logger)
-      case x:Iterable[_] => x.flatMap(x => collectOut[X](x, logger)).toSet
-      case _ => Set[X]()
+      case x:Iterable[_] => x.flatMap(x => collect(x)).toSet
+      case x => collect(visitOut(x))
     }
     logger.fold(f(x)) { _.emitBlock(s"collectOut($x)") {f(x)} }
   }

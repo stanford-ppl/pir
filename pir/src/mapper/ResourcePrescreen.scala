@@ -2,7 +2,7 @@ package pir.mapper
 
 import pir._
 import pir.node._
-import pir.util.typealias._
+import pir.util.typealias.{Seq => _, _}
 import pir.pass.{Pass}
 
 import spade._
@@ -83,6 +83,9 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
       false
     } else {
       if (Config.verbose) info(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      dprintln(s"$msg cls=${cls.size} pcls=${pcls.size}")
+      dprintln(s" - cls=${cls}")
+      dprintln(s" - pcls=${pcls.map(quote)}")
       map.foreach { map => cls.foreach { cl => map += cl -> pcls } }
       true
     }
@@ -153,10 +156,8 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
       }
     }
     val notFit = cls.filter { cl =>
-      if (map(cl).size==0) {
-        emitBlock(s"$cl") {
-          val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
-        }
+      emitBlock(s"$cl") {
+        val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
       }
       map(cl).size==0
     }
@@ -166,6 +167,73 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
     } else {
       return true
     }
+  }
+
+  //def combination(list:Iterable[N], size:Int):Set[Set[N]] = emitBlock(s"combination(list=${list.size}, size=$size)"){
+    //def recurse(set:Set[N], size:Int) = {
+      //if (set.size < size) { Set() } else {
+        //if (set.size == size) { Set(set) } else {
+          //if (size==1) { set.map { n => Set(n) } } else {
+            //set.flatMap { node =>
+              //val rest = set - node
+              //recurse(rest, size-1).map { comb => comb + node }
+            //}
+          //}
+        //}
+      //}
+    //}
+    //recurse(list.toSet, size)
+  //}
+
+  def combination(list:Seq[N], size:Int) = {
+    val res = list.combinations(size).toList
+    dprintln(s"combination(list=${list.size}, size=$size) = ${res.size}")
+    res
+  }
+
+  def crossCheck:Boolean = emitBlock(s"crossCheck") {
+    val nodes = resMap.keys.toList
+    val N = nodes.size
+    (2 until N).foreach { n =>
+      combination(nodes, n).foreach { window =>
+        val intersect = window.map { node => resMap(node) }.reduce { _ intersect _ }
+        if (!intersect.isEmpty) {
+          val sharedContains = ListBuffer[N]()
+          val sharedNotContains = ListBuffer[N]()
+          window.foreach { node =>
+            val reses = resMap(node) 
+            if (reses.size <= intersect.size) sharedContains += node
+            else sharedNotContains += node
+          }
+          if (sharedContains.size > intersect.size) {
+            emitBlock(s"window=${quote(window)}") {
+              dprintln(s"intersect[${intersect.size}]=${quote(intersect)}")
+              dprintln(s"sharedContains[${sharedContains.size}]=${quote(sharedContains)}")
+              dprintln(s"sharedNotContains[${sharedNotContains.size}]=${quote(sharedNotContains)}")
+            }
+            dprintln(s"failed: sharedContains=${sharedContains.size} > intersect=${intersect}.size")
+            if (PIRConfig.mapping) err(s"sharedContains=${sharedContains.size} > intersect=${intersect}.size")
+            else warn(s"sharedContains=${sharedContains.size} > intersect=${intersect.size}")
+            return false
+          } else if (sharedContains.size == intersect.size) {
+            sharedNotContains.foreach { node =>
+              val others = resMap(node) diff intersect
+              resMap(node) = others 
+              dprintln(s"filter: $node -> others=${quote(others)} intersect=${quote(intersect)}")
+            }
+          } else {
+            //TODO:Optimization opportunity at placement time. Narrow down search range for node
+            //during placement. For now just change priority of placement
+            sharedNotContains.foreach { node =>
+              val others = resMap(node) diff intersect
+              resMap(node) =  others ++ intersect
+              dprintln(s"shuffle: $node -> others=${quote(others)} ++ intersect=${quote(intersect)}")
+            }
+          }
+        }
+      }
+    }
+    return true
   }
 
   def logMapping(map:mutable.Map[N, List[R]]) = {
@@ -227,6 +295,8 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
   addPass {
     var pass = controllerCheck
     if (pass) pass = primitiveCheck
+    if (pass) logMapping(resMap)
+    if (pass) pass = crossCheck
     if (pass) logMapping(resMap)
   }
 

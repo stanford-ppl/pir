@@ -357,7 +357,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       connectTokens(consumer, midConsumers.map(cm => (cm, cm.ctrlBox.asInstanceOf[StageCtrlBox].doneOut)))
   }
 
-  def connectSibling(ctrler:Controller) = emitBlock(s"connectSibling"){
+  def connectSibling(ctrler:Controller) = emitBlock(s"connectSibling($ctrler)"){
     // Forward dependency
     // - FIFO.notEmpty + Mbuffer.valid
     (ctrler, ctrler.ctrlBox) match {
@@ -393,17 +393,33 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //}
     // Backward pressure
     // - FIFO.notFull
-    ctrler.mems.foreach { 
-      case mem if backPressureOf(mem) =>
-        mem.writers.foreach { writer =>
-          val andTree = writer.ctrlBox match {
-            case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
-            case cb:MemCtrlBox => Some(cb.tokenInAndTree)
-            case _ => None
-          }
-          andTree.foreach { at => connectGlobal(mem.notFull, at.addInput) }
+    //ctrler.mems.foreach { 
+      //case mem if backPressureOf(mem) =>
+        //mem.writers.foreach { writer =>
+          //val andTree = writer.ctrlBox match {
+            //case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
+            //case cb:MemCtrlBox => Some(cb.tokenInAndTree)
+            //case _ => None
+          //}
+          //andTree.foreach { at => connectGlobal(mem.notFull, at.addInput) }
+        //}
+      //case mem =>
+    //}
+    
+    // Optimization: only take one notFull from fifos from the same reader
+    dprintln(s"$ctrler.writtenMems=${ctrler.writtenMems}")
+    ctrler.writtenMems.groupBy(_.ctrler).foreach { case (memCtrler, mems) =>
+      val andTree = ctrler.ctrlBox.ctrlBox match {
+        case cb:InnerCtrlBox => Some(cb.tokenInAndTree)
+        case cb:MemCtrlBox => Some(cb.tokenInAndTree)
+        case _ => None
+      }
+      andTree.foreach { at => 
+        val (fifos, mbuffers) =  mems.partition { case mem:FIFO => true; case _ => false}
+        (mbuffers ++ fifos.headOption).foreach { mem =>
+          connectGlobal(mem.notFull, at.addInput)
         }
-      case mem =>
+      }
     }
     // - Credit
     //(ctrler, ctrler.ctrlBox) match {

@@ -114,7 +114,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val accumInput = st match {
       case st:pir.node.AccumStage =>
         val operands = st.fu.get.operands
-        val accOprd = filterIn(operands, (_:Any) == st.acc)
+        val accOprd = operands.filter { oprd => existsIn(oprd) { _ == st.acc } }
         Some(mp.ipmap((operands diff accOprd.toSeq).head))
       case _ => None
     }
