@@ -53,17 +53,24 @@ trait PIRDotGen extends Codegen with DotCodegen {
 
   def emitGlobalInputs(cl:Controller, gins:Iterable[GlobalInput]):Unit = {
     gins.foreach { in => 
+      val attr = DotAttr()
       val v = in.variable
       var label = s"${v.name.get}"
       if (!v.writerIsEmpty) label += s"\n(${v.writer.ctrler}.${v.writer})"
       label += s"\n(${v.readers.filter{_.ctrler==cl}.map{r => s"${cl}.$r"}.mkString(",")})"
+      attr.label(label)
+      v match {
+        case v:Vector => attr.style(bold)
+        case v:Scalar =>
+        case v:Control => attr.style(dashed)
+      }
       if (!v.writerIsEmpty) {
         v.writer.ctrler match {
           case top:Top =>
-          case w => emitEdge(w, cl, DotAttr().label(label))
+          case w => emitEdge(w, cl, attr)
         }
       } else {
-        emitEdge("NotConnected", cl, DotAttr().label(label))
+        emitEdge("NotConnected", cl, attr)
       }
     }
   }
@@ -117,7 +124,7 @@ class PIRDataDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
   }
 
   def emitInputs(cl:Controller):Unit = {
-    emitGlobalInputs(cl, cl.gins.collect { case in:GlobalInput => in } )
+    emitGlobalInputs(cl, (cl.sins ++ cl.vins).collect { case in:GlobalInput => in } )
   }
 
   override def quote(n:Any):String = {
@@ -161,7 +168,7 @@ class PIRCtrlDotGen(fn:String)(implicit design:PIR) extends PIRDotGen {
 
   def emitInputs(cl:Controller):Unit = {
     emitCtrlInputs(cl, cl.cins)
-    emitGlobalInputs(cl, cl.gins.collect{ case in:GlobalInput => in})
+    emitGlobalInputs(cl, cl.gins)
   }
 
 }

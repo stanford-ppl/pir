@@ -25,22 +25,19 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def resFunc(n:N, m:M, triedRes:List[R]):List[R] = emitBlock(s"resFunc(${n.ctrler}.$n)"){
-    n match {
-      case n:SMem => sResFunc(n, m, triedRes)
-      case n:VFIFO => vResFunc(n, m, triedRes)
-    }
+    (n match {
+      case n:SMem => getFIFOs(n, m)
+      case n => getFIFOs(n, m)
+    }).filterNot { r => triedRes.contains(r) || m.pmmap.contains(r) }
   }
 
-  def vResFunc(n:VFIFO, m:M, triedRes:List[R]):List[R] = {
-    val vis = pir.util.collectIn[GI](n.writePort)
-    assert(vis.size==1, s"Vector FIFO can only have a single writer! ${n.ctrler}.$n's writer ${vis}")
-    val pvi = m.vimap(vis.head)
-    val rs = spade.util.collectOut[R](pvi)
-    assert(rs.size==1, s"$pvi connect to multiple vfifos=${rs}")
-    List(rs.head)
+  def getFIFOs(n:N, m:M):List[R] = {
+    val ins = pir.util.collectIn[GI](n.writePort)
+    val pins = ins.map { in => m.vimap(in) }
+    pins.map { pin => spade.util.collectOut[R](pin) }.reduce { _ intersect _ }.toList
   }
 
-  def sResFunc(n:SMem, m:M, triedRes:List[R]):List[R] = {
+  def getFIFOs(n:SMem, m:M):List[R] = {
     val cu = n.ctrler
     val pcu = m.pmmap(cu)
     val reses = cu match {
@@ -50,7 +47,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       case cu => pcu.sfifos
     }
     dprintln(s"MC filtered reses=[${reses.mkString(",")}]")
-    reses.diff(triedRes).filterNot{ r => m.pmmap.contains(r) }
+    reses
   }
 
   def map(cu:CU, pirMap:M):M = {

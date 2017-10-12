@@ -16,15 +16,15 @@ abstract class Controller(implicit design:PIR) extends Module {
   val ginMap = Map[Variable, GlobalInput]()
   val goutList = ListBuffer[GlobalOutput]()
 
-  lazy val gins = ginMap.values.toList
-  lazy val gouts = goutList.toList
+  def gins = ginMap.values.toList
+  def gouts = goutList.toList
 
-  lazy val cins = gins.filter {_.isControl }
-  lazy val couts = gouts.filter {_.isControl }
-  lazy val sins = gins.filter {_.isScalar }
-  lazy val souts = gouts.filter {_.isScalar }
-  lazy val vins = gins.filter {_.isVector }
-  lazy val vouts = gouts.filter {_.isVector }
+  def cins = gins.filter {_.isControl }
+  def couts = gouts.filter {_.isControl }
+  def sins = gins.filter {_.isScalar }
+  def souts = gouts.filter {_.isScalar }
+  def vins = gins.filter {_.isVector }
+  def vouts = gouts.filter {_.isVector }
 
   def newIn(v:Variable) = ginMap.getOrElseUpdate(v, GlobalInput(v))
   def newOut[T<:Variable](out:Output)(implicit ev:TypeTag[T]):GlobalOutput = 
