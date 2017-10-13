@@ -81,12 +81,13 @@ abstract class Router(implicit design:PIR) extends Mapper {
   def isExtern(in:I):Boolean = { ctrler(in)!=ctrler(from(in)) }
 
   def logCond(header:String, valid:Boolean, cond:Boolean, info:String):Boolean = {
-    //if (valid && !cond) dprintln(header, s"not passed : $info")
+    if (valid && !cond) dprintln(header, s"not passed : $info")
     valid && cond
   }
 
   def filterTraverse[E<:Edge](start: I => CL, inputs:List[I], reses:List[PCL], m:PIRMap, advanceFunc: AdvanceFunc[E]):List[PCL] = {
     inputs.foldLeft(reses) { case (reses, in) =>
+      dprintln(s"in=$in reses=${reses.map(quote)}")
       val scl = start(in)
       val spcu = m.pmmap(scl)
       def validCons(reached:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
@@ -105,16 +106,18 @@ abstract class Router(implicit design:PIR) extends Mapper {
         minHop, // minHop
         maxHop // maxHop
       ).toSet.toList
-      fatpaths = fatpaths.sortBy { case (reached, fatpath) => fatpath.size }
       if (fatpaths.isEmpty) {
         val out = from(in)
         val icl = ctrler(in)
         val ocl = ctrler(out)
-        var info = s"No resource filtered for $icl.$in[${m.pmmap.get(icl).map(quote)}]"
-        info += s" from: $ocl.$out[${m.pmmap.get(ocl).map(quote)}]" 
+        var info = s"No resource filtered for $icl.$in[${m.pmmap.get(icl).map(quote)}]\n"
+        info += s" from: $ocl.$out[${m.pmmap.get(ocl).map(quote)}]\n" 
+        info += s"start:$scl[${quote(spcu)}]\n"
+        info += s"minHop=$minHop, maxHop=$maxHop"
+        breakPoint(m, info, true)
         throw MappingException(m, info)
       }
-      fatpaths.map { _._1 }
+      fatpaths.sortBy { case (reached, fatpath) => fatpath.size }.map { _._1 }
     }
   }
 
@@ -146,7 +149,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
 
   def vldCons[E<:Edge](validCons:Option[ValidCons[E]], minHop:Int, maxHop:Int)
              (reachedCU:PCL, fatpath:FatPath[E]):Option[FatPath[E]] = {
-    val header = s"validCons(reached:$reachedCU, fatpath:${fatpath.size})"
+    val header = s"validCons(reached:${quote(reachedCU)}, fatpath:${fatpath.size})"
     var valid = true
     valid = logCond(header, valid, fatpath.size >= minHop, s"path ${fatpath.size} less than minHop $minHop")
     valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
@@ -155,7 +158,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
 
   def advCons[E<:Edge](advanceCons:Option[AdvanceCons[E]], maxHop:Int)
              (psb:PSB, fatpath:FatPath[E]):Option[FatPath[E]] = {
-    val header = s"advanceCons(psb:$psb fatpath:${fatpath.size})"
+    val header = s"advanceCons(psb:${quote(psb)} fatpath:${fatpath.size})"
     var valid = true
     valid = logCond(header, valid, fatpath.size < maxHop, s"path ${fatpath.size} more than maxHop $maxHop")
     if (valid) { advanceCons.fold[Option[FatPath[E]]](Some(fatpath)){ av => av(psb, fatpath) } } else None

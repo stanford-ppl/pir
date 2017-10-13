@@ -1,13 +1,13 @@
 package pir.test
 
 import pir._
-import pir.util.typealias._
-import pir.util.misc._
-import pir.util.enums._
-import pir.graph._
+import pir.node._
 import pir.mapper._
 import pir.pass._
-import pir.exceptions._
+import pir.util.typealias._
+
+import pirc.enums._
+import pirc.util._
 
 import org.scalatest._
 import scala.language.reflectiveCalls
@@ -21,8 +21,9 @@ class MapperTest extends UnitTest { self =>
   type M = Map[N,R]
 
   "InOrderBind Test1" should "fail" in {
-    new Design { self =>
+    new PIR { self =>
       implicit val ctrler:CU = null 
+      def main(args: Array[String]) = {}
       // Nodes
       // PNodes
       override val arch = null
@@ -45,8 +46,9 @@ class MapperTest extends UnitTest { self =>
   }
 
   "InOrderBind Test2" should "success" in {
-    new Design { self =>
+    new PIR { self =>
       implicit val ctrler:CU = null 
+      def main(args: Array[String]) = {}
       // Nodes
       // PNodes
       override val arch = null
