@@ -108,6 +108,11 @@ trait GlobalIO extends IO with Primitive {
 }
 
 case class GlobalInput(variable:Variable)(implicit ctrler:Controller, design:PIR) extends Input with GlobalIO {
+  override val typeStr = variable match {
+    case _:Control => s"ControlInput"
+    case _:Scalar => s"ScalarInput"
+    case _:Vector => s"VectorInput"
+  }
   variable.addReader(this)
   //def writer:Output[Variable] = variable.writer
   val out = Output(this, s"${this}.out")
@@ -116,6 +121,11 @@ case class GlobalInput(variable:Variable)(implicit ctrler:Controller, design:PIR
 }
 
 case class GlobalOutput(variable:Variable)(implicit ctrler:Controller, design:PIR) extends Output with GlobalIO {
+  override val typeStr = variable match {
+    case _:Control => s"ControlOutput"
+    case _:Scalar => s"ScalarOutput"
+    case _:Vector => s"VectorOutput"
+  }
   variable.setWriter(this)
   //def readers:List[Input[Variable]]
   val in = Input(this, s"${this}.in")

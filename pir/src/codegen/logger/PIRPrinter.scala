@@ -86,10 +86,8 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
   override def visitNode(node: Node) : Unit = {
     node match {
       case n:Controller => emitBlock(node) {
-        emitln(s"children=[${n.children.mkString(",")}]")
+        emitln(s"children=${quote(n.children)}")
         pirmeta.summary(n).foreach(emitln)
-        emitln(s"consumed=[${n.consumed.mkString(",")}]")
-        emitln(s"produced=[${n.produced.mkString(",")}]")
         n match {
           case n:InnerController =>
             emitBlock(s"InfGraph =") {

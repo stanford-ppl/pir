@@ -19,16 +19,16 @@ abstract class Controller(implicit design:PIR) extends Module {
   def gins = ginMap.values.toList
   def gouts = goutList.toList
 
-  def cins = gins.filter {_.isControl }
-  def couts = gouts.filter {_.isControl }
-  def sins = gins.filter {_.isScalar }
-  def souts = gouts.filter {_.isScalar }
-  def vins = gins.filter {_.isVector }
-  def vouts = gouts.filter {_.isVector }
+  def cins = gins.filter { _.isControl }
+  def couts = gouts.filter { _.isControl }
+  def sins = gins.filter { _.isScalar }
+  def souts = gouts.filter { _.isScalar }
+  def vins = gins.filter { _.isVector }
+  def vouts = gouts.filter { _.isVector }
 
   def newIn(v:Variable) = ginMap.getOrElseUpdate(v, GlobalInput(v))
   def newOut[T<:Variable](out:Output)(implicit ev:TypeTag[T]):GlobalOutput = 
-  goutList.filter{ gout => !gout.in.isConnected && gout.in.from == out }.headOption.getOrElse {
+  goutList.filter{ gout => gout.in.isConnected && gout.in.from == out }.headOption.getOrElse {
     val bus = if (typeOf[T] =:= typeOf[Vector]) {
       Vector(s"${this}.$out")
     } else if (typeOf[T] =:= typeOf[Scalar]) {
@@ -36,7 +36,9 @@ abstract class Controller(implicit design:PIR) extends Module {
     } else {
       Control(s"${this}.$out")
     }
-    GlobalOutput(bus)
+    val gout = GlobalOutput(bus)
+    goutList += gout
+    gout
   }
   def newOut[T<:Variable](v:Variable)(implicit ev:TypeTag[T]):GlobalOutput = { 
     val out = GlobalOutput(v)

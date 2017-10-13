@@ -156,7 +156,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
       }
     }
     val notFit = cls.filter { cl =>
-      emitBlock(s"$cl") {
+      if (map(cl).size==0) emitBlock(s"$cl") {
         val info = failureInfo(cl).map{ case (prt, info) => dprintln(s"${quote(prt)}: [${info.mkString(",")}]") }
       }
       map(cl).size==0

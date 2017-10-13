@@ -441,6 +441,7 @@ abstract class Router(implicit design:PIR) extends Mapper {
         val out = from(n)
         sameSrcMap(ctrler(in))(out).foreach { in =>
           mp = mp.setVI(in, pin).setVO(out, pout).setRT(in, path.size).setMK(pout, out).setMK(pin, out)
+          dprintln(s"$in -> $pin")
           in match {
             case in:GI => mp = mp.setOP(in.out, pin.ic)
             case in =>

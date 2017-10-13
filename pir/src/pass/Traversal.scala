@@ -35,10 +35,6 @@ trait Traversal extends Pass {
     }
     node match {
       case n:Controller => 
-        n.sins.foreach { si => visitNode(si) }
-        n.vins.foreach { vi => visitNode(vi) }
-        n.souts.foreach { so => visitNode(so) }
-        n.vouts.foreach { vo => visitNode(vo) }
         n.mems.foreach { s => visitNode(s) }
         n match {
           case c:Top => 

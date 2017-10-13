@@ -39,6 +39,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
     val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
       Try {
         routers.foldLeft(m.setPM(cl, prt)) { case (pm, router) =>
+          dprintln(s"$router ins:${router.ins(cl)} outs:${router.outs(cl)}")
           router.route(cl, pm)
         }
       } match {
