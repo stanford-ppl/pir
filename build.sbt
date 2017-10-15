@@ -41,10 +41,10 @@ lazy val pirc = Project("pirc",
 lazy val spade = Project("spade", 
   file("spade/"), 
   settings = bldSettings,
-  dependencies = Seq(pirc % "compile->compile")
+  dependencies = Seq(pirc % "compile->compile;test->test")
 )
 
-lazy val arch = Project("arch", 
+lazy val arch:Project = Project("arch", 
   file("spade/arch"), 
   settings = bldSettings,
   dependencies = Seq(spade % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
@@ -53,14 +53,14 @@ lazy val arch = Project("arch",
 lazy val pir = Project("pir", 
   file("pir/"), 
   settings = bldSettings,
-  dependencies = Seq(pirc % "compile->compile", spade % "compile->compile", arch % "compile->compile")
+  dependencies = Seq(pirc % "compile->compile;test->test", spade % "compile->compile", arch % "compile->compile")
 )
 
 lazy val apps = Project("apps", 
   file("pir/apps"), 
   settings = bldSettings, 
  // Allow ScalaTest of apps accesss ScalaTest of pir
-  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile")
+  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile", pirc % "test->test")
 )
 
 // sbt command alias
@@ -76,5 +76,5 @@ addCommandAlias("spade", "; project arch; run-main")
 
 addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 
-addCommandAlias("arch", s"""; project pir; test-only -- -n "ARCH"""")
+addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 

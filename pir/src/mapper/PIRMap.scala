@@ -16,35 +16,32 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
   rtmap:RTMap, cfmap:CFMap
   ) extends SpadeMap {
 
-  def set(cp:VIMap):PIRMap = PIRMap(cp   , vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:VOMap):PIRMap = PIRMap(vimap, cp   , mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:MKMap):PIRMap = PIRMap(vimap, vomap, cp   , fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:FIMap):PIRMap = PIRMap(vimap, vomap, mkmap, cp   , rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:RCMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, cp   , ipmap, opmap, pmmap, rtmap, cfmap)
-  def set(cp:IPMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, cp   , opmap, pmmap, rtmap, cfmap)
-  def set(cp:OPMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, cp   , pmmap, rtmap, cfmap)
-  def set(cp:PMMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, cp   , rtmap, cfmap)
-  def set(cp:RTMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, cp   , cfmap)
-  def set(cp:CFMap):PIRMap = PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
-
-  def setVI(k:VIMap.K, v:VIMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(vimap + ((k, v))))
-  def setVO(k:VOMap.K, v:VOMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(vomap + ((k, v))))
-  def setMK(k:MKMap.K, v:MKMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(mkmap + ((k, v))))
-  def setFI(k:FIMap.K, v:FIMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(fimap + ((k, v))))
-  def setRC(k:RCMap.K, v:RCMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(rcmap + ((k, v))))
-  def setIP(k:IPMap.K, v:IPMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(ipmap + ((k, v))))
-  def setOP(k:OPMap.K, v:OPMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(opmap + ((k, v))))
-  def setPM(k:PMMap.K, v:PMMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(pmmap + ((k, v))))
-  def setRT(k:RTMap.K, v:RTMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(rtmap + ((k, v))))
-  def setCF(k:CFMap.K, v:CFMap.V)(implicit mper:Mapper, design:PIR):PIRMap = wrap(set(cfmap + ((k, v))))
-
-  def wrap(func: => PIRMap)(implicit mapper:Mapper, design:PIR):PIRMap = {
-    try {
-      func
-    } catch {
-      case e:Exception => throw PassThroughException(e, this) 
-    }
+  private def copy(
+    vimap:VIMap=vimap,
+    vomap:VOMap=vomap,
+    mkmap:MKMap=mkmap,
+    fimap:FIMap=fimap,
+    rcmap:RCMap=rcmap,
+    ipmap:IPMap=ipmap,
+    opmap:OPMap=opmap,
+    pmmap:PMMap=pmmap,
+    rtmap:RTMap=rtmap,
+    cfmap:CFMap=cfmap
+  ) = {
+    PIRMap(vimap, vomap, mkmap, fimap, rcmap, ipmap, opmap, pmmap, rtmap, cfmap)
   }
+
+  def setVI(k:VIMap.K, v:VIMap.V):PIRMap = copy(vimap=vimap + ((k, v)))
+  def setVO(k:VOMap.K, v:VOMap.V):PIRMap = copy(vomap=vomap + ((k, v)))
+  def setMK(k:MKMap.K, v:MKMap.V):PIRMap = copy(mkmap=mkmap + ((k, v)))
+  def setRC(k:RCMap.K, v:RCMap.V):PIRMap = copy(rcmap=rcmap + ((k, v)))
+  def setIP(k:IPMap.K, v:IPMap.V):PIRMap = copy(ipmap=ipmap + ((k, v)))
+  def setOP(k:OPMap.K, v:OPMap.V):PIRMap = copy(opmap=opmap + ((k, v)))
+  def setPM(k:PMMap.K, v:PMMap.V):PIRMap = copy(pmmap=pmmap + ((k, v)))
+  def setRT(k:RTMap.K, v:RTMap.V):PIRMap = copy(rtmap=rtmap + ((k, v)))
+
+  override def setFI(k:FIMap.K, v:FIMap.V):PIRMap = copy(fimap=fimap + ((k, v)))
+  override def setCF(k:CFMap.K, v:CFMap.V):PIRMap = copy(cfmap=cfmap + ((k, v)))
 
   def quote(n:Any)(implicit design:PIR) = n match {
     case n:Node => pir.util.quote(n)

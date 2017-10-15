@@ -10,6 +10,7 @@ import arch._
 
 import pirc.enums._
 import pirc.util._
+import pirc.test._
 
 import org.scalatest._
 import scala.language.reflectiveCalls

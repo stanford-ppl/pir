@@ -20,38 +20,17 @@ abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR)
 
   override lazy val stream = if (design.mapping.isDefined) newStream(fn)(design) else newStream(fn)(design.arch)
 
-  var mapping:Option[PIRMap] = None
+  private var _mapping:Option[PIRMap] = None
+  override def mapping:Option[PIRMap] = _mapping
 
   override def print:Unit = { 
-    if (mapping.isEmpty) this.mapping = design.mapping
+    if (mapping.isEmpty) this._mapping = design.mapping
     super.print
   }
 
   def print(mapping:Option[PIRMap]):Unit = {
-    this.mapping = mapping
+    this._mapping = mapping
     super.print
-  }
-
-  override def setColor(pin:PGI[PModule], pout:PGO[PModule], attr:DotAttr) = {
-    mapping.foreach { m => 
-      if (m.fimap.get(pin).fold(false){ _ == pout }) {
-        attr.color(linkColor).style(bold)
-      }
-    }
-  }
-
-  override def setColor(prt:PRT, attr:DotAttr) = {
-    // Color node if any of the inputs is mapped
-    mapping.foreach { mp => 
-      prt match {
-        case prt:PCL =>
-          if (mp.cfmap.contains(prt) || io(prt).ins.exists( in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(prt))
-        case prt =>
-          if (io(prt).ins.exists(in => mp.fimap.contains(in)))
-            attr.style(filled).fillcolor(color(prt))
-      }
-    }
   }
 
   override def getLabel(prt:PRT):String = {

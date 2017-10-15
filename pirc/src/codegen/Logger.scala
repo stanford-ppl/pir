@@ -45,10 +45,4 @@ trait Logger extends Printer {
   def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBSln(promp(header,s))
   def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) emitBEln(promp(header, s))
 
-  //override def newStream(dp:String, fname:String):FileOutputStream = { 
-    //this match {
-      //case p:Pass => super.newStream(dp, s"${p.runId}.${fname}")
-      //case _ => super.newStream(dp, fname)
-    //}
-  //}
 }

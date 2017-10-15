@@ -111,7 +111,7 @@ trait Printer {
     _append = append
     val dir = new File(dirPath)
     if (!dir.exists()) {
-      println(s"[pir] creating output directory: ${System.getProperty("user.dir")}${File.separator}${Config.outDir}");
+      println(s"[pir] creating output directory: $dirPath");
       dir.mkdir();
     }
     file = new File(getPath)
