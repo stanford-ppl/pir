@@ -5,13 +5,13 @@ import pirc.codegen.Logger
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
 
-trait GraphSearch {
+trait UniformCostGraphSearch {
   /* Find the minimum path from start to end
    * Call finPass when a route is found. If finPass is succeeded, return mapping from finPass. 
    * If finPass fails, continue find routes. Throw exception when no route is found 
    * @return mapping 
    * */
-  def search[N, A, C:Ordering,M](
+  def uniformCostSearch[N, A, C:Ordering,M](
     start:N, 
     isEnd:N => Boolean,
     zeroCost:C,
@@ -129,7 +129,7 @@ trait GraphSearch {
   /*
    * Find list of nodes reachable from start
    * */
-  def span[N, C:Ordering](
+  def uniformCostSpan[N, C:Ordering](
     start:N, 
     zeroCost:C,
     sumCost:(C,C) => C,
