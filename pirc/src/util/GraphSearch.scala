@@ -59,18 +59,26 @@ trait GraphSearch {
         l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
       }
 
-      explored += minNode 
       if (isEnd(minNode)) {
-        logger.foreach { l =>
-          l.emitBEln
-          l.dprintln("")
-        }
         val route = extractResult(start, minNode).reverse
         Try(finPass(route, pastCost))  match {
-          case Success(m) => return m
+          case Success(m) => 
+            logger.foreach { l =>
+              l.emitBEln
+              l.dprintln("")
+            }
+            return m
           case Failure(e) => // Continue
-            logger.foreach { l => l.dprintln(s"$e") }
+            //explored.clear
+            //backPointers.clear
+            //frontier.clear
+            //frontier += Node(start, zeroCost)
+            logger.foreach { l => 
+              l.dprintln(s"$e")
+            }
         }
+      } else {
+        explored += minNode 
       }
 
       var neighbors = advance(minNode)
@@ -109,12 +117,98 @@ trait GraphSearch {
           }
         }
       }
+      logger.foreach { l =>
+        l.emitBEln
+        l.dprintln("")
+      }
+
+    }
+    return throw new Exception(s"No route from ${quote(start)}") 
+  }
+
+  /*
+   * Find list of nodes reachable from start
+   * */
+  def span[N, C:Ordering](
+    start:N, 
+    zeroCost:C,
+    sumCost:(C,C) => C,
+    advance:(N,C) => Iterable[(N, C)], 
+    quote:N => String,
+    logger:Option[Logger]
+  ):Iterable[N] = {
+
+    case class Node(n:N, var cost:C) extends Ordered[Node] {
+      override def toString = s"Node(${quote(n)}, $cost)" 
+      def compare(that:Node):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
+    }
+
+    val explored = mutable.ListBuffer[N]()
+
+    val backPointers = mutable.Map[N, (N,C)]()
+
+    var frontier = mutable.PriorityQueue[Node]()
+
+    frontier += Node(start, zeroCost)
+
+    while (!frontier.isEmpty) {
+      logger.foreach { l =>
+        l.dprintln(s"frontier:")
+        l.dprintln(s"- ${frontier}")
+        l.dprintln("")
+      }
+
+      val Node(minNode, pastCost) = frontier.dequeue()
+
+      logger.foreach { l =>
+        l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
+      }
+
+      explored += minNode 
+
+      var neighbors = advance(minNode, pastCost)
+
+      //logger.foreach { l =>
+        //l.dprintln(s"neighbors:")
+        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      //}
+      
+      neighbors = neighbors.filterNot { case (n, c) => explored.contains(n) }
+
+      //logger.foreach { l =>
+        //l.dprintln(s"neighbors not explored:")
+        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      //}
+      
+      neighbors = neighbors.groupBy { case (n, c) => n }.map { case (n, groups) =>
+        groups.minBy { case (n, c) => c }
+      }
+
+      logger.foreach { l =>
+        l.dprintln(s"neighbors minBy:")
+        l.dprintln(s" - ${neighbors.map { case (n, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      }
+
+      neighbors.foreach { case (neighbor, cost) =>
+        val newCost = sumCost(pastCost, cost)
+        frontier.filter { case Node(n,c) => n == neighbor }.headOption.fold [Unit]{
+          frontier += Node(neighbor, newCost)
+          backPointers += neighbor -> ((minNode, cost))
+        } { node =>
+          if (implicitly[Ordering[C]].lt(newCost, node.cost)) {
+            node.cost = newCost
+            backPointers += neighbor -> ((minNode, cost))
+            frontier = frontier.clone() // Create a new copy to force reordering
+          }
+        }
+      }
 
       logger.foreach { l =>
         l.emitBEln
         l.dprintln("")
       }
     }
-    return throw new Exception(s"No route from ${quote(start)}") 
+    explored.toList
   }
+
 }
