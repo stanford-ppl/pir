@@ -70,7 +70,9 @@ abstract class Controller(implicit design:PIR) extends Module {
   def mbuffers:List[MultiBuffer] = mems.collect { case buf:MultiBuffer => buf }
   def vfifos = mems.collect { case fifo:VectorFIFO => fifo }
   def sfifos = mems.collect { case fifo:ScalarFIFO => fifo }
+  def cmems = mems.collect { case smem:ControlMem => smem }
   def smems = mems.collect { case smem:ScalarMem => smem }
+  def vmems = mems.collect { case smem:VectorMem => smem }
   def sbufs = mems.collect { case smem:ScalarBuffer => smem }
   def srams = mems.collect { case mem:SRAM => mem }
   def lmems = mems.collect { case mem:LocalMem => mem }

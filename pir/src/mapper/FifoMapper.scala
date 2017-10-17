@@ -32,9 +32,21 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def getFIFOs(n:N, m:M):List[R] = {
+    def visitOut(x:Any):Iterable[Any] = x match {
+      case x:PVMux[_] => Set(x.out)
+      case x:PGI[_] => Set(x.ic)
+      case x:PAT => Set() // Add control primitive
+      case x:PD => Set()
+      case x => spade.util.visitOut(x)
+    }
     val ins = pir.util.collectIn[GI](n.writePort)
     val pins = ins.map { in => m.vimap(in) }
-    pins.map { pin => spade.util.collectOut[R](pin) }.reduce { _ intersect _ }.toList
+    dprintln(s"pins=${quote(pins)}")
+    pins.map { pin => 
+      val pmems = spade.util.collectOut[R](pin, visitOut=visitOut, logger=None) 
+      dprintln(s"pin=${quote(pin)} pmems=${quote(pmems)}")
+      pmems
+    }.reduce { _ intersect _ }.toList
   }
 
   def getFIFOs(n:SMem, m:M):List[R] = {
@@ -51,7 +63,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def map(cu:CU, pirMap:M):M = {
-    log(cu) {
+    log((cu, true)) {
       bind[R,N,M](
         allNodes=cu.lmems,
         initMap=pirMap, 

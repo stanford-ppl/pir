@@ -115,28 +115,24 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
       failureInfo += cl -> mutable.Map.empty
       map += cl -> map(cl).filter { prt =>
         val cons = ListBuffer[(String, Any)]()
+        cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, prt.cins.filter(_.isConnected))))
+        cons += (("cout"	    , (cl.couts, prt.couts.filter(_.isConnected))))
+        cons += (("sin"	      , (cl.sins, prt.sins.filter(_.isConnected))))
+        cons += (("sout"	    , (cl.souts, prt.souts.filter(_.isConnected))))
+        cons += (("vin"	      , (cl.vins.filter(_.isConnected), prt.vins.filter(_.isConnected))))
+        cons += (("vout"	    , (cl.vouts.filter(_.isConnected), prt.vouts.filter(_.isConnected))))
+        cons += (("vfifos"	    , (cl.vmems, prt.vfifos)))
+        cons += (("sfifos"	    , (cl.smems, prt.sfifos)))
+        cons += (("cfifos"	    , (cl.cmems, prt.cfifos)))
         (cl, prt) match {
           case (cl:Top, pcu:PTop) =>
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
           case (mc:MC, pcu:PMC) =>
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
-            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
-            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
           case (cu:ICL, pcu:PCU)  =>
             val pcu = prt.asInstanceOf[PCU]
             cons += (("reg"	      , (cu.infGraph, pcu.regs)))
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pcu.ctrs)))
             cons += (("stage"	    , (cu.stages, pcu.stages)))
             cons += (("udc"	      , (cu.ctrlBox.udcounters, pcu.ctrlBox.udcs)))
-            cons += (("sin"	      , (cl.sins, pcu.sins.filter(_.isConnected))))
-            cons += (("sout"	    , (cl.souts, pcu.souts.filter(_.isConnected))))
-            cons += (("vin"	      , (cl.vins.filter(_.isConnected), pcu.vins.filter(_.isConnected))))
-            cons += (("vout"	    , (cl.vouts.filter(_.isConnected), pcu.vouts.filter(_.isConnected))))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pcu.cins.filter(_.isConnected))))
-            cons += (("cout"	    , (cl.couts, pcu.couts.filter(_.isConnected))))
-            cons += (("sfifos"	    , (cu.smems, pcu.sfifos)))
             cons += (("srams"	    , (cu.srams, pcu.srams)))
             cu.srams.zip(pcu.srams).headOption.foreach { case (sram, psram) =>
               cons += (("sramSize"	    , (sram.size, psram.size / sram.buffering)))
@@ -145,11 +141,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
             cons += (("scalarInReg"	, (cu.regs.collect{case r@LoadPR(mem:ScalarMem) => r}, pcu.regs.filter(_.is(ScalarInReg)))))
           case (cu:OCL, pocu:POCU) =>
             cons += (("ctr"	      , (cu.cchains.flatMap(_.counters), pocu.ctrs)))
-            cons += (("sin"	      , (cl.sins, pocu.scalarIO.ins)))
             cons += (("udc"	      , (cu.ctrlBox.udcounters, pocu.ctrlBox.udcs)))
-            cons += (("cin"	      , (cl.cins.filter(_.isConnected).map(_.from).toSet, pocu.ctrlIO.ins.filter(_.fanIns.size>0))))
-            cons += (("cout"	    , (cl.couts, pocu.couts.filter(_.isConnected))))
-            cons += (("sfifos"	    , (cu.smems, pocu.sfifos)))
         }
         failureInfo(cl) += prt -> ListBuffer[String]()
         check(cons.toList, failureInfo(cl)(prt))
