@@ -62,6 +62,7 @@ trait Mapper { self =>
     case n:Node => pir.util.quote(n) 
     case n:PNode => spade.util.quote(n)
     case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
+    case n:Any => n.toString
   }
 
   def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {

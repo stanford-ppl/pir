@@ -11,40 +11,40 @@ trait UniformCostGraphSearch {
    * If finPass fails, continue find routes. Throw exception when no route is found 
    * @return mapping 
    * */
-  def uniformCostSearch[N, A, C:Ordering,M](
-    start:N, 
-    isEnd:N => Boolean,
+  def uniformCostSearch[S, A, C:Ordering,M](
+    start:S, 
+    isEnd:S => Boolean,
     zeroCost:C,
     sumCost:(C,C) => C,
-    advance:N => Iterable[(N, A, C)], 
-    quote:N => String,
-    finPass:(List[(N,A)], C) => M,
+    advance:(S,C) => Iterable[(S, A, C)], 
+    quote:S => String,
+    finPass:(List[(S,A)], C) => M,
     logger:Option[Logger]
   ):M = {
 
-    case class Node(n:N, var cost:C) extends Ordered[Node] {
-      override def toString = s"Node(${quote(n)}, $cost)" 
-      def compare(that:Node):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
+    case class State(n:S, var cost:C) extends Ordered[State] {
+      override def toString = s"State(${quote(n)}, $cost)" 
+      def compare(that:State):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
     }
 
-    val explored = mutable.ListBuffer[N]()
+    val explored = mutable.ListBuffer[S]()
 
-    val backPointers = mutable.Map[N, (N,A,C)]()
+    val backPointers = mutable.Map[S, (S,A,C)]()
 
-    var frontier = mutable.PriorityQueue[Node]()
+    var frontier = mutable.PriorityQueue[State]()
 
-    def extractResult(start:N, end:N):List[(N,A)] = {
-      val history = mutable.ListBuffer[(N, A)]()
+    def extractResult(start:S, end:S):List[(S,A)] = {
+      val history = mutable.ListBuffer[(S, A)]()
       var current = end
       while (current != start) {
         val (prevNode, action, cost) = backPointers(current)
         history += ((current, action))
         current = prevNode
       }
-      return history.toList
+      return history.toList.reverse
     }
 
-    frontier += Node(start, zeroCost)
+    frontier += State(start, zeroCost)
 
     while (!frontier.isEmpty) {
       logger.foreach { l =>
@@ -53,14 +53,15 @@ trait UniformCostGraphSearch {
         l.dprintln("")
       }
 
-      val Node(minNode, pastCost) = frontier.dequeue()
+      val State(minNode, pastCost) = frontier.dequeue()
 
       logger.foreach { l =>
         l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
       }
 
       if (isEnd(minNode)) {
-        val route = extractResult(start, minNode).reverse
+        assert(explored.toSet.size == explored.size)
+        val route = extractResult(start, minNode)
         Try(finPass(route, pastCost))  match {
           case Success(m) => 
             logger.foreach { l =>
@@ -72,7 +73,7 @@ trait UniformCostGraphSearch {
             //explored.clear
             //backPointers.clear
             //frontier.clear
-            //frontier += Node(start, zeroCost)
+            //frontier += State(start, zeroCost)
             logger.foreach { l => 
               l.dprintln(s"$e")
             }
@@ -81,7 +82,7 @@ trait UniformCostGraphSearch {
         explored += minNode 
       }
 
-      var neighbors = advance(minNode)
+      var neighbors = advance(minNode, pastCost)
 
       //logger.foreach { l =>
         //l.dprintln(s"neighbors:")
@@ -106,8 +107,8 @@ trait UniformCostGraphSearch {
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = sumCost(pastCost, cost)
-        frontier.filter { case Node(n,c) => n == neighbor }.headOption.fold [Unit]{
-          frontier += Node(neighbor, newCost)
+        frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit]{
+          frontier += State(neighbor, newCost)
           backPointers += neighbor -> ((minNode, action, cost))
         } { node =>
           if (implicitly[Ordering[C]].lt(newCost, node.cost)) {
@@ -129,27 +130,38 @@ trait UniformCostGraphSearch {
   /*
    * Find list of nodes reachable from start
    * */
-  def uniformCostSpan[N, C:Ordering](
-    start:N, 
+  def uniformCostSpan[S, C:Ordering](
+    start:S, 
     zeroCost:C,
     sumCost:(C,C) => C,
-    advance:(N,C) => Iterable[(N, C)], 
-    quote:N => String,
+    advance:(S,C) => Iterable[(S, C)], 
+    quote:S => String,
     logger:Option[Logger]
-  ):Iterable[N] = {
+  ):Iterable[(S,C)] = {
 
-    case class Node(n:N, var cost:C) extends Ordered[Node] {
-      override def toString = s"Node(${quote(n)}, $cost)" 
-      def compare(that:Node):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
+    case class State(n:S, var cost:C) extends Ordered[State] {
+      override def toString = s"State(${quote(n)}, $cost)" 
+      def compare(that:State):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
     }
 
-    val explored = mutable.ListBuffer[N]()
+    val explored = mutable.ListBuffer[S]()
 
-    val backPointers = mutable.Map[N, (N,C)]()
+    val backPointers = mutable.Map[S, (S,C)]()
 
-    var frontier = mutable.PriorityQueue[Node]()
+    var frontier = mutable.PriorityQueue[State]()
 
-    frontier += Node(start, zeroCost)
+    def extractCost(start:S, end:S):C = {
+      var totalCost = zeroCost
+      var current = end
+      while (current != start) {
+        val (prevNode, cost) = backPointers(current)
+        totalCost = sumCost(totalCost, cost)
+        current = prevNode
+      }
+      return totalCost 
+    }
+
+    frontier += State(start, zeroCost)
 
     while (!frontier.isEmpty) {
       logger.foreach { l =>
@@ -158,7 +170,7 @@ trait UniformCostGraphSearch {
         l.dprintln("")
       }
 
-      val Node(minNode, pastCost) = frontier.dequeue()
+      val State(minNode, pastCost) = frontier.dequeue()
 
       logger.foreach { l =>
         l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
@@ -191,8 +203,8 @@ trait UniformCostGraphSearch {
 
       neighbors.foreach { case (neighbor, cost) =>
         val newCost = sumCost(pastCost, cost)
-        frontier.filter { case Node(n,c) => n == neighbor }.headOption.fold [Unit]{
-          frontier += Node(neighbor, newCost)
+        frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit]{
+          frontier += State(neighbor, newCost)
           backPointers += neighbor -> ((minNode, cost))
         } { node =>
           if (implicitly[Ordering[C]].lt(newCost, node.cost)) {
@@ -208,7 +220,9 @@ trait UniformCostGraphSearch {
         l.dprintln("")
       }
     }
-    explored.toList
+
+    assert(explored.toSet.size == explored.size)
+    explored.map { n => (n, extractCost(start, n)) }.toList
   }
 
 }

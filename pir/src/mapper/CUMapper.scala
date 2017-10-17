@@ -26,9 +26,12 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   override val exceptLimit = 200
 
   val routers = ListBuffer[Router]()
-  routers += new VectorRouter()
-  routers += new ScalarRouter()
-  routers += new ControlRouter()
+  //routers += new VectorBFRouter()
+  //routers += new ScalarBFRouter()
+  //routers += new ControBFlRouter()
+  routers += new VectorUCRouter()
+  routers += new ScalarUCRouter()
+  routers += new ControlUCRouter()
 
   def finPass(m:M):M = m
   override def debug = PIRConfig.debugCUMapper
@@ -58,7 +61,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
     log((s"$cl resFunc:", true)) {
       dprintln(s"triedRes:[${triedRes.mkString(",")}]")
       var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )
-      dprintln(s"not mapped and not tried:[${prts.mkString(",")}]")
+      dprintln(s"not mapped and not tried:${quote(prts)}")
       cl match {
         case cl:MC if cl.mctpe==Scatter =>
         case cl:MC => 
@@ -84,6 +87,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
           }
         case _ =>
       }
+      dprintln(s"fringe filtered:${quote(prts)}")
       if (prts.size>1) routers.foreach { router => prts = router.filterPCL(cl, prts, m) }
       else if (prts.size==0) throw MappingException(m, s"No remaining Controller to map $cl")
       prts

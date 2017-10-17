@@ -161,7 +161,7 @@ object VIMap extends IBiManyToOneObj {
   def empty:VIMap = VIMap(Map.empty, Map.empty)
 }
 
-/* A mapping between a Input (VecIn or ScalarIn) with PInBus */
+/* A mapping between a Input with spade.Input */
 case class VOMap(map:VOMap.M, imap:VOMap.IM) extends IBiOneToManyMap {
   type K = VOMap.K
   type V = VOMap.V
