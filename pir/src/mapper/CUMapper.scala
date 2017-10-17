@@ -85,6 +85,9 @@ class CUMapper(implicit val design:PIR) extends Mapper {
           if (m.pmmap.contains(mc)) {
             prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
           }
+        case cu:CU => // regular cu. prioritize using cuArray
+          val (array, fringe) = prts.partition { prt => prt.coord._1 >= 0 && prt.coord._1 < arch.top.param.numCols }
+          prts = array ++ fringe
         case _ =>
       }
       dprintln(s"fringe filtered:${quote(prts)}")

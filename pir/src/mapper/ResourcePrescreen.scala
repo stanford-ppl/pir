@@ -186,7 +186,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
   def crossCheck:Boolean = emitBlock(s"crossCheck") {
     val nodes = resMap.keys.toList
     val N = nodes.size
-    (2 until N).foreach { n =>
+    (2 until /*N*/3).foreach { n =>
       combination(nodes, n).foreach { window =>
         val intersect = window.map { node => resMap(node) }.reduce { _ intersect _ }
         if (!intersect.isEmpty) {
