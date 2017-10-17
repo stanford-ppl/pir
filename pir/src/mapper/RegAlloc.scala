@@ -107,7 +107,7 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
       }
     }
 
-    log(s"precolor $cu") {
+    log[M](s"precolor $cu") {
       bind(
         allNodes=regs.toList,
         initMap=pirMap, 
@@ -121,7 +121,7 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
   private def color(cu:ICL, pirMap:M) = {
     val pcu = pirMap.pmmap(cu)
     val regs:List[N] = cu.regs.filter{_.isTemp}
-    log(s"color $cu") {
+    log[M](s"color $cu") {
       bind(
         allNodes=regs,
         initMap=pirMap,

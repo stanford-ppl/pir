@@ -27,7 +27,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   
   def map(cu:ICL, cuMap:M):M = {
     if (cu.stages.isEmpty) return cuMap
-    log(cu) {
+    log[M](cu) {
       var mp = cuMap
       val pcu = mp.pmmap(cu).asCU
       val nodes = cu.stages
@@ -84,7 +84,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def mapStage(n:N, p:R, map:M):M = {
-    log(s"Try $n -> ${quote(p)}") {
+    log[M](s"Try $n -> ${quote(p)}") {
       var mp = map
       checkStageType(n, p, mp)
       mp = mp.setPM(n, p)

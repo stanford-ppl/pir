@@ -65,12 +65,13 @@ trait Mapper { self =>
     case n:Any => n.toString
   }
 
-  def log[M](mapper:Mapper, info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = {
-    val (infoStr, buffer) = info match {
-      case (infoStr:Any, buffer:Boolean) => (infoStr, buffer)
-      case info => (s"$info", false)
-    }
-    dbsln(mapper, s"$infoStr")
+  def log[M](
+    info:Any, 
+    buffer:Boolean=false,
+    finPass:M => Unit = (m:M) => (), 
+    failPass:Throwable => Unit=(e:Throwable) => ()
+  )(block: => M):M = {
+    dbsln(this, s"$info")
     if (buffer) {
       logger.openBuffer
       excepsStack.push(ListBuffer.empty)
@@ -81,18 +82,14 @@ trait Mapper { self =>
           logger.closeBuffer
           excepsStack.pop
         }
-        dbeln(mapper, s"$infoStr (succeeded)")
+        dbeln(this, s"$info (succeeded)")
         finPass(m); m
       case Failure(e) => 
         if (buffer) logger.closeAndWriteBuffer
-        dbeln(mapper, s"$infoStr (failed ${currentExceptScope.size}/$exceptLimit) $e")
+        dbeln(this, s"$info (failed ${currentExceptScope.size}/$exceptLimit) $e")
         failPass(e); throw e
     }
   }
-  def log[M](info:Any, finPass:M => Unit, failPass:Throwable => Unit)(block: => M):M = log(this, info, finPass, failPass)(block)
-  def log[M](info:Any, finPass:M => Unit)(block: => M):M = log(this, info, finPass, (e:Throwable) => ())(block)
-  def log[M](mapper:Mapper, info:Any)(block: => M):M = log(mapper, info, (m:M) => (), (e:Throwable) => ())(block)
-  def log[M](info:Any)(block: => M):M = log(this, info)(block)
 
   def printCaller:Unit = {
     if (Config.debug) logger.pprintln(getStackTrace(7,10))
@@ -215,14 +212,12 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        log (s"Mapping $n (${total-remainNodes.size}/${total})", { (m:M) => 
-          return m; () // finPass
-        }, { (e:Throwable) => // Failpass
-          e match {
+        log (s"Mapping $n (${total-remainNodes.size}/${total})", 
+          failPass = { 
             case FailToMapNode(n, es, mp) => exceps ++= es
-            case _ => throw e // Unknown exception
+            case e => throw e // Unknown exception
           }
-        }) { // Block
+        ) { // Block
           def rn(m:M): M = recNode(restNodes, m)
           def rf(trs:List[R]):List[R] = resFunc(n, map, trs)
           recRes[R,N,M](n=n, constrain=constrain, resFilter=rf _, finPass=rn _, map=map)

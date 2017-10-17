@@ -35,7 +35,7 @@ class SramMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    log(cu) {
+    log[M](cu) {
       val srams = cu.srams
       val psrams = pirMap.pmmap(cu) match {
         case pcu:PCU => pcu.srams

@@ -21,7 +21,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def map(cu:CL, pirMap:M):M = {
     if (!design.ctrlAlloc.hasRun) return pirMap
-    log(cu) {
+    log[M](cu) {
       cu match {
         case cu:Top => mapCtrl(cu, pirMap)
         case cu:CU => mapCtrl(cu, pirMap) 

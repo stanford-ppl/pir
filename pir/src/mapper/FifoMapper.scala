@@ -24,14 +24,14 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     mp
   }
 
-  def resFunc(n:N, m:M, triedRes:List[R]):List[R] = emitBlock(s"resFunc(${n.ctrler}.$n)"){
+  def resFunc(n:N, m:M, triedRes:List[R]):List[R] = log[List[R]](s"resFunc(${n.ctrler}.$n)"){
     (n match {
       case n:SMem => getFIFOs(n, m)
       case n => getFIFOs(n, m)
     }).filterNot { r => triedRes.contains(r) || m.pmmap.contains(r) }
   }
 
-  def getFIFOs(n:N, m:M):List[R] = {
+  def getFIFOs(n:N, m:M):List[R] = log[List[R]](s"getFIFOs($n)") {
     def visitOut(x:Any):Iterable[Any] = x match {
       case x:PVMux[_] => Set(x.out)
       case x:PGI[_] => Set(x.ic)
@@ -49,21 +49,36 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     }.reduce { _ intersect _ }.toList
   }
 
-  def getFIFOs(n:SMem, m:M):List[R] = {
+  def matchName(n:N, r:R, prefix:String):Boolean = {
+    val nname = n.name
+    val rname = nameOf.get(r)
+    if (nname.isEmpty || rname.isEmpty) return false
+    val nn = nname.get
+    val rn = rname.get
+    if (!rn.contains(prefix)) return false
+    nn.contains(rn.replace(prefix,""))
+  }
+
+  def getFIFOs(n:SMem, m:M):List[R] = log[List[R]](s"getFIFOs($n)"){
     val cu = n.ctrler
     val pcu = m.pmmap(cu)
-    val reses = cu match {
-      case cu:MC if n.name.get=="data" => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"s${n.name.get}" }
-      case cu:MC if cu.mctpe==TileLoad => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"r${n.name.get}" }
-      case cu:MC if cu.mctpe==TileStore => pcu.sfifos.filter { sbuf => nameOf(sbuf) == s"w${n.name.get}" }
-      case cu => pcu.sfifos
+    var reses = pcu.sfifos
+    dprintln(s"sfifos=${quote(reses.map { f => (f, nameOf.get(f))})}")
+    cu match {
+      case cu:MC if n.name.get=="data" => 
+        reses = reses.filter { fifo => matchName(n, fifo, "") }
+      case cu:MC if cu.mctpe==TileLoad => 
+        reses = reses.filter { fifo => matchName(n, fifo, "r") }
+      case cu:MC if cu.mctpe==TileStore => 
+        reses = reses.filter { fifo => matchName(n, fifo, "w") }
+      case cu => 
     }
-    dprintln(s"MC filtered reses=[${reses.mkString(",")}]")
+    dprintln(s"MC filtered reses=${quote(reses)}")
     reses
   }
 
   def map(cu:CU, pirMap:M):M = {
-    log((cu, true)) {
+    log[M](cu, buffer=true) {
       bind[R,N,M](
         allNodes=cu.lmems,
         initMap=pirMap, 

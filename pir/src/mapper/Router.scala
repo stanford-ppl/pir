@@ -18,7 +18,7 @@ trait Router extends Mapper {
   implicit def design:PIR
 
   lazy val minHop = 1
-  lazy val maxHop = design.arch.top.diameter
+  lazy val maxHop = design.arch.top.diameter + 2
   override val exceptLimit = 200
 
   type I = pir.util.typealias.I
@@ -51,6 +51,17 @@ trait Router extends Mapper {
     }
   }
 
+  def failPass(e:Throwable):Unit = if (debug) {
+    e match {
+      case e:MappingException[_] =>
+        //breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
+      case e:PassThroughException[_] =>
+      case e:Throwable =>
+        println(e)
+    }
+  } else {
+    (e:Throwable) => ()
+  }
 }
 
 trait VectorRouter extends Router {

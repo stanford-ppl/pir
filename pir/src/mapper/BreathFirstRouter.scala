@@ -32,8 +32,8 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
   def filterPCL(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     var reses = prts 
     if (reses.isEmpty) throw MappingException(m, s"No prts to filter for $cl")
-    reses = log((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
-    reses = log((s"filterIns", true)) { filterIns(cl, reses, m) }
+    reses = log[List[PCL]]((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
+    reses = log[List[PCL]]((s"filterIns", true)) { filterIns(cl, reses, m) }
     reses
   }
 
@@ -82,17 +82,6 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
       case n => 
         super.quote(n)
     }
-  }
-  def failPass(e:Throwable):Unit = if (debug) {
-    e match {
-      case e:MappingException[_] =>
-        //breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
-      case e:PassThroughException[_] =>
-      case e:Throwable =>
-        println(e)
-    }
-  } else {
-    (e:Throwable) => ()
   }
   //def quote[E<:Edge](fe:FatEdge[E])(implicit ev:TypeTag[E]):String = { fe.map(quote).mkString(" | ") }
   //def quote[T](n:T)(implicit ev:TypeTag[T]):String = n match {
@@ -414,7 +403,7 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
       val (heads, last) = fatpath.splitAt(fatpath.size-1)
       filterUsedFatEdge(out, last.head, m).map{ last => heads :+ last }
     }
-    log((s"$ocl.$out(${quote(pocl)}) -> $icl.$in(${quote(picl)}) resFunc", true), (r:Paths[FEdge]) => (), failPass) {
+    log[Paths[FEdge]](s"$ocl.$out(${quote(pocl)}) -> $icl.$in(${quote(picl)}) resFunc", buffer=true, failPass=failPass) {
       val routes = fwdAdvance(
         start=pocl, 
         end=Some(picl), 
@@ -445,7 +434,7 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
     }
 
     def cons(n:I, r:R, m:M):M = {
-      log(s"Try $n -> $r", (m:M) => (), failPass) {
+      log[M](s"Try $n -> $r", failPass=failPass) {
         var mp = m
         val (reachedCU, path) = r
         val pin = path.last._2
@@ -482,7 +471,7 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
       srcMap.map { case (out, ins) => ins.head }
     }.toList
 
-    log((info, true), ((m:M) => ()), failPass) {
+    log[M](info, buffer=true, failPass=failPass) {
       bind[R,I,M](
         allNodes=uniqueIns, 
         initMap=m, 

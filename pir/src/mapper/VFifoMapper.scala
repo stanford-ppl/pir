@@ -35,7 +35,7 @@ class VFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def map(cu:ICL, pirMap:M):M = {
-    log(cu) {
+    log[M](cu) {
       bind(
         allNodes=cu.vfifos,
         initMap=pirMap, 

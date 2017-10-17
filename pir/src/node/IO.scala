@@ -27,6 +27,7 @@ abstract class IO(implicit val src:Module, design:PIR) extends Node {
   }
 
   def isGlobal:Boolean
+  def asGlobal:GlobalIO = this.asInstanceOf[GlobalIO]
 }
 class Input(implicit src:Module, design:PIR) extends IO {
   override val typeStr = "Input"
@@ -51,6 +52,7 @@ class Input(implicit src:Module, design:PIR) extends IO {
   def disconnect:Unit = if (isConnected) { from.disconnect(this); _from = null }
 
   def isGlobal:Boolean = { isConnected && !from.src.isConst && from.ctrler != ctrler }
+  override def asGlobal:GlobalInput = this.asInstanceOf[GlobalInput]
 }
 object Input {
   def apply[S<:Module](s:S)(implicit design:PIR):Input = new Input()(s, design)
@@ -82,6 +84,7 @@ class Output(implicit src:Module, design:PIR) extends IO {
   def until(max:Output) = new Range(this, max)
 
   def isGlobal:Boolean = { isConnected && to.exists{ ip => !ip.src.isConst && ip.ctrler != ctrler } }
+  override def asGlobal:GlobalOutput = this.asInstanceOf[GlobalOutput]
 }
 object Output {
   def apply(s:Module)(implicit design:PIR):Output = new Output()(s, design)

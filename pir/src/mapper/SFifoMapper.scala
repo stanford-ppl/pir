@@ -41,7 +41,7 @@ class SFifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 
   def map(cu:CU, pirMap:M):M = {
-    log(cu) {
+    log[M](cu) {
       bind(
         allNodes=cu.smems,
         initMap=pirMap, 

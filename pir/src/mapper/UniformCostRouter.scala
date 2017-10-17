@@ -19,7 +19,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
   override type M = PIRMap
 
   /* ---- API ------- */
-  def filterPCL(cl:CL, prts:List[PCL], mp:PIRMap):List[PCL] = log((s"filterPCL($cl)", true)){
+  def filterPCL(cl:CL, prts:List[PCL], mp:PIRMap):List[PCL] = log[List[PCL]]((s"filterPCL($cl)", true)){
     var reses = prts 
     if (reses.isEmpty) throw MappingException(mp, s"No prts to filter for $cl")
 
@@ -32,7 +32,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
     reses
   }
 
-  def route(cl:CL, m:M):M = log((s"route($cl)", true)) {
+  def route(cl:CL, m:M):M = log[M]((s"route($cl)", true)) {
     var mp = m
     var edges = List[(O,I)]()
     edges ++= mappedInputs(cl, mp)
@@ -45,9 +45,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
   def route(m:M, edges:List[(O,I)]):M = {
     if (!edges.isEmpty) {
       val (out, in)::rest = edges
-      log(s"route($out, $in)") {
-        search(m, out, in) { m => route(m, rest) }
-      }
+      search(m, out, in) { m => route(m, rest) }
     } else m
   }
 
@@ -71,23 +69,33 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
     val end = mp.pmmap(ctrler(in))
     def fp(m:M, route:List[(N, FE)], cost:C) = {
       var mp = m
-      mp = mp.setVO(out, route.head._2._1.asGlobal)
-      mp = mp.setVI(in, route.last._2._2.asGlobal)
+      val pin = route.last._2._2.asGlobal
+      val pout = route.head._2._1.asGlobal
+      mp = mp.setVO(out, pout)
+      mp = mp.setVI(in, pin)
+      mp = mp.setOP(in.asGlobal.out, pin.ic)
       route.foreach { case (_, (o, i)) => 
-        mp = mp.setMK(o, out).setMK(o, out)
+        mp = mp.setMK(i, out).setMK(o, out)
         mp
       }
       mp = mp.setRT(in, cost)
+      mp = mp.setRT(out, cost)
       finPass(mp)
     }
-    uniformCostSearch[FE](
-      start   = start,
-      end     = end,
-      advance = advance(mp, out, in) _,
-      map     = mp,
-      finPass = fp _,
-      logger  = Some(logger)
-    )
+    val info = s"fail to route $out(${quote(start)}) -> $in(${quote(end)}) maxHop=$maxHop"
+    log[M](info, failPass=failPass) {
+      uniformCostSearch[FE](
+        start   = start,
+        end     = end,
+        advance = advance(mp, out, in) _,
+        map     = mp,
+        finPass = fp _,
+        logger  = Some(logger)
+      ) match {
+        case Left(e) => throw MappingException(mp, info)
+        case Right(m) => m
+      }
+    }
   }
 
   /*
@@ -95,7 +103,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
    *   |Producer  | (T) ---> (H) | Current   |
    *   +----------+              +-----------+
    * */
-  def mappedInputs(cl:CL, mp:M):List[(O,I)] = log(s"mappedInputs($cl)"){
+  def mappedInputs(cl:CL, mp:M):List[(O,I)] = log[List[(O,I)]](s"mappedInputs($cl)"){
     dprintln(s"ins=${quote(ins(cl))}")
     val res = ins(cl).flatMap { in => 
       val out = from(in)
@@ -110,7 +118,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
    *   | Current  | (H) ---> (T)  | Consumer  |
    *   +----------+               +-----------+
    * */
-  def mappedOutputs(cl:CL, mp:M):List[(I,O)] = log(s"mappedOutputs($cl)") {
+  def mappedOutputs(cl:CL, mp:M):List[(I,O)] = log[List[(I,O)]](s"mappedOutputs($cl)") {
     dprintln(s"outs=${quote(outs(cl))}")
     val res = outs(cl).flatMap { out => 
       to(out).flatMap { in => 

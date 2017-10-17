@@ -39,7 +39,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   def resMap = design.prescreen.resMap
 
   def place(cl:N, prt:R, m:M):M = {
-    val mp = log((s"Try $cl -> ${quote(prt)}", true)) {
+    val mp = log[M](s"Try $cl -> ${quote(prt)}", buffer=true) {
       Try {
         routers.foldLeft(m.setPM(cl, prt)) { case (pm, router) =>
           dprintln(s"$router ins:${router.ins(cl)} outs:${router.outs(cl)}")
@@ -58,7 +58,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
 
   //TODO: change to resFuncWithExcept
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
-    log((s"$cl resFunc:", true)) {
+    log[List[R]](s"$cl resFunc:", buffer=true) {
       dprintln(s"triedRes:[${triedRes.mkString(",")}]")
       var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )
       dprintln(s"not mapped and not tried:${quote(prts)}")

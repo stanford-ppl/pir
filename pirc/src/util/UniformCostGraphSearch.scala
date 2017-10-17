@@ -1,5 +1,6 @@
 package pirc.util
 
+import pirc._
 import pirc.codegen.Logger
 
 import scala.util.{Try, Success, Failure}
@@ -20,7 +21,7 @@ trait UniformCostGraphSearch {
     quote:S => String,
     finPass:(List[(S,A)], C) => M,
     logger:Option[Logger]
-  ):M = {
+  ):Either[PIRException, M] = {
 
     case class State(n:S, var cost:C) extends Ordered[State] {
       override def toString = s"State(${quote(n)}, $cost)" 
@@ -68,7 +69,7 @@ trait UniformCostGraphSearch {
               l.emitBEln
               l.dprintln("")
             }
-            return m
+            return Right(m)
           case Failure(e) => // Continue
             //explored.clear
             //backPointers.clear
@@ -124,7 +125,7 @@ trait UniformCostGraphSearch {
       }
 
     }
-    return throw new Exception(s"No route from ${quote(start)}") 
+    return Left(PIRException(s"No route from ${quote(start)}"))
   }
 
   /*
