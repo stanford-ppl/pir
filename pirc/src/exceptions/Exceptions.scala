@@ -8,6 +8,9 @@ object PIRException {
   def apply(s:String) = new {override val msg = s} with PIRException
 }
 
+// Continue search when exception is raised
+trait SearchFailure extends PIRException
+
 /* Compiler Error */
 case class TODOException(s:String) extends PIRException {
   override val msg = s"TODO: ${s}"

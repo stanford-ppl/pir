@@ -336,13 +336,17 @@ object PMMap extends IBiOneToOneObj {
   def empty:PMMap = PMMap(Map.empty, Map.empty)
 }
 
-case class RTMap(map:RTMap.M) extends IOneToOneMap {
+case class RTMap(map:RTMap.M) extends IOneToManyMap {
   type K = RTMap.K
   type V = RTMap.V
   override type M = RTMap.M
-  override def + (rec:(K,V)) = { super.check(rec); RTMap(map + rec) }
+  override def + (rec:(K,V)) = { 
+    super.check(rec)
+    val (k,v) = rec
+    RTMap(map + (k -> (map.getOrElse(k, Set.empty) + v)))
+  }
 }
-object RTMap extends IOneToOneObj {
+object RTMap extends IOneToManyObj {
   type K = Any //Input or VecIn or Delay
   type V = Int 
   def empty:RTMap = RTMap(Map.empty)

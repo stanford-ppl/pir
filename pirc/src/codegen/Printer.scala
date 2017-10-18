@@ -132,20 +132,28 @@ trait Printer {
   /*
    * Close the temporary stream and write all content in the temp stream to actual file
    * */
-  def closeAndWriteBuffer = {
+  def closeAndWriteBuffer:Unit = {
+    if (buffers.isEmpty) return
     val bufStream = buffers.pop
     val nextStream = buffers.headOption.getOrElse(stream)
     nextStream.write(bufStream.toByteArray())
     nextStream.flush
-    buffers.push(bufStream)
+    buffers.push(bufStream) // Let closeBuffer to do the cleanning
     closeBuffer
   }
 
   /* Close the temporary stream */
-  def closeBuffer = {
+  def closeBuffer:Unit = {
+    if (buffers.isEmpty) return
     val pw = bufferWriters.pop
     pw.flush()
     pw.close()
     buffers.pop
+  }
+
+  def closeAndWriteAllBuffers = {
+    while (buffers.nonEmpty) {
+      closeAndWriteBuffer
+    }
   }
 }

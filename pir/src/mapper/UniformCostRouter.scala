@@ -1,7 +1,7 @@
 package pir.mapper
 
 import pir._
-import pir.util.typealias._
+import pir.util.typealias.{Seq => _, _}
 
 import spade._
 import spade.traversal.PlasticineGraphTraversal
@@ -49,12 +49,12 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
     } else m
   }
 
-  def span(mp:M, tail:IO, head:IO):Iterable[N] = {
+  def span(mp:M, tail:IO, head:IO):Seq[S] = {
     val start = mp.pmmap(ctrler(tail))
-    def adv(n:N, c:C):Iterable[(N,C)] = {
-      advance(mp, tail, head)(n,c).map { case (n, edge, cost) => (n, cost) }
+    def adv(n:S, prevEdge:Option[(PIO, PIO)], c:C) = {
+      advance[IO, IO, PIO, PIO](mp, tail, head)(n, prevEdge, c)
     }
-    val nodes = uniformCostSpan(
+    val nodes = uniformCostSpan[(PIO, PIO)](
       start=start,
       advance=adv _,
       logger=Some(logger)
@@ -67,7 +67,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
   def search(mp:M, out:O, in:I)(finPass:M => M):M = {
     val start = mp.pmmap(ctrler(out))
     val end = mp.pmmap(ctrler(in))
-    def fp(m:M, route:List[(N, FE)], cost:C) = {
+    def fp(m:M, route:List[(S, FE)], cost:C) = {
       var mp = m
       val pin = route.last._2._2.asGlobal
       val pout = route.head._2._1.asGlobal
@@ -76,14 +76,24 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       mp = mp.setOP(in.asGlobal.out, pin.ic)
       route.foreach { case (_, (o, i)) => 
         mp = mp.setMK(i, out).setMK(o, out)
+        //dprintln(s"marker:${quote(o)} $out")
+        //dprintln(s"marker:${quote(i)} $out")
         mp
       }
       mp = mp.setRT(in, cost)
       mp = mp.setRT(out, cost)
       finPass(mp)
     }
-    val info = s"fail to route $out(${quote(start)}) -> $in(${quote(end)}) maxHop=$maxHop"
-    log[M](info, failPass=failPass) {
+    val info = s"route $out(${quote(start)}) -> $in(${quote(end)}) maxHop=$maxHop"
+    //def failPass(e:Throwable) = {
+      //logger.closeAndWriteAllBuffers
+      //breakPoint(mp, s"$e", true)
+      //e match {
+        //case e:E => // mapping exception
+        //case e => throw e
+      //}
+    //}
+    log[M](info/*, failPass=failPass*/) {
       uniformCostSearch[FE](
         start   = start,
         end     = end,
@@ -92,7 +102,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
         finPass = fp _,
         logger  = Some(logger)
       ) match {
-        case Left(e) => throw MappingException(mp, info)
+        case Left(e) => throw MappingException(mp, info + " (failed)")
         case Right(m) => m
       }
     }
@@ -129,7 +139,11 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
     res
   }
 
-  def advance[T<:IO,H<:IO,PT<:PIO,PH<:PIO](mp:M, tail:T, head:H)(n:N, c:C):Iterable[(N, (PT,PH), C)] = {
+  def advance[T<:IO,H<:IO,PT<:PIO,PH<:PIO](
+    mp:M, 
+    tail:T, 
+    head:H
+  )(n:S, prevEdge:Option[(PT, PH)], c:C):Seq[(S, (PT,PH), C)] = {
 
     val start = mp.pmmap(ctrler(tail))
 
@@ -138,7 +152,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       case (tail:I, head:O) => head
     }
 
-    def filterUsed[T<:PIO](pios:Iterable[T]):Iterable[T] = {
+    def filterUsed[T<:PIO](pios:Seq[T]):Seq[T] = {
       var res = pios
       if (c > maxHop) res = Nil
       // Filter out unmatched marker
@@ -149,11 +163,33 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       res
     }
 
-    def tails(n:N) = {
-      val ptails = ((tail, head) match {
+    def tails(n:S, prevHead:Option[PH]) = {
+      var ptails = ((tail, head) match {
         case (tail:O, head:I) => pouts(n)
         case (tail:I, head:O) => pins(n)
-      }).asInstanceOf[Iterable[PT]]
+      }).asInstanceOf[Seq[PT]]
+      if(n.isInstanceOf[PSB]) {
+        prevHead.foreach { 
+          case prevHead:PGI[_] =>
+            /*
+             *    prevHead  +-------------------------+  pt
+             *  ----------->|prevhead.ic(o)   ptics (is)| ------> 
+             *              +-------------------------+
+             * */
+            mp.fimap.get(prevHead.ic).foreach { ptics =>
+              ptails = ptails.filter { pt => ptics.map(_.src).contains(pt.asGlobal) }
+            }
+          case prevHead:PGO[_] =>
+            /*
+             *    prevHead  +-------------------------+  pt
+             *  <-----------|prevhead.ic(is)   ptic(o)| <------
+             *              +-------------------------+
+             * */
+            mp.fimap.get(prevHead.ic).foreach { ptic =>
+              ptails == ptails.filter { _ == ptic.src }
+            }
+        }
+      }
       filterUsed(ptails)
     }
 
@@ -161,7 +197,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       val pheads = (tail match {
         case tail:PI => tail.fanIns.map(_.asGlobal)
         case tail:PO => tail.fanOuts.map(_.asGlobal)
-      }).asInstanceOf[Iterable[PH]]
+      }).asInstanceOf[Seq[PH]]
       filterUsed(pheads)
     }
 
@@ -170,7 +206,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       heads=heads _,
       src=(head:PH) => head.src.asInstanceOf[PRT],
       start=start
-    )(n,c).map { case (n, edge) => (n, edge, getCost(edge)) }
+    )(n, prevEdge, c).map { case (n, edge) => (n, edge, getCost(edge)) }
 
   }
 

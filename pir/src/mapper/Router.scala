@@ -54,10 +54,10 @@ trait Router extends Mapper {
   def failPass(e:Throwable):Unit = if (debug) {
     e match {
       case e:MappingException[_] =>
-        //breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
+        logger.closeAndWriteAllBuffers
+        breakPoint(e.mapping.asInstanceOf[PIRMap], s"$e", true)
       case e:PassThroughException[_] =>
-      case e:Throwable =>
-        println(e)
+      case e:Throwable => println(e)
     }
   } else {
     (e:Throwable) => ()

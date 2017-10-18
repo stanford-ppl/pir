@@ -1,12 +1,16 @@
 package pirc.util
 
-import pirc._
+import pirc.exceptions._
 import pirc.codegen.Logger
 
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
 
 trait UniformCostGraphSearch {
+  type BackPointer[S,A,C] = mutable.Map[S, (S,A,C)]
+  type Explored[S] = mutable.ListBuffer[S]
+  type AdvanceFunc[S,A,C] = (S,BackPointer[S,A,C],C) => Seq[(S, A, C)]
+
   /* Find the minimum path from start to end
    * Call finPass when a route is found. If finPass is succeeded, return mapping from finPass. 
    * If finPass fails, continue find routes. Throw exception when no route is found 
@@ -17,9 +21,93 @@ trait UniformCostGraphSearch {
     isEnd:S => Boolean,
     zeroCost:C,
     sumCost:(C,C) => C,
-    advance:(S,C) => Iterable[(S, A, C)], 
+    advance:AdvanceFunc[S,A,C], 
     quote:S => String,
     finPass:(List[(S,A)], C) => M,
+    logger:Option[Logger]
+  ):Either[PIRException, M] = {
+
+    def terminate(minNode:S, explored:Explored[S],backPointers:BackPointer[S,A,C]):Option[M] = {
+      if (isEnd(minNode)) {
+        assert(explored.toSet.size == explored.size)
+        val (route, cost) = extractHistory(start, minNode, backPointers, zeroCost, sumCost)
+        Try(finPass(route, cost))  match {
+          case Success(m) => Some(m)
+          case Failure(e:SearchFailure) => // Continue
+            //explored.clear
+            //backPointers.clear
+            //frontier.clear
+            //frontier += State(start, zeroCost)
+            logger.foreach { l => 
+              l.dprintln(s"$e")
+            }
+            None
+          case Failure(e) => throw e
+        }
+      } else {
+        explored += minNode 
+        None
+      }
+    }
+
+    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):Either[PIRException, M] = {
+      return Left(PIRException(s"No route from ${quote(start)}"))
+    }
+
+    uniformCostTraverse(
+      start=start,
+      zeroCost=zeroCost,
+      sumCost=sumCost,
+      advance=advance,
+      quote=quote,
+      terminate=terminate,
+      cleanUp=cleanUp,
+      logger=logger
+    )
+  }
+
+  /*
+   * Find list of nodes reachable from start
+   * */
+  def uniformCostSpan[S, A, C:Ordering](
+    start:S, 
+    zeroCost:C,
+    sumCost:(C,C) => C,
+    advance:AdvanceFunc[S,A,C], 
+    quote:S => String,
+    logger:Option[Logger]
+  ):Seq[(S,C)] = {
+
+    def terminate(minNode:S, explored:mutable.ListBuffer[S],backPointers:BackPointer[S,A,C]):Option[Seq[(S,C)]] = { 
+      explored += minNode 
+      return None
+    }
+
+    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):Either[PIRException, Seq[(S,C)]] = {
+      assert(explored.toSet.size == explored.size)
+      Right(explored.map { n => (n, extractHistory(start, n, backPointers, zeroCost, sumCost)._2) }.toList)
+    }
+
+    uniformCostTraverse(
+      start=start,
+      zeroCost=zeroCost,
+      sumCost=sumCost,
+      advance=advance,
+      quote=quote,
+      terminate=terminate,
+      cleanUp=cleanUp,
+      logger=logger
+    ).right.get
+  }
+
+  def uniformCostTraverse[S, A, C:Ordering,M](
+    start:S, 
+    zeroCost:C,
+    sumCost:(C,C) => C,
+    advance:AdvanceFunc[S,A,C], 
+    quote:S => String,
+    terminate:(S, Explored[S], BackPointer[S,A,C]) => Option[M],
+    cleanUp:(Explored[S], BackPointer[S,A,C]) => Either[PIRException, M],
     logger:Option[Logger]
   ):Either[PIRException, M] = {
 
@@ -28,22 +116,11 @@ trait UniformCostGraphSearch {
       def compare(that:State):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
     }
 
-    val explored = mutable.ListBuffer[S]()
+    val explored:Explored[S] = mutable.ListBuffer[S]()
 
-    val backPointers = mutable.Map[S, (S,A,C)]()
+    val backPointers:BackPointer[S,A,C] = mutable.Map[S, (S,A,C)]()
 
     var frontier = mutable.PriorityQueue[State]()
-
-    def extractResult(start:S, end:S):List[(S,A)] = {
-      val history = mutable.ListBuffer[(S, A)]()
-      var current = end
-      while (current != start) {
-        val (prevNode, action, cost) = backPointers(current)
-        history += ((current, action))
-        current = prevNode
-      }
-      return history.toList.reverse
-    }
 
     frontier += State(start, zeroCost)
 
@@ -60,30 +137,15 @@ trait UniformCostGraphSearch {
         l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
       }
 
-      if (isEnd(minNode)) {
-        assert(explored.toSet.size == explored.size)
-        val route = extractResult(start, minNode)
-        Try(finPass(route, pastCost))  match {
-          case Success(m) => 
-            logger.foreach { l =>
-              l.emitBEln
-              l.dprintln("")
-            }
-            return Right(m)
-          case Failure(e) => // Continue
-            //explored.clear
-            //backPointers.clear
-            //frontier.clear
-            //frontier += State(start, zeroCost)
-            logger.foreach { l => 
-              l.dprintln(s"$e")
-            }
+      terminate(minNode, explored, backPointers).foreach { res => 
+        logger.foreach { l =>
+          l.emitBEln
+          l.dprintln("")
         }
-      } else {
-        explored += minNode 
+        return Right(res) // why is this cast necessary?
       }
 
-      var neighbors = advance(minNode, pastCost)
+      var neighbors = advance(minNode, backPointers, pastCost)
 
       //logger.foreach { l =>
         //l.dprintln(s"neighbors:")
@@ -99,7 +161,7 @@ trait UniformCostGraphSearch {
       
       neighbors = neighbors.groupBy { case (n, a, c) => n }.map { case (n, groups) =>
         groups.minBy { case (n, a, c) => c }
-      }
+      }.toSeq
 
       logger.foreach { l =>
         l.dprintln(s"neighbors minBy:")
@@ -123,107 +185,28 @@ trait UniformCostGraphSearch {
         l.emitBEln
         l.dprintln("")
       }
-
     }
-    return Left(PIRException(s"No route from ${quote(start)}"))
+
+    cleanUp(explored, backPointers)
   }
 
-  /*
-   * Find list of nodes reachable from start
-   * */
-  def uniformCostSpan[S, C:Ordering](
+  def extractHistory[S,A,C](
     start:S, 
+    end:S, 
+    backPointers:BackPointer[S,A,C], 
     zeroCost:C,
-    sumCost:(C,C) => C,
-    advance:(S,C) => Iterable[(S, C)], 
-    quote:S => String,
-    logger:Option[Logger]
-  ):Iterable[(S,C)] = {
-
-    case class State(n:S, var cost:C) extends Ordered[State] {
-      override def toString = s"State(${quote(n)}, $cost)" 
-      def compare(that:State):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
+    sumCost:(C,C) => C
+  ):(List[(S,A)], C) = {
+    var totalCost = zeroCost
+    val history = mutable.ListBuffer[(S, A)]()
+    var current = end
+    while (current != start) {
+      val (prevNode, action, cost) = backPointers(current)
+      totalCost = if (totalCost==null) cost else sumCost(totalCost, cost)
+      history += ((current, action))
+      current = prevNode
     }
-
-    val explored = mutable.ListBuffer[S]()
-
-    val backPointers = mutable.Map[S, (S,C)]()
-
-    var frontier = mutable.PriorityQueue[State]()
-
-    def extractCost(start:S, end:S):C = {
-      var totalCost = zeroCost
-      var current = end
-      while (current != start) {
-        val (prevNode, cost) = backPointers(current)
-        totalCost = sumCost(totalCost, cost)
-        current = prevNode
-      }
-      return totalCost 
-    }
-
-    frontier += State(start, zeroCost)
-
-    while (!frontier.isEmpty) {
-      logger.foreach { l =>
-        l.dprintln(s"frontier:")
-        l.dprintln(s"- ${frontier}")
-        l.dprintln("")
-      }
-
-      val State(minNode, pastCost) = frontier.dequeue()
-
-      logger.foreach { l =>
-        l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
-      }
-
-      explored += minNode 
-
-      var neighbors = advance(minNode, pastCost)
-
-      //logger.foreach { l =>
-        //l.dprintln(s"neighbors:")
-        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      //}
-      
-      neighbors = neighbors.filterNot { case (n, c) => explored.contains(n) }
-
-      //logger.foreach { l =>
-        //l.dprintln(s"neighbors not explored:")
-        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      //}
-      
-      neighbors = neighbors.groupBy { case (n, c) => n }.map { case (n, groups) =>
-        groups.minBy { case (n, c) => c }
-      }
-
-      logger.foreach { l =>
-        l.dprintln(s"neighbors minBy:")
-        l.dprintln(s" - ${neighbors.map { case (n, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      }
-
-      neighbors.foreach { case (neighbor, cost) =>
-        val newCost = sumCost(pastCost, cost)
-        frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit]{
-          frontier += State(neighbor, newCost)
-          backPointers += neighbor -> ((minNode, cost))
-        } { node =>
-          if (implicitly[Ordering[C]].lt(newCost, node.cost)) {
-            node.cost = newCost
-            backPointers += neighbor -> ((minNode, cost))
-            frontier = frontier.clone() // Create a new copy to force reordering
-          }
-        }
-      }
-
-      logger.foreach { l =>
-        l.emitBEln
-        l.dprintln("")
-      }
-    }
-
-    assert(explored.toSet.size == explored.size)
-    explored.map { n => (n, extractCost(start, n)) }.toList
+    return (history.toList.reverse, totalCost)
   }
 
 }

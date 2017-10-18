@@ -37,8 +37,8 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     val pm = mp.pmmap(m)
     val cu = m.ctrler
     val (bufferSize, notFullOffset) = if (m.notFull.isConnected) {
-      val fhop = mp.rtmap(pir.util.collectIn[GI](m.writePort).head)
-      val bhop = mp.rtmap(m.notFull.to.head)
+      val fhop = mp.rtmap(pir.util.collectIn[GI](m.writePort).head).max
+      val bhop = mp.rtmap(m.notFull.to.head).max
       val pipeDepth = m.writers.map{ writer => mp.pmmap(writer.ctrler).asCU.stages.size }.max
       val notFullOffset = fhop + bhop + pipeDepth
       dprintln(s" - fhop=$fhop bhop=$bhop pipeDepth=$pipeDepth")

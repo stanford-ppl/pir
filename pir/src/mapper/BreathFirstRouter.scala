@@ -32,8 +32,8 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
   def filterPCL(cl:CL, prts:List[PCL], m:PIRMap):List[PCL] = {
     var reses = prts 
     if (reses.isEmpty) throw MappingException(m, s"No prts to filter for $cl")
-    reses = log[List[PCL]]((s"filterOutIns", true)) { filterOutIns(cl, reses, m) }
-    reses = log[List[PCL]]((s"filterIns", true)) { filterIns(cl, reses, m) }
+    reses = log[List[PCL]](s"filterOutIns", buffer=true) { filterOutIns(cl, reses, m) }
+    reses = log[List[PCL]](s"filterIns", buffer=true) { filterIns(cl, reses, m) }
     reses
   }
 

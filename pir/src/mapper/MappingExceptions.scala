@@ -5,7 +5,7 @@ import pir.util.typealias._
 
 import pirc._
 
-abstract class MappingException[M](val mapping:M)(implicit design:PIR, val mapper:Mapper) extends PIRException with scala.util.control.NoStackTrace {
+abstract class MappingException[M](val mapping:M)(implicit design:PIR, val mapper:Mapper) extends PIRException with scala.util.control.NoStackTrace with pirc.exceptions.SearchFailure {
   def msg:String
   def typeStr = this.getClass().getSimpleName() 
   override def toString = s"[$mapper] $typeStr: $msg"
