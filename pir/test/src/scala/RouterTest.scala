@@ -25,7 +25,7 @@ class RouterTest extends UnitTest { self =>
       val arch = SN8x8
       val cus = arch.cuArray
       // Mapping
-      val router = new ControlRouter()
+      val router = new ControlBFRouter()
 
       val startCU = cus(0)(0)
       val endCU = cus(3)(3)

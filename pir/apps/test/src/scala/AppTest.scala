@@ -1,14 +1,15 @@
 
 import pir._
-import pir.test._
-import pir.util.misc._
-import pir.util.enums._
-import pir.util._
-import pir.graph._
-import pir.exceptions.PIRException
-import pir.spade.main._
-import spade.arch._
-import pir.codegen.Logger
+//import pir.util.enums._
+//import pir.util._
+//import pir.graph._
+
+import spade._
+import arch._
+
+import pirc.test._
+import pirc.util._
+import pirc.codegen.Logger
 
 import org.scalatest._
 import scala.language.reflectiveCalls
@@ -66,21 +67,21 @@ class AppTests extends UnitTest { self =>
           configs += s" --mapping=$mapping"
           configs += s" --codegen=false"
           arch.foreach { arch => configs += s"--arch=$arch" }
-          app.main(args)
+          app.main((args + configs).split(" "))
         }
       }
       def checkResult = {
-        assert(!app.simulator.timeOut)
+        assert(!app.simulator.simulator.timeOut)
         if (argOuts != "") {
           argOuts.split(" ").foreach { aos =>
             val aon::aov::_ = aos.split("=").toList
-            val ao = app.top.sins.filter { _.scalar.name==Some(aon) }.head
+            val ao = app.top.sins.filter { _.variable.name==Some(aon) }.head
             val pao = app.mapping.get.vimap(ao)
             assert(pao.values(0).asBus.head.value==Some(toValue(aov)), s"ArgOut!=gold result incorrect")
           }
         }
         checkDram.foreach { checkDram =>
-          val dram = app.arch.dram.getValue
+          val dram = app.arch.top.dram.getValue
           logDRAM(app, dram)
           assert(checkDram(dram), s"DRAM result incorrect")
         }
@@ -98,7 +99,7 @@ class AppTests extends UnitTest { self =>
     val a = (startA until startA+N).toList
     val b = (startB until startB+N).toList
     val gold = a.zip(b).map{ case (aa,bb) => aa * bb }.sum
-    val default = Config.simulationTimeOut
+    val default = SpadeConfig.simulationTimeOut
     test(
       app, 
       args=s"x1019=$N x1037=${startA*4} x1056=${startB*4}", 
@@ -197,8 +198,9 @@ class AppTests extends UnitTest { self =>
   //intercept[PIRException] {
 
   //val simulate = false
+  val simulate = true
   // UnitTest 
-  //test(InOutArg_cb, args="x222=4", argOuts="x223_x227=8.0", timeOut=30, debug=false)
+  test(InOutArg, args="x=4", argOuts="x342_x348=4", timeOut=30, debug=false)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
   //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
@@ -222,10 +224,9 @@ class AppTests extends UnitTest { self =>
   //test(SRAMReadWrite, argOuts="x1026_x1096=41", timeOut=60, debug=true)
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
-  val simulate = false
-  val verbose = true
-  val mapping = false
-  val arch = SN16x8_LD
+  //val verbose = true
+  //val mapping = false
+  //val arch = SN16x8_LD
   //val arch = SN16x13_LD
   //val arch = SN8x8_LD
   //val arch = SN4x4
@@ -233,17 +234,17 @@ class AppTests extends UnitTest { self =>
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), mapping=mapping, debug=true)
   //test(TensorLoadStore, arch=Some(arch), mapping=mapping, debug=true)
-  test(DotProduct         , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(DotProduct         , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  //test(GDA                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(SYRK_col                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 

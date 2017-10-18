@@ -442,7 +442,7 @@ abstract class BreathFirstRouter(implicit design:PIR) extends Router {
         val in = n
         val out = from(n)
         sameSrcMap(ctrler(in))(out).foreach { in =>
-          mp = mp.setVI(in, pin).setVO(out, pout).setRT(in, path.size).setMK(pout, out).setMK(pin, out)
+          mp = mp.setVI(in, pin).setVO(out, pout).setRT(in, path.size).setRT(out,path.size).setMK(pout, out).setMK(pin, out)
           dprintln(s"$in -> $pin")
           in match {
             case in:GI => mp = mp.setOP(in.out, pin.ic)

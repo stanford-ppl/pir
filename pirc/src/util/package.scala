@@ -54,5 +54,13 @@ package object util extends Printer {
     scala.io.StdIn.readLine()
   }
 
+  def toValue(s:String):AnyVal = {
+    if (s.contains("true") || s.contains("false")) 
+      s.toBoolean
+    else if (s.contains("."))
+      s.toFloat
+    else s.toInt
+  }
+
 }
 

@@ -114,14 +114,6 @@ package object util {
     }
   }
 
-  def toValue(s:String):AnyVal = {
-    if (s.contains("true") || s.contains("false")) 
-      s.toBoolean
-    else if (s.contains("."))
-      s.toFloat
-    else s.toInt
-  }
-
   def visitIn(x:Any):Iterable[Any] = x match {
     case x:GlobalInput => Set() // Stop at CU boundary
     case x:Input => if (!x.isConnected) Set() else Set(x.from)

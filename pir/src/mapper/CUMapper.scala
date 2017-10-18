@@ -28,7 +28,7 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   val routers = ListBuffer[Router]()
   //routers += new VectorBFRouter()
   //routers += new ScalarBFRouter()
-  //routers += new ControBFlRouter()
+  //routers += new ControlBFRouter()
   routers += new VectorUCRouter()
   routers += new ScalarUCRouter()
   routers += new ControlUCRouter()
