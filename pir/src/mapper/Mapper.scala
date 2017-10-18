@@ -147,11 +147,16 @@ trait Mapper { self =>
     var reses = compRes 
     while (reses.nonEmpty) {
       val res = reses.head
-      Try (finPass(constrain(n, res, map, exceps.toList))) match {
+      Try { 
+        finPass(constrain(n, res, map, exceps.toList))
+      } match {
         case Success(m) => return m
-        case Failure(e@NoSolFound(es, mp)) => exceps ++= es
-        case Failure(e@FailToMapNode(n, es, mp)) => exceps ++= es
-        case Failure(me:E) => exceps += me // constrain failed
+        case Failure(e@NoSolFound(es, mp)) => 
+          exceps ++= es
+        case Failure(e@FailToMapNode(n, es, mp)) => 
+          exceps ++= es
+        case Failure(me:E) => 
+          exceps += me // constrain failed
         case Failure(e) => throw e
       }
       triedRes += res
@@ -212,7 +217,8 @@ trait Mapper { self =>
       for (in <- 0 until remainNodes.size) { 
         val (h, n::rt) = remainNodes.splitAt(in)
         val restNodes = h ++ rt
-        log (s"Mapping $n (${total-remainNodes.size}/${total})", 
+        log (s"Mapping $n (${total-restNodes.size}/${total})", 
+          finPass = { (m:M) => return m },
           failPass = { 
             case FailToMapNode(n, es, mp) => exceps ++= es
             case e => throw e // Unknown exception

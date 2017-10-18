@@ -33,8 +33,9 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   routers += new ScalarUCRouter()
   routers += new ControlUCRouter()
 
-  def finPass(m:M):M = m
   override def debug = PIRConfig.debugCUMapper
+
+  def finPass(m:M):M = m
 
   def resMap = design.prescreen.resMap
 
@@ -42,7 +43,6 @@ class CUMapper(implicit val design:PIR) extends Mapper {
     val mp = log[M](s"Try $cl -> ${quote(prt)}", buffer=true) {
       Try {
         routers.foldLeft(m.setPM(cl, prt)) { case (pm, router) =>
-          dprintln(s"$router ins:${router.ins(cl)} outs:${router.outs(cl)}")
           router.route(cl, pm)
         }
       } match {
@@ -56,43 +56,62 @@ class CUMapper(implicit val design:PIR) extends Mapper {
     mp
   }
 
+  def resFilter(info:String, before:List[R], mp:M)(func: List[R] => List[R]) = log[List[R]](s"resFilter($info)"){
+    val after = func(before)
+    dprintln(s"before: ${quote(before)}")
+    dprintln(s"after: ${quote(after)}")
+    if (after.isEmpty)
+      throw MappingException(mp, s"No resource after $info")
+    after
+  }
+
   //TODO: change to resFuncWithExcept
   def resFunc(cl:N, m:M, triedRes:List[R]):List[R] = {
     log[List[R]](s"$cl resFunc:", buffer=true) {
-      dprintln(s"triedRes:[${triedRes.mkString(",")}]")
-      var prts = resMap(cl).filterNot( prt => triedRes.contains(prt) || m.pmmap.contains(prt) )
-      dprintln(s"not mapped and not tried:${quote(prts)}")
-      cl match {
-        case cl:MC if cl.mctpe==Scatter =>
-        case cl:MC => 
-          dagOf.get(cl).foreach { dag =>
-            if (m.pmmap.contains(dag)) {
-              prts = prts.filter{ prt => prt.coord == m.pmmap(dag).coord }
+
+      var prts = resFilter(s"resMap", resMap(cl), m) { reses => reses }
+
+      prts = resFilter(s"used", prts, m) { _.filterNot( prt => m.pmmap.contains(prt) ) }
+
+      prts = resFilter(s"triedRes", prts, m) { _.filterNot( prt => triedRes.contains(prt) ) }
+
+      prts = resFilter(s"Fringe Filter", prts, m) { reses =>
+        var prts = reses
+        cl match {
+          case cl:MC if cl.mctpe==Scatter =>
+          case cl:MC => 
+            dagOf.get(cl).foreach { dag =>
+              if (m.pmmap.contains(dag)) {
+                prts = prts.filter{ prt => prt.coord == m.pmmap(dag).coord }
+              }
             }
-          }
-          sagOf.get(cl).foreach { sag =>
-            if (m.pmmap.contains(sag)) {
-              prts = prts.filter{ prt => prt.coord == m.pmmap(sag).coord }
+            sagOf.get(cl).foreach { sag =>
+              if (m.pmmap.contains(sag)) {
+                prts = prts.filter{ prt => prt.coord == m.pmmap(sag).coord }
+              }
             }
-          }
-        case cu:CU if dagOf.icontains(cu) =>
-          val mc = dagOf.imap(cu)
-          if (m.pmmap.contains(mc)) {
-            prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
-          }
-        case cu:CU if sagOf.icontains(cu) =>
-          val mc = sagOf.imap(cu)
-          if (m.pmmap.contains(mc)) {
-            prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
-          }
-        case cu:CU => // regular cu. prioritize using cuArray
-          val (array, fringe) = prts.partition { prt => prt.coord._1 >= 0 && prt.coord._1 < arch.top.param.numCols }
-          prts = array ++ fringe
-        case _ =>
+          case cu:CU if dagOf.icontains(cu) =>
+            val mc = dagOf.imap(cu)
+            if (m.pmmap.contains(mc)) {
+              prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
+            }
+          case cu:CU if sagOf.icontains(cu) =>
+            val mc = sagOf.imap(cu)
+            if (m.pmmap.contains(mc)) {
+              prts = prts.filter{ prt => prt.coord == m.pmmap(mc).coord }
+            }
+          case cu:CU => // regular cu. prioritize using cuArray
+            val (array, fringe) = prts.partition { prt => prt.coord._1 >= 0 && prt.coord._1 < arch.top.param.numCols }
+            prts = array ++ fringe
+          case _ =>
+        }
+        prts
       }
-      dprintln(s"fringe filtered:${quote(prts)}")
-      if (prts.size>1) routers.foreach { router => prts = router.filterPCL(cl, prts, m) }
-      else if (prts.size==0) throw MappingException(m, s"No remaining Controller to map $cl")
+
+      routers.foreach { router => 
+        prts = resFilter(s"$router filter", prts, m) { prts => router.filterPCL(cl, prts, m) }
+      }
+
       prts
     }
   }

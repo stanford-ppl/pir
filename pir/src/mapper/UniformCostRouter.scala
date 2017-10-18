@@ -19,15 +19,19 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
   override type M = PIRMap
 
   /* ---- API ------- */
-  def filterPCL(cl:CL, prts:List[PCL], mp:PIRMap):List[PCL] = log[List[PCL]]((s"filterPCL($cl)", true)){
+  def filterPCL(cl:CL, prts:List[PCL], mp:PIRMap):List[PCL] = log[List[PCL]](s"filterPCL($cl)"){
     var reses = prts 
-    if (reses.isEmpty) throw MappingException(mp, s"No prts to filter for $cl")
 
     var edges = List[(IO,IO)]()
     edges ++= mappedInputs(cl, mp) // out -> in
     edges ++= mappedOutputs(cl, mp) // in -> out
     edges.foreach { case (tail, head) =>
-      reses = reses intersect span(mp, tail, head).toList
+      val spanSet = span(mp, tail, head).toList
+      dprintln(s"reses:")
+      dprintln(s"- ${quote(reses)}")
+      dprintln(s"spanSet of $tail(${quote(mp.pmmap(ctrler(tail)))}):")
+      dprintln(s"- ${quote(spanSet)}")
+      reses = reses intersect spanSet
     }
     reses
   }
@@ -85,15 +89,7 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
       finPass(mp)
     }
     val info = s"route $out(${quote(start)}) -> $in(${quote(end)}) maxHop=$maxHop"
-    //def failPass(e:Throwable) = {
-      //logger.closeAndWriteAllBuffers
-      //breakPoint(mp, s"$e", true)
-      //e match {
-        //case e:E => // mapping exception
-        //case e => throw e
-      //}
-    //}
-    log[M](info/*, failPass=failPass*/) {
+    log[M](info, failPass=failPass) {
       uniformCostSearch[FE](
         start   = start,
         end     = end,
@@ -176,8 +172,12 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
              *  ----------->|prevhead.ic(o)   ptics (is)| ------> 
              *              +-------------------------+
              * */
+            // Filter out used outputs
+            ptails = ptails.filterNot { case pt:PGO[_] => mp.fimap.get(pt.ic).fold(false) { _ != prevHead.ic} }
+            // Prefer reuse 
             mp.fimap.get(prevHead.ic).foreach { ptics =>
-              ptails = ptails.filter { pt => ptics.map(_.src).contains(pt.asGlobal) }
+              val (reuse, unused) = ptails.partition { pt => ptics.map(_.src).contains(pt.asGlobal) }
+              ptails = reuse ++ unused
             }
           case prevHead:PGO[_] =>
             /*
@@ -185,9 +185,8 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
              *  <-----------|prevhead.ic(is)   ptic(o)| <------
              *              +-------------------------+
              * */
-            mp.fimap.get(prevHead.ic).foreach { ptic =>
-              ptails == ptails.filter { _ == ptic.src }
-            }
+            // If output.ic is mapped, pick the mapped input
+            mp.fimap.get(prevHead.ic).foreach { ptic => ptails = ptails.filter { _ == ptic.src } }
         }
       }
       filterUsed(ptails)
