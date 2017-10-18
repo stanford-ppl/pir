@@ -130,14 +130,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
   def config(cu:MP, map:M):M = {
     var mp = map
     val pmcu = mp.pmmap(cu)
-
-    // Set valid
-    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
-      mp.vomap(out).map { pout => 
-        pout -> mp.pmmap(cu.ctrlBox.readEnDelay).out
-      }
-    }
-    mp = mp.setCF(pmcu, new ControllerConfig(name=s"$cu", outputValid.toMap))
+    mp = mp.setCF(pmcu, new ControllerConfig(name=s"$cu"))
 
     // Set delay
     val rstages = pmcu.stages.filter { pst => mp.pmmap.get(pst).fold(false) { st => forRead(st) } }
@@ -159,21 +152,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     var mp = map
     val pcu = mp.pmmap(cu)
 
-    // Set valid
-    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>
-      val in = out.to.head
-      in.ctrler match {
-        case top:Top => 
-          mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }
-        case _ =>
-          if (collectOut[FIFO](in).nonEmpty)
-            mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.enDelay).out }
-          else if (collectOut[MBuf](in).nonEmpty)
-            mp.vomap(out).map { _ -> mp.pmmap(cu.ctrlBox.doneDelay).out }
-          else Nil
-      }
-    }
-    mp = mp.setCF(pcu, new ControllerConfig(name=s"$cu", outputValid.toMap))
+    mp = mp.setCF(pcu, new ControllerConfig(name=s"$cu"))
     
     // Set delay
     val delay = pcu.stages.size
@@ -188,10 +167,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper {
     var mp = map
     val pcu = mp.pmmap(cu)
     val bounds = cu.souts.flatMap { sout => mp.vomap(sout).map { _ -> boundOf.get(sout) } }
-    val outputValid = (cu.souts ++ cu.vouts).flatMap { out =>  
-      mp.vomap(out).map { _ -> pcu.ctrlBox.command }
-    }
-    mp = mp.setCF(pcu, new TopConfig(name=s"$cu", bounds.toMap, outputValid.toMap))
+    mp = mp.setCF(pcu, new TopConfig(name=s"$cu", bounds.toMap))
     mp
   }
 
