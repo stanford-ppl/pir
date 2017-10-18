@@ -31,9 +31,7 @@ object PIRConfig extends GlobalConfig {
   def debug = Config.debug
   def debugCodegen = Config.debugCodegen
   var debugMapper:Boolean = debug && register("debug-mapper", true) { v => debugMapper = v == "true" }
-  var debugVecRouter = debugMapper && true 
-  var debugScalRouter = debugMapper && true 
-  var debugCtrlRouter = debugMapper && true
+  var debugRouting:Boolean = debugMapper && register("routing", false) { v => debugRouting = v == "true" }
   var debugCUMapper = debugMapper && true 
   var debugSOMapper = debugMapper && true 
   var debugSIMapper = debugMapper && true 

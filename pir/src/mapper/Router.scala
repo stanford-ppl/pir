@@ -19,6 +19,9 @@ trait Router extends Mapper {
 
   lazy val minHop = 1
   lazy val maxHop = design.arch.top.diameter + 2
+
+  override def debug:Boolean = PIRConfig.debugRouting
+
   override val exceptLimit = 200
 
   type I = pir.util.typealias.I
@@ -67,8 +70,6 @@ trait Router extends Mapper {
 trait VectorRouter extends Router {
   override val typeStr = "VecRouter"
 
-  override def debug:Boolean = PIRConfig.debugVecRouter
-
   def io(prt:PRT):PGrid[PRT] = prt.vectorIO
 
   def ctrler(io:IO):CL = io.ctrler
@@ -83,8 +84,6 @@ trait VectorRouter extends Router {
 trait ScalarRouter extends Router {
   override val typeStr = "ScalRouter"
 
-  override def debug:Boolean = PIRConfig.debugScalRouter 
-
   def io(prt:PRT):PGrid[PRT] = prt.scalarIO
 
   def ctrler(io:IO):CL = io.ctrler
@@ -98,8 +97,6 @@ trait ScalarRouter extends Router {
 
 trait ControlRouter extends Router {
   override val typeStr = "CtrlRouter"
-
-  override def debug:Boolean = PIRConfig.debugCtrlRouter
 
   def io(prt:PRT):PGrid[PRT] = prt.ctrlIO
 
