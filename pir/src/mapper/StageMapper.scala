@@ -31,7 +31,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       var mp = cuMap
       val pcu = mp.pmmap(cu).asCU
       val nodes = cu.stages
-      val reses = pcu.fustages
+      val reses = pcu.stages
       def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfResource(s"Not enough Stages in ${pcu} to map ${cu}.", pnodes, nodes, m)
       mp = bindInOrder(reses, nodes, mp, List(mapStage _), finPass(cu) _, oor _)
       mp = stageFowarding(pcu, mp)
@@ -46,7 +46,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     pcu.stages.foreach { pstage =>
       val ppregs:Set[PReg] = preLiveOuts.flatMap {reg => mp.rcmap(reg) }
       if (mp.pmmap.contains(pstage)) {
-        val stage = mp.pmmap(pstage)
+        val stage = mp.pmmap.to[ST](pstage)
         preLiveOuts = stage.liveOuts 
       } else {
         pstage.prs.foreach { ppr =>
@@ -99,7 +99,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def mapFUIn(n:ST, p:PST, map:M):M = {
     var mp = map
     val fu = n.fu.get
-    val pfu = p.asInstanceOf[PFUST].fu
+    val pfu = p.funcUnit 
     // Check Operand 
     fu.operands.zipWithIndex.foreach { case (oprd,i) =>
       mp = mapInput(oprd, pfu.operands(i), mp)
@@ -110,7 +110,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def mapFUOut(n:ST, p:PST, map:M):M = {
     var mp = map
     val fu = n.fu.get
-    val pfu = p.asInstanceOf[PFUST].fu
+    val pfu = p.funcUnit 
     // Check Operation 
     if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, mp)
     // Check Result 
@@ -151,7 +151,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 }
 case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
-  override val msg = s"${ps}:[${ps.funcUnit.get.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
+  override val msg = s"${ps}:[${ps.param.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
 }
 //case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit mapper:Mapper, design:PIR) 
   //extends OutOfResource(mapper, s"Not enough operands in ${ps} to map ${s}.", pnodes, nodes, mp)

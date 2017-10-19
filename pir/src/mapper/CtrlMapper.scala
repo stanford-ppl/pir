@@ -31,7 +31,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def mapCtrl(cu:CU, pirMap:M):M = {
     var mp = pirMap
-    val pcu = pirMap.pmmap(cu)
+    val pcu = pirMap.pmmap.to[PCU](cu)
     mp = mapCtrlBox(cu, pcu, mp)
     mp = mapDelays(cu, pcu, mp)
     mp = mapCounters(cu, pcu, mp)
@@ -59,7 +59,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def mapCtrl(cu:Top, pirMap:M):M = {
     var mp = pirMap
-    val pcu = pirMap.pmmap(cu)
+    val pcu = pirMap.pmmap.to[PTop](cu)
     val cb = cu.ctrlBox
     val pcb = pcu.ctrlBox
     mp = mp.setPM(cu.ctrlBox, pcu.ctrlBox)
@@ -87,7 +87,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     var mp = pirMap
     val pcb = pcu.ctrlBox
     cu.mems.foreach { mem =>
-      val pmem = mp.pmmap(mem)
+      val pmem = mp.pmmap.to[POCM](mem)
       mp = mapInput(mem.enqueueEnable, pmem.enqueueEnable, mp)
       mp = mapInput(mem.dequeueEnable, pmem.dequeueEnable, mp)
       mp = mapOutput(mem.notFull, pmem.notFull, mp)
@@ -195,7 +195,7 @@ class CtrlMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   def mapCounters(cu:CU, pcu:PCL, pirMap:M):M = {
     var mp = pirMap
     cu.cchains.flatMap(_.counters).foreach { ctr =>
-      val pctr = mp.pmmap(ctr)
+      val pctr = mp.pmmap.to[PCtr](ctr)
       mp = mapInput(ctr.en, pctr.en, mp)
       mp = mapOutput(ctr.done, pctr.done, mp)
     }

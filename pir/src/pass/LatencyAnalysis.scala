@@ -294,10 +294,10 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
         .reduce[Long]{ case (a,b) => max(a,b) }
         cycleOf(cl) = (iterOf(cl)-1)*maxLat + singleIterLatency(cl) 
       case cl:Pipeline if (isPipelining(cl)) => 
-        val pcl = mp.pmmap(cl)
+        val pcl = mp.pmmap.to[spade.node.ComputeUnit](cl)
         cycleOf(cl) = (iterOf(cl)-1) + pcl.stages.length
       case cl:Pipeline if (isStreaming(cl)) => 
-        val pcl = mp.pmmap(cl)
+        val pcl = mp.pmmap.to[spade.node.ComputeUnit](cl)
         cycleOf(cl) = pcl.stages.length
       case cl:StreamController => 
         cl.children.foreach { child => cycle(child) } // calculate cycle of nested SteamController

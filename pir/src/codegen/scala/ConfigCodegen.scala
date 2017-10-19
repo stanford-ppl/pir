@@ -135,7 +135,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
           n.src match {
             case ts:PPR if ts.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
             case ts:PPR if ts.stage == s.stage => ("CurrStageSrc", s.reg.index)
-            case fu:PFU if pmmap(fu.stage).isReduce => ("ReduceTreeSrc", s.reg.index)
+            case fu:PFU if pmmap.to[ST](fu.stage).isReduce => ("ReduceTreeSrc", s.reg.index)
             case fu:PFU if fu.stage.isNext(s.stage) => ("PrevStageSrc", s.reg.index)
             case fu:PFU if fu.stage == s.stage => ("CurrStageSrc", s.reg.index)
             case ts:PPR => throw new Exception(s"toStage=${quote(ts.stage)} prev=${ts.stage.prev.map(quote).getOrElse("None")} currStage=${quote(s.stage)}")
@@ -171,7 +171,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   def emitCtrBits(pcu:PCU) = {
     val cu = pmmap(pcu)
     pcu.ctrs.foreach { pctr =>
-      pmmap.get(pctr).foreach { ctr =>
+      pmmap.get[Ctr](pctr).foreach { ctr =>
         val ctrBit = s"CounterRCBits(max=${lookUp(ctr.max)}, stride=${lookUp(ctr.step)}, min=${lookUp(ctr.min)}, par=${ctr.par})"
         emitln(s"${quote(pctr)} = $ctrBit")
       }
@@ -183,8 +183,8 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
     val pctrs = pcu.ctrs
     val chain = List.tabulate(pctrs.size-1) { i =>
       if (pmmap.contains(pctrs(i)) && pmmap.contains(pctrs(i+1))) {
-        val ctr = pmmap(pctrs(i))
-        val ctrp1 = pmmap(pctrs(i+1))
+        val ctr = pmmap.to[Ctr](pctrs(i))
+        val ctrp1 = pmmap.to[Ctr](pctrs(i+1))
         if (ctrp1.en.from == ctr.done) 1
         else 0
       } else 0
@@ -215,15 +215,15 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
 
   def emitStageBits(pcu:PCU) = {
     val cu = pmmap(pcu)
-    pcu.fustages.foreach { pst =>
-      pmmap.get(pst).fold {
+    pcu.stages.foreach { pst =>
+      pmmap.get[ST](pst).fold {
         cu match {
           case cu:MP =>
             //emitln(s"${quote(pst)}.enableSelect = XSrc")
           case cu:ICL =>  // by default turns on
         }
       } { st =>
-        val pfu = pst.funcUnit.get
+        val pfu = pst.funcUnit
         val fu = st.fu.get
         emitln(s"${quote(pst)}.opA = ${lookUp(pfu.operands(0))}")
         emitln(s"${quote(pst)}.opB = ${lookUp(pfu.operands(1))}")
@@ -278,7 +278,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
 
   def commentSBufs(pcl:PCL) = {
     pcl.sfifos.foreach { sbuf =>
-      pmmap.get(sbuf).foreach {
+      pmmap.get[SMem](sbuf).foreach {
         case smem:SBuf =>
           val sw = if (smem.enqueueEnable.isConnected) {
             s"enqueueEnable=${smem.enqueueEnable.from}"
@@ -421,7 +421,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   def emitSRAM(psram:PSRAM) = {
     import pir.util.collectIn
     val pcu = psram.prt
-    pmmap.get(psram).foreach { case sram:SRAM =>
+    pmmap.get[SRAM](psram).foreach { case sram:SRAM =>
       emitComment(s"$psram -> $sram")
       val stride = sram.banking match {
         case Strided(stride, banks) => stride
@@ -446,7 +446,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
 
   def emitScalarNBuffer(pcu:PCU) = {
     val nbufs = pcu.sfifos.map { psbuf =>
-      pmmap.get(psbuf).fold(-1) {
+      pmmap.get[SMem](psbuf).fold(-1) {
         case smem:SBuf => smem.buffering
         case smem:SFIFO => 0
       }
@@ -476,7 +476,7 @@ class ConfigCodegen(implicit design: PIR) extends Codegen with ScalaCodegen with
   }
 
   def commentMC(pmc:PMC) = {
-    val mc = pmmap(pmc)
+    val mc = pmmap.to[MC](pmc)
     emitComment(s"mctpe=${mc.mctpe}")
   }
 

@@ -74,7 +74,7 @@ trait LocalRouter extends Mapper {
     var mp = map
     if (mp.fimap.contains(pin)) return mp
     if (pin.fanIns.size==1) { mp = mp.setFI(pin, pin.fanIns.head); return mp }
-    val pouts = fromInstanceOf[T](pin)
+    val pouts = collectIn[T](pin)
     if (pouts.size==1) {
       mp = mp.setFI(pin, pouts.head.asInstanceOf[PO[PModule]])
     }
@@ -87,7 +87,7 @@ trait LocalRouter extends Mapper {
     val out = in.from
     (out.src, pin.src) match {
       case (osrc@Const(c), pisrc) =>
-        mappingOf[PConst](pin).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
+        collectIn[PConst](pin).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
           val info = s"$in is Const, but $pin cannot be configured to constant"
           throw InputRouting(in, pin, info, mp)
         } { pconst =>
@@ -98,7 +98,7 @@ trait LocalRouter extends Mapper {
         }
       case (osrc@PipeReg(oStage, oReg), pisrc@PPR(piStage, piReg)) => // output is from pipeReg and input is to pipeReg
         assert(mp.rcmap(oReg).contains(piReg))
-        val poStage = mp.pmmap(oStage)
+        val poStage = mp.pmmap.to[PST](oStage)
         val poPpr = poStage.get(piReg)
         mp = propogate(poPpr, pin, mp).getOrElse {
           throw InputRouting(in, pin, s"Cannot propogate $poPpr to $pisrc", mp)
@@ -107,7 +107,7 @@ trait LocalRouter extends Mapper {
         // Register value is passed to a non register input
         // Find pregs mapped to reg. Propogate preg values along the pipeline stages
         // individually until the output of ppr propogation reaches input pin
-        val poStage = mp.pmmap(oStage)
+        val poStage = mp.pmmap.to[PST](oStage)
         val poPprs = mp.rcmap(oReg).map { poReg => poStage.get(poReg) }
 
         val propogatedMap = poPprs.foldLeft[Option[M]](None) { case (prev, poPpr) =>

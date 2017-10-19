@@ -51,14 +51,14 @@ trait PIRVcdDeclarator { self:PIRVcdPrinter =>
           opmap.get(io).foreach { pios => declare(pios.head, Some(s"${self.quote(io)}")) }
         case node:UDCounter => declare(node) { 
           super.visitNode(node)
-          declare(pmmap(node).count, None)
+          declare(pmmap.to[PUC](node).count, None)
         }
         case node@(_:CtrlBox) => declare(node) { 
-          declarator(spadeDeclarator).visitNode(pmmap(node))
+          declarator(spadeDeclarator).traverseDown(pmmap(node))
           super.visitNode(node)
         }
         case node@(_:OnChipMem) => declare(node) { 
-          declarator(spadeDeclarator).visitNode(pmmap(node))
+          declarator(spadeDeclarator).traverseDown(pmmap(node))
           super.visitNode(node)
         }
         case node@(_:CounterChain|_:Stage) => 

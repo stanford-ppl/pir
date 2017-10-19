@@ -72,7 +72,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val enCtrs = if (PIRConfig.ctrl) {
       n.en.from.src match {
         case dep:Ctr if n.ctrler == dep.ctrler => // Counter in the same CU
-          m.pmmap.get(dep).fold(remainRes) { pdep =>
+          m.pmmap.get[PCtr](dep).fold(remainRes) { pdep =>
             pdep.done.fanOuts.map{ fo => fo.src }.collect{ case pc:R => pc }.toList
           }
           // Inner most counter or copied inner most counter whose enable is routed fron network
@@ -85,7 +85,7 @@ class CtrMapper(implicit val design:PIR) extends Mapper with LocalRouter {
       n.done.to.map { done =>
         done.src match {
           case deped:Ctr if n.ctrler==deped.ctrler =>
-            m.pmmap.get(deped).fold(remainRes) { pdeped =>
+            m.pmmap.get[PCtr](deped).fold(remainRes) { pdeped =>
               pdeped.en.fanIns.map{ fi => fi.src}.collect{case pc:R => pc}.toList
             }
           case _ => remainRes

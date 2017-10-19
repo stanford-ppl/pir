@@ -5,137 +5,151 @@ import pir.util.typealias._
 
 import spade._
 import spade.util._
+import spade.traversal._
 
 import pirc._
 import pirc.util._
 
-class MapPrinter(implicit design: PIR) extends Codegen {
+class MapPrinter(implicit design: PIR) extends Codegen with HiearchicalTraversal {
   def shouldRun = Config.debug && PIRConfig.mapping
 
   implicit lazy val mp:PIRMap = design.mapping.get
 
   override lazy val stream = newStream("Mapping.log") 
   
-  def emit(pin:PI[PModule]) = {
-    val fin = fanInOf(pin).fold("") { from =>
-      s" <= ${quote(from)}"
-    }
-    val ip = mp.ipmap.get(pin).fold("") { in =>
-      s"  (${in})"
-    }
-    val gip = pin match {
-      case pin:PGI[PModule] => mp.vimap.get(pin).fold("") { in => s" ($in)" }
-      case pin => ""
-    }
-    emitln(s"${quote(pin)}$fin$ip$gip")
-  }
+  //def emit(pin:PI[PModule]) = {
+    //val fin = fanInOf(pin).fold("") { from =>
+      //s" <= ${quote(from)}"
+    //}
+    //val ip = mp.ipmap.get(pin).fold("") { in =>
+      //s"  (${in})"
+    //}
+    //val gip = pin match {
+      //case pin:PGI[PModule] => mp.vimap.get(pin).fold("") { in => s" ($in)" }
+      //case pin => ""
+    //}
+    //emitln(s"${quote(pin)}$fin$ip$gip")
+  //}
 
-  def emit(pout:PO[PModule]) = {
-    val fout = if (fanOutOf(pout).nonEmpty) {
-      s" => [${fanOutOf(pout).map(quote).mkString(",")}]"
-    } else ""
-    val op = mp.opmap.get(pout).fold("") { out =>
-      s" (${out})"
-    }
-    val gop = pout match {
-      case pout:PGO[PModule] => mp.vomap.get(pout).fold("") { out => s" ($out)" }
-      case pout =>
-    }
-    emitln(s"${quote(pout)}$fout$op$gop")
-  }
+  //def emit(pout:PO[PModule]) = {
+    //val fout = if (fanOutOf(pout).nonEmpty) {
+      //s" => [${fanOutOf(pout).map(quote).mkString(",")}]"
+    //} else ""
+    //val op = mp.opmap.get(pout).fold("") { out =>
+      //s" (${out})"
+    //}
+    //val gop = pout match {
+      //case pout:PGO[PModule] => mp.vomap.get(pout).fold("") { out => s" ($out)" }
+      //case pout =>
+    //}
+    //emitln(s"${quote(pout)}$fout$op$gop")
+  //}
 
-  def emit(m:PModule):Unit = {
-    emitModule(m, s"${quote(m)}") {}
-  }
+  //def emit(m:PModule):Unit = {
+    //emitModule(m, s"${quote(m)}") {}
+  //}
 
-  //TODO: merge with ocm
-  def emit(pctr:PCtr):Unit = {
-    mp.pmmap.get(pctr).foreach { ctr =>
-      emitModule(pctr, s"${quote(pctr)} -> $ctr") {}
-    }
-  }
+  ////TODO: merge with ocm
+  //def emit(pctr:PCtr):Unit = {
+    //mp.pmmap.get(pctr).foreach { ctr =>
+      //emitModule(pctr, s"${quote(pctr)} -> $ctr") {}
+    //}
+  //}
 
-  def emit(pmem:POCM):Unit = {
-    mp.pmmap.get(pmem).foreach { mem =>
-      emitModule(pmem, s"${quote(pmem)} -> $mem") {}
-    }
-  }
+  //def emit(pmem:POCM):Unit = {
+    //mp.pmmap.get(pmem).foreach { mem =>
+      //emitModule(pmem, s"${quote(pmem)} -> $mem") {}
+    //}
+  //}
 
-  def emit(pst:PST):Unit = {
-    emitList(s"${quote(pst)} <- ${mp.pmmap.get(pst)}"){
-      mp.pmmap.get(pst).foreach { st =>
-        pst.funcUnit.foreach { pfu =>
-          val fu = st.fu.get
-          emitln(s"$pfu <- $fu")
-          pfu.ins.foreach(emit)
-          emitln(s"$pfu.op=${fu.op}")
-        }
-        pst.prs.foreach(pr => emit(pr.in))
-      }
-    }
-  }
+  //def emit(pst:PST):Unit = {
+    //emitList(s"${quote(pst)} <- ${mp.pmmap.get(pst)}"){
+      //mp.pmmap.get(pst).foreach { st =>
+        //val pfu = pst.funcUnit
+        //val fu = st.fu.get
+        //emitln(s"$pfu <- $fu")
+        //pfu.ins.foreach(emit)
+        //emitln(s"$pfu.op=${fu.op}")
+        //pst.prs.foreach(pr => emit(pr.in))
+      //}
+    //}
+  //}
 
-  def emit(preg:PReg):Unit = {
-    mp.rcmap.get(preg).foreach { regs =>
-      emitln(s"${quote(preg)} -> [${regs.mkString(",")}]")
-    }
-  }
+  //def emit(preg:PReg):Unit = {
+    //mp.rcmap.get(preg).foreach { regs =>
+      //emitln(s"${quote(preg)} -> [${regs.mkString(",")}]")
+    //}
+  //}
 
-  def emit(reg:Reg):Unit = {
-    mp.rcmap.get(reg).foreach { pregs =>
-      emitln(s"${reg} -> [${pregs.map(quote).mkString(",")}]")
-    }
-  }
+  //def emit(reg:Reg):Unit = {
+    //mp.rcmap.get(reg).foreach { pregs =>
+      //emitln(s"${reg} -> [${pregs.map(quote).mkString(",")}]")
+    //}
+  //}
 
-  def emit(pprim:PPRIM):Unit = {
-    val title = mp.pmmap.get(pprim).fold {
-      s"${quote(pprim)}"
-    } { prim =>
-      s"${prim} -> ${quote(pprim)}"
-    }
-    emitModule(pprim, title) {}
-  }
+  //def emit(pprim:PPRIM):Unit = {
+    //val title = mp.pmmap.get(pprim).fold {
+      //s"${quote(pprim)}"
+    //} { prim =>
+      //s"${prim} -> ${quote(pprim)}"
+    //}
+    //emitModule(pprim, title) {}
+  //}
 
-  def emit(pcb:PCB):Unit = {
-    val cb = mp.pmmap.get(pcb)
-    emitModule(pcb, s"${quote(pcb)} -> $cb") {
-      pcb.udcs.foreach(emit)
-      pcb.andTrees.foreach(emit)
-      pcb.andGates.foreach(emit)
-      pcb.delays.foreach(emit)
-    }
-  }
+  //def emit(pcb:PCB):Unit = {
+    //val cb = mp.pmmap.get(pcb)
+    //emitModule(pcb, s"${quote(pcb)} -> $cb") {
+      //pcb.udcs.foreach(emit)
+      //pcb.andTrees.foreach(emit)
+      //pcb.andGates.foreach(emit)
+      //pcb.delays.foreach(emit)
+    //}
+  //}
 
-  def emit(pcl:PCL):Unit = {
-    mp.pmmap.get(pcl).foreach { cl =>
-      emitModule(pcl, s"${quote(pcl)} -> $cl") {
-        (cl, pcl) match {
-          case (cu:CU, pcu:PCU) =>
-            pcu.ctrs.foreach(emit)
-            pcu.mems.foreach(emit)
-            pcu.stages.foreach(emit)
-            emitList(s"pregs") { pcu.regs.foreach(emit) }
-            emitList(s"regs") { cu.regs.foreach(emit) }
-          case _ =>
-        }
-        pcl.souts.map(sout => emit(sout.ic))
-        pcl.vouts.map(vout => emit(vout.ic))
-        emit(pcl.ctrlBox)
-      }
-    }
-  }
+  //def emit(pcl:PCL)(block: => Unit):Unit = {
+    //mp.pmmap.get(pcl).foreach { cl =>
+      //emitBlock(s"${quote(pcl)} -> $cl") { block }
+    //}
+  //}
 
   override def initPass = {
     super.initPass
   }
 
-  addPass(canRun=design.mapping.nonEmpty) {
-    design.arch.ctrlers.foreach(emit)
-    design.arch match {
-      case sn:SwitchNetwork =>
-        sn.sbs.foreach(emit)
-      case _ =>
+  override def traverseDown(n:Any):Unit = {
+    def emitBlock(n:PNode)(block: => Unit) = {
+      super.emitBlock(s"${quote(n)} -> ${mp.pmmap(n)}") { 
+        block
+        super.traverseDown(n)
+      } 
     }
+    n match {
+      case n:PI[_] => 
+        emitln(s"${quote(n)}(${mp.pmmap.get(n)}) <= ${fanInOf(n)(mp).map(quote)}")
+      case n:PO[_] => 
+        emitln(s"${quote(n)}(${mp.pmmap.get(n)}) => ${fanOutOf(n)(mp).map(quote)}")
+      case n:PFU if mp.pmmap.contains(n) => 
+        emitBlock(n) { emitln(s"$n.op=${mp.pmmap.to[FU](n).op}") }
+      case n:PCU if mp.pmmap.contains(n) => 
+        emitBlock(n) {
+          super.emitBlock(s"colors:") {
+            n.regs.foreach { preg => s"${quote(preg)} => ${mp.rcmap.get(preg)}" }
+          }
+        }
+      case n:PNode if mp.pmmap.contains(n) => emitBlock(n) { } 
+      case (_:PST | _:PCtr | _:PCL | _:PMem) => 
+      case n => super.traverseDown(n)
+    }
+  }
+
+  addPass(canRun=design.mapping.nonEmpty) {
+    traverseDown(design.arch.top)
+    //design.arch.ctrlers.foreach(emit)
+    //design.arch match {
+      //case sn:SwitchNetwork =>
+        //sn.sbs.foreach(emit)
+      //case _ =>
+    //}
     emitBlock(s"mkmap") {
       mp.mkmap.map.foreach { case (k,v) =>
         emitln(s"${quote(k.src)}.$k -> $v")
@@ -147,13 +161,13 @@ class MapPrinter(implicit design: PIR) extends Codegen {
     run
   }
 
-  def emitModule(m:PModule, title:String)(block: =>Any) = {
-    emitList(s"${title}") {
-      m.ins.foreach(emit)
-      m.outs.foreach(emit)
-      block
-    }
-  }
+  //def emitModule(m:PModule, title:String)(block: =>Any) = {
+    //emitList(s"${title}") {
+      //m.ins.foreach(emit)
+      //m.outs.foreach(emit)
+      //block
+    //}
+  //}
 
   override def finPass = {
     close

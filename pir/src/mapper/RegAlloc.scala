@@ -83,22 +83,22 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
             dprintln(s"regsOf($pouts) = ${regsOf(pouts)}")
             pregs intersect regsOf(pouts.ic)
           }
-        }.getOrElse(pcu.asCU.regs.filter{_.is(regTp)})
+        }.getOrElse(pcu.asCU.regs.filter{_.is(regTp)}).toList
         dprintln(s"allRes(reg=$n) pregs=$pregs")
         pregs
       }
       n match {
         case LoadPR(mem) => 
-          val pmem = pirMap.pmmap(mem)
-          regsOf(pmem.readPort)
+          val pmem = pirMap.pmmap.to[POCM](mem)
+          regsOf(pmem.readPort).toList
         case WtAddrPR(waPort) => 
-          val pmem = pirMap.pmmap(waPort.src.asSRAM).asSRAM
-          regsOf(pmem.writeAddr)
+          val pmem = pirMap.pmmap.to[PSRAM](waPort.src.asSRAM).asSRAM
+          regsOf(pmem.writeAddr).toList
         case CtrPR(ctr) => 
-          val pctr = pirMap.pmmap(ctr)
-          regsOf(pctr.out)
+          val pctr = pirMap.pmmap.to[PCtr](ctr)
+          regsOf(pctr.out).toList
         case ReducePR() => 
-          val cu = pirMap.pmmap(pcu)
+          val cu = pirMap.pmmap.to[CU](pcu)
           if (parOf(cu)>1) pregs.filter(_.is(ReduceReg))
           else pregs 
         case VecOutPR(out) => allRes(n, out)

@@ -86,16 +86,15 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
           emitln(s"${quote(ppr)}.in <= $from")
         }
       }
-      pst.funcUnit.foreach { fu =>
-        fu.operands.foreach { oprd =>
-          fimap.get(oprd).foreach { from => 
-            emitln(s"${oprd} <= $from")
-          }
+      val fu = pst.funcUnit
+      fu.operands.foreach { oprd =>
+        fimap.get(oprd).foreach { from => 
+          emitln(s"${oprd} <= $from")
         }
-        pmmap.get(pst).foreach { 
-          case st:ST => emitln(s"$fu.op=${st.fu.get.op}")
-          case _ =>
-        }
+      }
+      pmmap.get[ST](pst).foreach { 
+        case st:ST => emitln(s"$fu.op=${st.fu.get.op}")
+        case _ =>
       }
     }
   }
@@ -270,65 +269,22 @@ case class PMMap(map:PMMap.M, imap:PMMap.IM) extends IBiOneToOneMap {
   override type IM = PMMap.IM
   override def + (rec:(K,V)) = { super.check(rec); PMMap(map + rec, imap + rec.swap) }
 
-  def cast[T](x:Any):T = x.asInstanceOf[T]
+  def cast[T](x:Any):T      = x.asInstanceOf[T]
 
   def apply(k:CL):PCL       = cast(map(k))
-  def apply(k:PL):PCU       = cast(map(k))
-  def apply(k:MP):PMCU      = cast(map(k))
-  def apply(k:Top):PTop     = cast(map(k))
-  def apply(k:MC):PMC       = cast(map(k))
-  def apply(k:Ctr):PCtr     = cast(map(k))
-  def apply(k:OCM):POCM     = cast(map(k))
-  def apply(k:ST):PST       = cast(map(k))
-  def apply(k:Const):PConst = cast(map(k))
-  def apply(k:LUT):PLUT     = cast(map(k))
-  def apply(k:UC):PUC       = cast(map(k))
-  def apply(k:MCCB):PMCCB   = cast(map(k))
-  def apply(k:OCB):POCB     = cast(map(k))
-  def apply(k:D):PD         = cast(map(k))
-  def apply(k:CB):PCB       = cast(map(k))
-  def apply(k:PDU):PPDU       = cast(map(k))
+  def to[T](k:K):T          = cast(map(k))
 
   def apply(v:PCL):CL       = cast(imap(v))
-  def apply(v:PMCU):MP      = cast(imap(v))
-  def apply(v:PTop):Top     = cast(imap(v))
-  def apply(v:PMC):MC       = cast(imap(v))
-  def apply(v:PCtr):Ctr     = cast(imap(v))
-  def apply(v:POCM):OCM     = cast(imap(v))
-  def apply(v:PST):ST       = cast(imap(v))
-  def apply(v:PConst):Const = cast(imap(v))
-  def apply(v:PLUT):LUT     = cast(imap(v))
-  def apply(v:PUC):UC       = cast(imap(v))
-  def apply(v:PAT):AT       = cast(imap(v))
-  def apply(v:PPDU):PDU     = cast(imap(v))
+  def apply(v:V):KK         = imap(v)
+  def to[T](v:V):T          = cast(imap(v))
 
-  def get(v:CL):Option[PCL]       = cast(map.get(v))
-  def get(v:MP):Option[PMCU]      = cast(map.get(v))
-  def get(v:Top):Option[PTop]     = cast(map.get(v))
-  def get(v:MC):Option[PMC]       = cast(map.get(v))
-  def get(v:Ctr):Option[PCtr]     = cast(map.get(v))
-  def get(v:OCM):Option[POCM]     = cast(map.get(v))
-  def get(v:ST):Option[PST]       = cast(map.get(v))
-  def get(v:Const):Option[PConst] = cast(map.get(v))
-  def get(v:LUT):Option[PLUT]     = cast(map.get(v))
-  def get(v:UC):Option[PUC]       = cast(map.get(v))
-  def get(v:PDU):Option[PPDU]       = cast(map.get(v))
+  def get(v:CL):Option[PCL] = cast(map.get(v))
+  def get[T](k:K):Option[T] = cast(map.get(k))
 
-  def get(v:PCL):Option[CL]       = cast(imap.get(v))
-  def get(v:PMCU):Option[MP]      = cast(imap.get(v))
-  def get(v:PTop):Option[Top]     = cast(imap.get(v))
-  def get(v:PMC):Option[MC]       = cast(imap.get(v))
-  def get(v:PCtr):Option[Ctr]     = cast(imap.get(v))
-  def get(v:POCM):Option[OCM]     = cast(imap.get(v))
-  def get(v:PST):Option[ST]       = cast(imap.get(v))
-  def get(v:PConst):Option[Const] = cast(imap.get(v))
-  def get(v:PLUT):Option[LUT]     = cast(imap.get(v))
-  def get(v:PUC):Option[UC]       = cast(imap.get(v))
-  def get(v:PPDU):Option[PDU]       = cast(imap.get(v))
+  def get(v:PCL):Option[CL] = cast(imap.get(v))
+  def get[T](v:V):Option[T] = cast(imap.get(v))
 
-  def apply(v:V):KK = imap(v)
-  def get(v:V):Option[KK]         = imap.get(v)
-  def contains(v:V) = imap.contains(v)
+  def contains(v:V)         = imap.contains(v)
 }
 object PMMap extends IBiOneToOneObj {
   type K = Node

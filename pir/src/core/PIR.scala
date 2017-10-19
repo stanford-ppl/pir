@@ -158,7 +158,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     if (!plasticineVecDotPrinter.hasRun) plasticineVecDotPrinter.run
     if (!plasticineScalDotPrinter.hasRun) plasticineScalDotPrinter.run
     if (!plasticineCtrlDotPrinter.hasRun) plasticineCtrlDotPrinter.run
-    throw e
+    arch.handle(e)
   }
 }
 
