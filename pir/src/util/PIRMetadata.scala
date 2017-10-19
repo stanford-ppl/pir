@@ -233,6 +233,7 @@ trait PIRMetadata extends Metadata { self:PIR =>
   object boundOf extends MOneToOneMap with MetadataMaps {
     type K = Node
     type V = AnyVal
+    override def reset = {} // set during graph construction
     override def check(rec:(K,V)):Unit = {}
   }
 

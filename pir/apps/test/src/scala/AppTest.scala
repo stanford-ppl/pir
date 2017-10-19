@@ -200,7 +200,7 @@ class AppTests extends UnitTest { self =>
   //val simulate = false
   val simulate = true
   // UnitTest 
-  test(InOutArg, args="x=4", argOuts="x342_x348=4", timeOut=30, debug=false)
+  test(InOutArg, args="x=4", argOuts="x342_x348=4", timeOut=30, debug=true)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
   //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
