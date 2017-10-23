@@ -48,7 +48,7 @@ abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR)
             quote(psb)
           }
         case pcl:PCL =>
-          mp.pmmap.get(prt).fold(quote(prt)) { cl => 
+          mp.pmmap.get[CL](prt).fold(quote(prt)) { cl => 
             s"${quote(prt)}|${cl}"
           }
       }

@@ -43,7 +43,7 @@ class FifoMapper(implicit val design:PIR) extends Mapper with LocalRouter {
     val pins = ins.map { in => m.vimap(in) }
     dprintln(s"pins=${quote(pins)}")
     pins.map { pin => 
-      val pmems = spade.util.collectOut[R](pin, visitFunc=visitOut _) 
+      val pmems = spade.util.collectOut[R](pin, visitFunc=visitOut _, logger=Some(logger)) 
       dprintln(s"pin=${quote(pin)} pmems=${quote(pmems)}")
       pmems
     }.reduce { _ intersect _ }.toList
