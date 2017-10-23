@@ -75,7 +75,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper with HiearchicalTrav
     val udc = mp.pmmap.get[UC](pudc)
     val initVal = udc.map { _.initVal }.getOrElse(0)
     dprintln(s"$pudc -> $udc initVal=$initVal")
-    mp.setCF(pudc, UDCounterConfig(initVal=initVal, name=s"$udc"))
+    mp.setCF(pudc, UpDownCounterConfig(initVal=initVal, name=s"$udc"))
   }
 
   def config(ppdu:PPDU, mp:M):M = {

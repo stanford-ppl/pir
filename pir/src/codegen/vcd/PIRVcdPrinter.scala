@@ -49,7 +49,7 @@ trait PIRVcdDeclarator { self:PIRVcdPrinter =>
         case io:Output =>
           visited += node
           opmap.get(io).foreach { pios => declare(pios.head, Some(s"${self.quote(io)}")) }
-        case node:UDCounter => declare(node) { 
+        case node:UpDownCounter => declare(node) { 
           super.visitNode(node)
           declare(pmmap.to[PUC](node).count, None)
         }

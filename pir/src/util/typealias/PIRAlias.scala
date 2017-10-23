@@ -53,7 +53,7 @@ trait PIRAlias {
   type TDLUT = TokenDownLUT
   type EnLUT = pir.node.EnLUT
   type AT    = AndTree
-  type UC    = UDCounter
+  type UC    = UpDownCounter
   type Const = pir.node.Const[_<:AnyVal]
   type Top   = pir.node.Top
   type Seq   = Sequential

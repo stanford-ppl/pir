@@ -146,7 +146,7 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
     row += "totalSramPower" -> sramPower.map { case (n, e) => e }.sum
     row += "totalFUPower" -> fuPower.map { case (n, e) => e }.sum
     row += "totalPCUPower" -> pcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum //TODO remove getOrElse
-    row += "totalPMUPower" -> mcus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
+    row += "totalPMUPower" -> pmus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
     row += "totalSCUPower" -> scus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
     row += "totalOCUPower" -> ocus.map { cu => prtPower.getOrElse(cu, 0.0) }.sum
     row += "totalSwitchPower" -> totalSwitchPower

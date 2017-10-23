@@ -11,7 +11,7 @@ abstract class CtrlPrimitive(implicit ctrlBox:CtrlBox, design:PIR) extends Primi
   def ctrler = ctrlBox.ctrler 
 }
 
-abstract class UDCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
+abstract class UpDownCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimitive {
   val initVal:Int
   def initOnStart:Boolean
   val inc = Input(this, s"${this}.inc")
@@ -23,14 +23,14 @@ abstract class UDCounter(implicit ctrlBox:CtrlBox, design:PIR) extends CtrlPrimi
  * @param dep depended compute unit where data is from. None if if allocated in first stage, in
  * which case used for handling token from parent and collect token from last stage. */
 case class TokenBuffer(dep:Any)
-  (implicit ctrlBox:CtrlBox, design:PIR) extends UDCounter{
+  (implicit ctrlBox:CtrlBox, design:PIR) extends UpDownCounter{
   override val typeStr = "TokBuf"
   val initVal = 0
   def initOnStart = false
   ctrler.ctrlBox.tokenBuffers += dep -> this
 }
 case class CreditBuffer(deped:Any, initVal:Int)(implicit ctrlBox:CtrlBox, design:PIR) 
-  extends UDCounter{
+  extends UpDownCounter{
   override val typeStr = "CredBuf"
   def initOnStart = true 
   ctrler.ctrlBox.creditBuffers += deped -> this
@@ -126,7 +126,7 @@ abstract class CtrlBox()(implicit ctrler:Controller, design:PIR) extends Primiti
 
   val tokenBuffers = Map[Any, TokenBuffer]() // Mem or Parent
   val creditBuffers = Map[Any, CreditBuffer]()
-  def udcounters:Map[Any, UDCounter] = tokenBuffers ++ creditBuffers
+  def udcounters:Map[Any, UpDownCounter] = tokenBuffers ++ creditBuffers
   val andTrees = ListBuffer[AndTree]()
   val delays = ListBuffer[Delay]()
   val predicateUnits = ListBuffer[PredicateUnit]()

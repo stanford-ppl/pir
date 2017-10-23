@@ -42,7 +42,7 @@ trait PIRApp extends PIR {
       top = Top()
       top.updateBlock(main) 
       setArgs(args)
-      arch.top.config
+      arch.top.connectAll
       endInfo(s"Finishing graph construction for ${this}")
       run
     } catch { 

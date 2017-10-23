@@ -42,13 +42,13 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
   lazy val scus = design.top.innerCUs.filter{ case cu:PL => (!cu.isMP) && (parOf(cu)==1) case _ => false }.diff(dags)
   lazy val pscus = design.arch.scus.diff(pdags)
   lazy val mps = cls.collect { case mp:MP => mp }
-  //lazy val (mcus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
-  lazy val mcus = mps
-  lazy val pmcus = design.arch.mcus 
+  //lazy val (pmus, mus) = mps.partition { mp => (mp.stages.size>0) && (mp.cchains.nonEmpty) }
+  lazy val pmus = mps
+  lazy val ppmus = design.arch.pmus 
   //lazy val pmus = design.arch.mus
   lazy val ocus = cls.collect { case ocu:OCL => ocu }
   lazy val pocus = design.arch.ocus 
-  lazy val rcus = cls.collect { case cu:PL => cu }.diff(dags).diff(scus).diff(mcus)
+  lazy val rcus = cls.collect { case cu:PL => cu }.diff(dags).diff(scus).diff(pmus)
   lazy val pcus = design.arch.pcus 
 
 
@@ -96,8 +96,8 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
     var pass = true
     pass &= quantityCheck(Some(map), mcs , pmcs, "MemoryController")
     pass &= quantityCheck(Some(map), ocus , pocus, "OuterComputeUnit")
-    //pass &= quantityCheck(Some(map), mus , (pmus ++ pmcus), "MemoryUnit")
-    pass &= quantityCheck(Some(map), mcus , pmcus, "MemoryComputeUnit")
+    //pass &= quantityCheck(Some(map), mus , (pmus ++ ppmus), "MemoryUnit")
+    pass &= quantityCheck(Some(map), pmus , ppmus, "MemoryComputeUnit")
     pass &= quantityCheck(Some(map), dags , pdags, "DramAddrGen")
     pass &= quantityCheck(Some(map), sags , psags, "SramAddrGen")
     pass &= quantityCheck(Some(map), scus , (pscus ++ pcus), "ScalarComputeUnit")
@@ -258,7 +258,7 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
     row += "pcus" -> rcus.size
     row += "scus" -> scus.size
     row += "scus(MC)" -> dags.size
-    row += "mcus" -> mps.size
+    row += "pmus" -> mps.size
     row += "ocus" -> ocus.size
     row += "pcuAvgStages" -> avgStages(rcus)
     row += "pcuMaxStages" -> maxStages(rcus)
@@ -266,16 +266,16 @@ class ResourcePrescreen(override implicit val design:PIR) extends Pass with Logg
     row += "scuMaxStages" -> maxStages(dags)
     row += "scuAvgStages(MC)" -> avgStages(scus)
     row += "scuMaxStages(MC)" -> maxStages(scus)
-    row += "mcuAvgStages" -> avgStages(mps) 
-    row += "mcuMaxStages" -> maxStages(mps) 
+    row += "pmuAvgStages" -> avgStages(mps) 
+    row += "pmuMaxStages" -> maxStages(mps) 
     row += "pcuAvgRegs" -> avgRegs(rcus)
     row += "pcuMaxRegs" -> maxRegs(rcus)
     row += "scuAvgRegs" -> avgRegs(scus)
     row += "scuMaxRegs" -> maxRegs(scus)
     row += "scuAvgRegs(MC)" -> avgRegs(dags)
     row += "scuMaxRegs(MC)" -> maxRegs(dags)
-    row += "mcuAvgRegs(MC)" -> avgRegs(mcus)
-    row += "mcuMaxRegs(MC)" -> maxRegs(mcus)
+    row += "pmuAvgRegs(MC)" -> avgRegs(pmus)
+    row += "pmuMaxRegs(MC)" -> maxRegs(pmus)
     row += "cuAvgLane(MC)" -> avgLanes(rcus ++ scus) 
     summary.emitFile
     summary.close

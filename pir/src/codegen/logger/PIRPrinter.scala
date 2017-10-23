@@ -178,7 +178,7 @@ object PIRPrinter {
         vecOf.get(p).foreach { vecOut =>
           fields += s"vecOut=${vecOut}"
         }
-      case p:UDCounter => 
+      case p:UpDownCounter => 
         fields += s"init=${p.initVal}"
       case r:Const[_] => fields += s"${r.value}"
       case r:ArgIn =>

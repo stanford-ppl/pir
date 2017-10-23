@@ -51,7 +51,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   val cChannelUsed = Map[PNode, Util]()
 
   var pcuUtil = Util.empty
-  var mcuUtil = Util.empty
+  var pmuUtil = Util.empty
   var ocuUtil = Util.empty
   var scuUtil = Util.empty
   var mcUtil = Util.empty
@@ -158,7 +158,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
       //collectChannelUtil(cChannelUsed, cl) { prt => prt.cins }
     }
     pcuUtil = count(arch.pcus.map(pcu => mp.pmmap.get(pcu)))
-    mcuUtil = count(arch.mcus.map(pcu => mp.pmmap.get(pcu)))
+    pmuUtil = count(arch.pmus.map(pcu => mp.pmmap.get(pcu)))
     scuUtil = count(arch.scus.map(pcu => mp.pmmap.get(pcu)))
     ocuUtil = count(arch.ocus.map(pcu => mp.pmmap.get(pcu)))
     mcUtil = count(arch.mcs.map(pcu => mp.pmmap.get(pcu)))
@@ -215,7 +215,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
     row += "numRow"        -> numRows
     row += "numCol"        -> numCols
     row += "PCU Util"      -> pcuUtil.toPct
-    row += "MCU Util"      -> mcuUtil.toPct
+    row += "MCU Util"      -> pmuUtil.toPct
     row += "SCU Util"      -> scuUtil.toPct
     row += "SwitchCU Util" -> ocuUtil.toPct
     row += "MC Util"       -> mcUtil.toPct
@@ -295,7 +295,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
       }
     }
     dprintln(s"pcuUtil=$pcuUtil")
-    dprintln(s"mcuUtil=$mcuUtil")
+    dprintln(s"pmuUtil=$pmuUtil")
     dprintln(s"scuUtil=$scuUtil")
     dprintln(s"ocuUtil=$ocuUtil")
     dprintln(s"mcUtil=$mcUtil")

@@ -166,7 +166,7 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
     row += "totalSramEnergy" -> sramEnergy.map { case (n, e) => e }.sum
     row += "totalFUEnergy" -> fuEnergy.map { case (n, e) => e }.sum
     row += "totalPCUEnergy" -> pcus.map { cu => prtEnergy(cu) }.sum
-    row += "totalPMUEnergy" -> mcus.map { cu => prtEnergy(cu) }.sum
+    row += "totalPMUEnergy" -> pmus.map { cu => prtEnergy(cu) }.sum
     row += "totalSCUEnergy" -> scus.map { cu => prtEnergy(cu) }.sum
     row += "totalOCUEnergy" -> ocus.map { cu => prtEnergy(cu) }.sum
     row += "totalSwitchEnergy" -> sbs.map { sb => prtEnergy(sb) }.sum
