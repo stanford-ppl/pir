@@ -14,21 +14,22 @@ import sys.process._
 import scala.language.postfixOps
 import scala.language.existentials
 
-abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR) 
-  extends spade.codegen.PlasticineDotGen(fn, open)(design.arch) {
+abstract class PlasticineDotGen(fn:String)(implicit design:PIR) 
+  extends spade.codegen.PlasticineDotGen(fn)(design.arch) {
   import spademeta._
+  design.plasticineDotPrinters += this
 
   override lazy val stream = if (design.mapping.isDefined) newStream(fn)(design) else newStream(fn)(design.arch)
 
   private var _mapping:Option[PIRMap] = None
   override def mapping:Option[PIRMap] = _mapping
 
-  override def print:Unit = { 
+  override def print:this.type = { 
     if (mapping.isEmpty) this._mapping = design.mapping
     super.print
   }
 
-  def print(mapping:Option[PIRMap]):Unit = {
+  def print(mapping:Option[PIRMap]):this.type = {
     this._mapping = mapping
     super.print
   }
@@ -78,22 +79,18 @@ abstract class PlasticineDotGen(fn:String, open:Boolean)(implicit design:PIR)
 
 }
 
-class PlasticineCtrlDotPrinter(file:String, open:Boolean)(implicit design:PIR)
-  extends PlasticineDotGen(file, open) { 
-  def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeCtrlNetwork, open)
-  def this()(implicit design:PIR) = this(false)
+class PlasticineCtrlDotPrinter(file:String)(implicit design:PIR)
+  extends PlasticineDotGen(file) { 
+  def this()(implicit design:PIR) = this(SpadeConfig.spadeCtrlNetwork)
 
   val scale = 20
 
   def io(prt:Routable) = prt.ctrlIO
 }
 
-class PlasticineScalarDotPrinter(file:String, open:Boolean)(implicit design:PIR) 
-  extends PlasticineDotGen(file, open) { 
-  def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeScalarNetwork, open)
-  def this()(implicit design:PIR) = this(false)
+class PlasticineScalarDotPrinter(file:String)(implicit design:PIR) 
+  extends PlasticineDotGen(file) { 
+  def this()(implicit design:PIR) = this(SpadeConfig.spadeScalarNetwork)
   
   val scale = 15
 
@@ -101,11 +98,9 @@ class PlasticineScalarDotPrinter(file:String, open:Boolean)(implicit design:PIR)
 
 }
 
-class PlasticineVectorDotPrinter(file:String, open:Boolean)(implicit design:PIR) 
-  extends PlasticineDotGen(file, open) { 
-  def this(file:String)(implicit design:PIR) = this(file, false)
-  def this(open:Boolean)(implicit design:PIR) = this(SpadeConfig.spadeVectorNetwork, open)
-  def this()(implicit design:PIR) = this(false)
+class PlasticineVectorDotPrinter(file:String)(implicit design:PIR) 
+  extends PlasticineDotGen(file) { 
+  def this()(implicit design:PIR) = this(SpadeConfig.spadeVectorNetwork)
   
   val scale = 15
 

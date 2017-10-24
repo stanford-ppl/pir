@@ -79,6 +79,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val pirCtrlDotGen = new PIRCtrlDotGen()
   lazy val argDotPrinter = new ArgDotPrinter()
   lazy val ctrDotPrinter = new CtrDotPrinter()
+  lazy val plasticineDotPrinters = ListBuffer[PlasticineDotGen] ()
   lazy val plasticineVecDotPrinter = new PlasticineVectorDotPrinter()
   lazy val plasticineScalDotPrinter = new PlasticineScalarDotPrinter()
   lazy val plasticineCtrlDotPrinter = new PlasticineCtrlDotPrinter()
@@ -148,6 +149,11 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += energyAnalyzer 
 
     super.run
+
+    if (PIRConfig.openDot) {
+      pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
+      plasticineDotPrinters.foreach (_.open)
+    }
   }
 
   def handle(e:Exception) = {
@@ -155,9 +161,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     if (PIRConfig.openDot) 
       pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
     if (!mapPrinter.hasRun) mapPrinter.run
-    if (!plasticineVecDotPrinter.hasRun) plasticineVecDotPrinter.run
-    if (!plasticineScalDotPrinter.hasRun) plasticineScalDotPrinter.run
-    if (!plasticineCtrlDotPrinter.hasRun) plasticineCtrlDotPrinter.run
+    plasticineDotPrinters.foreach { printer => if (!printer.hasRun) printer.run }
     arch.handle(e)
   }
 }

@@ -71,21 +71,21 @@ class PIRMapping(implicit design: PIR) extends Pass with Logger {
   def viewRouting(mapper:Mapper):Unit = {
     mapper match {
       case mapper:VectorRouter =>
-        new PlasticineVectorDotPrinter(open=true)(design).print(mapping)
-        new PlasticineScalarDotPrinter(open=false)(design).print(mapping)
-        new PlasticineCtrlDotPrinter(open=false)(design).print(mapping)
+        new PlasticineVectorDotPrinter().print(mapping).open
+        new PlasticineScalarDotPrinter().print(mapping)
+        new PlasticineCtrlDotPrinter().print(mapping)
       case mapper:ScalarRouter =>
-        new PlasticineVectorDotPrinter(open=false)(design).print(mapping)
-        new PlasticineScalarDotPrinter(open=true)(design).print(mapping)
-        new PlasticineCtrlDotPrinter(open=false)(design).print(mapping)
+        new PlasticineVectorDotPrinter().print(mapping)
+        new PlasticineScalarDotPrinter().print(mapping).open
+        new PlasticineCtrlDotPrinter().print(mapping)
       case mapper:ControlRouter =>
-        new PlasticineVectorDotPrinter(open=false)(design).print(mapping)
-        new PlasticineScalarDotPrinter(open=false)(design).print(mapping)
-        new PlasticineCtrlDotPrinter(open=true)(design).print(mapping)
+        new PlasticineVectorDotPrinter().print(mapping)
+        new PlasticineScalarDotPrinter().print(mapping)
+        new PlasticineCtrlDotPrinter().print(mapping).open
       case mapper:CUMapper =>
-        new PlasticineVectorDotPrinter(open=true)(design).print(mapping)
-        new PlasticineScalarDotPrinter(open=true)(design).print(mapping)
-        new PlasticineCtrlDotPrinter(open=true)(design).print(mapping)
+        new PlasticineVectorDotPrinter().print(mapping).open
+        new PlasticineScalarDotPrinter().print(mapping).open
+        new PlasticineCtrlDotPrinter().print(mapping).open
       case _ =>
     }
   }

@@ -351,15 +351,15 @@ trait Mapper { self =>
     if (open) {
       this match {
         case router:VectorRouter =>
-          new PlasticineVectorDotPrinter(open)(design).print(mp)
+          new PlasticineVectorDotPrinter().print(mp).open
         case router:ScalarRouter =>
-          new PlasticineScalarDotPrinter(open)(design).print(mp)
+          new PlasticineScalarDotPrinter().print(mp).open
         case router:ControlRouter =>
-          new PlasticineCtrlDotPrinter(open)(design).print(mp)
+          new PlasticineCtrlDotPrinter().print(mp).open
         case router:CUMapper =>
-          new PlasticineVectorDotPrinter(open)(design).print(mp)
-          new PlasticineScalarDotPrinter(open)(design).print(mp)
-          new PlasticineCtrlDotPrinter(open)(design).print(mp)
+          new PlasticineVectorDotPrinter().print(mp).open
+          new PlasticineScalarDotPrinter().print(mp).open
+          new PlasticineCtrlDotPrinter().print(mp).open
       }
     }
   }
