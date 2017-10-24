@@ -238,7 +238,11 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         cu.mems.foreach { mem =>
           parOf(mem) = collectIn[GlobalInput](mem.writePort).map{_.variable.par}.head
         }
-        parOf(cu) = cu.getBus("data").par
+        if (cu.mctpe.isLoad) {
+          parOf(cu) = cu.getBus("data").par
+        } else if (cu.mctpe.isStore) {
+          parOf(cu) = collectIn[GlobalInput](cu.getFifoWithName("data").head.writePort).head.variable.par
+        }
       case cu =>
         val cc = localCChainOf(cu) 
         parOf(cu) = cc.inner.par
