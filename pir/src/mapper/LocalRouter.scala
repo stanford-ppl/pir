@@ -74,7 +74,7 @@ trait LocalRouter extends Mapper {
     var mp = map
     if (mp.fimap.contains(pin)) return mp
     if (pin.fanIns.size==1) { mp = mp.setFI(pin, pin.fanIns.head); return mp }
-    val pouts = collectIn[T](pin)
+    val pouts = pin.fanIns.filter { pout => collectIn[T](pout).nonEmpty }
     if (pouts.size==1) {
       mp = mp.setFI(pin, pouts.head.asInstanceOf[PO[PModule]])
     }
@@ -87,11 +87,12 @@ trait LocalRouter extends Mapper {
     val out = in.from
     (out.src, pin.src) match {
       case (osrc@Const(c), pisrc) =>
-        collectIn[PConst](pin).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
+        collectIn[PConst](pin, depth=10).filterNot{ pc => mp.pmmap.contains(pc) }.headOption.fold {
           val info = s"$in is Const, but $pin cannot be configured to constant"
           throw InputRouting(in, pin, info, mp)
         } { pconst =>
           mp = mapConst(osrc, pconst, mp)
+          dprintln((pin, pin.fanIns))
           val (m, connected) = connect(pin, pconst.out, mp)
           mp = m
           if (!connected) throw LocalRouting(s"No connection between $pin to constant $pconst", mp)

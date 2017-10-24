@@ -206,7 +206,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper with HiearchicalTrav
 
   override def visitDown(x:Any):Iterable[Any] = {
     super.visitDown(x).filter {
-      case c@(_:PCL | _:PMem | _:PCtr | _:PST | _:PCB) => 
+      case c@(_:PCL | _:PMem | _:PCtr | _:PST | _:PCB | _:PPDU) => 
         mp.pmmap.contains(c.asInstanceOf[PNode])
       case c:PUC => c.prt.isInstanceOf[POCU] || mp.pmmap.contains(c)
       case c:PPR => mp.fimap.contains(c.out) // LiveOut Config Initial value
