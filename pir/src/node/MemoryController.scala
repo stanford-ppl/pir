@@ -22,6 +22,10 @@ class MemoryController(val mctpe:MCType, val offchip:OffChip)(implicit design: P
     this
   }
 
+  def getFifoWithName(name:String) = {
+    fifos.filter { fifo => fifo.name.fold(false) { _.contains(name) } }
+  }
+
 }
 object MemoryController {
   def apply[P](name:String, parent:P, mctpe:MCType, offchip:OffChip)(block: MemoryController => Any)
