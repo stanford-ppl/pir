@@ -10,6 +10,7 @@ import pirc._
 import pirc.util._
 
 import scala.language.implicitConversions
+import scala.reflect.runtime.universe
 
 trait PIRApp extends PIR {
   var arch:Spade = SN2x2
@@ -52,13 +53,11 @@ trait PIRApp extends PIR {
     }
   }
 
-  def getArch(name:String) = {
-    name match {
-      case "SN16x13_LD" => SN16x13_LD
-      case "SN16x8_LD" => SN16x8_LD
-      case "SN8x8_LD" => SN8x8_LD
-      case "SN4x4" => SN4x4
-    }
+  def getArch(name : String) =  {
+    val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+    val module = runtimeMirror.staticModule("arch." + name)
+    val obj = runtimeMirror.reflectModule(module)
+    obj.instance.asInstanceOf[Spade]
   }
 }
 
