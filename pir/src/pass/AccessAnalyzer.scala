@@ -29,17 +29,17 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
   def setWaddrser(mem:OnChipMem) = waddrserOf.getOrElseUpdate(mem) { 
-    mem match {
-      case mem:SRAM =>
-        emitBlock(s"setWaddrser($mem)") {
+    emitBlock(s"setWaddrser($mem)") {
+      mem match {
+        case mem:SRAM =>
           val res = (collectIn[GlobalInput](mem.writeAddr).map(in => in.from.ctrler)).toList
           if (res.isEmpty) {
             err(s"${mem.ctrler}.$mem does not have waddrser!")
           }
           res
-        }
-      case _ =>
-        writersOf(mem)
+        case _ =>
+          writersOf(mem)
+      }
     }
   }
 
@@ -90,15 +90,19 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def setAccess = {
+  def setAccess(mem:OnChipMem):Unit = {
+    setWriter(mem)
+    setReader(mem)
+    setWaddrser(mem)
+    setRaddrser(mem)
+    resolveCopy(mem)
+  }
+
+  def setAccess:Unit = {
     design.top.ctrlers.foreach { cl =>
       emitBlock(s"setAccess($cl)") {
         cl.mems.foreach { mem =>
-          setWriter(mem)
-          setReader(mem)
-          setWaddrser(mem)
-          setRaddrser(mem)
-          resolveCopy(mem)
+          setAccess(mem)
         }
       }
     }

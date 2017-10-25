@@ -153,11 +153,18 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     //}
   //}
   
+  def analyzeNewCC(cchain:CounterChain) = {
+    collectIn[OnChipMem](cchain).foreach{ mem =>
+      design.accessAnalyzer.setAccess(mem)
+      copySwapCC(mem)
+    }
+    cchain
+  }
+
   def copySwapCC(mem:OnChipMem, access:ComputeUnit, topCtrler:Controller):Unit = {
-    if (!access.containsCopy(localCChainOf(topCtrler))) {
-      access.getCopy(localCChainOf(topCtrler))
-      fillChain(access, sortCChains(access.cchains))
-      collectIn[OnChipMem](access.cchains).foreach(copySwapCC)
+    access.getCopy(localCChainOf(topCtrler)).foreach { cc =>
+      val (_, newCC) = fillChain(access, sortCChains(access.cchains))
+      (cc :: newCC).foreach(analyzeNewCC)
     }
   }
 
@@ -179,7 +186,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
       case cu:InnerController =>
         cu.accumRegs.foreach { acc =>
           val accumCC = localCChainOf(acc.accumParent.right.get)
-          val cc = cu.getCopy(accumCC)
+          val cc = cu.getCopy(accumCC).map { cc => analyzeNewCC(cc) }.getOrElse(accumCC)
           accumCounterOf(acc) = cc.outer
           dprintln(s"accumCounterOf($acc)=${accumCounterOf(acc)}")
         }
@@ -193,16 +200,25 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     cchains.sortBy { cc => cc.original.ctrler.ancestors.size }.reverse
   }
 
-  //TODO: fix this for multiple reader and writer
   def analyzeAddrCalc(cu:ComputeUnit) = emitBlock(s"analyzeAddrCalc($cu)"){
-    val readCCs = cu.cchains.filter { cc => forRead(cc) }
-    readCChainsOf(cu) = fillChain(cu, sortCChains(readCCs))
-    //readCChainsOf(cu) = sortCChains(readCCs)
-    val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
-    writeCChainsOf(cu) = fillChain(cu, sortCChains(writeCCs))
-    //writeCChainsOf(cu) = sortCChains(writeCCs)
-    val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
-    compCChainsOf(cu) = fillChain(cu, sortCChains(compCCs))
+    readCChainsOf(cu) = {
+      val readCCs = cu.cchains.filter { cc => forRead(cc) }
+      val (ccs, nccs) = fillChain(cu, sortCChains(readCCs))
+      nccs.foreach(analyzeNewCC)
+      ccs
+    }
+    writeCChainsOf(cu) = {
+      val writeCCs = cu.cchains.filter { cc => forWrite(cc) }
+      val (ccs, nccs) = fillChain(cu, sortCChains(writeCCs))
+      nccs.foreach(analyzeNewCC)
+      ccs
+    }
+    compCChainsOf(cu) = {
+      val compCCs = cu.cchains.filter { cc => !forRead(cc) && !forWrite(cc) }
+      val (ccs, nccs) = fillChain(cu, sortCChains(compCCs))
+      nccs.foreach(analyzeNewCC)
+      ccs
+    }
     dprintln(s"readCChains:[${readCChainsOf(cu).mkString(",")}]")
     dprintln(s"writeCChains:[${writeCChainsOf(cu).mkString(",")}]")
     dprintln(s"compCChains:[${compCChainsOf(cu).mkString(",")}]")

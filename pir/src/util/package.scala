@@ -57,6 +57,7 @@ package object util {
       cchains.foreach { cc => logger.dprintln(s"${cc} original=${cc.original} from ${cc.original.ctrler}") }
     }
     val chained = ListBuffer[CounterChain]()
+    val newChains = ListBuffer[CounterChain]()
     def prevParent(cc:CounterChain) = {
       val prev = chained.last
       val prevOrig = prev.original
@@ -75,7 +76,10 @@ package object util {
       if (chained.nonEmpty) {
         while (prevParent(cc)!=cc.original.ctrler) {
           val pp = prevParent(cc)
-          val newCC = cu.getCopy(localCChainOf(pp))
+          val newCC = cu.getCopy(localCChainOf(pp)).map { cc =>
+            newChains += cc
+            cc
+          }.getOrElse(localCChainOf(pp))
           logger.dprintln(s"cc=$cc prevParent=$pp newCC=$newCC")
           forRead(newCC) = forRead(chained.last)
           forWrite(newCC) = forWrite(chained.last)
@@ -88,7 +92,7 @@ package object util {
       }
       chained += cc
     }
-    chained.toList
+    (chained.toList, newChains.toList)
   }
 
   def sortCChains(cchains:List[CounterChain])(implicit logger:Logger):List[CounterChain] = {

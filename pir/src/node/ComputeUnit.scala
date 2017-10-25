@@ -35,14 +35,14 @@ abstract class ComputeUnit(implicit design: PIR) extends Controller with OuterRe
 
   def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
-  def getCopy(cchain:CounterChain)(implicit logger:Logger):CounterChain = {
-    val copy = cchainMap.getOrElseUpdate(cchain.original, {
+  // Return Some(cchain) if new copy is made
+  def getCopy(cchain:CounterChain)(implicit logger:Logger):Option[CounterChain] = {
+    if (cchainMap.contains(cchain)) None else {
       val cp = CounterChain.copy(cchain.original)(this, design)
       logger.dprintln(s"Creating new copy=$cp of $cchain in $this")
-      cp
-    })
-    assert(cchainMap.contains(copy.original))
-    copy
+      cchainMap += (cchain.original) -> cp
+      Some(cp)
+    }
   }
 
   def cloneCC(cchain:CounterChain):CounterChain = {
