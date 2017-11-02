@@ -15,7 +15,7 @@ import scala.collection.mutable.HashMap
 
 
 class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal with Logger {
-  import design.pirmeta._
+  import pirmeta._
 
   def shouldRun = Config.debug
 
@@ -88,23 +88,13 @@ class PIRPrinter(fn:String)(implicit design: PIR) extends Codegen with Traversal
       case n:Controller => emitBlock(node) {
         emitln(s"children=${quote(n.children)}")
         pirmeta.summary(n).foreach(emitln)
-        n match {
-          case n:InnerController =>
-            emitBlock(s"InfGraph =") {
-              n.infGraph.foreach { case (k, v) => 
-                emitln(s"${k}: [${v.mkString(s",")}]")
-              }
-            }
-          case _ =>
-        }
         super.visitNode(node)
       }
       case n:Stage => emitBlock(node) {
         super.visitNode(node)
-        emitln(s"uses:[${n.uses.mkString(",")}]")
-        emitln(s"defs:[${n.defs.mkString(",")}]")
-        emitln(s"liveIns:[${n.liveIns.mkString(",")}]")
-        emitln(s"liveOuts:[${n.liveOuts.mkString(",")}]")
+        pirmeta.summerize(node, useOf, defOf, liveInOf, liveOutOf).foreach { info =>
+          emitln(s"$info")
+        }
       }
       case n:FuncUnit => 
         emitln(s"$n.op=${n.op}")
@@ -135,6 +125,8 @@ object PIRPrinter {
     //node.name.foreach { name => fields += s"name=$name" }
     node match {
       case n:Controller =>
+      case n:Stage => 
+        fields ++= pirmeta.summerize(node, parOf)
       case n:Primitive => {
         fields ++= pirmeta.summary(node)
       }

@@ -28,6 +28,7 @@ abstract class Node (implicit val design: PIR) {
   def bound(b:AnyVal):this.type = { boundOf(this) = b; this }
   def name(n:String):this.type = { nameOf(this) = n; this }
   def name:Option[String] = nameOf.get(this)
+  def index:Option[Int] = indexOf.get(this)
 }
 
 trait Module extends Node {

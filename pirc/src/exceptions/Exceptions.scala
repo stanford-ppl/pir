@@ -15,3 +15,7 @@ trait SearchFailure extends PIRException
 case class TODOException(s:String) extends PIRException {
   override val msg = s"TODO: ${s}"
 }
+
+case class AssertError(info:String) extends PIRException {
+  def msg = s"[assert] $info"
+}

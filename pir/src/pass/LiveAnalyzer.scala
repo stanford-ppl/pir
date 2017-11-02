@@ -15,6 +15,15 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"LiveAnalyzer.log")
 
+  /*
+   * useOf(s):     stage s uses s.prev's register as operand. If stage s uses it's own pipeline register
+   *               it's not a use by this definition
+   * defOf(s):     stage s writes to stage s
+   * liveOutOf(s): pipeline register of stage s is used by later stage either by FunctionUnit or
+   *               propogated to next pipeline register
+   * liveInOf(s):  pipeline register of stage s's input is connected to either previous stage's
+   *               pipeline register or current stage's function unit
+   * */
   addPass {
     design.top.innerCUs.foreach { implicit cu =>
       // Uses in sram and counter
@@ -29,113 +38,146 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   } 
 
-  private def stageAnalysis(stages:List[Stage])(implicit cu:ComputeUnit) = {
-    updateStages(stages)
-    liveness(stages) 
-    checkLiveness(stages)
-    connectPRs(stages)
-    checkConnection(stages)
+  private def stageAnalysis(stages:List[Stage])(implicit cu:ComputeUnit) = emitBlock(s"stageAnalysis($cu)"){
+    if (stages.nonEmpty) {
+      updateStages(stages)
+      liveness(stages) 
+      updateInit(stages) // Add def to first use of regs with init value that are live in in first stage 
+      liveness(stages) // Second round of liveness analysis
+
+      connect(stages)
+      checkConnection(stages)
+    }
   }
 
   private def updatesPrim(implicit cu:ComputeUnit) = {
     collectIn[PipeReg](cu.mems ++ cu.cchains).foreach { case PipeReg(stage, reg) => stage.addLiveOut(reg) }
   }
   
-  private def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def updateStages(stages:List[Stage])(implicit cu:ComputeUnit) = emitBlock(s"updateStages") {
     stages.zipWithIndex.foreach { case (s, i) =>
-      s.fu.foreach(_.operands.foreach ( opd => addOpd(opd, s, stages) ))
-      s.fu.foreach(f => addRes(f.out, i, stages))
+      s.operands = s.operands.map ( opd => addOperand(opd, s, stages) )
+      s.results = s.results.map(res => addRes(res, s, stages) )
+      s.fu.get.op = s.op
+      dprintln(s"stage = $s[${s.index.get}]")
+      dprintln(s"- uses = ${useOf(s)}")
+      dprintln(s"- defs = ${defOf(s)}")
+    }
+  }
+
+  private def addOperand(oprd:Any, stage:Stage, stages:List[Stage]) (implicit cu:ComputeUnit):Any = {
+    oprd match {
+      case oprd:Counter if stage!= stages.head => addOperand(cu.ctr(oprd), stage, stages)
+      case oprd:OnChipMem if stage != stages.head => addOperand(cu.load(oprd), stage, stages)
+      case oprd:Reg => useOf(stage) = oprd; oprd
+      case oprd => oprd
+    }
+  }
+
+
+  private def addRes(result:Any, stage:Stage, stages:List[Stage])(implicit cu:ComputeUnit) = {
+    result match {
+      case res@(_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR) => 
+        defOf(stage) = res.asInstanceOf[Reg]
+        liveOutOf(stages.last) = res.asInstanceOf[Reg]
+        res
+      case res:Reg => defOf(stage) = res; res
+      case res => throw PIRException(s"Unknown type of result = ${res} for $stage in $cu")
+    }
+  }
+
+  private def liveness(stages:List[Stage]) = emitBlock(s"liveness") {
+    stages.reverseIterator.foreach { stage =>
+      if (stage!= stages.last) { liveOutOf(stage).clear }
+      val uses = useOf(stage).filterNot { case AccumPR(init) => true ; case _ => false }
+      liveOutOf(stage) = liveOutOf(stage) ++ stage.next.map { n => liveInOf(n) }.getOrElse(Nil) ++ stage.next.map { n => useOf(n) }.getOrElse(Nil)
+      liveInOf(stage) = (liveOutOf(stage) -- defOf(stage))
+      dprintln(s"stage:$stage[${stage.index.get}]")
+      dprintln(s"- uses = ${useOf(stage)}")
+      dprintln(s"- defs = ${defOf(stage)}")
+      dprintln(s"- liveOut = ${liveOutOf(stage)}") 
+      dprintln(s"- liveIn = ${liveInOf(stage)}") 
+    }
+  }
+
+  private def updateInit(stages:List[Stage]) = emitBlock(s"updateInit") {
+    liveInOf(stages.head).foreach {
+      case reg@TempPR(Some(init)) => 
+        val firstUseStage = useOf.imap(reg).toList.sortBy(_.index.get).head
+        dprintln(s"firstUseStage of $reg with init = $init in $firstUseStage, replace with const")
+        useOf(firstUseStage).remove(reg)
+        firstUseStage.operands = firstUseStage.operands.map {
+          case `reg` => Const(init)
+          case reg => reg
+        } 
+      case reg@AccumPR(init) => 
+        useOf.imap(reg).foreach { stage =>
+          if (defOf(stage).contains(reg)) { // Accum Reg shouldn't be liveIn but should be liveOut
+            useOf(stage) -= reg
+          }
+        }
+      case reg@(_:CtrPR | _:VecInPR | _:ScalarInPR | _:LoadPR) => // Okay to liveIn
+      case reg => throw PIRException(s"$reg is liveIn in this first stage of $stages but doesn't have initial value")
     }
   }
 
   /*
-   * If operand connects to:
-   * 1. Current stage PipeReg: It's a Use on current stage 
-   * 2. Previous stage PipeReg: It's a LiveOut from previous stage
-   * 3. MemoryLoad, Counter: Operand is directly fed to ALU, no impact on liveness. But need to
-   *    make sure only first stage can do so.
-   * 4. Constant: Directly feed to ALU, no impact
+   * If a stage's reg operand is not in useOf(stage), read it from current stage, otherwise from
+   * previous stage
    * */
-  private def addOpd(port:Input, stage:Stage, stages:List[Stage]) (implicit cu:ComputeUnit) = {
-    (port.from.src , cu) match {
-      case (pr@PipeReg(s, reg@(_:CtrPR | _:VecInPR | _:ScalarInPR | _:LoadPR)), cu) => 
-        s.addLiveOut(reg) 
-        stages.head.addDef(reg)
-      case (pr@PipeReg(s, reg@TempPR(Some(init))), cu) => 
-        s.addDef(reg)
-        s.addLiveOut(reg) 
-      case (pr@PipeReg(s, reg@AccumPR(init)), cu) => 
-        s.addDef(reg)
-        s.addLiveOut(reg) 
-      case (pr@PipeReg(s, reg), cu) => 
-        s.addLiveOut(reg) 
-      case (pm@(_:OnChipMem| _:Counter), cu) if (stage == stages.head) =>
-      case (pm:Const[_], cu) =>
-      case (pm, cu) => warn(s"trying to read $pm in stage ${quote(stage)} in $cu")
-    } 
-  }
-
-
-  private def addRes(res:Output, i:Int, stages:List[Stage])(implicit cu:ComputeUnit) = {
-    val stage = stages(i)
-    res.to.foreach { in =>
-      (in, in.src) match {
-        case (p:Input, src@PipeReg(s,reg@(_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR))) =>
-          s.addDef(reg)
-          stages.last.addLiveOut(reg)
-        case (p:Input, src@PipeReg(s,reg)) =>
-          s.addDef(reg)
-        case _ =>
-      }
-    }
-  }
-
-  private def liveness(stages:List[Stage]) = {
-    stages.reverseIterator.foreach { stage =>
-      stage.liveOuts = stage.liveOuts ++ stage.next.map { _.liveIns }.getOrElse(Nil)
-      stage.liveIns = stage.liveOuts -- stage.defs
-    }
-  }
-
-  private def checkLiveness(stages:List[Stage]) = {
-    if (stages.nonEmpty) assert(stages.head.liveIns.isEmpty, s"${stages.head.liveIns} is not defined in the first stage=${stages.head}!")
-    stages.foreach { s =>
-      var diff = (s.liveIns -- s.liveOuts)
-      if (diff.size!=0) {
-        throw PIRException(s"ctrler: ${s.ctrler}, liveIn is not contained by liveOut! stage:${s} liveIns:${s.liveIns} liveOuts:${s.liveOuts}")
-      }
-    }
-  }
-
-  private def connectPRs(stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def connect(stages:List[Stage])(implicit cu:ComputeUnit) = emitBlock(s"connect") {
     stages.foreach { stage =>
-      stage.defs.foreach { reg =>
-        val pr = stage.get(reg)
-        if (stage == stages.head && !stage.fu.get.writesTo(reg)) {
-          reg match {
-            case CtrPR(ctr) => pr.in.connect(ctr.out) 
-            case LoadPR(mem) => pr.in.connect(mem.readPort) 
-            case TempPR(Some(init)) => // Initial value
-            case _ => throw PIRException(s"Cannot forward reg type: ${reg}")
+      dprintln(s"stage:$stage[${stage.index.get}]")
+      dprintln(s"operands:${stage.operands}")
+      dprintln(s"uses:${useOf(stage)}")
+      // Connect operands
+      stage.operands.foreach {
+        case oprd:Counter => stage.fu.get.addOperand(oprd.out)
+        case oprd:OnChipMem => stage.fu.get.addOperand(oprd.readPort)
+        case oprd:Const[_] => stage.fu.get.addOperand(oprd.out)
+        case oprd:Output => stage.fu.get.addOperand(oprd) // Not using register
+        case oprd:Reg if useOf(stage).contains(oprd) =>
+          val pr = stage.prev.get.get(oprd)
+          stage.fu.get.addOperand(pr.out)
+          dprintln(s"connect stage $stage operand $oprd pr=$pr")
+        case oprd:Reg => // AccumReg
+          val pr = stage.get(oprd)
+          stage.fu.get.addOperand(pr.out)
+        case oprd => throw PIRException(s"Unknown type of oprd = $oprd for $stage in $cu")
+      }
+      // Connect Function Unit output
+      stage.results.foreach {
+        case reg:Reg if defOf(stage).contains(reg) =>
+          val pr = stage.get(reg)
+          stage.fu.get.out.connect(pr.in)
+      }
+      // Connect input of Pipeline Registers
+      liveInOf(stage).foreach { reg =>
+        // Connect liveIn in first stages
+        if (stage == stages.head) {
+          val out = reg match {
+            case CtrPR(ctr) => ctr.out
+            case ScalarInPR(in) => in.out
+            case VecInPR(in) => in.out
+            case LoadPR(mem) => mem.readPort
           }
+          stage.get(reg).in.connect(out)
+        } else {
+          val pr = stage.get(reg)
+          val prevStage = stage.prev.get
+          pr.in.connect(prevStage.get(reg).out)
+          dprintln(s"Connect LiveIn $reg, prevStage=$prevStage, stage=$stage")
         }
       }
-      stage.liveIns.foreach { reg =>
-        val pr = stage.get(reg)
-        val prevStage = stage.prev.get
-        pr.in.connect(prevStage.get(reg).out)
-      }
-      stage.liveOuts.foreach { reg =>
-        val pr = stage.get(reg)
+      // Connect output of Pipeline Regsiters
+      liveOutOf(stage).foreach { reg =>
         if (stage==stages.last) {
+          val pr = stage.get(reg)
           reg match { 
             case StorePR(sram) => sram.wtPort(pr.out)
             case VecOutPR(vecOut) => vecOut.in.connect(pr.out)
             case ScalarOutPR(scalarOut) => scalarOut.in.connect(pr.out)
-            case reg if stage.uses.contains(reg) =>
-            //case WtAddrPR(waPort) => waPort.connect(pr.out)
-            //case RdAddrPR(raPort) => raPort.connect(pr.out)
-            case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
+            case reg => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
           }
         }
       }
@@ -144,84 +186,29 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   def checkConnection(stages:List[Stage])(implicit cu:ComputeUnit) = {
     stages.foreach { stage =>
-      stage.liveIns.foreach { reg =>
-        val pr = stage.get(reg)
-        assert(pr.in.isConnected, s"liveIn ${pr}.in is not connected in $cu")
-      }
-      stage.liveOuts.foreach { reg =>
-        val pr = stage.get(reg)
-        assert(pr.out.isConnected, s"liveOut ${pr}.out is not connected in $cu")
-      }
-      stage.defs.foreach { reg =>
-        val pr = stage.get(reg)
-        reg match {
-          case reg@TempPR(Some(init)) =>
-          case _ => assert(pr.in.isConnected, s"Def ${pr}.in is not connected in $cu")
-        }
+      stage.fu.get.operands.foreach { oprd => assert(oprd.isConnected, s"oprd $oprd in $stage of $cu is not connected") }
+      warn(!stage.fu.get.out.isConnected, s"$stage output is not connected in $cu")
+      stage.prs.foreach { pr =>
+        assert(pr.in.isConnected, s"$pr.in $cu is not connected")
+        assert(pr.out.isConnected, s"$pr.out $cu is not connected")
       }
     }
   }
 
-  // If reg:
-  // if liveOut, register is enabled
-  // if liveIn, register is passed through from previous reg
-  // if defs but not defined by ALU, forwarding value to pipereg
-  // assert false on liveOut but not liveIn and no def
-  //private def connectPRs(stages:List[Stage])(implicit cu:ComputeUnit) = {
-    //for (i <- 0 until stages.size) {
-      //val stage = stages(i)
-      //stage.liveOuts.foreach { reg =>
-        //val pr = stage.get(reg)
-        //if (!pr.in.isConnected) {
-          //if (stage.defs.contains(reg)) {
-            //if (stage == stages.head && !stage.fu.get.writesTo(reg)) {
-              //reg match {
-                //case CtrPR(ctr) => pr.in.connect(ctr.out) 
-                //case LoadPR(mem) => pr.in.connect(mem.readPort) 
-                //case TempPR(Some(init)) => // Initial value
-                //case _ => throw PIRException(s"Cannot forward reg type: ${reg}")
-              //}
-            //}
-          //} else if (stage.liveIns.contains(reg)) {
-            //val pre = stages(i-1)
-            //val prePr = pre.get(reg)
-            //pr.in.connect(prePr)
-          //} else {
-            //throw PIRException(s"$pr.in is not connected but it's also not in liveIn and def of $stage in $cu")
-          //} 
-        //}
-        //if (stage==stages.last) { // Last stage
-          //if (!pr.out.isConnected) {
-            //reg match {
-              //case StorePR(sram) => sram.wtPort(pr.out)
-              //case VecOutPR(vecOut) => vecOut.in.connect(pr.out)
-              //case ScalarOutPR(scalarOut) => scalarOut.in.connect(pr.out)
-              ////case WtAddrPR(waPort) => waPort.connect(pr.out)
-              ////case RdAddrPR(raPort) => raPort.connect(pr.out)
-              //case _ => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
-            //}
-          //}
-        //}
-      //}
-      //stage.prs.foreach { case pr@PipeReg(stage, reg) =>
-        //if (!stage.liveIns.contains(reg) && !stage.liveOuts.contains(reg)) {
-          //stage.remove(reg)
-          //dprintln(s"eliminate unused register $pr in $cu.$stage")
-        //}
-      //}
-    //}
-  //}
-
-  private def infAnalysis(cu:ComputeUnit):Unit = {
+  private def infAnalysis(cu:ComputeUnit):Unit = emitBlock(s"infAnalysis($cu)") {
     val stages = cu.stages
     stages.foreach { s =>
-      (s.liveOuts ++ s.defs).foreach { r =>
+      // Possibly define but no use
+      (liveOutOf(s) ++ defOf(s)).foreach { r =>
         if (!cu.infGraph.contains(r)) cu.infGraph += (r -> mutable.Set.empty)
         // register doesn't interfere with co-def from the same source
         // e.g. FU writes to 2 registers
-        val sameDefLiveOuts = s.liveOuts.filter { lo => s.get(r).in.src == s.get(lo).in.src }
-        cu.infGraph(r) ++= (s.liveOuts -- sameDefLiveOuts)
+        val diffSrcLiveOut = liveOutOf(s).filterNot { lo => s.get(r).in.from == s.get(lo).in.from }
+        cu.infGraph(r) ++= diffSrcLiveOut 
       }
+    }
+    cu.infGraph.foreach { case (k, v) => 
+      emitln(s"${k}: [${v.mkString(s",")}]")
     }
   }
 

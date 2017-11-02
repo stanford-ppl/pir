@@ -13,7 +13,7 @@ trait Metadata extends { self:Design =>
     maps.foreach(_.reset)
   }
 
-  def summary(n:Any):List[String] = {
+  def summerize(n:Any, maps:MetadataMaps*):List[String] = {
     maps.flatMap { map => 
       Try {
         n.asInstanceOf[map.K]
@@ -23,6 +23,8 @@ trait Metadata extends { self:Design =>
       }
     }.toList
   }
+
+  def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
   trait MetadataMaps extends MMap { 
     maps += this

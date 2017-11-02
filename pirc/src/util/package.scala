@@ -49,6 +49,12 @@ package object util extends Printer {
   def bp(s:Any) = emitln(s"[${Console.RED}break${Console.RESET}]${s}")
   def err(s:Any):Unit = { errmsg(s); throw PIRException(s"$s") }
   def err(predicate:Boolean, s:Any):Unit = if (predicate) err(s) 
+  def assert(predicate:Boolean, info:Any):Unit = {
+    if (!predicate) throw AssertError(info.toString)
+  }
+  def assert(predicate:Boolean):Unit = {
+    if (!predicate) throw AssertError("")
+  }
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()

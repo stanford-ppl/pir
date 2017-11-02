@@ -66,7 +66,7 @@ class AppTests extends UnitTest { self =>
           configs += s" --verbose=$verbose"
           configs += s" --mapping=$mapping"
           configs += s" --codegen=false"
-          arch.foreach { arch => configs += s"--arch=$arch" }
+          arch.foreach { arch => configs += s" --arch=$arch" }
           app.main((args + configs).split(" "))
         }
       }
@@ -197,10 +197,10 @@ class AppTests extends UnitTest { self =>
 
   //intercept[PIRException] {
 
-  //val simulate = false
-  val simulate = true
+  val simulate = false
+  //val simulate = true
   // UnitTest 
-  test(InOutArg, args="x=4", argOuts="x342_x348=4", timeOut=30, debug=true)
+  //test(InOutArg, args="x=4", argOuts="x342_x348=4", timeOut=30, debug=true)
   //test(ParSRAMReadWrite_cb, argOuts="x1026_x1096=10416", timeOut=60, debug=true)
   //testSRAMReadWrite2D(ParSRAMReadWrite2D_cb, M=2, N=32, debug=true) //TODO: fix predicate unit
   //test(SimpleSequential_cb, args="x343=2 x342=10", argOuts="x344_x356=20", debug=false)
@@ -224,8 +224,8 @@ class AppTests extends UnitTest { self =>
   //test(SRAMReadWrite, argOuts="x1026_x1096=41", timeOut=60, debug=true)
   //test(ParSRAMReadWrite, argOuts="x1026_x1096=10416", timeOut=60, debug=false)
   
-  //val verbose = true
-  //val mapping = false
+  val verbose = true
+  val mapping = true
   //val arch = SN16x8_LD
   //val arch = SN16x13_LD
   //val arch = SN8x8_LD
@@ -234,12 +234,12 @@ class AppTests extends UnitTest { self =>
   // Mapping Test
   //test(SequentialWrites, arch=Some(arch), mapping=mapping, debug=true)
   //test(TensorLoadStore, arch=Some(arch), mapping=mapping, debug=true)
-  //test(DotProduct         , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(OuterProduct       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
+  test(DotProduct         , arch=Some(SN2x2), verbose=verbose, mapping=mapping, debug=true)
+  test(OuterProduct       , arch=Some(SN4x4), verbose=verbose, mapping=mapping, debug=true)
+  test(TPCHQ6             , arch=Some(SN8x8), verbose=verbose, mapping=mapping, debug=true)
+  //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Backprop           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(TPCHQ6             , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(BlackScholes       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)

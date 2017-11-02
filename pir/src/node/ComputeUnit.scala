@@ -10,7 +10,7 @@ import pirc.enums._
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-abstract class ComputeUnit(implicit design: PIR) extends Controller with OuterRegBlock {
+abstract class ComputeUnit(implicit design: PIR) extends Controller with RegisterBlock {
   override val typeStr = "CU"
   import pirmeta._
 
@@ -57,11 +57,9 @@ abstract class ComputeUnit(implicit design: PIR) extends Controller with OuterRe
   
   override def toUpdate = { super.toUpdate }
 
-  var index = 0
-  def nextIndex = { val temp = index; index +=1 ; temp}
+  var stageIndex = 0
+  def nextIndex = { val temp = stageIndex; stageIndex +=1 ; temp}
 
-  //val emptyStage = EmptyStage(); indexOf(emptyStage) = nextIndex 
-  //def stages:List[Stage] = emptyStage :: Nil 
   def stages:List[Stage] = Nil 
 
 }

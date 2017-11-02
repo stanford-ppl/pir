@@ -9,7 +9,7 @@ import scala.collection.mutable.Set
 trait MMap extends UniMap {
   override type M = Map[K,VV]
   def clear = { map.clear }
-  def update(n:K, v:V):Unit
+  def update(k:K, v:V):Unit
   def getOrElseUpdate(k:K)(v: => VV):VV
   def transform(f: (K, VV) ⇒ VV): M = map.transform(f)
   def filterNot(p: ((K, VV)) ⇒ Boolean) = map.filterNot(p)
@@ -24,7 +24,7 @@ trait MBiMap extends BiMap with MMap {
 trait MOneToOneMap extends OneToOneMap with MMap {
   override type M = Map[K, VV]
   val map:Map[K, VV] = Map.empty
-  def update(n:K, v:V):Unit = { check((n,v)); map += (n -> v) }
+  def update(k:K, v:V):Unit = { check((k,v)); map += (k -> v) }
   def getOrElseUpdate(k:K)(v: => VV):VV = {
     if (!map.contains(k)) update(k,v) 
     map(k)
@@ -34,29 +34,31 @@ trait MOneToOneMap extends OneToOneMap with MMap {
 trait MBiOneToOneMap extends MOneToOneMap with BiOneToOneMap with MBiMap {
   override type IM = Map[V, KK]
   val imap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n, v); imap += (v -> n) }
+  override def update(k:K, v:V):Unit = { check((k,v)); super.update(k, v); imap += (v -> k) }
 }
 
 trait MOneToManyMap extends OneToManyMap with MMap {
   override type VV = Set[V]
   override type M = Map[K, VV]
   val map:Map[K, VV] = Map.empty
-  def update(n:K, v:V):Unit = map.getOrElseUpdate(n, Set[V]()) += v
+  def update(k:K, v:V):Unit = map.getOrElseUpdate(k, Set[V]()) += v
   def getOrElseUpdate(k:K)(v: => VV):VV = {
     if (!map.contains(k)) v.foreach { v => update(k,v) }
     map(k)
   }
-  def update(n:K, vv:VV):Unit = map += n -> vv
+  def update(k:K, vv:VV):Unit = map += k -> vv
 }
 
 trait MBiOneToManyMap extends MOneToManyMap with BiOneToManyMap with MBiMap {
   override type IM = Map[V, KK]
   val imap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); imap += (v -> n) } 
-  override def update(n:K, vv:VV):Unit = {
-    map(n).foreach { v => imap.remove(v) }
-    super.update(n, vv)
-    vv.foreach { v => imap += v -> n }
+  override def update(k:K, v:V):Unit = { check((k,v)); super.update(k,v); imap += (v -> k) } 
+  override def update(k:K, vv:VV):Unit = {
+    if (map.contains(k)) {
+      map(k).foreach { v => imap.remove(v) }
+      map.remove(k)
+    }
+    vv.foreach { v => update(k, v) }
   }
 }
 
@@ -64,12 +66,19 @@ trait MBiManyToOneMap extends MOneToOneMap with BiManyToOneMap with MMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
   val imap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { check((n,v)); super.update(n,v); imap.getOrElseUpdate(v, Set[K]()) += n } 
+  override def update(k:K, v:V):Unit = { check((k,v)); super.update(k,v); imap.getOrElseUpdate(v, Set[K]()) += k } 
 }
 
-trait MBiManyToMany extends MOneToManyMap with BiManyToManyMap with MBiMap {
+trait MBiManyToManyMap extends MOneToManyMap with BiManyToManyMap with MBiMap {
   override type KK = Set[K]
   override type IM = Map[V, KK]
   val imap:IM = Map.empty
-  override def update(n:K, v:V):Unit = { super.update(n,v); imap.getOrElseUpdate(v, Set[K]()) += n } 
+  override def update(k:K, v:V):Unit = { super.update(k,v); imap.getOrElseUpdate(v, Set[K]()) += k } 
+  override def update(k:K, vv:Set[V]) = {
+    if (map.contains(k)) {
+      map(k).foreach { v => imap(v) -= k }
+      map.remove(k)
+    }
+    vv.foreach { v => update(k, v) }
+  }
 }

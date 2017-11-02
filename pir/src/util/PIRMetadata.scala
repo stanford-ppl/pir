@@ -6,6 +6,7 @@ import pir.node._
 import pirc.util._
 import pirc.collection.mutable._
 import scala.reflect.ClassTag
+import scala.collection.mutable
 
 trait PIRMetadata extends Metadata { self:PIR =>
 
@@ -271,5 +272,33 @@ trait PIRMetadata extends Metadata { self:PIR =>
     def apply(v:V) = imap.getOrElse(v, Set[K]())
   }
 
+  /* Liveness Analysis */
+  object useOf extends MBiManyToManyMap with MetadataMaps {
+    type K = Stage
+    type V = Reg
+    override def apply(k:K) = map.getOrElse(k, mutable.Set[V]())
+    def apply(v:V) = imap.getOrElse(v, mutable.Set[K]())
+  }
+
+  object defOf extends MBiManyToManyMap with MetadataMaps {
+    type K = Stage
+    type V = Reg
+    override def apply(k:K) = map.getOrElse(k, mutable.Set[V]())
+    def apply(v:V) = imap.getOrElse(v, mutable.Set[K]())
+  }
+
+  object liveInOf extends MBiManyToManyMap with MetadataMaps {
+    type K = Stage
+    type V = Reg
+    override def apply(k:K) = map.getOrElse(k, mutable.Set[V]())
+    def apply(v:V) = imap.getOrElse(v, mutable.Set[K]())
+  }
+
+  object liveOutOf extends MBiManyToManyMap with MetadataMaps {
+    type K = Stage
+    type V = Reg
+    override def apply(k:K) = map.getOrElse(k, mutable.Set[V]())
+    def apply(v:V) = imap.getOrElse(v, mutable.Set[K]())
+  }
 }
 

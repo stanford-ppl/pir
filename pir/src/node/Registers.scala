@@ -3,7 +3,7 @@ package pir.node
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 
-trait OuterRegBlock { self:ComputeUnit =>
+trait RegisterBlock { self:ComputeUnit =>
 
   var regId = 0
   def newTemp = {val temp = regId; regId +=1; temp}
@@ -13,11 +13,16 @@ trait OuterRegBlock { self:ComputeUnit =>
 
   val scalarInRegs  = Map[GlobalInput, ScalarInPR]()
   val loadRegs   = Map[OnChipMem, LoadPR]()
-  def reset      = { regId = 0; loadRegs.clear; scalarInRegs.clear }
+  def reset      = { 
+    regId = 0
+    loadRegs.clear
+    scalarInRegs.clear
+    storeRegs.clear
+    ctrRegs.clear
+  }
 
   def scalarInPR(s:GlobalInput):ScalarInPR = scalarInRegs.getOrElseUpdate(s, ScalarInPR(s))
   def loadPR(s:OnChipMem):LoadPR = loadRegs.getOrElseUpdate(s, LoadPR(s))
-
 
  /** Create a pipeline register for a stage corresponding to 
   *  the register that loads from the sram
@@ -52,9 +57,6 @@ trait OuterRegBlock { self:ComputeUnit =>
   /** Create a ScalarOut object 
   * @param s: scalar value 
   */
-}
-
-trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
 
   /* Register Mapping */
   lazy val reduceReg  = ReducePR()
@@ -67,7 +69,6 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   val ctrRegs    = Map[Counter, CtrPR]()
   val tempRegs   = Set[Reg]()
   val accumRegs  = Set[AccumPR]()
-  override def reset      = { super.reset; storeRegs.clear; ctrRegs.clear}
 
   def storePR(s:OnChipMem):StorePR = storeRegs.getOrElseUpdate(s, StorePR(s))
 
@@ -195,4 +196,3 @@ trait InnerRegBlock extends OuterRegBlock { self:InnerController =>
   */
   def temp(reg:Reg):Reg = reg
 }
-

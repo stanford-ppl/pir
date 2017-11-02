@@ -4,8 +4,7 @@ import pir._
 
 import scala.collection.mutable.ListBuffer
 
-abstract class InnerController(implicit design:PIR) extends ComputeUnit
- with InnerRegBlock {
+abstract class InnerController(implicit design:PIR) extends ComputeUnit {
   import pirmeta._
 
   /* Stages */

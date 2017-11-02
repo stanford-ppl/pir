@@ -51,7 +51,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
         def addPredicate(mem:FIFO, sel:Input) = {
           sel.from.src match {
             case PipeReg(stage, reg) => lookUp += reg -> mem
-            case _ => throw PIRException(s"Not supported format for FIFO Predicate in ${ctrler}")
+            case x => throw PIRException(s"Not supported format for FIFO Predicate in ${ctrler} sel=$x")
           }
         }
         cu.stages.reverseIterator.foreach { stage =>
