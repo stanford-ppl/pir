@@ -1,21 +1,36 @@
 package pir.pass
-import pir.node._
+
 import pir._
-import pirc.enums._
-import pir.util._
+
+import pirc._
 import pirc.util._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Map
 
-class ForwardRef(implicit design: PIR) extends Pass{
+class ForwardRef(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
 
   def shouldRun = true 
 
+  override lazy val stream = newStream(s"ForwardRef.log")
+
   addPass {
-    design.toUpdate.foreach { f => f() }
+    dprintln(s"names:")
+    nameOf.map.foreach { case (name, node) =>
+      dprintln(s"  $name - $node")
+    }
+    design.toUpdate.foreach { f =>
+      try {
+        f()
+      } catch {
+        case e:java.util.NoSuchElementException => 
+          dprintln(s"$e")
+          warn(e)
+        case e:Throwable => throw e
+      }
+    }
     design.toUpdate.clear
   } 
 

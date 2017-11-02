@@ -49,7 +49,7 @@ class Input(implicit src:Module, design:PIR) extends IO {
     }
   }
   def isConnectedTo(o:Output) = { from == o }
-  def disconnect:Unit = if (isConnected) { from.disconnect(this); _from = null }
+  def disconnect:Unit = if (isConnected) { val from = _from; _from = null; from.disconnect(this) }
 
   def isGlobal:Boolean = { isConnected && !from.src.isConst && from.ctrler != ctrler }
   override def asGlobal:GlobalInput = this.asInstanceOf[GlobalInput]
@@ -74,8 +74,8 @@ class Output(implicit src:Module, design:PIR) extends IO {
   def disconnect:Unit = { to.foreach { _.disconnect }; assert(to.isEmpty) }
   def disconnect(in:Input):Unit = { 
     if (isConnectedTo(in)) {
-      in.disconnect
       _to -= in
+      in.disconnect
     }
   } 
   override val typeStr = "Output"

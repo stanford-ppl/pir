@@ -98,11 +98,11 @@ trait PIR extends Design with PIRMetadata with Collector {
     passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
     passes += scalMemInsertion
     passes += pirPrinter1
+    passes += pirDataDotGen1
     passes += livenessAnalyzer 
     passes += accessAnalyzer
     passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
     passes += pirPrinter2
-    passes += pirDataDotGen1
     passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
     //passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
                                 // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
