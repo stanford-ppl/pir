@@ -178,7 +178,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def copySwapCC(mem:OnChipMem):Unit = {
+  def copySwapCC(mem:OnChipMem):Unit = emitBlock(s"copySwapCC($mem)") {
     mem match {
       case mem:SRAM =>
         (mem.writeAddrMux.inputs).foreach { input =>
@@ -194,6 +194,9 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
           }
         }
       case mem:LocalMem =>
+        dprintln(s"mem=$mem")
+        dprintln(s"copySwapCC: writePortMux.inputs=${mem.writePortMux.inputs}")
+        dprintln(s"mem.topCtrlMap: ${mem.topCtrlMap}")
         mem.writePortMux.inputs.foreach { input =>
           val writer = collectIn[GlobalInput](input).head.from.ctrler
           mem.topCtrlMap.get(input).foreach { topCtrl =>
@@ -366,7 +369,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
 
     design.top.compUnits.foreach { cu =>
       //setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
-      //copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
+      copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
       analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
       markLocalMem(cu) // set forRead, forWrite
       //duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
