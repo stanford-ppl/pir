@@ -34,7 +34,7 @@ class ScalarMemInsertion(implicit design: PIR) extends Pass with Logger {
       emitln(s"disconnect $ip, connect $ip to $op  $ip ${ip.src}")
     }
     sin.out.disconnect
-    mem.wtPort(sin.out)
+    mem.writePort(sin.out)
     emitln(s"Insert $mem in $cu from:$sin to:${mem.readPort.to.mkString(",")}")
     mem
   }

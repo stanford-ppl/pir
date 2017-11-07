@@ -135,15 +135,9 @@ trait PIRMetadata extends Metadata { self:PIR =>
     override def check(rec:(K,V)):Unit = {}
   }
 
-  object waddrserOf extends MOneToOneMap with MetadataMaps {
-    type K = OnChipMem 
-    type V = List[Controller]
-    override def check(rec:(K,V)):Unit = {}
-  }
-
-  object raddrserOf extends MOneToOneMap with MetadataMaps {
-    type K = OnChipMem 
-    type V = List[Controller]
+  object addrserOf extends MOneToOneMap with MetadataMaps {
+    type K = (OnChipMem, IO)
+    type V = Controller
     override def check(rec:(K,V)):Unit = {}
   }
 
@@ -261,13 +255,13 @@ trait PIRMetadata extends Metadata { self:PIR =>
   }
 
   object producerOf extends MBiManyToOneMap with MetadataMaps {
-    type K = (OnChipMem, Controller) // (MultiBuffer, Writer)
+    type K = Any
     type V = Controller
     def apply(v:V) = imap.getOrElse(v, Set[K]())
   }
 
   object consumerOf extends MBiManyToOneMap with MetadataMaps {
-    type K = (OnChipMem, Controller) // (MultiBuffer, Reader)
+    type K = (OnChipMem, Any) // (MultiBuffer, Reader)
     type V = Controller
     def apply(v:V) = imap.getOrElse(v, Set[K]())
   }

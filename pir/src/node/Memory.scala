@@ -7,6 +7,7 @@ import pirc.enums._
 
 import scala.math.max
 import scala.reflect.runtime.universe._
+import scala.collection.mutable
 
 abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Primitive {
   import pirmeta._
@@ -27,13 +28,68 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   val notFull = Output(this, s"$this.notFull")
   val notEmpty = Output(this, s"$this.notEmpty")
 
-  def rdPort(port:Input):this.type = { readPort.connect(port); this } 
-  def rdPort(out:GlobalOutput):this.type = { rdPort(out.in); this }
-  def rdPort(variable:Variable):this.type = { rdPort(ctrler.newOut(variable)) }
+  def readPort(data:Any):Output = {
+    data match {
+      case data:Input => readPort.connect(data); readPort
+      case data:GlobalOutput => readPort(data.in)
+      case data:Variable => readPort(ctrler.newOut(data))
+    }
+  }
 
-  def wtPort(port:Output):this.type = { writePortMux.addInput.connect(port); this } 
-  def wtPort(in:GlobalInput):this.type = { wtPort(in.out) }
-  def wtPort(variable:Variable):this.type = { wtPort(ctrler.newIn(variable)) }
+  def writePort(data:Any):Input = {
+    data match {
+      case data:Output => val in = writePortMux.addInput; in.connect(data); in
+      case data:GlobalInput => writePort(data.out)
+      case data:Variable => writePort(ctrler.newIn(data))
+    }
+  }
+
+  def readAddr(addr:Any):Input = throw PIRException(s"$this does not have readAddress")
+  def writeAddr(addr:Any):Input = throw PIRException(s"$this does not have writeAddress")
+
+  val addrMap = mutable.Map[IO, IO]()
+  val topCtrlMap = mutable.Map[IO, Controller]()
+  // For write
+  // - with addr: data -> Controller, addr -> Controller
+  // - without addr: data -> Controller
+  // For read:
+  // - with addr: addr -> Controller (a single data but multiple Controller)
+  // - without addr: data -> Controller
+
+  def setTopCtrl(data:IO, addr:Option[IO], topCtrl:Any):Unit = {
+    topCtrl match { 
+      case name:String =>
+        design.lazyUpdate { 
+          val topCtrl = nameOf.find[Controller](name)
+          setTopCtrl(data, addr, topCtrl)
+        }
+      case topCtrl:Controller =>
+        topCtrlMap += data -> topCtrl
+        addr.foreach { addr => topCtrlMap += addr -> topCtrl }
+    }
+  }
+
+  def load(data:Any, addr:Option[Any], topCtrl:Option[Any]):this.type = {
+    val rdata = readPort(data)
+    val raddr = addr.map(readAddr)
+    raddr.foreach { raddr =>
+      addrMap += raddr -> rdata
+      addrMap += rdata -> raddr
+    }
+    topCtrl.foreach{ topCtrl => setTopCtrl(rdata, raddr, topCtrl) }
+    this
+  }
+
+  def store(data:Any, addr:Option[Any], topCtrl:Option[Any]):this.type = {
+    val wdata = writePort(data)
+    val waddr = addr.map(writeAddr)
+    waddr.foreach { waddr =>
+      addrMap += waddr -> wdata
+      addrMap += wdata -> waddr
+    }
+    topCtrl.foreach{ topCtrl => setTopCtrl(wdata, waddr, topCtrl) }
+    this
+  }
 
   def load = readPort
 
@@ -46,23 +102,6 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   def isSRAM = this.isInstanceOf[SRAM]
   def isMbuffer = this.isInstanceOf[MultiBuffer]
   def asMbuffer = this.asInstanceOf[MultiBuffer]
-
-  def producer(writer:String, pd:String):this.type = {
-    design.updateLater { producer(nameOf.find[Controller](writer), nameOf.find[Controller](pd)) }
-    this
-  }
-  def producer(writer:Controller, pd:Controller):this.type = {
-    producerOf((this, writer)) = pd
-    this
-  }
-  def consumer(reader:String, cs:String):this.type = {
-    design.updateLater { consumer(nameOf.find[Controller](reader), nameOf.find[Controller](cs)) }
-    this
-  }
-  def consumer(reader:Controller, cs:Controller):this.type = {
-    consumerOf((this, reader)) = cs
-    this
-  }
 
   var _buffering:Int = 1
   def buffering = _buffering
@@ -109,14 +148,19 @@ case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryP
     case Duplicated() => throw PIRException(s"Shouldn't matching Duplicated. No support in pirgen yet")
   }
   val readAddr: Input = Input(this, s"${this}.ra")
-  def rdAddr(ra:Output):this.type = { 
-    readAddrMux.addInput.connect(ra); 
-    this
+  override def readAddr(addr:Any):Input = { 
+    addr match {
+      case addr:Output => val in = readAddrMux.addInput; in.connect(addr); in
+      case addr:Counter => readAddr(addr.out)
+    }
   } 
+
   val writeAddr: Input = Input(this, s"${this}.wa")
-  def wtAddr(wa:Output):this.type = { 
-    writeAddrMux.addInput.connect(wa)
-    this 
+  override def writeAddr(addr:Any):Input = { 
+    addr match {
+      case addr:Output => val in = writeAddrMux.addInput; in.connect(addr); in
+      case addr:Counter => writeAddr(addr.out)
+    }
   }
 
   val readAddrMux = new ValidMux().name(s"$this.raMux")

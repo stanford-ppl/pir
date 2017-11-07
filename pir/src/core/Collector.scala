@@ -181,6 +181,6 @@ trait Collector { design:PIR =>
     (l1, l2, l3, l4, l5, l6)
   }
 
-  def updateLater(f: => Unit):Unit = { toUpdate += f _ }
+  def lazyUpdate(f: => Unit):Unit = { toUpdate += f _ }
 
 }

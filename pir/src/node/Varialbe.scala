@@ -47,7 +47,7 @@ case class DRAMAddress()(implicit design:PIR) extends ArgIn {
   private var _offchip:Either[String, OffChip] = _
   def setOffChip(offchip:String):Unit = { 
     _offchip = Left(offchip)
-    design.updateLater(offchip, (n:Node) => setOffChip(n.asInstanceOf[OffChip]))
+    design.lazyUpdate(offchip, (n:Node) => setOffChip(n.asInstanceOf[OffChip]))
   }
   def setOffChip(offchip:OffChip):Unit = { _offchip = Right(offchip) }
 }

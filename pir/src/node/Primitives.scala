@@ -242,7 +242,7 @@ case class AccumPR(init:Const[_<:AnyVal])(implicit ctrler:ComputeUnit, design: P
     parent match { 
       case Left(parent) => 
         def updateFunc(parent:Node) = updateParent(Right(parent.asInstanceOf[ComputeUnit])) 
-        design.updateLater(parent, updateFunc _ )
+        design.lazyUpdate(parent, updateFunc _ )
       case Right(parent) => accumParent = Right(parent)
     }
   }
@@ -286,7 +286,7 @@ case class Const[T<:AnyVal](value:T)(implicit design: PIR) extends Module {
 trait MuxLike extends Primitive {
   override val typeStr = "Mux"
   val _inputs = ListBuffer[Input]()
-  val inputs = _inputs.toList
+  def inputs = _inputs.toList
   val sel = Input(this, s"${this}.sel") 
   val out = Output(this, s"$this.out")
   def addInput:Input = { val i = _inputs.size; val in = Input(this, s"$this.in$i"); _inputs += in; in }
