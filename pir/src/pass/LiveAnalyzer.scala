@@ -189,8 +189,8 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
       stage.fu.get.operands.foreach { oprd => assert(oprd.isConnected, s"oprd $oprd in $stage of $cu is not connected") }
       warn(!stage.fu.get.out.isConnected, s"$stage output is not connected in $cu")
       stage.prs.foreach { pr =>
-        assert(pr.in.isConnected, s"$pr.in $cu is not connected")
-        assert(pr.out.isConnected, s"$pr.out $cu is not connected")
+        warn(!pr.in.isConnected, s"$pr.in $cu is not connected")
+        warn(!pr.out.isConnected, s"$pr.out $cu is not connected")
       }
     }
   }

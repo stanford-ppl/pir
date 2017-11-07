@@ -79,7 +79,7 @@ package object util {
       if (chained.nonEmpty) {
         while (prevParent(cc)!=cc.original.ctrler) {
           val pp = prevParent(cc)
-          val newCC = cu.getCopy(localCChainOf(pp)).map { cc =>
+          val newCC = cu.getCopy(localCChainOf(pp), logger=Some(logger)).map { cc =>
             newChains += cc
             cc
           }.getOrElse(localCChainOf(pp))

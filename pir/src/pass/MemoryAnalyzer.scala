@@ -162,7 +162,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
   def copySwapCC(access:ComputeUnit, topCtrler:Controller, forRead:Boolean=false, forWrite:Boolean=false):Unit = {
-    access.getCopy(localCChainOf(topCtrler)).foreach { cc =>
+    access.getCopy(localCChainOf(topCtrler), logger=Some(this)).foreach { cc =>
       if (forRead) pirmeta.forRead(cc) = true
       if (forWrite) pirmeta.forWrite(cc) = true
       val (readCCs, rest) = access.cchains.partition { cc => pirmeta.forRead(cc) }
@@ -218,7 +218,8 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
       case cu:InnerController =>
         cu.accumRegs.foreach { acc =>
           val accumCC = localCChainOf(acc.accumParent.right.get)
-          val cc = cu.getCopy(accumCC).map { cc => analyzeNewCC(cc) }.getOrElse(accumCC)
+          val cc = cu.getCopy(accumCC, logger=Some(this)).map { cc => analyzeNewCC(cc) }.getOrElse(accumCC)
+          analyzeNewCC(cc)
           accumCounterOf(acc) = cc.outer
           dprintln(s"accumCounterOf($acc)=${accumCounterOf(acc)}")
         }
@@ -321,8 +322,9 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
   def duplicateCChain(cu:ComputeUnit) = emitBlock(s"duplicateCChain($cu)") {
     cu.cchains.foreach { cc =>
       if (forRead(cc) && forWrite(cc)) {
-        val clone = CounterChain.clone(cc)(cu, design)
+        val clone = CounterChain.clone(cc, logger=Some(this))(cu, design)
         dprintln(s"cloning original=$cc clone=$clone")
+        analyzeNewCC(clone)
         clone.setCopy(cc.original) //TODO: Hack
         forRead(cc) = false
         forWrite(clone) = false

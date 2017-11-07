@@ -36,17 +36,17 @@ abstract class ComputeUnit(implicit design: PIR) extends Controller with Registe
   def getCC(cchain:CounterChain):CounterChain = cchainMap(cchain.original)
 
   // Return Some(cchain) if new copy is made
-  def getCopy(cchain:CounterChain)(implicit logger:Logger):Option[CounterChain] = {
+  def getCopy(cchain:CounterChain, logger:Option[Logger]=None):Option[CounterChain] = {
     if (cchainMap.contains(cchain)) None else {
-      val cp = CounterChain.copy(cchain.original)(this, design)
-      logger.dprintln(s"Creating new copy=$cp of $cchain(${cchain.ctrler}) in $this")
+      val cp = CounterChain.copy(cchain.original, logger)
+      logger.foreach { _.dprintln(s"Creating new copy=$cp of $cchain(${cchain.ctrler}) in $this") }
       cchainMap += (cchain.original) -> cp
       Some(cp)
     }
   }
 
-  def cloneCC(cchain:CounterChain):CounterChain = {
-    val clone = CounterChain.clone(cchain.original)(this, design)
+  def cloneCC(cchain:CounterChain, logger:Option[Logger]):CounterChain = {
+    val clone = CounterChain.clone(cchain.original, logger)
     assert(cchainMap.contains(clone.original)) // clone's original should be it self
     clone
   }

@@ -20,9 +20,10 @@ class FusionTransform(implicit design: PIR) extends Pass with Logger {
     dprintln(s"before=${child.cchains.map{ cc => s"$cc(${cc.counters.mkString(",")})"}}")
     pcc.counters.reverseIterator.foreach { ctr =>
       val nctr = Counter(ctr.name, pcc)(child, design)
-      nctr.clone(ctr)
+      nctr.clone(ctr, logger=Some(this))
       ccc.addOuterCounter(nctr)
     }
+    design.memoryAnalyzer.analyzeNewCC(ccc)
     dprintln(s"after=${child.cchains.map{ cc => s"$cc(${cc.counters.mkString(",")})"}}")
     design.removeNode(parent)
   }

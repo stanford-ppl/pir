@@ -84,23 +84,23 @@ case class CounterChain(cc:Option[Either[String, CounterChain]])(implicit overri
     this
   }
 
-  def copy(cp:CounterChain):Unit = {
+  def copy(cp:CounterChain, logger:Option[Logger]):Unit = {
     assert(!cp.isCopy, s"Can only copy original CounterChain. Target ${cp} is a copy of ${cp.original}")
     this.setCopy(cp)
     ctrler.addCChain(this)
-    clone(cp)
+    clone(cp, logger)
   }
 
-  def clone(cc:CounterChain):Unit = {
+  def clone(cc:CounterChain, logger:Option[Logger]):Unit = {
     if (cc.isCopy) {
-      clone(cc.original)
+      clone(cc.original, logger)
     } else {
       // Check whether speculative wire allocation was correct
       assert(counters.size <= cc.counters.size, 
         s"Accessed counter ${counters.size-1} of ${this} is out of bound")
       val addiCtrs = List.fill(cc.counters.size-counters.size)(Counter(this))
       addCounters(addiCtrs)
-      counters.zipWithIndex.foreach { case(c,i) => c.clone(cc.counters(i)) }
+      counters.zipWithIndex.foreach { case(c,i) => c.clone(cc.counters(i), logger) }
       //iterOf(this) = iterOf(cc) 
     }
   }
@@ -120,35 +120,38 @@ object CounterChain {
    * @param name: User defined name for Primitive 
    * */
   def copy(from:String, name:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+    copy(from, name, None)
+  }
+  def copy(from:String, name:String, logger:Option[Logger]) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     import design.pirmeta._
-    copy(nameOf.getPrimName(from, name))
+    copy(nameOf.getPrimName(from, name), logger)
   }
   /*
    * @param from: Controller of the copying CounterChain 
    * @param name: User defined name for Primitive 
    * */
-  def copy(from:ComputeUnit, name:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+  def copy(from:ComputeUnit, name:String, logger:Option[Logger]) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     import design.pirmeta._
-    copy(nameOf.getPrimName(from, name))
+    copy(nameOf.getPrimName(from, name), logger)
   }
   /*
    * @param from: full name of Primitive 
    * */
-  def copy(from:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+  def copy(from:String, logger:Option[Logger]) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     import design.pirmeta._
     val cc = new CounterChain(Some(Left(from))).name(s"${from}_copy")
-    design.lazyUpdate{ cc.copy(nameOf.find[CounterChain](from)) }
+    design.lazyUpdate{ cc.copy(nameOf.find[CounterChain](from), logger) }
     cc
   }
-  def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+  def copy(from:CounterChain, logger:Option[Logger])(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     val cc = new CounterChain(Some(Right(from))).name(s"${from}_copy")
-    cc.copy(from)
+    cc.copy(from, logger)
     cc
   }
-  def clone(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
+  def clone(from:CounterChain, logger:Option[Logger])(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     val cc = CounterChain(None)
     from.name.foreach { name => cc.name(name) }
-    cc.clone(from)
+    cc.clone(from, logger)
     cc
   }
   def dummy(implicit ctrler:ComputeUnit, design: PIR) = {
@@ -205,7 +208,8 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
 
   def setDep(c:Counter) = { en.connect(c.done) }
 
-  def clone(c:Counter) = {
+  def clone(c:Counter, logger:Option[Logger]) = {
+    logger.foreach { _.dprintln(s"new counter $this cloning $c") }
     assert(min.from==null, 
       s"Overriding existing counter ${this} with min ${c.min}")
     assert(max.from==null, 
@@ -222,6 +226,7 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
           }.headOption.getOrElse {
             val sb = ScalarBuffer()(ctrler, design)
             sb.copy = Some(s)
+            logger.foreach { _.dprintln(s"creating new $sb for $p") }
             vars.foreach { v => 
               val data = sb.writePort(v)
               s.topCtrlMap.get(data).foreach { topCtrl => sb.setTopCtrl(data, None, topCtrl) }
