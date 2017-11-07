@@ -137,7 +137,7 @@ object CounterChain {
   def copy(from:String) (implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     import design.pirmeta._
     val cc = new CounterChain(Some(Left(from))).name(s"${from}_copy")
-    design.updateLater{ cc.copy(nameOf.find[CounterChain](from)) }
+    design.lazyUpdate{ cc.copy(nameOf.find[CounterChain](from)) }
     cc
   }
   def copy(from:CounterChain)(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
@@ -222,7 +222,10 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
           }.headOption.getOrElse {
             val sb = ScalarBuffer()(ctrler, design)
             sb.copy = Some(s)
-            vars.foreach { v => sb.wtPort(v) }
+            vars.foreach { v => 
+              val data = sb.writePort(v)
+              s.topCtrlMap.get(data).foreach { topCtrl => sb.setTopCtrl(data, None, topCtrl) }
+            }
             ctrler.mems(List(sb))
             sb
           }

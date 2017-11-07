@@ -8,7 +8,7 @@ import pirc._
 import pirc.util._
 import pirc.enums._
 
-import scala.collection.mutable._
+import scala.collection.mutable
 
 class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   import pirmeta._
@@ -47,7 +47,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   def setFifoPredicate(ctrler:Controller) = {
     ctrler match {
       case cu:Pipeline =>
-        val lookUp = Map[Reg, FIFO]()
+        val lookUp = mutable.Map[Reg, FIFO]()
         def addPredicate(mem:FIFO, sel:Input) = {
           sel.from.src match {
             case PipeReg(stage, reg) => lookUp += reg -> mem
@@ -135,42 +135,72 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     //}
   //}
 
-  // EnqueueEnable signal in waddrser
-  def getEnqueueEnable(mem:OnChipMem, waddrser:Controller) = {
+  // EnqueueEnable signal in addrser
+  def getEnqueueEnables(mem:OnChipMem) = emitBlock(s"getEnqueueEnables($mem)") { // returns List[(Output, isLocal)]
     mem match {
-      case mem:MultiBuffer =>
-        producerOf.get((mem, waddrser)).fold{
-          waddrser match {
+      case mem:SRAM =>
+        mem.writeAddrMux.inputs.map { input =>
+          val addrser = addrserOf(mem, input)
+          val ee = addrser match {
             case top:Top => top.ctrlBox.command
-            case cu:ComputeUnit => localCChainOf(waddrser).outer.done
+            case cu:ComputeUnit => 
+              mem.topCtrlMap.get(input).fold {
+                localCChainOf(addrser).outer.done
+              } { topCtrl =>
+                addrser.asCU.getCC(localCChainOf(topCtrl)).outer.done
+              }
           }
-        } { producer =>
-          waddrser.asCU.getCC(localCChainOf(producer)).outer.done
+          (ee, addrser==mem.ctrler)
+        }
+      case mem:MultiBuffer =>
+        mem.writePortMux.inputs.map { input =>
+          val writer = collectIn[GlobalInput](input).head.from.ctrler
+          val ee = writer match {
+            case top:Top => top.ctrlBox.command
+            case cu:ComputeUnit => 
+              mem.topCtrlMap.get(input).fold {
+                localCChainOf(writer).outer.done
+              } { topCtrl =>
+                writer.asCU.getCC(localCChainOf(topCtrl)).outer.done
+              }
+          }
+          (ee, false)
         }
       case mem:FIFO =>
-        waddrser.ctrlBox match {
-          case cb:MCCtrlBox => cb.running
-          case cb:MemCtrlBox => cb.readEn.out
-          case cb:StageCtrlBox => cb.en.out
+        writersOf(mem).map { writer =>
+          val ee = writer.ctrlBox match {
+            case cb:MCCtrlBox => cb.running
+            case cb:MemCtrlBox => cb.readEn.out
+            case cb:StageCtrlBox => cb.en.out
+          }
+          (ee, false)
         }
     }
   }
 
   // DequeueEnable signal in raddrser
-  def getDequeueEnable(mem:OnChipMem, raddrser:Controller) = {
+  def getDequeueEnables(mem:OnChipMem) = {
     mem match {
-      case mem:MultiBuffer =>
-        consumerOf.get((mem, raddrser)).fold {
-          localCChainOf(raddrser).outer.done
-        } { consumer =>
-          raddrser.asCU.getCC(localCChainOf(consumer)).outer.done
+      case mem:SRAM =>
+        mem.readAddrMux.inputs.map { input =>
+          val addrser = addrserOf(mem, input)
+          val topCtrl = mem.topCtrlMap(input)
+          (addrser.asCU.getCC(localCChainOf(topCtrl)).outer.done, addrser == mem.ctrler)
         }
-      case mem:FIFO =>
-        raddrser.ctrlBox match {
+      case mem:MultiBuffer => // LocalMem
+        val de = mem.topCtrlMap.get(mem.readPort).fold {
+          localCChainOf(mem.ctrler).outer.done
+        } { topCtrl =>
+          mem.ctrler.asCU.getCC(localCChainOf(topCtrl)).outer.done
+        }
+        List((de, true))
+      case mem:FIFO => // LocalMem
+        val de = mem.ctrler.ctrlBox match {
           case cb:MemCtrlBox if forRead(mem) => cb.readEn.out
           case cb:MemCtrlBox if forWrite(mem) => cb.writeEn.out
           case cb:StageCtrlBox => cb.en.out
         }
+        List((de, true))
     }
   }
 
@@ -184,59 +214,76 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   // - read from Remote Multibuffer, dequeueable is from controlFIFO sent from reader, set to be
   //   copy of consumer's done in reader controller.
  
-  def connectGlobal(out:Output, in:Input, retime:Boolean=false):Option[FIFO] = emitBlock(s"connectGlobal($out, $in, $retime)"){
-    val writer = out.ctrler
+  def connectGlobal(out:Output, in:Input, retime:Boolean=false, forRead:Boolean=false, forWrite:Boolean=false):Unit = {
+    connectGlobals(List(out), in, retime, forRead, forWrite)
+  }
+
+  def connectGlobals(outs:Iterable[Output], in:Input, retime:Boolean=false, forRead:Boolean=false, forWrite:Boolean=false):Unit = 
+  emitBlock(s"connectGlobals($outs, $in, $retime)"){
     val reader = in.ctrler
-    val gout = writer.newOut[Control](out)
-    val bus = gout.variable
-    val gin = reader.newIn(bus)
-    gout.in.connect(out)
+    val gins = outs.map { out =>
+      val writer = out.ctrler
+      val gout = writer.newOut[Control](out)
+      val bus = gout.variable
+      val gin = reader.newIn(bus)
+      gout.in.connect(out)
+      gin
+    }
     if (retime) {
-      val fifo = reader.getRetimingFIFO(gin)
+      val head::rest = gins.toList
+      val fifo = reader.getRetimingFIFO(head)
+      rest.foreach { gin => reader.setRetimingFIFO(gin, fifo) }
       readersOf(fifo) = List(reader)
-      writersOf(fifo) = List(writer)
+      writersOf(fifo) = outs.map { _.ctrler }.toList
       in.connect(fifo.readPort)
-      Some(fifo)
+      if (forRead) pirmeta.forRead(fifo) = true
+      if (forWrite) pirmeta.forWrite(fifo) = true
+      connectWrite(fifo)
+      connectRead(fifo)
     } else {
-      in.connect(gin.out)
-      None
+      assert(gins.size==1)
+      in.connect(gins.head.out)
     }
   }
 
-  def connectWrite(mem:OnChipMem, waddrser:Controller):Unit = emitBlock(s"connectWrite($mem, $waddrser)"){
-    val enqueueEnable = getEnqueueEnable(mem, waddrser)
+  def connectWrite(mem:OnChipMem):Unit = emitBlock(s"connectWrite($mem)"){
+    val enqueueEnables = getEnqueueEnables(mem)
     mem match {
       case mem:SRAM => // Route through control network
-        val fifo = connectGlobal(enqueueEnable, mem.enqueueEnable, retime=true).get
-        forWrite(fifo) = true
-        connectWrite(fifo, waddrser)
-        connectRead(fifo, mem.ctrler)
+        val (locals, remotes) = enqueueEnables.partition { case (_, local) => local }
+        if (remotes.nonEmpty) {
+          connectGlobals(enqueueEnables.map(_._1), mem.enqueueEnable, retime=true, forWrite=true)
+        }
+        if (locals.nonEmpty) {
+          assert(locals.size==1, s"More than one local enqueueEnable! TODO: add support for this")
+          mem.enqueueEnable.connect(locals.head._1)
+        }
       case mem => // FIFO, Scalar/Control MultiBuffer: Route alone data path
         collectIn[GlobalInput](mem.writePortMux).map{ in =>
           val out = in.from
-          out.valid.connect(enqueueEnable)
+          val ee = enqueueEnables.map(_._1).filter { _.ctrler == out.ctrler }.head
+          out.valid.connect(ee)
         }
         mem.enqueueEnable.connect(mem.writePortMux.valid)
     }
   }
 
-  def connectRead(mem:OnChipMem, raddrser:Controller):Unit = emitBlock(s"connectRead($mem, $raddrser)"){
-    val dequeueEnable = getDequeueEnable(mem, raddrser)
-    mem match {
-      case mem:RemoteMem => // Route through control network
-        val fifo = connectGlobal(dequeueEnable, mem.dequeueEnable, retime=true).get
-        forRead(fifo) = true
-        connectWrite(fifo, raddrser)
-        connectRead(fifo, mem.ctrler)
-      case mem:LocalMem => // Locally connected
-        mem.dequeueEnable.connect(dequeueEnable)
+  def connectRead(mem:OnChipMem):Unit = emitBlock(s"connectRead($mem)"){
+    val dequeueEnables = getDequeueEnables(mem)
+    val (locals, remotes) = dequeueEnables.partition { case (_, local) => local }
+    if (remotes.nonEmpty) { // Route through control network
+      connectGlobals(dequeueEnables.map(_._1), mem.dequeueEnable, retime=true, forRead=true)
+    }
+    if (locals.nonEmpty) { // Locally connected
+      assert(locals.size==1, s"More than one local dequeueEnable! TODO: add support for this")
+      mem.dequeueEnable.connect(locals.head._1)
     }
   }
 
   def connectMemoryControl(ctrler:Controller) = emitBlock(s"connectMemoryControl($ctrler)"){
     ctrler.mems.foreach { mem =>
-      waddrserOf(mem).foreach { waddrser => connectWrite(mem, waddrser) }
-      raddrserOf(mem).foreach { raddrser => connectRead(mem, raddrser) }
+      connectWrite(mem)
+      connectRead(mem)
     }
   }
 
@@ -251,7 +298,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
       }
       val hcb = head.ctrlBox.asInstanceOf[StageCtrlBox]
       val tk = hcb.tokenBuffer(ctrler)
-      connectGlobal(enOut, tk.inc)
+      connectGlobal(enOut, tk.inc, retime=false)
       tk.dec.connect(hcb.done.out)
       hcb.siblingAndTree.addInput(tk.out)
     }
@@ -444,7 +491,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   }
 
   def chainCChain(cchains:List[CounterChain]) = {
-    val chained = ListBuffer[CounterChain]()
+    val chained = mutable.ListBuffer[CounterChain]()
     cchains.zipWithIndex.foreach { case (cc, i) =>
       if (i!=0) {
         cc.inner.en.connect(cchains(i-1).outer.done)
@@ -455,10 +502,10 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
   def connectEnable(ctrler:Controller) = emitBlock(s"connectEnable($ctrler)"){
     (ctrler, ctrler.ctrlBox) match {
       case (ctrler:MemoryPipeline, cb:MemCtrlBox) =>
-        //readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
-        //writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEn.out) }
-        //chainCChain(readCChainsOf(ctrler))
-        //chainCChain(writeCChainsOf(ctrler))
+        readCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.readEn.out) }
+        writeCChainsOf(ctrler).headOption.foreach { _.inner.en.connect(cb.writeEn.out) }
+        chainCChain(readCChainsOf(ctrler))
+        chainCChain(writeCChainsOf(ctrler))
       case (ctlrer:MemoryController, cb) =>
       case (ctrler:ComputeUnit, cb:StageCtrlBox) if isHeadSplitter(ctrler) | isTailCollector(ctrler) =>
         localCChainOf(ctrler).inner.en.connect(cb.en.out)

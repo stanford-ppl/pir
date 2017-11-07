@@ -13,32 +13,28 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"AccessAnalyzer.log")
 
-  def setRaddrser(mem:OnChipMem) = raddrserOf.getOrElseUpdate(mem) { 
+  def setAddrser(mem:OnChipMem):Unit = {
     mem match {
       case mem:SRAM =>
-        emitBlock(s"setRaddrser($mem)") {
-          val res = (collectIn[GlobalInput](mem.readAddr).map(in => in.from.ctrler)).toList
-          if (res.isEmpty) {
-            err(s"${mem.ctrler}.$mem does not have raddrser!")
-          }
-          res
+        mem.readAddrMux.inputs.foreach { input =>
+          setAddrser(mem, input)
         }
-      case _ =>
-        readersOf(mem)
+        mem.writeAddrMux.inputs.foreach { input =>
+          setAddrser(mem, input)
+        }
+      case _ => 
     }
   }
 
-  def setWaddrser(mem:OnChipMem) = waddrserOf.getOrElseUpdate(mem) { 
-    emitBlock(s"setWaddrser($mem)") {
-      mem match {
-        case mem:SRAM =>
-          val res = (collectIn[GlobalInput](mem.writeAddr).map(in => in.from.ctrler)).toList
-          if (res.isEmpty) {
-            err(s"${mem.ctrler}.$mem does not have waddrser!")
-          }
-          res
-        case _ =>
-          writersOf(mem)
+  def setAddrser(mem:OnChipMem, addr:Input):Unit = addrserOf.getOrElseUpdate((mem, addr)) { 
+    emitBlock(s"setAddrser($mem, $addr)") {
+      val res = (collectIn[GlobalInput](addr).map(in => in.from.ctrler)).toList
+      if (res.isEmpty) {
+        val ctrs = (collectIn[Counter](addr))
+        if (ctrs.nonEmpty) mem.ctrler
+        else throw PIRException(s"$mem doesn't have addresser addr=$addr")
+      } else {
+        res.head
       }
     }
   }
@@ -93,9 +89,8 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   def setAccess(mem:OnChipMem):Unit = {
     setWriter(mem)
     setReader(mem)
-    setWaddrser(mem)
-    setRaddrser(mem)
-    resolveCopy(mem)
+    setAddrser(mem)
+    //resolveCopy(mem)
   }
 
   def setAccess:Unit = {

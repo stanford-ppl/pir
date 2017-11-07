@@ -65,7 +65,10 @@ package object util {
         case Some(prevParent:ComputeUnit) => 
           prevParent
         case Some(top) =>
-          var info = s"fillChain: ${cchains}\n"
+          var info = s"fillChain:\n"
+          cchains.foreach { cc =>
+            info += s"$cc (${cc.original.ctrler})\n"
+          }
           info += s"prev=$prev cchain.original=$prevOrig\n"
           info += s"original.ctrler=${prevOrig.ctrler}'s parent is Top! curr=${cc} in ${cc.ctrler}" 
           throw new Exception(info)

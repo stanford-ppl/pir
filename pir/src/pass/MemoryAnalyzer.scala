@@ -161,19 +161,48 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     cchain
   }
 
-  def copySwapCC(mem:OnChipMem, access:ComputeUnit, topCtrler:Controller):Unit = {
+  def copySwapCC(access:ComputeUnit, topCtrler:Controller, forRead:Boolean=false, forWrite:Boolean=false):Unit = {
     access.getCopy(localCChainOf(topCtrler)).foreach { cc =>
-      val (_, newCC) = fillChain(access, sortCChains(access.cchains))
-      (cc :: newCC).foreach(analyzeNewCC)
+      if (forRead) pirmeta.forRead(cc) = true
+      if (forWrite) pirmeta.forWrite(cc) = true
+      val (readCCs, rest) = access.cchains.partition { cc => pirmeta.forRead(cc) }
+      val (writeCCs, localCCs) = rest.partition { cc => pirmeta.forWrite(cc) }
+      dprintln(s"topCtrler=$topCtrler")
+      dprintln(s"readCCs=${readCCs.map { cc => (cc, cc.original.ctrler) }}")
+      dprintln(s"writeCCs=${writeCCs.map { cc => (cc, cc.original.ctrler)} }")
+      dprintln(s"localCCs=${localCCs.map { cc => (cc, cc.original.ctrler)} }")
+      var newCCs = fillChain(access, sortCChains(readCCs))._2
+      newCCs ++= fillChain(access, sortCChains(writeCCs))._2
+      newCCs ++= fillChain(access, sortCChains(localCCs))._2
+      (cc :: newCCs).foreach(analyzeNewCC)
     }
   }
 
   def copySwapCC(mem:OnChipMem):Unit = {
-    waddrserOf(mem).foreach { waddrser =>
-      producerOf.get((mem, waddrser)).foreach { producer => copySwapCC(mem, waddrser.asCU, producer) }
-    }
-    raddrserOf(mem).foreach { raddrser =>
-      consumerOf.get((mem, raddrser)).foreach { consumer => copySwapCC(mem, raddrser.asCU, consumer) }
+    mem match {
+      case mem:SRAM =>
+        (mem.writeAddrMux.inputs).foreach { input =>
+          val addrser = addrserOf(mem, input)
+          mem.topCtrlMap.get(input).foreach { topCtrl =>
+            copySwapCC(addrser.asCU, topCtrl, forWrite=true)
+          }
+        }
+        (mem.readAddrMux.inputs).foreach { input =>
+          val addrser = addrserOf(mem, input)
+          mem.topCtrlMap.get(input).foreach { topCtrl =>
+            copySwapCC(addrser.asCU, topCtrl, forRead=true)
+          }
+        }
+      case mem:LocalMem =>
+        mem.writePortMux.inputs.foreach { input =>
+          val writer = collectIn[GlobalInput](input).head.from.ctrler
+          mem.topCtrlMap.get(input).foreach { topCtrl =>
+            copySwapCC(writer.asCU, topCtrl)
+          }
+        }
+        mem.topCtrlMap.get(mem.readPort).foreach { topCtrl =>
+          copySwapCC(mem.ctrler.asCU, topCtrl)
+        }
     }
   }
 
@@ -310,10 +339,10 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   addPass(canRun=design.controlAnalyzer.hasRun(0)) {
     design.top.memCUs.foreach { cu =>
-      copySwapCC(cu) // use producerOf, consumerOf, make copy of CounterChains
       markStageOperands(cu)
       markCChain(cu)
       markLocalMem(cu)
+      copySwapCC(cu) // use producerOf, consumerOf, make copy of CounterChains
 
       emitBlock(s"$cu") {
         cu.stages.foreach { st =>
@@ -338,7 +367,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     design.top.compUnits.foreach { cu =>
       //setSwapCC(cu) // use readCChainOf, writeCChainOf, localCChainOf, set swapReadCChainOf, swapWriteCChainOf
       //copySwapCC(cu) // use swapReadCChainOf, swapWriteCChainOf, set forRead, forWrite
-      //analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
+      analyzeAddrCalc(cu) // use forRead, forWrite, set readCChainsOf, writeCChainsOf, compCChainsOf
       markLocalMem(cu) // set forRead, forWrite
       //duplicateCChain(cu) // use forRead, forWrite, readCChainOf, set forRead, forWrite
       setPar(cu) // use forRead, forWrite, set parOf, rparOf, wparOf

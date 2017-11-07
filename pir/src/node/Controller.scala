@@ -88,7 +88,7 @@ abstract class Controller(implicit design:PIR) extends Module {
   def writtenFIFOs:List[FIFO] = writtenMems.collect { case fifo:FIFO => fifo }
   def writtenSFIFOs:List[ScalarFIFO] = writtenFIFOs.collect { case fifo:ScalarFIFO => fifo }
 
-  val retiming:Map[GlobalInput, FIFO] = Map.empty
+  val retiming:Map[GlobalInput, FIFO] = Map.empty // Many to one
   def getRetimingFIFO(gin:GlobalInput):FIFO = {
     retiming.getOrElseUpdate(gin, {
       val fifo = gin.variable match {
@@ -97,7 +97,7 @@ abstract class Controller(implicit design:PIR) extends Module {
         case v:Control => ControlFIFO(size = 10)
       }
       backPressureOf(fifo) = true
-      fifo.wtPort(gin)
+      fifo.writePort(gin)
       mems(List(fifo))
       fifo
     })
@@ -105,6 +105,11 @@ abstract class Controller(implicit design:PIR) extends Module {
   def getRetimingFIFO(variable:Variable):FIFO = {
     val gin = newIn(variable)
     getRetimingFIFO(gin)
+  }
+  def setRetimingFIFO(gin:GlobalInput, fifo:FIFO):FIFO = {
+    retiming += gin -> fifo 
+    fifo.writePort(gin)
+    fifo
   }
   val scalarBuf:Map[Variable, ScalarBuffer] = Map.empty
   def getScalarBuffer(scalar:Scalar):ScalarBuffer = {
@@ -128,7 +133,7 @@ abstract class Controller(implicit design:PIR) extends Module {
   def parent[T](parent:T):this.type = {
     parent match {
       case p:String =>
-        design.updateLater { this.parent(nameOf.find[Controller](p)) }
+        design.lazyUpdate { this.parent(nameOf.find[Controller](p)) }
       case p:Controller =>
         _parent = Some(p)
         p.addChildren(this)

@@ -174,7 +174,7 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
         if (stage==stages.last) {
           val pr = stage.get(reg)
           reg match { 
-            case StorePR(sram) => sram.wtPort(pr.out)
+            case StorePR(mem) => mem.writePort(pr.out)
             case VecOutPR(vecOut) => vecOut.in.connect(pr.out)
             case ScalarOutPR(scalarOut) => scalarOut.in.connect(pr.out)
             case reg => throw PIRException(s"Unknown live out variable ${reg} in last stage ${stage}!")
