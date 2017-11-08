@@ -142,7 +142,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     passes += simulator
 
     // Statistics
-    passes += contentionAnalyzer
+    //passes += contentionAnalyzer
     //passes += latencyAnalyzer
     passes += resourceAnalyzer
     passes += powerAnalyzer 

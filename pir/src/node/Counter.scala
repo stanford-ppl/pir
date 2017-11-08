@@ -150,7 +150,6 @@ object CounterChain {
   }
   def clone(from:CounterChain, logger:Option[Logger])(implicit ctrler:ComputeUnit, design: PIR):CounterChain = {
     val cc = CounterChain(None)
-    from.name.foreach { name => cc.name(name) }
     cc.clone(from, logger)
     cc
   }
@@ -224,15 +223,7 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
           val sb = ctrler.smems.filter { smem =>
             collectIn[GlobalInput](smem.writePort).map{_.variable} == vars 
           }.headOption.getOrElse {
-            val sb = ScalarBuffer()(ctrler, design)
-            sb.copy = Some(s)
-            logger.foreach { _.dprintln(s"creating new $sb for $p") }
-            vars.foreach { v => 
-              val data = sb.writePort(v)
-              s.topCtrlMap.get(data).foreach { topCtrl => sb.setTopCtrl(data, None, topCtrl) }
-            }
-            ctrler.mems(List(sb))
-            sb
+            ScalarBuffer.clone(s, logger)
           }
           //val smem = design.scalMemInsertion.insertScalarMem(sin)
           sb.load
@@ -243,6 +234,7 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
     max.connect(copyOutput(c.max.from))
     step.connect(copyOutput(c.step.from))
     par = c.par
+    pirmeta.mirror(c, this)
   } 
 }
 object Counter {

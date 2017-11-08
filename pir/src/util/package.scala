@@ -48,6 +48,8 @@ package object util {
     res
   }
 
+  // Fill in gap between counter chains based on controller hiearchy. Assuming cchains are from
+  // inner most to outer most
   def fillChain(cu:ComputeUnit, cchains:List[CounterChain])(implicit design:PIR, logger:Logger) = logger.emitBlock(s"fillChain"){
     val pirmeta:PIRMetadata = design 
     import pirmeta._
@@ -98,6 +100,7 @@ package object util {
     (chained.toList, newChains.toList)
   }
 
+  // sort counter chains from inner most to outer most
   def sortCChains(cchains:List[CounterChain])(implicit logger:Logger):List[CounterChain] = {
     import logger._
     val ancSize = cchains.map { _.original.ctrler.ancestors.size }

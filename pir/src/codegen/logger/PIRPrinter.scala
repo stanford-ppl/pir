@@ -162,14 +162,8 @@ object PIRPrinter {
         fields += s"in=${p.in.from}, out=[${p.out.to.mkString}]"
       case p:GlobalInput =>
         fields += s"variable=${p.variable}, writer=${p.variable.writer}"
-        vecOf.get(p).foreach { vecIn =>
-          fields += s"vecIn=${vecIn}"
-        }
       case p:GlobalOutput =>
         fields += s"variable=${p.variable}, readers=[${p.variable.readers.mkString(",")}]"
-        vecOf.get(p).foreach { vecOut =>
-          fields += s"vecOut=${vecOut}"
-        }
       case p:UpDownCounter => 
         fields += s"init=${p.initVal}"
       case r:Const[_] => fields += s"${r.value}"

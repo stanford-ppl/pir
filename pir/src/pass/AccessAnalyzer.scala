@@ -7,6 +7,8 @@ import pir.util._
 import pirc._
 import pirc.util._
 
+import scala.collection.mutable
+
 class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
   def shouldRun = true 
   import pirmeta._
@@ -15,27 +17,32 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   def setAddrser(mem:OnChipMem):Unit = {
     mem match {
-      case mem:SRAM =>
-        mem.readAddrMux.inputs.foreach { input =>
-          setAddrser(mem, input)
-        }
-        mem.writeAddrMux.inputs.foreach { input =>
-          setAddrser(mem, input)
-        }
+      case mem:SRAM => setAddrser(mem)
       case _ => 
     }
   }
 
-  def setAddrser(mem:OnChipMem, addr:Input):Unit = addrserOf.getOrElseUpdate((mem, addr)) { 
-    emitBlock(s"setAddrser($mem, $addr)") {
-      val res = (collectIn[GlobalInput](addr).map(in => in.from.ctrler)).toList
-      if (res.isEmpty) {
-        val ctrs = (collectIn[Counter](addr))
-        if (ctrs.nonEmpty) mem.ctrler
-        else throw PIRException(s"$mem doesn't have addresser addr=$addr")
-      } else {
-        res.head
+  def setAddrser(mem:SRAM):Unit = addrserOf.getOrElseUpdate(mem) { 
+    emitBlock(s"setAddrser($mem)") {
+      val map = mutable.Map[IO, Controller]()
+      def setAddrser(addr:IO) = {
+        val addrsers = (collectIn[GlobalInput](addr).map(in => in.from.ctrler)).toList
+        val addrser = if (addrsers.isEmpty) {
+          val ctrs = (collectIn[Counter](addr))
+          if (ctrs.nonEmpty) mem.ctrler
+          else throw PIRException(s"$mem doesn't have addresser addr=$addr")
+        } else {
+          addrsers.head
+        }
+        map += addr -> addrser
       }
+      mem.readAddrMux.inputs.foreach { input =>
+        setAddrser(input)
+      }
+      mem.writeAddrMux.inputs.foreach { input =>
+        setAddrser(input)
+      }
+      map.toMap
     }
   }
 
@@ -70,27 +77,10 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
     }
   }
 
-  def resolveCopy(mem:OnChipMem) {
-    mem.copy.foreach { orig =>
-      mem.writers.foreach { writer =>
-        producerOf.get((orig, writer)).foreach { producer =>
-          producerOf((mem, writer)) = producer
-        }
-      }
-      mem.readers.foreach { reader =>
-        consumerOf.get((orig, reader)).foreach { consumer =>
-          // Assume only localMem can be copy
-          consumerOf((mem, mem.ctrler)) = consumer
-        }
-      }
-    }
-  }
-
   def setAccess(mem:OnChipMem):Unit = {
     setWriter(mem)
     setReader(mem)
     setAddrser(mem)
-    //resolveCopy(mem)
   }
 
   def setAccess:Unit = {

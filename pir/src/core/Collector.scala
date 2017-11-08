@@ -4,7 +4,7 @@ import pir.node._
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.Stack
-
+import scala.util.DynamicVariable
 trait Collector { design:PIR =>
 
   private var nextSym = 0
@@ -12,7 +12,7 @@ trait Collector { design:PIR =>
 
   //TODO use collect to implement this
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
-  val toUpdate = ListBuffer[(() => Unit)]()
+  val toUpdate = ListBuffer[(() => Unit, String)]()
   val allNodes = ListBuffer[Node]()
 
   def reset = {
@@ -181,6 +181,10 @@ trait Collector { design:PIR =>
     (l1, l2, l3, l4, l5, l6)
   }
 
-  def lazyUpdate(f: => Unit):Unit = { toUpdate += f _ }
+  val caller = new DynamicVariable[String]("---")
+  def lazyUpdate(f: => Unit):Unit = caller.withValue(this.getClass.getName) { 
+    toUpdate += ((f _, caller.value))
+  }
 
 }
+

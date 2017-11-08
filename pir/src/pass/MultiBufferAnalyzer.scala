@@ -134,16 +134,18 @@ class MultiBufferAnalyzer(implicit design: PIR) extends Pass with Logger {
     //}
   //}
   
-  def setBackPressure = {
-    design.top.ctrlers.foreach { cu =>
-      emitBlock(s"$cu") {
-        cu.mbuffers.foreach { buf =>
-          backPressureOf(buf) = buf.buffering > 1
-        }
-        cu.fifos.foreach { fifo =>
-          backPressureOf(fifo) = true
-        }
+  def setBackPressure(mem:OnChipMem):Unit = backPressureOf.getOrElseUpdate(mem) {
+    emitBlock(s"backPressureOf($mem)") {
+      mem match {
+        case mem:MultiBuffer => mem.buffering > 1
+        case mem:FIFO => true
       }
+    }
+  }
+
+  def setBackPressure:Unit = {
+    design.top.ctrlers.foreach { cu =>
+      cu.mems.foreach(setBackPressure)
     }
   }
 

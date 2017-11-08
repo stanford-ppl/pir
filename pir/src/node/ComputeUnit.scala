@@ -46,9 +46,7 @@ abstract class ComputeUnit(implicit design: PIR) extends Controller with Registe
   }
 
   def cloneCC(cchain:CounterChain, logger:Option[Logger]):CounterChain = {
-    val clone = CounterChain.clone(cchain.original, logger)
-    assert(cchainMap.contains(clone.original)) // clone's original should be it self
-    clone
+    CounterChain.clone(cchain.original, logger)
   }
 
   def containsCopy(cchain:CounterChain):Boolean = {

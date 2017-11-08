@@ -21,13 +21,13 @@ class ForwardRef(implicit design: PIR) extends Pass with Logger {
     nameOf.map.foreach { case (name, node) =>
       dprintln(s"  $name - $node")
     }
-    design.toUpdate.foreach { f =>
+    design.toUpdate.foreach { case (f, caller) =>
       try {
         f()
       } catch {
         case e:java.util.NoSuchElementException => 
           dprintln(s"$e")
-          warn(e)
+          warn(s"caller=$caller $e")
         case e:Throwable => throw e
       }
     }

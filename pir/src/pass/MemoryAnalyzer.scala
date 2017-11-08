@@ -182,13 +182,13 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     mem match {
       case mem:SRAM =>
         (mem.writeAddrMux.inputs).foreach { input =>
-          val addrser = addrserOf(mem, input)
+          val addrser = addrserOf(mem)(input)
           mem.topCtrlMap.get(input).foreach { topCtrl =>
             copySwapCC(addrser.asCU, topCtrl, forWrite=true)
           }
         }
         (mem.readAddrMux.inputs).foreach { input =>
-          val addrser = addrserOf(mem, input)
+          val addrser = addrserOf(mem)(input)
           mem.topCtrlMap.get(input).foreach { topCtrl =>
             copySwapCC(addrser.asCU, topCtrl, forRead=true)
           }

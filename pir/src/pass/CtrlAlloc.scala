@@ -140,12 +140,15 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     mem match {
       case mem:SRAM =>
         mem.writeAddrMux.inputs.map { input =>
-          val addrser = addrserOf(mem, input)
+          val addrser = addrserOf(mem)(input)
           val ee = addrser match {
             case top:Top => top.ctrlBox.command
             case cu:ComputeUnit => 
               mem.topCtrlMap.get(input).fold {
-                localCChainOf(addrser).outer.done
+                addrser match {
+                  case addrser:MemoryPipeline => writeCChainsOf(addrser).last.outer.done
+                  case addrser => localCChainOf(addrser).outer.done
+                }
               } { topCtrl =>
                 addrser.asCU.getCC(localCChainOf(topCtrl)).outer.done
               }
@@ -183,9 +186,16 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
     mem match {
       case mem:SRAM =>
         mem.readAddrMux.inputs.map { input =>
-          val addrser = addrserOf(mem, input)
-          val topCtrl = mem.topCtrlMap(input)
-          (addrser.asCU.getCC(localCChainOf(topCtrl)).outer.done, addrser == mem.ctrler)
+          val addrser = addrserOf(mem)(input)
+          val de = mem.topCtrlMap.get(input).fold {
+            addrser match {
+              case addrser:MemoryPipeline => readCChainsOf(addrser).last.outer.done
+              case addrser => localCChainOf(addrser).outer.done
+            }
+          } { topCtrl =>
+            addrser.asCU.getCC(localCChainOf(topCtrl)).outer.done
+          }
+          (de, addrser == mem.ctrler)
         }
       case mem:MultiBuffer => // LocalMem
         val de = mem.topCtrlMap.get(mem.readPort).fold {

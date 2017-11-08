@@ -1,6 +1,7 @@
 package pir.node
 
 import pir._
+import pir.util._
 
 import pirc._
 import pirc.enums._
@@ -15,7 +16,6 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
 
   val size:Int
   val banking:Banking
-  var copy:Option[OnChipMem] = None
 
   val readPort: Output = Output(this, s"${this}.rp") 
   val writePort: Input = Input(this, s"${this}.wp")
@@ -56,12 +56,12 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   // - with addr: addr -> Controller (a single data but multiple Controller)
   // - without addr: data -> Controller
 
-  def setTopCtrl(data:IO, addr:Option[IO], topCtrl:Any):Unit = {
-    topCtrl match { 
+  def setTopCtrl(data:IO, addr:Option[IO], topCtrl:Option[Any]):Unit = {
+    topCtrl.foreach {
       case name:String =>
         design.lazyUpdate { 
           val topCtrl = nameOf.find[Controller](name)
-          setTopCtrl(data, addr, topCtrl)
+          setTopCtrl(data, addr, Some(topCtrl))
         }
       case topCtrl:Controller =>
         topCtrlMap += data -> topCtrl
@@ -76,7 +76,7 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
       addrMap += raddr -> rdata
       addrMap += rdata -> raddr
     }
-    topCtrl.foreach{ topCtrl => setTopCtrl(rdata, raddr, topCtrl) }
+    setTopCtrl(rdata, raddr, topCtrl)
     this
   }
 
@@ -87,7 +87,7 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
       addrMap += waddr -> wdata
       addrMap += wdata -> waddr
     }
-    topCtrl.foreach{ topCtrl => setTopCtrl(wdata, waddr, topCtrl) }
+    setTopCtrl(wdata, waddr, topCtrl)
     this
   }
 
@@ -194,6 +194,20 @@ case class ScalarBuffer()(implicit ctrler:Controller, design: PIR)
 object ScalarBuffer {
   def apply(name:String)(implicit ctrler:Controller, design: PIR):ScalarBuffer
     = ScalarBuffer().name(name)
+  def clone(orig:ScalarBuffer, logger:Option[Logger] = None)(implicit ctrler:Controller, design: PIR) = {
+    val sb = new ScalarBuffer()
+    logger.foreach { _.dprintln(s"creating clone $sb of $orig in $ctrler") }
+    //TODO: make this metadata mirroring
+    orig.writePortMux.inputs.foreach { input =>
+      val v = collectIn[GlobalInput](input).map(_.variable).head
+      val data = sb.writePort(v)
+      sb.setTopCtrl(data, None, orig.topCtrlMap.get(data))
+    }
+    sb.setTopCtrl(sb.readPort, None, orig.topCtrlMap.get(sb.readPort))
+    ctrler.mems(List(sb))
+    design.pirmeta.mirror(orig, sb)
+    sb
+  }
 }
 
 class ScalarFIFO(val size: Int)(implicit ctrler:Controller, design: PIR) 
