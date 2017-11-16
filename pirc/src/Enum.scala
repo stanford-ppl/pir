@@ -34,6 +34,10 @@ package object enums extends Ops {
   case object TileStore extends MCType 
   case object Scatter extends MCType 
   case object Gather extends MCType 
+
+  sealed trait MemMode
+  case object SramMode extends MemMode
+  case object FifoMode extends MemMode
   
   sealed trait Banking
   case class Strided(stride:Int, banks:Int) extends Banking

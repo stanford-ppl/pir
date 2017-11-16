@@ -152,7 +152,7 @@ trait PIR extends Design with PIRMetadata with Collector {
 
     if (PIRConfig.openDot) {
       pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
-      plasticineDotPrinters.foreach (_.open)
+      plasticineDotPrinters.filter{_.hasRun}.foreach (_.open)
     }
   }
 

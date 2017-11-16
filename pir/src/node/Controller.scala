@@ -92,9 +92,9 @@ abstract class Controller(implicit design:PIR) extends Module {
   def getRetimingFIFO(gin:GlobalInput):FIFO = {
     retiming.getOrElseUpdate(gin, {
       val fifo = gin.variable match {
-        case v:Vector => VectorFIFO(size = 10)
-        case v:Scalar => ScalarFIFO(size = 10)
-        case v:Control => ControlFIFO(size = 10)
+        case v:Vector => new VectorFIFO().size(10)
+        case v:Scalar => new ScalarFIFO().size(10)
+        case v:Control => new ControlFIFO().size(10)
       }
       backPressureOf(fifo) = true
       fifo.writePort(gin)

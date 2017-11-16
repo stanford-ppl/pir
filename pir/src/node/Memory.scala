@@ -14,8 +14,10 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   import pirmeta._
   ctrler.mems(List(this))
 
-  val size:Int
-  val banking:Banking
+  var size:Int = 1
+  def size(s:Int):this.type = { size = s; this }
+  var banking:Banking = NoBanking()
+  def banking(b:Banking):this.type = { banking = b; this }
 
   val readPort: Output = Output(this, s"${this}.rp") 
   val writePort: Input = Input(this, s"${this}.wp")
@@ -118,9 +120,7 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
 }
 
 trait MultiBuffer extends OnChipMem {}
-trait FIFO extends OnChipMem {
-  val banking = NoBanking()
-}
+trait FIFO extends OnChipMem
 trait LocalMem extends OnChipMem {
   def reader:Controller = {
     val readers = super.readers
@@ -129,16 +129,13 @@ trait LocalMem extends OnChipMem {
   }
 }
 trait RemoteMem extends OnChipMem
-
 trait VectorMem extends OnChipMem
-
 /** SRAM 
  *  @param name: user defined optional name of SRAM 
  *  @param size: size of each bank 
- *  @param banking: Banking mode of SRAM
  *  calculate write address?
  */
-case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryPipeline, design: PIR) 
+class SRAM()(implicit override val ctrler:MemoryPipeline, design: PIR) 
   extends VectorMem with RemoteMem with MultiBuffer {
   override val typeStr = "SRAM"
   def banks = banking match {
@@ -147,6 +144,11 @@ case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryP
     case NoBanking() => 1
     case Duplicated() => throw PIRException(s"Shouldn't matching Duplicated. No support in pirgen yet")
   }
+
+  var _mode:MemMode = SramMode
+  def mode = _mode
+  def mode(m:MemMode):this.type = { _mode = m; this}
+
   val readAddr: Input = Input(this, s"${this}.ra")
   override def readAddr(addr:Any):Input = { 
     addr match {
@@ -168,32 +170,30 @@ case class SRAM(size: Int, banking:Banking)(implicit override val ctrler:MemoryP
   val writeAddrMux = ValidMux().name(s"$this.waMux")
   writeAddr.connect(writeAddrMux.out)
 }
-
 object SRAM {
-  def apply(name:String, size:Int, banking:Banking)(implicit ctrler:MemoryPipeline, design: PIR): SRAM
-    = SRAM(size, banking).name(name)
+  def apply(size:Int, name:String, banking:Banking)(implicit ctrler:MemoryPipeline, design: PIR):SRAM = {
+    new SRAM().size(size).name(name).banking(banking)
+  }
 }
 
-case class VectorFIFO(size: Int)(implicit ctrler:Controller, design: PIR) 
+class VectorFIFO()(implicit ctrler:Controller, design: PIR) 
   extends VectorMem with FIFO with LocalMem {
   override val typeStr = "FIFO"
 }
 object VectorFIFO {
   def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): VectorFIFO
-    = new VectorFIFO(size).name(name)
+    = new VectorFIFO().size(size).name(name)
 }
 
 trait ScalarMem extends OnChipMem with LocalMem
 
-case class ScalarBuffer()(implicit ctrler:Controller, design: PIR) 
+class ScalarBuffer()(implicit ctrler:Controller, design: PIR) 
   extends ScalarMem with MultiBuffer {
   override val typeStr = "ScalBuf"
-  override val size = 1
-  override val banking = NoBanking()
 }
 object ScalarBuffer {
   def apply(name:String)(implicit ctrler:Controller, design: PIR):ScalarBuffer
-    = ScalarBuffer().name(name)
+    = new ScalarBuffer().name(name)
   def clone(orig:ScalarBuffer, logger:Option[Logger] = None)(implicit ctrler:Controller, design: PIR) = {
     val sb = new ScalarBuffer()
     logger.foreach { _.dprintln(s"creating clone $sb of $orig in $ctrler") }
@@ -210,27 +210,27 @@ object ScalarBuffer {
   }
 }
 
-class ScalarFIFO(val size: Int)(implicit ctrler:Controller, design: PIR) 
+class ScalarFIFO()(implicit ctrler:Controller, design: PIR) 
   extends ScalarMem with FIFO {
   override val typeStr = "ScalarFIFO"
 }
 object ScalarFIFO {
   def apply(size:Int)(implicit ctrler:Controller, design: PIR): ScalarFIFO
-    = new ScalarFIFO(size)
+    = new ScalarFIFO().size(size)
   def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): ScalarFIFO
-    = new ScalarFIFO(size).name(name)
+    = new ScalarFIFO().name(name).size(size)
 }
 
 trait ControlMem extends OnChipMem with LocalMem
 
-class ControlFIFO(val size: Int)(implicit ctrler:Controller, design: PIR) 
+class ControlFIFO()(implicit ctrler:Controller, design: PIR) 
   extends ControlMem with FIFO {
   override val typeStr = "ControlFIFO"
 }
 object ControlFIFO {
   def apply(size:Int)(implicit ctrler:Controller, design: PIR): ControlFIFO
-    = new ControlFIFO(size)
+    = new ControlFIFO().size(size)
   def apply(name:String, size:Int)(implicit ctrler:Controller, design: PIR): ControlFIFO
-    = new ControlFIFO(size).name(name)
+    = new ControlFIFO().name(name).size(size)
 }
 

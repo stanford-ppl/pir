@@ -29,7 +29,8 @@ class ConfigMapper(implicit val design: PIR) extends Mapper with HiearchicalTrav
       notFullOffset = 0,
       backPressure = backPressureOf(m),
       banking = m.banking,
-      size = m.size
+      size = m.size,
+      mode = m.mode
     )
     mp.setCF(pm, cfg)
   }
@@ -163,7 +164,7 @@ class ConfigMapper(implicit val design: PIR) extends Mapper with HiearchicalTrav
     val bounds = cu.souts.flatMap { sout => mp.vomap(sout).map { _ -> boundOf.get(sout.variable) } }
     dprintln(s"bounds of $cu:")
     dprintln(s"- ${bounds}")
-    mp = mp.setCF(pcu, new TopConfig(name=s"$cu", bounds.toMap))
+    mp = mp.setCF(pcu, new TopConfig(name=s"$design".replace(s"$$", ""), bounds.toMap))
     mp
   }
 
