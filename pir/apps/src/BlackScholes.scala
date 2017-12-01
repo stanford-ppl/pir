@@ -237,7 +237,7 @@ object BlackScholes extends PIRApp {
         .name("x7541")
         .buffering(1)
         .store(N_argin, None, None)
-      val ctr1 = Counter(min=Const(0), max=x7541.readPort, step=Const(2000), par=2) // Counter
+      val ctr1 = Counter(min=Const(0), max=x7541, step=Const(2000), par=2) // Counter
       val x7566 = CounterChain(name = "x7566", ctr1).iter(2499)
     }
     val x7567_dsp0_bank0 = MemoryPipeline(name="x7567_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -253,7 +253,7 @@ object BlackScholes extends PIRApp {
         .name("x7567")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7600.readPort, Some(x7596(0)), Some("x7602"))
+        .store(x7600, Some(x7596(0)), Some("x7602"))
         .load(x7567_x7567_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7568_dsp0_bank0 = MemoryPipeline(name="x7568_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -269,7 +269,7 @@ object BlackScholes extends PIRApp {
         .name("x7568")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7722.readPort, Some(x7718(0)), Some("x7724"))
+        .store(x7722, Some(x7718(0)), Some("x7724"))
         .load(x7568_x7568_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7569_dsp0_bank0 = MemoryPipeline(name="x7569_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -285,7 +285,7 @@ object BlackScholes extends PIRApp {
         .name("x7569")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7620.readPort, Some(x7616(0)), Some("x7622"))
+        .store(x7620, Some(x7616(0)), Some("x7622"))
         .load(x7569_x7569_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7570_dsp0_bank0 = MemoryPipeline(name="x7570_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -301,7 +301,7 @@ object BlackScholes extends PIRApp {
         .name("x7570")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7742.readPort, Some(x7738(0)), Some("x7744"))
+        .store(x7742, Some(x7738(0)), Some("x7744"))
         .load(x7570_x7570_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7571_dsp0_bank0 = MemoryPipeline(name="x7571_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -317,7 +317,7 @@ object BlackScholes extends PIRApp {
         .name("x7571")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7640.readPort, Some(x7636(0)), Some("x7642"))
+        .store(x7640, Some(x7636(0)), Some("x7642"))
         .load(x7571_x7571_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7572_dsp0_bank0 = MemoryPipeline(name="x7572_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -333,7 +333,7 @@ object BlackScholes extends PIRApp {
         .name("x7572")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7762.readPort, Some(x7758(0)), Some("x7764"))
+        .store(x7762, Some(x7758(0)), Some("x7764"))
         .load(x7572_x7572_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7573_dsp0_bank0 = MemoryPipeline(name="x7573_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -349,7 +349,7 @@ object BlackScholes extends PIRApp {
         .name("x7573")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7660.readPort, Some(x7656(0)), Some("x7662"))
+        .store(x7660, Some(x7656(0)), Some("x7662"))
         .load(x7573_x7573_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7574_dsp0_bank0 = MemoryPipeline(name="x7574_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -365,7 +365,7 @@ object BlackScholes extends PIRApp {
         .name("x7574")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7782.readPort, Some(x7778(0)), Some("x7784"))
+        .store(x7782, Some(x7778(0)), Some("x7784"))
         .load(x7574_x7574_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7575_dsp0_bank0 = MemoryPipeline(name="x7575_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -381,7 +381,7 @@ object BlackScholes extends PIRApp {
         .name("x7575")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7680.readPort, Some(x7676(0)), Some("x7682"))
+        .store(x7680, Some(x7676(0)), Some("x7682"))
         .load(x7575_x7575_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7576_dsp0_bank0 = MemoryPipeline(name="x7576_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -397,7 +397,7 @@ object BlackScholes extends PIRApp {
         .name("x7576")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7802.readPort, Some(x7798(0)), Some("x7804"))
+        .store(x7802, Some(x7798(0)), Some("x7804"))
         .load(x7576_x7576_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7577_dsp0_bank0 = MemoryPipeline(name="x7577_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -413,7 +413,7 @@ object BlackScholes extends PIRApp {
         .name("x7577")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7700.readPort, Some(x7696(0)), Some("x7702"))
+        .store(x7700, Some(x7696(0)), Some("x7702"))
         .load(x7577_x7577_dsp0_bank0_data_v, Some(x7826(0)), Some("x8022"))
     }
     val x7578_dsp0_bank0 = MemoryPipeline(name="x7578_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -429,7 +429,7 @@ object BlackScholes extends PIRApp {
         .name("x7578")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x7822.readPort, Some(x7818(0)), Some("x7824"))
+        .store(x7822, Some(x7818(0)), Some("x7824"))
         .load(x7578_x7578_dsp0_bank0_data_v, Some(x8024(0)), Some("x8220"))
     }
     val x7579_dsp0_bank0 = MemoryPipeline(name="x7579_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -445,7 +445,7 @@ object BlackScholes extends PIRApp {
         .name("x7579")
         .banking(Strided(1,16))
         .buffering(3)
-        .store(x8021.readPort, Some(x7826(0)), Some("x8022"))
+        .store(x8021, Some(x7826(0)), Some("x8022"))
         .load(x7579_x7579_dsp0_bank0_data_v, Some(x8238(0)), Some("x8248"))
     }
     val x7580_dsp0_bank0 = MemoryPipeline(name="x7580_dsp0_bank0",parent="x8273") { implicit CU => 
@@ -461,7 +461,7 @@ object BlackScholes extends PIRApp {
         .name("x7580")
         .banking(Strided(1,16))
         .buffering(3)
-        .store(x8219.readPort, Some(x8024(0)), Some("x8220"))
+        .store(x8219, Some(x8024(0)), Some("x8220"))
         .load(x7580_x7580_dsp0_bank0_data_v, Some(x8262(0)), Some("x8272"))
     }
     val x7602 = StreamController(name="x7602",parent="x8273") { implicit CU => 
@@ -476,8 +476,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7593_unit = CounterChain(name = "x7593_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7586))
-      Stage(operands=List(x7586, x7588), op=FixAdd, results=List(CU.scalarOut(x7583_b8285_x7592_b8288_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7583_b8286_x7592_b8289_s)))
+      Stage(operands=List(x7586, x7588), op=FixAdd, results=List(x7583_b8285_x7592_b8288_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7583_b8286_x7592_b8289_s))
     }
     val x7594 = MemoryController(name="x7594",parent="x7602",offchip=types_oc, mctpe=TileLoad) { implicit CU => 
       val x7583_b8286 = new ScalarFIFO()
@@ -506,8 +506,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7613_unit = CounterChain(name = "x7613_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7606))
-      Stage(operands=List(x7606, x7608), op=FixAdd, results=List(CU.scalarOut(x7603_b8292_x7612_b8295_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7603_b8293_x7612_b8296_s)))
+      Stage(operands=List(x7606, x7608), op=FixAdd, results=List(x7603_b8292_x7612_b8295_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7603_b8293_x7612_b8296_s))
     }
     val x7614 = MemoryController(name="x7614",parent="x7622",offchip=prices_oc, mctpe=TileLoad) { implicit CU => 
       val x7603_b8292 = new ScalarFIFO()
@@ -536,8 +536,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7633_unit = CounterChain(name = "x7633_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7626))
-      Stage(operands=List(x7626, x7628), op=FixAdd, results=List(CU.scalarOut(x7623_b8299_x7632_b8302_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7623_b8300_x7632_b8303_s)))
+      Stage(operands=List(x7626, x7628), op=FixAdd, results=List(x7623_b8299_x7632_b8302_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7623_b8300_x7632_b8303_s))
     }
     val x7634 = MemoryController(name="x7634",parent="x7642",offchip=strike_oc, mctpe=TileLoad) { implicit CU => 
       val x7623_b8300 = new ScalarFIFO()
@@ -566,8 +566,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7653_unit = CounterChain(name = "x7653_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7646))
-      Stage(operands=List(x7646, x7648), op=FixAdd, results=List(CU.scalarOut(x7643_b8306_x7652_b8309_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7643_b8307_x7652_b8310_s)))
+      Stage(operands=List(x7646, x7648), op=FixAdd, results=List(x7643_b8306_x7652_b8309_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7643_b8307_x7652_b8310_s))
     }
     val x7654 = MemoryController(name="x7654",parent="x7662",offchip=rate_oc, mctpe=TileLoad) { implicit CU => 
       val x7643_b8307 = new ScalarFIFO()
@@ -596,8 +596,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7673_unit = CounterChain(name = "x7673_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7666))
-      Stage(operands=List(x7666, x7668), op=FixAdd, results=List(CU.scalarOut(x7663_b8313_x7672_b8316_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7663_b8314_x7672_b8317_s)))
+      Stage(operands=List(x7666, x7668), op=FixAdd, results=List(x7663_b8313_x7672_b8316_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7663_b8314_x7672_b8317_s))
     }
     val x7674 = MemoryController(name="x7674",parent="x7682",offchip=vol_oc, mctpe=TileLoad) { implicit CU => 
       val x7663_b8313 = new ScalarFIFO()
@@ -626,8 +626,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x7693_unit = CounterChain(name = "x7693_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7686))
-      Stage(operands=List(x7686, x7688), op=FixAdd, results=List(CU.scalarOut(x7683_b8320_x7692_b8323_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7683_b8321_x7692_b8324_s)))
+      Stage(operands=List(x7686, x7688), op=FixAdd, results=List(x7683_b8320_x7692_b8323_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7683_b8321_x7692_b8324_s))
     }
     val x7694 = MemoryController(name="x7694",parent="x7702",offchip=times_oc, mctpe=TileLoad) { implicit CU => 
       val x7683_b8321 = new ScalarFIFO()
@@ -656,8 +656,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7715_unit = CounterChain(name = "x7715_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7708))
-      Stage(operands=List(x7708, x7710), op=FixAdd, results=List(CU.scalarOut(x7705_b8327_x7714_b8330_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7705_b8328_x7714_b8331_s)))
+      Stage(operands=List(x7708, x7710), op=FixAdd, results=List(x7705_b8327_x7714_b8330_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7705_b8328_x7714_b8331_s))
     }
     val x7716 = MemoryController(name="x7716",parent="x7724",offchip=types_oc, mctpe=TileLoad) { implicit CU => 
       val x7705_b8328 = new ScalarFIFO()
@@ -686,8 +686,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7735_unit = CounterChain(name = "x7735_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7728))
-      Stage(operands=List(x7728, x7730), op=FixAdd, results=List(CU.scalarOut(x7725_b8334_x7734_b8337_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7725_b8335_x7734_b8338_s)))
+      Stage(operands=List(x7728, x7730), op=FixAdd, results=List(x7725_b8334_x7734_b8337_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7725_b8335_x7734_b8338_s))
     }
     val x7736 = MemoryController(name="x7736",parent="x7744",offchip=prices_oc, mctpe=TileLoad) { implicit CU => 
       val x7725_b8334 = new ScalarFIFO()
@@ -716,8 +716,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7755_unit = CounterChain(name = "x7755_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7748))
-      Stage(operands=List(x7748, x7750), op=FixAdd, results=List(CU.scalarOut(x7745_b8341_x7754_b8344_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7745_b8342_x7754_b8345_s)))
+      Stage(operands=List(x7748, x7750), op=FixAdd, results=List(x7745_b8341_x7754_b8344_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7745_b8342_x7754_b8345_s))
     }
     val x7756 = MemoryController(name="x7756",parent="x7764",offchip=strike_oc, mctpe=TileLoad) { implicit CU => 
       val x7745_b8342 = new ScalarFIFO()
@@ -746,8 +746,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7775_unit = CounterChain(name = "x7775_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7768))
-      Stage(operands=List(x7768, x7770), op=FixAdd, results=List(CU.scalarOut(x7765_b8348_x7774_b8351_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7765_b8349_x7774_b8352_s)))
+      Stage(operands=List(x7768, x7770), op=FixAdd, results=List(x7765_b8348_x7774_b8351_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7765_b8349_x7774_b8352_s))
     }
     val x7776 = MemoryController(name="x7776",parent="x7784",offchip=rate_oc, mctpe=TileLoad) { implicit CU => 
       val x7765_b8349 = new ScalarFIFO()
@@ -776,8 +776,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7795_unit = CounterChain(name = "x7795_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7788))
-      Stage(operands=List(x7788, x7790), op=FixAdd, results=List(CU.scalarOut(x7785_b8355_x7794_b8358_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7785_b8356_x7794_b8359_s)))
+      Stage(operands=List(x7788, x7790), op=FixAdd, results=List(x7785_b8355_x7794_b8358_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7785_b8356_x7794_b8359_s))
     }
     val x7796 = MemoryController(name="x7796",parent="x7804",offchip=vol_oc, mctpe=TileLoad) { implicit CU => 
       val x7785_b8355 = new ScalarFIFO()
@@ -806,8 +806,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x7815_unit = CounterChain(name = "x7815_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x7808))
-      Stage(operands=List(x7808, x7810), op=FixAdd, results=List(CU.scalarOut(x7805_b8362_x7814_b8365_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x7805_b8363_x7814_b8366_s)))
+      Stage(operands=List(x7808, x7810), op=FixAdd, results=List(x7805_b8362_x7814_b8365_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x7805_b8363_x7814_b8366_s))
     }
     val x7816 = MemoryController(name="x7816",parent="x7824",offchip=times_oc, mctpe=TileLoad) { implicit CU => 
       val x7805_b8363 = new ScalarFIFO()
@@ -839,7 +839,7 @@ object BlackScholes extends PIRApp {
         .store(bus_643_v, None, None)
       val ctr32 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_14_unit = CounterChain(name = "x8022_14_unit", ctr32).iter(0)
-      Stage(operands=List(x7872, x7874, x7892), op=MuxOp, results=List(CU.vecOut(bus_676_v)))
+      Stage(operands=List(x7872, x7874, x7892), op=MuxOp, results=List(bus_676_v))
     }
     val x8022_11 = Pipeline(name="x8022_11",parent="x8022") { implicit CU => 
       val x7887 = CU.temp(None).name("x7887")
@@ -870,7 +870,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7836, Const(2.0E-4)), op=FltMul, results=List(x7887))
       Stage(operands=List(x7887, Const(300.0)), op=FltAdd, results=List(x7888))
       Stage(operands=List(x7884, x7886, x7888), op=MuxOp, results=List(x7889))
-      Stage(operands=List(x7881, x7883, x7889), op=MuxOp, results=List(CU.vecOut(bus_673_v)))
+      Stage(operands=List(x7881, x7883, x7889), op=MuxOp, results=List(bus_673_v))
     }
     val x8022_46 = Pipeline(name="x8022_46",parent="x8022") { implicit CU => 
       val x8018 = new VectorFIFO()
@@ -887,7 +887,7 @@ object BlackScholes extends PIRApp {
         .store(bus_848_v, None, None)
       val ctr64 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_46_unit = CounterChain(name = "x8022_46_unit", ctr64).iter(0)
-      Stage(operands=List(x8019, x8018, x8015), op=MuxOp, results=List(CU.vecOut(x7579_x8021_data_v)))
+      Stage(operands=List(x8019, x8018, x8015), op=MuxOp, results=List(x7579_x8021_data_v))
     }
     val x8022_13 = Pipeline(name="x8022_13",parent="x8022") { implicit CU => 
       val x7891 = new VectorFIFO()
@@ -904,7 +904,7 @@ object BlackScholes extends PIRApp {
         .store(bus_649_v, None, None)
       val ctr31 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_13_unit = CounterChain(name = "x8022_13_unit", ctr31).iter(0)
-      Stage(operands=List(x7875, x7877, x7891), op=MuxOp, results=List(CU.vecOut(bus_675_v)))
+      Stage(operands=List(x7875, x7877, x7891), op=MuxOp, results=List(bus_675_v))
     }
     val x8022_7 = Pipeline(name="x8022_7",parent="x8022") { implicit CU => 
       val x7873 = CU.temp(None).name("x7873")
@@ -915,8 +915,8 @@ object BlackScholes extends PIRApp {
       val ctr25 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_7_unit = CounterChain(name = "x8022_7_unit", ctr25).iter(0)
       Stage(operands=List(x7836, Const(0.22)), op=FltMul, results=List(x7873))
-      Stage(operands=List(x7873, Const(1.0)), op=FltAdd, results=List(CU.vecOut(bus_643_v)))
-      Stage(operands=List(x7836, Const(100.0)), op=FltLt, results=List(CU.vecOut(bus_645_v)))
+      Stage(operands=List(x7873, Const(1.0)), op=FltAdd, results=List(bus_643_v))
+      Stage(operands=List(x7836, Const(100.0)), op=FltLt, results=List(bus_645_v))
     }
     val x8022_40 = Pipeline(name="x8022_40",parent="x8022") { implicit CU => 
       val x7991 = CU.temp(None).name("x7991")
@@ -926,9 +926,9 @@ object BlackScholes extends PIRApp {
         .store(bus_816_v, None, None)
       val ctr58 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_40_unit = CounterChain(name = "x8022_40_unit", ctr58).iter(0)
-      Stage(operands=List(x7988, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_820_v)))
+      Stage(operands=List(x7988, Const(-1.2)), op=FltLt, results=List(bus_820_v))
       Stage(operands=List(x7988, Const(0.1)), op=FltMul, results=List(x7991))
-      Stage(operands=List(x7991, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_824_v)))
+      Stage(operands=List(x7991, Const(0.35)), op=FltAdd, results=List(bus_824_v))
     }
     val x8022_27 = Pipeline(name="x8022_27",parent="x8022") { implicit CU => 
       val x7895 = new VectorFIFO()
@@ -949,8 +949,8 @@ object BlackScholes extends PIRApp {
         .store(bus_680_v, None, None)
       val ctr45 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_27_unit = CounterChain(name = "x8022_27_unit", ctr45).iter(0)
-      Stage(operands=List(x7828, x7941), op=FltMul, results=List(CU.vecOut(bus_747_v)))
-      Stage(operands=List(x7897, x7895), op=FltSub, results=List(CU.vecOut(bus_748_v)))
+      Stage(operands=List(x7828, x7941), op=FltMul, results=List(bus_747_v))
+      Stage(operands=List(x7897, x7895), op=FltSub, results=List(bus_748_v))
     }
     val x8022_30 = Pipeline(name="x8022_30",parent="x8022") { implicit CU => 
       val x7948 = CU.temp(None).name("x7948")
@@ -961,8 +961,8 @@ object BlackScholes extends PIRApp {
       val ctr48 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_30_unit = CounterChain(name = "x8022_30_unit", ctr48).iter(0)
       Stage(operands=List(x7945, Const(0.1)), op=FltMul, results=List(x7948))
-      Stage(operands=List(x7948, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_760_v)))
-      Stage(operands=List(Const(1.0), x7945), op=FltAdd, results=List(CU.vecOut(bus_762_v)))
+      Stage(operands=List(x7948, Const(0.35)), op=FltAdd, results=List(bus_760_v))
+      Stage(operands=List(Const(1.0), x7945), op=FltAdd, results=List(bus_762_v))
     }
     val x8022_18 = Pipeline(name="x8022_18",parent="x8022") { implicit CU => 
       val x7903 = CU.temp(None).name("x7903")
@@ -972,9 +972,9 @@ object BlackScholes extends PIRApp {
         .store(bus_684_v, None, None)
       val ctr36 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_18_unit = CounterChain(name = "x8022_18_unit", ctr36).iter(0)
-      Stage(operands=List(x7900, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_688_v)))
+      Stage(operands=List(x7900, Const(-1.2)), op=FltLt, results=List(bus_688_v))
       Stage(operands=List(x7900, Const(0.1)), op=FltMul, results=List(x7903))
-      Stage(operands=List(x7903, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_692_v)))
+      Stage(operands=List(x7903, Const(0.35)), op=FltAdd, results=List(bus_692_v))
     }
     val x8022_12 = Pipeline(name="x8022_12",parent="x8022") { implicit CU => 
       val x7878 = new VectorFIFO()
@@ -991,7 +991,7 @@ object BlackScholes extends PIRApp {
         .store(bus_655_v, None, None)
       val ctr30 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_12_unit = CounterChain(name = "x8022_12_unit", ctr30).iter(0)
-      Stage(operands=List(x7878, x7880, x7890), op=MuxOp, results=List(CU.vecOut(bus_674_v)))
+      Stage(operands=List(x7878, x7880, x7890), op=MuxOp, results=List(bus_674_v))
     }
     val x8022_29 = Pipeline(name="x8022_29",parent="x8022") { implicit CU => 
       val x7945 = new VectorFIFO()
@@ -1000,8 +1000,8 @@ object BlackScholes extends PIRApp {
         .store(bus_752_v, None, None)
       val ctr47 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_29_unit = CounterChain(name = "x8022_29_unit", ctr47).iter(0)
-      Stage(operands=List(x7945, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_754_v)))
-      Stage(operands=List(x7945, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_756_v)))
+      Stage(operands=List(x7945, Const(-3.5)), op=FltLt, results=List(bus_754_v))
+      Stage(operands=List(x7945, Const(-1.2)), op=FltLt, results=List(bus_756_v))
     }
     val x8022_38 = Pipeline(name="x8022_38",parent="x8022") { implicit CU => 
       val x7982 = CU.temp(None).name("x7982")
@@ -1032,7 +1032,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7982), op=FltNeg, results=List(x7983))
       Stage(operands=List(x7983, Const(1.0)), op=FltAdd, results=List(x7984))
       Stage(operands=List(x7942, Const(0.0)), op=FltLt, results=List(x7985))
-      Stage(operands=List(x7985, x7982, x7984), op=MuxOp, results=List(CU.vecOut(bus_814_v)))
+      Stage(operands=List(x7985, x7982, x7984), op=MuxOp, results=List(bus_814_v))
     }
     val x8022_28 = Pipeline(name="x8022_28",parent="x8022") { implicit CU => 
       val x7943 = CU.temp(None).name("x7943")
@@ -1043,9 +1043,9 @@ object BlackScholes extends PIRApp {
         .store(bus_748_v, None, None)
       val ctr46 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_28_unit = CounterChain(name = "x8022_28_unit", ctr46).iter(0)
-      Stage(operands=List(x7942), op=FltAbs, results=List(x7943, CU.vecOut(bus_749_v)))
+      Stage(operands=List(x7942), op=FltAbs, results=List(x7943, bus_749_v))
       Stage(operands=List(x7943, x7943), op=FltMul, results=List(x7944))
-      Stage(operands=List(x7944, Const(-0.05)), op=FltMul, results=List(CU.vecOut(bus_752_v)))
+      Stage(operands=List(x7944, Const(-0.05)), op=FltMul, results=List(bus_752_v))
     }
     val x8022_34 = Pipeline(name="x8022_34",parent="x8022") { implicit CU => 
       val x7966 = CU.temp(None).name("x7966")
@@ -1059,8 +1059,8 @@ object BlackScholes extends PIRApp {
       val x8022_34_unit = CounterChain(name = "x8022_34_unit", ctr52).iter(0)
       Stage(operands=List(x7943, Const(0.2316419)), op=FltMul, results=List(x7966))
       Stage(operands=List(x7966, Const(1.0)), op=FltAdd, results=List(x7967))
-      Stage(operands=List(Const(1.0), x7967), op=FltDiv, results=List(x7968, CU.vecOut(bus_789_v)))
-      Stage(operands=List(x7968, Const(0.31938154)), op=FltMul, results=List(CU.vecOut(bus_791_v)))
+      Stage(operands=List(Const(1.0), x7967), op=FltDiv, results=List(x7968, bus_789_v))
+      Stage(operands=List(x7968, Const(0.31938154)), op=FltMul, results=List(bus_791_v))
     }
     val x8022_37 = Pipeline(name="x8022_37",parent="x8022") { implicit CU => 
       val x7975 = CU.temp(None).name("x7975")
@@ -1089,7 +1089,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7970, Const(1.7814779)), op=FltMul, results=List(x7975))
       Stage(operands=List(x7974, x7975), op=FltAdd, results=List(x7978))
       Stage(operands=List(x7978, x7976), op=FltAdd, results=List(x7979))
-      Stage(operands=List(x7979, x7977), op=FltAdd, results=List(CU.vecOut(bus_806_v)))
+      Stage(operands=List(x7979, x7977), op=FltAdd, results=List(bus_806_v))
     }
     val x8022_4 = Pipeline(name="x8022_4",parent="x8022") { implicit CU => 
       val x7858 = CU.temp(None).name("x7858")
@@ -1105,11 +1105,11 @@ object BlackScholes extends PIRApp {
       val x8022_4_unit = CounterChain(name = "x8022_4_unit", ctr22).iter(0)
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7857))
       Stage(operands=List(x7857, Const(2.0)), op=FltDiv, results=List(x7858))
-      Stage(operands=List(Const(1.0), x7858), op=FltAdd, results=List(CU.vecOut(bus_618_v)))
+      Stage(operands=List(Const(1.0), x7858), op=FltAdd, results=List(bus_618_v))
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7860))
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7861))
       Stage(operands=List(x7860, x7861), op=FltMul, results=List(x7862))
-      Stage(operands=List(x7862, Const(8.0)), op=FltDiv, results=List(CU.vecOut(bus_625_v)))
+      Stage(operands=List(x7862, Const(8.0)), op=FltDiv, results=List(bus_625_v))
     }
     val x8022_10 = Pipeline(name="x8022_10",parent="x8022") { implicit CU => 
       val x7882 = CU.temp(None).name("x7882")
@@ -1120,8 +1120,8 @@ object BlackScholes extends PIRApp {
       val ctr28 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_10_unit = CounterChain(name = "x8022_10_unit", ctr28).iter(0)
       Stage(operands=List(x7836, Const(0.008)), op=FltMul, results=List(x7882))
-      Stage(operands=List(x7882, Const(20.0)), op=FltAdd, results=List(CU.vecOut(bus_661_v)))
-      Stage(operands=List(x7836, Const(100000.0)), op=FltLt, results=List(CU.vecOut(bus_663_v)))
+      Stage(operands=List(x7882, Const(20.0)), op=FltAdd, results=List(bus_661_v))
+      Stage(operands=List(x7836, Const(100000.0)), op=FltLt, results=List(bus_663_v))
     }
     val x8022_20 = Pipeline(name="x8022_20",parent="x8022") { implicit CU => 
       val x7914 = CU.temp(None).name("x7914")
@@ -1148,7 +1148,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7911, x7913), op=FltAdd, results=List(x7914))
       Stage(operands=List(x7912, x7900), op=FltMul, results=List(x7915))
       Stage(operands=List(x7915, Const(120.0)), op=FltDiv, results=List(x7916))
-      Stage(operands=List(x7914, x7916), op=FltAdd, results=List(CU.vecOut(bus_710_v)))
+      Stage(operands=List(x7914, x7916), op=FltAdd, results=List(bus_710_v))
     }
     val x8022_32 = Pipeline(name="x8022_32",parent="x8022") { implicit CU => 
       val x7959 = CU.temp(None).name("x7959")
@@ -1173,7 +1173,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7956, x7958), op=FltAdd, results=List(x7959))
       Stage(operands=List(x7957, x7945), op=FltMul, results=List(x7960))
       Stage(operands=List(x7960, Const(120.0)), op=FltDiv, results=List(x7961))
-      Stage(operands=List(x7959, x7961), op=FltAdd, results=List(CU.vecOut(bus_778_v)))
+      Stage(operands=List(x7959, x7961), op=FltAdd, results=List(bus_778_v))
     }
     val x8022_9 = Pipeline(name="x8022_9",parent="x8022") { implicit CU => 
       val x7879 = CU.temp(None).name("x7879")
@@ -1184,8 +1184,8 @@ object BlackScholes extends PIRApp {
       val ctr27 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_9_unit = CounterChain(name = "x8022_9_unit", ctr27).iter(0)
       Stage(operands=List(x7836, Const(0.028)), op=FltMul, results=List(x7879))
-      Stage(operands=List(x7879, Const(8.0)), op=FltAdd, results=List(CU.vecOut(bus_655_v)))
-      Stage(operands=List(x7836, Const(10000.0)), op=FltLt, results=List(CU.vecOut(bus_657_v)))
+      Stage(operands=List(x7879, Const(8.0)), op=FltAdd, results=List(bus_655_v))
+      Stage(operands=List(x7836, Const(10000.0)), op=FltLt, results=List(bus_657_v))
     }
     val x8022_2 = Pipeline(name="x8022_2",parent="x8022") { implicit CU => 
       val x7851 = CU.temp(None).name("x7851")
@@ -1208,10 +1208,10 @@ object BlackScholes extends PIRApp {
         .store(x7573_x7573_dsp0_bank0_data_v, None, None)
       val ctr20 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_2_unit = CounterChain(name = "x8022_2_unit", ctr20).iter(0)
-      Stage(operands=List(x7847, x7849), op=FltSub, results=List(CU.vecOut(bus_604_v)))
+      Stage(operands=List(x7847, x7849), op=FltSub, results=List(bus_604_v))
       Stage(operands=List(x7834, x7834), op=FltMul, results=List(x7851))
       Stage(operands=List(x7851, Const(0.5)), op=FltMul, results=List(x7852))
-      Stage(operands=List(x7832, x7852), op=FltAdd, results=List(CU.vecOut(bus_608_v)))
+      Stage(operands=List(x7832, x7852), op=FltAdd, results=List(bus_608_v))
     }
     val x8022_31 = Pipeline(name="x8022_31",parent="x8022") { implicit CU => 
       val x7954 = CU.temp(None).name("x7954")
@@ -1234,8 +1234,8 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7950, x7952), op=FltAdd, results=List(x7953))
       Stage(operands=List(x7951, x7945), op=FltMul, results=List(x7954))
       Stage(operands=List(x7954, Const(6.0)), op=FltDiv, results=List(x7955))
-      Stage(operands=List(x7953, x7955), op=FltAdd, results=List(CU.vecOut(bus_770_v)))
-      Stage(operands=List(x7954, x7945), op=FltMul, results=List(CU.vecOut(bus_771_v)))
+      Stage(operands=List(x7953, x7955), op=FltAdd, results=List(bus_770_v))
+      Stage(operands=List(x7954, x7945), op=FltMul, results=List(bus_771_v))
     }
     val x8022_33 = Pipeline(name="x8022_33",parent="x8022") { implicit CU => 
       val x7964 = CU.temp(None).name("x7964")
@@ -1260,7 +1260,7 @@ object BlackScholes extends PIRApp {
       val x8022_33_unit = CounterChain(name = "x8022_33_unit", ctr51).iter(0)
       Stage(operands=List(x7947, x7949, x7962), op=MuxOp, results=List(x7963))
       Stage(operands=List(x7946, Const(0.0), x7963), op=MuxOp, results=List(x7964))
-      Stage(operands=List(x7964, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_783_v)))
+      Stage(operands=List(x7964, Const(0.3989423)), op=FltMul, results=List(bus_783_v))
     }
     val x8022_6 = Pipeline(name="x8022_6",parent="x8022") { implicit CU => 
       val x7870 = new VectorFIFO()
@@ -1277,8 +1277,8 @@ object BlackScholes extends PIRApp {
         .store(bus_626_v, None, None)
       val ctr24 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_6_unit = CounterChain(name = "x8022_6_unit", ctr24).iter(0)
-      Stage(operands=List(x7864, x7870), op=FltAdd, results=List(CU.vecOut(bus_637_v)))
-      Stage(operands=List(x7836, Const(10.0)), op=FltLt, results=List(CU.vecOut(bus_639_v)))
+      Stage(operands=List(x7864, x7870), op=FltAdd, results=List(bus_637_v))
+      Stage(operands=List(x7836, Const(10.0)), op=FltLt, results=List(bus_639_v))
     }
     val x8022_5 = Pipeline(name="x8022_5",parent="x8022") { implicit CU => 
       val x7867 = CU.temp(None).name("x7867")
@@ -1300,13 +1300,13 @@ object BlackScholes extends PIRApp {
         .store(bus_625_v, None, None)
       val ctr23 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_5_unit = CounterChain(name = "x8022_5_unit", ctr23).iter(0)
-      Stage(operands=List(x7859, x7863), op=FltSub, results=List(CU.vecOut(bus_626_v)))
+      Stage(operands=List(x7859, x7863), op=FltSub, results=List(bus_626_v))
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7865))
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7866))
       Stage(operands=List(x7865, x7866), op=FltMul, results=List(x7867))
       Stage(operands=List(x7836, Const(1.0)), op=FltSub, results=List(x7868))
       Stage(operands=List(x7867, x7868), op=FltMul, results=List(x7869))
-      Stage(operands=List(x7869, Const(16.0)), op=FltDiv, results=List(CU.vecOut(bus_636_v)))
+      Stage(operands=List(x7869, Const(16.0)), op=FltDiv, results=List(bus_636_v))
     }
     val x8022_16 = Pipeline(name="x8022_16",parent="x8022") { implicit CU => 
       val x7897 = CU.temp(None).name("x7897")
@@ -1320,8 +1320,8 @@ object BlackScholes extends PIRApp {
         .store(bus_610_v, None, None)
       val ctr34 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_16_unit = CounterChain(name = "x8022_16_unit", ctr34).iter(0)
-      Stage(operands=List(x7855, x7896), op=FltDiv, results=List(x7897, CU.vecOut(bus_680_v)))
-      Stage(operands=List(x7897), op=FltAbs, results=List(CU.vecOut(bus_681_v)))
+      Stage(operands=List(x7855, x7896), op=FltDiv, results=List(x7897, bus_680_v))
+      Stage(operands=List(x7897), op=FltAbs, results=List(bus_681_v))
     }
     val x8022_21 = Pipeline(name="x8022_21",parent="x8022") { implicit CU => 
       val x7919 = CU.temp(None).name("x7919")
@@ -1346,7 +1346,7 @@ object BlackScholes extends PIRApp {
       val x8022_21_unit = CounterChain(name = "x8022_21_unit", ctr39).iter(0)
       Stage(operands=List(x7902, x7904, x7917), op=MuxOp, results=List(x7918))
       Stage(operands=List(x7901, Const(0.0), x7918), op=MuxOp, results=List(x7919))
-      Stage(operands=List(x7919, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_715_v)))
+      Stage(operands=List(x7919, Const(0.3989423)), op=FltMul, results=List(bus_715_v))
     }
     val x8022_1 = Pipeline(name="x8022_1",parent="x8022") { implicit CU => 
       val x7844 = CU.temp(None).name("x7844")
@@ -1368,9 +1368,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7841, x7843), op=FltSub, results=List(x7844))
       Stage(operands=List(x7842, x7841), op=FltMul, results=List(x7845))
       Stage(operands=List(x7845, Const(3.0)), op=FltDiv, results=List(x7846))
-      Stage(operands=List(x7844, x7846), op=FltAdd, results=List(CU.vecOut(bus_600_v)))
+      Stage(operands=List(x7844, x7846), op=FltAdd, results=List(bus_600_v))
       Stage(operands=List(x7845, x7841), op=FltMul, results=List(x7848))
-      Stage(operands=List(x7848, Const(4.0)), op=FltDiv, results=List(CU.vecOut(bus_603_v)))
+      Stage(operands=List(x7848, Const(4.0)), op=FltDiv, results=List(bus_603_v))
     }
     val x8022_3 = Pipeline(name="x8022_3",parent="x8022") { implicit CU => 
       val x7854 = CU.temp(None).name("x7854")
@@ -1389,8 +1389,8 @@ object BlackScholes extends PIRApp {
       val ctr21 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_3_unit = CounterChain(name = "x8022_3_unit", ctr21).iter(0)
       Stage(operands=List(x7853, x7836), op=FltMul, results=List(x7854))
-      Stage(operands=List(x7854, x7850), op=FltAdd, results=List(CU.vecOut(bus_610_v)))
-      Stage(operands=List(x7836, Const(2.0)), op=FltLt, results=List(CU.vecOut(bus_612_v)))
+      Stage(operands=List(x7854, x7850), op=FltAdd, results=List(bus_610_v))
+      Stage(operands=List(x7836, Const(2.0)), op=FltLt, results=List(bus_612_v))
     }
     val x8022_8 = Pipeline(name="x8022_8",parent="x8022") { implicit CU => 
       val x7876 = CU.temp(None).name("x7876")
@@ -1401,8 +1401,8 @@ object BlackScholes extends PIRApp {
       val ctr26 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_8_unit = CounterChain(name = "x8022_8_unit", ctr26).iter(0)
       Stage(operands=List(x7836, Const(0.08)), op=FltMul, results=List(x7876))
-      Stage(operands=List(x7876, Const(2.5)), op=FltAdd, results=List(CU.vecOut(bus_649_v)))
-      Stage(operands=List(x7836, Const(1000.0)), op=FltLt, results=List(CU.vecOut(bus_651_v)))
+      Stage(operands=List(x7876, Const(2.5)), op=FltAdd, results=List(bus_649_v))
+      Stage(operands=List(x7836, Const(1000.0)), op=FltLt, results=List(bus_651_v))
     }
     val x8022_22 = Pipeline(name="x8022_22",parent="x8022") { implicit CU => 
       val x7921 = CU.temp(None).name("x7921")
@@ -1416,8 +1416,8 @@ object BlackScholes extends PIRApp {
       val x8022_22_unit = CounterChain(name = "x8022_22_unit", ctr40).iter(0)
       Stage(operands=List(x7898, Const(0.2316419)), op=FltMul, results=List(x7921))
       Stage(operands=List(x7921, Const(1.0)), op=FltAdd, results=List(x7922))
-      Stage(operands=List(Const(1.0), x7922), op=FltDiv, results=List(x7923, CU.vecOut(bus_721_v)))
-      Stage(operands=List(x7923, Const(0.31938154)), op=FltMul, results=List(CU.vecOut(bus_723_v)))
+      Stage(operands=List(Const(1.0), x7922), op=FltDiv, results=List(x7923, bus_721_v))
+      Stage(operands=List(x7923, Const(0.31938154)), op=FltMul, results=List(bus_723_v))
     }
     val x8022_23 = Pipeline(name="x8022_23",parent="x8022") { implicit CU => 
       val x7924 = CU.temp(None).name("x7924")
@@ -1427,8 +1427,8 @@ object BlackScholes extends PIRApp {
         .store(bus_721_v, None, None)
       val ctr41 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_23_unit = CounterChain(name = "x8022_23_unit", ctr41).iter(0)
-      Stage(operands=List(x7923, x7923), op=FltMul, results=List(x7924, CU.vecOut(bus_724_v)))
-      Stage(operands=List(x7924, x7923), op=FltMul, results=List(CU.vecOut(bus_725_v)))
+      Stage(operands=List(x7923, x7923), op=FltMul, results=List(x7924, bus_724_v))
+      Stage(operands=List(x7924, x7923), op=FltMul, results=List(bus_725_v))
     }
     val x8022_26 = Pipeline(name="x8022_26",parent="x8022") { implicit CU => 
       val x7938 = CU.temp(None).name("x7938")
@@ -1459,7 +1459,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7937), op=FltNeg, results=List(x7938))
       Stage(operands=List(x7938, Const(1.0)), op=FltAdd, results=List(x7939))
       Stage(operands=List(x7897, Const(0.0)), op=FltLt, results=List(x7940))
-      Stage(operands=List(x7940, x7937, x7939), op=MuxOp, results=List(CU.vecOut(bus_746_v)))
+      Stage(operands=List(x7940, x7937, x7939), op=MuxOp, results=List(bus_746_v))
     }
     val x8022 = StreamController(name="x8022",parent="x8273") { implicit CU => 
       val ctr14 = Counter(min=Const(0), max=Const(2000), step=Const(1), par=16) // Counter
@@ -1490,7 +1490,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7999, x8001), op=FltAdd, results=List(x8002))
       Stage(operands=List(x8000, x7988), op=FltMul, results=List(x8003))
       Stage(operands=List(x8003, Const(120.0)), op=FltDiv, results=List(x8004))
-      Stage(operands=List(x8002, x8004), op=FltAdd, results=List(CU.vecOut(bus_842_v)))
+      Stage(operands=List(x8002, x8004), op=FltAdd, results=List(bus_842_v))
     }
     val x8022_36 = Pipeline(name="x8022_36",parent="x8022") { implicit CU => 
       val x7972 = CU.temp(None).name("x7972")
@@ -1507,8 +1507,8 @@ object BlackScholes extends PIRApp {
       val x8022_36_unit = CounterChain(name = "x8022_36_unit", ctr54).iter(0)
       Stage(operands=List(x7970, x7968), op=FltMul, results=List(x7971))
       Stage(operands=List(x7971, x7968), op=FltMul, results=List(x7972))
-      Stage(operands=List(x7972, Const(1.3302745)), op=FltMul, results=List(CU.vecOut(bus_797_v)))
-      Stage(operands=List(x7971, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_799_v)))
+      Stage(operands=List(x7972, Const(1.3302745)), op=FltMul, results=List(bus_797_v))
+      Stage(operands=List(x7971, Const(-1.8212559)), op=FltMul, results=List(bus_799_v))
     }
     val x8022_44 = Pipeline(name="x8022_44",parent="x8022") { implicit CU => 
       val x8011 = CU.temp(None).name("x8011")
@@ -1535,10 +1535,10 @@ object BlackScholes extends PIRApp {
       val x8022_44_unit = CounterChain(name = "x8022_44_unit", ctr62).iter(0)
       Stage(operands=List(x7830, x8007), op=FltMul, results=List(x8008))
       Stage(operands=List(x8008, x7986), op=FltMul, results=List(x8014))
-      Stage(operands=List(x8013, x8014), op=FltSub, results=List(CU.vecOut(bus_848_v)))
+      Stage(operands=List(x8013, x8014), op=FltSub, results=List(bus_848_v))
       Stage(operands=List(x7986), op=FltNeg, results=List(x8011))
       Stage(operands=List(x8011, Const(1.0)), op=FltAdd, results=List(x8012))
-      Stage(operands=List(x8008, x8012), op=FltMul, results=List(CU.vecOut(bus_852_v)))
+      Stage(operands=List(x8008, x8012), op=FltMul, results=List(bus_852_v))
     }
     val x8022_24 = Pipeline(name="x8022_24",parent="x8022") { implicit CU => 
       val x7927 = CU.temp(None).name("x7927")
@@ -1555,8 +1555,8 @@ object BlackScholes extends PIRApp {
       val x8022_24_unit = CounterChain(name = "x8022_24_unit", ctr42).iter(0)
       Stage(operands=List(x7925, x7923), op=FltMul, results=List(x7926))
       Stage(operands=List(x7926, x7923), op=FltMul, results=List(x7927))
-      Stage(operands=List(x7927, Const(1.3302745)), op=FltMul, results=List(CU.vecOut(bus_729_v)))
-      Stage(operands=List(x7926, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_731_v)))
+      Stage(operands=List(x7927, Const(1.3302745)), op=FltMul, results=List(bus_729_v))
+      Stage(operands=List(x7926, Const(-1.8212559)), op=FltMul, results=List(bus_731_v))
     }
     val x8022_25 = Pipeline(name="x8022_25",parent="x8022") { implicit CU => 
       val x7933 = CU.temp(None).name("x7933")
@@ -1585,7 +1585,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7925, Const(1.7814779)), op=FltMul, results=List(x7930))
       Stage(operands=List(x7929, x7930), op=FltAdd, results=List(x7933))
       Stage(operands=List(x7933, x7931), op=FltAdd, results=List(x7934))
-      Stage(operands=List(x7934, x7932), op=FltAdd, results=List(CU.vecOut(bus_738_v)))
+      Stage(operands=List(x7934, x7932), op=FltAdd, results=List(bus_738_v))
     }
     val x8022_41 = Pipeline(name="x8022_41",parent="x8022") { implicit CU => 
       val x7998 = CU.temp(None).name("x7998")
@@ -1604,9 +1604,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7988, x7988), op=FltMul, results=List(x7994))
       Stage(operands=List(x7994, Const(2.0)), op=FltDiv, results=List(x7995))
       Stage(operands=List(x7993, x7995), op=FltAdd, results=List(x7996))
-      Stage(operands=List(x7994, x7988), op=FltMul, results=List(x7997, CU.vecOut(bus_831_v)))
+      Stage(operands=List(x7994, x7988), op=FltMul, results=List(x7997, bus_831_v))
       Stage(operands=List(x7997, Const(6.0)), op=FltDiv, results=List(x7998))
-      Stage(operands=List(x7996, x7998), op=FltAdd, results=List(CU.vecOut(bus_834_v)))
+      Stage(operands=List(x7996, x7998), op=FltAdd, results=List(bus_834_v))
     }
     val x8022_45 = Pipeline(name="x8022_45",parent="x8022") { implicit CU => 
       val x8009 = CU.temp(None).name("x8009")
@@ -1633,8 +1633,8 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7941), op=FltNeg, results=List(x8009))
       Stage(operands=List(x8009, Const(1.0)), op=FltAdd, results=List(x8010))
       Stage(operands=List(x7828, x8010), op=FltMul, results=List(x8017))
-      Stage(operands=List(x8016, x8017), op=FltSub, results=List(CU.vecOut(bus_857_v)))
-      Stage(operands=List(x7838, Const(0)), op=FixEql, results=List(CU.vecOut(bus_858_v)))
+      Stage(operands=List(x8016, x8017), op=FltSub, results=List(bus_857_v))
+      Stage(operands=List(x7838, Const(0)), op=FixEql, results=List(bus_858_v))
     }
     val x8022_19 = Pipeline(name="x8022_19",parent="x8022") { implicit CU => 
       val x7910 = CU.temp(None).name("x7910")
@@ -1653,9 +1653,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x7900, x7900), op=FltMul, results=List(x7906))
       Stage(operands=List(x7906, Const(2.0)), op=FltDiv, results=List(x7907))
       Stage(operands=List(x7905, x7907), op=FltAdd, results=List(x7908))
-      Stage(operands=List(x7906, x7900), op=FltMul, results=List(x7909, CU.vecOut(bus_699_v)))
+      Stage(operands=List(x7906, x7900), op=FltMul, results=List(x7909, bus_699_v))
       Stage(operands=List(x7909, Const(6.0)), op=FltDiv, results=List(x7910))
-      Stage(operands=List(x7908, x7910), op=FltAdd, results=List(CU.vecOut(bus_702_v)))
+      Stage(operands=List(x7908, x7910), op=FltAdd, results=List(bus_702_v))
     }
     val x8022_39 = Pipeline(name="x8022_39",parent="x8022") { implicit CU => 
       val x7988 = CU.temp(None).name("x7988")
@@ -1671,8 +1671,8 @@ object BlackScholes extends PIRApp {
       val ctr57 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_39_unit = CounterChain(name = "x8022_39_unit", ctr57).iter(0)
       Stage(operands=List(x7832), op=FltNeg, results=List(x7987))
-      Stage(operands=List(x7987, x7836), op=FltMul, results=List(x7988, CU.vecOut(bus_816_v)))
-      Stage(operands=List(x7988, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_818_v)))
+      Stage(operands=List(x7987, x7836), op=FltMul, results=List(x7988, bus_816_v))
+      Stage(operands=List(x7988, Const(-3.5)), op=FltLt, results=List(bus_818_v))
     }
     val x8022_0 = Pipeline(name="x8022_0",parent="x8022") { implicit CU => 
       val x7841 = CU.temp(None).name("x7841")
@@ -1688,8 +1688,8 @@ object BlackScholes extends PIRApp {
       val ctr18 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_0_unit = CounterChain(name = "x8022_0_unit", ctr18).iter(0)
       Stage(operands=List(x7828, x7830), op=FltDiv, results=List(x7840))
-      Stage(operands=List(x7840, Const(1.0)), op=FltSub, results=List(x7841, CU.vecOut(bus_592_v)))
-      Stage(operands=List(x7841, x7841), op=FltMul, results=List(CU.vecOut(bus_593_v)))
+      Stage(operands=List(x7840, Const(1.0)), op=FltSub, results=List(x7841, bus_592_v))
+      Stage(operands=List(x7841, x7841), op=FltMul, results=List(bus_593_v))
     }
     val x8022_43 = Pipeline(name="x8022_43",parent="x8022") { implicit CU => 
       val x8006 = CU.temp(None).name("x8006")
@@ -1712,7 +1712,7 @@ object BlackScholes extends PIRApp {
       val ctr61 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_43_unit = CounterChain(name = "x8022_43_unit", ctr61).iter(0)
       Stage(operands=List(x7990, x7992, x8005), op=MuxOp, results=List(x8006))
-      Stage(operands=List(x7989, Const(0.0), x8006), op=MuxOp, results=List(CU.vecOut(bus_845_v)))
+      Stage(operands=List(x7989, Const(0.0), x8006), op=MuxOp, results=List(bus_845_v))
     }
     val x8022_17 = Pipeline(name="x8022_17",parent="x8022") { implicit CU => 
       val x7899 = CU.temp(None).name("x7899")
@@ -1724,8 +1724,8 @@ object BlackScholes extends PIRApp {
       val ctr35 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_17_unit = CounterChain(name = "x8022_17_unit", ctr35).iter(0)
       Stage(operands=List(x7898, x7898), op=FltMul, results=List(x7899))
-      Stage(operands=List(x7899, Const(-0.05)), op=FltMul, results=List(x7900, CU.vecOut(bus_684_v)))
-      Stage(operands=List(x7900, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_686_v)))
+      Stage(operands=List(x7899, Const(-0.05)), op=FltMul, results=List(x7900, bus_684_v))
+      Stage(operands=List(x7900, Const(-3.5)), op=FltLt, results=List(bus_686_v))
     }
     val x8022_35 = Pipeline(name="x8022_35",parent="x8022") { implicit CU => 
       val x7969 = CU.temp(None).name("x7969")
@@ -1735,8 +1735,8 @@ object BlackScholes extends PIRApp {
         .store(bus_789_v, None, None)
       val ctr53 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_35_unit = CounterChain(name = "x8022_35_unit", ctr53).iter(0)
-      Stage(operands=List(x7968, x7968), op=FltMul, results=List(x7969, CU.vecOut(bus_792_v)))
-      Stage(operands=List(x7969, x7968), op=FltMul, results=List(CU.vecOut(bus_793_v)))
+      Stage(operands=List(x7968, x7968), op=FltMul, results=List(x7969, bus_792_v))
+      Stage(operands=List(x7969, x7968), op=FltMul, results=List(bus_793_v))
     }
     val x8022_15 = Pipeline(name="x8022_15",parent="x8022") { implicit CU => 
       val x7895 = CU.temp(None).name("x7895")
@@ -1760,8 +1760,8 @@ object BlackScholes extends PIRApp {
       val ctr33 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8022_15_unit = CounterChain(name = "x8022_15_unit", ctr33).iter(0)
       Stage(operands=List(x7856, x7871, x7893), op=MuxOp, results=List(x7894))
-      Stage(operands=List(x7834, x7894), op=FltMul, results=List(x7895, CU.vecOut(bus_678_v)))
-      Stage(operands=List(x7895, x7895), op=FltMul, results=List(CU.vecOut(bus_679_v)))
+      Stage(operands=List(x7834, x7894), op=FltMul, results=List(x7895, bus_678_v))
+      Stage(operands=List(x7895, x7895), op=FltMul, results=List(bus_679_v))
     }
     val x8220_4 = Pipeline(name="x8220_4",parent="x8220") { implicit CU => 
       val x8059 = CU.temp(None).name("x8059")
@@ -1777,11 +1777,11 @@ object BlackScholes extends PIRApp {
       val x8220_4_unit = CounterChain(name = "x8220_4_unit", ctr69).iter(0)
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8055))
       Stage(operands=List(x8055, Const(2.0)), op=FltDiv, results=List(x8056))
-      Stage(operands=List(Const(1.0), x8056), op=FltAdd, results=List(CU.vecOut(bus_889_v)))
+      Stage(operands=List(Const(1.0), x8056), op=FltAdd, results=List(bus_889_v))
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8058))
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8059))
       Stage(operands=List(x8058, x8059), op=FltMul, results=List(x8060))
-      Stage(operands=List(x8060, Const(8.0)), op=FltDiv, results=List(CU.vecOut(bus_896_v)))
+      Stage(operands=List(x8060, Const(8.0)), op=FltDiv, results=List(bus_896_v))
     }
     val x8220_9 = Pipeline(name="x8220_9",parent="x8220") { implicit CU => 
       val x8077 = CU.temp(None).name("x8077")
@@ -1792,8 +1792,8 @@ object BlackScholes extends PIRApp {
       val ctr74 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_9_unit = CounterChain(name = "x8220_9_unit", ctr74).iter(0)
       Stage(operands=List(x8034, Const(0.028)), op=FltMul, results=List(x8077))
-      Stage(operands=List(x8077, Const(8.0)), op=FltAdd, results=List(CU.vecOut(bus_926_v)))
-      Stage(operands=List(x8034, Const(10000.0)), op=FltLt, results=List(CU.vecOut(bus_928_v)))
+      Stage(operands=List(x8077, Const(8.0)), op=FltAdd, results=List(bus_926_v))
+      Stage(operands=List(x8034, Const(10000.0)), op=FltLt, results=List(bus_928_v))
     }
     val x8220_43 = Pipeline(name="x8220_43",parent="x8220") { implicit CU => 
       val x8204 = CU.temp(None).name("x8204")
@@ -1816,7 +1816,7 @@ object BlackScholes extends PIRApp {
       val ctr108 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_43_unit = CounterChain(name = "x8220_43_unit", ctr108).iter(0)
       Stage(operands=List(x8188, x8190, x8203), op=MuxOp, results=List(x8204))
-      Stage(operands=List(x8187, Const(0.0), x8204), op=MuxOp, results=List(CU.vecOut(bus_1116_v)))
+      Stage(operands=List(x8187, Const(0.0), x8204), op=MuxOp, results=List(bus_1116_v))
     }
     val x8220_7 = Pipeline(name="x8220_7",parent="x8220") { implicit CU => 
       val x8071 = CU.temp(None).name("x8071")
@@ -1827,8 +1827,8 @@ object BlackScholes extends PIRApp {
       val ctr72 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_7_unit = CounterChain(name = "x8220_7_unit", ctr72).iter(0)
       Stage(operands=List(x8034, Const(0.22)), op=FltMul, results=List(x8071))
-      Stage(operands=List(x8071, Const(1.0)), op=FltAdd, results=List(CU.vecOut(bus_914_v)))
-      Stage(operands=List(x8034, Const(100.0)), op=FltLt, results=List(CU.vecOut(bus_916_v)))
+      Stage(operands=List(x8071, Const(1.0)), op=FltAdd, results=List(bus_914_v))
+      Stage(operands=List(x8034, Const(100.0)), op=FltLt, results=List(bus_916_v))
     }
     val x8220_13 = Pipeline(name="x8220_13",parent="x8220") { implicit CU => 
       val x8075 = new VectorFIFO()
@@ -1845,7 +1845,7 @@ object BlackScholes extends PIRApp {
         .store(bus_945_v, None, None)
       val ctr78 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_13_unit = CounterChain(name = "x8220_13_unit", ctr78).iter(0)
-      Stage(operands=List(x8073, x8075, x8089), op=MuxOp, results=List(CU.vecOut(bus_946_v)))
+      Stage(operands=List(x8073, x8075, x8089), op=MuxOp, results=List(bus_946_v))
     }
     val x8220_29 = Pipeline(name="x8220_29",parent="x8220") { implicit CU => 
       val x8143 = new VectorFIFO()
@@ -1854,8 +1854,8 @@ object BlackScholes extends PIRApp {
         .store(bus_1023_v, None, None)
       val ctr94 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_29_unit = CounterChain(name = "x8220_29_unit", ctr94).iter(0)
-      Stage(operands=List(x8143, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_1025_v)))
-      Stage(operands=List(x8143, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_1027_v)))
+      Stage(operands=List(x8143, Const(-3.5)), op=FltLt, results=List(bus_1025_v))
+      Stage(operands=List(x8143, Const(-1.2)), op=FltLt, results=List(bus_1027_v))
     }
     val x8220_14 = Pipeline(name="x8220_14",parent="x8220") { implicit CU => 
       val x8090 = new VectorFIFO()
@@ -1872,7 +1872,7 @@ object BlackScholes extends PIRApp {
         .store(bus_914_v, None, None)
       val ctr79 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_14_unit = CounterChain(name = "x8220_14_unit", ctr79).iter(0)
-      Stage(operands=List(x8070, x8072, x8090), op=MuxOp, results=List(CU.vecOut(bus_947_v)))
+      Stage(operands=List(x8070, x8072, x8090), op=MuxOp, results=List(bus_947_v))
     }
     val x8220_45 = Pipeline(name="x8220_45",parent="x8220") { implicit CU => 
       val x8215 = CU.temp(None).name("x8215")
@@ -1899,8 +1899,8 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8139), op=FltNeg, results=List(x8207))
       Stage(operands=List(x8207, Const(1.0)), op=FltAdd, results=List(x8208))
       Stage(operands=List(x8026, x8208), op=FltMul, results=List(x8215))
-      Stage(operands=List(x8214, x8215), op=FltSub, results=List(CU.vecOut(bus_1128_v)))
-      Stage(operands=List(x8036, Const(0)), op=FixEql, results=List(CU.vecOut(bus_1129_v)))
+      Stage(operands=List(x8214, x8215), op=FltSub, results=List(bus_1128_v))
+      Stage(operands=List(x8036, Const(0)), op=FixEql, results=List(bus_1129_v))
     }
     val x8220_32 = Pipeline(name="x8220_32",parent="x8220") { implicit CU => 
       val x8158 = CU.temp(None).name("x8158")
@@ -1925,7 +1925,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8154, x8156), op=FltAdd, results=List(x8157))
       Stage(operands=List(x8155, x8143), op=FltMul, results=List(x8158))
       Stage(operands=List(x8158, Const(120.0)), op=FltDiv, results=List(x8159))
-      Stage(operands=List(x8157, x8159), op=FltAdd, results=List(CU.vecOut(bus_1049_v)))
+      Stage(operands=List(x8157, x8159), op=FltAdd, results=List(bus_1049_v))
     }
     val x8220_38 = Pipeline(name="x8220_38",parent="x8220") { implicit CU => 
       val x8182 = CU.temp(None).name("x8182")
@@ -1956,7 +1956,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8180), op=FltNeg, results=List(x8181))
       Stage(operands=List(x8181, Const(1.0)), op=FltAdd, results=List(x8182))
       Stage(operands=List(x8140, Const(0.0)), op=FltLt, results=List(x8183))
-      Stage(operands=List(x8183, x8180, x8182), op=MuxOp, results=List(CU.vecOut(bus_1085_v)))
+      Stage(operands=List(x8183, x8180, x8182), op=MuxOp, results=List(bus_1085_v))
     }
     val x8220_40 = Pipeline(name="x8220_40",parent="x8220") { implicit CU => 
       val x8189 = CU.temp(None).name("x8189")
@@ -1966,9 +1966,9 @@ object BlackScholes extends PIRApp {
         .store(bus_1087_v, None, None)
       val ctr105 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_40_unit = CounterChain(name = "x8220_40_unit", ctr105).iter(0)
-      Stage(operands=List(x8186, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_1091_v)))
+      Stage(operands=List(x8186, Const(-1.2)), op=FltLt, results=List(bus_1091_v))
       Stage(operands=List(x8186, Const(0.1)), op=FltMul, results=List(x8189))
-      Stage(operands=List(x8189, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_1095_v)))
+      Stage(operands=List(x8189, Const(0.35)), op=FltAdd, results=List(bus_1095_v))
     }
     val x8220_35 = Pipeline(name="x8220_35",parent="x8220") { implicit CU => 
       val x8167 = CU.temp(None).name("x8167")
@@ -1978,8 +1978,8 @@ object BlackScholes extends PIRApp {
         .store(bus_1060_v, None, None)
       val ctr100 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_35_unit = CounterChain(name = "x8220_35_unit", ctr100).iter(0)
-      Stage(operands=List(x8166, x8166), op=FltMul, results=List(x8167, CU.vecOut(bus_1063_v)))
-      Stage(operands=List(x8167, x8166), op=FltMul, results=List(CU.vecOut(bus_1064_v)))
+      Stage(operands=List(x8166, x8166), op=FltMul, results=List(x8167, bus_1063_v))
+      Stage(operands=List(x8167, x8166), op=FltMul, results=List(bus_1064_v))
     }
     val x8220_23 = Pipeline(name="x8220_23",parent="x8220") { implicit CU => 
       val x8122 = CU.temp(None).name("x8122")
@@ -1989,8 +1989,8 @@ object BlackScholes extends PIRApp {
         .store(bus_992_v, None, None)
       val ctr88 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_23_unit = CounterChain(name = "x8220_23_unit", ctr88).iter(0)
-      Stage(operands=List(x8121, x8121), op=FltMul, results=List(x8122, CU.vecOut(bus_995_v)))
-      Stage(operands=List(x8122, x8121), op=FltMul, results=List(CU.vecOut(bus_996_v)))
+      Stage(operands=List(x8121, x8121), op=FltMul, results=List(x8122, bus_995_v))
+      Stage(operands=List(x8122, x8121), op=FltMul, results=List(bus_996_v))
     }
     val x8220_42 = Pipeline(name="x8220_42",parent="x8220") { implicit CU => 
       val x8198 = CU.temp(None).name("x8198")
@@ -2017,7 +2017,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8197, x8199), op=FltAdd, results=List(x8200))
       Stage(operands=List(x8198, x8186), op=FltMul, results=List(x8201))
       Stage(operands=List(x8201, Const(120.0)), op=FltDiv, results=List(x8202))
-      Stage(operands=List(x8200, x8202), op=FltAdd, results=List(CU.vecOut(bus_1113_v)))
+      Stage(operands=List(x8200, x8202), op=FltAdd, results=List(bus_1113_v))
     }
     val x8220_18 = Pipeline(name="x8220_18",parent="x8220") { implicit CU => 
       val x8101 = CU.temp(None).name("x8101")
@@ -2027,9 +2027,9 @@ object BlackScholes extends PIRApp {
         .store(bus_955_v, None, None)
       val ctr83 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_18_unit = CounterChain(name = "x8220_18_unit", ctr83).iter(0)
-      Stage(operands=List(x8098, Const(-1.2)), op=FltLt, results=List(CU.vecOut(bus_959_v)))
+      Stage(operands=List(x8098, Const(-1.2)), op=FltLt, results=List(bus_959_v))
       Stage(operands=List(x8098, Const(0.1)), op=FltMul, results=List(x8101))
-      Stage(operands=List(x8101, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_963_v)))
+      Stage(operands=List(x8101, Const(0.35)), op=FltAdd, results=List(bus_963_v))
     }
     val x8220_27 = Pipeline(name="x8220_27",parent="x8220") { implicit CU => 
       val x8026 = new VectorFIFO()
@@ -2050,8 +2050,8 @@ object BlackScholes extends PIRApp {
         .store(bus_951_v, None, None)
       val ctr92 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_27_unit = CounterChain(name = "x8220_27_unit", ctr92).iter(0)
-      Stage(operands=List(x8026, x8139), op=FltMul, results=List(CU.vecOut(bus_1018_v)))
-      Stage(operands=List(x8095, x8093), op=FltSub, results=List(CU.vecOut(bus_1019_v)))
+      Stage(operands=List(x8026, x8139), op=FltMul, results=List(bus_1018_v))
+      Stage(operands=List(x8095, x8093), op=FltSub, results=List(bus_1019_v))
     }
     val x8220_30 = Pipeline(name="x8220_30",parent="x8220") { implicit CU => 
       val x8146 = CU.temp(None).name("x8146")
@@ -2062,8 +2062,8 @@ object BlackScholes extends PIRApp {
       val ctr95 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_30_unit = CounterChain(name = "x8220_30_unit", ctr95).iter(0)
       Stage(operands=List(x8143, Const(0.1)), op=FltMul, results=List(x8146))
-      Stage(operands=List(x8146, Const(0.35)), op=FltAdd, results=List(CU.vecOut(bus_1031_v)))
-      Stage(operands=List(Const(1.0), x8143), op=FltAdd, results=List(CU.vecOut(bus_1033_v)))
+      Stage(operands=List(x8146, Const(0.35)), op=FltAdd, results=List(bus_1031_v))
+      Stage(operands=List(Const(1.0), x8143), op=FltAdd, results=List(bus_1033_v))
     }
     val x8220_33 = Pipeline(name="x8220_33",parent="x8220") { implicit CU => 
       val x8162 = CU.temp(None).name("x8162")
@@ -2088,7 +2088,7 @@ object BlackScholes extends PIRApp {
       val x8220_33_unit = CounterChain(name = "x8220_33_unit", ctr98).iter(0)
       Stage(operands=List(x8145, x8147, x8160), op=MuxOp, results=List(x8161))
       Stage(operands=List(x8144, Const(0.0), x8161), op=MuxOp, results=List(x8162))
-      Stage(operands=List(x8162, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_1054_v)))
+      Stage(operands=List(x8162, Const(0.3989423)), op=FltMul, results=List(bus_1054_v))
     }
     val x8220_17 = Pipeline(name="x8220_17",parent="x8220") { implicit CU => 
       val x8097 = CU.temp(None).name("x8097")
@@ -2100,8 +2100,8 @@ object BlackScholes extends PIRApp {
       val ctr82 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_17_unit = CounterChain(name = "x8220_17_unit", ctr82).iter(0)
       Stage(operands=List(x8096, x8096), op=FltMul, results=List(x8097))
-      Stage(operands=List(x8097, Const(-0.05)), op=FltMul, results=List(x8098, CU.vecOut(bus_955_v)))
-      Stage(operands=List(x8098, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_957_v)))
+      Stage(operands=List(x8097, Const(-0.05)), op=FltMul, results=List(x8098, bus_955_v))
+      Stage(operands=List(x8098, Const(-3.5)), op=FltLt, results=List(bus_957_v))
     }
     val x8220_21 = Pipeline(name="x8220_21",parent="x8220") { implicit CU => 
       val x8117 = CU.temp(None).name("x8117")
@@ -2126,7 +2126,7 @@ object BlackScholes extends PIRApp {
       val x8220_21_unit = CounterChain(name = "x8220_21_unit", ctr86).iter(0)
       Stage(operands=List(x8100, x8102, x8115), op=MuxOp, results=List(x8116))
       Stage(operands=List(x8099, Const(0.0), x8116), op=MuxOp, results=List(x8117))
-      Stage(operands=List(x8117, Const(0.3989423)), op=FltMul, results=List(CU.vecOut(bus_986_v)))
+      Stage(operands=List(x8117, Const(0.3989423)), op=FltMul, results=List(bus_986_v))
     }
     val x8220_6 = Pipeline(name="x8220_6",parent="x8220") { implicit CU => 
       val x8034 = new VectorFIFO()
@@ -2143,8 +2143,8 @@ object BlackScholes extends PIRApp {
         .store(bus_897_v, None, None)
       val ctr71 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_6_unit = CounterChain(name = "x8220_6_unit", ctr71).iter(0)
-      Stage(operands=List(x8062, x8068), op=FltAdd, results=List(CU.vecOut(bus_908_v)))
-      Stage(operands=List(x8034, Const(10.0)), op=FltLt, results=List(CU.vecOut(bus_910_v)))
+      Stage(operands=List(x8062, x8068), op=FltAdd, results=List(bus_908_v))
+      Stage(operands=List(x8034, Const(10.0)), op=FltLt, results=List(bus_910_v))
     }
     val x8220_15 = Pipeline(name="x8220_15",parent="x8220") { implicit CU => 
       val x8092 = CU.temp(None).name("x8092")
@@ -2168,8 +2168,8 @@ object BlackScholes extends PIRApp {
       val ctr80 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_15_unit = CounterChain(name = "x8220_15_unit", ctr80).iter(0)
       Stage(operands=List(x8054, x8069, x8091), op=MuxOp, results=List(x8092))
-      Stage(operands=List(x8032, x8092), op=FltMul, results=List(x8093, CU.vecOut(bus_949_v)))
-      Stage(operands=List(x8093, x8093), op=FltMul, results=List(CU.vecOut(bus_950_v)))
+      Stage(operands=List(x8032, x8092), op=FltMul, results=List(x8093, bus_949_v))
+      Stage(operands=List(x8093, x8093), op=FltMul, results=List(bus_950_v))
     }
     val x8220_19 = Pipeline(name="x8220_19",parent="x8220") { implicit CU => 
       val x8106 = CU.temp(None).name("x8106")
@@ -2188,9 +2188,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8098, x8098), op=FltMul, results=List(x8104))
       Stage(operands=List(x8104, Const(2.0)), op=FltDiv, results=List(x8105))
       Stage(operands=List(x8103, x8105), op=FltAdd, results=List(x8106))
-      Stage(operands=List(x8104, x8098), op=FltMul, results=List(x8107, CU.vecOut(bus_970_v)))
+      Stage(operands=List(x8104, x8098), op=FltMul, results=List(x8107, bus_970_v))
       Stage(operands=List(x8107, Const(6.0)), op=FltDiv, results=List(x8108))
-      Stage(operands=List(x8106, x8108), op=FltAdd, results=List(CU.vecOut(bus_973_v)))
+      Stage(operands=List(x8106, x8108), op=FltAdd, results=List(bus_973_v))
     }
     val x8220_44 = Pipeline(name="x8220_44",parent="x8220") { implicit CU => 
       val x8212 = CU.temp(None).name("x8212")
@@ -2217,10 +2217,10 @@ object BlackScholes extends PIRApp {
       val x8220_44_unit = CounterChain(name = "x8220_44_unit", ctr109).iter(0)
       Stage(operands=List(x8028, x8205), op=FltMul, results=List(x8206))
       Stage(operands=List(x8206, x8184), op=FltMul, results=List(x8212))
-      Stage(operands=List(x8211, x8212), op=FltSub, results=List(CU.vecOut(bus_1119_v)))
+      Stage(operands=List(x8211, x8212), op=FltSub, results=List(bus_1119_v))
       Stage(operands=List(x8184), op=FltNeg, results=List(x8209))
       Stage(operands=List(x8209, Const(1.0)), op=FltAdd, results=List(x8210))
-      Stage(operands=List(x8206, x8210), op=FltMul, results=List(CU.vecOut(bus_1123_v)))
+      Stage(operands=List(x8206, x8210), op=FltMul, results=List(bus_1123_v))
     }
     val x8220_10 = Pipeline(name="x8220_10",parent="x8220") { implicit CU => 
       val x8080 = CU.temp(None).name("x8080")
@@ -2231,8 +2231,8 @@ object BlackScholes extends PIRApp {
       val ctr75 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_10_unit = CounterChain(name = "x8220_10_unit", ctr75).iter(0)
       Stage(operands=List(x8034, Const(0.008)), op=FltMul, results=List(x8080))
-      Stage(operands=List(x8080, Const(20.0)), op=FltAdd, results=List(CU.vecOut(bus_932_v)))
-      Stage(operands=List(x8034, Const(100000.0)), op=FltLt, results=List(CU.vecOut(bus_934_v)))
+      Stage(operands=List(x8080, Const(20.0)), op=FltAdd, results=List(bus_932_v))
+      Stage(operands=List(x8034, Const(100000.0)), op=FltLt, results=List(bus_934_v))
     }
     val x8220_12 = Pipeline(name="x8220_12",parent="x8220") { implicit CU => 
       val x8078 = new VectorFIFO()
@@ -2249,7 +2249,7 @@ object BlackScholes extends PIRApp {
         .store(bus_922_v, None, None)
       val ctr77 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_12_unit = CounterChain(name = "x8220_12_unit", ctr77).iter(0)
-      Stage(operands=List(x8076, x8078, x8088), op=MuxOp, results=List(CU.vecOut(bus_945_v)))
+      Stage(operands=List(x8076, x8078, x8088), op=MuxOp, results=List(bus_945_v))
     }
     val x8220_0 = Pipeline(name="x8220_0",parent="x8220") { implicit CU => 
       val x8038 = CU.temp(None).name("x8038")
@@ -2265,8 +2265,8 @@ object BlackScholes extends PIRApp {
       val ctr65 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_0_unit = CounterChain(name = "x8220_0_unit", ctr65).iter(0)
       Stage(operands=List(x8026, x8028), op=FltDiv, results=List(x8038))
-      Stage(operands=List(x8038, Const(1.0)), op=FltSub, results=List(x8039, CU.vecOut(bus_863_v)))
-      Stage(operands=List(x8039, x8039), op=FltMul, results=List(CU.vecOut(bus_864_v)))
+      Stage(operands=List(x8038, Const(1.0)), op=FltSub, results=List(x8039, bus_863_v))
+      Stage(operands=List(x8039, x8039), op=FltMul, results=List(bus_864_v))
     }
     val x8220_5 = Pipeline(name="x8220_5",parent="x8220") { implicit CU => 
       val x8064 = CU.temp(None).name("x8064")
@@ -2288,13 +2288,13 @@ object BlackScholes extends PIRApp {
         .store(bus_896_v, None, None)
       val ctr70 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_5_unit = CounterChain(name = "x8220_5_unit", ctr70).iter(0)
-      Stage(operands=List(x8057, x8061), op=FltSub, results=List(CU.vecOut(bus_897_v)))
+      Stage(operands=List(x8057, x8061), op=FltSub, results=List(bus_897_v))
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8063))
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8064))
       Stage(operands=List(x8063, x8064), op=FltMul, results=List(x8065))
       Stage(operands=List(x8034, Const(1.0)), op=FltSub, results=List(x8066))
       Stage(operands=List(x8065, x8066), op=FltMul, results=List(x8067))
-      Stage(operands=List(x8067, Const(16.0)), op=FltDiv, results=List(CU.vecOut(bus_907_v)))
+      Stage(operands=List(x8067, Const(16.0)), op=FltDiv, results=List(bus_907_v))
     }
     val x8220_16 = Pipeline(name="x8220_16",parent="x8220") { implicit CU => 
       val x8095 = CU.temp(None).name("x8095")
@@ -2308,8 +2308,8 @@ object BlackScholes extends PIRApp {
         .store(bus_881_v, None, None)
       val ctr81 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_16_unit = CounterChain(name = "x8220_16_unit", ctr81).iter(0)
-      Stage(operands=List(x8053, x8094), op=FltDiv, results=List(x8095, CU.vecOut(bus_951_v)))
-      Stage(operands=List(x8095), op=FltAbs, results=List(CU.vecOut(bus_952_v)))
+      Stage(operands=List(x8053, x8094), op=FltDiv, results=List(x8095, bus_951_v))
+      Stage(operands=List(x8095), op=FltAbs, results=List(bus_952_v))
     }
     val x8220_41 = Pipeline(name="x8220_41",parent="x8220") { implicit CU => 
       val x8195 = CU.temp(None).name("x8195")
@@ -2328,9 +2328,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8186, x8186), op=FltMul, results=List(x8192))
       Stage(operands=List(x8192, Const(2.0)), op=FltDiv, results=List(x8193))
       Stage(operands=List(x8191, x8193), op=FltAdd, results=List(x8194))
-      Stage(operands=List(x8192, x8186), op=FltMul, results=List(x8195, CU.vecOut(bus_1102_v)))
+      Stage(operands=List(x8192, x8186), op=FltMul, results=List(x8195, bus_1102_v))
       Stage(operands=List(x8195, Const(6.0)), op=FltDiv, results=List(x8196))
-      Stage(operands=List(x8194, x8196), op=FltAdd, results=List(CU.vecOut(bus_1105_v)))
+      Stage(operands=List(x8194, x8196), op=FltAdd, results=List(bus_1105_v))
     }
     val x8220_37 = Pipeline(name="x8220_37",parent="x8220") { implicit CU => 
       val x8176 = CU.temp(None).name("x8176")
@@ -2359,7 +2359,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8168, Const(1.7814779)), op=FltMul, results=List(x8173))
       Stage(operands=List(x8172, x8173), op=FltAdd, results=List(x8176))
       Stage(operands=List(x8176, x8174), op=FltAdd, results=List(x8177))
-      Stage(operands=List(x8177, x8175), op=FltAdd, results=List(CU.vecOut(bus_1077_v)))
+      Stage(operands=List(x8177, x8175), op=FltAdd, results=List(bus_1077_v))
     }
     val x8220_2 = Pipeline(name="x8220_2",parent="x8220") { implicit CU => 
       val x8049 = CU.temp(None).name("x8049")
@@ -2382,10 +2382,10 @@ object BlackScholes extends PIRApp {
         .store(x7574_x7574_dsp0_bank0_data_v, None, None)
       val ctr67 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_2_unit = CounterChain(name = "x8220_2_unit", ctr67).iter(0)
-      Stage(operands=List(x8045, x8047), op=FltSub, results=List(CU.vecOut(bus_875_v)))
+      Stage(operands=List(x8045, x8047), op=FltSub, results=List(bus_875_v))
       Stage(operands=List(x8032, x8032), op=FltMul, results=List(x8049))
       Stage(operands=List(x8049, Const(0.5)), op=FltMul, results=List(x8050))
-      Stage(operands=List(x8030, x8050), op=FltAdd, results=List(CU.vecOut(bus_879_v)))
+      Stage(operands=List(x8030, x8050), op=FltAdd, results=List(bus_879_v))
     }
     val x8220_8 = Pipeline(name="x8220_8",parent="x8220") { implicit CU => 
       val x8074 = CU.temp(None).name("x8074")
@@ -2396,8 +2396,8 @@ object BlackScholes extends PIRApp {
       val ctr73 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_8_unit = CounterChain(name = "x8220_8_unit", ctr73).iter(0)
       Stage(operands=List(x8034, Const(0.08)), op=FltMul, results=List(x8074))
-      Stage(operands=List(x8074, Const(2.5)), op=FltAdd, results=List(CU.vecOut(bus_920_v)))
-      Stage(operands=List(x8034, Const(1000.0)), op=FltLt, results=List(CU.vecOut(bus_922_v)))
+      Stage(operands=List(x8074, Const(2.5)), op=FltAdd, results=List(bus_920_v))
+      Stage(operands=List(x8034, Const(1000.0)), op=FltLt, results=List(bus_922_v))
     }
     val x8220_28 = Pipeline(name="x8220_28",parent="x8220") { implicit CU => 
       val x8141 = CU.temp(None).name("x8141")
@@ -2408,9 +2408,9 @@ object BlackScholes extends PIRApp {
         .store(bus_1019_v, None, None)
       val ctr93 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_28_unit = CounterChain(name = "x8220_28_unit", ctr93).iter(0)
-      Stage(operands=List(x8140), op=FltAbs, results=List(x8141, CU.vecOut(bus_1020_v)))
+      Stage(operands=List(x8140), op=FltAbs, results=List(x8141, bus_1020_v))
       Stage(operands=List(x8141, x8141), op=FltMul, results=List(x8142))
-      Stage(operands=List(x8142, Const(-0.05)), op=FltMul, results=List(CU.vecOut(bus_1023_v)))
+      Stage(operands=List(x8142, Const(-0.05)), op=FltMul, results=List(bus_1023_v))
     }
     val x8220_31 = Pipeline(name="x8220_31",parent="x8220") { implicit CU => 
       val x8151 = CU.temp(None).name("x8151")
@@ -2433,8 +2433,8 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8148, x8150), op=FltAdd, results=List(x8151))
       Stage(operands=List(x8149, x8143), op=FltMul, results=List(x8152))
       Stage(operands=List(x8152, Const(6.0)), op=FltDiv, results=List(x8153))
-      Stage(operands=List(x8151, x8153), op=FltAdd, results=List(CU.vecOut(bus_1041_v)))
-      Stage(operands=List(x8152, x8143), op=FltMul, results=List(CU.vecOut(bus_1042_v)))
+      Stage(operands=List(x8151, x8153), op=FltAdd, results=List(bus_1041_v))
+      Stage(operands=List(x8152, x8143), op=FltMul, results=List(bus_1042_v))
     }
     val x8220_46 = Pipeline(name="x8220_46",parent="x8220") { implicit CU => 
       val x8217 = new VectorFIFO()
@@ -2451,7 +2451,7 @@ object BlackScholes extends PIRApp {
         .store(bus_1119_v, None, None)
       val ctr111 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_46_unit = CounterChain(name = "x8220_46_unit", ctr111).iter(0)
-      Stage(operands=List(x8217, x8216, x8213), op=MuxOp, results=List(CU.vecOut(x7580_x8219_data_v)))
+      Stage(operands=List(x8217, x8216, x8213), op=MuxOp, results=List(x7580_x8219_data_v))
     }
     val x8220_20 = Pipeline(name="x8220_20",parent="x8220") { implicit CU => 
       val x8110 = CU.temp(None).name("x8110")
@@ -2478,7 +2478,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8109, x8111), op=FltAdd, results=List(x8112))
       Stage(operands=List(x8110, x8098), op=FltMul, results=List(x8113))
       Stage(operands=List(x8113, Const(120.0)), op=FltDiv, results=List(x8114))
-      Stage(operands=List(x8112, x8114), op=FltAdd, results=List(CU.vecOut(bus_981_v)))
+      Stage(operands=List(x8112, x8114), op=FltAdd, results=List(bus_981_v))
     }
     val x8220_24 = Pipeline(name="x8220_24",parent="x8220") { implicit CU => 
       val x8124 = CU.temp(None).name("x8124")
@@ -2495,8 +2495,8 @@ object BlackScholes extends PIRApp {
       val x8220_24_unit = CounterChain(name = "x8220_24_unit", ctr89).iter(0)
       Stage(operands=List(x8123, x8121), op=FltMul, results=List(x8124))
       Stage(operands=List(x8124, x8121), op=FltMul, results=List(x8125))
-      Stage(operands=List(x8125, Const(1.3302745)), op=FltMul, results=List(CU.vecOut(bus_1000_v)))
-      Stage(operands=List(x8124, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_1002_v)))
+      Stage(operands=List(x8125, Const(1.3302745)), op=FltMul, results=List(bus_1000_v))
+      Stage(operands=List(x8124, Const(-1.8212559)), op=FltMul, results=List(bus_1002_v))
     }
     val x8220_3 = Pipeline(name="x8220_3",parent="x8220") { implicit CU => 
       val x8052 = CU.temp(None).name("x8052")
@@ -2515,8 +2515,8 @@ object BlackScholes extends PIRApp {
       val ctr68 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_3_unit = CounterChain(name = "x8220_3_unit", ctr68).iter(0)
       Stage(operands=List(x8051, x8034), op=FltMul, results=List(x8052))
-      Stage(operands=List(x8052, x8048), op=FltAdd, results=List(CU.vecOut(bus_881_v)))
-      Stage(operands=List(x8034, Const(2.0)), op=FltLt, results=List(CU.vecOut(bus_883_v)))
+      Stage(operands=List(x8052, x8048), op=FltAdd, results=List(bus_881_v))
+      Stage(operands=List(x8034, Const(2.0)), op=FltLt, results=List(bus_883_v))
     }
     val x8220_22 = Pipeline(name="x8220_22",parent="x8220") { implicit CU => 
       val x8121 = CU.temp(None).name("x8121")
@@ -2530,8 +2530,8 @@ object BlackScholes extends PIRApp {
       val x8220_22_unit = CounterChain(name = "x8220_22_unit", ctr87).iter(0)
       Stage(operands=List(x8096, Const(0.2316419)), op=FltMul, results=List(x8119))
       Stage(operands=List(x8119, Const(1.0)), op=FltAdd, results=List(x8120))
-      Stage(operands=List(Const(1.0), x8120), op=FltDiv, results=List(x8121, CU.vecOut(bus_992_v)))
-      Stage(operands=List(x8121, Const(0.31938154)), op=FltMul, results=List(CU.vecOut(bus_994_v)))
+      Stage(operands=List(Const(1.0), x8120), op=FltDiv, results=List(x8121, bus_992_v))
+      Stage(operands=List(x8121, Const(0.31938154)), op=FltMul, results=List(bus_994_v))
     }
     val x8220_25 = Pipeline(name="x8220_25",parent="x8220") { implicit CU => 
       val x8128 = CU.temp(None).name("x8128")
@@ -2560,7 +2560,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8123, Const(1.7814779)), op=FltMul, results=List(x8128))
       Stage(operands=List(x8127, x8128), op=FltAdd, results=List(x8131))
       Stage(operands=List(x8131, x8129), op=FltAdd, results=List(x8132))
-      Stage(operands=List(x8132, x8130), op=FltAdd, results=List(CU.vecOut(bus_1009_v)))
+      Stage(operands=List(x8132, x8130), op=FltAdd, results=List(bus_1009_v))
     }
     val x8220_36 = Pipeline(name="x8220_36",parent="x8220") { implicit CU => 
       val x8170 = CU.temp(None).name("x8170")
@@ -2577,8 +2577,8 @@ object BlackScholes extends PIRApp {
       val x8220_36_unit = CounterChain(name = "x8220_36_unit", ctr101).iter(0)
       Stage(operands=List(x8168, x8166), op=FltMul, results=List(x8169))
       Stage(operands=List(x8169, x8166), op=FltMul, results=List(x8170))
-      Stage(operands=List(x8170, Const(1.3302745)), op=FltMul, results=List(CU.vecOut(bus_1068_v)))
-      Stage(operands=List(x8169, Const(-1.8212559)), op=FltMul, results=List(CU.vecOut(bus_1070_v)))
+      Stage(operands=List(x8170, Const(1.3302745)), op=FltMul, results=List(bus_1068_v))
+      Stage(operands=List(x8169, Const(-1.8212559)), op=FltMul, results=List(bus_1070_v))
     }
     val x8220_11 = Pipeline(name="x8220_11",parent="x8220") { implicit CU => 
       val x8085 = CU.temp(None).name("x8085")
@@ -2609,7 +2609,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8034, Const(2.0E-4)), op=FltMul, results=List(x8085))
       Stage(operands=List(x8085, Const(300.0)), op=FltAdd, results=List(x8086))
       Stage(operands=List(x8082, x8084, x8086), op=MuxOp, results=List(x8087))
-      Stage(operands=List(x8079, x8081, x8087), op=MuxOp, results=List(CU.vecOut(bus_944_v)))
+      Stage(operands=List(x8079, x8081, x8087), op=MuxOp, results=List(bus_944_v))
     }
     val x8220_26 = Pipeline(name="x8220_26",parent="x8220") { implicit CU => 
       val x8137 = CU.temp(None).name("x8137")
@@ -2640,7 +2640,7 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8135), op=FltNeg, results=List(x8136))
       Stage(operands=List(x8136, Const(1.0)), op=FltAdd, results=List(x8137))
       Stage(operands=List(x8095, Const(0.0)), op=FltLt, results=List(x8138))
-      Stage(operands=List(x8138, x8135, x8137), op=MuxOp, results=List(CU.vecOut(bus_1017_v)))
+      Stage(operands=List(x8138, x8135, x8137), op=MuxOp, results=List(bus_1017_v))
     }
     val x8220_1 = Pipeline(name="x8220_1",parent="x8220") { implicit CU => 
       val x8044 = CU.temp(None).name("x8044")
@@ -2662,9 +2662,9 @@ object BlackScholes extends PIRApp {
       Stage(operands=List(x8039, x8041), op=FltSub, results=List(x8042))
       Stage(operands=List(x8040, x8039), op=FltMul, results=List(x8043))
       Stage(operands=List(x8043, Const(3.0)), op=FltDiv, results=List(x8044))
-      Stage(operands=List(x8042, x8044), op=FltAdd, results=List(CU.vecOut(bus_871_v)))
+      Stage(operands=List(x8042, x8044), op=FltAdd, results=List(bus_871_v))
       Stage(operands=List(x8043, x8039), op=FltMul, results=List(x8046))
-      Stage(operands=List(x8046, Const(4.0)), op=FltDiv, results=List(CU.vecOut(bus_874_v)))
+      Stage(operands=List(x8046, Const(4.0)), op=FltDiv, results=List(bus_874_v))
     }
     val x8220_39 = Pipeline(name="x8220_39",parent="x8220") { implicit CU => 
       val x8186 = CU.temp(None).name("x8186")
@@ -2680,8 +2680,8 @@ object BlackScholes extends PIRApp {
       val ctr104 = Counter(min=Const(0), max=Const(1), step=Const(16), par=16) // Counter
       val x8220_39_unit = CounterChain(name = "x8220_39_unit", ctr104).iter(0)
       Stage(operands=List(x8030), op=FltNeg, results=List(x8185))
-      Stage(operands=List(x8185, x8034), op=FltMul, results=List(x8186, CU.vecOut(bus_1087_v)))
-      Stage(operands=List(x8186, Const(-3.5)), op=FltLt, results=List(CU.vecOut(bus_1089_v)))
+      Stage(operands=List(x8185, x8034), op=FltMul, results=List(x8186, bus_1087_v))
+      Stage(operands=List(x8186, Const(-3.5)), op=FltLt, results=List(bus_1089_v))
     }
     val x8220_34 = Pipeline(name="x8220_34",parent="x8220") { implicit CU => 
       val x8164 = CU.temp(None).name("x8164")
@@ -2695,8 +2695,8 @@ object BlackScholes extends PIRApp {
       val x8220_34_unit = CounterChain(name = "x8220_34_unit", ctr99).iter(0)
       Stage(operands=List(x8141, Const(0.2316419)), op=FltMul, results=List(x8164))
       Stage(operands=List(x8164, Const(1.0)), op=FltAdd, results=List(x8165))
-      Stage(operands=List(Const(1.0), x8165), op=FltDiv, results=List(x8166, CU.vecOut(bus_1060_v)))
-      Stage(operands=List(x8166, Const(0.31938154)), op=FltMul, results=List(CU.vecOut(bus_1062_v)))
+      Stage(operands=List(Const(1.0), x8165), op=FltDiv, results=List(x8166, bus_1060_v))
+      Stage(operands=List(x8166, Const(0.31938154)), op=FltMul, results=List(bus_1062_v))
     }
     val x8220 = StreamController(name="x8220",parent="x8273") { implicit CU => 
       val ctr15 = Counter(min=Const(0), max=Const(2000), step=Const(1), par=16) // Counter
@@ -2714,8 +2714,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 0)
       val x8236_unit = CounterChain(name = "x8236_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x8229))
-      Stage(operands=List(x8229, x8231), op=FixAdd, results=List(CU.scalarOut(x8225_b8369_x8235_b8373_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x8225_b8370_x8235_b8374_s)))
+      Stage(operands=List(x8229, x8231), op=FixAdd, results=List(x8225_b8369_x8235_b8373_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x8225_b8370_x8235_b8374_s))
     }
     val x8244 = Pipeline(name="x8244",parent="x8248") { implicit CU => 
       val ctr16 = Counter(min=Const(0), max=Const(2000), step=Const(1), par=16) // Counter
@@ -2747,8 +2747,8 @@ object BlackScholes extends PIRApp {
       val x7566 = CounterChain.copy("x8273", "x7566").iterIdx(0, 1)
       val x8260_unit = CounterChain(name = "x8260_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x7566(0), Const(2)), op=FixSla, results=List(x8253))
-      Stage(operands=List(x8253, x8255), op=FixAdd, results=List(CU.scalarOut(x8249_b8377_x8259_b8381_s)))
-      Stage(operands=List(Const(8000)), op=Bypass, results=List(CU.scalarOut(x8249_b8378_x8259_b8382_s)))
+      Stage(operands=List(x8253, x8255), op=FixAdd, results=List(x8249_b8377_x8259_b8381_s))
+      Stage(operands=List(Const(8000)), op=Bypass, results=List(x8249_b8378_x8259_b8382_s))
     }
     val x8268 = Pipeline(name="x8268",parent="x8272") { implicit CU => 
       val ctr17 = Counter(min=Const(0), max=Const(2000), step=Const(1), par=16) // Counter

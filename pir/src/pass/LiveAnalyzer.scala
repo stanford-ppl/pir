@@ -75,13 +75,15 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
   }
 
 
-  private def addRes(result:Any, stage:Stage, stages:List[Stage])(implicit cu:ComputeUnit) = {
+  private def addRes(result:Any, stage:Stage, stages:List[Stage])(implicit cu:ComputeUnit):Any = {
     result match {
       case res@(_:WtAddrPR | _:StorePR | _:VecOutPR | _:ScalarOutPR) => 
         defOf(stage) = res.asInstanceOf[Reg]
         liveOutOf(stages.last) = res.asInstanceOf[Reg]
         res
       case res:Reg => defOf(stage) = res; res
+      case res:Scalar => addRes(cu.scalarOut(res), stage, stages)
+      case res:Vector => addRes(cu.vecOut(res), stage, stages)
       case res => throw PIRException(s"Unknown type of result = ${res} for $stage in $cu")
     }
   }

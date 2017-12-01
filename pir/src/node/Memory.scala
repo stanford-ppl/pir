@@ -43,6 +43,7 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
       case data:Output => val in = writePortMux.addInput; in.connect(data); in
       case data:GlobalInput => writePort(data.out)
       case data:Variable => writePort(ctrler.newIn(data))
+      case data:OnChipMem => writePort(data.readPort)
     }
   }
 
@@ -154,6 +155,7 @@ class SRAM()(implicit override val ctrler:MemoryPipeline, design: PIR)
     addr match {
       case addr:Output => val in = readAddrMux.addInput; in.connect(addr); in
       case addr:Counter => readAddr(addr.out)
+      case data:OnChipMem => writePort(data.readPort)
     }
   } 
 
@@ -162,6 +164,7 @@ class SRAM()(implicit override val ctrler:MemoryPipeline, design: PIR)
     addr match {
       case addr:Output => val in = writeAddrMux.addInput; in.connect(addr); in
       case addr:Counter => writeAddr(addr.out)
+      case data:OnChipMem => writePort(data.readPort)
     }
   }
 

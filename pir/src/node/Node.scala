@@ -29,6 +29,7 @@ abstract class Node (implicit val design: PIR) {
   def name(n:String):this.type = { nameOf(this) = n; this }
   def name:Option[String] = nameOf.get(this)
   def index:Option[Int] = indexOf.get(this)
+  def index(i:Int) = { indexOf(this) = i; this }
 }
 
 trait Module extends Node {

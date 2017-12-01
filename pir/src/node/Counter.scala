@@ -238,11 +238,18 @@ class Counter(implicit override val ctrler:ComputeUnit, design: PIR) extends Pri
   } 
 }
 object Counter {
-  def apply(min:Output, max:Output, step:Output, par:Int)(implicit ctrler:ComputeUnit, design: PIR):Counter = { 
+  def connect(input:Input, output:Any) = {
+    output match {
+      case output:Output => input.connect(output)
+      case output:OnChipMem => input.connect(output.readPort)
+      case output:Const[_] => input.connect(output.out)
+    }
+  }
+  def apply(min:Any, max:Any, step:Any, par:Int)(implicit ctrler:ComputeUnit, design: PIR):Counter = { 
     val c = new Counter()
-    c.min.connect(min)
-    c.max.connect(max)
-    c.step.connect(step)
+    connect(c.min, min)
+    connect(c.max, max)
+    connect(c.step, step)
     c.par = par
     c 
   }

@@ -20,23 +20,41 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def finPass(cu:CL)(m:M):M = m
 
-  def map(ctrler:CL, cuMap:M):M = ctrler match {
-    case cu:ICL => map(cu, cuMap)
-    case cu => finPass(cu)(cuMap)
+  def map(ctrler:CL, m:M):M = ctrler match {
+    case cu:ICL => map(cu, m)
+    case cu => finPass(cu)(m)
   }
   
-  def map(cu:ICL, cuMap:M):M = {
-    if (cu.stages.isEmpty) return cuMap
+  def map(cu:ICL, m:M):M = {
+    if (cu.stages.isEmpty) return m
     log[M](cu) {
-      var mp = cuMap
+      var mp = m
       val pcu = mp.pmmap(cu).asCU
       val nodes = cu.stages
       val reses = pcu.stages
-      def oor(pnodes:List[R], nodes:List[N], m:M) = OutOfResource(s"Not enough Stages in ${pcu} to map ${cu}.", pnodes, nodes, m)
-      mp = bindInOrder(reses, nodes, mp, List(mapStage _), finPass(cu) _, oor _)
+      if (nodes.size > reses.size) throw OutOfResource(s"Not enough Stages in ${pcu} to map ${cu}.", reses, nodes, mp)
+      mp = bind (
+        allNodes=nodes, 
+        initMap=mp,
+        constrain=mapStage _,
+        resFunc=resFunc(cu) _,
+        finPass=finPass(cu) _
+      )
       mp = stageFowarding(pcu, mp)
       mp
     }
+  }
+
+  def resFunc(cu:ICL)(n:N, m:M, triedRes:List[R]):List[R] = {
+    val pcu = m.pmmap(cu).asCU
+    var reses = pcu.stages
+    reses = reses.filterNot { r => m.pmmap.contains(r) } // Not used
+    reses = reses diff triedRes // Not tried
+    n.prev.foreach { prev =>
+      val pprev = m.pmmap(prev)
+      reses = reses.filter { r => r.index > pprev.index }
+    }
+    reses
   }
 
   /* Forward liveOut regs in pstages that doesn't have stage corresponding to them */

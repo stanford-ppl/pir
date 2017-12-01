@@ -25,7 +25,7 @@ object DotProduct extends PIRApp {
         .name("x1451")
         .buffering(1)
         .store(N_argin, None, None)
-      val ctr1 = Counter(min=Const(0), max=x1451.readPort, step=Const(16), par=1) // Counter
+      val ctr1 = Counter(min=Const(0), max=x1451, step=Const(16), par=1) // Counter
       val x1464 = CounterChain(name = "x1464", ctr1).iter(120000)
     }
     val x1465_dsp0_bank0 = MemoryPipeline(name="x1465_dsp0_bank0",parent="x1529") { implicit CU => 
@@ -41,7 +41,7 @@ object DotProduct extends PIRApp {
         .name("x1465")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x1486.readPort, Some(x1482(0)), Some("x1488"))
+        .store(x1486, Some(x1482(0)), Some("x1488"))
         .load(x1465_x1465_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522_0"))
     }
     val x1466_dsp0_bank0 = MemoryPipeline(name="x1466_dsp0_bank0",parent="x1529") { implicit CU => 
@@ -57,7 +57,7 @@ object DotProduct extends PIRApp {
         .name("x1466")
         .banking(Strided(1,16))
         .buffering(2)
-        .store(x1506.readPort, Some(x1502(0)), Some("x1508"))
+        .store(x1506, Some(x1502(0)), Some("x1508"))
         .load(x1466_x1466_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522_0"))
     }
     val x1488 = StreamController(name="x1488",parent="x1529") { implicit CU => 
@@ -72,8 +72,8 @@ object DotProduct extends PIRApp {
       val x1464 = CounterChain.copy("x1529", "x1464").iterIdx(0, 0)
       val x1479_unit = CounterChain(name = "x1479_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x1464(0), Const(2)), op=FixSla, results=List(x1472))
-      Stage(operands=List(x1472, x1474), op=FixAdd, results=List(CU.scalarOut(x1469_b1552_x1478_b1555_s)))
-      Stage(operands=List(Const(64)), op=Bypass, results=List(CU.scalarOut(x1469_b1553_x1478_b1556_s)))
+      Stage(operands=List(x1472, x1474), op=FixAdd, results=List(x1469_b1552_x1478_b1555_s))
+      Stage(operands=List(Const(64)), op=Bypass, results=List(x1469_b1553_x1478_b1556_s))
     }
     val x1480 = MemoryController(name="x1480",parent="x1488",offchip=a_oc, mctpe=TileLoad) { implicit CU => 
       val x1469_b1553 = new ScalarFIFO()
@@ -102,8 +102,8 @@ object DotProduct extends PIRApp {
       val x1464 = CounterChain.copy("x1529", "x1464").iterIdx(0, 0)
       val x1499_unit = CounterChain(name = "x1499_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x1464(0), Const(2)), op=FixSla, results=List(x1492))
-      Stage(operands=List(x1492, x1494), op=FixAdd, results=List(CU.scalarOut(x1489_b1559_x1498_b1562_s)))
-      Stage(operands=List(Const(64)), op=Bypass, results=List(CU.scalarOut(x1489_b1560_x1498_b1563_s)))
+      Stage(operands=List(x1492, x1494), op=FixAdd, results=List(x1489_b1559_x1498_b1562_s))
+      Stage(operands=List(Const(64)), op=Bypass, results=List(x1489_b1560_x1498_b1563_s))
     }
     val x1500 = MemoryController(name="x1500",parent="x1508",offchip=b_oc, mctpe=TileLoad) { implicit CU => 
       val x1489_b1560 = new ScalarFIFO()
@@ -121,6 +121,8 @@ object DotProduct extends PIRApp {
       val x1502 = CounterChain(name = "x1502", ctr3).iter(1)
     }
     val x1522_0 = Pipeline(name="x1522_0",parent="x1529") { implicit CU => 
+      val rd91 = CU.reduce
+      val ac93 = CU.accum(Const(0)).parent("x1522_0")
       val x1515 = new VectorFIFO()
         .size(1)
         .name("x1515")
@@ -131,19 +133,19 @@ object DotProduct extends PIRApp {
         .store(x1465_x1465_dsp0_bank0_data_v, None, None)
       val ctr4 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1511 = CounterChain(name = "x1511", ctr4).iter(1)
-      Stage(operands=List(x1513, x1515), op=FixMul, results=List(CU.reduce))
-      val (_, rr93) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x1522_0")
-      Stage(operands=List(rr93), op=Bypass, results=List(CU.scalarOut(x1509_x1521_s)))
+      Stage(operands=List(x1513, x1515), op=FixMul, results=List(rd91))
+      ReduceStages(operands=List(rd91, ac93), op=FixAdd, results=List(ac93, x1509_x1521_s))
     }
     val x1528_0 = Pipeline(name="x1528_0",parent="x1529") { implicit CU => 
+      val rd95 = CU.reduce
+      val ac97 = CU.accum(Const(0)).parent("x1529")
       val x1509 = new ScalarBuffer()
         .name("x1509")
         .buffering(2)
         .store(x1509_x1521_s, None, Some("x1522_0"))
       val x1528_unit = CounterChain(name = "x1528_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
-      Stage(operands=List(x1509), op=Bypass, results=List(CU.reduce))
-      val (_, rr97) = Stage.reduce(op=FixAdd, init=Const(0), accumParent="x1529")
-      Stage(operands=List(rr97), op=Bypass, results=List(CU.scalarOut(x1458_x1531_argout)))
+      Stage(operands=List(x1509), op=Bypass, results=List(rd95))
+      ReduceStages(operands=List(rd95, ac97), op=FixAdd, results=List(ac97, x1458_x1531_argout))
     }
     
   }

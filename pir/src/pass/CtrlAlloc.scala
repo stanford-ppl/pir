@@ -41,7 +41,7 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
 
   def setPredicate(ctrler:Controller) = {
     setAccumPredicate(ctrler)
-    setFifoPredicate(ctrler)
+    //setFifoPredicate(ctrler) //TODO: Find a more general way to handle this
   }
 
   def setFifoPredicate(ctrler:Controller) = {
