@@ -55,12 +55,9 @@ abstract class UniformCostRouter(implicit design:PIR) extends Router with Plasti
 
   def span(mp:M, tail:IO, head:IO):Seq[S] = {
     val start = mp.pmmap(ctrler(tail))
-    def adv(n:S, prevEdge:Option[(PIO, PIO)], c:C) = {
-      advance[IO, IO, PIO, PIO](mp, tail, head)(n, prevEdge, c)
-    }
     val nodes = uniformCostSpan[(PIO, PIO)](
       start=start,
-      advance=adv _,
+      advance=advance(mp, tail, head) _,
       logger=Some(logger)
     )
     nodes.flatMap { case (n, c) =>
