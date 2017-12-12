@@ -29,9 +29,12 @@ class CUMapper(implicit val design:PIR) extends Mapper {
   //routers += new VectorBFRouter()
   //routers += new ScalarBFRouter()
   //routers += new ControlBFRouter()
-  routers += new VectorUCRouter()
-  routers += new ScalarUCRouter()
-  routers += new ControlUCRouter()
+  //routers += new VectorUCRouter()
+  //routers += new ScalarUCRouter()
+  //routers += new ControlUCRouter()
+  routers += new VectorAStarRouter()
+  routers += new ScalarAStarRouter()
+  routers += new ControlAStarRouter()
 
   override def debug = PIRConfig.debugCUMapper
 

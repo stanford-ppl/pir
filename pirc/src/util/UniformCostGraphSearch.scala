@@ -7,6 +7,7 @@ import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
 
 trait UniformCostGraphSearch {
+  // (S, A, C): (State, Action, Cost)
   type BackPointer[S,A,C] = mutable.Map[S, (S,A,C)]
   type Explored[S] = mutable.ListBuffer[S]
   type AdvanceFunc[S,A,C] = (S,BackPointer[S,A,C],C) => Seq[(S, A, C)]
