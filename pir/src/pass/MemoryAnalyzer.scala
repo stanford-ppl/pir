@@ -161,19 +161,19 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
     cchain
   }
 
-  def copySwapCC(access:ComputeUnit, topCtrler:Controller, forRead:Boolean=false, forWrite:Boolean=false):Unit = {
-    access.getCopy(localCChainOf(topCtrler), logger=Some(this)).foreach { cc =>
+  def copySwapCC(destCU:ComputeUnit, topCtrler:Controller, forRead:Boolean=false, forWrite:Boolean=false):Unit = {
+    destCU.getCopy(localCChainOf(topCtrler), logger=Some(this)).foreach { cc =>
       if (forRead) pirmeta.forRead(cc) = true
       if (forWrite) pirmeta.forWrite(cc) = true
-      val (readCCs, rest) = access.cchains.partition { cc => pirmeta.forRead(cc) }
+      val (readCCs, rest) = destCU.cchains.partition { cc => pirmeta.forRead(cc) }
       val (writeCCs, localCCs) = rest.partition { cc => pirmeta.forWrite(cc) }
       dprintln(s"topCtrler=$topCtrler")
       dprintln(s"readCCs=${readCCs.map { cc => (cc, cc.original.ctrler) }}")
       dprintln(s"writeCCs=${writeCCs.map { cc => (cc, cc.original.ctrler)} }")
       dprintln(s"localCCs=${localCCs.map { cc => (cc, cc.original.ctrler)} }")
-      var newCCs = fillChain(access, sortCChains(readCCs))._2
-      newCCs ++= fillChain(access, sortCChains(writeCCs))._2
-      newCCs ++= fillChain(access, sortCChains(localCCs))._2
+      var newCCs = fillChain(destCU, sortCChains(readCCs))._2
+      newCCs ++= fillChain(destCU, sortCChains(writeCCs))._2
+      newCCs ++= fillChain(destCU, sortCChains(localCCs))._2
       (cc :: newCCs).foreach(analyzeNewCC)
     }
   }

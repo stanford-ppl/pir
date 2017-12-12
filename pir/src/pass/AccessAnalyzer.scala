@@ -26,9 +26,11 @@ class AccessAnalyzer(implicit design: PIR) extends Pass with Logger {
     emitBlock(s"setAddrser($mem)") {
       val map = mutable.Map[IO, Controller]()
       def setAddrser(addr:IO) = {
+        // Address routed globally
         val addrsers = (collectIn[GlobalInput](addr).map(in => in.from.ctrler)).toList
+        // Address produced locally 
         val addrser = if (addrsers.isEmpty) {
-          val ctrs = (collectIn[Counter](addr))
+          val ctrs = (collectIn[Counter](addr)) ++ (collectIn[Const[_]](addr))
           if (ctrs.nonEmpty) mem.ctrler
           else throw PIRException(s"$mem doesn't have addresser addr=$addr")
         } else {

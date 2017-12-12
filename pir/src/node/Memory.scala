@@ -30,21 +30,30 @@ abstract class OnChipMem(implicit val ctrler:Controller, design:PIR) extends Pri
   val notFull = Output(this, s"$this.notFull")
   val notEmpty = Output(this, s"$this.notEmpty")
 
+  def asInput(a:Any):Output = a match {
+    case a:Output => a
+    case a:Counter => a.out
+    case a:OnChipMem => a.readPort
+    case a:Const[_] => a.out
+    case a:GlobalInput => a.out
+    case a:Variable => asInput(ctrler.newIn(a))
+  }
+
+  def asOutput(a:Any):Input = a match {
+    case a:Input => a
+    case a:GlobalOutput => a.in
+    case a:Variable => asOutput(ctrler.newOut(a))
+  }
+
   def readPort(data:Any):Output = {
-    data match {
-      case data:Input => readPort.connect(data); readPort
-      case data:GlobalOutput => readPort(data.in)
-      case data:Variable => readPort(ctrler.newOut(data))
-    }
+    readPort.connect(asOutput(data))
+    readPort
   }
 
   def writePort(data:Any):Input = {
-    data match {
-      case data:Output => val in = writePortMux.addInput; in.connect(data); in
-      case data:GlobalInput => writePort(data.out)
-      case data:Variable => writePort(ctrler.newIn(data))
-      case data:OnChipMem => writePort(data.readPort)
-    }
+    val in = writePortMux.addInput
+    in.connect(asInput(data))
+    in
   }
 
   def readAddr(addr:Any):Input = throw PIRException(s"$this does not have readAddress")
@@ -152,20 +161,16 @@ class SRAM()(implicit override val ctrler:MemoryPipeline, design: PIR)
 
   val readAddr: Input = Input(this, s"${this}.ra")
   override def readAddr(addr:Any):Input = { 
-    addr match {
-      case addr:Output => val in = readAddrMux.addInput; in.connect(addr); in
-      case addr:Counter => readAddr(addr.out)
-      case data:OnChipMem => writePort(data.readPort)
-    }
-  } 
+    val in = readAddrMux.addInput
+    in.connect(asInput(addr))
+    in
+  }
 
   val writeAddr: Input = Input(this, s"${this}.wa")
   override def writeAddr(addr:Any):Input = { 
-    addr match {
-      case addr:Output => val in = writeAddrMux.addInput; in.connect(addr); in
-      case addr:Counter => writeAddr(addr.out)
-      case data:OnChipMem => writePort(data.readPort)
-    }
+    val in = writeAddrMux.addInput
+    in.connect(asInput(addr))
+    in
   }
 
   val readAddrMux = new ValidMux().name(s"$this.raMux")
