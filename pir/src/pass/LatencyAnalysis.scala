@@ -24,8 +24,8 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
   // Not used. Doens't work when addr calculation is splitted 
   def hackLen(mc:MemoryController) = {
     val lenWritter = lenOf(mc).writers.head.ctrler
-    lenWritter.asInstanceOf[ComputeUnit].stages.flatMap{ 
-      _.fu.fold(List[Node]())(_.operands.map(_.from.src)) }.collect { 
+    lenWritter.asInstanceOf[ComputeUnit].stages.flatMap { 
+      _.fu.operands.map(_.from.src) }.collect { 
         case Const(c:Int) => c
     }.reduce[Int]{ case (a,b) => max(a,b) }
   }
@@ -44,7 +44,7 @@ class LatencyAnalysis(override implicit val design: PIR) extends Pass with Logge
         case fu:FuncUnit => 
           //println(s"${fu.op} ${fu.ctrler}")
           fu.ctrler.asInstanceOf[InnerController].stages.reverseIterator.foreach { s =>
-            val fu = s.fu.get
+            val fu = s.fu
             fu.operands.foreach { op =>
               op.from.src match {
                 case c:Const[_] => constProp(c).foreach { c => return Some(c) }

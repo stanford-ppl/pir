@@ -93,7 +93,7 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
         }
       }
       pmmap.get[ST](pst).foreach { 
-        case st:ST => emitln(s"$fu.op=${st.fu.get.op}")
+        case st:ST => emitln(s"$fu.op=${st.fu.op}")
         case _ =>
       }
     }

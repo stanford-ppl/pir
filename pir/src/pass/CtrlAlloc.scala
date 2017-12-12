@@ -55,45 +55,44 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
           }
         }
         cu.stages.reverseIterator.foreach { stage =>
-          stage.fu.foreach { fu =>
-            fu.op match {
-              case MuxOp =>
-                val sel::data = fu.operands
-                data.foreach { 
+          val fu = stage.fu
+          fu.op match {
+            case MuxOp =>
+              val sel::data = fu.operands
+              data.foreach { 
+                _.from.src match {
+                  case PipeReg(stage, LoadPR(mem:FIFO)) => addPredicate(mem, sel)
+                  case mem:FIFO => addPredicate(mem, sel)
+                  case _ =>
+                }
+              }
+            case _ =>
+          }
+          fu.out.to.foreach {
+            _.src match {
+              case PipeReg(stage, reg) if lookUp.contains(reg) =>
+                var const:Option[Int] = None
+                var counter:Option[Counter] = None
+                fu.operands.foreach {
                   _.from.src match {
-                    case PipeReg(stage, LoadPR(mem:FIFO)) => addPredicate(mem, sel)
-                    case mem:FIFO => addPredicate(mem, sel)
-                    case _ =>
+                    case Const(c:Int) => const = Some(c)
+                    case PipeReg(stage, CtrPR(ctr)) => counter = Some(ctr)
+                    case ctr:Counter => counter = Some(ctr)
+                    case x => throw PIRException(s"Not supported operand $x for FIFO predication in ${ctrler}")
+                  }
+                }
+                if (const.isEmpty || counter.isEmpty) {
+                  throw PIRException(s"Not supported operand for FIFO predication in ${ctrler} const=$const counter=$counter")
+                } else {
+                  fu.op match {
+                    case op:FixOp if fixCompOps.contains(op) => 
+                      val predUnit = cu.ctrlBox.setFifoPredicate(counter.get, op, const.get)
+                      val fifo = lookUp(reg)
+                      fifo.predicate.connect(predUnit.out)
+                    case op => throw PIRException(s"Unsupported op for FIFO predication $op")
                   }
                 }
               case _ =>
-            }
-            fu.out.to.foreach {
-              _.src match {
-                case PipeReg(stage, reg) if lookUp.contains(reg) =>
-                  var const:Option[Int] = None
-                  var counter:Option[Counter] = None
-                  fu.operands.foreach {
-                    _.from.src match {
-                      case Const(c:Int) => const = Some(c)
-                      case PipeReg(stage, CtrPR(ctr)) => counter = Some(ctr)
-                      case ctr:Counter => counter = Some(ctr)
-                      case x => throw PIRException(s"Not supported operand $x for FIFO predication in ${ctrler}")
-                    }
-                  }
-                  if (const.isEmpty || counter.isEmpty) {
-                    throw PIRException(s"Not supported operand for FIFO predication in ${ctrler} const=$const counter=$counter")
-                  } else {
-                    fu.op match {
-                      case op:FixOp if fixCompOps.contains(op) => 
-                        val predUnit = cu.ctrlBox.setFifoPredicate(counter.get, op, const.get)
-                        val fifo = lookUp(reg)
-                        fifo.predicate.connect(predUnit.out)
-                      case op => throw PIRException(s"Unsupported op for FIFO predication $op")
-                    }
-                  }
-                case _ =>
-              }
             }
           }
         }

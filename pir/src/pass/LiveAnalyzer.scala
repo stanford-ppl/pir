@@ -58,7 +58,7 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
     stages.zipWithIndex.foreach { case (s, i) =>
       s.operands = s.operands.map ( opd => addOperand(opd, s, stages) )
       s.results = s.results.map(res => addRes(res, s, stages) )
-      s.fu.get.op = s.op
+      s.fu.op = s.op
       dprintln(s"stage = $s[${s.index.get}]")
       dprintln(s"- uses = ${useOf(s)}")
       dprintln(s"- defs = ${defOf(s)}")
@@ -134,24 +134,24 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
       dprintln(s"uses:${useOf(stage)}")
       // Connect operands
       stage.operands.foreach {
-        case oprd:Counter => stage.fu.get.addOperand(oprd.out)
-        case oprd:OnChipMem => stage.fu.get.addOperand(oprd.readPort)
-        case oprd:Const[_] => stage.fu.get.addOperand(oprd.out)
-        case oprd:Output => stage.fu.get.addOperand(oprd) // Not using register
+        case oprd:Counter => stage.fu.addOperand(oprd.out)
+        case oprd:OnChipMem => stage.fu.addOperand(oprd.readPort)
+        case oprd:Const[_] => stage.fu.addOperand(oprd.out)
+        case oprd:Output => stage.fu.addOperand(oprd) // Not using register
         case oprd:Reg if useOf(stage).contains(oprd) =>
           val pr = stage.prev.get.get(oprd)
-          stage.fu.get.addOperand(pr.out)
+          stage.fu.addOperand(pr.out)
           dprintln(s"connect stage $stage operand $oprd pr=$pr")
         case oprd:Reg => // AccumReg
           val pr = stage.get(oprd)
-          stage.fu.get.addOperand(pr.out)
+          stage.fu.addOperand(pr.out)
         case oprd => throw PIRException(s"Unknown type of oprd = $oprd for $stage in $cu")
       }
       // Connect Function Unit output
       stage.results.foreach {
         case reg:Reg if defOf(stage).contains(reg) =>
           val pr = stage.get(reg)
-          stage.fu.get.out.connect(pr.in)
+          stage.fu.out.connect(pr.in)
       }
       // Connect input of Pipeline Registers
       liveInOf(stage).foreach { reg =>
@@ -188,8 +188,8 @@ class LiveAnalyzer(implicit design: PIR) extends Pass with Logger {
 
   def checkConnection(stages:List[Stage])(implicit cu:ComputeUnit) = {
     stages.foreach { stage =>
-      stage.fu.get.operands.foreach { oprd => assert(oprd.isConnected, s"oprd $oprd in $stage of $cu is not connected") }
-      warn(!stage.fu.get.out.isConnected, s"$stage output is not connected in $cu")
+      stage.fu.operands.foreach { oprd => assert(oprd.isConnected, s"oprd $oprd in $stage of $cu is not connected") }
+      warn(!stage.fu.out.isConnected, s"$stage output is not connected in $cu")
       stage.prs.foreach { pr =>
         warn(!pr.in.isConnected, s"$pr.in $cu is not connected")
         warn(!pr.out.isConnected, s"$pr.out $cu is not connected")

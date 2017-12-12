@@ -103,12 +103,12 @@ class ConfigMapper(implicit val design: PIR) extends Mapper with HiearchicalTrav
     var mp = map
     val st = mp.pmmap.to[ST](pst)
     val par = parOf(st)
-    val op = st.fu.get.op
+    val op = st.fu.op
     val isReduce = st.isInstanceOf[pir.node.ReduceStage]
     // Pass through operand in accumulation
     val accumInput = st match {
       case st:pir.node.AccumStage =>
-        val operands = st.fu.get.operands
+        val operands = st.fu.operands
         val accOprd = operands.filter { oprd => existsIn(oprd) { _ == st.acc } }
         Some(mp.ipmap((operands diff accOprd.toSeq).head))
       case _ => None

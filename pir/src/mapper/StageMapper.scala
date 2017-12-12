@@ -116,7 +116,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def mapFUIn(n:ST, p:PST, map:M):M = {
     var mp = map
-    val fu = n.fu.get
+    val fu = n.fu
     val pfu = p.funcUnit 
     // Check Operand 
     fu.operands.zipWithIndex.foreach { case (oprd,i) =>
@@ -127,7 +127,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
 
   def mapFUOut(n:ST, p:PST, map:M):M = {
     var mp = map
-    val fu = n.fu.get
+    val fu = n.fu
     val pfu = p.funcUnit 
     // Check Operation 
     if (!pfu.ops.contains(fu.op)) throw OpNotSupported(p, n, mp)
@@ -169,7 +169,7 @@ class StageMapper(implicit val design:PIR) extends Mapper with LocalRouter {
   }
 }
 case class OpNotSupported(ps:PST, s:ST, mp:PIRMap)(implicit mapper:Mapper, design:PIR) extends MappingException(mp) {
-  override val msg = s"${ps}:[${ps.param.ops.mkString(",")}] doesn't support op:${s.fu.get.op} in ${s}"
+  override val msg = s"${ps}:[${ps.param.ops.mkString(",")}] doesn't support op:${s.fu.op} in ${s}"
 }
 //case class OutOfOperand(ps:PST, s:ST, pnodes:List[PI[_<:PModule]], nodes:List[IP], mp:PIRMap)(implicit mapper:Mapper, design:PIR) 
   //extends OutOfResource(mapper, s"Not enough operands in ${ps} to map ${s}.", pnodes, nodes, mp)

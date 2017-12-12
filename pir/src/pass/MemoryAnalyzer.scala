@@ -28,15 +28,14 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         case st:WAStage => forWrite(st) = true
         case st:RAStage => forRead(st) = true
       }
-      st.fu.foreach { fu =>
-        st match {
-          case st:WAStage => 
-            collectIn[Counter](fu.operands).foreach { p => forWrite(p) = true }
-            collectIn[ScalarMem](fu.operands).foreach { p => forWrite(p) = true }
-          case st:RAStage =>
-            collectIn[Counter](fu.operands).foreach { p => forRead(p) = true }
-            collectIn[ScalarMem](fu.operands).foreach { p => forRead(p) = true }
-        }
+      val fu = st.fu
+      st match {
+        case st:WAStage => 
+          collectIn[Counter](fu.operands).foreach { p => forWrite(p) = true }
+          collectIn[ScalarMem](fu.operands).foreach { p => forWrite(p) = true }
+        case st:RAStage =>
+          collectIn[Counter](fu.operands).foreach { p => forRead(p) = true }
+          collectIn[ScalarMem](fu.operands).foreach { p => forRead(p) = true }
       }
     }
     if (!cu.sram.writePort.isConnected) {
@@ -333,9 +332,7 @@ class MemoryAnalyzer(implicit design: PIR) extends Pass with Logger {
         cu.srams.foreach { sram => swapCounter(sram.readAddr, cc, clone) }
         cu.stages.foreach { 
           case st if forRead(st) =>
-            st.fu.foreach { fu =>
-              fu.operands.foreach { oprd => swapCounter(oprd, cc, clone) }
-            }
+            st.fu.operands.foreach { oprd => swapCounter(oprd, cc, clone) }
           case _ =>
         }
       }

@@ -30,7 +30,7 @@ case class FuncUnit(stage:Stage)(implicit override val ctrler:ComputeUnit, desig
 
 class Stage(implicit override val ctrler:ComputeUnit, design: PIR) extends Primitive {
   override val typeStr = "Stage"
-  var fu:Option[FuncUnit] = Some(FuncUnit(this))
+  val fu = FuncUnit(this)
   val _prs = mutable.Map[Reg, PipeReg]()
   def prs:List[PipeReg] = _prs.values.toList
   def get(reg:Reg) = _prs.getOrElseUpdate(reg, PipeReg(this, reg))
@@ -44,7 +44,7 @@ class Stage(implicit override val ctrler:ComputeUnit, design: PIR) extends Primi
   def allPrevs:List[Stage] = {
     prev.map { prev => prev.allPrevs :+ prev }.getOrElse(Nil)
   }
-  override def toUpdate = super.toUpdate || fu==null || (fu.isDefined && fu.get.toUpdate) 
+  //override def toUpdate = super.toUpdate || fu==null || (fu.isDefined && fu.get.toUpdate) 
 
   def addUse(reg:Reg):Unit = { uses += reg }
   def addDef(reg:Reg):Unit = { defs += reg }

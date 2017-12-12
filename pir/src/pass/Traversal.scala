@@ -47,7 +47,7 @@ trait Traversal extends Pass {
       case n:CounterChain => n.counters.foreach(c => visitNode(c))
       case n:Stage =>
         n.prs.foreach(visitNode)
-        n.fu.foreach(visitNode)
+        visitNode(n.fu)
       case n:CtrlBox =>
         n.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
         n.creditBuffers.foreach { case (deped, c) => visitNode(c) }
