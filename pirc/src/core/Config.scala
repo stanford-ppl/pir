@@ -38,4 +38,9 @@ object Config extends GlobalConfig {
   var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
   var outDir = getProperty("pir.outDir", "out")
   var verbose:Boolean = register("verbose", false) { v => verbose = v == "true" }
+
+  lazy val SPATIAL_HOME:String = {
+    sys.env.get("SPATIAL_HOME").getOrElse(s"Please set SPATIAL_HOME enviroment variable!")
+  }
+
 }

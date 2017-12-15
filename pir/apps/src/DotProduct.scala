@@ -34,7 +34,7 @@ object DotProduct extends PIRApp {
         .name("x1486")
         .store(x1470_b1554_x1480_data_v, None, None)
       val x1482 = CounterChain.copy("x1487", "x1482")
-      val x1511 = CounterChain.copy("x1522", "x1511")
+      val x1511 = CounterChain.copy("x1522_0", "x1511")
       val x1465 = new SRAM()
         .size(1)
         .mode(SramMode)
@@ -42,7 +42,7 @@ object DotProduct extends PIRApp {
         .banking(Strided(1,16))
         .buffering(2)
         .store(x1486, Some(x1482(0)), Some("x1488"))
-        .load(x1465_x1465_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522"))
+        .load(x1465_x1465_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522_0"))
     }
     val x1466_dsp0_bank0 = MemoryPipeline(name="x1466_dsp0_bank0",parent="x1529") { implicit CU => 
       val x1506 = new VectorFIFO()
@@ -50,7 +50,7 @@ object DotProduct extends PIRApp {
         .name("x1506")
         .store(x1490_b1561_x1500_data_v, None, None)
       val x1502 = CounterChain.copy("x1507", "x1502")
-      val x1511 = CounterChain.copy("x1522", "x1511")
+      val x1511 = CounterChain.copy("x1522_0", "x1511")
       val x1466 = new SRAM()
         .size(1)
         .mode(SramMode)
@@ -58,12 +58,12 @@ object DotProduct extends PIRApp {
         .banking(Strided(1,16))
         .buffering(2)
         .store(x1506, Some(x1502(0)), Some("x1508"))
-        .load(x1466_x1466_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522"))
+        .load(x1466_x1466_dsp0_bank0_data_v, Some(x1511(0)), Some("x1522_0"))
     }
     val x1488 = StreamController(name="x1488",parent="x1529") { implicit CU => 
       val x1488_unit = CounterChain(name = "x1488_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x1479 = Pipeline(name="x1479",parent="x1488") { implicit CU => 
+    val x1479_0 = Pipeline(name="x1479_0",parent="x1488") { implicit CU => 
       val x1472 = CU.temp(None).name("x1472")
       val x1474 = new ScalarBuffer()
         .name("x1474")
@@ -93,7 +93,7 @@ object DotProduct extends PIRApp {
     val x1508 = StreamController(name="x1508",parent="x1529") { implicit CU => 
       val x1508_unit = CounterChain(name = "x1508_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
     }
-    val x1499 = Pipeline(name="x1499",parent="x1508") { implicit CU => 
+    val x1499_0 = Pipeline(name="x1499_0",parent="x1508") { implicit CU => 
       val x1492 = CU.temp(None).name("x1492")
       val x1494 = new ScalarBuffer()
         .name("x1494")
@@ -120,10 +120,9 @@ object DotProduct extends PIRApp {
       val ctr3 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16) // Counter
       val x1502 = CounterChain(name = "x1502", ctr3).iter(1)
     }
-    val x1522 = Pipeline(name="x1522",parent="x1529") { implicit CU => 
-      val ac93 = CU.accum(Const(0)).parent("x1522")
+    val x1522_0 = Pipeline(name="x1522_0",parent="x1529") { implicit CU => 
       val rd91 = CU.reduce
-      val x1509 = CU.temp(Some(0)).name("x1509")
+      val ac93 = CU.accum(Const(0)).parent("x1522_0")
       val x1515 = new VectorFIFO()
         .size(1)
         .name("x1515")
@@ -137,15 +136,13 @@ object DotProduct extends PIRApp {
       Stage(operands=List(x1513, x1515), op=FixMul, results=List(rd91))
       ReduceStages(operands=List(rd91, ac93), op=FixAdd, results=List(ac93, x1509_x1521_s))
     }
-    val x1528 = Pipeline(name="x1528",parent="x1529") { implicit CU => 
-      val ac97 = CU.accum(Const(0)).parent("x1529")
+    val x1528_0 = Pipeline(name="x1528_0",parent="x1529") { implicit CU => 
       val rd95 = CU.reduce
-      val x1461 = CU.temp(Some(0)).name("x1461")
+      val ac97 = CU.accum(Const(0)).parent("x1529")
       val x1509 = new ScalarBuffer()
         .name("x1509")
         .buffering(2)
-        .store(x1509_x1521_s, None, Some("x1522"))
-      val x1464 = CounterChain.copy("x1529", "x1464").iterIdx(0, 0)
+        .store(x1509_x1521_s, None, Some("x1522_0"))
       val x1528_unit = CounterChain(name = "x1528_unit", Counter(Const(0), Const(1), Const(1), par=1)).iter(1l)
       Stage(operands=List(x1509), op=Bypass, results=List(rd95))
       ReduceStages(operands=List(rd95, ac97), op=FixAdd, results=List(ac97, x1458_x1531_argout))
