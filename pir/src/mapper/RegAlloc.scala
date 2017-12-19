@@ -64,10 +64,6 @@ class RegAlloc(implicit val design:PIR) extends Mapper {
     val pregs = pcu.asCU.regs
     val regs = mutable.ListBuffer[Reg]()
     cu.regs.foreach {
-      //case reg@VecOutPR(out) if pirMap.vomap.contains(out) =>
-        //val pout = pirMap.vomap(out)
-        //dprintln(s"$out -> ${quote(pout)}")
-        //pout.foreach { pvo => regs += reg }
       case reg if reg.isTemp =>
       case reg => regs += reg
     }
