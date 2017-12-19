@@ -9,7 +9,8 @@ import scala.math.max
   * @param name: optional user name for a node 
   * @param typeStr: Consice name for a type of node for printing purpose 
   */
-abstract class Node (implicit val design: PIR) { 
+@SerialVersionUID(123L)
+abstract class Node (implicit val design: PIR) extends Serializable { 
   val pirmeta:PIRMetadata = design
   import pirmeta._
 

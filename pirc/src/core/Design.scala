@@ -27,10 +27,8 @@ trait Design {
   val configs:List[GlobalConfig]
 
   def setArgs(args: Array[String]):Unit = {
-    args.foreach { 
-      case arg if arg.contains("--") => 
-        configs.foreach(_.setOption(arg.replace("--", "")))
-      case arg =>
+    (0 until args.size).foreach { case i =>
+      configs.foreach(_.setOption(args.splitAt(i)._2))
     }
   }
 

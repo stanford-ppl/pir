@@ -35,15 +35,29 @@ trait PIRApp extends PIR {
     }
   }
 
+  def loadApp() = {
+  }
+
+  def newApp() = {
+    top = Top()
+    top.updateBlock(main) 
+  }
+
+  def loadArch() = {
+  }
+
+  def newArch() = {
+    arch.top.connectAll
+  }
+
   def main(top:Top): Any 
   def main(args: Array[String]): Unit = {
     info(s"args=[${args.mkString(", ")}]")
     reset
     try {
-      top = Top()
-      top.updateBlock(main) 
+      newApp()
       setArgs(args)
-      arch.top.connectAll
+      newArch()
       endInfo(s"Finishing graph construction for ${this}")
       run
     } catch { 

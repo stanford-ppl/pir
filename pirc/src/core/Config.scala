@@ -1,43 +1,17 @@
 package pirc
 
 import scala.collection.mutable
+import scala.reflect._
 
-trait GlobalConfig {
-  protected def getProperty(prop: String, default: String) = {
-    val p1 = System.getProperty(prop)
-    val p2 = System.getProperty(prop.substring(1))
-    if (p1 != null && p2 != null) {
-      assert(p1 == p2, "ERROR: conflicting properties")
-      p1
-    }
-    else if (p1 != null) p1 else if (p2 != null) p2 else default
-  }
-
-  val optMap = mutable.Map[String, String => Any]()
-
-  def register[T](key:String, default:T)(update:String => Unit) = {
-    optMap += key -> update 
-    default
-  }
-
-  def setOption(opt:String):Unit = {
-    val (key, value) = if (opt.contains("=")) {
-      val key::value::_ = opt.split("=").toList
-      (key, value)
-    } else {
-      (opt, "true")
-    }
-    if (optMap.contains(key)) optMap(key)(value)
-  }
-}
+trait GlobalConfig extends ArgParser
 
 object Config extends GlobalConfig {
-  var codegen:Boolean = register("codegen", false) { v => codegen = v == "true" }
+  var codegen:Boolean = register("codegen", false) { codegen = _ }
 
-  var debug:Boolean = register("debug", true) { v => debug = v == "true" }
-  var debugCodegen:Boolean = debug && register("debug-codegen", true) { v => debugCodegen = v == "true" }
-  var outDir = getProperty("pir.outDir", "out")
-  var verbose:Boolean = register("verbose", false) { v => verbose = v == "true" }
+  var debug:Boolean = register("debug", true) { debug = _ }
+  var debugCodegen:Boolean = debug && register("debug-codegen", true) { debugCodegen = _ }
+  var outDir:String = register("out", "out") { outDir = _ }
+  var verbose:Boolean = register("verbose", false) { verbose = _ }
 
   lazy val SPATIAL_HOME:String = {
     sys.env.get("SPATIAL_HOME").getOrElse(s"Please set SPATIAL_HOME enviroment variable!")
