@@ -6,20 +6,21 @@ import scala.collection.mutable
 
 object PIRConfig extends GlobalConfig {
 
-  // Properties go here
-  var test:Boolean = register("test", false) { test = _ }
-  var genDot:Boolean = register("dot", true) { genDot = _ }
-  var mapping:Boolean = register("mapping", true) { mapping = _ }
-  var ctrl:Boolean = register("ctrl", true) { ctrl = _ }
+  var arch:String = register("arch", default="SN2x2", info="Default architecture for mapping") { arch = _ }
+
+  var test:Boolean = register("test", default=false) { test = _ }
+  var genDot:Boolean = register("dot", default=true) { genDot = _ }
+  var mapping:Boolean = register("mapping", default=true) { mapping = _ }
+  var ctrl:Boolean = register("ctrl", default=true) { ctrl = _ }
   def codegen = Config.codegen
   def verbose = Config.verbose
 
-  var genPisa:Boolean = register("pisa", false) { genPisa = _ } && codegen
-  var quick:Boolean = register("quick", false) { quick = _ }
+  var genPisa:Boolean = register("pisa", default=false) { genPisa = _ } && codegen
+  var quick:Boolean = register("quick", default=false) { quick = _ }
 
-  var pirFile:String = register("pirlog", "PIR.log") { pirFile = _ }
-  var pirDot:String = register("pirdot", "PIR.dot") { pirDot = _ }
-  var pirCtrlDot:String = register("pirctrldot", "PIRCtrl.dot") { pirCtrlDot = _ }
+  var pirFile:String = register("pirlog", default="PIR.log") { pirFile = _ }
+  var pirDot:String = register("pirdot", default="PIR.dot") { pirDot = _ }
+  var pirCtrlDot:String = register("pirctrldot", default="PIRCtrl.dot") { pirCtrlDot = _ }
   //var pisaFile = register("pir.pisafile", "pisa.json")
   var ctrlDot:String = register("ctrldot", "Ctrl.dot") { ctrlDot = _ }
   var ctrlFile:String = register("ctrllog", "Ctrl.log") { ctrlFile = _ }

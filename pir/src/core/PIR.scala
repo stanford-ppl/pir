@@ -18,14 +18,14 @@ trait PIR extends Design with PIRMetadata with Collector {
   val pirmeta:PIRMetadata = this
   val configs = List(Config, SpadeConfig, PIRConfig)
 
-  def arch:Spade
+  var arch:Spade = _
   var top:Top = _
 
   override def reset = {
     super[Collector].reset
     super[PIRMetadata].reset
     super[Design].reset
-    arch.reset
+    arch = null
     top = null
   }
 

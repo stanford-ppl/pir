@@ -1,10 +1,12 @@
 package pirc
 
+import pirc.util._
+
 import scala.collection.mutable
 import scala.reflect._
 
 trait ArgParser {
-  val optMap = mutable.Map[String, List[String] => Unit]()
+  val optMap = mutable.Map[String, (List[String] => Unit, Any, String)]()
 
   def parse[T:ClassTag](default:T, values:List[String]):T = {
     (default match {
@@ -14,16 +16,16 @@ trait ArgParser {
     }).asInstanceOf[T]
   }
 
-  def register[T:ClassTag](key:String, default:T=null)(update:T => Unit):T = {
-    optMap += key -> { values => update(parse(default, values)) }
+  def register[T:ClassTag](key:String, default:T=null, info:String="")(update:T => Unit):T = {
+    optMap += key -> ({ values => update(parse(default, values)) }, default, info)
     default
   }
 
-  def setOption(args:Array[String]):Unit = {
-    var key::rest = args.toList
-    if (!key.contains("--")) return
-    key = key.replace("--", "")
-    var values = rest.span(!_.contains("--"))._2.toList
+  def isOption(key:String) = key.contains("--")
+
+  def getValues(origKey:String, rest:List[String]):(String, List[String], List[String]) = {
+    var (values, remains) = rest.zipWithIndex.find{ case (a, i) => isOption(a) }.fold((rest, List[String]())) { case (_, i) => rest.splitAt(i) } 
+    var key = origKey.replace("--", "")
     if (key.contains("=")) {
       val newKey::newValues = key.split("=").toList
       key = newKey
@@ -31,6 +33,26 @@ trait ArgParser {
     } else if (values.isEmpty) {
       values = List("true")
     }
-    if (optMap.contains(key)) optMap(key)(values)
+    (key, values, remains)
+  }
+
+  def setOption(args:List[String]):Unit = {
+    args match {
+      case arg::rest if isOption(arg) =>
+        val (key, values, remain) = getValues(arg, rest)
+        if (optMap.contains(key)) {
+          val (update, _, _) = optMap(key)
+          update(values)
+        }
+        setOption(remain)
+      case _::args => setOption(args)
+      case Nil => 
+    }
+  }
+
+  def printUsage = {
+    optMap.foreach { case (key, (update, default, msg)) =>
+      info(s"--$key $msg [default=$default]")
+    }
   }
 }

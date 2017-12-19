@@ -13,7 +13,6 @@ import scala.language.implicitConversions
 import scala.reflect.runtime.universe
 
 trait PIRApp extends PIR {
-  var arch:Spade = SN2x2
   override def name:String = this.getClass().getSimpleName().replace("$","")
   
   def dramDefault = arch.top.dram.dramDefault
@@ -22,10 +21,15 @@ trait PIRApp extends PIR {
     array.zipWithIndex.foreach { case (a, i) => dramDefault(start + i) = a }
   }
 
+  var args:Array[String] = _ 
+
   override def setArgs(args: Array[String]):Unit = {
     super.setArgs(args)
+    this.args = args
+  }
+
+  def parseArgIns() = {
     args.foreach { 
-      case arg if arg.contains("--arch") => arch = getArch(arg.split("=")(1))
       case arg if arg.contains("=") =>
         val k::v::_ = arg.split("=").toList
         top.argIns.filter {_.name==Some(k)}.foreach { argIn =>
@@ -43,10 +47,12 @@ trait PIRApp extends PIR {
     top.updateBlock(main) 
   }
 
-  def loadArch() = {
-  }
-
   def newArch() = {
+    val name = PIRConfig.arch
+    val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
+    val module = runtimeMirror.staticModule("arch." + name)
+    val obj = runtimeMirror.reflectModule(module)
+    arch = obj.instance.asInstanceOf[Spade]
     arch.top.connectAll
   }
 
@@ -54,9 +60,9 @@ trait PIRApp extends PIR {
   def main(args: Array[String]): Unit = {
     info(s"args=[${args.mkString(", ")}]")
     reset
+    setArgs(args)
     try {
       newApp()
-      setArgs(args)
       newArch()
       endInfo(s"Finishing graph construction for ${this}")
       run
@@ -67,11 +73,5 @@ trait PIRApp extends PIR {
     }
   }
 
-  def getArch(name : String) =  {
-    val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
-    val module = runtimeMirror.staticModule("arch." + name)
-    val obj = runtimeMirror.reflectModule(module)
-    obj.instance.asInstanceOf[Spade]
-  }
 }
 

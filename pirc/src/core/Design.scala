@@ -27,9 +27,11 @@ trait Design {
   val configs:List[GlobalConfig]
 
   def setArgs(args: Array[String]):Unit = {
-    (0 until args.size).foreach { case i =>
-      configs.foreach(_.setOption(args.splitAt(i)._2))
+    if (args.contains("--help")) {
+      configs.foreach(_.printUsage)
+      System.exit(0)
     }
+    configs.foreach(_.setOption(args.toList))
   }
 
   def main(args: Array[String]): Unit
