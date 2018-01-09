@@ -18,6 +18,10 @@ class SpadeSimulator(implicit design: PIR) extends Pass {
 
   override def initPass = {
     super.initPass
+    design match {
+      case design:PIRApp => design.parseArgIns
+      case _ =>
+    }
     if (SpadeConfig.simulate && SpadeConfig.waveform) {
       simulator.vcds += new PIRVcdPrinter(design.mapping.get)
       simulator.vcds += new SpadeVcdPrinter

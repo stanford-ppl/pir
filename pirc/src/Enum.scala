@@ -4,7 +4,7 @@ import scala.collection.mutable.ListBuffer
 
 package object enums extends Ops {
 
-  sealed trait MCType {
+  sealed trait MCType extends Enum{
     def isDense:Boolean = {
       this match {
         case TileLoad | TileStore => true
@@ -35,11 +35,11 @@ package object enums extends Ops {
   case object Scatter extends MCType 
   case object Gather extends MCType 
 
-  sealed trait MemMode
+  sealed trait MemMode extends Enum
   case object SramMode extends MemMode
   case object FifoMode extends MemMode
   
-  sealed trait Banking
+  sealed trait Banking extends Enum
   case class Strided(stride:Int, banks:Int) extends Banking
   object Strided {
     def apply(stride:Int):Strided = {
@@ -50,7 +50,7 @@ package object enums extends Ops {
   case class Duplicated() extends Banking
   case class NoBanking() extends Banking
 
-  trait RegColor
+  trait RegColor extends Enum
   case object VecInReg extends RegColor
   case object VecOutReg extends RegColor
   case object ScalarInReg extends RegColor
@@ -63,12 +63,15 @@ package object enums extends Ops {
 }
 
 trait Ops {
+  @SerialVersionUID(123L)
+  trait Enum extends Serializable
+
   val _fixOps = ListBuffer[FixOp]()
   val _fltOps = ListBuffer[FltOp]()
   val _bitOps = ListBuffer[BitOp]()
   val _otherOps = ListBuffer[Op]()
 
-  sealed trait Op { type T<:AnyVal }
+  sealed trait Op extends Enum { type T<:AnyVal }
  
   sealed trait Op1 extends Op { def eval(a:T):AnyVal }
   sealed trait Op2 extends Op { def eval(a:T, b:T):AnyVal }

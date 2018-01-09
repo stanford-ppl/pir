@@ -117,9 +117,9 @@ trait Printer {
     file = new File(getPath)
     new FileOutputStream(file, append)
   }
-  def newStream(fname:String)(implicit design:Design):FileOutputStream = { newStream(s"${Config.outDir}/$design", fname) }
+  def newStream(fname:String)(implicit design:Design):FileOutputStream = { newStream(design.outDir, fname) }
   def newStream(fname:String, append:Boolean)(implicit design:Design):FileOutputStream =
-    newStream(s"${Config.outDir}/$design", fname, append)
+    newStream(design.outDir, fname, append)
 
   /* A temporary stream to write all data */
   val buffers = Stack[ByteArrayOutputStream]()

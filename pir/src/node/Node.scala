@@ -10,8 +10,8 @@ import scala.math.max
   * @param typeStr: Consice name for a type of node for printing purpose 
   */
 @SerialVersionUID(123L)
-abstract class Node (implicit val design: PIR) extends Serializable { 
-  val pirmeta:PIRMetadata = design
+abstract class Node (@transient implicit val design: PIR) extends Serializable { 
+  @transient lazy val pirmeta:PIRMetadata = design
   import pirmeta._
 
   val typeStr:String = this.getClass.getSimpleName()

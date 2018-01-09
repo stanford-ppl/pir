@@ -14,7 +14,10 @@ import Math._
 class ResourceAnalysis(implicit design: PIR) extends Pass {
   import pirmeta._
   import spademeta._
-  import arch.top._
+
+  lazy val top = arch.top
+  import top._
+
   def shouldRun = design.pirMapping.succeeded
 
   val summary = new CSVPrinter {

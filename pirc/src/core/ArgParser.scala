@@ -6,7 +6,7 @@ import scala.collection.mutable
 import scala.reflect._
 
 trait ArgParser {
-  val optMap = mutable.Map[String, (List[String] => Unit, Any, String)]()
+  val optMap = mutable.ListMap[String, (List[String] => Unit, Any, String)]()
 
   def parse[T:ClassTag](default:T, values:List[String]):T = {
     (default match {

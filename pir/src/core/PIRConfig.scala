@@ -7,6 +7,8 @@ import scala.collection.mutable
 object PIRConfig extends GlobalConfig {
 
   var arch:String = register("arch", default="SN2x2", info="Default architecture for mapping") { arch = _ }
+  var saveDesign:Boolean = register("save-pir", default=false, info="Save IR into a file") { saveDesign = _ }
+  var loadDesign:Boolean = register("load-pir", default=false, info="Load IR from a file") { loadDesign = _ }
 
   var test:Boolean = register("test", default=false) { test = _ }
   var genDot:Boolean = register("dot", default=true) { genDot = _ }

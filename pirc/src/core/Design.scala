@@ -5,7 +5,7 @@ import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 
-trait Design {
+trait Design extends FileManager {
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name

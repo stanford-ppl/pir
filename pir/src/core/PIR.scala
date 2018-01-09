@@ -18,15 +18,18 @@ trait PIR extends Design with PIRMetadata with Collector {
   val pirmeta:PIRMetadata = this
   val configs = List(Config, SpadeConfig, PIRConfig)
 
-  var arch:Spade = _
   var top:Top = _
+  var newTop:pir.newnode.Top = _
+  var arch:Spade = _
 
   override def reset = {
     super[Collector].reset
     super[PIRMetadata].reset
     super[Design].reset
+    clearLogs
     arch = null
     top = null
+    newTop = null
   }
 
   lazy val mappers = ListBuffer[Mapper]()
@@ -164,5 +167,6 @@ trait PIR extends Design with PIRMetadata with Collector {
     plasticineDotPrinters.foreach { printer => if (!printer.hasRun) printer.run }
     arch.handle(e)
   }
+
 }
 

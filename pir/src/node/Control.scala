@@ -161,7 +161,7 @@ trait StageCtrlBox extends CtrlBox {
   def doneOut:Output
 }
 
-class InnerCtrlBox()(implicit override val ctrler:InnerController, design: PIR) 
+class InnerCtrlBox()(implicit val ctrler:Controller, design: PIR) 
   extends CtrlBox() with StageCtrlBox {
   override val typeStr = "InnerCtrlBox"
   val enDelay = Delay(s"$this.enDelay")
@@ -187,7 +187,7 @@ class InnerCtrlBox()(implicit override val ctrler:InnerController, design: PIR)
   }
 }
 object InnerCtrlBox {
-  def apply()(implicit ctrler:InnerController, design: PIR) = new InnerCtrlBox()
+  def apply()(implicit ctrler:Controller, design: PIR) = new InnerCtrlBox()
 } 
 
 class OuterCtrlBox()(implicit override val ctrler:Controller, design: PIR) extends CtrlBox() with StageCtrlBox {
