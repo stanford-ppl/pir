@@ -14,9 +14,11 @@ import scala.reflect._
   * @param name: optional user name for a node 
   */
 @SerialVersionUID(123L)
-abstract class Node(implicit design: PIR) extends Serializable { 
+abstract class Node(val id:Int) extends Serializable { 
 
-  val id : Int = design.nextId // Unique id for each node
+  def this()(implicit design: PIR) = {
+    this(design.nextId)
+  }
 
   override def equals(that: Any) = that match {
     case n: Node => super.equals(that) && id == n.id
@@ -32,7 +34,7 @@ abstract class Node(implicit design: PIR) extends Serializable {
 
 }
 
-trait Container[C<:Container[C]] extends Node { self:C =>
+trait Container[C<:Container[C]] extends Node with Serializable { self:C =>
   var _parent:Option[C] = None
   def parent:Option[C] = _parent
   def parent(p:C):this.type =  {
@@ -51,11 +53,13 @@ trait Container[C<:Container[C]] extends Node { self:C =>
 
   val _children = mutable.ListBuffer[C]()
   def children = _children.toList
+  def isChildOf(p:C) = p.children.contains(this)
   def addChild(c:C):Unit = { 
-    if (isParentOf(c)) return
+    if (c.isChildOf(this)) return
     _children += c
     c.parent(this)
   }
+  def addChildren(cs:C*):this.type = { cs.foreach(addChild); this }
   def removeChild(c:C):Unit = {
     if (!isParentOf(c)) return
     _children -= c
@@ -69,14 +73,14 @@ trait Container[C<:Container[C]] extends Node { self:C =>
 abstract class Module(implicit design: PIR) extends Node with Container[Module] { 
   implicit val self:Module = this
 
-  def _ios = mutable.ListBuffer[IO]()
+  val _ios = mutable.ListBuffer[IO]()
   def addIO(io:IO) = _ios += io
   def removeIO(io:IO) = _ios -= io
   def ios:List[IO] = _ios.toList ++ descendents.flatMap { _.ios }
   def ins = ios.collect{ case io:Input => io }.toList
   def outs = ios.collect{ case io:Output => io }.toList
 
-  def connect(io:IO) = {
+  def connect(io:IO)(implicit design:PIR):IO = {
     io match {
       case io:Input => new Output()(this, design).connect(io)
       case io:Output => new Input()(this, design).connect(io)
@@ -86,7 +90,6 @@ abstract class Module(implicit design: PIR) extends Node with Container[Module] 
   def ctrl(ctrler:Module)(implicit design:PIR):this.type = {
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.tree.parent(ctrler.tree)
-      case (self, ctrler:Top) => self.parent(ctrler) 
       case (self:Memory, _) => self.parent(design.newTop) 
       case (self:DRAM, _) => 
       case (self, ctrler) => self.parent(ctrler) 
@@ -94,38 +97,35 @@ abstract class Module(implicit design: PIR) extends Node with Container[Module] 
     this
   }
 }
+
 object Module {
-  def removeModule(module:Module) = {
-    module.ios.foreach { io => io.disconnect }
-    module.parent.foreach { parent =>
-      parent.removeChild(module)
-      module.unsetParent
-      (parent.children.filterNot { _ == module } :+ parent).foreach(removeUnusedIOs)
-    }
-  }
-
-  def removeUnusedIOs(module:Module) = {
-    module.ios.foreach { io => if (!io.isConnected) module.removeIO(io) }
-  }
-
-  def toOutput(a:Any) = {
+  def toOutput(a:Any) = { // TODO: change this to implicit conversion inside this package
     a match {
-      case a:OpDef => a.out
-      case a:LoadDef => a.out
       case a:Output => a
+      case a:Def => a.out
       case a => throw new Exception(s"Don't know how to convert $a to Output")
     }
   }
+}
 
-  def visitUp(m:Module):List[Module] = {
+trait Traversal {
+  type T
+
+  def visitUp(m:Module):Iterable[Module] = {
     m.parent.toList
   }
 
-  def traverse[T](m:Module, zero:T, visitFunc:Module => Iterable[Module]):T = {
+  def visitDown(m:Module):Iterable[Module] = {
+    m.children
+  }
+
+  def traverse(m:Module, zero:T, visitFunc:Module => Iterable[Module]):T = {
     visitFunc(m).foldLeft(zero) { case (prev, m) => traverse(m, prev, visitFunc) }
   }
 
-  def traverseUp[T](m:Module, zero:T):T = traverse[T](m, zero, visitUp)
+  def traverseUp(m:Module, zero:T):T = traverse(m, zero, visitUp)
+
+  def traverseDown(m:Module, zero:T):T = traverse(m, zero, visitDown)
 
   def collect[M<:Module:ClassTag](m:Module, visitFunc:Module => Iterable[Module], depth:Int):Iterable[M] = {
     def recurse(m:Module, depth:Int):Iterable[M] = {
@@ -137,8 +137,24 @@ object Module {
     }
     visitFunc(m).flatMap { m => recurse(m, depth - 1) }
   }
+
   def collectUp[M<:Module:ClassTag](m:Module, depth:Int=10):Iterable[M] = {
     collect(m, visitUp, depth)
+  }
+}
+
+trait Transformer {
+  def removeModule(module:Module) = {
+    module.ios.foreach { io => io.disconnect }
+    module.parent.foreach { parent =>
+      parent.removeChild(module)
+      module.unsetParent
+      (parent.children.filterNot { _ == module } :+ parent).foreach(removeUnusedIOs)
+    }
+  }
+
+  def removeUnusedIOs(module:Module) = {
+    module.ios.foreach { io => if (!io.isConnected) module.removeIO(io) }
   }
 }
 
@@ -162,7 +178,7 @@ class Top(implicit design: PIR) extends Module {
   def dramAddress(dram:DRAM)(implicit design:PIR) = {
     val reg = Reg().parent(this)
     dramAddresses += dram -> reg
-    reg
+    LoadDef(List(reg), None)
   }
 }
 
@@ -175,11 +191,12 @@ abstract class IO(val src:Module)(implicit design:PIR) extends Node {
   def connected:List[P] = _connected.toList
   def isConnected:Boolean = connected.nonEmpty
   def isConnectedTo(p:IO) = connected.contains(p)
-  def connect(p:P):Unit = {
-    if (isConnectedTo(p)) return
-    err(this.isInstanceOf[Input] && this.isConnected, s"$this is already connected to ${connected.head}, reconnecting to $p")
+  def connect(p:P):this.type = {
+    if (isConnectedTo(p)) return this
+    err(this.isInstanceOf[Input] && this.isConnected, s"$this is already connected to ${connected}, reconnecting to $p")
     _connected += p 
     p.connect(this.asInstanceOf[p.P])
+    this
   }
 
   def disconnectFrom(io:IO):Unit = {
@@ -202,32 +219,32 @@ class Output(implicit override val src:Module, design:PIR) extends IO(src) {
 case class DRAM()(implicit design:PIR) extends Module
 
 abstract class Memory(implicit design:PIR) extends Module {
-  def readPort:Output
-}
-
-class SRAM(val size:Int, val banking:Banking)(implicit design:PIR) extends Memory {
+  val writePort = new Input
   val readPort = new Output
 }
+
+class SRAM(val size:Int, val banking:Banking)(implicit design:PIR) extends Memory
 object SRAM {
   def apply(size:Int, banking:Banking)(implicit design:PIR) = new SRAM(size, banking)
 }
 
-case class Reg(val init:Option[Const[_<:AnyVal]])(implicit design:PIR) extends Memory {
-  val readPort = new Output
-}
+class Reg(val init:Option[Const[_<:AnyVal]])(implicit design:PIR) extends Memory
 object Reg {
-  def apply(init:Const[_<:AnyVal])(implicit design:PIR):Reg = Reg(Some(init))
-  def apply()(implicit design:PIR):Reg = Reg(None)
+  def apply(init:Const[_<:AnyVal])(implicit design:PIR):Reg = new Reg(Some(init))
+  def apply()(implicit design:PIR):Reg = new Reg(None)
 }
 
-case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Module
+case class StreamIn(field:String)(implicit design:PIR) extends Memory
+case class StreamOut(field:String)(implicit design:PIR) extends Memory
 
 class CUContainer(implicit design:PIR) extends Module {
   def isFringe = children.collect { case dram:DRAM => dram }.nonEmpty
 }
-
-class ControlHierarchy(controller:Controller)(implicit design:PIR) extends Container[ControlHierarchy] {
+object CUContainer {
+  def apply()(implicit design:PIR) = new CUContainer()
 }
+
+class ControlHierarchy(controller:Controller)(implicit design:PIR) extends Container[ControlHierarchy]
 
 case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Module {
   val tree = new ControlHierarchy(this)
@@ -259,6 +276,7 @@ class Counter(val par:Int)(implicit design:PIR) extends Module {
   val min = new Input
   val max = new Input
   val step = new Input
+  val out = new Output
 }
 object Counter {
   def apply(min:Any, max:Any, step:Any, par:Int)(implicit design:PIR) = {
@@ -270,58 +288,30 @@ object Counter {
   }
 }
 
-trait Def extends Module {
-}
+// Dummy constructor to call during deserialization
+abstract class Def(dummy:Int)(implicit design:PIR) extends Module { self:Product =>
+  val out = new Output()(this,design)
+  def deps = productIterator.toList.collect { case dep:Def => dep ; case Some(dep:Def) => dep}
 
-case class IterDef(counter:Counter, index:Int)(implicit design:PIR) extends Def {
-  val out = new Output
-}
-
-case class VecIterDef(counter:Counter)(implicit design:PIR) extends Def
-
-class OpDef(op:Op)(implicit design:PIR) extends Def {
-  val out = new Output
-}
-object OpDef {
-  def apply(op:Op, inputs:List[Any])(implicit design:PIR) = {
-    val d = new OpDef(op)
-    inputs.foreach(a => d.connect(Module.toOutput(a)))
-    d
+  def this()(implicit design:PIR) = {
+    this(0)
+    deps.foreach { dep => this.connect(dep.out)(design) }
   }
 }
 
-/*
- * @param mems: Bank[Mem]
- * @param addr: Option[Dim[Addr]]
- * */
-class LoadDef(val mems:List[Memory], addr:Option[List[Output]])(implicit design:PIR) extends Def {
-  val out = new Output
-  mems.foreach { mem => this.connect(mem.readPort) }
-  addr.foreach { _.foreach { addr => this.connect(addr) } }
-}
-object LoadDef {
-  def apply(mems:List[Memory], addr:Option[List[Any]])(implicit design:PIR) = {
-    val ad = addr.map { addrs => addrs.map { addr => Module.toOutput(addr) }}
-    new LoadDef(mems, ad)
-  }
-}
+case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) extends Def 
 
-/*
- * @param mems: Bank[Mem]
- * @param addr: Option[Dim[Addr]]
- * */
-class StoreDef(val mems:List[Memory], addr:Option[List[Output]], data:Output)(implicit design:PIR) extends Def {
-  //mems.foreach { mem => this.connect(mem.readPort) }
-  addr.foreach { _.foreach { addr => this.connect(addr) } }
-  this.connect(data)
-}
-object StoreDef{
-  def apply(mems:List[Memory], addr:Option[List[Any]], data:Any)(implicit design:PIR) = {
-    val ad = addr.map { addrs => addrs.map { addr => Module.toOutput(addr) }}
-    val da = Module.toOutput(data) 
-    new StoreDef(mems, ad, da)
-  }
-}
+case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends Def
+case class ReduceDef(op:Op, input:Def)(implicit design:PIR) extends Def
+case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends Def
+
+case class MemLoad(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
+case class MemStore(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
+
+case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
+case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
+case class DummyDef()(implicit design:PIR) extends Def
+case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Def
 
 sealed trait IOType extends Enum
 case object Vector extends IOType
@@ -329,6 +319,7 @@ case object Scalar extends IOType
 case object Control extends IOType
 
 sealed trait ControlStyle extends Enum
+case object InnerPipe extends ControlStyle
 case object SeqPipe extends ControlStyle
 case object MetaPipe extends ControlStyle
 case object StreamPipe extends ControlStyle

@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 import scala.collection.mutable.Stack
 import java.lang.Thread
 
-package object util extends Printer {
+package object util extends Printer with Serialization {
   val times = Stack[Long]()
   def tic = {
     times.push(System.nanoTime())

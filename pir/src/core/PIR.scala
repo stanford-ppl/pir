@@ -97,59 +97,59 @@ trait PIR extends Design with PIRMetadata with Collector {
     info(s"Configuring spade $arch ...")
 
     // Pre-mapping Analysis and Transformation 
-    passes += forwardRef
-    passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
-    passes += scalMemInsertion
-    passes += pirPrinter1
-    passes += livenessAnalyzer 
-    passes += pirDataDotGen1
-    passes += accessAnalyzer
-    passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
-    passes += pirPrinter2
-    passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
-    //passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
-                                // duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
-                                // rparOf, wparOf
-    passes += accessAnalyzer
-    passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
-    passes += optimizer
-    passes += pirDataDotGen2
-    passes += fusionTransform 
-    passes += pirPrinter3
-    passes += pirDataDotGen3
-    passes += controlAnalyzer // set isHead, isLast
-    passes += pirDataDotGen4
-    passes += controlAnalyzer // set length scusOf
-    //passes += irCheck //TODO
-    passes += ctrlAlloc 
-    passes += pirDataDotGen5
-    passes += ctrlDotPrinter 
-    passes += pirCtrlDotGen
-    passes += pirPrinter
+    //passes += forwardRef
+    //passes += controlAnalyzer //set ancesstors, descendents, streamming, pipelining, localCChainOf
+    //passes += scalMemInsertion
+    //passes += pirPrinter1
+    //passes += livenessAnalyzer 
+    //passes += pirDataDotGen1
+    //passes += accessAnalyzer
+    //passes += memoryAnalyzer // set forRead, forWrite, copy accumCC, set accumCounterOf
+    //passes += pirPrinter2
+    //passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
+    ////passes += memoryAnalyzer    // set forRead, forWrite, swapReadCChainOf, swapWriteCChainOf, 
+                                //// duplicateCC, readCChainsOf, writeCChainsOf, compCChainsOf, parOf,
+                                //// rparOf, wparOf
+    //passes += accessAnalyzer
+    //passes += multiBufferAnalyzer // set producer, consumer, buffering, backpressureOf
+    //passes += optimizer
+    //passes += pirDataDotGen2
+    //passes += fusionTransform 
+    //passes += pirPrinter3
+    //passes += pirDataDotGen3
+    //passes += controlAnalyzer // set isHead, isLast
+    //passes += pirDataDotGen4
+    //passes += controlAnalyzer // set length scusOf
+    ////passes += irCheck //TODO
+    //passes += ctrlAlloc 
+    //passes += pirDataDotGen5
+    //passes += ctrlDotPrinter 
+    //passes += pirCtrlDotGen
+    //passes += pirPrinter
 
-    // Mapping
-    passes += prescreen
-    passes += pirMapping 
-    passes += mapPrinter
-    passes += plasticineVecDotPrinter 
-    passes += plasticineScalDotPrinter 
-    passes += plasticineCtrlDotPrinter 
+    //// Mapping
+    //passes += prescreen
+    //passes += pirMapping 
+    //passes += mapPrinter
+    //passes += plasticineVecDotPrinter 
+    //passes += plasticineScalDotPrinter 
+    //passes += plasticineCtrlDotPrinter 
 
-    // Post-mapping analysis
-    passes += pirDataDotGen
+    //// Post-mapping analysis
+    //passes += pirDataDotGen
 
-    // Codegen
-    passes += configCodegen 
+    //// Codegen
+    //passes += configCodegen 
 
-    // Simulation
-    passes += simulator
+    //// Simulation
+    //passes += simulator
 
-    // Statistics
-    //passes += contentionAnalyzer
-    //passes += latencyAnalyzer
-    passes += resourceAnalyzer
-    passes += powerAnalyzer 
-    //passes += energyAnalyzer 
+    //// Statistics
+    ////passes += contentionAnalyzer
+    ////passes += latencyAnalyzer
+    //passes += resourceAnalyzer
+    //passes += powerAnalyzer 
+    ////passes += energyAnalyzer 
 
     super.run
 
@@ -160,12 +160,20 @@ trait PIR extends Design with PIRMetadata with Collector {
   }
 
   def handle(e:Exception) = {
-    if (!pirPrinter.hasRun) pirPrinter.run
-    if (PIRConfig.openDot) 
-      pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
-    if (!mapPrinter.hasRun) mapPrinter.run
-    plasticineDotPrinters.foreach { printer => if (!printer.hasRun) printer.run }
-    arch.handle(e)
+    try {
+      if (!pirPrinter.hasRun) pirPrinter.run
+      if (PIRConfig.openDot) 
+        pirDataDotGens.filter { _.hasRun }.lastOption.foreach { _.open }
+      if (!mapPrinter.hasRun) mapPrinter.run
+      plasticineDotPrinters.foreach { printer => if (!printer.hasRun) printer.run }
+      arch.handle(e)
+    } catch {
+      case he:Exception =>
+        errmsg(s"Original Exception")
+        e.printStackTrace
+        errmsg(s"Exception during handling")
+        he.printStackTrace
+    }
   }
 
 }

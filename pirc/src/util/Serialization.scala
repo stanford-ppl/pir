@@ -1,0 +1,22 @@
+package pirc.util
+
+import java.io._
+trait Serialization {
+  def saveToFile(node:Serializable, path:String) = {
+    val oos = new ObjectOutputStream(new FileOutputStream(path))
+    info(s"Saving node $node to $path")
+    oos.writeObject(node)
+    oos.close
+  }
+
+  def loadFromFile[T<:Serializable](path:String) = {
+    val ois = new ObjectInputStream(new FileInputStream(path)) {
+      override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
+        try { Class.forName(desc.getName, false, getClass.getClassLoader) }
+        catch { case ex: ClassNotFoundException => super.resolveClass(desc) } // Magic. Don't know why this fix ClassNotFound exception
+      }
+    }
+    info(s"Loading $ois from $path")
+    ois.readObject.asInstanceOf[T]
+  }
+}
