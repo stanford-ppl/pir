@@ -264,45 +264,72 @@ object Module {
 }
 
 trait Traversal {
-  type T
-
-  def visitUp(n:Node):Iterable[Node] = {
+}
+trait PIRTraversal {
+  type N = Node
+  def visitUp(n:N):Iterable[N] = {
     n match {
       case n:SubGraph[_] => n.parent.toList
       case _ => Nil
     }
   }
 
-  def visitDown(n:Node):Iterable[Node] = {
+  def visitDown(n:N):Iterable[N] = {
     n match {
       case n:SubGraph[_] => n.children
       case _ => Nil
     }
   }
 
-  def traverse(n:Node, zero:T, visitFunc:Node => Iterable[Node]):T = {
-    visitFunc(n).foldLeft(zero) { case (prev, n) => traverse(n, prev, visitFunc) }
-  }
-
-  def traverseUp(n:Node, zero:T):T = traverse(n, zero, visitUp)
-
-  def traverseDown(n:Node, zero:T):T = traverse(n, zero, visitDown)
-
-  def collect[M<:Node:ClassTag](n:Node, visitFunc:Node => Iterable[Node], depth:Int):Iterable[M] = {
-    def recurse(n:Node, depth:Int):Iterable[M] = {
-      n match {
-        case n:M => List(n)
-        case n if depth > 0 => visitFunc(n).flatMap { n => recurse(n, depth - 1) }
-        case n => Nil
-      }
+  def visitIn(n:N):Iterable[N] = {
+    n match {
+      case n:SubGraph[_] => n.ins.map { _.from.src }
+      case _ => Nil
     }
-    visitFunc(n).flatMap { n => recurse(n, depth - 1) }
   }
 
-  def collectUp[M<:Module:ClassTag](m:Module, depth:Int=10):Iterable[M] = {
-    collect(m, visitUp, depth)
+  def visitOut(n:N):Iterable[N] = {
+    n match {
+      case n:SubGraph[_] => n.outs.flatMap { _.to.map { _.src } }
+      case _ => Nil
+    }
+  }
+
+}
+
+trait DFSTraversal extends Traversal {
+
+  def traverse[N,T](n:N, zero:T, visitNode:(N,T) => T, visitFunc:N => Iterable[N], visited:List[N]=Nil):T = {
+    if (visited.contains(n)) return zero
+    visitFunc(n).foldLeft(visitNode(n, zero)) { case (prev, n) => traverse(n, prev, visitNode, visitFunc, n::visited) }
+  }
+
+}
+
+trait BFSTraversal extends Traversal {
+
+  def traverse[N,T](n:N, zero:T, visitNode:(N,T) => T, visitFunc:N => Iterable[N], queue:mutable.Queue[N] = mutable.Queue[N](), visited:List[N]=Nil):T = {
+    if (visited.contains(n)) return zero
+    val res = visitNode(n, zero)
+    queue ++= visitFunc(n)
+    if (queue.isEmpty) res else traverse(queue.dequeue(), res, visitNode, visitFunc, queue, n::visited)
   }
 }
+
+trait Collector extends BFSTraversal with PIRTraversal {
+  def visitNode[M<:Node:ClassTag](n:N, prev:(Iterable[M], Int)):(Iterable[M], Int) = {
+    val (prevRes, depth) = prev
+    n match {
+      case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
+      case _ if depth == 0 => (prevRes, 0)
+      case _ => (prevRes, depth - 1)
+    }
+  }
+  def collectUp[M<:Node:ClassTag](n:Node, depth:Int=10):Iterable[M] = {
+    traverse[N, (Iterable[M], Int)](n, (Nil, depth), visitNode[M] _, visitUp)._1
+  }
+}
+
 
 trait Transformer {
   def removeNode(node:Container) = {
@@ -316,5 +343,37 @@ trait Transformer {
 
   def removeUnusedIOs(node:Container) = {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeIO(io) }
+  }
+
+  def mirror() = {
+    case p:Product =>
+      p.getClass.getConstructors(0).newInstance(p.productIterator.toList.map{n => mirror(n).asInstanceOf[Object]})
+  }
+}
+
+import sys.process._
+import scala.language.postfixOps
+trait IRDotCodegen extends pir.codegen.Codegen with pir.codegen.DotCodegen with PIRTraversal with BFSTraversal {
+
+  def horizontal:Boolean
+
+  addPass {
+    emitBlock("digraph G") {
+      if (horizontal) emitln(s"rankdir=LR")
+      def visitNode(n:N, prev:Unit) = emitNode(n)
+      traverse(design.newTop, (), visitNode _, visitDown _)
+    }
+  }
+
+  def open = {
+    s"out/bin/run ${getPath} &".replace(".dot", "") !
+  }
+
+  def emitNode(n:N):Unit
+
+}
+
+trait GlobalIRDotCodegen extends IRDotCodegen {
+  def emitNode(n:N) = n match {
   }
 }
