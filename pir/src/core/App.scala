@@ -11,6 +11,7 @@ import pirc.util._
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe
+import scala.collection.mutable.ListBuffer
 import java.io._
 
 trait PIRApp extends PIR {
@@ -49,6 +50,7 @@ trait PIRApp extends PIR {
   def newDesign = {
     newTop = new Top()
     main(newTop)
+    _allNodes.foreach { case n:pir.newnode.Top => ; case n if n.parent.isEmpty => n.setParent(newTop); case _ => }
     endInfo(s"Finishing graph construction for ${this}")
   }
 
@@ -58,6 +60,9 @@ trait PIRApp extends PIR {
     val obj = runtimeMirror.reflectModule(module)
     obj.instance.asInstanceOf[Spade]
   }
+
+  private val _allNodes = ListBuffer[pir.newnode.Node]()
+  override def addNode(n:pir.newnode.Node) = _allNodes += n
 
   def main(top:Top): Any 
   def main(args: Array[String]): Unit = {

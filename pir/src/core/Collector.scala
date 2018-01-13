@@ -7,9 +7,6 @@ import scala.collection.mutable.Stack
 import scala.util.DynamicVariable
 trait Collector { design:PIR =>
 
-  private var nextSym = 0
-  def nextId = {nextSym += 1; nextSym }
-
   //TODO use collect to implement this
   private val nodeStack = Stack[(Node => Boolean, ListBuffer[Node])]()
   val toUpdate = ListBuffer[(() => Unit, String)]()
@@ -21,7 +18,6 @@ trait Collector { design:PIR =>
     allNodes.clear()
     nodeStack.push(((n:Node) => true), allNodes)
     toUpdate.clear()
-    nextSym = 0
   }
 
   def addNode(n: Node) = { 

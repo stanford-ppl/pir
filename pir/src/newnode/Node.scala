@@ -2,6 +2,7 @@ package pir.newnode
 
 import pir._
 
+import pirc._
 import pirc.enums._
 import pirc.util._
 
@@ -10,88 +11,31 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-/** Base class for all PIR nodes. 
-  * @param name: optional user name for a node 
-  */
-@SerialVersionUID(123L)
-abstract class Node(implicit design:PIR) extends Serializable { 
-
-  val id = design.nextId
-
-  override def equals(that: Any) = that match {
-    case n: Node => super.equals(that) && id == n.id
-    case _ => super.equals(that)
-  }
-
-  def className = this.getClass.getSimpleName
+abstract class Node(implicit design:PIR) extends pirc.node.Node[Node, Container] { self:Product =>
+  design.addNode(this)
 
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
-
-  override def toString = name.getOrElse(s"$className$id") 
-
-}
-
-trait SubGraph[C<:SubGraph[C]] extends Node with Serializable { self:C =>
-  var _parent:Option[C] = None
-  def parent:Option[C] = _parent
-  def parent(p:C):this.type =  {
-    if (p.isParentOf(this)) return this
-    _parent = Some(p)
-    p.addChild(this)
-    this
+  override def toString = {
+    val default = s"${this.getClass.getSimpleName}$id"
+    if (name == null) default else name.getOrElse(default) 
   }
-  def unsetParent = {
-    parent.foreach { p =>
-      _parent = None
-      p.removeChild(this.asInstanceOf[C])
-    }
-  }
-  def isParentOf(m:C) = m.parent == Some(this)
-
-  val _children = mutable.ListBuffer[C]()
-  def children = _children.toList
-  def isChildOf(p:C) = p.children.contains(this)
-  def addChild(c:C):Unit = { 
-    if (c.isChildOf(this)) return
-    _children += c
-    c.parent(this)
-  }
-  def addChildren(cs:C*):this.type = { cs.foreach(addChild); this }
-  def removeChild(c:C):Unit = {
-    if (!isParentOf(c)) return
-    _children -= c
-    c.unsetParent
-  }
-
-  def ancestors:List[C] = parent.toList.flatMap { parent => parent :: parent.ancestors }
-  def descendents:List[C] = children.flatMap { child => child :: child.descendents }
-
-  def ios:List[IO] = descendents.flatMap { _.ios }
-  def ins = ios.collect{ case io:Input => io }.toList
-  def outs = ios.collect{ case io:Output => io }.toList
 
   def ctrl(ctrler:Container)(implicit design:PIR):this.type = {
-    (ctrler, ctrler) match {
-      case (self:Controller, ctrler:Controller) => self.tree.parent(ctrler.tree)
-      case (self:Memory, _) => self.parent(design.newTop) 
-      case (self:DRAM, _) => 
-      case (self, ctrler) => self.parent(ctrler) 
+    (this, ctrler) match {
+      case (self:Counter, _) => 
+      case (self:Controller, ctrler:Controller) => self.tree.setParent(ctrler.tree)
+      case (self:Def, ctrler) => self.setParent(ctrler) 
+      case (_,_) =>
     }
     this
   }
 }
 
-trait Container extends SubGraph[Container]
+abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGraph[Node, Container] { self:Product =>
+}
 
-abstract class Module(implicit design: PIR) extends Node with Container { 
-  implicit val self:Module = this
-
-  val _ios = mutable.ListBuffer[IO]()
-  def addIO(io:IO) = _ios += io
-  def removeIO(io:IO) = _ios -= io
-  override def ios:List[IO] = _ios.toList ++ super.ios 
-
+abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node, Container] { self:Product =>
   def connect(io:IO)(implicit design:PIR):IO = {
     io match {
       case io:Input => new Output()(this, design).connect(io)
@@ -99,59 +43,34 @@ abstract class Module(implicit design: PIR) extends Node with Container {
     }
   }
 
-  def connectInput(x:Any)(implicit design:PIR):Unit = {
+  override def connectField(x:Node)(implicit design:Design):Unit = {
+    implicit val pir = design.asInstanceOf[PIR]
     x match {
       case x:Def => this.connect(x.out)
-      case x:Memory => this.connect(x.out)
-      case Some(x) => connectInput(x)
-      case x:Iterable[_] => x.foreach(connectInput)
-      case x:Iterator[_] => x.foreach(connectInput)
-      case x =>
+      case x:Memory => this.connect(x.out) // StoreDef override this function. it connects to Memory.in
+      case x:Counter => this.connect(x.out)
     }
   }
-
-  this match {
-    case p:Product => connectInput(p.productIterator)
-    case _ =>
-  }
 }
 
-abstract class IO(val src:Module)(implicit design:PIR) extends Node {
-  src.addIO(this)
-  type P <: IO
-
-  protected val _connected = mutable.ListBuffer[P]()
-  def connected:List[P] = _connected.toList
-  def isConnected:Boolean = connected.nonEmpty
-  def isConnectedTo(p:IO) = connected.contains(p)
-  def connect(p:P):this.type = {
-    if (isConnectedTo(p)) return this
-    err(this.isInstanceOf[Input] && this.isConnected, s"$this is already connected to ${connected}, reconnecting to $p")
-    _connected += p 
-    p.connect(this.asInstanceOf[p.P])
-    this
+abstract class IO(src:Module)(implicit design:PIR) extends pirc.node.Edge[Node, Container](src) {
+  override def connect(p:E):this.type = {
+    err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
+    super.connect(p)
   }
-
-  def disconnectFrom(io:IO):Unit = {
-    _connected -= io.asInstanceOf[P]
-    if (io.isConnectedTo(this)) io.disconnectFrom(this)
-  }
-  def disconnect = connected.foreach(_.disconnectFrom(this))
 }
-
-class Input(implicit override val src:Module, design:PIR) extends IO(src) {
-  type P = Output
+class Input(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Input[Node, Container] {
+  type E = Output
   def from = connected.head
 }
-
-class Output(implicit override val src:Module, design:PIR) extends IO(src) {
-  type P = Input
+class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Output[Node, Container] {
+  type E = Input
   def to = connected
 }
 
 case class DRAM()(implicit design:PIR) extends Module 
 
-abstract class Memory(implicit design:PIR) extends Module {
+abstract class Memory(implicit design:PIR) extends Module { self:Product =>
   val in = new Input
   val out = new Output
 }
@@ -171,34 +90,35 @@ case class CUContainer(contain:Node*)(implicit design:PIR) extends Container {
   def isFringe = children.collect { case dram:DRAM => dram }.nonEmpty
 }
 
-class Top(implicit design: PIR) extends Container { 
+case class Top()(implicit design: PIR) extends Container { 
   val argIns = mutable.ListBuffer[Reg]()
   val argOuts = mutable.ListBuffer[Reg]()
   val dramAddresses = mutable.Map[DRAM, Reg]()
 
   def argIn(init:Const[_<:AnyVal])(implicit design:PIR) = {
-    val reg = Reg(init).parent(this)
+    val reg = Reg(init).setParent(this)
     argIns += reg
     reg
   }
 
   def argOut(init:Const[_<:AnyVal])(implicit design:PIR) = {
-    val reg = Reg(init).parent(this)
+    val reg = Reg(init).setParent(this)
     argOuts += reg
     reg
   }
 
   def dramAddress(dram:DRAM)(implicit design:PIR) = {
-    val reg = Reg().parent(this)
+    val reg = Reg().setParent(this)
     dramAddresses += dram -> reg
     LoadDef(List(reg), None)
   }
+
 }
 
-class ControlHierarchy(controller:Controller)(implicit design:PIR) extends SubGraph[ControlHierarchy]
+case class ControlHierarchy(controller:Controller)(implicit design:PIR) extends pirc.node.SubGraph[ControlHierarchy,ControlHierarchy]
 
 case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Container {
-  val tree = new ControlHierarchy(this)
+  val tree = ControlHierarchy(this)
 
   def cchains = children.collect { case c:CounterChain => c }
 
@@ -217,11 +137,22 @@ case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) ext
 }
 
 abstract class Def(implicit design:PIR) extends Module { self:Product =>
+  def depDefs:List[Def] = deps.collect { case d:Def => d } 
+  def localDepDefs = localDeps.collect { case d:Def => d } 
+  def depedDefs:List[Def] = depeds.collect { case d:Def => d } 
+  def localDepedDefs = localDepeds.collect { case d:Def => d } 
+
   val out = new Output()(this,design)
-  def deps:List[Def] = ins.map { _.from.src }.collect { case d:Def => d }
-  def localDeps = deps.filter { _.parent == this.parent }
-  def depeds:List[Def] = outs.flatMap { _.to.map { _.src } }.collect { case d:Def => d }
-  def localDepeds = depeds.filter { _.parent == this.parent }
+}
+
+trait StoreNode extends Module { self:Product =>
+  override def connectField(x:Node)(implicit design:Design):Unit = {
+    implicit val pir = design.asInstanceOf[PIR]
+    x match {
+      case x:Memory => this.connect(x.in)
+      case x => super.connectField(x)
+    }
+  }
 }
 
 case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) extends Def 
@@ -229,12 +160,15 @@ case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends Def
 case class ReduceDef(op:Op, input:Def)(implicit design:PIR) extends Def
 case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends Def
 
+// Generated IR from spatial
 case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
+case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def with StoreNode
 
+// Lowered IR
 case class MemLoad(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
+case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def with StoreNode
 
+// IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyDef()(implicit design:PIR) extends Def
 case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Def
 
@@ -263,76 +197,35 @@ object Module {
   }
 }
 
-trait Traversal {
-}
-trait PIRTraversal {
-  type N = Node
-  def visitUp(n:N):Iterable[N] = {
-    n match {
-      case n:SubGraph[_] => n.parent.toList
-      case _ => Nil
-    }
-  }
-
-  def visitDown(n:N):Iterable[N] = {
-    n match {
-      case n:SubGraph[_] => n.children
-      case _ => Nil
-    }
-  }
-
-  def visitIn(n:N):Iterable[N] = {
-    n match {
-      case n:SubGraph[_] => n.ins.map { _.from.src }
-      case _ => Nil
-    }
-  }
-
-  def visitOut(n:N):Iterable[N] = {
-    n match {
-      case n:SubGraph[_] => n.outs.flatMap { _.to.map { _.src } }
-      case _ => Nil
-    }
-  }
-
+trait Traversal extends pirc.node.Traversal {
+  type N = Node 
+  type P = Container
 }
 
-trait DFSTraversal extends Traversal {
+trait Collector extends Traversal { self =>
 
-  def traverse[N,T](n:N, zero:T, visitNode:(N,T) => T, visitFunc:N => Iterable[N], visited:List[N]=Nil):T = {
-    if (visited.contains(n)) return zero
-    visitFunc(n).foldLeft(visitNode(n, zero)) { case (prev, n) => traverse(n, prev, visitNode, visitFunc, n::visited) }
-  }
-
-}
-
-trait BFSTraversal extends Traversal {
-
-  def traverse[N,T](n:N, zero:T, visitNode:(N,T) => T, visitFunc:N => Iterable[N], queue:mutable.Queue[N] = mutable.Queue[N](), visited:List[N]=Nil):T = {
-    if (visited.contains(n)) return zero
-    val res = visitNode(n, zero)
-    queue ++= visitFunc(n)
-    if (queue.isEmpty) res else traverse(queue.dequeue(), res, visitNode, visitFunc, queue, n::visited)
-  }
-}
-
-trait Collector extends BFSTraversal with PIRTraversal {
-  def visitNode[M<:Node:ClassTag](n:N, prev:(Iterable[M], Int)):(Iterable[M], Int) = {
-    val (prevRes, depth) = prev
-    n match {
-      case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
-      case _ if depth == 0 => (prevRes, 0)
-      case _ => (prevRes, depth - 1)
+  def newTraversal[M<:Node:ClassTag](vf:N => List[N]) = new pirc.node.BFSTraversal {
+    type T = (Iterable[M], Int)
+    type N = self.N
+    def visitNode(n:N, prev:T):T = {
+      val (prevRes, depth) = prev
+      n match {
+        case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
+        case _ if depth == 0 => (prevRes, 0)
+        case _ => (prevRes, depth - 1)
+      }
     }
+    def visitFunc(n:N):List[N] = vf(n)
   }
-  def collectUp[M<:Node:ClassTag](n:Node, depth:Int=10):Iterable[M] = {
-    traverse[N, (Iterable[M], Int)](n, (Nil, depth), visitNode[M] _, visitUp)._1
+ 
+  def collectUp[M<:Node:ClassTag](n:N, depth:Int=10):Iterable[M] = {
+    newTraversal(visitUp _).traverse(n, (Nil, depth))._1
   }
 }
 
 
 trait Transformer {
-  def removeNode(node:Container) = {
+  def removeNode(node:Node) = {
     node.ios.foreach { io => io.disconnect }
     node.parent.foreach { parent =>
       parent.removeChild(node)
@@ -341,39 +234,25 @@ trait Transformer {
     }
   }
 
-  def removeUnusedIOs(node:Container) = {
-    node.ios.foreach { io => if (!io.isConnected) io.src.removeIO(io) }
+  def removeUnusedIOs(node:Node) = {
+    node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def mirror() = {
-    case p:Product =>
-      p.getClass.getConstructors(0).newInstance(p.productIterator.toList.map{n => mirror(n).asInstanceOf[Object]})
-  }
-}
-
-import sys.process._
-import scala.language.postfixOps
-trait IRDotCodegen extends pir.codegen.Codegen with pir.codegen.DotCodegen with PIRTraversal with BFSTraversal {
-
-  def horizontal:Boolean
-
-  addPass {
-    emitBlock("digraph G") {
-      if (horizontal) emitln(s"rankdir=LR")
-      def visitNode(n:N, prev:Unit) = emitNode(n)
-      traverse(design.newTop, (), visitNode _, visitDown _)
-    }
-  }
-
-  def open = {
-    s"out/bin/run ${getPath} &".replace(".dot", "") !
-  }
-
-  def emitNode(n:N):Unit
-
-}
-
-trait GlobalIRDotCodegen extends IRDotCodegen {
-  def emitNode(n:N) = n match {
+  def transform[T<:Node](n:T):T = n match {
+    case n:Product => // Default way to mirror node
+      val fields = n.productIterator.toList
+      //TODO: n.getClass.getConstructor(fields.map{_.getClass}:_*).newInstance(fields.map{
+      // Some how this compiles but gives runtime error for not able to find the constructor when fields contain Int type since
+      // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
+      n.getClass.getConstructors()(0).newInstance(fields.map { // Only works with a single constructor
+        case n:Node => transform(n).asInstanceOf[Object]
+        case n => n
+      }).asInstanceOf[T]
+    case n => throw new Exception(s"Don't know how to mirror $n")
   }
 }
+
+//trait GlobalIRDotCodegen extends IRDotCodegen {
+  //def emitNode(n:N) = n match {
+  //}
+//}

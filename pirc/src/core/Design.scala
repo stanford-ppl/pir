@@ -10,6 +10,9 @@ trait Design extends FileManager {
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
 
+  private var nextSym = 0
+  def nextId = {nextSym += 1; nextSym }
+
   /* Compiler Passes */
   val passes = ListBuffer[Pass]()
 
@@ -33,7 +36,5 @@ trait Design extends FileManager {
     }
     configs.foreach(_.setOption(args.toList))
   }
-
-  def main(args: Array[String]): Unit
 
 }

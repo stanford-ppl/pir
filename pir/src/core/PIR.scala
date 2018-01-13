@@ -22,6 +22,8 @@ trait PIR extends Design with PIRMetadata with Collector {
   var newTop:pir.newnode.Top = _
   var arch:Spade = _
 
+  def addNode(n:pir.newnode.Node)
+
   override def reset = {
     super[Collector].reset
     super[PIRMetadata].reset
@@ -150,6 +152,8 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += resourceAnalyzer
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
+    //
+    passes += new IRDotCodegen {}
 
     super.run
 
