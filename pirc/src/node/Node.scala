@@ -5,6 +5,7 @@ import pirc._
 import pirc.util._
 
 import scala.reflect._
+import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 @SerialVersionUID(123L)
@@ -189,6 +190,23 @@ trait Traversal extends GraphTraversal {
 
   def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
 }
+
+trait GraphSchedular extends GraphTraversal { self =>
+  type N
+  type T = List[N]
+
+  def visitFunc(n:N):List[N]
+
+  def visitNode(n:N, prev:T):T = {
+    traverse(n, prev :+ n)
+  }
+
+  def schedule(n:N) = {
+    reset
+    traverse(n, Nil)
+  }
+}
+
 trait GraphTraversal {
   type N
   type T
@@ -301,74 +319,54 @@ object TraversalTest extends TestDesign {
   val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
 
   def testBFS = {
-    val traversal = new BFSTraversal with Traversal {
+    val traversal = new BFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
-      type T = List[N]
       def visitFunc(n:N):List[N] = visitIn(n)
-      def visitNode(n:N, prev:T):T = {
-        traverse(n, prev :+ n)
-      }
     }
-    var res = traversal.visitNode(e, Nil)
+    var res = traversal.schedule(e)
     println(s"")
     println(s"testBFS", res)
-    traversal.reset
-    res = traversal.visitNode(g3, Nil)
+    res = traversal.schedule(g3)
     println(s"testBFS", res)
     //assert(res == List(e, d, c, a, b))
   }
 
   def testDFS = {
-    val traversal = new DFSTraversal with Traversal {
+    val traversal = new DFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
-      type T = List[N]
       def visitFunc(n:N):List[N] = visitIn(n)
-      def visitNode(n:N, prev:T):T = {
-        traverse(n, prev :+ n)
-      }
     }
-    var res = traversal.visitNode(e, Nil)
+    var res = traversal.schedule(e)
     println(s"testDFS", res)
-    traversal.reset
-    res = traversal.visitNode(g3, Nil)
+    res = traversal.schedule(g3)
     println(s"testDFS", res)
     //assert(res == List(e, d, a, b, c))
   }
 
   def testTopoBFS = {
-    val traversal = new BFSTopologicalTraversal with Traversal {
+    val traversal = new BFSTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
-      type T = List[N]
       def depFunc(n:N):List[N] = visitIn(n)
-      def visitNode(n:N, prev:T):T = {
-        traverse(n, prev :+ n)
-      }
     }
-    var res = traversal.visitNode(a, Nil)
+    var res = traversal.schedule(a)
     println(s"testTopoBFS", res)
-    traversal.reset
-    res = traversal.visitNode(g1, Nil)
+    res = traversal.schedule(g1)
     println(s"testTopoBFS", res)
     //assert(res == List(a,b,c,d,e))
   }
 
   def testTopoDFS = {
-    val traversal = new DFSTopologicalTraversal with Traversal {
+    val traversal = new DFSTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
-      type T = List[N]
       def depFunc(n:N):List[N] = visitIn(n)
-      def visitNode(n:N, prev:T):T = {
-        traverse(n, prev :+ n)
-      }
     }
-    var res = traversal.visitNode(a, Nil)
+    var res = traversal.schedule(a)
     println(s"testTopoDFS", res)
-    traversal.reset
-    res = traversal.visitNode(g1, Nil)
+    res = traversal.schedule(g1)
     println(s"testTopoDFS", res)
     //assert(res == List(a,b,c,d,e))
   }
