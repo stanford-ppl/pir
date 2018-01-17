@@ -122,7 +122,7 @@ abstract class IRDotCodegen(implicit design:PIR) extends CodegenWrapper with pir
 
   override def emitNode(n:N) = {
     n match {
-      case n:Atom[_,_] => emitSingleNode(n)
+      case n:Atom[_] => emitSingleNode(n)
       case n => emitSubGraph(n)
     }
   }
@@ -171,7 +171,7 @@ abstract class GlobalIRDotCodegen(implicit design:PIR) extends IRDotCodegen with
 
   override def emitNode(n:N) = {
     n match {
-      case n:Atom[_,_] => emitSingleNode(n)
+      case n:Atom[_] => emitSingleNode(n)
       case n:Controller if n.level==InnerControl => emitSingleNode(n)
       case n => emitSubGraph(n)
     }

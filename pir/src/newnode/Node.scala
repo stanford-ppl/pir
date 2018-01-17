@@ -11,8 +11,9 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class Node(implicit design:PIR) extends pirc.node.Node[Node, Container] { self:Product =>
+abstract class Node(implicit design:PIR) extends pirc.node.Node[Node] { self:Product =>
   design.addNode(this)
+  type P = Container
 
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
@@ -32,10 +33,10 @@ abstract class Node(implicit design:PIR) extends pirc.node.Node[Node, Container]
   }
 }
 
-abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGraph[Node, Container] { self:Product =>
+abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGraph[Node] { self:Product =>
 }
 
-abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node, Container] { self:Product =>
+abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node] { self:Product =>
   def connect(io:IO)(implicit design:PIR):IO = {
     io match {
       case io:Input => new Output()(this, design).connect(io)
@@ -53,17 +54,17 @@ abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Nod
   }
 }
 
-abstract class IO(src:Module)(implicit design:PIR) extends pirc.node.Edge[Node, Container](src) {
+abstract class IO(src:Module)(implicit design:PIR) extends pirc.node.Edge[Node](src) {
   override def connect(p:E):this.type = {
     err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
     super.connect(p)
   }
 }
-class Input(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Input[Node, Container] {
+class Input(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Input[Node] {
   type E = Output
   def from = connected.head
 }
-class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Output[Node, Container] {
+class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Output[Node] {
   type E = Input
   def to = connected
 }
@@ -115,7 +116,9 @@ case class Top()(implicit design: PIR) extends Container {
 
 }
 
-case class ControlHierarchy(controller:Controller)(implicit design:PIR) extends pirc.node.SubGraph[ControlHierarchy,ControlHierarchy]
+case class ControlHierarchy(controller:Controller)(implicit design:PIR) extends pirc.node.SubGraph[ControlHierarchy] {
+  type P = ControlHierarchy 
+}
 
 case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Container {
   override def className = s"$style"

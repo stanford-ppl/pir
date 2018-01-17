@@ -23,7 +23,9 @@ abstract class IR(implicit design:Design) extends Serializable {
   override def toString = s"${this.getClass.getSimpleName}$id"
 }
 
-abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:Design) extends IR { self:Product with N =>
+abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { self:Product with N =>
+
+  type P <: SubGraph[N]
   val nt = implicitly[ClassTag[N]]
 
   override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
@@ -56,16 +58,16 @@ abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:D
   def children:List[N]
   def isChildOf(p:N) = p.children.contains(this)
 
-  def ancestors:List[SubGraph[N,P]] = parent.toList.flatMap { parent => parent :: parent.ancestors }
+  def ancestors:List[P] = parent.toList.flatMap { parent => parent :: parent.ancestors.asInstanceOf[List[P]] }
   def descendents:List[N] = children.flatMap { child => 
     child :: child.descendents
   }
 
-  def ins:List[Input[N,P]]
-  def outs:List[Output[N,P]]
-  def ios:List[Edge[N,P]] = ins ++ outs
+  def ins:List[Input[N]]
+  def outs:List[Output[N]]
+  def ios:List[Edge[N]] = ins ++ outs
 
-  def matchLevel(n:Atom[N,P]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
+  def matchLevel(n:Atom[N]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
   def deps = ins.flatMap { _.connected.map { _.src } }.toSet
   def localDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
@@ -86,30 +88,30 @@ abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:D
   connectFields(values)
 }
 
-trait Atom[N<:Node[N, P], P<:SubGraph[N, P]] extends Node[N, P] { self: Product with N =>
+trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
   implicit lazy val atom:this.type = this
 
   def children:List[N] = Nil
 
-  private lazy val _ins = mutable.ListBuffer[Input[N,P]]()
-  private lazy val _outs = mutable.ListBuffer[Output[N,P]]()
-  def addEdge(io:Edge[N,P]) = {
+  private lazy val _ins = mutable.ListBuffer[Input[N]]()
+  private lazy val _outs = mutable.ListBuffer[Output[N]]()
+  def addEdge(io:Edge[N]) = {
     io match {
-      case io:Input[N,P] => _ins += io
-      case io:Output[N,P] => _outs += io
+      case io:Input[N] => _ins += io
+      case io:Output[N] => _outs += io
     }
   }
-  def removeEdge(io:Edge[N,P]) = {
+  def removeEdge(io:Edge[N]) = {
     io match {
-      case io:Input[N,P] => _ins -= io
-      case io:Output[N,P] => _outs -= io
+      case io:Input[N] => _ins -= io
+      case io:Output[N] => _outs -= io
     }
   }
   def ins = _ins.toList
   def outs = _outs.toList
 }
 
-trait SubGraph[N<:Node[N, P], P<:SubGraph[N,P]] extends Node[N,P] { self: Product with N with P =>
+trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[N] =>
   // Children
   private lazy val _children = mutable.ListBuffer[N]()
   def children = _children.toList
@@ -117,7 +119,7 @@ trait SubGraph[N<:Node[N, P], P<:SubGraph[N,P]] extends Node[N,P] { self: Produc
     assert(c != this)
     if (c.isChildOf(this)) return
     _children += c
-    c.setParent(this)
+    c.setParent(this.asInstanceOf[c.P])
   }
   def removeChild(c:N):Unit = {
     if (!isParentOf(c)) return
@@ -137,11 +139,10 @@ trait SubGraph[N<:Node[N, P], P<:SubGraph[N,P]] extends Node[N,P] { self: Produc
   }
 
 }
-
-abstract class Edge[N<:Node[N, P]:ClassTag, P<:SubGraph[N,P]](val src:Atom[N,P])(implicit design:Design) extends IR {
+abstract class Edge[N<:Node[N]:ClassTag](val src:Atom[N])(implicit design:Design) extends IR {
   src.addEdge(this)
 
-  type E<:Edge[N,P]
+  type E<:Edge[N]
   protected val _connected = mutable.ListBuffer[E]()
   def connected:List[E] = _connected.toList
   def isConnected:Boolean = connected.nonEmpty
@@ -160,22 +161,22 @@ abstract class Edge[N<:Node[N, P]:ClassTag, P<:SubGraph[N,P]](val src:Atom[N,P])
   def disconnect = connected.foreach(disconnectFrom)
 }
 
-trait Input[N<:Node[N, P], P<:SubGraph[N,P]] extends Edge[N,P] {
-  type E <: Output[N,P]
+trait Input[N<:Node[N]] extends Edge[N] {
+  type E <: Output[N]
 }
 
-trait Output[N<:Node[N, P], P<:SubGraph[N,P]] extends Edge[N,P] {
-  type E <: Input[N,P]
+trait Output[N<:Node[N]] extends Edge[N] {
+  type E <: Input[N]
 }
+
 
 trait Traversal extends GraphTraversal {
-  type N<:Node[N,P]
-  type P<:SubGraph[N,P] with N 
+  type N<:Node[N]
 
   /*
    * Visit from buttom up
    * */
-  def visitUp(n:N):List[N] = n.parent.toList
+  def visitUp(n:N):List[N] = n.parent.toList.asInstanceOf[List[N]]
 
   /*
    * Visit subgraph
@@ -301,7 +302,7 @@ trait ChildLastTraversal extends BFSTraversal with HiearchicalTraversal {
 trait HiearchicalTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal {
   override def visitChild(n:N) = {
     n match {
-      case n:SubGraph[_,_] => 
+      case n:SubGraph[_] => 
         super.visitChild(n.asInstanceOf[N]).filter(c => depFunc(c.asInstanceOf[N]).isEmpty).asInstanceOf[List[N]]
       case n => Nil
     }
@@ -318,7 +319,7 @@ trait TestDesign extends Design {
   implicit val self:Design = this
 }
 
-abstract class TestNode(implicit design:Design) extends Node[TestNode, TestSubGraph] { self:Product with TestNode =>
+abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Product with TestNode =>
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
   override def toString = {
@@ -327,13 +328,13 @@ abstract class TestNode(implicit design:Design) extends Node[TestNode, TestSubGr
   }
 }
 
-class TestInput(implicit src:TestAtom, design:Design) extends Edge[TestNode, TestSubGraph](src) with Input[TestNode, TestSubGraph] {
+class TestInput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Input[TestNode] {
   type E = TestOutput
 }
-class TestOutput(implicit src:TestAtom, design:Design) extends Edge[TestNode, TestSubGraph](src) with Output[TestNode, TestSubGraph] {
+class TestOutput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Output[TestNode] {
   type E = TestInput
 }
-case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode, TestSubGraph] {
+case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
   val out = new TestOutput
   def connectField(x:TestNode)(implicit design:Design) {
     x match {
@@ -344,7 +345,7 @@ case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with 
     }
   }
 }
-case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode, TestSubGraph]
+case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
 
 object TraversalTest extends TestDesign {
   val a = TestAtom().name("a")
@@ -379,7 +380,6 @@ object TraversalTest extends TestDesign {
   def testBFS = {
     val traversal = new BFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
-      type P = TestSubGraph
       def visitFunc(n:N):List[N] = {
         visitIn(n)
       }
@@ -396,7 +396,6 @@ object TraversalTest extends TestDesign {
   def testDFS = {
     val traversal = new DFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
-      type P = TestSubGraph
       def visitFunc(n:N):List[N] = visitIn(n)
     }
     var res = traversal.schedule(e)
@@ -410,7 +409,6 @@ object TraversalTest extends TestDesign {
   def testTopo = {
     val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
-      type P = TestSubGraph
       def depFunc(n:N):List[N] = visitIn(n)
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
@@ -426,7 +424,6 @@ object TraversalTest extends TestDesign {
   def testHierTopoDFS = {
     val traversal = new ChildFirstTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
-      type P = TestSubGraph
       def depFunc(n:N):List[N] = visitIn(n)
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
@@ -440,7 +437,6 @@ object TraversalTest extends TestDesign {
   def testHierTopoBFS = {
     val traversal = new ChildLastTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
-      type P = TestSubGraph
       def depFunc(n:N):List[N] = visitIn(n)
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
@@ -454,8 +450,7 @@ object TraversalTest extends TestDesign {
 }
 
 trait GraphMutableTransformer extends GraphTraversal {
-  type N<:Node[N,P]
-  type P<:SubGraph[N,P] with N 
+  type N<:Node[N]
   type T = Unit
 
   def removeNode(node:N) = {
@@ -463,7 +458,7 @@ trait GraphMutableTransformer extends GraphTraversal {
     node.parent.foreach { parent =>
       parent.removeChild(node)
       node.unsetParent
-      (parent.children.filterNot { _ == node } :+ parent).foreach(removeUnusedIOs)
+      (parent.children.filterNot { _ == node } :+ parent.asInstanceOf[N]).foreach(removeUnusedIOs)
     }
   }
 
@@ -477,8 +472,7 @@ trait GraphMutableTransformer extends GraphTraversal {
 }
 
 trait GraphImmutableTransformer {
-  type N<:Node[N,P]
-  type P<:SubGraph[N,P] with N 
+  type N<:Node[N]
 
   def transform[T<:N:ClassTag](n:T):T = {
     val values = n.values 
