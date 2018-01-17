@@ -18,6 +18,7 @@ abstract class IR(implicit design:Design) extends Serializable {
   }
 
   def className = this.getClass.getSimpleName
+  def productName = this.getClass.getSimpleName
 
   override def toString = s"${this.getClass.getSimpleName}$id"
 }
@@ -25,7 +26,7 @@ abstract class IR(implicit design:Design) extends Serializable {
 abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:Design) extends IR { self:Product with N =>
   val nt = implicitly[ClassTag[N]]
 
-  override def className = s"$productPrefix(${productIterator.mkString(",")})" 
+  override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
 
   // Parent
   var _parent:Option[P] = None
@@ -61,13 +62,13 @@ abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:D
   def outs:List[Output[N,P]]
   def ios:List[Edge[N,P]] = ins ++ outs
 
-  def matchLevel(n:Atom[N,P]) = (n :: n.ancestors).filter { _.parent == this.parent }.head.asInstanceOf[N] // why is this necessary
-  def deps = ins.flatMap { _.connected.map { c => matchLevel(c.src) } }.toSet.toList
-  def localDeps = deps.filter { _.parent == this.parent }
-  def globalDeps = deps.filter { _.parent != this.parent }
-  def depeds = outs.flatMap { _.connected.map { c => matchLevel(c.src) } }.toSet.toList
-  def localDepeds = depeds.filter { _.parent == this.parent }
-  def globalDepeds = depeds.filter { _.parent != this.parent }
+  def matchLevel(n:Atom[N,P]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
+  def deps = ins.flatMap { _.connected.map { _.src } }.toSet
+  def localDeps = deps.flatMap(matchLevel)
+  def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
+  def depeds = outs.flatMap { _.connected.map { _.src } }.toSet
+  def localDepeds = depeds.flatMap(matchLevel)
+  def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
   def connectFields(x:Any)(implicit design:Design):Unit = x match {
     case x:N => connectField(x)
@@ -181,12 +182,14 @@ trait Traversal extends GraphTraversal {
   /*
    * Visit inputs of a node
    * */
-  def visitIn(n:N):List[N] = n.localDeps
+  def visitIn(n:N):List[N] = {
+    n.localDeps.toList
+  }
 
   /*
    * Visit outputs of a node 
    * */
-  def visitOut(n:N):List[N] = n.localDepeds
+  def visitOut(n:N):List[N] = n.localDepeds.toList
 
   def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
 }
@@ -203,7 +206,7 @@ trait GraphSchedular extends GraphTraversal { self =>
 
   def schedule(n:N) = {
     reset
-    traverse(n, Nil)
+    visitNode(n, Nil)
   }
 }
 
@@ -223,11 +226,11 @@ trait GraphTraversal {
 
   def visitNode(n:N, prev:T):T
 
-  def traverse(n:N, zero:T):T
+  def traverse(n:N, zero:T):T = throw new Exception(s"Undefined traverse function")
 }
 
 trait DFSTraversal extends GraphTraversal {
-  def traverse(n:N, zero:T):T = {
+  override def traverse(n:N, zero:T):T = {
     visited += n
     visitFunc(n).filterNot(isVisited).foldLeft(zero) { 
       case (prev, n) if isVisited(n) => prev 
@@ -246,7 +249,7 @@ trait BFSTraversal extends GraphTraversal {
     queue.clear
   }
 
-  def traverse(n:N, zero:T):T = {
+  override def traverse(n:N, zero:T):T = {
     visited += n
     queue ++= visitFunc(n).filterNot(isVisited)
     while (queue.nonEmpty) {
@@ -260,14 +263,51 @@ trait BFSTraversal extends GraphTraversal {
 trait TopologicalTraversal extends GraphTraversal {
   def allNodes(n:N):List[N]
   def depFunc(n:N):List[N]
-  def visitFunc(n:N):List[N] = {
-    allNodes(n).filter { n => depFunc(n).filterNot(isVisited).isEmpty }
+  def isDepFree(n:N) = depFunc(n).filterNot(isVisited).isEmpty
+  def visitFunc(n:N):List[N] = allNodes(n).filter { n => isDepFree(n) }
+}
+
+trait HiearchicalTraversal extends Traversal with GraphTraversal {
+
+  def visitChild(n:N):List[N] = n.children
+  def visitFunc(n:N):List[N] = Nil 
+
+  def traverseChildren(n:N, prev:T):T = {
+    visitChild(n).foldLeft(prev) { 
+      case (prev, n) if isVisited(n) => prev 
+      case (prev, n) => visitNode(n, prev)
+    }
+  }
+
+}
+
+trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
+  override def traverse(n:N, zero:T):T = {
+    visited += n
+    super.traverse(n, traverseChildren(n, zero))
   }
 }
 
-trait BFSTopologicalTraversal extends TopologicalTraversal with BFSTraversal
+trait ChildLastTraversal extends BFSTraversal with HiearchicalTraversal {
+  override def traverse(n:N, zero:T):T = {
+    visited += n
+    traverseChildren(n, super.traverse(n, zero))
+  }
+}
 
-trait DFSTopologicalTraversal extends TopologicalTraversal with DFSTraversal
+trait HiearchicalTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal {
+  override def visitChild(n:N) = {
+    n match {
+      case n:SubGraph[_,_] => 
+        super.visitChild(n.asInstanceOf[N]).filter(c => depFunc(c.asInstanceOf[N]).isEmpty).asInstanceOf[List[N]]
+      case n => Nil
+    }
+  }
+  override def visitFunc(n:N):List[N] = super[TopologicalTraversal].visitFunc(n)
+}
+
+trait ChildFirstTopologicalTraversal extends ChildFirstTraversal with HiearchicalTopologicalTraversal
+trait ChildLastTopologicalTraversal extends ChildLastTraversal with HiearchicalTopologicalTraversal
 
 trait TestDesign extends Design {
   val configs = Nil
@@ -310,26 +350,44 @@ object TraversalTest extends TestDesign {
   val d = TestAtom(a,b).name("d")
   val e = TestAtom(d).name("e")
   val f = TestAtom().name("f")
-  val g = TestAtom(c, e).name("g")
+  val g = TestAtom(e, c).name("g")
   val h = TestAtom(f).name("h")
   val i = TestAtom(g,h).name("i")
+  val j = TestAtom(i).name("j")
+  val k = TestAtom().name("k")
+  val l = TestAtom(k).name("l")
+  val m = TestAtom(j).name("m")
+  val n = TestAtom(m, j).name("n")
   val g1 = TestSubGraph(a,b,d).name("g1")
   val g2 = TestSubGraph(c).name("g2")
-  val g3 = TestSubGraph(h,i).name("g3")
+  val g3 = TestSubGraph(h,i, j, k, m, l, n).name("g3")
   val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
+
+  def testGraph = {
+    assert(i.deps == Set(g, h))
+    assert(i.globalDeps == Set(g))
+    assert(i.localDeps == Set(h))
+    assert(g.deps == Set(c, e))
+    assert(g.globalDeps == Set())
+    assert(g.localDeps == Set(g2, e))
+    println(g1.deps)
+  }
 
   def testBFS = {
     val traversal = new BFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
-      def visitFunc(n:N):List[N] = visitIn(n)
+      def visitFunc(n:N):List[N] = {
+        visitIn(n)
+      }
     }
-    var res = traversal.schedule(e)
     println(s"")
-    println(s"testBFS", res)
+    var res = traversal.schedule(e)
+    //println(s"testBFS", res)
+    assert(res==List(e, g1))
     res = traversal.schedule(g3)
-    println(s"testBFS", res)
-    //assert(res == List(e, d, c, a, b))
+    //println(s"testBFS", res)
+    assert(res == List(g3, f, g, e, g2, g1))
   }
 
   def testDFS = {
@@ -339,36 +397,55 @@ object TraversalTest extends TestDesign {
       def visitFunc(n:N):List[N] = visitIn(n)
     }
     var res = traversal.schedule(e)
-    println(s"testDFS", res)
+    //println(s"testDFS", res)
+    assert(res==List(e, g1))
     res = traversal.schedule(g3)
-    println(s"testDFS", res)
-    //assert(res == List(e, d, a, b, c))
+    //println(s"testDFS", res)
+    assert(res == List(g3, f, g, e, g1, g2))
   }
 
-  def testTopoBFS = {
-    val traversal = new BFSTopologicalTraversal with GraphSchedular with Traversal {
+  def testTopo = {
+    val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
       def depFunc(n:N):List[N] = visitIn(n)
+      override def visitNode(n:N, prev:T):T = {
+        assert(depFunc(n).forall(isVisited))
+        super.visitNode(n, prev)
+      }
     }
     var res = traversal.schedule(a)
-    println(s"testTopoBFS", res)
+    println(s"testTopo", res)
     res = traversal.schedule(g1)
-    println(s"testTopoBFS", res)
-    //assert(res == List(a,b,c,d,e))
+    println(s"testTopo", res)
   }
 
-  def testTopoDFS = {
-    val traversal = new DFSTopologicalTraversal with GraphSchedular with Traversal {
+  def testHierTopoDFS = {
+    val traversal = new ChildFirstTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
       type P = TestSubGraph
       def depFunc(n:N):List[N] = visitIn(n)
+      override def visitNode(n:N, prev:T):T = {
+        assert(depFunc(n).forall(isVisited))
+        super.visitNode(n, prev)
+      }
     }
-    var res = traversal.schedule(a)
-    println(s"testTopoDFS", res)
-    res = traversal.schedule(g1)
-    println(s"testTopoDFS", res)
-    //assert(res == List(a,b,c,d,e))
+    var res = traversal.schedule(top)
+    println(s"testHierTopoDFS", res)
+  }
+
+  def testHierTopoBFS = {
+    val traversal = new ChildLastTopologicalTraversal with GraphSchedular with Traversal {
+      type N = TestNode
+      type P = TestSubGraph
+      def depFunc(n:N):List[N] = visitIn(n)
+      override def visitNode(n:N, prev:T):T = {
+        assert(depFunc(n).forall(isVisited))
+        super.visitNode(n, prev)
+      }
+    }
+    var res = traversal.schedule(top)
+    println(s"testHierTopoBFS", res)
   }
 
 }

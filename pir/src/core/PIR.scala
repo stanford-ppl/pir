@@ -153,7 +153,9 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
     //
+    passes += new GlobalIRDotCodegen {}
     passes += new IRDotCodegen {}
+    passes += new IRPrinter {}
 
     super.run
 

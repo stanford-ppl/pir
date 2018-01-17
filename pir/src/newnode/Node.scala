@@ -118,6 +118,7 @@ case class Top()(implicit design: PIR) extends Container {
 case class ControlHierarchy(controller:Controller)(implicit design:PIR) extends pirc.node.SubGraph[ControlHierarchy,ControlHierarchy]
 
 case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Container {
+  override def className = s"$style"
   val tree = ControlHierarchy(this)
 
   def cchains = children.collect { case c:CounterChain => c }
@@ -137,9 +138,9 @@ case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) ext
 }
 
 abstract class Def(implicit design:PIR) extends Module { self:Product =>
-  def depDefs:List[Def] = deps.collect { case d:Def => d } 
+  def depDefs:Set[Def] = deps.collect { case d:Def => d } 
   def localDepDefs = localDeps.collect { case d:Def => d } 
-  def depedDefs:List[Def] = depeds.collect { case d:Def => d } 
+  def depedDefs:Set[Def] = depeds.collect { case d:Def => d } 
   def localDepedDefs = localDepeds.collect { case d:Def => d } 
 
   val out = new Output()(this,design)
@@ -208,7 +209,7 @@ trait Collector extends Traversal { self =>
     type T = (Iterable[M], Int)
     type N = self.N
     def visitNode(n:N, prev:T):T = {
-      val (prevRes, depth) = prev
+      val (prevRes, depth) = prev 
       n match {
         case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
         case _ if depth == 0 => (prevRes, 0)
