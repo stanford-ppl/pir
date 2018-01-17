@@ -30,7 +30,7 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.codegen.Codegen w
   }
 
   def qdef(n:N) = s"$n = ${n.productName}"
-  def qtype(n:N) = n.name.map { name => s"${n.className}($name)" }.getOrElse(s"$n")
+  def qtype(n:N) = n.name.map { name => s"${n.className}[$name]" }.getOrElse(s"$n")
 }
 
 class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
@@ -95,14 +95,28 @@ abstract class IRDotCodegen(implicit design:PIR) extends CodegenWrapper with pir
     s"out/bin/run ${getPath} &".replace(".dot", "") !
   }
 
+  def shape(attr:DotAttr, n:N) = attr.shape(box)
+
+  def fillcolor(attr:DotAttr, n:N) = attr
+
+  def label(attr:DotAttr, n:N) = attr.label(qtype(n))
+
   def emitSubGraph(n:N):Unit = {
-    emitSubGraph(n, qtype(n)) {
+    var attr = DotAttr()
+    attr = shape(attr, n)
+    attr = fillcolor(attr, n)
+    attr = label(attr, n)
+    emitSubGraph(n, attr) {
       traverseChildren(n, ())
     }
   }
 
   def emitSingleNode(n:N) = {
-    emitNode(n,DotAttr().shape(box).label(qtype(n)))
+    var attr = DotAttr()
+    attr = shape(attr, n)
+    attr = fillcolor(attr, n)
+    attr = label(attr, n)
+    emitNode(n,attr)
     nodes += n
   }
 
@@ -134,6 +148,27 @@ abstract class GlobalIRDotCodegen(implicit design:PIR) extends IRDotCodegen with
 
   override lazy val stream = newStream(s"GlobalIRDotCodegen.dot")
 
+  override def label(attr:DotAttr, n:N) = n match {
+    case n:Counter =>
+      val fields = n.fields.zip(n.productIterator.toList).flatMap { 
+        case (field, Const(v)) => Some(s"$field=$v")
+        case _ => None
+      }
+      attr.label(s"${qtype(n)}(${fields.mkString(",")})")
+    case n => super.label(attr, n)
+  }
+
+  //def shape(attr:DotAttr, n:N) = attr.shape(box)
+
+  override def fillcolor(attr:DotAttr, n:N) = n match {
+    case n:SRAM => attr.fillcolor(cyan).style(filled)
+    case n:StreamIn => attr.fillcolor(gold).style(filled)
+    case n:StreamOut => attr.fillcolor(gold).style(filled)
+    case n:Reg => attr.fillcolor(gold).style(filled)
+    case n:Counter => attr.fillcolor(indianred).style(filled)
+    case n => super.fillcolor(attr, n)
+  }
+
   override def emitNode(n:N) = {
     n match {
       case n:Atom[_,_] => emitSingleNode(n)
@@ -141,4 +176,5 @@ abstract class GlobalIRDotCodegen(implicit design:PIR) extends IRDotCodegen with
       case n => emitSubGraph(n)
     }
   }
+
 }

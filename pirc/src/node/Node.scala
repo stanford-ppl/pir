@@ -28,6 +28,9 @@ abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:D
 
   override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
 
+  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName)
+  lazy val values = self.productIterator.toList
+
   // Parent
   var _parent:Option[P] = None
   def parent:Option[P] = _parent
@@ -80,7 +83,7 @@ abstract class Node[N<:Node[N, P]:ClassTag, P<:SubGraph[N, P]](implicit design:D
 
   def connectField(x:N)(implicit design:Design):Unit
 
-  connectFields(productIterator)
+  connectFields(values)
 }
 
 trait Atom[N<:Node[N, P], P<:SubGraph[N, P]] extends Node[N, P] { self: Product with N =>
@@ -448,5 +451,44 @@ object TraversalTest extends TestDesign {
     println(s"testHierTopoBFS", res)
   }
 
+}
+
+trait GraphMutableTransformer extends GraphTraversal {
+  type N<:Node[N,P]
+  type P<:SubGraph[N,P] with N 
+  type T = Unit
+
+  def removeNode(node:N) = {
+    node.ios.foreach { io => io.disconnect }
+    node.parent.foreach { parent =>
+      parent.removeChild(node)
+      node.unsetParent
+      (parent.children.filterNot { _ == node } :+ parent).foreach(removeUnusedIOs)
+    }
+  }
+
+  def removeUnusedIOs(node:N) = {
+    node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
+  }
+
+  def transform(n:N):Unit = traverse(n, ())
+
+  def visitNode(n:N, prev:T):T = transform(n)
+}
+
+trait GraphImmutableTransformer {
+  type N<:Node[N,P]
+  type P<:SubGraph[N,P] with N 
+
+  def transform[T<:N:ClassTag](n:T):T = {
+    val values = n.values 
+    //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
+    // Some how this compiles but gives runtime error for not able to find the constructor when values contain Int type since
+    // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
+    n.getClass.getConstructors()(0).newInstance(values.map { // Only works with a single constructor
+      case n:T => transform(n)
+      case n => n
+    }).asInstanceOf[T]
+  }
 }
 

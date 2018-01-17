@@ -225,35 +225,22 @@ trait Collector extends Traversal { self =>
 }
 
 
-trait Transformer {
-  def removeNode(node:Node) = {
-    node.ios.foreach { io => io.disconnect }
-    node.parent.foreach { parent =>
-      parent.removeChild(node)
-      node.unsetParent
-      (parent.children.filterNot { _ == node } :+ parent).foreach(removeUnusedIOs)
-    }
+abstract class CUInsertion(implicit design:PIR) extends pir.pass.Pass with pirc.node.GraphMutableTransformer with pirc.node.ChildLastTraversal with Traversal {
+
+  override type N = Node
+  override type P = Container
+
+  override def reset = {
+    super[Pass].reset
+    super[ChildLastTraversal].reset
   }
 
-  def removeUnusedIOs(node:Node) = {
-    node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
+  addPass {
+    transform(design.newTop)
   }
 
-  def transform[T<:Node](n:T):T = n match {
-    case n:Product => // Default way to mirror node
-      val fields = n.productIterator.toList
-      //TODO: n.getClass.getConstructor(fields.map{_.getClass}:_*).newInstance(fields.map{
-      // Some how this compiles but gives runtime error for not able to find the constructor when fields contain Int type since
-      // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
-      n.getClass.getConstructors()(0).newInstance(fields.map { // Only works with a single constructor
-        case n:Node => transform(n).asInstanceOf[Object]
-        case n => n
-      }).asInstanceOf[T]
-    case n => throw new Exception(s"Don't know how to mirror $n")
+  override def transform(n:N):Unit = {
+    super.transform(n)
   }
+
 }
-
-//trait GlobalIRDotCodegen extends IRDotCodegen {
-  //def emitNode(n:N) = n match {
-  //}
-//}
