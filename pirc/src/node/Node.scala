@@ -32,7 +32,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
 
   lazy val arity = self.productArity
   def values = self.productIterator.toList
-  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).slice(0, arity).map(_.getName).toList
+  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
 
   // Parent
   var _parent:Option[P] = None
@@ -76,17 +76,19 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
-  def connectFields(x:Any)(implicit design:Design):Unit = x match {
-    case (x:N, field:String) => connectField(x, field)
-    case Some(x) => connectFields(x)
-    case x:Iterable[_] => x.foreach(connectFields)
-    case x:Iterator[_] => x.foreach(connectFields)
-    case x =>
+  def connectFields(x:Any)(implicit design:Design):Unit = {
+    x match {
+      case x:N => connectField(x)
+      case Some(x) => connectFields(x)
+      case x:Iterable[_] => x.foreach(connectFields)
+      case x:Iterator[_] => x.foreach(connectFields)
+      case x =>
+    }
   }
 
-  def connectField(x:N, field:String)(implicit design:Design):Unit
+  def connectField(x:N)(implicit design:Design):Unit
 
-  connectFields(productIterator.toList.zip(fields))
+  connectFields(productIterator)
 }
 
 trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
@@ -132,7 +134,7 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[
   def ins = descendents.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
 
-  def connectField(x:N, field:String)(implicit design:Design):Unit = {
+  def connectField(x:N)(implicit design:Design):Unit = {
     implicit val ev = nct
     x match {
       case x:N => this.addChild(x)
@@ -335,129 +337,6 @@ trait HiearchicalTopologicalTraversal extends TopologicalTraversal with ChildFir
   override def visitFunc(n:N):List[N] = super[TopologicalTraversal].visitFunc(n)
 }
 
-trait TestDesign extends Design {
-  val configs = Nil
-  def handle(e:Exception) = {}
-  implicit val self:Design = this
-}
-
-abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Product with TestNode =>
-  var name:Option[String] = None
-  def name(n:String):this.type = { this.name = Some(n); this }
-  override def toString = {
-    val default = s"${this.getClass.getSimpleName}$id"
-    if (name == null) default else name.getOrElse(default) 
-  }
-}
-
-class TestInput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Input[TestNode] {
-  type E = TestOutput
-}
-class TestOutput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Output[TestNode] {
-  type E = TestInput
-}
-case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
-  val out = new TestOutput
-  def connectField(x:TestNode, field:String)(implicit design:Design) {
-    x match {
-      case x:TestAtom =>
-        val in = new TestInput
-        in.connect(x.out)
-      case _ =>
-    }
-  }
-}
-case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
-
-object TraversalTest extends TestDesign {
-  val a = TestAtom().name("a")
-  val b = TestAtom().name("b")
-  val c = TestAtom().name("c")
-  val d = TestAtom(a,b).name("d")
-  val e = TestAtom(d).name("e")
-  val f = TestAtom().name("f")
-  val g = TestAtom(e, c).name("g")
-  val h = TestAtom(f).name("h")
-  val i = TestAtom(g,h).name("i")
-  val j = TestAtom(i).name("j")
-  val k = TestAtom().name("k")
-  val l = TestAtom(k).name("l")
-  val m = TestAtom(j).name("m")
-  val n = TestAtom(m, j).name("n")
-  val g1 = TestSubGraph(a,b,d).name("g1")
-  val g2 = TestSubGraph(c).name("g2")
-  val g3 = TestSubGraph(h,i, j, k, m, l, n).name("g3")
-  val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
-
-  def testGraph = {
-    assert(i.deps == Set(g, h))
-    assert(i.globalDeps == Set(g))
-    assert(i.localDeps == Set(h))
-    assert(g.deps == Set(c, e))
-    assert(g.globalDeps == Set())
-    assert(g.localDeps == Set(g2, e))
-    println(g1.deps)
-  }
-
-  def testBFS = {
-    val traversal = new BFSTraversal with GraphSchedular with Traversal {
-      type N = TestNode
-      def visitFunc(n:N):List[N] = {
-        visitIn(n)
-      }
-    }
-    println(s"")
-    var res = traversal.schedule(e)
-    //println(s"testBFS", res)
-    assert(res==List(e, g1))
-    res = traversal.schedule(g3)
-    //println(s"testBFS", res)
-    assert(res == List(g3, f, g, e, g2, g1))
-  }
-
-  def testDFS = {
-    val traversal = new DFSTraversal with GraphSchedular with Traversal {
-      type N = TestNode
-      def visitFunc(n:N):List[N] = visitIn(n)
-    }
-    var res = traversal.schedule(e)
-    //println(s"testDFS", res)
-    assert(res==List(e, g1))
-    res = traversal.schedule(g3)
-    //println(s"testDFS", res)
-    assert(res == List(g3, f, g, e, g1, g2))
-  }
-
-  def testTopo = {
-    val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular with Traversal {
-      type N = TestNode
-      def depFunc(n:N):List[N] = visitIn(n)
-      override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
-        super.visitNode(n, prev)
-      }
-    }
-    var res = traversal.schedule(a)
-    println(s"testTopo", res)
-    res = traversal.schedule(g1)
-    println(s"testTopo", res)
-  }
-
-  def testHierTopo = {
-    val traversal = new HiearchicalTopologicalTraversal with GraphSchedular with Traversal {
-      type N = TestNode
-      def depFunc(n:N):List[N] = visitIn(n)
-      override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
-        super.visitNode(n, prev)
-      }
-    }
-    var res = traversal.schedule(top)
-    println(s"testHierTopoDFS", res)
-  }
-
-}
-
 import scala.collection.JavaConverters._
 trait GraphTransformer extends GraphTraversal {
   type N<:Node[N]
@@ -508,3 +387,4 @@ trait GraphTransformer extends GraphTraversal {
     (m, prevs.flatten :+ m)
   }
 }
+

@@ -40,7 +40,7 @@ abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGra
 import pirc.newcollection.mutable._
 abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node] { self:Product =>
 
-  val ioMap = new BiManyToOneMap[String, IO]()
+  //val ioMap = new BiManyToOneMap[String, IO]()
   //override def values = fields.map { field => ioMap(field).src } //TODO
 
   def connect(io:IO)(implicit design:PIR):IO = {
@@ -50,14 +50,14 @@ abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Nod
     }
   }
 
-  override def connectField(x:Node, field:String)(implicit design:Design):Unit = {
+  override def connectField(x:Node)(implicit design:Design):Unit = {
     implicit val pir = design.asInstanceOf[PIR]
     val io = x match {
       case x:Def => this.connect(x.out)
       case x:Memory => this.connect(x.out) // StoreDef override this function. it connects to Memory.in
       case x:Counter => this.connect(x.out)
     }
-    ioMap += field -> io
+    //ioMap += field -> io
   }
 }
 
@@ -186,11 +186,11 @@ abstract class Def(implicit design:PIR) extends Module { self:Product =>
 }
 
 trait StoreNode extends Module { self:Product =>
-  override def connectField(x:Node, field:String)(implicit design:Design):Unit = {
+  override def connectField(x:Node)(implicit design:Design):Unit = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
       case x:Memory => this.connect(x.in)
-      case x => super.connectField(x, field)
+      case x => super.connectField(x)
     }
   }
 }

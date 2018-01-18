@@ -1,8 +1,10 @@
 package pirc.newcollection
 
 import pirc._
+import pirc.exceptions._
 
 import scala.collection.Set
+import scala.reflect._
 
 trait Map[K,V,VV] extends Serializable {
   val name:String = this.getClass().getSimpleName().replace("$","")
@@ -32,8 +34,7 @@ trait UniMap[K,V,VV] extends Map[K,V,VV] {
 trait OneToOneMap[K,V] extends UniMap[K,V,V] {
   def isMapped(v:V) = map.values.toList.contains(v)
   def check(k:K, v:V):Unit = {
-    if (map.contains(k) && map(k)!=v)
-      throw PIRException(s"${name} already contains key $k -> ${map(k)} but try to rebind to $v")
+    if (map.contains(k) && map(k)!=v) throw RebindingException(this, k, v)
   }
 }
 
@@ -45,7 +46,7 @@ trait OneToManyMap[K,V,VV<:Set[V]] extends UniMap[K,V,VV] {
 trait BiMap[K,V,KK,VV] extends Map[K,V,VV] with UniMap[K,V,VV] {
   val fmap:UniMap[K,V,VV]
   val bmap:UniMap[V,K,KK]
-  val map:M = fmap.asInstanceOf[M]
+  val map:M = fmap.map.asInstanceOf[M]
   def check(k:K, v:V):Unit = {
     fmap.check(k,v)
     bmap.check(v,k)
@@ -155,39 +156,32 @@ package object immutable {
   trait UniMap[K,V,VV,S] extends Map[K,V,VV,S] with pirc.newcollection.UniMap[K,V,VV] { self:S =>
     override type M = SMap[K,VV]
     val map:M
-    def newInstance(m:M):S
+    def newInstance(m:M):S = {
+      this.getClass.getConstructor(classOf[M]).newInstance(m)
+    }
   }
 
   trait OneToOneMapLike[K,V,S] extends UniMap[K,V,V,S] with pirc.newcollection.OneToOneMap[K,V] { self:S =>
     override def + (pair:(K,V)):S = { check(pair); newInstance(map + pair) }
   }
-
-  class OneToOneMap[K,V](val map:SMap[K,V]) extends OneToOneMapLike[K,V,OneToOneMap[K,V]] {
-    def newInstance(m:M) = new OneToOneMap[K,V](m)
-  }
-  object OneToOneMap {
-    def empty[K,V] = new OneToOneMap[K,V](SMap[K,V]())
-  }
+  case class OneToOneMap[K,V](map:SMap[K,V]=SMap[K,V]()) extends OneToOneMapLike[K,V,OneToOneMap[K,V]]
 
   trait OneToManyMapLike[K,V,S] extends UniMap[K,V,Set[V],S] with pirc.newcollection.OneToManyMap[K,V,Set[V]] { self:S =>
-    override def + (pair:(K,V)):S = { check(pair); 
+    override def + (pair:(K,V)):S = { 
+      check(pair)
       val (k,v) = pair
-      val vv = map.getOrElse(k, Set(v))
+      val vv = map.getOrElse(k, Set()) + v
       newInstance(map + ((k,vv)))
     }
   }
-
-  class OneToManyMap[K,V](val map:SMap[K,Set[V]]) extends OneToManyMapLike[K,V,OneToManyMap[K,V]] {
-    def newInstance(m:M) = new OneToManyMap[K,V](m)
-  }
-  object OneToManyMap {
-    def empty[K,V] = new OneToManyMap[K,V](SMap[K,Set[V]]())
-  }
+  case class OneToManyMap[K,V](map:SMap[K,Set[V]]=SMap[K,Set[V]]()) extends OneToManyMapLike[K,V,OneToManyMap[K,V]]
 
   trait BiMap[K,V,KK,VV,FM<:UniMap[K,V,VV,_],BM<:UniMap[V,K,KK,_],S] extends Map[K,V,VV,S] with pirc.newcollection.BiMap[K,V,KK,VV] { self:S =>
     override val fmap:FM
     override val bmap:BM
-    def newInstance(fm:FM, bm:BM):S
+    def newInstance(fm:FM, bm:BM):S = {
+      this.getClass.getConstructor(fm.getClass, bm.getClass).newInstance(fm, bm)
+    }
     override def + (pair:(K,V)):S = {
       val (k,v) = pair
       val fm = (fmap + ((k,v))).asInstanceOf[FM]
@@ -197,23 +191,15 @@ package object immutable {
   }
 
   trait BiOneToOneMapLike[K,V,S] extends BiMap[K,V,K,V,OneToOneMap[K,V],OneToOneMap[V,K],S] { self:S => }
-  class BiOneToOneMap[K,V](val fmap:OneToOneMap[K,V]=OneToOneMap.empty, val bmap:OneToOneMap[V,K]=OneToOneMap.empty) extends BiOneToOneMapLike[K,V,BiOneToOneMap[K,V]] {
-    def newInstance(fm:OneToOneMap[K,V], bm:OneToOneMap[V,K]) = new BiOneToOneMap(fm, bm)
-  }
+  case class BiOneToOneMap[K,V](fmap:OneToOneMap[K,V]=OneToOneMap[K,V](), bmap:OneToOneMap[V,K]=OneToOneMap[V,K]()) extends BiOneToOneMapLike[K,V,BiOneToOneMap[K,V]]
   
   trait BiOneToManyMapLike[K,V,S] extends BiMap[K,V,K,Set[V],OneToManyMap[K,V],OneToOneMap[V,K],S] { self:S => } 
-  class BiOneToManyMap[K,V](val fmap:OneToManyMap[K,V]=OneToManyMap.empty, val bmap:OneToOneMap[V,K]=OneToOneMap.empty) extends BiOneToManyMapLike[K,V,BiOneToManyMap[K,V]]  {
-    def newInstance(fm:OneToManyMap[K,V], bm:OneToOneMap[V,K]) = new BiOneToManyMap(fm, bm)
-  }
+  case class BiOneToManyMap[K,V](fmap:OneToManyMap[K,V]=OneToManyMap[K,V](), bmap:OneToOneMap[V,K]=OneToOneMap[V,K]()) extends BiOneToManyMapLike[K,V,BiOneToManyMap[K,V]]
   
   trait BiManyToOneMapLike[K,V,S] extends BiMap[K,V,Set[K],V,OneToOneMap[K,V],OneToManyMap[V,K],S] { self:S => } 
-  class BiManyToOneMap[K,V](val fmap:OneToOneMap[K,V]=OneToOneMap.empty, val bmap:OneToManyMap[V,K]=OneToManyMap.empty) extends BiManyToOneMapLike[K,V,BiManyToOneMap[K,V]]  {
-    def newInstance(fm:OneToOneMap[K,V], bm:OneToManyMap[V,K]) = new BiManyToOneMap(fm, bm)
-  }
+  case class BiManyToOneMap[K,V](fmap:OneToOneMap[K,V]=OneToOneMap[K,V](), bmap:OneToManyMap[V,K]=OneToManyMap[V,K]()) extends BiManyToOneMapLike[K,V,BiManyToOneMap[K,V]]
   
   trait BiManyToManyMapLike[K,V,S] extends BiMap[K,V,Set[K],Set[V],OneToManyMap[K,V],OneToManyMap[V,K],S] { self:S => } 
-  class BiManyToManyMap[K,V](val fmap:OneToManyMap[K,V]=OneToManyMap.empty, val bmap:OneToManyMap[V,K]=OneToManyMap.empty) extends BiManyToManyMapLike[K,V,BiManyToManyMap[K,V]]  {
-    def newInstance(fm:OneToManyMap[K,V], bm:OneToManyMap[V,K]) = new BiManyToManyMap(fm, bm)
-  }
+  case class BiManyToManyMap[K,V](fmap:OneToManyMap[K,V]=OneToManyMap[K,V](), bmap:OneToManyMap[V,K]=OneToManyMap[V,K]()) extends BiManyToManyMapLike[K,V,BiManyToManyMap[K,V]]
 
 }

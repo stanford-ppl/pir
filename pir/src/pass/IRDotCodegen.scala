@@ -61,11 +61,6 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.Dot
 
   addPass {
     visitNode(design.newTop)
-    TraversalTest.testGraph
-    TraversalTest.testBFS
-    TraversalTest.testDFS
-    TraversalTest.testTopo
-    TraversalTest.testHierTopo
   }
   
 }
