@@ -31,7 +31,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
 
   lazy val arity = self.productArity
-  lazy val values = self.productIterator.toList
+  def values = self.productIterator.toList
   lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).slice(0, arity).map(_.getName).toList
 
   // Parent
@@ -77,16 +77,16 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
   def connectFields(x:Any)(implicit design:Design):Unit = x match {
-    case x:N => connectField(x)
+    case (x:N, field:String) => connectField(x, field)
     case Some(x) => connectFields(x)
     case x:Iterable[_] => x.foreach(connectFields)
     case x:Iterator[_] => x.foreach(connectFields)
     case x =>
   }
 
-  def connectField(x:N)(implicit design:Design):Unit
+  def connectField(x:N, field:String)(implicit design:Design):Unit
 
-  connectFields(productIterator)
+  connectFields(productIterator.toList.zip(fields))
 }
 
 trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
@@ -96,6 +96,7 @@ trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
 
   private lazy val _ins = mutable.ListBuffer[Input[N]]()
   private lazy val _outs = mutable.ListBuffer[Output[N]]()
+
   def addEdge(io:Edge[N]) = {
     io match {
       case io:Input[N] => _ins += io
@@ -131,7 +132,7 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[
   def ins = descendents.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
 
-  def connectField(x:N)(implicit design:Design):Unit = {
+  def connectField(x:N, field:String)(implicit design:Design):Unit = {
     implicit val ev = nct
     x match {
       case x:N => this.addChild(x)
@@ -241,6 +242,7 @@ trait DFSTraversal extends GraphTraversal {
   override def traverse(n:N, zero:T):T = {
     var nexts = visitFunc(n).filterNot(isVisited)
     var prev = zero
+    // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
       prev = visitNode(nexts.head, prev)
       nexts = visitFunc(n).filterNot(isVisited)
@@ -356,7 +358,7 @@ class TestOutput(implicit src:TestAtom, design:Design) extends Edge[TestNode](sr
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
   val out = new TestOutput
-  def connectField(x:TestNode)(implicit design:Design) {
+  def connectField(x:TestNode, field:String)(implicit design:Design) {
     x match {
       case x:TestAtom =>
         val in = new TestInput

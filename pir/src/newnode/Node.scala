@@ -11,17 +11,9 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class Node(implicit design:PIR) extends pirc.node.Node[Node] { self:Product =>
-  design.addNode(this)
-  type P = Container
-
+trait IR extends pirc.node.IR { 
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
-  override def toString = {
-    val default = s"${this.getClass.getSimpleName}$id"
-    if (name == null) default else name.getOrElse(default) 
-  }
-
   def ctrl(ctrler:Container)(implicit design:PIR):this.type = {
     (this, ctrler) match {
       case (self:Counter, _) => 
@@ -31,12 +23,26 @@ abstract class Node(implicit design:PIR) extends pirc.node.Node[Node] { self:Pro
     }
     this
   }
+  override def toString = {
+    val default = s"${this.getClass.getSimpleName}$id"
+    if (name == null) default else name.getOrElse(default) 
+  }
+}
+
+abstract class Node(implicit design:PIR) extends pirc.node.Node[Node] with IR { self:Product =>
+  design.addNode(this)
+  type P = Container
 }
 
 abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGraph[Node] { self:Product =>
 }
 
+import pirc.newcollection.mutable._
 abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node] { self:Product =>
+
+  val ioMap = new BiManyToOneMap[String, IO]()
+  //override def values = fields.map { field => ioMap(field).src } //TODO
+
   def connect(io:IO)(implicit design:PIR):IO = {
     io match {
       case io:Input => new Output()(this, design).connect(io)
@@ -44,15 +50,29 @@ abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Nod
     }
   }
 
-  override def connectField(x:Node)(implicit design:Design):Unit = {
+  override def connectField(x:Node, field:String)(implicit design:Design):Unit = {
     implicit val pir = design.asInstanceOf[PIR]
-    x match {
+    val io = x match {
       case x:Def => this.connect(x.out)
       case x:Memory => this.connect(x.out) // StoreDef override this function. it connects to Memory.in
       case x:Counter => this.connect(x.out)
     }
+    ioMap += field -> io
   }
 }
+
+//object Def with Collector {
+  //def getField[T:ClassTag](d:Module, field:String):T = typeTag[T] match {
+    //case tt if tt <:< typeTag[Def] =>
+    //case tt if tt <:< typeTag[Option[Def]] =>
+    //case tt if tt <:< typeTag[Iterator[Def]] =>
+    //case tt =>
+  //}
+  //def unapply[T1:ClassTag](d:Product1[T1] with Module):Option[T1] = {
+    //val f1::_ = d.fields
+    //Some(getField[T1](f1))
+  //}
+//}
 
 abstract class IO(src:Module)(implicit design:PIR) extends pirc.node.Edge[Node](src) {
   override def connect(p:E):this.type = {
@@ -69,7 +89,7 @@ class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Out
   def to = connected
 }
 
-case class DRAM()(implicit design:PIR) extends Module 
+case class DRAM()(implicit design:PIR) extends IR
 
 case class ArgInFringe()(implicit design:PIR) extends Module
 
@@ -89,14 +109,18 @@ object Reg {
 case class StreamIn(field:String)(implicit design:PIR) extends Memory
 case class StreamOut(field:String)(implicit design:PIR) extends Memory
 
-case class CUContainer(contains:Node*)(implicit design:PIR) extends Container {
-  def isFringe = children.collect { case dram:DRAM => dram }.nonEmpty
-  def isArgContainer = children.collect { case fringe:ArgInFringe => fringe }.nonEmpty
+trait GlobalContainer extends Container { self:Product => }
+
+case class CUContainer(contains:Node*)(implicit design:PIR) extends GlobalContainer
+
+case class FringeContainer(dram:DRAM, contains:Node*)(implicit design:PIR) extends GlobalContainer
+
+case class ArgContainer()(implicit design:PIR) extends GlobalContainer {
+  val argInFringe = ArgInFringe().setParent(this)
 }
 
 case class Top()(implicit design: PIR) extends Container { 
-  val argInFringe = ArgInFringe()
-  val argContainer = CUContainer(argInFringe).setParent(this).name("ArgContainer")
+  val argContainer = ArgContainer().setParent(this)
 
   val argIns = mutable.ListBuffer[Reg]()
   val argOuts = mutable.ListBuffer[Reg]()
@@ -105,7 +129,7 @@ case class Top()(implicit design: PIR) extends Container {
   def argIn(init:AnyVal)(implicit design:PIR) = {
     val reg = Reg(init).setParent(this)
     argIns += reg
-    argInFringe.connect(reg.in)
+    argContainer.argInFringe.connect(reg.in)
     reg
   }
 
@@ -120,7 +144,7 @@ case class Top()(implicit design: PIR) extends Container {
     val reg = Reg().setParent(this)
     reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
-    argInFringe.connect(reg.in)
+    argContainer.argInFringe.connect(reg.in)
     LoadDef(List(reg), None)
   }
 
@@ -162,11 +186,11 @@ abstract class Def(implicit design:PIR) extends Module { self:Product =>
 }
 
 trait StoreNode extends Module { self:Product =>
-  override def connectField(x:Node)(implicit design:Design):Unit = {
+  override def connectField(x:Node, field:String)(implicit design:Design):Unit = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
       case x:Memory => this.connect(x.in)
-      case x => super.connectField(x)
+      case x => super.connectField(x, field)
     }
   }
 }
@@ -202,13 +226,3 @@ case object StreamPipe extends ControlStyle
 sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
-
-object Module {
-  def toOutput(a:Any) = { // TODO: change this to implicit conversion inside this package
-    a match {
-      case a:Output => a
-      case a:Def => a.out
-      case a => throw new Exception(s"Don't know how to convert $a to Output")
-    }
-  }
-}

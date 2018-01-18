@@ -182,7 +182,7 @@ abstract class DeadCodeElimination(implicit design:PIR) extends pir.pass.Pass wi
   }
 
   override def isDepFree(n:N) = n match {
-    case n:CUContainer if n.isArgContainer => true // heuristic breaking loop
+    case n:ArgContainer => true // heuristic breaking loop
     case _ => super.isDepFree(n)
   } 
 
