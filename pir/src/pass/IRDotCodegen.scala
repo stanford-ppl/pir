@@ -20,7 +20,10 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.codegen.Codegen w
     super[ChildFirstTraversal].reset
   }
 
+  def visitNode(n:N):T = visitNode(n, ())
+
   override def visitNode(n:N, prev:T):T = {
+    super.visitNode(n, prev)
     emitNode(n)
   }
 
@@ -28,9 +31,6 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.codegen.Codegen w
     emitln(s"${qdef(n)} // TODO: unmatched node")
     traverse(n, ())
   }
-
-  def qdef(n:N) = s"$n = ${n.productName}"
-  def qtype(n:N) = n.name.map { name => s"${n.className}[$name]" }.getOrElse(s"$n")
 }
 
 class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
@@ -60,32 +60,29 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.Dot
   }
 
   addPass {
-    emitNode(design.newTop)
+    visitNode(design.newTop)
     TraversalTest.testGraph
     TraversalTest.testBFS
     TraversalTest.testDFS
     TraversalTest.testTopo
-    TraversalTest.testHierTopoDFS
-    TraversalTest.testHierTopoBFS
+    TraversalTest.testHierTopo
   }
   
 }
 
-abstract class IRDotCodegen(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
+abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
 
-  override lazy val stream = newStream(s"IRDotCodegen.dot")
+  override lazy val stream = newStream(fn)
 
   def horizontal:Boolean = false
   def shouldRun = true
-
-  def depFunc(n:N):List[N] = n.localDeps.toList
 
   val nodes = mutable.ListBuffer[N]()
 
   addPass {
     emitBlock("digraph G") {
       if (horizontal) emitln(s"rankdir=LR")
-      emitNode(design.newTop)
+      visitNode(design.newTop)
       nodes.foreach(emitEdge)
     }
   }
@@ -97,24 +94,24 @@ abstract class IRDotCodegen(implicit design:PIR) extends CodegenWrapper with pir
 
   def shape(attr:DotAttr, n:N) = attr.shape(box)
 
-  def fillcolor(attr:DotAttr, n:N) = attr
+  def color(attr:DotAttr, n:N) = attr.fillcolor(white).style(filled)
 
   def label(attr:DotAttr, n:N) = attr.label(qtype(n))
 
   def emitSubGraph(n:N):Unit = {
     var attr = DotAttr()
     attr = shape(attr, n)
-    attr = fillcolor(attr, n)
+    attr = color(attr, n)
     attr = label(attr, n)
     emitSubGraph(n, attr) {
       traverseChildren(n, ())
     }
   }
 
-  def emitSingleNode(n:N) = {
+  def emitSingleNode(n:N):Unit = {
     var attr = DotAttr()
     attr = shape(attr, n)
-    attr = fillcolor(attr, n)
+    attr = color(attr, n)
     attr = label(attr, n)
     emitNode(n,attr)
     nodes += n
@@ -128,25 +125,26 @@ abstract class IRDotCodegen(implicit design:PIR) extends CodegenWrapper with pir
   }
 
   def matchLevel(n:N) = {
-    ((n::n.ancestors) intersect nodes).sortBy { case n => n.ancestors.size }(Ordering[Int].reverse).headOption.getOrElse(n)
+    ((n::n.ancestors) intersect nodes).sortBy { case n => n.ancestors.size }(Ordering[Int].reverse).headOption
   }
 
   def emitEdge(n:N):Unit = {
     n.ins.foreach { 
       case in if in.isConnected =>
-        in.connected.foreach { out =>
-          val from = matchLevel(out.src.asInstanceOf[N])
-          emitEdge(from, n)
-        }
+        in.connected.foreach { out => emitEdge(out.src.asInstanceOf[N], n) }
       case in =>
+    }
+  }
+
+  def emitEdge(from:N, to:N) = {
+    matchLevel(from).foreach { from =>
+      super.emitEdge(from, to)
     }
   }
 
 }
 
-abstract class GlobalIRDotCodegen(implicit design:PIR) extends IRDotCodegen with pir.newnode.Traversal {
-
-  override lazy val stream = newStream(s"GlobalIRDotCodegen.dot")
+abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with pir.newnode.Traversal with pir.newnode.Collector {
 
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>
@@ -160,19 +158,24 @@ abstract class GlobalIRDotCodegen(implicit design:PIR) extends IRDotCodegen with
 
   //def shape(attr:DotAttr, n:N) = attr.shape(box)
 
-  override def fillcolor(attr:DotAttr, n:N) = n match {
+  override def color(attr:DotAttr, n:N) = n match {
     case n:SRAM => attr.fillcolor(cyan).style(filled)
     case n:StreamIn => attr.fillcolor(gold).style(filled)
     case n:StreamOut => attr.fillcolor(gold).style(filled)
-    case n:Reg => attr.fillcolor(gold).style(filled)
+    case n:Reg => attr.fillcolor(limegreen).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
-    case n => super.fillcolor(attr, n)
+    case n:Controller => attr.fillcolor(deepskyblue).style(filled)
+    case n:CUContainer => attr.color(black)
+    case n => super.color(attr, n)
   }
 
   override def emitNode(n:N) = {
     n match {
-      case n:Atom[_] => emitSingleNode(n)
-      case n:Controller if n.level==InnerControl => emitSingleNode(n)
+      case n:Const[_] if collectOut[Counter](n).isEmpty =>
+      //case n:Module if n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop) => emitSingleNode(n)
+      //case n:Module =>  
+      case n:Module => emitSingleNode(n)
+      case n:Controller => emitSubGraph(n)
       case n => emitSubGraph(n)
     }
   }

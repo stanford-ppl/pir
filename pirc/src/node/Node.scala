@@ -26,12 +26,13 @@ abstract class IR(implicit design:Design) extends Serializable {
 abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { self:Product with N =>
 
   type P <: SubGraph[N]
-  val nt = implicitly[ClassTag[N]]
+  val nct = implicitly[ClassTag[N]]
 
   override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
 
-  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName)
+  lazy val arity = self.productArity
   lazy val values = self.productIterator.toList
+  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).slice(0, arity).map(_.getName).toList
 
   // Parent
   var _parent:Option[P] = None
@@ -67,11 +68,11 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   def outs:List[Output[N]]
   def ios:List[Edge[N]] = ins ++ outs
 
-  def matchLevel(n:Atom[N]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
-  def deps = ins.flatMap { _.connected.map { _.src } }.toSet
+  def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
+  def deps:Set[N] = ins.flatMap { _.connected.map { _.src.asInstanceOf[N] } }.toSet
   def localDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
-  def depeds = outs.flatMap { _.connected.map { _.src } }.toSet
+  def depeds:Set[N] = outs.flatMap { _.connected.map { _.src.asInstanceOf[N] } }.toSet
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
@@ -85,7 +86,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
 
   def connectField(x:N)(implicit design:Design):Unit
 
-  connectFields(values)
+  connectFields(productIterator)
 }
 
 trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
@@ -131,7 +132,7 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
 
   def connectField(x:N)(implicit design:Design):Unit = {
-    implicit val ev = nt
+    implicit val ev = nct
     x match {
       case x:N => this.addChild(x)
       case x => 
@@ -204,8 +205,8 @@ trait GraphSchedular extends GraphTraversal { self =>
 
   def visitFunc(n:N):List[N]
 
-  def visitNode(n:N, prev:T):T = {
-    traverse(n, prev :+ n)
+  override def visitNode(n:N, prev:T):T = {
+    traverse(n, super.visitNode(n, prev) :+ n)
   }
 
   def schedule(n:N) = {
@@ -228,18 +229,23 @@ trait GraphTraversal {
 
   def visitFunc(n:N):List[N]
 
-  def visitNode(n:N, prev:T):T
+  def visitNode(n:N, prev:T):T = {
+    visited += n
+    prev
+  }
 
   def traverse(n:N, zero:T):T = throw new Exception(s"Undefined traverse function")
 }
 
 trait DFSTraversal extends GraphTraversal {
   override def traverse(n:N, zero:T):T = {
-    visited += n
-    visitFunc(n).filterNot(isVisited).foldLeft(zero) { 
-      case (prev, n) if isVisited(n) => prev 
-      case (prev, n) => visitNode(n, prev)
+    var nexts = visitFunc(n).filterNot(isVisited)
+    var prev = zero
+    while (nexts.nonEmpty) {
+      prev = visitNode(nexts.head, prev)
+      nexts = visitFunc(n).filterNot(isVisited)
     }
+    prev
   }
 
 }
@@ -254,7 +260,6 @@ trait BFSTraversal extends GraphTraversal {
   }
 
   override def traverse(n:N, zero:T):T = {
-    visited += n
     queue ++= visitFunc(n).filterNot(isVisited)
     while (queue.nonEmpty) {
       val next = queue.dequeue()
@@ -268,7 +273,18 @@ trait TopologicalTraversal extends GraphTraversal {
   def allNodes(n:N):List[N]
   def depFunc(n:N):List[N]
   def isDepFree(n:N) = depFunc(n).filterNot(isVisited).isEmpty
-  def visitFunc(n:N):List[N] = allNodes(n).filter { n => isDepFree(n) }
+  def visitFunc(n:N):List[N] = visitDepFree(allNodes(n))
+  /*
+   * Return dependent free nodes in allNodes. 
+   * Break cycle by pick the node with fewest dependency
+   * */
+  def visitDepFree(allNodes:List[N]):List[N] = {
+    val unvisited = allNodes.filterNot(isVisited)
+    if (unvisited.isEmpty) return Nil
+    val depFree = unvisited.filter(isDepFree)
+    if (depFree.nonEmpty) return depFree
+    List(unvisited.sortBy { n => depFunc(n).filterNot(isVisited).size }.head)
+  }
 }
 
 trait HiearchicalTraversal extends Traversal with GraphTraversal {
@@ -276,42 +292,46 @@ trait HiearchicalTraversal extends Traversal with GraphTraversal {
   def visitChild(n:N):List[N] = n.children
   def visitFunc(n:N):List[N] = Nil 
 
-  def traverseChildren(n:N, prev:T):T = {
-    visitChild(n).foldLeft(prev) { 
-      case (prev, n) if isVisited(n) => prev 
-      case (prev, n) => visitNode(n, prev)
+  def traverseChildren(n:N, zero:T):T = {
+    var prev = zero
+    var childs = visitChild(n).filterNot(isVisited)
+    while (childs.nonEmpty) {
+      prev = visitNode(childs.head, prev)
+      childs = visitChild(n).filterNot(isVisited)
     }
+    prev
   }
 
 }
 
 trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
   override def traverse(n:N, zero:T):T = {
-    visited += n
     super.traverse(n, traverseChildren(n, zero))
+  }
+  override def traverseChildren(n:N, zero:T):T = {
+    val res = super.traverseChildren(n, zero)
+    val unvisited = n.children.filterNot(isVisited) 
+    assert(unvisited.isEmpty, 
+      s"traverseChildren:$n Not all children are visited unvisited=${unvisited}")
+    res
   }
 }
 
 trait ChildLastTraversal extends BFSTraversal with HiearchicalTraversal {
   override def traverse(n:N, zero:T):T = {
-    visited += n
     traverseChildren(n, super.traverse(n, zero))
   }
 }
 
-trait HiearchicalTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal {
+trait HiearchicalTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal {
   override def visitChild(n:N) = {
     n match {
-      case n:SubGraph[_] => 
-        super.visitChild(n.asInstanceOf[N]).filter(c => depFunc(c.asInstanceOf[N]).isEmpty).asInstanceOf[List[N]]
+      case n:SubGraph[_] => visitDepFree(super.visitChild(n.asInstanceOf[N]))
       case n => Nil
     }
   }
   override def visitFunc(n:N):List[N] = super[TopologicalTraversal].visitFunc(n)
 }
-
-trait ChildFirstTopologicalTraversal extends ChildFirstTraversal with HiearchicalTopologicalTraversal
-trait ChildLastTopologicalTraversal extends ChildLastTraversal with HiearchicalTopologicalTraversal
 
 trait TestDesign extends Design {
   val configs = Nil
@@ -421,8 +441,8 @@ object TraversalTest extends TestDesign {
     println(s"testTopo", res)
   }
 
-  def testHierTopoDFS = {
-    val traversal = new ChildFirstTopologicalTraversal with GraphSchedular with Traversal {
+  def testHierTopo = {
+    val traversal = new HiearchicalTopologicalTraversal with GraphSchedular with Traversal {
       type N = TestNode
       def depFunc(n:N):List[N] = visitIn(n)
       override def visitNode(n:N, prev:T):T = {
@@ -434,24 +454,16 @@ object TraversalTest extends TestDesign {
     println(s"testHierTopoDFS", res)
   }
 
-  def testHierTopoBFS = {
-    val traversal = new ChildLastTopologicalTraversal with GraphSchedular with Traversal {
-      type N = TestNode
-      def depFunc(n:N):List[N] = visitIn(n)
-      override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
-        super.visitNode(n, prev)
-      }
-    }
-    var res = traversal.schedule(top)
-    println(s"testHierTopoBFS", res)
-  }
-
 }
 
-trait GraphMutableTransformer extends GraphTraversal {
+import scala.collection.JavaConverters._
+trait GraphTransformer extends GraphTraversal {
   type N<:Node[N]
+  type P<:SubGraph[N] with N
   type T = Unit
+  type D <: Design
+
+  def visitNode(n:N):T = visitNode(n, ())
 
   def removeNode(node:N) = {
     node.ios.foreach { io => io.disconnect }
@@ -462,27 +474,35 @@ trait GraphMutableTransformer extends GraphTraversal {
     }
   }
 
+  def swapParent(node:N, newParent:N) = {
+    node.parent.foreach { parent =>
+      parent.removeChild(node)
+    }
+    node.setParent(newParent.asInstanceOf[node.P])
+  }
+
   def removeUnusedIOs(node:N) = {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
   def transform(n:N):Unit = traverse(n, ())
 
-  def visitNode(n:N, prev:T):T = transform(n)
-}
+  override def visitNode(n:N, prev:T):T = {
+    super.visitNode(n, prev)
+    transform(n)
+  }
 
-trait GraphImmutableTransformer {
-  type N<:Node[N]
-
-  def transform[T<:N:ClassTag](n:T):T = {
-    val values = n.values 
+  def mirror[T<:N](n:T)(implicit ct:ClassTag[N], design:D):(T, List[N]) = {
+    val values = n.values :+ design
     //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
     // Some how this compiles but gives runtime error for not able to find the constructor when values contain Int type since
     // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
-    n.getClass.getConstructors()(0).newInstance(values.map { // Only works with a single constructor
-      case n:T => transform(n)
-      case n => n
-    }).asInstanceOf[T]
+    val constructor = n.getClass.getConstructors()(0) 
+    val (args, prevs) = values.map { // Only works with a single constructor
+      case n:N => mirror(n)
+      case n => (n,Nil)
+    }.unzip
+    val m = constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    (m, prevs.flatten :+ m)
   }
 }
-

@@ -71,6 +71,8 @@ class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Out
 
 case class DRAM()(implicit design:PIR) extends Module 
 
+case class ArgInFringe()(implicit design:PIR) extends Module
+
 abstract class Memory(implicit design:PIR) extends Module { self:Product =>
   val in = new Input
   val out = new Output
@@ -78,39 +80,47 @@ abstract class Memory(implicit design:PIR) extends Module { self:Product =>
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIR) extends Memory
 
-case class Reg(val init:Option[Const[_<:AnyVal]])(implicit design:PIR) extends Memory
+case class Reg(val init:Option[AnyVal])(implicit design:PIR) extends Memory
 object Reg {
-  def apply(init:Const[_<:AnyVal])(implicit design:PIR):Reg = Reg(Some(init))
+  def apply(init:AnyVal)(implicit design:PIR):Reg = Reg(Some(init))
   def apply()(implicit design:PIR):Reg = Reg(None)
 }
 
 case class StreamIn(field:String)(implicit design:PIR) extends Memory
 case class StreamOut(field:String)(implicit design:PIR) extends Memory
 
-case class CUContainer(contain:Node*)(implicit design:PIR) extends Container {
+case class CUContainer(contains:Node*)(implicit design:PIR) extends Container {
   def isFringe = children.collect { case dram:DRAM => dram }.nonEmpty
+  def isArgContainer = children.collect { case fringe:ArgInFringe => fringe }.nonEmpty
 }
 
 case class Top()(implicit design: PIR) extends Container { 
+  val argInFringe = ArgInFringe()
+  val argContainer = CUContainer(argInFringe).setParent(this).name("ArgContainer")
+
   val argIns = mutable.ListBuffer[Reg]()
   val argOuts = mutable.ListBuffer[Reg]()
   val dramAddresses = mutable.Map[DRAM, Reg]()
 
-  def argIn(init:Const[_<:AnyVal])(implicit design:PIR) = {
+  def argIn(init:AnyVal)(implicit design:PIR) = {
     val reg = Reg(init).setParent(this)
     argIns += reg
+    argInFringe.connect(reg.in)
     reg
   }
 
-  def argOut(init:Const[_<:AnyVal])(implicit design:PIR) = {
-    val reg = Reg(init).setParent(this)
+  def argOut(init:AnyVal)(implicit design:PIR) = {
+    val reg = Reg(init)
     argOuts += reg
+    argContainer.addChild(reg)
     reg
   }
 
   def dramAddress(dram:DRAM)(implicit design:PIR) = {
     val reg = Reg().setParent(this)
+    reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
+    argInFringe.connect(reg.in)
     LoadDef(List(reg), None)
   }
 
@@ -127,6 +137,8 @@ case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChai
   def cchains = children.collect { case c:CounterChain => c }
 
   def defs = children.collect { case d:Def => d }
+
+  def isInnerControl = tree.children.isEmpty 
 }
 
 case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container 
@@ -199,51 +211,4 @@ object Module {
       case a => throw new Exception(s"Don't know how to convert $a to Output")
     }
   }
-}
-
-trait Traversal extends pirc.node.Traversal {
-  type N = Node 
-  type P = Container
-}
-
-trait Collector extends Traversal { self =>
-
-  def newTraversal[M<:Node:ClassTag](vf:N => List[N]) = new pirc.node.BFSTraversal {
-    type T = (Iterable[M], Int)
-    type N = self.N
-    def visitNode(n:N, prev:T):T = {
-      val (prevRes, depth) = prev 
-      n match {
-        case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
-        case _ if depth == 0 => (prevRes, 0)
-        case _ => (prevRes, depth - 1)
-      }
-    }
-    def visitFunc(n:N):List[N] = vf(n)
-  }
- 
-  def collectUp[M<:Node:ClassTag](n:N, depth:Int=10):Iterable[M] = {
-    newTraversal(visitUp _).traverse(n, (Nil, depth))._1
-  }
-}
-
-
-abstract class CUInsertion(implicit design:PIR) extends pir.pass.Pass with pirc.node.GraphMutableTransformer with pirc.node.ChildLastTraversal with Traversal {
-
-  override type N = Node
-  override type P = Container
-
-  override def reset = {
-    super[Pass].reset
-    super[ChildLastTraversal].reset
-  }
-
-  addPass {
-    transform(design.newTop)
-  }
-
-  override def transform(n:N):Unit = {
-    super.transform(n)
-  }
-
 }

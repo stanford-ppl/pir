@@ -98,6 +98,7 @@ trait DotCodegen extends Printer {
   val box       = Shape("box")
   val ellipse   = Shape("ellipse")
   val circle    = Shape("circle")
+  val hexagon   = Shape("hexagon")
   
   val filled    = Style("filled")
   val bold      = Style("bold")
@@ -108,13 +109,14 @@ trait DotCodegen extends Printer {
   val white     = Color("white")
   val black     = Color("black")
   val lightgrey = Color("lightgrey")
-  val hexagon   = Color("hexagon")
   val gold      = Color("gold")
   val limegreen = Color("limegreen")
   val blue      = Color("blue")
+  val deepskyblue = Color("deepskyblue")
   val red       = Color("red")
   val indianred = Color("indianred1")
   val cyan      = Color("cyan4")
+  val brown      = Color("brown")
   
   val both = Direction("both")
   

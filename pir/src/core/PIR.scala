@@ -153,9 +153,18 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
     //
-    passes += new GlobalIRDotCodegen {}
-    passes += new IRDotCodegen {}
+    passes += new GlobalIRDotCodegen(s"top1.dot") {}
+    passes += new IRDotCodegen(s"PIR.dot") {}
     passes += new IRPrinter {}
+
+    passes += new pir.newnode.DeadCodeElimination() {}
+    passes += new GlobalIRDotCodegen(s"top2.dot") {}
+
+    passes += new pir.newnode.CUInsertion() {}
+    passes += new GlobalIRDotCodegen(s"top3.dot") {}
+
+    passes += new pir.newnode.AccessPulling() {}
+    passes += new GlobalIRDotCodegen(s"top4.dot") {}
 
     super.run
 
@@ -178,7 +187,7 @@ trait PIR extends Design with PIRMetadata with Collector {
         errmsg(s"Original Exception")
         e.printStackTrace
         errmsg(s"Exception during handling")
-        he.printStackTrace
+        //he.printStackTrace
     }
   }
 
