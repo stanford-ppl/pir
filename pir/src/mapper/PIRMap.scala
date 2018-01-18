@@ -50,32 +50,32 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
   }
 
   def printMap(implicit p:Printer, design:PIR):Unit = {
-    fimap.printMap(quote _)
-    design.top.ctrlers.foreach { cl => 
-      cl match {
-        case cl:CL =>
-          if (pmmap.contains(cl)) {
-            val pcl = pmmap.map(cl)
-            p.emitBlock( s"$cl -> ${quote(pcl)}" ) {
-              vimap.printMap(quote _, cl.vins.toList)
-              cl match {
-                case cu:CU =>
-                  val pcu = pmmap.map(cu).asInstanceOf[PCU]
-                  cu match {
-                    case icl:ICL => pmmap.printMap(quote _, icl.mems)
-                    case _ =>
-                  }
-                  rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
-                case _ =>
-              }
-            }
-          } else {
-            p.emitln(s"$cl <- failed")
-          }
-        case _ =>
-          p.emitln(s"$cl <- no mapping")
-      }
-    }
+    //fimap.printMap(quote _)
+    //design.top.ctrlers.foreach { cl => 
+      //cl match {
+        //case cl:CL =>
+          //if (pmmap.contains(cl)) {
+            //val pcl = pmmap.map(cl)
+            //p.emitBlock( s"$cl -> ${quote(pcl)}" ) {
+              //vimap.printMap(quote _, cl.vins.toList)
+              //cl match {
+                //case cu:CU =>
+                  //val pcu = pmmap.map(cu).asInstanceOf[PCU]
+                  //cu match {
+                    //case icl:ICL => pmmap.printMap(quote _, icl.mems)
+                    //case _ =>
+                  //}
+                  //rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
+                //case _ =>
+              //}
+            //}
+          //} else {
+            //p.emitln(s"$cl <- failed")
+          //}
+        //case _ =>
+          //p.emitln(s"$cl <- no mapping")
+      //}
+    //}
   }
 
   def printStage(pst:PST)(implicit p:Printer, design:PIR):Unit = {
@@ -102,28 +102,28 @@ case class PIRMap(vimap:VIMap, vomap:VOMap,
   def printPMap(implicit p:Printer, design:PIR):Unit = {
     import p._
     //fimap.printMap(quote _)
-    design.arch.ctrlers.foreach { pcl => 
-      if (pmmap.contains(pcl)) {
-        val cl = pmmap(pcl)
-        emitBlock( s"${quote(pcl)} <- $cl" ) {
-          vimap.printMap(quote _, cl.vins.toList)
-          pcl match {
-            case pcu:PCU =>
-              val cu = pmmap(pcu).asInstanceOf[CU]
-              pmmap.printPMap(pcu.mems)
-              pmmap.printPMap(pcu.ctrs)
-              rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
-              pcu.stages.foreach { pst =>
-                printStage(pst)
-              }
-              //pmmap.printPMap(pcu.ctrlBox.luts)
-            case _ =>
-          }
-        }
-      } else {
-        p.emitln(s"$pcl <- no mapping")
-      }
-    }
+    //design.arch.ctrlers.foreach { pcl => 
+      //if (pmmap.contains(pcl)) {
+        //val cl = pmmap(pcl)
+        //emitBlock( s"${quote(pcl)} <- $cl" ) {
+          //vimap.printMap(quote _, cl.vins.toList)
+          //pcl match {
+            //case pcu:PCU =>
+              //val cu = pmmap(pcu).asInstanceOf[CU]
+              //pmmap.printPMap(pcu.mems)
+              //pmmap.printPMap(pcu.ctrs)
+              //rcmap.printMap(quote _, rcmap.keys.filter(k => k.ctrler==cu).toList)
+              //pcu.stages.foreach { pst =>
+                //printStage(pst)
+              //}
+              ////pmmap.printPMap(pcu.ctrlBox.luts)
+            //case _ =>
+          //}
+        //}
+      //} else {
+        //p.emitln(s"$pcl <- no mapping")
+      //}
+    //}
   }
 }
 
@@ -261,49 +261,40 @@ object OPMap extends IBiOneToManyObj {
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 
+import pirc.newcollection.immutable._
 /* Primitive Node Mapping */
-case class PMMap(map:PMMap.M, imap:PMMap.IM) extends IBiOneToOneMap {
-  type K = PMMap.K
-  type V = PMMap.V
-  override type M = PMMap.M
-  override type IM = PMMap.IM
-  override def + (rec:(K,V)) = { super.check(rec); PMMap(map + rec, imap + rec.swap) }
-
+case class PMMap(fmap:OneToOneMap[Node,PNode], bmap:OneToOneMap[PNode,Node]) extends BiOneToOneMapLike[Node, PNode, PMMap] {
+  type K = Node
+  type V = PNode
+  type KK = K
   def cast[T](x:Any):T      = x.asInstanceOf[T]
 
   def apply(k:CL):PCL       = cast(map(k))
   def to[T](k:K):T          = cast(map(k))
 
-  def apply(v:PCL):CL       = cast(imap(v))
-  def apply(v:V):KK         = imap(v)
-  def to[T](v:V):T          = cast(imap(v))
+  def apply(v:PCL):CL       = cast(bmap(v))
+  def apply(v:V):KK         = bmap(v)
+  def to[T](v:V):T          = cast(bmap(v))
 
   def get(v:CL):Option[PCL] = cast(map.get(v))
   def get[T](k:K):Option[T] = cast(map.get(k))
 
-  def get(v:PCL):Option[CL] = cast(imap.get(v))
-  def get[T](v:V):Option[T] = cast(imap.get(v))
+  def get(v:PCL):Option[CL] = cast(bmap.get(v))
+  def get[T](v:V):Option[T] = cast(bmap.get(v))
 
-  def contains(v:V)         = imap.contains(v)
+  def contains(v:V)         = bmap.contains(v)
 }
 object PMMap extends IBiOneToOneObj {
   type K = Node
   type V = PNode
-  def empty:PMMap = PMMap(Map.empty, Map.empty)
+  def empty:PMMap = PMMap(OneToOneMap[Node,PNode](), OneToOneMap[PNode,Node]())
 }
 
-case class RTMap(map:RTMap.M) extends IOneToManyMap {
-  type K = RTMap.K
-  type V = RTMap.V
-  override type M = RTMap.M
-  override def + (rec:(K,V)) = { 
-    super.check(rec)
-    val (k,v) = rec
-    RTMap(map + (k -> (map.getOrElse(k, Set.empty) + v)))
-  }
-}
-object RTMap extends IOneToManyObj {
-  type K = Any //Input or VecIn or Delay
+
+//Input or VecIn or Delay
+case class RTMap(map:Map[Any,Set[Int]]=Map.empty) extends OneToManyMapLike[Any,Int,RTMap]
+object RTMap {
+  type K = Any 
   type V = Int 
   def empty:RTMap = RTMap(Map.empty)
 }

@@ -3,10 +3,11 @@ package pirc.newcollection
 import pirc._
 import pirc.exceptions._
 
+import scala.collection.Map
 import scala.collection.Set
 import scala.reflect._
 
-trait Map[K,V,VV] extends Serializable {
+trait MapLike[K,V,VV] extends Serializable {
   val name:String = this.getClass().getSimpleName().replace("$","")
   def apply(n:K):VV
   def get(n:K):Option[VV]
@@ -17,8 +18,8 @@ trait Map[K,V,VV] extends Serializable {
   def check(k:K, v:V):Unit
 }
 
-trait UniMap[K,V,VV] extends Map[K,V,VV] {
-  type M <: scala.collection.Map[K, VV]
+trait UniMap[K,V,VV] extends MapLike[K,V,VV] {
+  type M <: Map[K, VV]
 
   val map:M
   def apply(n:K):VV = { val m = map; m(n) }
@@ -43,7 +44,7 @@ trait OneToManyMap[K,V,VV<:Set[V]] extends UniMap[K,V,VV] {
   def check(k:K, v:V):Unit = {}
 }
 
-trait BiMap[K,V,KK,VV] extends Map[K,V,VV] with UniMap[K,V,VV] {
+trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with UniMap[K,V,VV] {
   val fmap:UniMap[K,V,VV]
   val bmap:UniMap[V,K,KK]
   val map:M = fmap.map.asInstanceOf[M]
@@ -56,15 +57,16 @@ trait BiMap[K,V,KK,VV] extends Map[K,V,VV] with UniMap[K,V,VV] {
 
 package object mutable {
   import scala.collection.mutable.Set
-  trait Map[K,V,VV] extends pirc.newcollection.Map[K,V,VV] {
+  import scala.collection.mutable.Map
+  trait MapLike[K,V,VV] extends pirc.newcollection.MapLike[K,V,VV] {
     def update(k:K, v:V):Unit
     def += (pair:(K,V)) = { val (k,v) = pair; update(k,v)}
     def clear:Unit
     def getOrElseUpdate(k:K)(vv: => VV):VV
   }
-  trait UniMap[K,V,VV] extends Map[K,V,VV] with pirc.newcollection.UniMap[K,V,VV] {
-    override type M = scala.collection.mutable.Map[K,VV]
-    val map:M = scala.collection.mutable.Map.empty
+  trait UniMap[K,V,VV] extends MapLike[K,V,VV] with pirc.newcollection.UniMap[K,V,VV] {
+    override type M = Map[K,VV]
+    val map:M = Map.empty 
     def update(k:K, v:V):Unit = check(k,v)
     def clear = { map.clear }
   }
@@ -91,7 +93,7 @@ package object mutable {
     }
   }
 
-  trait BiMap[K,V,KK,VV] extends Map[K,V,VV] with pirc.newcollection.BiMap[K,V,KK,VV] {
+  trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with pirc.newcollection.BiMap[K,V,KK,VV] {
     override val fmap:UniMap[K,V,VV]
     override val bmap:UniMap[V,K,KK]
 
@@ -146,15 +148,14 @@ package object mutable {
 package object immutable {
 
   import scala.collection.immutable.Set
-  import scala.collection.immutable.{Map => SMap}
 
-  trait Map[K,V,VV,S] extends pirc.newcollection.Map[K,V,VV] { self:S =>
+  trait MapLike[K,V,VV,S] extends pirc.newcollection.MapLike[K,V,VV] { self:S =>
     def + (pair:(K,V)):S
     def check (pair:(K,V)):Unit = { val (k,v) = pair; check(k,v) }
   }
 
-  trait UniMap[K,V,VV,S] extends Map[K,V,VV,S] with pirc.newcollection.UniMap[K,V,VV] { self:S =>
-    override type M = SMap[K,VV]
+  trait UniMap[K,V,VV,S] extends MapLike[K,V,VV,S] with pirc.newcollection.UniMap[K,V,VV] { self:S =>
+    override type M = Map[K,VV]
     val map:M
     def newInstance(m:M):S = {
       this.getClass.getConstructor(classOf[M]).newInstance(m)
@@ -164,7 +165,7 @@ package object immutable {
   trait OneToOneMapLike[K,V,S] extends UniMap[K,V,V,S] with pirc.newcollection.OneToOneMap[K,V] { self:S =>
     override def + (pair:(K,V)):S = { check(pair); newInstance(map + pair) }
   }
-  case class OneToOneMap[K,V](map:SMap[K,V]=SMap[K,V]()) extends OneToOneMapLike[K,V,OneToOneMap[K,V]]
+  case class OneToOneMap[K,V](map:Map[K,V]=Map[K,V]()) extends OneToOneMapLike[K,V,OneToOneMap[K,V]]
 
   trait OneToManyMapLike[K,V,S] extends UniMap[K,V,Set[V],S] with pirc.newcollection.OneToManyMap[K,V,Set[V]] { self:S =>
     override def + (pair:(K,V)):S = { 
@@ -174,9 +175,9 @@ package object immutable {
       newInstance(map + ((k,vv)))
     }
   }
-  case class OneToManyMap[K,V](map:SMap[K,Set[V]]=SMap[K,Set[V]]()) extends OneToManyMapLike[K,V,OneToManyMap[K,V]]
+  case class OneToManyMap[K,V](map:Map[K,Set[V]]=Map[K,Set[V]]()) extends OneToManyMapLike[K,V,OneToManyMap[K,V]]
 
-  trait BiMap[K,V,KK,VV,FM<:UniMap[K,V,VV,_],BM<:UniMap[V,K,KK,_],S] extends Map[K,V,VV,S] with pirc.newcollection.BiMap[K,V,KK,VV] { self:S =>
+  trait BiMap[K,V,KK,VV,FM<:UniMap[K,V,VV,_],BM<:UniMap[V,K,KK,_],S] extends MapLike[K,V,VV,S] with pirc.newcollection.BiMap[K,V,KK,VV] { self:S =>
     override val fmap:FM
     override val bmap:BM
     def newInstance(fm:FM, bm:BM):S = {
