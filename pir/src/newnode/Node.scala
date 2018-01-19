@@ -35,7 +35,6 @@ abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR {
 abstract class Container(implicit design:PIR) extends Node with prism.node.SubGraph[Node] { self:Product =>
 }
 
-import pirc.newcollection.mutable._
 abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self:Product =>
 
   //val ioMap = new BiManyToOneMap[String, IO]()

@@ -153,7 +153,7 @@ object TraversalTest extends TestDesign {
 
 }
 
-import pirc.newcollection.immutable._
+import prism.collection.immutable._
 import pirc.exceptions._
 object MapTest {
 

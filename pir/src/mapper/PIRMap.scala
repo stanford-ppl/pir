@@ -261,7 +261,7 @@ object OPMap extends IBiOneToManyObj {
   def empty:OPMap = OPMap(Map.empty, Map.empty)
 }
 
-import pirc.newcollection.immutable._
+import prism.collection.immutable._
 /* Primitive Node Mapping */
 case class PMMap(fmap:OneToOneMap[Node,PNode], bmap:OneToOneMap[PNode,Node]) extends BiOneToOneMapLike[Node, PNode, PMMap] {
   type K = Node

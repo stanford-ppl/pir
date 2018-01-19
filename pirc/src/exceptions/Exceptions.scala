@@ -1,6 +1,6 @@
 package pirc.exceptions
 
-import pirc.newcollection._
+import prism.collection._
 
 trait PIRException extends Exception {
   def msg:String
