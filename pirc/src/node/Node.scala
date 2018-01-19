@@ -25,7 +25,8 @@ abstract class IR(implicit design:Design) extends Serializable {
 
 abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { self:Product with N =>
 
-  type P <: SubGraph[N]
+  type P <: SubGraph[N] with N
+  type A <: Atom[N] with N
   val nct = implicitly[ClassTag[N]]
 
   override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
@@ -69,10 +70,10 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   def ios:List[Edge[N]] = ins ++ outs
 
   def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
-  def deps:Set[N] = ins.flatMap { _.connected.map { _.src.asInstanceOf[N] } }.toSet
+  def deps:Set[A] = ins.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
   def localDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
-  def depeds:Set[N] = outs.flatMap { _.connected.map { _.src.asInstanceOf[N] } }.toSet
+  def depeds:Set[A] = outs.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
@@ -143,8 +144,10 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[
   }
 
 }
-abstract class Edge[N<:Node[N]:ClassTag](val src:Atom[N])(implicit design:Design) extends IR {
-  src.addEdge(this)
+abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
+  type A <: Atom[N] with N
+
+  def src:A
 
   type E<:Edge[N]
   protected val _connected = mutable.ListBuffer[E]()
@@ -163,6 +166,8 @@ abstract class Edge[N<:Node[N]:ClassTag](val src:Atom[N])(implicit design:Design
     if (io.isConnectedTo(this.asInstanceOf[io.E])) io.disconnectFrom(this.asInstanceOf[io.E])
   }
   def disconnect = connected.foreach(disconnectFrom)
+
+  src.addEdge(this)
 }
 
 trait Input[N<:Node[N]] extends Edge[N] {
@@ -180,7 +185,7 @@ trait Traversal extends GraphTraversal {
   /*
    * Visit from buttom up
    * */
-  def visitUp(n:N):List[N] = n.parent.toList.asInstanceOf[List[N]]
+  def visitUp(n:N):List[N] = n.parent.toList
 
   /*
    * Visit subgraph
@@ -202,22 +207,6 @@ trait Traversal extends GraphTraversal {
   def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
 }
 
-trait GraphSchedular extends GraphTraversal { self =>
-  type N
-  type T = List[N]
-
-  def visitFunc(n:N):List[N]
-
-  override def visitNode(n:N, prev:T):T = {
-    traverse(n, super.visitNode(n, prev) :+ n)
-  }
-
-  def schedule(n:N) = {
-    reset
-    visitNode(n, Nil)
-  }
-}
-
 trait GraphTraversal {
   type N
   type T
@@ -232,21 +221,38 @@ trait GraphTraversal {
 
   def visitFunc(n:N):List[N]
 
-  def visitNode(n:N, prev:T):T = {
+  def visitNode(n:N, prev:T):T = traverse(n, prev)
+
+  def traverseNode(n:N, prev:T):T = {
     visited += n
-    prev
+    visitNode(n, prev)
   }
 
-  def traverse(n:N, zero:T):T = throw new Exception(s"Undefined traverse function")
+  def traverse(n:N, zero:T):T
 }
+
+trait GraphSchedular extends GraphTraversal { self =>
+  type N
+  type T = List[N]
+
+  def visitFunc(n:N):List[N]
+
+  override def visitNode(n:N, prev:T):T = super.visitNode(n, prev:+n)
+
+  final def schedule(n:N) = {
+    reset
+    traverseNode(n, Nil)
+  }
+}
+
 
 trait DFSTraversal extends GraphTraversal {
   override def traverse(n:N, zero:T):T = {
+    var prev = zero 
     var nexts = visitFunc(n).filterNot(isVisited)
-    var prev = zero
     // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
-      prev = visitNode(nexts.head, prev)
+      prev = traverseNode(nexts.head, prev)
       nexts = visitFunc(n).filterNot(isVisited)
     }
     prev
@@ -264,12 +270,13 @@ trait BFSTraversal extends GraphTraversal {
   }
 
   override def traverse(n:N, zero:T):T = {
+    var prev = zero 
     queue ++= visitFunc(n).filterNot(isVisited)
     while (queue.nonEmpty) {
       val next = queue.dequeue()
-      if (!isVisited(next)) return visitNode(next, zero)
+      if (!isVisited(next)) return traverseNode(next, prev)
     }
-    return zero
+    return prev
   }
 }
 
@@ -300,7 +307,7 @@ trait HiearchicalTraversal extends Traversal with GraphTraversal {
     var prev = zero
     var childs = visitChild(n).filterNot(isVisited)
     while (childs.nonEmpty) {
-      prev = visitNode(childs.head, prev)
+      prev = traverseNode(childs.head, prev)
       childs = visitChild(n).filterNot(isVisited)
     }
     prev
@@ -341,17 +348,16 @@ import scala.collection.JavaConverters._
 trait GraphTransformer extends GraphTraversal {
   type N<:Node[N]
   type P<:SubGraph[N] with N
-  type T = Unit
+  type A<:Atom[N] with N
   type D <: Design
-
-  def visitNode(n:N):T = visitNode(n, ())
+  type T = Unit
 
   def removeNode(node:N) = {
     node.ios.foreach { io => io.disconnect }
     node.parent.foreach { parent =>
       parent.removeChild(node)
       node.unsetParent
-      (parent.children.filterNot { _ == node } :+ parent.asInstanceOf[N]).foreach(removeUnusedIOs)
+      (parent.children.filterNot { _ == node } :+ parent).foreach(removeUnusedIOs)
     }
   }
 
@@ -362,16 +368,41 @@ trait GraphTransformer extends GraphTraversal {
     node.setParent(newParent.asInstanceOf[node.P])
   }
 
+  /*
+   * Given a node that was originally connected to from, swap the connection to node to
+   * at the same io port.
+    * Assume from and to have the same IO interface
+   * */
+  def swapConnection[A1<:A](node:A, from:A1, to:A1) = {
+    assert(from.ios.size == to.ios.size)
+    val connected = node.ios.flatMap { io =>
+      val fromios = io.connected.filter { _.src == from }
+      if (fromios.nonEmpty) Some((io, fromios))
+      else None
+    }
+    assert(connected.nonEmpty, s"$node is not connected to $from")
+    connected.foreach { case (io, fromios) =>
+      fromios.foreach { fromio =>
+        val index = from.ios.indexOf(fromio)
+        val toio = to.ios(index)
+        io.disconnectFrom(fromio.asInstanceOf[io.E])
+        io.connect(toio.asInstanceOf[io.E])
+      }
+    }
+  }
+
   def removeUnusedIOs(node:N) = {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def transform(n:N):Unit = traverse(n, ())
+  override def visitNode(n:N, prev:T):T = transform(n)
 
-  override def visitNode(n:N, prev:T):T = {
-    super.visitNode(n, prev)
-    transform(n)
-  }
+  def transform(n:N):Unit = super.visitNode(n, ())
+
+  def traverseNode(n:N):Unit = traverseNode(n, ())
+
+  // default input is not mirrored
+  def mirrorArg(n:N, arg:N)(implicit ct:ClassTag[N], design:D):(N, List[N]) = (arg, Nil)
 
   def mirror[T<:N](n:T)(implicit ct:ClassTag[N], design:D):(T, List[N]) = {
     val values = n.values :+ design
@@ -380,11 +411,46 @@ trait GraphTransformer extends GraphTraversal {
     // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
     val constructor = n.getClass.getConstructors()(0) 
     val (args, prevs) = values.map { // Only works with a single constructor
-      case n:N => mirror(n)
-      case n => (n,Nil)
+      case arg:N => mirrorArg(n, arg) 
+      case arg => (arg,Nil)
     }.unzip
     val m = constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
     (m, prevs.flatten :+ m)
   }
+}
+
+trait GraphCollector extends Traversal {
+
+  private def newTraversal[M<:N:ClassTag](vf:N => List[N]) = new pirc.node.BFSTraversal {
+    type T = (Iterable[M], Int)
+    type N = GraphCollector.this.N
+    override def visitNode(n:N, prev:T):T = {
+      visited += n
+      val (prevRes, depth) = prev 
+      n match {
+        case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
+        case _ if depth == 0 => (prevRes, 0)
+        case _ => super.visitNode(n, (prevRes, depth - 1))
+      }
+    }
+    def visitFunc(n:N):List[N] = vf(n)
+  }
+ 
+  def collectUp[M<:N:ClassTag](n:N, depth:Int=10):Iterable[M] = {
+    newTraversal(visitUp _).traverse(n, (Nil, depth))._1
+  }
+
+  def collectDown[M<:N:ClassTag](n:N, depth:Int=10):Iterable[M] = {
+    newTraversal(visitDown _).traverse(n, (Nil, depth))._1
+  }
+
+  def collectIn[M<:N:ClassTag](n:N, depth:Int=10):Iterable[M] = {
+    newTraversal(visitIn _).traverse(n, (Nil, depth))._1
+  }
+
+  def collectOut[M<:N:ClassTag](n:N, depth:Int=10):Iterable[M] = {
+    newTraversal(visitOut _).traverse(n, (Nil, depth))._1
+  }
+
 }
 

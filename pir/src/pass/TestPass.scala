@@ -31,6 +31,7 @@ trait TestDesign extends Design {
 }
 
 abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Product with TestNode =>
+  override type A = TestAtom
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
   override def toString = {
@@ -39,10 +40,12 @@ abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Pr
   }
 }
 
-class TestInput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Input[TestNode] {
+class TestInput(implicit override val src:TestAtom, design:Design) extends Edge[TestNode]() with Input[TestNode] {
+  override type A = TestAtom
   type E = TestOutput
 }
-class TestOutput(implicit src:TestAtom, design:Design) extends Edge[TestNode](src) with Output[TestNode] {
+class TestOutput(implicit override val src:TestAtom, design:Design) extends Edge[TestNode]() with Output[TestNode] {
+  override type A = TestAtom
   type E = TestInput
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {

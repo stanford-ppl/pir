@@ -11,7 +11,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.codegen.Codegen with ChildFirstTraversal with pir.newnode.Traversal {
+abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with ChildFirstTraversal with pir.codegen.Codegen {
 
   type T = Unit
 
@@ -20,17 +20,14 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.codegen.Codegen w
     super[ChildFirstTraversal].reset
   }
 
-  def visitNode(n:N):T = visitNode(n, ())
-
-  override def visitNode(n:N, prev:T):T = {
-    super.visitNode(n, prev)
-    emitNode(n)
-  }
+  def traverseNode(n:N):Unit = traverseNode(n, ())
+  override def visitNode(n:N, prev:T):T = emitNode(n)
 
   def emitNode(n:N):Unit = {
     emitln(s"${qdef(n)} // TODO: unmatched node")
-    traverse(n, ())
+    super.visitNode(n, ())
   }
+
 }
 
 class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
@@ -60,7 +57,7 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.Dot
   }
 
   addPass {
-    visitNode(design.newTop)
+    traverseNode(design.newTop)
   }
   
 }
@@ -77,7 +74,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
   addPass {
     emitBlock("digraph G") {
       if (horizontal) emitln(s"rankdir=LR")
-      visitNode(design.newTop)
+      emitNode(design.newTop)
       nodes.foreach(emitEdge)
     }
   }
@@ -139,7 +136,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
 }
 
-abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with pir.newnode.Traversal with pir.newnode.Collector {
+abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with pirc.node.GraphCollector {
 
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>
@@ -154,13 +151,12 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
   //def shape(attr:DotAttr, n:N) = attr.shape(box)
 
   override def color(attr:DotAttr, n:N) = n match {
-    case n:SRAM => attr.fillcolor(cyan).style(filled)
+    case n:SRAM => attr.fillcolor(orange).style(filled)
     case n:StreamIn => attr.fillcolor(gold).style(filled)
     case n:StreamOut => attr.fillcolor(gold).style(filled)
     case n:Reg => attr.fillcolor(limegreen).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
-    case n:Controller => attr.fillcolor(deepskyblue).style(filled)
-    case n:CUContainer => attr.color(black)
+    case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n => super.color(attr, n)
   }
 
@@ -170,7 +166,6 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
       //case n:Module if n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop) => emitSingleNode(n)
       //case n:Module =>  
       case n:Module => emitSingleNode(n)
-      case n:Controller => emitSubGraph(n)
       case n => emitSubGraph(n)
     }
   }
