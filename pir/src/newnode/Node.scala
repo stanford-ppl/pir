@@ -11,7 +11,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-trait IR extends pirc.node.IR { 
+trait IR extends prism.node.IR { 
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
 
@@ -26,17 +26,17 @@ trait IR extends pirc.node.IR {
   }
 }
 
-abstract class Node(implicit design:PIR) extends pirc.node.Node[Node] with IR { self:Product =>
+abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR { self:Product =>
   design.addNode(this)
   type P = Container
   type A = Module
 }
 
-abstract class Container(implicit design:PIR) extends Node with pirc.node.SubGraph[Node] { self:Product =>
+abstract class Container(implicit design:PIR) extends Node with prism.node.SubGraph[Node] { self:Product =>
 }
 
 import pirc.newcollection.mutable._
-abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Node] { self:Product =>
+abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self:Product =>
 
   //val ioMap = new BiManyToOneMap[String, IO]()
   //override def values = fields.map { field => ioMap(field).src } //TODO
@@ -72,18 +72,18 @@ abstract class Module(implicit design: PIR) extends Node with pirc.node.Atom[Nod
   //}
 //}
 
-abstract class IO(override val src:Module)(implicit design:PIR) extends pirc.node.Edge[Node]() {
+abstract class IO(override val src:Module)(implicit design:PIR) extends prism.node.Edge[Node]() {
   override type A = Module
   override def connect(p:E):this.type = {
     err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
     super.connect(p)
   }
 }
-class Input(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Input[Node] {
+class Input(implicit src:Module, design:PIR) extends IO(src) with prism.node.Input[Node] {
   type E = Output
   def from = connected.head
 }
-class Output(implicit src:Module, design:PIR) extends IO(src) with pirc.node.Output[Node] {
+class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Output[Node] {
   type E = Input
   def to = connected
 }
@@ -161,7 +161,7 @@ trait ComputeContext extends Node { self:Product =>
   var controller:Controller = _
 }
 
-case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends pirc.node.SubGraph[Controller] with IR {
+case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends prism.node.SubGraph[Controller] with IR {
   override def toString = s"$style$id[${name.get}]"
   type P = Controller
   def isInnerControl = children.isEmpty 

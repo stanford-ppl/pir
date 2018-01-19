@@ -1,4 +1,4 @@
-package pirc
+package prism
 
 package object node {
 }

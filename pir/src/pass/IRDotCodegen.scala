@@ -5,7 +5,8 @@ import pir.util._
 
 import pirc._
 import pirc.util._
-import pirc.node._
+import prism.node._
+import prism.traversal._
 
 import sys.process._
 import scala.language.postfixOps
@@ -136,7 +137,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
 }
 
-abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with pirc.node.GraphCollector {
+abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with prism.traversal.GraphCollector {
 
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>

@@ -11,7 +11,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class Traversal(implicit design:PIR) extends pir.pass.Pass with pirc.node.Traversal with pirc.node.GraphCollector with Logger {
+abstract class Traversal(implicit design:PIR) extends pir.pass.Pass with prism.traversal.Traversal with prism.traversal.GraphCollector with Logger {
   type N = Node 
   type P = Container
   type A = Module
@@ -26,14 +26,14 @@ abstract class Traversal(implicit design:PIR) extends pir.pass.Pass with pirc.no
 
 }
 
-abstract class Transformer(implicit design:PIR) extends Traversal with pirc.node.GraphTransformer
+abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer
 
-trait ControllerTraversal extends pirc.node.GraphTraversal with pirc.node.BFSTraversal {
+trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.traversal.BFSTraversal {
   type N = Controller
   def visitFunc(n:N):List[N] = n.children 
 }
 
-class CUInsertion(implicit design:PIR) extends Transformer with pirc.node.ChildLastTraversal {
+class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.ChildLastTraversal {
 
   override lazy val stream = newStream(s"CUInsertion.log")
 
@@ -81,7 +81,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with pirc.node.ChildL
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with pirc.node.ChildLastTraversal {
+class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.ChildLastTraversal {
 
   override lazy val stream = newStream(s"AccessPulling.log")
 
@@ -163,7 +163,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with pirc.node.Chil
 
 }
 
-class DeadCodeElimination(implicit design:PIR) extends Transformer with pirc.node.HiearchicalTopologicalTraversal {
+class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
 
   override lazy val stream = newStream(s"DeadCodeElimination.log")
 
@@ -220,7 +220,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with pirc.nod
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with pirc.node.HiearchicalTopologicalTraversal {
+class ControlPropogation(implicit design:PIR) extends Traversal with prism.traversal.HiearchicalTopologicalTraversal {
 
   type T = Controller
 

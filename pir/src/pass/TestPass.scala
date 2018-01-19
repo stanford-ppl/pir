@@ -5,7 +5,8 @@ import pir.util._
 
 import pirc._
 import pirc.util._
-import pirc.node._
+import prism.node._
+import prism.traversal._
 
 import scala.language.postfixOps
 import scala.collection.mutable
@@ -62,7 +63,7 @@ case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with 
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
 
 object TraversalTest extends TestDesign {
-  import pirc.node.Traversal
+  import prism.traversal.Traversal
 
   val a = TestAtom().name("a")
   val b = TestAtom().name("b")
