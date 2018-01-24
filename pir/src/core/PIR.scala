@@ -99,6 +99,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val controlPropogator = new pir.newnode.ControlPropogation()
   lazy val cuInsertion = new pir.newnode.CUInsertion()
   lazy val accessPuller = new pir.newnode.AccessPulling()
+  lazy val accessLowering = new pir.newnode.AccessLowering()
 
   var mapping:Option[PIRMap] = None
 
@@ -160,7 +161,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
     //
-    passes += new IRPrinter {}
+    passes += new IRPrinter
     passes += new GlobalIRDotCodegen(s"top1.dot") {}
     passes += new IRDotCodegen(s"PIR.dot") {}
 
@@ -176,6 +177,9 @@ trait PIR extends Design with PIRMetadata with Collector {
 
     passes += deaaCodeEliminator 
     passes += new GlobalIRDotCodegen(s"top5.dot") {}
+
+    passes += accessLowering
+    passes += new GlobalIRDotCodegen(s"top6.dot") {}
 
     passes += new TestPass()
 

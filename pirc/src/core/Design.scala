@@ -11,10 +11,12 @@ trait Design extends FileManager {
   override def toString = name
 
   private var nextSym = 0
-  def nextId = {nextSym += 1; nextSym }
+  def nextId = if (staging) {nextSym += 1; nextSym } else 0
+
+  var staging = true
 
   /* Compiler Passes */
-  val passes = ListBuffer[Pass]()
+  val passes = ListBuffer[prism.pass.Pass]()
 
     passes.foreach(_.reset)
 
@@ -24,7 +26,7 @@ trait Design extends FileManager {
 
   def run = {
     passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
-    passes.foreach { _.checkRanAll }
+    //passes.foreach { _.checkRanAll }
   }
 
   val configs:List[GlobalConfig]

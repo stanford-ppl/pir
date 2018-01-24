@@ -4,41 +4,20 @@ import pirc.util._
 
 import scala.collection.mutable
 
-trait Pass {
-
-  var runId = -1
+trait Pass extends prism.pass.Pass {
 
   def shouldRun:Boolean
-  lazy val name = this.getClass.getSimpleName
 
   val passes = mutable.ListBuffer[(() => Boolean, () => Any)]()
   val passRanCount = mutable.Map[Int, (Int,Int)]()
 
-  def reset {
+  override def reset = {
+    super.reset
     passRanCount.foreach { case (id, (totalRun, currRun)) =>
       passRanCount(id) = (totalRun, 0)
     }
   }
   
-  def run(id:Int):Unit = {
-    runId = id
-    run
-  }
-
-  final def run:Unit = {
-    initPass
-    runPasses
-    finPass
-  }
-
-  def initPass:Unit = {
-    startInfo(s"Begin $name ...")
-  }
-
-  def finPass:Unit = {
-    endInfo(s"Finishing $name ...")
-  }
-
   def addPass(pass: => Any):Unit = addPass(canRun=true, runCount=1) (pass)
   def addPass(canRun: => Boolean)(pass: => Any):Unit = addPass(canRun, runCount=1) (pass)
   def addPass(runCount:Int)(pass: => Any):Unit = addPass(true, runCount)(pass)
@@ -46,6 +25,9 @@ trait Pass {
     passRanCount += passes.size -> (runCount, 0)
     passes += ((canRun _, pass _))
   }
+
+  def runPass = runPasses
+
   def runPasses = {
     passes.zipWithIndex.foreach { case ((canRun, pass), id) =>
       val (totalRun, currRun) = passRanCount(id)
@@ -64,7 +46,7 @@ trait Pass {
       }
     }
   }
-  def hasRun = {
+  override def hasRun = {
     //passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
     passRanCount.forall { case (id, (totalRun, currRun)) => currRun > 0 }
   }

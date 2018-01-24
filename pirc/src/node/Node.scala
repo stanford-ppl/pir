@@ -18,22 +18,21 @@ abstract class IR(implicit design:Design) extends Serializable {
   }
 
   def className = this.getClass.getSimpleName
-  def productName = this.getClass.getSimpleName
+  def productName = s"${this.getClass.getSimpleName}$id"
 
   override def toString = s"${this.getClass.getSimpleName}$id"
 }
 
-abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { self:Product with N =>
+abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with Product { self:N =>
 
   type P <: SubGraph[N] with N
   type A <: Atom[N] with N
   val nct = implicitly[ClassTag[N]]
 
-  override def productName = s"$productPrefix(${productIterator.mkString(",")})" 
+  override def productName = s"$productPrefix$id(${productIterator.mkString(",")})" 
 
   lazy val arity = self.productArity
-  def values = self.productIterator.toList
-  lazy val fields = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
+  lazy val fieldNames = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
 
   // Parent
   var _parent:Option[P] = None
@@ -77,22 +76,59 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { se
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
-  def connectFields(x:Any)(implicit design:Design):Unit = {
+  def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
     x match {
-      case x:N => connectField(x)
-      case Some(x) => connectFields(x)
-      case x:Iterable[_] => x.foreach(connectFields)
-      case x:Iterator[_] => x.foreach(connectFields)
-      case x =>
+      case x:Some[_] => 
+        val lambdas = x.map(connectFields)
+        Lambda(lambdas.map(_.n()).asInstanceOf[X])
+      case x:Iterable[_] => 
+        val lambdas = x.map(connectFields)
+        Lambda(lambdas.map(_.n()).asInstanceOf[X])
+      case x:Iterator[_] => 
+        val lambdas = x.map(connectFields)
+        Lambda(lambdas.map(_.n()).asInstanceOf[X])
+      case x => Lambda(x)
     }
   }
 
-  def connectField(x:N)(implicit design:Design):Unit
+  def staging(implicit design:Design):List[Lambda[Any]] = {
+    if (design.staging) productIterator.map(connectFields).toList else Nil
+  }
 
-  connectFields(productIterator)
+  val lambdas = staging
+  def values = lambdas.map { _.n() }
+
+  def newInstance[T](args:List[Any], staging:Boolean=true)(implicit design:Design):T = {
+    //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
+    // Some how this compiles but gives runtime error for not able to find the constructor when values contain Int type since
+    // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
+    val constructor = this.getClass.getConstructors()(0) 
+    val arguments = args :+ design
+    val prevStaging = design.staging
+    design.staging = staging
+    val newNode = constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    design.staging = prevStaging
+    newNode
+  }
 }
 
-trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
+object Def {
+  def unapply(n:Node[_])(implicit design:Design):Option[Node[_]] = {
+    n match {
+      case n:Node[_] => Some(n.newInstance(n.values, staging=false))
+      case _ => None
+    }
+  }
+}
+
+class Lambda[N](val n:() => N)(implicit design:Design) extends IR {
+  def map[T](f:N => T)(implicit design:Design):Lambda[T] = Lambda(f(n()))
+}
+object Lambda {
+  def apply[N](n: => N)(implicit design:Design) = new Lambda(() => n)
+}
+
+trait Atom[N<:Node[N]] extends Node[N] { self:N =>
   implicit lazy val atom:this.type = this
 
   def children:List[N] = Nil
@@ -116,7 +152,7 @@ trait Atom[N<:Node[N]] extends Node[N] { self: Product with N =>
   def outs = _outs.toList
 }
 
-trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[N] =>
+trait SubGraph[N<:Node[N]] extends Node[N] { self:N with SubGraph[N] =>
   // Children
   private lazy val _children = mutable.ListBuffer[N]()
   def children = _children.toList
@@ -135,11 +171,13 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self: Product with N with SubGraph[
   def ins = descendents.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
 
-  def connectField(x:N)(implicit design:Design):Unit = {
+  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
     implicit val ev = nct
     x match {
-      case x:N => this.addChild(x)
-      case x => 
+      case x:N =>
+        this.addChild(x)
+        Lambda(x.asInstanceOf[X])
+      case x => super.connectFields(x)
     }
   }
 
@@ -152,8 +190,12 @@ abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
   type E<:Edge[N]
   protected val _connected = mutable.ListBuffer[E]()
   def connected:List[E] = _connected.toList
+  def singleConnected:E = {
+    assert(connected.size==1, s"$this doesn't have exactly 1 connection connected to ${connected}")
+    connected.head
+  }
   def isConnected:Boolean = connected.nonEmpty
-  def isConnectedTo(p:E) = connected.contains(p)
+  def isConnectedTo(p:Edge[N]) = connected.contains(p.asInstanceOf[E])
   def connect(p:E):this.type = {
     if (isConnectedTo(p)) return this
     _connected += p 
@@ -161,9 +203,9 @@ abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
     this
   }
 
-  def disconnectFrom(io:E):Unit = {
-    _connected -= io
-    if (io.isConnectedTo(this.asInstanceOf[io.E])) io.disconnectFrom(this.asInstanceOf[io.E])
+  def disconnectFrom(io:Edge[N]):Unit = {
+    _connected -= io.asInstanceOf[E]
+    if (io.isConnectedTo(this)) io.disconnectFrom(this)
   }
   def disconnect = connected.foreach(disconnectFrom)
 

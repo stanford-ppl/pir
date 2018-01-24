@@ -10,6 +10,7 @@ import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
 import scala.reflect._
+import scala.reflect.runtime.universe._
 
 trait IR extends prism.node.IR { 
   var name:Option[String] = None
@@ -26,16 +27,17 @@ trait IR extends prism.node.IR {
   }
 }
 
-abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR { self:Product =>
+abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR { self =>
   design.addNode(this)
   type P = Container
   type A = Module
 }
 
-abstract class Container(implicit design:PIR) extends Node with prism.node.SubGraph[Node] { self:Product =>
+abstract class Container(implicit design:PIR) extends Node with prism.node.SubGraph[Node] { self =>
 }
 
-abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self:Product =>
+import prism.node.Lambda
+abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self =>
 
   //val ioMap = new BiManyToOneMap[String, IO]()
   //override def values = fields.map { field => ioMap(field).src } //TODO
@@ -47,29 +49,21 @@ abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[No
     }
   }
 
-  override def connectField(x:Node)(implicit design:Design):Unit = {
+  def connectIO[T](io:IO)(implicit design:PIR):Lambda[T] = {
+    val myio = this.connect(io)
+    Lambda(myio.singleConnected.src.asInstanceOf[T])
+  }
+
+  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
     implicit val pir = design.asInstanceOf[PIR]
-    val io = x match {
-      case x:Def => this.connect(x.out)
-      case x:Memory => this.connect(x.out) // StoreDef override this function. it connects to Memory.in
-      case x:Counter => this.connect(x.out)
+    x match {
+      case x:Def => connectIO(x.out) 
+      case x:Memory => connectIO(x.out) // StoreDef override this function. it connects to Memory.in
+      case x:Counter => connectIO(x.out) 
+      case x => super.connectFields(x)
     }
-    //ioMap += field -> io
   }
 }
-
-//object Def with Collector {
-  //def getField[T:ClassTag](d:Module, field:String):T = typeTag[T] match {
-    //case tt if tt <:< typeTag[Def] =>
-    //case tt if tt <:< typeTag[Option[Def]] =>
-    //case tt if tt <:< typeTag[Iterator[Def]] =>
-    //case tt =>
-  //}
-  //def unapply[T1:ClassTag](d:Product1[T1] with Module):Option[T1] = {
-    //val f1::_ = d.fields
-    //Some(getField[T1](f1))
-  //}
-//}
 
 abstract class IO(override val src:Module)(implicit design:PIR) extends prism.node.Edge[Node]() {
   override type A = Module
@@ -91,7 +85,7 @@ case class DRAM()(implicit design:PIR) extends IR
 
 case class ArgInFringe()(implicit design:PIR) extends Module
 
-abstract class Memory(implicit design:PIR) extends Module { self:Product =>
+abstract class Memory(implicit design:PIR) extends Module { self =>
   val in = new Input
   val out = new Output
 }
@@ -113,7 +107,7 @@ object ArgOut {
 case class StreamIn(field:String)(implicit design:PIR) extends Memory
 case class StreamOut(field:String)(implicit design:PIR) extends Memory
 
-trait GlobalContainer extends Container { self:Product => }
+trait GlobalContainer extends Container { self => }
 
 case class CUContainer(contains:Node*)(implicit design:PIR) extends GlobalContainer
 
@@ -156,7 +150,7 @@ case class Top()(implicit design: PIR) extends Container {
 
 }
 
-trait ComputeContext extends Node { self:Product =>
+trait ComputeContext extends Node { self =>
   var controller:Controller = _
 }
 
@@ -177,7 +171,7 @@ case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) ext
   val out = new Output
 }
 
-abstract class Def(implicit design:PIR) extends Module with ComputeContext { self:Product =>
+abstract class Def(implicit design:PIR) extends Module with ComputeContext { self =>
   def depDefs:Set[Def] = deps.collect { case d:Def => d } 
   def localDepDefs = localDeps.collect { case d:Def => d } 
   def depedDefs:Set[Def] = depeds.collect { case d:Def => d } 
@@ -186,12 +180,12 @@ abstract class Def(implicit design:PIR) extends Module with ComputeContext { sel
   val out = new Output()(this,design)
 }
 
-trait StoreNode extends Module { self:Product =>
-  override def connectField(x:Node)(implicit design:Design):Unit = {
+trait StoreNode extends Module { self =>
+  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
-      case x:Memory => this.connect(x.in)
-      case x => super.connectField(x)
+      case x:Memory => connectIO(x.in)
+      case x => super.connectFields(x)
     }
   }
 }

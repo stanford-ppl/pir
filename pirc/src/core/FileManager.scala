@@ -6,7 +6,9 @@ import pirc.util._
 import scala.collection.mutable.ListBuffer
 import java.io.File
 
-trait FileManager { self:Design =>
+trait FileManager { 
+
+  def name:String 
 
   def outDir = Config.outDir + File.separator + name
 

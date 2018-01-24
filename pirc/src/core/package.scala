@@ -14,5 +14,7 @@ package object pirc {
   type PIRException = pirc.exceptions.PIRException
   val PIRException = pirc.exceptions.PIRException
 
+  val Def = prism.node.Def
+
   /* ------------- Alias (END) ------- **/
 }

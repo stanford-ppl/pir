@@ -12,7 +12,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with ChildFirstTraversal with pir.codegen.Codegen {
+abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with ChildFirstTraversal with pirc.codegen.Codegen {
 
   type T = Unit
 
@@ -57,7 +57,7 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.Dot
     }
   }
 
-  addPass {
+  override def runPass = {
     traverseNode(design.newTop)
   }
   
@@ -72,7 +72,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
   val nodes = mutable.ListBuffer[N]()
 
-  addPass {
+  override def runPass = {
     emitBlock("digraph G") {
       if (horizontal) emitln(s"rankdir=LR")
       emitNode(design.newTop)
@@ -141,7 +141,7 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
 
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>
-      val fields = n.fields.zip(n.productIterator.toList).flatMap { 
+      val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
         case (field, Const(v)) => Some(s"$field=$v")
         case _ => None
       }

@@ -174,11 +174,12 @@ trait HiearchicalTopologicalTraversal extends TopologicalTraversal with ChildFir
 
 import scala.collection.JavaConverters._
 trait GraphTransformer extends GraphTraversal {
-  type N<:Node[N]
+  type N<:Node[N] with Product
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
   type D <: Design
   type T = Unit
+  implicit val nct:ClassTag[N]
 
   def removeNode(node:N) = {
     node.ios.foreach { io => io.disconnect }
@@ -213,10 +214,21 @@ trait GraphTransformer extends GraphTraversal {
       fromios.foreach { fromio =>
         val index = from.ios.indexOf(fromio)
         val toio = to.ios(index)
-        io.disconnectFrom(fromio.asInstanceOf[io.E])
+        io.disconnectFrom(fromio)
         io.connect(toio.asInstanceOf[io.E])
       }
     }
+  }
+
+  def swapConnection[A1<:A](node:A, from:Edge[N], to:Edge[N]) = {
+    val connected = node.ios.filter { io =>
+      if (io.isConnectedTo(from)) {
+        io.disconnectFrom(from)
+        io.connect(to.asInstanceOf[io.E])
+        true
+      } else false
+    }
+    assert (connected.nonEmpty, s"$node is not connected to $from")
   }
 
   def removeUnusedIOs(node:N) = {
@@ -229,23 +241,44 @@ trait GraphTransformer extends GraphTraversal {
 
   def traverseNode(n:N):Unit = traverseNode(n, ())
 
-  // default input is not mirrored
-  def mirrorArg(n:N, arg:N)(implicit ct:ClassTag[N], design:D):(N, List[N]) = (arg, Nil)
+  def mirror[T<:N](n:T)(implicit design:D):(T, List[N]) = {
+    val mapping = mirrorX(n)
+    val newNodes = mapping.values.collect { case n:N => n }.toSet diff mapping.keys.collect { case n:N => n}.toSet
+    (mapping(n).asInstanceOf[T], newNodes.toList)
+  }
 
-  def mirror[T<:N](n:T)(implicit ct:ClassTag[N], design:D):(T, List[N]) = {
-    val values = n.values :+ design
-    //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
-    // Some how this compiles but gives runtime error for not able to find the constructor when values contain Int type since
-    // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
-    val constructor = n.getClass.getConstructors()(0) 
-    val (args, prevs) = values.map { // Only works with a single constructor
-      case arg:N => mirrorArg(n, arg) 
-      case arg => (arg,Nil)
-    }.unzip
-    val m = constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
-    (m, prevs.flatten :+ m)
+  def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
+    n match {
+      case n if mapping.contains(n) => mapping
+      case n:N => 
+        val args = n.productIterator.toList //TODO
+        val newMapping = args.foldLeft(mapping) { case (mapping, arg) => mirrorX(arg, mapping) }
+        assert(!newMapping.contains(n), s"cycle in mirroring!")
+        newMapping + (n -> n.newInstance[T](args.map { a => newMapping(a) }))
+      case n:Option[_] => 
+        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
+        newMapping + (n -> n.map { n => newMapping(n) } )
+      case n:Iterable[_] => 
+        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
+        newMapping + (n -> n.map { n => newMapping(n) } )
+      case n:Iterator[_] => 
+        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
+        newMapping + (n -> n.map { n => newMapping(n) } )
+      case n => mapping + (n -> n)
+    }
+  }
+  
+  def lookUp[X](a:X, mapping:Map[N,N]):X = {
+    (a match {
+      case a:N => mapping(a)
+      case Some(a) => Some(lookUp(a, mapping))
+      case a:Iterable[_] => a.map{ a => lookUp(a, mapping) }
+      case a:Iterator[_] => a.map{ a => lookUp(a, mapping) }
+      case a => a
+    }).asInstanceOf[X]
   }
 }
+
 
 trait GraphCollector extends Traversal {
 
