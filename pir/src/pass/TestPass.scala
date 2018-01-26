@@ -51,12 +51,9 @@ class TestOutput(implicit override val src:TestAtom, design:Design) extends Edge
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
   val out = new TestOutput
-  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
+  override def connectFields(x:Any)(implicit design:Design):Any = {
     x match {
-      case x:TestAtom =>
-        val in = new TestInput
-        val myio = in.connect(x.out)
-        Lambda(myio.singleConnected.src.asInstanceOf[X])
+      case x:TestAtom => (new TestInput).connect(x.out)
       case x => super.connectFields(x) 
     }
   }

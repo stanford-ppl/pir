@@ -19,7 +19,7 @@ trait IR extends prism.node.IR {
   def ctrl(ctrler:Any)(implicit design:PIR):this.type = {
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.setParent(ctrler)
-      case (self:ComputeContext, ctrler:Controller) => self.controller = ctrler
+      case (self:ComputeContext, ctrler:Controller) => self.setControl(ctrler)
       case (self:Controller, top:Top) => top.topController = self
       case (_,_) =>
     }
@@ -31,16 +31,19 @@ abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR {
   design.addNode(this)
   type P = Container
   type A = Module
+  override def ins:List[Input]
+  override def outs:List[Output]
+  override def ios:List[IO] = ins ++ outs
 }
 
 abstract class Container(implicit design:PIR) extends Node with prism.node.SubGraph[Node] { self =>
+  override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
+  override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 }
 
-import prism.node.Lambda
 abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self =>
-
-  //val ioMap = new BiManyToOneMap[String, IO]()
-  //override def values = fields.map { field => ioMap(field).src } //TODO
+  override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
+  override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
   def connect(io:IO)(implicit design:PIR):IO = {
     io match {
@@ -49,17 +52,12 @@ abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[No
     }
   }
 
-  def connectIO[T](io:IO)(implicit design:PIR):Lambda[T] = {
-    val myio = this.connect(io)
-    Lambda(myio.singleConnected.src.asInstanceOf[T])
-  }
-
-  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
+  override def connectFields(x:Any)(implicit design:Design):Any = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
-      case x:Def => connectIO(x.out) 
-      case x:Memory => connectIO(x.out) // StoreDef override this function. it connects to Memory.in
-      case x:Counter => connectIO(x.out) 
+      case x:Def => this.connect(x.out)
+      case x:Memory => this.connect(x.out) // StoreDef override this function. it connects to Memory.in
+      case x:Counter => this.connect(x.out)
       case x => super.connectFields(x)
     }
   }
@@ -67,7 +65,7 @@ abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[No
 
 abstract class IO(override val src:Module)(implicit design:PIR) extends prism.node.Edge[Node]() {
   override type A = Module
-  override def connect(p:E):this.type = {
+  override def connect(p:prism.node.Edge[Node]):this.type = {
     err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
     super.connect(p)
   }
@@ -75,10 +73,18 @@ abstract class IO(override val src:Module)(implicit design:PIR) extends prism.no
 class Input(implicit src:Module, design:PIR) extends IO(src) with prism.node.Input[Node] {
   type E = Output
   def from = connected.head
+  override def connect(e:prism.node.Edge[Node]):this.type = {
+    val p = e.asInstanceOf[E]
+    super.connect(p)
+  }
 }
 class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Output[Node] {
   type E = Input
   def to = connected
+  override def connect(e:prism.node.Edge[Node]):this.type = {
+    val p = e.asInstanceOf[E]
+    super.connect(p)
+  }
 }
 
 case class DRAM()(implicit design:PIR) extends IR
@@ -91,11 +97,18 @@ abstract class Memory(implicit design:PIR) extends Module { self =>
 }
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIR) extends Memory
+case class FIFO(size:Int)(implicit design:PIR) extends Memory
 
 case class Reg(init:Option[AnyVal])(implicit design:PIR) extends Memory
 object Reg {
   def apply(init:AnyVal)(implicit design:PIR):Reg = Reg(Some(init))
   def apply()(implicit design:PIR):Reg = Reg(None)
+}
+
+case class ArgIn(init:Option[AnyVal])(implicit design:PIR) extends Memory
+object ArgIn {
+  def apply(init:AnyVal)(implicit design:PIR):ArgIn = ArgIn(Some(init))
+  def apply()(implicit design:PIR):ArgIn = ArgIn(None)
 }
 
 case class ArgOut(init:Option[AnyVal])(implicit design:PIR) extends Memory
@@ -106,6 +119,8 @@ object ArgOut {
 
 case class StreamIn(field:String)(implicit design:PIR) extends Memory
 case class StreamOut(field:String)(implicit design:PIR) extends Memory
+
+case class RetimingFIFO()(implicit design:PIR) extends Memory
 
 trait GlobalContainer extends Container { self => }
 
@@ -122,12 +137,12 @@ case class Top()(implicit design: PIR) extends Container {
 
   val argContainer = ArgContainer().setParent(this)
 
-  val argIns = mutable.ListBuffer[Reg]()
+  val argIns = mutable.ListBuffer[ArgIn]()
   val argOuts = mutable.ListBuffer[ArgOut]()
-  val dramAddresses = mutable.Map[DRAM, Reg]()
+  val dramAddresses = mutable.Map[DRAM, ArgIn]()
 
   def argIn(init:AnyVal)(implicit design:PIR) = {
-    val reg = Reg(init).setParent(this)
+    val reg = ArgIn(init).setParent(this)
     argIns += reg
     argContainer.argInFringe.connect(reg.in)
     reg
@@ -141,7 +156,7 @@ case class Top()(implicit design: PIR) extends Container {
   }
 
   def dramAddress(dram:DRAM)(implicit design:PIR) = {
-    val reg = Reg().setParent(this)
+    val reg = ArgIn().setParent(this)
     reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
     argContainer.argInFringe.connect(reg.in)
@@ -151,7 +166,9 @@ case class Top()(implicit design: PIR) extends Container {
 }
 
 trait ComputeContext extends Node { self =>
-  var controller:Controller = _
+  var _controller:Controller = _
+  def setControl(c:Controller):this.type = { _controller = c; this }
+  def ctrl:Controller = _controller
 }
 
 case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends prism.node.SubGraph[Controller] with IR {
@@ -177,17 +194,8 @@ abstract class Def(implicit design:PIR) extends Module with ComputeContext { sel
   def depedDefs:Set[Def] = depeds.collect { case d:Def => d } 
   def localDepedDefs = localDepeds.collect { case d:Def => d } 
 
-  val out = new Output()(this,design)
-}
-
-trait StoreNode extends Module { self =>
-  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
-    implicit val pir = design.asInstanceOf[PIR]
-    x match {
-      case x:Memory => connectIO(x.in)
-      case x => super.connectFields(x)
-    }
-  }
+  private val _out = new Output
+  def out = _out
 }
 
 case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) extends Def 
@@ -197,11 +205,11 @@ case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends De
 
 // Generated IR from spatial
 case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def with StoreNode
+case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
 
 // Lowered IR
 case class MemLoad(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def with StoreNode
+case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
 
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyDef()(implicit design:PIR) extends Def

@@ -202,8 +202,11 @@ trait GraphTransformer extends GraphTraversal {
    * at the same io port.
     * Assume from and to have the same IO interface
    * */
-  def swapConnection[A1<:A](node:A, from:A1, to:A1) = {
-    assert(from.ios.size == to.ios.size)
+  def swapOutputs[A1<:A](node:A, from:A1, to:A1) = swapConnections(node, from, to, (n:A1) => n.outs)
+  def swapInputs[A1<:A](node:A, from:A1, to:A1) = swapConnections(node, from, to, (n:A1) => n.ins)
+
+  def swapConnections[A1<:A](node:A, from:A1, to:A1, ios:A1 => List[Edge[N]]) = {
+    assert(ios(from).size == ios(to).size, s"$from and $to have different number of ios from=${ios(from)} to ${ios(to)}")
     val connected = node.ios.flatMap { io =>
       val fromios = io.connected.filter { _.src == from }
       if (fromios.nonEmpty) Some((io, fromios))
@@ -212,8 +215,8 @@ trait GraphTransformer extends GraphTraversal {
     assert(connected.nonEmpty, s"$node is not connected to $from")
     connected.foreach { case (io, fromios) =>
       fromios.foreach { fromio =>
-        val index = from.ios.indexOf(fromio)
-        val toio = to.ios(index)
+        val index = ios(from).indexOf(fromio)
+        val toio = ios(to)(index)
         io.disconnectFrom(fromio)
         io.connect(toio.asInstanceOf[io.E])
       }
@@ -229,6 +232,14 @@ trait GraphTransformer extends GraphTraversal {
       } else false
     }
     assert (connected.nonEmpty, s"$node is not connected to $from")
+  }
+
+  def disconnect(a:A, b:A) = {
+    val pairs = a.ios.flatMap { aio => 
+      aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
+    }
+    assert(pairs.nonEmpty, s"$a is not connected to $b, a.connected=${a.deps++a.depeds}")
+    pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
   }
 
   def removeUnusedIOs(node:N) = {
@@ -251,10 +262,11 @@ trait GraphTransformer extends GraphTraversal {
     n match {
       case n if mapping.contains(n) => mapping
       case n:N => 
-        val args = n.productIterator.toList //TODO
+        val args = n.values //n.productIterator.toList
         val newMapping = args.foldLeft(mapping) { case (mapping, arg) => mirrorX(arg, mapping) }
-        assert(!newMapping.contains(n), s"cycle in mirroring!")
-        newMapping + (n -> n.newInstance[T](args.map { a => newMapping(a) }))
+        if (!newMapping.contains(n)) {
+          newMapping + (n -> n.newInstance[T](args.map { a => newMapping(a) }))
+        } else newMapping
       case n:Option[_] => 
         val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
         newMapping + (n -> n.map { n => newMapping(n) } )

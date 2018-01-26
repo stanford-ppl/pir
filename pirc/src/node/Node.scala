@@ -29,7 +29,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   type A <: Atom[N] with N
   val nct = implicitly[ClassTag[N]]
 
-  override def productName = s"$productPrefix$id(${productIterator.mkString(",")})" 
+  override def productName = s"$productPrefix$id(${values.mkString(",")})" 
 
   lazy val arity = self.productArity
   lazy val fieldNames = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
@@ -76,27 +76,31 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
 
-  def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
+  def connectFields(x:Any)(implicit design:Design):Any = {
     x match {
-      case x:Some[_] => 
-        val lambdas = x.map(connectFields)
-        Lambda(lambdas.map(_.n()).asInstanceOf[X])
-      case x:Iterable[_] => 
-        val lambdas = x.map(connectFields)
-        Lambda(lambdas.map(_.n()).asInstanceOf[X])
-      case x:Iterator[_] => 
-        val lambdas = x.map(connectFields)
-        Lambda(lambdas.map(_.n()).asInstanceOf[X])
-      case x => Lambda(x)
+      case Some(x) => Some(connectFields(x))
+      case x:Iterable[_] => x.map(connectFields) 
+      case x:Iterator[_] => x.map(connectFields) 
+      case x => x
     }
   }
 
-  def staging(implicit design:Design):List[Lambda[Any]] = {
+  def evaluateFields(x:Any):Any = {
+    x match {
+      case x:Option[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) }
+      case x:Iterable[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
+      case x:Iterator[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
+      case x:Edge[_] => x.singleConnected.map{_.src}.getOrElse(null)
+      case x => x
+    }
+  }
+
+  def staging(implicit design:Design):List[Any] = {
     if (design.staging) productIterator.map(connectFields).toList else Nil
   }
 
-  val lambdas = staging
-  def values = lambdas.map { _.n() }
+  val stagedFields = staging
+  def values = stagedFields.map(evaluateFields)
 
   def newInstance[T](args:List[Any], staging:Boolean=true)(implicit design:Design):T = {
     //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
@@ -113,19 +117,12 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
 }
 
 object Def {
-  def unapply(n:Node[_])(implicit design:Design):Option[Node[_]] = {
-    n match {
-      case n:Node[_] => Some(n.newInstance(n.values, staging=false))
+  def unapply[T](x:T)(implicit design:Design):Option[(T, Node[_])] = {
+    x match {
+      case n:Node[_] => Some((x, n.newInstance(n.values, staging=false)))
       case _ => None
     }
   }
-}
-
-class Lambda[N](val n:() => N)(implicit design:Design) extends IR {
-  def map[T](f:N => T)(implicit design:Design):Lambda[T] = Lambda(f(n()))
-}
-object Lambda {
-  def apply[N](n: => N)(implicit design:Design) = new Lambda(() => n)
 }
 
 trait Atom[N<:Node[N]] extends Node[N] { self:N =>
@@ -171,12 +168,10 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self:N with SubGraph[N] =>
   def ins = descendents.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
 
-  override def connectFields[X](x:X)(implicit design:Design):Lambda[X] = {
+  override def connectFields(x:Any)(implicit design:Design):Any = {
     implicit val ev = nct
     x match {
-      case x:N =>
-        this.addChild(x)
-        Lambda(x.asInstanceOf[X])
+      case x:N => this.addChild(x); x
       case x => super.connectFields(x)
     }
   }
@@ -190,13 +185,14 @@ abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
   type E<:Edge[N]
   protected val _connected = mutable.ListBuffer[E]()
   def connected:List[E] = _connected.toList
-  def singleConnected:E = {
-    assert(connected.size==1, s"$this doesn't have exactly 1 connection connected to ${connected}")
-    connected.head
+  def singleConnected:Option[E] = {
+    assert(connected.size <= 1, s"${this.src}.$this has more than 1 connection. connected to ${connected}")
+    connected.headOption
   }
   def isConnected:Boolean = connected.nonEmpty
   def isConnectedTo(p:Edge[N]) = connected.contains(p.asInstanceOf[E])
-  def connect(p:E):this.type = {
+  def connect(e:Edge[N]):this.type = {
+    val p = e.asInstanceOf[E] // This cast actually does nothing at runtime
     if (isConnectedTo(p)) return this
     _connected += p 
     p.connect(this.asInstanceOf[p.E])
@@ -204,6 +200,7 @@ abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
   }
 
   def disconnectFrom(io:Edge[N]):Unit = {
+    assert(this.isConnectedTo(io), s"$this is not connected to $io. this.connected=$connected")
     _connected -= io.asInstanceOf[E]
     if (io.isConnectedTo(this)) io.disconnectFrom(this)
   }

@@ -29,20 +29,18 @@ trait Pass {
   final def run:Unit = {
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.mkString(",")} haven't run")
+    startInfo(s"Begin $name ...")
     initPass
     runPass
     finPass
-  }
-
-  def initPass:Unit = {
-    startInfo(s"Begin $name ...")
-  }
-
-  def runPass:Unit
-
-  def finPass:Unit = {
     runCount += 1
     endInfo(s"Finishing $name ...")
   }
+
+  def initPass:Unit ={}
+
+  def runPass:Unit
+
+  def finPass:Unit ={}
 
 }

@@ -153,6 +153,7 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
 
   override def color(attr:DotAttr, n:N) = n match {
     case n:SRAM => attr.fillcolor(orange).style(filled)
+    case n:RetimingFIFO => attr.fillcolor(gold).style(filled)
     case n:StreamIn => attr.fillcolor(gold).style(filled)
     case n:StreamOut => attr.fillcolor(gold).style(filled)
     case n:Reg => attr.fillcolor(limegreen).style(filled)
@@ -164,10 +165,19 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
   override def emitNode(n:N) = {
     n match {
       case n:Const[_] if collectOut[Counter](n).isEmpty =>
-      //case n:Module if n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop) => emitSingleNode(n)
-      //case n:Module =>  
-      case n:Module => emitSingleNode(n)
+
+      case n:Module if n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop) => emitSingleNode(n)
+      case n:Module =>  
+      //case n:Module => emitSingleNode(n)
       case n => emitSubGraph(n)
+    }
+  }
+
+  // Do not emit edge from top to ArgIn
+  override def emitEdge(n:N):Unit = {
+    n match {
+      case n:ArgIn =>
+      case n => super.emitEdge(n)
     }
   }
 

@@ -27,20 +27,56 @@ abstract class Traversal(implicit design:PIR) extends pir.pass.Pass with prism.t
 
 }
 
-abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer {
+abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { self:Logger =>
+  override lazy val arch = design.arch // shadow implicit arch TODO
+
   override def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
     if (mapping.contains(n)) return mapping
-    val mp = super.mirrorX(n, mapping)
+    var mp = n match {
+      case n@(_:SRAM | _:StreamIn) => mapping + (n -> n)
+      case n => super.mirrorX(n, mapping)
+    }
     val m = mp(n)
     (n,m) match {
-      case (n:N,m:N) if n!=m => n.name.foreach { name => m.name(name) }
+      case (n:N,m:N) => 
+        dprintln(s"mirror(${qtype(n)}) = ${qtype(m)}")
+        if (n!=m) n.name.foreach { name => m.name(name) }
       case _ =>
     }
     (n, m) match {
-      case (n:ComputeContext, m:ComputeContext) if n != m => m.controller = n.controller
+      case (n:ComputeContext, m:ComputeContext) if n != m => m.setControl(n.ctrl)
+      case _ =>
+    }
+    (n, m) match {
+      case (n:ArgIn, m:ArgIn) => 
+        m.in.connect(n.in.from)
+      case (n:Memory, m:Memory) => 
+        n.depeds.collect { case writer:StoreDef => writer}.foldLeft(mp) { case (prev, writer) =>
+          dprintln(s"mirroring $writer of $n")
+          val Def(_,StoreDef(mems, addrs,data)) = writer
+          // prevent mirroring of addrs and data
+          var mp = prev
+          mp += addrs -> addrs
+          mp += data -> data
+          mirrorX(writer, mp)
+        }
+      case (n:Counter, m:Counter) =>
+        mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => 
+          dprintln(s"mirroring $cc")
+          mirrorX(cc, mp)
+        }
+        dprintln(s"$m.parent = ${m.parent}")
+      case (n:CounterChain, m:CounterChain) =>
+        dprintln(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
       case _ =>
     }
     mp
+  }
+  def mirror[T<:N](n:T, container:Container)(implicit design:D):T = {
+    val (m, ms) = mirror(n)
+    ms.filter{_.parent.isEmpty}.foreach(_.setParent(container))
+    dprintln(s"${qtype(container)} add ${ms.map(qtype)}")
+    m
   }
 }
 
@@ -91,7 +127,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
   override def transform(n:N):Unit = n match {
     case n:SRAM => insertCU(n)
-    case n:ComputeContext => swapParent(n, cuMap(n.controller))
+    case n:ComputeContext => swapParent(n, cuMap(n.ctrl))
     case _ => super.transform(n)
   }
 
@@ -117,8 +153,9 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
       case n:Memory => n.out
     }
     dprintln(s"n.depeds=${n.depeds}")
-    val containerMaps = n.depeds.flatMap { deped =>
-      collectUp[C](deped).headOption.map { c => (c, deped) }
+    val containerMaps = n.depeds.flatMap { 
+      case deped:StoreDef => None
+      case deped => collectUp[C](deped).headOption.map { c => (c, deped) }
     }.groupBy { _._1 }.map { case (c, depeds) => (c, depeds.map{_._2}) }
     dprintln(s"containerMaps=$containerMaps")
 
@@ -133,43 +170,14 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
      //Multiple consumer, mirror new node into destination consumer containers and reconnect 
     if (containerMaps.size > 1) {
       containerMaps.foreach { case (container, depeds) => 
-        val (m, ms) = mirror(n)
-        ms.filter{_.parent.isEmpty}.foreach { m => container.addChild(m) }
-        dprintln(s"${qtype(container)}.children = ${container.children.map(qtype)}")
-        dprintln(s"${qtype(container)} add ${ms.map(qtype)}")
+        val m = mirror(n, container)
         depeds.foreach { deped =>
-          swapConnection(deped, from=n, to=m)
-          dprintln(s"swapConnection(deped=${qtype(deped)}, from=${qtype(n)}, to=${qtype(m)})")
+          swapOutputs(deped, from=n, to=m)
+          dprintln(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(n)}, to=${qtype(m)})")
         }
       }
     }
 
-  }
-
-  override def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
-    if (mapping.contains(n)) return mapping
-    var mp = n match {
-      case n@(_:SRAM | _:StreamIn) => mapping + (n -> n)
-      case n => super.mirrorX(n, mapping)
-    }
-    val m = mp(n)
-    (n,m) match {
-      case (n:N,m:N) => dprintln(s"mirror(${qtype(n)}) = ${qtype(m)}")
-      case _ =>
-    }
-    (n, m) match {
-      case (n:Memory, m:Memory) => m.in.connect(n.in.from)
-      case (n:Counter, m:Counter) =>
-        mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => 
-          dprintln(s"mirroring $cc")
-          mirrorX(cc, mp)
-        }
-        dprintln(s"$m.parent = ${m.parent}")
-      case (n:CounterChain, m:CounterChain) =>
-        dprintln(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
-      case _ =>
-    }
-    mp
   }
 
   def pull(n:N) = n match {
@@ -178,6 +186,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
     case n:IterDef => pullNode[CUContainer](n)
     case n:LoadDef => pullNode[CUContainer](n)
     case n:Reg => pullNode[CUContainer](n)
+    case n:ArgIn => pullNode[CUContainer](n)
     case _ => 
   }
 
@@ -226,6 +235,8 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     case n:Counter => false
     case n:Top => false
     case n:Container => n.children.isEmpty 
+    case Def(n:StoreDef, StoreDef(mems, addrs, data)) => mems.isEmpty
+    case n:MemStore => false //TODO
     case n => n.depeds.isEmpty
   }
 
@@ -267,7 +278,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
     traverseNode(design.newTop, null)
     val contexts = collectDown[ComputeContext](design.newTop)
     contexts.foreach { context =>
-      assert(context.controller != null, s"$context's controller is not set")
+      assert(context.ctrl != null, s"$context's controller is not set")
     }
   }
 
@@ -276,11 +287,11 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
     case _ => super.isDepFree(n)
   } 
 
-  def resetController(n:Node, controller:Controller):Unit = n match {
+  def resetController(n:Node, ctrl:Controller):Unit = n match {
     case n:ComputeContext => 
-      dprintln(s"setting ${qtype(n)}.controller=$controller")
-      n.controller = controller
-      n.deps.foreach(d => resetController(d, controller))
+      dprintln(s"setting ${qtype(n)}.ctrl=$ctrl")
+      n.setControl(ctrl)
+      n.deps.foreach(d => resetController(d, ctrl))
     case n =>
   }
 
@@ -296,13 +307,13 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
     dprintln(s"visitNode(${qtype(n)}, currentContext=$prev), isDepFree=${isDepFree(n)}")
     n match {
       case n:ComputeContext =>
-        if (n.controller == null) {
+        if (n.ctrl == null) {
           assert(prev != null)
-          n.controller = prev
-          dprintln(s"setting ${qtype(n)}.controller=$prev")
+          n.setControl(prev)
+          dprintln(s"setting ${qtype(n)}.ctrl=$prev")
           super.visitNode(n, prev)
         } else {
-          super.visitNode(n, n.controller)
+          super.visitNode(n, n.ctrl)
         }
       case n => super.visitNode(n, null) 
     }
@@ -328,30 +339,80 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
     traverseNode(design.newTop)
   }
 
+  def retime(x:Def, cu:GlobalContainer, ctrl:Controller) = {
+    x match {
+      case x:Const[_] => x
+      case Def(n:IterDef, IterDef(counter, offset)) =>
+        mirror[IterDef](n, cu)
+      case x =>
+        val fifo = RetimingFIFO().setParent(cu)
+        fifo.in.connect(x.out)
+        MemLoad(fifo, None).setControl(ctrl).setParent(cu)
+    }
+  }
+
   override def transform(n:N):Unit = {
-    //n match {
-      //case Def(LoadDef(mems, addrs)) =>
-        //emitBlock(s"Lowering $n") {
-          //mems.foreach { mem =>
-            //dprintln(s"$mem")
-            //val cu = collectUp[GlobalContainer](mem).head
-            //val maddrs = addrs.map { addrs =>
-              //addrs.map { addr =>
-                //val (m, ms) = mirror[Def](addr)
-                //ms.foreach(cu.addChild)
-                //m
-              //}
-            //}
-            //val load = MemLoad(mems.head, maddrs)
-            //cu.addChild(load)
-            //n.depeds.foreach { deped =>
-              //dprintln(s"$n.deped=$deped")
-              //swapConnection(deped, n.asInstanceOf[LoadDef].out, load.out)
-            //}
-          //}
-        //}
-      //case Def(StoreDef(mems, addrs, data)) =>
-      //case n => super.transform(n)
-    //}
+    n match {
+      case Def(n:LoadDef, LoadDef(mems, addrs)) =>
+        emitBlock(s"Lowering ${qdef(n)}") {
+          val accessCU = collectUp[GlobalContainer](n).head
+          mems.foreach { mem =>
+
+            // Remote read address calculation
+            val memCU = collectUp[GlobalContainer](mem).head
+            val maddrs = addrs.map { addrs => addrs.map { addr => mirror[Def](addr, memCU) } }
+            val access = MemLoad(mem, maddrs).setParent(memCU).setControl(n.ctrl)
+            val newOut = if (memCU == accessCU) {
+              access.out
+            } else { // Remote memory, add Retiming FIFO
+              retime(access, accessCU, n.ctrl).out
+            }
+            n.depeds.foreach { deped =>
+              dprintln(s"$n.deped=$deped")
+              swapConnection(deped, n.out, newOut)
+            }
+          }
+        }
+      case Def(n:StoreDef, StoreDef(mems, addrs, data)) =>
+        emitBlock(s"Lowering ${qdef(n)}") {
+          val accessCU = collectUp[GlobalContainer](n).head
+          mems.foreach { mem =>
+            // Local write address calculation
+            val memCU = collectUp[GlobalContainer](mem).head
+            val (saddrs, sdata) = if (memCU!=accessCU && addrs.nonEmpty) {
+              val dataLoad = retime(data, memCU, n.ctrl)
+              val addrLoad = addrs.map { addrs =>
+                addrs.map { addr => retime(addr, memCU, n.ctrl) }
+              }
+              (addrLoad, dataLoad)
+            } else {
+              (addrs, data)
+            }
+            disconnect(mem, n)
+            MemStore(mem, saddrs, sdata).setParent(memCU).setControl(n.ctrl)
+          }
+        }
+      case n => super.transform(n)
+    }
   }
 }
+
+//trait CUPartition {
+
+  //type N
+  //type R
+
+  //trait CostMetric {
+    //def evaluate(n:N, r:R):Either[Success, Failure]
+  //}
+
+  //object TypeCost extends CostMetric {
+    //def evaluate(n:N, r:R):Either[Success, Failure] = {
+    //}
+  //}
+  //object FanInCost extends CostMetric {
+  //}
+
+  //val metrics = mutable.ListBuffer[CostMetric]()
+
+//}

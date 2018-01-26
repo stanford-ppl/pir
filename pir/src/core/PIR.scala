@@ -181,6 +181,9 @@ trait PIR extends Design with PIRMetadata with Collector {
     passes += accessLowering
     passes += new GlobalIRDotCodegen(s"top6.dot") {}
 
+    passes += deaaCodeEliminator 
+    passes += new GlobalIRDotCodegen(s"top7.dot") {}
+
     passes += new TestPass()
 
     super.run
