@@ -147,6 +147,13 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
     traverseNode(design.newTop)
   }
 
+  override def check = {
+    // Checking
+    (collectDown[Def](design.newTop) ++ collectDown[Memory](design.newTop)).foreach { n =>
+      assert(withParent[CUContainer](n), s"$n is not contained by a CU")
+    }
+  }
+
   def pullNode[C<:N with Container:ClassTag](n:Module with Product):Unit = emitBlock(s"pullNode(${qtype(n)})") {
     val output = n match {
       case n:Def => n.out
@@ -180,13 +187,36 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
   }
 
+  // Memory is local to the reader
+  def isLocalMem(n:Memory) = n match {
+    case mem:SRAM => false
+    case mem:StreamIn => false
+    case mem:StreamOut => false
+    case mem => true
+  }
+
+  def withParent[T<:Node:ClassTag](n:Node) = {
+    n.parent.fold(false) { case p:T => true; case _ => false }
+  }
+
+  def usesOf(n:Node) = {
+    n match {
+      case n:Def => n.depeds
+      case n:Memory => n.depeds.filterNot { case n:StoreDef => true; case n:MemStore => true; case _ => false }
+    }
+  }
+
+  def isLocalToUse(n:Node) = {
+    val userCUs = usesOf(n).flatMap ( u => collectUp[GlobalContainer](u).headOption ).toSet
+    if (userCUs.size > 1) false
+    else if (userCUs.size==0) false
+    else n.isChildOf(userCUs.head)
+  }
+
   def pull(n:N) = n match {
-    case n:Const[_] => pullNode[CUContainer](n)
-    case n:DummyDef => pullNode[CUContainer](n)
-    case n:IterDef => pullNode[CUContainer](n)
-    case n:LoadDef => pullNode[CUContainer](n)
-    case n:Reg => pullNode[CUContainer](n)
-    case n:ArgIn => pullNode[CUContainer](n)
+    case _:IterDef | _:Const[_] if !isLocalToUse(n)=> pullNode[CUContainer](n.asInstanceOf[Def])
+    case n:Def if !withParent[CUContainer](n) => pullNode[CUContainer](n)
+    case n:Memory if isLocalMem(n) && !isLocalToUse(n) => pullNode[CUContainer](n)
     case _ => 
   }
 
@@ -211,6 +241,9 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
 
   override def runPass =  {
     traverseNode(design.newTop)
+  }
+
+  override def check = {
     val containers = collectDown[CUContainer](design.newTop)
     val unvisited = containers.filterNot(isVisited)
     assert(unvisited.isEmpty, s"not all containers are visited! ${unvisited}")
@@ -232,11 +265,12 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     case n:ArgOut => false
     case n:StreamIn => false
     case n:StreamOut => false
+    case n:Memory => n.depeds.filterNot { case n:StoreDef => true; case n:MemStore => true; case _ => false }.isEmpty
     case n:Counter => false
     case n:Top => false
     case n:Container => n.children.isEmpty 
     case Def(n:StoreDef, StoreDef(mems, addrs, data)) => mems.isEmpty
-    case n:MemStore => false //TODO
+    case n:MemStore => n.mem == null
     case n => n.depeds.isEmpty
   }
 
@@ -245,7 +279,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     if (isUseFree(n)) {
       dprintln(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
       val deps = n.deps
-      n.ins.foreach(_.disconnect)
+      n.ios.foreach(_.disconnect)
       n.parent.foreach { parent =>
         parent.removeChild(n)
       }
@@ -276,6 +310,9 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   override def runPass =  {
     controllerTraversal.traverseNode(design.newTop.topController, ())
     traverseNode(design.newTop, null)
+  }
+
+  override def check = {
     val contexts = collectDown[ComputeContext](design.newTop)
     contexts.foreach { context =>
       assert(context.ctrl != null, s"$context's controller is not set")

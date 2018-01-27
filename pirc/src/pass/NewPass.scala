@@ -14,6 +14,10 @@ trait Pass {
   var runCount:Int = 0
   def hasRun = runCount > 0
   val dependencies = mutable.ListBuffer[Pass]()
+  def addDependency(dep:Pass*) = {
+    dependencies ++= dep
+    this
+  }
   def unfinishedDependencies = dependencies.filter { !_.hasRun }
   def isDependencyFree = unfinishedDependencies.isEmpty
 
@@ -29,6 +33,7 @@ trait Pass {
   final def run:Unit = {
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.mkString(",")} haven't run")
+    dependencies.foreach(_.check)
     startInfo(s"Begin $name ...")
     initPass
     runPass
@@ -42,5 +47,7 @@ trait Pass {
   def runPass:Unit
 
   def finPass:Unit ={}
+
+  def check:Unit = {}
 
 }

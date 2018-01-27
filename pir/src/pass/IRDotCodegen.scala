@@ -67,7 +67,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
   override lazy val stream = newStream(fn)
 
-  def horizontal:Boolean = false
+  val horizontal:Boolean = false
   def shouldRun = true
 
   val nodes = mutable.ListBuffer[N]()
@@ -139,6 +139,9 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
 abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with prism.traversal.GraphCollector {
 
+  val verbose = true
+  override val horizontal:Boolean = if (verbose) false else true
+
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>
       val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
@@ -165,10 +168,12 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
   override def emitNode(n:N) = {
     n match {
       case n:Const[_] if collectOut[Counter](n).isEmpty =>
-
-      case n:Module if n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop) => emitSingleNode(n)
       case n:Module =>  
-      //case n:Module => emitSingleNode(n)
+        if (verbose) {
+          emitSingleNode(n)
+        } else {
+          if (n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop)) emitSingleNode(n)
+        }
       case n => emitSubGraph(n)
     }
   }
