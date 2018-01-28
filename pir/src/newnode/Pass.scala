@@ -18,12 +18,11 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with Logger
   type D = PIR
   implicit val nct = classTag[N]
 
+  def qdef(n:N) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
+  def qtype(n:N) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
 }
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal {
-
-  def qdef(n:N) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
-  def qtype(n:N) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
 
   override def reset = super[Pass].reset
 
@@ -55,8 +54,6 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
         case _ =>
       }
       (n, m) match {
-        case (n:ArgIn, m:ArgIn) => 
-          m.in.connect(n.in.from)
         case (n:Memory, m:Memory) => 
           val writers = n.depeds.collect { 
             case Def(w,LocalStore(mems, addrs, data)) => 
@@ -106,12 +103,16 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
     controllerTraversal.reset
   }
   
-  val cuMap = mutable.Map[Controller, CUContainer]()
+  val cuMap = mutable.Map[Controller, GlobalContainer]()
 
   val controllerTraversal = new ControllerTraversal {
     type T = Unit
     override def visitNode(n:N, prev:T):T = {
-      val cu = CUContainer().setParent(design.newTop).name(n.name)
+      val cu = n match {
+        case n:TopController => design.newTop
+        case n:ArgController => design.newTop.argFringe
+        case n => CUContainer().setParent(design.newTop).name(n.name)
+      }
       dprintln(s"creating $cu for $n")
       cuMap += n -> cu
       super.visitNode(n, prev)
@@ -129,7 +130,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
   override def transform(n:N):Unit = n match {
     case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(n.name)) 
-    case n:ComputeContext => swapParent(n, cuMap(n.ctrl))
+    case n:ComputeContext if !cuMap(n.ctrl).isParentOf(n) => swapParent(n, cuMap(n.ctrl))
     case _ => super.transform(n)
   }
 
@@ -252,7 +253,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
   }
 
   override def isDepFree(n:N) = n match {
-    case n:ArgContainer => true // heuristic breaking loop
+    case n:ArgFringe => true // heuristic breaking loop
     case _ => super.isDepFree(n)
   } 
 
@@ -262,8 +263,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
   }
 
   def isUseFree(n:N) = n match {
-    case n:ArgInFringe => false
-    case n:ArgContainer => false
     case n:ArgOut => false
     case n:StreamIn => false
     case n:StreamOut => false
@@ -322,7 +321,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   }
 
   override def isDepFree(n:N) = n match {
-    case n:ArgContainer => true // heuristic breaking loop
+    case n:ArgFringe => true // heuristic breaking loop
     case _ => super.isDepFree(n)
   } 
 
@@ -337,7 +336,10 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   val controllerTraversal = new ControllerTraversal {
     type T = Unit
     override def visitNode(n:N, prev:T):T = {
-      resetController(n.cchain, n)
+      n match {
+        case n:LoopController => resetController(n.cchain, n)
+        case _ =>
+      }
       super.visitNode(n, prev)
     }
   }
@@ -453,7 +455,7 @@ class CUStatistics(implicit design:PIR) extends Pass {
     val cus = collectDown[GlobalContainer](design.newTop)
     val cuMap = cus.groupBy {
       case cu if collectDown[SRAM](cu).nonEmpty => "pmus"
-      case cu:ArgContainer => "argFringe"
+      case cu:ArgFringe => "argFringe"
       case cu:FringeContainer => "fringes"
       case cu if collectDown[StageDef](cu).nonEmpty => "pcus"
       case cu => "ocus"
@@ -469,6 +471,81 @@ class CUStatistics(implicit design:PIR) extends Pass {
       val fanOuts = cus.map { cu => cu.outs.size }
       dprintln(s"max fanOut of $key = ${fanOuts.max}")
       dprintln(s"average fanOut of $key = ${fanOuts.sum.toFloat / fanOuts.size}")
+    }
+  }
+
+}
+
+class IRCheck(implicit design:PIR) extends Pass {
+
+  override lazy val stream = newStream(s"IRCheck.log")
+
+  type T = Unit
+
+  def shouldRun = true
+
+  def warn(s:Any) = {
+    dprintln(s"$s")
+    pirc.util.warn(s)
+  }
+
+  def err(s:Any) = {
+    dprintln(s"$s")
+    pirc.util.err(s)
+  }
+
+  def assert(predicate:Boolean, info:Any) = {
+    dprintln(s"$info")
+    pirc.util.assert(predicate, info)
+  }
+
+  def checkCUIO(cu:GlobalContainer) = {
+    cu.ins.foreach { in =>
+      in.src match {
+        case node:LocalStore =>
+        case node =>
+          dprintln(s"$cu's global input $in.src = $node")
+          throw PIRException(s"$cu's global input $in.src = $node is not LocalStore")
+      }
+    }
+  }
+
+  def checkMemoryAccess(cu:GlobalContainer) = {
+    val mems = collectDown[Memory](cu)
+    mems.foreach { mem =>
+      mem match {
+        case mem:ArgIn =>
+        case mem:StreamIn =>
+        case mem if mem.writers.isEmpty =>
+          warn(s"$mem in $cu does not have writer")
+        case _ =>
+      }
+      mem match {
+        case mem:ArgOut =>
+        case mem:StreamOut =>
+        case mem if mem.readers.isEmpty =>
+          warn(s"$mem in $cu does not have reader")
+        case _ =>
+      }
+    }
+  }
+
+  def checkDefControl(cu:GlobalContainer) = {
+    val stageDef = collectDown[StageDef](cu)
+    stageDef.foreach { stageDef =>
+      assert(stageDef.ctrl != null, 
+        s"${qtype(stageDef)} in $cu.ctrl = null")
+      assert(stageDef.ctrl.level == InnerControl, 
+        s"${qtype(stageDef)}.ctrl.level = ${stageDef.ctrl.level}. stageDef.ctrl=${stageDef.ctrl}")
+    }
+  }
+
+  override def runPass =  {
+    val cus = collectDown[GlobalContainer](design.newTop)
+    cus.foreach { cu =>
+      checkCUIO(cu)
+      checkMemoryAccess(cu)
+      checkDefControl(cu)
     }
   }
 

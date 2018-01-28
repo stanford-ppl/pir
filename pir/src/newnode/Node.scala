@@ -21,7 +21,7 @@ trait IR extends prism.node.IR {
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.setParent(ctrler)
       case (self:ComputeContext, ctrler:Controller) => self.setControl(ctrler)
-      case (self:Controller, top:Top) => top.topController = self
+      case (self:Controller, top:Top) => self.setParent(top.topController)
       case (_,_) =>
     }
     this
@@ -90,11 +90,11 @@ class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Ou
 
 case class DRAM()(implicit design:PIR) extends IR
 
-case class ArgInFringe()(implicit design:PIR) extends Module
-
 abstract class Memory(implicit design:PIR) extends Module { self =>
-  val in = new Input
   val out = new Output
+
+  def writers = depeds.collect { case d: LocalStore => d }
+  def readers = depeds.collect { case d: LocalLoad => d }
 }
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIR) extends Memory
@@ -129,14 +129,14 @@ case class CUContainer(contains:Node*)(implicit design:PIR) extends GlobalContai
 
 case class FringeContainer(dram:DRAM, contains:Node*)(implicit design:PIR) extends GlobalContainer
 
-case class ArgContainer()(implicit design:PIR) extends GlobalContainer {
-  val argInFringe = ArgInFringe().setParent(this)
+case class ArgFringe(argController:ArgController)(implicit design:PIR) extends GlobalContainer {
+  val argInDef = ArgInDef().setParent(this).setControl(argController)
 }
 
-case class Top()(implicit design: PIR) extends Container { 
-  var topController:Controller = _
-
-  val argContainer = ArgContainer().setParent(this)
+case class Top()(implicit design: PIR) extends GlobalContainer { 
+  val topController:TopController = TopController()
+  val argController = ArgController().setParent(topController)
+  val argFringe = ArgFringe(argController).setParent(this)
 
   val argIns = mutable.ListBuffer[ArgIn]()
   val argOuts = mutable.ListBuffer[ArgOut]()
@@ -145,14 +145,14 @@ case class Top()(implicit design: PIR) extends Container {
   def argIn(init:AnyVal)(implicit design:PIR) = {
     val reg = ArgIn(init).setParent(this)
     argIns += reg
-    argContainer.argInFringe.connect(reg.in)
+    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).setControl(argController)
     reg
   }
 
   def argOut(init:AnyVal)(implicit design:PIR) = {
     val reg = ArgOut(init)
     argOuts += reg
-    argContainer.addChild(reg)
+    argFringe.addChild(reg)
     reg
   }
 
@@ -160,7 +160,7 @@ case class Top()(implicit design: PIR) extends Container {
     val reg = ArgIn().setParent(this)
     reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
-    argContainer.argInFringe.connect(reg.in)
+    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).setControl(argController)
     LoadDef(List(reg), None)
   }
 
@@ -172,12 +172,24 @@ trait ComputeContext extends Node { self =>
   def ctrl:Controller = _controller
 }
 
-case class Controller(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends prism.node.SubGraph[Controller] with IR {
-  override def toString = s"$style$id[${name.get}]"
+trait Controller extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
+  val style:ControlStyle
+  val level:ControlLevel
   def isInnerControl = children.isEmpty 
 }
-
+case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Controller {
+  override def toString = s"$style$id[${name.get}]"
+}
+case class UnitController(style:ControlStyle, level:ControlLevel)(implicit design:PIR) extends Controller
+case class TopController()(implicit design:PIR) extends Controller {
+  val style = SeqPipe
+  val level = OuterControl 
+}
+case class ArgController()(implicit design:PIR) extends Controller {
+  val style = SeqPipe
+  val level = OuterControl 
+}
 case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container with ComputeContext
 object CounterChain {
   def unit(implicit design:PIR) = {
@@ -233,6 +245,8 @@ case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit desi
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyDef()(implicit design:PIR) extends Def
 case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Def
+
+case class ArgInDef()(implicit design:PIR) extends Def
 
 sealed trait IOType extends Enum
 case object Vector extends IOType

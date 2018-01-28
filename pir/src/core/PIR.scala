@@ -91,7 +91,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val mapPrinter = new MapPrinter()
   lazy val pirStat = new PIRStat()
   lazy val pirStatLog = new PIRStatLog()
-  lazy val irCheck = new IRCheck() 
+  //lazy val irCheck = new IRCheck() 
 
 
   lazy val irPrinter = new IRPrinter {}
@@ -101,6 +101,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val accessPuller = new pir.newnode.AccessPulling()
   lazy val accessLowering = new pir.newnode.AccessLowering()
   lazy val cuStats = new pir.newnode.CUStatistics()
+  lazy val irCheck = new pir.newnode.IRCheck()
 
   var mapping:Option[PIRMap] = None
 
@@ -187,6 +188,8 @@ trait PIR extends Design with PIRMetadata with Collector {
     passes += new GlobalIRDotCodegen(s"top7.dot")
 
     passes += cuStats 
+
+    passes += irCheck
 
     passes += new TestPass()
 
