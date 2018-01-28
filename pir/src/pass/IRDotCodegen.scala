@@ -170,7 +170,6 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
 
   override def emitNode(n:N) = {
     n match {
-      case n:ArgContainer =>
       case n:Const[_] if collectOut[Counter](n).isEmpty =>
       case n:Module =>  
         if (verbose) {

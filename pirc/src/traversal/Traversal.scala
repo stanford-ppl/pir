@@ -37,7 +37,7 @@ trait GraphTraversal {
   type N
   type T
 
-  val visited = mutable.ListBuffer[N]()
+  val visited = mutable.ListBuffer[Any]()
 
   def isVisited(n:N) = visited.contains(n)
 
@@ -50,6 +50,7 @@ trait GraphTraversal {
   def visitNode(n:N, prev:T):T = traverse(n, prev)
 
   def traverseNode(n:N, prev:T):T = {
+    if (isVisited(n)) return prev
     visited += n
     visitNode(n, prev)
   }
@@ -100,7 +101,7 @@ trait BFSTraversal extends GraphTraversal {
     queue ++= visitFunc(n).filterNot(isVisited)
     while (queue.nonEmpty) {
       val next = queue.dequeue()
-      if (!isVisited(next)) return traverseNode(next, prev)
+      prev = traverseNode(next, prev)
     }
     return prev
   }
@@ -294,41 +295,51 @@ trait GraphCollector extends Pass {
   type N<:Node[N]
 
   private def newTraversal[M<:N:ClassTag](vf:N => List[N], logger:Option[Logger]) = new BFSTraversal {
-    type T = (Iterable[M], Int)
-    type N = GraphCollector.this.N
-    override def visitNode(n:N, prev:T):T = {
-      def lambda = {
-        visited += n
-        val (prevRes, depth) = prev 
-        n match {
-          case n:M if depth > 0 => (prevRes ++ List(n), depth - 1)
-          case _ if depth == 0 => (prevRes, 0)
-          case _ => super.visitNode(n, (prevRes, depth - 1))
-        }
-      }
-      logger.fold(lambda) { logger => logger.emitBlock(s"collect($n)") { lambda } }
+    type T = List[M]
+    type N = (GraphCollector.this.N, Int)
+
+    override def isVisited(n:N) = {
+      val (node, depth) = n
+      visited.contains(node)
     }
-    def visitFunc(n:N):List[N] = vf(n)
+    override def visitNode(n:N, prev:T):T = {
+      val (node, depth) = n
+      visited += node
+      node match {
+        case node:M if depth > 0 => prev :+ node 
+        case _ if depth == 0 => prev 
+        case _ => super.visitNode(n, prev)
+      }
+    }
+    override def traverse(n:N, zero:T):T = {
+      val (node, depth) = n
+      def lambda = super.traverse(n, zero)
+      logger.fold(lambda) { logger => logger.emitBlock(s"collect($n, depth=$depth)") { lambda } }
+    }
+    def visitFunc(n:N):List[N] = {
+      val (node, depth) = n
+      vf(node).map { next => (next, depth-1) }
+    }
   }
  
   def collectUp[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logger]=None):Iterable[M] = {
     def visitUp(n:N):List[N] = n.parent.toList
-    newTraversal(visitUp _, logger).traverse(n, (Nil, depth))._1
+    newTraversal(visitUp _, logger).traverse((n, depth), Nil)
   }
 
   def collectDown[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logger]=None):Iterable[M] = {
     def visitDown(n:N):List[N] = n.children
-    newTraversal(visitDown _, logger).traverse(n, (Nil, depth))._1
+    newTraversal(visitDown _, logger).traverse((n, depth), Nil)
   }
 
   def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logger]=None):Iterable[M] = {
     def visitIn(n:N):List[N] = n.localDeps.toList
-    newTraversal(visitIn _, logger).traverse(n, (Nil, depth))._1
+    newTraversal(visitIn _, logger).traverse((n, depth), Nil)
   }
 
   def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logger]=None):Iterable[M] = {
     def visitOut(n:N):List[N] = n.localDepeds.toList
-    newTraversal(visitOut _, logger).traverse(n, (Nil, depth))._1
+    newTraversal(visitOut _, logger).traverse((n, depth), Nil)
   }
 
 }

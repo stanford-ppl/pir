@@ -152,7 +152,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
   override def check = {
     // Checking
     (collectDown[Def](design.newTop) ++ collectDown[Memory](design.newTop)).foreach { n =>
-      assert(withParent[CUContainer](n), s"$n is not contained by a CU")
+      assert(withParent[GlobalContainer](n), s"$n is not contained by a CU")
     }
   }
 
@@ -450,17 +450,19 @@ class CUStatistics(implicit design:PIR) extends Pass {
   }
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](design.newTop, logger=Some(this))
+    val cus = collectDown[GlobalContainer](design.newTop)
     val cuMap = cus.groupBy {
       case cu if collectDown[SRAM](cu).nonEmpty => "pmus"
+      case cu:ArgContainer => "argFringe"
       case cu:FringeContainer => "fringes"
       case cu if collectDown[StageDef](cu).nonEmpty => "pcus"
       case cu => "ocus"
     }
-    dprintln(s"${design.newTop.children}")
     dprintln(s"number of cus=${cus.size}")
     cuMap.foreach { case (key, cus) =>
+      dprintln(s"")
       dprintln(s"number of $key = ${cus.size}")
+      dprintln(s"$key = ${cus}")
       val fanIns = cus.map { cu => cu.ins.size }
       dprintln(s"max fanIn of $key = ${fanIns.max}")
       dprintln(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
