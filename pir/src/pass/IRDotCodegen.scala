@@ -137,7 +137,7 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
 
 }
 
-abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with prism.traversal.GraphCollector {
+class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with prism.traversal.GraphCollector {
 
   val verbose = true
   override val horizontal:Boolean = if (verbose) false else true
@@ -160,13 +160,17 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
     case n:StreamIn => attr.fillcolor(gold).style(filled)
     case n:StreamOut => attr.fillcolor(gold).style(filled)
     case n:Reg => attr.fillcolor(limegreen).style(filled)
+    case n:ArgIn => attr.fillcolor(limegreen).style(filled)
+    case n:ArgOut => attr.fillcolor(limegreen).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
+    case n:FringeContainer => attr.fillcolor(chartreuse).style(filled)
     case n => super.color(attr, n)
   }
 
   override def emitNode(n:N) = {
     n match {
+      case n:ArgContainer =>
       case n:Const[_] if collectOut[Counter](n).isEmpty =>
       case n:Module =>  
         if (verbose) {
@@ -182,8 +186,19 @@ abstract class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotC
   override def emitEdge(n:N):Unit = {
     n match {
       case n:ArgIn =>
+      case n:ArgOut =>
       case n => super.emitEdge(n)
     }
   }
 
+}
+
+class LocalIRDotCodegen(fn:String)(implicit design:PIR) extends GlobalIRDotCodegen(fn) {
+  override def emitNode(n:N) = {
+    n match {
+      case n:CUContainer if List("x5074", "x4725_d0_b0", "x5055").contains(n.name.get) => emitSubGraph(n)
+      case n:CUContainer =>  
+      case n => super.emitNode(n)
+    }
+  }
 }

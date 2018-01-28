@@ -15,6 +15,7 @@ import scala.reflect.runtime.universe._
 trait IR extends prism.node.IR { 
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
+  def name(n:Option[String]):this.type = { this.name = n; this }
 
   def ctrl(ctrler:Any)(implicit design:PIR):this.type = {
     (this, ctrler) match {
@@ -198,18 +199,36 @@ abstract class Def(implicit design:PIR) extends Module with ComputeContext { sel
   def out = _out
 }
 
+trait StageDef extends Def
+trait LocalLoad extends Def
+object LocalLoad {
+  def unapply(n:Any) = n match {
+    case LoadDef(mems, addrs) => Some((mems, addrs))
+    case MemLoad(mem, addrs) => Some((List(mem), addrs))
+    case _ => None
+  }
+}
+trait LocalStore extends Def
+object LocalStore {
+  def unapply(n:Any) = n match {
+    case StoreDef(mems, addrs, data) => Some((mems, addrs, data))
+    case MemStore(mem, addrs, data) => Some((List(mem), addrs, data))
+    case _ => None
+  }
+}
+
 case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) extends Def 
-case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends Def
-case class ReduceDef(op:Op, input:Def)(implicit design:PIR) extends Def
-case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends Def
+case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends StageDef
+case class ReduceDef(op:Op, input:Def)(implicit design:PIR) extends StageDef
+case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends StageDef
 
 // Generated IR from spatial
-case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
+case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
+case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
 
 // Lowered IR
-case class MemLoad(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends Def
-case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends Def
+case class MemLoad(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
+case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
 
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyDef()(implicit design:PIR) extends Def

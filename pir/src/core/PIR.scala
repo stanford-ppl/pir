@@ -100,6 +100,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val cuInsertion = new pir.newnode.CUInsertion()
   lazy val accessPuller = new pir.newnode.AccessPulling()
   lazy val accessLowering = new pir.newnode.AccessLowering()
+  lazy val cuStats = new pir.newnode.CUStatistics()
 
   var mapping:Option[PIRMap] = None
 
@@ -162,27 +163,30 @@ trait PIR extends Design with PIRMetadata with Collector {
     ////passes += energyAnalyzer 
     //
     passes += new IRPrinter
-    passes += new GlobalIRDotCodegen(s"top1.dot") {}
+    passes += new GlobalIRDotCodegen(s"top1.dot")
     passes += new IRDotCodegen(s"PIR.dot") {}
 
     passes += deadCodeEliminator 
-    passes += new GlobalIRDotCodegen(s"top2.dot") {}
+    passes += new GlobalIRDotCodegen(s"top2.dot")
 
     passes += controlPropogator
     passes += cuInsertion 
-    passes += new GlobalIRDotCodegen(s"top3.dot") {}
+    passes += new GlobalIRDotCodegen(s"top3.dot")
 
     passes += accessPuller 
-    passes += new GlobalIRDotCodegen(s"top4.dot") {}
+    passes += new GlobalIRDotCodegen(s"top4.dot")
+    passes += new LocalIRDotCodegen(s"local4.dot")
 
     passes += deadCodeEliminator 
-    passes += new GlobalIRDotCodegen(s"top5.dot") {}
+    passes += new GlobalIRDotCodegen(s"top5.dot")
 
     passes += accessLowering.addDependency(accessPuller, deadCodeEliminator)
-    passes += new GlobalIRDotCodegen(s"top6.dot") {}
+    passes += new GlobalIRDotCodegen(s"top6.dot")
 
     passes += deadCodeEliminator 
-    passes += new GlobalIRDotCodegen(s"top7.dot") {}
+    passes += new GlobalIRDotCodegen(s"top7.dot")
+
+    passes += cuStats 
 
     passes += new TestPass()
 
