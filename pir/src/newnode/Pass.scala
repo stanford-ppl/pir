@@ -18,8 +18,8 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with Logger
   type D = PIR
   implicit val nct = classTag[N]
 
-  def qdef(n:N) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
-  def qtype(n:N) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
+  def qdef(n:IR) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
+  def qtype(n:IR) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
 }
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal {
@@ -111,9 +111,9 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
       val cu = n match {
         case n:TopController => design.newTop
         case n:ArgController => design.newTop.argFringe
-        case n => CUContainer().setParent(design.newTop).name(n.name)
+        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}")
       }
-      dprintln(s"creating $cu for $n")
+      dprintln(s"${qtype(n)} -> ${qtype(cu)}")
       cuMap += n -> cu
       super.visitNode(n, prev)
     }
@@ -129,14 +129,14 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
   }
 
   override def transform(n:N):Unit = n match {
-    case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(n.name)) 
+    case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
     case n:ComputeContext if !cuMap(n.ctrl).isParentOf(n) => swapParent(n, cuMap(n.ctrl))
     case _ => super.transform(n)
   }
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.ChildLastTraversal {
+class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
 
   override lazy val stream = newStream(s"AccessPulling.log")
 
@@ -144,7 +144,9 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
   override def reset = super[Transformer].reset
 
-  override def initPass = super[ChildLastTraversal].reset
+  override def initPass = super[HiearchicalTopologicalTraversal].reset
+
+  def depFunc(n:N):List[N] = visitOut(n)
 
   override def runPass =  {
     traverseNode(design.newTop)
@@ -157,74 +159,59 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
     }
   }
 
-  def pullNode[C<:N with Container:ClassTag](n:Module with Product):Unit = emitBlock(s"pullNode(${qtype(n)})") {
-    val output = n match {
-      case n:Def => n.out
-      case n:Memory => n.out
-    }
-    dprintln(s"n.depeds=${n.depeds}")
-    val containerMaps = n.depeds.flatMap { 
-      case deped:LocalStore => None
-      case deped => collectUp[C](deped).headOption.map { c => (c, deped) }
-    }.groupBy { _._1 }.map { case (c, depeds) => (c, depeds.map{_._2}) }
-    dprintln(s"containerMaps=$containerMaps")
-
-    // Single consumer, simply move node into destination container
-    if (containerMaps.size==1) {
-      val container = containerMaps.keys.head
-      dprintln(s"swapParent ${qtype(n)} from ${n.parent.map(qtype)} to ${qtype(container)}")
-      swapParent(n, container)
-      n.deps.foreach(pull)
-    }
-
-     //Multiple consumer, mirror new node into destination consumer containers and reconnect 
-    if (containerMaps.size > 1) {
-      containerMaps.foreach { case (container, depeds) => 
-        val m = mirror(n, container)
-        depeds.foreach { deped =>
-          swapOutputs(deped, from=n, to=m)
-          dprintln(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(n)}, to=${qtype(m)})")
-        }
-      }
-    }
-
-  }
-
-  // Memory is local to the reader
-  def isLocalMem(n:Memory) = n match {
-    case mem:SRAM => false
-    case mem:StreamIn => false
-    case mem:StreamOut => false
-    case mem => true
-  }
-
   def withParent[T<:Node:ClassTag](n:Node) = {
     n.parent.fold(false) { case p:T => true; case _ => false }
   }
 
-  def usesOf(n:Node) = {
+  def pullNode(dep:A, deped:A, container:GlobalContainer):Unit = emitBlock(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
+    dprintln(s"dep.depeds=${dep.depeds}")
+    val depedContainers = dep.depeds.flatMap { 
+      case deped:LocalStore => None
+      case deped => collectUp[GlobalContainer](deped).headOption
+    }
+
+    val portable = dep match {
+      case dep:Counter => false
+      case dep:Def => true
+      case dep:Memory if isRemoteMem(dep) => false
+      case dep:Memory => true
+    } 
+
+    // Single consumer, simply move node into destination container
+    if (depedContainers.size==1 && portable) {
+      dprintln(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
+      swapParent(dep, container)
+    } else { //Multiple consumer, mirror new node into destination consumer containers and reconnect 
+      val m = mirror(dep, container)
+      swapOutputs(deped, from=dep, to=m)
+      dprintln(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
+    }
+
+  }
+
+  def isRemoteMem(n:Memory) = n match {
+    case (_:SRAM | _:StreamIn)  => true
+    case _ => false
+  }
+
+  def pullDeps(n:N) = emitBlock(s"pullDeps($n)") {
     n match {
-      case n:Def => n.depeds
-      case n:Memory => n.depeds.filterNot { case n:LocalStore => true; case _ => false }
+      case n:Def =>
+        val localDeps = n match {
+          case n:LocalStore => Nil
+          case Def(n, LocalLoad(mems, addr)) if mems.exists(isRemoteMem) => Nil
+          case n:Def => n.deps
+        }
+        val cu = collectUp[GlobalContainer](n).head
+        localDeps.foreach { dep =>
+          if (!cu.isAncestorOf(dep)) pullNode(dep, n, cu)
+        }
+      case _ =>
     }
   }
 
-  def isLocalToUse(n:Node) = {
-    val userCUs = usesOf(n).flatMap ( u => collectUp[GlobalContainer](u).headOption ).toSet
-    if (userCUs.size > 1) false
-    else if (userCUs.size==0) false
-    else n.isChildOf(userCUs.head)
-  }
-
-  def pull(n:N) = n match {
-    case _:IterDef | _:Const[_] if !isLocalToUse(n)=> pullNode[CUContainer](n.asInstanceOf[Def])
-    case n:Def if !withParent[CUContainer](n) => pullNode[CUContainer](n)
-    case n:Memory if isLocalMem(n) && !isLocalToUse(n) => pullNode[CUContainer](n)
-    case _ => 
-  }
-
-  override def transform(n:N):Unit =  {
-    pull(n)
+  override def transform(n:N):Unit = {
+    pullDeps(n)
     super.transform(n)
   }
 
@@ -464,7 +451,7 @@ class CUStatistics(implicit design:PIR) extends Pass {
     cuMap.foreach { case (key, cus) =>
       dprintln(s"")
       dprintln(s"number of $key = ${cus.size}")
-      dprintln(s"$key = ${cus}")
+      dprintln(s"$key = ${cus.map(qtype)}")
       val fanIns = cus.map { cu => cu.ins.size }
       dprintln(s"max fanIn of $key = ${fanIns.max}")
       dprintln(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
@@ -523,6 +510,7 @@ class IRCheck(implicit design:PIR) extends Pass {
       mem match {
         case mem:ArgOut =>
         case mem:StreamOut =>
+        case mem:StreamIn if mem.field == "ack" =>
         case mem if mem.readers.isEmpty =>
           warn(s"$mem in $cu does not have reader")
         case _ =>

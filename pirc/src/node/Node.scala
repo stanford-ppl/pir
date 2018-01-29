@@ -60,9 +60,11 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def isChildOf(p:N) = p.children.contains(this)
 
   def ancestors:List[P] = parent.toList.flatMap { parent => parent :: parent.ancestors.asInstanceOf[List[P]] }
+  def isAncestorOf(n:N) = n.ancestors.contains(this) 
   def descendents:List[N] = children.flatMap { child => 
     child :: child.descendents
   }
+  def isDescendentOf(p:P) = p.descendents.contains(this)
 
   def ins:List[Input[N]]
   def outs:List[Output[N]]

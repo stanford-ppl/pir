@@ -179,7 +179,7 @@ trait Controller extends prism.node.SubGraph[Controller] with IR {
   def isInnerControl = children.isEmpty 
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Controller {
-  override def toString = s"$style$id[${name.get}]"
+  override def className = s"$style"
 }
 case class UnitController(style:ControlStyle, level:ControlLevel)(implicit design:PIR) extends Controller
 case class TopController()(implicit design:PIR) extends Controller {

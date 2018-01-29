@@ -165,7 +165,6 @@ trait PIR extends Design with PIRMetadata with Collector {
     //
     passes += new IRPrinter
     passes += new GlobalIRDotCodegen(s"top1.dot")
-    passes += new IRDotCodegen(s"PIR.dot") {}
 
     passes += deadCodeEliminator 
     passes += new GlobalIRDotCodegen(s"top2.dot")

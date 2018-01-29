@@ -113,7 +113,8 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
   override def emitNode(n:N) = {
     n match {
       case n:Atom[_] => emitSingleNode(n)
-      case n => emitSubGraph(n)
+      case n:SubGraph[_] if n.children.isEmpty => emitSingleNode(n)
+      case n:SubGraph[_] => emitSubGraph(n)
     }
   }
 
@@ -177,16 +178,16 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
         } else {
           if (n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop)) emitSingleNode(n)
         }
-      case n => emitSubGraph(n)
+      case n => super.emitNode(n) 
     }
   }
 
-  // Do not emit edge from top to ArgIn
-  override def emitEdge(n:N):Unit = {
-    n match {
-      case n:ArgIn =>
-      case n:ArgOut =>
-      case n => super.emitEdge(n)
+  override def emitEdge(from:N, to:N) = {
+    (from, to) match {
+      case (from:ArgInDef, to) if from.parent != to.parent =>
+      case (from:ArgIn, to) if from.parent != to.parent =>
+      //case (from:ArgOut, to) if from.parent != to.parent =>
+      case (from, to) => super.emitEdge(from, to)
     }
   }
 
