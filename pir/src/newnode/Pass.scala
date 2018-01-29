@@ -11,7 +11,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with Logger with prism.traversal.GraphCollector {
+abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with prism.traversal.GraphCollector {
   type N = Node with Product
   type P = Container
   type A = Module
@@ -29,7 +29,7 @@ abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.
   override def initPass = super[Traversal].reset
 }
 
-abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { self:Logger =>
+abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
 
   def quote(n:Any) = n match {
     case n:N => qtype(n)
@@ -38,7 +38,7 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
   override def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
     if (mapping.contains(n)) return mapping
     var mp  = mapping
-    emitBlock(s"mirrorX(${quote(n)})") {
+    dbgblk(s"mirrorX(${quote(n)})") {
       mp = n match {
         case n@(_:SRAM | _:StreamIn) => mapping + (n -> n)
         case n => super.mirrorX(n, mapping)
@@ -62,15 +62,15 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
               mp += data -> data
               w
           }
-          dprintln(s"writers of $n = ${writers}")
+          dbg(s"writers of $n = ${writers}")
           mp = writers.foldLeft(mp) { case (prev, writer) => mirrorX(writer, mp) }
         case (n:Counter, m:Counter) =>
           mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => 
             mirrorX(cc, mp)
           }
-          dprintln(s"$m.parent = ${m.parent}")
+          dbg(s"$m.parent = ${m.parent}")
         case (n:CounterChain, m:CounterChain) =>
-          dprintln(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
+          dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
         case _ =>
       }
       mp(n)
@@ -80,7 +80,7 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
   def mirror[T<:N](n:T, container:Container)(implicit design:D):T = {
     val (m, ms) = mirror(n)
     ms.filter{_.parent.isEmpty}.foreach(_.setParent(container))
-    dprintln(s"${qtype(container)} add ${ms.map(qtype)}")
+    dbg(s"${qtype(container)} add ${ms.map(qtype)}")
     m
   }
 }
@@ -91,8 +91,6 @@ trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.trav
 }
 
 class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.ChildLastTraversal {
-
-  override lazy val stream = newStream(s"CUInsertion.log")
 
   override def shouldRun = true
 
@@ -113,7 +111,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
         case n:ArgController => design.newTop.argFringe
         case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}")
       }
-      dprintln(s"${qtype(n)} -> ${qtype(cu)}")
+      dbg(s"${qtype(n)} -> ${qtype(cu)}")
       cuMap += n -> cu
       super.visitNode(n, prev)
     }
@@ -138,8 +136,6 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
 class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
 
-  override lazy val stream = newStream(s"AccessPulling.log")
-
   override def shouldRun = true
 
   override def reset = super[Transformer].reset
@@ -163,8 +159,8 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
     n.parent.fold(false) { case p:T => true; case _ => false }
   }
 
-  def pullNode(dep:A, deped:A, container:GlobalContainer):Unit = emitBlock(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
-    dprintln(s"dep.depeds=${dep.depeds}")
+  def pullNode(dep:A, deped:A, container:GlobalContainer):Unit = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
+    dbg(s"dep.depeds=${dep.depeds}")
     val depedContainers = dep.depeds.flatMap { 
       case deped:LocalStore => None
       case deped => collectUp[GlobalContainer](deped).headOption
@@ -179,12 +175,12 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
     // Single consumer, simply move node into destination container
     if (depedContainers.size==1 && portable) {
-      dprintln(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
+      dbg(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
       swapParent(dep, container)
     } else { //Multiple consumer, mirror new node into destination consumer containers and reconnect 
       val m = mirror(dep, container)
       swapOutputs(deped, from=dep, to=m)
-      dprintln(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
+      dbg(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
     }
 
   }
@@ -194,7 +190,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
     case _ => false
   }
 
-  def pullDeps(n:N) = emitBlock(s"pullDeps($n)") {
+  def pullDeps(n:N) = dbgblk(s"pullDeps($n)") {
     n match {
       case n:Def =>
         val localDeps = n match {
@@ -219,8 +215,6 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
 class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
 
-  override lazy val stream = newStream(s"DeadCodeElimination.log")
-
   override def shouldRun = true
 
   override def reset = super[Transformer].reset
@@ -244,8 +238,8 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     case _ => super.isDepFree(n)
   } 
 
-  override def traverseChildren(n:N, prev:T):T = emitBlock(s"traverseChildren(${qdef(n)})") {
-    dprintln(s"visitChild=${visitChild(n)}")
+  override def traverseChildren(n:N, prev:T):T = dbgblk(s"traverseChildren(${qdef(n)})") {
+    dbg(s"visitChild=${visitChild(n)}")
     super.traverseChildren(n, prev)
   }
 
@@ -265,7 +259,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
   override def transform(n:N):Unit = {
     removeUnusedIOs(n)
     if (isUseFree(n)) {
-      dprintln(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
+      dbg(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
       val deps = n.deps
       n.ios.foreach(_.disconnect)
       n.parent.foreach { parent =>
@@ -281,8 +275,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
 class ControlPropogation(implicit design:PIR) extends Traversal with prism.traversal.HiearchicalTopologicalTraversal {
 
   type T = Controller
-
-  override lazy val stream = newStream(s"ControlPropogation.log")
 
   override def shouldRun = true
 
@@ -314,7 +306,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 
   def resetController(n:Node, ctrl:Controller):Unit = n match {
     case n:ComputeContext => 
-      dprintln(s"setting ${qtype(n)}.ctrl=$ctrl")
+      dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       n.setControl(ctrl)
       n.deps.foreach(d => resetController(d, ctrl))
     case n =>
@@ -332,13 +324,13 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   }
 
   override def visitNode(n:N, prev:Controller):T = {
-    dprintln(s"visitNode(${qtype(n)}, currentContext=$prev), isDepFree=${isDepFree(n)}")
+    dbg(s"visitNode(${qtype(n)}, currentContext=$prev), isDepFree=${isDepFree(n)}")
     n match {
       case n:ComputeContext =>
         if (n.ctrl == null) {
           assert(prev != null)
           n.setControl(prev)
-          dprintln(s"setting ${qtype(n)}.ctrl=$prev")
+          dbg(s"setting ${qtype(n)}.ctrl=$prev")
           super.visitNode(n, prev)
         } else {
           super.visitNode(n, n.ctrl)
@@ -351,8 +343,6 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 
 class AccessLowering(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
   override def shouldRun = true
-
-  override lazy val stream = newStream(s"AccessLowering.log")
 
   override def reset = super[Transformer].reset
 
@@ -382,7 +372,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
   override def transform(n:N):Unit = {
     n match {
       case Def(n:LoadDef, LoadDef(mems, addrs)) =>
-        emitBlock(s"Lowering ${qdef(n)}") {
+        dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
           mems.foreach { mem =>
 
@@ -396,13 +386,13 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
               retime(access, accessCU, n.ctrl).out
             }
             n.depeds.foreach { deped =>
-              dprintln(s"$n.deped=$deped")
+              dbg(s"$n.deped=$deped")
               swapConnection(deped, n.out, newOut)
             }
           }
         }
       case Def(n:StoreDef, StoreDef(mems, addrs, data)) =>
-        emitBlock(s"Lowering ${qdef(n)}") {
+        dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
           mems.foreach { mem =>
             // Local write address calculation
@@ -427,15 +417,13 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
 
 class CUStatistics(implicit design:PIR) extends Pass {
 
-  override lazy val stream = newStream(s"CUStatistics.log")
-
   type T = Unit
 
   def shouldRun = true
 
-  override def dprintln(s:Any):Unit = {
+  override def dbg(s:Any):Unit = {
     info(s"$s")
-    super.dprintln(s)
+    super.dbg(s)
   }
 
   override def runPass =  {
@@ -447,17 +435,17 @@ class CUStatistics(implicit design:PIR) extends Pass {
       case cu if collectDown[StageDef](cu).nonEmpty => "pcus"
       case cu => "ocus"
     }
-    dprintln(s"number of cus=${cus.size}")
+    dbg(s"number of cus=${cus.size}")
     cuMap.foreach { case (key, cus) =>
-      dprintln(s"")
-      dprintln(s"number of $key = ${cus.size}")
-      dprintln(s"$key = ${cus.map(qtype)}")
+      dbg(s"")
+      dbg(s"number of $key = ${cus.size}")
+      dbg(s"$key = ${cus.map(qtype)}")
       val fanIns = cus.map { cu => cu.ins.size }
-      dprintln(s"max fanIn of $key = ${fanIns.max}")
-      dprintln(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
+      dbg(s"max fanIn of $key = ${fanIns.max}")
+      dbg(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
       val fanOuts = cus.map { cu => cu.outs.size }
-      dprintln(s"max fanOut of $key = ${fanOuts.max}")
-      dprintln(s"average fanOut of $key = ${fanOuts.sum.toFloat / fanOuts.size}")
+      dbg(s"max fanOut of $key = ${fanOuts.max}")
+      dbg(s"average fanOut of $key = ${fanOuts.sum.toFloat / fanOuts.size}")
     }
   }
 
@@ -465,24 +453,22 @@ class CUStatistics(implicit design:PIR) extends Pass {
 
 class IRCheck(implicit design:PIR) extends Pass {
 
-  override lazy val stream = newStream(s"IRCheck.log")
-
   type T = Unit
 
   def shouldRun = true
 
   def warn(s:Any) = {
-    dprintln(s"$s")
+    dbg(s"$s")
     pirc.util.warn(s)
   }
 
   def err(s:Any) = {
-    dprintln(s"$s")
+    dbg(s"$s")
     pirc.util.err(s)
   }
 
   def assert(predicate:Boolean, info:Any) = {
-    dprintln(s"$info")
+    dbg(s"$info")
     pirc.util.assert(predicate, info)
   }
 
@@ -491,7 +477,7 @@ class IRCheck(implicit design:PIR) extends Pass {
       in.src match {
         case node:LocalStore =>
         case node =>
-          dprintln(s"$cu's global input $in.src = $node")
+          dbg(s"$cu's global input $in.src = $node")
           throw PIRException(s"$cu's global input $in.src = $node is not LocalStore")
       }
     }

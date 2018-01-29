@@ -1,10 +1,12 @@
 package prism.pass
 
+import pirc._
 import pirc.util._
+import prism.codegen.Logging
 
 import scala.collection.mutable
 
-trait Pass {
+trait Pass extends Logging {
 
   var runId = -1
 
@@ -25,9 +27,11 @@ trait Pass {
     runCount = 0
   }
   
-  def run(id:Int):Unit = {
+  def run(id:Int)(implicit design:Design):Unit = {
     runId = id
-    run
+    logger.withOpen(s"$name-$id.log") {
+      run
+    }
   }
 
   final def run:Unit = {

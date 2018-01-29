@@ -27,9 +27,9 @@ class EnergyAnalyzer(override implicit val design: PIR) extends Pass {
     override lazy val stream = newStream(s"EnergyDetail.csv", append=false)(design)
   }
 
-  val logger = new Logger {
-    override lazy val stream = newStream(s"EnergyAnalyzer.log")(design)
-  }
+  //val logger = new Logger {
+    //override lazy val stream = newStream(s"EnergyAnalyzer.log")(design)
+  //}
 
   lazy val mp = design.mapping.get
 

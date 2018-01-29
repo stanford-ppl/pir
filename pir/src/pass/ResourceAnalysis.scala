@@ -28,7 +28,7 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
     override lazy val stream = newStream(s"UtilizationDetail.csv", append=false)(design)
   }
 
-  val logger = new Logger {
+  val log = new Logger {
     override lazy val stream = newStream(s"ResourceAnalysis.log")(design)
   }
 
@@ -280,10 +280,10 @@ class ResourceAnalysis(implicit design: PIR) extends Pass {
   }
 
   def logResults = {
-    import logger._
+    import log._
     cus.foreach { pcl =>
       val cl = mp.pmmap.get(pcl)
-      logger.emitBlock(s"${quote(pcl)} -> $cl parOf(${quote(pcl)}) = ${parOf(pcl)}") {
+      log.emitBlock(s"${quote(pcl)} -> $cl parOf(${quote(pcl)}) = ${parOf(pcl)}") {
         regUsed.get(pcl).foreach { util => dprintln(s"reg:$util")}
         ctrUsed.get(pcl).foreach { util => dprintln(s"ctr:$util")}
         fuUsed.get(pcl).foreach { util => dprintln(s"fu:$util")}

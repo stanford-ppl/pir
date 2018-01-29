@@ -25,7 +25,7 @@ trait Design extends FileManager {
   def handle(e:Exception):Unit
 
   def run = {
-    passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id) }
+    passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id)(this) }
     //passes.foreach { _.checkRanAll }
   }
 

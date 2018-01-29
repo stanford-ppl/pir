@@ -29,11 +29,11 @@ class PowerAnalyzer(implicit design: PIR) extends Pass {
     override lazy val stream = newStream(s"PowerDetail.csv", append=false)(design)
   }
 
-  val logger = new Logger {
-    override lazy val stream = newStream(s"PowerAnalyzer.log")(design)
-  }
+  //val logger = new Logger {
+    //override lazy val stream = newStream(s"PowerAnalyzer.log")(design)
+  //}
 
-  lazy val mp = design.mapping.get
+  //lazy val mp = design.mapping.get
 
   val regPower = Map[PNode, Double]()
   val ctrPower = Map[PNode, Double]()
