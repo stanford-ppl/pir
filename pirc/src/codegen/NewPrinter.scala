@@ -61,14 +61,14 @@ trait Printer {
 
   def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit design:Design) = {
     openFile(fileName, append)
-    lambda
+    try {
+      lambda
+    } catch {
+      case e:Exception =>
+        closeStream
+        throw e
+    }
     closeStream
-  }
-
-  def withOpen(dirName:String, fileName:String, append:Boolean)(lambda: => Unit) = {
-    openFile(dirName, fileName, append)
-    lambda
-    close
   }
 
   def open(stream:StreamWriter):StreamWriter = {

@@ -6,46 +6,52 @@ import prism.codegen.Logging
 
 import scala.collection.mutable
 
-trait Pass extends Logging {
-
-  var runId = -1
-
-  def shouldRun:Boolean
-  lazy val name = this.getClass.getSimpleName
-
-  var runCount:Int = 0
-  def hasRun = runCount > 0
-  val dependencies = mutable.ListBuffer[Pass]()
-  def addDependency(dep:Pass*) = {
-    dependencies ++= dep
+case class RunPass(pass:Pass, id:Int) {
+  def name = s"$pass-$id"
+  var hasRun = false
+  def reset = { hasRun = false }
+  val dependencies = mutable.ListBuffer[RunPass]()
+  def addDependency(deps:Pass*) = {
+    deps.foreach { dep =>
+      dependencies += dep.runPasses.last
+    }
     this
   }
   def unfinishedDependencies = dependencies.filter { !_.hasRun }
   def isDependencyFree = unfinishedDependencies.isEmpty
 
-  def reset:Unit = {
-    runCount = 0
-  }
-  
-  def run(id:Int)(implicit design:Design):Unit = {
-    runId = id
-    logger.withOpen(s"$name-$id.log") {
-      run
+  def run(implicit design:Design):Unit = {
+    if (!pass.shouldRun) return
+    if (!isDependencyFree) 
+      err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
+    pass.logger.withOpen(s"$name-$id.log") {
+      dependencies.foreach(_.pass.check)
+      startInfo(s"Begin $name ...")
+      pass.initPass
+      pass.runPass
+      pass.finPass
+      hasRun = true
+      endInfo(s"Finishing $name ...")
     }
   }
+}
 
-  final def run:Unit = {
-    if (!isDependencyFree) 
-      err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.mkString(",")} haven't run")
-    dependencies.foreach(_.check)
-    startInfo(s"Begin $name ...")
-    initPass
+trait Pass extends Logging {
+
+  def shouldRun:Boolean
+  lazy val name = this.getClass.getSimpleName
+  override def toString = name
+  
+  val runPasses = mutable.ListBuffer[RunPass]()
+
+  def reset:Unit = runPasses.foreach(_.reset)
+
+  def newRun(id:Int):RunPass = {
+    val runPass = RunPass(this, id)
+    runPasses += runPass
     runPass
-    finPass
-    runCount += 1
-    endInfo(s"Finishing $name ...")
   }
-
+  
   def initPass:Unit ={}
 
   def runPass:Unit

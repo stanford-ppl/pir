@@ -2,6 +2,7 @@ package pirc
 
 import pirc._
 import pirc.util._
+import prism.pass._
 
 import scala.collection.mutable.ListBuffer
 
@@ -16,18 +17,19 @@ trait Design extends FileManager {
   var staging = true
 
   /* Compiler Passes */
-  val passes = ListBuffer[prism.pass.Pass]()
+  val runPasses = ListBuffer[RunPass]()
 
-    passes.foreach(_.reset)
+  def addPass(pass:prism.pass.Pass):RunPass = {
+    val runPass = pass.newRun(runPasses.size)
+    runPasses += runPass
+    runPass
+  }
 
-  def reset = passes.foreach(_.reset)
+  def reset = runPasses.foreach(_.reset)
 
   def handle(e:Exception):Unit
 
-  def run = {
-    passes.zipWithIndex.foreach{ case (pass, id) => if (pass.shouldRun) pass.run(id)(this) }
-    //passes.foreach { _.checkRanAll }
-  }
+  def run = runPasses.foreach { _.run(this) }
 
   val configs:List[GlobalConfig]
 

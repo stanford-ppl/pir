@@ -1,5 +1,6 @@
 package pirc.pass
 
+import pirc._
 import pirc.util._
 
 import scala.collection.mutable
@@ -26,9 +27,9 @@ trait Pass extends prism.pass.Pass {
     passes += ((canRun _, pass _))
   }
 
-  def runPass = runPasses
+  def runPass = runAll
 
-  def runPasses = {
+  def runAll = {
     passes.zipWithIndex.foreach { case ((canRun, pass), id) =>
       val (totalRun, currRun) = passRanCount(id)
       if (canRun() && (totalRun > currRun)) {
@@ -46,7 +47,8 @@ trait Pass extends prism.pass.Pass {
       }
     }
   }
-  override def hasRun = {
+
+  def hasRun = {
     //passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
     passRanCount.forall { case (id, (totalRun, currRun)) => currRun > 0 }
   }
@@ -54,6 +56,10 @@ trait Pass extends prism.pass.Pass {
     val (totalRun, currRun) = passRanCount(id)
     //totalRun == currRun
     currRun > 0
+  }
+
+  def run(implicit design:Design) = {
+    newRun(0).run
   }
 
 }
