@@ -24,7 +24,7 @@ case class RunPass(pass:Pass, id:Int) {
     if (!pass.shouldRun) return
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
-    pass.logger.withOpen(s"$name-$id.log") {
+    pass.logger.withOpen(s"$name.log") {
       dependencies.foreach(_.pass.check)
       startInfo(s"Begin $name ...")
       pass.initPass

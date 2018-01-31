@@ -23,13 +23,19 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with prism.
 }
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal {
-
-  override def reset = super[Pass].reset
-
-  override def initPass = super[Traversal].reset
 }
 
 abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
+
+  override val memorizing = false
+  def resetCache = {
+    design.passes.foreach { case pass:prism.node.Memorization => pass.resetAllCaches; case _ => }
+  }
+
+  override def initPass = {
+    super.initPass
+    resetCache
+  }
 
   def quote(n:Any) = n match {
     case n:N => qtype(n)
@@ -94,11 +100,9 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
   override def shouldRun = true
 
-  override def reset = super[Transformer].reset
-
   override def initPass = {
-    super[ChildLastTraversal].reset
-    controllerTraversal.reset
+    super.initPass
+    controllerTraversal.resetTraversal
   }
   
   val cuMap = mutable.Map[Controller, GlobalContainer]()
@@ -138,11 +142,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
   override def shouldRun = true
 
-  override def reset = super[Transformer].reset
-
-  override def initPass = super[HiearchicalTopologicalTraversal].reset
-
-  def depFunc(n:N):List[N] = visitOut(n)
+  val forward = false
 
   override def runPass =  {
     traverseNode(design.newTop)
@@ -217,11 +217,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
 
   override def shouldRun = true
 
-  override def reset = super[Transformer].reset
-
-  override def initPass = super[HiearchicalTopologicalTraversal].reset
-
-  def depFunc(n:N):List[N] = visitOut(n)
+  val forward = false
 
   override def runPass =  {
     traverseNode(design.newTop)
@@ -230,7 +226,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
   override def check = {
     val containers = collectDown[CUContainer](design.newTop)
     val unvisited = containers.filterNot(isVisited)
-    assert(unvisited.isEmpty, s"not all containers are visited! ${unvisited}")
+    assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
   }
 
   override def isDepFree(n:N) = n match {
@@ -265,7 +261,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
       n.parent.foreach { parent =>
         parent.removeChild(n)
       }
-      deps.foreach(transform)
     }
     super.transform(n)
   }
@@ -278,14 +273,12 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 
   override def shouldRun = true
 
-  override def reset = super[Traversal].reset
-
   override def initPass = {
-    super[HiearchicalTopologicalTraversal].reset
-    controllerTraversal.reset
+    super.initPass
+    controllerTraversal.resetTraversal
   }
 
-  def depFunc(n:N):List[N] = visitOut(n) 
+  val forward = false
 
   override def runPass =  {
     controllerTraversal.traverseNode(design.newTop.topController, ())
@@ -344,18 +337,16 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 class AccessLowering(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
   override def shouldRun = true
 
-  override def reset = super[Transformer].reset
-
-  override def initPass = {
-    super[Transformer].initPass
-    super[HiearchicalTopologicalTraversal].reset
-  }
-
-  def depFunc(n:N):List[N] = visitOut(n) 
+  val forward = false
 
   override def runPass =  {
     traverseNode(design.newTop)
   }
+
+  override def isDepFree(n:N) = n match {
+    case n:ArgFringe => true // heuristic breaking loop
+    case _ => super.isDepFree(n)
+  } 
 
   def retime(x:Def, cu:GlobalContainer, ctrl:Controller) = {
     x match {

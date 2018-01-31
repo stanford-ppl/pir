@@ -12,33 +12,29 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with ChildFirstTraversal with pirc.codegen.Codegen {
+abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen {
 
-  type T = Unit
+  val dirName = design.outDir
 
-  override def reset = {
-    super[Codegen].reset
-    super[ChildFirstTraversal].reset
+  def quote(n:N):String = qdef(n)
+
+  override def traverseNode(n:N, prev:T):T = {
+    dbg(s"traverseNode ${qdef(n)}")
+    super.traverseNode(n, prev)
   }
-
-  def traverseNode(n:N):Unit = traverseNode(n, ())
-  override def visitNode(n:N, prev:T):T = emitNode(n)
-
-  def emitNode(n:N):Unit = {
-    emitln(s"${qdef(n)} // TODO: unmatched node")
-    super.visitNode(n, ())
+  override def runPass = {
+    traverseNode(design.newTop, ())
   }
-
+  
 }
 
-class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
+class IRPrinter(implicit design:PIR) extends CodegenWrapper {
 
-  override lazy val stream = newStream(s"IRPrinter.log")
+  val fileName = "IRPrinter.txt"
 
   def horizontal:Boolean = false
   def shouldRun = true
-
-  def depFunc(n:N):List[N] = n.localDeps.toList
+  val forward = true
 
   override def emitNode(n:N) = {
     emitBlock(qdef(n)) {
@@ -57,15 +53,9 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper with pir.codegen.Dot
     }
   }
 
-  override def runPass = {
-    traverseNode(design.newTop)
-  }
-  
 }
 
-abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapper with pir.codegen.DotCodegen {
-
-  override lazy val stream = newStream(fn)
+abstract class IRDotCodegen(val fileName:String)(implicit design:PIR) extends CodegenWrapper with prism.codegen.DotCodegen {
 
   val horizontal:Boolean = false
   def shouldRun = true
@@ -75,8 +65,12 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
   override def runPass = {
     emitBlock("digraph G") {
       if (horizontal) emitln(s"rankdir=LR")
+      tic
       emitNode(design.newTop)
+      dbg(s"emitNode took ${toc("ms")} ms")
+      tic
       nodes.foreach(emitEdge)
+      dbg(s"emitEdge took ${toc("ms")} ms")
     }
   }
   
@@ -118,8 +112,9 @@ abstract class IRDotCodegen(fn:String)(implicit design:PIR) extends CodegenWrapp
     }
   }
 
-  def matchLevel(n:N) = {
-    ((n::n.ancestors) intersect nodes).sortBy { case n => n.ancestors.size }(Ordering[Int].reverse).headOption
+  def matchLevel(n:N):Option[N] = {
+    (n::n.ancestors).foreach { n => if (nodes.contains(n)) return Some(n) }
+    return None
   }
 
   def emitEdge(n:N):Unit = {
@@ -149,7 +144,10 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
         case (field, Const(v)) => Some(s"$field=$v")
         case _ => None
       }
-      attr.label(s"${qtype(n)}(${fields.mkString(",")})")
+      attr.label(s"${qtype(n)}\n(${fields.mkString(",")})")
+    case n:OpDef => attr.label(s"${qtype(n)}\n(${n.op})")
+    case n:StreamIn => attr.label(s"${qtype(n)}\n(${n.field})")
+    case n:StreamOut => attr.label(s"${qtype(n)}\n(${n.field})")
     case n => super.label(attr, n)
   }
 
@@ -158,6 +156,7 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
   override def color(attr:DotAttr, n:N) = n match {
     case n:SRAM => attr.fillcolor(orange).style(filled)
     case n:RetimingFIFO => attr.fillcolor(gold).style(filled)
+    case n:FIFO => attr.fillcolor(gold).style(filled)
     case n:StreamIn => attr.fillcolor(gold).style(filled)
     case n:StreamOut => attr.fillcolor(gold).style(filled)
     case n:Reg => attr.fillcolor(limegreen).style(filled)
@@ -176,7 +175,7 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
         if (verbose) {
           emitSingleNode(n)
         } else {
-          if (n.globalDeps.nonEmpty | n.globalDepeds.nonEmpty | n.isChildOf(design.newTop)) emitSingleNode(n)
+
         }
       case n => super.emitNode(n) 
     }

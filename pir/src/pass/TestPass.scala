@@ -10,6 +10,7 @@ import prism.traversal._
 
 import scala.language.postfixOps
 import scala.collection.mutable
+import scala.reflect._
 
 class TestPass(implicit design:PIR) extends Pass {
   def shouldRun = true
@@ -93,11 +94,9 @@ object TraversalTest extends TestDesign {
   }
 
   def testBFS = {
-    val traversal = new BFSTraversal with GraphSchedular with Traversal {
+    val traversal = new BFSTraversal with GraphSchedular {
       type N = TestNode
-      def visitFunc(n:N):List[N] = {
-        visitIn(n)
-      }
+      def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     println(s"")
     var res = traversal.schedule(e)
@@ -109,9 +108,9 @@ object TraversalTest extends TestDesign {
   }
 
   def testDFS = {
-    val traversal = new DFSTraversal with GraphSchedular with Traversal {
+    val traversal = new DFSTraversal with GraphSchedular {
       type N = TestNode
-      def visitFunc(n:N):List[N] = visitIn(n)
+      def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     var res = traversal.schedule(e)
     //println(s"testDFS", res)
@@ -122,9 +121,13 @@ object TraversalTest extends TestDesign {
   }
 
   def testTopo = {
-    val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular with Traversal {
+    val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular {
       type N = TestNode
-      def depFunc(n:N):List[N] = visitIn(n)
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitIn(n:N):List[N] = n.localDeps.toList
+      def visitOut(n:N):List[N] = n.localDepeds.toList
+      def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
         super.visitNode(n, prev)
@@ -137,9 +140,14 @@ object TraversalTest extends TestDesign {
   }
 
   def testHierTopo = {
-    val traversal = new HiearchicalTopologicalTraversal with GraphSchedular with Traversal {
+    val traversal = new HiearchicalTopologicalTraversal with GraphSchedular {
       type N = TestNode
-      def depFunc(n:N):List[N] = visitIn(n)
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def children(n:N):List[N] = n.children
+      def visitIn(n:N):List[N] = n.localDeps.toList
+      def visitOut(n:N):List[N] = n.localDepeds.toList
+      def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
         super.visitNode(n, prev)

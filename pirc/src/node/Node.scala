@@ -61,9 +61,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
 
   def ancestors:List[P] = parent.toList.flatMap { parent => parent :: parent.ancestors.asInstanceOf[List[P]] }
   def isAncestorOf(n:N) = n.ancestors.contains(this) 
-  def descendents:List[N] = children.flatMap { child => 
-    child :: child.descendents
-  }
+  def descendents:List[N]
   def isDescendentOf(p:P) = p.descendents.contains(this)
 
   def ins:List[Input[N]]
@@ -131,6 +129,7 @@ trait Atom[N<:Node[N]] extends Node[N] { self:N =>
   implicit lazy val atom:this.type = this
 
   def children:List[N] = Nil
+  def descendents:List[N] = Nil
 
   private lazy val _ins = mutable.ListBuffer[Input[N]]()
   private lazy val _outs = mutable.ListBuffer[Output[N]]()
@@ -149,12 +148,18 @@ trait Atom[N<:Node[N]] extends Node[N] { self:N =>
   }
   def ins = _ins.toList
   def outs = _outs.toList
+
+
 }
 
-trait SubGraph[N<:Node[N]] extends Node[N] { self:N with SubGraph[N] =>
+trait SubGraph[N<:Node[N]] extends Node[N] with Memorization { self:N with SubGraph[N] =>
   // Children
   private lazy val _children = mutable.ListBuffer[N]()
   def children = _children.toList
+
+  override val memorizing = true
+  def descendents:List[N] = children.flatMap { child => child :: child.descendents }
+
   def addChild(c:N):Unit = { 
     assert(c != this)
     if (c.isChildOf(this)) return
@@ -169,6 +174,8 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self:N with SubGraph[N] =>
 
   def ins = descendents.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
+  override def deps:Set[A] = descendents.flatMap{ _.deps.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
+  override def depeds:Set[A] = descendents.flatMap{ _.depeds.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
 
   override def connectFields(x:Any)(implicit design:Design):Any = {
     implicit val ev = nct
@@ -219,4 +226,18 @@ trait Output[N<:Node[N]] extends Edge[N] {
   type E <: Input[N]
 }
 
+trait Memorization {
+  //val memorizing = true
+  val memorizing = false
+  private val caches = mutable.ListBuffer[Cache[_,_]]()
+  case class Cache[I:ClassTag,O](lambda:I => O) {
+    caches += this
+    val memory = mutable.Map[I,O]()
+    def memorize(input:I) = if (memorizing) memory.getOrElseUpdate(input, lambda(input)) else lambda(input)
+    def resetCache(input:Any) = input match { case input:I => memory -= input; case _ => }
+    def resetAll = memory.clear
+  }
+  def resetCache(input:Any) = caches.foreach(_.resetCache(input)) 
+  def resetAllCaches = caches.foreach(_.resetAll)
+}
 

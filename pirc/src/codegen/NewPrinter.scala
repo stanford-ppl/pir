@@ -11,15 +11,15 @@ trait Printer {
   trait StreamWriter {
     def outputStream:OutputStream
     lazy val writer = new PrintWriter(outputStream)
-    def print(s:String) = { writer.print(s) }
-    def println(s:String) = { writer.println(s) }
+    def emit(s:String) = { writer.print(s) }
+    def emitln(s:String) = { writer.println(s) }
     def flush = writer.flush
     def close = writer.close
   }
   case class StdoutWriter() extends StreamWriter {
     val outputStream = System.out
-    override def print(s:String) = { super.print(s); writer.flush }
-    override def println(s:String) = { super.println(s); writer.flush }
+    override def emit(s:String) = { super.emit(s); writer.flush }
+    override def emitln(s:String) = { super.emitln(s); writer.flush }
     override def close = {} // Cannot close stdout
   }
   case class ByteWriter() extends StreamWriter {
@@ -37,8 +37,8 @@ trait Printer {
       new FileOutputStream(file, append)
     }
     var written = false
-    override def print(s:String) = { written = true; super.println(s) }
-    override def println(s:String) = { written = true; super.println(s) }
+    override def emit(s:String) = { written = true; super.emitln(s) }
+    override def emitln(s:String) = { written = true; super.emitln(s) }
     override def flush = if (written) super.flush
     override def close = if (written) super.close 
   }
@@ -118,57 +118,57 @@ trait Printer {
 
   def indent(s:String) = if (s=="") "" else s"${tab*level}$s"
   def listFormat(s:String) = if (listing) s"- $s" else s
-  def print(s:String):Unit = sw.print(indent(listFormat(s)))
-  def println(s:String):Unit = sw.println(indent(listFormat(s)))
+  def emit(s:String):Unit = sw.emit(indent(listFormat(s)))
+  def emitln(s:String):Unit = sw.emitln(indent(listFormat(s)))
 
-  def print(s:Any):Unit = print(s.toString) 
-  def print:Unit = print("") 
-  def println:Unit = sw.println("")
+  def emit(s:Any):Unit = emit(s.toString) 
+  def emit:Unit = emit("") 
+  def emitln:Unit = sw.emitln("")
 
-  def printBSln:Unit = printBSln(None, None, None)
-  def printBSln(b:Braces):Unit = printBSln(None, Some(b), None)
-  def printBSln(bs:String):Unit = printBSln(Some(bs),None, None)
-  def printBSln(bs:String, b:Braces):Unit = printBSln(Some(bs), Some(b), None)
-  def printBSln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
-    println(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
+  def emitBSln:Unit = emitBSln(None, None, None)
+  def emitBSln(b:Braces):Unit = emitBSln(None, Some(b), None)
+  def emitBSln(bs:String):Unit = emitBSln(Some(bs),None, None)
+  def emitBSln(bs:String, b:Braces):Unit = emitBSln(Some(bs), Some(b), None)
+  def emitBSln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
+    emitln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
   }
 
-  def printBS:Unit = printBS(None, None, None)
-  def printBS(b:Braces):Unit = printBS(None, Some(b), None)
-  def printBS(bs:String):Unit = printBS(Some(bs),None, None)
-  def printBS(bs:String, b:Braces):Unit = printBS(Some(bs), Some(b), None)
-  def printBS(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
-    print(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
+  def emitBS:Unit = emitBS(None, None, None)
+  def emitBS(b:Braces):Unit = emitBS(None, Some(b), None)
+  def emitBS(bs:String):Unit = emitBS(Some(bs),None, None)
+  def emitBS(bs:String, b:Braces):Unit = emitBS(Some(bs), Some(b), None)
+  def emitBS(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
+    emit(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
   }
 
-  def printBEln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
-    decLevel; println(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
+  def emitBEln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
+    decLevel; emitln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
   }
-  def printBEln(bs:String, b:Braces):Unit = printBEln(Some(bs), Some(b), None) 
-  def printBEln(es:String):Unit = printBEln(None, None, Some(es))
-  def printBEln(b:Braces):Unit = printBEln(None, Some(b), None)
-  def printBEln:Unit = printBEln(None, None, None)
+  def emitBEln(bs:String, b:Braces):Unit = emitBEln(Some(bs), Some(b), None) 
+  def emitBEln(es:String):Unit = emitBEln(None, None, Some(es))
+  def emitBEln(b:Braces):Unit = emitBEln(None, Some(b), None)
+  def emitBEln:Unit = emitBEln(None, None, None)
 
-  def printBE(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
-    decLevel; print(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
+  def emitBE(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = {
+    decLevel; emit(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).e}${es.fold(""){ es => s" $es"}}")
   }
-  def printBE(bs:String, b:Braces):Unit = printBE(Some(bs), Some(b), None) 
-  def printBE(es:String):Unit = printBE(None, None, Some(es))
-  def printBE(b:Braces):Unit = printBE(None, Some(b), None)
-  def printBE:Unit = printBE(None, None, None)
+  def emitBE(bs:String, b:Braces):Unit = emitBE(Some(bs), Some(b), None) 
+  def emitBE(es:String):Unit = emitBE(None, None, Some(es))
+  def emitBE(b:Braces):Unit = emitBE(None, Some(b), None)
+  def emitBE:Unit = emitBE(None, None, None)
 
-  def printBlock[T](block: =>T):T = printBlock(None, None, None)(block)
-  def printBlock[T](b:Braces)(block: =>T):T = printBlock(None, Some(b), None)(block)
-  def printBlock[T](bs:String)(block: =>T):T = printBlock(Some(bs), None, None)(block)
-  def printBlock[T](bs:String, b:Braces)(block: =>T):T = printBlock(Some(bs), Some(b), None)(block)
-  def printBlock[T](bs:String, block: =>T, es: => String):T = printBlock(Some(bs), None, Some(es _))(block)
-  def printBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = 
-    { printBSln(bs, b, None); val res = block; printBEln(None, b, es.map(es => es())); res }
+  def emitBlock[T](block: =>T):T = emitBlock(None, None, None)(block)
+  def emitBlock[T](b:Braces)(block: =>T):T = emitBlock(None, Some(b), None)(block)
+  def emitBlock[T](bs:String)(block: =>T):T = emitBlock(Some(bs), None, None)(block)
+  def emitBlock[T](bs:String, b:Braces)(block: =>T):T = emitBlock(Some(bs), Some(b), None)(block)
+  def emitBlock[T](bs:String, block: =>T, es: => String):T = emitBlock(Some(bs), None, Some(es _))(block)
+  def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = 
+    { emitBSln(bs, b, None); val res = block; emitBEln(None, b, es.map(es => es())); res }
 
-  def printList[T](s:String)(block: => T) = { println(s); blist; val res = block; elist; res}
+  def emitList[T](s:String)(block: => T) = { emitln(s); blist; val res = block; elist; res}
 
-  def printTitleComment(title:String) = 
-    println(s"/*****************************${title}****************************/")
+  def emitTitleComment(title:String) = 
+    emitln(s"/*****************************${title}****************************/")
   def flush = sw.flush
   def close = sw.close
 
