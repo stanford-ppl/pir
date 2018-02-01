@@ -23,8 +23,6 @@ trait IR extends prism.node.IR {
   }
   def name(implicit design:PIR) = design.newTop.metadata.nameOf.get(this)
 
-  def ctrls(implicit design:PIR) = design.newTop.metadata.ctrlOf(this.asInstanceOf[Node])
-
   def ctrl(ctrler:Any)(implicit design:PIR):this.type = {
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.setParent(ctrler)
@@ -36,10 +34,6 @@ trait IR extends prism.node.IR {
     this
   }
 
-  def ctrl(implicit design:PIR) = {
-    assert(ctrls.size==1, s"$ctrls")
-    ctrls.head
-  }
 }
 
 abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR { self =>
@@ -287,12 +281,15 @@ trait NewPIRMetadata extends prism.node.Metadata {
     }
   }
 
-  object ctrlOf extends MetadataMap[Node] with BiManyToManyMap[Node, Controller] {
+  object ctrlOf extends MetadataMap[Node] with BiManyToOneMap[Node, Controller] {
+    println(name)
     def mirror(orig:K, clone:K):Unit = {
       val vv = get(orig)
       remove(orig)
       vv.foreach { vv => update(clone, vv) }
     }
-    override def check(k:K, v:V) = {} // allow reset
+    override def check(k:K, v:V) = {
+      println(s"ctrlOf($k) = $v")
+    } // allow reset
   }
 }

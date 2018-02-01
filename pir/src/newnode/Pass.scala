@@ -20,6 +20,8 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with prism.
 
   def qdef(n:IR) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
   def qtype(n:IR) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
+
+  lazy val metadata = design.newTop.metadata
 }
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal 
@@ -35,8 +37,6 @@ trait ChildFirstTopologicalTraversal extends prism.traversal.ChildFirstTopologic
 }
 
 abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
-
-  def metadata = design.newTop.metadata
 
   def quote(n:Any) = n match {
     case n:N => qtype(n)
@@ -90,6 +90,8 @@ trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.trav
 
 class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.SiblingFirstTraversal {
 
+  import metadata._
+
   override def shouldRun = true
 
   override def initPass = {
@@ -124,7 +126,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
   override def transform(n:N):Unit = n match {
     case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
-    case n:ComputeContext if !cuMap(n.ctrl).isParentOf(n) => swapParent(n, cuMap(n.ctrl))
+    case n:ComputeContext if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
     case _ => super.transform(n)
   }
 
@@ -250,6 +252,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
 }
 
 class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstTopologicalTraversal {
+  import metadata._
 
   type T = Controller
 
@@ -270,7 +273,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
   override def check = {
     val contexts = collectDown[ComputeContext](design.newTop)
     contexts.foreach { context =>
-      assert(context.ctrls.nonEmpty, s"$context's controller is not set")
+      assert(ctrlOf.contains(context), s"$context's controller is not set")
     }
   }
 
@@ -295,17 +298,18 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
   }
 
   override def visitNode(n:N, prev:Controller):T = {
-    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrls=${n.ctrls}), isDepFree=${isDepFree(n)}")
+    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrl=${ctrlOf.get(n)}), isDepFree=${isDepFree(n)}")
     n match {
       case n:ComputeContext =>
-        if (n.ctrls.isEmpty) {
+        val res = if (!ctrlOf.contains(n)) {
           assert(prev != null)
-          n.ctrl(prev)
-          dbg(s"setting ${qtype(n)}.ctrl=$prev")
+          ctrlOf(n) = prev
           super.visitNode(n, prev)
         } else {
-          super.visitNode(n, n.ctrl)
+          super.visitNode(n, ctrlOf(n))
         }
+        dbg(ctrlOf.info(n).get)
+        res
       case n => super.visitNode(n, null) 
     }
   }
@@ -313,6 +317,8 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
 }
 
 class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
+  import metadata._
+
   override def shouldRun = true
 
   val forward = false
@@ -321,15 +327,15 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
     traverseNode(design.newTop)
   }
 
-  def retime(x:Def, cu:GlobalContainer, ctrl:Controller) = {
+  def retime(x:Def, cu:GlobalContainer) = {
     x match {
       case x:Const[_] => x
       case Def(n:IterDef, IterDef(counter, offset)) =>
         mirror[IterDef](n, cu)
       case x =>
         val fifo = RetimingFIFO().setParent(cu)
-        MemStore(fifo, None, x).ctrl(x.ctrl).setParent(cu)
-        MemLoad(fifo, None).ctrl(ctrl).setParent(cu)
+        MemStore(fifo, None, x).setParent(cu)
+        MemLoad(fifo, None).setParent(cu)
     }
   }
 
@@ -343,11 +349,12 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
             // Remote read address calculation
             val memCU = collectUp[GlobalContainer](mem).head
             val maddrs = addrs.map { addrs => addrs.map { addr => mirror[Def](addr, memCU) } }
-            val access = MemLoad(mem, maddrs).setParent(memCU).ctrl(n.ctrl).name(n.name)
+            val access = MemLoad(mem, maddrs).setParent(memCU)
+            metadata.mirror(n, access)
             val newOut = if (memCU == accessCU) {
               access.out
             } else { // Remote memory, add Retiming FIFO
-              retime(access, accessCU, n.ctrl).out
+              retime(access, accessCU).out
             }
             n.depeds.foreach { deped =>
               dbg(s"$n.deped=$deped")
@@ -362,16 +369,17 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
             // Local write address calculation
             val memCU = collectUp[GlobalContainer](mem).head
             val (saddrs, sdata) = if (memCU!=accessCU && addrs.nonEmpty) {
-              val dataLoad = retime(data, memCU, n.ctrl)
+              val dataLoad = retime(data, memCU)
               val addrLoad = addrs.map { addrs =>
-                addrs.map { addr => retime(addr, memCU, n.ctrl) }
+                addrs.map { addr => retime(addr, memCU) }
               }
               (addrLoad, dataLoad)
             } else {
               (addrs, data)
             }
             disconnect(mem, n)
-            MemStore(mem, saddrs, sdata).setParent(memCU).ctrl(n.ctrl).name(n.name)
+            val access = MemStore(mem, saddrs, sdata).setParent(memCU)
+            metadata.mirror(n, access)
           }
         }
       case n => super.transform(n)
@@ -416,6 +424,7 @@ class CUStatistics(implicit design:PIR) extends Pass {
 }
 
 class IRCheck(implicit design:PIR) extends Pass {
+  import metadata._
 
   type T = Unit
 
@@ -471,10 +480,10 @@ class IRCheck(implicit design:PIR) extends Pass {
   def checkDefControl(cu:GlobalContainer) = {
     val stageDef = collectDown[StageDef](cu)
     stageDef.foreach { stageDef =>
-      assert(stageDef.ctrl != null, 
-        s"${qtype(stageDef)} in $cu.ctrl = null")
-      assert(stageDef.ctrl.level == InnerControl, 
-        s"${qtype(stageDef)}.ctrl.level = ${stageDef.ctrl.level}. stageDef.ctrl=${stageDef.ctrl}")
+      assert(ctrlOf.contains(stageDef), s"${qtype(stageDef)} in $cu doesn't have ctrl defined")
+      val ctrl = ctrlOf(stageDef)
+      assert(ctrl == InnerControl, 
+        s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
     }
   }
 
