@@ -19,8 +19,10 @@ class TestPass(implicit design:PIR) extends Pass {
     TraversalTest.testGraph
     TraversalTest.testBFS
     TraversalTest.testDFS
-    TraversalTest.testTopo
-    TraversalTest.testHierTopo
+    TraversalTest.testChildFirst
+    TraversalTest.testSiblingFirst
+    TraversalTest.testCFTopo
+    TraversalTest.testSFTopo
 
     MapTest.test
   }
@@ -61,6 +63,19 @@ case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with 
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
 
+class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotCodegen {
+  type N = TestNode
+  val dirName = design.outDir
+
+  def top = TraversalTest.top
+
+  def quote(n:N) = n.toString
+
+  def runPass = {
+    traverseNode(top, ())
+  }
+}
+
 object TraversalTest extends TestDesign {
   import prism.traversal.Traversal
 
@@ -100,11 +115,9 @@ object TraversalTest extends TestDesign {
     }
     println(s"")
     var res = traversal.schedule(e)
-    //println(s"testBFS", res)
-    assert(res==List(e, g1))
+    assert(res==List(e, g1), s"res=$res")
     res = traversal.schedule(g3)
-    //println(s"testBFS", res)
-    assert(res == List(g3, f, g, e, g2, g1))
+    assert(res == List(g3, f, g, e, g2, g1), s"res=$res")
   }
 
   def testDFS = {
@@ -113,48 +126,79 @@ object TraversalTest extends TestDesign {
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     var res = traversal.schedule(e)
-    //println(s"testDFS", res)
-    assert(res==List(e, g1))
+    assert(res==List(e, g1), s"res=$res")
     res = traversal.schedule(g3)
-    //println(s"testDFS", res)
-    assert(res == List(g3, f, g, e, g1, g2))
+    assert(res == List(g3, f, g, e, g1, g2), s"res=$res")
   }
 
-  def testTopo = {
-    val traversal = new TopologicalTraversal with BFSTraversal with GraphSchedular {
+  def testChildFirst = {
+    val traversal = new ChildFirstTraversal with GraphSchedular {
       type N = TestNode
-      implicit val nct:ClassTag[N] = classTag[N]
-      val forward = true
-      def visitIn(n:N):List[N] = n.localDeps.toList
-      def visitOut(n:N):List[N] = n.localDepeds.toList
-      def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
       override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
-        super.visitNode(n, prev)
+        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
+        val res = super.visitNode(n, prev)
+        assert(n.children.forall(res.contains), s"n=$n res=$res")
+        res
       }
     }
-    var res = traversal.schedule(a)
-    println(s"testTopo", res)
-    res = traversal.schedule(g1)
-    println(s"testTopo", res)
+    var res = traversal.schedule(top)
+    //println(s"testChildFirst", res)
   }
 
-  def testHierTopo = {
-    val traversal = new HiearchicalTopologicalTraversal with GraphSchedular {
+  def testSiblingFirst = {
+    val traversal = new SiblingFirstTraversal with GraphSchedular {
       type N = TestNode
-      implicit val nct:ClassTag[N] = classTag[N]
-      val forward = true
-      def children(n:N):List[N] = n.children
-      def visitIn(n:N):List[N] = n.localDeps.toList
-      def visitOut(n:N):List[N] = n.localDepeds.toList
-      def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
       override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
+        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
+        n.parent.foreach { parent =>
+          parent.parent.foreach { grandParent =>
+            assert(grandParent.children.forall(prev.contains), s"$n, parent=$parent prev=$prev")
+          }
+        }
         super.visitNode(n, prev)
       }
     }
     var res = traversal.schedule(top)
-    println(s"testHierTopoDFS", res)
+    //println(s"testSiblingFirst", res)
+  }
+
+  def testCFTopo = {
+    val traversal = new ChildFirstTopologicalTraversal with GraphSchedular {
+      type N = TestNode
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitIn(n:N):List[N] = n.localDeps.toList
+      def visitOut(n:N):List[N] = n.localDepeds.toList
+      override def visitNode(n:N, prev:T):T = {
+        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
+        assert(depFunc(n).forall(isVisited))
+        val res = super.visitNode(n, prev)
+        assert(n.children.forall(res.contains), s"n=$n res=$res")
+        res
+      }
+    }
+    var res = traversal.schedule(top)
+  }
+
+  def testSFTopo = {
+    val traversal = new SiblingFirstTopologicalTraversal with GraphSchedular {
+      type N = TestNode
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitIn(n:N):List[N] = n.localDeps.toList
+      def visitOut(n:N):List[N] = n.localDepeds.toList
+      override def visitNode(n:N, prev:T):T = {
+        assert(depFunc(n).forall(isVisited))
+        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
+        n.parent.foreach { parent =>
+          parent.parent.foreach { grandParent =>
+            assert(grandParent.children.forall(prev.contains), s"$n, parent=$parent prev=$prev")
+          }
+        }
+        super.visitNode(n, prev)
+      }
+    }
+    var res = traversal.schedule(top)
   }
 
 }

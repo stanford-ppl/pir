@@ -157,7 +157,6 @@ trait SubGraph[N<:Node[N]] extends Node[N] with Memorization { self:N with SubGr
   private lazy val _children = mutable.ListBuffer[N]()
   def children = _children.toList
 
-  override val memorizing = true
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
 
   def addChild(c:N):Unit = { 

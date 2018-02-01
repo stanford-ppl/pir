@@ -190,6 +190,9 @@ trait PIR extends Design with PIRMetadata with Collector {
 
     addPass(irCheck)
 
+    addPass(new pir.newnode.TestTraversalPass())
+
+    addPass(new TestDotCodegen(s"test.dot"))
     addPass(new TestPass())
 
     super.run

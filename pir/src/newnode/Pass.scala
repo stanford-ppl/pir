@@ -27,16 +27,6 @@ abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.
 
 abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
 
-  override val memorizing = false
-  def resetCache = {
-    design.passes.foreach { case pass:prism.node.Memorization => pass.resetAllCaches; case _ => }
-  }
-
-  override def initPass = {
-    super.initPass
-    resetCache
-  }
-
   def quote(n:Any) = n match {
     case n:N => qtype(n)
     case n => n.toString
@@ -96,7 +86,7 @@ trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.trav
   def visitFunc(n:N):List[N] = n.children 
 }
 
-class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.ChildLastTraversal {
+class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.SiblingFirstTraversal {
 
   override def shouldRun = true
 
@@ -138,7 +128,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
+class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
 
   override def shouldRun = true
 
@@ -213,7 +203,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
 }
 
-class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
+class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
 
   override def shouldRun = true
 
@@ -234,11 +224,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     case _ => super.isDepFree(n)
   } 
 
-  override def traverseChildren(n:N, prev:T):T = dbgblk(s"traverseChildren(${qdef(n)})") {
-    dbg(s"visitChild=${visitChild(n)}")
-    super.traverseChildren(n, prev)
-  }
-
   def isUseFree(n:N) = n match {
     case n:ArgOut => false
     case n:StreamIn => false
@@ -252,7 +237,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     case n => n.depeds.isEmpty
   }
 
-  override def transform(n:N):Unit = {
+  override def transform(n:N):Unit = dbgblk(s"transform(${qdef(n)})") {
     removeUnusedIOs(n)
     if (isUseFree(n)) {
       dbg(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
@@ -267,7 +252,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with prism.traversal.HiearchicalTopologicalTraversal {
+class ControlPropogation(implicit design:PIR) extends Traversal with prism.traversal.ChildFirstTopologicalTraversal {
 
   type T = Controller
 
@@ -334,7 +319,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 
 }
 
-class AccessLowering(implicit design:PIR) extends Transformer with prism.traversal.HiearchicalTopologicalTraversal {
+class AccessLowering(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
   override def shouldRun = true
 
   val forward = false
@@ -535,3 +520,33 @@ class IRCheck(implicit design:PIR) extends Pass {
   //val metrics = mutable.ListBuffer[CostMetric]()
 
 //}
+class TestTraversalPass(implicit design:PIR) extends Traversal with prism.traversal.SiblingFirstTopologicalTraversal {
+
+  type T = Unit
+  
+  val forward = true
+
+  val shouldRun = true
+
+  override def visitIn(n:N):List[N] = {
+    n match {
+      case n:GlobalContainer => super.visitIn(n).filterNot { _.isInstanceOf[ArgFringe] }
+      case n => super.visitIn(n)
+    }
+  }
+
+  override def visitNode(n:N, prev:T):T = {
+    n match {
+      case n:Container =>
+        dbgblk(s"Visiting ${qdef(n)}") {
+          super.visitNode(n, prev)
+        }
+      case n:Module =>
+        dbg(s"Visiting ${qdef(n)}")
+    }
+  }
+
+  override def runPass =  {
+    traverseNode(design.newTop, ())
+  }
+}

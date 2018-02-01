@@ -18,12 +18,13 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal
 
   def quote(n:N):String = qdef(n)
 
-  override def traverseNode(n:N, prev:T):T = {
+  override def traverseNode(n:N):T = {
     dbg(s"traverseNode ${qdef(n)}")
-    super.traverseNode(n, prev)
+    super.traverseNode(n)
   }
+
   override def runPass = {
-    traverseNode(design.newTop, ())
+    traverseNode(design.newTop)
   }
   
 }
@@ -42,7 +43,7 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
       emitln(s"children=${n.children}")
       emitln(s"localDeps=${n.localDeps}")
       emitln(s"localDepeds=${n.localDepeds}")
-      traverseChildren(n, ())
+      super.emitNode(n)
       n match {
         case n:Module =>
           n.ios.foreach { io =>
@@ -55,26 +56,30 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
 
 }
 
-abstract class IRDotCodegen(val fileName:String)(implicit design:PIR) extends CodegenWrapper with prism.codegen.DotCodegen {
+trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
+
+  type N <: prism.node.Node[N]
 
   val horizontal:Boolean = false
   def shouldRun = true
+  val fileName:String
 
   val nodes = mutable.ListBuffer[N]()
 
-  override def runPass = {
-    emitBlock("digraph G") {
-      if (horizontal) emitln(s"rankdir=LR")
-      tic
-      emitNode(design.newTop)
-      dbg(s"emitNode took ${toc("ms")} ms")
-      tic
-      nodes.foreach(emitEdge)
-      dbg(s"emitEdge took ${toc("ms")} ms")
-    }
+  def top:N
+
+  override def initPass = {
+    super.initPass
+    emitBSln("digraph G")
+    if (horizontal) emitln(s"rankdir=LR")
   }
-  
-  
+
+  override def finPass = {
+    nodes.foreach(emitEdge)
+    emitBEln
+    super.finPass
+  }
+
   def open = {
     s"out/bin/run ${getPath} &".replace(".dot", "") !
   }
@@ -83,16 +88,14 @@ abstract class IRDotCodegen(val fileName:String)(implicit design:PIR) extends Co
 
   def color(attr:DotAttr, n:N) = attr.fillcolor(white).style(filled)
 
-  def label(attr:DotAttr, n:N) = attr.label(qtype(n))
+  def label(attr:DotAttr, n:N) = attr.label(n.toString)
 
   def emitSubGraph(n:N):Unit = {
     var attr = DotAttr()
     attr = shape(attr, n)
     attr = color(attr, n)
     attr = label(attr, n)
-    emitSubGraph(n, attr) {
-      traverseChildren(n, ())
-    }
+    emitSubGraph(n, attr) { super.emitNode(n) }
   }
 
   def emitSingleNode(n:N):Unit = {
@@ -106,9 +109,9 @@ abstract class IRDotCodegen(val fileName:String)(implicit design:PIR) extends Co
 
   override def emitNode(n:N) = {
     n match {
-      case n:Atom[_] => emitSingleNode(n)
-      case n:SubGraph[_] if n.children.isEmpty => emitSingleNode(n)
-      case n:SubGraph[_] => emitSubGraph(n)
+      case _:Atom[_] => emitSingleNode(n)
+      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n)
+      case g:SubGraph[_] => emitSubGraph(n)
     }
   }
 
@@ -133,10 +136,12 @@ abstract class IRDotCodegen(val fileName:String)(implicit design:PIR) extends Co
 
 }
 
-class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn) with prism.traversal.GraphCollector {
+class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends CodegenWrapper with IRDotCodegen {
 
   val verbose = true
   override val horizontal:Boolean = if (verbose) false else true
+
+  def top = design.newTop
 
   override def label(attr:DotAttr, n:N) = n match {
     case n:Counter =>
@@ -148,7 +153,7 @@ class GlobalIRDotCodegen(fn:String)(implicit design:PIR) extends IRDotCodegen(fn
     case n:OpDef => attr.label(s"${qtype(n)}\n(${n.op})")
     case n:StreamIn => attr.label(s"${qtype(n)}\n(${n.field})")
     case n:StreamOut => attr.label(s"${qtype(n)}\n(${n.field})")
-    case n => super.label(attr, n)
+    case n => attr.label(qtype(n))
   }
 
   //def shape(attr:DotAttr, n:N) = attr.shape(box)

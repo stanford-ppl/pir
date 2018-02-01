@@ -36,9 +36,6 @@ trait Traversal extends GraphTraversal with prism.pass.Pass {
    * */
   def visitOut(n:N):List[N] = n.localDepeds.toList
 
-  def allNodes(n:N) = n.parent.toList.flatMap { parent => parent.children }
-
-  def children(n:N):List[N] = n.children
 }
 
 trait GraphTraversal extends Memorization {
@@ -66,7 +63,32 @@ trait GraphTraversal extends Memorization {
     visitNode(n, prev)
   }
 
-  def traverse(n:N, zero:T):T
+  def traverse(n:N, zero:T):T = throw new Exception(s"Shouldn't hit this method")
+  def traverse(ns: => List[N], zero:T):T = throw new Exception(s"Shouldn't hit this method")
+
+  def dbgs(s:String) = {
+    this match {
+      case self:Logging => self.dbg(s)
+      case _ =>
+    }
+  }
+}
+
+trait UnitTraversal extends GraphTraversal {
+  type T = Unit
+
+  override def visitNode(n:N, prev:T):T = visitNode(n)
+  def visitNode(n:N):T = super.visitNode(n, ())
+
+  override def traverseNode(n:N, prev:T):T = traverseNode(n)
+  def traverseNode(n:N):T = super.traverseNode(n,())
+
+  override def traverse(n:N, zero:T):T = traverse(n)
+  def traverse(n:N):T = super.traverse(n,())
+
+  override def traverse(ns: => List[N], zero:T):T = traverse(ns)
+  def traverse(ns: => List[N]):T = super.traverse(ns, ())
+
 }
 
 trait GraphSchedular extends GraphTraversal { self =>
@@ -81,17 +103,26 @@ trait GraphSchedular extends GraphTraversal { self =>
     resetTraversal
     traverseNode(n, Nil)
   }
+
+  final def schedule(ns: => List[N]) = {
+    resetTraversal
+    traverse(ns, Nil)
+  }
 }
 
 
 trait DFSTraversal extends GraphTraversal {
   override def traverse(n:N, zero:T):T = {
+    traverse(visitFunc(n), zero)
+  }
+
+  override def traverse(ns: => List[N], zero:T):T = {
     var prev = zero 
-    var nexts = visitFunc(n).filterNot(isVisited)
+    var nexts = ns.filterNot(isVisited)
     // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
       prev = traverseNode(nexts.head, prev)
-      nexts = visitFunc(n).filterNot(isVisited)
+      nexts = ns.filterNot(isVisited)
     }
     prev
   }
@@ -108,50 +139,34 @@ trait BFSTraversal extends GraphTraversal {
   }
 
   override def traverse(n:N, zero:T):T = {
+    traverse(visitFunc(n), zero)
+  }
+
+  override def traverse(ns: => List[N], zero:T):T = {
     var prev = zero 
-    queue ++= visitFunc(n).filterNot(isVisited)
+    queue ++= ns.filterNot(isVisited)
     while (queue.nonEmpty) {
       val next = queue.dequeue()
       prev = traverseNode(next, prev)
+      if (queue.isEmpty) queue ++= ns.filterNot(isVisited)
     }
     return prev
   }
 }
 
-//trait BFSTopologicalTraversal extends BFSTraversal {
-  //def depedFunc(n:N):List[N]
-  //def depFunc(n:N):List[N]
-  //def willBeDepFree(n:N) = depFunc(n).filterNot{ dep =>
-  //}.isEmpty
-
-  //def visitFunc(n:N):List[N] = {
-    //depedFunc(n).filter(willBeDepFree)
-  //}
-//}
 trait TopologicalTraversal extends GraphTraversal {
   val forward:Boolean
-  def allNodes(n:N):List[N]
   def visitIn(n:N):List[N]
   def visitOut(n:N):List[N]
   def depedFunc(n:N):List[N] = if (forward) visitOut(n) else visitIn(n)
   def depFunc(n:N):List[N] = if (forward) visitIn(n) else visitOut(n)
   def isDepFree(n:N) = depFunc(n).filterNot(isVisited).isEmpty
 
-  //def visitFunc(n:N):List[N] = visitDepFree(allNodes(n))
-  implicit val nct:ClassTag[N]
-  private val cache = Cache((n:N) => visitDepFree(n))
-  def visitFunc(n:N):List[N] = cache.memorize(n)
-
-  /*
-   * Return dependent free nodes in allNodes. 
-   * */
-  //def visitDepFree(n:N):List[N] = {
-    //val unvisited = allNodes(n).filterNot(isVisited)
-    //if (unvisited.isEmpty) return Nil
-    //val depFree = unvisited.filter(isDepFree)
-    //if (depFree.nonEmpty) return depFree
-    //List(unvisited.sortBy { n => depFunc(n).filterNot(isVisited).size }.head)
-  //}
+  def visitFunc(n:N):List[N] = visitDepFree(n)
+  //implicit val nct:ClassTag[N]
+  //private val cache = Cache((n:N) => visitDepFree(n))
+  //def visitFunc(n:N):List[N] = cache.memorize(n)
+  
   /*
    * Return dependent free nodes by checking whether dependent nodes are free
    * */
@@ -160,66 +175,60 @@ trait TopologicalTraversal extends GraphTraversal {
     val depFree = unvisited.filter(isDepFree)
     depFree
   }
+
 }
 
 trait HiearchicalTraversal extends GraphTraversal {
-  def children(n:N):List[N]
-  def visitChild(n:N):List[N] = children(n).filterNot(isVisited)
-  def visitFunc(n:N):List[N] = Nil 
-  def traverseChildren(n:N, zero:T):T = {
-    var prev = zero
-    var childs = visitChild(n)
-    while (childs.nonEmpty) {
-      prev = traverseNode(childs.head, prev)
-      childs = visitChild(n)
-    }
-    prev
+  def visitFunc(n:N):List[N] = n match {
+    case n:SubGraph[_] => n.children.asInstanceOf[List[N]]
+    case n:Atom[_] => Nil
+  }
+}
+trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal
+trait SiblingFirstTraversal extends BFSTraversal with HiearchicalTraversal
+
+trait ChildFirstTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal {
+  override def visitFunc(n:N):List[N] = n match {
+    case n:SubGraph[_] => 
+      val unvisited = n.children.asInstanceOf[List[N]].filterNot(isVisited) 
+      val depFree = unvisited.filter(isDepFree) 
+      if (unvisited.nonEmpty && depFree.isEmpty) {
+        val next = unvisited.sortBy { n => depFunc(n).filterNot(isVisited).size }.head
+        List(next)
+      } else depFree
+    case _:Atom[_] => visitDepFree(n)
+  }
+}
+trait SiblingFirstTopologicalTraversal extends TopologicalTraversal with SiblingFirstTraversal { self =>
+  override def visitFunc(n:N):List[N] = n match {
+    case n:SubGraph[_] => 
+      val children = n.children.asInstanceOf[List[N]]
+      var unscheduled = children
+      var scheduled = List[N]()
+      while (unscheduled.nonEmpty) {
+        scheduled ++= scheduleDepFree(unscheduled, scheduled)
+        unscheduled = unscheduled.filterNot(scheduled.contains)
+      }
+      scheduled
+    case _:Atom[_] => Nil 
+  }
+  def scheduleDepFree(nodes:List[N], scheduled:List[N]):List[N] = {
+    val unvisited = nodes.filterNot(scheduled.contains) 
+    var depFree = unvisited.filter(isDepFree) 
+    if (unvisited.nonEmpty && depFree.isEmpty) {
+      val next = unvisited.sortBy { n => depFunc(n).filterNot(scheduled.contains).size }.head
+      List(next)
+    } else depFree
   }
 }
 
-trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
-  override def traverse(n:N, zero:T):T = {
-    super.traverse(n, traverseChildren(n, zero))
-  }
-  override def traverseChildren(n:N, zero:T):T = {
-    val res = super.traverseChildren(n, zero)
-    val unvisited = children(n).filterNot(isVisited)
-    assert(unvisited.isEmpty, s"traverseChildren:$n Not all children are visited unvisited=${unvisited}")
-    res
-  }
-}
-
-trait ChildLastTraversal extends BFSTraversal with HiearchicalTraversal {
-  override def traverse(n:N, zero:T):T = {
-    traverseChildren(n, super.traverse(n, zero))
-  }
-}
-
-trait HiearchicalTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal {
-  implicit val nct:ClassTag[N]
-  private val cache = Cache({ (n:N) => 
-    n match {
-      case _:SubGraph[_] => 
-        val unvisited = children(n).filterNot(isVisited) 
-        val depFree = unvisited.filter(isDepFree) 
-        if (unvisited.nonEmpty && depFree.isEmpty) {
-          List(unvisited.sortBy { n => depFunc(n).filterNot(isVisited).size }.head)
-        } else depFree
-      case n => Nil
-    }
-  })
-  override def visitChild(n:N):List[N] = cache.memorize(n)
-
-  override def visitFunc(n:N):List[N] = super[TopologicalTraversal].visitFunc(n)
-}
 
 import scala.collection.JavaConverters._
-trait GraphTransformer extends GraphTraversal {
+trait GraphTransformer extends GraphTraversal with UnitTraversal {
   type N<:Node[N] with Product
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
   type D <: Design
-  type T = Unit
   implicit val nct:ClassTag[N]
 
   def removeNode(node:N) = {
@@ -287,11 +296,9 @@ trait GraphTransformer extends GraphTraversal {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  override def visitNode(n:N, prev:T):T = transform(n)
+  override def visitNode(n:N):T = transform(n)
 
-  def transform(n:N):Unit = super.visitNode(n, ())
-
-  def traverseNode(n:N):Unit = traverseNode(n, ())
+  def transform(n:N):Unit = super.visitNode(n)
 
   def mirror[T<:N](n:T)(implicit design:D):(T, List[N]) = {
     val mapping = mirrorX(n)
