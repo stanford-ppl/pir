@@ -18,11 +18,6 @@ abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal
 
   def quote(n:N):String = qdef(n)
 
-  override def traverseNode(n:N):T = {
-    dbg(s"traverseNode ${qdef(n)}")
-    super.traverseNode(n)
-  }
-
   override def runPass = {
     traverseNode(design.newTop)
   }
@@ -60,6 +55,7 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
   type N <: prism.node.Node[N]
 
+  val forward = true
   val horizontal:Boolean = false
   def shouldRun = true
   val fileName:String
@@ -138,9 +134,6 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
 class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends CodegenWrapper with IRDotCodegen {
 
-  val verbose = true
-  override val horizontal:Boolean = if (verbose) false else true
-
   def top = design.newTop
 
   override def label(attr:DotAttr, n:N) = n match {
@@ -176,12 +169,7 @@ class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends Codeg
   override def emitNode(n:N) = {
     n match {
       case n:Const[_] if collectOut[Counter](n).isEmpty =>
-      case n:Module =>  
-        if (verbose) {
-          emitSingleNode(n)
-        } else {
-
-        }
+      case n:Module => emitSingleNode(n)
       case n => super.emitNode(n) 
     }
   }
@@ -195,6 +183,24 @@ class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends Codeg
     }
   }
 
+}
+
+class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) extends GlobalIRDotCodegen(fileName) {
+  override val horizontal:Boolean = false
+
+  override def color(attr:DotAttr, n:N) = n match {
+    case n:CUContainer if collectDown[SRAM](n).nonEmpty => attr.fillcolor(orange).style(filled)
+    //case n:CUContainer if n.controller.isOuterControl => attr.fillcolor(indianred).style(filled) ////TODO
+    case n => super.color(attr,n)
+  }
+
+  override def emitNode(n:N) = {
+    n match {
+      case g:Top => emitSubGraph(n)
+      case g:GlobalContainer => emitSingleNode(n)
+      case _ => 
+    }
+  }
 }
 
 class LocalIRDotCodegen(fn:String)(implicit design:PIR) extends GlobalIRDotCodegen(fn) {

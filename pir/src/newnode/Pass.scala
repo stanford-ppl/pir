@@ -22,10 +22,21 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with prism.
   def qtype(n:IR) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
 }
 
-abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal {
+abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal 
+
+trait ChildFirstTopologicalTraversal extends prism.traversal.ChildFirstTopologicalTraversal {
+  override def depFunc(n:N) = n match {
+    case n:ArgFringe => Nil
+    case n => super.depFunc(n)
+  }
+  override def depedFunc(n:N) = {
+    super.depedFunc(n).filterNot { _.isInstanceOf[ArgFringe] }
+  }
 }
 
 abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
+
+  def metadata = design.newTop.metadata
 
   def quote(n:Any) = n match {
     case n:N => qtype(n)
@@ -40,15 +51,7 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
         case n => super.mirrorX(n, mapping)
       }
       val m = mp(n)
-      (n,m) match {
-        case (n:N,m:N) => 
-          if (n!=m) n.name.foreach { name => m.name(name) }
-        case _ =>
-      }
-      (n, m) match {
-        case (n:ComputeContext, m:ComputeContext) if n != m => m.setControl(n.ctrl)
-        case _ =>
-      }
+      metadata.mirror(n,m)
       (n, m) match {
         case (n:Memory, m:Memory) => 
           val writers = n.depeds.collect { 
@@ -81,9 +84,8 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
   }
 }
 
-trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.traversal.BFSTraversal {
+trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.traversal.SiblingFirstTraversal {
   type N = Controller
-  def visitFunc(n:N):List[N] = n.children 
 }
 
 class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.SiblingFirstTraversal {
@@ -128,7 +130,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
+class AccessPulling(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
 
   override def shouldRun = true
 
@@ -203,7 +205,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with prism.traversa
 
 }
 
-class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
+class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
 
   override def shouldRun = true
 
@@ -218,11 +220,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
     val unvisited = containers.filterNot(isVisited)
     assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
   }
-
-  override def isDepFree(n:N) = n match {
-    case n:ArgFringe => true // heuristic breaking loop
-    case _ => super.isDepFree(n)
-  } 
 
   def isUseFree(n:N) = n match {
     case n:ArgOut => false
@@ -252,7 +249,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with prism.tr
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with prism.traversal.ChildFirstTopologicalTraversal {
+class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstTopologicalTraversal {
 
   type T = Controller
 
@@ -273,19 +270,15 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   override def check = {
     val contexts = collectDown[ComputeContext](design.newTop)
     contexts.foreach { context =>
-      assert(context.ctrl != null, s"$context's controller is not set")
+      assert(context.ctrls.nonEmpty, s"$context's controller is not set")
     }
   }
-
-  override def isDepFree(n:N) = n match {
-    case n:ArgFringe => true // heuristic breaking loop
-    case _ => super.isDepFree(n)
-  } 
 
   def resetController(n:Node, ctrl:Controller):Unit = n match {
     case n:ComputeContext => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
-      n.setControl(ctrl)
+      design.newTop.metadata.ctrlOf.remove(n)
+      n.ctrl(ctrl)
       n.deps.foreach(d => resetController(d, ctrl))
     case n =>
   }
@@ -302,12 +295,12 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
   }
 
   override def visitNode(n:N, prev:Controller):T = {
-    dbg(s"visitNode(${qtype(n)}, currentContext=$prev), isDepFree=${isDepFree(n)}")
+    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrls=${n.ctrls}), isDepFree=${isDepFree(n)}")
     n match {
       case n:ComputeContext =>
-        if (n.ctrl == null) {
+        if (n.ctrls.isEmpty) {
           assert(prev != null)
-          n.setControl(prev)
+          n.ctrl(prev)
           dbg(s"setting ${qtype(n)}.ctrl=$prev")
           super.visitNode(n, prev)
         } else {
@@ -319,7 +312,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with prism.trave
 
 }
 
-class AccessLowering(implicit design:PIR) extends Transformer with prism.traversal.ChildFirstTopologicalTraversal {
+class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
   override def shouldRun = true
 
   val forward = false
@@ -328,11 +321,6 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
     traverseNode(design.newTop)
   }
 
-  override def isDepFree(n:N) = n match {
-    case n:ArgFringe => true // heuristic breaking loop
-    case _ => super.isDepFree(n)
-  } 
-
   def retime(x:Def, cu:GlobalContainer, ctrl:Controller) = {
     x match {
       case x:Const[_] => x
@@ -340,8 +328,8 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
         mirror[IterDef](n, cu)
       case x =>
         val fifo = RetimingFIFO().setParent(cu)
-        MemStore(fifo, None, x).setControl(x.ctrl).setParent(cu)
-        MemLoad(fifo, None).setControl(ctrl).setParent(cu)
+        MemStore(fifo, None, x).ctrl(x.ctrl).setParent(cu)
+        MemLoad(fifo, None).ctrl(ctrl).setParent(cu)
     }
   }
 
@@ -355,7 +343,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
             // Remote read address calculation
             val memCU = collectUp[GlobalContainer](mem).head
             val maddrs = addrs.map { addrs => addrs.map { addr => mirror[Def](addr, memCU) } }
-            val access = MemLoad(mem, maddrs).setParent(memCU).setControl(n.ctrl).name(n.name)
+            val access = MemLoad(mem, maddrs).setParent(memCU).ctrl(n.ctrl).name(n.name)
             val newOut = if (memCU == accessCU) {
               access.out
             } else { // Remote memory, add Retiming FIFO
@@ -383,7 +371,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with prism.travers
               (addrs, data)
             }
             disconnect(mem, n)
-            MemStore(mem, saddrs, sdata).setParent(memCU).setControl(n.ctrl).name(n.name)
+            MemStore(mem, saddrs, sdata).setParent(memCU).ctrl(n.ctrl).name(n.name)
           }
         }
       case n => super.transform(n)
@@ -520,33 +508,3 @@ class IRCheck(implicit design:PIR) extends Pass {
   //val metrics = mutable.ListBuffer[CostMetric]()
 
 //}
-class TestTraversalPass(implicit design:PIR) extends Traversal with prism.traversal.SiblingFirstTopologicalTraversal {
-
-  type T = Unit
-  
-  val forward = true
-
-  val shouldRun = true
-
-  override def visitIn(n:N):List[N] = {
-    n match {
-      case n:GlobalContainer => super.visitIn(n).filterNot { _.isInstanceOf[ArgFringe] }
-      case n => super.visitIn(n)
-    }
-  }
-
-  override def visitNode(n:N, prev:T):T = {
-    n match {
-      case n:Container =>
-        dbgblk(s"Visiting ${qdef(n)}") {
-          super.visitNode(n, prev)
-        }
-      case n:Module =>
-        dbg(s"Visiting ${qdef(n)}")
-    }
-  }
-
-  override def runPass =  {
-    traverseNode(design.newTop, ())
-  }
-}

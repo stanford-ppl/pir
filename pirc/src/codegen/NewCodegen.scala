@@ -7,7 +7,7 @@ import prism.pass.Pass
 import java.io.{File, FileInputStream, FileOutputStream}
 import prism.traversal._
 
-trait Codegen extends Pass with prism.codegen.Printer with ChildFirstTraversal with UnitTraversal {
+trait Codegen extends Pass with prism.codegen.Printer with ChildFirstTopologicalTraversal with UnitTraversal {
 
   val dirName:String
   val fileName:String

@@ -67,6 +67,9 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
   type N = TestNode
   val dirName = design.outDir
 
+  def visitIn(n:N):List[N] = n.localDeps.toList
+  def visitOut(n:N):List[N] = n.localDepeds.toList
+
   def top = TraversalTest.top
 
   def quote(n:N) = n.toString
@@ -270,6 +273,10 @@ object MapTest {
     }
     assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b")))
     assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1))
+
+    map = map ++ (1 -> Set("d", "e"))
+    println(map.fmap)
+    println(map.bmap)
   }
 
   def testIBiManyToMany = {

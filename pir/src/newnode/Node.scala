@@ -13,18 +13,32 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 
 trait IR extends prism.node.IR { 
-  var name:Option[String] = None
-  def name(n:String):this.type = { this.name = Some(n); this }
-  def name(n:Option[String]):this.type = { this.name = n; this }
+  def name(n:String)(implicit design:PIR):this.type = {
+    design.newTop.metadata.nameOf(this) = n
+    this
+  } 
+  def name(n:Option[String])(implicit design:PIR):this.type = { 
+    n.foreach{n => this.name(n)}; 
+    this 
+  }
+  def name(implicit design:PIR) = design.newTop.metadata.nameOf.get(this)
+
+  def ctrls(implicit design:PIR) = design.newTop.metadata.ctrlOf(this.asInstanceOf[Node])
 
   def ctrl(ctrler:Any)(implicit design:PIR):this.type = {
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.setParent(ctrler)
-      case (self:ComputeContext, ctrler:Controller) => self.setControl(ctrler)
       case (self:Controller, top:Top) => self.setParent(top.topController)
-      case (_,_) =>
+      case (_, top:Top) =>
+      case (self:Memory, _) =>
+      case (self:Node, ctrler:Controller) => design.newTop.metadata.ctrlOf(self) = ctrler 
     }
     this
+  }
+
+  def ctrl(implicit design:PIR) = {
+    assert(ctrls.size==1, s"$ctrls")
+    ctrls.head
   }
 }
 
@@ -130,13 +144,15 @@ case class CUContainer(contains:Node*)(implicit design:PIR) extends GlobalContai
 case class FringeContainer(dram:DRAM, contains:Node*)(implicit design:PIR) extends GlobalContainer
 
 case class ArgFringe(argController:ArgController)(implicit design:PIR) extends GlobalContainer {
-  val argInDef = ArgInDef().setParent(this).setControl(argController)
+  val argInDef = ArgInDef().setParent(this).ctrl(argController)
 }
 
 case class Top()(implicit design: PIR) extends GlobalContainer { 
+  val metadata = new NewPIRMetadata {}
+
   val topController:TopController = TopController()
   val argController = ArgController().setParent(topController)
-  val argFringe = ArgFringe(argController).setParent(this)
+  lazy val argFringe = ArgFringe(argController).setParent(this)
 
   val argIns = mutable.ListBuffer[ArgIn]()
   val argOuts = mutable.ListBuffer[ArgOut]()
@@ -145,7 +161,7 @@ case class Top()(implicit design: PIR) extends GlobalContainer {
   def argIn(init:AnyVal)(implicit design:PIR) = {
     val reg = ArgIn(init).setParent(this)
     argIns += reg
-    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).setControl(argController)
+    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).ctrl(argController)
     reg
   }
 
@@ -160,23 +176,20 @@ case class Top()(implicit design: PIR) extends GlobalContainer {
     val reg = ArgIn().setParent(this)
     reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
-    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).setControl(argController)
+    StoreDef(List(reg), None, argFringe.argInDef).setParent(argFringe).ctrl(argController)
     LoadDef(List(reg), None)
   }
 
 }
 
-trait ComputeContext extends Node { self =>
-  var _controller:Controller = _
-  def setControl(c:Controller):this.type = { _controller = c; this }
-  def ctrl:Controller = _controller
-}
+trait ComputeContext extends Node
 
 trait Controller extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
   val style:ControlStyle
   val level:ControlLevel
-  def isInnerControl = children.isEmpty 
+  def isInnerControl = level==InnerControl 
+  def isOuterControl = level==OuterControl
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Controller {
   override def className = s"$style"
@@ -262,3 +275,24 @@ case object StreamPipe extends ControlStyle
 sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
+
+import prism.collection.mutable._
+trait NewPIRMetadata extends prism.node.Metadata {
+
+  object nameOf extends MetadataMap[IR] with OneToOneMap[IR, String] {
+    def mirror(orig:K, clone:K):Unit = {
+      val vv = get(orig)
+      remove(orig)
+      vv.foreach { vv => update(clone, vv) }
+    }
+  }
+
+  object ctrlOf extends MetadataMap[Node] with BiManyToManyMap[Node, Controller] {
+    def mirror(orig:K, clone:K):Unit = {
+      val vv = get(orig)
+      remove(orig)
+      vv.foreach { vv => update(clone, vv) }
+    }
+    override def check(k:K, v:V) = {} // allow reset
+  }
+}

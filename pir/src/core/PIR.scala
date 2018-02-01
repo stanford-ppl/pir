@@ -175,22 +175,20 @@ trait PIR extends Design with PIRMetadata with Collector {
 
     addPass(accessPuller)
     addPass(new GlobalIRDotCodegen(s"top4.dot"))
-    addPass(new LocalIRDotCodegen(s"local4.dot"))
 
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top5.dot"))
 
-    addPass(accessLowering).addDependency(accessPuller, deadCodeEliminator)
+    addPass(accessLowering).addDependency(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top6.dot"))
 
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top7.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple.dot"))
 
     addPass(cuStats)
 
     addPass(irCheck)
-
-    addPass(new pir.newnode.TestTraversalPass())
 
     addPass(new TestDotCodegen(s"test.dot"))
     addPass(new TestPass())

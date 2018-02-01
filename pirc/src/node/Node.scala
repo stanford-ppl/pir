@@ -240,3 +240,43 @@ trait Memorization {
   def resetAllCaches = caches.foreach(_.resetAll)
 }
 
+import prism.collection.mutable._
+import scala.util.{Try, Success, Failure}
+trait Metadata extends {
+
+  val maps = scala.collection.mutable.ListBuffer[MetadataMap[_]]()
+
+  def reset = maps.foreach(_.clear)
+
+  def summerize(n:Any, maps:MetadataMap[_]*):List[String] = { maps.flatMap { map => summerize(n) }.toList }
+
+  def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
+
+  def mirror(orig:Any, clone:Any) = {
+    if (orig != clone) maps.foreach { map => map.mirrorMeta(orig, clone) }
+  }
+
+  abstract class MetadataMap[K:ClassTag] { 
+    type V
+    type VV
+    maps += this
+    def name:String
+    def clear:Unit
+    def get(k:K):Option[VV]
+    // Default just copy over
+    def mirror(orig:K, clone:K):Unit
+    def mirrorMeta(orig:Any, clone:Any):Unit = {
+      (orig, clone) match {
+        case (orig:K, clone:K) => mirror(orig, clone)
+        case _ =>
+      }
+    }
+    def info(k:Any):Option[String] = { 
+      k match {
+        case k:K => get(k).map { v => s"${name}($k)=$v" }
+        case k => None
+      }
+    }
+  }
+}
+
