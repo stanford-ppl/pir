@@ -244,6 +244,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
       n.ios.foreach(_.disconnect)
       n.parent.foreach { parent =>
         parent.removeChild(n)
+        metadata.remove(n)
       }
     }
     super.transform(n)

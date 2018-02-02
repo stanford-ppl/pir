@@ -253,8 +253,15 @@ trait Metadata extends Serializable {
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
   def mirror(orig:Any, clone:Any) = {
-    if (orig != clone) maps.foreach { map => map.mirrorMeta(orig, clone) }
+    if (orig != clone) maps.foreach { map => 
+      (map.asK(orig), map.asK(clone)) match {
+        case (Some(orig), Some(clone)) => map.mirror(orig, clone)
+        case _ =>
+      }
+    }
   }
+
+  def remove(node:Any) = maps.foreach { map => map.asK(node) match { case Some(node) => map.remove(node); case None => } }
 
   trait MetadataMap { 
     type K
@@ -273,12 +280,6 @@ trait Metadata extends Serializable {
     // Default just copy over
     def mirror(orig:K, clone:K):Unit = {
       get(orig).foreach { vv => update(clone, vv) }
-    }
-    def mirrorMeta(orig:Any, clone:Any):Unit = {
-      (asK(orig), asK(clone)) match {
-        case (Some(orig), Some(clone)) => mirror(orig, clone)
-        case _ =>
-      }
     }
     def info(k:Any):Option[String] = { 
       asK(k) match {
