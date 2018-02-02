@@ -21,10 +21,10 @@ trait UniMap[K,V,VV] extends MapLike[K,V,VV] with prism.collection.UniMap[K,V,VV
   def clear = { map.clear }
   def remove(k:K, v:V):Unit = remove(k)
   def remove(k:K):Unit = map -= k
+  def getOrElse(k:K,vv:VV) = map.getOrElse(k,vv)
 }
 
-// Concrete
-trait OneToOneMap[K,V] extends UniMap[K,V,V] with prism.collection.OneToOneMap[K,V] {
+class OneToOneMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,V] with prism.collection.OneToOneMap[K,V] {
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
     map += (k -> v)
@@ -35,8 +35,7 @@ trait OneToOneMap[K,V] extends UniMap[K,V,V] with prism.collection.OneToOneMap[K
   }
 }
 
-// Concrete
-trait OneToManyMap[K,V] extends UniMap[K,V,Set[V]] with prism.collection.OneToManyMap[K,V,Set[V]] {
+class OneToManyMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,Set[V]] with prism.collection.OneToManyMap[K,V,Set[V]] {
   override def apply(k:K) = map.getOrElse(k, Set())
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
@@ -50,8 +49,8 @@ trait OneToManyMap[K,V] extends UniMap[K,V,Set[V]] with prism.collection.OneToMa
 }
 
 trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,KK,VV] {
-  override def fmap:UniMap[K,V,VV]
-  override def bmap:UniMap[V,K,KK]
+  def fmap:UniMap[K,V,VV]
+  def bmap:UniMap[V,K,KK]
 
   def update(k:K, v:V):Unit = {
     fmap.update(k,v)
@@ -61,61 +60,62 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,K
     fmap.remove(k,v)
     bmap.remove(v,k)
   }
+  def remove(k:K):Unit = {
+    fmap.get(k).foreach { vv => toVs(vv).foreach(v => bmap.remove(v)) }
+    fmap.remove(k)
+  }
+  def getOrElseUpdate(k:K)(vv: => VV):VV = {
+    fmap.getOrElseUpdate(k){
+      toVV(toVs(vv).map { v => bmap.update(v, k); v })
+    }
+  }
 
   def clear = { fmap.clear; bmap.clear }
+
+  def toVs(vv:VV):Set[V]
+  def toVV(vs:Set[V]):VV
 }
 
 trait ForwardOneToOneMap[K,V,KK] extends BiMap[K,V,KK,V] {
-  val fmap = new OneToOneMap[K,V]{}
-
-  override def remove(k:K):Unit = {
-    fmap.get(k).foreach { v => bmap.remove(v,k) }
-    fmap.remove(k)
-  }
-
-  def getOrElseUpdate(k:K)(vv: => V):V = {
-    fmap.getOrElseUpdate(k){
-      val v = vv
-      bmap.update(v,k)
-      v
-    }
-  }
+  def fmap:OneToOneMap[K,V]
+  def toVs(vv:V):Set[V] = Set(vv)
+  def toVV(vs:Set[V]):V = vs.head
 }
 
-trait ForwardOneToManyMap[K,V,KK] extends BiMap[K,V,KK,Set[V]] {
-  val fmap = new OneToManyMap[K,V]{}
+trait ForwardOneToManyMap[K,V,KK] extends BiMap[K,V,KK,Set[V]]{
+  def fmap:OneToManyMap[K,V]
+  def toVs(vv:Set[V]):Set[V] = vv
+  def toVV(vs:Set[V]):Set[V] = vs
 
-  override def apply(k:K) = map.getOrElse(k, Set())
-  def update(k:K, vv:VV):Unit = vv.foreach(v => update(k,v))
-
-  override def remove(k:K):Unit = {
-    fmap.get(k).foreach { vs => vs.foreach { v => bmap.remove(v,k) } }
-    fmap.remove(k)
-  }
-
-  def getOrElseUpdate(k:K)(vv: => Set[V]):Set[V] = {
-    fmap.getOrElseUpdate(k){
-      vv.map { v => bmap.update(v, k); v }
-    }
-  }
+  override def apply(k:K) = fmap.getOrElse(k, Set())
+  def update(k:K, v:V):Unit
+  def update(k:K, vv:Set[V]):Unit = vv.foreach(v => update(k,v))
 }
 
 trait BackwardOneToOneMap[K,V,VV] extends BiMap[K,V,K,VV] {
-  val bmap = new OneToOneMap[V,K]{}
+  def bmap:OneToOneMap[V,K]
 }
 
-trait BackwardOneToManyMap[K,V,VV] extends BiMap[K,V,Set[K],VV] {
-  val bmap = new OneToManyMap[V,K]{}
+trait BackwardOneToManyMap[K,V,VV] extends BiMap[K,V,Set[K],VV]{
+  def bmap:OneToManyMap[V,K]
 }
 
-// Concrete
-trait BiOneToOneMap[K,V] extends ForwardOneToOneMap[K,V,K] with BackwardOneToOneMap[K,V,V]
+class BiOneToOneMap[K:ClassTag,V:ClassTag] extends ForwardOneToOneMap[K,V,K] with BackwardOneToOneMap[K,V,V] {
+  val fmap = new OneToOneMap[K,V]()
+  val bmap = new OneToOneMap[V,K]()
+}
 
-// Concrete
-trait BiOneToManyMap[K,V] extends ForwardOneToManyMap[K,V,K] with BackwardOneToOneMap[K,V,Set[V]]
+class BiOneToManyMap[K:ClassTag,V:ClassTag] extends ForwardOneToManyMap[K,V,K] with BackwardOneToOneMap[K,V,Set[V]] {
+  val fmap = new OneToManyMap[K,V]()
+  val bmap = new OneToOneMap[V,K]()
+}
 
-// Concrete
-trait BiManyToOneMap[K,V] extends ForwardOneToOneMap[K,V,Set[K]] with BackwardOneToManyMap[K,V,V]
+class BiManyToOneMap[K:ClassTag,V:ClassTag] extends ForwardOneToOneMap[K,V,Set[K]] with BackwardOneToManyMap[K,V,V] {
+  val fmap = new OneToOneMap[K,V]()
+  val bmap = new OneToManyMap[V,K]()
+}
 
-// Concrete
-trait BiManyToManyMap[K,V] extends ForwardOneToManyMap[K,V,Set[K]] with BackwardOneToManyMap[K,V,Set[V]]
+class BiManyToManyMap[K:ClassTag,V:ClassTag] extends ForwardOneToManyMap[K,V,Set[K]] with BackwardOneToManyMap[K,V,Set[V]] {
+  val fmap = new OneToManyMap[K,V]()
+  val bmap = new OneToManyMap[V,K]()
+}

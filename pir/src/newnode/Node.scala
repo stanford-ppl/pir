@@ -273,23 +273,12 @@ case object OuterControl extends ControlLevel
 import prism.collection.mutable._
 trait NewPIRMetadata extends prism.node.Metadata {
 
-  object nameOf extends MetadataMap[IR] with OneToOneMap[IR, String] {
-    def mirror(orig:K, clone:K):Unit = {
-      val vv = get(orig)
-      remove(orig)
-      vv.foreach { vv => update(clone, vv) }
-    }
+  object nameOf extends OneToOneMap[IR, String] with MetadataMap {
   }
 
-  object ctrlOf extends MetadataMap[Node] with BiManyToOneMap[Node, Controller] {
-    println(name)
-    def mirror(orig:K, clone:K):Unit = {
-      val vv = get(orig)
-      remove(orig)
-      vv.foreach { vv => update(clone, vv) }
-    }
-    override def check(k:K, v:V) = {
-      println(s"ctrlOf($k) = $v")
-    } // allow reset
+  object ctrlOf extends BiManyToOneMap[Node, Controller] with MetadataMap {
+    //override def update(k:K, v:V) = {
+      //println(s"ctrlOf($k) = $k")
+    //}
   }
 }

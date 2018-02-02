@@ -163,34 +163,34 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
     
-    addPass(new IRPrinter)
-    addPass(new GlobalIRDotCodegen(s"top1.dot"))
+    //addPass(new IRPrinter)
+    //addPass(new GlobalIRDotCodegen(s"top1.dot"))
 
-    addPass(deadCodeEliminator)
-    addPass(new GlobalIRDotCodegen(s"top2.dot"))
+    //addPass(deadCodeEliminator)
+    //addPass(new GlobalIRDotCodegen(s"top2.dot"))
 
-    addPass(controlPropogator)
-    addPass(cuInsertion)
-    addPass(new GlobalIRDotCodegen(s"top3.dot"))
+    //addPass(controlPropogator)
+    //addPass(cuInsertion)
+    //addPass(new GlobalIRDotCodegen(s"top3.dot"))
 
-    addPass(accessPuller)
-    addPass(new GlobalIRDotCodegen(s"top4.dot"))
+    //addPass(accessPuller)
+    //addPass(new GlobalIRDotCodegen(s"top4.dot"))
 
-    addPass(deadCodeEliminator)
-    addPass(new GlobalIRDotCodegen(s"top5.dot"))
+    //addPass(deadCodeEliminator)
+    //addPass(new GlobalIRDotCodegen(s"top5.dot"))
 
-    addPass(accessLowering).addDependency(controlPropogator, accessPuller, deadCodeEliminator)
-    addPass(new GlobalIRDotCodegen(s"top6.dot"))
+    //addPass(accessLowering).addDependency(controlPropogator, accessPuller, deadCodeEliminator)
+    //addPass(new GlobalIRDotCodegen(s"top6.dot"))
 
-    addPass(deadCodeEliminator)
-    addPass(new GlobalIRDotCodegen(s"top7.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    //addPass(deadCodeEliminator)
+    //addPass(new GlobalIRDotCodegen(s"top7.dot"))
+    //addPass(new SimpleIRDotCodegen(s"simple.dot"))
 
-    addPass(cuStats)
+    //addPass(cuStats)
 
-    addPass(irCheck)
+    //addPass(irCheck)
 
-    addPass(new TestDotCodegen(s"test.dot"))
+    //addPass(new TestDotCodegen(s"test.dot"))
     addPass(new TestPass())
 
     super.run

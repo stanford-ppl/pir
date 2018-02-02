@@ -244,11 +244,11 @@ import prism.collection.mutable._
 import scala.util.{Try, Success, Failure}
 trait Metadata extends {
 
-  val maps = scala.collection.mutable.ListBuffer[MetadataMap[_]]()
+  val maps = scala.collection.mutable.ListBuffer[MetadataMap]()
 
   def reset = maps.foreach(_.clear)
 
-  def summerize(n:Any, maps:MetadataMap[_]*):List[String] = { maps.flatMap { map => summerize(n) }.toList }
+  def summerize(n:Any, maps:MetadataMap*):List[String] = { maps.flatMap { map => summerize(n) }.toList }
 
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
@@ -256,24 +256,35 @@ trait Metadata extends {
     if (orig != clone) maps.foreach { map => map.mirrorMeta(orig, clone) }
   }
 
-  abstract class MetadataMap[K:ClassTag] { 
+  trait MetadataMap { 
+    type K
     type V
     type VV
+    def asK(k:Any):Option[K]
+    def asV(v:Any):Option[V]
+    def asVV(vv:Any):Option[VV]
+
     maps += this
     def name:String
     def clear:Unit
     def get(k:K):Option[VV]
+    def remove(k:K):Unit
+    def update(k:K,vv:VV):Unit
     // Default just copy over
-    def mirror(orig:K, clone:K):Unit
+    def mirror(orig:K, clone:K):Unit = {
+      val vv = get(orig)
+      remove(orig)
+      vv.foreach { vv => update(clone, vv) }
+    }
     def mirrorMeta(orig:Any, clone:Any):Unit = {
-      (orig, clone) match {
-        case (orig:K, clone:K) => mirror(orig, clone)
+      (asK(orig), asK(clone)) match {
+        case (Some(orig), Some(clone)) => mirror(orig, clone)
         case _ =>
       }
     }
     def info(k:Any):Option[String] = { 
-      k match {
-        case k:K => get(k).map { v => s"${name}($k)=$v" }
+      asK(k) match {
+        case Some(k) => get(k).map { v => s"${name}($k)=$v" }
         case k => None
       }
     }

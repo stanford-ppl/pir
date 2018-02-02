@@ -7,13 +7,20 @@ import scala.collection.Map
 import scala.collection.Set
 import scala.reflect._
 
-trait MapType[TK,TV,TVV] {
+abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] {
   type K = TK
   type V = TV
   type VV = TVV
+  val kct = implicitly[ClassTag[K]]
+  val vct = implicitly[ClassTag[V]]
+  val vvct = implicitly[ClassTag[VV]]
+
+  def asK(k:Any) = k match { case k:TK => Some(k); case _ => None }
+  def asV(v:Any) = v match { case v:TV => Some(v); case _ => None }
+  def asVV(vv:Any) = vv match { case vv:TVV => Some(vv); case _ => None }
 }
 
-trait MapLike[K,V,VV] extends Serializable with MapType[K,V,VV] {
+trait MapLike[K,V,VV] extends MapType[K,V,VV] with Serializable {
   val name:String = this.getClass().getSimpleName().replace("$","")
   def apply(n:K):VV
   def get(n:K):Option[VV]
