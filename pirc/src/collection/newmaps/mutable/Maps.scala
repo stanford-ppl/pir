@@ -4,7 +4,6 @@ import pirc._
 import pirc.exceptions._
 import scala.reflect._
 
-import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 trait MapLike[K,V,VV] extends prism.collection.MapLike[K,V,VV] {
   def update(k:K, v:V):Unit
@@ -39,7 +38,7 @@ class OneToManyMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,Set[V]] with prism.
   override def apply(k:K) = map.getOrElse(k, Set())
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
-    map.getOrElseUpdate(k, Set[V]()) += v
+    map += k -> (map.getOrElse(k, Set[V]()) + v)
   }
   def getOrElseUpdate(k:K)(vv: => Set[V]):Set[V] = {
     if (!map.contains(k)) vv.foreach { v => update(k,v) }
@@ -53,6 +52,8 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,K
   def bmap:UniMap[V,K,KK]
 
   def update(k:K, v:V):Unit = {
+    fmap.check(k,v)
+    bmap.check(v,k)
     fmap.update(k,v)
     bmap.update(v,k)
   }
@@ -90,6 +91,7 @@ trait ForwardOneToManyMap[K,V,KK] extends BiMap[K,V,KK,Set[V]]{
   override def apply(k:K) = fmap.getOrElse(k, Set())
   def update(k:K, v:V):Unit
   def update(k:K, vv:Set[V]):Unit = vv.foreach(v => update(k,v))
+  def ++= (kvv:(K,Set[V])):Unit = update(kvv._1, kvv._2)
 }
 
 trait BackwardOneToOneMap[K,V,VV] extends BiMap[K,V,K,VV] {

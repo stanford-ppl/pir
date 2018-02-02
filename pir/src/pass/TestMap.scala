@@ -12,10 +12,10 @@ object MapTest {
     testIBiOneToMany
     testIBiManyToMany
     testMOneToOne
-    //testMOneToMany
-    //testMBiOneToOne
-    //testMBiOneToMany
-    //testMBiManyToMany
+    testMOneToMany
+    testMBiOneToOne
+    testMBiOneToMany
+    testMBiManyToMany
   }
 
   def testIOneToOne = {
@@ -75,8 +75,8 @@ object MapTest {
     assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1))
 
     map = map ++ (1 -> Set("d", "e"))
-    println(map.fmap)
-    println(map.bmap)
+    assert(map.fmap.map == Map(1 -> Set("a","c","d","e"), 2 -> Set("b")))
+    assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1,"d" -> 1, "e" -> 1))
   }
 
   def testIBiManyToMany = {
@@ -90,73 +90,73 @@ object MapTest {
   }
 
   def testMOneToOne = {
-    //val map = mutable.OneToOneMap[Int,String]()
-    //map += (1 -> "a")
-    //map += (2 -> "b")
-    //map += (3 -> "c")
+    val map = new mutable.OneToOneMap[Int,String]()
+    map += (1 -> "a")
+    map += (2 -> "b")
+    map += (3 -> "c")
     
-    //try {
-      //map += (1 -> "d")
-    //} catch {
-      //case e:RebindingException[_,_] =>
-      //case e:Throwable => throw e
-    //}
+    try {
+      map += (1 -> "d")
+    } catch {
+      case e:RebindingException[_,_] =>
+      case e:Throwable => throw e
+    }
 
-    //map += (4 -> "a")
-    //assert(map.map == Map(1 -> "a", 2 -> "b", 3 -> "c", 4 -> "a"))
+    map += (4 -> "a")
+    assert(map.map == Map(1 -> "a", 2 -> "b", 3 -> "c", 4 -> "a"))
   }
 
-  //def testMOneToMany = {
-    //val map = mutable.OneToManyMap[Int,String]()
-    //map = map + (1 -> "a")
-    //map = map + (2 -> "b")
-    //map = map + (1 -> "c")
-    //assert(map.map == Map(1 -> Set("a","c"), 2 -> Set("b")))
-  //}
+  def testMOneToMany = {
+    val map = new mutable.OneToManyMap[Int,String]()
+    map += (1 -> "a")
+    map += (2 -> "b")
+    map += (1 -> "c")
+    assert(map.map == Map(1 -> Set("a","c"), 2 -> Set("b")))
+  }
 
-  //def testMBiOneToOne = {
-    //val map = mutable.BiOneToOneMap[Int,String]()
-    //map = map + (1 -> "a")
-    //map = map + (2 -> "b")
-    //map = map + (3 -> "c")
+  def testMBiOneToOne = {
+    val map = new mutable.BiOneToOneMap[Int,String]()
+    map += (1 -> "a")
+    map += (2 -> "b")
+    map += (3 -> "c")
     
-    //try {
-      //map = map + (4 -> "a")
-    //} catch {
-      //case e:RebindingException[_,_] =>
-      //case e:Throwable => throw e
-    //}
+    try {
+      map += (4 -> "a")
+    } catch {
+      case e:RebindingException[_,_] =>
+      case e:Throwable => throw e
+    }
 
-    //assert(map.fmap.map == Map(1 -> "a", 2 -> "b", 3 -> "c"))
-    //assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 3))
-  //}
+    assert(map.fmap.map == Map(1 -> "a", 2 -> "b", 3 -> "c"), map.fmap.map)
+    assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 3))
+  }
 
-  //def testMBiOneToMany = {
-    //val map = mutable.BiOneToManyMap[Int,String]()
-    //map = map + (1 -> "a")
-    //map = map + (2 -> "b")
-    //map = map + (1 -> "c")
-    //try {
-      //map = map + (4 -> "a")
-    //} catch {
-      //case e:RebindingException[_,_] =>
-      //case e:Throwable => throw e
-    //}
-    //assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b")))
-    //assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1))
+  def testMBiOneToMany = {
+    val map = new mutable.BiOneToManyMap[Int,String]()
+    map += (1 -> "a")
+    map += (2 -> "b")
+    map += (1 -> "c")
+    try {
+      map += (4 -> "a")
+    } catch {
+      case e:RebindingException[_,_] =>
+      case e:Throwable => throw e
+    }
+    assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b")))
+    assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1))
 
-    //map = map ++ (1 -> Set("d", "e"))
-    //println(map.fmap)
-    //println(map.bmap)
-  //}
+    map ++= (1 -> Set("d", "e"))
+    assert(map.fmap.map == Map(1 -> Set("a","c","d","e"), 2 -> Set("b")))
+    assert(map.bmap.map == Map("a" -> 1, "b" -> 2, "c" -> 1,"d" -> 1, "e" -> 1))
+  }
 
-  //def testMBiManyToMany = {
-    //val map = mutable.BiManyToManyMap[Int,String]()
-    //map = map + (1 -> "a")
-    //map = map + (2 -> "b")
-    //map = map + (1 -> "c")
-    //map = map + (4 -> "a")
-    //assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b"), 4->Set("a")))
-    //assert(map.bmap.map == Map("a"->Set(1,4),"b"->Set(2),"c"->Set(1)))
-  //}
+  def testMBiManyToMany = {
+    val map = new mutable.BiManyToManyMap[Int,String]()
+    map += (1 -> "a")
+    map += (2 -> "b")
+    map += (1 -> "c")
+    map += (4 -> "a")
+    assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b"), 4->Set("a")))
+    assert(map.bmap.map == Map("a"->Set(1,4),"b"->Set(2),"c"->Set(1)))
+  }
 }

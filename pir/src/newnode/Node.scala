@@ -142,7 +142,7 @@ case class ArgFringe(argController:ArgController)(implicit design:PIR) extends G
 }
 
 case class Top()(implicit design: PIR) extends GlobalContainer { 
-  val metadata = new NewPIRMetadata {}
+  val metadata = new NewPIRMetadata
 
   val topController:TopController = TopController()
   val argController = ArgController().setParent(topController)
@@ -271,14 +271,11 @@ case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
 
 import prism.collection.mutable._
-trait NewPIRMetadata extends prism.node.Metadata {
+class NewPIRMetadata extends prism.node.Metadata {
 
   object nameOf extends OneToOneMap[IR, String] with MetadataMap {
   }
 
   object ctrlOf extends BiManyToOneMap[Node, Controller] with MetadataMap {
-    //override def update(k:K, v:V) = {
-      //println(s"ctrlOf($k) = $k")
-    //}
   }
 }

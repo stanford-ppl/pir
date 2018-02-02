@@ -242,7 +242,7 @@ trait Memorization {
 
 import prism.collection.mutable._
 import scala.util.{Try, Success, Failure}
-trait Metadata extends {
+trait Metadata extends Serializable {
 
   val maps = scala.collection.mutable.ListBuffer[MetadataMap]()
 
@@ -272,9 +272,7 @@ trait Metadata extends {
     def update(k:K,vv:VV):Unit
     // Default just copy over
     def mirror(orig:K, clone:K):Unit = {
-      val vv = get(orig)
-      remove(orig)
-      vv.foreach { vv => update(clone, vv) }
+      get(orig).foreach { vv => update(clone, vv) }
     }
     def mirrorMeta(orig:Any, clone:Any):Unit = {
       (asK(orig), asK(clone)) match {

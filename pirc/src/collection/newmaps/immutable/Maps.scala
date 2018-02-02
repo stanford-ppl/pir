@@ -43,7 +43,6 @@ trait BiMap[K,V,KK,VV,FM<:UniMap[K,V,VV,_],BM<:UniMap[V,K,KK,_],S] extends MapLi
   override def fmap:FM
   override def bmap:BM
   def newInstance(fm:Map[K,VV], bm:Map[V,KK]):S = {
-    println(this.getClass.getConstructors()(0).getParameterTypes().mkString(","))
     this.getClass.getConstructor(classOf[Map[K,VV]], classOf[Map[V,KK]], classOf[ClassTag[K]], classOf[ClassTag[V]])
       .newInstance(fm, bm, kct, vct)
   }

@@ -482,8 +482,7 @@ class IRCheck(implicit design:PIR) extends Pass {
     stageDef.foreach { stageDef =>
       assert(ctrlOf.contains(stageDef), s"${qtype(stageDef)} in $cu doesn't have ctrl defined")
       val ctrl = ctrlOf(stageDef)
-      assert(ctrl == InnerControl, 
-        s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
+      assert(ctrl.level == InnerControl, s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
     }
   }
 
