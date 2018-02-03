@@ -103,6 +103,7 @@ abstract class Memory(implicit design:PIR) extends Module { self =>
 
   def writers = depeds.collect { case d: LocalStore => d }
   def readers = depeds.collect { case d: LocalLoad => d }
+  def accesses = writers ++ readers
 }
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIR) extends Memory
@@ -277,5 +278,8 @@ class NewPIRMetadata extends prism.node.Metadata {
   }
 
   object ctrlOf extends BiManyToOneMap[Node, Controller] with MetadataMap {
+  }
+
+  object isLocalMem extends OneToOneMap[IR, Boolean] with MetadataMap {
   }
 }

@@ -23,7 +23,7 @@ class FusionTransform(implicit design: PIR) extends Pass with Logger {
       nctr.clone(ctr, logger=Some(this))
       ccc.addOuterCounter(nctr)
     }
-    design.memoryAnalyzer.analyzeNewCC(ccc)
+    //design.memoryAnalyzer.analyzeNewCC(ccc) // TODO
     dprintln(s"after=${child.cchains.map{ cc => s"$cc(${cc.counters.mkString(",")})"}}")
     design.removeNode(parent)
   }

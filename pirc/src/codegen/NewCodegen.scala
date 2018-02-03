@@ -7,7 +7,7 @@ import prism.pass.Pass
 import java.io.{File, FileInputStream, FileOutputStream}
 import prism.traversal._
 
-trait Codegen extends Pass with prism.codegen.Printer with ChildFirstTopologicalTraversal with UnitTraversal {
+trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with UnitTraversal {
 
   val dirName:String
   val fileName:String
@@ -73,7 +73,7 @@ trait Codegen extends Pass with prism.codegen.Printer with ChildFirstTopological
     closeStream
   }
 
-  def quote(n:N):String
+  def quote(n:Any):String
 
   override def visitNode(n:N):T = emitNode(n)
 

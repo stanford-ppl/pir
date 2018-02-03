@@ -63,7 +63,7 @@ case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with 
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
 
-class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotCodegen {
+class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotCodegen with ChildFirstTopologicalTraversal {
   type N = TestNode
   val dirName = design.outDir
 
@@ -72,7 +72,7 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
 
   def top = TraversalTest.top
 
-  def quote(n:N) = n.toString
+  def quote(n:Any) = n.toString
 
   def runPass = {
     traverseNode(top, ())

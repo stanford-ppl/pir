@@ -5,13 +5,14 @@ import pir._
 import pirc._
 import pirc.enums._
 import pirc.util._
+import prism.traversal._
 
 import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with prism.traversal.GraphCollector {
+abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with GraphCollector {
   type N = Node with Product
   type P = Container
   type A = Module
@@ -36,7 +37,7 @@ trait ChildFirstTopologicalTraversal extends prism.traversal.ChildFirstTopologic
   }
 }
 
-abstract class Transformer(implicit design:PIR) extends Traversal with prism.traversal.GraphTransformer { 
+abstract class Transformer(implicit design:PIR) extends Traversal with GraphTransformer { 
 
   def quote(n:Any) = n match {
     case n:N => qtype(n)
@@ -45,11 +46,13 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
   override def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
     if (mapping.contains(n)) return mapping
     var mp  = mapping
+    // Nodes do not mirror
+    mp = n match {
+      case n@(_:SRAM | _:StreamIn | _:StreamOut) => mp + (n -> n)
+      case n => mp
+    }
     dbgblk(s"mirrorX(${quote(n)})") {
-      mp = n match {
-        case n@(_:SRAM | _:StreamIn) => mapping + (n -> n)
-        case n => super.mirrorX(n, mapping)
-      }
+      mp = super.mirrorX(n, mp)
       val m = mp(n)
       metadata.mirror(n,m)
       (n, m) match {
@@ -64,10 +67,8 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
           dbg(s"writers of $n = ${writers}")
           mp = writers.foldLeft(mp) { case (prev, writer) => mirrorX(writer, mp) }
         case (n:Counter, m:Counter) =>
-          mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => 
-            mirrorX(cc, mp)
-          }
           dbg(s"$m.parent = ${m.parent}")
+          mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => mirrorX(cc, mp) }
         case (n:CounterChain, m:CounterChain) =>
           dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
         case _ =>
@@ -84,11 +85,11 @@ abstract class Transformer(implicit design:PIR) extends Traversal with prism.tra
   }
 }
 
-trait ControllerTraversal extends prism.traversal.GraphTraversal with prism.traversal.SiblingFirstTraversal {
+trait ControllerTraversal extends GraphTraversal with SiblingFirstTraversal with GraphUtil {
   type N = Controller
 }
 
-class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.SiblingFirstTraversal {
+class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTraversal {
 
   import metadata._
 
@@ -101,13 +102,12 @@ class CUInsertion(implicit design:PIR) extends Transformer with prism.traversal.
   
   val cuMap = mutable.Map[Controller, GlobalContainer]()
 
-  val controllerTraversal = new ControllerTraversal {
-    type T = Unit
+  val controllerTraversal = new ControllerTraversal with UnitTraversal {
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
         case n:TopController => design.newTop
         case n:ArgController => design.newTop.argFringe
-        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}")
+        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}").ctrl(n)
       }
       dbg(s"${qtype(n)} -> ${qtype(cu)}")
       cuMap += n -> cu
@@ -287,8 +287,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
     case n =>
   }
 
-  val controllerTraversal = new ControllerTraversal {
-    type T = Unit
+  val controllerTraversal = new ControllerTraversal with UnitTraversal{
     override def visitNode(n:N, prev:T):T = {
       n match {
         case n:LoopController => resetController(n.cchain, n)
@@ -335,8 +334,11 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
         mirror[IterDef](n, cu)
       case x =>
         val fifo = RetimingFIFO().setParent(cu)
-        MemStore(fifo, None, x).setParent(cu)
-        MemLoad(fifo, None).setParent(cu)
+        val store = MemStore(fifo, None, x).setParent(cu)
+        val load = MemLoad(fifo, None).setParent(cu)
+        metadata.mirror(x, store)
+        metadata.mirror(x, load)
+        load
     }
   }
 
@@ -427,8 +429,6 @@ class CUStatistics(implicit design:PIR) extends Pass {
 class IRCheck(implicit design:PIR) extends Pass {
   import metadata._
 
-  type T = Unit
-
   def shouldRun = true
 
   def warn(s:Any) = {
@@ -493,6 +493,40 @@ class IRCheck(implicit design:PIR) extends Pass {
       checkCUIO(cu)
       checkMemoryAccess(cu)
       checkDefControl(cu)
+    }
+  }
+
+}
+
+class MemoryAnalyzer(implicit design:PIR) extends Pass {
+  import metadata._
+
+  type T = Unit
+
+  def shouldRun = true
+
+  val traversal = new ControllerTraversal {}
+  def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
+    val parentCtrl = mem.accesses.map { access => 
+      dbg(s"access:$access ctrl=${ctrlOf(access)}")
+      ctrlOf(access)
+    }.reduce[Controller]{ case (a1, a2) =>
+      val lca = traversal.leastCommonAncesstor(a1, a2)
+      dbg(s"a1=$a1, a2=$a2, lca=$lca")
+      if (lca.isEmpty) err(s"$a1 and $a2 do not share common ancestor")
+      lca.get
+    }
+    ctrlOf(mem) = parentCtrl
+    dbg(ctrlOf.info(mem))
+
+    isLocalMem(mem) = mem.accesses.forall(a => ctrlOf(a) == ctrlOf(mem))
+    dbg(isLocalMem.info(mem))
+  }
+
+  override def runPass =  {
+    lazy val mems = collectDown[Memory](design.newTop)
+    mems.foreach { mem =>
+      setParentControl(mem)
     }
   }
 

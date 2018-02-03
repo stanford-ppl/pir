@@ -17,7 +17,8 @@ class CtrlAlloc(implicit design: PIR) extends Pass with Logger {
 
   override lazy val stream = newStream(s"CtrlAlloc.log")
 
-  addPass(canRun=design.memoryAnalyzer.hasRun, runCount=1) {
+  //addPass(canRun=design.memoryAnalyzer.hasRun, runCount=1) {
+  addPass(runCount=1) {
     design.top.ctrlers.foreach { ctrler =>
       connectDone(ctrler)
       setPredicate(ctrler)

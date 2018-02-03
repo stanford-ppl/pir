@@ -9,12 +9,16 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-trait Traversal extends GraphTraversal with prism.pass.Pass {
+trait Traversal extends GraphTraversal with prism.pass.Pass with GraphUtil {
 
   override def reset = { reset; resetTraversal }
   override def initPass = { resetTraversal }
 
-  type N<:Node[N]
+}
+
+trait GraphUtil {
+
+  type N <: Node[N]
 
   /*
    * Visit from buttom up
@@ -35,6 +39,10 @@ trait Traversal extends GraphTraversal with prism.pass.Pass {
    * Visit outputs of a node 
    * */
   def visitOut(n:N):List[N] = n.localDepeds.toList
+
+  def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
+    (n1.ancestors intersect n2.ancestors).headOption
+  }
 
 }
 
@@ -340,7 +348,7 @@ trait GraphTransformer extends GraphTraversal with UnitTraversal {
 }
 
 
-trait GraphCollector {
+trait GraphCollector extends GraphUtil {
   type N<:Node[N]
 
   private def newTraversal[M<:N:ClassTag](vf:N => List[N], logger:Option[Logging]) = new BFSTraversal {
@@ -372,22 +380,18 @@ trait GraphCollector {
   }
  
   def collectUp[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
-    def visitUp(n:N):List[N] = n.parent.toList
     newTraversal(visitUp _, logger).traverse((n, depth), Nil)
   }
 
   def collectDown[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
-    def visitDown(n:N):List[N] = n.children
     newTraversal(visitDown _, logger).traverse((n, depth), Nil)
   }
 
   def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
-    def visitIn(n:N):List[N] = n.localDeps.toList
     newTraversal(visitIn _, logger).traverse((n, depth), Nil)
   }
 
   def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
-    def visitOut(n:N):List[N] = n.localDepeds.toList
     newTraversal(visitOut _, logger).traverse((n, depth), Nil)
   }
 

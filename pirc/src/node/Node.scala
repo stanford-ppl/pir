@@ -20,7 +20,7 @@ abstract class IR(implicit design:Design) extends Serializable {
   def className = this.getClass.getSimpleName
   def productName = s"${this.getClass.getSimpleName}$id"
 
-  override def toString = s"${this.getClass.getSimpleName}$id"
+  override def toString = s"${className}$id"
 }
 
 abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with Product { self:N =>

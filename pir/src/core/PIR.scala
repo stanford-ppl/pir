@@ -43,7 +43,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val forwardRef = new ForwardRef()
   lazy val controlAnalyzer = new ControlAnalyzer()
   lazy val multiBufferAnalyzer = new MultiBufferAnalyzer() 
-  lazy val memoryAnalyzer = new MemoryAnalyzer()
+  //lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val accessAnalyzer = new AccessAnalyzer()
   lazy val livenessAnalyzer = new LiveAnalyzer()
   lazy val contentionAnalyzer = new ContentionAnalysis()
@@ -102,6 +102,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val accessLowering = new pir.newnode.AccessLowering()
   lazy val cuStats = new pir.newnode.CUStatistics()
   lazy val irCheck = new pir.newnode.IRCheck()
+  lazy val memoryAnalyzer = new pir.newnode.MemoryAnalyzer()
 
   var mapping:Option[PIRMap] = None
 
@@ -185,6 +186,10 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top7.dot"))
     addPass(new SimpleIRDotCodegen(s"simple.dot"))
+
+    addPass(memoryAnalyzer)
+
+    addPass(new ControllerDotCodegen(s"ctrl.dot")).addDependency(controlPropogator)
 
     addPass(cuStats)
 
