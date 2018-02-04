@@ -22,7 +22,7 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with GraphC
   def qdef(n:IR) = s"${n.name.getOrElse(n.toString)} = ${n.productName}"
   def qtype(n:IR) = n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
 
-  lazy val metadata = design.newTop.metadata
+  lazy val pirmeta = design.newTop.metadata
 }
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal 
@@ -54,7 +54,7 @@ abstract class Transformer(implicit design:PIR) extends Traversal with GraphTran
     dbgblk(s"mirrorX(${quote(n)})") {
       mp = super.mirrorX(n, mp)
       val m = mp(n)
-      metadata.mirror(n,m)
+      pirmeta.mirror(n,m)
       (n, m) match {
         case (n:Memory, m:Memory) => 
           val writers = n.depeds.collect { 
@@ -91,7 +91,7 @@ trait ControllerTraversal extends GraphTraversal with SiblingFirstTraversal with
 
 class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTraversal {
 
-  import metadata._
+  import pirmeta._
 
   override def shouldRun = true
 
@@ -225,8 +225,8 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
 
   def isUseFree(n:N) = n match {
     case n:ArgOut => false
-    case n:StreamIn => false
     case n:StreamOut => false
+    //case n:StreamIn => false
     case n:Memory => n.depeds.filterNot { case n:LocalStore => true; case _ => false }.isEmpty
     case n:Counter => false
     case n:Top => false
@@ -244,7 +244,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
       n.ios.foreach(_.disconnect)
       n.parent.foreach { parent =>
         parent.removeChild(n)
-        metadata.remove(n)
+        pirmeta.removeAll(n)
       }
     }
     super.transform(n)
@@ -253,7 +253,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
 }
 
 class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstTopologicalTraversal {
-  import metadata._
+  import pirmeta._
 
   type T = Controller
 
@@ -281,7 +281,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
   def resetController(n:Node, ctrl:Controller):Unit = n match {
     case n:ComputeContext => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
-      design.newTop.metadata.ctrlOf.remove(n)
+      ctrlOf.removeKey(n)
       n.ctrl(ctrl)
       n.deps.foreach(d => resetController(d, ctrl))
     case n =>
@@ -317,7 +317,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
 }
 
 class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
-  import metadata._
+  import pirmeta._
 
   override def shouldRun = true
 
@@ -336,8 +336,8 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
         val fifo = RetimingFIFO().setParent(cu)
         val store = MemStore(fifo, None, x).setParent(cu)
         val load = MemLoad(fifo, None).setParent(cu)
-        metadata.mirror(x, store)
-        metadata.mirror(x, load)
+        pirmeta.mirror(x, store)
+        pirmeta.mirror(x, load)
         load
     }
   }
@@ -353,7 +353,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
             val memCU = collectUp[GlobalContainer](mem).head
             val maddrs = addrs.map { addrs => addrs.map { addr => mirror[Def](addr, memCU) } }
             val access = MemLoad(mem, maddrs).setParent(memCU)
-            metadata.mirror(n, access)
+            pirmeta.mirror(n, access)
             val newOut = if (memCU == accessCU) {
               access.out
             } else { // Remote memory, add Retiming FIFO
@@ -382,7 +382,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTop
             }
             disconnect(mem, n)
             val access = MemStore(mem, saddrs, sdata).setParent(memCU)
-            metadata.mirror(n, access)
+            pirmeta.mirror(n, access)
           }
         }
       case n => super.transform(n)
@@ -427,7 +427,7 @@ class CUStatistics(implicit design:PIR) extends Pass {
 }
 
 class IRCheck(implicit design:PIR) extends Pass {
-  import metadata._
+  import pirmeta._
 
   def shouldRun = true
 
@@ -499,7 +499,7 @@ class IRCheck(implicit design:PIR) extends Pass {
 }
 
 class MemoryAnalyzer(implicit design:PIR) extends Pass {
-  import metadata._
+  import pirmeta._
 
   type T = Unit
 
@@ -507,6 +507,7 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
 
   val traversal = new ControllerTraversal {}
   def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
+    dbg(s"accesses: ${mem.accesses}")
     val parentCtrl = mem.accesses.map { access => 
       dbg(s"access:$access ctrl=${ctrlOf(access)}")
       ctrlOf(access)

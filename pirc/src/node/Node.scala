@@ -261,7 +261,7 @@ trait Metadata extends Serializable {
     }
   }
 
-  def remove(node:Any) = maps.foreach { map => map.asK(node) match { case Some(node) => map.remove(node); case None => } }
+  def removeAll(node:Any) = maps.foreach { map => map.removeAll(node) }
 
   trait MetadataMap { 
     type K
@@ -275,7 +275,7 @@ trait Metadata extends Serializable {
     def name:String
     def clear:Unit
     def get(k:K):Option[VV]
-    def remove(k:K):Unit
+    def removeAll(a:Any):Unit
     def update(k:K,vv:VV):Unit
     // Default just copy over
     def mirror(orig:K, clone:K):Unit = {

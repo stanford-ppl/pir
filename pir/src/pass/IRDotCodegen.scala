@@ -87,8 +87,7 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
   def color(attr:DotAttr, n:Any) = attr.fillcolor(white).style(filled)
 
-  def label(attr:DotAttr, n:Any) = attr.label(n.toString)
-  def label(attr:DotAttr, n:N) = attr.label(quote(n))
+  def label(attr:DotAttr, n:Any) = attr.label(quote(n))
 
   def emitSubGraph(n:N):Unit = {
     var attr = DotAttr()
@@ -144,17 +143,32 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
 class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends CodegenWrapper with IRDotCodegen {
 
-  override def label(attr:DotAttr, n:N) = n match {
-    case n:Counter =>
-      val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
-        case (field, Const(v)) => Some(s"$field=$v")
-        case _ => None
-      }
-      attr.label(s"${qtype(n)}\n(${fields.mkString(",")})")
-    case n:OpDef => attr.label(s"${qtype(n)}\n(${n.op})")
-    case n:StreamIn => attr.label(s"${qtype(n)}\n(${n.field})")
-    case n:StreamOut => attr.label(s"${qtype(n)}\n(${n.field})")
-    case n => attr.label(qtype(n))
+  import pirmeta._
+
+  override def quote(n:Any):String = n match {
+    case n:pir.newnode.IR => qtype(n)
+    case n => n.toString
+  }
+
+  override def label(attr:DotAttr, n:Any) = {
+    var label = quote(n) 
+    n match {
+      case n:Counter =>
+        val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
+          case (field, Const(v)) => Some(s"$field=$v")
+          case _ => None
+        }
+        label += s"\n(${fields.mkString(",")})"
+      case n:OpDef => label += s"\n(${n.op})"
+      case n:StreamIn => label += s"\n(${n.field})"
+      case n:StreamOut => label +=s"\n(${n.field})"
+      case n =>
+    }
+    n match {
+      case n:pir.newnode.Node => ctrlOf.get(n).foreach { ctrl => label += s"\n(${quote(ctrl)})" }
+      case _ =>
+    }
+    attr.label(label)
   }
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
@@ -223,16 +237,12 @@ class LocalIRDotCodegen(fn:String)(implicit design:PIR) extends GlobalIRDotCodeg
 
 class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends IRDotCodegen with ChildFirstTraversal {
 
-  lazy val metadata = design.newTop.metadata
-  import metadata._
+  lazy val pirmeta = design.newTop.metadata
+  import pirmeta._
 
   type N = Controller
 
   val dirName = design.outDir
-
-  //override def label(attr:DotAttr, n:N) = n match {
-    //case n => attr.label(qtype(n))
-  //}
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
@@ -281,6 +291,10 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends IRD
   override def emitEdges = {
     val mems = collector.collectDown[Memory](design.newTop)
     mems.foreach { 
+      case mem:ArgIn =>
+        mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
+      case mem:ArgOut =>
+        mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }
       case mem if !isLocalMem(mem) =>
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
         mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }

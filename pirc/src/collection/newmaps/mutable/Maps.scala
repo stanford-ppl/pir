@@ -4,26 +4,48 @@ import pirc._
 import pirc.exceptions._
 import scala.reflect._
 
+import scala.collection.mutable.Set
 import scala.collection.mutable.Map
 trait MapLike[K,V,VV] extends prism.collection.MapLike[K,V,VV] {
   def update(k:K, v:V):Unit
-  def remove(k:K, v:V):Unit
-  def remove(k:K):Unit
-  def += (pair:(K,V)) = { val (k,v) = pair; update(k,v)}
-  def clear:Unit
   def getOrElseUpdate(k:K)(vv: => VV):VV
+  def remove(k:K, v:V):Unit
+  def removeKey(k:K):Unit
+  def removeValue(v:V):Unit
+  def clear:Unit
+  def toVs(vv:VV):Set[V]
+  def toVV(vs:Set[V]):VV
+
+  def += (pair:(K,V)) = { val (k,v) = pair; update(k,v)}
+  def removeAll(a:Any) = {
+    asK(a).foreach { k => removeKey(k) }
+    asV(a).foreach { v => removeValue(v) }
+  }
 }
 trait UniMap[K,V,VV] extends MapLike[K,V,VV] with prism.collection.UniMap[K,V,VV] {
   override type M = Map[K,VV]
   val map:M = Map.empty 
   def update(k:K, v:V):Unit = check(k,v)
+  def remove(k:K, v:V):Unit = {
+    map.get(k).foreach { vv =>
+      val vs = toVs(vv)
+      vs -= v
+      if (vs.isEmpty) removeKey(k)
+    }
+  }
+  def removeKey(k:K):Unit = map -= k
+  def removeValue(v:V):Unit = {
+    map.foreach { case (k,vv) =>
+      if (toVs(vv).contains(v)) remove(k,v)
+    }
+  }
   def clear = { map.clear }
-  def remove(k:K, v:V):Unit = remove(k)
-  def remove(k:K):Unit = map -= k
   def getOrElse(k:K,vv:VV) = map.getOrElse(k,vv)
 }
 
 class OneToOneMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,V] with prism.collection.OneToOneMap[K,V] {
+  def toVs(vv:VV):Set[V] = Set(vv)
+  def toVV(vs:Set[V]):V = vs.head
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
     map += (k -> v)
@@ -35,6 +57,8 @@ class OneToOneMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,V] with prism.collec
 }
 
 class OneToManyMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,Set[V]] with prism.collection.OneToManyMap[K,V,Set[V]] {
+  def toVs(vv:VV):Set[V] = vv
+  def toVV(vs:Set[V]):Set[V] = vs
   override def apply(k:K) = map.getOrElse(k, Set())
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
@@ -51,6 +75,10 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,K
   def fmap:UniMap[K,V,VV]
   def bmap:UniMap[V,K,KK]
 
+  def toKs(kk:KK):Set[K] = bmap.toVs(kk)
+  def toKK(ks:Set[K]):KK = bmap.toVV(ks)
+  def toVs(vv:VV):Set[V] = fmap.toVs(vv) 
+  def toVV(vs:Set[V]):VV = fmap.toVV(vs) 
   def update(k:K, v:V):Unit = {
     fmap.check(k,v)
     bmap.check(v,k)
@@ -61,9 +89,13 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,K
     fmap.remove(k,v)
     bmap.remove(v,k)
   }
-  def remove(k:K):Unit = {
-    fmap.get(k).foreach { vv => toVs(vv).foreach(v => bmap.remove(v)) }
-    fmap.remove(k)
+  def removeKey(k:K):Unit = {
+    fmap.get(k).foreach { vv => toVs(vv).foreach(v => bmap.remove(v,k)) }
+    fmap.removeKey(k)
+  }
+  def removeValue(v:V):Unit = {
+    bmap.get(v).foreach { kk => toKs(kk).foreach(k => fmap.remove(k,v) ) }
+    bmap.removeKey(v)
   }
   def getOrElseUpdate(k:K)(vv: => VV):VV = {
     fmap.getOrElseUpdate(k){
@@ -73,25 +105,19 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,K
 
   def clear = { fmap.clear; bmap.clear }
 
-  def toVs(vv:VV):Set[V]
-  def toVV(vs:Set[V]):VV
 }
 
 trait ForwardOneToOneMap[K,V,KK] extends BiMap[K,V,KK,V] {
   def fmap:OneToOneMap[K,V]
-  def toVs(vv:V):Set[V] = Set(vv)
-  def toVV(vs:Set[V]):V = vs.head
 }
 
 trait ForwardOneToManyMap[K,V,KK] extends BiMap[K,V,KK,Set[V]]{
   def fmap:OneToManyMap[K,V]
-  def toVs(vv:Set[V]):Set[V] = vv
-  def toVV(vs:Set[V]):Set[V] = vs
 
   override def apply(k:K) = fmap.getOrElse(k, Set())
   def update(k:K, v:V):Unit
-  def update(k:K, vv:Set[V]):Unit = vv.foreach(v => update(k,v))
-  def ++= (kvv:(K,Set[V])):Unit = update(kvv._1, kvv._2)
+  def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
+  def ++= (kvv:(K,Iterable[V])):Unit = update(kvv._1, kvv._2)
 }
 
 trait BackwardOneToOneMap[K,V,VV] extends BiMap[K,V,K,VV] {
