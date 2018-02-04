@@ -272,14 +272,6 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends IRD
     }
   }
 
-  //override def emitEdge(from:N, to:N) = {
-    //(from, to) match {
-      //case (from:ArgInDef, to) if from.parent != to.parent =>
-      //case (from:ArgIn, to) if from.parent != to.parent =>
-      ////case (from:ArgOut, to) if from.parent != to.parent =>
-      //case (from, to) => super.emitEdge(from, to)
-    //}
-  //}
   val collector = new GraphCollector {
     type N = pir.newnode.Node
   }

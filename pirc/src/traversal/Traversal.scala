@@ -187,6 +187,7 @@ trait TopologicalTraversal extends GraphTraversal {
 }
 
 trait HiearchicalTraversal extends GraphTraversal {
+  override type N <:Node[N]
   def visitFunc(n:N):List[N] = n match {
     case n:SubGraph[_] => n.children.asInstanceOf[List[N]]
     case n:Atom[_] => Nil
@@ -224,12 +225,39 @@ trait SiblingFirstTopologicalTraversal extends TopologicalTraversal with Sibling
     val unvisited = nodes.filterNot(scheduled.contains) 
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
-      val next = unvisited.sortBy { n => depFunc(n).filterNot(scheduled.contains).size }.head
+      val next = unvisited.map { n => (depFunc(n).filterNot(scheduled.contains).size,n) }.minBy(_._1)._2
       List(next)
     } else depFree
   }
 }
 
+trait BottomUpTopologicalTraversal extends TopologicalTraversal {
+  override type N <:Node[N]
+  override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
+  override def depFunc(n:N):List[N] = super.depFunc(n) ++ n.children
+
+  val scope = mutable.ListBuffer[N]()
+
+  override def resetTraversal = {
+    super.resetTraversal
+    scope.clear
+  }
+
+  override def traverseNode(n:N, zero:T) = {
+    if (scope.isEmpty) {
+      scope ++= (n::n.descendents)
+      def ns = {
+        val depFrees = scope.toList.filter(isDepFree)
+        if (depFrees.isEmpty && scope.exists(n => !isVisited(n))) {
+          List(scope.filterNot(isVisited).map { n => (depFunc(n).size, n) }.minBy(_._1)._2)
+        } else depFrees
+      }
+      traverse(ns, zero)
+    } else {
+      super.traverseNode(n, zero)
+    }
+  }
+}
 
 import scala.collection.JavaConverters._
 trait GraphTransformer extends GraphTraversal with UnitTraversal {
@@ -363,7 +391,8 @@ trait GraphCollector extends GraphUtil {
       val (node, depth) = n
       visited += node
       node match {
-        case node:M if depth > 0 => prev :+ node 
+        case node:M if depth > 0 & !prev.contains(node) => prev :+ node 
+        case node:M if depth > 0 & prev.contains(node) => prev 
         case _ if depth == 0 => prev 
         case _ => super.visitNode(n, prev)
       }
@@ -379,19 +408,19 @@ trait GraphCollector extends GraphUtil {
     }
   }
  
-  def collectUp[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
+  def collectUp[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
     newTraversal(visitUp _, logger).traverse((n, depth), Nil)
   }
 
-  def collectDown[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
+  def collectDown[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
     newTraversal(visitDown _, logger).traverse((n, depth), Nil)
   }
 
-  def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
+  def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
     newTraversal(visitIn _, logger).traverse((n, depth), Nil)
   }
 
-  def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):Iterable[M] = {
+  def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
     newTraversal(visitOut _, logger).traverse((n, depth), Nil)
   }
 

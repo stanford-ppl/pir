@@ -23,6 +23,7 @@ class TestPass(implicit design:PIR) extends Pass {
     TraversalTest.testSiblingFirst
     TraversalTest.testCFTopo
     TraversalTest.testSFTopo
+    TraversalTest.testBUTopo
 
     MapTest.test
   }
@@ -79,8 +80,10 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
   }
 }
 
-object TraversalTest extends TestDesign {
+object TraversalTest extends TestDesign with GraphCollector {
   import prism.traversal.Traversal
+
+  type N = TestNode
 
   val a = TestAtom().name("a")
   val b = TestAtom().name("b")
@@ -202,6 +205,22 @@ object TraversalTest extends TestDesign {
       }
     }
     var res = traversal.schedule(top)
+  }
+
+  def testBUTopo = {
+    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
+      type N = TestNode
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitIn(n:N):List[N] = n.deps.toList
+      def visitOut(n:N):List[N] = n.depeds.toList
+      override def visitNode(n:N, prev:T):T = {
+        assert(depFunc(n).forall(isVisited))
+        super.visitNode(n, prev)
+      }
+    }
+    var res = traversal.schedule(top)
+    assert((top::top.descendents).forall(traversal.isVisited))
   }
 
 }

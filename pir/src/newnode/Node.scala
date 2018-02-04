@@ -195,8 +195,8 @@ case class TopController()(implicit design:PIR) extends Controller {
   val level = OuterControl 
 }
 case class ArgController()(implicit design:PIR) extends Controller {
-  val style = SeqPipe
-  val level = OuterControl 
+  val style = InnerPipe
+  val level = InnerControl 
 }
 case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container with ComputeContext
 object CounterChain {
@@ -274,12 +274,22 @@ case object OuterControl extends ControlLevel
 import prism.collection.mutable._
 class NewPIRMetadata extends prism.node.Metadata {
 
-  object nameOf extends OneToOneMap[IR, String] with MetadataMap {
-  }
+  /* User defined string name of for an IR. */
+  object nameOf extends OneToOneMap[IR, String] with MetadataMap
 
-  object ctrlOf extends BiManyToOneMap[Node, Controller] with MetadataMap {
-  }
+  /* Controller associated with a node. For memory, it's the lca controller of controller of all its
+   * accesses */
+  object ctrlOf extends BiManyToOneMap[Node, Controller] with MetadataMap
 
-  object isLocalMem extends OneToOneMap[IR, Boolean] with MetadataMap {
-  }
+  /*
+   * A memory is local mem if all of it's accesses shares the same controller. An example localMem
+   * is accumulator
+   * */
+  object isLocalMem extends OneToOneMap[Memory, Boolean] with MetadataMap
+
+  /*
+   * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if
+   * ctrlOf(mem) != ctrlOf(access). Otherwise it's the ctrlOf(access) 
+   * */
+  object topCtrlOf extends OneToOneMap[Node, Controller] with MetadataMap
 }

@@ -48,7 +48,7 @@ trait Pass extends prism.pass.Pass {
     }
   }
 
-  def hasRun = {
+  override def hasRun = {
     //passRanCount.forall { case (id, (totalRun, currRun)) => totalRun == currRun }
     passRanCount.forall { case (id, (totalRun, currRun)) => currRun > 0 }
   }

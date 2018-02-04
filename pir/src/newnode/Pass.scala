@@ -27,7 +27,7 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with GraphC
 
 abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal 
 
-trait ChildFirstTopologicalTraversal extends prism.traversal.ChildFirstTopologicalTraversal {
+trait ChildFirstTopologicalTraversal extends Traversal with prism.traversal.ChildFirstTopologicalTraversal {
   override def depFunc(n:N) = n match {
     case n:ArgFringe => Nil
     case n => super.depFunc(n)
@@ -208,6 +208,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with ChildFirstTopo
 }
 
 class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
+  import pirmeta._
 
   override def shouldRun = true
 
@@ -226,10 +227,11 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with ChildFir
   def isUseFree(n:N) = n match {
     case n:ArgOut => false
     case n:StreamOut => false
-    //case n:StreamIn => false
     case n:Memory => n.depeds.filterNot { case n:LocalStore => true; case _ => false }.isEmpty
-    case n:Counter => false
-    case n:Top => false
+    case n:Counter =>
+      if (!design.controlPropogator.hasRunAll) false
+      else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
+      else n.depeds.isEmpty
     case n:Container => n.children.isEmpty 
     case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
     case n:MemStore => n.mem == null
@@ -488,7 +490,7 @@ class IRCheck(implicit design:PIR) extends Pass {
     stageDef.foreach { stageDef =>
       assert(ctrlOf.contains(stageDef), s"${qtype(stageDef)} in $cu doesn't have ctrl defined")
       val ctrl = ctrlOf(stageDef)
-      assert(ctrl.level == InnerControl, s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
+      assert(ctrl.isInnerControl, s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
     }
   }
 
@@ -502,6 +504,51 @@ class IRCheck(implicit design:PIR) extends Pass {
   }
 
 }
+
+//class RouteThroughElimination(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
+
+  //override def shouldRun = true
+
+  //val forward = false
+
+  //override def runPass =  {
+    //traverseNode(design.newTop)
+  //}
+
+  //override def check = {
+    //val containers = collectDown[CUContainer](design.newTop)
+    //val unvisited = containers.filterNot(isVisited)
+    //assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
+  //}
+
+  //def isUseFree(n:N) = n match {
+    //case n:ArgOut => false
+    //case n:StreamOut => false
+    ////case n:StreamIn => false
+    //case n:Memory => n.depeds.filterNot { case n:LocalStore => true; case _ => false }.isEmpty
+    //case n:Counter => false
+    //case n:Top => false
+    //case n:Container => n.children.isEmpty 
+    //case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
+    //case n:MemStore => n.mem == null
+    //case n => n.depeds.isEmpty
+  //}
+
+  //override def transform(n:N):Unit = dbgblk(s"transform(${qdef(n)})") {
+    //removeUnusedIOs(n)
+    //if (isUseFree(n)) {
+      //dbg(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
+      //val deps = n.deps
+      //n.ios.foreach(_.disconnect)
+      //n.parent.foreach { parent =>
+        //parent.removeChild(n)
+        //pirmeta.removeAll(n)
+      //}
+    //}
+    //super.transform(n)
+  //}
+
+//}
 
 class MemoryAnalyzer(implicit design:PIR) extends Pass {
   import pirmeta._
@@ -521,17 +568,25 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
       case mem:ArgOut => accessCtrls += design.newTop.argController
       case _ =>
     }
-    val parentCtrl = accessCtrls.reduce[Controller]{ case (a1, a2) =>
+    val lcaCtrl = accessCtrls.reduce[Controller]{ case (a1, a2) =>
       val lca = traversal.leastCommonAncesstor(a1, a2)
       dbg(s"a1=$a1, a2=$a2, lca=$lca")
       if (lca.isEmpty) err(s"$a1 and $a2 do not share common ancestor")
       lca.get
     }
-    ctrlOf(mem) = parentCtrl
-    dbg(ctrlOf.info(mem))
+    ctrlOf(mem) = lcaCtrl
+    ctrlOf.info(mem).foreach(dbg)
+
+    mem.accesses.foreach { access =>
+      val ancestors = ctrlOf(access) :: ctrlOf(access).ancestors
+      val idx = ancestors.indexOf(lcaCtrl)
+      val topCtrlIdx = if (idx==0) idx else idx - 1
+      topCtrlOf(access) = ancestors(topCtrlIdx)
+      topCtrlOf.info(access).foreach(dbg)
+    }
 
     isLocalMem(mem) = mem.accesses.forall(a => ctrlOf(a) == ctrlOf(mem))
-    dbg(isLocalMem.info(mem))
+    isLocalMem.info(mem).foreach(dbg)
   }
 
   override def runPass =  {
@@ -539,6 +594,35 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
     mems.foreach { mem =>
       setParentControl(mem)
     }
+  }
+
+}
+
+class TestTraversal(implicit design:PIR) extends Pass with BottomUpTopologicalTraversal with DFSTraversal with UnitTraversal {
+  import pirmeta._
+
+  override def shouldRun = true
+
+  val forward = false
+
+  override def visitIn(n:N) = n.deps.toList
+  override def visitOut(n:N) = n.depeds.toList
+
+  override def runPass =  {
+    traverseNode(design.newTop)
+    check
+  }
+
+  override def check = {
+    val top = design.newTop
+    val allNodes = top::top.descendents
+    val unvisited = allNodes.filterNot(isVisited)
+    assert(unvisited.isEmpty, s"not all nodes are visited! unvisited=${unvisited}")
+  }
+
+  override def visitNode(n:N) = {
+    dbg(s"Visiting ${qdef(n)}")
+    super.visitNode(n)
   }
 
 }

@@ -60,4 +60,8 @@ trait Pass extends Logging {
 
   def check:Unit = {}
 
+  def hasRun:Boolean = runPasses.exists(_.hasRun)
+
+  def hasRunAll:Boolean = runPasses.forall(_.hasRun)
+
 }
