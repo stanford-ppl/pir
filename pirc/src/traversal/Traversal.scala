@@ -33,12 +33,16 @@ trait GraphUtil {
   /*
    * Visit inputs of a node
    * */
-  def visitIn(n:N):List[N] = n.localDeps.toList
+  def visitLocalIn(n:N):List[N] = n.localDeps.toList
 
   /*
    * Visit outputs of a node 
    * */
-  def visitOut(n:N):List[N] = n.localDepeds.toList
+  def visitLocalOut(n:N):List[N] = n.localDepeds.toList
+
+
+  def visitGlobalIn(n:N):List[N] = n.deps.toList
+  def visitGlobalOut(n:N):List[N] = n.depeds.toList
 
   def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
     (n1.ancestors intersect n2.ancestors).headOption
@@ -130,7 +134,8 @@ trait DFSTraversal extends GraphTraversal {
     // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
       prev = traverseNode(nexts.head, prev)
-      nexts = ns.filterNot(isVisited)
+      nexts = nexts.filterNot(isVisited)
+      if (nexts.isEmpty) nexts = ns.filterNot(isVisited)
     }
     prev
   }
@@ -170,6 +175,13 @@ trait TopologicalTraversal extends GraphTraversal {
   def depFunc(n:N):List[N] = if (forward) visitIn(n) else visitOut(n)
   def isDepFree(n:N) = depFunc(n).filterNot(isVisited).isEmpty
 
+  val frontier = mutable.Set[N]()
+
+  override def resetTraversal = {
+    super.resetTraversal
+    frontier.clear
+  }
+
   def visitFunc(n:N):List[N] = visitDepFree(n)
   //implicit val nct:ClassTag[N]
   //private val cache = Cache((n:N) => visitDepFree(n))
@@ -180,6 +192,7 @@ trait TopologicalTraversal extends GraphTraversal {
    * */
   def visitDepFree(n:N):List[N] = {
     val unvisited = depedFunc(n).filterNot(isVisited)
+    frontier ++= unvisited
     val depFree = unvisited.filter(isDepFree)
     depFree
   }
@@ -193,22 +206,40 @@ trait HiearchicalTraversal extends GraphTraversal {
     case n:Atom[_] => Nil
   }
 }
-trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal
+trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
+  override def traverse(n:N, zero:T):T = {
+    assert(!n.children.exists(isVisited))
+    val res = super.traverse(n, zero)
+    assert(!n.children.exists(c => !isVisited(c)))
+    res
+  }
+}
 trait SiblingFirstTraversal extends BFSTraversal with HiearchicalTraversal
 
-trait ChildFirstTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal {
+trait ChildFirstTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal { //TODO fir this
+  def visitLocalIn(n:N):List[N]
+  def visitLocalOut(n:N):List[N]
+  def visitIn(n:N):List[N] = visitLocalIn(n)
+  def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
     case n:SubGraph[_] => 
       val unvisited = n.children.asInstanceOf[List[N]].filterNot(isVisited) 
       val depFree = unvisited.filter(isDepFree) 
-      if (unvisited.nonEmpty && depFree.isEmpty) {
-        val next = unvisited.sortBy { n => depFunc(n).filterNot(isVisited).size }.head
-        List(next)
+      val res = if (unvisited.nonEmpty && depFree.isEmpty) {
+        val nexts = frontier.filterNot(isVisited).filterNot(_.children.nonEmpty)
+        dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
+        nexts.toList
       } else depFree
+      dbgs(s"visitFunc($n) = $res")
+      res
     case _:Atom[_] => visitDepFree(n)
   }
 }
 trait SiblingFirstTopologicalTraversal extends TopologicalTraversal with SiblingFirstTraversal { self =>
+  def visitLocalIn(n:N):List[N]
+  def visitLocalOut(n:N):List[N]
+  def visitIn(n:N):List[N] = visitLocalIn(n)
+  def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
     case n:SubGraph[_] => 
       val children = n.children.asInstanceOf[List[N]]
@@ -233,6 +264,10 @@ trait SiblingFirstTopologicalTraversal extends TopologicalTraversal with Sibling
 
 trait BottomUpTopologicalTraversal extends TopologicalTraversal {
   override type N <:Node[N]
+  def visitGlobalIn(n:N):List[N]
+  def visitGlobalOut(n:N):List[N]
+  def visitIn(n:N):List[N] = visitGlobalIn(n)
+  def visitOut(n:N):List[N] = visitGlobalOut(n)
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
   override def depFunc(n:N):List[N] = super.depFunc(n) ++ n.children
 
@@ -247,9 +282,12 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
     if (scope.isEmpty) {
       scope ++= (n::n.descendents)
       def ns = {
-        val depFrees = scope.toList.filter(isDepFree)
+        dbgs(s"calling ns")
+        val depFrees = scope.toList.filterNot(isVisited).filter(isDepFree)
         if (depFrees.isEmpty && scope.exists(n => !isVisited(n))) {
-          List(scope.filterNot(isVisited).map { n => (depFunc(n).size, n) }.minBy(_._1)._2)
+          val nexts = frontier.filterNot(isVisited).filterNot(_.children.nonEmpty)
+          dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
+          nexts.toList
         } else depFrees
       }
       traverse(ns, zero)
@@ -260,7 +298,7 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
 }
 
 import scala.collection.JavaConverters._
-trait GraphTransformer extends GraphTraversal with UnitTraversal {
+trait GraphTransformer extends GraphTraversal { self:UnitTraversal =>
   type N<:Node[N] with Product
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
@@ -332,9 +370,9 @@ trait GraphTransformer extends GraphTraversal with UnitTraversal {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  override def visitNode(n:N):T = transform(n)
+  override def visitNode(n:N, prev:T):T = transform(n)
 
-  def transform(n:N):Unit = super.visitNode(n)
+  def transform(n:N):Unit = super.visitNode(n,())
 
   def mirror[T<:N](n:T)(implicit design:D):(T, List[N]) = {
     val mapping = mirrorX(n)
@@ -417,11 +455,11 @@ trait GraphCollector extends GraphUtil {
   }
 
   def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitIn _, logger).traverse((n, depth), Nil)
+    newTraversal(visitLocalIn _, logger).traverse((n, depth), Nil)
   }
 
   def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitOut _, logger).traverse((n, depth), Nil)
+    newTraversal(visitLocalOut _, logger).traverse((n, depth), Nil)
   }
 
 }

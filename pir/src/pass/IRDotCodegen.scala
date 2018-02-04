@@ -14,12 +14,10 @@ import scala.collection.mutable
 
 abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with pir.newnode.ChildFirstTopologicalTraversal {
 
+  val forward = true
   val dirName = design.outDir
 
-  def quote(n:Any):String = n match {
-    case n:pir.newnode.IR => qdef(n)
-    case n => n.toString
-  }
+  def quote(n:Any):String = qdef(n)
 
   override def runPass = {
     traverseNode(design.newTop)
@@ -31,34 +29,56 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
 
   val fileName = "IRPrinter.txt"
 
-  def horizontal:Boolean = false
   def shouldRun = true
-  val forward = true
+
+  override def quote(n:Any) = qtype(n)
 
   override def emitNode(n:N) = {
-    emitBlock(qdef(n)) {
-      emitln(s"parent=${n.parent}")
-      emitln(s"children=${n.children}")
-      emitln(s"localDeps=${n.localDeps}")
-      emitln(s"localDepeds=${n.localDepeds}")
-      super.emitNode(n)
-      n match {
-        case n:Module =>
+    n match {
+      case n:SubGraph[_] =>
+        emitBlock(qdef(n)) {
+          emitln(s"parent=${quote(n.parent)}")
+          super.emitNode(n)
+        }
+      case n:Atom[_] =>
+        emitBlock(qdef(n)) {
+          emitln(s"parent=${quote(n.parent)}")
+          emitln(s"deps=${n.deps.map(quote)}")
+          emitln(s"depeds=${n.depeds.map(quote)}")
           n.ios.foreach { io =>
             emitln(s"$io.connected=[${io.connected.mkString(",")}]")
           }
-        case _ =>
-      }
+        }
     }
   }
 
+}
+
+class ControllerPrinter(implicit design:PIR) extends pir.newnode.Pass with prism.codegen.Codegen with ChildFirstTraversal with UnitTraversal {
+  val fileName = "CtrlPrinter.txt"
+
+  type N = Controller
+  def shouldRun = true
+
+  val dirName = design.outDir
+
+  def quote(n:Any) = qdef(n)
+
+  override def emitNode(n:N) = {
+    emitBlock(qdef(n)) {
+      super.emitNode(n)
+    }
+  }
+
+  override def runPass = {
+    traverseNode(design.newTop.topController)
+  }
 }
 
 trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
   type N <: prism.node.Node[N]
 
-  val forward = true
   val horizontal:Boolean = false
   def shouldRun = true
   val fileName:String
@@ -145,10 +165,7 @@ class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends Codeg
 
   import pirmeta._
 
-  override def quote(n:Any):String = n match {
-    case n:pir.newnode.IR => qtype(n)
-    case n => n.toString
-  }
+  override def quote(n:Any):String = qtype(n)
 
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n) 
@@ -199,8 +216,7 @@ class GlobalIRDotCodegen(val fileName:String)(implicit design:PIR) extends Codeg
   override def emitEdge(from:N, to:N) = {
     (from, to) match {
       case (from:ArgInDef, to) if from.parent != to.parent =>
-      case (from:ArgIn, to) if from.parent != to.parent =>
-      //case (from:ArgOut, to) if from.parent != to.parent =>
+      case (from, to:ArgIn) if from.parent != to.parent =>
       case (from, to) => super.emitEdge(from, to)
     }
   }
@@ -235,9 +251,8 @@ class LocalIRDotCodegen(fn:String)(implicit design:PIR) extends GlobalIRDotCodeg
   }
 }
 
-class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends IRDotCodegen with ChildFirstTraversal {
+class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends pir.newnode.Pass with IRDotCodegen with ChildFirstTraversal {
 
-  lazy val pirmeta = design.newTop.metadata
   import pirmeta._
 
   type N = Controller
@@ -294,10 +309,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends IRD
     }
   }
 
-  def quote(n:Any):String = n match {
-    case n:pir.newnode.IR => n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
-    case n => n.toString
-  }
+  def quote(n:Any):String = qtype(n)
 
 }
 

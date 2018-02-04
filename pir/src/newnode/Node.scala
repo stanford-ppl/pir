@@ -99,10 +99,13 @@ class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Ou
 case class DRAM()(implicit design:PIR) extends IR
 
 abstract class Memory(implicit design:PIR) extends Module { self =>
+  def newIn(implicit design:PIR):Input = {
+    ins.filterNot(_.isConnected).headOption.getOrElse(new Input)
+  }
   val out = new Output
 
-  def writers = depeds.collect { case d: LocalStore => d }
-  def readers = depeds.collect { case d: LocalLoad => d }
+  def writers = deps.collect { case s: LocalStore => s }
+  def readers = depeds.collect { case l: LocalLoad => l }
   def accesses = writers ++ readers
 }
 
@@ -228,7 +231,15 @@ object LocalLoad {
     case _ => None
   }
 }
-trait LocalStore extends Def
+trait LocalStore extends Def {
+  override def connectFields(x:Any)(implicit design:Design):Any = {
+    implicit val pir = design.asInstanceOf[PIR]
+    x match {
+      case x:Memory => this.connect(x.newIn)
+      case x => super.connectFields(x)
+    }
+  }
+}
 object LocalStore {
   def unapply(n:Any) = n match {
     case StoreDef(mems, addrs, data) => Some((mems, addrs, data))

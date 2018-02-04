@@ -68,8 +68,10 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
   type N = TestNode
   val dirName = design.outDir
 
-  def visitIn(n:N):List[N] = n.localDeps.toList
-  def visitOut(n:N):List[N] = n.localDepeds.toList
+  val forward = true
+
+  def visitLocalIn(n:N):List[N] = n.localDeps.toList
+  def visitLocalOut(n:N):List[N] = n.localDepeds.toList
 
   def top = TraversalTest.top
 
@@ -173,8 +175,8 @@ object TraversalTest extends TestDesign with GraphCollector {
       type N = TestNode
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
-      def visitIn(n:N):List[N] = n.localDeps.toList
-      def visitOut(n:N):List[N] = n.localDepeds.toList
+      def visitLocalIn(n:N):List[N] = n.localDeps.toList
+      def visitLocalOut(n:N):List[N] = n.localDepeds.toList
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
         assert(depFunc(n).forall(isVisited))
@@ -191,8 +193,8 @@ object TraversalTest extends TestDesign with GraphCollector {
       type N = TestNode
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
-      def visitIn(n:N):List[N] = n.localDeps.toList
-      def visitOut(n:N):List[N] = n.localDepeds.toList
+      def visitLocalIn(n:N):List[N] = n.localDeps.toList
+      def visitLocalOut(n:N):List[N] = n.localDepeds.toList
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
@@ -212,8 +214,8 @@ object TraversalTest extends TestDesign with GraphCollector {
       type N = TestNode
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
-      def visitIn(n:N):List[N] = n.deps.toList
-      def visitOut(n:N):List[N] = n.depeds.toList
+      def visitGlobalIn(n:N):List[N] = n.deps.toList
+      def visitGlobalOut(n:N):List[N] = n.depeds.toList
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited))
         super.visitNode(n, prev)
