@@ -279,6 +279,11 @@ class ControlPropogation(implicit design:PIR) extends Traversal with ChildFirstT
   }
 
   def resetController(n:Node, ctrl:Controller):Unit = n match {
+    case n:CounterChain =>
+      dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
+      ctrlOf.removeKey(n)
+      n.ctrl(ctrl)
+      n.children.foreach(c => resetController(c, ctrl))
     case n:ComputeContext => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
@@ -508,10 +513,15 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
   val traversal = new ControllerTraversal {}
   def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
     dbg(s"accesses: ${mem.accesses}")
-    val parentCtrl = mem.accesses.map { access => 
+    var accessCtrls = mem.accesses.map { access => 
       dbg(s"access:$access ctrl=${ctrlOf(access)}")
       ctrlOf(access)
-    }.reduce[Controller]{ case (a1, a2) =>
+    }
+    mem match {
+      case mem:ArgOut => accessCtrls += design.newTop.argController
+      case _ =>
+    }
+    val parentCtrl = accessCtrls.reduce[Controller]{ case (a1, a2) =>
       val lca = traversal.leastCommonAncesstor(a1, a2)
       dbg(s"a1=$a1, a2=$a2, lca=$lca")
       if (lca.isEmpty) err(s"$a1 and $a2 do not share common ancestor")
