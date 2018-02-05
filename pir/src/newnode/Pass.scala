@@ -85,7 +85,7 @@ trait ControllerTraversal extends GraphTraversal with SiblingFirstTraversal with
   type N = Controller
 }
 
-class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTraversal {
+class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTraversal with UnitTraversal {
 
   import pirmeta._
 
@@ -120,15 +120,15 @@ class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTrav
     controllerTraversal.traverseNode(design.newTop.topController, ())
   }
 
-  override def transform(n:N):Unit = n match {
+  override def visitNode(n:N):Unit = n match {
     case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
     case n:ComputeContext if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
-    case _ => super.transform(n)
+    case _ => super.visitNode(n)
   }
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with BFSTraversal {
+class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with DFSTraversal with UnitTraversal {
 
   override def shouldRun = true
 
@@ -179,8 +179,8 @@ class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopolo
     case _ => false
   }
 
-  override def transform(n:N):Unit = {
-    dbgs(s"transform ${qdef(n)}")
+  override def visitNode(n:N):Unit = {
+    dbgs(s"visitNode ${qdef(n)}")
     n match {
       case n:Def =>
         val localDeps = n.deps.flatMap {
@@ -193,7 +193,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopolo
         }
       case _ =>
     }
-    super.transform(n)
+    super.visitNode(n)
   }
 
 }
@@ -201,12 +201,23 @@ class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopolo
 class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with BFSTraversal {
   import pirmeta._
 
+  type T = Map[N, Boolean]
+
   override def shouldRun = true
 
   val forward = false
 
   override def runPass =  {
-    traverseScope(design.newTop, ())
+    // Mark dead code
+    val deathMap = traverseScope(design.newTop, Map.empty)
+    // Remove dead code
+    deathMap.foreach { 
+      case (n, true) =>
+        dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
+        removeNode(n)
+        pirmeta.removeAll(n)
+      case (n, false) =>
+    }
   }
 
   override def check = {
@@ -215,41 +226,30 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
     assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
   }
 
-  def isUseFree(n:N) = n match {
-    case n:ArgOut => false
-    case n:StreamOut => false
-    case n:Counter =>
-      if (!design.controlPropogator.hasRunAll) false
-      else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
-      else n.depeds.isEmpty
-    case n:Container => n.children.isEmpty 
-    case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
-    case n:MemStore => n.mem == null
-    case n => n.depeds.isEmpty
+  def markDeath(deathMap:T, n:N) = {
+    val isDead = n match {
+      case n:ArgOut => false
+      case n:StreamOut => false
+      case n:Counter =>
+        if (!design.controlPropogator.hasRunAll) false
+        else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
+        else n.depeds.forall(d => deathMap.getOrElse(d, false))
+      case n:Container => n.children.isEmpty 
+      case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
+      case n:MemStore => n.mem == null
+      case n => n.depeds.forall(d => deathMap.getOrElse(d, false))
+    }
+    if (isDead) dbgs(s"Mark $n as dead code")
+    deathMap + (n -> isDead)
   }
 
-  override def transform(n:N):Unit = {
-    removeUnusedIOs(n)
-    if (isUseFree(n)) {
-      dbgblk(s"transform ${qdef(n)}") {
-        dbg(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
-        val deps = n.deps
-        n.ios.foreach(_.disconnect)
-        n.parent.foreach { parent =>
-          parent.removeChild(n)
-          pirmeta.removeAll(n)
-        }
-        deps.foreach(traverseNode)
-      }
-    } else {
-      dbg(s"transform ${qdef(n)}")
-      super.transform(n)
-    }
+  override def visitNode(n:N, prev:T):T = {
+    super.visitNode(n, markDeath(prev, n))
   }
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with BFSTraversal {
+class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with DFSTraversal {
   import pirmeta._
 
   type T = Controller
@@ -318,7 +318,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTop
 
 }
 
-class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTraversal {
+class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -344,7 +344,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTra
     }
   }
 
-  override def transform(n:N):Unit = {
+  override def visitNode(n:N):Unit = {
     n match {
       case Def(n:LoadDef, LoadDef(mems, addrs)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
@@ -389,7 +389,7 @@ class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTra
         }
       case n =>
     }
-    super.transform(n)
+    super.visitNode(n)
   }
 }
 
@@ -502,51 +502,6 @@ class IRCheck(implicit design:PIR) extends Pass {
   }
 
 }
-
-//class RouteThroughElimination(implicit design:PIR) extends Transformer with ChildFirstTopologicalTraversal {
-
-  //override def shouldRun = true
-
-  //val forward = false
-
-  //override def runPass =  {
-    //traverseNode(design.newTop)
-  //}
-
-  //override def check = {
-    //val containers = collectDown[CUContainer](design.newTop)
-    //val unvisited = containers.filterNot(isVisited)
-    //assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
-  //}
-
-  //def isUseFree(n:N) = n match {
-    //case n:ArgOut => false
-    //case n:StreamOut => false
-    ////case n:StreamIn => false
-    //case n:Memory => n.depeds.filterNot { case n:LocalStore => true; case _ => false }.isEmpty
-    //case n:Counter => false
-    //case n:Top => false
-    //case n:Container => n.children.isEmpty 
-    //case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
-    //case n:MemStore => n.mem == null
-    //case n => n.depeds.isEmpty
-  //}
-
-  //override def transform(n:N):Unit = dbgblk(s"transform(${qdef(n)})") {
-    //removeUnusedIOs(n)
-    //if (isUseFree(n)) {
-      //dbg(s"eliminate ${qdef(n)} from parent=${n.parent} ${isUseFree(n)}")
-      //val deps = n.deps
-      //n.ios.foreach(_.disconnect)
-      //n.parent.foreach { parent =>
-        //parent.removeChild(n)
-        //pirmeta.removeAll(n)
-      //}
-    //}
-    //super.transform(n)
-  //}
-
-//}
 
 class MemoryAnalyzer(implicit design:PIR) extends Pass {
   import pirmeta._

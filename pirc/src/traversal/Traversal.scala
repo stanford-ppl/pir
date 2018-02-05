@@ -45,7 +45,7 @@ trait GraphUtil {
   def visitGlobalOut(n:N):List[N] = n.depeds.toList
 
   def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
-    (n1.ancestors intersect n2.ancestors).headOption
+    ((n1 :: n1.ancestors) intersect (n2 :: n2.ancestors)).headOption
   }
 
 }
@@ -256,7 +256,7 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
 }
 
 import scala.collection.JavaConverters._
-trait GraphTransformer extends GraphTraversal with UnitTraversal {
+trait GraphTransformer {
   type N<:Node[N] with Product
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
@@ -264,11 +264,14 @@ trait GraphTransformer extends GraphTraversal with UnitTraversal {
   implicit val nct:ClassTag[N]
 
   def removeNode(node:N) = {
-    node.ios.foreach { io => io.disconnect }
+    node.ios.foreach { io => 
+      val connected = io.connected.map(_.src)
+      io.disconnect
+      connected.foreach(removeUnusedIOs)
+    }
     node.parent.foreach { parent =>
       parent.removeChild(node)
       node.unsetParent
-      (parent.children.filterNot { _ == node } :+ parent).foreach(removeUnusedIOs)
     }
   }
 
@@ -328,10 +331,6 @@ trait GraphTransformer extends GraphTraversal with UnitTraversal {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  override def visitNode(n:N, prev:T):T = transform(n)
-
-  def transform(n:N):Unit = super.visitNode(n,())
-
   def mirror[T<:N](n:T)(implicit design:D):(T, List[N]) = {
     val mapping = mirrorX(n)
     val newNodes = mapping.values.collect { case n:N => n }.toSet diff mapping.keys.collect { case n:N => n}.toSet
@@ -345,7 +344,7 @@ trait GraphTransformer extends GraphTraversal with UnitTraversal {
         val args = n.values //n.productIterator.toList
         val newMapping = args.foldLeft(mapping) { case (mapping, arg) => mirrorX(arg, mapping) }
         if (!newMapping.contains(n)) {
-          newMapping + (n -> n.newInstance[T](args.map { a => newMapping(a) }))
+          newMapping + (n -> n.newInstance[Any](args.map { a => newMapping(a) }))
         } else newMapping
       case n:Option[_] => 
         val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
