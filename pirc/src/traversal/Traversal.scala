@@ -250,10 +250,14 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
   def visitGlobalOut(n:N):List[N]
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
-  override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
-  override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
-  override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
-
+  override def depedFunc(n:N):List[N] = n match {
+    case _:Atom[N] => n.parent.toList ++ super.depFunc(n)
+    case n:SubGraph[N] => n.parent.toList
+  } 
+  override def depFunc(n:N):List[N] = n match {
+    case _:Atom[N] => super.depFunc(n)
+    case n:SubGraph[N] => n.children
+  } 
   def traverseScope(n:N, zero:T) = {
     val allNodes = n::n.descendents
     traverse(scheduleDepFree(allNodes), zero)
