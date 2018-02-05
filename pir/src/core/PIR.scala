@@ -164,6 +164,9 @@ trait PIR extends Design with PIRMetadata with Collector {
     //passes += powerAnalyzer 
     ////passes += energyAnalyzer 
     
+    addPass(new TestPass())
+    addPass(new pir.newnode.TestTraversal)
+
     addPass(new IRPrinter)
     addPass(new GlobalIRDotCodegen(s"top1.dot"))
 
@@ -194,10 +197,6 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(cuStats)
 
     addPass(irCheck)
-
-    addPass(new pir.newnode.TestTraversal)
-    addPass(new TestDotCodegen(s"test.dot"))
-    addPass(new TestPass())
 
     super.run
 

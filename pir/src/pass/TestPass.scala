@@ -16,15 +16,8 @@ class TestPass(implicit design:PIR) extends Pass {
   def shouldRun = true
 
   addPass {
-    TraversalTest.testGraph
-    TraversalTest.testBFS
-    TraversalTest.testDFS
-    TraversalTest.testChildFirst
-    TraversalTest.testSiblingFirst
-    TraversalTest.testCFTopo
-    TraversalTest.testSFTopo
-    TraversalTest.testBUTopo
-
+    DAGTest.test
+    DCGTest.test
     MapTest.test
   }
 }
@@ -55,16 +48,17 @@ class TestOutput(implicit override val src:TestAtom, design:Design) extends Edge
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
   val out = new TestOutput
+  def newIn = new TestInput
   override def connectFields(x:Any)(implicit design:Design):Any = {
     x match {
-      case x:TestAtom => (new TestInput).connect(x.out)
+      case x:TestAtom => newIn.connect(x.out)
       case x => super.connectFields(x) 
     }
   }
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
 
-class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotCodegen with ChildFirstTopologicalTraversal {
+class TestDotCodegen(top:TestSubGraph, val fileName:String)(implicit design:Design) extends IRDotCodegen with ChildFirstTraversal {
   type N = TestNode
   val dirName = design.outDir
 
@@ -73,8 +67,6 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
   def visitLocalIn(n:N):List[N] = n.localDeps.toList
   def visitLocalOut(n:N):List[N] = n.localDepeds.toList
 
-  def top = TraversalTest.top
-
   def quote(n:Any) = n.toString
 
   def runPass = {
@@ -82,7 +74,7 @@ class TestDotCodegen(val fileName:String)(implicit design:Design) extends IRDotC
   }
 }
 
-object TraversalTest extends TestDesign with GraphCollector {
+object DAGTest extends TestDesign with GraphCollector {
   import prism.traversal.Traversal
 
   type N = TestNode
@@ -106,14 +98,20 @@ object TraversalTest extends TestDesign with GraphCollector {
   val g3 = TestSubGraph(h,i, j, k, m, l, n).name("g3")
   val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
 
-  def testGraph = {
+  def test = {
     assert(i.deps == Set(g, h), i.deps)
     assert(i.globalDeps == Set(g))
     assert(i.localDeps == Set(h))
     assert(g.deps == Set(c, e))
     assert(g.globalDeps == Set())
     assert(g.localDeps == Set(g2, e))
-    println(g1.deps)
+    new TestDotCodegen(top, s"test.dot").newRun(0).run
+    testBFS
+    testDFS
+    testChildFirst
+    testSiblingFirst
+    testDFSTDTopo
+    testBUTopo
   }
 
   def testBFS = {
@@ -170,8 +168,8 @@ object TraversalTest extends TestDesign with GraphCollector {
     //println(s"testSiblingFirst", res)
   }
 
-  def testCFTopo = {
-    val traversal = new ChildFirstTopologicalTraversal with GraphSchedular {
+  def testDFSTDTopo = {
+    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
       type N = TestNode
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
@@ -186,27 +184,7 @@ object TraversalTest extends TestDesign with GraphCollector {
       }
     }
     var res = traversal.schedule(top)
-  }
-
-  def testSFTopo = {
-    val traversal = new SiblingFirstTopologicalTraversal with GraphSchedular {
-      type N = TestNode
-      implicit val nct:ClassTag[N] = classTag[N]
-      val forward = true
-      def visitLocalIn(n:N):List[N] = n.localDeps.toList
-      def visitLocalOut(n:N):List[N] = n.localDepeds.toList
-      override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
-        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
-        n.parent.foreach { parent =>
-          parent.parent.foreach { grandParent =>
-            assert(grandParent.children.forall(prev.contains), s"$n, parent=$parent prev=$prev")
-          }
-        }
-        super.visitNode(n, prev)
-      }
-    }
-    var res = traversal.schedule(top)
+    //println(s"CFTopo", res)
   }
 
   def testBUTopo = {
@@ -217,12 +195,84 @@ object TraversalTest extends TestDesign with GraphCollector {
       def visitGlobalIn(n:N):List[N] = n.deps.toList
       def visitGlobalOut(n:N):List[N] = n.depeds.toList
       override def visitNode(n:N, prev:T):T = {
-        assert(depFunc(n).forall(isVisited))
+        assert(depFunc(n).forall(isVisited), s"depFunc()")
         super.visitNode(n, prev)
+      }
+      override def schedule(n:N) = {
+        resetTraversal
+        traverseScope(n, Nil)
       }
     }
     var res = traversal.schedule(top)
     assert((top::top.descendents).forall(traversal.isVisited))
+    //println("BUTopo", res)
   }
 
+}
+
+object DCGTest extends TestDesign with GraphCollector {
+  import prism.traversal.Traversal
+
+  type N = TestNode
+
+  val a = TestAtom().name("a")
+  val b = TestAtom(a).name("b")
+  val c = TestAtom(b).name("c")
+  val d = TestAtom(b).name("d")
+  val e = TestAtom(c).name("e")
+  val f = TestAtom(c).name("f")
+  val g1 = TestSubGraph(a,b,d).name("g1")
+  val g2 = TestSubGraph(c,e).name("g2")
+  val top = TestSubGraph(g1, g2, f).name("top")
+
+  d.newIn.connect(f.out)
+  b.newIn.connect(d.out)
+
+  def test = {
+    new TestDotCodegen(top, s"test.dot").newRun(0).run
+    //testBFS
+    //testDFS
+    //testChildFirst
+    //testSiblingFirst
+    testDFSTDTopo
+    testBUTopo
+  }
+
+  def testDFSTDTopo = {
+    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
+      type N = TestNode
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitLocalIn(n:N):List[N] = n.localDeps.toList
+      def visitLocalOut(n:N):List[N] = n.localDepeds.toList
+      override def visitNode(n:N, prev:T):T = {
+        assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
+        val res = super.visitNode(n, prev)
+        assert(n.children.forall(res.contains), s"n=$n res=$res")
+        res
+      }
+    }
+    var res = traversal.schedule(top)
+    //println(s"CFTopo", res)
+  }
+
+  def testBUTopo = {
+    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
+      type N = TestNode
+      implicit val nct:ClassTag[N] = classTag[N]
+      val forward = true
+      def visitGlobalIn(n:N):List[N] = n.deps.toList
+      def visitGlobalOut(n:N):List[N] = n.depeds.toList
+      override def visitNode(n:N, prev:T):T = {
+        super.visitNode(n, prev)
+      }
+      override def schedule(n:N) = {
+        resetTraversal
+        traverseScope(n, Nil)
+      }
+    }
+    var res = traversal.schedule(top)
+    println("BUTopo", res)
+    //assert((top::top.descendents).forall(traversal.isVisited))
+  }
 }

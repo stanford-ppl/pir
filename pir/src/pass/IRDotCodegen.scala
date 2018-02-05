@@ -12,7 +12,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with pir.newnode.ChildFirstTopologicalTraversal {
+abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with DFSTopDownTopologicalTraversal {
 
   val forward = true
   val dirName = design.outDir
@@ -38,7 +38,7 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
       case n:SubGraph[_] =>
         emitBlock(qdef(n)) {
           emitln(s"parent=${quote(n.parent)}")
-          super.emitNode(n)
+          traverse(n)
         }
       case n:Atom[_] =>
         emitBlock(qdef(n)) {
@@ -49,12 +49,13 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
             emitln(s"$io.connected=[${io.connected.mkString(",")}]")
           }
         }
+        traverse(n)
     }
   }
 
 }
 
-class ControllerPrinter(implicit design:PIR) extends pir.newnode.Pass with prism.codegen.Codegen with ChildFirstTraversal with UnitTraversal {
+class ControllerPrinter(implicit design:PIR) extends pir.newnode.Pass with prism.codegen.Codegen with ChildFirstTraversal {
   val fileName = "CtrlPrinter.txt"
 
   type N = Controller
@@ -65,9 +66,7 @@ class ControllerPrinter(implicit design:PIR) extends pir.newnode.Pass with prism
   def quote(n:Any) = qdef(n)
 
   override def emitNode(n:N) = {
-    emitBlock(qdef(n)) {
-      super.emitNode(n)
-    }
+    emitBlock(qdef(n)) { traverse(n) }
   }
 
   override def runPass = {
@@ -109,12 +108,12 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
   def label(attr:DotAttr, n:Any) = attr.label(quote(n))
 
-  def emitSubGraph(n:N):Unit = {
+  def emitSubGraph(n:N)(block: => Unit):Unit = {
     var attr = DotAttr()
     attr = shape(attr, n)
     attr = color(attr, n)
     attr = label(attr, n)
-    emitSubGraph(n, attr) { super.emitNode(n) }
+    emitSubGraph(n, attr) { block }
   }
 
   def emitSingleNode(n:N):Unit = {
@@ -136,9 +135,9 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
 
   override def emitNode(n:N) = {
     n match {
-      case _:Atom[_] => emitSingleNode(n)
-      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n)
-      case g:SubGraph[_] => emitSubGraph(n)
+      case _:Atom[_] => emitSingleNode(n); traverse(n) 
+      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n); traverse(n) 
+      case g:SubGraph[_] => emitSubGraph(n) { traverse(n) }
     }
   }
 
@@ -234,9 +233,9 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
 
   override def emitNode(n:N) = {
     n match {
-      case g:Top => emitSubGraph(n)
-      case g:GlobalContainer => emitSingleNode(n)
-      case _ => 
+      case g:Top => emitSubGraph(n)(traverse(n))
+      case g:GlobalContainer => emitSingleNode(n); traverse(n)
+      case _ => traverse(n)
     }
   }
 }
@@ -244,8 +243,8 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
 class LocalIRDotCodegen(fn:String)(implicit design:PIR) extends GlobalIRDotCodegen(fn) {
   override def emitNode(n:N) = {
     n match {
-      case n:CUContainer if List("x5074", "x4725_d0_b0", "x5055").contains(n.name.get) => emitSubGraph(n)
-      case n:CUContainer =>  
+      case n:CUContainer if List("x5074", "x4725_d0_b0", "x5055").contains(n.name.get) => emitSubGraph(n)(traverse(n))
+      case n:CUContainer => traverse(n)
       case n => super.emitNode(n)
     }
   }
@@ -274,7 +273,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends pir
     case n => super.color(attr, n)
   }
 
-  override def emitSubGraph(n:N):Unit = {
+  override def emitSubGraph(n:N)(block: => Unit):Unit = {
     var attr = DotAttr()
     attr = label(attr, n)
     emitSubGraph(n, attr) { 
@@ -283,7 +282,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends pir
         case mem:Memory if !isLocalMem(mem) => emitSingleNode(mem)
         case _ =>
       }
-      traverse(n,())
+      block
     }
   }
 

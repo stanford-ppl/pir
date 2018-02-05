@@ -90,16 +90,11 @@ trait UnitTraversal extends GraphTraversal {
   type T = Unit
 
   override def visitNode(n:N, prev:T):T = visitNode(n)
-  def visitNode(n:N):T = super.visitNode(n, ())
+  def visitNode(n:N):T = traverse(n, ()) 
 
-  override def traverseNode(n:N, prev:T):T = traverseNode(n)
-  def traverseNode(n:N):T = super.traverseNode(n,())
+  def traverseNode(n:N):T = traverseNode(n, ()) 
 
-  override def traverse(n:N, zero:T):T = traverse(n)
-  def traverse(n:N):T = super.traverse(n,())
-
-  override def traverse(ns: => List[N], zero:T):T = traverse(ns)
-  def traverse(ns: => List[N]):T = super.traverse(ns, ())
+  def traverse(n:N):T = traverse(n,())
 
 }
 
@@ -111,7 +106,7 @@ trait GraphSchedular extends GraphTraversal { self =>
 
   override def visitNode(n:N, prev:T):T = super.visitNode(n, prev:+n)
 
-  final def schedule(n:N) = {
+  def schedule(n:N) = {
     resetTraversal
     traverseNode(n, Nil)
   }
@@ -173,7 +168,7 @@ trait TopologicalTraversal extends GraphTraversal {
   def visitOut(n:N):List[N]
   def depedFunc(n:N):List[N] = if (forward) visitOut(n) else visitIn(n)
   def depFunc(n:N):List[N] = if (forward) visitIn(n) else visitOut(n)
-  def isDepFree(n:N) = depFunc(n).filterNot(isVisited).isEmpty
+  def isDepFree(n:N) = depFunc(n).forall(isVisited)
 
   val frontier = mutable.Set[N]()
 
@@ -182,7 +177,7 @@ trait TopologicalTraversal extends GraphTraversal {
     frontier.clear
   }
 
-  def visitFunc(n:N):List[N] = visitDepFree(n)
+  def visitFunc(n:N):List[N] = visitDepFree(n) 
   //implicit val nct:ClassTag[N]
   //private val cache = Cache((n:N) => visitDepFree(n))
   //def visitFunc(n:N):List[N] = cache.memorize(n)
@@ -193,8 +188,21 @@ trait TopologicalTraversal extends GraphTraversal {
   def visitDepFree(n:N):List[N] = {
     val unvisited = depedFunc(n).filterNot(isVisited)
     frontier ++= unvisited
-    val depFree = unvisited.filter(isDepFree)
-    depFree
+    unvisited.filter(isDepFree) 
+  }
+
+  def scheduleDepFree(nodes:List[N]):List[N] = {
+    val unvisited = nodes.filterNot(isVisited) 
+    var depFree = unvisited.filter(isDepFree) 
+    if (unvisited.nonEmpty && depFree.isEmpty) {
+      var nexts = frontier.filterNot(isVisited).filter {
+        case n:SubGraph[_] => false
+        case _ => true
+      }.toList
+      if (nexts.isEmpty) nexts = List(unvisited.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
+      dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
+      nexts
+    } else depFree
   }
 
 }
@@ -208,59 +216,27 @@ trait HiearchicalTraversal extends GraphTraversal {
 }
 trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
   override def traverse(n:N, zero:T):T = {
-    assert(!n.children.exists(isVisited))
+    assert(!n.children.exists(isVisited), s"children of $n is visited before traverse the parent in ChildFirstTraversal. children visited=${n.children.filter(isVisited)}")
     val res = super.traverse(n, zero)
-    assert(!n.children.exists(c => !isVisited(c)))
+    assert(!n.children.exists(c => !isVisited(c)), s"Not all children of $n is visited after ChildFirstTraversal ${n.children.filterNot(isVisited)}")
     res
   }
 }
 trait SiblingFirstTraversal extends BFSTraversal with HiearchicalTraversal
 
-trait ChildFirstTopologicalTraversal extends TopologicalTraversal with ChildFirstTraversal { //TODO fir this
+trait TopDownTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal {
   def visitLocalIn(n:N):List[N]
   def visitLocalOut(n:N):List[N]
   def visitIn(n:N):List[N] = visitLocalIn(n)
   def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
-    case n:SubGraph[_] => 
-      val unvisited = n.children.asInstanceOf[List[N]].filterNot(isVisited) 
-      val depFree = unvisited.filter(isDepFree) 
-      val res = if (unvisited.nonEmpty && depFree.isEmpty) {
-        val nexts = frontier.filterNot(isVisited).filterNot(_.children.nonEmpty)
-        dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
-        nexts.toList
-      } else depFree
-      dbgs(s"visitFunc($n) = $res")
-      res
+    case n:SubGraph[N] => scheduleDepFree(n.children)
     case _:Atom[_] => visitDepFree(n)
   }
 }
-trait SiblingFirstTopologicalTraversal extends TopologicalTraversal with SiblingFirstTraversal { self =>
-  def visitLocalIn(n:N):List[N]
-  def visitLocalOut(n:N):List[N]
-  def visitIn(n:N):List[N] = visitLocalIn(n)
-  def visitOut(n:N):List[N] = visitLocalOut(n)
-  override def visitFunc(n:N):List[N] = n match {
-    case n:SubGraph[_] => 
-      val children = n.children.asInstanceOf[List[N]]
-      var unscheduled = children
-      var scheduled = List[N]()
-      while (unscheduled.nonEmpty) {
-        scheduled ++= scheduleDepFree(unscheduled, scheduled)
-        unscheduled = unscheduled.filterNot(scheduled.contains)
-      }
-      scheduled
-    case _:Atom[_] => Nil 
-  }
-  def scheduleDepFree(nodes:List[N], scheduled:List[N]):List[N] = {
-    val unvisited = nodes.filterNot(scheduled.contains) 
-    var depFree = unvisited.filter(isDepFree) 
-    if (unvisited.nonEmpty && depFree.isEmpty) {
-      val next = unvisited.map { n => (depFunc(n).filterNot(scheduled.contains).size,n) }.minBy(_._1)._2
-      List(next)
-    } else depFree
-  }
-}
+
+trait DFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with ChildFirstTraversal
+trait BFSTopDownTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
 
 trait BottomUpTopologicalTraversal extends TopologicalTraversal {
   override type N <:Node[N]
@@ -269,36 +245,18 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
-  override def depFunc(n:N):List[N] = super.depFunc(n) ++ n.children
+  override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
+  override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
 
-  val scope = mutable.ListBuffer[N]()
-
-  override def resetTraversal = {
-    super.resetTraversal
-    scope.clear
+  def traverseScope(n:N, zero:T) = {
+    val allNodes = n::n.descendents
+    traverse(scheduleDepFree(allNodes), zero)
   }
 
-  override def traverseNode(n:N, zero:T) = {
-    if (scope.isEmpty) {
-      scope ++= (n::n.descendents)
-      def ns = {
-        dbgs(s"calling ns")
-        val depFrees = scope.toList.filterNot(isVisited).filter(isDepFree)
-        if (depFrees.isEmpty && scope.exists(n => !isVisited(n))) {
-          val nexts = frontier.filterNot(isVisited).filterNot(_.children.nonEmpty)
-          dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
-          nexts.toList
-        } else depFrees
-      }
-      traverse(ns, zero)
-    } else {
-      super.traverseNode(n, zero)
-    }
-  }
 }
 
 import scala.collection.JavaConverters._
-trait GraphTransformer extends GraphTraversal { self:UnitTraversal =>
+trait GraphTransformer extends GraphTraversal with UnitTraversal {
   type N<:Node[N] with Product
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
