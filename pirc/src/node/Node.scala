@@ -75,6 +75,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def depeds:Set[A] = outs.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
+  def neighbors = deps ++ depeds
 
   def connectFields(x:Any)(implicit design:Design):Any = {
     x match {

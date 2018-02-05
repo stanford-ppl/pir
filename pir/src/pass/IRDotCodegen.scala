@@ -12,7 +12,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with DFSTopDownTopologicalTraversal {
+abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with pir.newnode.DFSTopDownTopologicalTraversal {
 
   val forward = true
   val dirName = design.outDir

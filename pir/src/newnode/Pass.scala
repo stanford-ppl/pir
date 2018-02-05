@@ -35,6 +35,19 @@ abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.
   type D = PIR
 }
 
+trait TopologicalTraversal extends Traversal with prism.traversal.TopologicalTraversal {
+  override def selectFrontier = {
+    var frontier = super.selectFrontier
+    frontier = frontier.collect { case store:LocalStore => store }
+    if (frontier.isEmpty) frontier = super.selectFrontier
+    frontier
+  }
+}
+
+trait DFSTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopDownTopologicalTraversal
+trait BFSTopDownTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopDownTopDownTopologicalTraversal
+trait BottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BottomUpTopologicalTraversal
+
 abstract class Transformer(implicit design:PIR) extends Traversal with GraphTransformer {
 
   def quote(n:Any) = qtype(n)
@@ -214,7 +227,12 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
     deathMap.foreach { 
       case (n, true) =>
         dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
+        val neighbors = n.neighbors
         removeNode(n)
+        neighbors.foreach { nb =>
+          dbg(s"neighbor=$nb, neighbor.neighbors=${nb.neighbors}")
+          assert(!nb.neighbors.asInstanceOf[Set[N]].contains(n))
+        }
         pirmeta.removeAll(n)
       case (n, false) =>
     }
@@ -300,7 +318,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTop
   }
 
   override def visitNode(n:N, prev:Controller):T = {
-    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrl=${ctrlOf.get(n)}), isDepFree=${isDepFree(n)}")
+    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrl=${ctrlOf.get(n)}), ${if (!isDepFree(n)) s"unvisited deps=${depFunc(n).filterNot(isVisited)}" else ""}")
     n match {
       case n:ComputeContext =>
         val res = if (!ctrlOf.contains(n)) {
@@ -552,11 +570,10 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
 
 }
 
-class TestTraversal(implicit design:PIR) extends Pass with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+class TestTraversal(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
 //class TestTraversal(implicit design:PIR) extends Pass with DFSTopDownTopologicalTraversal with BFSTraversal with UnitTraversal {
   import pirmeta._
 
-  type N = Node with Product
   override def shouldRun = true
 
   val forward = false

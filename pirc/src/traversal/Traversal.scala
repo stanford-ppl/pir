@@ -191,16 +191,22 @@ trait TopologicalTraversal extends GraphTraversal {
     unvisited.filter(isDepFree) 
   }
 
+  def selectFrontier = {
+    frontier.filterNot(isVisited).filter {
+      case n:SubGraph[_] => false
+      case _ => true
+    }.toList
+  }
+
   def scheduleDepFree(nodes:List[N]):List[N] = {
     val unvisited = nodes.filterNot(isVisited) 
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
-      var nexts = frontier.filterNot(isVisited).filter {
-        case n:SubGraph[_] => false
-        case _ => true
-      }.toList
+      dbgs(s"Loop in Data flow graph.")
+      var nexts = selectFrontier
+      dbgs(s"frontier = $nexts")
       if (nexts.isEmpty) nexts = List(unvisited.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
-      dbgs(s"Loop in Data flow graph. Breaking loop at ${nexts}")
+      dbgs(s"Breaking loop at $nexts")
       nexts
     } else depFree
   }
@@ -264,6 +270,7 @@ trait GraphTransformer {
   implicit val nct:ClassTag[N]
 
   def removeNode(node:N) = {
+    val neighbors = node.neighbors
     node.ios.foreach { io => 
       val connected = io.connected.map(_.src)
       io.disconnect
