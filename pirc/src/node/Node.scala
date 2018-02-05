@@ -276,8 +276,11 @@ trait Metadata extends Serializable {
     def name:String
     def clear:Unit
     def get(k:K):Option[VV]
+    def contains(k:K):Boolean
     def removeAll(a:Any):Unit
     def update(k:K,vv:VV):Unit
+
+    def isDefinedAt(k:K) = contains(k)
     // Default just copy over
     def mirror(orig:K, clone:K):Unit = {
       get(orig).foreach { vv => update(clone, vv) }

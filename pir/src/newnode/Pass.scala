@@ -267,10 +267,8 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with DFSTraversal {
+class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
   import pirmeta._
-
-  type T = Controller
 
   override def shouldRun = true
 
@@ -283,7 +281,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTop
 
   override def runPass =  {
     controllerTraversal.traverseNode(design.newTop.topController, ())
-    traverseScope(design.newTop, null)
+    traverseScope(design.newTop, ())
   }
 
   override def check = {
@@ -317,21 +315,20 @@ class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTop
     }
   }
 
-  override def visitNode(n:N, prev:Controller):T = {
-    dbg(s"visitNode(${qtype(n)}, currentContext=$prev, n.ctrl=${ctrlOf.get(n)}), ${if (!isDepFree(n)) s"unvisited deps=${depFunc(n).filterNot(isVisited)}" else ""}")
+  override def visitNode(n:N, prev:T):T = {
+    dbg(s"visitNode(${qtype(n)}, n.ctrl=${ctrlOf.get(n)})")
     n match {
       case n:ComputeContext =>
-        val res = if (!ctrlOf.contains(n)) {
-          assert(prev != null)
-          ctrlOf(n) = prev
-          super.visitNode(n, prev)
-        } else {
-          super.visitNode(n, ctrlOf(n))
+        if (!ctrlOf.isDefinedAt(n)) {
+          assert(depFunc(n).forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
+          val ctrls = depFunc(n).map(ctrlOf.apply).toSet
+          assert(ctrls.size==1, s"deps have different controls ${depFunc(n).map(d => (d, ctrlOf(d)))}")
+          ctrlOf(n) = ctrls.head
         }
         dbg(ctrlOf.info(n).get)
-        res
-      case n => super.visitNode(n, null) 
+      case n => 
     }
+    super.visitNode(n, prev) 
   }
 
 }
