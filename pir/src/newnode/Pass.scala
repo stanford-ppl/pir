@@ -164,10 +164,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopolo
 
   def pullNode(dep:A, deped:A, container:GlobalContainer) = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
     dbg(s"dep.depeds=${dep.depeds}")
-    val depedContainers = dep.depeds.flatMap { 
-      case deped:LocalStore => None
-      case deped => collectUp[GlobalContainer](deped).headOption
-    }
+    val depedContainers = dep.depeds.flatMap { deped => collectUp[GlobalContainer](deped).headOption }
 
     val portable = dep match {
       case dep:Counter => false
