@@ -250,14 +250,19 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal {
   def visitGlobalOut(n:N):List[N]
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
-  override def depedFunc(n:N):List[N] = n match {
-    case _:Atom[N] => n.parent.toList ++ super.depFunc(n)
-    case n:SubGraph[N] => n.parent.toList
-  } 
-  override def depFunc(n:N):List[N] = n match {
-    case _:Atom[N] => super.depFunc(n)
-    case n:SubGraph[N] => n.children
-  } 
+  //TODO: why is this not correct?
+  //override def depedFunc(n:N):List[N] = n match {
+    //case _:Atom[N] => n.parent.toList ++ super.depFunc(n)
+    //case n:SubGraph[N] => n.parent.toList
+  //} 
+  //override def depFunc(n:N):List[N] = n match {
+    //case _:Atom[N] => super.depFunc(n)
+    //case n:SubGraph[N] => n.children
+  //} 
+  override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
+  override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
+  override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
+
   def traverseScope(n:N, zero:T) = {
     val allNodes = n::n.descendents
     traverse(scheduleDepFree(allNodes), zero)
@@ -293,11 +298,6 @@ trait GraphTransformer {
     node.setParent(newParent.asInstanceOf[node.P])
   }
 
-  /*
-   * Given a node that was originally connected to from, swap the connection to node to
-   * at the same io port.
-    * Assume from and to have the same IO interface
-   * */
   def swapOutputs[A1<:A](node:A, from:A1, to:A1) = swapConnections(node, from, to, (n:A1) => n.outs)
   def swapInputs[A1<:A](node:A, from:A1, to:A1) = swapConnections(node, from, to, (n:A1) => n.ins)
 

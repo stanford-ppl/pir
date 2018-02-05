@@ -247,6 +247,12 @@ object LocalStore {
     case _ => None
   }
 }
+object WithWriters {
+  def unapply(n:Any):Option[List[LocalStore]] = n match {
+    case n:Memory => Some(n.writers.toList)
+    case _ => None
+  }
+}
 
 case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) extends Def 
 case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends StageDef

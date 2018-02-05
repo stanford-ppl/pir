@@ -103,6 +103,7 @@ trait PIR extends Design with PIRMetadata with Collector {
   lazy val cuStats = new pir.newnode.CUStatistics()
   lazy val irCheck = new pir.newnode.IRCheck()
   lazy val memoryAnalyzer = new pir.newnode.MemoryAnalyzer()
+  lazy val routeThroughEliminator = new pir.newnode.RouteThroughElimination()
 
   var mapping:Option[PIRMap] = None
 
@@ -193,6 +194,10 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(memoryAnalyzer)
 
     addPass(new ControllerDotCodegen(s"ctrl.dot")).addDependency(controlPropogator)
+
+    addPass(routeThroughEliminator)
+    addPass(deadCodeEliminator)
+    addPass(new GlobalIRDotCodegen(s"top8.dot"))
 
     addPass(cuStats)
 

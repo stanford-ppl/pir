@@ -235,12 +235,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
     }
   }
 
-  override def check = {
-    val containers = collectDown[CUContainer](design.newTop)
-    val unvisited = containers.filterNot(isVisited)
-    assert(unvisited.isEmpty, s"not all containers are visited! unvisited=${unvisited}")
-  }
-
   def markDeath(deathMap:T, n:N) = {
     val isDead = n match {
       case n:ArgOut => false
@@ -250,8 +244,6 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
         else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
         else n.depeds.forall(d => deathMap.getOrElse(d, false))
       case n:Container => n.children.isEmpty 
-      case Def(n, LocalStore(mems, addrs, data)) => mems.isEmpty
-      case n:MemStore => n.mem == null
       case n => n.depeds.forall(d => deathMap.getOrElse(d, false))
     }
     if (isDead) dbgs(s"Mark $n as dead code")
@@ -560,6 +552,35 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
     mems.foreach { mem =>
       setParentControl(mem)
     }
+  }
+
+}
+
+class RouteThroughElimination(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+  import pirmeta._
+
+  override def shouldRun = true
+
+  val forward = false
+
+  override def runPass =  {
+    traverseScope(design.newTop, ())
+  }
+
+  override def visitNode(n:N, prev:T):T = {
+    n match {
+      case Def(store:MemStore, MemStore(mem, None, Def(rload:MemLoad, MemLoad(WithWriters(Def(rstore:MemStore, MemStore(rmem, None, data))::Nil), None)))) =>
+        dbgblk(s"Found Route Through ${qdef(store)}") {
+          dbg(s"rload:${qdef(rload)}")
+          dbg(s"rmem:${qdef(rmem)}")
+          dbg(s"rstore:${qdef(rstore)}")
+          dbg(s"data:$data")
+          dbg(s"data:${qdef(data)}")
+          swapConnection(store, rload.out, data.out)
+        }
+      case _ =>
+    }
+    super.visitNode(n, prev)
   }
 
 }
