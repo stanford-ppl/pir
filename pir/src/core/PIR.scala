@@ -184,7 +184,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top5.dot"))
 
-    addPass(accessLowering).addDependency(controlPropogator, accessPuller, deadCodeEliminator)
+    addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top6.dot"))
 
     addPass(deadCodeEliminator)
@@ -193,9 +193,9 @@ trait PIR extends Design with PIRMetadata with Collector {
 
     addPass(memoryAnalyzer)
 
-    addPass(new ControllerDotCodegen(s"ctrl.dot")).addDependency(controlPropogator)
+    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator)
 
-    addPass(routeThroughEliminator)
+    addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top8.dot"))
 

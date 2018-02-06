@@ -11,7 +11,7 @@ case class RunPass(pass:Pass, id:Int) {
   var hasRun = false
   def reset = { hasRun = false }
   val dependencies = mutable.ListBuffer[RunPass]()
-  def addDependency(deps:Pass*) = {
+  def dependsOn(deps:Pass*) = {
     deps.foreach { dep =>
       dependencies += dep.runPasses.last
     }

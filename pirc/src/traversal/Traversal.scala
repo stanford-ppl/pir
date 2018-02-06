@@ -9,7 +9,7 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-trait Traversal extends GraphTraversal with prism.pass.Pass with GraphUtil {
+trait Traversal extends GraphTraversal with prism.pass.Pass {
 
   override def reset = { reset; resetTraversal }
   override def initPass = { resetTraversal }
@@ -18,33 +18,31 @@ trait Traversal extends GraphTraversal with prism.pass.Pass with GraphUtil {
 
 trait GraphUtil {
 
-  type N <: Node[N]
-
   /*
    * Visit from buttom up
    * */
-  def visitUp(n:N):List[N] = n.parent.toList
+  def visitUp[N<:Node[N]](n:N):List[N] = n.parent.toList
 
   /*
    * Visit subgraph
    * */
-  def visitDown(n:N):List[N] = n.children
+  def visitDown[N<:Node[N]](n:N):List[N] = n.children
 
   /*
    * Visit inputs of a node
    * */
-  def visitLocalIn(n:N):List[N] = n.localDeps.toList
+  def visitLocalIn[N<:Node[N]](n:N):List[N] = n.localDeps.toList
 
   /*
    * Visit outputs of a node 
    * */
-  def visitLocalOut(n:N):List[N] = n.localDepeds.toList
+  def visitLocalOut[N<:Node[N]](n:N):List[N] = n.localDepeds.toList
 
 
-  def visitGlobalIn(n:N):List[N] = n.deps.toList
-  def visitGlobalOut(n:N):List[N] = n.depeds.toList
+  def visitGlobalIn[N<:Node[N]](n:N):List[N] = n.deps.toList
+  def visitGlobalOut[N<:Node[N]](n:N):List[N] = n.depeds.toList
 
-  def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
+  def leastCommonAncesstor[N<:Node[N]](n1:N, n2:N):Option[N] = {
     ((n1 :: n1.ancestors) intersect (n2 :: n2.ancestors)).headOption
   }
 
@@ -230,9 +228,7 @@ trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
 }
 trait SiblingFirstTraversal extends BFSTraversal with HiearchicalTraversal
 
-trait TopDownTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal {
-  def visitLocalIn(n:N):List[N]
-  def visitLocalOut(n:N):List[N]
+trait TopDownTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal with GraphUtil {
   def visitIn(n:N):List[N] = visitLocalIn(n)
   def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
@@ -244,10 +240,8 @@ trait TopDownTopologicalTraversal extends TopologicalTraversal with HiearchicalT
 trait DFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with ChildFirstTraversal
 trait BFSTopDownTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
 
-trait BottomUpTopologicalTraversal extends TopologicalTraversal {
+trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
   override type N <:Node[N]
-  def visitGlobalIn(n:N):List[N]
-  def visitGlobalOut(n:N):List[N]
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
   //TODO: why is this not correct?
@@ -382,12 +376,12 @@ trait GraphTransformer {
 }
 
 
-trait GraphCollector extends GraphUtil {
-  type N<:Node[N]
+trait GraphCollector {
 
-  private def newTraversal[M<:N:ClassTag](vf:N => List[N], logger:Option[Logging]) = new BFSTraversal {
+  abstract class Collector[ND<:Node[ND], M<:ND:ClassTag] extends BFSTraversal with GraphUtil {
     type T = List[M]
-    type N = (GraphCollector.this.N, Int)
+    type N = (ND, Int)
+    val logger:Option[Logging]
 
     override def isVisited(n:N) = {
       val (node, depth) = n
@@ -412,22 +406,35 @@ trait GraphCollector extends GraphUtil {
       val (node, depth) = n
       vf(node).map { next => (next, depth-1) }
     }
+    def vf(n:ND):List[ND]
   }
  
-  def collectUp[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitUp _, logger).traverse((n, depth), Nil)
+  def collectUp[ND<:Node[ND], M<:ND:ClassTag](n:ND, depth:Int, log:Option[Logging]):List[M] = {
+    new Collector[ND, M] {
+      override val logger = log
+      override def vf(n:ND) = visitUp(n)
+    }.traverse((n, depth), Nil)
   }
 
-  def collectDown[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitDown _, logger).traverse((n, depth), Nil)
+  def collectDown[ND<:Node[ND], M<:ND:ClassTag](n:ND, depth:Int, log:Option[Logging]):List[M] = {
+    new Collector[ND, M] {
+      override val logger = log
+      override def vf(n:ND) = visitDown(n)
+    }.traverse((n, depth), Nil)
   }
 
-  def collectIn[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitLocalIn _, logger).traverse((n, depth), Nil)
+  def collectIn[ND<:Node[ND], M<:ND:ClassTag](n:ND, depth:Int, log:Option[Logging]):List[M] = {
+    new Collector[ND, M] {
+      override val logger = log
+      override def vf(n:ND) = visitLocalIn(n)
+    }.traverse((n, depth), Nil)
   }
 
-  def collectOut[M<:N:ClassTag](n:N, depth:Int=10, logger:Option[Logging]=None):List[M] = {
-    newTraversal(visitLocalOut _, logger).traverse((n, depth), Nil)
+  def collectOut[ND<:Node[ND], M<:ND:ClassTag](n:ND, depth:Int, log:Option[Logging]):List[M] = {
+    new Collector[ND, M] {
+      override val logger = log
+      override def vf(n:ND) = visitLocalOut(n)
+    }.traverse((n, depth), Nil)
   }
 
 }

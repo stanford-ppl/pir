@@ -11,8 +11,9 @@ import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
 import scala.reflect._
+import prism.codegen.Logging
 
-abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with GraphCollector {
+abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with PIRCollector {
 
   def qdef(n:Any) = n match {
     case n:IR => s"${n.name.getOrElse(n.toString)} = ${n.productName}"
@@ -27,7 +28,21 @@ abstract class Pass(implicit val design:PIR) extends prism.pass.Pass with GraphC
   lazy val pirmeta = design.newTop.metadata
 }
 
-abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.Traversal  {
+trait PIRCollector extends GraphCollector {
+  def collectUp[M<:Node:ClassTag](n:Node, depth:Int=10, log:Option[Logging]=None):List[M] =
+    super.collectUp[Node, M](n, depth, log)
+
+  def collectDown[M<:Node:ClassTag](n:Node, depth:Int=10, log:Option[Logging]=None):List[M] = 
+    super.collectDown[Node, M](n, depth, log)
+
+  def collectIn[M<:Node:ClassTag](n:Node, depth:Int=10, log:Option[Logging]=None):List[M] = 
+    super.collectIn[Node, M](n, depth, log)
+
+  def collectOut[M<:Node:ClassTag](n:Node, depth:Int=10, log:Option[Logging]=None):List[M] = 
+    super.collectOut[Node, M](n, depth, log)
+}
+
+abstract class PIRTraversal(implicit design:PIR) extends Pass with prism.traversal.Traversal  {
   implicit val nct = classTag[N]
   type N = Node with Product
   type P = Container
@@ -35,7 +50,7 @@ abstract class Traversal(implicit design:PIR) extends Pass with prism.traversal.
   type D = PIR
 }
 
-trait TopologicalTraversal extends Traversal with prism.traversal.TopologicalTraversal {
+trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal {
   override def selectFrontier = {
     var frontier = super.selectFrontier
     frontier = frontier.collect { case store:LocalStore => store }
@@ -48,7 +63,7 @@ trait DFSTopDownTopologicalTraversal extends TopologicalTraversal with prism.tra
 trait BFSTopDownTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopDownTopDownTopologicalTraversal
 trait BottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BottomUpTopologicalTraversal
 
-abstract class Transformer(implicit design:PIR) extends Traversal with GraphTransformer {
+abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with GraphTransformer {
 
   def quote(n:Any) = qtype(n)
 
@@ -98,7 +113,7 @@ trait ControllerTraversal extends GraphTraversal with SiblingFirstTraversal with
   type N = Controller
 }
 
-class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTraversal with UnitTraversal {
+class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal {
 
   import pirmeta._
 
@@ -141,7 +156,7 @@ class CUInsertion(implicit design:PIR) extends Transformer with SiblingFirstTrav
 
 }
 
-class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with DFSTraversal with UnitTraversal {
+class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTopologicalTraversal with DFSTraversal with UnitTraversal {
 
   override def shouldRun = true
 
@@ -208,7 +223,7 @@ class AccessPulling(implicit design:PIR) extends Transformer with BottomUpTopolo
 
 }
 
-class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with BFSTraversal {
+class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BottomUpTopologicalTraversal with BFSTraversal {
   import pirmeta._
 
   type T = Map[N, Boolean]
@@ -256,7 +271,7 @@ class DeadCodeElimination(implicit design:PIR) extends Transformer with BottomUp
 
 }
 
-class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -322,7 +337,7 @@ class ControlPropogation(implicit design:PIR) extends Traversal with BottomUpTop
 
 }
 
-class AccessLowering(implicit design:PIR) extends Transformer with ChildFirstTraversal with UnitTraversal {
+class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirstTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -422,7 +437,7 @@ class CUStatistics(implicit design:PIR) extends Pass {
     cuMap.foreach { case (key, cus) =>
       dbg(s"")
       dbg(s"number of $key = ${cus.size}")
-      dbg(s"$key = ${cus.map(qtype)}")
+      //dbg(s"$key = ${cus.map(qtype)}")
       val fanIns = cus.map { cu => cu.ins.size }
       dbg(s"max fanIn of $key = ${fanIns.max}")
       dbg(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
@@ -556,7 +571,7 @@ class MemoryAnalyzer(implicit design:PIR) extends Pass {
 
 }
 
-class RouteThroughElimination(implicit design:PIR) extends Transformer with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -585,7 +600,50 @@ class RouteThroughElimination(implicit design:PIR) extends Transformer with Bott
 
 }
 
-class TestTraversal(implicit design:PIR) extends Traversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+class CounterChainFilling(implicit design:PIR) extends PIRTransformer with ChildFirstTraversal with UnitTraversal {
+
+  import pirmeta._
+
+  override def shouldRun = true
+
+  override def initPass = {
+    super.initPass
+    controllerTraversal.resetTraversal
+  }
+  
+  val cuMap = mutable.Map[Controller, GlobalContainer]()
+
+  val controllerTraversal = new ControllerTraversal with UnitTraversal {
+    override def visitNode(n:N, prev:T):T = {
+      val cu = n match {
+        case n:TopController => design.newTop
+        case n:ArgController => design.newTop.argFringe
+        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}").ctrl(n)
+      }
+      dbg(s"${qtype(n)} -> ${qtype(cu)}")
+      cuMap += n -> cu
+      super.visitNode(n, prev)
+    }
+  }
+
+  override def runPass =  {
+    createCUForController
+    traverseNode(design.newTop)
+  }
+
+  def createCUForController = {
+    controllerTraversal.traverseNode(design.newTop.topController, ())
+  }
+
+  override def visitNode(n:N):Unit = n match {
+    case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
+    case n:ComputeContext if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
+    case _ => super.visitNode(n)
+  }
+
+}
+
+class TestTraversal(implicit design:PIR) extends PIRTraversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
 //class TestTraversal(implicit design:PIR) extends Pass with DFSTopDownTopologicalTraversal with BFSTraversal with UnitTraversal {
   import pirmeta._
 

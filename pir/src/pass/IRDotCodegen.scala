@@ -12,7 +12,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-abstract class CodegenWrapper(implicit design:PIR) extends pir.newnode.Traversal with prism.codegen.Codegen with pir.newnode.DFSTopDownTopologicalTraversal {
+abstract class CodegenWrapper(implicit design:PIR) extends PIRTraversal with prism.codegen.Codegen with pir.newnode.DFSTopDownTopologicalTraversal {
 
   val forward = true
   val dirName = design.outDir
@@ -29,7 +29,7 @@ class IRPrinter(implicit design:PIR) extends CodegenWrapper {
 
   val fileName = "IRPrinter.txt"
 
-  def shouldRun = true
+  def shouldRun = Config.debug
 
   override def quote(n:Any) = qtype(n)
 
@@ -59,7 +59,7 @@ class ControllerPrinter(implicit design:PIR) extends pir.newnode.Pass with prism
   val fileName = "CtrlPrinter.txt"
 
   type N = Controller
-  def shouldRun = true
+  def shouldRun = Config.debug
 
   val dirName = design.outDir
 
@@ -79,7 +79,7 @@ trait IRDotCodegen extends prism.codegen.Codegen with prism.codegen.DotCodegen {
   type N <: prism.node.Node[N]
 
   val horizontal:Boolean = false
-  def shouldRun = true
+  def shouldRun = Config.debug
   val fileName:String
 
   val nodes = mutable.ListBuffer[N]()
@@ -295,7 +295,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends pir
   }
 
   override def emitEdges = {
-    val mems = collector.collectDown[Memory](design.newTop)
+    val mems = collectDown[Memory](design.newTop)
     mems.foreach { 
       case mem:ArgIn =>
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
