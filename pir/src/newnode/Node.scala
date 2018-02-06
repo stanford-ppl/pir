@@ -181,7 +181,7 @@ case class Top()(implicit design: PIR) extends GlobalContainer {
 
 }
 
-trait ComputeContext extends Node
+trait ComputeNode extends Node
 
 trait Controller extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
@@ -202,18 +202,18 @@ case class ArgController()(implicit design:PIR) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }
-case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container with ComputeContext
+case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container with ComputeNode
 object CounterChain {
   def unit(implicit design:PIR) = {
     CounterChain(List(Counter(Const(0), Const(1), Const(1), 1)))
   }
 }
 
-case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Module with ComputeContext {
+case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Module with ComputeNode {
   val out = new Output
 }
 
-abstract class Def(implicit design:PIR) extends Module with ComputeContext { self =>
+abstract class Def(implicit design:PIR) extends Module with ComputeNode { self =>
   def depDefs:Set[Def] = deps.collect { case d:Def => d } 
   def localDepDefs = localDeps.collect { case d:Def => d } 
   def depedDefs:Set[Def] = depeds.collect { case d:Def => d } 

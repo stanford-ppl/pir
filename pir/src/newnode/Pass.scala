@@ -84,9 +84,8 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
         case (n:Memory, m:Memory) => 
           val writers = n.writers.map { 
             case Def(w,LocalStore(mems, addrs, data)) => 
-              // prevent mirroring of addrs and data
-              mp += addrs -> addrs
-              mp += data -> data
+              // prevent mirroring of writer
+              mp += w -> w
               w
           }
           dbg(s"writers of $n = ${writers}")
@@ -166,7 +165,7 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
 
   override def visitNode(n:N):Unit = n match {
     case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
-    case n:ComputeContext if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
+    case n:ComputeNode if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
     case _ => super.visitNode(n)
   }
 
@@ -228,6 +227,8 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTop
       case n:Def =>
         val localDeps = n.deps.flatMap {
           case n:Memory if isRemoteMem(n) => None
+          case n:StoreDef => None
+          case n:ArgInDef => None
           case n => Some(n)
         }
         val cu = collectUp[GlobalContainer](n).head
@@ -264,7 +265,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with Botto
           assert(!nb.neighbors.asInstanceOf[Set[N]].contains(n))
         }
         pirmeta.removeAll(n)
-      case (n, false) =>
+      case (n, false) => removeUnusedIOs(n)
     }
   }
 
@@ -306,9 +307,9 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUp
   }
 
   override def check = {
-    val contexts = collectDown[ComputeContext](design.newTop)
-    contexts.foreach { context =>
-      assert(ctrlOf.contains(context), s"$context's controller is not set")
+    val computes = collectDown[ComputeNode](design.newTop)
+    computes.foreach { computes =>
+      assert(ctrlOf.contains(computes), s"$computes's controller is not set")
     }
   }
 
@@ -318,7 +319,7 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUp
       ctrlOf.removeKey(n)
       n.ctrl(ctrl)
       n.children.foreach(c => resetController(c, ctrl))
-    case n:ComputeContext => 
+    case n:ComputeNode => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
       n.ctrl(ctrl)
@@ -339,7 +340,7 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUp
   override def visitNode(n:N, prev:T):T = {
     dbg(s"visitNode(${qtype(n)}, n.ctrl=${ctrlOf.get(n)})")
     n match {
-      case n:ComputeContext =>
+      case n:ComputeNode =>
         if (!ctrlOf.isDefinedAt(n)) {
           assert(depFunc(n).forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
           val ctrls = depFunc(n).map(ctrlOf.apply).toSet
@@ -370,8 +371,9 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
       case x:Const[_] => mapping + (x -> x)
       case Def(x:IterDef, IterDef(counter, offset)) => mirrorX(x, cu, mapping)
       case x =>
+        val xCU = collectUp[GlobalContainer](x).head
         val fifo = RetimingFIFO().setParent(cu)
-        val store = MemStore(fifo, None, x).setParent(cu)
+        val store = MemStore(fifo, None, x).setParent(xCU)
         val load = MemLoad(fifo, None).setParent(cu)
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)
@@ -409,6 +411,15 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
               dbg(s"$n.deped=$deped")
               swapConnection(deped, n.out, newOut)
             }
+          }
+        }
+      case Def(n:StoreDef, StoreDef(mems, None, data)) =>
+        dbgblk(s"Lowering ${qdef(n)}") {
+          val accessCU = collectUp[GlobalContainer](n).head
+          mems.foreach { mem =>
+            disconnect(mem, n)
+            val access = MemStore(mem, None, data).setParent(accessCU)
+            pirmeta.mirror(n, access)
           }
         }
       case Def(n:StoreDef, StoreDef(mems, addrs, data)) =>
@@ -500,10 +511,26 @@ class IRCheck(implicit design:PIR) extends Pass {
   def checkCUIO(cu:GlobalContainer) = {
     cu.ins.foreach { in =>
       in.src match {
-        case node:LocalStore =>
+        case node:LocalLoad =>
+        case node:Memory =>
         case node =>
           dbg(s"$cu's global input $in.src = $node")
-          throw PIRException(s"$cu's global input $in.src = $node is not LocalStore")
+          in.connected.foreach { out =>
+            dbg(s"out=$out out.src=${out.src}")
+          }
+          throw PIRException(s"$cu's global output $in.src = $node")
+      }
+    }
+    cu.outs.foreach { out =>
+      out.src match {
+        case node:LocalStore =>
+        case node:Memory =>
+        case node =>
+          dbg(s"$cu's global output $out.src = $node")
+          out.connected.foreach { in =>
+            dbg(s"in=$in in.src=${in.src}")
+          }
+          throw PIRException(s"$cu's global output $out.src = $node")
       }
     }
   }
@@ -611,14 +638,13 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
 
   override def visitNode(n:N, prev:T):T = {
     n match {
-      case Def(store:MemStore, MemStore(mem, None, Def(rload:MemLoad, MemLoad(WithWriters(Def(rstore:MemStore, MemStore(rmem, None, data))::Nil), None)))) =>
-        dbgblk(s"Found Route Through ${qdef(store)}") {
+      case Def(load:MemLoad, MemLoad(WithWriters(Def(rstore:MemStore, MemStore(rmem, None, Def(rload:MemLoad, MemLoad(mem, None))))::Nil), None)) =>
+        dbgblk(s"Found Route Through ${qdef(load)}") {
           dbg(s"rload:${qdef(rload)}")
-          dbg(s"rmem:${qdef(rmem)}")
           dbg(s"rstore:${qdef(rstore)}")
-          dbg(s"data:$data")
-          dbg(s"data:${qdef(data)}")
-          swapConnection(store, rload.out, data.out)
+          dbg(s"rmem:${qdef(rmem)}")
+          dbg(s"load:${qdef(load)}")
+          swapConnection(load, rmem.out, mem.out)
         }
       case _ =>
     }

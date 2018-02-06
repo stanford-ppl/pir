@@ -94,7 +94,6 @@ trait PIR extends Design with PIRMetadata with Collector {
   //lazy val irCheck = new IRCheck() 
 
 
-  lazy val irPrinter = new IRPrinter {}
   lazy val deadCodeEliminator = new pir.newnode.DeadCodeElimination()
   lazy val controlPropogator = new pir.newnode.ControlPropogation()
   lazy val cuInsertion = new pir.newnode.CUInsertion()
@@ -168,7 +167,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(new TestPass())
     addPass(new pir.newnode.TestTraversal)
 
-    addPass(new IRPrinter)
+    addPass(new IRPrinter(s"IR1.txt"))
     addPass(new GlobalIRDotCodegen(s"top1.dot"))
 
     addPass(deadCodeEliminator)
@@ -199,6 +198,7 @@ trait PIR extends Design with PIRMetadata with Collector {
     addPass(deadCodeEliminator)
     addPass(new GlobalIRDotCodegen(s"top8.dot"))
 
+    addPass(new IRPrinter(s"IR2.txt"))
     addPass(cuStats)
 
     addPass(irCheck)

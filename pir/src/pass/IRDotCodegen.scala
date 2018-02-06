@@ -25,9 +25,7 @@ abstract class CodegenWrapper(implicit design:PIR) extends PIRTraversal with pri
   
 }
 
-class IRPrinter(implicit design:PIR) extends CodegenWrapper {
-
-  val fileName = "IRPrinter.txt"
+class IRPrinter(val fileName:String)(implicit design:PIR) extends CodegenWrapper {
 
   def shouldRun = Config.debug
 
