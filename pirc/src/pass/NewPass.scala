@@ -26,12 +26,10 @@ case class RunPass(pass:Pass, id:Int) {
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
     pass.logger.withOpen(s"$name.log") {
       dependencies.foreach(_.pass.check)
-      startInfo(s"Begin $name ...")
       pass.initPass
       pass.runPass
       pass.finPass
       hasRun = true
-      endInfo(s"Finishing $name ...")
     }
   }
 }
@@ -52,11 +50,11 @@ trait Pass extends Logging {
     runPass
   }
   
-  def initPass:Unit ={}
+  def initPass:Unit = info(s"Running $name ...")
 
   def runPass:Unit
 
-  def finPass:Unit ={}
+  def finPass:Unit = {}
 
   def check:Unit = {}
 

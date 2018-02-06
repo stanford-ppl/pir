@@ -3,6 +3,7 @@ package prism.codegen
 import pirc._
 
 import prism.pass.Pass
+import pirc.util._
 
 import java.io.{File, FileInputStream, FileOutputStream}
 import prism.traversal._
@@ -64,8 +65,8 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   }
 
   override def initPass = {
-    super.initPass
     openFile(dirName, fileName, append=append)
+    info(s"Running $name to ${sw.getPath}")
   }
 
   override def finPass = {

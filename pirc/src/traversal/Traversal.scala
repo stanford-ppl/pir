@@ -11,8 +11,8 @@ import scala.collection.mutable
 
 trait Traversal extends GraphTraversal with prism.pass.Pass {
 
-  override def reset = { reset; resetTraversal }
-  override def initPass = { resetTraversal }
+  override def reset = { super.reset; resetTraversal }
+  override def initPass = { super.initPass; resetTraversal }
 
 }
 
@@ -334,12 +334,6 @@ trait GraphTransformer {
 
   def removeUnusedIOs(node:N) = {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
-  }
-
-  def mirror[T<:N](n:T)(implicit design:D):(T, List[N]) = {
-    val mapping = mirrorX(n)
-    val newNodes = mapping.values.collect { case n:N => n }.toSet diff mapping.keys.collect { case n:N => n}.toSet
-    (mapping(n).asInstanceOf[T], newNodes.toList)
   }
 
   def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {

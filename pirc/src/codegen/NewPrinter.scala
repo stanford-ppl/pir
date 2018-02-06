@@ -15,15 +15,18 @@ trait Printer {
     def emitln(s:String) = { writer.println(s) }
     def flush = writer.flush
     def close = writer.close
+    def getPath:String
   }
   case class StdoutWriter() extends StreamWriter {
     val outputStream = System.out
     override def emit(s:String) = { super.emit(s); writer.flush }
     override def emitln(s:String) = { super.emitln(s); writer.flush }
     override def close = {} // Cannot close stdout
+    def getPath = s"console"
   }
   case class ByteWriter() extends StreamWriter {
     override lazy val outputStream:ByteArrayOutputStream = new ByteArrayOutputStream()
+    def getPath = "byteStream"
   }
   case class FileWriter(dirName:String, fileName:String, append:Boolean) extends StreamWriter {
     val path = s"${dirName}${File.separator}${fileName}"
@@ -41,6 +44,7 @@ trait Printer {
     override def emitln(s:String) = { written = true; super.emitln(s) }
     override def flush = if (written) super.flush
     override def close = if (written) super.close 
+    def getPath = path
   }
 
   val streamStack = Stack[StreamWriter]()
