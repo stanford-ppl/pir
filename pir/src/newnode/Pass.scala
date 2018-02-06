@@ -67,7 +67,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
 
   def quote(n:Any) = qtype(n)
 
-  override def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
+  override def mirrorX(n:Any, mapping:Map[Any,Any])(implicit design:D):Map[Any,Any] = {
     if (mapping.contains(n)) return mapping
     var mp  = mapping
     // Nodes do not mirror
@@ -79,6 +79,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
       mp = super.mirrorX(n, mp)
       val m = mp(n)
       pirmeta.mirror(n,m)
+      dbgs(s"${quote(n)} -> ${quote(m)}")
       (n, m) match {
         case (n:Memory, m:Memory) => 
           val writers = n.writers.map { 
@@ -95,17 +96,32 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
           mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => mirrorX(cc, mp) }
         case (n:CounterChain, m:CounterChain) =>
           dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
+          mp = n.counters.foldLeft(mp) { case (mp, ctr) => mirrorX(ctr, mp) }
         case _ =>
       }
       mp(n)
     }
     mp
   }
+
+  def mirrorX(n:Any)(implicit design:D):Map[Any,Any] = mirrorX(n, Map[Any,Any]())
+
+  def mirrorX(n:Any, container:Container, init:Map[Any,Any])(implicit design:D):Map[Any,Any] = {
+    val mapping = mirrorX(n, init)
+    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.isEmpty)
+    newNodes.foreach { m => 
+      m.setParent(container)
+      dbg(s"${qtype(container)} add ${qtype(m)}")
+    }
+    mapping
+  }
+
+  def mirrorX(n:Any, container:Container)(implicit design:D):Map[Any,Any] =
+    mirrorX(n, container, Map[Any,Any]())
+
   def mirror[T<:N](n:T, container:Container)(implicit design:D):T = {
-    val (m, ms) = mirror(n)
-    ms.filter{_.parent.isEmpty}.foreach(_.setParent(container))
-    dbg(s"${qtype(container)} add ${ms.map(qtype)}")
-    m
+    val mapping = mirrorX(n, container)
+    mapping(n).asInstanceOf[T]
   }
 }
 
@@ -348,20 +364,23 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
     traverseNode(design.newTop)
   }
 
-  def retime(x:Def, cu:GlobalContainer) = {
+  def retimeX(x:Def, cu:GlobalContainer, mapping:Map[Any,Any]):Map[Any,Any] = {
     x match {
-      case x:Const[_] => x
-      case Def(n:IterDef, IterDef(counter, offset)) =>
-        mirror[IterDef](n, cu)
+      case x:Const[_] => mapping + (x -> x)
+      case Def(x:IterDef, IterDef(counter, offset)) => mirrorX(x, cu, mapping)
       case x =>
         val fifo = RetimingFIFO().setParent(cu)
         val store = MemStore(fifo, None, x).setParent(cu)
         val load = MemLoad(fifo, None).setParent(cu)
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)
-        load
+        mapping + (x -> load)
     }
   }
+
+  def retimeX(x:Def, cu:GlobalContainer):Map[Any,Any] = retimeX(x, cu, Map[Any, Any]())
+
+  def retime(x:Def, cu:GlobalContainer):Def = retimeX(x, cu)(x).asInstanceOf[Def]
 
   override def visitNode(n:N):Unit = {
     n match {
@@ -372,7 +391,12 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
 
             // Remote read address calculation
             val memCU = collectUp[GlobalContainer](mem).head
-            val maddrs = addrs.map { addrs => addrs.map { addr => mirror[Def](addr, memCU) } }
+            val maddrs = addrs.map { addrs => 
+              val mp = addrs.foldLeft(Map[Any,Any]()) { case (mp, addr) => 
+                mirrorX(addr, memCU, mp)
+              }
+              addrs.map { addr => mp(addr).asInstanceOf[Def] }
+            }
             val access = MemLoad(mem, maddrs).setParent(memCU)
             pirmeta.mirror(n, access)
             val newOut = if (memCU == accessCU) {
@@ -393,9 +417,11 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             // Local write address calculation
             val memCU = collectUp[GlobalContainer](mem).head
             val (saddrs, sdata) = if (memCU!=accessCU && addrs.nonEmpty) {
-              val dataLoad = retime(data, memCU)
+              var mp = retimeX(data, memCU)
+              val dataLoad = mp(data).asInstanceOf[Def]
               val addrLoad = addrs.map { addrs =>
-                addrs.map { addr => retime(addr, memCU) }
+                mp = addrs.foldLeft(mp) { case (mp, addr) => retimeX(addr, memCU, mp) }
+                addrs.map { addr => mp(addr).asInstanceOf[Def] }
               }
               (addrLoad, dataLoad)
             } else {
@@ -606,40 +632,18 @@ class CounterChainFilling(implicit design:PIR) extends PIRTransformer with Child
 
   override def shouldRun = true
 
-  override def initPass = {
-    super.initPass
-    controllerTraversal.resetTraversal
-  }
-  
-  val cuMap = mutable.Map[Controller, GlobalContainer]()
-
-  val controllerTraversal = new ControllerTraversal with UnitTraversal {
-    override def visitNode(n:N, prev:T):T = {
-      val cu = n match {
-        case n:TopController => design.newTop
-        case n:ArgController => design.newTop.argFringe
-        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}").ctrl(n)
-      }
-      dbg(s"${qtype(n)} -> ${qtype(cu)}")
-      cuMap += n -> cu
-      super.visitNode(n, prev)
-    }
-  }
-
   override def runPass =  {
-    createCUForController
     traverseNode(design.newTop)
   }
 
-  def createCUForController = {
-    controllerTraversal.traverseNode(design.newTop.topController, ())
-  }
-
-  override def visitNode(n:N):Unit = n match {
-    case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
-    case n:ComputeContext if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
-    case _ => super.visitNode(n)
-  }
+  //override def visitNode(n:N):Unit = n match {
+    //case n:GlobalContainer => emitBlock(s"Visiting ${qdef(n)}") {
+      //val chains = collectDown[CounterChain](n)
+      //dbgs(s"chains: ${chains.mkString(qtype)}")
+      //chains.map
+    //}
+    //case _ => super.visitNode(n)
+  //}
 
 }
 
