@@ -110,6 +110,7 @@ abstract class Memory(implicit design:PIR) extends Module { self =>
 }
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIR) extends Memory
+case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:PIR) extends Memory
 case class FIFO(size:Int)(implicit design:PIR) extends Memory
 
 case class Reg(init:Option[AnyVal])(implicit design:PIR) extends Memory
@@ -258,20 +259,29 @@ case class IterDef(counter:Counter, offset:Option[Int])(implicit design:PIR) ext
 case class OpDef(op:Op, inputs:List[Def])(implicit design:PIR) extends StageDef
 case class ReduceDef(op:Op, input:Def)(implicit design:PIR) extends StageDef
 case class AccumDef(op:Op, input:Def, accum:Def)(implicit design:PIR) extends StageDef
-
 // Generated IR from spatial
 case class LoadDef(mems:List[Memory], addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
 case class StoreDef(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
-
 // Lowered IR
 case class MemLoad(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
 case class MemStore(mem:Memory, addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
+case class FIFOEmpty(mem:Memory)(implicit design:PIR) extends Def
+case class FIFOPeak(mem:Memory)(implicit design:PIR) extends Def
+case class FIFONumel(mem:Memory)(implicit design:PIR) extends Def
 
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyDef()(implicit design:PIR) extends Def
 case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Def
 
 case class ArgInDef()(implicit design:PIR) extends Def
+
+
+/*
+ * Control Nodes
+ * */
+
+//case class NotEmpty(mem:Memory) extends Def
+//case class NotFull(mem:Memory) extends Def
 
 sealed trait IOType extends Enum
 case object Vector extends IOType
@@ -283,6 +293,7 @@ case object InnerPipe extends ControlStyle
 case object SeqPipe extends ControlStyle
 case object MetaPipe extends ControlStyle
 case object StreamPipe extends ControlStyle
+case object ForkSwitch extends ControlStyle
 
 sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel

@@ -216,7 +216,9 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTop
   }
 
   def isRemoteMem(n:Memory) = n match {
-    case (_:SRAM | _:StreamIn)  => true
+    case (_:SRAM | _:StreamIn | _:StreamOut)  => true
+    case n:FIFO if n.writers.size>=1 => true
+    case n:RegFile => true
     case _ => false
   }
 
@@ -270,12 +272,11 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with Botto
     val isDead = n match {
       case n:ArgOut => false
       case n:StreamOut => false
-      case n:Counter =>
-        if (!design.controlPropogator.hasRunAll) false
-        else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
-        else n.depeds.forall(d => deathMap.getOrElse(d, false))
-      case n:Container => n.children.isEmpty 
-      case n => n.depeds.forall(d => deathMap.getOrElse(d, false))
+      case n:Counter => false
+        //if (!design.controlPropogator.hasRunAll) false
+        //else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
+        //else n.depeds.forall(d => deathMap.getOrElse(d, false))
+      case n => depFunc(n).forall(d => deathMap.getOrElse(d, false))
     }
     if (isDead) dbgs(s"Mark $n as dead code")
     deathMap + (n -> isDead)
