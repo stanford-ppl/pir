@@ -39,7 +39,7 @@ trait IR extends prism.node.IR {
 abstract class Node(implicit design:PIR) extends prism.node.Node[Node] with IR { self =>
   design.addNode(this)
   type P = Container
-  type A = Module
+  type A = Primitive
   override def ins:List[Input]
   override def outs:List[Output]
   override def ios:List[IO] = ins ++ outs
@@ -50,7 +50,7 @@ abstract class Container(implicit design:PIR) extends Node with prism.node.SubGr
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 }
 
-abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[Node] { self =>
+abstract class Primitive(implicit design: PIR) extends Node with prism.node.Atom[Node] { self =>
   override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
@@ -72,14 +72,14 @@ abstract class Module(implicit design: PIR) extends Node with prism.node.Atom[No
   }
 }
 
-abstract class IO(override val src:Module)(implicit design:PIR) extends prism.node.Edge[Node]() {
-  override type A = Module
+abstract class IO(override val src:Primitive)(implicit design:PIR) extends prism.node.Edge[Node]() {
+  override type A = Primitive
   override def connect(p:prism.node.Edge[Node]):this.type = {
     err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
     super.connect(p)
   }
 }
-class Input(implicit src:Module, design:PIR) extends IO(src) with prism.node.Input[Node] {
+class Input(implicit src:Primitive, design:PIR) extends IO(src) with prism.node.Input[Node] {
   type E = Output
   def from = connected.head
   override def connect(e:prism.node.Edge[Node]):this.type = {
@@ -87,7 +87,7 @@ class Input(implicit src:Module, design:PIR) extends IO(src) with prism.node.Inp
     super.connect(p)
   }
 }
-class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Output[Node] {
+class Output(implicit src:Primitive, design:PIR) extends IO(src) with prism.node.Output[Node] {
   type E = Input
   def to = connected
   override def connect(e:prism.node.Edge[Node]):this.type = {
@@ -98,7 +98,7 @@ class Output(implicit src:Module, design:PIR) extends IO(src) with prism.node.Ou
 
 case class DRAM()(implicit design:PIR) extends IR
 
-abstract class Memory(implicit design:PIR) extends Module { self =>
+abstract class Memory(implicit design:PIR) extends Primitive { self =>
   def newIn(implicit design:PIR):Input = {
     ins.filterNot(_.isConnected).headOption.getOrElse(new Input)
   }
@@ -209,11 +209,11 @@ object CounterChain {
   }
 }
 
-case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Module with ComputeNode {
+case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Primitive with ComputeNode {
   val out = new Output
 }
 
-abstract class Def(implicit design:PIR) extends Module with ComputeNode { self =>
+abstract class Def(implicit design:PIR) extends Primitive with ComputeNode { self =>
   def depDefs:Set[Def] = deps.collect { case d:Def => d } 
   def localDepDefs = localDeps.collect { case d:Def => d } 
   def depedDefs:Set[Def] = depeds.collect { case d:Def => d } 

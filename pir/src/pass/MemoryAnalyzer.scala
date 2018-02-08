@@ -51,7 +51,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRPass {
   }
 
   override def runPass =  {
-    lazy val mems = collectDown[Memory](design.newTop, logger=Some(this))
+    lazy val mems = collectDown[Memory](design.newTop)
     mems.foreach { mem =>
       setParentControl(mem)
     }

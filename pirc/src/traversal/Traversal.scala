@@ -190,6 +190,7 @@ trait TopologicalTraversal extends GraphTraversal {
   def selectFrontier = {
     frontier.filterNot(isVisited).filter {
       case n:SubGraph[_] => false
+      case n if depFunc(n).size <= 1 => false
       case _ => true
     }.toList
   }
@@ -370,7 +371,8 @@ trait GraphTransformer {
 
 trait GraphCollector {
 
-  abstract class Collector[ND<:Node[ND], M<:ND:ClassTag] extends BFSTraversal with GraphUtil {
+  // BFSTraversal here might result in stackOverFlow due to deep stack recursion
+  abstract class Collector[ND<:Node[ND], M<:ND:ClassTag] extends DFSTraversal with GraphUtil {
     type T = List[M]
     type N = (ND, Int)
     val logger:Option[Logging]

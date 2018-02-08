@@ -80,12 +80,13 @@ trait PIR extends Design {
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top7.dot"))
     addPass(new SimpleIRDotCodegen(s"simple.dot"))
-    addPass(memoryAnalyzer)
-    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator)
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top8.dot"))
     addPass(new IRPrinter(s"IR2.txt"))
+
+    addPass(memoryAnalyzer)
+    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(cuStats)
     addPass(irCheck)
 

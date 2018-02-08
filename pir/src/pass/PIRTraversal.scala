@@ -18,7 +18,7 @@ trait PIRTraversal extends PIRPass with prism.traversal.Traversal  {
   implicit val nct = classTag[N]
   type N = Node with Product
   type P = Container
-  type A = Module
+  type A = Primitive
   type D = PIR
 }
 
