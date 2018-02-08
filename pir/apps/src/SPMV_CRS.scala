@@ -1,22 +1,10 @@
 import pir._
-import pir.newnode._
+import pir.node._
 import arch._
 import pirc.enums._
 
 object SPMV_CRS extends PIRApp {
   def main(top:Top) = {
-    // x5010 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/SPMV/crs_values.csv"),false) TODO: Unmatched Node
-    // x5011 = ReadTokens(x5010,Const("\n")) TODO: Unmatched Node
-    // x5012 = CloseFile(x5010) TODO: Unmatched Node
-    // x5013 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/SPMV/crs_cols.csv"),false) TODO: Unmatched Node
-    // x5014 = ReadTokens(x5013,Const("\n")) TODO: Unmatched Node
-    // x5015 = CloseFile(x5013) TODO: Unmatched Node
-    // x5016 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/SPMV/crs_rowid.csv"),false) TODO: Unmatched Node
-    // x5017 = ReadTokens(x5016,Const("\n")) TODO: Unmatched Node
-    // x5018 = CloseFile(x5016) TODO: Unmatched Node
-    // x5019 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/SPMV/crs_vec.csv"),false) TODO: Unmatched Node
-    // x5020 = ReadTokens(x5019,Const("\n")) TODO: Unmatched Node
-    // x5021 = CloseFile(x5019) TODO: Unmatched Node
     val x5022 = DRAM().name("x5022").ctrl(top) // x5022 = DRAMNew(ArrayBuffer(Const(1666)),Const(0))
     val x5023 = DRAM().name("x5023").ctrl(top) // x5023 = DRAMNew(ArrayBuffer(Const(1666)),Const(0))
     val x5024 = DRAM().name("x5024").ctrl(top) // x5024 = DRAMNew(ArrayBuffer(Const(495)),Const(0))
@@ -51,7 +39,7 @@ object SPMV_CRS extends PIRApp {
     val b5476 = StreamIn(field="data").name("b5476").ctrl(x5121) // x5060 = StreamInNew(BurstDataBus())
     val x5092 = UnitController(style=SeqPipe, level=InnerControl).name("x5092").ctrl(x5121) // UnitPipe(List(b2791),Block(x5091))
     val x5061 = LoadDef(List(x5047), None).name("x5061").ctrl(x5092) // RegRead(x5047)
-    val x5062 = x5061 // FixConvert(x5061,TRUE,_32,_0)
+    val x5062 = OpDef(op=FixConvert, inputs=List(x5061)).name("x5062").ctrl(x5092) // FixConvert(x5061,TRUE,_32,_0)
     val x5063 = OpDef(op=FixSla, inputs=List(x5062, Const(2).ctrl(x5092))).name("x5063").ctrl(x5092) // FixLsh(x5062,Const(2))
     val x5064 = x5063 // x5064 = DataAsBits(x5063)
     val x5065 = OpDef(op=BitAnd, inputs=List(x5064, Const(31))).name("x5065").ctrl(x5092) // VectorSlice(x5064,5,0) strMask=00000000000000000000000000011111
@@ -73,10 +61,10 @@ object SPMV_CRS extends PIRApp {
     val x5081 = OpDef(op=FixAdd, inputs=List(x5080, x5078)).name("x5081").ctrl(x5092) // FixAdd(x5080,x5078)
     val x5082 = OpDef(op=FixAdd, inputs=List(x5068, x5066)).name("x5082").ctrl(x5092) // FixAdd(x5068,x5066)
     val x5083 = OpDef(op=FixAdd, inputs=List(x5082, x5076)).name("x5083").ctrl(x5092) // FixAdd(x5082,x5076)
-    val x5084 = x5069 // FixConvert(x5069,TRUE,_64,_0)
+    val x5084 = OpDef(op=FixConvert, inputs=List(x5069)).name("x5084").ctrl(x5092) // FixConvert(x5069,TRUE,_64,_0)
     val x5085 = top.dramAddress(x5024).name("x5085").ctrl(x5092) // GetDRAMAddress(x5024)
     val x5086 = OpDef(op=FixAdd, inputs=List(x5084, x5085)).name("x5086").ctrl(x5092) // FixAdd(x5084,x5085)
-    val x5087 = x5086 // FixConvert(x5086,TRUE,_64,_0)
+    val x5087 = OpDef(op=FixConvert, inputs=List(x5086)).name("x5087").ctrl(x5092) // FixConvert(x5086,TRUE,_64,_0)
     // x5088 = SimpleStruct(ArrayBuffer((offset,x5087), (size,x5083), (isLoad,Const(true))))
     val b5477 = StoreDef(List(b5471), None, x5087).name("b5477").ctrl(x5092) // StreamWrite(x5058,x5088,b2791)
     val b5478 = StoreDef(List(b5472), None, x5083).name("b5478").ctrl(x5092) // StreamWrite(x5058,x5088,b2791)
@@ -154,7 +142,7 @@ object SPMV_CRS extends PIRApp {
     val b5492 = StreamIn(field="data").name("b5492").ctrl(x5209) // x5145 = StreamInNew(BurstDataBus())
     val x5178 = UnitController(style=SeqPipe, level=InnerControl).name("x5178").ctrl(x5209) // UnitPipe(List(b2870, b2791),Block(x5177))
     val x5146 = LoadDef(List(x5127_d2), None).name("x5146").ctrl(x5178) // RegRead(x5127)
-    val x5147 = x5146 // FixConvert(x5146,TRUE,_32,_0)
+    val x5147 = OpDef(op=FixConvert, inputs=List(x5146)).name("x5147").ctrl(x5178) // FixConvert(x5146,TRUE,_32,_0)
     val x5148 = OpDef(op=FixSla, inputs=List(x5147, Const(2).ctrl(x5178))).name("x5148").ctrl(x5178) // FixLsh(x5147,Const(2))
     val x5149 = x5148 // x5149 = DataAsBits(x5148)
     val x5150 = OpDef(op=BitAnd, inputs=List(x5149, Const(31))).name("x5150").ctrl(x5178) // VectorSlice(x5149,5,0) strMask=00000000000000000000000000011111
@@ -176,10 +164,10 @@ object SPMV_CRS extends PIRApp {
     val x5166 = OpDef(op=FixAdd, inputs=List(x5165, x5163)).name("x5166").ctrl(x5178) // FixAdd(x5165,x5163)
     val x5167 = OpDef(op=FixAdd, inputs=List(x5153, x5151)).name("x5167").ctrl(x5178) // FixAdd(x5153,x5151)
     val x5168 = OpDef(op=FixAdd, inputs=List(x5167, x5161)).name("x5168").ctrl(x5178) // FixAdd(x5167,x5161)
-    val x5169 = x5154 // FixConvert(x5154,TRUE,_64,_0)
+    val x5169 = OpDef(op=FixConvert, inputs=List(x5154)).name("x5169").ctrl(x5178) // FixConvert(x5154,TRUE,_64,_0)
     val x5170 = top.dramAddress(x5023).name("x5170").ctrl(x5178) // GetDRAMAddress(x5023)
     val x5171 = OpDef(op=FixAdd, inputs=List(x5169, x5170)).name("x5171").ctrl(x5178) // FixAdd(x5169,x5170)
-    val x5172 = x5171 // FixConvert(x5171,TRUE,_64,_0)
+    val x5172 = OpDef(op=FixConvert, inputs=List(x5171)).name("x5172").ctrl(x5178) // FixConvert(x5171,TRUE,_64,_0)
     // x5173 = SimpleStruct(ArrayBuffer((offset,x5172), (size,x5168), (isLoad,Const(true))))
     val x5174 = OpDef(op=BitAnd, inputs=List(b2870, b2791)).name("x5174").ctrl(x5178) // And(b2870,b2791)
     val b5493 = StoreDef(List(b5487), None, x5172).name("b5493").ctrl(x5178) // StreamWrite(x5143,x5173,x5174)
@@ -231,7 +219,7 @@ object SPMV_CRS extends PIRApp {
     val b5508 = StreamIn(field="data").name("b5508").ctrl(x5276) // x5212 = StreamInNew(BurstDataBus())
     val x5245 = UnitController(style=SeqPipe, level=InnerControl).name("x5245").ctrl(x5276) // UnitPipe(List(b2870, b2791),Block(x5244))
     val x5213 = LoadDef(List(x5127_d1), None).name("x5213").ctrl(x5245) // RegRead(x5127)
-    val x5214 = x5213 // FixConvert(x5213,TRUE,_32,_0)
+    val x5214 = OpDef(op=FixConvert, inputs=List(x5213)).name("x5214").ctrl(x5245) // FixConvert(x5213,TRUE,_32,_0)
     val x5215 = OpDef(op=FixSla, inputs=List(x5214, Const(2).ctrl(x5245))).name("x5215").ctrl(x5245) // FixLsh(x5214,Const(2))
     val x5216 = x5215 // x5216 = DataAsBits(x5215)
     val x5217 = OpDef(op=BitAnd, inputs=List(x5216, Const(31))).name("x5217").ctrl(x5245) // VectorSlice(x5216,5,0) strMask=00000000000000000000000000011111
@@ -253,10 +241,10 @@ object SPMV_CRS extends PIRApp {
     val x5233 = OpDef(op=FixAdd, inputs=List(x5232, x5230)).name("x5233").ctrl(x5245) // FixAdd(x5232,x5230)
     val x5234 = OpDef(op=FixAdd, inputs=List(x5220, x5218)).name("x5234").ctrl(x5245) // FixAdd(x5220,x5218)
     val x5235 = OpDef(op=FixAdd, inputs=List(x5234, x5228)).name("x5235").ctrl(x5245) // FixAdd(x5234,x5228)
-    val x5236 = x5221 // FixConvert(x5221,TRUE,_64,_0)
+    val x5236 = OpDef(op=FixConvert, inputs=List(x5221)).name("x5236").ctrl(x5245) // FixConvert(x5221,TRUE,_64,_0)
     val x5237 = top.dramAddress(x5022).name("x5237").ctrl(x5245) // GetDRAMAddress(x5022)
     val x5238 = OpDef(op=FixAdd, inputs=List(x5236, x5237)).name("x5238").ctrl(x5245) // FixAdd(x5236,x5237)
-    val x5239 = x5238 // FixConvert(x5238,TRUE,_64,_0)
+    val x5239 = OpDef(op=FixConvert, inputs=List(x5238)).name("x5239").ctrl(x5245) // FixConvert(x5238,TRUE,_64,_0)
     // x5240 = SimpleStruct(ArrayBuffer((offset,x5239), (size,x5235), (isLoad,Const(true))))
     val x5241 = OpDef(op=BitAnd, inputs=List(b2870, b2791)).name("x5241").ctrl(x5245) // And(b2870,b2791)
     val b5509 = StoreDef(List(b5503), None, x5239).name("b5509").ctrl(x5245) // StreamWrite(x5210,x5240,x5241)
@@ -336,13 +324,13 @@ object SPMV_CRS extends PIRApp {
     val x5303 = LoadDef(List(x5277_d2), None).name("x5303").ctrl(x5316) // RegRead(x5277)
     val x5304 = OpDef(op=FixLeq, inputs=List(x5303, b3045)).name("x5304").ctrl(x5316) // FixLeq(x5303,b3045)
     val x5305 = top.dramAddress(x5025).name("x5305").ctrl(x5316) // GetDRAMAddress(x5025)
-    val x5306 = x5305 // FixConvert(x5305,TRUE,_64,_0)
+    val x5306 = OpDef(op=FixConvert, inputs=List(x5305)).name("x5306").ctrl(x5316) // FixConvert(x5305,TRUE,_64,_0)
     val x5307 = OpDef(op=BitAnd, inputs=List(b3046, b2870)).name("x5307").ctrl(x5316) // And(b3046,b2870)
     val x5308 = OpDef(op=BitAnd, inputs=List(x5307, b2791)).name("x5308").ctrl(x5316) // And(x5307,b2791)
     val x5309 = LoadDef(List(x5124_d0_b0), Some(List(b3045))).name("x5309").ctrl(x5316) // ParSRAMLoad(x5124,List(List(b3045)),List(x5308))
     val x5310 = x5309 // x5310 = VectorApply(x5309,0)
     val x5311 = OpDef(op=FixSla, inputs=List(x5310, Const(2).ctrl(x5316))).name("x5311").ctrl(x5316) // FixLsh(x5310,Const(2))
-    val x5312 = x5311 // FixConvert(x5311,TRUE,_64,_0)
+    val x5312 = OpDef(op=FixConvert, inputs=List(x5311)).name("x5312").ctrl(x5316) // FixConvert(x5311,TRUE,_64,_0)
     val x5313 = OpDef(op=FixAdd, inputs=List(x5312, x5305)).name("x5313").ctrl(x5316) // FixAdd(x5312,x5305)
     val x5314 = OpDef(op=MuxOp, inputs=List(x5304, x5306, x5313)).name("x5314").ctrl(x5316) // Mux(x5304,x5306,x5313)
     val b5521 = StoreDef(List(b5519), None, x5314).name("b5521").ctrl(x5316) // ParStreamWrite(x5298,List(x5314),List(x5308))
@@ -361,15 +349,11 @@ object SPMV_CRS extends PIRApp {
     val x5326 = OpDef(op=FixLt, inputs=List(b3065, x5325)).name("x5326").ctrl(x5329) // FixLt(b3065,x5325)
     val x5327 = OpDef(op=BitAnd, inputs=List(x5326, x5322)).name("x5327").ctrl(x5329) // And(x5326,x5322)
     val x5328 = StoreDef(List(x5126_d0_b0), Some(List(b3065)), b5523).name("x5328").ctrl(x5329) // ParSRAMStore(x5126,List(List(b3065)),List(x5324),List(x5327))
-    // x5331 = VarRegNew(argon.nodes.StringType$@16abdb76) TODO: Unmatched Node
-    // x5332 = VarRegNew(argon.nodes.StringType$@16abdb76) TODO: Unmatched Node
     val x5333_d0 = Reg(init=0.0).name("x5333_d0").ctrl(x5362) // x5333 = RegNew(Const(0))
     val x5333_d1 = Reg(init=0.0).name("x5333_d1").ctrl(x5362) // x5333 = RegNew(Const(0))
     val x5341 = UnitController(style=SeqPipe, level=InnerControl).name("x5341").ctrl(x5362) // UnitPipe(List(b2870, b2791),Block(Const(())))
     val x5334 = OpDef(op=FixAdd, inputs=List(b2869, b2790)).name("x5334").ctrl(x5341) // FixAdd(b2869,b2790)
     val x5337 = OpDef(op=BitAnd, inputs=List(b2870, b2791)).name("x5337").ctrl(x5341) // And(b2870,b2791)
-    // x5339 = VarRegWrite(x5331,x5335,x5337) TODO: Unmatched Node
-    // x5340 = VarRegWrite(x5332,x5336,x5337) TODO: Unmatched Node
     val x5342 = LoadDef(List(x5277_d0), None).name("x5342").ctrl(x5362) // RegRead(x5277)
     val x5343 = Counter(min=Const(0).ctrl(x5362), max=x5342, step=Const(1).ctrl(x5362), par=2).name("x5343").ctrl(x5362) // CounterNew(Const(0),x5342,Const(1),Const(2))
     val x5344 = CounterChain(List(x5343)).name("x5344").ctrl(x5362) // CounterChainNew(List(x5343))
@@ -412,7 +396,7 @@ object SPMV_CRS extends PIRApp {
     val x5377 = Reg(init=0).name("x5377").ctrl(x5428) // x5377 = RegNew(Const(0))
     val x5410 = UnitController(style=SeqPipe, level=InnerControl).name("x5410").ctrl(x5428) // UnitPipe(List(b2791),Block(x5409))
     val x5378 = LoadDef(List(x5363), None).name("x5378").ctrl(x5410) // RegRead(x5363)
-    val x5379 = x5378 // FixConvert(x5378,TRUE,_32,_0)
+    val x5379 = OpDef(op=FixConvert, inputs=List(x5378)).name("x5379").ctrl(x5410) // FixConvert(x5378,TRUE,_32,_0)
     val x5380 = OpDef(op=FixSla, inputs=List(x5379, Const(2).ctrl(x5410))).name("x5380").ctrl(x5410) // FixLsh(x5379,Const(2))
     val x5381 = x5380 // x5381 = DataAsBits(x5380)
     val x5382 = OpDef(op=BitAnd, inputs=List(x5381, Const(31))).name("x5382").ctrl(x5410) // VectorSlice(x5381,5,0) strMask=00000000000000000000000000011111
@@ -434,10 +418,10 @@ object SPMV_CRS extends PIRApp {
     val x5398 = OpDef(op=FixAdd, inputs=List(x5397, x5395)).name("x5398").ctrl(x5410) // FixAdd(x5397,x5395)
     val x5399 = OpDef(op=FixAdd, inputs=List(x5385, x5383)).name("x5399").ctrl(x5410) // FixAdd(x5385,x5383)
     val x5400 = OpDef(op=FixAdd, inputs=List(x5399, x5393)).name("x5400").ctrl(x5410) // FixAdd(x5399,x5393)
-    val x5401 = x5386 // FixConvert(x5386,TRUE,_64,_0)
+    val x5401 = OpDef(op=FixConvert, inputs=List(x5386)).name("x5401").ctrl(x5410) // FixConvert(x5386,TRUE,_64,_0)
     val x5402 = top.dramAddress(x5026).name("x5402").ctrl(x5410) // GetDRAMAddress(x5026)
     val x5403 = OpDef(op=FixAdd, inputs=List(x5401, x5402)).name("x5403").ctrl(x5410) // FixAdd(x5401,x5402)
-    val x5404 = x5403 // FixConvert(x5403,TRUE,_64,_0)
+    val x5404 = OpDef(op=FixConvert, inputs=List(x5403)).name("x5404").ctrl(x5410) // FixConvert(x5403,TRUE,_64,_0)
     // x5405 = SimpleStruct(ArrayBuffer((offset,x5404), (size,x5400), (isLoad,Const(false))))
     val b5528 = StoreDef(List(b5524), None, x5404).name("b5528").ctrl(x5410) // StreamWrite(x5372,x5405,b2791)
     val b5529 = StoreDef(List(b5525), None, x5400).name("b5529").ctrl(x5410) // StreamWrite(x5372,x5405,b2791)
@@ -466,9 +450,6 @@ object SPMV_CRS extends PIRApp {
     val x5429 = FringeContainer(x5026,b5524,b5525,b5526,b5527).name("x5429").ctrl(x5432) // FringeDenseStore(x5026,x5372,x5373,x5374)
     val x5431 = UnitController(style=SeqPipe, level=InnerControl).name("x5431").ctrl(x5432) // UnitPipe(List(b2791),Block(Const(())))
     val b5531 = LoadDef(List(b5527), None).name("b5531").ctrl(x5431) // StreamRead(x5374,b2791)
-    // x5435 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/SPMV/crs_gold.csv"),false) TODO: Unmatched Node
-    // x5436 = ReadTokens(x5435,Const("\n")) TODO: Unmatched Node
-    // x5437 = CloseFile(x5435) TODO: Unmatched Node
     
   }
 }

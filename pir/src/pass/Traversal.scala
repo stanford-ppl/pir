@@ -2,65 +2,36 @@ package pir.pass
 
 import pir._
 import pir.node._
-import pirc._
 
-import scala.collection.mutable.Set
+import pirc.enums._
+import pirc.util._
 
-trait Traversal extends Pass {
-  implicit def design: PIR
+import prism.traversal._
 
-  val visited = Set[Any]()
-  override def reset {
-    super.reset
-    visited.clear()
-  }
-  
-  def traverse:Unit = design.top.ctrlers.foreach(visitNode)
+import scala.collection.mutable
+import scala.language.existentials
+import scala.math.max
+import scala.reflect._
+import prism.codegen.Logging
 
-  addPass { traverse }
+trait PIRTraversal extends PIRPass with prism.traversal.Traversal  {
+  implicit val nct = classTag[N]
+  type N = Node with Product
+  type P = Container
+  type A = Module
+  type D = PIR
+}
 
-  def visitNode(node: Node) : Unit = {
-    assert(!visited.contains(node), s"Revisiting visited node ${node}! visitedNodes:${visited}")
-    visitNodeNoCheck(node)
-    if (visited.contains(node)) return
-  }
-  /* Depth first search traversal on node and their fields */
-  def visitNodeNoCheck(node: Node) : Unit = {
-    visited += node
-    node match {
-      case node:Module =>
-        node.ins.foreach(visitNode)
-        node.outs.foreach(visitNode)
-      case node =>
-    }
-    node match {
-      case n:Controller => 
-        n.mems.foreach { s => visitNode(s) }
-        n match {
-          case c:Top => 
-          case c:ComputeUnit => {
-            c.cchains.foreach { cc => visitNode(cc) }
-            c.stages.foreach { s => visitNode(s) }
-          }
-        } 
-        visitNode(n.ctrlBox)
-      case n:CounterChain => n.counters.foreach(c => visitNode(c))
-      case n:Stage =>
-        n.prs.foreach(visitNode)
-        visitNode(n.fu)
-      case n:CtrlBox =>
-        n.tokenBuffers.foreach { case (dep, t) => visitNode(t) }
-        n.creditBuffers.foreach { case (deped, c) => visitNode(c) }
-        n.delays.foreach(visitNode)
-        n.predicateUnits.foreach(visitNode)
-        n.andTrees.foreach(visitNode)
-      case n:SRAM =>
-        visitNode(n.readAddrMux)
-        visitNode(n.writeAddrMux)
-        visitNode(n.writePortMux)
-      case n:OnChipMem =>
-        visitNode(n.writePortMux)
-      case n =>
-    }
+trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal {
+  override def selectFrontier = {
+    var frontier = super.selectFrontier
+    frontier = frontier.collect { case store:LocalStore => store }
+    if (frontier.isEmpty) frontier = super.selectFrontier
+    frontier
   }
 }
+
+trait DFSTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopDownTopologicalTraversal
+trait BFSTopDownTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopDownTopDownTopologicalTraversal
+trait BottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BottomUpTopologicalTraversal
+

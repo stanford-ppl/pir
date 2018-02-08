@@ -1,18 +1,10 @@
 import pir._
-import pir.newnode._
+import pir.node._
 import arch._
 import pirc.enums._
 
 object GEMM_NCubed extends PIRApp {
   def main(top:Top) = {
-    // x2643 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/gemm/gemm_a.csv"),false) TODO: Unmatched Node
-    // x2644 = ReadTokens(x2643,Const("\n")) TODO: Unmatched Node
-    // x2645 = CloseFile(x2643) TODO: Unmatched Node
-    // x2658 = AssertIf(Const(true),x2650,Some(x2657)) TODO: Unmatched Node
-    // x2659 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/gemm/gemm_b.csv"),false) TODO: Unmatched Node
-    // x2660 = ReadTokens(x2659,Const("\n")) TODO: Unmatched Node
-    // x2661 = CloseFile(x2659) TODO: Unmatched Node
-    // x2674 = AssertIf(Const(true),x2666,Some(x2673)) TODO: Unmatched Node
     val x2675 = DRAM().name("x2675").ctrl(top) // x2675 = DRAMNew(ArrayBuffer(Const(64), Const(64)),Const(0))
     val x2676 = DRAM().name("x2676").ctrl(top) // x2676 = DRAMNew(ArrayBuffer(Const(64), Const(64)),Const(0))
     val x2677 = DRAM().name("x2677").ctrl(top) // x2677 = DRAMNew(ArrayBuffer(Const(64), Const(64)),Const(0))
@@ -50,7 +42,7 @@ object GEMM_NCubed extends PIRApp {
     val x2702 = OpDef(op=BitAnd, inputs=List(b1727, b1708)).name("x2702").ctrl(x2706) // And(b1727,b1708)
     val b2840 = LoadDef(List(b2837), None).name("b2840").ctrl(x2706) // ParStreamRead(x2686,List(x2702))
     val b2841 = b2840 // x2704 = VectorApply(x2703,0)
-    val x2705 = StoreDef(List(x2680_d0_b0), Some(List(b1707,b1726)), b2841).name("x2705").ctrl(x2706) // ParSRAMStore(x2680,List(List(b1707, b1726)),List(x2704),List(x2702))
+    val x2705 = StoreDef(List(x2680_d0_b0), Some(List(b1707, b1726)), b2841).name("x2705").ctrl(x2706) // ParSRAMStore(x2680,List(List(b1707, b1726)),List(x2704),List(x2702))
     val x2708 = Counter(min=Const(0).ctrl(x2788), max=Const(64).ctrl(x2788), step=Const(1).ctrl(x2788), par=1).name("x2708").ctrl(x2788) // CounterNew(Const(0),Const(64),Const(1),Const(1))
     val x2709 = CounterChain(List(x2708)).name("x2709").ctrl(x2788) // CounterChainNew(ArrayBuffer(x2708))
     val x2732 = LoopController(style=StreamPipe, level=OuterControl, cchain=x2709).name("x2732").ctrl(x2788) // UnrolledForeach(List(Const(true)),x2709,Block(Const(())),ArrayBuffer(List(b1736)),ArrayBuffer(List(b1737)))
@@ -81,7 +73,7 @@ object GEMM_NCubed extends PIRApp {
     val x2727 = OpDef(op=BitAnd, inputs=List(b1756, b1737)).name("x2727").ctrl(x2731) // And(b1756,b1737)
     val b2847 = LoadDef(List(b2844), None).name("b2847").ctrl(x2731) // ParStreamRead(x2711,List(x2727))
     val b2848 = b2847 // x2729 = VectorApply(x2728,0)
-    val x2730 = StoreDef(List(x2681_d0_b0), Some(List(b1736,b1755)), b2848).name("x2730").ctrl(x2731) // ParSRAMStore(x2681,List(List(b1736, b1755)),List(x2729),List(x2727))
+    val x2730 = StoreDef(List(x2681_d0_b0), Some(List(b1736, b1755)), b2848).name("x2730").ctrl(x2731) // ParSRAMStore(x2681,List(List(b1736, b1755)),List(x2729),List(x2727))
     val x2733 = Counter(min=Const(0).ctrl(x2788), max=Const(64).ctrl(x2788), step=Const(1).ctrl(x2788), par=1).name("x2733").ctrl(x2788) // CounterNew(Const(0),Const(64),Const(1),Const(1))
     val x2734 = CounterChain(List(x2733)).name("x2734").ctrl(x2788) // CounterChainNew(List(x2733))
     val x2758 = LoopController(style=MetaPipe, level=OuterControl, cchain=x2734).name("x2758").ctrl(x2788) // UnrolledForeach(List(Const(true)),x2734,Block(Const(())),List(List(b1765)),List(List(b1766)))
@@ -101,9 +93,9 @@ object GEMM_NCubed extends PIRApp {
     val b1775 = DummyDef().ctrl(x2752).name("b1775")
     val x2740 = OpDef(op=BitAnd, inputs=List(b1775, b1770)).name("x2740").ctrl(x2752) // And(b1775,b1770)
     val x2741 = OpDef(op=BitAnd, inputs=List(x2740, b1766)).name("x2741").ctrl(x2752) // And(x2740,b1766)
-    val x2742 = LoadDef(List(x2680_d0_b0), Some(List(b1765,b1774))).name("x2742").ctrl(x2752) // ParSRAMLoad(x2680,List(List(b1765, b1774)),List(x2741))
+    val x2742 = LoadDef(List(x2680_d0_b0), Some(List(b1765, b1774))).name("x2742").ctrl(x2752) // ParSRAMLoad(x2680,List(List(b1765, b1774)),List(x2741))
     val x2743 = x2742 // x2743 = VectorApply(x2742,0)
-    val x2744 = LoadDef(List(x2681_d0_b0), Some(List(b1774,b1769))).name("x2744").ctrl(x2752) // ParSRAMLoad(x2681,List(List(b1774, b1769)),List(x2741))
+    val x2744 = LoadDef(List(x2681_d0_b0), Some(List(b1774, b1769))).name("x2744").ctrl(x2752) // ParSRAMLoad(x2681,List(List(b1774, b1769)),List(x2741))
     val x2745 = x2744 // x2745 = VectorApply(x2744,0)
     val x2746 = OpDef(op=FixMul, inputs=List(x2743, x2745)).name("x2746").ctrl(x2752) // FixMul(x2743,x2745)
     val x2747 = LoadDef(List(x2737_d1), None).name("x2747").ctrl(x2752) // RegRead(x2737)
@@ -114,7 +106,7 @@ object GEMM_NCubed extends PIRApp {
     val x2756 = UnitController(style=SeqPipe, level=InnerControl).name("x2756").ctrl(x2757) // UnitPipe(List(b1770, b1766),Block(Const(())))
     val x2753 = LoadDef(List(x2737_d0), None).name("x2753").ctrl(x2756) // RegRead(x2737)
     val x2754 = OpDef(op=BitAnd, inputs=List(b1770, b1766)).name("x2754").ctrl(x2756) // And(b1770,b1766)
-    val x2755 = StoreDef(List(x2682_d0_b0), Some(List(b1765,b1769)), x2753).name("x2755").ctrl(x2756) // SRAMStore(x2682,ArrayBuffer(Const(64), Const(64)),List(b1765, b1769),Const(0),x2753,x2754)
+    val x2755 = StoreDef(List(x2682_d0_b0), Some(List(b1765, b1769)), x2753).name("x2755").ctrl(x2756) // SRAMStore(x2682,ArrayBuffer(Const(64), Const(64)),List(b1765, b1769),Const(0),x2753,x2754)
     val x2759 = Counter(min=Const(0).ctrl(x2788), max=Const(64).ctrl(x2788), step=Const(1).ctrl(x2788), par=1).name("x2759").ctrl(x2788) // CounterNew(Const(0),Const(64),Const(1),Const(1))
     val x2760 = CounterChain(List(x2759)).name("x2760").ctrl(x2788) // CounterChainNew(ArrayBuffer(x2759))
     val x2787 = LoopController(style=StreamPipe, level=OuterControl, cchain=x2760).name("x2787").ctrl(x2788) // UnrolledForeach(List(Const(true)),x2760,Block(Const(())),ArrayBuffer(List(b1797)),ArrayBuffer(List(b1798)))
@@ -143,17 +135,13 @@ object GEMM_NCubed extends PIRApp {
     val b1816 = IterDef(x2776, None).ctrl(x2783).name("b1816")
     val b1817 = DummyDef().ctrl(x2783).name("b1817")
     val x2778 = OpDef(op=BitAnd, inputs=List(b1817, b1798)).name("x2778").ctrl(x2783) // And(b1817,b1798)
-    val x2779 = LoadDef(List(x2682_d0_b0), Some(List(b1797,b1816))).name("x2779").ctrl(x2783) // ParSRAMLoad(x2682,List(List(b1797, b1816)),List(x2778))
+    val x2779 = LoadDef(List(x2682_d0_b0), Some(List(b1797, b1816))).name("x2779").ctrl(x2783) // ParSRAMLoad(x2682,List(List(b1797, b1816)),List(x2778))
     val x2780 = x2779 // x2780 = VectorApply(x2779,0)
     // x2781 = SimpleStruct(ArrayBuffer((_1,x2780), (_2,Const(true))))
     val b2855 = StoreDef(List(b2851), None, x2780).name("b2855").ctrl(x2783) // ParStreamWrite(x2762,List(x2781),List(x2778))
     val x2784 = FringeContainer(x2677,b2849,b2850,b2851,b2852).name("x2784").ctrl(x2787) // FringeDenseStore(x2677,x2761,x2762,x2763)
     val x2786 = UnitController(style=SeqPipe, level=InnerControl).name("x2786").ctrl(x2787) // UnitPipe(List(b1798),Block(Const(())))
     val b2856 = LoadDef(List(b2852), None).name("b2856").ctrl(x2786) // StreamRead(x2763,b1798)
-    // x2789 = OpenFile(Const("/Users/Yaqi/spatial-lang/apps/data/gemm/gemm_gold.csv"),false) TODO: Unmatched Node
-    // x2790 = ReadTokens(x2789,Const("\n")) TODO: Unmatched Node
-    // x2791 = CloseFile(x2789) TODO: Unmatched Node
-    // x2804 = AssertIf(Const(true),x2796,Some(x2803)) TODO: Unmatched Node
     
   }
 }

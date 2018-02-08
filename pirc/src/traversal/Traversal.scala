@@ -9,11 +9,9 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-trait Traversal extends GraphTraversal with prism.pass.Pass {
-
+trait Traversal extends GraphTraversal with Pass {
   override def reset = { super.reset; resetTraversal }
   override def initPass = { super.initPass; resetTraversal }
-
 }
 
 trait GraphUtil {

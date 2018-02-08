@@ -2,8 +2,6 @@ package pirc.codegen
 
 import pirc._
 
-import pirc.pass.Pass
-
 import java.io.{File, FileInputStream, FileOutputStream}
 
 trait Codegen extends Pass with Printer {

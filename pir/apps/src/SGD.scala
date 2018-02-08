@@ -1,5 +1,5 @@
 import pir._
-import pir.newnode._
+import pir.node._
 import arch._
 import pirc.enums._
 

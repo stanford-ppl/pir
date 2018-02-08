@@ -8,7 +8,6 @@ package object pirc {
   type Logger = pirc.codegen.Logger
 
   /* pass */
-  type Pass = pirc.pass.Pass
 
   /* exceptions */
   type PIRException = pirc.exceptions.PIRException

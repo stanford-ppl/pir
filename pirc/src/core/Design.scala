@@ -1,8 +1,6 @@
 package pirc
 
-import pirc._
 import pirc.util._
-import prism.pass._
 
 import scala.collection.mutable
 
@@ -17,10 +15,10 @@ trait Design extends FileManager {
   var staging = true
 
   /* Compiler Passes */
-  val passes = mutable.Set[prism.pass.Pass]()
+  val passes = mutable.Set[Pass]()
   val runPasses = mutable.ListBuffer[RunPass]()
 
-  def addPass(pass:prism.pass.Pass):RunPass = {
+  def addPass(pass:Pass):RunPass = {
     passes += pass
     val runPass = pass.newRun(runPasses.size)
     runPasses += runPass

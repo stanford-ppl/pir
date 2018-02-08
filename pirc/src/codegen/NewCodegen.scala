@@ -2,7 +2,6 @@ package prism.codegen
 
 import pirc._
 
-import prism.pass.Pass
 import pirc.util._
 
 import java.io.{File, FileInputStream, FileOutputStream}

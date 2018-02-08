@@ -1,5 +1,5 @@
 import pir._
-import pir.newnode._
+import pir.node._
 import arch._
 import pirc.enums._
 
@@ -29,12 +29,12 @@ object DotProduct extends PIRApp {
     val b1553 = StreamOut(field="size").name("b1553").ctrl(x1488) // x1469 = StreamOutNew(BurstCmdBus)
     val b1554 = StreamIn(field="data").name("b1554").ctrl(x1488) // x1470 = StreamInNew(BurstDataBus())
     val x1479 = UnitController(style=SeqPipe, level=InnerControl).name("x1479").ctrl(x1488) // UnitPipe(List(b929),Block(x1478))
-    val x1471 = b928 // FixConvert(b928,TRUE,_32,_0)
+    val x1471 = OpDef(op=FixConvert, inputs=List(b928)).name("x1471").ctrl(x1479) // FixConvert(b928,TRUE,_32,_0)
     val x1472 = OpDef(op=FixSla, inputs=List(x1471, Const(2).ctrl(x1479))).name("x1472").ctrl(x1479) // FixLsh(x1471,Const(2))
-    val x1473 = x1472 // FixConvert(x1472,TRUE,_64,_0)
+    val x1473 = OpDef(op=FixConvert, inputs=List(x1472)).name("x1473").ctrl(x1479) // FixConvert(x1472,TRUE,_64,_0)
     val x1474 = top.dramAddress(x1455).name("x1474").ctrl(x1479) // GetDRAMAddress(x1455)
     val x1475 = OpDef(op=FixAdd, inputs=List(x1473, x1474)).name("x1475").ctrl(x1479) // FixAdd(x1473,x1474)
-    val x1476 = x1475 // FixConvert(x1475,TRUE,_64,_0)
+    val x1476 = OpDef(op=FixConvert, inputs=List(x1475)).name("x1476").ctrl(x1479) // FixConvert(x1475,TRUE,_64,_0)
     // x1477 = SimpleStruct(ArrayBuffer((offset,x1476), (size,Const(64)), (isLoad,Const(true))))
     val b1555 = StoreDef(List(b1552), None, x1476).name("b1555").ctrl(x1479) // StreamWrite(x1469,x1477,b929)
     val b1556 = StoreDef(List(b1553), None, Const(64)).name("b1556").ctrl(x1479) // StreamWrite(x1469,x1477,b929)
@@ -53,12 +53,12 @@ object DotProduct extends PIRApp {
     val b1560 = StreamOut(field="size").name("b1560").ctrl(x1508) // x1489 = StreamOutNew(BurstCmdBus)
     val b1561 = StreamIn(field="data").name("b1561").ctrl(x1508) // x1490 = StreamInNew(BurstDataBus())
     val x1499 = UnitController(style=SeqPipe, level=InnerControl).name("x1499").ctrl(x1508) // UnitPipe(List(b929),Block(x1498))
-    val x1491 = b928 // FixConvert(b928,TRUE,_32,_0)
+    val x1491 = OpDef(op=FixConvert, inputs=List(b928)).name("x1491").ctrl(x1499) // FixConvert(b928,TRUE,_32,_0)
     val x1492 = OpDef(op=FixSla, inputs=List(x1491, Const(2).ctrl(x1499))).name("x1492").ctrl(x1499) // FixLsh(x1491,Const(2))
-    val x1493 = x1492 // FixConvert(x1492,TRUE,_64,_0)
+    val x1493 = OpDef(op=FixConvert, inputs=List(x1492)).name("x1493").ctrl(x1499) // FixConvert(x1492,TRUE,_64,_0)
     val x1494 = top.dramAddress(x1457).name("x1494").ctrl(x1499) // GetDRAMAddress(x1457)
     val x1495 = OpDef(op=FixAdd, inputs=List(x1493, x1494)).name("x1495").ctrl(x1499) // FixAdd(x1493,x1494)
-    val x1496 = x1495 // FixConvert(x1495,TRUE,_64,_0)
+    val x1496 = OpDef(op=FixConvert, inputs=List(x1495)).name("x1496").ctrl(x1499) // FixConvert(x1495,TRUE,_64,_0)
     // x1497 = SimpleStruct(ArrayBuffer((offset,x1496), (size,Const(64)), (isLoad,Const(true))))
     val b1562 = StoreDef(List(b1559), None, x1496).name("b1562").ctrl(x1499) // StreamWrite(x1489,x1497,b929)
     val b1563 = StoreDef(List(b1560), None, Const(64)).name("b1563").ctrl(x1499) // StreamWrite(x1489,x1497,b929)

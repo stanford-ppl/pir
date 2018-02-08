@@ -9,7 +9,7 @@ val bldSettings = Defaults.defaultSettings ++ Seq(
   logBuffered in Test := false,
   libraryDependencies += "org.scala-lang" % "scala-library" % "2.11.5", 
   libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.11.5",
-  libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.2",
+  libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.2" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
   retrieveManaged := true,
   javaOptions in (Test) += "-Xdebug",
@@ -28,7 +28,7 @@ val bldSettings = Defaults.defaultSettings ++ Seq(
     //"-diagrams-dot-timeout", "20", "-diagrams-debug",
     "-doc-title", name.value
   ),
-  parallelExecution in Test := false,
+  parallelExecution in Test := true,
   cancelable in Global := true,
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
 )
@@ -70,7 +70,7 @@ addCommandAlias("makeapps", ";project apps; compile")
 
 addCommandAlias("apps", ";project apps; test")
 
-addCommandAlias("pir", "; project apps; run-main")
+addCommandAlias("pir", "; project pirc; test; project apps; run-main")
 
 addCommandAlias("spade", "; project arch; run-main")
 
