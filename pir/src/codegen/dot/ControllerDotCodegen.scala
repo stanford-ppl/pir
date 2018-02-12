@@ -51,7 +51,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
   }
 
   val collector = new GraphCollector {
-    type N = Node
+    type N = PIRNode
   }
   
   override def runPass = {

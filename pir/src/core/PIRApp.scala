@@ -61,8 +61,8 @@ trait PIRApp extends PIR {
     obj.instance.asInstanceOf[Spade]
   }
 
-  private val _allNodes = ListBuffer[Node]()
-  override def addNode(n:Node) = _allNodes += n
+  private val _allNodes = ListBuffer[PIRNode]()
+  override def addNode(n:PIRNode) = _allNodes += n
 
   def main(top:Top): Any 
   def main(args: Array[String]): Unit = {

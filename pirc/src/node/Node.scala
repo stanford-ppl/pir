@@ -91,7 +91,6 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
       case x:Option[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) }
       case x:Iterable[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
       case x:Iterator[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
-      case x:Edge[_] => x.singleConnected.map{_.src}.getOrElse(null)
       case x => x
     }
   }
@@ -114,15 +113,6 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
     val newNode = constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
     design.staging = prevStaging
     newNode
-  }
-}
-
-object Def {
-  def unapply[T](x:T)(implicit design:Design):Option[(T, Node[_])] = {
-    x match {
-      case n:Node[_] => Some((x, n.newInstance(n.values, staging=false)))
-      case _ => None
-    }
   }
 }
 
@@ -149,8 +139,6 @@ trait Atom[N<:Node[N]] extends Node[N] { self:N =>
   }
   def ins = _ins.toList
   def outs = _outs.toList
-
-
 }
 
 trait SubGraph[N<:Node[N]] extends Node[N] with Memorization { self:N with SubGraph[N] =>
@@ -176,16 +164,8 @@ trait SubGraph[N<:Node[N]] extends Node[N] with Memorization { self:N with SubGr
   def outs = descendents.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   override def deps:Set[A] = descendents.flatMap{ _.deps.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
   override def depeds:Set[A] = descendents.flatMap{ _.depeds.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
-
-  override def connectFields(x:Any)(implicit design:Design):Any = {
-    implicit val ev = nct
-    x match {
-      case x:N => this.addChild(x); x
-      case x => super.connectFields(x)
-    }
-  }
-
 }
+
 abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
   type A <: Atom[N] with N
 
@@ -253,13 +233,21 @@ trait Metadata extends Serializable {
 
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
-  def mirror(orig:Any, clone:Any) = {
-    if (orig != clone) maps.foreach { map => 
+  def mirrorOnly(orig:Any, clone:Any, includes:MetadataMap*) = {
+    if (orig != clone) includes.foreach { map => 
       (map.asK(orig), map.asK(clone)) match {
         case (Some(orig), Some(clone)) => map.mirror(orig, clone)
         case _ =>
       }
     }
+  }
+
+  def mirror(orig:Any, clone:Any) = mirrorOnly(orig, clone, maps.toSeq:_*)
+
+  def mirrorExcept(orig:Any, clone:Any, excludes:MetadataMap*) = {
+    val includes = (maps.toList diff excludes.toList)
+    println("includes", includes)
+    mirrorOnly(orig, clone, includes:_*)
   }
 
   def removeAll(node:Any) = maps.foreach { map => map.removeAll(node) }

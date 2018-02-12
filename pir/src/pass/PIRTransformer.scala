@@ -13,7 +13,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with GraphTransformer {
+abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld with GraphTransformer {
 
   def quote(n:Any) = qtype(n)
 
@@ -29,7 +29,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
       mp = super.mirrorX(n, mp)
       val m = mp(n)
       pirmeta.mirror(n,m)
-      dbgs(s"${quote(n)} -> ${quote(m)}")
+      dbg(s"${quote(n)} -> ${quote(m)}")
       (n, m) match {
         case (n:Memory, m:Memory) => 
           val writers = n.writers.map { 
@@ -68,9 +68,13 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRTraversal with Gra
   def mirrorX(n:Any, container:Container)(implicit design:D):Map[Any,Any] =
     mirrorX(n, container, Map[Any,Any]())
 
-  def mirror[T<:N](n:T, container:Container)(implicit design:D):T = {
-    val mapping = mirrorX(n, container)
+
+  def mirror[T<:N](n:T, container:Container, init:Map[Any,Any])(implicit design:D):T = {
+    val mapping = mirrorX(n, container, init)
     mapping(n).asInstanceOf[T]
   }
+
+  def mirror[T<:N](n:T, container:Container)(implicit design:D):T = 
+    mirror(n, container, Map[Any, Any]())
 }
 

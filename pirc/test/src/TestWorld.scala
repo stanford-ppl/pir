@@ -11,7 +11,9 @@ trait TestDesign extends Design {
 }
 
 abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Product with TestNode =>
-  override type A = TestAtom
+  type N = TestNode
+  type A = TestAtom
+  type P = TestSubGraph
   var name:Option[String] = None
   def name(n:String):this.type = { this.name = Some(n); this }
   override def toString = {
@@ -38,5 +40,13 @@ case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with 
     }
   }
 }
-case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode]
+case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode] {
+  override def connectFields(x:Any)(implicit design:Design):Any = {
+    implicit val ev = nct
+    x match {
+      case x:N => this.addChild(x); x
+      case x => super.connectFields(x)
+    }
+  }
+}
 

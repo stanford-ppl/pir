@@ -20,7 +20,7 @@ trait PIR extends Design {
   var newTop:Top = _
   var arch:Spade = _
 
-  def addNode(n:Node)
+  def addNode(n:PIRNode)
 
   override def reset = {
     super.reset
@@ -83,9 +83,10 @@ trait PIR extends Design {
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top8.dot"))
-    addPass(new IRPrinter(s"IR2.txt"))
-
     addPass(memoryAnalyzer)
+    addPass(new PIRIRDotCodegen(s"top8.dot"))
+
+    addPass(new IRPrinter(s"IR2.txt"))
     addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(cuStats)
     addPass(irCheck)

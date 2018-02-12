@@ -10,11 +10,8 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.reflect._
 
-class MemoryAnalyzer(implicit design:PIR) extends PIRPass {
+class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
   import pirmeta._
-
-  type N = Node with Product
-  type T = Unit
 
   def shouldRun = true
 
@@ -42,8 +39,24 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRPass {
       val ancestors = ctrlOf(access) :: ctrlOf(access).ancestors
       val idx = ancestors.indexOf(lcaCtrl)
       val topCtrlIdx = if (idx==0) idx else idx - 1
-      topCtrlOf(access) = ancestors(topCtrlIdx)
-      topCtrlOf.info(access).foreach(dbg)
+      val topCtrl = ancestors(topCtrlIdx)
+      val newAccess = access match {
+        case Def(n, StoreMem(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
+          // store access write to multiple mems with different topControl. Duplicate the access
+          val accessCU = collectUp[GlobalContainer](access).head
+          dbg(s"disconnecting $access from $mem")
+          access.outs.foreach { out =>
+            dbg(s"out ${out} ${out.connected.map(_.src)}")
+          }
+          val maccess = StoreMem(List(mem), addrs, data).setParent(accessCU)
+          disconnect(access, mem)
+          pirmeta.mirrorExcept(access, maccess, topCtrlOf)
+          dbg(s"duplicating ${qtype(access)} -> ${qtype(maccess)} for different topCtrl")
+          maccess
+        case _ => access
+      }
+      topCtrlOf(newAccess) = topCtrl
+      topCtrlOf.info(newAccess).foreach(dbg)
     }
 
     isLocalMem(mem) = mem.accesses.forall(a => ctrlOf(a) == ctrlOf(mem))

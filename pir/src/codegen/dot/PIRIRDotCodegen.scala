@@ -18,7 +18,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   import pirmeta._
 
-  override def quote(n:Any):String = qtype(n)
+  override def quote(n:Any):String = qtype(n) 
 
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n) 
@@ -35,7 +35,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n =>
     }
     n match {
-      case n:Node => ctrlOf.get(n).foreach { ctrl => label += s"\n(${quote(ctrl)})" }
+      case n:PIRNode => ctrlOf.get(n).foreach { ctrl => label += s"\n(${quote(ctrl)})" }
       case _ =>
     }
     attr.label(label)

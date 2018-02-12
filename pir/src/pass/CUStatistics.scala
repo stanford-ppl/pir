@@ -12,7 +12,7 @@ import scala.reflect._
 
 class CUStatistics(implicit design:PIR) extends PIRPass {
 
-  type N = Node with Product
+  type N = PIRNode with Product
   type T = Unit
 
   def shouldRun = true

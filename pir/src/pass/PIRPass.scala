@@ -7,7 +7,6 @@ import spade._
 import pirc._
 import pirc.enums._
 import pirc.util._
-import pirc.{Def => _, _}
 
 import prism.traversal._
 

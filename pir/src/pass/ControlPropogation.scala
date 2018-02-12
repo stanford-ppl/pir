@@ -35,7 +35,7 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUp
     }
   }
 
-  def resetController(n:Node, ctrl:Controller):Unit = n match {
+  def resetController(n:PIRNode, ctrl:Controller):Unit = n match {
     case n:CounterChain =>
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)

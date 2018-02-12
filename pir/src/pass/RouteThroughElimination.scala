@@ -25,7 +25,7 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
 
   override def visitNode(n:N, prev:T):T = {
     n match {
-      case Def(load:MemLoad, MemLoad(WithWriters(Def(rstore:MemStore, MemStore(rmem, None, Def(rload:MemLoad, MemLoad(mem, None))))::Nil), None)) =>
+      case Def(load:LoadMem, LoadMem(WithWriters(Def(rstore:StoreMem, StoreMem(rmem::Nil, None, Def(rload:LoadMem, LoadMem(mem, None))))::Nil), None)) =>
         dbgblk(s"Found Route Through ${qdef(load)}") {
           dbg(s"rload:${qdef(rload)}")
           dbg(s"rstore:${qdef(rstore)}")

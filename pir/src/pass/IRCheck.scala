@@ -14,7 +14,7 @@ import scala.reflect._
 class IRCheck(implicit design:PIR) extends PIRPass {
   import pirmeta._
 
-  type N = Node with Product
+  type N = PIRNode with Product
   def shouldRun = true
 
   def warn(s:Any) = {

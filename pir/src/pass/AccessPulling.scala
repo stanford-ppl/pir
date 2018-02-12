@@ -27,7 +27,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTop
     }
   }
 
-  def withParent[T<:Node:ClassTag](n:Node) = {
+  def withParent[T<:PIRNode:ClassTag](n:PIRNode) = {
     n.parent.fold(false) { case p:T => true; case _ => false }
   }
 
@@ -46,7 +46,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTop
     if (depedContainers.size==1 && portable) {
       dbg(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
       swapParent(dep, container)
-    } else { //Multiple consumer, mirror new node into destination consumer containers and reconnect 
+    } else { //Multiple consumer or node cannot be moved, mirror new node into destination consumer containers and reconnect 
       val m = mirror(dep, container)
       swapOutputs(deped, from=dep, to=m)
       dbg(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
@@ -66,7 +66,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTop
       case n:Def =>
         val localDeps = n.deps.flatMap {
           case n:Memory if isRemoteMem(n) => None
-          case n:StoreDef => None
+          case n:LocalStore => None
           case n:ArgInDef => None
           case n => Some(n)
         }

@@ -18,7 +18,7 @@ class IRPrinter(val fileName:String)(implicit design:PIR) extends PIRCodegen {
 
   def shouldRun = Config.debug
 
-  override def quote(n:Any) = qtype(n)
+  override def quote(n:Any) = qtype(n) 
 
   override def emitNode(n:N) = {
     n match {
