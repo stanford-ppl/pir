@@ -33,19 +33,19 @@ class TestOutput(implicit override val src:TestAtom, design:Design) extends Edge
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
   val out = new TestOutput
   def newIn = new TestInput
-  override def connectFields(x:Any)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     x match {
       case x:TestAtom => newIn.connect(x.out)
-      case x => super.connectFields(x) 
+      case x => super.connectFields(x, i:Int) 
     }
   }
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode] {
-  override def connectFields(x:Any)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     implicit val ev = nct
     x match {
       case x:N => this.addChild(x); x
-      case x => super.connectFields(x)
+      case x => super.connectFields(x, i)
     }
   }
 }

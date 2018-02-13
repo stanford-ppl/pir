@@ -83,26 +83,25 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             swapConnection(deped, n.out, access.out)
           }
         }
-      case Def(n:StoreBanks, StoreBanks(mems, addrs, data)) =>
+      case Def(n:StoreBanks, StoreBanks(banks, addrs, data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
-          mems.foreach { banks =>
-            banks.foreach { bank =>
-              // Local write address calculation
-              val bankCU = collectUp[GlobalContainer](bank).head
-              val (saddrs, sdata) = if (bankCU!=accessCU) {
-                var mp = retimeX(data, bankCU)
-                val dataLoad = mp(data).asInstanceOf[Def]
-                mp = addrs.foldLeft(mp) { case (mp, addr) => retimeX(addr, bankCU, mp) }
-                val addrLoad = addrs.map { addr => mp(addr).asInstanceOf[Def] }
-                (addrLoad, dataLoad)
-              } else {
-                (addrs, data)
-              }
-              disconnect(n, bank)
-              val access = StoreBank(bank, saddrs, sdata).setParent(bankCU)
-              pirmeta.mirror(n, access)
+          banks.foreach { bank =>
+            // Local write address calculation
+            val bankCU = collectUp[GlobalContainer](bank).head
+            val (saddrs, sdata) = if (bankCU!=accessCU) {
+              var mp = retimeX(data, bankCU)
+              val dataLoad = mp(data).asInstanceOf[Def]
+              mp = addrs.foldLeft(mp) { case (mp, addr) => retimeX(addr, bankCU, mp) }
+              val addrLoad = addrs.map { addr => mp(addr).asInstanceOf[Def] }
+              (addrLoad, dataLoad)
+            } else {
+              (addrs, data)
             }
+            dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
+            disconnect(n, bank)
+            val access = StoreBank(bank, saddrs, sdata).setParent(bankCU)
+            pirmeta.mirror(n, access)
           }
         }
       case n =>

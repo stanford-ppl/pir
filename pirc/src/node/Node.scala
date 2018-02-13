@@ -77,30 +77,41 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
   def neighbors = deps ++ depeds
 
-  def connectFields(x:Any)(implicit design:Design):Any = {
+  def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     x match {
-      case Some(x) => Some(connectFields(x))
-      case x:Iterable[_] => x.map(connectFields) 
-      case x:Iterator[_] => x.map(connectFields) 
+      case Some(x) => Some(connectFields(x, i))
+      case x:Iterable[_] => x.map(xx => connectFields(xx, i)) 
+      case x:Iterator[_] => x.map(xx => connectFields(xx, i)) 
       case x => x
     }
   }
 
-  def evaluateFields(x:Any):Any = {
-    x match {
-      case x:Option[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) }
-      case x:Iterable[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
-      case x:Iterator[_] => x.flatMap{ case x:Edge[_] if !x.isConnected => None case x => Some(evaluateFields(x)) } 
-      case x => x
+  def evaluateFields(f:Any, x:Any):Any = {
+    (f, x) match {
+      case (Some(f), Some(x:Edge[_])) if !x.isConnected => None
+      case (Some(f), Some(x)) => Some(evaluateFields(f, x))
+      case (f:Iterable[_], x:Iterable[_]) => 
+        f.zip(x).flatMap { 
+          case (f, x:Edge[_]) if !x.isConnected => None
+          case (f,x) => Some(evaluateFields(f,x))
+        }
+      case (f:Iterable[_], x:Iterator[_]) => 
+        f.zip(x.toList).flatMap { 
+          case (f, x:Edge[_]) if !x.isConnected => None
+          case (f,x) => Some(evaluateFields(f,x))
+        }
+      case (f, x) => x
     }
   }
 
   def staging(implicit design:Design):List[Any] = {
-    if (design.staging) productIterator.map(connectFields).toList else Nil
+    if (design.staging) 
+      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)}
+    else Nil
   }
 
   val stagedFields = staging
-  def values = stagedFields.map(evaluateFields)
+  def values = productIterator.toList.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
 
   def newInstance[T](args:List[Any], staging:Boolean=true)(implicit design:Design):T = {
     //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{

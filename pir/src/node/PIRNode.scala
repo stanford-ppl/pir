@@ -50,11 +50,11 @@ abstract class Container(implicit design:PIR) extends PIRNode with prism.node.Su
   override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
-  override def connectFields(x:Any)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     implicit val ev = nct
     x match {
       case x:N => this.addChild(x); x
-      case x => super.connectFields(x)
+      case x => super.connectFields(x, i)
     }
   }
 }
@@ -72,18 +72,17 @@ abstract class Primitive(implicit design: PIR) extends PIRNode with prism.node.A
       case io:Output => new Input()(this, design).connect(io)
     }
   }
-
-  override def connectFields(x:Any)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
       case x:Primitive => this.connect(x.out) // StoreMem override this function. it connects to Memory.in
-      case x => super.connectFields(x)
+      case x => super.connectFields(x, i)
     }
   }
 
-  override def evaluateFields(x:Any):Any = x match {
-    case x:Input => x.singleConnected.map{_.src}.getOrElse(null)
-    case x => super.evaluateFields(x)
+  override def evaluateFields(f:Any, x:Any):Any = (f, x) match {
+    case (f, x:IO) => x.singleConnected.map{_.src}.getOrElse(null)
+    case (f,x) => super.evaluateFields(f,x)
   }
 }
 
@@ -252,25 +251,25 @@ object LocalLoad {
   }
 }
 trait LocalStore extends Def {
-  override def connectFields(x:Any)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {
       case x:Memory => this.out.connect(x.newIn); this.out
-      case x:List[_] if x.forall(_.isInstanceOf[Memory]) => 
-        x.foreach { case x:Memory => this.out.connect(x.newIn) }; this.out
-      case x => super.connectFields(x)
+      case x:Iterable[_] if x.forall(_.isInstanceOf[Memory]) => 
+        x.foreach { x => this.out.connect(x.asInstanceOf[Memory].newIn) }
+        this.out
+      case x => super.connectFields(x, i)
     }
   }
-  override def evaluateFields(x:Any):Any = (this, x) match {
-    case ((_:StoreBanks | _:StoreMem), x:Output) => x.connected.map(_.src)
-    case ((_:StoreBank), x:Output) => x.singleConnected.map(_.src).getOrElse(null)
-    case _ => super.evaluateFields(x)
+  override def evaluateFields(f:Any, x:Any):Any = (f,x) match {
+    case (f:Iterable[_], x:Output) => x.connected.map{_.src}
+    case (f,x) => super.evaluateFields(f,x)
   }
 }
 object LocalStore {
   def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case StoreMem(mems, addrs, data) => Some((mems, addrs, data))
-    case StoreBanks(banks, addrs, data) => Some((banks.flatten, Some(addrs), data))
+    case StoreBanks(banks, addrs, data) => Some((banks, Some(addrs), data))
     case StoreBank(bank, addrs, data) => Some((List(bank), Some(addrs), data))
     case _ => None
   }
@@ -290,10 +289,7 @@ case class AccumOp(op:Op, input:Def, accum:Def)(implicit design:PIR) extends Sta
 case class LoadMem(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
 case class StoreMem(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
 case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:PIR) extends LocalLoad
-/*
- * @param mems: Mems[Banks]
- * */
-case class StoreBanks(mems:List[List[Memory]], addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
+case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
 case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIR) extends Def
 case class StoreBank(bank:Memory, addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
 
