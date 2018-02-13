@@ -4,7 +4,7 @@ import pir._
 import pir.pass._
 import prism.codegen._
 
-trait PIRCodegen extends PIRTraversal with Codegen with DFSTopDownTopologicalTraversal {
+trait PIRCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with Codegen {
 
   val forward = true
   val dirName = design.outDir

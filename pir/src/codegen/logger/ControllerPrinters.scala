@@ -14,7 +14,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-class ControllerPrinter(implicit design:PIR) extends PIRPass with Codegen with ChildFirstTraversal {
+class ControllerPrinter(implicit design:PIR) extends PIRPass with ChildFirstTraversal with Codegen {
   val fileName = "CtrlPrinter.txt"
 
   type N = Controller
