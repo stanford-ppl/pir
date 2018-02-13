@@ -238,9 +238,9 @@ class AppTests extends UnitTest { self =>
   test(TPCHQ6             , arch=Some(SN8x8), verbose=verbose, mapping=mapping, debug=true)
   test(GDA                , arch=None, verbose=verbose, mapping=mapping, debug=true)
   test(BlackScholes       , arch=Some(SN16x8_LD), verbose=verbose, mapping=mapping, debug=true)
+  test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   // Not Working
   //test(SimpleIf           , arch=Some(SN2x2), verbose=verbose, mapping=mapping, debug=true)
-  //test(SPMV_CRS           , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Backprop           , arch=Some(SN8x8), verbose=verbose, mapping=mapping, debug=true)
   //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
