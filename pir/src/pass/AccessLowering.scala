@@ -45,7 +45,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
 
   override def visitNode(n:N):Unit = {
     n match {
-      case Def(n:LoadBanks, LoadBanks(banks, addrs)) =>
+      case Def(n:LoadBank, _) =>
+      case Def(n:LocalLoad, LocalLoad(banks, Some(addrs))) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
           val bankCUs = banks.map { bank => bank -> collectUp[GlobalContainer](bank).head }.toMap
@@ -66,7 +67,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
               mps(addrCUs(bank))(addr).asInstanceOf[Def]
             }
             val bankCU = bankCUs(bank)
-            val access = LoadMem(bank, Some(maddrs)).setParent(bankCU)
+            val access = LoadBank(bank, maddrs).setParent(bankCU)
+            dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             pirmeta.mirror(n, access)
             if (bankCU == accessCU) {
               access
@@ -75,7 +77,9 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             }
           }
           val access = if (bankAccesses.size > 1) {
+            //
             val sb = SelectBanks(bankAccesses).setParent(accessCU)
+            dbg(s"add ${qtype(sb)} in ${qtype(accessCU)}")
             pirmeta.mirror(n, sb)
             sb
           } else bankAccesses.head
@@ -83,7 +87,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             swapConnection(deped, n.out, access.out)
           }
         }
-      case Def(n:StoreBanks, StoreBanks(banks, addrs, data)) =>
+      case Def(n:StoreBank, _) =>
+      case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
           banks.foreach { bank =>
@@ -101,6 +106,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
             disconnect(n, bank)
             val access = StoreBank(bank, saddrs, sdata).setParent(bankCU)
+            dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             pirmeta.mirror(n, access)
           }
         }

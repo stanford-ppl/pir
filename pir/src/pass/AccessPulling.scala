@@ -51,13 +51,6 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
     }
   }
 
-  def isRemoteMem(n:Memory) = n match {
-    case (_:SRAM | _:StreamIn | _:StreamOut)  => true
-    case n:FIFO if n.writers.size > 1 => true
-    case n:RegFile => true
-    case _ => false
-  }
-
   override def visitNode(n:N):Unit = {
     dbgs(s"visitNode ${qdef(n)}")
     n match {

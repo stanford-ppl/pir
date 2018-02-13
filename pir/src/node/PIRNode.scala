@@ -232,9 +232,9 @@ abstract class Def(implicit design:PIR) extends Primitive with ComputeNode { sel
   def localDepedDefs = localDepeds.collect { case d:Def => d } 
 }
 object Def {
-  def unapply[T](x:T)(implicit design:Design):Option[(T, PIRNode)] = {
+  def unapply[T<:PIRNode:ClassTag](x:T)(implicit design:Design):Option[(T, T)] = {
     x match {
-      case n:PIRNode => Some((x, n.newInstance(n.values, staging=false)))
+      case n:T => Some((x, n.newInstance(n.values, staging=false)))
       case _ => None
     }
   }
@@ -247,6 +247,7 @@ object LocalLoad {
   def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]])] = n match {
     case LoadMem(mem, addrs) => Some((List(mem), addrs))
     case LoadBanks(banks, addrs) => Some((banks, Some(addrs)))
+    case LoadBank(bank, addrs) => Some(List(bank), Some(addrs))
     case _ => None
   }
 }
@@ -288,10 +289,13 @@ case class AccumOp(op:Op, input:Def, accum:Def)(implicit design:PIR) extends Sta
 // Generated IR from spatial
 case class LoadMem(mem:Memory, addrs:Option[List[Def]])(implicit design:PIR) extends LocalLoad
 case class StoreMem(mems:List[Memory], addrs:Option[List[Def]], data:Def)(implicit design:PIR) extends LocalStore
+
 case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:PIR) extends LocalLoad
 case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
-case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIR) extends Def
+// Lowered
+case class LoadBank(bank:Memory, addrs:List[Def])(implicit design:PIR) extends LocalLoad
 case class StoreBank(bank:Memory, addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
+case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIR) extends Def
 
 case class FIFOEmpty(mem:Memory)(implicit design:PIR) extends Def
 case class FIFOPeak(mem:Memory)(implicit design:PIR) extends Def

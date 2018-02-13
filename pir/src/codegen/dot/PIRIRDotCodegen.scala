@@ -44,7 +44,6 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:SRAM => attr.fillcolor(orange).style(filled)
     case n:RetimingFIFO => attr.fillcolor(gold).style(filled)
     case n:FIFO => attr.fillcolor(gold).style(filled)
     case n:StreamIn => attr.fillcolor(gold).style(filled)
@@ -52,6 +51,8 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     case n:Reg => attr.fillcolor(limegreen).style(filled)
     case n:ArgIn => attr.fillcolor(limegreen).style(filled)
     case n:ArgOut => attr.fillcolor(limegreen).style(filled)
+    case n:Memory if isRemoteMem(n) => attr.fillcolor(orange).style(filled)
+
     case n:Counter => attr.fillcolor(indianred).style(filled)
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:FringeContainer => attr.fillcolor(chartreuse).style(filled)
@@ -60,7 +61,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   override def emitNode(n:N) = {
     n match {
-      //case n:Const[_] if collectOut[Counter](n).isEmpty => super.visitNode(n)
+      case n:Const[_] if collectOut[Counter](n).isEmpty => super.visitNode(n)
       case n:Primitive => emitSingleNode(n); super.visitNode(n)
       case n => super.emitNode(n) 
     }

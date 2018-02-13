@@ -52,7 +52,7 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
   override def visitNode(n:N):Unit = {
     dbg(s"visitNode ${qdef(n)}")
     n match {
-      case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
+      case n:Memory if isRemoteMem(n) => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
       case n:ComputeNode if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
       case _ => super.visitNode(n)
     }
