@@ -14,7 +14,7 @@ import scala.language.postfixOps
 import scala.collection.mutable
 
 
-class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIRPass with IRDotCodegen with ChildFirstTraversal {
+class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIRPass with ChildFirstTraversal with IRDotCodegen {
 
   import pirmeta._
 

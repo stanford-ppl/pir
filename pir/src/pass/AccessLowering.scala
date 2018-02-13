@@ -23,7 +23,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
 
   def retimeX(x:Def, cu:GlobalContainer, mapping:Map[Any,Any]):Map[Any,Any] = {
     x match {
-      case x:Const[_] => mapping + (x -> x)
+      case x:Const[_] => mirrorX(x, cu, mapping)
       case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorX(x, cu, mapping)
       case x =>
         val xCU = collectUp[GlobalContainer](x).head

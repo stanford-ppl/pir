@@ -60,7 +60,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   override def emitNode(n:N) = {
     n match {
-      case n:Const[_] if collectOut[Counter](n).isEmpty => super.visitNode(n)
+      //case n:Const[_] if collectOut[Counter](n).isEmpty => super.visitNode(n)
       case n:Primitive => emitSingleNode(n); super.visitNode(n)
       case n => super.emitNode(n) 
     }
