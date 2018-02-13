@@ -73,7 +73,7 @@ class IRCheck(implicit design:PIR) extends PIRPass {
         case mem:ArgIn =>
         case mem:StreamIn =>
         case mem if mem.writers.isEmpty =>
-          warn(s"$mem in $cu does not have writer")
+          warn(s"${qtype(mem)} in $cu does not have writer")
         case _ =>
       }
       mem match {
@@ -81,7 +81,7 @@ class IRCheck(implicit design:PIR) extends PIRPass {
         case mem:StreamOut =>
         case mem:StreamIn if mem.field == "ack" =>
         case mem if mem.readers.isEmpty =>
-          warn(s"$mem in $cu does not have reader")
+          warn(s"${qtype(mem)} in $cu does not have reader")
         case _ =>
       }
     }

@@ -36,6 +36,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
             case Def(w,LocalStore(mems, addrs, data)) => 
               // prevent mirroring of writer
               mp += w -> w
+              w.out.connect(m.newIn)
               w
           }
           dbg(s"writers of $n = ${writers}")
