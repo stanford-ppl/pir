@@ -23,16 +23,16 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
 
   def retimeX(x:Def, cu:GlobalContainer, mapping:Map[Any,Any]):Map[Any,Any] = {
     x match {
-      case x:Const[_] => mirrorX(x, cu, mapping)
-      case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorX(x, cu, mapping)
+      case x:Const[_] => mirrorM(x, Some(cu), mapping)
+      case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), mapping)
       case x =>
         val xCU = collectUp[GlobalContainer](x).head
         val fifo = RetimingFIFO().setParent(cu)
         val stores = x.localDeps.collect { 
-          case Def(a:StoreMem, StoreMem(mems, None, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
+          case Def(a:WriteMems, WriteMems(mems, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
         }
-        val store = stores.headOption.getOrElse(StoreMem(List(fifo), None, x).setParent(xCU))
-        val load = LoadMem(fifo, None).setParent(cu)
+        val store = stores.headOption.getOrElse(WriteMems(List(fifo), x).setParent(xCU))
+        val load = ReadMem(fifo).setParent(cu)
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)
         mapping + (x -> load)
@@ -58,7 +58,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
           }
           val mps = addrCUs.values.toSet[GlobalContainer].map { addrCU =>
             addrCU -> addrs.foldLeft(Map[Any,Any]()) { case (mp, addr) => 
-              mirrorX(addr, addrCU, mp)
+              mirrorM(addr, Some(addrCU), mp)
             }
           }.toMap
           val bankAccesses = banks.map { bank =>

@@ -41,19 +41,23 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       val topCtrlIdx = if (idx==0) idx else idx - 1
       val topCtrl = ancestors(topCtrlIdx)
       val newAccess = access match {
-        case Def(n, StoreMem(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
+        case Def(n, LocalStore(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
           // store access write to multiple mems with different topControl. Duplicate the access
-          val accessCU = collectUp[GlobalContainer](access).head
-          dbg(s"disconnecting $access from $mem")
-          access.outs.foreach { out =>
+          val accessCU = collectUp[GlobalContainer](n).head
+          dbg(s"disconnecting $n from $mem")
+          n.outs.foreach { out =>
             dbg(s"out ${out} ${out.connected.map(_.src)}")
           }
-          val maccess = StoreMem(List(mem), addrs, data).setParent(accessCU)
-          disconnect(access, mem)
-          pirmeta.mirrorExcept(access, maccess, topCtrlOf)
-          dbg(s"duplicating ${qtype(access)} -> ${qtype(maccess)} for different topCtrl")
+          val maccess = mirror(
+            node=n, 
+            container=Some(accessCU), 
+            init=Map(mems -> List(mem), addrs -> addrs, data -> data),
+            mirrorRule=NodeMatchRule(n, (n:Any,m:Any) => pirmeta.mirrorExcept(n, m, topCtrlOf))
+          )
+          disconnect(n, mem)
+          dbg(s"duplicating ${qtype(n)} -> ${qtype(maccess)} for different topCtrl")
           maccess
-        case _ => access
+        case n => n
       }
       topCtrlOf(newAccess) = topCtrl
       topCtrlOf.info(newAccess).foreach(dbg)

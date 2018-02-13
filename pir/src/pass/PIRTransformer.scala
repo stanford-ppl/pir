@@ -28,7 +28,6 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     dbgblk(s"mirrorX(${quote(n)})") {
       mp = super.mirrorX(n, mp)
       val m = mp(n)
-      pirmeta.mirror(n,m)
       dbg(s"${quote(n)} -> ${quote(m)}")
       (n, m) match {
         case (n:Memory, m:Memory) => 
@@ -54,28 +53,51 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     mp
   }
 
-  def mirrorX(n:Any)(implicit design:D):Map[Any,Any] = mirrorX(n, Map[Any,Any]())
+  trait MirrorRule {
+    def isDefinedAt(n:Any):Boolean
+    def mirror(n:Any, m:Any)
+  }
+  case class NodeMatchRule(node:Any, lambda:(Any, Any) => Unit) extends MirrorRule {
+    def isDefinedAt(n:Any):Boolean = n == node
+    def mirror(n:Any, m:Any) = lambda(n,m)
+  }
+  case object NoneMatchRule extends MirrorRule {
+    def isDefinedAt(n:Any):Boolean = false 
+    def mirror(n:Any, m:Any) = {} 
+  }
 
-  def mirrorX(n:Any, container:Container, init:Map[Any,Any])(implicit design:D):Map[Any,Any] = {
-    val mapping = mirrorX(n, init)
+  def mirrorM(
+    node:Any, 
+    container:Option[Container]=None, 
+    init:Map[Any,Any]=Map.empty,
+    mirrorRule:MirrorRule = NoneMatchRule
+  )(implicit design:D):Map[Any,Any] = {
+    val mapping = mirrorX(node, init)
+    // Moving newly created nodes into container
     val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.isEmpty)
-    newNodes.foreach { m => 
-      m.setParent(container)
-      dbg(s"${qtype(container)} add ${qtype(m)}")
+    container.foreach { container =>
+      newNodes.foreach { m => 
+        m.setParent(container)
+        dbg(s"${qtype(container)} add ${qtype(m)}")
+      }
+    }
+    // Mirror metadata
+    mapping.foreach { 
+      case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
+      case (n, m) => pirmeta.mirror(n, m)
     }
     mapping
   }
 
-  def mirrorX(n:Any, container:Container)(implicit design:D):Map[Any,Any] =
-    mirrorX(n, container, Map[Any,Any]())
-
-
-  def mirror[T<:N](n:T, container:Container, init:Map[Any,Any])(implicit design:D):T = {
-    val mapping = mirrorX(n, container, init)
-    mapping(n).asInstanceOf[T]
+  def mirror[T<:N](
+    node:T, 
+    container:Option[Container]=None, 
+    init:Map[Any,Any] = Map.empty,
+    mirrorRule:MirrorRule = NoneMatchRule
+  )(implicit design:D):T = {
+    val mapping = mirrorM(node, container, init, mirrorRule)
+    mapping(node).asInstanceOf[T]
   }
 
-  def mirror[T<:N](n:T, container:Container)(implicit design:D):T = 
-    mirror(n, container, Map[Any, Any]())
 }
 
