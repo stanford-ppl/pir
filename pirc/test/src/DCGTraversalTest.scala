@@ -27,7 +27,7 @@ class DCGTraversalTest extends UnitTest with GraphCollector {
   type N = TestNode
 
   "DCGGraphTest" should "success" in {
-    new TestDotCodegen(top, s"test.dot").newRun(0).run
+    //new TestDotCodegen(top, s"test.dot").newRun(0).run
   }
 
   "DCGTestDFSTDTopo" should "success" in {

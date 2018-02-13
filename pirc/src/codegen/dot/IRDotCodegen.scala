@@ -69,9 +69,9 @@ trait IRDotCodegen extends Codegen with DotCodegen {
 
   override def emitNode(n:N) = {
     n match {
-      case _:Atom[_] => emitSingleNode(n); traverse(n) 
-      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n); traverse(n) 
-      case g:SubGraph[_] => emitSubGraph(n) { traverse(n) }
+      case _:Atom[_] => emitSingleNode(n); super.visitNode(n) 
+      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n); super.visitNode(n) 
+      case g:SubGraph[_] => emitSubGraph(n) { super.visitNode(n) }
     }
   }
 

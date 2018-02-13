@@ -6,8 +6,6 @@ import java.io.FileOutputStream
 
 trait Logging {
 
-  def name:String
-
   private val debug = Config.debug
   val logger = new Printer {
     override def emit(s:String):Unit = if (debug) { super.emit(s); flush }

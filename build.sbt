@@ -71,6 +71,7 @@ addCommandAlias("makeapps", ";project apps; compile")
 addCommandAlias("apps", ";project apps; test")
 
 addCommandAlias("pir", "; project pirc; test; project apps; run-main")
+//addCommandAlias("pir", "; project apps; run-main")
 
 addCommandAlias("spade", "; project arch; run-main")
 
@@ -78,3 +79,4 @@ addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 
 addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 
+addCommandAlias("test-pirc", "; project pirc; test")

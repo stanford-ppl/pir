@@ -5,19 +5,17 @@ import pir.node._
 
 import pirc._
 
-import prism.traversal._
-
 import scala.collection.mutable
 import scala.reflect._
 
-class AccessPulling(implicit design:PIR) extends PIRTransformer with BottomUpTopologicalTraversal with DFSTraversal with UnitTraversal {
+class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
 
   override def shouldRun = true
 
   val forward = false
 
   override def runPass =  {
-    traverseScope(design.newTop, ())
+    traverseNode(design.newTop)
   }
 
   override def check = {

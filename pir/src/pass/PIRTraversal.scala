@@ -27,5 +27,8 @@ trait TopologicalTraversal extends PIRTraversal with prism.traversal.Topological
 
 trait DFSTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopDownTopologicalTraversal
 trait BFSTopDownTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopDownTopDownTopologicalTraversal
-trait BottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BottomUpTopologicalTraversal
+trait BFSBottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSBottomUpTopologicalTraversal
+trait DFSBottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSBottomUpTopologicalTraversal
+
+trait UnitTraversal extends prism.traversal.UnitTraversal
 

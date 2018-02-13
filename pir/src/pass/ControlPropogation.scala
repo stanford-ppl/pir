@@ -5,13 +5,10 @@ import pir.node._
 
 import pirc._
 
-import prism.traversal._
-
 import scala.collection.mutable
 import scala.reflect._
 
-
-class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
+class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -25,7 +22,7 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BottomUp
 
   override def runPass =  {
     controllerTraversal.traverseNode(design.newTop.topController, ())
-    traverseScope(design.newTop, ())
+    traverseNode(design.newTop)
   }
 
   override def check = {

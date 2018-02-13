@@ -5,13 +5,12 @@ import pir.node._
 
 import pirc._
 import pirc.util._
-import prism.traversal._
 
 import scala.collection.mutable
 import scala.reflect._
 
-class TestTraversal(implicit design:PIR) extends PIRTraversal with BottomUpTopologicalTraversal with BFSTraversal with UnitTraversal {
-//class TestTraversal(implicit design:PIR) extends Pass with DFSTopDownTopologicalTraversal with BFSTraversal with UnitTraversal {
+class TestTraversal(implicit design:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
+//class TestTraversal(implicit design:PIR) extends PIRTraversal with DFSTopDownTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -20,8 +19,7 @@ class TestTraversal(implicit design:PIR) extends PIRTraversal with BottomUpTopol
 
   override def runPass =  {
     tic
-    traverseScope(design.newTop, ())
-    //traverseNode(design.newTop, ())
+    traverseNode(design.newTop)
     toc("TestPass", "ms")
     check
   }

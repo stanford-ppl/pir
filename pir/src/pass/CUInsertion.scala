@@ -44,10 +44,13 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
     controllerTraversal.traverseNode(design.newTop.topController, ())
   }
 
-  override def visitNode(n:N):Unit = n match {
-    case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
-    case n:ComputeNode if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
-    case _ => super.visitNode(n)
+  override def visitNode(n:N):Unit = {
+    dbg(s"visitNode ${qdef(n)}")
+    n match {
+      case n:SRAM => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
+      case n:ComputeNode if !cuMap(ctrlOf(n)).isParentOf(n) => swapParent(n, cuMap(ctrlOf(n)))
+      case _ => super.visitNode(n)
+    }
   }
 
 }

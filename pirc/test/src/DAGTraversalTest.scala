@@ -4,6 +4,7 @@ import pirc._
 import pirc.util._
 import prism.node._
 import prism.traversal._
+import prism.codegen._
 
 import scala.reflect._
 
@@ -28,7 +29,7 @@ object DAG1 extends TestDesign {
   val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
 }
 
-class DAGTraversalTest extends UnitTest with GraphCollector {
+class DAGTraversalTest extends UnitTest with GraphCollector with Logging {
   import DAG1._
 
   type N = TestNode
@@ -40,7 +41,7 @@ class DAGTraversalTest extends UnitTest with GraphCollector {
     assert(g.deps == Set(c, e))
     assert(g.globalDeps == Set())
     assert(g.localDeps == Set(g2, e))
-    new TestDotCodegen(top, s"test.dot").newRun(0).run
+    //new TestDotCodegen(top, s"test.dot").newRun(0).run
   }
 
   "DAGTestBFS" should "success" in {
@@ -48,11 +49,10 @@ class DAGTraversalTest extends UnitTest with GraphCollector {
       type N = TestNode
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
-    println(s"")
     var res = traversal.schedule(e)
-    assert(res==List(e, g1), s"res=$res")
+    assert(res==List(e, g1))
     res = traversal.schedule(g3)
-    assert(res == List(g3, f, g, e, g2, g1), s"res=$res")
+    assert(res == List(g3, f, g, e, g2, g1))
   }
 
   "DAGTestDFS" should "success" in {
@@ -61,9 +61,9 @@ class DAGTraversalTest extends UnitTest with GraphCollector {
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     var res = traversal.schedule(e)
-    assert(res==List(e, g1), s"res=$res")
+    assert(res==List(e, g1))
     res = traversal.schedule(g3)
-    assert(res == List(g3, f, g, e, g1, g2), s"res=$res")
+    assert(res == List(g3, f, g, e, g1, g2))
   }
 
   "DAGTestChildFirst" should "success" in {

@@ -46,47 +46,11 @@ trait GraphUtil {
 
 }
 
-trait GraphTraversal extends Memorization {
-  type N
-  type T
-
-  val visited = mutable.ListBuffer[Any]()
-
-  def isVisited(n:N) = visited.contains(n)
-
-  def resetTraversal = {
-    visited.clear
-  }
-
-  def visitFunc(n:N):List[N]
-
-  def visitNode(n:N, prev:T):T = {
-    assert(isVisited(n), n)
-    traverse(n, prev)
-  }
-
-  def traverseNode(n:N, prev:T):T = {
-    if (isVisited(n)) return prev
-    visited += n
-    visitNode(n, prev)
-  }
-
-  def traverse(n:N, zero:T):T = throw new Exception(s"Shouldn't hit this method")
-  def traverse(ns: => List[N], zero:T):T = throw new Exception(s"Shouldn't hit this method")
-
-  def dbgs(s:String) = {
-    this match {
-      case self:Logging => self.dbg(s)
-      case _ =>
-    }
-  }
-}
-
 trait UnitTraversal extends GraphTraversal {
   type T = Unit
 
   override def visitNode(n:N, prev:T):T = visitNode(n)
-  def visitNode(n:N):T = traverse(n, ()) 
+  def visitNode(n:N):T = super.visitNode(n, ())
 
   def traverseNode(n:N):T = traverseNode(n, ()) 
 
@@ -114,6 +78,42 @@ trait GraphSchedular extends GraphTraversal { self =>
 }
 
 
+trait GraphTraversal extends Memorization {
+  type N
+  type T
+
+  val visited = mutable.ListBuffer[Any]()
+
+  def isVisited(n:N) = visited.contains(n)
+
+  def resetTraversal = {
+    visited.clear
+  }
+
+  def visitFunc(n:N):List[N]
+
+  def markVisitNode(n:N, prev:T):T = {
+    if (isVisited(n)) return prev
+    visited += n
+    visitNode(n, prev)
+  }
+
+  def visitNode(n:N, prev:T):T = prev
+
+  def traverseNode(n:N, prev:T):T
+
+  def traverse(n:N, zero:T):T
+  def traverse(ns: => List[N], zero:T):T
+
+  def dbgs(s:String) = {
+    this match {
+      case self:Logging => self.dbg(s)
+      case _ =>
+    }
+  }
+}
+
+
 trait DFSTraversal extends GraphTraversal {
   override def traverse(n:N, zero:T):T = {
     traverse(visitFunc(n), zero)
@@ -124,11 +124,17 @@ trait DFSTraversal extends GraphTraversal {
     var nexts = ns.filterNot(isVisited)
     // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
-      prev = traverseNode(nexts.head, prev)
+      prev = markVisitNode(nexts.head, prev)
       nexts = nexts.filterNot(isVisited)
       if (nexts.isEmpty) nexts = ns.filterNot(isVisited)
     }
     prev
+  }
+
+  def traverseNode(n:N, prev:T):T = markVisitNode(n, prev)
+
+  override def visitNode(n:N, prev:T):T = {
+    traverse(n, super.visitNode(n, prev))
   }
 
 }
@@ -142,20 +148,24 @@ trait BFSTraversal extends GraphTraversal {
     queue.clear
   }
 
-  override def traverse(n:N, zero:T):T = {
+  def traverse(n:N, zero:T):T = {
     traverse(visitFunc(n), zero)
   }
 
-  override def traverse(ns: => List[N], zero:T):T = {
-    var prev = zero 
+  def traverse(ns: => List[N], zero:T):T = {
     queue ++= ns.filterNot(isVisited)
+    var prev = zero
     while (queue.nonEmpty) {
       val next = queue.dequeue()
-      prev = traverseNode(next, prev)
+      prev = markVisitNode(next, prev)
+      queue ++= visitFunc(next).filterNot(isVisited)
       if (queue.isEmpty) queue ++= ns.filterNot(isVisited)
     }
     return prev
   }
+
+  def traverseNode(n:N, prev:T):T = traverse(n, markVisitNode(n, prev))
+
 }
 
 trait TopologicalTraversal extends GraphTraversal {
@@ -210,24 +220,24 @@ trait TopologicalTraversal extends GraphTraversal {
 
 }
 
-trait HiearchicalTraversal extends GraphTraversal {
+trait TopDownTraversal extends GraphTraversal {
   override type N <:Node[N]
   def visitFunc(n:N):List[N] = n match {
     case n:SubGraph[_] => n.children.asInstanceOf[List[N]]
     case n:Atom[_] => Nil
   }
 }
-trait ChildFirstTraversal extends DFSTraversal with HiearchicalTraversal {
-  override def traverse(n:N, zero:T):T = {
-    assert(!n.children.exists(isVisited), s"children of $n is visited before traverse the parent in ChildFirstTraversal. children visited=${n.children.filter(isVisited)}")
-    val res = super.traverse(n, zero)
+trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal {
+  override def visitNode(n:N, zero:T):T = {
+    assert(!n.children.exists(isVisited), s"children of $n is visited before visit the parent in ChildFirstTraversal. children visited=${n.children.filter(isVisited)}")
+    val res = super.visitNode(n, zero)
     assert(!n.children.exists(c => !isVisited(c)), s"Not all children of $n is visited after ChildFirstTraversal ${n.children.filterNot(isVisited)}")
     res
   }
 }
-trait SiblingFirstTraversal extends BFSTraversal with HiearchicalTraversal
+trait SiblingFirstTraversal extends BFSTraversal with TopDownTraversal
 
-trait TopDownTopologicalTraversal extends TopologicalTraversal with HiearchicalTraversal with GraphUtil {
+trait TopDownTopologicalTraversal extends TopologicalTraversal with TopDownTraversal with GraphUtil {
   def visitIn(n:N):List[N] = visitLocalIn(n)
   def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
@@ -243,15 +253,6 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
   override type N <:Node[N]
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
-  //TODO: why is this not correct?
-  //override def depedFunc(n:N):List[N] = n match {
-    //case _:Atom[N] => n.parent.toList ++ super.depFunc(n)
-    //case n:SubGraph[N] => n.parent.toList
-  //} 
-  //override def depFunc(n:N):List[N] = n match {
-    //case _:Atom[N] => super.depFunc(n)
-    //case n:SubGraph[N] => n.children
-  //} 
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
   override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
@@ -260,7 +261,14 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
     val allNodes = n::n.descendents
     traverse(scheduleDepFree(allNodes), zero)
   }
+}
 
+trait DFSBottomUpTopologicalTraversal extends BottomUpTopologicalTraversal with DFSTraversal {
+  override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
+}
+
+trait BFSBottomUpTopologicalTraversal extends BottomUpTopologicalTraversal with BFSTraversal {
+  override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
 }
 
 import scala.collection.JavaConverters._
@@ -371,8 +379,7 @@ trait GraphTransformer {
 
 trait GraphCollector {
 
-  // BFSTraversal here might result in stackOverFlow due to deep stack recursion
-  abstract class Collector[ND<:Node[ND], M<:ND:ClassTag] extends DFSTraversal with GraphUtil {
+  abstract class Collector[ND<:Node[ND], M<:ND:ClassTag] extends BFSTraversal with GraphUtil {
     type T = List[M]
     type N = (ND, Int)
     val logger:Option[Logging]

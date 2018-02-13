@@ -75,11 +75,11 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
 
   def quote(n:Any):String
 
-  override def visitNode(n:N):T = emitNode(n)
+  override def visitNode(n:N, prev:T) = emitNode(n)
 
   def emitNode(n:N):Unit = {
     emitln(s"// TODO: Unmatched Node ${quote(n)}")
-    traverse(n, ())
+    super.visitNode(n)
   } 
 
 }

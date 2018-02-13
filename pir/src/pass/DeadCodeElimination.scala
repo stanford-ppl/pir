@@ -5,12 +5,10 @@ import pir.node._
 
 import pirc._
 
-import prism.traversal._
-
 import scala.collection.mutable
 import scala.reflect._
 
-class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BottomUpTopologicalTraversal with BFSTraversal {
+class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
   import pirmeta._
 
   type T = Map[N, Boolean]
@@ -21,7 +19,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with Botto
 
   override def runPass =  {
     // Mark dead code
-    val deathMap = traverseScope(design.newTop, Map.empty)
+    val deathMap = traverseNode(design.newTop, Map.empty)
     // Remove dead code
     deathMap.foreach { 
       case (n, true) =>
