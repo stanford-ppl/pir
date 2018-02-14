@@ -72,7 +72,7 @@ trait PIR extends Design {
     addPass(controlPropogator)
     addPass(cuInsertion)
     addPass(new PIRIRDotCodegen(s"top3.dot"))
-    addPass(accessPuller)
+    addPass(accessPuller).dependsOn(cuInsertion)
     addPass(new PIRIRDotCodegen(s"top4.dot"))
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top5.dot"))
@@ -80,16 +80,16 @@ trait PIR extends Design {
     addPass(new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top7.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple.dot"))
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top8.dot"))
     addPass(memoryAnalyzer)
-    addPass(new PIRIRDotCodegen(s"top8.dot"))
+    addPass(new PIRIRDotCodegen(s"top9.dot"))
 
+    addPass(new SimpleIRDotCodegen(s"simple.dot"))
     addPass(new IRPrinter(s"IR2.txt"))
     addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
-    addPass(cuStats)
+    //addPass(cuStats)
     addPass(irCheck)
 
     // Mapping

@@ -46,6 +46,12 @@ object WithWriters {
     case _ => None
   }
 }
+object WithWriter {
+  def unapply(n:Any):Option[LocalStore] = n match {
+    case n:Memory if n.writers.size == 1 => Some(n.writers.head)
+    case _ => None
+  }
+}
 
 // Write without address
 case class ReadMem(mem:Memory)(implicit design:PIR) extends LocalLoad
