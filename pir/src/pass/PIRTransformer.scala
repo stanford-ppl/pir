@@ -99,5 +99,33 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     mapping(node).asInstanceOf[T]
   }
 
+  def retimeX(
+    x:Def, 
+    cu:GlobalContainer, 
+    init:Map[Any,Any]=Map.empty
+  ):Map[Any,Any] = {
+    x match {
+      case x:Const[_] => mirrorM(x, Some(cu), init)
+      case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), init)
+      case x =>
+        val xCU = collectUp[GlobalContainer](x).head
+        val fifo = RetimingFIFO().setParent(cu)
+        val stores = x.localDepeds.collect { 
+          case Def(a:WriteMems, WriteMems(mems, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
+        }
+        val store = stores.headOption.getOrElse(WriteMems(List(fifo), x).setParent(xCU))
+        val load = ReadMem(fifo).setParent(cu)
+        pirmeta.mirror(x, store)
+        pirmeta.mirror(x, load)
+        init + (x -> load)
+    }
+  }
+
+  def retime(
+    x:Def, 
+    cu:GlobalContainer,
+    init:Map[Any, Any] = Map.empty
+  ):Def = retimeX(x, cu, init)(x).asInstanceOf[Def]
+
 }
 

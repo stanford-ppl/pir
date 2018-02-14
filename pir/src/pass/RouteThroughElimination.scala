@@ -25,15 +25,6 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
 
   override def visitNode(n:N, prev:T):T = {
     n match {
-      case Def(load:ReadMem, ReadMem(WithWriter(Def(rwrite:WriteMems, WriteMems(rmem::Nil, Def(rread:ReadMem, ReadMem(mem))))))) =>
-        dbgblk(s"Found Route Through ${qdef(load)}") {
-          dbgs(s"pattern: ")
-          dbg(s"rread:${qdef(rread)}")
-          dbg(s"rwrite:${qdef(rwrite)}")
-          dbg(s"rmem:${qdef(rmem)}")
-          dbg(s"load:${qdef(load)}")
-          swapConnection(load, rmem.out, mem.out)
-        }
       case Def(rwrite:WriteMems, WriteMems(mems,Def(rread, ReadMem(WithWriter(Def(write, WriteMems(rmem::Nil, data))))))) =>
         dbgblk(s"Found Route Through ${qdef(write)}") {
           dbgs(s"pattern: data -> rwirte -> rmem -> rread -> write -> mem => data -> write -> mems")
@@ -47,6 +38,15 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
             swapConnection(mem, rwrite.out, write.out)
           }
         }
+      //case Def(load:ReadMem, ReadMem(WithWriter(Def(rwrite:WriteMems, WriteMems(rmem::Nil, Def(rread:ReadMem, ReadMem(mem))))))) =>
+        //dbgblk(s"Found Route Through ${qdef(load)}") {
+          //dbgs(s"pattern: ")
+          //dbg(s"rread:${qdef(rread)}")
+          //dbg(s"rwrite:${qdef(rwrite)}")
+          //dbg(s"rmem:${qdef(rmem)}")
+          //dbg(s"load:${qdef(load)}")
+          //swapConnection(load, rmem.out, mem.out)
+        //}
       case _ => dbg(s"unmatched ${qdef(n)}")
     }
     super.visitNode(n, prev)

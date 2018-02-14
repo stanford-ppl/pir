@@ -6,7 +6,8 @@ import pirc._
 import pirc.enums._
 import pirc.util._
 
-trait LocalLoad extends Def
+trait AccessDef extends Def
+trait LocalLoad extends AccessDef
 object LocalLoad {
   def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
@@ -15,7 +16,7 @@ object LocalLoad {
     case _ => None
   }
 }
-trait LocalStore extends Def {
+trait LocalStore extends AccessDef {
   override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
     implicit val pir = design.asInstanceOf[PIR]
     x match {

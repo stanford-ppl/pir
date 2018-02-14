@@ -10,7 +10,7 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.reflect._
 
-class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirstTraversal with UnitTraversal {
+class AccessLowering(implicit design:PIR) extends PIRTransformer {
   import pirmeta._
 
   override def shouldRun = true
@@ -18,34 +18,12 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
   val forward = false
 
   override def runPass =  {
-    traverseNode(design.newTop)
+    val accesses = collectDown[AccessDef](design.newTop)
+    accesses.foreach(lowerAccess)
   }
 
-  def retimeX(x:Def, cu:GlobalContainer, mapping:Map[Any,Any]):Map[Any,Any] = {
-    x match {
-      case x:Const[_] => mirrorM(x, Some(cu), mapping)
-      case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), mapping)
-      case x =>
-        val xCU = collectUp[GlobalContainer](x).head
-        val fifo = RetimingFIFO().setParent(cu)
-        val stores = x.localDeps.collect { 
-          case Def(a:WriteMems, WriteMems(mems, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
-        }
-        val store = stores.headOption.getOrElse(WriteMems(List(fifo), x).setParent(xCU))
-        val load = ReadMem(fifo).setParent(cu)
-        pirmeta.mirror(x, store)
-        pirmeta.mirror(x, load)
-        mapping + (x -> load)
-    }
-  }
-
-  def retimeX(x:Def, cu:GlobalContainer):Map[Any,Any] = retimeX(x, cu, Map[Any, Any]())
-
-  def retime(x:Def, cu:GlobalContainer):Def = retimeX(x, cu)(x).asInstanceOf[Def]
-
-  override def visitNode(n:N):Unit = {
+  def lowerAccess(n:N):Unit = {
     n match {
-      case Def(n:LoadBank, _) =>
       case Def(n:LocalLoad, LocalLoad(banks, Some(addrs))) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
@@ -87,7 +65,6 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             swapConnection(deped, n.out, access.out)
           }
         }
-      case Def(n:StoreBank, _) =>
       case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val accessCU = collectUp[GlobalContainer](n).head
@@ -110,9 +87,19 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
             pirmeta.mirror(n, access)
           }
         }
+      case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
+        val memCU = collectUp[GlobalContainer](mem).head
+        val accessCU = collectUp[GlobalContainer](n).head
+        if (memCU != accessCU) {
+          swapParent(n, memCU)
+          val depeds = n.depeds
+          val raccess = retime(n, accessCU)
+          depeds.foreach { deped =>
+            swapConnection(deped, from=n.out, to=raccess.out)
+          }
+        }
       case n =>
     }
-    super.visitNode(n)
   }
 
   override def check(runner:RunPass) = {
