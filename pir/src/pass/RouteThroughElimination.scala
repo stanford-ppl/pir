@@ -34,17 +34,18 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
           dbg(s"load:${qdef(load)}")
           swapConnection(load, rmem.out, mem.out)
         }
-        //TODO
-      case Def(write:WriteMems, WriteMems(mem,Def(rread, ReadMem(Def(_, WithWriter(Def(rwrite, WriteMems(rmem, data)))))))) =>
+      case Def(rwrite:WriteMems, WriteMems(mems,Def(rread, ReadMem(WithWriter(Def(write, WriteMems(rmem::Nil, data))))))) =>
         dbgblk(s"Found Route Through ${qdef(write)}") {
-          dbgs(s"pattern: data -> rwirte -> rmem -> rread -> write -> mem => data -> write -> mem")
+          dbgs(s"pattern: data -> rwirte -> rmem -> rread -> write -> mem => data -> write -> mems")
           dbg(s"data:${qdef(data)}")
           dbg(s"rwrite:${qdef(rwrite)}")
           dbg(s"rmem:${qdef(rmem)}")
           dbg(s"rread:${qdef(rread)}")
           dbg(s"write:${qdef(write)}")
-          dbg(s"mem:${qdef(mem)}")
-          swapConnection(write, rread.out, data.out)
+          dbg(s"mems:${qdef(mems)}")
+          mems.foreach { mem =>
+            swapConnection(mem, rwrite.out, write.out)
+          }
         }
       case _ => dbg(s"unmatched ${qdef(n)}")
     }

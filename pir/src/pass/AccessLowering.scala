@@ -115,23 +115,26 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
     super.visitNode(n)
   }
 
-  override def check = {
+  override def check(runner:RunPass) = {
     val cus = collectDown[GlobalContainer](design.newTop)
     cus.foreach { cu =>
-      checkCUIO(cu)
+      checkCUIO(cu, runner)
     }
   }
 
   // All cu's inputs and outputs should go through a memory
-  def checkCUIO(cu:GlobalContainer) = {
+  def checkCUIO(cu:GlobalContainer, runner:RunPass) = {
+    import runner._
     cu.ins.foreach { in =>
       in.src match {
         case node:LocalLoad =>
         case node:Memory =>
         case node =>
-          dbg(s"$cu's global input $in.src = $node")
-          in.connected.foreach { out =>
-            dbg(s"out=$out out.src=${out.src}")
+          withLog(append=true) {
+            dbg(s"$cu's global input $in.src = $node")
+            in.connected.foreach { out =>
+              dbg(s"out=$out out.src=${out.src}")
+            }
           }
           throw PIRException(s"$cu's global output $in.src = $node")
       }
@@ -141,9 +144,11 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
         case node:LocalStore =>
         case node:Memory =>
         case node =>
-          dbg(s"$cu's global output $out.src = $node")
-          out.connected.foreach { in =>
-            dbg(s"in=$in in.src=${in.src}")
+          withLog(append=true) {
+            dbg(s"$cu's global output $out.src = $node")
+            out.connected.foreach { in =>
+              dbg(s"in=$in in.src=${in.src}")
+            }
           }
           throw PIRException(s"$cu's global output $out.src = $node")
       }

@@ -7,7 +7,8 @@ import prism.codegen.Logging
 import scala.collection.mutable
 
 case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
-  def name = s"$pass-$id"
+  val name = s"$pass-$id"
+  val logFile = s"$name.log"
   var hasRun = false
   def reset = { hasRun = false }
   val dependencies = mutable.ListBuffer[RunPass]()
@@ -29,11 +30,19 @@ case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
 
-    pass.logger.withOpen(s"$name.log") {
+    withLog(append=false) {
       pass.initPass(this)
       pass.runPass(this)
       pass.finPass(this)
       hasRun = true
+    }
+  }
+
+  def withLog(append:Boolean)(lambda: => Unit) {
+    if (pass.logger.isOpen) lambda else {
+      pass.logger.withOpen(logFile, append) {
+        lambda
+      }
     }
   }
 }
@@ -66,6 +75,7 @@ trait Pass extends Logging {
   def finPass(runner:RunPass):Unit = { finPass; check } 
   def finPass:Unit = {}
 
+  def check(runner:RunPass):Unit = check
   def check:Unit = {}
 
   def hasRun:Boolean = runPasses.exists(_.hasRun)
