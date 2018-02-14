@@ -26,9 +26,31 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSBotto
   }
 
   override def check = {
-    val computes = collectDown[ComputeNode](design.newTop)
-    computes.foreach { computes =>
-      assert(ctrlOf.contains(computes), s"$computes's controller is not set")
+    val cus = collectDown[GlobalContainer](design.newTop)
+    cus.foreach { cu =>
+      checkCtrl(cu)
+      checkStageCtrl(cu)
+    }
+  }
+
+  def checkCtrl(cu:GlobalContainer) = {
+    val computes = collectDown[ComputeNode](cu)
+    computes.foreach { comp =>
+      assert(ctrlOf.contains(comp), s"${qtype(comp)} in $cu doesn't have ctrl defined")
+      comp match {
+        case stageDef:StageDef =>
+          val ctrl = ctrlOf(stageDef)
+          assert(ctrl.isInnerControl, s"${qtype(stageDef)}.ctrl.level = ${ctrl.level}. stageDef.ctrl=${ctrl}")
+        case _ =>
+      }
+    }
+  }
+
+  def checkStageCtrl(cu:GlobalContainer) = {
+    val computes = collectDown[StageDef](cu)
+    computes.foreach { comp =>
+      val ctrl = ctrlOf(comp)
+      assert(ctrl.isInnerControl, s"${qtype(comp)}.ctrl.level = ${ctrl.level}. comp.ctrl=${ctrl}")
     }
   }
 

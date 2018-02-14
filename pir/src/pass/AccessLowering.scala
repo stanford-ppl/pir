@@ -114,5 +114,41 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer with ChildFirst
     }
     super.visitNode(n)
   }
+
+  override def check = {
+    val cus = collectDown[GlobalContainer](design.newTop)
+    cus.foreach { cu =>
+      checkCUIO(cu)
+    }
+  }
+
+  // All cu's inputs and outputs should go through a memory
+  def checkCUIO(cu:GlobalContainer) = {
+    cu.ins.foreach { in =>
+      in.src match {
+        case node:LocalLoad =>
+        case node:Memory =>
+        case node =>
+          dbg(s"$cu's global input $in.src = $node")
+          in.connected.foreach { out =>
+            dbg(s"out=$out out.src=${out.src}")
+          }
+          throw PIRException(s"$cu's global output $in.src = $node")
+      }
+    }
+    cu.outs.foreach { out =>
+      out.src match {
+        case node:LocalStore =>
+        case node:Memory =>
+        case node =>
+          dbg(s"$cu's global output $out.src = $node")
+          out.connected.foreach { in =>
+            dbg(s"in=$in in.src=${in.src}")
+          }
+          throw PIRException(s"$cu's global output $out.src = $node")
+      }
+    }
+  }
+
 }
 

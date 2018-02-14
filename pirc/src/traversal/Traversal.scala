@@ -152,14 +152,18 @@ trait BFSTraversal extends GraphTraversal {
     traverse(visitFunc(n), zero)
   }
 
+  def isScheduled(n:N) = {
+    isVisited(n) || queue.contains(n)
+  }
+
   def traverse(ns: => List[N], zero:T):T = {
-    queue ++= ns.filterNot(isVisited)
+    queue ++= ns.filterNot(isScheduled)
     var prev = zero
     while (queue.nonEmpty) {
       val next = queue.dequeue()
       prev = markVisitNode(next, prev)
-      queue ++= visitFunc(next).filterNot(isVisited)
-      if (queue.isEmpty) queue ++= ns.filterNot(isVisited)
+      queue ++= visitFunc(next).filterNot(isScheduled)
+      if (queue.isEmpty) queue ++= ns.filterNot(isScheduled)
     }
     return prev
   }

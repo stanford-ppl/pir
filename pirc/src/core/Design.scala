@@ -6,6 +6,8 @@ import scala.collection.mutable
 
 trait Design extends FileManager {
 
+  implicit val design:Design = this
+
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
 
@@ -29,7 +31,7 @@ trait Design extends FileManager {
 
   def handle(e:Exception):Unit
 
-  def run = runPasses.foreach { _.run(this) }
+  def run = runPasses.foreach { _.run }
 
   val configs:List[GlobalConfig]
 

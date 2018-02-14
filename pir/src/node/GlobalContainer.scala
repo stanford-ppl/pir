@@ -16,7 +16,7 @@ case class ArgFringe(argController:ArgController)(implicit design:PIR) extends G
   val argInDef = ArgInDef().setParent(this).ctrl(argController)
 }
 
-case class Top()(implicit design: PIR) extends GlobalContainer { 
+case class Top()(implicit design: PIR) extends Container { 
   val metadata = new PIRMetadata
 
   val topController:TopController = TopController()

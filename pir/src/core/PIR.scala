@@ -14,7 +14,7 @@ import scala.collection.mutable.ListBuffer
 
 trait PIR extends Design {
 
-  implicit def design: PIR = this
+  override implicit val design: PIR = this
   val configs = List(Config, SpadeConfig, PIRConfig)
 
   var newTop:Top = _
@@ -67,6 +67,7 @@ trait PIR extends Design {
     addPass(new IRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)
+    addPass(irCheck)
     addPass(new PIRIRDotCodegen(s"top2.dot"))
     addPass(controlPropogator)
     addPass(cuInsertion)

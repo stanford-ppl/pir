@@ -39,6 +39,7 @@ object LocalStore {
     case _ => None
   }
 }
+
 object WithWriters {
   def unapply(n:Any):Option[List[LocalStore]] = n match {
     case n:Memory => Some(n.writers.toList)

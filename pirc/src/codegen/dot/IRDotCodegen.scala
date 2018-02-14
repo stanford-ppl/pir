@@ -18,8 +18,8 @@ trait IRDotCodegen extends Codegen with DotCodegen {
 
   val nodes = mutable.ListBuffer[N]()
 
-  override def initPass = {
-    super.initPass
+  override def initPass(runner:RunPass) = {
+    super.initPass(runner)
     emitBSln("digraph G")
     if (horizontal) emitln(s"rankdir=LR")
   }

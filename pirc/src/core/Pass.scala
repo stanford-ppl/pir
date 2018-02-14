@@ -6,7 +6,7 @@ import prism.codegen.Logging
 
 import scala.collection.mutable
 
-case class RunPass(pass:Pass, id:Int) {
+case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
   def name = s"$pass-$id"
   var hasRun = false
   def reset = { hasRun = false }
@@ -20,15 +20,19 @@ case class RunPass(pass:Pass, id:Int) {
   def unfinishedDependencies = dependencies.filter { !_.hasRun }
   def isDependencyFree = unfinishedDependencies.isEmpty
 
-  def run(implicit design:Design):Unit = {
+  def prevRuns = {
+    design.runPasses.slice(0, id)
+  }
+
+  def run:Unit = {
     if (!pass.shouldRun) return
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
+
     pass.logger.withOpen(s"$name.log") {
-      dependencies.foreach(_.pass.check)
-      pass.initPass
-      pass.runPass
-      pass.finPass
+      pass.initPass(this)
+      pass.runPass(this)
+      pass.finPass(this)
       hasRun = true
     }
   }
@@ -44,16 +48,22 @@ trait Pass extends Logging {
 
   def reset:Unit = runPasses.foreach(_.reset)
 
-  def newRun(id:Int):RunPass = {
+  def newRun(id:Int)(implicit design:Design):RunPass = {
     val runPass = RunPass(this, id)
     runPasses += runPass
     runPass
   }
   
-  def initPass:Unit = info(s"Running $name ...")
+  def initPass(runner:RunPass):Unit = {
+    info(s"Running ${runner.name} ...")
+    initPass
+  }
+  def initPass:Unit = {}
 
-  def runPass:Unit
+  def runPass(runner:RunPass):Unit = runPass
+  def runPass:Unit = {}
 
+  def finPass(runner:RunPass):Unit = { finPass; check } 
   def finPass:Unit = {}
 
   def check:Unit = {}
@@ -61,5 +71,7 @@ trait Pass extends Logging {
   def hasRun:Boolean = runPasses.exists(_.hasRun)
 
   def hasRunAll:Boolean = runPasses.forall(_.hasRun)
+
+  def runCount = runPasses.filter(_.hasRun).size
 
 }

@@ -17,7 +17,7 @@ class TestDotCodegen(top:TestSubGraph, val fileName:String)(implicit design:Desi
 
   def quote(n:Any) = n.toString
 
-  def runPass = {
+  override def runPass = {
     traverseNode(top, ())
   }
 }

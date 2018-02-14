@@ -6,7 +6,6 @@ import pir.node._
 import pirc._
 
 import scala.collection.mutable
-import scala.reflect._
 
 class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
 
@@ -19,14 +18,10 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
   }
 
   override def check = {
-    // Checking
-    (collectDown[Def](design.newTop) ++ collectDown[Memory](design.newTop)).foreach { n =>
-      assert(withParent[GlobalContainer](n), s"$n is not contained by a CU")
+    // Checking for escaped nodes
+    (collectDown[Primitive](design.newTop)).foreach { n =>
+      assert(withinGlobal(n), s"$n is not contained by a CU")
     }
-  }
-
-  def withParent[T<:PIRNode:ClassTag](n:PIRNode) = {
-    n.parent.fold(false) { case p:T => true; case _ => false }
   }
 
   def pullNode(dep:A, deped:A, container:GlobalContainer) = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {

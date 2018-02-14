@@ -257,7 +257,6 @@ trait Metadata extends Serializable {
 
   def mirrorExcept(orig:Any, clone:Any, excludes:MetadataMap*) = {
     val includes = (maps.toList diff excludes.toList)
-    println("includes", includes)
     mirrorOnly(orig, clone, includes:_*)
   }
 

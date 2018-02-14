@@ -21,10 +21,7 @@ class TestTraversal(implicit design:PIR) extends PIRTraversal with BFSBottomUpTo
     tic
     traverseNode(design.newTop)
     toc("TestPass", "ms")
-    check
-  }
 
-  override def check = {
     val top = design.newTop
     val allNodes = top::top.descendents
     val unvisited = allNodes.filterNot(isVisited)
