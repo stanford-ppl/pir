@@ -110,11 +110,20 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case x =>
         val xCU = collectUp[GlobalContainer](x).head
         val fifo = RetimingFIFO().setParent(cu)
+        dbg(s"add${qtype(fifo)} in ${qtype(cu)}")
         val stores = x.localDepeds.collect { 
           case Def(a:WriteMems, WriteMems(mems, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
         }
-        val store = stores.headOption.getOrElse(WriteMems(List(fifo), x).setParent(xCU))
+        val store = stores.headOption.fold {
+          val store = WriteMems(List(fifo), x).setParent(xCU)
+          dbg(s"add${qtype(store)} in ${qtype(cu)}")
+          store
+        } { store => 
+          fifo.newIn.connect(store.out)
+          store
+        }
         val load = ReadMem(fifo).setParent(cu)
+        dbg(s"add${qtype(load)} in ${qtype(cu)}")
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)
         init + (x -> load)

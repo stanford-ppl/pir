@@ -114,7 +114,6 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
     import runner._
     cu.ins.foreach { in =>
       in.src match {
-        case node:LocalLoad =>
         case node:Memory =>
         case node =>
           withLog(append=true) {
@@ -129,7 +128,6 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
     cu.outs.foreach { out =>
       out.src match {
         case node:LocalStore =>
-        case node:Memory =>
         case node =>
           withLog(append=true) {
             dbg(s"$cu's global output $out.src = $node")

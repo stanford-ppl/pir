@@ -7,6 +7,7 @@ import pirc._
 
 import scala.collection.mutable
 import scala.reflect._
+import pirc.util._
 
 class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
   import pirmeta._
@@ -51,6 +52,30 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
 
   override def visitNode(n:N, prev:T):T = {
     super.visitNode(n, markDeath(prev, n))
+  }
+
+  override def check = {
+    val cus = collectDown[GlobalContainer](design.newTop)
+    cus.foreach { cu =>
+      val mems = collectDown[Memory](cu)
+      mems.foreach { mem =>
+        mem match {
+          case mem:ArgIn =>
+          case mem:StreamIn =>
+          case mem if mem.writers.isEmpty =>
+            warn(s"${qtype(mem)} in $cu does not have writer")
+          case _ =>
+        }
+        mem match {
+          case mem:ArgOut =>
+          case mem:StreamOut =>
+          case mem:StreamIn if mem.field == "ack" =>
+          case mem if mem.readers.isEmpty =>
+            warn(s"${qtype(mem)} in $cu does not have reader")
+          case _ =>
+        }
+      }
+    }
   }
 
 }
