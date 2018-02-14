@@ -202,11 +202,14 @@ trait TopologicalTraversal extends GraphTraversal {
   }
 
   def selectFrontier = {
-    frontier.filterNot(isVisited).filter {
+    var breakingPoints = frontier.filter {
+      case n if isVisited(n) => false
       case n:SubGraph[_] => false
-      case n if depFunc(n).size <= 1 => false
-      case _ => true
+      case n if depFunc(n).exists(isVisited) => true
+      case _ => false
     }.toList
+    breakingPoints = breakingPoints.sortBy { n => depFunc(n).filter(isVisited).size }
+    breakingPoints
   }
 
   def scheduleDepFree(nodes:List[N]):List[N] = {
