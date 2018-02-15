@@ -119,6 +119,7 @@ trait DotCodegen extends Printer {
   val brown      = Color("brown1")
   val orange = Color(s"darkorange")
   val chartreuse = Color(s"chartreuse3")
+  val palevioletred = Color(s"palevioletred1")
   
   val both = Direction("both")
   

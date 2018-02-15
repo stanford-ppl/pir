@@ -68,5 +68,13 @@ package object util extends Printer with Serialization {
     else s.toInt
   }
 
+  def dbgblk[T](logger:Option[Logging], msg:Any)(f: => T):T = {
+    logger.fold(f) { _.dbgblk(s"$msg") { f } }
+  }
+  
+  def dbg(logger:Option[Logging], msg:Any) = {
+    logger.foreach { _.dbg(msg) }
+  }
+
 }
 

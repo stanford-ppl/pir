@@ -6,6 +6,7 @@ package object pirc {
   //type Codegen = pirc.codegen.Codegen
   type Printer = pirc.codegen.Printer
   type Logger = pirc.codegen.Logger
+  type Logging = prism.codegen.Logging
 
   /* pass */
 

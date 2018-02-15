@@ -14,3 +14,5 @@ object CounterChain {
   }
 }
 case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Primitive with ComputeNode
+
+case class ComputeContext()(implicit design:PIR) extends Container

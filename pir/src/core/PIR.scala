@@ -15,6 +15,8 @@ import scala.collection.mutable.ListBuffer
 trait PIR extends Design {
 
   override implicit val design: PIR = this
+  lazy val pirmeta:PIRMetadata = newTop.metadata
+
   val configs = List(Config, SpadeConfig, PIRConfig)
 
   var newTop:Top = _
@@ -45,6 +47,7 @@ trait PIR extends Design {
   lazy val accessPuller = new AccessPulling()
   lazy val accessLowering = new AccessLowering()
   lazy val routeThroughEliminator = new RouteThroughElimination()
+  lazy val contextGrouping = new ContextGrouping()
 
   /* Mapping */
 
@@ -62,8 +65,7 @@ trait PIR extends Design {
 
     addPass(new TestTraversal)
 
-    // Pre-mapping Analysis and Transformation 
-    
+    // Data path transformation and analysis
     addPass(new IRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)
@@ -91,6 +93,10 @@ trait PIR extends Design {
     addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     //addPass(cuStats)
     addPass(irCheck)
+
+    // Control transformation and analysis
+    addPass(contextGrouping)
+    addPass(new PIRIRDotCodegen(s"top10.dot"))
 
     // Mapping
 
