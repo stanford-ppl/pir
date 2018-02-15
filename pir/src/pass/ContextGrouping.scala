@@ -23,36 +23,6 @@ class ContextGrouping(implicit design:PIR) extends PIRTransformer with DFSBottom
     val contextMap = traverseNode(design.newTop, Map[PIRNode, ComputeContext]())
     // Transform nodes into their contexts
     insertContext(contextMap)
-    // TODO: set control chain for context
-    mergeContexts
-  }
-
-  def mergeContexts = {
-    val cus = collectDown[GlobalContainer](design.newTop)
-    cus.foreach { cu =>
-      dbgblk(s"Merge context in ${cu}") {
-        val contexts = collectDown[ComputeContext](cu)
-        dbg(s"contexts=${contexts}")
-        val merged = mutable.Map[ComputeContext, ComputeContext]()
-        contexts.zipWithIndex.foreach { 
-          case (ctx, i) if merged.values.toList.contains(ctx) =>
-          case (ctx, i) =>
-            val others = contexts.slice(i+1,contexts.size).filterNot { o => merged.values.toList.contains(o) }
-            others.foreach { other =>
-              if (!areWeaklyConnected(ctx, other)) {
-                merged += other -> ctx
-              }
-            }
-        }
-        merged.foreach { case (from, to) =>
-          dbg(s"merge $from into $to")
-          from.children.foreach { child =>
-            swapParent(child, to)
-          }
-          removeNode(from)
-        }
-      }
-    }
   }
 
   /* Insert Context between parent CU and nodes with context */

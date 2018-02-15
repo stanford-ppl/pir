@@ -13,9 +13,13 @@ class PIRMetadata extends prism.node.Metadata {
    * For ComputeNode: Controller associated with a node. 
    * For memory, it's the lca controller of controller of all its
    * accesses 
-   * For ComputeContext, it's the innermost controller of the ComputeContext
    * */
   object ctrlOf extends BiManyToOneMap[PIRNode, Controller] with MetadataMap
+
+  /*
+   *
+   * */
+  object ctrlChainOf extends OneToOneMap[ComputeContext, List[Controller]] with MetadataMap
 
   /*
    * A memory is local mem if all of it's accesses shares the same controller. An example localMem

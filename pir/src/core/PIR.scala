@@ -48,6 +48,7 @@ trait PIR extends Design {
   lazy val accessLowering = new AccessLowering()
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextGrouping = new ContextGrouping()
+  lazy val contextMerging = new ContextMerging()
 
   /* Mapping */
 
@@ -97,6 +98,8 @@ trait PIR extends Design {
     // Control transformation and analysis
     addPass(contextGrouping)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
+    addPass(contextMerging)
+    addPass(new PIRIRDotCodegen(s"top11.dot"))
 
     // Mapping
 

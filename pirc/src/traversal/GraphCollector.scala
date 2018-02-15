@@ -81,21 +81,21 @@ trait GraphCollector {
     }
   }
 
-  def accumIn[ND<:Node[ND]](n:ND, log:Option[Logging]):List[ND] = {
+  def accumIn[ND<:Node[ND]](n:Node[ND] with ND, log:Option[Logging]):List[ND] = {
     new PathCollector[ND] {
       override val logger = log
       override def visitFunc(n:N) = visitLocalIn(n)
     }.traverse(n, Nil)
   }
 
-  def accumOut[ND<:Node[ND]](n:ND, log:Option[Logging]):List[ND] = {
+  def accumOut[ND<:Node[ND]](n:Node[ND] with ND, log:Option[Logging]):List[ND] = {
     new PathCollector[ND] {
       override val logger = log
       override def visitFunc(n:ND) = visitLocalOut(n)
     }.traverse(n, Nil)
   }
 
-  abstract class SearchTraversal[ND<:Node[ND]](target:ND) extends BFSTraversal with GraphUtil {
+  abstract class SearchTraversal[ND<:Node[ND]](target:Node[ND]) extends BFSTraversal with GraphUtil {
     type N = ND
     type T = Boolean
     val logger:Option[Logging]
@@ -108,26 +108,36 @@ trait GraphCollector {
     }
   }
 
-  def canReachIn[ND<:Node[ND]](n:ND, target:ND, log:Option[Logging]):Boolean = {
+  def canReachIn[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, log:Option[Logging]=None):Boolean = {
     new SearchTraversal[ND](target) {
       override val logger = log
       override def visitFunc(n:N) = visitLocalIn(n)
     }.traverse(n, false)
   }
 
-  def canReachOut[ND<:Node[ND]](n:ND, target:ND, log:Option[Logging]):Boolean = {
+  def canReachOut[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, log:Option[Logging]=None):Boolean = {
     new SearchTraversal[ND](target) {
       override val logger = log
       override def visitFunc(n:N) = visitLocalOut(n)
     }.traverse(n, false)
   }
 
-  def areWeaklyConnected[ND<:Node[ND]](n:ND, target:ND, log:Option[Logging]):Boolean = {
-    canReachIn(n, target, log) || canReachOut(n, target, log)
+  def areWeaklyConnected[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
+    dbgblk(logger, s"areWeaklyConnected($n, $target)") {
+      canReachIn(n, target, logger) || canReachOut(n, target, logger)
+    }
   }
 
-  def areStronglyConnected[ND<:Node[ND]](n:ND, target:ND, log:Option[Logging]):Boolean = {
-    canReachIn(n, target, log) && canReachOut(n, target, log)
+  def areStronglyConnected[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
+    dbgblk(logger, s"areStronglyConnected($n, $target)") {
+      canReachIn(n, target, logger) && canReachOut(n, target, logger)
+    }
+  }
+
+  def areLinealInherited[ND<:Node[ND]](a:Node[ND], b:Node[ND], logger:Option[Logging]=None):Boolean = {
+    dbgblk(logger, s"areLinealInherited($a, $b)") {
+      a == b || a.ancestors.contains(b) || b.ancestors.contains(a)
+    }
   }
 
 }
