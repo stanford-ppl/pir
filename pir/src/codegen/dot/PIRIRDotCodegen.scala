@@ -68,10 +68,16 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     }
   }
 
+  def areLocal(a:N, b:N) = {
+    val cuA = collectUp[GlobalContainer](a).headOption
+    val cuB = collectUp[GlobalContainer](b).headOption
+    cuA == cuB
+  }
+
   override def emitEdge(from:N, to:N) = {
     (from, to) match {
-      case (from:ArgInDef, to) if from.parent != to.parent =>
-      case (from, to:ArgIn) if from.parent != to.parent =>
+      case (from:ArgInDef, to) if !areLocal(from, to) =>
+      case (from, to:ArgIn) if !areLocal(from, to) =>
       case (from, to) => super.emitEdge(from, to)
     }
   }
