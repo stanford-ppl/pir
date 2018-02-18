@@ -33,9 +33,9 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
         case (n:Memory, m:Memory) => 
           val writers = n.writers.map { 
             case Def(w,LocalStore(mems, addrs, data)) => 
-              // prevent mirroring of writer
-              mp += w -> w
-              w.out.connect(m.newIn)
+              // prevent mirroring of addrs and data
+              addrs.foreach { addr => mp += addr -> addr }
+              mp += data -> data
               w
           }
           dbg(s"writers of $n = ${writers}")
@@ -111,18 +111,9 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
         val xCU = collectUp[GlobalContainer](x).head
         val fifo = RetimingFIFO().setParent(cu)
         dbg(s"add${qtype(fifo)} in ${qtype(cu)}")
-        val stores = x.localDepeds.collect { 
-          case Def(a:WriteMems, WriteMems(mems, _)) if mems.forall(_.isInstanceOf[RetimingFIFO]) => a
-        }
-        val store = stores.headOption.fold {
-          val store = WriteMems(List(fifo), x).setParent(xCU)
-          dbg(s"add${qtype(store)} in ${qtype(cu)}")
-          store
-        } { store => 
-          fifo.newIn.connect(store.out)
-          store
-        }
+        val store = WriteMem(fifo, x).setParent(cu)
         val load = ReadMem(fifo).setParent(cu)
+        dbg(s"add${qtype(store)} in ${qtype(cu)}")
         dbg(s"add${qtype(load)} in ${qtype(cu)}")
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)

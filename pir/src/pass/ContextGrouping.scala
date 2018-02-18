@@ -54,7 +54,7 @@ class ContextGrouping(implicit design:PIR) extends PIRTransformer with DFSBottom
         case n:Memory if !isInnerAccum(n) => None
         case n@(_:ComputeNode | _:Memory) =>
           // Group of nodes that should shair context with current nodes
-          val peers = depFunc(n) // Backward traversal
+          val peers = n.localDepeds ++ n.children
           dbg(s"$n.localDepeds=${n.localDepeds} n.siblings=${n.siblings} peers=${peers}")
           val sharedContexts = peers.flatMap { deped => contextMap.get(deped) }.toSet.toList
           dbg(s"sharedContexts=$sharedContexts")
@@ -79,9 +79,7 @@ class ContextGrouping(implicit design:PIR) extends PIRTransformer with DFSBottom
         case n => None
       }
     }
-    context.foreach { context =>
-      contextMap += n -> context
-    }
+    context.foreach { context => contextMap += n -> context }
     super.visitNode(n, contextMap)
   }
 

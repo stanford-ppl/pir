@@ -187,7 +187,7 @@ abstract class Edge[N<:Node[N]:ClassTag]()(implicit design:Design) extends IR {
   protected val _connected = mutable.ListBuffer[E]()
   def connected:List[E] = _connected.toList
   def singleConnected:Option[E] = {
-    assert(connected.size <= 1, s"${this.src}.$this has more than 1 connection. connected to ${connected}")
+    assert(connected.size <= 1, s"${this.src}.$this has more than 1 connection. connected to ${connected.map( c => s"${c.src}.$c")}")
     connected.headOption
   }
   def isConnected:Boolean = connected.nonEmpty

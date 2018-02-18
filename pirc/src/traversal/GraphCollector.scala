@@ -19,12 +19,13 @@ trait GraphCollector {
       val (node, depth) = n
       visited.contains(node)
     }
+    // depth = -1 is infinate depth
     override def visitNode(n:N, prev:T):T = {
       val (node, depth) = n
       visited += node
       node match {
-        case node:M if depth > 0 & !prev.contains(node) => prev :+ node 
-        case node:M if depth > 0 & prev.contains(node) => prev 
+        case node:M if (depth > 0 || depth < 0) & !prev.contains(node) => prev :+ node 
+        case node:M if (depth > 0 || depth < 0) & prev.contains(node) => prev 
         case _ if depth == 0 => prev 
         case _ => super.visitNode(n, prev)
       }

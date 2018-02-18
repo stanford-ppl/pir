@@ -30,7 +30,7 @@ case class Top()(implicit design: PIR) extends Container {
   def argIn(init:AnyVal)(implicit design:PIR) = {
     val reg = ArgIn(init).setParent(this)
     argIns += reg
-    WriteMems(List(reg), argFringe.argInDef).setParent(argFringe).ctrl(argController)
+    WriteMem(reg, argFringe.argInDef).setParent(argFringe).ctrl(argController)
     reg
   }
 
@@ -45,7 +45,7 @@ case class Top()(implicit design: PIR) extends Container {
     val reg = ArgIn().setParent(this)
     reg.name(s"DramAddr${reg.id}")
     dramAddresses += dram -> reg
-    WriteMems(List(reg), argFringe.argInDef).setParent(argFringe).ctrl(argController)
+    WriteMem(reg, argFringe.argInDef).setParent(argFringe).ctrl(argController)
     ReadMem(reg)
   }
 

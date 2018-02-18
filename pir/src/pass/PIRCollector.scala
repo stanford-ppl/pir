@@ -8,10 +8,10 @@ import scala.reflect._
 import prism.codegen.Logging
 
 trait PIRCollector extends GraphCollector {
-  def collectUp[M<:PIRNode:ClassTag](n:PIRNode, depth:Int=10, logger:Option[Logging]=None):List[M] =
+  def collectUp[M<:PIRNode:ClassTag](n:PIRNode, depth:Int= -1, logger:Option[Logging]=None):List[M] =
     super.collectUp[PIRNode, M](n, depth, logger)
 
-  def collectDown[M<:PIRNode:ClassTag](n:PIRNode, depth:Int=10, logger:Option[Logging]=None):List[M] = 
+  def collectDown[M<:PIRNode:ClassTag](n:PIRNode, depth:Int= -1, logger:Option[Logging]=None):List[M] = 
     super.collectDown[PIRNode, M](n, depth, logger)
 
   def collectIn[M<:PIRNode:ClassTag](n:PIRNode, depth:Int=10, logger:Option[Logging]=None):List[M] = 

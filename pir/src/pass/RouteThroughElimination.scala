@@ -25,7 +25,8 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
 
   override def visitNode(n:N, prev:T):T = {
     n match {
-      case Def(rwrite:WriteMems, WriteMems(mems,Def(rread, ReadMem(WithWriter(Def(write, WriteMems(rmem::Nil, data))))))) =>
+      // Pattern if write is inside mem CU
+      case Def(write:LocalStore, LocalStore(mems,None,Def(rread, LocalLoad(WithWriter(Def(rwrite, LocalStore(rmem::Nil, None, data)))::Nil,None)))) =>
         dbgblk(s"Found Route Through ${qdef(write)}") {
           dbgs(s"pattern: data -> rwirte -> rmem -> rread -> write -> mem => data -> write -> mems")
           dbg(s"data:${qdef(data)}")
@@ -34,18 +35,21 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
           dbg(s"rread:${qdef(rread)}")
           dbg(s"write:${qdef(write)}")
           dbg(s"mems:${qdef(mems)}")
-          mems.foreach { mem =>
-            swapConnection(mem, rwrite.out, write.out)
-          }
+          swapConnection(write, rread.out, data.out)
         }
-      //case Def(load:ReadMem, ReadMem(WithWriter(Def(rwrite:WriteMems, WriteMems(rmem::Nil, Def(rread:ReadMem, ReadMem(mem))))))) =>
-        //dbgblk(s"Found Route Through ${qdef(load)}") {
-          //dbgs(s"pattern: ")
-          //dbg(s"rread:${qdef(rread)}")
+      // Pattern if write is inside writer CU
+      //case Def(rwrite:LocalStore, LocalStore(mems,None,Def(rread, LocalLoad(WithWriter(Def(write, LocalStore(rmem::Nil, None, data)))::Nil,None)))) =>
+        //dbgblk(s"Found Route Through ${qdef(write)}") {
+          //dbgs(s"pattern: data -> rwirte -> rmem -> rread -> write -> mem => data -> write -> mems")
+          //dbg(s"data:${qdef(data)}")
           //dbg(s"rwrite:${qdef(rwrite)}")
           //dbg(s"rmem:${qdef(rmem)}")
-          //dbg(s"load:${qdef(load)}")
-          //swapConnection(load, rmem.out, mem.out)
+          //dbg(s"rread:${qdef(rread)}")
+          //dbg(s"write:${qdef(write)}")
+          //dbg(s"mems:${qdef(mems)}")
+          //mems.foreach { mem =>
+            //swapConnection(mem, rwrite.out, write.out)
+          //}
         //}
       case _ => dbg(s"unmatched ${qdef(n)}")
     }

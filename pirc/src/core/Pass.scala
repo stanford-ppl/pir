@@ -2,7 +2,6 @@ package pirc
 
 import pirc._
 import pirc.util._
-import prism.codegen.Logging
 
 import scala.collection.mutable
 

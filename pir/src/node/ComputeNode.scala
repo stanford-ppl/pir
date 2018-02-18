@@ -2,9 +2,6 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.util._
-
 trait ComputeNode extends PIRNode
 
 case class CounterChain(counters:List[Counter])(implicit design:PIR) extends Container with ComputeNode
@@ -14,5 +11,7 @@ object CounterChain {
   }
 }
 case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Primitive with ComputeNode
+case class CounterDone(counter:Counter)
 
 case class ComputeContext()(implicit design:PIR) extends Container
+case class ContextEnable(enables:ControlNode*)(implicit design:PIR) extends ControlNode

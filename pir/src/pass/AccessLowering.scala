@@ -4,6 +4,7 @@ import pir._
 import pir.node._
 
 import pirc._
+import pirc.util._
 
 import prism.traversal._
 
@@ -45,7 +46,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
               mps(addrCUs(bank))(addr).asInstanceOf[Def]
             }
             val bankCU = bankCUs(bank)
-            val access = LoadBank(bank, maddrs).setParent(bankCU)
+            val access = LoadMem(bank, maddrs).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             pirmeta.mirror(n, access)
             if (bankCU == accessCU) {
@@ -82,7 +83,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
             }
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
             disconnect(n, bank)
-            val access = StoreBank(bank, saddrs, sdata).setParent(bankCU)
+            val access = StoreMem(bank, saddrs, sdata).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             pirmeta.mirror(n, access)
           }
@@ -96,6 +97,19 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           val raccess = retime(n, accessCU)
           depeds.foreach { deped =>
             swapConnection(deped, from=n.out, to=raccess.out)
+          }
+        }
+      case Def(n:LocalStore, LocalStore(mems, None, data)) =>
+        if (mems.size==1) {
+          val memCU = collectUp[GlobalContainer](mems.head).head
+          swapParent(n, memCU)
+        } else {
+          mems.foreach { mem =>
+            val memCU = collectUp[GlobalContainer](mem).head
+            disconnect(n, mem)
+            val store = WriteMem(mem, data).setParent(memCU)
+            pirmeta.mirror(n, store)
+            dbg(s"add ${qtype(store)} in ${qtype(memCU)}")
           }
         }
       case n =>
@@ -122,7 +136,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
               dbg(s"out=$out out.src=${out.src}")
             }
           }
-          throw PIRException(s"$cu's global output $in.src = $node")
+          err(s"$cu's global output $in.src = $node")
       }
     }
     cu.outs.foreach { out =>
@@ -135,7 +149,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
               dbg(s"in=$in in.src=${in.src}")
             }
           }
-          throw PIRException(s"$cu's global output $out.src = $node")
+          err(s"$cu's global output $out.src = $node")
       }
     }
   }
