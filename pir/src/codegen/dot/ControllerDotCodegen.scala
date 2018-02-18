@@ -43,7 +43,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
     emitSubGraph(n, attr) { 
       emitSingleNode(n)
       ctrlOf.bmap(n).foreach {
-        case mem:Memory if !isLocalMem(mem) => emitSingleNode(mem)
+        case mem:Memory if !isInnerAccum(mem) => emitSingleNode(mem)
         case _ =>
       }
       block
@@ -65,7 +65,7 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
       case mem:ArgOut =>
         mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }
-      case mem if !isLocalMem(mem) =>
+      case mem if !isInnerAccum(mem) =>
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
         mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }
       case mem =>

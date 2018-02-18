@@ -27,8 +27,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
     n match {
       case Def(n:LocalLoad, LocalLoad(banks, Some(addrs))) =>
         dbgblk(s"Lowering ${qdef(n)}") {
-          val accessCU = collectUp[GlobalContainer](n).head
-          val bankCUs = banks.map { bank => bank -> collectUp[GlobalContainer](bank).head }.toMap
+          val accessCU = globalOf(n).get 
+          val bankCUs = banks.map { bank => bank -> globalOf(bank).get }.toMap
           val addrCUs = if (banks.size>1 || false /*TODO: if stages are only counters*/) {
             val addrCU = CUContainer().setParent(design.newTop).ctrl(ctrlOf(n))
             banks.map { _ -> addrCU }.toMap
@@ -68,10 +68,10 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
         }
       case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
-          val accessCU = collectUp[GlobalContainer](n).head
+          val accessCU = globalOf(n).get 
           banks.foreach { bank =>
             // Local write address calculation
-            val bankCU = collectUp[GlobalContainer](bank).head
+            val bankCU = globalOf(bank).get 
             val (saddrs, sdata) = if (bankCU!=accessCU) {
               var mp = retimeX(data, bankCU)
               val dataLoad = mp(data).asInstanceOf[Def]
@@ -89,8 +89,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           }
         }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
-        val memCU = collectUp[GlobalContainer](mem).head
-        val accessCU = collectUp[GlobalContainer](n).head
+        val memCU = globalOf(n).get
+        val accessCU = globalOf(n).get 
         if (memCU != accessCU) {
           swapParent(n, memCU)
           val depeds = n.depeds
@@ -101,11 +101,11 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
         }
       case Def(n:LocalStore, LocalStore(mems, None, data)) =>
         if (mems.size==1) {
-          val memCU = collectUp[GlobalContainer](mems.head).head
+          val memCU = globalOf(mems.head).get
           swapParent(n, memCU)
         } else {
           mems.foreach { mem =>
-            val memCU = collectUp[GlobalContainer](mem).head
+            val memCU = globalOf(mem).get 
             disconnect(n, mem)
             val store = WriteMem(mem, data).setParent(memCU)
             pirmeta.mirror(n, store)

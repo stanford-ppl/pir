@@ -22,10 +22,16 @@ class PIRMetadata extends prism.node.Metadata {
   object ctrlChainOf extends OneToOneMap[ComputeContext, List[Controller]] with MetadataMap
 
   /*
-   * A memory is local mem if all of it's accesses shares the same controller. An example localMem
-   * is accumulator
+   * Whether a memory is a accumulator. Set by spatial
    * */
-  object isLocalMem extends OneToOneMap[Memory, Boolean] with MetadataMap
+  object isAccum extends OneToOneMap[Memory, Boolean] with MetadataMap {
+    override def apply(k:K):V = get(k).getOrElse(false)
+  }
+
+  /*
+   * Whether a memory is a accumulator and all of its accesses shares the same controller. Set by memory analyzer
+   * */
+  object isInnerAccum extends OneToOneMap[Memory, Boolean] with MetadataMap
 
   /*
    * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if

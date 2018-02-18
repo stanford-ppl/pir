@@ -57,8 +57,8 @@ case class LoadMem(mem:Memory, addrs:List[Def])(implicit design:PIR) extends Loc
 case class StoreMem(mem:Memory, addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
 case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIR) extends Def
 
-case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], deqEn:Def)(implicit design:PIR) extends LocalLoad
-case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, enqEn:Def)(implicit design:PIR) extends LocalStore
+case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], readNext:Def)(implicit design:PIR) extends LocalLoad
+case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeNext:Def)(implicit design:PIR) extends LocalStore
 case class DataValid()(implicit design:PIR) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
 
 case class FIFOEmpty(mem:Memory)(implicit design:PIR) extends Def

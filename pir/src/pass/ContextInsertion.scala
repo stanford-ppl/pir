@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class ContextGrouping(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
+class ContextInsertion(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
   import pirmeta._
 
   type T = Map[PIRNode, ComputeContext]
@@ -28,8 +28,8 @@ class ContextGrouping(implicit design:PIR) extends PIRTransformer with DFSBottom
   /* Insert Context between parent CU and nodes with context */
   def insertContext(contexMap:T) = {
     contexMap.foreach { case (n, context) =>
-      val cu = collectUp[GlobalContainer](n).head
-      val contextCU = collectUp[GlobalContainer](context).headOption
+      val cu = globalOf(n).get 
+      val contextCU = globalOf(context)
       dbgblk(s"n=$n context=$context contextCU=$contextCU") {
         contextCU.map { contextCU =>
           if (contextCU==cu) {

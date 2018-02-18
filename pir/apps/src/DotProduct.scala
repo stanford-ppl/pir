@@ -5,6 +5,7 @@ import pirc.enums._
 
 object DotProduct extends PIRApp {
   def main(top:Top) = {
+      import top.metadata._
     val x1451 = top.argIn(init=0).name("x1451").ctrl(top) // ArgInNew(Const(0))
     val x1454 = ReadMem(x1451).name("x1454").ctrl(top) // RegRead(x1451)
     val x1455 = DRAM().name("x1455").ctrl(top) // x1455 = DRAMNew(ArrayBuffer(x1454),Const(0))
@@ -13,7 +14,9 @@ object DotProduct extends PIRApp {
     val x1458 = top.argOut(init=0).name("x1458").ctrl(top) // ArgOutNew(Const(0))
     val x1533 = UnitController(style=SeqPipe, level=OuterControl).name("x1533").ctrl(top) // Hwblock(Block(Const(())),false)
     val x1461_d0 = Reg(init=0).name("x1461_d0").ctrl(x1533) // x1461 = RegNew(Const(0))
+    isAccum(x1461_d0) = false
     val x1461_d1 = Reg(init=0).name("x1461_d1").ctrl(x1533) // x1461 = RegNew(Const(0))
+    isAccum(x1461_d1) = true
     val x1462 = ReadMem(x1451).name("x1462").ctrl(x1533) // RegRead(x1451)
     val x1463 = Counter(min=Const(0).ctrl(x1533), max=x1462, step=Const(16).ctrl(x1533), par=1).name("x1463").ctrl(x1533) // CounterNew(Const(0),x1462,Const(16),Const(1))
     val x1464 = CounterChain(List(x1463)).name("x1464").ctrl(x1533) // CounterChainNew(List(x1463))
@@ -21,7 +24,9 @@ object DotProduct extends PIRApp {
     val b928 = CounterIter(x1463, Some(0)).ctrl(x1529).name("b928")
     val b929 = DummyOp().ctrl(x1529).name("b929")
     val x1465_d0_b0 = SRAM(size=1, banking=Strided(banks=16, stride=1)).name("x1465_d0_b0").ctrl(x1529) // x1465 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x1465_d0_b0) = false
     val x1466_d0_b0 = SRAM(size=1, banking=Strided(banks=16, stride=1)).name("x1466_d0_b0").ctrl(x1529) // x1466 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x1466_d0_b0) = false
     val x1468 = UnitController(style=SeqPipe, level=InnerControl).name("x1468").ctrl(x1529) // UnitPipe(List(b929),Block(Const(())))
     val x1467 = OpDef(op=FixAdd, inputs=List(b928, Const(16).ctrl(x1468))).name("x1467").ctrl(x1468) // FixAdd(b928,Const(16))
     val x1488 = UnitController(style=StreamPipe, level=OuterControl).name("x1488").ctrl(x1529) // UnitPipe(List(b929),Block(Const(())))
@@ -73,7 +78,9 @@ object DotProduct extends PIRApp {
     val x1505 = x1504 // x1505 = VectorApply(x1504,0)
     val x1506 = StoreBanks(List(x1466_d0_b0), List(b970), x1505).name("x1506").ctrl(x1507) // ParSRAMStore(x1466,List(List(b970)),List(x1505),List(x1503))
     val x1509_d0 = Reg(init=0).name("x1509_d0").ctrl(x1529) // x1509 = RegNew(Const(0))
+    isAccum(x1509_d0) = false
     val x1509_d1 = Reg(init=0).name("x1509_d1").ctrl(x1529) // x1509 = RegNew(Const(0))
+    isAccum(x1509_d1) = true
     val x1510 = Counter(min=Const(0).ctrl(x1529), max=Const(16).ctrl(x1529), step=Const(1).ctrl(x1529), par=16).name("x1510").ctrl(x1529) // CounterNew(Const(0),Const(16),Const(1),Const(16))
     val x1511 = CounterChain(List(x1510)).name("x1511").ctrl(x1529) // CounterChainNew(List(x1510))
     val x1522 = LoopController(style=InnerPipe, level=InnerControl, cchain=x1511).name("x1522").ctrl(x1529) // UnrolledReduce(List(b929),x1511,x1509,Block((x1509) => Const(())),List(List(b982)),List(List(b983)))

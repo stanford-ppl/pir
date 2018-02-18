@@ -245,7 +245,7 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
 
   def traverseScope(n:N, zero:T) = {
-    val allNodes = (n::n.descendents).collect { case n:Atom[N] with N => n }
+    val allNodes = (n::n.descendents).collect { case n:Atom[N] => n.asInstanceOf[N] }
     traverse(scheduleDepFree(allNodes), zero)
   }
 }

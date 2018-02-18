@@ -43,7 +43,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       val newAccess = access match {
         case Def(n, LocalStore(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
           // store access write to multiple mems with different topControl. Duplicate the access
-          val accessCU = collectUp[GlobalContainer](n).head
+          val accessCU = globalOf(n).get 
           dbg(s"disconnecting $n from $mem")
           n.outs.foreach { out =>
             dbg(s"out ${out} ${out.connected.map(_.src)}")
@@ -63,8 +63,9 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       topCtrlOf.info(newAccess).foreach(dbg)
     }
 
-    isLocalMem(mem) = mem.accesses.forall(a => ctrlOf(a) == ctrlOf(mem))
-    isLocalMem.info(mem).foreach(dbg)
+    val isLocalMem = mem.accesses.map(a => ctrlOf(a)).toSet.size==1
+    isInnerAccum(mem) = isLocalMem && isAccum(mem)
+    isInnerAccum.info(mem).foreach(dbg)
   }
 
   override def runPass =  {

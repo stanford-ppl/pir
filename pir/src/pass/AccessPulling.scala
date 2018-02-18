@@ -26,7 +26,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
 
   def pullNode(dep:A, deped:A, container:GlobalContainer) = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
     dbg(s"dep.depeds=${dep.depeds}")
-    val depedContainers = dep.depeds.flatMap { deped => collectUp[GlobalContainer](deped).headOption }
+    val depedContainers = dep.depeds.flatMap { deped => globalOf(deped) }
 
     val portable = dep match {
       case dep:Counter => false
@@ -56,7 +56,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
           case n:ArgInDef => None
           case n => Some(n)
         }
-        val cu = collectUp[GlobalContainer](n).head
+        val cu = globalOf(n).get 
         localDeps.foreach { dep =>
           if (!cu.isAncestorOf(dep)) pullNode(dep, n, cu)
         }

@@ -100,12 +100,11 @@ trait GraphCollector {
     type N = ND
     type T = Boolean
     val logger:Option[Logging]
-    override def visitNode(n:N, prev:T):T = n match {
-      case `target` => true
-      case n => super.visitNode(n, prev)
-    }
-    override def traverse(n:N, zero:T):T = dbgblk(logger, s"search($n)") {
-      super.traverse(n, zero)
+    override def visitNode(n:N, prev:T):T = dbgblk(logger, s"search($n, target=$target)") {
+      n match {
+        case `target` => true
+        case n => super.visitNode(n, prev)
+      }
     }
   }
 

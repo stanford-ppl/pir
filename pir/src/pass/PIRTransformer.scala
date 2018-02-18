@@ -108,7 +108,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case x:Const[_] => mirrorM(x, Some(cu), init)
       case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), init)
       case x =>
-        val xCU = collectUp[GlobalContainer](x).head
+        val xCU = globalOf(x).get 
         val fifo = RetimingFIFO().setParent(cu)
         dbg(s"add${qtype(fifo)} in ${qtype(cu)}")
         val store = WriteMem(fifo, x).setParent(cu)

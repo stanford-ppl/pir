@@ -24,6 +24,7 @@ trait MapLike[K,V,VV] extends MapType[K,V,VV] with Serializable {
   val name:String = this.getClass().getSimpleName().replace("$","")
   def apply(n:K):VV
   def get(n:K):Option[VV]
+  def foreach(lambda:((K,VV)) => Unit):Unit
   def contains(k:K):Boolean
   def keys:Iterable[K]
   def values:Iterable[VV]
@@ -36,6 +37,7 @@ trait UniMap[K,V,VV] extends MapLike[K,V,VV] {
 
   def map:M
   def apply(n:K):VV = { map(n) }
+  def foreach(lambda:((K,VV)) => Unit):Unit = map.foreach(lambda)
   def get(n:K):Option[VV] =  { val m = map; m.get(n) }
   def contains(k:K) = map.contains(k)
   def keys = map.keys
