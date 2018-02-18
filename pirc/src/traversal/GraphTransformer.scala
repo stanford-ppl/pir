@@ -54,6 +54,10 @@ trait GraphTransformer {
     }
   }
 
+  def areConnected[A1<:A](node1:A1, node2:A1) = {
+    node1.ios.exists { io1 => node2.ios.exists { io2 => io1.isConnectedTo(io2) } }
+  }
+
   def swapConnection[A1<:A](node:A, from:Edge[N], to:Edge[N]) = {
     val connected = node.ios.filter { io =>
       if (io.isConnectedTo(from)) {

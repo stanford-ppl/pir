@@ -6,8 +6,8 @@ import pirc._
 import pirc.enums._
 import pirc.util._
 
-trait AccessDef extends Def
-trait LocalLoad extends AccessDef
+trait LocalAccess extends Def
+trait LocalLoad extends LocalAccess
 object LocalLoad {
   def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
@@ -17,7 +17,7 @@ object LocalLoad {
     case _ => None
   }
 }
-trait LocalStore extends AccessDef {
+trait LocalStore extends LocalAccess {
   override def isInputField(field:Any, fieldIdx:Int) = field match {
     case x:Memory => false
     case _ => true

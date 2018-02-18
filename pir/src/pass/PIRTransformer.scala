@@ -110,11 +110,11 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case x =>
         val xCU = globalOf(x).get 
         val fifo = RetimingFIFO().setParent(cu)
-        dbg(s"add${qtype(fifo)} in ${qtype(cu)}")
         val store = WriteMem(fifo, x).setParent(cu)
         val load = ReadMem(fifo).setParent(cu)
-        dbg(s"add${qtype(store)} in ${qtype(cu)}")
-        dbg(s"add${qtype(load)} in ${qtype(cu)}")
+        dbg(s"add ${qtype(fifo)} in ${qtype(cu)}")
+        dbg(s"add ${qtype(store)} in ${qtype(cu)}")
+        dbg(s"add ${qtype(load)} in ${qtype(cu)}")
         pirmeta.mirror(x, store)
         pirmeta.mirror(x, load)
         init + (x -> load)
@@ -126,6 +126,21 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     cu:GlobalContainer,
     init:Map[Any, Any] = Map.empty
   ):Def = retimeX(x, cu, init)(x).asInstanceOf[Def]
+
+  def swapNode[T<:Primitive](from:Primitive)(toFunc: => T):T = {
+    from.deps.foreach { dep => disconnect(dep, from) }
+    val to = toFunc
+    pirmeta.mirror(from, to)
+    from.depeds.foreach { deped => 
+      if (areConnected(deped, to)) {
+        disconnect(deped, from)
+      } else {
+        swapConnection(deped, from.out, to.out)
+      }
+    }
+    removeNode(from)
+    to
+  }
 
 }
 

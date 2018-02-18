@@ -19,7 +19,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
   val forward = false
 
   override def runPass =  {
-    val accesses = collectDown[AccessDef](design.newTop)
+    val accesses = collectDown[LocalAccess](design.newTop)
     accesses.foreach(lowerAccess)
   }
 
@@ -55,15 +55,12 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
               retime(access, accessCU).asInstanceOf[LocalLoad]
             }
           }
-          val access = if (bankAccesses.size > 1) {
-            //
-            val sb = SelectBanks(bankAccesses).setParent(accessCU)
-            dbg(s"add ${qtype(sb)} in ${qtype(accessCU)}")
-            pirmeta.mirror(n, sb)
-            sb
-          } else bankAccesses.head
-          n.depeds.foreach { deped =>
-            swapConnection(deped, n.out, access.out)
+          swapNode(n) {
+            if (bankAccesses.size > 1) {
+              val sb = SelectBanks(bankAccesses).setParent(accessCU)
+              dbg(s"add ${qtype(sb)} in ${qtype(accessCU)}")
+              sb
+            } else bankAccesses.head
           }
         }
       case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
@@ -82,10 +79,11 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
               (addrs, data)
             }
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
-            disconnect(n, bank)
-            val access = StoreMem(bank, saddrs, sdata).setParent(bankCU)
-            dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
-            pirmeta.mirror(n, access)
+            swapNode(n) {
+              val access = StoreMem(bank, saddrs, sdata).setParent(bankCU)
+              dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
+              access
+            }
           }
         }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
@@ -93,11 +91,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
         val accessCU = globalOf(n).get 
         if (memCU != accessCU) {
           swapParent(n, memCU)
-          val depeds = n.depeds
           val raccess = retime(n, accessCU)
-          depeds.foreach { deped =>
-            swapConnection(deped, from=n.out, to=raccess.out)
-          }
+          swapNode(n)(raccess)
         }
       case Def(n:LocalStore, LocalStore(mems, None, data)) =>
         if (mems.size==1) {
@@ -106,10 +101,11 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
         } else {
           mems.foreach { mem =>
             val memCU = globalOf(mem).get 
-            disconnect(n, mem)
-            val store = WriteMem(mem, data).setParent(memCU)
-            pirmeta.mirror(n, store)
-            dbg(s"add ${qtype(store)} in ${qtype(memCU)}")
+            swapNode(n) {
+              val store = WriteMem(mem, data).setParent(memCU)
+              dbg(s"add ${qtype(store)} in ${qtype(memCU)}")
+              store
+            }
           }
         }
       case n =>
