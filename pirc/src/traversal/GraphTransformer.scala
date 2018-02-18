@@ -26,10 +26,9 @@ trait GraphTransformer {
     }
   }
 
-  def swapParent(node:N, newParent:N) = {
-    node.parent.foreach { parent =>
-      parent.removeChild(node)
-    }
+  def swapParent(node:N, newParent:N):Unit = {
+    if (newParent.isParentOf(node)) return
+    node.parent.foreach { parent => parent.removeChild(node) }
     node.setParent(newParent.asInstanceOf[node.P])
   }
 

@@ -37,16 +37,20 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
   }
 
   override def visitNode(n:N, prev:T):T = {
-    val node = n match {
-      case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) if isFIFO(mem) =>
-        val context = contextOf(n).get
-        val readNext = allocateContextEnable(context)
-        swapNode(n)(EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
-      case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) if isFIFO(mem) =>
-        val writeNext = DataValid().setParent(n.parent.get)
-        swapNode(n)(EnabledStoreMem(mem, addr, data, writeNext).setParent(n.parent.get))
-      case n => n
+    val node = dbgblk(s"visitNode($n)") {
+      n match {
+        case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) if isFIFO(mem) =>
+          val context = contextOf(n).get
+          val readNext = allocateContextEnable(context)
+          swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
+        case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) if isFIFO(mem) =>
+          val writeNext = DataValid().setParent(n.parent.get)
+          swapNode(n,EnabledStoreMem(mem, addr, data, writeNext).setParent(n.parent.get))
+          //case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) if isReg(mem) =>
+        case n => n
+      }
     }
+    visited += node
     super.visitNode(node, prev)
   }
 

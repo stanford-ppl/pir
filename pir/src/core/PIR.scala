@@ -102,6 +102,7 @@ trait PIR extends Design {
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
     addPass(memoryControlAllocator)
+    addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top12.dot"))
 
     // Mapping

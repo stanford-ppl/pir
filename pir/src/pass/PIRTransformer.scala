@@ -104,19 +104,20 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     cu:GlobalContainer, 
     init:Map[Any,Any]=Map.empty
   ):Map[Any,Any] = {
+    val xCU = globalOf(x).get 
+    if (xCU == cu) return init + (x -> x)
     x match {
       case x:Const[_] => mirrorM(x, Some(cu), init)
       case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), init)
       case x =>
         val xCU = globalOf(x).get 
         val fifo = RetimingFIFO().setParent(cu)
-        val store = WriteMem(fifo, x).setParent(cu)
         val load = ReadMem(fifo).setParent(cu)
+        val store = WriteMem(fifo, x).setParent(cu)
         dbg(s"add ${qtype(fifo)} in ${qtype(cu)}")
         dbg(s"add ${qtype(store)} in ${qtype(cu)}")
         dbg(s"add ${qtype(load)} in ${qtype(cu)}")
         pirmeta.mirror(x, store)
-        pirmeta.mirror(x, load)
         init + (x -> load)
     }
   }
@@ -127,18 +128,19 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     init:Map[Any, Any] = Map.empty
   ):Def = retimeX(x, cu, init)(x).asInstanceOf[Def]
 
-  def swapNode[T<:Primitive](from:Primitive)(toFunc: => T):T = {
-    from.deps.foreach { dep => disconnect(dep, from) }
-    val to = toFunc
+  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
+    if (from == to) return to
+    dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)}")
     pirmeta.mirror(from, to)
-    from.depeds.foreach { deped => 
-      if (areConnected(deped, to)) {
-        disconnect(deped, from)
-      } else {
-        swapConnection(deped, from.out, to.out)
-      }
+    at.getOrElse(from.depeds).foreach { 
+      case deped if excludes.contains(deped) => 
+      case deped => 
+        if (areConnected(deped, to)) {
+          disconnect(deped, from)
+        } else {
+          swapConnection(deped, from.out, to.out)
+        }
     }
-    removeNode(from)
     to
   }
 

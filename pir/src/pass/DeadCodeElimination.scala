@@ -37,14 +37,15 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
   }
 
   def markDeath(deathMap:T, n:N) = {
+    def depedsAllDead(n:N) = depFunc(n).forall(d => deathMap.getOrElse(d, false))
+
     val isDead = n match {
       case n:ArgOut => false
       case n:StreamOut => false
-      case n:Counter => false
-        //if (!design.controlPropogator.hasRunAll) false
-        //else if (ctrlOf(n).isOuterControl) false //TODO: after ControlAllocation this can be eliminated if n.depeds is empty
-        //else n.depeds.forall(d => deathMap.getOrElse(d, false))
-      case n => depFunc(n).forall(d => deathMap.getOrElse(d, false))
+      case n:Counter => 
+        val controlPasses = List(design.memoryControlAllocator)
+        if (controlPasses.forall(_.hasRunAll)) depedsAllDead(n) else false
+      case n => depedsAllDead(n) 
     }
     if (isDead) dbgs(s"Mark $n as dead code")
     deathMap + (n -> isDead)

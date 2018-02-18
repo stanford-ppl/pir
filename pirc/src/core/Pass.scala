@@ -3,6 +3,7 @@ package pirc
 import pirc._
 import pirc.util._
 
+import scala.reflect._
 import scala.collection.mutable
 
 case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
@@ -24,6 +25,15 @@ case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
     design.runPasses.slice(0, id)
   }
 
+  def prevHasRun[P<:Pass:ClassTag] = {
+    prevRuns.exists { 
+      _.pass match {
+        case p:P => true
+        case _ => false
+      }
+    }
+  }
+
   def run:Unit = {
     if (!pass.shouldRun) return
     if (!isDependencyFree) 
@@ -33,6 +43,7 @@ case class RunPass(pass:Pass, id:Int)(implicit design:Design) {
       pass.initPass(this)
       pass.runPass(this)
       pass.finPass(this)
+      pass.check(this)
       hasRun = true
     }
   }
