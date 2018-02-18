@@ -104,6 +104,8 @@ trait PIR extends Design {
     addPass(memoryControlAllocator)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top12.dot"))
+    addPass(new IRPrinter(s"IR3.txt"))
+    addPass(irCheck)
 
     // Mapping
 

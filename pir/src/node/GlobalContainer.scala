@@ -12,15 +12,16 @@ case class CUContainer(contains:PIRNode*)(implicit design:PIR) extends GlobalCon
 
 case class FringeContainer(dram:DRAM, contains:PIRNode*)(implicit design:PIR) extends GlobalContainer
 
-case class ArgFringe(argController:ArgController)(implicit design:PIR) extends GlobalContainer {
+case class ArgFringe(argController:ArgInController)(implicit design:PIR) extends GlobalContainer {
   val argInDef = ArgInDef().setParent(this).ctrl(argController)
 }
+case class ArgInValid()(implicit design:PIR) extends ControlNode
 
 case class Top()(implicit design: PIR) extends Container { 
   val metadata = new PIRMetadata
 
   val topController:TopController = TopController()
-  val argController = ArgController().setParent(topController)
+  val argController = ArgInController().setParent(topController)
   lazy val argFringe = ArgFringe(argController).setParent(this)
 
   val argIns = mutable.ListBuffer[ArgIn]()

@@ -26,7 +26,7 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
         case n:TopController => design.newTop
-        case n:ArgController => design.newTop.argFringe
+        case n:ArgInController => design.newTop.argFringe
         case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}").ctrl(n)
       }
       dbg(s"${qtype(n)} -> ${qtype(cu)}")

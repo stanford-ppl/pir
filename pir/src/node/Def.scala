@@ -34,3 +34,7 @@ case class DummyOp()(implicit design:PIR) extends Def
 case class Const[T<:AnyVal](value:T)(implicit design:PIR) extends Def
 
 case class ArgInDef()(implicit design:PIR) extends Def
+
+case class GlobalInput(data:Def)(implicit design:PIR) extends Def
+case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:PIR) extends Def
+case class DataValid(gin:GlobalInput)(implicit design:PIR) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data

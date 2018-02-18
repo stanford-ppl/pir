@@ -20,7 +20,7 @@ case class TopController()(implicit design:PIR) extends Controller {
   val style = SeqPipe
   val level = OuterControl 
 }
-case class ArgController()(implicit design:PIR) extends Controller {
+case class ArgInController()(implicit design:PIR) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }
