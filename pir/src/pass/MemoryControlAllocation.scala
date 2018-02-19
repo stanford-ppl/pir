@@ -17,7 +17,7 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
   val forward = true
 
   override def runPass =  {
-    traverseNode(design.newTop)
+    traverseNode(design.top)
   }
 
   def isFIFO(n:Memory) = n match {
@@ -35,29 +35,36 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
     case n => false
   }
 
-  def addNode[T<:Primitive](node:T, context:ComputeContext):T = {
-    node.setParent(context)
-    val ctrl = collectDown[ComputeNode](context).flatMap { comp => ctrlOf.get(comp) }.toSet[Controller].maxBy { _.ancestors.size }
-    ctrlOf(node) = ctrl
-    node
-  }
-
   def allocateContextEnable(context:ComputeContext) = dbgblk(s"allocateContextEnable($context)") {
-    enableOf(context).getOrElse {
+    allocate[ContextEnable](context) {
       val readMems = collectIn[Memory](context)
       var enables = readMems.map { mem => 
-        addNode(NotEmpty(mem),context)
+        allocate[NotEmpty](context, _.mem == mem)(NotEmpty(mem))
       }.toList
-      addNode(ContextEnable(enables),context)
+      ContextEnable(enables)
     }
   }
 
-  def allocateDelayedContextEnable(context:ComputeContext) = dbgblk(s"allocateDelayedContextEnable($context)"){
-    addNode(DelayedContextEnable(allocateContextEnable(context)), context)
+  def allocateDelayedContextEnable(context:ComputeContext) = {
+    allocate[DelayedContextEnable](context)(DelayedContextEnable(allocateContextEnable(context)))
+  }
+
+  def allocate[T<:PIRNode:ClassTag](context:ComputeContext, filter:T => Boolean = (n:T) => true)(createNode: => T):T = dbgblk(s"allocate(ctx=$context)"){
+    val nodes = collectDown[T](context).filter(filter)
+    assert(nodes.size <= 1, s"more than 1 node in context: $nodes")
+    nodes.headOption.getOrElse { 
+      val node = createNode 
+      node match {
+        case node:Primitive if !ctrlOf.contains(node) =>
+          ctrlOf(node) = innerCtrl(context)
+        case node => 
+      }
+      node.setParent(context)
+    }
   }
 
   def innerCtrl(context:ComputeContext) = dbgblk(s"innerCtrl($context)"){
-    collectDown[ComputeNode](context).map { comp => ctrlOf(comp) }.toSet[Controller].maxBy { _.ancestors.size }
+    collectDown[ComputeNode](context).flatMap { comp => ctrlOf.get(comp) }.toSet[Controller].maxBy { _.ancestors.size }
   }
 
   def prevCtrl(ctrlChain:List[Controller], ctrl:Controller) = {
@@ -68,17 +75,17 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
 
   def allocateContextDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateContextDone(ctx=$context, ctrl=$ctrl)") {
     ctrl match {
-      case ctrl:ArgInController => addNode(ArgInValid(),context)
+      case ctrl:ArgInController => allocate[ArgInValid](context)(ArgInValid())
       case ctrl:LoopController =>
-        val counter = ctrl.cchain.counters.last
-        val cchains = collectDown[CounterChain](context).filter { cchain =>
-          ctrlOf(cchain) == ctrl
-        }
-        assert(cchains.size <= 1, s"more than 1 CounterChain for $ctrl in $context! cchains=$cchains")
-        val cchain = cchains.headOption.getOrElse {
+        val cchain = allocate[CounterChain](context, (cc:CounterChain) => ctrlOf(cc) == ctrl) {
           mirror(ctrl.cchain, Some(context))
         }
-        addNode(CounterDone(cchain.counters.last), context)
+        val counter = cchain.counters.last
+        allocate[CounterDone](context, _.counter == counter){
+          val done = CounterDone(counter)
+          ctrlOf(done) = ctrlOf(counter)
+          done
+        }
       case ctrl:UnitController =>
         val inner = innerCtrl(context)
         val ctrlChain = inner :: inner.ancestors
@@ -101,8 +108,8 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
         case mem if isFIFO(mem) => allocateDelayedContextEnable(dataCtx)
         case mem if isReg(mem) => allocateContextDone(dataCtx, ctrlOf(data))
       }
-      val gout = addNode(GlobalOutput(data, valid), dataCtx)
-      val gin = addNode(GlobalInput(gout), accessCtx)
+      val gout = allocate(dataCtx, (n:GlobalOutput) => n.data==data && n.valid==valid)(GlobalOutput(data, valid))
+      val gin = allocate[GlobalInput](accessCtx, _.globalOutput==gout)(GlobalInput(gout))
       gin
     }
   }
@@ -118,12 +125,13 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
           }
           swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
         case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
+          val context = contextOf(n).get
           val gdata = insertGlobalIO(data, n)
           val writeNext = gdata match {
             case gdata:GlobalInput => 
               assert(isReg(mem) || isFIFO(mem), s"${qdef(n)}'s data is Global")
-              addNode(DataValid(gdata),contextOf(n).get)
-            case gdata => allocateContextDone(contextOf(n).get, ctrlOf(n))
+              allocate[DataValid](context, _.globalInput==gdata)(DataValid(gdata))
+            case gdata => allocateContextDone(context, ctrlOf(n))
           }
           dbg(s"writeNext=$writeNext")
           swapNode(n,EnabledStoreMem(mem, addr, gdata, writeNext).setParent(n.parent.get))

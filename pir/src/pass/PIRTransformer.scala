@@ -74,7 +74,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
   )(implicit design:D):Map[Any,Any] = {
     val mapping = mirrorX(node, init)
     // Moving newly created nodes into container
-    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.isEmpty)
+    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
     container.foreach { container =>
       newNodes.foreach { m => 
         m.setParent(container)

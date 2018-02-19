@@ -21,12 +21,12 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSBotto
   val forward = false
 
   override def runPass =  {
-    controllerTraversal.traverseNode(design.newTop.topController, ())
-    traverseNode(design.newTop)
+    controllerTraversal.traverseNode(design.top.topController, ())
+    traverseNode(design.top)
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](design.newTop)
+    val cus = collectDown[GlobalContainer](design.top)
     cus.foreach { cu =>
       checkCtrl(cu)
       checkStageCtrl(cu)

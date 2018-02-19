@@ -25,9 +25,9 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
   val controllerTraversal = new ControllerTraversal with UnitTraversal {
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
-        case n:TopController => design.newTop
-        case n:ArgInController => design.newTop.argFringe
-        case n => CUContainer().setParent(design.newTop).name(s"${qtype(n)}").ctrl(n)
+        case n:TopController => design.top
+        case n:ArgInController => design.top.argFringe
+        case n => CUContainer().setParent(design.top).name(s"${qtype(n)}").ctrl(n)
       }
       dbg(s"${qtype(n)} -> ${qtype(cu)}")
       ctMap += n -> cu
@@ -37,22 +37,23 @@ class CUInsertion(implicit design:PIR) extends PIRTransformer with SiblingFirstT
 
   override def runPass =  {
     createCUForController
-    traverseNode(design.newTop)
+    traverseNode(design.top)
   }
 
   def createCUForController = {
-    controllerTraversal.traverseNode(design.newTop.topController, ())
+    controllerTraversal.traverseNode(design.top.topController, ())
   }
 
   override def swapParent(node:N, newParent:N) = {
     dbg(s"swapParent ${qtype(node)} newParent=${qtype(newParent)}")
     super.swapParent(node, newParent)
+    dbg(s"node=${node.parent}")
   }
 
   override def visitNode(n:N):Unit = {
     dbg(s"visitNode ${qdef(n)}")
     n match {
-      case n:Memory if isRemoteMem(n) & !withinGlobal(n) => swapParent(n, CUContainer().setParent(design.newTop).name(s"${qtype(n)}")) 
+      case n:Memory if isRemoteMem(n) & !withinGlobal(n) => swapParent(n, CUContainer().setParent(design.top).name(s"${qtype(n)}")) 
       case n:ComputeNode if !ctMap(ctrlOf(n)).isAncestorOf(n) => swapParent(n, ctMap(ctrlOf(n)))
       case _ => super.visitNode(n)
     }

@@ -17,13 +17,13 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
   val forward = false
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](design.newTop)
+    val cus = collectDown[GlobalContainer](design.top)
     setControlChain(cus)
     mergeContexts(cus)
   }
 
   def setControlChain(cus:Iterable[GlobalContainer]):Unit = {
-    val contexts = collectDown[ComputeContext](design.newTop)
+    val contexts = collectDown[ComputeContext](design.top)
     contexts.foreach { context => setControlChain(context) }
   }
 

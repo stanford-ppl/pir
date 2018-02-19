@@ -19,7 +19,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
   val forward = false
 
   override def runPass =  {
-    val accesses = collectDown[LocalAccess](design.newTop)
+    val accesses = collectDown[LocalAccess](design.top)
     accesses.foreach(lowerAccess)
   }
 
@@ -30,7 +30,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           val accessCU = globalOf(n).get 
           val bankCUs = banks.map { bank => bank -> globalOf(bank).get }.toMap
           val addrCUs = if (banks.size>1 || false /*TODO: if stages are only counters*/) {
-            val addrCU = CUContainer().setParent(design.newTop).ctrl(ctrlOf(n))
+            val addrCU = CUContainer().setParent(design.top).ctrl(ctrlOf(n))
             banks.map { _ -> addrCU }.toMap
           } else {
             bankCUs

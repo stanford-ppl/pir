@@ -21,7 +21,7 @@ class IRCheck(implicit design:PIR) extends PIRPass {
     val prevRuns = runner.prevRuns
     prevRuns.foreach(_.pass.check(runner))
     val prePasses = prevRuns.map { _.pass }
-    val cus = collectDown[GlobalContainer](design.newTop)
+    val cus = collectDown[GlobalContainer](design.top)
     val accessLowerHasRun = runner.prevHasRun[AccessLowering]
     val memCtrlHasRun = runner.prevHasRun[MemoryControlAllocation] 
     cus.foreach { cu => 

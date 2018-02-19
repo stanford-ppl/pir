@@ -20,7 +20,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
 
   override def runPass =  {
     // Mark dead code
-    val deathMap = traverseNode(design.newTop, Map.empty)
+    val deathMap = traverseNode(design.top, Map.empty)
     // Remove dead code
     deathMap.foreach { 
       case (n, true) =>
@@ -56,7 +56,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](design.newTop)
+    val cus = collectDown[GlobalContainer](design.top)
     cus.foreach { cu =>
       val mems = collectDown[Memory](cu)
       mems.foreach { mem =>

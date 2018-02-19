@@ -55,11 +55,11 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
   }
   
   override def runPass = {
-    traverseNode(design.newTop.topController)
+    traverseNode(design.top.topController)
   }
 
   override def emitEdges = {
-    val mems = collectDown[Memory](design.newTop)
+    val mems = collectDown[Memory](design.top)
     mems.foreach { 
       case mem:ArgIn =>
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }

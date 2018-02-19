@@ -20,7 +20,7 @@ class ContextInsertion(implicit design:PIR) extends PIRTransformer with DFSBotto
 
   override def runPass =  {
     // Mark context
-    val contextMap = traverseNode(design.newTop, Map[PIRNode, ComputeContext]())
+    val contextMap = traverseNode(design.top, Map[PIRNode, ComputeContext]())
     // Transform nodes into their contexts
     insertContext(contextMap)
   }

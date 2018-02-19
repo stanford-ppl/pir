@@ -23,7 +23,7 @@ class CUStatistics(implicit design:PIR) extends PIRPass {
   }
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](design.newTop)
+    val cus = collectDown[GlobalContainer](design.top)
     val cuMap = cus.groupBy {
       case cu if collectDown[SRAM](cu).nonEmpty => "pmus"
       case cu:ArgFringe => "argFringe"

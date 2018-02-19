@@ -15,20 +15,18 @@ import scala.collection.mutable.ListBuffer
 trait PIR extends Design {
 
   override implicit val design: PIR = this
-  lazy val pirmeta:PIRMetadata = newTop.metadata
+  lazy val pirmeta:PIRMetadata = top.metadata
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 
-  var newTop:Top = _
+  var top:Top = _
   var arch:Spade = _
-
-  def addNode(n:PIRNode)
 
   override def reset = {
     super.reset
     clearLogs
     arch = null
-    newTop = null
+    top = null
   }
 
   //lazy val mappers = ListBuffer[Mapper]()
@@ -43,6 +41,7 @@ trait PIR extends Design {
 
   /* Transformation */
   lazy val deadCodeEliminator = new DeadCodeElimination()
+  lazy val unrollingTransformer = new UnrollingTransformer()
   lazy val cuInsertion = new CUInsertion()
   lazy val accessPuller = new AccessPulling()
   lazy val accessLowering = new AccessLowering()
@@ -74,7 +73,9 @@ trait PIR extends Design {
     addPass(irCheck)
     addPass(new PIRIRDotCodegen(s"top2.dot"))
     addPass(controlPropogator)
+    addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(cuInsertion)
+    addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top3.dot"))
     addPass(accessPuller).dependsOn(cuInsertion)
     addPass(new PIRIRDotCodegen(s"top4.dot"))

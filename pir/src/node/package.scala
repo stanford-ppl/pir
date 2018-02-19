@@ -18,4 +18,17 @@ package object node {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
   }
 
+  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:PIR):Int = dbgblk(logger, s"parOf($x)"){
+    import design.pirmeta._
+    x match {
+      case x:LoopController => parOf(x.cchain)
+      case x:UnitController => 1
+      case x:TopController => 1
+      case x:ArgInController => 1
+      case x:CounterChain => parOf(x.counters.last)
+      case x:Counter => x.par
+      case x:ComputeNode => parOf(ctrlOf(x))
+    }
+  }
+
 }

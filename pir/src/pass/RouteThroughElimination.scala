@@ -20,7 +20,7 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
   val forward = false
 
   override def runPass =  {
-    traverseNode(design.newTop, ())
+    traverseNode(design.top, ())
   }
 
   override def visitNode(n:N, prev:T):T = {

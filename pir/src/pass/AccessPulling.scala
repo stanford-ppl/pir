@@ -14,12 +14,12 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
   val forward = false
 
   override def runPass =  {
-    traverseNode(design.newTop)
+    traverseNode(design.top)
   }
 
   override def check = {
     // Checking for escaped nodes
-    (collectDown[Primitive](design.newTop)).foreach { n =>
+    (collectDown[Primitive](design.top)).foreach { n =>
       assert(withinGlobal(n), s"$n is not contained by a CU")
     }
   }
@@ -56,6 +56,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
           case n:ArgInDef => None
           case n => Some(n)
         }
+        dbg(s"${n}.parent=${n.parent}")
         val cu = globalOf(n).get 
         localDeps.foreach { dep =>
           if (!cu.isAncestorOf(dep)) pullNode(dep, n, cu)

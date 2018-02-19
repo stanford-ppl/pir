@@ -23,7 +23,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       ctrlOf(access)
     }
     mem match {
-      case mem:ArgOut => accessCtrls += design.newTop.argController
+      case mem:ArgOut => accessCtrls += design.top.argController
       case _ =>
     }
     val lcaCtrl = accessCtrls.reduce[Controller]{ case (a1, a2) =>
@@ -69,7 +69,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
   }
 
   override def runPass =  {
-    lazy val mems = collectDown[Memory](design.newTop)
+    lazy val mems = collectDown[Memory](design.top)
     mems.foreach { mem =>
       setParentControl(mem)
     }

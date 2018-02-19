@@ -39,13 +39,14 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def parent:Option[P] = _parent
   def setParent(p:P):this.type =  {
     assert(p != this)
-    _parent.foreach { parent =>
-      assert(p == parent, s"Resetting parent of $this from $parent to $p")
+    _parent match {
+      case Some(`p`) => this
+      case Some(p) => err(s"Resetting parent of $this from $parent to $p"); this
+      case None =>
+        _parent = Some(p)
+        p.addChild(this)
+        this
     }
-    if (p.isParentOf(this)) return this
-    _parent = Some(p)
-    p.addChild(this)
-    this
   }
   def unsetParent = {
     parent.foreach { p =>
@@ -162,12 +163,13 @@ trait SubGraph[N<:Node[N]] extends Node[N] with Memorization { self:N with SubGr
 
   def addChild(c:N):Unit = { 
     assert(c != this)
-    if (c.isChildOf(this)) return
+    if (_children.contains(c)) return
     _children += c
     c.setParent(this.asInstanceOf[c.P])
   }
+
   def removeChild(c:N):Unit = {
-    if (!isParentOf(c)) return
+    if (!_children.contains(c)) return
     _children -= c
     c.unsetParent
   }

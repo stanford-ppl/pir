@@ -43,14 +43,13 @@ trait PIRApp extends PIR {
 
   val designPath = s"${outDir}${File.separator}${name}.pir" //TODO: make this configurable
 
-  def loadDesign = newTop = loadFromFile[Top](designPath)
+  def loadDesign = top = loadFromFile[Top](designPath)
 
-  def saveDesign:Unit = saveToFile(newTop, designPath)
+  def saveDesign:Unit = saveToFile(top, designPath)
 
   def newDesign = {
-    newTop = new Top()
-    main(newTop)
-    _allNodes.foreach { case n:Top => ; case n if n.parent.isEmpty => n.setParent(newTop); case _ => }
+    top = new Top()
+    main(top)
     endInfo(s"Finishing graph construction for ${this}")
   }
 
@@ -60,9 +59,6 @@ trait PIRApp extends PIR {
     val obj = runtimeMirror.reflectModule(module)
     obj.instance.asInstanceOf[Spade]
   }
-
-  private val _allNodes = ListBuffer[PIRNode]()
-  override def addNode(n:PIRNode) = _allNodes += n
 
   def main(top:Top): Any 
   def main(args: Array[String]): Unit = {
