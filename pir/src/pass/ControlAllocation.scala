@@ -88,7 +88,7 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
         prevCtrl(ctrlChain, ctrl).fold[ControlNode] {
           // Inner most control is UnitControl
           allocateDelayedContextEnable(context)
-        } { prevCtrl => allocateContextDone(context, ctrl) }
+        } { prevCtrl => allocateContextDone(context, prevCtrl) }
     }
   }
 
@@ -117,7 +117,8 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
           val context = contextOf(n).get
           val readNext = mem match {
             case mem if isFIFO(mem) => allocateContextEnable(context)
-            case mem => allocateContextDone(context, ctrlOf(n))
+            case mem:ArgIn => allocate[Low](context)(Low()) // Optimization. ArgIn will not be loaded again so it's okay to not dequeue it 
+            case mem => allocateContextDone(context, topCtrlOf(n))
           }
           swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
         case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
@@ -127,7 +128,7 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
             case gdata:GlobalInput => 
               assert(isReg(mem) || isFIFO(mem), s"${qdef(n)}'s data is Global")
               allocate[DataValid](context, _.globalInput==gdata)(DataValid(gdata))
-            case gdata => allocateContextDone(context, ctrlOf(n))
+            case gdata => allocateContextDone(context, topCtrlOf(n))
           }
           dbg(s"writeNext=$writeNext")
           swapNode(n,EnabledStoreMem(mem, addr, gdata, writeNext).setParent(n.parent.get))
