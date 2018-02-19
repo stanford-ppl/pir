@@ -44,7 +44,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
       case n:ArgOut => false
       case n:StreamOut => false
       case n@(_:Counter | _:GlobalContainer) => 
-        val controlPasses = List(design.memoryControlAllocator)
+        val controlPasses = List(design.controlAllocator)
         if (controlPasses.forall(_.hasRunAll)) depedsAllDead(n) else false
       case n => depedsAllDead(n) 
     }

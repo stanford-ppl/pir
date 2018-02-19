@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
+class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true

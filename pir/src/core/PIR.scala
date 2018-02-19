@@ -48,7 +48,7 @@ trait PIR extends Design {
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextInsertion = new ContextInsertion()
   lazy val contextMerging = new ContextMerging()
-  lazy val memoryControlAllocator = new MemoryControlAllocation()
+  lazy val controlAllocator = new ControlAllocation()
 
   /* Mapping */
 
@@ -102,7 +102,7 @@ trait PIR extends Design {
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
-    addPass(memoryControlAllocator)
+    addPass(controlAllocator)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(new IRPrinter(s"IR3.txt"))
