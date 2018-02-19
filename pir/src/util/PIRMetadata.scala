@@ -17,11 +17,6 @@ class PIRMetadata extends prism.node.Metadata {
   object ctrlOf extends BiManyToOneMap[PIRNode, Controller] with MetadataMap
 
   /*
-   *
-   * */
-  object ctrlChainOf extends OneToOneMap[ComputeContext, List[Controller]] with MetadataMap
-
-  /*
    * Whether a memory is a accumulator. Set by spatial
    * */
   object isAccum extends OneToOneMap[Memory, Boolean] with MetadataMap {

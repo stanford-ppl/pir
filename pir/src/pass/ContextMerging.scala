@@ -18,31 +18,15 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
 
   override def runPass =  {
     val cus = collectDown[GlobalContainer](design.top)
-    setControlChain(cus)
     mergeContexts(cus)
   }
 
-  def setControlChain(cus:Iterable[GlobalContainer]):Unit = {
-    val contexts = collectDown[ComputeContext](design.top)
-    contexts.foreach { context => setControlChain(context) }
-  }
-
-  def setControlChain(context:ComputeContext):Unit = {
-    ctrlChainOf(context) = dbgblk(s"analyze controls for $context in ${globalOf(context)}") {
-      val ctrls = context.descendents.map { prim =>
-        ctrlOf(prim)
-      }.toSet[Controller].toList.sortBy { _.ancestors.size }.reverse
-      dbg(s"sorted ctrls:${ctrls}")
-      ctrls.zipWithIndex.flatMap { case (ctrl, i) =>
-        val next = if (i==(ctrls.size-1)) None else Some(ctrls(i+1))
-        if (next.fold(true) { _.isParentOf(ctrl) }) {
-          List(ctrl)
-        } else {
-          val nextIdx = ctrl.ancestors.indexOf(next.get)
-          assert(nextIdx != -1, s"${next.get} is not ancestor of $ctrl!")
-          ctrl :: ctrl.ancestors.slice(0, nextIdx)
-        }
-      }
+  def checkControl(context:ComputeContext) = {
+    val ctrls = ctrlsOf(context)
+    val inner = innerCtrlOf(context)
+    val ancestorBranch = (inner :: inner.ancestors)
+    ctrls.foreach { ctrl =>
+      assert(ancestorBranch.contains(ctrl), s"$ctrl and $inner are not in the same ancestorBranch but both found in $context")
     }
   }
 
@@ -55,11 +39,12 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
         contexts.zipWithIndex.foreach { 
           case (ctx, i) if merged.contains(ctx) =>
           case (ctx, i) =>
+            checkControl(ctx)
             val others = contexts.slice(i+1,contexts.size).filterNot { o => merged.contains(o) }
             dbg(s"ctx=$ctx others=$others")
+            val ctxCtrlLeaf = innerCtrlOf(ctx) 
             others.foreach { other =>
-              val ctxCtrlLeaf = ctrlChainOf(ctx).head
-              val otherCtrlLeaf = ctrlChainOf(other).head
+              val otherCtrlLeaf = innerCtrlOf(other)
               if (!areWeaklyConnected(ctx, other) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
                 val from = other
                 val to = ctx
@@ -67,8 +52,6 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
                 merged += from
                 from.children.foreach { child => swapParent(child, to) }
                 removeNode(from)
-                ctrlChainOf.removeKey(ctx)
-                setControlChain(ctx)
               }
             }
         }

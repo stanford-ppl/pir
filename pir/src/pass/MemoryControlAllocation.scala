@@ -56,15 +56,11 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
       val node = createNode 
       node match {
         case node:Primitive if !ctrlOf.contains(node) =>
-          ctrlOf(node) = innerCtrl(context)
+          ctrlOf(node) = innerCtrlOf(context)
         case node => 
       }
       node.setParent(context)
     }
-  }
-
-  def innerCtrl(context:ComputeContext) = dbgblk(s"innerCtrl($context)"){
-    collectDown[ComputeNode](context).flatMap { comp => ctrlOf.get(comp) }.toSet[Controller].maxBy { _.ancestors.size }
   }
 
   def prevCtrl(ctrlChain:List[Controller], ctrl:Controller) = {
@@ -87,7 +83,7 @@ class MemoryControlAllocation(implicit design:PIR) extends PIRTransformer with B
           done
         }
       case ctrl:UnitController =>
-        val inner = innerCtrl(context)
+        val inner = innerCtrlOf(context)
         val ctrlChain = inner :: inner.ancestors
         prevCtrl(ctrlChain, ctrl).fold[ControlNode] {
           // Inner most control is UnitControl

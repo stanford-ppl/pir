@@ -29,11 +29,14 @@ trait PIRCollector extends GraphCollector {
     collectUp[ComputeContext](n).headOption
   }
 
-  def enableOf(n:PIRNode) = {
-    n match {
-      case n:ComputeContext => collectDown[ContextEnable](n).headOption
-      case _ => None
-    }
+  def ctrlsOf(context:ComputeContext)(implicit design:PIR) = {
+    import design.pirmeta._
+    collectDown[ComputeNode](context).flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
+  }
+
+  def innerCtrlOf(context:ComputeContext)(implicit design:PIR) = {
+    import design.pirmeta._
+    ctrlsOf(context).maxBy { _.ancestors.size }
   }
 
 }
