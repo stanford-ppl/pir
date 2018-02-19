@@ -14,5 +14,5 @@ case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) ext
 case class CounterDone(counter:Counter)(implicit design:PIR) extends ControlNode
 
 case class ComputeContext()(implicit design:PIR) extends Container
-case class ContextEnable(enables:List[ControlNode])(implicit design:PIR) extends ControlNode
+case class ContextEnable(enables:List[Def])(implicit design:PIR) extends ControlNode
 case class DelayedContextEnable(enable:ContextEnable)(implicit design:PIR) extends ControlNode

@@ -29,7 +29,6 @@ case object FixUsla extends FixOp            with Op2 { def eval(a:T, b:T) = a <
 case object FixNeg extends FixOp             with Op1 { def eval(a:T     ) = -a             }
 case object FixRandom extends FixOp          with Op1 { def eval(a:T     ) = 0             } //TODO
 case object FixUnif extends FixOp            with Op1 { def eval(a:T     ) = 0             } //TODO
-case object FixConvert extends FixOp         with Op1 { def eval(a:T) = 0             } //TODO
 
 
 sealed trait FltOp extends Op { type T = Float }
@@ -76,7 +75,7 @@ case object Bypass extends Op with Op1 {
 }
 
 trait Ops {
-  val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSra, FixSla, FixUsla, FixNeg, FixRandom, FixUnif, FixConvert)
+  val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSra, FixSla, FixUsla, FixNeg, FixRandom, FixUnif)
   val fltOps = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltGt, FltGeq, FltEql, FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
   val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
   val otherOps = List(MuxOp, Bypass)

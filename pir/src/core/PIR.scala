@@ -91,7 +91,7 @@ trait PIR extends Design {
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top9.dot"))
 
-    addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(new IRPrinter(s"IR2.txt"))
     addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     //addPass(cuStats)
@@ -105,6 +105,7 @@ trait PIR extends Design {
     addPass(controlAllocator)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top12.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new IRPrinter(s"IR3.txt"))
     addPass(irCheck)
 

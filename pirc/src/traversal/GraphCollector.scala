@@ -19,17 +19,17 @@ trait GraphCollector extends GraphUtil {
       visited.contains(node)
     }
     // depth = -1 is infinate depth
-    override def visitNode(n:N, prev:T):T = {
+    override def visitNode(n:N, prev:T):T = dbgblk(logger, s"typeCollect($n, depth=${n._2})") {
       val (node, depth) = n
       visited += node
       node match {
         case node:M if (depth > 0 || depth < 0) & !prev.contains(node) => prev :+ node 
-        case node:M if (depth > 0 || depth < 0) & prev.contains(node) => prev 
+        case node:M if (depth > 0 || depth < 0) => prev 
         case _ if depth == 0 => prev 
         case _ => super.visitNode(n, prev)
       }
     }
-    override def traverse(n:N, zero:T):T = dbgblk(logger, s"typeCollect($n, depth=${n._2})") {
+    override def traverse(n:N, zero:T):T = {
       val (node, depth) = n
       super.traverse(n, zero)
     }

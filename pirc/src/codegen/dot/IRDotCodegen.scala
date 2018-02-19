@@ -3,12 +3,13 @@ package prism.codegen
 import pirc._
 import pirc.util._
 import prism.node._
+import prism.traversal.GraphUtil
 
 import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-trait IRDotCodegen extends Codegen with DotCodegen {
+trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
 
   type N <: prism.node.Node[N]
 
@@ -75,21 +76,24 @@ trait IRDotCodegen extends Codegen with DotCodegen {
     }
   }
 
-  def matchLevel(n:N):Option[N] = {
-    (n::n.ancestors).foreach { n => if (nodes.contains(n)) return Some(n) }
-    return None
+  def emitEdge(n:N):Unit = {
+    n.ins.foreach { in =>
+      in.connected.foreach { out => emitEdge(out, in) }
+    }
   }
 
-  def emitEdge(n:N):Unit = {
-    n.ins.foreach { 
-      case in if in.isConnected =>
-        in.connected.foreach { out => emitEdge(out.src.asInstanceOf[N], n) }
-      case in =>
+  def emitEdge(from:Edge[N], to:Edge[N]):Unit = {
+    emitEdgeMatched(from.src.asInstanceOf[N], to.src) 
+  }
+
+  def emitEdgeMatched(from:N, to:N):Unit = {
+    leastMatchedPeers(List(from,to)).foreach { map =>
+      emitEdge(map(from), map(to))
     }
   }
 
   def emitEdge(from:N, to:N):Unit = {
-    matchLevel(from).foreach { from => super.emitEdge(from, to) }
+    super.emitEdge(from, to)
   }
 
 }

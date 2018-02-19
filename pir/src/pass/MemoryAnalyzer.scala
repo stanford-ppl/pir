@@ -26,20 +26,15 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       case mem:ArgOut => accessCtrls += design.top.argController
       case _ =>
     }
-    val lcaCtrl = accessCtrls.reduce[Controller]{ case (a1, a2) =>
-      val lca = traversal.leastCommonAncesstor(a1, a2)
-      dbg(s"a1=$a1, a2=$a2, lca=$lca")
-      if (lca.isEmpty) err(s"$a1 and $a2 do not share common ancestor")
-      lca.get
+    val lcaCtrl = traversal.leastCommonAncesstor(accessCtrls).getOrElse {
+      throw PIRException(s"${accessCtrls} do not share common ancestor")
     }
     ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
 
+    val topCtrls = traversal.leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
     mem.accesses.foreach { access =>
-      val ancestors = ctrlOf(access) :: ctrlOf(access).ancestors
-      val idx = ancestors.indexOf(lcaCtrl)
-      val topCtrlIdx = if (idx==0) idx else idx - 1
-      val topCtrl = ancestors(topCtrlIdx)
+      val topCtrl = topCtrls(ctrlOf(access))
       val newAccess = access match {
         case Def(n, LocalStore(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
           // store access write to multiple mems with different topControl. Duplicate the access

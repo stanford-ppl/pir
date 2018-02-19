@@ -25,10 +25,23 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
 
   override def emitNode(n:N) = {
     n match {
-      case g:Top => emitSubGraph(n)(traverse(n))
-      case g:GlobalContainer => emitSingleNode(n); traverse(n)
-      case _ => traverse(n)
+      case g:Top => emitSubGraph(n)(super.visitNode(n))
+      case g:GlobalContainer => emitSingleNode(n); super.visitNode(n)
+      case _ => super.visitNode(n)
     }
+  }
+
+  override def emitEdge(from:N, to:N) = {
+    dbg(s"node:$from -> $to")
+    (from, to) match {
+      case (from:ArgFringe, to) =>
+      case (from, to) => super.emitEdge(from, to)
+    }
+  }
+
+  override def emitEdge(from:Edge[N], to:Edge[N]):Unit = {
+    dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
+    super.emitEdge(from, to)
   }
 }
 

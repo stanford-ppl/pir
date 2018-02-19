@@ -35,13 +35,36 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
     case n => false
   }
 
+  override def visitOut(n:N):List[N] = {
+    n match {
+      case n:Memory => Nil
+      case n => super.visitOut(n)
+    }
+  }
+
   def allocateContextEnable(context:ComputeContext) = dbgblk(s"allocateContextEnable($context)") {
     allocate[ContextEnable](context) {
-      val readMems = collectIn[Memory](context)
-      var enables = readMems.map { mem => 
+      val readMems = collectIn[Memory](context) // All read memories should be local to the context in the same GlobalContainer
+      val writtenRemoteMems = collectOut[LocalStore](context, visitFunc=visitOut _).map {
+        case Def(n, LocalStore(mem::Nil, _, _)) => (n, mem)
+      }
+      val writtenLocalMems = collectDown[LocalStore](context).map {
+        case Def(n, LocalStore(mem::Nil, _, _)) => (n, mem)
+      }
+      dbg(s"readMems:${readMems.map(qtype)}")
+      dbg(s"writtenRemoteMems:${writtenRemoteMems.map{ case (w, m) => (qtype(w), qtype(m)) }}")
+      dbg(s"writtenLocalMems:${writtenLocalMems.map{ case (w, m) => (qtype(w), qtype(m)) }}")
+      val notEmpties = readMems.map { mem => 
         allocate[NotEmpty](context, _.mem == mem)(NotEmpty(mem))
       }.toList
-      ContextEnable(enables)
+      val notFulls = (writtenRemoteMems ++ writtenLocalMems).flatMap { 
+        case (writer, mem:ArgOut) => None
+        case (writer, mem) =>
+          val writerCtx = contextOf(writer).get
+          val notFull = allocate[NotFull](writerCtx, _.mem == mem)(NotFull(mem))
+          Some(insertGlobalIO(notFull, context)(allocate[High](writerCtx)(High())))
+      }
+      ContextEnable(notEmpties ++ notFulls)
     }
   }
 
@@ -49,7 +72,10 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
     allocate[DelayedContextEnable](context)(DelayedContextEnable(allocateContextEnable(context)))
   }
 
-  def allocate[T<:PIRNode:ClassTag](context:ComputeContext, filter:T => Boolean = (n:T) => true)(createNode: => T):T = dbgblk(s"allocate(ctx=$context)"){
+  def allocate[T<:PIRNode:ClassTag](
+    context:ComputeContext, 
+    filter:T => Boolean = (n:T) => true
+  )(createNode: => T):T = dbgblk(s"allocate(ctx=$context, T=${implicitly[ClassTag[T]]})"){
     val nodes = collectDown[T](context).filter(filter)
     assert(nodes.size <= 1, s"more than 1 node in context: $nodes")
     nodes.headOption.getOrElse { 
@@ -92,22 +118,14 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
     }
   }
 
-  def insertGlobalIO(data:Def, access:LocalStore) = {
-    val dataCtx = contextOf(data).get
-    val accessCtx = contextOf(access).get
-    val dataCU = globalOf(dataCtx).get
-    val accessCU = globalOf(accessCtx).get
-    if (dataCU == accessCU) data
-    else {
-      val Def(_:LocalStore, LocalStore(mem::Nil, _, _)) = access
-      val valid = mem match {
-        case mem if isFIFO(mem) => allocateDelayedContextEnable(dataCtx)
-        case mem if isReg(mem) => allocateContextDone(dataCtx, ctrlOf(data))
-      }
-      val gout = allocate(dataCtx, (n:GlobalOutput) => n.data==data && n.valid==valid)(GlobalOutput(data, valid))
-      val gin = allocate[GlobalInput](accessCtx, _.globalOutput==gout)(GlobalInput(gout))
-      gin
-    }
+  def insertGlobalIO(from:Def, toCtx:ComputeContext)(validFunc: => ControlNode):Def = {
+    val fromCtx = contextOf(from).get
+    val fromCU = globalOf(fromCtx).get
+    val toCU = globalOf(toCtx).get
+    if (fromCU == toCU) return from 
+    val valid = validFunc
+    val gout = allocate(fromCtx, (n:GlobalOutput) => n.data==from && n.valid==valid)(GlobalOutput(from, valid))
+    allocate[GlobalInput](toCtx, _.globalOutput==gout)(GlobalInput(gout))
   }
 
   override def visitNode(n:N, prev:T):T = {
@@ -123,7 +141,13 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
           swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
         case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
           val context = contextOf(n).get
-          val gdata = insertGlobalIO(data, n)
+          val gdata = insertGlobalIO(data, context) {
+            val dataCtx = contextOf(data).get
+            mem match {
+              case mem if isFIFO(mem) => allocateDelayedContextEnable(dataCtx)
+              case mem if isReg(mem) => allocateContextDone(dataCtx, ctrlOf(data))
+            }
+          }
           val writeNext = gdata match {
             case gdata:GlobalInput => 
               assert(isReg(mem) || isFIFO(mem), s"${qdef(n)}'s data is Global")

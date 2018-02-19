@@ -14,38 +14,6 @@ trait Traversal extends GraphTraversal with Pass {
   override def initPass = { super.initPass; resetTraversal }
 }
 
-trait GraphUtil {
-
-  /*
-   * Visit from buttom up
-   * */
-  def visitUp[N<:Node[N]](n:N):List[N] = n.parent.toList
-
-  /*
-   * Visit subgraph
-   * */
-  def visitDown[N<:Node[N]](n:N):List[N] = n.children
-
-  /*
-   * Visit inputs of a node
-   * */
-  def visitLocalIn[N<:Node[N]](n:N):List[N] = n.localDeps.toList
-
-  /*
-   * Visit outputs of a node 
-   * */
-  def visitLocalOut[N<:Node[N]](n:N):List[N] = n.localDepeds.toList
-
-
-  def visitGlobalIn[N<:Node[N]](n:N):List[N] = n.deps.toList
-  def visitGlobalOut[N<:Node[N]](n:N):List[N] = n.depeds.toList
-
-  def leastCommonAncesstor[N<:Node[N]](n1:N, n2:N):Option[N] = {
-    ((n1 :: n1.ancestors) intersect (n2 :: n2.ancestors)).headOption
-  }
-
-}
-
 trait UnitTraversal extends GraphTraversal {
   type T = Unit
 
@@ -132,23 +100,36 @@ trait BFSTraversal extends GraphTraversal {
     traverse(visitFunc(n), zero)
   }
 
-  def isScheduled(n:N) = {
-    isVisited(n) || queue.contains(n)
-  }
-
   def traverse(ns: => List[N], zero:T):T = {
     queue ++= ns.filterNot(isScheduled)
     var prev = zero
     while (queue.nonEmpty) {
+      prev = traverse(prev)
+      queue ++= ns.filterNot(isScheduled)
+    }
+    prev
+  }
+
+  def isScheduled(n:N) = {
+    isVisited(n) || queue.contains(n)
+  }
+
+  def traverse(zero:T):T = {
+    var prev = zero
+    while (queue.nonEmpty) {
       val next = queue.dequeue()
       prev = markVisitNode(next, prev)
-      queue ++= visitFunc(next).filterNot(isScheduled)
-      if (queue.isEmpty) queue ++= ns.filterNot(isScheduled)
     }
     return prev
   }
 
-  def traverseNode(n:N, prev:T):T = traverse(n, markVisitNode(n, prev))
+  // no recursive call to traverse(n, zero) to avoid StackOverFlow
+  override def visitNode(n:N, prev:T):T = {
+    queue ++= visitFunc(n).filterNot(isScheduled)
+    prev
+  }
+
+  def traverseNode(n:N, prev:T):T = traverse(markVisitNode(n, prev))
 
 }
 
