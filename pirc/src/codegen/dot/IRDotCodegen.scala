@@ -86,9 +86,18 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
     emitEdgeMatched(from.src.asInstanceOf[N], to.src) 
   }
 
+  def lift(n:N) = {
+    (n::n.ancestors).foldLeft[Option[N]](None) {
+      case (Some(matched), a) => Some(matched)
+      case (None, a) if nodes.contains(a) => Some(a)
+      case (None, a) => None
+    }
+  }
+
   def emitEdgeMatched(from:N, to:N):Unit = {
-    leastMatchedPeers(List(from,to)).foreach { map =>
-      emitEdge(map(from), map(to))
+    (lift(from), lift(to)) match {
+      case (Some(from), Some(to)) => emitEdge(from, to)
+      case _ =>
     }
   }
 
