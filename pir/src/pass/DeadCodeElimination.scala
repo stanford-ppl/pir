@@ -37,6 +37,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
   }
 
   def markDeath(deathMap:T, n:N) = {
+    dbg(s"markDeath:$n ${n.depeds.map { deped => s"deped=$deped, death=${deathMap.get(deped)}"}}")
     def depedsAllDead(n:N) = depFunc(n).forall(d => deathMap.getOrElse(d, false))
 
     val isDead = n match {
