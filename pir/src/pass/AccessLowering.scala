@@ -66,7 +66,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
             val access = StoreMem(bank, raddrs, rdata).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
-            swapNode(n,access)
+            swapNode(n,access, at=Some(List(bank)))
           }
         }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>

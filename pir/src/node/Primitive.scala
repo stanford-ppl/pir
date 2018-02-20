@@ -29,7 +29,8 @@ abstract class Primitive(implicit design: PIR) extends PIRNode with prism.node.A
     x match {
       case x:Primitive if isInputField(x, i) => this.connect(x.out)
       case x:Memory if isOutputField(x, i) => this.out.connect(x.newIn)
-      case x:Iterable[_] if isOutputField(x,i) => super.connectFields(x,i).asInstanceOf[Iterable[Output]].toSet.head
+      case x:Iterable[_] if isOutputField(x,i) => 
+        super.connectFields(x,i).asInstanceOf[Iterable[Output]].toSet.head
       case x => super.connectFields(x, i)
     }
   }
