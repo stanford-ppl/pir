@@ -30,9 +30,26 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
     }
   }
 
-  def visitLocal(n:PIRNode) = n match {
-    case n:Memory => Nil
-    case n => super.visitLocal(n)
+  /* 
+   * ctx1 and ctx2 are connected in data flow graph without saperated by memory
+   * */
+  def areLocallyConnected(ctx1:ComputeContext, ctx2:ComputeContext) = {
+    def visitLocalIn(n:PIRNode) = n match {
+      case n:Memory => Nil
+      case n => super.visitLocalIn(n)
+    }
+    def visitLocalOut(n:PIRNode) = n match {
+      case n:Memory => Nil
+      case n => super.visitLocalOut(n)
+    }
+    canReach(ctx1, ctx2, visitLocalIn) || canReach(ctx1, ctx2, visitLocalOut)
+  }
+
+  /* 
+   * ctx1 and ctx2 are not data dependent 
+   * */
+  def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = {
+    !canReach(ctx1, ctx2, visitLocalIn[PIRNode]) && !canReach(ctx1, ctx2, visitLocalOut[PIRNode])
   }
 
   def mergeContexts(cus:Iterable[GlobalContainer]) = {
@@ -50,7 +67,7 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
             val ctxCtrlLeaf = innerCtrlOf(ctx) 
             others.foreach { other =>
               val otherCtrlLeaf = innerCtrlOf(other)
-              if (canReach(ctx, other, visitLocal) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
+              if ((areLocallyConnected(ctx, other) || areIndependent(ctx, other)) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
                 val from = other
                 val to = ctx
                 dbg(s"merge $from into $to")
