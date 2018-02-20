@@ -20,6 +20,7 @@ object LocalLoad {
 trait LocalStore extends LocalAccess {
   override def isInputField(field:Any, fieldIdx:Int) = field match {
     case x:Memory => false
+    case x:Iterable[_] if x.exists(_.isInstanceOf[Memory]) => false
     case _ => true
   }
 }

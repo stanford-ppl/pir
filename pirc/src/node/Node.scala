@@ -116,14 +116,20 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
   def values = productIterator.toList.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
 
   def newInstance[T](args:List[Any], staging:Boolean=true)(implicit design:Design):T = {
-    //TODO: n.getClass.getConstructor(values.map{_.getClass}:_*).newInstance(values.map{
-    // Some how this compiles but gives runtime error for not able to find the constructor when values contain Int type since
-    // field.getClass returns java.lang.Integer type but getConstructor expects typeOf[Int]
     val constructor = this.getClass.getConstructors()(0) 
     val arguments = args :+ design
     val prevStaging = design.staging
     design.staging = staging
-    val newNode = constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    val newNode = try {
+      constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    } catch {
+      case e:java.lang.IllegalArgumentException =>
+        errmsg(s"Error during newInstance of node $this")
+        errmsg(s"Expected type: ${constructor.getParameterTypes().mkString(",")}")
+        errmsg(s"Got type: ${arguments.map(_.getClass).mkString(",")}")
+        throw e
+      case e:Throwable => throw e
+    }
     design.staging = prevStaging
     newNode
   }
