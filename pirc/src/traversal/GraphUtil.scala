@@ -25,6 +25,7 @@ trait GraphUtil {
    * */
   def visitLocalOut[N<:Node[N]](n:N):List[N] = n.localDepeds.toList
 
+  def visitLocal[N<:Node[N]](n:N):List[N] = visitLocalIn(n) ++ visitLocalOut(n) 
 
   def visitGlobalIn[N<:Node[N]](n:N):List[N] = n.deps.toList
   def visitGlobalOut[N<:Node[N]](n:N):List[N] = n.depeds.toList

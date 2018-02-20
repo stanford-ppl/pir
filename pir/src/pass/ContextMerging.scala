@@ -30,6 +30,11 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
     }
   }
 
+  def visitLocal(n:PIRNode) = n match {
+    case n:Memory => Nil
+    case n => super.visitLocal(n)
+  }
+
   def mergeContexts(cus:Iterable[GlobalContainer]) = {
     cus.foreach { cu =>
       dbgblk(s"Merge context in ${cu}") {
@@ -45,7 +50,7 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
             val ctxCtrlLeaf = innerCtrlOf(ctx) 
             others.foreach { other =>
               val otherCtrlLeaf = innerCtrlOf(other)
-              if (!areWeaklyConnected(ctx, other) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
+              if (canReach(ctx, other, visitLocal) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
                 val from = other
                 val to = ctx
                 dbg(s"merge $from into $to")

@@ -43,60 +43,36 @@ trait GraphCollector extends GraphUtil {
     new TypeCollector[ND, M](logger, visitFunc).traverse((n, depth), Nil)
   }
 
-  abstract class PathCollector[ND<:Node[ND]](logger:Option[Logging]) extends BFSTraversal with GraphUtil {
-    type N = ND
-    type T = List[ND]
-    override def visitNode(n:N, prev:T):T = n match {
-      case n if prev.contains(n) => prev
-      case n => super.visitNode(n, prev:+n)
-    }
-    override def traverse(n:N, zero:T):T = dbgblk(logger, s"pathCollect($n)") {
-      super.traverse(n, zero)
-    }
-  }
-
-  def accumIn[ND<:Node[ND]](n:Node[ND] with ND, logger:Option[Logging]):List[ND] = {
-    new PathCollector[ND](logger) {
-      override def visitFunc(n:N) = visitLocalIn(n)
-    }.traverse(n, Nil)
-  }
-
-  def accumOut[ND<:Node[ND]](n:Node[ND] with ND, logger:Option[Logging]):List[ND] = {
-    new PathCollector[ND](logger) {
-      override def visitFunc(n:ND) = visitLocalOut(n)
-    }.traverse(n, Nil)
-  }
-
-  class SearchTraversal[ND<:Node[ND]](target:Node[ND], logger:Option[Logging], vf:ND => List[ND]) extends BFSTraversal with GraphUtil {
-    type N = ND
-    type T = Boolean
-    override def visitNode(n:N, prev:T):T = dbgblk(logger, s"search($n, target=$target)") {
-      n match {
-        case `target` => true
-        case n => super.visitNode(n, prev)
+  def accum[ND<:Node[ND]](n:Node[ND] with ND, visitFunc:ND => List[ND], logger:Option[Logging]=None):List[ND] = {
+    val vf = visitFunc
+    new BFSTraversal with GraphUtil {
+      type N = ND
+      type T = List[ND]
+      override def visitNode(n:N, prev:T):T = n match {
+        case n if prev.contains(n) => prev
+        case n => super.visitNode(n, prev:+n)
       }
-    }
-    def visitFunc(n:N):List[ND] = vf(n)
+      override def traverse(n:N, zero:T):T = dbgblk(logger, s"pathCollect($n)") {
+        super.traverse(n, zero)
+      }
+      def visitFunc(n:N):List[ND] = vf(n)
+    }.traverse(n, Nil)
   }
 
-  def canReachIn[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
-    new SearchTraversal[ND](target, logger, visitLocalIn _).traverse(n, false)
-  }
 
-  def canReachOut[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
-    new SearchTraversal[ND](target, logger, visitLocalOut _).traverse(n, false)
-  }
-
-  def areWeaklyConnected[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
-    dbgblk(logger, s"areWeaklyConnected($n, $target)") {
-      canReachIn(n, target, logger) || canReachOut(n, target, logger)
-    }
-  }
-
-  def areStronglyConnected[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, logger:Option[Logging]=None):Boolean = {
-    dbgblk(logger, s"areStronglyConnected($n, $target)") {
-      canReachIn(n, target, logger) && canReachOut(n, target, logger)
-    }
+  def canReach[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, visitFunc:ND => List[ND], logger:Option[Logging]=None):Boolean = {
+    val vf = visitFunc
+    new BFSTraversal with GraphUtil {
+      type N = ND
+      type T = Boolean
+      override def visitNode(n:N, prev:T):T = dbgblk(logger, s"canReach($n, target=$target)") {
+        n match {
+          case `target` => true
+          case n => super.visitNode(n, prev)
+        }
+      }
+      def visitFunc(n:N):List[ND] = vf(n)
+    }.traverse(n, false)
   }
 
   def areLinealInherited[ND<:Node[ND]](a:Node[ND], b:Node[ND], logger:Option[Logging]=None):Boolean = {
