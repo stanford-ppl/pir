@@ -6,12 +6,12 @@ import pirc.enums._
 object DotProduct extends PIRApp {
   def main(top:Top) = {
       import top.metadata._
-    val x1451 = top.argIn(init=0).name("x1451").ctrl(top) // ArgInNew(Const(0))
+    val x1451 = top.argFringe.argIn(init=0).name("x1451").ctrl(top) // ArgInNew(Const(0))
     val x1454 = ReadMem(x1451).name("x1454").ctrl(top) // RegRead(x1451)
     val x1455 = DRAM().name("x1455").ctrl(top) // x1455 = DRAMNew(ArrayBuffer(x1454),Const(0))
     val x1456 = ReadMem(x1451).name("x1456").ctrl(top) // RegRead(x1451)
     val x1457 = DRAM().name("x1457").ctrl(top) // x1457 = DRAMNew(ArrayBuffer(x1456),Const(0))
-    val x1458 = top.argOut(init=0).name("x1458").ctrl(top) // ArgOutNew(Const(0))
+    val x1458 = top.argFringe.argOut(init=0).name("x1458").ctrl(top) // ArgOutNew(Const(0))
     val x1533 = UnitController(style=SeqPipe, level=OuterControl).name("x1533").ctrl(top) // Hwblock(Block(Const(())),false)
     val x1461_d0 = Reg(init=0).name("x1461_d0").ctrl(x1533) // x1461 = RegNew(Const(0))
     isAccum(x1461_d0) = false
@@ -37,7 +37,7 @@ object DotProduct extends PIRApp {
     val x1471 = b928 // FixConvert(b928,TRUE,_32,_0)
     val x1472 = OpDef(op=FixSla, inputs=List(x1471, Const(2))).name("x1472").ctrl(x1479) // FixLsh(x1471,Const(2))
     val x1473 = x1472 // FixConvert(x1472,TRUE,_64,_0)
-    val x1474 = top.dramAddress(x1455).name("x1474").ctrl(x1479) // GetDRAMAddress(x1455)
+    val x1474 = top.argFringe.dramAddress(x1455).name("x1474").ctrl(x1479) // GetDRAMAddress(x1455)
     val x1475 = OpDef(op=FixAdd, inputs=List(x1473, x1474)).name("x1475").ctrl(x1479) // FixAdd(x1473,x1474)
     val x1476 = x1475 // FixConvert(x1475,TRUE,_64,_0)
     // x1477 = SimpleStruct(ArrayBuffer((offset,x1476), (size,Const(64)), (isLoad,Const(true))))
@@ -61,7 +61,7 @@ object DotProduct extends PIRApp {
     val x1491 = b928 // FixConvert(b928,TRUE,_32,_0)
     val x1492 = OpDef(op=FixSla, inputs=List(x1491, Const(2))).name("x1492").ctrl(x1499) // FixLsh(x1491,Const(2))
     val x1493 = x1492 // FixConvert(x1492,TRUE,_64,_0)
-    val x1494 = top.dramAddress(x1457).name("x1494").ctrl(x1499) // GetDRAMAddress(x1457)
+    val x1494 = top.argFringe.dramAddress(x1457).name("x1494").ctrl(x1499) // GetDRAMAddress(x1457)
     val x1495 = OpDef(op=FixAdd, inputs=List(x1493, x1494)).name("x1495").ctrl(x1499) // FixAdd(x1493,x1494)
     val x1496 = x1495 // FixConvert(x1495,TRUE,_64,_0)
     // x1497 = SimpleStruct(ArrayBuffer((offset,x1496), (size,Const(64)), (isLoad,Const(true))))
