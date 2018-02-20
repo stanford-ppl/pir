@@ -44,6 +44,9 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
       case n:ArgOut => false
       case n:StreamOut => false
       case n@(_:Counter | _:GlobalContainer) if !design.controlAllocator.hasRunAll => false
+      case n:Counter =>
+        val CounterChain(counters) = collectUp[CounterChain](n).head
+        counters.forall(depedsAllDead)
       case n => depedsAllDead(n) 
     }
     if (isDead) dbgs(s"Mark $n as dead code")
