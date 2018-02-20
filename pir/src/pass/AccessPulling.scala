@@ -24,8 +24,6 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
     }
   }
 
-  val mirrorMapping = mutable.Map[GlobalContainer, mutable.Map[Any,Any]]()
-
   def pullNode(dep:A, deped:A, container:GlobalContainer) = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {
     dbg(s"dep.depeds=${dep.depeds}")
     val depedContainers = dep.depeds.flatMap { deped => globalOf(deped) }
@@ -42,8 +40,7 @@ class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUp
       dbg(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
       swapParent(dep, container)
     } else { //Multiple consumer or node cannot be moved, mirror new node into destination consumer containers and reconnect 
-      val mapping = mirrorMapping.getOrElseUpdate(container, mutable.Map[Any,Any]())
-      val m = mirror(dep, Some(container), mapping)
+      val m = mirror(dep, Some(container))
       swapOutputs(deped, from=dep, to=m)
       dbg(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
     }

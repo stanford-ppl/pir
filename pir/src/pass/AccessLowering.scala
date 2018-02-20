@@ -23,8 +23,6 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
     accesses.foreach(lowerAccess)
   }
 
-  val mirrorMapping = mutable.Map[GlobalContainer, mutable.Map[Any,Any]]()
-
   def lowerAccess(n:N):Unit = {
     n match {
       case Def(n:LocalLoad, LocalLoad(banks, Some(addrs))) =>
@@ -37,14 +35,10 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           } else {
             bankCUs
           }
-          addrCUs.values.toSet[GlobalContainer].foreach { addrCU =>
-            val mapping = mirrorMapping.getOrElseUpdate(addrCU, mutable.Map.empty)
-            addrs.foreach { addr => mirror(addr, Some(addrCU), mapping) }
-          }
           val bankAccesses = banks.map { bank =>
             // Remote read address calculation
             val maddrs = addrs.map { addr => 
-              mirrorMapping(addrCUs(bank))(addr).asInstanceOf[Def]
+              mirror(addr, Some(addrCUs(bank)))
             }
             val bankCU = bankCUs(bank)
             val access = LoadMem(bank, maddrs).setParent(bankCU)
@@ -65,9 +59,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
             // Local write address calculation
             val bankCU = globalOf(bank).get 
             val (raddrs, rdata) = {
-              val mapping = mirrorMapping.getOrElseUpdate(bankCU, mutable.Map.empty)
-              val dataLoad = retime(data, bankCU, mapping)
-              val addrLoad = addrs.map { addr => retime(addr, bankCU, mapping) }
+              val dataLoad = retime(data, bankCU)
+              val addrLoad = addrs.map { addr => retime(addr, bankCU) }
               (addrLoad, dataLoad)
             }
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")

@@ -17,6 +17,11 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
 
   def quote(n:Any) = qtype(n)
 
+  override def reset = {
+    super.reset
+    mirrorMapping.clear
+  }
+
   override def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:D):T = {
     if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
     // Nodes do not mirror
@@ -63,12 +68,20 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     def mirror(n:Any, m:Any) = {} 
   }
 
+  val mirrorMapping = mutable.Map[Container, mutable.Map[Any,Any]]()
+
   def mirror[T<:N](
     node:T, 
     container:Option[Container]=None, 
-    mapping:mutable.Map[Any,Any]=mutable.Map.empty,
+    init:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
   )(implicit design:D):T = {
+    val mapping = container.fold {
+      mutable.Map[Any,Any]()
+    } { container =>
+      mirrorMapping.getOrElseUpdate(container, mutable.Map[Any,Any]())
+    }
+    mapping ++= init
     val m = mirrorX(node, mapping)
     // Moving newly created nodes into container
     val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
@@ -83,16 +96,19 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
       case (n, m) => pirmeta.mirror(n, m)
     }
+    init ++= mapping
     m
   }
 
   def retime(
     x:Def, 
     cu:GlobalContainer, 
-    mapping:mutable.Map[Any,Any]=mutable.Map.empty
+    init:Map[Any,Any]=Map.empty
   ):Def = {
+    val mapping = mirrorMapping.getOrElseUpdate(cu, mutable.Map[Any,Any]())
+    mapping ++= init
     val xCU = globalOf(x).get 
-    val rx = x match {
+    mapping.getOrElseUpdate(x, x match {
       case x if xCU == cu => x
       case x:Const[_] => mirror(x, Some(cu), mapping)
       case Def(x:CounterIter, CounterIter(counter, offset)) => mirror(x, Some(cu), mapping)
@@ -106,9 +122,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
         pirmeta.mirror(x, store)
         mapping += (x -> load)
         load
-    }
-    mapping += x -> rx
-    rx
+    }).asInstanceOf[Def]
   }
 
   def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
