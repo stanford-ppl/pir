@@ -104,6 +104,7 @@ trait PIR extends Design {
     addPass(new PIRIRDotCodegen(s"top11.dot"))
     addPass(controlAllocator)
     addPass(deadCodeEliminator)
+    addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new IRPrinter(s"IR3.txt"))
