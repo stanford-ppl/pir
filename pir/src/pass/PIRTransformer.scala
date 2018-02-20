@@ -17,40 +17,37 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
 
   def quote(n:Any) = qtype(n)
 
-  override def mirrorX(n:Any, mapping:Map[Any,Any])(implicit design:D):Map[Any,Any] = {
-    if (mapping.contains(n)) return mapping
-    var mp  = mapping
+  override def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:D):T = {
+    if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
     // Nodes do not mirror
-    mp = n match {
-      case n@(_:SRAM | _:StreamIn | _:StreamOut) => mp + (n -> n)
-      case n => mp
+    n match {
+      case n:Memory if isRemoteMem(n) => mapping += (n -> n)
+      case n => 
     }
     dbgblk(s"mirrorX(${quote(n)})") {
-      mp = super.mirrorX(n, mp)
-      val m = mp(n)
+      val m = super.mirrorX(n, mapping)
       dbg(s"${quote(n)} -> ${quote(m)}")
       (n, m) match {
         case (n:Memory, m:Memory) => 
           val writers = n.writers.map { 
             case Def(w,LocalStore(mems, addrs, data)) => 
               // prevent mirroring of addrs and data
-              addrs.foreach { addr => mp += addr -> addr }
-              mp += data -> data
+              addrs.foreach { addr => mapping += addr -> addr }
+              mapping += data -> data
               w
           }
           dbg(s"writers of $n = ${writers}")
-          mp = writers.foldLeft(mp) { case (mp, writer) => mirrorX(writer, mp) }
+          writers.foreach { writer => mirrorX(writer, mapping) }
         case (n:Counter, m:Counter) =>
           dbg(s"$m.parent = ${m.parent}")
-          mp = collectUp[CounterChain](n).foldLeft(mp) { case (mp, cc) => mirrorX(cc, mp) }
+          collectUp[CounterChain](n).foreach { cc => mirrorX(cc, mapping) }
         case (n:CounterChain, m:CounterChain) =>
           dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
-          mp = n.counters.foldLeft(mp) { case (mp, ctr) => mirrorX(ctr, mp) }
+          n.counters.foreach { ctr => mirrorX(ctr, mapping) }
         case _ =>
       }
-      mp(n)
+      m
     }
-    mp
   }
 
   trait MirrorRule {
@@ -66,13 +63,13 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     def mirror(n:Any, m:Any) = {} 
   }
 
-  def mirrorM(
-    node:Any, 
+  def mirror[T<:N](
+    node:T, 
     container:Option[Container]=None, 
-    init:Map[Any,Any]=Map.empty,
+    mapping:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:D):Map[Any,Any] = {
-    val mapping = mirrorX(node, init)
+  )(implicit design:D):T = {
+    val m = mirrorX(node, mapping)
     // Moving newly created nodes into container
     val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
     container.foreach { container =>
@@ -86,31 +83,20 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
       case (n, m) => pirmeta.mirror(n, m)
     }
-    mapping
+    m
   }
 
-  def mirror[T<:N](
-    node:T, 
-    container:Option[Container]=None, 
-    init:Map[Any,Any] = Map.empty,
-    mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:D):T = {
-    val mapping = mirrorM(node, container, init, mirrorRule)
-    mapping(node).asInstanceOf[T]
-  }
-
-  def retimeX(
+  def retime(
     x:Def, 
     cu:GlobalContainer, 
-    init:Map[Any,Any]=Map.empty
-  ):Map[Any,Any] = {
+    mapping:mutable.Map[Any,Any]=mutable.Map.empty
+  ):Def = {
     val xCU = globalOf(x).get 
-    if (xCU == cu) return init + (x -> x)
-    x match {
-      case x:Const[_] => mirrorM(x, Some(cu), init)
-      case Def(x:CounterIter, CounterIter(counter, offset)) => mirrorM(x, Some(cu), init)
+    val rx = x match {
+      case x if xCU == cu => x
+      case x:Const[_] => mirror(x, Some(cu), mapping)
+      case Def(x:CounterIter, CounterIter(counter, offset)) => mirror(x, Some(cu), mapping)
       case x =>
-        val xCU = globalOf(x).get 
         val fifo = RetimingFIFO().setParent(cu)
         val load = ReadMem(fifo).setParent(cu)
         val store = WriteMem(fifo, x).setParent(cu)
@@ -118,15 +104,12 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
         dbg(s"add ${qtype(store)} in ${qtype(cu)}")
         dbg(s"add ${qtype(load)} in ${qtype(cu)}")
         pirmeta.mirror(x, store)
-        init + (x -> load)
+        mapping += (x -> load)
+        load
     }
+    mapping += x -> rx
+    rx
   }
-
-  def retime(
-    x:Def, 
-    cu:GlobalContainer,
-    init:Map[Any, Any] = Map.empty
-  ):Def = retimeX(x, cu, init)(x).asInstanceOf[Def]
 
   def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
     if (from == to) return to

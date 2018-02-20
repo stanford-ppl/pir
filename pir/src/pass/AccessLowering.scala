@@ -23,6 +23,8 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
     accesses.foreach(lowerAccess)
   }
 
+  val mirrorMapping = mutable.Map[GlobalContainer, mutable.Map[Any,Any]]()
+
   def lowerAccess(n:N):Unit = {
     n match {
       case Def(n:LocalLoad, LocalLoad(banks, Some(addrs))) =>
@@ -35,15 +37,14 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           } else {
             bankCUs
           }
-          val mps = addrCUs.values.toSet[GlobalContainer].map { addrCU =>
-            addrCU -> addrs.foldLeft(Map[Any,Any]()) { case (mp, addr) => 
-              mirrorM(addr, Some(addrCU), mp)
-            }
-          }.toMap
+          addrCUs.values.toSet[GlobalContainer].foreach { addrCU =>
+            val mapping = mirrorMapping.getOrElseUpdate(addrCU, mutable.Map.empty)
+            addrs.foreach { addr => mirror(addr, Some(addrCU), mapping) }
+          }
           val bankAccesses = banks.map { bank =>
             // Remote read address calculation
             val maddrs = addrs.map { addr => 
-              mps(addrCUs(bank))(addr).asInstanceOf[Def]
+              mirrorMapping(addrCUs(bank))(addr).asInstanceOf[Def]
             }
             val bankCU = bankCUs(bank)
             val access = LoadMem(bank, maddrs).setParent(bankCU)
@@ -64,10 +65,9 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
             // Local write address calculation
             val bankCU = globalOf(bank).get 
             val (raddrs, rdata) = {
-              var mp = retimeX(data, bankCU)
-              val dataLoad = mp(data).asInstanceOf[Def]
-              mp = addrs.foldLeft(mp) { case (mp, addr) => retimeX(addr, bankCU, mp) }
-              val addrLoad = addrs.map { addr => mp(addr).asInstanceOf[Def] }
+              val mapping = mirrorMapping.getOrElseUpdate(bankCU, mutable.Map.empty)
+              val dataLoad = retime(data, bankCU, mapping)
+              val addrLoad = addrs.map { addr => retime(addr, bankCU, mapping) }
               (addrLoad, dataLoad)
             }
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")

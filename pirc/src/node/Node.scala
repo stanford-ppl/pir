@@ -41,7 +41,7 @@ abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with
     assert(p != this)
     _parent match {
       case Some(`p`) => this
-      case Some(p) => err(s"Resetting parent of $this from $parent to $p"); this
+      case Some(parent) => err(s"Resetting parent of $this from $parent to $p"); this
       case None =>
         _parent = Some(p)
         p.addChild(this)

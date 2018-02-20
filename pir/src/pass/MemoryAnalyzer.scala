@@ -46,7 +46,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
           val maccess = mirror(
             node=n, 
             container=Some(accessCU), 
-            init=Map(mems -> List(mem), addrs -> addrs, data -> data),
+            mapping=mutable.Map(mems -> List(mem), addrs -> addrs, data -> data),
             mirrorRule=NodeMatchRule(n, (n:Any,m:Any) => pirmeta.mirrorExcept(n, m, topCtrlOf))
           )
           disconnect(n, mem)

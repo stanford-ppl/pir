@@ -4,7 +4,7 @@ import pirc._
 import prism.node._
 
 import scala.reflect._
-import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 trait GraphTransformer {
   type N<:Node[N] with Product
@@ -80,26 +80,19 @@ trait GraphTransformer {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def mirrorX(n:Any, mapping:Map[Any,Any]=Map.empty)(implicit design:D):Map[Any,Any] = {
-    n match {
-      case n if mapping.contains(n) => mapping
-      case n:N => 
-        val args = n.values //n.productIterator.toList
-        val newMapping = args.foldLeft(mapping) { case (mapping, arg) => mirrorX(arg, mapping) }
-        if (!newMapping.contains(n)) {
-          newMapping + (n -> n.newInstance[Any](args.map { a => newMapping(a) }))
-        } else newMapping
-      case n:Option[_] => 
-        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
-        newMapping + (n -> n.map { n => newMapping(n) } )
-      case n:Iterable[_] => 
-        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
-        newMapping + (n -> n.map { n => newMapping(n) } )
-      case n:Iterator[_] => 
-        val newMapping = n.foldLeft(mapping) { case (mapping, n) => mirrorX(n, mapping) }
-        newMapping + (n -> n.map { n => newMapping(n) } )
-      case n => mapping + (n -> n)
-    }
+  def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:D):T = {
+    mapping.getOrElseUpdate(n, {
+      n match {
+        case n:N => 
+          val args = n.values //n.productIterator.toList
+          val margs = args.map { arg => mirrorX(arg, mapping) }
+          if (!mapping.contains(n)) n.newInstance[T](margs) else mapping(n)
+        case n:Option[_] => n.map { n => mirrorX(n, mapping) }
+        case n:Iterable[_] => n.map { n => mirrorX(n, mapping) }
+        case n:Iterator[_] => n.map { n => mirrorX(n, mapping) }
+        case n => n 
+      }
+    }).asInstanceOf[T]
   }
   
   def lookUp[X](a:X, mapping:Map[N,N]):X = {
