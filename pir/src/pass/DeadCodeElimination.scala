@@ -32,20 +32,18 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
           assert(!nb.neighbors.asInstanceOf[Set[N]].contains(n))
         }
         pirmeta.removeAll(n)
-      case (n, false) => removeUnusedIOs(n)
+      case (n, false) => 
     }
   }
 
   def markDeath(deathMap:T, n:N) = {
-    dbg(s"markDeath:$n ${n.depeds.map { deped => s"deped=$deped, death=${deathMap.get(deped)}"}}")
+    dbg(s"markDeath:$n deped=${n.depeds.map { deped => s"$deped, death=${deathMap.get(deped)}"}}")
     def depedsAllDead(n:N) = depFunc(n).forall(d => deathMap.getOrElse(d, false))
 
     val isDead = n match {
       case n:ArgOut => false
       case n:StreamOut => false
-      case n@(_:Counter | _:GlobalContainer) => 
-        val controlPasses = List(design.controlAllocator)
-        if (controlPasses.forall(_.hasRunAll)) depedsAllDead(n) else false
+      case n@(_:Counter | _:GlobalContainer) if !design.controlAllocator.hasRunAll => false
       case n => depedsAllDead(n) 
     }
     if (isDead) dbgs(s"Mark $n as dead code")

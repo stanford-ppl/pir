@@ -43,8 +43,10 @@ class IRCheck(implicit design:PIR) extends PIRPass {
         io.src match {
           case node:SrcType =>
           case node =>
-            dbg(s"io=${qtype(io.src)}${io}")
-            io.connected.foreach { out => dbg(s"out=$out out.src=${out.src}") }
+            dbg(s"io=${qtype(io.src)}.${io}")
+            io.connected.foreach { connected => 
+              dbg(s"connected=${connected.src}.$connected")
+            }
             err(s"$cu's global input ${io.src}.$io")
         }
       case io =>
