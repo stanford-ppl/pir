@@ -137,8 +137,10 @@ trait DotCodegen extends Printer {
     def + (rec:(String, String)):DotAttr = { attrMap += rec; this}
   
     def shape(s:Shape) = { attrMap += "shape" -> s.field; this }
-    def color(s:Color) = { attrMap += "color" -> s.field; this }
-    def fillcolor(s:Color) = { attrMap += "fillcolor" -> s.field; this }
+    def color(s:Color):this.type = color(s.field) 
+    def color(s:String):this.type = { attrMap += "color" -> s; this }
+    def fillcolor(s:Color):this.type = fillcolor(s.field) 
+    def fillcolor(s:String):this.type = { attrMap += "fillcolor" -> s; this }
     def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
     def style(ss:Style*) = { attrMap += "style" -> ss.map(_.field).mkString(","); this }
     def graphStyle(s:Style) = { graphAttrMap += "style" -> s"${s.field}"; this }

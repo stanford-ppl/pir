@@ -18,7 +18,10 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
   override val horizontal:Boolean = false
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:CUContainer if collectDown[SRAM](n).nonEmpty => attr.fillcolor(orange).style(filled)
+    case n:FringeContainer => super.color(attr, n)
+    case n:CUContainer =>
+      val mems = collectDown[Memory](n).filter(isRemoteMem)
+      if (mems.nonEmpty) super.color(attr, mems.head) else super.color(attr, n)
     //case n:CUContainer if n.controller.isOuterControl => attr.fillcolor(indianred).style(filled) ////TODO
     case n => super.color(attr,n)
   }

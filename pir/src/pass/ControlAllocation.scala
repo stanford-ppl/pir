@@ -20,21 +20,6 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSTopo
     traverseNode(design.top)
   }
 
-  def isFIFO(n:Memory) = n match {
-    case n:FIFO => true
-    case n:RetimingFIFO => true
-    case n:StreamIn => true
-    case n:StreamOut => true
-    case _ => false
-  }
-
-  def isReg(n:Memory) = n match {
-    case n:Reg => true
-    case n:ArgIn => true
-    case n:ArgOut => true
-    case n => false
-  }
-
   override def visitOut(n:N):List[N] = {
     n match {
       case n:Memory => Nil
@@ -136,7 +121,6 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSTopo
           val context = contextOf(n).get
           val readNext = mem match {
             case mem if isFIFO(mem) => allocateContextEnable(context)
-            case mem:ArgIn => allocate[Low](context)(Low()) // Optimization. ArgIn will not be loaded again so it's okay to not dequeue it 
             case mem => allocateContextDone(context, topCtrlOf(n))
           }
           swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))

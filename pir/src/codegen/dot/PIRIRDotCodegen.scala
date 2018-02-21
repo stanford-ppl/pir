@@ -49,18 +49,15 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   override def color(attr:DotAttr, n:Any) = n match {
     case n:RetimingFIFO => attr.fillcolor(gold).style(filled)
-    case n:FIFO => attr.fillcolor(gold).style(filled)
-    case n:StreamIn => attr.fillcolor(gold).style(filled)
-    case n:StreamOut => attr.fillcolor(gold).style(filled)
-    case n:Reg => attr.fillcolor(limegreen).style(filled)
-    case n:ArgIn => attr.fillcolor(limegreen).style(filled)
-    case n:ArgOut => attr.fillcolor(limegreen).style(filled)
-    case n:Memory if isRemoteMem(n) => attr.fillcolor(orange).style(filled)
+    case n:Memory if isFIFO(n) => attr.fillcolor(gold).style(filled)
+    case n:Memory if isReg(n) => attr.fillcolor(limegreen).style(filled)
+    case n:Memory if isRemoteMem(n) => attr.fillcolor(chartreuse).style(filled)
+    case n:ContextEnable => attr.fillcolor(orange).style(filled)
 
     case n:ComputeContext => attr.fillcolor(palevioletred).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
-    case n:FringeContainer => attr.fillcolor(chartreuse).style(filled)
+    case n:FringeContainer => attr.fillcolor("lightseagreen").style(filled)
     case n => super.color(attr, n)
   }
 

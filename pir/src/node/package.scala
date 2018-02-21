@@ -5,7 +5,22 @@ import pirc.util._
 import scala.reflect._
 
 package object node {
-  def isRemoteMem(n:Memory) = n match {
+  def isFIFO(n:PIRNode) = n match {
+    case n:FIFO => true
+    case n:RetimingFIFO => true
+    case n:StreamIn => true
+    case n:StreamOut => true
+    case _ => false
+  }
+
+  def isReg(n:PIRNode) = n match {
+    case n:Reg => true
+    case n:ArgIn => true
+    case n:ArgOut => true
+    case n => false
+  }
+
+  def isRemoteMem(n:PIRNode) = n match {
     case (_:SRAM | _:StreamIn | _:StreamOut)  => true
     case n:FIFO if n.writers.size > 1 => true
     case n:RegFile => true
