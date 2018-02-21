@@ -7,7 +7,7 @@ import pirc._
 
 import scala.collection.mutable
 
-class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
+class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
 
   override def shouldRun = true
 

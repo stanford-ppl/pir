@@ -26,7 +26,7 @@ abstract class PIRPass(implicit val design:PIR) extends Pass with PIRCollector {
 
   def qtype(n:Any) = n match {
     case n:IR => n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
-    case n => n.toString
+    case n => s"$n"
   }
 
 }

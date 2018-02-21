@@ -133,10 +133,11 @@ trait BFSTraversal extends GraphTraversal {
 
 }
 
-trait TopologicalTraversal extends GraphTraversal {
+trait TopologicalTraversal extends GraphTraversal with GraphUtil {
+  override type N <:Node[N]
   val forward:Boolean
-  def visitIn(n:N):List[N]
-  def visitOut(n:N):List[N]
+  def visitIn(n:N):List[N] = visitGlobalIn(n)
+  def visitOut(n:N):List[N] = visitGlobalOut(n)
   def depedFunc(n:N):List[N] = if (forward) visitOut(n) else visitIn(n)
   def depFunc(n:N):List[N] = if (forward) visitIn(n) else visitOut(n)
   def isDepFree(n:N) = depFunc(n).forall(isVisited)
@@ -158,8 +159,9 @@ trait TopologicalTraversal extends GraphTraversal {
    * */
   def visitDepFree(n:N):List[N] = {
     val unvisited = depedFunc(n).filterNot(isVisited)
-    frontier ++= unvisited
-    unvisited.filter(isDepFree) 
+    val (depFree, notFree) = unvisited.partition(isDepFree)
+    frontier ++= notFree
+    depFree
   }
 
   def selectFrontier = {
@@ -186,6 +188,19 @@ trait TopologicalTraversal extends GraphTraversal {
     } else depFree
   }
 
+  def visitScope(n:N):List[N] = (n::n.descendents).filter { _.children.isEmpty }
+
+  def traverseScope(n:N, zero:T) = {
+    val allNodes = visitScope(n)
+    traverse(scheduleDepFree(allNodes), zero)
+  }
+}
+
+trait DFSTopologicalTraversal extends DFSTraversal with TopologicalTraversal {
+  override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
+}
+trait BFSTopologicalTraversal extends BFSTraversal with TopologicalTraversal {
+  override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
 }
 
 trait TopDownTraversal extends GraphTraversal {
@@ -206,8 +221,8 @@ trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal {
 trait SiblingFirstTraversal extends BFSTraversal with TopDownTraversal
 
 trait TopDownTopologicalTraversal extends TopologicalTraversal with TopDownTraversal with GraphUtil {
-  def visitIn(n:N):List[N] = visitLocalIn(n)
-  def visitOut(n:N):List[N] = visitLocalOut(n)
+  override def visitIn(n:N):List[N] = visitLocalIn(n)
+  override def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
     case n:SubGraph[N] => scheduleDepFree(n.children)
     case _:Atom[_] => visitDepFree(n)
@@ -218,24 +233,16 @@ trait DFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with Ch
 trait BFSTopDownTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
 
 trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
-  override type N <:Node[N]
-  def visitIn(n:N):List[N] = visitGlobalIn(n)
-  def visitOut(n:N):List[N] = visitGlobalOut(n)
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
   override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
-
-  def traverseScope(n:N, zero:T) = {
-    val allNodes = (n::n.descendents).filter { _.children.isEmpty }
-    traverse(scheduleDepFree(allNodes), zero)
-  }
 }
 
-trait DFSBottomUpTopologicalTraversal extends BottomUpTopologicalTraversal with DFSTraversal {
+trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal {
   override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
 }
 
-trait BFSBottomUpTopologicalTraversal extends BottomUpTopologicalTraversal with BFSTraversal {
+trait BFSBottomUpTopologicalTraversal extends BFSTopologicalTraversal with BottomUpTopologicalTraversal {
   override def traverseNode(n:N, zero:T) = traverseScope(n, zero)
 }
 

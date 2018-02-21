@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
+class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -100,6 +100,7 @@ class ControlAllocation(implicit design:PIR) extends PIRTransformer with BFSBott
       case ctrl:ArgInController => allocate[ArgInValid](context)(ArgInValid())
       case ctrl:LoopController =>
         val cchain = allocate[CounterChain](context, (cc:CounterChain) => ctrlOf(cc) == ctrl) {
+          //TODO this might mirror lowered access nodes
           mirror(ctrl.cchain, Some(context))
         }
         val counter = cchain.counters.last

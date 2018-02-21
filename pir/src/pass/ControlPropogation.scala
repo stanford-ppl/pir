@@ -4,11 +4,12 @@ import pir._
 import pir.node._
 
 import pirc._
+import pirc.util._
 
 import scala.collection.mutable
 import scala.reflect._
 
-class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
+class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -83,10 +84,13 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSBotto
     n match {
       case n:ComputeNode =>
         if (!ctrlOf.isDefinedAt(n)) {
-          assert(depFunc(n).forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
+    val deps = depFunc(n)
+          assert(deps.forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
           val ctrls = depFunc(n).map(ctrlOf.apply).toSet
           assert(ctrls.size==1, s"deps have different controls ${depFunc(n).map(d => (d, ctrlOf(d)))}")
-          ctrlOf(n) = ctrls.head
+          //tic
+          ctrlOf(n) = ctrls.head // TODO: this is very slow. Figure out why
+          //toc(s"map assign ${qtype(n)}", "ms")
         }
         dbg(ctrlOf.info(n).get)
       case n => 

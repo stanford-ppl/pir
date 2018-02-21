@@ -7,7 +7,7 @@ import pirc._
 
 import scala.collection.mutable
 
-class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
+class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true

@@ -32,7 +32,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n:OpDef => label += s"\n(${n.op})"
       case n:StreamIn => label += s"\n(${n.field})"
       case n:StreamOut => label +=s"\n(${n.field})"
-      case GlobalInput(gout) => label += s"\n(from=${gout.data})"
+      case GlobalInput(gout) => label += s"\n(from=${gout})"
       case n:GlobalOutput => label += s"\n(to=${n.out.to.map(_.src)})"
       case n =>
     }
@@ -78,11 +78,12 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     cuA == cuB
   }
 
-  override def emitEdge(from:N, to:N) = {
+  override def emitEdge(from:N, to:N, attr:DotAttr) = {
     (from, to) match {
       case (from:ArgInDef, to) if !areLocal(from, to) =>
       case (from, to:ArgIn) if !areLocal(from, to) =>
-      case (from, to) => super.emitEdge(from, to)
+      case (from:GlobalOutput, to:GlobalInput) =>
+      case (from, to) => super.emitEdge(from, to, attr)
     }
   }
 

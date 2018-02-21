@@ -78,12 +78,12 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
 
   def emitEdge(n:N):Unit = {
     n.ins.foreach { in =>
-      in.connected.foreach { out => emitEdge(out, in) }
+      in.connected.foreach { out => emitEdge(out, in, DotAttr.empty) }
     }
   }
 
-  def emitEdge(from:Edge[N], to:Edge[N]):Unit = {
-    emitEdgeMatched(from.src.asInstanceOf[N], to.src) 
+  def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
+    emitEdgeMatched(from.src.asInstanceOf[N], to.src, attr) 
   }
 
   def lift(n:N) = {
@@ -94,15 +94,15 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
     }
   }
 
-  def emitEdgeMatched(from:N, to:N):Unit = {
+  def emitEdgeMatched(from:N, to:N, attr:DotAttr):Unit = {
     (lift(from), lift(to)) match {
-      case (Some(from), Some(to)) => emitEdge(from, to)
+      case (Some(from), Some(to)) => emitEdge(from, to, attr)
       case _ =>
     }
   }
 
-  def emitEdge(from:N, to:N):Unit = {
-    super.emitEdge(from, to)
+  def emitEdge(from:N, to:N, attr:DotAttr):Unit = {
+    super.emitEdge(from, to, attr) // String, String
   }
 
 }

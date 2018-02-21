@@ -104,14 +104,7 @@ trait DotCodegen extends Printer {
   def emitNode(n:Any, label:Any, attr:DotAttr) = {
     emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
   }
-  def emitEdge(from:Any, to:Any, label:String):Unit = {
-    emitEdge(from, to, DotAttr().label(label))
-  }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
-    //attr.attrMap.get("label").foreach { label =>
-      //attr.attrMap.remove("label")
-      //attr.attrMap += "xlabel" -> label
-    //}
     emitln(s"""${q(from)} -> ${q(to)} ${if (attr.attrMap.size!=0) s"[${attr.list}]" else ""}""")
   }
   def emitEdge(from:Any, to:Any):Unit = {
@@ -165,6 +158,7 @@ trait DotCodegen extends Printer {
   }
   object DotAttr {
     def apply():DotAttr = new DotAttr()
+    def empty:DotAttr = new DotAttr()
     def copy(attr:DotAttr):DotAttr = {
       val newAttr = DotAttr()
       attr.attrMap.foreach { e => newAttr + e }

@@ -31,17 +31,14 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
     }
   }
 
-  override def emitEdge(from:N, to:N) = {
-    dbg(s"node:$from -> $to")
-    (from, to) match {
-      case (from:ArgFringe, to) =>
-      case (from, to) => super.emitEdge(from, to)
-    }
-  }
-
-  override def emitEdge(from:Edge[N], to:Edge[N]):Unit = {
+  override def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
-    super.emitEdge(from, to)
+    val label = from.src match {
+      case GlobalOutput(data, valid) => s"${data}"
+      case from => s"${from}"
+    }
+    attr.label(label)
+    super.emitEdge(from, to, attr)
   }
 }
 
