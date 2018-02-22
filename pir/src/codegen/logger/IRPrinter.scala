@@ -25,6 +25,7 @@ class IRPrinter(val fileName:String)(implicit design:PIR) extends PIRCodegen {
       case n:SubGraph[_] =>
         emitBlock(qdef(n)) {
           emitln(s"parent=${quote(n.parent)}")
+          pirmeta.summary(n).foreach(emitln)
           super.visitNode(n)
         }
       case n:Atom[_] =>
@@ -35,6 +36,7 @@ class IRPrinter(val fileName:String)(implicit design:PIR) extends PIRCodegen {
           n.ios.foreach { io =>
             emitln(s"$io.connected=[${io.connected.mkString(",")}]")
           }
+          pirmeta.summary(n).foreach(emitln)
         }
         super.visitNode(n)
     }

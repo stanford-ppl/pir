@@ -251,7 +251,7 @@ trait Metadata extends Serializable {
 
   def reset = maps.foreach(_.clear)
 
-  def summerize(n:Any, maps:MetadataMap*):List[String] = { maps.flatMap { map => summerize(n) }.toList }
+  def summerize(n:Any, maps:MetadataMap*):List[String] = { maps.flatMap { map => map.info(n) }.toList }
 
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
@@ -294,10 +294,17 @@ trait Metadata extends Serializable {
     def mirror(orig:K, clone:K):Unit = {
       get(orig).foreach { vv => update(clone, vv) }
     }
-    def info(k:Any):Option[String] = { 
-      asK(k) match {
-        case Some(k) => get(k).map { v => s"${name}($k)=$v" }
-        case k => None
+    def info(a:Any):Option[String] = { 
+      asK(a) match {
+        case Some(k) => get(k).map { vv => s"${name}($k)=$vv" }
+        case None =>
+          this match {
+            case map:BiMap[_,_,_,_] => 
+              map.asV(a).flatMap { v => 
+                map.bmap.get(v).map( kk => s"${name}.bmap($v) = $kk" )
+              }
+            case _ => None
+          }
       }
     }
   }

@@ -31,6 +31,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
     }
     ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
+    ctrlOf.info(lcaCtrl).foreach(dbg)
 
     val topCtrls = traversal.leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
     mem.accesses.foreach { access =>
