@@ -27,6 +27,12 @@ package object node {
     case _ => false
   }
 
+  def isCounter(n:PIRNode) = n match {
+    case n:Counter => true
+    case n:EnabledCounter => true
+    case _ => false
+  }
+
   def withinGlobal(n:PIRNode) = within[GlobalContainer](n)
 
   def within[T<:PIRNode:ClassTag](n:PIRNode) = {

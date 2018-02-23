@@ -23,7 +23,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n) 
     n match {
-      case n:Counter =>
+      case n:Primitive if isCounter(n) =>
         val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
           case (field, Const(v)) => Some(s"$field=$v")
           case _ => None
@@ -33,7 +33,13 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n:StreamIn => label += s"\n(${n.field})"
       case n:StreamOut => label +=s"\n(${n.field})"
       case GlobalInput(gout) => label += s"\n(from=${gout})"
-      case n:GlobalOutput => label += s"\n(to=${n.out.to.map(_.src)})"
+      case n@GlobalOutput(data, valid) => 
+        label += s"\n(to=${n.out.to.map(_.src).mkString(",\n")})"
+        valid match {
+          case High() => label += s"\nvalid=high"
+          case Low() => label += s"\nvalid=low"
+          case _ =>
+        }
       case n =>
     }
     n match {
@@ -53,17 +59,24 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     case n:Memory if isReg(n) => attr.fillcolor(limegreen).style(filled)
     case n:Memory if isRemoteMem(n) => attr.fillcolor(chartreuse).style(filled)
     case n:ContextEnable => attr.fillcolor(orange).style(filled)
+    case n:ContextEnableOut => attr.fillcolor(orange).style(filled)
 
     case n:ComputeContext => attr.fillcolor(palevioletred).style(filled)
-    case n:Counter => attr.fillcolor(indianred).style(filled)
+    case n:Primitive if isCounter(n) => attr.fillcolor(indianred).style(filled)
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:FringeContainer => attr.fillcolor("lightseagreen").style(filled)
     case n => super.color(attr, n)
   }
 
+  def usedByCounter(n:PIRNode) = {
+    collectOut[Primitive](n, visitFunc=visitGlobalOut, depth=2).filter(isCounter).nonEmpty
+  }
+
   override def emitNode(n:N) = {
     n match {
-      case n:Const[_] if collectOut[Counter](n).isEmpty => super.visitNode(n)
+      case n:Const[_] if usedByCounter(n) => super.visitNode(n)
+      case n:High =>
+      case n:Low =>
       case n:Primitive => emitSingleNode(n); super.visitNode(n)
       case n => super.emitNode(n) 
     }

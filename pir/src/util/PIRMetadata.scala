@@ -33,5 +33,15 @@ class PIRMetadata extends prism.node.Metadata {
    * ctrlOf(mem) != ctrlOf(access). Otherwise it's the ctrlOf(access) 
    * */
   object topCtrlOf extends OneToOneMap[PIRNode, Controller] with MetadataMap
+
+  /*
+   * Control signal indicating the last element of the access
+   * */
+  object accessDoneOf extends OneToOneMap[LocalAccess, Def] with MetadataMap
+
+  /*
+   * Enable of CounterChain
+   * */
+  object enableOf extends OneToOneMap[PIRNode, Def] with MetadataMap
 }
 

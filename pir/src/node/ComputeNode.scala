@@ -11,8 +11,11 @@ object CounterChain {
   }
 }
 case class Counter(min:Def, max:Def, step:Def, par:Int)(implicit design:PIR) extends Primitive with ComputeNode
-case class CounterDone(counter:Counter)(implicit design:PIR) extends ControlNode
+case class EnabledCounter(min:Def, max:Def, step:Def, par:Int, en:Def)(implicit design:PIR) extends Primitive with ComputeNode
+case class CounterDone(counter:Primitive)(implicit design:PIR) extends ControlNode
 
 case class ComputeContext()(implicit design:PIR) extends Container
+
+// Place holder for ContextEnable. Lowered to ContextEnable
+case class ContextEnableOut()(implicit design:PIR) extends ControlNode
 case class ContextEnable(enables:List[Def])(implicit design:PIR) extends ControlNode
-case class DelayedContextEnable(enable:ContextEnable)(implicit design:PIR) extends ControlNode

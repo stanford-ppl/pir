@@ -49,6 +49,8 @@ trait PIR extends Design {
   lazy val contextInsertion = new ContextInsertion()
   lazy val contextMerging = new ContextMerging()
   lazy val controlAllocator = new ControlAllocation()
+  lazy val accessControlLowering = new AccessControlLowering()
+  lazy val controlLowering = new ControlLowering()
 
   /* Mapping */
 
@@ -87,13 +89,13 @@ trait PIR extends Design {
     addPass(new PIRIRDotCodegen(s"top7.dot"))
     addPass(memoryAnalyzer)
     addPass(new PIRIRDotCodegen(s"top8.dot"))
+    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top9.dot"))
 
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(new IRPrinter(s"IR2.txt"))
-    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     //addPass(cuStats)
     addPass(irCheck)
 
@@ -103,9 +105,13 @@ trait PIR extends Design {
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
     addPass(controlAllocator)
+    addPass(accessControlLowering).dependsOn(controlAllocator)
     addPass(deadCodeEliminator)
-    addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new PIRIRDotCodegen(s"top12.dot"))
+    addPass(controlLowering).dependsOn(accessControlLowering, deadCodeEliminator)
+    addPass(deadCodeEliminator)
+    addPass(new PIRIRDotCodegen(s"top13.dot"))
+    addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new IRPrinter(s"IR3.txt"))
     addPass(irCheck)

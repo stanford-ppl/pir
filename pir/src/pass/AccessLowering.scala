@@ -16,8 +16,6 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
 
   override def shouldRun = true
 
-  val forward = false
-
   override def runPass =  {
     val accesses = collectDown[LocalAccess](design.top)
     accesses.foreach(lowerAccess)

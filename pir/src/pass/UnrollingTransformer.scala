@@ -22,8 +22,14 @@ class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFST
   }
 
   override def visitNode(n:N):Unit = {
-    dbgs(s"visitNode ${qdef(n)}")
-    val node = n match {
+    val node = transform(n)
+    visited += node
+    super.visitNode(node)
+  }
+
+  def transform(n:N):N = {
+    dbgs(s"transform ${qdef(n)}")
+    n match {
       case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>
         val numReduceStages = (Math.log(parOf(n)) / Math.log(2)).toInt
         dbg(s"numReduceStages=$numReduceStages")
@@ -38,8 +44,6 @@ class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFST
         accum
       case n => n
     }
-    visited += node
-    super.visitNode(n)
   }
 
 }

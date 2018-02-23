@@ -14,6 +14,7 @@ import scala.math.max
 import scala.reflect._
 
 abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld with GraphTransformer {
+  import pirmeta._
 
   def quote(n:Any) = qtype(n)
 
@@ -26,6 +27,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
     // Nodes do not mirror
     n match {
+      case GlobalInput(globalOutput) => mapping += globalOutput -> globalOutput
       case n:Memory if isRemoteMem(n) => mapping += (n -> n)
       case n => 
     }
@@ -70,12 +72,12 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
 
   val mirrorMapping = mutable.Map[Container, mutable.Map[Any,Any]]()
 
-  def mirror[T<:N](
+  def mirrored[T<:N](
     node:T, 
     container:Option[Container]=None, 
     init:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:D):T = {
+  )(implicit design:D):(T, Set[N]) = {
     val mapping = container.fold {
       mutable.Map[Any,Any]()
     } { container =>
@@ -97,7 +99,16 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
       case (n, m) => pirmeta.mirror(n, m)
     }
     init ++= mapping
-    m
+    (m, newNodes)
+  }
+
+  def mirror[T<:N](
+    node:T, 
+    container:Option[Container]=None, 
+    init:mutable.Map[Any,Any]=mutable.Map.empty,
+    mirrorRule:MirrorRule = NoneMatchRule
+  )(implicit design:D):T = {
+    mirrored(node, container, init, mirrorRule)._1
   }
 
   def retime(

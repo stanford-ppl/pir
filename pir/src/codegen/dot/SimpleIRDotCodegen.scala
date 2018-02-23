@@ -36,11 +36,11 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
 
   override def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
-    val label = from.src match {
-      case GlobalOutput(data, valid) => s"${data}"
-      case from => s"${from}"
-    }
-    attr.label(label)
+    //val label = from.src match {
+      //case GlobalOutput(data, valid) => s"${data}"
+      //case from => s"${from}"
+    //}
+    //attr.label(label)
     super.emitEdge(from, to, attr)
   }
 }

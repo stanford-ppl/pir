@@ -83,10 +83,10 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSTopol
     dbg(s"visitNode(${qtype(n)}, n.ctrl=${ctrlOf.get(n)})")
     n match {
       case n:ComputeNode =>
+        val deps = depFunc(n)
         if (!ctrlOf.isDefinedAt(n)) {
-    val deps = depFunc(n)
           assert(deps.forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
-          val ctrls = depFunc(n).map(ctrlOf.apply).toSet
+          val ctrls = deps.map(ctrlOf.apply).toSet
           assert(ctrls.size==1, s"deps have different controls ${depFunc(n).map(d => (d, ctrlOf(d)))}")
           //tic
           ctrlOf(n) = ctrls.head // TODO: this is very slow. Figure out why
