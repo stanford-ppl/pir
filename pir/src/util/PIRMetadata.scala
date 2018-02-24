@@ -2,6 +2,7 @@ package pir.util
 
 import pir._
 import pir.node._
+import pirc.util._
 
 import prism.collection.mutable._
 class PIRMetadata extends prism.node.Metadata {
@@ -43,5 +44,6 @@ class PIRMetadata extends prism.node.Metadata {
    * Enable of CounterChain
    * */
   object enableOf extends OneToOneMap[PIRNode, Def] with MetadataMap
+
 }
 

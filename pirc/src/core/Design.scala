@@ -3,35 +3,31 @@ package pirc
 import pirc.util._
 
 import scala.collection.mutable
+import java.io._
 
-trait Design extends FileManager {
+trait Design {
 
   implicit val design:Design = this
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
+  def outDir = Config.outDir + File.separator + name
 
   private var nextSym = 0
   def nextId = if (staging) {nextSym += 1; nextSym } else 0
 
   var staging = true
 
-  /* Compiler Passes */
-  val passes = mutable.Set[Pass]()
-  val runPasses = mutable.ListBuffer[RunPass]()
+  var _session:Session = _
+  lazy val session = _session
 
-  def addPass(pass:Pass):RunPass = {
-    passes += pass
-    val runPass = pass.newRun(runPasses.size)
-    runPasses += runPass
-    runPass
-  }
-
-  def reset = runPasses.foreach(_.reset)
+  def reset = { 
+    _session = null
+  } 
 
   def handle(e:Exception):Unit
 
-  def run = runPasses.foreach { _.run }
+  val sessionPath = s"${outDir}${File.separator}${name}.sess"
 
   val configs:List[GlobalConfig]
 
@@ -43,4 +39,44 @@ trait Design extends FileManager {
     configs.foreach(_.setOption(args.toList))
   }
 
+  def load:Boolean
+  def save:Boolean
+
+  def loadDesign:Unit
+  def newDesign:Unit
+  def saveDesign:Unit
+
+  def initDesign = if (load) loadDesign else newDesign
+
+  def initSession = {
+    try {
+      _session = if (load) loadFromFile[Session](sessionPath) else new Session() // Load session
+    } catch {
+      case e:SessionRestoreFailure =>
+        warn(s"Restore session failed: ${e}. Creating a new session ...")
+        _session = new Session()
+      case e:Throwable => throw e
+    }
+  }
+
+  def runSession = {
+    session.run
+  }
+
+  def main(args: Array[String]): Unit = {
+    info(s"args=[${args.mkString(", ")}]")
+    try {
+      reset
+      setArgs(args)
+      initDesign
+      initSession
+      runSession
+      if (save) saveDesign
+      if (save) session.saveSession(sessionPath)
+    } catch { 
+      case e:Exception =>
+        errmsg(e)
+        handle(e)
+    }
+  }
 }

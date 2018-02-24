@@ -41,17 +41,28 @@ trait PIRApp extends PIR {
     }
   }
 
-  val designPath = s"${outDir}${File.separator}${name}.pir" //TODO: make this configurable
+  def load = PIRConfig.loadDesign
+  def save = PIRConfig.saveDesign
 
-  def loadDesign = top = loadFromFile[Top](designPath)
+  val designPath = s"${outDir}${File.separator}${name}.pir"
 
-  def saveDesign:Unit = saveToFile(top, designPath)
+  def loadDesign = {
+    top = loadFromFile[Top](designPath)
+    arch = getArch(PIRConfig.arch)
+    arch.initDesign
+    info(s"Configuring spade $arch ...")
+  }
 
   def newDesign = {
     top = new Top()
     main(top)
     endInfo(s"Finishing graph construction for ${this}")
+    arch = getArch(PIRConfig.arch)
+    arch.initDesign
+    info(s"Configuring spade $arch ...")
   }
+
+  def saveDesign:Unit = saveToFile(top, designPath)
 
   def getArch(name:String) = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
@@ -61,23 +72,6 @@ trait PIRApp extends PIR {
   }
 
   def main(top:Top): Any 
-  def main(args: Array[String]): Unit = {
-    info(s"args=[${args.mkString(", ")}]")
-    reset
-    setArgs(args)
-    try {
-      if (PIRConfig.loadDesign) loadDesign else newDesign
-      arch = getArch(PIRConfig.arch)
-      arch.initDesign
-      run
-      saveDesign //TODO: if (PIRConfig.saveDesign) saveDesign
-      //if (SpadeConfig.saveDesign) arch.saveDesign
-    } catch { 
-      case e:Exception =>
-        errmsg(e)
-        handle(e)
-    }
-  }
 
 }
 

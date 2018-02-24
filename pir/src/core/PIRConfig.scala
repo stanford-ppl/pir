@@ -3,8 +3,10 @@ package pir
 import pirc._
 
 import scala.collection.mutable
+import java.io._
 
 object PIRConfig extends GlobalConfig {
+  import Config._
 
   var arch:String = register("arch", default="SN2x2", info="Default architecture for mapping") { arch = _ }
   var saveDesign:Boolean = register("save-pir", default=false, info="Save IR into a file") { saveDesign = _ }

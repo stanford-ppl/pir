@@ -2,7 +2,10 @@ package pirc.test
 
 import prism.collection.immutable
 import prism.collection.mutable
+import pirc.util._
+
 import pirc.exceptions._
+import scala.reflect._
 
 class MapTest extends UnitTest {
 

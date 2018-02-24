@@ -247,7 +247,7 @@ import prism.collection.mutable._
 import scala.util.{Try, Success, Failure}
 trait Metadata extends Serializable {
 
-  val maps = scala.collection.mutable.ListBuffer[MetadataMap]()
+  lazy val maps = getDeclaredObjects(this).collect { case o:MetadataMap => o }
 
   def reset = maps.foreach(_.clear)
 
@@ -280,15 +280,14 @@ trait Metadata extends Serializable {
     def asK(k:Any):Option[K]
     def asV(v:Any):Option[V]
     def asVV(vv:Any):Option[VV]
-
-    maps += this
+  
     def name:String
     def clear:Unit
     def get(k:K):Option[VV]
     def contains(k:K):Boolean
     def removeAll(a:Any):Unit
     def update(k:K,vv:VV):Unit
-
+  
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
     def mirror(orig:K, clone:K):Unit = {
@@ -309,4 +308,5 @@ trait Metadata extends Serializable {
     }
   }
 }
+
 

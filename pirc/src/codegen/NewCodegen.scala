@@ -63,7 +63,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
     }
   }
 
-  override def initPass(runner:RunPass) = {
+  override def initPass(runner:RunPass[_]) = {
     openFile(dirName, fileName, append=append)
     info(s"Running $name to ${sw.getPath}")
   }

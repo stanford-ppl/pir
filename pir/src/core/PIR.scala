@@ -24,7 +24,7 @@ trait PIR extends Design {
 
   override def reset = {
     super.reset
-    clearLogs
+    clearLogs(outDir)
     arch = null
     top = null
   }
@@ -63,8 +63,9 @@ trait PIR extends Design {
 
   //var mapping:Option[PIRMap] = None
 
-  override def run = {
-    info(s"Configuring spade $arch ...")
+  override def initSession = {
+    super.initSession
+    import session._
 
     addPass(new TestTraversal)
 
@@ -104,11 +105,11 @@ trait PIR extends Design {
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
-    addPass(controlAllocator)
-    addPass(accessControlLowering).dependsOn(controlAllocator)
-    addPass(deadCodeEliminator)
+    addPass(controlAllocator) // set accessDoneOf, make copy to counter chains
+    addPass(accessControlLowering).dependsOn(controlAllocator) // Lower access and counter to EnabledAccess and Enabled counters
+    addPass(deadCodeEliminator) // Remove unused memories and counters
     addPass(new PIRIRDotCodegen(s"top12.dot"))
-    addPass(controlLowering).dependsOn(accessControlLowering, deadCodeEliminator)
+    addPass(controlLowering).dependsOn(accessControlLowering, deadCodeEliminator) // Generate context enable dependencies
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top13.dot"))
     addPass(new ControlDotCodegen(s"control1.dot"))
@@ -125,8 +126,6 @@ trait PIR extends Design {
     // Simulation
 
     // Statistics
-
-    super.run
 
   }
 

@@ -7,6 +7,12 @@ import prism.node._
 trait TestDesign extends Design {
   val configs = Nil
   def handle(e:Exception) = {}
+  def load:Boolean = false
+  def save:Boolean = false
+
+  def loadDesign:Unit = {}
+  def newDesign:Unit = {}
+  def saveDesign:Unit = {}
   implicit val self:Design = this
 }
 

@@ -17,13 +17,13 @@ class IRCheck(implicit design:PIR) extends PIRPass {
   type N = PIRNode with Product
   def shouldRun = true
 
-  override def runPass(runner:RunPass) =  {
+  override def runPass(runner:RunPass[_]) =  {
     val prevRuns = runner.prevRuns
     prevRuns.foreach(_.pass.check(runner))
     val prePasses = prevRuns.map { _.pass }
     val cus = collectDown[GlobalContainer](design.top)
-    val accessLowerHasRun = runner.prevHasRun[AccessLowering]
-    val ctrlAllocHasRun = runner.prevHasRun[ControlAllocation] 
+    val accessLowerHasRun = runner.session.hasRun[AccessLowering]
+    val ctrlAllocHasRun = runner.session.hasRun[ControlAllocation] 
     cus.foreach { cu => 
       if (accessLowerHasRun) {
         if (!ctrlAllocHasRun) {
