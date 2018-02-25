@@ -242,6 +242,3 @@ trait Memorization {
   def resetCache(input:Any) = caches.foreach(_.resetCache(input)) 
   def resetAllCaches = caches.foreach(_.resetAll)
 }
-
-
-

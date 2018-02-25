@@ -10,7 +10,7 @@ import scala.reflect._
 class MapTest extends UnitTest {
 
   "TestIOneToOne" should "success" in {
-    var map = immutable.OneToOneMap[Int,String]()
+    var map = immutable.OneToOneMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (3 -> "c")
@@ -27,7 +27,7 @@ class MapTest extends UnitTest {
   }
 
   "TestIOneToMany" should "success" in {
-    var map = immutable.OneToManyMap[Int,String]()
+    var map = immutable.OneToManyMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (1 -> "c")
@@ -35,7 +35,7 @@ class MapTest extends UnitTest {
   }
 
   "TestIBiOneToOne" should "success" in {
-    var map = immutable.BiOneToOneMap[Int,String]()
+    var map = immutable.BiOneToOneMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (3 -> "c")
@@ -52,7 +52,7 @@ class MapTest extends UnitTest {
   }
 
   "TestIBiOneToMany" should "success" in {
-    var map = immutable.BiOneToManyMap[Int,String]()
+    var map = immutable.BiOneToManyMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (1 -> "c")
@@ -71,7 +71,7 @@ class MapTest extends UnitTest {
   }
 
   "TestIBiManyToMany" should "success" in {
-    var map = immutable.BiManyToManyMap[Int,String]()
+    var map = immutable.BiManyToManyMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (1 -> "c")
@@ -98,7 +98,7 @@ class MapTest extends UnitTest {
   }
 
   "TestMOneToMany" should "success" in {
-    val map = new mutable.OneToManyMap[Int,String]()
+    val map = new mutable.OneToManyMap[Int,String]
     map += (1 -> "a")
     map += (2 -> "b")
     map += (1 -> "c")
