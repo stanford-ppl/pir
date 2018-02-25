@@ -16,7 +16,8 @@ trait Serialization {
         catch { case ex: ClassNotFoundException => super.resolveClass(desc) } // Magic. Don't know why this fix ClassNotFound exception
       }
     }
-    info(s"Loading $ois from $path")
-    ois.readObject.asInstanceOf[T]
+    val obj = ois.readObject.asInstanceOf[T]
+    info(s"Loading $obj from $path")
+    obj
   }
 }
