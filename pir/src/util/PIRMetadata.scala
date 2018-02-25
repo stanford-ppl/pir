@@ -2,10 +2,10 @@ package pir.util
 
 import pir._
 import pir.node._
-import pirc.util._
-
+import prism.util._
 import prism.collection.mutable._
-class PIRMetadata extends prism.node.Metadata {
+
+class PIRMetadata extends Metadata {
 
   /* User defined string name of for an IR. */
   object nameOf extends OneToOneMap[IR, String] with MetadataMap

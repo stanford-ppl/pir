@@ -32,7 +32,7 @@ case object FixNeg extends FixOp             with Op1
 case object FixRandom extends FixOp          with Op1
 case object FixUnif extends FixOp            with Op1
 
-sealed trait FltOp extends Op { type T = Float }
+sealed trait FltOp extends Op
 case object FltAdd extends FltOp             with Op2
 case object FltSub extends FltOp             with Op2
 case object FltMul extends FltOp             with Op2
