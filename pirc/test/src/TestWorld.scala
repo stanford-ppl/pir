@@ -16,7 +16,7 @@ trait TestDesign extends Design {
   implicit val self:Design = this
 }
 
-abstract class TestNode(implicit design:Design) extends Node[TestNode] { self:Product with TestNode =>
+abstract class TestNode(implicit design:Design) extends ProductNode[TestNode] { self:TestNode =>
   type N = TestNode
   type A = TestAtom
   type P = TestSubGraph
@@ -36,23 +36,9 @@ class TestOutput(implicit override val src:TestAtom, design:Design) extends Edge
   override type A = TestAtom
   type E = TestInput
 }
-case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with Atom[TestNode] {
+case class TestAtom(ds:TestAtom*)(implicit design:Design) extends TestNode with ProductAtom[TestNode] {
   val out = new TestOutput
-  def newIn = new TestInput
-  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
-    x match {
-      case x:TestAtom => newIn.connect(x.out)
-      case x => super.connectFields(x, i:Int) 
-    }
-  }
+  def newIn(implicit design:Design) = new TestInput
 }
-case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with SubGraph[TestNode] {
-  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
-    implicit val ev = nct
-    x match {
-      case x:N => this.addChild(x); x
-      case x => super.connectFields(x, i)
-    }
-  }
-}
+case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends TestNode with ProductSubGraph[TestNode]
 

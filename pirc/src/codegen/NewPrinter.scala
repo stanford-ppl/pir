@@ -1,6 +1,7 @@
 package prism.codegen
 
 import pirc._
+import pirc.util._
 
 import java.nio.file._
 import java.io._
@@ -29,15 +30,10 @@ trait Printer {
     def getPath = "byteStream"
   }
   case class FileWriter(dirName:String, fileName:String, append:Boolean) extends StreamWriter {
-    val path = s"${dirName}${File.separator}${fileName}"
+    val path = buildPath(dirName, fileName) 
     override lazy val outputStream:FileOutputStream = {
-      val dir = new File(dirName)
-      if (!dir.exists()) {
-        println(s"[pir] creating output directory: $dirName");
-        dir.mkdir();
-      }
-      val file = new File(path)
-      new FileOutputStream(file, append)
+      mkdir(dirName)
+      new FileOutputStream(new File(path), append)
     }
     var written = false
     override def emit(s:String) = { written = true; super.emitln(s) }

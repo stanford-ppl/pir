@@ -3,6 +3,7 @@ package pirc.util
 import java.io._
 trait Serialization {
   def saveToFile(node:Serializable, path:String) = {
+    mkdir(dirName(path))
     val oos = new ObjectOutputStream(new FileOutputStream(path))
     info(s"Saving node $node to $path")
     oos.writeObject(node)

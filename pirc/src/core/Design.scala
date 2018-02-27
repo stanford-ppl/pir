@@ -7,7 +7,7 @@ import java.io._
 
 trait Design {
 
-  implicit val design:Design = this
+  implicit val design:this.type = this
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name

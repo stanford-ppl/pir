@@ -6,11 +6,10 @@ import pirc.Config
 class ConfigCodegen(implicit design: PIR) extends PIRPass {
   def shouldRun = false && Config.codegen
 
-  val codegen = new spade.codegen.ConfigCodegen()(design.arch)
+  //val codegen = new spade.codegen.ConfigCodegen()(design.arch)
 
   override def runPass =  {
-    //codegen.init(design.mapping.get)
-    codegen.runPass
+    //codegen.runPass
   }
 
 }

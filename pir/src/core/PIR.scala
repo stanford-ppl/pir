@@ -14,7 +14,6 @@ import scala.collection.mutable.ListBuffer
 
 trait PIR extends Design {
 
-  override implicit val design: PIR = this
   lazy val pirmeta:PIRMetadata = top.metadata
 
   val configs = List(Config, SpadeConfig, PIRConfig)

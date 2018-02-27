@@ -20,7 +20,7 @@ abstract class PIRPass(implicit val design:PIR) extends Pass with PIRCollector {
   lazy val pirmeta = design.pirmeta
 
   def qdef(n:Any) = n match {
-    case n:IR => s"${n.name.getOrElse(n.toString)} = ${n.productName}"
+    case n:PIRNode => s"${n.name.getOrElse(n.toString)} = ${n.productName}"
     case n => n.toString
   }
 

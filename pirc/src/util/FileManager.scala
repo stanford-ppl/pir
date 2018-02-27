@@ -3,9 +3,11 @@ package pirc.util
 import pirc._
 
 import scala.collection.mutable.ListBuffer
-import java.io.File
+import java.io.{File, FileInputStream, FileOutputStream}
 
 trait FileManager { 
+
+  val separator = File.separator
 
   val logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")
 
@@ -13,7 +15,7 @@ trait FileManager {
 
   def clearLogs(outDir:String) = {
     val logs = getListOfFiles(outDir).filter(isLog)
-    logs.foreach { _.delete() }
+    logs.foreach(deleteFiles)
   }
   
   def getListOfFiles(dir: String):List[File] = {
@@ -24,5 +26,69 @@ trait FileManager {
         List[File]()
     }
   }
+
+  def deleteFiles(file: File): Unit = {
+    if (file.isDirectory) {
+      Option(file.listFiles).map(_.toList).getOrElse(Nil).foreach(deleteFiles(_))
+    }
+    file.delete
+  }
+
+  def copyFile(src: String, dst: String) = {
+    val srcFile = new File(src)
+    val dstFile = new File(dst)
+    new FileOutputStream(dstFile)
+            .getChannel()
+            .transferFrom (
+              new FileInputStream(srcFile).getChannel(), 0, Long.MaxValue
+            )
+  }
+
+  def copyDir(srcDirFile: File, dstDirFile: File): Unit = {
+    for (f <- srcDirFile.listFiles) {
+      if (f.isDirectory) {
+        val dstDir = new File(s"${dstDirFile.getAbsolutePath}/${f.getName}")
+        dstDir.mkdirs()
+        copyDir(f, dstDir)
+      } else {
+        val dst = s"${dstDirFile.getAbsolutePath()}/${f.getName}"
+        val src = f.getAbsolutePath()
+        copyFile(src, dst)
+      }
+    }
+  }
+
+  def copyDir(srcDir: String, dstDir: String): Unit = {
+    val srcDirFile = new File(srcDir)
+    val srcDirName = srcDir.split(separator).last
+    val dstDirFile = new File(s"$dstDir$separator$srcDirName")
+    dstDirFile.mkdirs()
+
+    for (f <- srcDirFile.listFiles) {
+      if (f.isDirectory) {
+        val dstDir = new File(s"${dstDirFile.getAbsolutePath}${separator}${f.getName}")
+        dstDir.mkdirs()
+        copyDir(f, dstDir)
+      } else {
+        val dst = s"${dstDirFile.getAbsolutePath()}${separator}${f.getName}"
+        val src = f.getAbsolutePath()
+        copyFile(src, dst)
+      }
+    }
+  }
+
+  def mkdir(dirName:String) = {
+    val dir = new File(dirName)
+    if (!dir.exists()) {
+      println(s"[pir] creating output directory: $dirName");
+      dir.mkdir();
+    }
+  }
+
+  def buildPath(dirName:String, fileName:String) = s"${dirName}${separator}${fileName}"
+
+  def dirName(fullPath:String) = fullPath.split(separator).dropRight(1).mkString(separator)
+
+  def baseName(fullPath:String) = fullPath.split(separator).last
 
 }

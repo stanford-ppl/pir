@@ -7,7 +7,7 @@ import scala.reflect._
 import scala.collection.mutable
 
 trait GraphTransformer {
-  type N<:Node[N] with Product
+  type N<:ProductNode[N]
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
   type D <: Design
@@ -48,7 +48,7 @@ trait GraphTransformer {
         val index = ios(from).indexOf(fromio)
         val toio = ios(to)(index)
         io.disconnectFrom(fromio)
-        io.connect(toio.asInstanceOf[io.E])
+        io.connect(toio)
       }
     }
   }
@@ -61,7 +61,7 @@ trait GraphTransformer {
     val connected = node.ios.filter { io =>
       if (io.isConnectedTo(from)) {
         io.disconnectFrom(from)
-        io.connect(to.asInstanceOf[io.E])
+        io.connect(to)
         true
       } else false
     }

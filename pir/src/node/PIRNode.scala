@@ -3,9 +3,9 @@ package pir.node
 import pir._
 
 import pirc._
-import pirc.enums._
+import prism.node._
 
-abstract class PIRNode(implicit design:PIR) extends prism.node.Node[PIRNode] with IR { self =>
+abstract class PIRNode(implicit design:PIR) extends ProductNode[PIRNode] with IR { self =>
   type N = PIRNode
   type P = Container
   type A = Primitive
@@ -27,20 +27,4 @@ abstract class PIRNode(implicit design:PIR) extends prism.node.Node[PIRNode] wit
     super.setParent(p)
   }
 }
-
-sealed trait IOType extends Enum
-case object Vector extends IOType
-case object Scalar extends IOType
-case object Control extends IOType
-
-sealed trait ControlStyle extends Enum
-case object InnerPipe extends ControlStyle
-case object SeqPipe extends ControlStyle
-case object MetaPipe extends ControlStyle
-case object StreamPipe extends ControlStyle
-case object ForkSwitch extends ControlStyle
-
-sealed trait ControlLevel extends Enum
-case object InnerControl extends ControlLevel
-case object OuterControl extends ControlLevel
 

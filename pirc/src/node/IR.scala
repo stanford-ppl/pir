@@ -1,0 +1,23 @@
+package prism.node
+
+import pirc._
+import pirc.util._
+
+import scala.reflect._
+import scala.reflect.runtime.universe._
+import scala.collection.mutable
+
+@SerialVersionUID(123L)
+abstract class IR(implicit design:Design) extends Serializable { 
+  val id = design.nextId
+
+  override def equals(that: Any) = that match {
+    case n: IR => super.equals(that) && id == n.id
+    case _ => super.equals(that)
+  }
+
+  def className = this.getClass.getSimpleName
+
+  override def toString = s"${className}$id"
+}
+

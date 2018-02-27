@@ -12,16 +12,6 @@ trait Pass extends Logging {
   lazy val name = this.getClass.getSimpleName
   override def toString = name
   
-  //val runPasses = mutable.ListBuffer[RunPass]()
-
-  //def reset:Unit = runPasses.foreach(_.reset)
-
-  //def newRun(id:Int)(implicit design:Design):RunPass = {
-    //val runPass = RunPass(this, id)
-    //runPasses += runPass
-    //runPass
-  //}
-  
   def reset = {}
 
   def initPass(runner:RunPass[_]):Unit = {

@@ -9,10 +9,6 @@ import pirc.util._
 case class DRAM()(implicit design:PIR) extends IR
 
 abstract class Memory(implicit design:PIR) extends Primitive { self =>
-  def newIn(implicit design:PIR):Input = {
-    ins.filterNot(_.isConnected).headOption.getOrElse(new Input)
-  }
-
   def writers = deps.collect { case s: LocalStore => s }
   def readers = depeds.collect { case l: LocalLoad => l }
   def accesses = writers ++ readers

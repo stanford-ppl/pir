@@ -4,6 +4,7 @@ import pir._
 
 import pirc._
 import pirc.util._
+import pirc.enums._
 
 trait Controller extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
