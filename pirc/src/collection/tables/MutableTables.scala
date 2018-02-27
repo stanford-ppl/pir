@@ -1,9 +1,9 @@
-package pirc.collection.mutable
+package prism.collection.mutable
 
-import pirc.collection._
+import prism.collection._
 
 class Table[C, V, E](val values:Map[C,List[V]], val default:Option[E]=None) 
-  extends pirc.collection.Table[C,V,E] {
+  extends prism.collection.Table[C,V,E] {
   val map = scala.collection.mutable.Map[K,E]()
   def update(xs:Any*):Unit = {
     val (cols,e) = xs.splitAt(xs.length-1)

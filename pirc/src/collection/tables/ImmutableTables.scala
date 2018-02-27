@@ -1,9 +1,9 @@
-package pirc.collection.immutable
+package prism.collection.immutable
 
-import pirc.collection._
+import prism.collection._
 
 case class Table[C, V, E](values:Map[C,List[V]], default:Option[E]=None) 
-  extends pirc.collection.Table[C,V,E] {
+  extends prism.collection.Table[C,V,E] {
   val map:Map[K,E] = Map.empty
   def + (xs:Any*)(e:E):Table[C,V,E] = {
     val keys:List[K] = toKey(xs:_*) 

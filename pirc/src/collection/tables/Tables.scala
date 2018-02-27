@@ -1,10 +1,10 @@
-package pirc.collection
+package prism.collection
 
 import pirc._
 
 import scala.collection._
 
-trait Table[C, V, E] {
+trait Table[C, V, E] extends Serializable {
   type K = scala.collection.immutable.Map[C,V]
   def values:scala.collection.immutable.Map[C, List[V]]
   def columns:Iterable[C] = values.keys
