@@ -17,11 +17,11 @@ import java.io._
 trait PIRApp extends PIR {
   override def name:String = this.getClass().getSimpleName().replace("$","")
   
-  def dramDefault = arch.top.dram.dramDefault
+  //def dramDefault = arch.top.dram.dramDefault
 
-  def setDram(start:Int, array:Iterable[AnyVal]) = {
-    array.zipWithIndex.foreach { case (a, i) => dramDefault(start + i) = a }
-  }
+  //def setDram(start:Int, array:Iterable[AnyVal]) = {
+    //array.zipWithIndex.foreach { case (a, i) => dramDefault(start + i) = a }
+  //}
 
   var args:Array[String] = _ 
 

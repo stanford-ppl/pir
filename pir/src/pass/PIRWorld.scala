@@ -6,7 +6,7 @@ import scala.reflect._
 
 trait PIRWorld {
   implicit val nct = classTag[N]
-  type N = PIRNode with Product
+  type N = PIRNode
   type P = Container
   type A = Primitive
 }
