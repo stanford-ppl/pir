@@ -38,14 +38,3 @@ case class ArgFringe(argController:ArgInController)(implicit design:Design) exte
 case class ArgInDef()(implicit design:Design) extends Def
 case class ArgInValid()(implicit design:Design) extends ControlNode
 
-case class PIRDesign() extends prism.node.ProductNode[PIRNode](0) with PIRNode with Container with prism.node.Design { 
-  val pirmeta = new PIRMetadata
-
-  implicit override lazy val design:this.type = this
-
-  val topController:TopController = TopController()(design)
-  val argController = ArgInController()(design).setParent(topController)
-  lazy val argFringe = ArgFringe(argController)(design)
-
-}
-
