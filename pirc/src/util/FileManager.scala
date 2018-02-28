@@ -1,6 +1,6 @@
 package pirc.util
 
-import pirc._
+import prism._
 
 import scala.collection.mutable.ListBuffer
 import java.io.{File, FileInputStream, FileOutputStream}

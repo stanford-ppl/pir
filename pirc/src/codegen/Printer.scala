@@ -1,6 +1,7 @@
-package pirc.codegen
+package prism.codegen
 
 import pirc._
+import pirc.util._
 
 import java.nio.file._
 import java.io._
@@ -8,22 +9,102 @@ import scala.collection.mutable.Stack
 
 trait Printer {
 
-  var _append = false
-  def append = { stream; _append }
-  var fileName:String = "System.out"
-  var dirPath:String = Config.outDir 
-  var file:File = _
-  lazy val stream:OutputStream = System.out
-  def stdOut = fileName=="System.out" 
-
-  def getPath = {
-    if (stdOut) "console"
-    else s"${dirPath}${File.separator}${fileName}"
+  trait StreamWriter {
+    def outputStream:OutputStream
+    lazy val writer = new PrintWriter(outputStream)
+    def print(s:String) = { writer.print(s) }
+    def println(s:String) = { writer.println(s) }
+    def flush = writer.flush
+    def close = writer.close
+    def getPath:String
+  }
+  case class StdoutWriter() extends StreamWriter {
+    val outputStream = System.out
+    override def print(s:String) = { super.print(s); writer.flush }
+    override def println(s:String) = { super.println(s); writer.flush }
+    override def close = {} // Cannot close stdout
+    def getPath = s"console"
+  }
+  case class ByteWriter() extends StreamWriter {
+    override lazy val outputStream:ByteArrayOutputStream = new ByteArrayOutputStream()
+    def getPath = "byteStream"
+  }
+  case class FileWriter(dirName:String, fileName:String, append:Boolean) extends StreamWriter {
+    val path = buildPath(dirName, fileName) 
+    override lazy val outputStream:FileOutputStream = {
+      mkdir(dirName)
+      new FileOutputStream(new File(path), append)
+    }
+    var written = false
+    override def print(s:String) = { written = true; super.println(s) }
+    override def println(s:String) = { written = true; super.println(s) }
+    override def flush = if (written) super.flush
+    override def close = if (written) super.close 
+    def getPath = path
   }
 
-  lazy val writer = new PrintWriter(stream)
-  //lazy val pw = new PrintWriter(stream)
-  def pw:PrintWriter = { bufferWriters.headOption.getOrElse(writer) }
+  val streamStack = Stack[StreamWriter]()
+
+  def sw:StreamWriter = { streamStack.headOption.getOrElse(throw new Exception(s"No Stream defined for $this")) }
+
+  def openBuffer = open(ByteWriter())
+
+  def openStdout = open(StdoutWriter())
+
+  def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
+    open(FileWriter(dirName, fileName, append))
+  }
+
+  def openFile(fileName:String, append:Boolean=false)(implicit compiler:Compiler):StreamWriter = {
+    openFile(compiler.outDir, fileName, append)
+  }
+
+  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler) = {
+    openFile(fileName, append)
+    try {
+      lambda
+    } catch {
+      case e:Exception =>
+        closeStream
+        throw e
+    }
+    closeStream
+  }
+
+  def open(stream:StreamWriter):StreamWriter = {
+    streamStack.headOption.foreach { _.flush }
+    streamStack.push(stream)
+    stream
+  }
+
+  def closeAndWriteNext:Unit = {
+    if (!isOpen) return
+    val stream = streamStack.pop
+    stream match {
+      case stream:ByteWriter =>
+        streamStack.headOption.foreach { nextStream =>
+          nextStream.outputStream.write(stream.outputStream.toByteArray())
+          nextStream.flush
+        }
+      case stream =>
+    }
+    stream.flush
+    stream.close
+  }
+
+  def closeAndWriteNextAll:Unit = while (isOpen) closeAndWriteNext
+
+  def closeStream:Unit = {
+    if (!isOpen) return
+    val stream = streamStack.pop
+    stream.flush
+    stream.close
+  }
+
+  def closeAll:Unit = while (isOpen) closeStream
+
+  def isOpen = streamStack.nonEmpty
+
   val tab = "  "
   var level = 0
   var listing = false
@@ -32,21 +113,23 @@ trait Printer {
   def blist = { listing = true; incLevel }
   def elist = { listing = false; decLevel }
 
-  def pprint(s:String):Unit = { pw.print(s); if (stdOut) flush }
-  def pprintln(s:String):Unit = { pw.println(s); if (stdOut) flush }
-  def pprintln:Unit = { pw.println; if (stdOut) flush }
-
   trait Braces { def s:String; def e:String }
   case object Brackets extends Braces { def s = "["; def e = "]" }
   case object CurlyBraces extends Braces { def s = "{"; def e = "}" }
   case object Parentheses extends Braces { def s = "("; def e = ")" }
 
-  def emit(s:String):Unit = pprint(s"${tab*level}${if (listing) "- " else ""}${s}")
+  def indent(s:String) = if (s=="") "" else s"${tab*level}$s"
+  def listFormat(s:String) = if (listing) s"- $s" else s
+
+  def write(s:String):Unit = sw.print(s)
+  def writeln(s:String):Unit = sw.println(s)
+
+  def emit:Unit = write("") 
+  def emit(s:String):Unit = write(indent(listFormat(s)))
+  def emitln(s:String):Unit = writeln(indent(listFormat(s)))
+  def emitln:Unit = writeln("")
+
   def emit(s:Any):Unit = emit(s.toString) 
-  def emit:Unit = emit("") 
-  def emitln(s:String):Unit = pprintln(s"${tab*level}${if (listing) "- " else ""}${s}")
-  def emitln:Unit = pprintln
-  def emitln(i:Int):Unit = (0 until i).foreach { i => pprintln }
 
   def emitBSln:Unit = emitBSln(None, None, None)
   def emitBSln(b:Braces):Unit = emitBSln(None, Some(b), None)
@@ -92,68 +175,8 @@ trait Printer {
 
   def emitTitleComment(title:String) = 
     emitln(s"/*****************************${title}****************************/")
-  def flush = pw.flush()
-  def close = {
-    pw.flush()
-    if (stream != System.out)
-      pw.close()
-  }
+  def flush = sw.flush
+  def close = sw.close
 
-  def fileExist = Files.exists(Paths.get(getPath))
-  def fileEmpty = {
-    stream
-    file.length==0
-  }
-
-  def newStream(dp:String, fname:String, append:Boolean=false):FileOutputStream = { 
-    fileName = fname
-    dirPath = dp
-    _append = append
-    val dir = new File(dirPath)
-    if (!dir.exists()) {
-      println(s"[pir] creating output directory: $dirPath");
-      dir.mkdir();
-    }
-    file = new File(getPath)
-    new FileOutputStream(file, append)
-  }
-  def newStream(fname:String)(implicit compiler:Compiler):FileOutputStream = { newStream(compiler.outDir, fname) }
-  def newStream(fname:String, append:Boolean)(implicit compiler:Compiler):FileOutputStream =
-    newStream(compiler.outDir, fname, append)
-
-  /* A temporary stream to write all data */
-  val buffers = Stack[ByteArrayOutputStream]()
-  val bufferWriters = Stack[PrintWriter]()
-  def openBuffer = {
-    pw.flush
-    buffers.push(new ByteArrayOutputStream())
-    bufferWriters.push(new PrintWriter(buffers.top))
-  }
-  /*
-   * Close the temporary stream and write all content in the temp stream to actual file
-   * */
-  def closeAndWriteBuffer:Unit = {
-    if (buffers.isEmpty) return
-    val bufStream = buffers.pop
-    val nextStream = buffers.headOption.getOrElse(stream)
-    nextStream.write(bufStream.toByteArray())
-    nextStream.flush
-    buffers.push(bufStream) // Let closeBuffer to do the cleanning
-    closeBuffer
-  }
-
-  /* Close the temporary stream */
-  def closeBuffer:Unit = {
-    if (buffers.isEmpty) return
-    val pw = bufferWriters.pop
-    pw.flush()
-    pw.close()
-    buffers.pop
-  }
-
-  def closeAndWriteAllBuffers = {
-    while (buffers.nonEmpty) {
-      closeAndWriteBuffer
-    }
-  }
 }
+

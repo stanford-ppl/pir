@@ -34,7 +34,7 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
   def emitEdges = { nodes.foreach(emitEdge) }
 
   def open = {
-    s"out/bin/run ${getPath} &".replace(".dot", "") !
+    s"out/bin/run ${outputPath} &".replace(".dot", "") !
   }
 
   def shape(attr:DotAttr, n:Any) = attr.shape(box)

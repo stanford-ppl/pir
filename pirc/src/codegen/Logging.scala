@@ -40,8 +40,8 @@ trait Logging {
   def dbg(header:String, s:Any):Unit = dbg(debug, header, s) 
   def dbg(pred:Boolean, s:Any):Unit = dbg(pred, None, s) 
   def dbg(s:Any):Unit = dbg(debug, None, s) 
-  //TODO
-  //def dbsln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) logger.emitBSln(promp(header,s))
-  //def dbeln(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) logger.emitBEln(promp(header, s))
+  def dbsln(s:String):Unit = logger.emitBSln(s)
+  def dbeln(s:String):Unit = logger.emitBEln(s)
+  def dbeln:Unit = logger.emitBEln("")
 
 }

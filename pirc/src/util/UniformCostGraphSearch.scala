@@ -1,7 +1,7 @@
 package pirc.util
 
-import pirc.exceptions._
-import pirc.codegen.Logger
+import pirc._
+import pirc.exceptions.SearchFailure
 
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
@@ -25,7 +25,7 @@ trait UniformCostGraphSearch {
     advance:AdvanceFunc[S,A,C], 
     quote:S => String,
     finPass:(List[(S,A)], C) => M,
-    logger:Option[Logger]
+    logger:Option[Logging]
   ):Either[PIRException, M] = {
 
     def terminate(minNode:S, explored:Explored[S],backPointers:BackPointer[S,A,C]):Option[M] = {
@@ -40,7 +40,7 @@ trait UniformCostGraphSearch {
             //frontier.clear
             //frontier += State(start, zeroCost)
             logger.foreach { l => 
-              l.dprintln(s"$e")
+              l.dbg(s"$e")
             }
             None
           case Failure(e) => throw e
@@ -76,7 +76,7 @@ trait UniformCostGraphSearch {
     sumCost:(C,C) => C,
     advance:AdvanceFunc[S,A,C], 
     quote:S => String,
-    logger:Option[Logger]
+    logger:Option[Logging]
   ):Seq[(S,C)] = {
 
     def terminate(minNode:S, explored:mutable.ListBuffer[S],backPointers:BackPointer[S,A,C]):Option[Seq[(S,C)]] = { 
@@ -109,7 +109,7 @@ trait UniformCostGraphSearch {
     quote:S => String,
     terminate:(S, Explored[S], BackPointer[S,A,C]) => Option[M],
     cleanUp:(Explored[S], BackPointer[S,A,C]) => Either[PIRException, M],
-    logger:Option[Logger]
+    logger:Option[Logging]
   ):Either[PIRException, M] = {
 
     case class State(n:S, var cost:C) extends Ordered[State] {
@@ -127,21 +127,21 @@ trait UniformCostGraphSearch {
 
     while (!frontier.isEmpty) {
       logger.foreach { l =>
-        l.dprintln(s"frontier:")
-        l.dprintln(s"- ${frontier}")
-        l.dprintln("")
+        l.dbg(s"frontier:")
+        l.dbg(s"- ${frontier}")
+        l.dbg("")
       }
 
       val State(minNode, pastCost) = frontier.dequeue()
 
       logger.foreach { l =>
-        l.emitBSln(s"${quote(minNode)}, pastCost:$pastCost")
+        l.dbsln(s"${quote(minNode)}, pastCost:$pastCost")
       }
 
       terminate(minNode, explored, backPointers).foreach { res => 
         logger.foreach { l =>
-          l.emitBEln
-          l.dprintln("")
+          l.dbeln
+          l.dbg("")
         }
         return Right(res) // why is this cast necessary?
       }
@@ -149,15 +149,15 @@ trait UniformCostGraphSearch {
       var neighbors = advance(minNode, backPointers, pastCost)
 
       //logger.foreach { l =>
-        //l.dprintln(s"neighbors:")
-        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+        //l.dbg(s"neighbors:")
+        //l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
       //}
       
       neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
 
       //logger.foreach { l =>
-        //l.dprintln(s"neighbors not explored:")
-        //l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+        //l.dbg(s"neighbors not explored:")
+        //l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
       //}
       
       neighbors = neighbors.groupBy { case (n, a, c) => n }.map { case (n, groups) =>
@@ -165,8 +165,8 @@ trait UniformCostGraphSearch {
       }.toSeq
 
       logger.foreach { l =>
-        l.dprintln(s"neighbors minBy:")
-        l.dprintln(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+        l.dbg(s"neighbors minBy:")
+        l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
       }
 
       neighbors.foreach { case (neighbor, action, cost) =>
@@ -183,8 +183,8 @@ trait UniformCostGraphSearch {
         }
       }
       logger.foreach { l =>
-        l.emitBEln
-        l.dprintln("")
+        l.dbeln
+        l.dbg("")
       }
     }
 

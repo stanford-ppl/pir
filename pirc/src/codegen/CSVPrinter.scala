@@ -1,4 +1,4 @@
-package pirc.codegen
+package prism.codegen
 
 import scala.collection.mutable._
 
@@ -29,9 +29,10 @@ trait CSVPrinter extends Printer {
   }
 
   def emitFile = {
-    if (!append || fileEmpty) {
-      emitln(header.mkString(","))
-    }
+    //TODO
+    //if (!append || fileEmpty) {
+      //emitln(header.mkString(","))
+    //}
     rows.foreach(emit)
   }
 }

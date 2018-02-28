@@ -1,4 +1,4 @@
-package pirc.codegen
+package prism.codegen
 
 trait ScalaCodegen extends Printer {
   def emitComment(s:Any) = {
@@ -9,7 +9,7 @@ trait ScalaCodegen extends Printer {
   def emitComma(implicit ms:CollectionStatus):Unit = { 
     if (ms.inScope) { 
       if (ms.firstPair) ms.firstPair = false 
-      else pprintln(s",")
+      else writeln(s",")
     }
   }
 
@@ -22,7 +22,7 @@ trait ScalaCodegen extends Printer {
     emitComma;
     emitBlock(s, None, Some(e), Parentheses) {
       block(new CollectionStatus())
-      pprintln
+      writeln("")
     }
   }
 

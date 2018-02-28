@@ -1,4 +1,4 @@
-package pirc.codegen
+package prism.codegen
 
 import pirc._
 
@@ -14,20 +14,20 @@ trait JsonCodegen extends Printer {
   def emitComma(implicit ms:CollectionStatus) = { 
     if (ms.inScope) { 
       if (ms.firstPair) ms.firstPair = false 
-      else pprintln(s",")
+      else writeln(s",")
     }
   }
   def emitMap(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
-    def block = { value(new CollectionStatus()); pprintln }
+    def block = { value(new CollectionStatus()); writeln("") }
     emitElem(block)(ms)
   }
   def emitMap(key:String)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
-    def block = { value(new CollectionStatus()); pprintln }
+    def block = { value(new CollectionStatus()); writeln("") }
     emitPair(key)(block)(ms)
   }
   def emitList(key:String)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
     emitComma
-    def block = { value(new CollectionStatus()); pprintln }
+    def block = { value(new CollectionStatus()); writeln("") }
     emitBSln(s""""$key": """, Brackets)
     block
     emitBE(Brackets)

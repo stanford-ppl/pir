@@ -29,9 +29,6 @@ trait PIR extends Compiler {
   }
 
   //lazy val mappers = ListBuffer[Mapper]()
-  lazy val mapperLogger = new Logger {
-     override lazy val stream = newStream(PIRConfig.mapperLog)
-  }
 
   /* Analysis */
   lazy val memoryAnalyzer = new MemoryAnalyzer()
