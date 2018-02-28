@@ -34,12 +34,16 @@ trait Compiler {
     configs.foreach(_.setOption(args.toList))
   }
 
+  type D <: Design
+  var top:D = _
+
   def load:Boolean
   def save:Boolean
 
-  def loadDesign:Unit
+  val designPath:String
+  def loadDesign = top = loadFromFile[D](designPath)
   def newDesign:Unit
-  def saveDesign:Unit
+  def saveDesign:Unit = saveToFile(top, designPath)
 
   def initDesign = if (load) loadDesign else newDesign
 

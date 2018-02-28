@@ -7,7 +7,7 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-trait SubGraph[N<:Node[N]] extends Node[N] { self:N with SubGraph[N] =>
+trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>
   // Children
   private lazy val _children = mutable.ListBuffer[N]()
   def children = _children.toList

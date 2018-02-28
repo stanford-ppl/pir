@@ -46,8 +46,8 @@ trait PIRApp extends PIR {
 
   val designPath = s"${outDir}${File.separator}${name}.pir"
 
-  def loadDesign = {
-    top = loadFromFile[PIRDesign](designPath)
+  override def loadDesign = {
+    super.loadDesign
     arch = getArch(PIRConfig.arch)
     arch.initDesign
     info(s"Configuring spade $arch ...")
@@ -61,8 +61,6 @@ trait PIRApp extends PIR {
     arch.initDesign
     info(s"Configuring spade $arch ...")
   }
-
-  def saveDesign:Unit = saveToFile(top, designPath)
 
   def getArch(name:String) = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)

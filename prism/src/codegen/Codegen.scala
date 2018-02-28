@@ -26,6 +26,16 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
 
   def quote(n:Any):String
 
+  override def traverseNode(n:N):T = {
+    try {
+      super.traverseNode(n)
+    } catch {
+      case e:Exception =>
+        closeStream
+        throw e
+    }
+  }
+
   override def visitNode(n:N, prev:T) = emitNode(n)
 
   def emitNode(n:N):Unit = {

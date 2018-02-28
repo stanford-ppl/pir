@@ -7,7 +7,7 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-trait Atom[N<:Node[N]] extends Node[N] { self:N =>
+trait Atom[N<:Node[N]] extends Node[N] { self:Atom[N] with N =>
   implicit lazy val atom:this.type = this
 
   def children:List[N] = Nil

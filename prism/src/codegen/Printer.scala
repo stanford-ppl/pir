@@ -59,8 +59,8 @@ trait Printer {
     openFile(compiler.outDir, fileName, append)
   }
 
-  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler) = {
-    openFile(fileName, append)
+  def withOpen(dirName:String, fileName:String, append:Boolean)(lambda: => Unit):Unit = {
+    openFile(dirName, fileName, append)
     try {
       lambda
     } catch {
@@ -69,6 +69,10 @@ trait Printer {
         throw e
     }
     closeStream
+  }
+
+  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler):Unit = {
+    withOpen(compiler.outDir, fileName, append)(lambda)
   }
 
   def open(stream:StreamWriter):StreamWriter = {

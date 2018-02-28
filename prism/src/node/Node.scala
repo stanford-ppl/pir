@@ -53,7 +53,9 @@ abstract class Node[N<:Node[N]](id:Int)(implicit ev:ClassTag[N]) extends IR(id) 
   def ios:List[Edge[N]] = ins ++ outs
 
   def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
-  def deps:Set[A] = ins.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
+  def deps:Set[A] = {
+    ins.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
+  }
   def localDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
   def depeds:Set[A] = outs.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet

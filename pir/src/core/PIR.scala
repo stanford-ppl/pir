@@ -12,20 +12,18 @@ import prism.util._
 
 import scala.collection.mutable.ListBuffer
 
-trait PIR extends Compiler {
+trait PIR extends Compiler with PIRWorld {
 
   lazy val pirmeta:PIRMetadata = top.pirmeta
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 
-  var top:PIRDesign = _
   var arch:Spade = _
 
   override def reset = {
     super.reset
     clearLogs(outDir)
     arch = null
-    top = null
   }
 
   //lazy val mappers = ListBuffer[Mapper]()
@@ -66,7 +64,7 @@ trait PIR extends Compiler {
     addPass(new TestTraversal)
 
     // Data path transformation and analysis
-    addPass(new IRPrinter(s"IR1.txt"))
+    addPass(new PIRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)
     addPass(irCheck)
@@ -92,7 +90,7 @@ trait PIR extends Compiler {
     addPass(new PIRIRDotCodegen(s"top9.dot"))
 
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
-    addPass(new IRPrinter(s"IR2.txt"))
+    addPass(new PIRPrinter(s"IR2.txt"))
     //addPass(cuStats)
     addPass(irCheck)
 
@@ -110,7 +108,7 @@ trait PIR extends Compiler {
     addPass(new PIRIRDotCodegen(s"top13.dot"))
     addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
-    addPass(new IRPrinter(s"IR3.txt"))
+    addPass(new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
 
     // Mapping
