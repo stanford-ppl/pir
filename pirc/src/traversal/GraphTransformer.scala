@@ -10,7 +10,6 @@ trait GraphTransformer {
   type N<:ProductNode[N]
   type P<:SubGraph[N] with N
   type A<:Atom[N] with N
-  type D <: Design
   implicit val nct:ClassTag[N]
 
   def removeNode(node:N) = {
@@ -80,7 +79,7 @@ trait GraphTransformer {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:D):T = {
+  def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
     mapping.getOrElseUpdate(n, {
       n match {
         case n:N => 

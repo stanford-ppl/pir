@@ -15,8 +15,9 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class PIRPass(implicit val design:PIR) extends Pass with PIRCollector {
+abstract class PIRPass(implicit val compiler:PIR) extends Pass with PIRCollector {
 
+  implicit val design:PIRDesign = compiler.top
   lazy val pirmeta = design.pirmeta
 
   def qdef(n:Any) = n match {

@@ -2,6 +2,8 @@
 package object pirc {
   /* ------------- Alias ------------- **/
 
+  type Design = prism.node.Design
+
   /* codegen */
   //type Codegen = pirc.codegen.Codegen
   type Printer = pirc.codegen.Printer

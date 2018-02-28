@@ -13,7 +13,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld with GraphTransformer {
+abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with GraphTransformer {
   import pirmeta._
 
   def quote(n:Any) = qtype(n)
@@ -23,7 +23,9 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     mirrorMapping.clear
   }
 
-  override def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:D):T = {
+  override def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
+    implicit val pirdesign = design.asInstanceOf[PIRDesign]
+
     if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
     // Nodes do not mirror
     n match {
@@ -77,7 +79,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     container:Option[Container]=None, 
     init:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:D):(T, Set[N]) = {
+  )(implicit design:Design):(T, Set[N]) = {
     val mapping = container.fold {
       mutable.Map[Any,Any]()
     } { container =>
@@ -86,7 +88,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     mapping ++= init
     val m = mirrorX(node, mapping)
     // Moving newly created nodes into container
-    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
+    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[PIRDesign]))
     container.foreach { container =>
       newNodes.foreach { m => 
         m.setParent(container)
@@ -107,7 +109,7 @@ abstract class PIRTransformer(implicit design:PIR) extends PIRPass with PIRWorld
     container:Option[Container]=None, 
     init:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:D):T = {
+  ):T = {
     mirrored(node, container, init, mirrorRule)._1
   }
 

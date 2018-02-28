@@ -14,7 +14,7 @@ import sys.process._
 import scala.language.postfixOps
 import scala.collection.mutable
 
-class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) extends PIRIRDotCodegen(fileName) {
+class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) extends PIRIRDotCodegen(fileName) {
   override val horizontal:Boolean = false
 
   override def color(attr:DotAttr, n:Any) = n match {
@@ -28,7 +28,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit design:PIR) exte
 
   override def emitNode(n:N) = {
     n match {
-      case g:Top => emitSubGraph(n)(super.visitNode(n))
+      case g:Design => emitSubGraph(n)(super.visitNode(n))
       case g:GlobalContainer => emitSingleNode(n); super.visitNode(n)
       case _ => super.visitNode(n)
     }

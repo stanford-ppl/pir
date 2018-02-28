@@ -5,6 +5,8 @@ import pirc.util._
 import scala.reflect._
 
 package object node {
+  private[node] type Design = PIRDesign
+
   def isFIFO(n:PIRNode) = n match {
     case n:FIFO => true
     case n:RetimingFIFO => true
@@ -39,7 +41,7 @@ package object node {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
   }
 
-  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:PIR):Int = dbgblk(logger, s"parOf($x)"){
+  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:Design):Int = dbgblk(logger, s"parOf($x)"){
     import design.pirmeta._
     x match {
       case x:LoopController => parOf(x.cchain)

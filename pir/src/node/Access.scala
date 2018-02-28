@@ -9,7 +9,7 @@ import pirc.util._
 trait LocalAccess extends Def
 trait LocalLoad extends LocalAccess
 object LocalLoad {
-  def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]])] = n match {
+  def unapply(n:Any)(implicit design:Design):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
     case LoadBanks(banks, addrs) => Some((banks, Some(addrs)))
     case LoadMem(mem, addrs) => Some(List(mem), Some(addrs))
@@ -25,7 +25,7 @@ trait LocalStore extends LocalAccess {
   }
 }
 object LocalStore {
-  def unapply(n:Any)(implicit design:PIR):Option[(List[Memory], Option[List[Def]], Def)] = n match {
+  def unapply(n:Any)(implicit design:Design):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case WriteMem(mem, data) => Some((List(mem), None, data))
     case StoreBanks(banks, addrs, data) => Some((banks, Some(addrs), data))
     case StoreMem(mem, addrs, data) => Some((List(mem), Some(addrs), data))
@@ -48,25 +48,25 @@ object WithWriter {
 }
 
 // Write without address
-case class ReadMem(mem:Memory)(implicit design:PIR) extends LocalLoad
-case class WriteMem(mem:Memory, data:Def)(implicit design:PIR) extends LocalStore
+case class ReadMem(mem:Memory)(implicit design:Design) extends LocalLoad
+case class WriteMem(mem:Memory, data:Def)(implicit design:Design) extends LocalStore
 
-case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:PIR) extends LocalLoad
-case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
+case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:Design) extends LocalLoad
+case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:Design) extends LocalStore
 // Lowered
-case class LoadMem(mem:Memory, addrs:List[Def])(implicit design:PIR) extends LocalLoad
-case class StoreMem(mem:Memory, addrs:List[Def], data:Def)(implicit design:PIR) extends LocalStore
-case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIR) extends Def
+case class LoadMem(mem:Memory, addrs:List[Def])(implicit design:Design) extends LocalLoad
+case class StoreMem(mem:Memory, addrs:List[Def], data:Def)(implicit design:Design) extends LocalStore
+case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:Design) extends Def
 
-case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], readNext:Def)(implicit design:PIR) extends LocalLoad
-case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeNext:Def)(implicit design:PIR) extends LocalStore
+case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], readNext:Def)(implicit design:Design) extends LocalLoad
+case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeNext:Def)(implicit design:Design) extends LocalStore
 
-case class FIFOEmpty(mem:Memory)(implicit design:PIR) extends Def
-case class FIFOPeak(mem:Memory)(implicit design:PIR) extends Def
-case class FIFONumel(mem:Memory)(implicit design:PIR) extends Def
+case class FIFOEmpty(mem:Memory)(implicit design:Design) extends Def
+case class FIFOPeak(mem:Memory)(implicit design:Design) extends Def
+case class FIFONumel(mem:Memory)(implicit design:Design) extends Def
 //case class NotEmpty(mem:Memory) extends Def
 //case class NotFull(mem:Memory) extends Def
 
 // Memory Control Signals
-case class NotEmpty(mem:Memory)(implicit design:PIR) extends ControlNode
-case class NotFull(mem:Memory)(implicit design:PIR) extends ControlNode
+case class NotEmpty(mem:Memory)(implicit design:Design) extends ControlNode
+case class NotFull(mem:Memory)(implicit design:Design) extends ControlNode

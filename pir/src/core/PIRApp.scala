@@ -47,14 +47,14 @@ trait PIRApp extends PIR {
   val designPath = s"${outDir}${File.separator}${name}.pir"
 
   def loadDesign = {
-    top = loadFromFile[Top](designPath)
+    top = loadFromFile[PIRDesign](designPath)
     arch = getArch(PIRConfig.arch)
     arch.initDesign
     info(s"Configuring spade $arch ...")
   }
 
   def newDesign = {
-    top = new Top()
+    top = new PIRDesign()
     main(top)
     endInfo(s"Finishing graph construction for ${this}")
     arch = getArch(PIRConfig.arch)
@@ -71,7 +71,7 @@ trait PIRApp extends PIR {
     obj.instance.asInstanceOf[Spade]
   }
 
-  def main(top:Top): Any 
+  def main(implicit top:PIRDesign): Any 
 
 }
 

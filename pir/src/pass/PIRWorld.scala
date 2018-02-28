@@ -9,5 +9,4 @@ trait PIRWorld {
   type N = PIRNode with Product
   type P = Container
   type A = Primitive
-  type D = PIR
 }

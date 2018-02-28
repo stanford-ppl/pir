@@ -6,12 +6,12 @@ import pir.codegen._
 import spade._
 import spade.codegen._
 
-class SpadeSimulator(implicit design: PIR) extends PIRPass {
+class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
 
-  implicit val arch:Spade = design.arch
+  implicit val arch:Spade = compiler.arch
 
-  def shouldRun = SpadeConfig.simulate //&& design.pirMapping.succeeded
-  implicit lazy val simulator = new Simulator()(arch, design)
+  def shouldRun = SpadeConfig.simulate //&& compiler.pirMapping.succeeded
+  implicit lazy val simulator = new Simulator()(arch, compiler)
   override def reset = {
     super.reset
     simulator.reset
@@ -19,15 +19,15 @@ class SpadeSimulator(implicit design: PIR) extends PIRPass {
 
   override def initPass = {
     super.initPass
-    design match {
-      case design:PIRApp => design.parseArgIns
+    compiler match {
+      case compiler:PIRApp => compiler.parseArgIns
       case _ =>
     }
     if (SpadeConfig.simulate && SpadeConfig.waveform) {
-      //simulator.vcds += new PIRVcdPrinter(design.mapping.get)
+      //simulator.vcds += new PIRVcdPrinter(compiler.mapping.get)
       simulator.vcds += new SpadeVcdPrinter
     }
-    //simulator.mapping = design.mapping.get
+    //simulator.mapping = compiler.mapping.get
     simulator.initPass
   }
 

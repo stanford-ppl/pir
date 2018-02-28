@@ -5,18 +5,13 @@ import pirc.util._
 import scala.collection.mutable
 import java.io._
 
-trait Design {
+trait Compiler {
 
   implicit val design:this.type = this
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
   def outDir = Config.outDir + File.separator + name
-
-  private var nextSym = 0
-  def nextId = if (staging) {nextSym += 1; nextSym } else 0
-
-  var staging = true
 
   var _session:Session = _
   lazy val session = _session

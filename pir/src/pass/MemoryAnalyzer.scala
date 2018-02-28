@@ -10,7 +10,7 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.reflect._
 
-class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
+class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
   def shouldRun = true
@@ -23,7 +23,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
       ctrlOf(access)
     }
     mem match {
-      case mem:ArgOut => accessCtrls += design.top.argController
+      case mem:ArgOut => accessCtrls += compiler.top.argController
       case _ =>
     }
     val lcaCtrl = traversal.leastCommonAncesstor(accessCtrls).getOrElse {
@@ -65,7 +65,7 @@ class MemoryAnalyzer(implicit design:PIR) extends PIRTransformer {
   }
 
   override def runPass =  {
-    lazy val mems = collectDown[Memory](design.top)
+    lazy val mems = collectDown[Memory](compiler.top)
     mems.foreach { mem =>
       setParentControl(mem)
     }

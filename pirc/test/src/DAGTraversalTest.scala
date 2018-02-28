@@ -41,7 +41,7 @@ class DAGTraversalTest extends UnitTest with GraphCollector with Logging {
     assert(g.deps == Set(c, e))
     assert(g.globalDeps == Set())
     assert(g.localDeps == Set(g2, e))
-    //new TestDotCodegen(top, s"test.dot").newRun(0).run
+    new TestDotCodegen(s"test.dot").run(null)
   }
 
   "DAGTestBFS" should "success" in {

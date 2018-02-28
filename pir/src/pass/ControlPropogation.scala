@@ -9,7 +9,7 @@ import pirc.util._
 import scala.collection.mutable
 import scala.reflect._
 
-class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
+class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -22,12 +22,12 @@ class ControlPropogation(implicit design:PIR) extends PIRTraversal with BFSTopol
   val forward = false
 
   override def runPass =  {
-    controllerTraversal.traverseNode(design.top.topController, ())
-    traverseNode(design.top)
+    controllerTraversal.traverseNode(compiler.top.topController, ())
+    traverseNode(compiler.top)
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](design.top)
+    val cus = collectDown[GlobalContainer](compiler.top)
     cus.foreach { cu =>
       checkCtrl(cu)
       checkStageCtrl(cu)

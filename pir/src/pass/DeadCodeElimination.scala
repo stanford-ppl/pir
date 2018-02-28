@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
+class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
   import pirmeta._
 
   type T = Map[N, Boolean]
@@ -20,7 +20,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
 
   override def runPass =  {
     // Mark dead code
-    val deathMap = traverseNode(design.top, Map.empty)
+    val deathMap = traverseNode(compiler.top, Map.empty)
     // Remove dead code
     deathMap.foreach { 
       case (n, true) =>
@@ -43,8 +43,8 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
     val isDead = n match {
       case n:ArgOut => false
       case n:StreamOut => false
-      case n:Primitive if isCounter(n) && !design.session.hasRunAll[AccessControlLowering] => false
-      case n:GlobalContainer if !design.session.hasRunAll[ControlAllocation] => false
+      case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => false
+      case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => false
       case n:Counter =>
         val CounterChain(counters) = collectUp[CounterChain](n).head
         counters.forall(depedsAllDead)
@@ -59,7 +59,7 @@ class DeadCodeElimination(implicit design:PIR) extends PIRTransformer with BFSBo
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](design.top)
+    val cus = collectDown[GlobalContainer](compiler.top)
     cus.foreach { cu =>
       val mems = collectDown[Memory](cu)
       mems.foreach { mem =>

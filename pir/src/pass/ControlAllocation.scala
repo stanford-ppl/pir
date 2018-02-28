@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class ControlAllocation(implicit design:PIR) extends ControlAnalysis with BFSTopologicalTraversal with UnitTraversal {
+class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -17,7 +17,7 @@ class ControlAllocation(implicit design:PIR) extends ControlAnalysis with BFSTop
   val forward = true
 
   override def runPass =  {
-    traverseNode(design.top)
+    traverseNode(compiler.top)
   }
 
   def allocateContextEnable(context:ComputeContext):ContextEnableOut = dbgblk(s"allocateContextEnable($context)") {

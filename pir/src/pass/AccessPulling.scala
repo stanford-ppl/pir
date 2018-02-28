@@ -7,19 +7,19 @@ import pirc._
 
 import scala.collection.mutable
 
-class AccessPulling(implicit design:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
+class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
 
   override def shouldRun = true
 
   val forward = false
 
   override def runPass =  {
-    traverseNode(design.top)
+    traverseNode(compiler.top)
   }
 
   override def check = {
     // Checking for escaped nodes
-    (collectDown[Primitive](design.top)).foreach { n =>
+    (collectDown[Primitive](compiler.top)).foreach { n =>
       assert(withinGlobal(n), s"$n is not contained by a CU")
     }
   }

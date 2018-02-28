@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class ContextInsertion(implicit design:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
+class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
   import pirmeta._
 
   type T = Map[PIRNode, ComputeContext]
@@ -20,7 +20,7 @@ class ContextInsertion(implicit design:PIR) extends PIRTransformer with DFSBotto
 
   override def runPass =  {
     // Mark context
-    val contextMap = traverseNode(design.top, Map[PIRNode, ComputeContext]())
+    val contextMap = traverseNode(compiler.top, Map[PIRNode, ComputeContext]())
     // Transform nodes into their contexts
     insertContext(contextMap)
   }

@@ -7,21 +7,32 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-abstract class ProductNode[N<:Node[N]:ClassTag](implicit design:Design) extends Node[N] with Product { self: N =>
+abstract class ProductNode[N<:Node[N]](id:Int, designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node(id) with Product { self:N =>
+  def this(id:Int)(implicit ev:ClassTag[N]) = this(id, None)
+  def this()(implicit design:Design, ev:ClassTag[N]) = {
+    this(design.nextId, Some(design))
+  }
+
+  lazy val design:Design = designOpt match {
+    case Some(design) => design
+    case None => this.asInstanceOf[Design]
+  }
+
   def productName = s"$productPrefix$id(${values.mkString(",")})" 
 
   lazy val fieldNames = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
   def values = productIterator.toList.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
 
-  def staging(implicit design:Design):List[Any] = {
+  def stage:List[Any] = {
     if (design.staging) 
-      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)}
+      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)(design)}
     else Nil
   }
 
-  val stagedFields = staging
+  val stagedFields = stage
 
-  def newInstance[T](args:List[Any], staging:Boolean=true)(implicit design:Design):T = {
+  def newInstance[T](args:List[Any], staging:Boolean=true):T = {
+    if (this.isInstanceOf[Design]) return this.asInstanceOf[T]
     val constructor = this.getClass.getConstructors()(0) 
     val arguments = args :+ design
     val prevStaging = design.staging

@@ -11,7 +11,7 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.reflect._
 
-class IRCheck(implicit design:PIR) extends PIRPass {
+class IRCheck(implicit compiler:PIR) extends PIRPass {
   import pirmeta._
 
   type N = PIRNode with Product
@@ -21,7 +21,7 @@ class IRCheck(implicit design:PIR) extends PIRPass {
     val prevRuns = runner.prevRuns
     prevRuns.foreach(_.pass.check(runner))
     val prePasses = prevRuns.map { _.pass }
-    val cus = collectDown[GlobalContainer](design.top)
+    val cus = collectDown[GlobalContainer](compiler.top)
     val accessLowerHasRun = runner.session.hasRun[AccessLowering]
     val ctrlAllocHasRun = runner.session.hasRun[ControlAllocation] 
     cus.foreach { cu => 

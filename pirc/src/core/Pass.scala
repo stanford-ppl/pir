@@ -29,4 +29,11 @@ trait Pass extends Logging {
   def check(runner:RunPass[_]):Unit = check
   def check:Unit = {}
 
+  def run(runner:RunPass[_]) = {
+    initPass(runner)
+    runPass(runner)
+    finPass(runner)
+    check(runner)
+  }
+
 }

@@ -11,8 +11,8 @@ import pirc.util._
 
 trait ControlAnalysis extends PIRTransformer {
 
-  def allocateCounterDone(counter:Primitive)(implicit design:PIR) = {
-    import design.pirmeta._
+  def allocateCounterDone(counter:Primitive)(implicit compiler:PIR) = {
+    import compiler.pirmeta._
     val context = contextOf(counter).get
     allocate[CounterDone](context, _.counter == counter){
       val done = CounterDone(counter)
@@ -24,8 +24,8 @@ trait ControlAnalysis extends PIRTransformer {
   def allocate[T<:PIRNode:ClassTag](
     container:Container, 
     filter:T => Boolean = (n:T) => true
-  )(newNode: => T)(implicit pir:Design):T = dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
-    import design.pirmeta._
+  )(newNode: => T)(implicit compiler:PIR):T = dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
+    import compiler.pirmeta._
     val nodes = collectDown[T](container).filter(filter)
     assert(nodes.size <= 1, s"more than 1 node in container: $nodes")
     nodes.headOption.getOrElse { 

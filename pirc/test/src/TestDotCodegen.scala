@@ -6,9 +6,9 @@ import prism.node._
 import prism.traversal._
 import prism.codegen._
 
-class TestDotCodegen(top:TestSubGraph, val fileName:String)(implicit design:Design) extends IRDotCodegen with ChildFirstTraversal {
+class TestDotCodegen(val fileName:String)(implicit design:TestDesign) extends IRDotCodegen with ChildFirstTraversal {
   type N = TestNode
-  val dirName = design.outDir
+  val dirName = Config.outDir + "/" + design.getClass.getSimpleName
 
   val forward = true
 
@@ -18,7 +18,8 @@ class TestDotCodegen(top:TestSubGraph, val fileName:String)(implicit design:Desi
   def quote(n:Any) = n.toString
 
   override def runPass = {
-    traverseNode(top, ())
+    traverseNode(design.top, ())
   }
+
 }
 

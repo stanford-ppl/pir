@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class ContextMerging(implicit design:PIR) extends PIRTransformer {
+class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
   override def shouldRun = true
@@ -17,7 +17,7 @@ class ContextMerging(implicit design:PIR) extends PIRTransformer {
   val forward = false
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](design.top)
+    val cus = collectDown[GlobalContainer](compiler.top)
     mergeContexts(cus)
   }
 

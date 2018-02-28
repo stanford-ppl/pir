@@ -9,8 +9,8 @@ import pirc.util._
 import scala.collection.mutable
 import scala.reflect._
 
-class TestTraversal(implicit design:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
-//class TestTraversal(implicit design:PIR) extends PIRTraversal with DFSTopDownTopologicalTraversal with UnitTraversal {
+class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
+//class TestTraversal(implicit compiler:PIR) extends PIRTraversal with DFSTopDownTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -19,10 +19,10 @@ class TestTraversal(implicit design:PIR) extends PIRTraversal with BFSBottomUpTo
 
   override def runPass =  {
     tic
-    traverseNode(design.top)
+    traverseNode(compiler.top)
     toc("TestPass", "ms")
 
-    val top = design.top
+    val top = compiler.top
     val allNodes = top::top.descendents
     val unvisited = allNodes.filterNot(isVisited)
     assert(unvisited.isEmpty, s"not all nodes are visited! unvisited=${unvisited}")

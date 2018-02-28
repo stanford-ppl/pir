@@ -6,10 +6,15 @@ import pirc.util._
 import scala.reflect._
 import scala.collection.mutable
 
-abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR { self:N =>
+abstract class Node[N<:Node[N]](id:Int)(implicit ev:ClassTag[N]) extends IR(id) { self:N =>
+  def this()(implicit design:Design, ev:ClassTag[N]) = {
+    this(design.nextId)
+  }
+
+  val nct:ClassTag[N] = ev
+
   type P <: SubGraph[N] with N
   type A <: Atom[N] with N
-  val nct = implicitly[ClassTag[N]]
 
   // Parent
   var _parent:Option[P] = None

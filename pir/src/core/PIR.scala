@@ -12,13 +12,13 @@ import pirc.util._
 
 import scala.collection.mutable.ListBuffer
 
-trait PIR extends Design {
+trait PIR extends Compiler {
 
-  lazy val pirmeta:PIRMetadata = top.metadata
+  lazy val pirmeta:PIRMetadata = top.pirmeta
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 
-  var top:Top = _
+  var top:PIRDesign = _
   var arch:Spade = _
 
   override def reset = {

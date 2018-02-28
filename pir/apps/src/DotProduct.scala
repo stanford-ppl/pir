@@ -4,8 +4,8 @@ import arch._
 import pirc.enums._
 
 object DotProduct extends PIRApp {
-  def main(top:Top) = {
-      import top.metadata._
+  def main(implicit top:PIRDesign) = {
+      import top.pirmeta._
     val x1451 = top.argFringe.argIn(init=0).name("x1451").ctrl(top) // ArgInNew(Const(0))
     val x1454 = ReadMem(x1451).name("x1454").ctrl(top) // RegRead(x1451)
     val x1455 = DRAM().name("x1455").ctrl(top) // x1455 = DRAMNew(ArrayBuffer(x1454),Const(0))

@@ -6,14 +6,11 @@ import pirc._
 import pirc.util._
 import prism.node._
 
-abstract class Primitive(implicit design: PIR) extends PIRNode with ProductAtom[PIRNode] { self =>
+abstract class Primitive(implicit design: Design) extends PIRNode with ProductAtom[PIRNode] { self =>
   override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
-  override def newIn(implicit design:Design) = {
-    implicit val pir = design.asInstanceOf[PIR]
-    new Input
-  }
+  override def newIn(implicit design:prism.node.Design) = new Input()(this, design.asInstanceOf[PIRDesign])
 
   lazy val out = new Output
   out

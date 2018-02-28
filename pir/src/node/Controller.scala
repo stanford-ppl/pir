@@ -13,15 +13,15 @@ trait Controller extends prism.node.SubGraph[Controller] with IR {
   def isInnerControl = level==InnerControl 
   def isOuterControl = level==OuterControl
 }
-case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIR) extends Controller {
+case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:Design) extends Controller {
   override def className = s"$style"
 }
-case class UnitController(style:ControlStyle, level:ControlLevel)(implicit design:PIR) extends Controller
-case class TopController()(implicit design:PIR) extends Controller {
+case class UnitController(style:ControlStyle, level:ControlLevel)(implicit design:Design) extends Controller
+case class TopController()(implicit design:Design) extends Controller {
   val style = SeqPipe
   val level = OuterControl 
 }
-case class ArgInController()(implicit design:PIR) extends Controller {
+case class ArgInController()(implicit design:Design) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }

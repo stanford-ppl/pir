@@ -7,7 +7,7 @@ import pirc._
 
 import scala.collection.mutable
 
-class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
+class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -15,7 +15,7 @@ class UnrollingTransformer(implicit design:PIR) extends PIRTransformer with DFST
   val forward = true
 
   override def runPass =  {
-    traverseNode(design.top)
+    traverseNode(compiler.top)
   }
 
   override def check = {

@@ -55,11 +55,11 @@ trait Printer {
     open(FileWriter(dirName, fileName, append))
   }
 
-  def openFile(fileName:String, append:Boolean=false)(implicit design:Design):StreamWriter = {
-    openFile(design.outDir, fileName, append)
+  def openFile(fileName:String, append:Boolean=false)(implicit compiler:Compiler):StreamWriter = {
+    openFile(compiler.outDir, fileName, append)
   }
 
-  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit design:Design) = {
+  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler) = {
     openFile(fileName, append)
     try {
       lambda

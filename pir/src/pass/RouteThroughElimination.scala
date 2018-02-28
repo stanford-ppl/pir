@@ -12,7 +12,7 @@ import scala.reflect._
 
 
 
-class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
+class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
@@ -20,7 +20,7 @@ class RouteThroughElimination(implicit design:PIR) extends PIRTransformer with B
   val forward = false
 
   override def runPass =  {
-    traverseNode(design.top, ())
+    traverseNode(compiler.top, ())
   }
 
   override def visitNode(n:N, prev:T):T = {

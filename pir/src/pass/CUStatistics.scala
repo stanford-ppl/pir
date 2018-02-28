@@ -10,7 +10,7 @@ import scala.collection.mutable
 import scala.reflect._
 
 
-class CUStatistics(implicit design:PIR) extends PIRPass {
+class CUStatistics(implicit compiler:PIR) extends PIRPass {
 
   type N = PIRNode with Product
   type T = Unit
@@ -23,7 +23,7 @@ class CUStatistics(implicit design:PIR) extends PIRPass {
   }
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](design.top)
+    val cus = collectDown[GlobalContainer](compiler.top)
     val cuMap = cus.groupBy {
       case cu if collectDown[SRAM](cu).nonEmpty => "pmus"
       case cu:ArgFringe => "argFringe"

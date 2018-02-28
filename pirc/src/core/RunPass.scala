@@ -46,7 +46,7 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     session.runPasses.slice(0, id)
   }
 
-  def run(implicit design:Design):Unit = {
+  def run(implicit compiler:Compiler):Unit = {
     if (!pass.shouldRun) return
     if (hasRun) return
     if (!isDependencyFree) 
@@ -67,7 +67,7 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     }
   }
 
-  def withLog(append:Boolean)(lambda: => Unit)(implicit design:Design) {
+  def withLog(append:Boolean)(lambda: => Unit)(implicit compiler:Compiler) {
     if (pass.logger.isOpen) lambda 
     else pass.logger.withOpen(logFile, append) { lambda }
   }

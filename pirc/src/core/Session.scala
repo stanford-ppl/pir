@@ -40,7 +40,7 @@ class Session extends Serializable {
   }
 
   var currRun = 0
-  def run(implicit design:Design) = {
+  def run(implicit compiler:Compiler) = {
     passes.foreach { case (pass, _) => pass.reset }
     runPasses.foreach { rp =>
       currRun = rp.id

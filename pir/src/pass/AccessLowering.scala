@@ -11,13 +11,13 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.reflect._
 
-class AccessLowering(implicit design:PIR) extends PIRTransformer {
+class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
   override def shouldRun = true
 
   override def runPass =  {
-    val accesses = collectDown[LocalAccess](design.top)
+    val accesses = collectDown[LocalAccess](compiler.top)
     accesses.foreach(lowerAccess)
   }
 
@@ -28,7 +28,7 @@ class AccessLowering(implicit design:PIR) extends PIRTransformer {
           val accessCU = globalOf(n).get 
           val bankCUs = banks.map { bank => bank -> globalOf(bank).get }.toMap
           val addrCUs = if (banks.size>1 || false /*TODO: if stages are only counters*/) {
-            val addrCU = CUContainer().setParent(design.top).ctrl(ctrlOf(n))
+            val addrCU = CUContainer().setParent(compiler.top).ctrl(ctrlOf(n))
             banks.map { _ -> addrCU }.toMap
           } else {
             bankCUs

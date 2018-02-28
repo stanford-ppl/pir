@@ -10,13 +10,13 @@ import scala.collection.mutable
 import scala.reflect._
 import pirc.util._
 
-class AccessControlLowering(implicit design:PIR) extends ControlAnalysis with SiblingFirstTraversal with UnitTraversal {
+class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
   override def shouldRun = true
 
   override def runPass =  {
-    traverseNode(design.top)
+    traverseNode(compiler.top)
   }
 
   override def visitNode(n:N):Unit = {
