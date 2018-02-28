@@ -7,6 +7,8 @@ import scala.collection.mutable.Stack
 import java.lang.Thread
 
 package object util extends Printer with Serialization with FileManager with Reflection {
+  openStdout
+
   val times = Stack[Long]()
   def tic = {
     times.push(System.nanoTime())

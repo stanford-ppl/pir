@@ -33,15 +33,15 @@ val bldSettings = Defaults.defaultSettings ++ Seq(
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
 )
 
-lazy val pirc = Project("pirc", 
-  file("pirc/"), 
+lazy val prism = Project("prism", 
+  file("prism/"), 
   settings = bldSettings
 )
 
 lazy val spade = Project("spade", 
   file("spade/"), 
   settings = bldSettings,
-  dependencies = Seq(pirc % "compile->compile;test->test")
+  dependencies = Seq(prism % "compile->compile;test->test")
 )
 
 lazy val arch:Project = Project("arch", 
@@ -53,14 +53,14 @@ lazy val arch:Project = Project("arch",
 lazy val pir = Project("pir", 
   file("pir/"), 
   settings = bldSettings,
-  dependencies = Seq(pirc % "compile->compile;test->test", spade % "compile->compile", arch % "compile->compile")
+  dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile", arch % "compile->compile")
 )
 
 lazy val apps = Project("apps", 
   file("pir/apps"), 
   settings = bldSettings, 
  // Allow ScalaTest of apps accesss ScalaTest of pir
-  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile", pirc % "test->test")
+  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile", prism % "test->test")
 )
 
 // sbt command alias
@@ -70,7 +70,7 @@ addCommandAlias("makeapps", ";project apps; compile")
 
 addCommandAlias("apps", ";project apps; test")
 
-addCommandAlias("pir", "; project pirc; test; project apps; run-main")
+addCommandAlias("pir", "; project prism; test; project apps; run-main")
 //addCommandAlias("pir", "; project apps; run-main")
 
 addCommandAlias("spade", "; project arch; run-main")
@@ -79,4 +79,4 @@ addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 
 addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 
-addCommandAlias("test-pirc", "; project pirc; test")
+addCommandAlias("test-prism", "; project prism; test")
