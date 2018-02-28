@@ -1,7 +1,7 @@
-package pirc.test
+package prism.test
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 import prism.node._
 import prism.traversal._
 

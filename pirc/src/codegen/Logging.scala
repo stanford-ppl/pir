@@ -1,6 +1,6 @@
 package prism.codegen
 
-import pirc._
+import prism._
 
 import java.io.FileOutputStream
 

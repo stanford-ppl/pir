@@ -2,8 +2,8 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.enums._
+import prism._
+import prism.enums._
 
 import scala.reflect._
 

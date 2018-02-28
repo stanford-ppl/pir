@@ -1,8 +1,8 @@
-package pirc.codegen
+package prism.codegen
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Map
-import pirc._
+import prism._
 
 trait DotCodegen extends Printer {
 
@@ -21,14 +21,7 @@ trait DotCodegen extends Printer {
   def emitNode(n:Any, label:Any, attr:DotAttr) = {
     emitln(s"""${q(n)} [label="${q(label)}" ${attr.list} ];""")
   }
-  def emitEdge(from:Any, to:Any, label:String):Unit = {
-    emitEdge(from, to, DotAttr().label(label))
-  }
   def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
-    //attr.attrMap.get("label").foreach { label =>
-      //attr.attrMap.remove("label")
-      //attr.attrMap += "xlabel" -> label
-    //}
     emitln(s"""${q(from)} -> ${q(to)} ${if (attr.attrMap.size!=0) s"[${attr.list}]" else ""}""")
   }
   def emitEdge(from:Any, to:Any):Unit = {
@@ -61,8 +54,10 @@ trait DotCodegen extends Printer {
     def + (rec:(String, String)):DotAttr = { attrMap += rec; this}
   
     def shape(s:Shape) = { attrMap += "shape" -> s.field; this }
-    def color(s:Color) = { attrMap += "color" -> s.field; this }
-    def fillcolor(s:Color) = { attrMap += "fillcolor" -> s.field; this }
+    def color(s:Color):this.type = color(s.field) 
+    def color(s:String):this.type = { attrMap += "color" -> s; this }
+    def fillcolor(s:Color):this.type = fillcolor(s.field) 
+    def fillcolor(s:String):this.type = { attrMap += "fillcolor" -> s; this }
     def labelfontcolor(s:Color) = { attrMap += "labelfontcolor" -> s.field; this }
     def style(ss:Style*) = { attrMap += "style" -> ss.map(_.field).mkString(","); this }
     def graphStyle(s:Style) = { graphAttrMap += "style" -> s"${s.field}"; this }
@@ -82,6 +77,7 @@ trait DotCodegen extends Printer {
   }
   object DotAttr {
     def apply():DotAttr = new DotAttr()
+    def empty:DotAttr = new DotAttr()
     def copy(attr:DotAttr):DotAttr = {
       val newAttr = DotAttr()
       attr.attrMap.foreach { e => newAttr + e }

@@ -2,9 +2,9 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.enums._
-import pirc.util._
+import prism._
+import prism.enums._
+import prism.util._
 
 trait LocalAccess extends Def
 trait LocalLoad extends LocalAccess

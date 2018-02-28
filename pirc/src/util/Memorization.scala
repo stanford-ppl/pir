@@ -1,4 +1,4 @@
-package pirc.util
+package prism.util
 
 import scala.reflect._
 import scala.collection.mutable

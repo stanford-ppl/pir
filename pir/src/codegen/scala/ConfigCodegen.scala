@@ -1,7 +1,7 @@
 package pir.codegen
 
 import pir._
-import pirc.Config
+import prism.Config
 
 class ConfigCodegen(implicit design: PIR) extends PIRPass {
   def shouldRun = false && Config.codegen

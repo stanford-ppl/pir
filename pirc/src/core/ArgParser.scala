@@ -1,6 +1,6 @@
-package pirc
+package prism
 
-import pirc.util._
+import prism.util._
 
 import scala.collection.mutable
 import scala.reflect._

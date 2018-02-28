@@ -1,9 +1,9 @@
-package pirc.test
+package prism.test
 
 import prism.collection.mutable
-import pirc.util._
+import prism.util._
 
-import pirc.exceptions._
+import prism.exceptions._
 import scala.reflect._
 
 class A[T1:ClassTag, T2:ClassTag] extends Serializable

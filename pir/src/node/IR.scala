@@ -2,8 +2,8 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 
 trait IR extends prism.node.IR { 
   def name(n:String)(implicit design:Design):this.type = {

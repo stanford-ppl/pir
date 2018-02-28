@@ -1,6 +1,6 @@
-package pirc
+package prism
 
-import pirc.exceptions._
+import prism.exceptions._
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Stack

@@ -2,8 +2,8 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 import prism.node._
 
 trait Container extends PIRNode with ProductSubGraph[PIRNode] { self =>

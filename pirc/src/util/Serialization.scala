@@ -1,4 +1,4 @@
-package pirc.util
+package prism.util
 
 import java.io._
 trait Serialization {

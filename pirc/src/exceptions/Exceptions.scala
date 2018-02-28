@@ -1,4 +1,4 @@
-package pirc.exceptions
+package prism.exceptions
 
 import prism.collection._
 

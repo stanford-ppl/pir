@@ -1,6 +1,6 @@
 package prism.collection
 
-import pirc._
+import prism._
 
 import scala.collection._
 

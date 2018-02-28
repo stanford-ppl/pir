@@ -1,7 +1,7 @@
-package pirc.util
+package prism.util
 
-import pirc._
-import pirc.exceptions.SearchFailure
+import prism._
+import prism.exceptions.SearchFailure
 
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable

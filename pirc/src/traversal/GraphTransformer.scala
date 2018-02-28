@@ -1,6 +1,6 @@
 package prism.traversal
 
-import pirc._
+import prism._
 import prism.node._
 
 import scala.reflect._

@@ -1,7 +1,7 @@
 package prism.node
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 
 import scala.reflect._
 import scala.collection.mutable

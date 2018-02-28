@@ -1,6 +1,6 @@
 package pir
 
-import pirc._
+import prism._
 
 import scala.collection.mutable
 import java.io._
@@ -24,7 +24,7 @@ object PIRConfig extends GlobalConfig {
 
   var pirFile:String = register("pirlog", default="PIR.log") { pirFile = _ }
   var pirDot:String = register("pirdot", default="PIR.dot") { pirDot = _ }
-  var pirCtrlDot:String = register("pirctrldot", default="PIRCtrl.dot") { pirCtrlDot = _ }
+  var pirCtrlDot:String = register("prismtrldot", default="PIRCtrl.dot") { pirCtrlDot = _ }
   //var pisaFile = register("pir.pisafile", "pisa.json")
   var ctrlDot:String = register("ctrldot", "Ctrl.dot") { ctrlDot = _ }
   var ctrlFile:String = register("ctrllog", "Ctrl.log") { ctrlFile = _ }

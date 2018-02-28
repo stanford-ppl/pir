@@ -1,4 +1,4 @@
-package pirc.enums
+package prism.enums
 
 import scala.collection.mutable.ListBuffer
 

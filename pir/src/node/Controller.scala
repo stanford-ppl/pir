@@ -2,9 +2,9 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.util._
-import pirc.enums._
+import prism._
+import prism.util._
+import prism.enums._
 
 trait Controller extends prism.node.SubGraph[Controller] with IR {
   type P = Controller

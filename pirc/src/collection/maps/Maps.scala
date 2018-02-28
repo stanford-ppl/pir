@@ -1,7 +1,7 @@
 package prism.collection 
 
-import pirc._
-import pirc.exceptions._
+import prism._
+import prism.exceptions._
 
 import scala.collection.Map
 import scala.collection.Set

@@ -6,8 +6,8 @@ import pir.util._
 import spade._
 import arch._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe

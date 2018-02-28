@@ -2,8 +2,8 @@ package pir.node
 
 import pir._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 import scala.collection.mutable
 
 trait GlobalContainer extends Container { self => }

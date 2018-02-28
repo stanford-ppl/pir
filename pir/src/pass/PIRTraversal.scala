@@ -3,8 +3,8 @@ package pir.pass
 import pir._
 import pir.node._
 
-import pirc.enums._
-import pirc.util._
+import prism.enums._
+import prism.util._
 
 import prism.traversal._
 

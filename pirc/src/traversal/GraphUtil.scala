@@ -1,7 +1,7 @@
 package prism.traversal
 
 import prism.node._
-import pirc.util._
+import prism.util._
 
 trait GraphUtil {
 

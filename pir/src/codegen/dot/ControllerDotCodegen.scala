@@ -4,8 +4,8 @@ import pir.util._
 import pir.pass._
 import pir.node._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 import prism.traversal._
 import prism.codegen._
 

@@ -1,7 +1,7 @@
 package prism.util
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 
 import prism.collection.mutable._
 import scala.util.{Try, Success, Failure}

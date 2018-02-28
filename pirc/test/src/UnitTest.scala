@@ -1,4 +1,4 @@
-package pirc.test
+package prism.test
 
 import org.scalatest._
 

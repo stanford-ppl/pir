@@ -2,7 +2,7 @@ package pir.node
 
 import pir._
 
-import pirc._
+import prism._
 import prism.node._
 
 trait PIRNode extends ProductNode[PIRNode] with IR { self =>

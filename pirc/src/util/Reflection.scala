@@ -1,4 +1,4 @@
-package pirc.util
+package prism.util
 
 trait Reflection {
   def getDeclaredObjects(a:Any) = {

@@ -1,7 +1,7 @@
 import pir._
 import pir.node._
 import arch._
-import pirc.enums._
+import prism.enums._
 
 object DotProduct extends PIRApp {
   def main(implicit top:PIRDesign) = {

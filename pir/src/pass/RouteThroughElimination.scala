@@ -3,7 +3,7 @@ package pir.pass
 import pir._
 import pir.node._
 
-import pirc._
+import prism._
 
 import prism.traversal._
 

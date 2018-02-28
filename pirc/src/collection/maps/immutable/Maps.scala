@@ -1,7 +1,7 @@
 package prism.collection.immutable
 
-import pirc._
-import pirc.exceptions._
+import prism._
+import prism.exceptions._
 
 import scala.reflect._
 

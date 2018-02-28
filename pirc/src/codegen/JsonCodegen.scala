@@ -1,6 +1,6 @@
 package prism.codegen
 
-import pirc._
+import prism._
 
 class CollectionStatus {
   var firstPair = true 

@@ -1,6 +1,6 @@
-package pirc.enums
+package prism.enums
 
-import pirc._
+import prism._
 
 sealed trait Op extends Enum
 

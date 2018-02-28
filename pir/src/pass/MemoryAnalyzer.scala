@@ -3,8 +3,8 @@ package pir.pass
 import pir._
 import pir.node._
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 import prism.traversal._
 
 import scala.collection.mutable

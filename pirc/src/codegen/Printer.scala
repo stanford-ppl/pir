@@ -1,7 +1,7 @@
 package prism.codegen
 
-import pirc._
-import pirc.util._
+import prism._
+import prism.util._
 
 import java.nio.file._
 import java.io._
