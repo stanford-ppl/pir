@@ -34,8 +34,8 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
     designOpt match {
       case Some(design) =>
         val arguments = args :+ design
-        val prevStaging = design.staging
         design.staging = staging
+        val prevStaging = design.staging
         val newNode = newInstance(arguments)
         design.staging = prevStaging
         newNode
