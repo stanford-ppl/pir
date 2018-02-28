@@ -6,12 +6,13 @@ import prism._
 import prism.util._
 import prism.enums._
 
-trait Controller extends prism.node.SubGraph[Controller] with IR {
+abstract class Controller(implicit design:Design) extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
   val style:ControlStyle
   val level:ControlLevel
   def isInnerControl = level==InnerControl 
   def isOuterControl = level==OuterControl
+  val id = design.nextId
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:Design) extends Controller {
   override def className = s"$style"

@@ -6,8 +6,6 @@ import prism._
 import prism.enums._
 import prism.util._
 
-case class DRAM()(implicit design:Design) extends IR
-
 abstract class Memory(implicit design:Design) extends Primitive { self =>
   def writers = deps.collect { case s: LocalStore => s }
   def readers = depeds.collect { case l: LocalLoad => l }

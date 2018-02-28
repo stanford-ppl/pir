@@ -6,12 +6,9 @@ import prism.util._
 import scala.reflect._
 import scala.collection.mutable
 
-abstract class Node[N<:Node[N]](id:Int)(implicit ev:ClassTag[N]) extends IR(id) { self:N =>
-  def this()(implicit design:Design, ev:ClassTag[N]) = {
-    this(design.nextId)
-  }
+abstract class Node[N<:Node[N]:ClassTag] extends IR { self:N =>
 
-  val nct:ClassTag[N] = ev
+  val nct:ClassTag[N] = implicitly[ClassTag[N]]
 
   type P <: SubGraph[N] with N
   type A <: Atom[N] with N

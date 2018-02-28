@@ -38,3 +38,7 @@ case class ArgFringe(argController:ArgInController)(implicit design:Design) exte
 case class ArgInDef()(implicit design:Design) extends Def
 case class ArgInValid()(implicit design:Design) extends ControlNode
 
+case class DRAM()(implicit design:Design) extends IR {
+  val id = design.nextId
+}
+

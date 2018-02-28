@@ -8,10 +8,8 @@ import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 @SerialVersionUID(123L)
-abstract class IR(val id:Int) extends Serializable { 
-  def this()(implicit design:Design) = {
-    this(design.nextId)
-  }
+abstract class IR extends Serializable { 
+  val id:Int
 
   override def equals(that: Any) = that match {
     case n: IR => super.equals(that) && id == n.id

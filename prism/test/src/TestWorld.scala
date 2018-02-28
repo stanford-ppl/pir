@@ -4,12 +4,13 @@ import prism._
 import prism.util._
 import prism.node._
 
-abstract class TestDesign extends IR(0) with Design {
+abstract class TestDesign extends IR with Design {
   implicit val design:this.type = this
   val top:TestSubGraph
+  val id = 0
 }
 
-trait TestNode extends Node[TestNode] {
+trait TestNode extends ProductNode[TestNode] {
   type N = TestNode
   type A = TestAtom
   type P = TestSubGraph
@@ -24,14 +25,16 @@ trait TestNode extends Node[TestNode] {
 class TestInput(implicit override val src:TestAtom, design:Design) extends Input[TestNode] {
   override type A = TestAtom
   type E = TestOutput
+  val id = design.nextId
 }
 class TestOutput(implicit override val src:TestAtom, design:Design) extends Output[TestNode] {
   override type A = TestAtom
   type E = TestInput
+  val id = design.nextId
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends ProductAtom[TestNode] with TestNode {
+  def newIn = new TestInput
   val out = new TestOutput
-  def newIn(implicit design:Design) = new TestInput
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends ProductSubGraph[TestNode] with TestNode
 

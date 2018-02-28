@@ -7,15 +7,18 @@ import scala.reflect._
 import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
-abstract class ProductNode[N<:Node[N]](id:Int, designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node(id) with Product { self:N =>
-  def this(id:Int)(implicit ev:ClassTag[N]) = this(id, None)
-  def this()(implicit design:Design, ev:ClassTag[N]) = {
-    this(design.nextId, Some(design))
+abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node[N] with Product { self:N =>
+  def this()(implicit design:Design, ev:ClassTag[N]) = this(Some(design))
+
+  val id = designOpt match {
+    case Some(design) => design.nextId
+    case None => 0
   }
 
-  lazy val design:Design = designOpt match {
-    case Some(design) => design
-    case None => this.asInstanceOf[Design]
+  def design = designOpt.get
+  def isStaging = designOpt match {
+    case Some(design) => design.staging
+    case None => true
   }
 
   def productName = s"$productPrefix$id(${values.mkString(",")})" 
@@ -23,35 +26,47 @@ abstract class ProductNode[N<:Node[N]](id:Int, designOpt:Option[Design])(implici
   lazy val fieldNames = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
   def values = productIterator.toList.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
 
-  def stage:List[Any] = {
-    if (design.staging) 
-      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)(design)}
+  val stagedFields = if (isStaging) 
+      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)}
     else Nil
-  }
 
-  val stagedFields = stage
+  def constructArgs[T](args:List[Any], staging:Boolean)(newInstance: List[Any] => T) = {
+    designOpt match {
+      case Some(design) =>
+        val arguments = args :+ design
+        val prevStaging = design.staging
+        design.staging = staging
+        val newNode = newInstance(arguments)
+        design.staging = prevStaging
+        newNode
+      case None =>
+        val arguments = args
+        newInstance(arguments)
+    }
+  }
 
   def newInstance[T](args:List[Any], staging:Boolean=true):T = {
     if (this.isInstanceOf[Design]) return this.asInstanceOf[T]
-    val constructor = this.getClass.getConstructors()(0) 
-    val arguments = args :+ design
-    val prevStaging = design.staging
-    design.staging = staging
-    val newNode = try {
-      constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
-    } catch {
-      case e:java.lang.IllegalArgumentException =>
-        errmsg(s"Error during newInstance of node $this")
-        errmsg(s"Expected type: ${constructor.getParameterTypes().mkString(",")}")
-        errmsg(s"Got type: ${arguments.map(_.getClass).mkString(",")}")
-        throw e
-      case e:Throwable => throw e
+    constructArgs(args, staging) { arguments =>
+      (this match {
+        case design:Design => design
+        case _ => 
+          val constructor = this.getClass.getConstructors()(0) 
+          try {
+            constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*)
+          } catch {
+            case e:java.lang.IllegalArgumentException =>
+              errmsg(s"Error during newInstance of node $this")
+              errmsg(s"Expected type: ${constructor.getParameterTypes().mkString(",")}")
+              errmsg(s"Got type: ${arguments.map(_.getClass).mkString(",")}")
+              throw e
+            case e:Throwable => throw e
+          }
+      }).asInstanceOf[T]
     }
-    design.staging = prevStaging
-    newNode
   }
 
-  def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
+  def connectFields(x:Any, i:Int):Any = {
     x match {
       case Some(x) => Some(connectFields(x, i))
       case x:Iterable[_] => x.map(xx => connectFields(xx, i)) 

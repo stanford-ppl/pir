@@ -13,9 +13,9 @@ trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with 
   //Make sure lazy val is evaluated so in swapOutput the IO patterns are the same
   //Has to be lazy to avoid null pointer exception during construction in subclasses
   //
-  def newIn(implicit design:Design):Input[N]
+  def newIn:Input[N]
 
-  def connect(io:Edge[N])(implicit design:Design):Edge[N] = {
+  def connect(io:Edge[N]):Edge[N] = {
     io match {
       case io:Input[N] => out.connect(io)
       case io:Output[N] => newIn.connect(io)
@@ -25,7 +25,7 @@ trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with 
   def isInputField(field:Any, fieldIdx:Int) = true 
   final def isOutputField(field:Any, fieldIdx:Int) = !isInputField(field, fieldIdx)
 
-  override def connectFields(x:Any, i:Int)(implicit design:Design):Any = {
+  override def connectFields(x:Any, i:Int):Any = {
     x match {
       case x:ProductAtom[N] if isInputField(x, i) => this.connect(x.out)
       case x:ProductAtom[N] if isOutputField(x, i) => this.out.connect(x.newIn)

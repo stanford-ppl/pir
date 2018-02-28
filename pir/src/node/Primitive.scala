@@ -10,7 +10,7 @@ abstract class Primitive(implicit design: Design) extends PIRNode with ProductAt
   override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
-  override def newIn(implicit design:prism.node.Design) = new Input()(this, design.asInstanceOf[PIRDesign])
+  override def newIn = new Input
 
   lazy val out = new Output
   out
