@@ -20,9 +20,7 @@ class ControllerPrinter(implicit design:PIR) extends PIRPass with ChildFirstTrav
   type N = Controller
   def shouldRun = Config.debug
 
-  val dirName = design.outDir
-
-  def quote(n:Any) = qdef(n)
+  override def quote(n:Any) = qdef(n)
 
   override def emitNode(n:N) = {
     emitBlock(qdef(n)) { traverse(n) }

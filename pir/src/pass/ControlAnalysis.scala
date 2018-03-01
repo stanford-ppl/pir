@@ -11,7 +11,7 @@ import prism.util._
 
 trait ControlAnalysis extends PIRTransformer {
 
-  def allocateCounterDone(counter:Primitive)(implicit compiler:PIR) = {
+  def allocateCounterDone(counter:Primitive) = {
     import compiler.pirmeta._
     val context = contextOf(counter).get
     allocate[CounterDone](context, _.counter == counter){
@@ -24,7 +24,7 @@ trait ControlAnalysis extends PIRTransformer {
   def allocate[T<:PIRNode:ClassTag](
     container:Container, 
     filter:T => Boolean = (n:T) => true
-  )(newNode: => T)(implicit compiler:PIR):T = dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
+  )(newNode: => T):T = dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
     import compiler.pirmeta._
     val nodes = collectDown[T](container).filter(filter)
     assert(nodes.size <= 1, s"more than 1 node in container: $nodes")

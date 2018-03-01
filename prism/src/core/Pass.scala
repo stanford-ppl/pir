@@ -6,7 +6,7 @@ import prism.util._
 import scala.reflect._
 import scala.collection.mutable
 
-trait Pass extends Logging {
+abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
@@ -35,5 +35,7 @@ trait Pass extends Logging {
     finPass(runner)
     check(runner)
   }
+
+  def quote(n:Any):String
 
 }

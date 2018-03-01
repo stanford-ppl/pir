@@ -1,10 +1,11 @@
 package prism.codegen
 
-trait ScalaCodegen extends Printer {
+import prism.node._
+
+trait ScalaCodegen extends Codegen {
   def emitComment(s:Any) = {
     emitln(s"// $s")
   }
-  def quote(n:Iterable[_]):String = s"List(${n.mkString(",")})"
 
   def emitComma(implicit ms:CollectionStatus):Unit = { 
     if (ms.inScope) { 
@@ -18,7 +19,7 @@ trait ScalaCodegen extends Printer {
     emit(s)
   }
 
-  def emitInst(s:String)(block: CollectionStatus=>Unit)(e:String)(implicit ms:CollectionStatus):Unit = { 
+  def emitInst(s:String)(block: CollectionStatus=>Unit)(e:String)(implicit ms:CollectionStatus=new CollectionStatus()):Unit = { 
     emitComma;
     emitBlock(s, None, Some(e), Parentheses) {
       block(new CollectionStatus())
@@ -46,4 +47,11 @@ trait ScalaCodegen extends Printer {
   }
 
   def emitCommentBlock[T](s:String)(block: =>T):T = { emitBSln(s"// $s "); val res = block; emitBE("// "); emitln; res }
+
+  def emitCaseClassInst[N<:ProductNode[N]](n:N) = {
+    val fields = n.fieldNames.zip(n.values).map{ case (name, value) =>
+      s"$name=${quote(value)}"
+    }.mkString(",")
+    emitln(s"val ${quote(n)} = ${n.className}(${fields})")
+  }
 }

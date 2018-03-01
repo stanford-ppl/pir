@@ -8,7 +8,7 @@ import prism.codegen._
 
 import scala.reflect._
 
-object DAG1 extends TestDesign {
+object DAG1 extends TestDesign { self =>
   val a = TestAtom().name("a")
   val b = TestAtom().name("b")
   val c = TestAtom().name("c")

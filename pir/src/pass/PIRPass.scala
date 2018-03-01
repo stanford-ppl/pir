@@ -15,7 +15,7 @@ import scala.language.existentials
 import scala.math.max
 import scala.reflect._
 
-abstract class PIRPass(implicit val compiler:PIR) extends Pass with PIRCollector {
+abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIRCollector {
 
   implicit val design:PIRDesign = compiler.top
   lazy val pirmeta = design.pirmeta
@@ -29,5 +29,7 @@ abstract class PIRPass(implicit val compiler:PIR) extends Pass with PIRCollector
     case n:IR => n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
     case n => s"$n"
   }
+
+  def quote(n:Any) = qtype(n)
 
 }

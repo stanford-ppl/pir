@@ -3,11 +3,22 @@ package prism.test
 import prism._
 import prism.util._
 import prism.node._
+import java.io._
 
 abstract class TestDesign extends IR with Design {
   implicit val design:this.type = this
   val top:TestSubGraph
   val id = 0
+
+  val compiler = new Compiler {
+    override def outDir = Config.outDir + File.separator + design.getClass.getSimpleName
+    val configs = Nil
+    def handle(e:Exception) = {}
+    def load = false
+    def save = false
+    val designPath = ""
+    def newDesign = {}
+  }
 }
 
 trait TestNode extends ProductNode[TestNode] {

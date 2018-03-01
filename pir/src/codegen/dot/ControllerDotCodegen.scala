@@ -20,8 +20,6 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
 
   type N = Controller
 
-  val dirName = design.outDir
-
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
   override def color(attr:DotAttr, n:Any) = n match {
@@ -77,6 +75,6 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
     }
   }
 
-  def quote(n:Any):String = qtype(n)
+  override def quote(n:Any):String = qtype(n)
 
 }

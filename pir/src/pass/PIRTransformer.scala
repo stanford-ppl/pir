@@ -16,8 +16,6 @@ import scala.reflect._
 abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with GraphTransformer {
   import pirmeta._
 
-  def quote(n:Any) = qtype(n)
-
   override def reset = {
     super.reset
     mirrorMapping.clear

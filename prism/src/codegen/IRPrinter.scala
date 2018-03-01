@@ -13,13 +13,13 @@ trait IRPrinter extends Codegen {
 
   def qdef(n:Any):String
 
-  val metadata:Metadata
+  val metadata:Option[Metadata]
 
   def emitSubGraph(n:SubGraph[N] with N) = {
     emitBlock(qdef(n)) {
       handle {
         emitln(s"parent=${n.parent.map(quote)}")
-        metadata.summary(n).foreach(emitln)
+        metadata.foreach { _.summary(n).foreach(emitln) }
       }
       super.visitNode(n)
     }
@@ -34,7 +34,7 @@ trait IRPrinter extends Codegen {
         }
         emitln(s"deps=${n.deps.map(quote)}")
         emitln(s"depeds=${n.depeds.map(quote)}")
-        metadata.summary(n).foreach(emitln)
+        metadata.foreach { _.summary(n).foreach(emitln) }
       }
     }
     super.visitNode(n)

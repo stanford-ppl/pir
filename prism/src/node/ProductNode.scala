@@ -24,11 +24,16 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
   def productName = s"$productPrefix$id(${values.mkString(",")})" 
 
   lazy val fieldNames = self.getClass.getDeclaredFields.filterNot(_.isSynthetic).map(_.getName).toList //TODO
-  def values = productIterator.toList.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
+  def values = fields.zip(stagedFields).map { case (field, staged) => evaluateFields(field, staged) }
 
-  val stagedFields = if (isStaging) 
-      productIterator.toList.zipWithIndex.map{ case (field, i) => connectFields(field, i)}
+  def fields = super.productIterator.toList
+  override def productIterator = fields.iterator
+
+  val stagedFields = {
+    if (isStaging) 
+      fields.zipWithIndex.map{ case (field, i) => connectFields(field, i)}
     else Nil
+  }
 
   def constructArgs[T](args:List[Any], staging:Boolean)(newInstance: List[Any] => T) = {
     designOpt match {

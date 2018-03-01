@@ -8,7 +8,7 @@ import prism.traversal._
 
 trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with UnitTraversal {
 
-  val dirName:String
+  val dirName = compiler.outDir
   val fileName:String
   val append = false
 
@@ -24,7 +24,11 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
     closeStream
   }
 
-  def quote(n:Any):String
+  override def quote(n:Any):String = n match {
+    case n:Map[_,_] => n.map{ case (k, v) => (quote(k), quote(v)) }.toString
+    case n:Iterable[_] => n.map(quote).toString
+    case n => n.toString
+  }
 
   override def traverseNode(n:N):T = {
     try {
@@ -34,6 +38,10 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
         closeStream
         throw e
     }
+  }
+
+  override def runPass = {
+    traverseNode(compiler.top.asInstanceOf[N])
   }
 
   override def visitNode(n:N, prev:T) = emitNode(n)
