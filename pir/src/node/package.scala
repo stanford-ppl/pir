@@ -2,7 +2,6 @@ package pir
 
 import prism._
 import prism.util._
-import scala.reflect._
 
 package object node {
   private[node] type Design = PIRDesign

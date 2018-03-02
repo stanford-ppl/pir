@@ -11,7 +11,6 @@ import prism.traversal._
 import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
-import scala.reflect._
 
 abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with GraphTransformer {
   import pirmeta._

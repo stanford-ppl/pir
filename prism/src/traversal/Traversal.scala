@@ -5,8 +5,6 @@ import prism.util._
 import prism.node._
 import prism.codegen.Logging
 
-import scala.reflect._
-import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 trait Traversal extends Pass with GraphTraversal {

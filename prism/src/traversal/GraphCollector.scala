@@ -4,8 +4,6 @@ import prism._
 import prism.util._
 import prism.node._
 
-import scala.reflect._
-import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 trait GraphCollector extends GraphUtil {

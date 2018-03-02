@@ -3,8 +3,6 @@ package prism.node
 import prism._
 import prism.util._
 
-import scala.reflect._
-import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>

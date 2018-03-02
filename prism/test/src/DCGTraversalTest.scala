@@ -5,8 +5,6 @@ import prism.util._
 import prism.node._
 import prism.traversal._
 
-import scala.reflect._
-
 object DCG1 extends TestDesign {
   val a = TestAtom().name("a")
   val b = TestAtom(a).name("b")

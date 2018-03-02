@@ -6,10 +6,7 @@ import pir.node._
 import prism._
 import prism.util._
 
-import prism.traversal._
-
 import scala.collection.mutable
-import scala.reflect._
 
 class IRCheck(implicit compiler:PIR) extends PIRPass {
   import pirmeta._

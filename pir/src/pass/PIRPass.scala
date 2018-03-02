@@ -8,12 +8,9 @@ import prism._
 import prism.enums._
 import prism.util._
 
-import prism.traversal._
-
 import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
-import scala.reflect._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIRCollector {
 

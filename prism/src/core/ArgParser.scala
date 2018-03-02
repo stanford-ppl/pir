@@ -3,7 +3,6 @@ package prism
 import prism.util._
 
 import scala.collection.mutable
-import scala.reflect._
 
 trait ArgParser {
   val optMap = mutable.ListMap[String, (List[String] => Unit, Any, String)]()

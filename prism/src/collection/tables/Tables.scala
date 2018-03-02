@@ -1,6 +1,7 @@
 package prism.collection
 
 import prism._
+import prism.util._
 
 import scala.collection._
 
@@ -21,8 +22,8 @@ trait Table[C, V, E] extends Serializable {
   }
 
   def apply(cols:(C,V)*):E = {
-    if (cols.size != columns.size)
-      throw PIRException(s"Incorrect number of columns for apply. Given ${cols.size}. Number of columns ${columns.size}")
+    assert(cols.size == columns.size, 
+      s"Incorrect number of columns for apply. Given ${cols.size}. Number of columns ${columns.size}")
     val key:K = cols.map(check).toMap
     map.getOrElse(key, default.get)
   }
@@ -32,11 +33,11 @@ trait Table[C, V, E] extends Serializable {
       case (k, vs:Iterable[_]) => (k, vs.asInstanceOf[Iterable[V]].toList)
       case (k, v) => (k, List(v.asInstanceOf[V]))
     } }.toMap
-    val keys:List[K] = columns.foldLeft(List[K](Map.empty)) { case (pmps, col) =>
+    pairs.foreach { case (k, vs) => vs.foreach { v => check(k,v) } }
+    columns.foldLeft(List[K](Map.empty)) { case (keys, col) =>
       val vs = if (pairs.contains(col)) pairs(col) else values(col)
-      pmps.flatMap { pmp => vs.map { v => pmp + (col -> v) } }
+      keys.flatMap { keys => vs.map { v => keys + (col -> v) } }
     }
-    keys
   }
 
   override def toString = "Table: \n" + map.mkString("\n")

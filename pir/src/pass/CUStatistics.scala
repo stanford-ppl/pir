@@ -7,8 +7,6 @@ import prism._
 import prism.util._
 
 import scala.collection.mutable
-import scala.reflect._
-
 
 class CUStatistics(implicit compiler:PIR) extends PIRPass {
 

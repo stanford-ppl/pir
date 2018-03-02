@@ -3,7 +3,6 @@ package prism
 import prism._
 import prism.util._
 
-import scala.reflect._
 import scala.collection.mutable
 
 case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable {

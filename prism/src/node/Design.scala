@@ -3,7 +3,6 @@ package prism.node
 import prism._
 import prism.util._
 
-import scala.reflect._
 import scala.collection.mutable
 
 trait Design extends Serializable {

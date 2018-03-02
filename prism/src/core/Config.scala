@@ -1,7 +1,6 @@
 package prism
 
 import scala.collection.mutable
-import scala.reflect._
 
 trait GlobalConfig extends ArgParser
 

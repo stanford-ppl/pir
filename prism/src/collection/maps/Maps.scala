@@ -5,7 +5,6 @@ import prism.exceptions._
 
 import scala.collection.Map
 import scala.collection.Set
-import scala.reflect._
 
 abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializable {
   type K = TK

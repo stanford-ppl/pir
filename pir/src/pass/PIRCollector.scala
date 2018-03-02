@@ -2,10 +2,8 @@ package pir.pass
 
 import pir._
 import pir.node._
+import prism._
 import prism.traversal._
-
-import scala.reflect._
-import prism.codegen.Logging
 
 trait PIRCollector extends GraphCollector {
 

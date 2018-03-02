@@ -5,7 +5,6 @@ import prism.exceptions._
 
 import scala.collection.Map
 import scala.collection.Set
-import scala.reflect._
 
 trait MapType[TK,TV,TKK,TVV] {
   type K = TK

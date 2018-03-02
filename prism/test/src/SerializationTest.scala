@@ -4,9 +4,6 @@ import prism.collection.mutable
 import prism.util._
 
 import prism.exceptions._
-import scala.reflect._
-
-class A[T1:ClassTag, T2:ClassTag] extends Serializable
 
 class SerializationTest extends UnitTest {
   "TestSerialization" should "success" in {

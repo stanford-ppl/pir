@@ -5,8 +5,6 @@ import pir._
 import prism._
 import prism.enums._
 
-import scala.reflect._
-
 abstract class Def(implicit design:Design) extends Primitive with ComputeNode { self =>
   def depDefs:Set[Def] = deps.collect { case d:Def => d } 
   def localDepDefs = localDeps.collect { case d:Def => d } 

@@ -5,10 +5,8 @@ import pir.node._
 
 import prism._
 import prism.util._
-import prism.traversal._
 
 import scala.collection.mutable
-import scala.reflect._
 
 class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

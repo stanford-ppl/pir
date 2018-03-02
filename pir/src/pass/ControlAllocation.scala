@@ -6,7 +6,6 @@ import pir.node._
 import prism._
 
 import scala.collection.mutable
-import scala.reflect._
 import prism.util._
 
 class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFSTopologicalTraversal with UnitTraversal {

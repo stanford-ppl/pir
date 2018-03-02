@@ -6,8 +6,6 @@ import prism.node._
 import prism.traversal._
 import prism.codegen._
 
-import scala.reflect._
-
 object DAG1 extends TestDesign { self =>
   val a = TestAtom().name("a")
   val b = TestAtom().name("b")

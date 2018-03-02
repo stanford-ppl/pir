@@ -43,29 +43,25 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
 
   def label(attr:DotAttr, n:Any) = attr.label(quote(n))
 
-  def emitSubGraph(n:N)(block: => Unit):Unit = {
+  def setAttrs(n:Any):DotAttr = {
     var attr = DotAttr()
     attr = shape(attr, n)
     attr = color(attr, n)
     attr = label(attr, n)
-    emitSubGraph(n, attr) { block }
+    attr
+  }
+
+  def emitSubGraph(n:N)(block: => Unit):Unit = {
+    emitSubGraph(n, setAttrs(n)) { block }
   }
 
   def emitSingleNode(n:N):Unit = {
-    var attr = DotAttr()
-    attr = shape(attr, n)
-    attr = color(attr, n)
-    attr = label(attr, n)
-    emitNode(n,attr)
+    emitNode(n,setAttrs(n))
     nodes += n
   }
 
   def emitSingleNode(n:Any):Unit = {
-    var attr = DotAttr()
-    attr = shape(attr, n)
-    attr = color(attr, n)
-    attr = label(attr, n)
-    emitNode(n,attr)
+    emitNode(n,setAttrs(n))
   }
 
   override def emitNode(n:N) = {

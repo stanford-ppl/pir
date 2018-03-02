@@ -3,11 +3,12 @@ package prism.collection.mutable
 import prism.collection._
 
 import scala.collection.mutable
+import scala.collection.immutable
 
 class Table[C, V, E](
   val values:Map[C,List[V]], 
   val default:Option[E]=None,
-  val map:mutable.Map[Map[C,V],E]=mutable.Map[Map[C,V],E]()
+  val map:mutable.Map[immutable.Map[C,V],E]=mutable.Map[immutable.Map[C,V],E]()
 ) extends prism.collection.Table[C,V,E] {
   def this(map:mutable.Map[Map[C,V],E]) = this(Table.extractValues(map),None,map)
   def update(xs:Any*):Unit = {

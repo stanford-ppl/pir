@@ -59,9 +59,9 @@ trait Printer {
     openFile(compiler.outDir, fileName, append)
   }
 
-  def withOpen(dirName:String, fileName:String, append:Boolean)(lambda: => Unit):Unit = {
+  def withOpen[T](dirName:String, fileName:String, append:Boolean)(lambda: => T):T = {
     openFile(dirName, fileName, append)
-    try {
+    val res = try {
       lambda
     } catch {
       case e:Exception =>
@@ -69,6 +69,7 @@ trait Printer {
         throw e
     }
     closeStream
+    res
   }
 
   def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler):Unit = {

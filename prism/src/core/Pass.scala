@@ -3,7 +3,6 @@ package prism
 import prism._
 import prism.util._
 
-import scala.reflect._
 import scala.collection.mutable
 
 abstract class Pass(implicit val compiler:Compiler) extends Logging {

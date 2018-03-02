@@ -3,8 +3,6 @@ package prism.collection.immutable
 import prism._
 import prism.exceptions._
 
-import scala.reflect._
-
 import scala.collection.immutable.Set
 
 trait MapLike[K,V,VV,S] extends prism.collection.MapLike[K,V,VV] { self:S =>

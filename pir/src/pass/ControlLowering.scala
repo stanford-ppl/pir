@@ -7,7 +7,6 @@ import prism._
 import prism.traversal._
 
 import scala.collection.mutable
-import scala.reflect._
 import prism.util._
 
 class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with SiblingFirstTraversal with UnitTraversal {

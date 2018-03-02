@@ -4,10 +4,8 @@ import pir._
 import pir.node._
 
 import prism._
-
-import scala.collection.mutable
-import scala.reflect._
 import prism.util._
+import scala.collection.mutable
 
 class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
   import pirmeta._

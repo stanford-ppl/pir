@@ -5,7 +5,6 @@ import prism.collection.mutable
 import prism.util._
 
 import prism.exceptions._
-import scala.reflect._
 
 class MapTest extends UnitTest {
 

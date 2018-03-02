@@ -10,8 +10,8 @@ import prism._
 import prism.util._
 
 import scala.language.implicitConversions
-import scala.reflect.runtime.universe
 import scala.collection.mutable.ListBuffer
+import scala.reflect.runtime.universe
 import java.io._
 
 trait PIRApp extends PIR {

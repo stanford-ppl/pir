@@ -3,7 +3,6 @@ package prism
 import prism.util._
 
 import scala.collection.mutable
-import scala.reflect._
 import scala.language.existentials
 
 @SerialVersionUID(123L)

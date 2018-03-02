@@ -8,9 +8,6 @@ import prism._
 import prism.traversal._
 
 import scala.collection.mutable
-import scala.reflect._
-
-
 
 class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

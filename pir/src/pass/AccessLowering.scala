@@ -9,7 +9,6 @@ import prism.util._
 import prism.traversal._
 
 import scala.collection.mutable
-import scala.reflect._
 
 class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

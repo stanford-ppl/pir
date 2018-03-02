@@ -7,7 +7,6 @@ import prism._
 import prism.util._
 
 import scala.collection.mutable
-import scala.reflect._
 
 class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

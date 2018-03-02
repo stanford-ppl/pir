@@ -1,18 +1,11 @@
 package pir.codegen
 import pir._
-import pir.util._
-import pir.pass._
 import pir.node._
 
 import prism._
-import prism.util._
-import prism.traversal._
 import prism.codegen._
 
 import sys.process._
-import scala.language.postfixOps
-import scala.collection.mutable
-
 
 class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodegen with IRDotCodegen {
 

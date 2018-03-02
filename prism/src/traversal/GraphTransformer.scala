@@ -3,7 +3,6 @@ package prism.traversal
 import prism._
 import prism.node._
 
-import scala.reflect._
 import scala.collection.mutable
 
 trait GraphTransformer {
