@@ -12,7 +12,7 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
 
   val id = designOpt match {
     case Some(design) => design.nextId
-    case None => 0
+    case None => 0 // overritten later
   }
 
   def design = designOpt.get
@@ -51,7 +51,6 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
   }
 
   def newInstance[T](args:List[Any], staging:Boolean=true):T = {
-    if (this.isInstanceOf[Design]) return this.asInstanceOf[T]
     constructArgs(args, staging) { arguments =>
       (this match {
         case design:Design => design
@@ -61,9 +60,15 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
             constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*)
           } catch {
             case e:java.lang.IllegalArgumentException =>
-              errmsg(s"Error during newInstance of node $this")
+              errmsg(s"Error during newInstance of node $this, staging=$staging")
               errmsg(s"Expected type: ${constructor.getParameterTypes().mkString(",")}")
               errmsg(s"Got type: ${arguments.map(_.getClass).mkString(",")}")
+              throw e
+            case e:java.lang.reflect.InvocationTargetException =>
+              errmsg(s"InvocationTargetException during newInstance of node $this staging=$staging")
+              errmsg(s"arguments=$arguments")
+              errmsg(s"Cause:")
+              errmsg(s"${e.getCause}")
               throw e
             case e:Throwable => throw e
           }

@@ -14,7 +14,8 @@ import scala.collection.mutable.ListBuffer
 
 trait PIR extends Compiler with PIRWorld {
 
-  lazy val pirmeta:PIRMetadata = top.pirmeta
+  lazy val pirmeta:PIRMetadata = design.pirmeta
+  def top:Top = design.top
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 
@@ -22,7 +23,6 @@ trait PIR extends Compiler with PIRWorld {
 
   override def reset = {
     super.reset
-    clearLogs(outDir)
     arch = null
   }
 

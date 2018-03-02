@@ -5,7 +5,7 @@ import pir._
 import prism._
 import prism.node._
 
-trait PIRNode extends ProductNode[PIRNode] with IR { self =>
+abstract class PIRNode(implicit design:Design) extends ProductNode[PIRNode] with IR { self =>
   type N = PIRNode
   type P = Container
   type A = Primitive
@@ -15,14 +15,14 @@ trait PIRNode extends ProductNode[PIRNode] with IR { self =>
   override def ios:List[IO] = ins ++ outs
 
   this match {
-    case self:Design =>
+    case self:Top =>
     case self if !design.staging =>
-    case self => setParent(design.asInstanceOf[PIRDesign])
+    case self => setParent(design.top)
   }
 
   override def setParent(p:P):this.type = {
     this.parent match {
-      case Some(top:Design) if p != top => unsetParent
+      case Some(top:Top) if p != top => unsetParent
       case p =>
     }
     super.setParent(p)

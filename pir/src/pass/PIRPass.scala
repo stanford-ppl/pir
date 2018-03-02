@@ -17,7 +17,7 @@ import scala.reflect._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIRCollector {
 
-  implicit val design:PIRDesign = compiler.top
+  implicit val design:PIRDesign = compiler.design
   lazy val pirmeta = design.pirmeta
 
   def qdef(n:Any) = n match {

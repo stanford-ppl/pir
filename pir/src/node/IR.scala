@@ -24,8 +24,8 @@ trait IR extends prism.node.IR {
     import design.pirmeta._
     (this, ctrler) match {
       case (self:Controller, ctrler:Controller) => self.setParent(ctrler)
-      case (self:Controller, top:Design) => self.setParent(top.topController)
-      case (_, top:Design) =>
+      case (self:Controller, top:Top) => self.setParent(top.topController)
+      case (_, top:Top) =>
       case (self:Memory, _) =>
       case (self:PIRNode, ctrler:Controller) => ctrlOf(self) = ctrler 
     }

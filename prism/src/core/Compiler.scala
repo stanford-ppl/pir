@@ -7,7 +7,7 @@ import java.io._
 
 trait Compiler {
 
-  implicit val design:this.type = this
+  implicit val compiler:this.type = this
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
@@ -18,6 +18,7 @@ trait Compiler {
 
   def reset = { 
     _session = null
+    clearLogs(outDir)
   } 
 
   def handle(e:Exception):Unit
@@ -35,15 +36,15 @@ trait Compiler {
   }
 
   type D <: Design
-  var top:D = _
+  var design:D = _
 
   def load:Boolean
   def save:Boolean
 
   val designPath:String
-  def loadDesign = top = loadFromFile[D](designPath)
+  def loadDesign = design = loadFromFile[D](designPath)
   def newDesign:Unit
-  def saveDesign:Unit = saveToFile(top, designPath)
+  def saveDesign:Unit = saveToFile(design, designPath)
 
   def initDesign = if (load) loadDesign else newDesign
 

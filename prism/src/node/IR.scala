@@ -8,7 +8,7 @@ import scala.reflect.runtime.universe._
 import scala.collection.mutable
 
 @SerialVersionUID(123L)
-abstract class IR extends Serializable { 
+trait IR extends Serializable { 
   val id:Int
 
   override def equals(that: Any) = that match {

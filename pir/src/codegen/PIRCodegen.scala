@@ -10,4 +10,7 @@ trait PIRCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with C
 
   override def quote(n:Any):String = qdef(n)
 
+  override def runPass = {
+    traverseNode(compiler.top)
+  }
 }

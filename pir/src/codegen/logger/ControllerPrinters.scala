@@ -27,6 +27,6 @@ class ControllerPrinter(implicit design:PIR) extends PIRPass with ChildFirstTrav
   }
 
   override def runPass = {
-    traverseNode(design.top.topController)
+    traverseNode(design.design.top.topController)
   }
 }

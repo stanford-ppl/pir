@@ -54,8 +54,9 @@ trait IRPrinter extends Codegen {
       case e:Exception =>
         errmsg(s"Exception $e during IRPrinter on. Stack trace printed in log")
         emitln(s"Exception $e during IRPrinter on. Stack trace printed in log")
-        dbg(e)
-        dbg(e.getStackTrace)
+        flush
+        dbg(s"Exception:$e")
+        dbg(e.getStackTrace.mkString("\n"))
       case _:Throwable =>
     }
   }

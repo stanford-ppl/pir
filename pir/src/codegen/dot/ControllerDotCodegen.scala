@@ -14,7 +14,7 @@ import scala.language.postfixOps
 import scala.collection.mutable
 
 
-class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIRPass with ChildFirstTraversal with IRDotCodegen {
+class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with ChildFirstTraversal with IRDotCodegen {
 
   import pirmeta._
 
@@ -58,11 +58,11 @@ class ControllerDotCodegen(val fileName:String)(implicit design:PIR) extends PIR
   }
   
   override def runPass = {
-    traverseNode(design.top.topController)
+    traverseNode(compiler.top.topController)
   }
 
   override def emitEdges = {
-    val mems = collectDown[Memory](design.top)
+    val mems = collectDown[Memory](compiler.top)
     mems.foreach { 
       case mem:ArgIn =>
         mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }

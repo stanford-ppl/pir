@@ -17,7 +17,7 @@ abstract class Node[N<:Node[N]:ClassTag] extends IR { self:N =>
   var _parent:Option[P] = None
   def parent:Option[P] = _parent
   def setParent(p:P):this.type =  {
-    assert(p != this)
+    assert(p != this, s"setting parent of $this to be the same as it self!")
     _parent match {
       case Some(`p`) => this
       case Some(parent) => err(s"Resetting parent of $this from $parent to $p"); this

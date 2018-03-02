@@ -5,13 +5,11 @@ import prism.util._
 import prism.node._
 import java.io._
 
-abstract class TestDesign extends IR with Design {
-  implicit val design:this.type = this
+abstract class TestDesign extends Design {
   val top:TestSubGraph
-  val id = 0
-
   val compiler = new Compiler {
-    override def outDir = Config.outDir + File.separator + design.getClass.getSimpleName
+    type D = TestDesign
+    override def outDir = Config.outDir + File.separator + TestDesign.this.getClass.getSimpleName
     val configs = Nil
     def handle(e:Exception) = {}
     def load = false
