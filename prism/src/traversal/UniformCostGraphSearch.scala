@@ -1,4 +1,4 @@
-package prism.util
+package prism.traversal
 
 import prism._
 import prism.exceptions.SearchFailure
