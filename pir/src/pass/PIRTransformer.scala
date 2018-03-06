@@ -137,19 +137,32 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
 
   def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
     if (from == to) return to
-    dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)}")
     pirmeta.mirror(from, to)
-    at.getOrElse(from.depeds).foreach { 
-      case deped if excludes.contains(deped) => 
-      case deped => 
-        if (areConnected(deped, to)) {
-          disconnect(deped, from)
-        } else {
-          swapConnection(deped, from.out, to.out)
-        }
+    val depeds = at.getOrElse(from.depeds).filterNot{ d => excludes.contains(d) }
+    dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)} depeds=${depeds}")
+    depeds.foreach { deped => 
+      if (areConnected(deped, to)) {
+        disconnect(deped, from)
+      } else {
+        swapConnection(deped, from.out, to.out)
+      }
     }
     to
   }
 
+  override def disconnect(a:A, b:A) = {
+    dbg(s"disconnect ${quote(a)} ${quote(b)}")
+    super.disconnect(a,b)
+  }
+
+  override def swapParent(node:N, newParent:N):Unit = {
+    dbg(s"swapParent($node, $newParent)")
+    super.swapParent(node, newParent)
+  }
+
+  override def swapOutputs[A1<:A](node:A, from:A1, to:A1) = {
+    dbg(s"swapOutputs($node, $from, $to)")
+    super.swapOutputs(node, from, to)
+  }
 }
 

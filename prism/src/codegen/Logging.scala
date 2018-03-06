@@ -19,16 +19,18 @@ trait Logging {
         case res:Unit =>
         case res:Iterable[_] =>
           dbg(resHeader)
-          res.foreach { res => dbg(s" - $res") }
+          res.foreach { res => dbg(s" - ${quote(res)}") }
         case res:Iterator[_] =>
           dbg(resHeader)
-          res.foreach { res => dbg(s" - $res") }
-        case res => dbg(resHeader + s" $res")
+          res.foreach { res => dbg(s" - ${quote(res)}") }
+        case res => dbg(resHeader + s" ${quote(res)}")
       }
       emitBEln(None, b, es.map(es => es()))
       res
     }
   }
+
+  def quote(n:Any):String = n.toString
 
   private def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
 

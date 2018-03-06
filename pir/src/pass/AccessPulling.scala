@@ -41,8 +41,7 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopolo
       swapParent(dep, container)
     } else { //Multiple consumer or node cannot be moved, mirror new node into destination consumer containers and reconnect 
       val m = mirror(dep, Some(container))
-      swapOutputs(deped, from=dep, to=m)
-      dbg(s"swapOutputs(deped=${qtype(deped)}, from=${qtype(dep)}, to=${qtype(m)})")
+      swapConnection(deped, from=dep.out, to=m.out)
     }
   }
 

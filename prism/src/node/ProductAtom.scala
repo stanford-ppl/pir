@@ -7,11 +7,12 @@ import scala.collection.mutable
 
 trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with ProductAtom[N] =>
 
-  def out:Output[N]
   //Make sure lazy val is evaluated so in swapOutput the IO patterns are the same
   //Has to be lazy to avoid null pointer exception during construction in subclasses
   //
   def newIn:Input[N]
+  def newOut:Output[N]
+  def out = outs.headOption.getOrElse(newOut)
 
   def connect(io:Edge[N]):Edge[N] = {
     io match {

@@ -11,11 +11,7 @@ abstract class Primitive(implicit design: Design) extends PIRNode with ProductAt
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 
   override def newIn = new Input
-
-  lazy val out = new Output
-  out
-  //Make sure lazy val is evaluated so in swapOutput the IO patterns are the same
-  //Has to be lazy to avoid null pointer exception during construction in subclasses
+  override def newOut = new Output
 
 }
 

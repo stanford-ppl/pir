@@ -39,7 +39,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
 
   val doneMap = mutable.Map[ComputeContext, mutable.Map[Controller, ControlNode]]()
 
-  def duplicateCounterChain(context:ComputeContext, cchain:CounterChain) = {
+  def duplicateCounterChain(context:ComputeContext, cchain:CounterChain) = dbgblk(s"duplicateCounterChain($context, $cchain)"){
     val ctrl = ctrlOf(cchain)
     allocate[CounterChain](context, (cc:CounterChain) => ctrlOf(cc) == ctrl) {
       val cu = globalOf(context).get
@@ -93,7 +93,6 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
           case mem => allocateControllerDone(context, topCtrlOf(n))
         }
         accessDoneOf.info(n).foreach(dbg)
-        //swapNode(n,EnabledLoadMem(mem, addr, readNext).setParent(n.parent.get))
       case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
         val context = contextOf(n).get
         val gdata = insertGlobalIO(data, context) {
@@ -115,7 +114,6 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
             allocateControllerDone(context, topCtrlOf(n))
         }
         accessDoneOf.info(n).foreach(dbg)
-        //swapNode(n,EnabledStoreMem(mem, addr, gdata, writeNext).setParent(n.parent.get))
       case n => n
     }
     super.visitNode(n)

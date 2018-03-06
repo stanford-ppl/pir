@@ -7,7 +7,7 @@ import prism._
 import prism.util._
 import scala.collection.mutable
 
-class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal {
+class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
   import pirmeta._
 
   type T = Map[N, Boolean]
@@ -18,42 +18,50 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with BFS
 
   override def runPass =  {
     // Mark dead code
-    val deathMap = traverseNode(compiler.top, Map.empty)
+    val liveMap = traverseNode(compiler.top, Map.empty)
     // Remove dead code
-    deathMap.foreach { 
-      case (n, true) =>
-        dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
+    liveMap.foreach { 
+      case (n, false) =>
+        val parent = n.parent
+        dbg(s"eliminate ${qdef(n)} from parent=${parent}")
         val neighbors = n.neighbors
         removeNode(n)
+        n.parent.foreach { parent =>
+          assert(!parent.children.contains(n), s"$parent still contains $n after removeNode")
+        }
         neighbors.foreach { nb =>
           dbg(s"neighbor=$nb, neighbor.neighbors=${nb.neighbors}")
           assert(!nb.neighbors.asInstanceOf[Set[N]].contains(n))
         }
         pirmeta.removeAll(n)
-      case (n, false) => 
+      case (n, true) => 
     }
   }
 
-  def markDeath(deathMap:T, n:N) = {
-    dbg(s"markDeath:$n deped=${n.depeds.map { deped => s"$deped, death=${deathMap.get(deped)}"}}")
-    def depedsAllDead(n:N) = depFunc(n).forall(d => deathMap.getOrElse(d, false))
+  def markLive(liveMap:T, n:N) = liveMap + (n -> dbgblk(s"markLive:$n deped=${n.depeds.map { deped => s"$deped, liveness=${liveMap.get(deped)}"}}") {
+    def depedsExistsLive(n:N) = {
+      depFunc(n).exists{ d => 
+        liveMap.getOrElse(d, {
+          dbg(s"n=$n dependency=$d liveness unknown! be conservative here")
+          true
+        })
+      }
+    }
 
-    val isDead = n match {
-      case n:ArgOut => false
-      case n:StreamOut => false
-      case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => false
-      case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => false
+    n match {
+      case n:ArgOut => true
+      case n:StreamOut => true
+      case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => true
+      case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => true
       case n:Counter =>
         val CounterChain(counters) = collectUp[CounterChain](n).head
-        counters.forall(depedsAllDead)
-      case n => depedsAllDead(n) 
+        counters.exists(depedsExistsLive)
+      case n => depedsExistsLive(n) 
     }
-    if (isDead) dbgs(s"Mark $n as dead code")
-    deathMap + (n -> isDead)
-  }
+  })
 
   override def visitNode(n:N, prev:T):T = {
-    super.visitNode(n, markDeath(prev, n))
+    super.visitNode(n, markLive(prev, n))
   }
 
   override def check = {

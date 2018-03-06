@@ -166,7 +166,6 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     var breakingPoints = frontier.filter {
       case n if isVisited(n) => false
       case n:SubGraph[_] => false
-      case n if depFunc(n).exists(isVisited) => true
       case _ => false
     }.toList
     breakingPoints = breakingPoints.sortBy { n => depFunc(n).filter(isVisited).size }

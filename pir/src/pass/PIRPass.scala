@@ -27,6 +27,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIR
     case n => s"$n"
   }
 
-  def quote(n:Any) = qtype(n)
+  override def quote(n:Any) = qtype(n)
 
 }

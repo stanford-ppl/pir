@@ -43,7 +43,7 @@ class TestOutput(implicit override val src:TestAtom, design:Design) extends Outp
 }
 case class TestAtom(ds:TestAtom*)(implicit design:Design) extends ProductAtom[TestNode] with TestNode {
   def newIn = new TestInput
-  val out = new TestOutput
+  def newOut = new TestOutput
 }
 case class TestSubGraph(ds:TestNode*)(implicit design:Design) extends ProductSubGraph[TestNode] with TestNode
 

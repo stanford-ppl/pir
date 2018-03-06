@@ -50,7 +50,6 @@ class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with 
           val ctr = EnabledCounter(min, max, step, par, en).setParent(context)
           pirmeta.mirror(n, ctr)
           swapNode(n, ctr)
-          ctr
         } else n
       case n => n
     }

@@ -15,6 +15,7 @@ trait ControlAnalysis extends PIRTransformer {
     val context = contextOf(counter).get
     allocate[CounterDone](context, _.counter == counter){
       val done = CounterDone(counter)
+      dbg(s"counter=$counter, counter.depeds=${counter.depeds}, done.deps=${done.deps}")
       ctrlOf(done) = ctrlOf(counter)
       done
     }

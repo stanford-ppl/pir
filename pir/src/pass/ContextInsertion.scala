@@ -26,22 +26,24 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
 
   /* Insert Context between parent CU and nodes with context */
   def insertContext(contexMap:T) = {
-    contexMap.foreach { case (n, context) =>
-      val cu = globalOf(n).get 
-      val contextCU = globalOf(context)
-      dbgblk(s"n=$n context=$context contextCU=$contextCU") {
-        contextCU.map { contextCU =>
-          if (contextCU==cu) {
-            if (n.parent.get == cu) swapParent(n, context)
-          } else {
-            dbg(s"this shouldn't happen n=${qdef(n)}")
-            dbg(s"node cu:${qtype(cu)} contextCU:${qtype(contextCU)}")
+    contexMap.foreach { 
+      case (n:Counter, context) => // swap parent of CounterChain 
+      case (n, context) =>
+        val cu = globalOf(n).get 
+        val contextCU = globalOf(context)
+        dbgblk(s"n=$n context=$context contextCU=$contextCU") {
+          contextCU.map { contextCU =>
+            if (contextCU==cu) {
+              if (n.parent.get == cu) swapParent(n, context)
+            } else {
+              dbg(s"this shouldn't happen n=${qdef(n)}")
+              dbg(s"node cu:${qtype(cu)} contextCU:${qtype(contextCU)}")
+            }
+          }.getOrElse {
+            context.setParent(cu)
+            swapParent(n, context)
           }
-        }.getOrElse {
-          context.setParent(cu)
-          swapParent(n, context)
         }
-      }
     }
   }
 

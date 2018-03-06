@@ -100,7 +100,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
     addPass(controlAllocator) // set accessDoneOf, make copy to counter chains
-    addPass(accessControlLowering).dependsOn(controlAllocator) // Lower access and counter to EnabledAccess and Enabled counters
+    addPass(accessControlLowering).dependsOn(controlAllocator) // Lower access and counter to EnabledAccess and EnabledCounters
     addPass(deadCodeEliminator) // Remove unused memories and counters
     addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(controlLowering).dependsOn(accessControlLowering, deadCodeEliminator) // Generate context enable dependencies
