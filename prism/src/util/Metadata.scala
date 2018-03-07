@@ -40,20 +40,22 @@ trait Metadata extends Serializable {
     type VV
     def asK(k:Any):Option[K]
     def asV(v:Any):Option[V]
-    def asVV(vv:Any):Option[VV]
+    def toVs(vv:VV):scala.collection.Set[V]
   
     def name:String
     def clear:Unit
     def get(k:K):Option[VV]
     def contains(k:K):Boolean
     def removeAll(a:Any):Unit
-    def update(k:K,vv:VV):Unit
+    def update(k:K, v:V):Unit
   
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
     def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {
       logger.foreach { _.dbg(s"$name($clone)=$name($orig)=${get(orig)}") }
-      get(orig).foreach { vv => update(clone, vv) }
+      get(orig).foreach { vv => 
+        toVs(vv).foreach { v => update(clone, v) }
+      }
     }
     def info(a:Any):Option[String] = { 
       asK(a) match {

@@ -39,23 +39,18 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
 
   val doneMap = mutable.Map[ComputeContext, mutable.Map[Controller, ControlNode]]()
 
-  def duplicateCounterChain(context:ComputeContext, cchain:CounterChain) = dbgblk(s"duplicateCounterChain($context, $cchain)"){
+  def duplicateCounterChain(context:ComputeContext, cchain:CounterChain, enable:Def) = dbgblk(s"duplicateCounterChain($context, $cchain)"){
     val ctrl = ctrlOf(cchain)
     allocate[CounterChain](context, (cc:CounterChain) => ctrlOf(cc) == ctrl) {
       val cu = globalOf(context).get
-      val cc = mirror(cchain, Some(context))
+      val cc = mirror(cchain, Some(context), mirrorRule=PresetRule(cchain, enableOf, enable) )
       val readers = collectIn[LocalLoad](cc)
-      readers.foreach { reader =>
-        accessDoneOf.removeKey(reader)
-      }
       val mems = collectIn[Memory](cc)
       mems.foreach { mem =>
         swapParent(mem, cu) // Move mem out of context
       }
       val writers = mems.flatMap { _.writers }
       writers.foreach { writer =>
-        accessDoneOf.removeKey(writer)
-        val ctrl = ctrlOf(writer)
         swapParent(writer, ComputeContext().setParent(cu))
       }
       cc
@@ -70,12 +65,11 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
     ctrl match {
       case ctrl:ArgInController => allocate[ArgInValid](context)(ArgInValid())
       case ctrl:LoopController =>
-        val cchain = duplicateCounterChain(context, ctrl.cchain) 
-        enableOf.removeKey(cchain)
-        enableOf(cchain) = prevDone match {
+        val enable = prevDone match {
           case Some(done) => done
           case None => allocateContextEnable(context)
         }
+        val cchain = duplicateCounterChain(context, ctrl.cchain, enable) 
         allocateCounterDone(cchain.counters.last)
       case ctrl:UnitController =>
         // If UnitControl is the inner most control, the enable is the done, otherwise it's previous

@@ -2,6 +2,7 @@ package pir.util
 
 import pir._
 import pir.node._
+import prism._
 import prism.util._
 import prism.collection.mutable._
 
@@ -38,7 +39,9 @@ class PIRMetadata extends Metadata {
   /*
    * Control signal indicating the last element of the access
    * */
-  object accessDoneOf extends OneToOneMap[LocalAccess, Def] with MetadataMap
+  object accessDoneOf extends OneToOneMap[LocalAccess, Def] with MetadataMap {
+    override def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {}
+  }
 
   /*
    * Enable of CounterChain

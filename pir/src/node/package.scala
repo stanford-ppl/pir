@@ -59,18 +59,23 @@ package object node extends SpadeEnums {
     }
   }
 
+  def isControlMem(n:Memory) = n match {
+    case n:TokenOut => true
+    case StreamIn("ack") => true
+    case _ => false
+  }
+
   def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit design:Design):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
     n match {
       case n:ControlNode => Bit
-      case n:TokenOut => Bit
-      case StreamIn("ack") => Bit
+      case n:Memory if isControlMem(n) => Bit
       case n:StreamIn if parOf(n) == 1 => Word
       case n:StreamIn if parOf(n) > 1 => Vector
       case n:Memory => 
         val tps = n.writers.map(writer => bundleTypeOf(writer, logger))
         assert(tps.size==1, s"$n.writers=${n.writers} have different BundleType=$tps")
         tps.head
-      case Def(n,LocalLoad(mems,_)) => bundleTypeOf(mems.head, logger)
+      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
       case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
       case Def(n,GlobalInput(gout)) => bundleTypeOf(gout, logger)
       case Def(n,GlobalOutput(data, valid)) => bundleTypeOf(data, logger)

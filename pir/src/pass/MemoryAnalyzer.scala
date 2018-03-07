@@ -46,7 +46,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
             node=n, 
             container=Some(accessCU), 
             init=mutable.Map(mems -> List(mem), addrs -> addrs, data -> data),
-            mirrorRule=NodeMatchRule(n, (n:Any,m:Any) => pirmeta.mirrorExcept(n, m, excludes=List(topCtrlOf)))
+            mirrorRule=PresetRule(n, topCtrlOf, topCtrl)
           )
           disconnect(n, mem)
           dbg(s"duplicating ${qtype(n)} -> ${qtype(maccess)} for different topCtrl")

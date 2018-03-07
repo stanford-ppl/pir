@@ -68,6 +68,15 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     def isDefinedAt(n:Any):Boolean = false 
     def mirror(n:Any, m:Any) = {} 
   }
+  case class PresetRule(node:Any, map:MetadataMap, v:Any) extends MirrorRule {
+    def isDefinedAt(n:Any):Boolean = n == node
+    def mirror(n:Any, m:Any) = {
+      pirmeta.mirrorExcept(n,m,None,List(map))
+      map.asK(m).foreach { m =>
+        map.update(m, v.asInstanceOf[map.V])
+      }
+    }
+  }
 
   val mirrorMapping = mutable.Map[Container, mutable.Map[Any,Any]]()
 
