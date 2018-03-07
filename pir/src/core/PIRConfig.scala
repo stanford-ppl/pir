@@ -16,6 +16,8 @@ object PIRConfig extends GlobalConfig {
   var genDot:Boolean = register("dot", default=true) { genDot = _ }
   var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var ctrl:Boolean = register("ctrl", default=true) { ctrl = _ }
+  var aggressive_dce:Boolean = register("ag-dce", default=false) { aggressive_dce = _ }
+
   def codegen = Config.codegen
   def verbose = Config.verbose
 

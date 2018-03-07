@@ -16,15 +16,7 @@ import prism.codegen.Logging
 
 trait PIRTraversal extends PIRPass with PIRWorld with prism.traversal.Traversal
 
-trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal {
-  override def selectFrontier = {
-    var frontier = super.selectFrontier
-    frontier = frontier.collect { case store:LocalStore => store }
-    if (frontier.isEmpty) frontier = super.selectFrontier
-    frontier
-  }
-}
-
+trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal 
 trait DFSTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopologicalTraversal
 trait BFSTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopologicalTraversal
 

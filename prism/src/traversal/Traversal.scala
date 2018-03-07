@@ -162,13 +162,26 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     depFree
   }
 
-  def selectFrontier = {
-    var breakingPoints = frontier.filter {
-      case n if isVisited(n) => false
-      case n:SubGraph[_] => false
-      case _ => false
-    }.toList
-    breakingPoints = breakingPoints.sortBy { n => depFunc(n).filter(isVisited).size }
+  def filtering(backup:List[N])(filtered: => List[N]) = {
+    val flist = filtered
+    if (flist.isEmpty) backup else flist
+  }
+
+  def selectFrontier(unvisited:List[N]) = {
+    var breakingPoints = unvisited
+    breakingPoints = filtering(breakingPoints){ 
+      frontier.filter {
+        case n if isVisited(n) => false
+        case _ => true
+      }.toList
+    }
+    breakingPoints = filtering(breakingPoints){ 
+      breakingPoints.filter {
+        case n if depedFunc(n).filterNot{_.isInstanceOf[SubGraph[_]]}.isEmpty => false
+        case _ => true
+      }.toList
+    }
+    breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
     breakingPoints
   }
 
@@ -177,9 +190,7 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
       dbgs(s"Loop in Data flow graph.")
-      var nexts = selectFrontier
-      dbgs(s"frontier = $nexts")
-      if (nexts.isEmpty) nexts = List(unvisited.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
+      var nexts = selectFrontier(unvisited)
       dbgs(s"Breaking loop at $nexts")
       nexts
     } else depFree
@@ -232,6 +243,26 @@ trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
   override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
+
+  override def selectFrontier(unvisited:List[N]) = {
+    var breakingPoints = unvisited
+    breakingPoints = filtering(breakingPoints){ 
+      frontier.filter {
+        case n if isVisited(n) => false
+        case n:SubGraph[_] => false
+        case _ => true
+      }.toList
+    }
+    breakingPoints = filtering(breakingPoints){ 
+      breakingPoints.filter {
+        case n:SubGraph[_] => false
+        case n if depedFunc(n).filterNot{_.isInstanceOf[SubGraph[_]]}.isEmpty => false
+        case _ => true
+      }.toList
+    }
+    breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
+    breakingPoints
+  }
 }
 
 trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal {
