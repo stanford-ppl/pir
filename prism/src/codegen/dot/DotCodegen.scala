@@ -65,6 +65,7 @@ trait DotCodegen extends Printer {
     def label = { attrMap.get("label") }
     def dir(s:Direction) = { attrMap += "dir" -> s.field; this }
     def pos(coord:(Double,Double)) = { attrMap += "pos" -> s"${coord._1},${coord._2}!"; this }
+    def set(header:String, value:String) = { attrMap += header -> value; this }
   
     def elements:List[String] = {
       var elems = attrMap.map{case (k,v) => s"""$k="$v""""}.toList
@@ -101,6 +102,7 @@ trait DotCodegen extends Printer {
   val dashed    = Style("dashed")
   val rounded   = Style("rounded")
   val dotted    = Style("dotted")
+  val solid     = Style("solid")
   
   val white     = Color("white")
   val black     = Color("black")

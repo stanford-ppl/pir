@@ -36,3 +36,5 @@ case class Const[T<:AnyVal](value:T)(implicit design:Design) extends Def
 case class GlobalInput(globalOutput:GlobalOutput)(implicit design:Design) extends Def
 case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:Design) extends Def
 case class DataValid(globalInput:GlobalInput)(implicit design:Design) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
+
+case class CountAck(ack:Def)(implicit design:Design) extends ControlNode

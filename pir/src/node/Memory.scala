@@ -37,5 +37,7 @@ object ArgOut {
 case class StreamIn(field:String)(implicit design:Design) extends Memory
 case class StreamOut(field:String)(implicit design:Design) extends Memory
 
+case class TokenOut()(implicit design:Design) extends Memory
+
 case class RetimingFIFO()(implicit design:Design) extends Memory
 
