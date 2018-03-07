@@ -15,7 +15,7 @@ class PIRMetadata extends Metadata {
    * For memory, it's the lca controller of controller of all its
    * accesses 
    * */
-  object ctrlOf extends BiManyToOneMap[PIRNode, Controller] with MetadataMap
+  object ctrlOf extends BiManyToOneMap[PIRNode, Controller] with MetadataMap 
 
   /*
    * Whether a memory is a accumulator. Set by spatial

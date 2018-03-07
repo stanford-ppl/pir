@@ -55,15 +55,13 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
           banks.foreach { bank =>
             // Local write address calculation
             val bankCU = globalOf(bank).get 
-            val (raddrs, rdata) = {
-              val dataLoad = retime(data, bankCU)
-              val addrLoad = addrs.map { addr => retime(addr, bankCU) }
-              (addrLoad, dataLoad)
-            }
+            val dataLoad = retime(data, bankCU)
+            val addrLoad = addrs.map { addr => retime(addr, bankCU) }
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
-            val access = StoreMem(bank, raddrs, rdata).setParent(bankCU)
+            val access = StoreMem(bank, addrLoad, dataLoad).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             swapNode(n,access, at=Some(List(bank)))
+            access
           }
         }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>

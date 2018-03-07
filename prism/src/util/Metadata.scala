@@ -16,20 +16,20 @@ trait Metadata extends Serializable {
 
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
-  def mirrorOnly(orig:Any, clone:Any, includes:MetadataMap*) = {
+  def mirrorOnly(orig:Any, clone:Any, logger:Option[Logging]=None, includes:List[MetadataMap]=Nil) = {
     if (orig != clone) includes.foreach { map => 
       (map.asK(orig), map.asK(clone)) match {
-        case (Some(orig), Some(clone)) => map.mirror(orig, clone)
+        case (Some(orig), Some(clone)) => map.mirror(orig, clone, logger)
         case _ =>
       }
     }
   }
 
-  def mirror(orig:Any, clone:Any) = mirrorOnly(orig, clone, maps.toSeq:_*)
+  def mirror(orig:Any, clone:Any, logger:Option[Logging]=None) = mirrorOnly(orig, clone, logger, maps)
 
-  def mirrorExcept(orig:Any, clone:Any, excludes:MetadataMap*) = {
-    val includes = (maps.toList diff excludes.toList)
-    mirrorOnly(orig, clone, includes:_*)
+  def mirrorExcept(orig:Any, clone:Any, logger:Option[Logging]=None, excludes:List[MetadataMap]=Nil) = {
+    val includes = (maps.toList diff excludes)
+    mirrorOnly(orig, clone, logger, includes)
   }
 
   def removeAll(node:Any) = maps.foreach { map => map.removeAll(node) }
@@ -51,7 +51,8 @@ trait Metadata extends Serializable {
   
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
-    def mirror(orig:K, clone:K):Unit = {
+    def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {
+      logger.foreach { _.dbg(s"$name($clone)=$name($orig)=${get(orig)}") }
       get(orig).foreach { vv => update(clone, vv) }
     }
     def info(a:Any):Option[String] = { 

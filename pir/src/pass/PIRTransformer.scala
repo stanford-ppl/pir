@@ -110,28 +110,34 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     mirrored(node, container, init, mirrorRule)._1
   }
 
+  def retimerOf(x:Def, cu:GlobalContainer) = {
+    collectDown[RetimingFIFO](cu).filter {
+      case WithWriter(Def(w,LocalStore(mem, _, `x`))) => true
+      case _ => false
+    }.headOption.map{ fifo => fifo.readers.head }
+  }
+
   def retime(
     x:Def, 
-    cu:GlobalContainer, 
-    init:Map[Any,Any]=Map.empty
+    cu:GlobalContainer
   ):Def = {
-    val mapping = mirrorMapping.getOrElseUpdate(cu, mutable.Map[Any,Any]())
-    mapping ++= init
     val xCU = globalOf(x).get 
-    mapping.getOrElseUpdate(x, x match {
-      case x if xCU == cu => x
-      case x:Const[_] => mirror(x, Some(cu), mapping)
-      case Def(x:CounterIter, CounterIter(counter, offset)) => mirror(x, Some(cu), mapping)
-      case x =>
-        val fifo = RetimingFIFO().setParent(cu)
-        val load = ReadMem(fifo).setParent(cu)
-        val store = WriteMem(fifo, x).setParent(cu)
-        dbg(s"add ${qtype(fifo)} in ${qtype(cu)}")
-        dbg(s"add ${qtype(store)} in ${qtype(cu)}")
-        dbg(s"add ${qtype(load)} in ${qtype(cu)}")
-        pirmeta.mirror(x, store)
-        mapping += (x -> load)
-        load
+    retimerOf(x, cu).getOrElse(dbgblk(s"retime($x,cu=$cu)") {
+      x match {
+        case x if xCU == cu => x
+        case x:Const[_] => mirror(x, Some(cu))
+        case Def(x:CounterIter, CounterIter(counter, offset)) => mirror(x, Some(cu))
+        case x =>
+          val fifo = RetimingFIFO().setParent(cu)
+          val load = ReadMem(fifo).setParent(cu)
+          val store = WriteMem(fifo, x).setParent(cu)
+          dbg(s"add ${qtype(fifo)} in ${qtype(cu)}")
+          dbg(s"add ${qtype(store)} in ${qtype(cu)}")
+          dbg(s"add ${qtype(load)} in ${qtype(cu)}")
+          pirmeta.mirror(x, load)
+          pirmeta.mirror(x, store)
+          load
+      }
     }).asInstanceOf[Def]
   }
 
