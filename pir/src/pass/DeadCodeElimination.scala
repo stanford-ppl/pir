@@ -64,8 +64,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     case n:ArgOut => Some(true)
     case n:StreamOut => Some(true)
     case n:TokenOut => Some(true)
-    case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => Some(true)
-    case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    //case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    //case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
     case n => None
   }
 

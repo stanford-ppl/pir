@@ -13,7 +13,6 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
 
   def shouldRun = true
 
-  val traversal = new ControllerTraversal {}
   def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
     dbg(s"accesses: ${mem.accesses}")
     var accessCtrls = mem.accesses.map { access => 
@@ -24,14 +23,14 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
       case mem:ArgOut => accessCtrls += compiler.top.argController
       case _ =>
     }
-    val lcaCtrl = traversal.leastCommonAncesstor(accessCtrls).getOrElse {
+    val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {
       throw PIRException(s"${accessCtrls} do not share common ancestor")
     }
     ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
     ctrlOf.info(lcaCtrl).foreach(dbg)
 
-    val topCtrls = traversal.leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
+    val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
     mem.accesses.foreach { access =>
       val topCtrl = topCtrls(ctrlOf(access))
       val newAccess = access match {
