@@ -24,6 +24,9 @@ case class ArgFringe(argController:ArgInController)(implicit design:Design) exte
   def argOut(init:AnyVal)(implicit design:Design) = {
     ArgOut(init).setParent(this)
   }
+  def tokenOut()(implicit design:Design) = {
+    TokenOut().setParent(this)
+  }
 
   def dramAddress(dram:DRAM)(implicit design:Design) = {
     val reg = ArgIn()

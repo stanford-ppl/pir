@@ -63,6 +63,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:ArgOut => Some(true)
     case n:StreamOut => Some(true)
+    case n:TokenOut => Some(true)
     case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => Some(true)
     case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
     case n => None
@@ -114,9 +115,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
           case _ =>
         }
         mem match {
+          case mem:TokenOut =>
           case mem:ArgOut =>
           case mem:StreamOut =>
-          case mem:StreamIn if mem.field == "ack" =>
           case mem if mem.readers.isEmpty =>
             warn(s"${qtype(mem)} in $cu does not have reader")
           case _ =>
@@ -126,5 +127,3 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
   }
 
 }
-
-

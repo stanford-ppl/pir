@@ -63,7 +63,8 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(new TestTraversal)
 
-    // Data path transformation and analysis
+    // Data  path transformation and analysis
+    addPass(new DramStoreRegInsertion())
     addPass(new PIRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)

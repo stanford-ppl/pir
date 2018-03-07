@@ -58,6 +58,7 @@ case class LoadMem(mem:Memory, addrs:List[Def])(implicit design:Design) extends 
 case class StoreMem(mem:Memory, addrs:List[Def], data:Def)(implicit design:Design) extends LocalStore
 case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:Design) extends Def
 
+// Lowered with control
 case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], readNext:Def)(implicit design:Design) extends LocalLoad
 case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeNext:Def)(implicit design:Design) extends LocalStore
 
@@ -70,3 +71,4 @@ case class FIFONumel(mem:Memory)(implicit design:Design) extends Def
 // Memory Control Signals
 case class NotEmpty(mem:Memory)(implicit design:Design) extends ControlNode
 case class NotFull(mem:Memory)(implicit design:Design) extends ControlNode
+
