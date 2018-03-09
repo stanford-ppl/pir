@@ -7,6 +7,7 @@ object DotProduct extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x3713 = top.argFringe.argIn(init=0).name("x3713").ctrl(top) // ArgInNew(Const(0))
+    boundOf(x3713) = Some(1920000)
     val x3716 = ReadMem(x3713).name("x3716").ctrl(top) // RegRead(x3713)
     val x3717 = DRAM().name("x3717").ctrl(top) // x3717 = DRAMNew(ArrayBuffer(x3716),Const(0))
     val x3718 = ReadMem(x3713).name("x3718").ctrl(top) // RegRead(x3713)

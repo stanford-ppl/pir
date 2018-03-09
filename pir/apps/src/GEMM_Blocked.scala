@@ -7,6 +7,7 @@ object GEMM_Blocked extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x4701_d0 = top.argFringe.argIn(init=0).name("x4701_d0").ctrl(top) // ArgInNew(Const(0))
+    boundOf(x4701_d0) = None
     val x4707 = ReadMem(x4701_d0).name("x4707").ctrl(top) // RegRead(x4701)
     val x4708 = ReadMem(x4701_d0).name("x4708").ctrl(top) // RegRead(x4701)
     val x4709 = DRAM().name("x4709").ctrl(top) // x4709 = DRAMNew(ArrayBuffer(x4708, x4707),Const(0))
@@ -41,11 +42,11 @@ object GEMM_Blocked extends PIRApp {
     val b2633 = DummyOp().ctrl(x4995).name("b2633")
     val x4729_d0_b0 = SRAM(size=1024, banking=NoBanking()).name("x4729_d0_b0").ctrl(x4995) // x4729 = SRAMNew(ArrayBuffer(Const(64), Const(16)))
     isAccum(x4729_d0_b0) = false
-    val x4730_d0_b0 = SRAM(size=256, banking=NoBanking()).name("x4730_d0_b0").ctrl(x4995) // x4730 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
+    val x4730_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x4730_d0_b0").ctrl(x4995) // x4730 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x4730_d0_b0) = false
-    val x4731 = Reg(init=0).name("x4731").ctrl(x4995) // x4731 = RegNew(Const(0))
+    val x4731 = Reg(init=Some(0)).name("x4731").ctrl(x4995) // x4731 = RegNew(Const(0))
     isAccum(x4731) = false
-    val x4732 = Reg(init=0).name("x4732").ctrl(x4995) // x4732 = RegNew(Const(0))
+    val x4732 = Reg(init=Some(0)).name("x4732").ctrl(x4995) // x4732 = RegNew(Const(0))
     isAccum(x4732) = false
     val x4743 = UnitController(style=SeqPipe, level=InnerControl).name("x4743").ctrl(x4995) // UnitPipe(List(b2633, b2624, b2619),Block(Const(())))
     val x4733 = b2632 // FixConvert(b2632,TRUE,_32,_0)
@@ -117,11 +118,11 @@ object GEMM_Blocked extends PIRApp {
     val b5134_b5129 = WriteMem(b5129, x4786_x4772).name("b5134_b5129").ctrl(x4788) // FIFOEnq(x4748,x4786,x4784)
     val x4789 = FringeContainer(x4712,b5125,b5126,x4749).name("x4789").ctrl(x4823) // FringeDenseLoad(x4712,x4747,x4749)
     val x4822 = UnitController(style=SeqPipe, level=OuterControl).name("x4822").ctrl(x4823) // UnitPipe(List(b2653, b2633, b2624, b2619),Block(Const(())))
-    val x4790 = Reg(init=0).name("x4790").ctrl(x4822) // x4790 = RegNew(Const(0))
+    val x4790 = Reg(init=Some(0)).name("x4790").ctrl(x4822) // x4790 = RegNew(Const(0))
     isAccum(x4790) = false
-    val x4791 = Reg(init=0).name("x4791").ctrl(x4822) // x4791 = RegNew(Const(0))
+    val x4791 = Reg(init=Some(0)).name("x4791").ctrl(x4822) // x4791 = RegNew(Const(0))
     isAccum(x4791) = false
-    val x4792 = Reg(init=0).name("x4792").ctrl(x4822) // x4792 = RegNew(Const(0))
+    val x4792 = Reg(init=Some(0)).name("x4792").ctrl(x4822) // x4792 = RegNew(Const(0))
     isAccum(x4792) = false
     val x4803 = UnitController(style=SeqPipe, level=InnerControl).name("x4803").ctrl(x4822) // UnitPipe(List(b2653, b2633, b2624, b2619),Block(x4802))
     val x4793 = OpDef(op=BitAnd, inputs=List(b2653, b2633)).name("x4793").ctrl(x4803) // And(b2653,b2633)
@@ -163,9 +164,9 @@ object GEMM_Blocked extends PIRApp {
     val b2732 = DummyOp().ctrl(x4977).name("b2732")
     val x4826_d0_b0 = SRAM(size=16, banking=NoBanking()).name("x4826_d0_b0").ctrl(x4977) // x4826 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x4826_d0_b0) = false
-    val x4827 = Reg(init=0).name("x4827").ctrl(x4977) // x4827 = RegNew(Const(0))
+    val x4827 = Reg(init=Some(0)).name("x4827").ctrl(x4977) // x4827 = RegNew(Const(0))
     isAccum(x4827) = false
-    val x4828 = Reg(init=0).name("x4828").ctrl(x4977) // x4828 = RegNew(Const(0))
+    val x4828 = Reg(init=Some(0)).name("x4828").ctrl(x4977) // x4828 = RegNew(Const(0))
     isAccum(x4828) = false
     val x4839 = UnitController(style=SeqPipe, level=InnerControl).name("x4839").ctrl(x4977) // UnitPipe(List(b2732, b2633, b2624, b2619),Block(Const(())))
     val x4829 = OpDef(op=FixAdd, inputs=List(b2618, b2731)).name("x4829").ctrl(x4839) // FixAdd(b2618,b2731)
@@ -238,11 +239,11 @@ object GEMM_Blocked extends PIRApp {
     val b5147_b5142 = WriteMem(b5142, x4883_x4868).name("b5147_b5142").ctrl(x4885) // FIFOEnq(x4843,x4883,x4881)
     val x4886 = FringeContainer(x4709,b5138,b5139,x4844).name("x4886").ctrl(x4922) // FringeDenseLoad(x4709,x4842,x4844)
     val x4921 = UnitController(style=SeqPipe, level=OuterControl).name("x4921").ctrl(x4922) // UnitPipe(List(b2750, b2732, b2633, b2624, b2619),Block(Const(())))
-    val x4887 = Reg(init=0).name("x4887").ctrl(x4921) // x4887 = RegNew(Const(0))
+    val x4887 = Reg(init=Some(0)).name("x4887").ctrl(x4921) // x4887 = RegNew(Const(0))
     isAccum(x4887) = false
-    val x4888 = Reg(init=0).name("x4888").ctrl(x4921) // x4888 = RegNew(Const(0))
+    val x4888 = Reg(init=Some(0)).name("x4888").ctrl(x4921) // x4888 = RegNew(Const(0))
     isAccum(x4888) = false
-    val x4889 = Reg(init=0).name("x4889").ctrl(x4921) // x4889 = RegNew(Const(0))
+    val x4889 = Reg(init=Some(0)).name("x4889").ctrl(x4921) // x4889 = RegNew(Const(0))
     isAccum(x4889) = false
     val x4901 = UnitController(style=SeqPipe, level=InnerControl).name("x4901").ctrl(x4921) // UnitPipe(List(b2750, b2732, b2633, b2624, b2619),Block(x4900))
     val x4890 = OpDef(op=BitAnd, inputs=List(b2750, b2732)).name("x4890").ctrl(x4901) // And(b2750,b2732)
@@ -288,9 +289,9 @@ object GEMM_Blocked extends PIRApp {
     val x4966 = LoopController(style=MetaPipe, level=OuterControl, cchain=x4925).name("x4966").ctrl(x4977) // UnrolledReduce(List(b2732, b2633, b2624, b2619),x4925,x4923,Block((x4923) => Const(())),List(List(b2835)),List(List(b2836)))
     val b2835 = CounterIter(x4924, Some(0)).ctrl(x4966).name("b2835")
     val b2836 = DummyOp().ctrl(x4966).name("b2836")
-    val x4926_d0_b0 = SRAM(size=16, banking=NoBanking()).name("x4926_d0_b0").ctrl(x4966) // x4926 = SRAMNew(ArrayBuffer(Const(16)))
+    val x4926_d0_b0 = SRAM(size=1, banking=Strided(banks=16, stride=1)).name("x4926_d0_b0").ctrl(x4966) // x4926 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x4926_d0_b0) = false
-    val x4927 = Reg(init=0.0).name("x4927").ctrl(x4966) // x4927 = RegNew(Const(0))
+    val x4927 = Reg(init=Some(0.0)).name("x4927").ctrl(x4966) // x4927 = RegNew(Const(0))
     isAccum(x4927) = false
     val x4934 = UnitController(style=SeqPipe, level=InnerControl).name("x4934").ctrl(x4966) // UnitPipe(List(b2836, b2732, b2633, b2624, b2619),Block(Const(())))
     val x4928 = OpDef(op=BitAnd, inputs=List(b2836, b2732)).name("x4928").ctrl(x4934) // And(b2836,b2732)
@@ -299,7 +300,7 @@ object GEMM_Blocked extends PIRApp {
     val x4931 = OpDef(op=BitAnd, inputs=List(x4930, b2619)).name("x4931").ctrl(x4934) // And(x4930,b2619)
     val x4932 = LoadBanks(List(x4826_d0_b0), List(b2835)).name("x4932").ctrl(x4934) // SRAMLoad(x4826,ArrayBuffer(Const(16)),List(b2835),Const(0),x4931)
     val x4933_x4927 = WriteMem(x4927, x4932).name("x4933_x4927").ctrl(x4934) // RegWrite(x4927,x4932,x4931)
-    val x4935 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4935").ctrl(x4966) // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x4935 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x4935").ctrl(x4966) // CounterNew(Const(0),Const(16),Const(1),Const(16))
     val x4936 = CounterChain(List(x4935)).name("x4936").ctrl(x4966) // CounterChainNew(List(x4935))
     val x4947 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4936).name("x4947").ctrl(x4966) // UnrolledForeach(List(b2836, b2732, b2633, b2624, b2619),x4936,Block(Const(())),List(List(b2848)),List(List(b2849)))
     val b2848 = CounterIter(x4935, None).ctrl(x4947).name("b2848")
@@ -367,9 +368,9 @@ object GEMM_Blocked extends PIRApp {
     val x4991 = OpDef(op=FixEql, inputs=List(b2632, Const(0))).name("x4991").ctrl(x4994) // FixEql(b2632,Const(0))
     val x4992 = ReduceAccumOp(op=FixAdd, input=x4985, accum=x4987).name("x4992").ctrl(x4994) // FixAdd(x4985,x4987)
     val x4993 = StoreBanks(List(x4725_d0_b0, x4725_d1_b0), List(b2893, b2894), x4992).name("x4993").ctrl(x4994) // ParSRAMStore(x4725,List(ArrayBuffer(b2893, b2894)),List(x4992),List(x4983))
-    val x4996 = Reg(init=0).name("x4996").ctrl(x5082) // x4996 = RegNew(Const(0))
+    val x4996 = Reg(init=Some(0)).name("x4996").ctrl(x5082) // x4996 = RegNew(Const(0))
     isAccum(x4996) = false
-    val x4997 = Reg(init=0).name("x4997").ctrl(x5082) // x4997 = RegNew(Const(0))
+    val x4997 = Reg(init=Some(0)).name("x4997").ctrl(x5082) // x4997 = RegNew(Const(0))
     isAccum(x4997) = false
     val x5007 = UnitController(style=SeqPipe, level=InnerControl).name("x5007").ctrl(x5082) // UnitPipe(List(b2624, b2619),Block(Const(())))
     val x4998 = b2618 // FixConvert(b2618,TRUE,_32,_0)
@@ -392,11 +393,11 @@ object GEMM_Blocked extends PIRApp {
     val x5012 = StreamOut(field="data").name("x5012").ctrl(x5081) // x5012 = StreamOutNew(BurstFullDataBus())
     val x5013 = StreamIn(field="ack").name("x5013").ctrl(x5081) // x5013 = StreamInNew(BurstAckBus)
     val x5075 = UnitController(style=SeqPipe, level=OuterControl).name("x5075").ctrl(x5081) // UnitPipe(List(b2928, b2624, b2619),Block(Const(())))
-    val x5014 = Reg(init=0).name("x5014").ctrl(x5075) // x5014 = RegNew(Const(0))
+    val x5014 = Reg(init=Some(0)).name("x5014").ctrl(x5075) // x5014 = RegNew(Const(0))
     isAccum(x5014) = false
-    val x5015 = Reg(init=0).name("x5015").ctrl(x5075) // x5015 = RegNew(Const(0))
+    val x5015 = Reg(init=Some(0)).name("x5015").ctrl(x5075) // x5015 = RegNew(Const(0))
     isAccum(x5015) = false
-    val x5016 = Reg(init=0).name("x5016").ctrl(x5075) // x5016 = RegNew(Const(0))
+    val x5016 = Reg(init=Some(0)).name("x5016").ctrl(x5075) // x5016 = RegNew(Const(0))
     isAccum(x5016) = false
     val x5055 = UnitController(style=SeqPipe, level=InnerControl).name("x5055").ctrl(x5075) // UnitPipe(List(b2928, b2624, b2619),Block(x5054))
     val x5017 = OpDef(op=FixAdd, inputs=List(b2618, b2927)).name("x5017").ctrl(x5055) // FixAdd(b2618,b2927)

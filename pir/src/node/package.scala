@@ -123,8 +123,8 @@ package object node extends SpadeEnums {
       case n:FringeContainer => Some("dfg")
       case n:GlobalContainer if collectDown[Memory](n).filter(isRemoteMem).nonEmpty => Some("pmu")
       case n:GlobalContainer if collectOut[StreamOut](n, visitFunc=visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
-      case n:GlobalContainer if parOf(innerCtrlOf(n))==Some(1) => Some("scu")
       case n:GlobalContainer if collectDown[StageDef](n).size==0 => Some("ocu")
+      case n:GlobalContainer if collectDown[Def](n).forall { s => parOf(s)==Some(1) } => Some("scu")
       case n:GlobalContainer => Some("pcu")
       case n => None
     }

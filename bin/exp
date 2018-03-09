@@ -263,7 +263,7 @@ def plot_cu_distribution(stats):
 
     plt.ylabel('Percentage')
     plt.ylim([0,110])
-    plt.xticks(ind+1, apps, rotation=50)
+    plt.xticks(ind, apps, rotation=50)
     plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
                       ncol=6, fancybox=True, shadow=True)
     # Shrink current axis's height by 10% on the bottom
@@ -283,7 +283,7 @@ def load_stats():
 
 def plot_stats():
     stats = load_stats()
-    # plot_cu_distribution(stats)
+    plot_cu_distribution(stats)
     plot_reduction(stats)
     plot_degree(stats)
     plot_pcu_stages(stats)
