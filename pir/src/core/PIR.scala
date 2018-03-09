@@ -92,7 +92,6 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(new PIRPrinter(s"IR2.txt"))
-    //addPass(cuStats)
     addPass(irCheck)
 
     // Control transformation and analysis
@@ -100,17 +99,18 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
     addPass(new PIRIRDotCodegen(s"top11.dot"))
-    addPass(controlAllocator) // set accessDoneOf, make copy to counter chains
+    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(controlLowering).dependsOn(controlAllocator) // Generate context enable dependencies. Duplicate parent counter chain if no dependency
     addPass(accessControlLowering).dependsOn(controlAllocator) // Lower access and counter to EnabledAccess and EnabledCounters
     addPass(deadCodeEliminator) // Remove unused memories and counters
     addPass(new PIRIRDotCodegen(s"top12.dot"))
-    addPass(controlLowering).dependsOn(accessControlLowering, deadCodeEliminator) // Generate context enable dependencies
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top13.dot"))
     addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
+    addPass(cuStats)
 
     // Mapping
 
@@ -125,15 +125,7 @@ trait PIR extends Compiler with PIRWorld {
   }
 
   def handle(e:Exception) = {
-    try {
-      arch.handle(e)
-    } catch {
-      case he:Exception =>
-        errmsg(s"Original Exception")
-        e.printStackTrace
-        errmsg(s"Exception during handling")
-        //he.printStackTrace
-    }
+    throw e
   }
 
 }

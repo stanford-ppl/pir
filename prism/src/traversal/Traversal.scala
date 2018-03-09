@@ -9,7 +9,10 @@ import scala.collection.mutable
 
 trait Traversal extends Pass with GraphTraversal {
   override def reset = { super.reset; resetTraversal }
-  override def initPass = { super.initPass; resetTraversal }
+  override def initPass(runner:RunPass[_]) = { 
+    super.initPass(runner)
+    resetTraversal
+  }
 }
 
 trait UnitTraversal extends GraphTraversal {

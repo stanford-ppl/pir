@@ -15,12 +15,13 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   val outputPath = buildPath(dirName, fileName)
 
   override def initPass(runner:RunPass[_]) = {
+    super.initPass(runner)
     openFile(dirName, fileName, append=append)
     info(s"Running $name to ${sw.getPath}")
   }
 
-  override def finPass = {
-    super.finPass
+  override def finPass(runner:RunPass[_]) = {
+    super.finPass(runner)
     closeStream
   }
 

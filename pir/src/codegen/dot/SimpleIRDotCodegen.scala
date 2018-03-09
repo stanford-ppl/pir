@@ -18,11 +18,12 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
   override val horizontal:Boolean = false
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:FringeContainer => super.color(attr, n)
-    case n:CUContainer =>
-      val mems = collectDown[Memory](n).filter(isRemoteMem)
-      if (mems.nonEmpty) super.color(attr, mems.head) else super.color(attr, n)
-    //case n:CUContainer if n.controller.isOuterControl => attr.fillcolor(indianred).style(filled) ////TODO
+    case n:FringeContainer => attr.fillcolor("lightseagreen").style(filled)
+    case n:CUContainer if isPMU(n) => attr.fillcolor(chartreuse).style(filled)
+    case n:CUContainer if isDAG(n) => attr.fillcolor("deeppink").style(filled)
+    case n:CUContainer if isSCU(n) => attr.fillcolor("gold").style(filled)
+    case n:CUContainer if isOCU(n) => attr.fillcolor("darkorange1").style(filled)
+    case n:CUContainer if isPCU(n) => attr.fillcolor("deepskyblue").style(filled)
     case n => super.color(attr,n)
   }
 

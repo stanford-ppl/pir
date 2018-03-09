@@ -46,7 +46,9 @@ class PIRMetadata extends Metadata {
   /*
    * Enable of CounterChain
    * */
-  object enableOf extends OneToOneMap[PIRNode, Def] with MetadataMap
+  object enableOf extends OneToOneMap[PIRNode, Def] with MetadataMap {
+    override def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {}
+  }
 
 }
 

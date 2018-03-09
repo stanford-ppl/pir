@@ -7,6 +7,7 @@ import scala.collection.mutable
 
 abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
+  implicit val pass:this.type = this
   def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
   override def toString = name
@@ -15,15 +16,12 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def initPass(runner:RunPass[_]):Unit = {
     info(s"Running ${runner.name} ...")
-    initPass
   }
-  def initPass:Unit = {}
 
   def runPass(runner:RunPass[_]):Unit = runPass
   def runPass:Unit = {}
 
-  def finPass(runner:RunPass[_]):Unit = { finPass; check } 
-  def finPass:Unit = {}
+  def finPass(runner:RunPass[_]):Unit = check
 
   def check(runner:RunPass[_]):Unit = check
   def check:Unit = {}

@@ -10,7 +10,18 @@ class CollectionStatus {
     inScope = im
   }
 }
-trait JsonCodegen extends Printer {
+trait JsonCodegen extends Codegen {
+  implicit val ms = new CollectionStatus()
+  override def initPass(runner:RunPass[_]) = {
+    super.initPass(runner)
+    emitBSln
+  }
+
+  override def finPass(runner:RunPass[_]) = {
+    emitln
+    emitBE
+    super.finPass(runner)
+  }
   def emitComma(implicit ms:CollectionStatus) = { 
     if (ms.inScope) { 
       if (ms.firstPair) ms.firstPair = false 
@@ -21,31 +32,33 @@ trait JsonCodegen extends Printer {
     def block = { value(new CollectionStatus()); writeln("") }
     emitElem(block)(ms)
   }
-  def emitMap(key:String)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
+  def emitMap(key:Any)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
     def block = { value(new CollectionStatus()); writeln("") }
     emitPair(key)(block)(ms)
   }
-  def emitList(key:String)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
+  def emitList(key:Any)(value: CollectionStatus=>Unit)(implicit ms:CollectionStatus):Unit = { 
     emitComma
     def block = { value(new CollectionStatus()); writeln("") }
     emitBSln(s""""$key": """, Brackets)
     block
     emitBE(Brackets)
   }
-  def emitList(key:String, value: List[String])(implicit ms:CollectionStatus):Unit =
+  def emitList(key:Any, value: List[String])(implicit ms:CollectionStatus):Unit =
     { emitComma; emit(s""""$key" : [${value.mkString(",")}]""") }
-  def emitLineMap(key:String, value:List[(String, String)])(implicit ms:CollectionStatus):Unit =
+  def emitLineMap(key:Any, value:List[(String, String)])(implicit ms:CollectionStatus):Unit =
   { emitComma; emit(s""""$key" : {${value.map{ case (k,v) => s""""$k" : "$v""""}.mkString(",")}}""") }
-  def emitPair(key:String, value: Int)(implicit ms:CollectionStatus):Unit = 
+  def emitPair(key:Any, value: Boolean)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$key" : $value""") }
-  def emitPair(key:String, value: Double)(implicit ms:CollectionStatus):Unit = 
+  def emitPair(key:Any, value: Int)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$key" : $value""") }
-  def emitPair(key:String)(value: =>Unit)(implicit ms:CollectionStatus):Unit = 
+  def emitPair(key:Any, value: Double)(implicit ms:CollectionStatus):Unit = 
+    { emitComma; emit(s""""$key" : $value""") }
+  def emitPair(key:Any)(value: =>Unit)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$key" :"""); emitBSln; value; emitBE }
-  def emitPair(key:String, value: String)(implicit ms:CollectionStatus):Unit = 
+  def emitPair(key:Any, value: String)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$key" : "$value"""") }
   def emitElem(value: =>Unit)(implicit ms:CollectionStatus):Unit = 
-    { emitComma; emit; emitBSln; value; emitBE }
+    { emitComma; emitBSln; value; emitBE }
   def emitElem(value: String)(implicit ms:CollectionStatus):Unit = 
     { emitComma; emit(s""""$value"""") }
 

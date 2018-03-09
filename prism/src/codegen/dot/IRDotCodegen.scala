@@ -25,10 +25,10 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
     if (horizontal) emitln(s"rankdir=LR")
   }
 
-  override def finPass = {
+  override def finPass(runner:RunPass[_]) = {
     emitEdges
     emitBEln
-    super.finPass
+    super.finPass(runner)
   }
 
   def emitEdges = { nodes.foreach(emitEdge) }

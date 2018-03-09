@@ -6,6 +6,8 @@ import pir.codegen._
 import spade._
 import spade.codegen._
 
+import prism._
+
 class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
 
   implicit val arch:Spade = compiler.arch
@@ -17,8 +19,8 @@ class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
     //simulator.reset
   }
 
-  override def initPass = {
-    super.initPass
+  override def initPass(runner:RunPass[_]) = {
+    super.initPass(runner)
     compiler match {
       case compiler:PIRApp => compiler.parseArgIns
       case _ =>
@@ -35,8 +37,8 @@ class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
     //simulator.run
   }
 
-  override def finPass = {
-    //simulator.finPass
+  override def finPass(runner:RunPass[_]) = {
+    super.finPass(runner)
   }
 }
 

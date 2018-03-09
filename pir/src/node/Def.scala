@@ -31,7 +31,7 @@ case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:Design) exte
 
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyOp()(implicit design:Design) extends Def
-case class Const[T<:AnyVal](value:T)(implicit design:Design) extends Def
+case class Const[T](value:T)(implicit design:Design) extends Def
 
 case class GlobalInput(globalOutput:GlobalOutput)(implicit design:Design) extends Def
 case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:Design) extends Def

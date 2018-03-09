@@ -1,0 +1,294 @@
+#!/opt/local/bin/python
+import subprocess
+import json
+import yaml
+import matplotlib.pyplot as plt
+import numpy as np
+import random
+from collections import defaultdict
+
+from json_util import *
+
+apps = []
+apps.append("AES")
+apps.append("BFS")
+apps.append("BlackScholes")
+apps.append("Differentiator")
+apps.append("DotProduct")
+apps.append("FFT_Strided")
+apps.append("GDA")
+apps.append("GEMM_Blocked")
+apps.append("GEMM_NCubed")
+apps.append("Gibbs_Ising2D")
+apps.append("OuterProduct")
+apps.append("SGD")
+apps.append("SGD_minibatch")
+apps.append("SPMV_CRS")
+apps.append("SPMV_DumbPack")
+apps.append("SPMV_ELL")
+apps.append("SYRK_col")
+apps.append("Sort_Radix")
+apps.append("TPCHQ6")
+apps.append("TRSM")
+# apps.append("FFT_Transpose")
+
+def get_colors(elems,name):
+    num_colors = len(elems)
+    cm = plt.get_cmap(name)
+    color = {}
+    inds = range(num_colors)
+    random.shuffle(inds)
+    for i, elem in enumerate(elems):
+        color[elem] = cm(1.* inds[i]/num_colors)
+    return color
+
+def call(command):
+    print(command)
+    subprocess.call(command, shell=True) 
+
+def simple():
+    for app in apps:
+        if app in ['Gibbs_Ising2D', 'TRSM']:
+            call("bin/dot -pn out/{}/simple1".format(app)) 
+        else:
+            call("bin/dot -pn out/{}/simple2".format(app)) 
+
+def plot_degree(stats):
+    plt.clf()
+
+    apps = stats.keys()
+    ind = np.array(range(len(apps)))
+
+    cins  = []
+    sins  = []
+    vins  = []
+    couts = []
+    souts = []
+    vouts = []
+    for app in apps:
+        cins.append([])
+        sins.append([])
+        vins.append([])
+        couts.append([])
+        souts.append([])
+        vouts.append([])
+        for cu in stats[app]:
+            if stats[app][cu]['tp'] in ['afg', 'dfg']:
+                continue
+            cins[-1].append(stats[app][cu]['cins'])
+            sins[-1].append(stats[app][cu]['sins'])
+            vins[-1].append(stats[app][cu]['vins'])
+            couts[-1].append(stats[app][cu]['couts'])
+            souts[-1].append(stats[app][cu]['souts'])
+            vouts[-1].append(stats[app][cu]['vouts'])
+
+    fig,(a1,a2,a3) = plt.subplots(3,1,sharex=True)
+    
+    # multiple box plots on one figure
+    a1.boxplot(cins)
+    a2.boxplot(sins)
+    a3.boxplot(vins)
+
+    # a1.set_yscale('log')
+    # a2.set_yscale('log')
+    # a3.set_yscale('log')
+
+    # a1.set_ylim([0,10])
+    
+    a1.set_ylabel('Number of IO')
+    a2.set_ylabel('Number of IO')
+    a3.set_ylabel('Number of IO')
+
+    # Shrink current axis's height by 10% on the bottom
+    box = a3.get_position()
+    a3.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.9])
+    plt.xticks(ind+1, apps, rotation=50)
+    a1.set_title('Control Input Distribution')
+    a2.set_title('Scalar Input Distribution')
+    a3.set_title('Vector Input Distribution')
+    fig.set_size_inches(16,10)
+    plt.savefig('out/ins.png')
+
+    fig,(a1,a2,a3) = plt.subplots(3,1,sharex=True)
+    
+    # multiple box plots on one figure
+    a1.boxplot(couts)
+    a2.boxplot(souts)
+    a3.boxplot(vouts)
+
+    # a1.set_yscale('log')
+    # a2.set_yscale('log')
+    # a3.set_yscale('log')
+
+    # a1.set_ylim([0,10])
+    
+    a1.set_ylabel('Number of IO')
+    a2.set_ylabel('Number of IO')
+    a3.set_ylabel('Number of IO')
+
+    # Shrink current axis's height by 10% on the bottom
+    box = a3.get_position()
+    a3.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.9])
+    plt.xticks(ind+1, apps, rotation=50)
+    a1.set_title('Control Output Distribution')
+    a2.set_title('Scalar Output Distribution')
+    a3.set_title('Vector Output Distribution')
+    fig.set_size_inches(16,10)
+    plt.savefig('out/outs.png')
+
+def plot_pcu_stages(stats):
+    plt.clf()
+
+    apps = stats.keys()
+    ind = np.array(range(len(apps)))
+
+    stages  = []
+    for app in apps:
+        stages.append([])
+        for cu in stats[app]:
+            if stats[app][cu]['tp'] in ['pcu', 'scu']:
+                stages[-1].append(stats[app][cu]['stages'])
+
+    fig,a1 = plt.subplots(1,1)
+    
+    # multiple box plots on one figure
+    a1.boxplot(stages)
+
+    # a1.set_yscale('log')
+
+    a1.set_ylim([0,15])
+    
+    a1.set_ylabel('Number of Stages')
+
+    # Shrink current axis's height by 10% on the bottom
+    box = a1.get_position()
+    a1.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
+    plt.xticks(ind+1, apps, rotation=50)
+    a1.set_title('PCU + SCU Stage Distribution')
+    fig.set_size_inches(16,8)
+    plt.savefig('out/pcu_stages.png')
+
+def plot_pmu_stages(stats):
+    plt.clf()
+
+    apps = stats.keys()
+    ind = np.array(range(len(apps)))
+
+    stages  = []
+    for app in apps:
+        stages.append([])
+        for cu in stats[app]:
+            if stats[app][cu]['tp'] == 'pmu':
+                stages[-1].append(stats[app][cu]['stages'])
+
+    fig,a1 = plt.subplots(1,1)
+    
+    # multiple box plots on one figure
+    a1.boxplot(stages)
+
+    # a1.set_yscale('log')
+
+    # a1.set_ylim([0,10])
+    
+    a1.set_ylabel('Number of Stages')
+
+    # Shrink current axis's height by 10% on the bottom
+    box = a1.get_position()
+    a1.set_position([box.x0, box.y0 + box.height * 0.1, box.width, box.height * 0.9])
+    plt.xticks(ind+1, apps, rotation=50)
+    a1.set_title('PMU Stage Distribution')
+    fig.set_size_inches(16,8)
+    plt.savefig('out/pmu_stages.png')
+
+def plot_reduction(stats):
+    plt.clf()
+
+    apps = stats.keys()
+    ind = np.array(range(len(apps)))
+
+    total = np.zeros(len(apps))
+    reduction = np.zeros(len(apps),dtype=float)
+
+    for i, app in enumerate(apps):
+        for cu in stats[app]:
+            total[i] += 1 
+            if stats[app][cu]['hasReduce']: reduction[i] += 1
+
+    reductionPct = reduction * 100.0 / total
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    
+    plt.bar(ind, reductionPct, color='lightblue', edgecolor='none')
+
+    plt.ylabel('Percentage')
+    plt.xticks(ind+1, apps, rotation=50)
+    plt.title('Percentage of CU containing reduction')
+    fig.set_size_inches(16,8)
+    plt.savefig('out/reduction.png')
+
+def plot_cu_distribution(stats):
+    plt.clf()
+
+    apps = stats.keys()
+    ind = np.array(range(len(apps)))
+
+    total = np.zeros(len(apps))
+    tps = ['pcu','pmu','scu', 'dag' ,'ocu','afg','dfg']
+    counts = {}
+    for tp in tps:
+        counts[tp] = np.zeros(len(apps))
+
+    for i, app in enumerate(apps):
+        for cu in stats[app]:
+            total[i] += 1 
+            counts[stats[app][cu]['tp']][i] += 1
+
+    pcts = {}
+    for tp in counts:
+        pcts[tp] = counts[tp] * 100.0 / total
+
+    width = 0.35
+    cmap = 'RdYlBu'
+    # cmap = 'gist_rainbow'
+    # cmap = 'rainbow'
+    colors = get_colors(tps, cmap)
+
+    fig = plt.figure()
+    ax = plt.subplot(111)
+    
+    for i, tp in enumerate(tps):
+        bottom = sum(pcts[tps[i]] for i in  range(i))
+        plt.bar(ind, pcts[tp], width, color=colors[tp], label=tp, edgecolor='none', bottom =bottom)
+
+    plt.ylabel('Percentage')
+    plt.ylim([0,110])
+    plt.xticks(ind+1, apps, rotation=50)
+    plt.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05),
+                      ncol=6, fancybox=True, shadow=True)
+    # Shrink current axis's height by 10% on the bottom
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0 + box.height * 0.1,
+                     box.width, box.height * 0.8])
+
+    fig.set_size_inches(14,8)
+    plt.savefig('out/dist.png')
+
+def load_stats():
+    stats = {}
+    for app in apps:
+        if app in ['Gibbs_Ising2D', 'TRSM']: continue
+        stats[app] = json_load_byteified(open('out/{}/stat.json'.format(app),'r'))
+    return stats
+
+def plot_stats():
+    stats = load_stats()
+    # plot_cu_distribution(stats)
+    plot_reduction(stats)
+    plot_degree(stats)
+    plot_pcu_stages(stats)
+    plot_pmu_stages(stats)
+
+# simple()
+plot_stats()
+

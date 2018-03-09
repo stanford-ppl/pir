@@ -36,7 +36,7 @@ trait Printer {
       new FileOutputStream(new File(path), append)
     }
     var written = false
-    override def print(s:String) = { written = true; super.println(s) }
+    override def print(s:String) = { written = true; super.print(s) }
     override def println(s:String) = { written = true; super.println(s) }
     override def flush = if (written) super.flush
     override def close = if (written) super.close 

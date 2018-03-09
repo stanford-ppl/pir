@@ -37,25 +37,33 @@ package object node extends SpadeEnums {
     case _ => false
   }
 
+  def isReduceOp(n:PIRNode) = n match {
+    case n:ReduceAccumOp => true
+    case n:ReduceOp => true
+    case n => false
+  }
+
   def withinGlobal(n:PIRNode) = within[GlobalContainer](n)
 
   def within[T<:PIRNode:ClassTag](n:PIRNode) = {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
   }
 
-  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:Design):Int = dbgblk(logger, s"parOf($x)") {
+  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:Design):Option[Int] = dbgblk(logger, s"parOf($x)") {
     import design.pirmeta._
     x match {
-      case x:LoopController => parOf(x.cchain)
-      case x:UnitController => 1
-      case x:TopController => 1
-      case x:ArgInController => 1
+      case x:ArgIn => Some(1)
+      case x:TokenOut => Some(1)
+      case x:UnitController => Some(1)
+      case x:TopController => Some(1)
+      case x:ArgInController => Some(1)
+      case x:Counter => Some(x.par)
       case x:CounterChain => parOf(x.counters.last)
-      case x:Counter => x.par
+      case x:LoopController => parOf(x.cchain)
       case x:ComputeNode => parOf(ctrlOf(x))
       case x:StreamIn => parOf(ctrlOf(x))
-      case x:ArgIn => 1
-      case x:TokenOut => 1
+      case x:StreamOut => parOf(ctrlOf(x))
+      case x => None
     }
   }
 
@@ -69,8 +77,8 @@ package object node extends SpadeEnums {
     n match {
       case n:ControlNode => Bit
       case n:Memory if isControlMem(n) => Bit
-      case n:StreamIn if parOf(n) == 1 => Word
-      case n:StreamIn if parOf(n) > 1 => Vector
+      case n:StreamIn if parOf(n).get == 1 => Word
+      case n:StreamIn if parOf(n).get > 1 => Vector
       case n:Memory => 
         val tps = n.writers.map(writer => bundleTypeOf(writer, logger))
         assert(tps.size==1, s"$n.writers=${n.writers} have different BundleType=$tps")
@@ -79,9 +87,46 @@ package object node extends SpadeEnums {
       case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
       case Def(n,GlobalInput(gout)) => bundleTypeOf(gout, logger)
       case Def(n,GlobalOutput(data, valid)) => bundleTypeOf(data, logger)
-      case n if parOf(n, logger) == 1 => Word
-      case n if parOf(n, logger) > 1 => Vector
+      case n if parOf(n, logger).get == 1 => Word
+      case n if parOf(n, logger).get > 1 => Vector
     }
   }
 
+  def isPMU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("pmu")
+  }
+
+  def isSCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("scu")
+  }
+
+  def isOCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("ocu")
+  }
+
+  def isPCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("pcu")
+  }
+
+  def isDAG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("dag")
+  }
+
+  def isFringe(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("afg") || cuType(n) == Some("dfg")
+  }
+
+  def cuType(n:PIRNode)(implicit pass:PIRPass):Option[String] = {
+    import pass._
+    n match {
+      case n:ArgFringe => Some("afg")
+      case n:FringeContainer => Some("dfg")
+      case n:GlobalContainer if collectDown[Memory](n).filter(isRemoteMem).nonEmpty => Some("pmu")
+      case n:GlobalContainer if collectOut[StreamOut](n, visitFunc=visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
+      case n:GlobalContainer if parOf(innerCtrlOf(n))==Some(1) => Some("scu")
+      case n:GlobalContainer if collectDown[StageDef](n).size==0 => Some("ocu")
+      case n:GlobalContainer => Some("pcu")
+      case n => None
+    }
+  }
 }

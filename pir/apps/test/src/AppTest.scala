@@ -7,21 +7,19 @@ import pir._
 import spade._
 import arch._
 
-import pirc.test._
-import pirc.util._
-import pirc.codegen.Logger
+import prism._
+import prism.test._
+import prism.util._
 
 import org.scalatest._
 import scala.language.reflectiveCalls
 
-class AppTests extends UnitTest { self =>
+class AppTests extends UnitTest with Logging { self =>
 
   def logDRAM(app:PIRApp, dram:Array[Option[AnyVal]]) = {
-    val logger = new Logger {
-      override lazy val stream = newStream("dram.log")(app)
+    withOpen(app.outDir, "dram.log", append=false) {
+      dram.zipWithIndex.foreach { case (data, addr) => dbg(s"DRAM[$addr] = $data") }
     }
-    dram.zipWithIndex.foreach { case (data, addr) => logger.dprintln(s"DRAM[$addr] = $data") }
-    logger.close
   }
 
   def checkDram(start:Int, gold:List[AnyVal])(dram:Array[Option[AnyVal]]):Boolean = {
@@ -86,12 +84,8 @@ class AppTests extends UnitTest { self =>
           //assert(checkDram(dram), s"DRAM result incorrect")
         //}
       }
-      try {
-        runApp
-        if (simulate) checkResult
-      } catch {
-        case e:Exception => errmsg(s"$e"); throw e
-      }
+      runApp
+      if (simulate) checkResult
     }
   }
 
@@ -168,7 +162,7 @@ class AppTests extends UnitTest { self =>
 
   def testBlockReduce1D(app:PIRApp, numTile:Int, tileSize:Int, startSrc:Int, startDst:Int, debug:Boolean=false) = {
     val block = List.tabulate(numTile, tileSize){ case (i,j) => i * tileSize + j }
-    app.setDram(startSrc, block.flatten)
+    //app.setDram(startSrc, block.flatten)
 
     val gold = block.reduce[List[Int]] { case (t1, t2) => t1.zip(t2).map { case (e1, e2) => e1 + e2 } } 
 
@@ -233,21 +227,30 @@ class AppTests extends UnitTest { self =>
   //val arch = new SN(numRows=2, numCols=2, pattern=Checkerboard)
   // Mapping Test
   // Working
-  test(DotProduct         , arch=Some(SN2x2), verbose=verbose, mapping=mapping, debug=true)
-  test(OuterProduct       , arch=Some(SN4x4), verbose=verbose, mapping=mapping, debug=true)
-  test(TPCHQ6             , arch=Some(SN8x8), verbose=verbose, mapping=mapping, debug=true)
-  test(GDA                , arch=None, verbose=verbose, mapping=mapping, debug=true)
-  test(BlackScholes       , arch=None/*Some(SN16x8_LD)*/, verbose=verbose, mapping=mapping, debug=true)
-  test(SPMV_CRS           , arch=None, verbose=verbose, mapping=mapping, debug=true)
-  test(BFS                , arch=None, verbose=verbose, mapping=mapping, debug=true)
-  test(Differentiator     , arch=None, verbose=verbose, mapping=mapping, debug=true)
-  // Not Working
-  //test(SimpleIf           , arch=Some(SN2x2), verbose=verbose, mapping=mapping, debug=true)
+  test(AES            , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(BFS            , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(BlackScholes   , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(Differentiator , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(DotProduct     , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(FFT_Strided    , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(GDA            , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(GEMM_Blocked   , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(GEMM_NCubed    , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(Gibbs_Ising2D  , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(OuterProduct   , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SGD            , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SGD_minibatch  , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SPMV_CRS       , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SPMV_DumbPack  , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SPMV_ELL       , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(SYRK_col       , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(Sort_Radix     , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(TPCHQ6         , arch=None , verbose=verbose , mapping=mapping , debug=true)
+  test(TRSM           , arch=None , verbose=verbose , mapping=mapping , debug=true)
+
+  //test(FFT_Transpose  , arch=None , verbose=verbose , mapping=mapping , debug=true)
   //test(Backprop           , arch=Some(SN8x8), verbose=verbose, mapping=mapping, debug=true)
-  //test(Gibbs_Ising2D      , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(Kmeans_plasticine  , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
   //test(PageRank_plasticine, arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(GEMM_Blocked       , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
-  //test(SYRK_col                , arch=Some(arch), verbose=verbose, mapping=mapping, debug=true)
 }
 

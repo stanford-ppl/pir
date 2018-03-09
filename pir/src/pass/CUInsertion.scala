@@ -15,8 +15,8 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
 
   override def shouldRun = true
 
-  override def initPass = {
-    super.initPass
+  override def initPass(runner:RunPass[_]) = {
+    super.initPass(runner)
     controllerTraversal.resetTraversal
   }
   
