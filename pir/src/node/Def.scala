@@ -33,8 +33,12 @@ case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:Design) exte
 case class DummyOp()(implicit design:Design) extends Def
 case class Const[T](value:T)(implicit design:Design) extends Def
 
-case class GlobalInput(globalOutput:GlobalOutput)(implicit design:Design) extends Def
-case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:Design) extends Def
+trait GlobalInput extends Def { val globalOutput:GlobalOutput }
+case class ValidGlobalInput(globalOutput:GlobalOutput)(implicit design:Design) extends GlobalInput
+case class ReadyValidGlobalInput(globalOutput:GlobalOutput, ready:ControlNode)(implicit design:Design) extends GlobalInput
 case class DataValid(globalInput:GlobalInput)(implicit design:Design) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
+
+case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:Design) extends Def
+case class DataReady(globalOutput:GlobalOutput)(implicit design:Design) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
 
 case class CountAck(ack:Def)(implicit design:Design) extends ControlNode

@@ -9,6 +9,8 @@ import scala.collection.mutable
 abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
+  val busWithReady = true
+
   def allocateCounterDone(counter:Primitive) = {
     val context = contextOf(counter).get
     allocate[CounterDone](context, _.counter == counter){
@@ -36,14 +38,27 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
     }
   }
 
-  def insertGlobalIO(from:Def, toCtx:ComputeContext)(validFunc: => ControlNode):Def = {
+  def allocateWithFields[T<:PIRNode:ClassTag](fields:Any*)(container:Container):T = 
+    dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
+    val args = fields :+ design
+    def newNode = {
+      val constructor = implicitly[ClassTag[T]].runtimeClass.getConstructors()(0)
+      constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    }
+    allocate(container, (n:T) => n.values == fields)(newNode)
+  }
+
+  def insertGlobalIO(from:Def, toCtx:ComputeContext)(validFunc: => ControlNode)(readyFunc: => ControlNode):Def = {
     val fromCtx = contextOf(from).get
     val fromCU = globalOf(fromCtx).get
     val toCU = globalOf(toCtx).get
     if (fromCU == toCU) return from 
-    val valid = validFunc
-    val gout = allocate(fromCtx, (n:GlobalOutput) => n.data==from && n.valid==valid)(GlobalOutput(from, valid))
-    allocate[GlobalInput](toCtx, _.globalOutput==gout)(GlobalInput(gout))
+    val gout = allocateWithFields[GlobalOutput](from,validFunc)(fromCtx)
+    if (busWithReady) {
+      allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)(toCtx)
+    } else {
+      allocateWithFields[ValidGlobalInput](gout)(toCtx)
+    }
   }
 
   def duplicateCounterChain(context:ComputeContext, ctrl:LoopController) = dbgblk(s"duplicateCounterChain($context, $ctrl)"){
@@ -81,10 +96,6 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
     if (chain.isEmpty) None else Some(chain.last)
   }
 
-  def allocateContextEnableOut(context:ComputeContext):ContextEnableOut = dbgblk(s"allocateContextEnableOut($context)") {
-    allocate[ContextEnableOut](context) { ContextEnableOut() }
-  }
-
   def allocateControllerDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerDone(ctx=$context, ctrl=$ctrl)") {
     val prevDone = prevCtrl(context, ctrl).map { prevCtrl =>
       allocateControllerDone(context, prevCtrl)
@@ -95,13 +106,13 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
         val cchain = duplicateCounterChain(context, ctrl) 
         enableOf(cchain) = prevDone match {
           case Some(done) => done
-          case None => allocateContextEnableOut(context)
+          case None => allocateWithFields[ContextEnableOut]()(context)
         }
         allocateCounterDone(cchain.counters.last)
       case ctrl:UnitController =>
         // If UnitControl is the inner most control, the enable is the done, otherwise it's previous
         // control's done
-        prevDone.fold[ControlNode] { allocateContextEnableOut(context) } { prevDone => prevDone }
+        prevDone.fold[ControlNode] { allocateWithFields[ContextEnableOut]()(context) } { prevDone => prevDone }
       case top:TopController => prevDone.get
     }
   }

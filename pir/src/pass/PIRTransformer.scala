@@ -25,11 +25,18 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
 
     if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
     // Nodes do not mirror
+    
     n match {
-      case GlobalInput(globalOutput) => mapping += globalOutput -> globalOutput
-      case n:Memory if isRemoteMem(n) => mapping += (n -> n)
-      case n => 
+      case n:PIRNode =>
+        n match {
+          case Def(n,ValidGlobalInput(globalOutput)) => mapping += globalOutput -> globalOutput
+          case Def(n,ReadyValidGlobalInput(globalOutput, ready)) => mapping += globalOutput -> globalOutput
+          case n:Memory if isRemoteMem(n) => mapping += (n -> n)
+          case n => 
+        }
+      case n =>
     }
+
     dbgblk(s"mirrorX(${quote(n)})") {
       val m = super.mirrorX(n, mapping)
       dbg(s"${quote(n)} -> ${quote(m)}")
@@ -85,7 +92,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     container:Option[Container]=None, 
     init:mutable.Map[Any,Any]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
-  )(implicit design:Design):(T, Set[N]) = {
+  ):(T, Set[N]) = {
     val mapping = container.fold {
       mutable.Map[Any,Any]()
     } { container =>

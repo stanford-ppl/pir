@@ -85,8 +85,9 @@ package object node extends SpadeEnums {
         tps.head
       case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
       case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
-      case Def(n,GlobalInput(gout)) => bundleTypeOf(gout, logger)
-      case Def(n,GlobalOutput(data, valid)) => bundleTypeOf(data, logger)
+      case Def(n,ValidGlobalInput(gout)) => bundleTypeOf(gout, logger)
+      case Def(n,ReadyValidGlobalInput(gout, ready)) => bundleTypeOf(gout, logger)
+      case Def(n,GlobalOutput(data,valid)) => bundleTypeOf(data, logger)
       case n if parOf(n, logger).get == 1 => Word
       case n if parOf(n, logger).get > 1 => Vector
     }

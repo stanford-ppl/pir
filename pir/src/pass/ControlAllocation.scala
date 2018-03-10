@@ -26,7 +26,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
       case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) =>
         val context = contextOf(n).get
         accessDoneOf(n) = mem match {
-          case mem if isFIFO(mem) => allocateContextEnableOut(context)
+          case mem if isFIFO(mem) => allocateWithFields[ContextEnableOut]()(context)
           case mem => allocateControllerDone(context, topCtrlOf(n))
         }
         accessDoneOf.info(n).foreach(dbg)
@@ -37,14 +37,16 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
           val dataCtx = contextOf(data).get
           dbg(s"dataCtx=$dataCtx")
           mem match {
-            case mem if isFIFO(mem) => allocateContextEnableOut(dataCtx)
+            case mem if isFIFO(mem) => allocateWithFields[ContextEnableOut]()(dataCtx)
             case mem if isReg(mem) => allocateControllerDone(dataCtx, ctrlOf(data))
           }
+        }{
+          allocateWithFields[NotFull](mem)(context)
         }
         accessDoneOf(n) = gdata match {
           case gdata:GlobalInput => 
             assert(isReg(mem) || isFIFO(mem), s"${qdef(n)}'s data is Global")
-            allocate[DataValid](context, _.globalInput==gdata)(DataValid(gdata))
+            allocateWithFields[DataValid](gdata)(context)
           case gdata => 
             // writeNext could be compute locally, from data producer, or from addresser. For now always
             // compute locally

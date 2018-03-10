@@ -43,26 +43,33 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     val readMems = collectIn[Memory](context) // All read memories should be local to the context in the same GlobalContainer
     dbg(s"readMems:${readMems.map(qtype)}")
     readMems.map { mem => 
-      allocate[NotEmpty](context, _.mem == mem)(NotEmpty(mem))
+      allocateWithFields[NotEmpty](mem)(context)
     }.toList
   }
 
   def computeNotFulls(context:ComputeContext) = dbgblk(s"computeNotFulls") {
-    val writtenRemoteMems = collectOut[LocalStore](context, visitFunc=(n:N) => n match { case n:Memory => Nil; case n => super.visitGlobalOut(n)}).map {
-      case Def(n, LocalStore(mem::Nil, _, _)) => (n, mem)
+    var notFulls:List[Def] = collectDown[LocalStore](context).map {
+      case Def(writer, LocalStore(mem::Nil, _, _)) => 
+        val notFull = allocateWithFields[NotFull](mem)(context)
+        dbg(s"localMem: $mem, notFull:$notFull")
+        notFull
     }
-    val writtenLocalMems = collectDown[LocalStore](context).map {
-      case Def(n, LocalStore(mem::Nil, _, _)) => (n, mem)
+    notFulls ++= collectDown[GlobalOutput](context).flatMap { gout =>
+      collectOut[LocalStore](gout, visitFunc=(n:N) => n match { case n:Memory => Nil; case n => super.visitGlobalOut(n)}).flatMap {
+        case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
+        case Def(writer, LocalStore(mem::Nil, _, _)) => 
+          val notFull:Def = if (busWithReady) {
+            allocateWithFields[DataReady](gout)(context)
+          } else {
+            val writerCtx = contextOf(writer).get
+            val notFull = allocateWithFields[NotFull](mem)(writerCtx)
+            insertGlobalIO(notFull, context)(allocateWithFields[High]()(writerCtx))(allocateWithFields[High]()(context))
+          }
+          dbg(s"removeMem: $mem, notFull:$notFull")
+          Some(notFull)
+      }
     }
-    dbg(s"writtenRemoteMems:${writtenRemoteMems.map{ case (w, m) => (qtype(w), qtype(m)) }}")
-    dbg(s"writtenLocalMems:${writtenLocalMems.map{ case (w, m) => (qtype(w), qtype(m)) }}")
-    (writtenRemoteMems ++ writtenLocalMems).flatMap { 
-      case (writer, mem:ArgOut) => None
-      case (writer, mem) =>
-        val writerCtx = contextOf(writer).get
-        val notFull = allocate[NotFull](writerCtx, _.mem == mem)(NotFull(mem))
-        Some(insertGlobalIO(notFull, context)(allocate[High](writerCtx)(High())))
-    }
+    notFulls
   }
 
   def allocateContextEnable(context:ComputeContext):ContextEnable = dbgblk(s"allocateContextEnable($context)") {

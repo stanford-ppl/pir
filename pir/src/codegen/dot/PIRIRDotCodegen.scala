@@ -25,14 +25,9 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n:OpDef => label += s"\n(${n.op})"
       case n:StreamIn => label += s"\n(${n.field})"
       case n:StreamOut => label +=s"\n(${n.field})"
-      case GlobalInput(gout) => label += s"\n(from=${gout})"
-      case n@GlobalOutput(data, valid) => 
+      case n:GlobalInput => label += s"\n(from=${n.globalOutput})"
+      case n:GlobalOutput => 
         label += s"\n(to=${n.out.connected.map(_.src).mkString(",\n")})"
-        valid match {
-          case High() => label += s"\nvalid=high"
-          case Low() => label += s"\nvalid=low"
-          case _ =>
-        }
       case n =>
     }
     n match {
