@@ -15,12 +15,14 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
   def shouldRun = true
 
   override def runPass(runner:RunPass[_]) =  {
+    import runner._
     val prevRuns = runner.prevRuns
     prevRuns.foreach(_.pass.check(runner))
     val prePasses = prevRuns.map { _.pass }
     val cus = collectDown[GlobalContainer](compiler.top)
-    val accessLowerHasRun = runner.session.hasRun[AccessLowering]
-    val ctrlAllocHasRun = runner.session.hasRun[ControlAllocation] 
+    val accessLowerHasRun = session.hasRun[AccessLowering]
+    val ctrlAllocHasRun = session.hasRun[ControlAllocation] 
+    val deadCodeHasAllRun = session.hasRunAll[DeadCodeElimination] 
     cus.foreach { cu => 
       if (accessLowerHasRun) {
         if (!ctrlAllocHasRun) {
@@ -29,6 +31,13 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
           checkCUIO[Input, GlobalInput](cu)
           checkCUIO[Output, GlobalOutput](cu)
         }
+      }
+      if (deadCodeHasAllRun) {
+        checkLowering[ContextEnableOut](cu)
+        checkLowering[ReadMem](cu)
+        checkLowering[WriteMem](cu)
+        checkLowering[LoadMem](cu)
+        checkLowering[StoreMem](cu)
       }
     }
   }
@@ -48,6 +57,11 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
         }
       case io =>
     }
+  }
+
+  def checkLowering[T<:PIRNode:ClassTag](cu:GlobalContainer) = dbgblk(s"checkLowering($cu)") {
+    val unlowered = collectDown[T](cu)
+    assert(unlowered.isEmpty, s"$cu still contains unlowered nodes: $unlowered")
   }
 
 }

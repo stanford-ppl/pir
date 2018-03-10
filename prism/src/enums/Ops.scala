@@ -80,7 +80,7 @@ trait Ops {
   }
 
   def eval(op:Op, ins:Any*):Any = {
-    (op, ins.map(in => convert(in, op))) match {
+    (op, ins.toList.map(in => convert(in, op))) match {
       case (FixAdd   , (a:Int)::(b:Int)::_)                     => (a + b)
       case (FixSub   , (a:Int)::(b:Int)::_)                     => (a - b)
       case (FixMul   , (a:Int)::(b:Int)::_)                     => (a * b)

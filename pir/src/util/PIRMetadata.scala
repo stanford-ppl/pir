@@ -50,5 +50,10 @@ class PIRMetadata extends Metadata {
     override def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {}
   }
 
+  /*
+   * User annotation on variable value
+   * */
+  object boundOf extends OneToOneMap[PIRNode, Any] with MetadataMap
+
 }
 

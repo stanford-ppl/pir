@@ -19,6 +19,10 @@ trait PIRCollector extends GraphCollector {
   def collectOut[M<:PIRNode:ClassTag](n:PIRNode, depth:Int= -1, visitFunc:PIRNode => List[PIRNode] = visitLocalOut _, logger:Option[Logging]=None):List[M] = 
     super.collect[PIRNode, M](n, depth, visitFunc, logger)
 
+  def collectPeer[M<:PIRNode:ClassTag](n:PIRNode, depth:Int= -1, visitFunc:PIRNode => List[PIRNode] = visitPeer _, logger:Option[Logging]=None):List[M] =  {
+    super.collect[PIRNode, M](n, depth, visitFunc, logger)
+  }
+
   def globalOf(n:PIRNode) = {
     collectUp[GlobalContainer](n).headOption
   }

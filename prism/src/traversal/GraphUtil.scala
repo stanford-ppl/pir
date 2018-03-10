@@ -16,6 +16,11 @@ trait GraphUtil {
   def visitDown[N<:Node[N]](n:N):List[N] = n.children
 
   /*
+   * Visit siblings
+   * */
+  def visitPeer[N<:Node[N]](n:N):List[N] = n.parent.map { p => p.children.filterNot(_ == n) }.getOrElse(Nil)
+
+  /*
    * Visit inputs of a node
    * */
   def visitLocalIn[N<:Node[N]](n:N):List[N] = n.localDeps.toList

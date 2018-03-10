@@ -7,7 +7,6 @@ object GEMM_Blocked extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x4701_d0 = top.argFringe.argIn(init=0).name("x4701_d0").ctrl(top) // ArgInNew(Const(0))
-    boundOf(x4701_d0) = None
     val x4707 = ReadMem(x4701_d0).name("x4707").ctrl(top) // RegRead(x4701)
     val x4708 = ReadMem(x4701_d0).name("x4708").ctrl(top) // RegRead(x4701)
     val x4709 = DRAM().name("x4709").ctrl(top) // x4709 = DRAMNew(ArrayBuffer(x4708, x4707),Const(0))

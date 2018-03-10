@@ -25,16 +25,23 @@ class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with 
 
   val lowered = mutable.Map[N,N]()
 
+  def lowered(n:Def) = {
+    n match {
+      case enOut:ContextEnableOut => collectPeer[ContextEnable](enOut, logger=Some(this)).head
+      case n => n
+    }
+  }
+
   def transform(n:N):N = lowered.getOrElseUpdate(n, dbgblk(s"transform($n)") {
     val node = n match {
       case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) =>
-        swapNode(n,EnabledLoadMem(mem, addr, accessDoneOf(n)).setParent(n.parent.get))
+        swapNode(n,EnabledLoadMem(mem, addr, lowered(accessDoneOf(n))).setParent(n.parent.get))
       case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
         val gdata = accessDoneOf(n) match {
           case DataValid(gin) => gin
           case _ => data
         }
-        swapNode(n,EnabledStoreMem(mem, addr, gdata, accessDoneOf(n)).setParent(n.parent.get))
+        swapNode(n,EnabledStoreMem(mem, addr, gdata, lowered(accessDoneOf(n))).setParent(n.parent.get))
       case Def(n:Counter, Counter(min, max, step, par)) =>
         val context = contextOf(n).head
         val cchain = collectUp[CounterChain](n).head
@@ -42,7 +49,7 @@ class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with 
           val counters = cchain.counters
           val idx = counters.indexOf(n)
           val en = if (idx == 0) {
-            enableOf(cchain)
+            lowered(enableOf(cchain))
           } else {
             val prev = counters(idx-1)
             allocateCounterDone(transform(prev).asInstanceOf[Primitive])

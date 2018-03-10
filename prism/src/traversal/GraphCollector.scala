@@ -17,7 +17,7 @@ trait GraphCollector extends GraphUtil {
       visited.contains(node)
     }
     // depth = -1 is infinate depth
-    override def visitNode(n:N, prev:T):T = dbgblk(logger, s"typeCollect($n, depth=${n._2})") {
+    override def visitNode(n:N, prev:T):T = dbgblk(logger, s"collect($n, depth=${n._2})") {
       val (node, depth) = n
       visited += node
       node match {

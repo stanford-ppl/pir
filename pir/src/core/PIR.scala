@@ -31,6 +31,7 @@ trait PIR extends Compiler with PIRWorld {
   /* Analysis */
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
+  lazy val constantPropogation = new ConstantPropogation()
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
@@ -70,6 +71,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(deadCodeEliminator)
     addPass(irCheck)
     addPass(new PIRIRDotCodegen(s"top2.dot"))
+    addPass(constantPropogation)
     addPass(controlPropogator)
     addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(cuInsertion)
@@ -98,11 +100,10 @@ trait PIR extends Compiler with PIRWorld {
     addPass(contextInsertion)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
-    addPass(new PIRIRDotCodegen(s"top11.dot"))
     addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    addPass(controlLowering).dependsOn(controlAllocator) // Generate context enable dependencies. Duplicate parent counter chain if no dependency
-    addPass(accessControlLowering).dependsOn(controlAllocator) // Lower access and counter to EnabledAccess and EnabledCounters
-    addPass(deadCodeEliminator) // Remove unused memories and counters
+    addPass(new PIRIRDotCodegen(s"top11.dot"))
+    addPass(controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(accessControlLowering).dependsOn(controlAllocator, controlLowering) // Lower access and counter to EnabledAccess and EnabledCounters
     addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top13.dot"))

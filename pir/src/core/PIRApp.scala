@@ -56,7 +56,7 @@ trait PIRApp extends PIR {
   def newDesign = {
     design = new PIRDesign()
     main(design)
-    endInfo(s"Finishing graph construction for ${this}")
+    info(s"Finishing graph construction for ${this}")
     arch = getArch(PIRConfig.arch)
     arch.initDesign
     info(s"Configuring spade $arch ...")

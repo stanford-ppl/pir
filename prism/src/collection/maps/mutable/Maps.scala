@@ -53,6 +53,21 @@ class OneToOneMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,V] with prism.collec
     if (!map.contains(k)) update(k,vv) 
     map(k)
   }
+  def swap[T](x:T, y:T) = {
+    (x,y) match {
+      case (x:K,y:K) =>
+        if (map.contains(x)) {
+          val vv = map(x)
+          map -= x 
+          map += y -> vv
+        }
+      case (x:V,y:V) =>
+        map.foreach { 
+          case (k,`x`) => map += k -> y
+          case _ =>
+        }
+    }
+  }
 }
 
 class OneToManyMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,Set[V]] with prism.collection.OneToManyMap[K,V,Set[V]] {
