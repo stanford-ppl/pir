@@ -4,13 +4,12 @@ import prism._
 import scala.collection.mutable
 
 trait Memorization {
-  //val memorizing = true
-  val memorizing = false
+  val memorizing = true
   private val caches = mutable.ListBuffer[Cache[_,_]]()
   case class Cache[I:ClassTag,O](lambda:I => O) {
     caches += this
     val memory = mutable.Map[I,O]()
-    def memorize(input:I) = if (memorizing) memory.getOrElseUpdate(input, lambda(input)) else lambda(input)
+    def apply(input:I) = if (memorizing) memory.getOrElseUpdate(input, lambda(input)) else lambda(input)
     def resetCache(input:Any) = input match { case input:I => memory -= input; case _ => }
     def resetAll = memory.clear
   }

@@ -42,7 +42,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       dbg(s"${quote(n)} -> ${quote(m)}")
       (n, m) match {
         case (n:Memory, m:Memory) => 
-          val writers = n.writers.map { 
+          val writers = writersOf(n).map { 
             case Def(w,LocalStore(mems, addrs, data)) => 
               // prevent mirroring of addrs and data
               addrs.foreach { addr => mapping += addr -> addr }
@@ -130,7 +130,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     collectDown[RetimingFIFO](cu).filter {
       case WithWriter(Def(w,LocalStore(mem, _, `x`))) => true
       case _ => false
-    }.headOption.map{ fifo => fifo.readers.head }
+    }.headOption.map{ fifo => readersOf(fifo).head }
   }
 
   def retime(

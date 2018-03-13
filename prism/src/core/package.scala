@@ -15,6 +15,7 @@ package object prism {
   type PIRException = prism.exceptions.PIRException
   val PIRException = prism.exceptions.PIRException
 
+  /* Scala aliasing */
   type ClassTag[T] = scala.reflect.ClassTag[T]
   def classTag[T](implicit ctag: ClassTag[T]) = scala.reflect.classTag[T]
   type TypeTag[T] = scala.reflect.runtime.universe.TypeTag[T]

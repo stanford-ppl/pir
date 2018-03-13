@@ -38,7 +38,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
           dbg(s"dataCtx=$dataCtx")
           mem match {
             case mem if isFIFO(mem) => allocateWithFields[ContextEnableOut]()(dataCtx)
-            case mem if isReg(mem) => allocateControllerDone(dataCtx, ctrlOf(data))
+            case mem if isReg(mem) => allocateControllerDone(dataCtx, topCtrlOf(n))
           }
         }{
           allocateWithFields[NotFull](mem)(context)

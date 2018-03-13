@@ -44,8 +44,11 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   override def visitNode(n:N, prev:T) = emitNode(n)
 
   def emitNode(n:N):Unit = {
-    emitln(s"// TODO: Unmatched Node ${quote(n)}")
+    emitComment(s"TODO: Unmatched Node ${quote(n)}")
     super.visitNode(n)
   } 
 
+  def emitComment(msg:String):Unit = emitln(s"// $msg")
+
+  def emitlnc(msg:String, comment:String):Unit = { emit(msg); emitComment(comment) }
 }

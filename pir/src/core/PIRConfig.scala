@@ -8,7 +8,7 @@ import java.io._
 object PIRConfig extends GlobalConfig {
   import Config._
 
-  var arch:String = register("arch", default="MeshCB2x2", info="Default architecture for mapping") { arch = _ }
+  var arch:String = register("arch", default="SMeshCB2x2", info="Default architecture for mapping") { arch = _ }
   var saveDesign:Boolean = register("save-pir", default=false, info="Save IR into a file") { saveDesign = _ }
   var loadDesign:Boolean = register("load-pir", default=false, info="Load IR from a file") { loadDesign = _ }
 
@@ -16,7 +16,7 @@ object PIRConfig extends GlobalConfig {
   var genDot:Boolean = register("dot", default=true) { genDot = _ }
   var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var ctrl:Boolean = register("ctrl", default=true) { ctrl = _ }
-  var aggressive_dce:Boolean = register("ag-dce", default=false) { aggressive_dce = _ }
+  var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
 
   def codegen = Config.codegen
   def verbose = Config.verbose

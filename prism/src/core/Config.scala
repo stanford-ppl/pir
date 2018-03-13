@@ -5,7 +5,7 @@ import scala.collection.mutable
 trait GlobalConfig extends ArgParser
 
 object Config extends GlobalConfig {
-  var codegen:Boolean = register("codegen", false) { codegen = _ }
+  var codegen:Boolean = register("codegen", true) { codegen = _ }
 
   var debug:Boolean = register("debug", true) { debug = _ }
   var debugCodegen:Boolean = debug && register("debug-codegen", true) { debugCodegen = _ }

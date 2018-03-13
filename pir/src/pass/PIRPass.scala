@@ -15,7 +15,8 @@ import scala.math.max
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIRCollector {
 
   implicit val design:PIRDesign = compiler.design
-  lazy val pirmeta = design.pirmeta
+  lazy val pirmeta = compiler.pirmeta
+  lazy val spademeta = compiler.spademeta
 
   def qdef(n:Any) = n match {
     case n:PIRNode => s"${n.name.getOrElse(n.toString)} = ${n.productName}"

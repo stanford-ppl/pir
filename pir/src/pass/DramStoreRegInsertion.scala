@@ -22,7 +22,7 @@ class DramStoreRegInsertion(implicit compiler:PIR) extends PIRTransformer {
   }
 
   def insertReg(dataStream:StreamOut) = {
-    val dataCtrl = ctrlOf(dataStream.writers.head)
+    val dataCtrl = ctrlOf(writersOf(dataStream).head)
     val fringe = globalOf(dataStream).get
     val ackStream = collectDown[StreamIn](fringe).filter { _.field == "ack" }.head
     val reader = ReadMem(ackStream).ctrl(dataCtrl)

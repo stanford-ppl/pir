@@ -14,13 +14,14 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   def shouldRun = true
 
   def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
-    dbg(s"accesses: ${mem.accesses}")
-    var accessCtrls = mem.accesses.map { access => 
+    val accesses = accessesOf(mem)
+    dbg(s"accesses: ${accesses}")
+    var accessCtrls:List[Controller] = accesses.map { access => 
       dbg(s"access:$access ctrl=${ctrlOf(access)}")
       ctrlOf(access)
     }
     mem match {
-      case mem:ArgOut => accessCtrls += compiler.top.argController
+      case mem:ArgOut => accessCtrls :+= compiler.top.argController
       case _ =>
     }
     val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {
@@ -31,7 +32,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
     ctrlOf.info(lcaCtrl).foreach(dbg)
 
     val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
-    mem.accesses.foreach { access =>
+    accesses.foreach { access =>
       val topCtrl = topCtrls(ctrlOf(access))
       val newAccess = access match {
         case Def(n, LocalStore(mems, addrs, data)) if topCtrlOf.get(access).fold(false){ _ != topCtrl} =>
@@ -56,7 +57,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
       topCtrlOf.info(newAccess).foreach(dbg)
     }
 
-    val isLocalMem = mem.accesses.map(a => ctrlOf(a)).toSet.size==1
+    val isLocalMem = accesses.map(a => ctrlOf(a)).toSet.size==1
     isInnerAccum(mem) = isLocalMem && isAccum(mem)
     isInnerAccum.info(mem).foreach(dbg)
   }

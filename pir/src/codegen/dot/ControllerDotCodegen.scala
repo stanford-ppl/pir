@@ -65,13 +65,13 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     val mems = collectDown[Memory](compiler.top)
     mems.foreach { 
       case mem:ArgIn =>
-        mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
+        readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }
       case mem:ArgOut =>
-        mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }
+        writersOf(mem).foreach { writer => emitEdge(ctrlOf(writer), mem) }
       case mem:RetimingFIFO =>
       case mem =>
-        mem.readers.foreach { reader => emitEdge(mem, ctrlOf(reader)) }
-        mem.writers.foreach { writer => emitEdge(ctrlOf(writer), mem) }
+        readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }
+        writersOf(mem).foreach { writer => emitEdge(ctrlOf(writer), mem) }
     }
   }
 

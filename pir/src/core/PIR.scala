@@ -15,6 +15,7 @@ import scala.collection.mutable.ListBuffer
 trait PIR extends Compiler with PIRWorld {
 
   lazy val pirmeta:PIRMetadata = design.pirmeta
+  lazy val spademeta:SpadeMetadata = arch.design.spademeta
   def top:Top = design.top
 
   val configs = List(Config, SpadeConfig, PIRConfig)
@@ -31,7 +32,6 @@ trait PIR extends Compiler with PIRWorld {
   /* Analysis */
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
-  lazy val constantPropogation = new ConstantPropogation()
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
@@ -48,9 +48,11 @@ trait PIR extends Compiler with PIRWorld {
   lazy val controlLowering = new ControlLowering()
 
   /* Mapping */
+  lazy val dynamicCUPlacer = new DynamicCUPlacer()
 
   /* Codegen */
   lazy val cuStats = new CUStatistics()
+  lazy val plastisimConfigCodegen = new PlastisimConfigCodegen()
 
   /* Simulator */
 
@@ -71,7 +73,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(deadCodeEliminator)
     addPass(irCheck)
     addPass(new PIRIRDotCodegen(s"top2.dot"))
-    addPass(constantPropogation)
     addPass(controlPropogator)
     addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(cuInsertion)
@@ -85,11 +86,11 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top7.dot"))
-    addPass(memoryAnalyzer)
     addPass(new PIRIRDotCodegen(s"top8.dot"))
-    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
+    addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
+    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(new PIRIRDotCodegen(s"top9.dot"))
 
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
@@ -114,10 +115,12 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     // Mapping
+    addPass(dynamicCUPlacer)
 
     // Post-mapping analysis
 
     // Codegen
+    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)
 
     // Simulation
 

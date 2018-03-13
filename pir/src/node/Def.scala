@@ -34,6 +34,13 @@ case class DummyOp()(implicit design:Design) extends Def
 case class Const[T](value:T)(implicit design:Design) extends Def
 
 trait GlobalInput extends Def { val globalOutput:GlobalOutput }
+object GlobalInput {
+  def unapply(n:Any):Option[GlobalOutput] = n match {
+    case ValidGlobalInput(gout) => Some(gout)
+    case ReadyValidGlobalInput(gout, ready) => Some(gout)
+    case _ => None
+  }
+}
 case class ValidGlobalInput(globalOutput:GlobalOutput)(implicit design:Design) extends GlobalInput
 case class ReadyValidGlobalInput(globalOutput:GlobalOutput, ready:ControlNode)(implicit design:Design) extends GlobalInput
 case class DataValid(globalInput:GlobalInput)(implicit design:Design) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data

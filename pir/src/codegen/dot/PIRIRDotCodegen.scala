@@ -19,6 +19,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n:Primitive if isCounter(n) =>
         val fields = n.fieldNames.zip(n.productIterator.toList).flatMap { 
           case (field, Const(v)) => Some(s"$field=$v")
+          case (field, v:Int) => Some(s"$field=$v")
           case _ => None
         }
         label += s"\n(${fields.mkString(",")})"

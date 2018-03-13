@@ -58,7 +58,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
       collectOut[LocalStore](gout, visitFunc=(n:N) => n match { case n:Memory => Nil; case n => super.visitGlobalOut(n)}).flatMap {
         case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
         case Def(writer, LocalStore(mem::Nil, _, _)) => 
-          val notFull:Def = if (busWithReady) {
+          val notFull:Def = if (compiler.arch.topParam.busWithReady) {
             allocateWithFields[DataReady](gout)(context)
           } else {
             val writerCtx = contextOf(writer).get

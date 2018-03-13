@@ -3,13 +3,13 @@ package pir.pass
 import pir._
 import pir.node._
 
+import spade.network._
+
 import prism._
 import scala.collection.mutable
 
 abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
-
-  val busWithReady = true
 
   def allocateCounterDone(counter:Primitive) = {
     val context = contextOf(counter).get
@@ -54,7 +54,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
     val toCU = globalOf(toCtx).get
     if (fromCU == toCU) return from 
     val gout = allocateWithFields[GlobalOutput](from,validFunc)(fromCtx)
-    if (busWithReady) {
+    if (compiler.arch.topParam.busWithReady) {
       allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)(toCtx)
     } else {
       allocateWithFields[ValidGlobalInput](gout)(toCtx)
@@ -73,7 +73,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
       mems.foreach { mem =>
         swapParent(mem, cu) // Move mem out of context
       }
-      val writers = mems.flatMap { _.writers }
+      val writers = mems.flatMap { writersOf }
       writers.foreach { writer =>
         swapParent(writer, ComputeContext().setParent(cu))
       }

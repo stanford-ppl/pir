@@ -41,5 +41,9 @@ trait PIRCollector extends GraphCollector {
     ctrlsOf(container).maxBy { _.ancestors.size }
   }
 
+  def ctxEnOf(n:ComputeContext):Option[ContextEnable] = {
+    collectDown[ContextEnable](n).headOption
+  }
+
 }
 

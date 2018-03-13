@@ -6,11 +6,7 @@ import prism._
 import prism.enums._
 import prism.util._
 
-abstract class Memory(implicit design:Design) extends Primitive { self =>
-  def writers = deps.collect { case s: LocalStore => s }
-  def readers = depeds.collect { case l: LocalLoad => l }
-  def accesses = writers ++ readers
-}
+abstract class Memory(implicit design:Design) extends Primitive 
 
 case class SRAM(size:Int, banking:Banking)(implicit design:Design) extends Memory
 case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:Design) extends Memory

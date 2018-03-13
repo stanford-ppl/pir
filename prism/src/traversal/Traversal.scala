@@ -27,7 +27,7 @@ trait UnitTraversal extends GraphTraversal {
 
 }
 
-trait GraphTraversal extends Memorization {
+trait GraphTraversal {
   type N
   type T
 

@@ -34,7 +34,7 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
   val dependencies = mutable.ListBuffer[RunPass[_]]()
   def dependsOn(deps:Pass*) = {
     deps.foreach { dep =>
-      dependencies += session.passes(dep).last
+      dependencies += session.passes(dep).last //TODO: If dependency is not added, session.passes does not contain dep yet.
     }
     this
   }

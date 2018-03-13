@@ -122,6 +122,7 @@ trait Printer {
   case object Brackets extends Braces { def s = "["; def e = "]" }
   case object CurlyBraces extends Braces { def s = "{"; def e = "}" }
   case object Parentheses extends Braces { def s = "("; def e = ")" }
+  case object NoneBraces extends Braces { def s = ""; def e = "" }
 
   def indent(s:String) = if (s=="") "" else s"${tab*level}$s"
   def listFormat(s:String) = if (listing) s"- $s" else s

@@ -24,9 +24,9 @@ package object node extends SpadeEnums {
     case n => false
   }
 
-  def isRemoteMem(n:PIRNode) = n match {
+  def isRemoteMem(n:PIRNode)(implicit pass:PIRPass) = n match {
     case (_:SRAM | _:StreamIn | _:StreamOut)  => true
-    case n:FIFO if n.writers.size > 1 => true
+    case n:FIFO if writersOf(n).size > 1 => true
     case n:RegFile => true
     case _ => false
   }
@@ -49,20 +49,28 @@ package object node extends SpadeEnums {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
   }
 
-  def parOf(x:Any, logger:Option[Logging]=None)(implicit design:Design):Option[Int] = dbgblk(logger, s"parOf($x)") {
-    import design.pirmeta._
+  def parOf(x:Controller, logger:Option[Logging])(implicit pass:PIRPass):Option[Int] = dbgblk(logger, s"parOf($x)") {
+    x match {
+      case x:UnitController => Some(1)
+      case x:TopController => Some(1)
+      case x:LoopController => parOf(x.cchain)
+      case x:ArgInController => Some(1)
+    }
+  }
+
+  def parOf(x:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[Int] = dbgblk(logger, s"parOf($x)") {
+    import pass.pirmeta._
+    implicit val design = pass.design
     x match {
       case x:ArgIn => Some(1)
       case x:TokenOut => Some(1)
-      case x:UnitController => Some(1)
-      case x:TopController => Some(1)
-      case x:ArgInController => Some(1)
       case x:Counter => Some(x.par)
       case x:CounterChain => parOf(x.counters.last)
-      case x:LoopController => parOf(x.cchain)
-      case x:ComputeNode => parOf(ctrlOf(x))
-      case x:StreamIn => parOf(ctrlOf(x))
-      case x:StreamOut => parOf(ctrlOf(x))
+      case x:StreamIn => parOf(ctrlOf(x), logger)
+      case x:StreamOut => parOf(ctrlOf(x), logger)
+      case Def(n, ReduceOp(op, input)) => parOf(input, logger).map { _ / 2 }
+      case Def(n, AccumOp(op, input)) => parOf(input, logger)
+      case x:ComputeNode => parOf(ctrlOf(x), logger)
       case x => None
     }
   }
@@ -73,15 +81,49 @@ package object node extends SpadeEnums {
     case _ => false
   }
 
-  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit design:Design):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
+  def memsOf(n:Any)(implicit pass:PIRPass) = {
+    import pass._
+    n match {
+      case n:LocalStore => collectOut[Memory](n, visitFunc=visitGlobalOut, depth=2)
+      case n:LocalLoad => collectIn[Memory](n, visitFunc=visitGlobalIn, depth=2)
+    }
+  }
+
+  def accessNextOf(n:PIRNode)(implicit pass:PIRPass) = {
+    import pass._
+    n match {
+      case Def(n,EnabledLoadMem(mem, addrs, readNext)) => readNext
+      case Def(n,EnabledStoreMem(mem, addrs, data, writeNext)) => writeNext
+    }
+  }
+
+  def writersOf(mem:Memory)(implicit pass:PIRPass):List[LocalStore] = {
+    import pass._
+    collectIn[LocalStore](mem, visitFunc=visitGlobalIn)
+  }
+
+  def readersOf(mem:Memory)(implicit pass:PIRPass):List[LocalLoad] = {
+    import pass._
+    def visitFunc(n:PIRNode):List[PIRNode] = n match {
+      case n:NotEmpty => Nil
+      case n:NotFull => Nil
+      case n => visitGlobalOut(n)
+    }
+    collectIn[LocalLoad](mem, visitFunc=visitGlobalOut)
+  }
+
+  def accessesOf(mem:Memory)(implicit pass:PIRPass):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
+
+  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
+    implicit val design = pass.design
     n match {
       case n:ControlNode => Bit
       case n:Memory if isControlMem(n) => Bit
       case n:StreamIn if parOf(n).get == 1 => Word
       case n:StreamIn if parOf(n).get > 1 => Vector
       case n:Memory => 
-        val tps = n.writers.map(writer => bundleTypeOf(writer, logger))
-        assert(tps.size==1, s"$n.writers=${n.writers} have different BundleType=$tps")
+        val tps = writersOf(n).map(writer => bundleTypeOf(writer, logger))
+        assert(tps.size==1, s"$n.writers=${writersOf(n)} have different BundleType=$tps")
         tps.head
       case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
       case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
@@ -90,6 +132,7 @@ package object node extends SpadeEnums {
       case Def(n,GlobalOutput(data,valid)) => bundleTypeOf(data, logger)
       case n if parOf(n, logger).get == 1 => Word
       case n if parOf(n, logger).get > 1 => Vector
+      case n => throw PIRException(s"Don't know bundleTypeOf($n)")
     }
   }
 
@@ -113,12 +156,20 @@ package object node extends SpadeEnums {
     cuType(n) == Some("dag")
   }
 
+  def isAFG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("afg")
+  }
+
+  def isDFG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+    cuType(n) == Some("dfg")
+  }
+
   def isFringe(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
-    cuType(n) == Some("afg") || cuType(n) == Some("dfg")
+    isAFG(n) || isDAG(n)
   }
 
   def cuType(n:PIRNode)(implicit pass:PIRPass):Option[String] = {
-    import pass._
+    import pass.{pass => _, _}
     n match {
       case n:ArgFringe => Some("afg")
       case n:FringeContainer => Some("dfg")
@@ -130,4 +181,11 @@ package object node extends SpadeEnums {
       case n => None
     }
   }
+
+  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = {
+    import pass._
+    collectDown[StreamOut](n).nonEmpty
+  }
+  def isStoreFringe(n:FringeContainer)(implicit pass:PIRPass) = !isLoadFringe(n)
+
 }

@@ -35,14 +35,14 @@ object LocalStore {
 }
 
 object WithWriters {
-  def unapply(n:Any):Option[List[LocalStore]] = n match {
-    case n:Memory => Some(n.writers.toList)
+  def unapply(n:Any)(implicit pass:PIRPass):Option[List[LocalStore]] = n match {
+    case n:Memory => Some(writersOf(n).toList)
     case _ => None
   }
 }
 object WithWriter {
-  def unapply(n:Any):Option[LocalStore] = n match {
-    case n:Memory if n.writers.size == 1 => Some(n.writers.head)
+  def unapply(n:Any)(implicit pass:PIRPass):Option[LocalStore] = n match {
+    case n:Memory if writersOf(n).size == 1 => Some(writersOf(n).head)
     case _ => None
   }
 }
