@@ -81,7 +81,7 @@ trait FileManager {
     val dir = new File(dirName)
     if (!dir.exists()) {
       println(s"[pir] creating output directory: $dirName");
-      dir.mkdir();
+      dir.mkdirs();
     }
   }
 
