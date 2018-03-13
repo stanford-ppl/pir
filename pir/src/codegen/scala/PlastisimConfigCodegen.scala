@@ -19,23 +19,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
 
   val mapping = compiler.dynamicCUPlacer.mapping
 
-  def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {
-    emitBlock(s"$n", b=NoneBraces)(block)
-  }
-
-  override def emitComment(msg:String) = emitln(s"# $msg")
-
   val linkSrc = new OneToOneMap[LocalStore, N]()
   val linkDst = new OneToOneMap[LocalStore, N]()
-
-  def addrOf(sn:SNode) = {
-    import topParam._
-    var List(x,y) = indexOf(sn)
-    x += 1 // get ride of negative x coordinate
-    val idx = y * (numCols + 2) + x
-    dbg(s"$sn: coord = ($x, $y) idx = $idx")
-    idx
-  }
 
   override def reset = {
     resetAllCaches
@@ -43,14 +28,78 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
     linkDst.clear
   }
 
+  // Execution of codegen
   override def runPass = {
-    super.runPass
-
+    super.runPass // traverse dataflow graph and call emitNode on each node
     assert(linkSrc.keys.size == linkDst.keys.size)
     linkSrc.keys.foreach(emitLink)
     emitNetwork("vec")
     emitNetwork("scal")
     emitNetwork("ctrl")
+  }
+
+  override def emitNode(n:N) = n match {
+    case n:ComputeContext if ctxEnOf(n).nonEmpty =>
+      emitNodeBlock(s"node $n # ${globalOf(n).get}") {
+        val stages = collectDown[StageDef](n)
+        emitln(s"lat = ${Math.max(stages.size, 1)}")
+        emitInByLocalLoad(n)
+        emitOutByGlobalOutput(n)
+        emitOutByLocalStore(n)
+      }
+    case n:FringeContainer if isLoadFringe(n) =>
+      emitNodeBlock(s"node $n") {
+        emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
+        emitOutByGlobalOutput(n)
+        val size = collectDown[StreamOut](n).filter { _.field == "size" }.head
+        val csize = getConstOf[Int](size)
+        dbg(s"csize = $csize")
+        collectDown[StreamOut](n).foreach { mem =>
+          dbgblk(qdef(mem)) {
+            writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
+              emitln(s"link_in[$idx] = $store")
+              emitln(s"scale_in[$idx] = ${csize / 4}") // size in bytes to words
+              linkDst(store) = n
+            }
+          }
+        }
+      }
+    case n:FringeContainer if isStoreFringe(n) => 
+      assert(false, s"TODO: add backend for storeFringe")
+    case n:ArgFringe =>
+      emitNodeBlock(s"node ${n}_out") {
+        emitOutByGlobalOutput(n)
+        emitln(s"start_at_tokens = 2")
+      }
+      emitNodeBlock(s"node ${n}_in") {
+        collectDown[ArgOut](n).foreach { mem =>
+          dbgblk(qdef(mem)) {
+            writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
+              emitln(s"link_in[$idx] = $store")
+              emitln(s"scale_in[$idx] = 1")
+              linkDst(store) = n
+            }
+          }
+          emitln(s"stop_after_tokens = 1")
+        }
+      }
+    case n => super.visitNode(n)
+  }
+
+  def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {
+    emitBlock(s"$n", b=NoneBraces)(block)
+  }
+
+  override def emitComment(msg:String) = emitln(s"# $msg")
+
+  // Convert coordinate to linear index
+  def addrOf(sn:SNode) = {
+    import topParam._
+    var List(x,y) = indexOf(sn)
+    x += 1 // get ride of negative x coordinate
+    val idx = y * (numCols + 2) + x
+    dbg(s"$sn: coord = ($x, $y) idx = $idx")
+    idx
   }
 
   def emitNetwork(nettp:String) = {
@@ -123,7 +172,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       dbgblk(s"gout=$gout store=${qdef(store)}") {
         emitln(s"link_out[$idx] = $store")
         val storeCount = itersOf(valid)
-        emitln(s"count_out[$idx] = $storeCount")
+        emitln(s"scale_out[$idx] = $storeCount")
         linkSrc(store) = n
       }
     }
@@ -138,7 +187,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
         val storeCount = itersOf(writeNext)
         val mem = memsOf(store).head
         assert(isRemoteMem(mem), s"$store in $n with ContextEnable")
-        emitln(s"count_out[$idx] = $storeCount")
+        emitln(s"scale_out[$idx] = $storeCount")
         linkSrc(store) = n
       }
     }
@@ -162,45 +211,4 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
     }
   }
 
-  override def emitNode(n:N) = n match {
-    case n:ComputeContext if ctxEnOf(n).nonEmpty =>
-      emitNodeBlock(s"node $n # ${globalOf(n).get}") {
-        val stages = collectDown[StageDef](n)
-        emitln(s"lat = ${stages.size}")
-        emitInByLocalLoad(n)
-        emitOutByGlobalOutput(n)
-        emitOutByLocalStore(n)
-      }
-    case n:FringeContainer if isLoadFringe(n) =>
-      emitNodeBlock(s"node $n") {
-        emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
-        emitOutByGlobalOutput(n)
-        val size = collectDown[StreamOut](n).filter { _.field == "size" }.head
-        val csize = getConstOf[Int](size)
-        dbg(s"csize = $csize")
-        collectDown[StreamOut](n).foreach { mem =>
-          dbgblk(qdef(mem)) {
-            writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
-              emitln(s"link_in[$idx] = $store")
-              emitln(s"scale_in[$idx] = ${csize / 4}") // size in bytes to words
-              linkDst(store) = n
-            }
-          }
-        }
-      }
-    case n:ArgFringe =>
-      emitNodeBlock(s"node $n") {
-        emitOutByGlobalOutput(n)
-        collectDown[ArgOut](n).foreach { mem =>
-          dbgblk(qdef(mem)) {
-            writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
-              emitln(s"link_in[$idx] = $store")
-              emitln(s"scale_in[$idx] = 1")
-              linkDst(store) = n
-            }
-          }
-        }
-      }
-    case n => super.visitNode(n)
-  }
 }
