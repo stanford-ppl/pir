@@ -19,9 +19,9 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
 
   override def runPass =  {
     // Mark context
-    val contextMap = traverseNode(compiler.top, Map[PIRNode, ComputeContext]())
+    val contextMap = traverseNode(compiler.top, Map[PIRNode, ComputeContext]()) //TODO traverse is slow 5285.663ms for GDA
     // Transform nodes into their contexts
-    insertContext(contextMap)
+    insertContext(contextMap) // 40.402ms for GDA
   }
 
   /* Insert Context between parent CU and nodes with context */

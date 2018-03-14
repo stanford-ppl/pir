@@ -30,12 +30,12 @@ trait OneToManyMapLike[K,V,S] extends UniMap[K,V,Set[V],S] with prism.collection
   override def + (pair:(K,V)): S = { 
     check(pair)
     val (k,v) = pair
-    val vv = map.getOrElse(k, Set()) + v
-    newInstance(map + ((k,vv)))
+    newInstance(map + ((k,map.getOrElse(k, Set()) + v)))
   }
   def ++ (pair:(K,Set[V])):S = { 
     val (k,vv) = pair
-    vv.foldLeft(this) { case (prev, v) => (prev + (k,v)).asInstanceOf[OneToManyMapLike[K,V,S] with S] }
+    vv.foreach { v => check(k,v) }
+    newInstance(map + ((k,map.getOrElse(k, Set()) ++ vv)))
   }
 }
 case class OneToManyMap[K:ClassTag,V:ClassTag](map:Map[K,Set[V]]) extends OneToManyMapLike[K,V,OneToManyMap[K,V]]
@@ -47,8 +47,7 @@ trait BiMap[K,V,KK,VV,FM<:UniMap[K,V,VV,_],BM<:UniMap[V,K,KK,_],S] extends MapLi
   override def fmap:FM
   override def bmap:BM
   def newInstance(fm:FM, bm:BM):S = {
-    this.getClass.getConstructor(fmap.getClass, bmap.getClass, classOf[ClassTag[K]], classOf[ClassTag[V]])
-      .newInstance(fm, bm, kct, vct)
+    this.getClass.getConstructors()(0).newInstance(fm, bm, kct, vct).asInstanceOf[S]
   }
   override def + (pair:(K,V)):S = {
     val (k,v) = pair
@@ -67,7 +66,9 @@ object BiOneToOneMap {
 trait BiOneToManyMapLike[K,V,S] extends BiMap[K,V,K,Set[V],OneToManyMap[K,V],OneToOneMap[V,K],S] { self:S => 
   def ++ (pair:(K,Set[V])):S = { 
     val (k,vv) = pair
-    vv.foldLeft(this) { case (prev, v) => (prev + (k,v)).asInstanceOf[BiOneToManyMapLike[K,V,S] with S] }
+    val fm = fmap ++ ((k,vv))
+    val bm = vv.foldLeft(bmap) { case (bm, v) => bm + ((v,k)) }
+    newInstance(fm, bm)
   }
 } 
 case class BiOneToManyMap[K:ClassTag,V:ClassTag](fmap:OneToManyMap[K,V], bmap:OneToOneMap[V,K]) extends BiOneToManyMapLike[K,V,BiOneToManyMap[K,V]]
@@ -75,13 +76,27 @@ object BiOneToManyMap {
   def empty[K:ClassTag, V:ClassTag] = BiOneToManyMap[K,V](OneToManyMap.empty, OneToOneMap.empty)
 }
 
-trait BiManyToOneMapLike[K,V,S] extends BiMap[K,V,Set[K],V,OneToOneMap[K,V],OneToManyMap[V,K],S] { self:S => } 
+trait BiManyToOneMapLike[K,V,S] extends BiMap[K,V,Set[K],V,OneToOneMap[K,V],OneToManyMap[V,K],S] { self:S => 
+  def ++ (pair:(Set[K],V)):S = { 
+    val (kk,v) = pair
+    val fm = kk.foldLeft(fmap) { case (fm, k) => fm + ((k,v)) }
+    val bm = bmap ++ (v,kk)
+    newInstance(fm, bm)
+  }
+} 
 case class BiManyToOneMap[K:ClassTag,V:ClassTag](fmap:OneToOneMap[K,V], bmap:OneToManyMap[V,K]) extends BiManyToOneMapLike[K,V,BiManyToOneMap[K,V]]
 object BiManyToOneMap {
   def empty[K:ClassTag, V:ClassTag] = BiManyToOneMap[K,V](OneToOneMap.empty, OneToManyMap.empty)
 }
 
-trait BiManyToManyMapLike[K,V,S] extends BiMap[K,V,Set[K],Set[V],OneToManyMap[K,V],OneToManyMap[V,K],S] { self:S => } 
+trait BiManyToManyMapLike[K,V,S] extends BiMap[K,V,Set[K],Set[V],OneToManyMap[K,V],OneToManyMap[V,K],S] { self:S => 
+  def ++ (pair:(Set[K],Set[V])):S = { 
+    val (kk,vv) = pair
+    val fm = kk.foldLeft(fmap) { case (fm, k) => fm ++ ((k,vv)) }
+    val bm = vv.foldLeft(bmap) { case (bm, v) => bm ++ ((v,kk)) }
+    newInstance(fm, bm)
+  }
+} 
 case class BiManyToManyMap[K:ClassTag,V:ClassTag](fmap:OneToManyMap[K,V], bmap:OneToManyMap[V,K]) extends BiManyToManyMapLike[K,V,BiManyToManyMap[K,V]]
 object BiManyToManyMap {
   def empty[K:ClassTag, V:ClassTag] = BiManyToManyMap[K,V](OneToManyMap.empty, OneToManyMap.empty)

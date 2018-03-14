@@ -2,11 +2,11 @@ package pir.pass
 
 import pir._
 import pir.node._
+import spade.pass._
 import prism._
 import prism.traversal._
 
 trait PIRCollector extends GraphCollector {
-
   def collectUp[M<:PIRNode:ClassTag](n:PIRNode, depth:Int= -1, visitFunc:PIRNode => List[PIRNode] = visitUp _, logger:Option[Logging]=None):List[M] =
     super.collect[PIRNode, M](n, depth, visitFunc, logger)
 
@@ -44,6 +44,8 @@ trait PIRCollector extends GraphCollector {
   def ctxEnOf(n:ComputeContext):Option[ContextEnable] = {
     collectDown[ContextEnable](n).headOption
   }
+
+  val spadeCollector = new SpadeCollector {}
 
 }
 

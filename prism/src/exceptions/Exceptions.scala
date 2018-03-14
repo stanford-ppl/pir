@@ -23,5 +23,5 @@ case class AssertError(info:String) extends PIRException {
 }
 
 case class RebindingException[K,V](map:OneToOneMap[K,V], k:K, v:V) extends PIRException {
-  def msg = s"${map.name} already contains key $k -> ${map(k)} but try to rebind to $v"
+  def msg = s"${map} already contains key $k -> ${map(k)} but try to rebind to $v"
 }

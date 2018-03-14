@@ -27,12 +27,14 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     dependencies.clear
   }
 
+  def rerun:this.type = { status = RunPassNotRun; this }
+
   def hasRun = status != RunPassNotRun
   def succeeded = status == RunPassSucceeded
   def failed = status == RunPassFailed
 
   val dependencies = mutable.ListBuffer[RunPass[_]]()
-  def dependsOn(deps:Pass*) = {
+  def dependsOn(deps:Pass*):this.type = {
     deps.foreach { dep =>
       dependencies += session.passes(dep).last //TODO: If dependency is not added, session.passes does not contain dep yet.
     }

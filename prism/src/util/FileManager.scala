@@ -77,12 +77,13 @@ trait FileManager {
     }
   }
 
-  def mkdir(dirName:String) = {
+  def mkdir(dirName:String):String = {
     val dir = new File(dirName)
     if (!dir.exists()) {
       println(s"[pir] creating output directory: $dirName");
       dir.mkdirs();
     }
+    dirName
   }
 
   def buildPath(dirName:String, fileName:String) = s"${dirName}${separator}${fileName}"

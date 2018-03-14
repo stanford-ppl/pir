@@ -20,7 +20,6 @@ abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializabl
 }
 
 trait MapLike[K,V,VV] extends MapType[K,V,VV] {
-  val name:String = this.getClass().getSimpleName().replace("$","")
   def apply(n:K):VV
   def get(n:K):Option[VV]
   def foreach(lambda:((K,VV)) => Unit):Unit

@@ -1,11 +1,10 @@
-package pir.pass
+package pir.mapper
 
 import pir._
 import pir.node._
 
 import spade.node._
 import spade.network._
-import spade.pass.SpadeCollector
 
 import prism._
 import prism.util._
@@ -14,8 +13,6 @@ import scala.collection.mutable
 
 class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass {
   def shouldRun = isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
-
-  val spadeCollector = new SpadeCollector {} //TODO: refactor this into pirCollector
 
   import pirmeta._
 

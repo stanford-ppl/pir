@@ -11,6 +11,7 @@ val bldSettings = Defaults.defaultSettings ++ Seq(
   libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.11.5",
   libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.2" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
+  libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.11.7",
   retrieveManaged := true,
   javaOptions in (Test) += "-Xdebug",
   javaOptions in (Test) += "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
@@ -33,9 +34,15 @@ val bldSettings = Defaults.defaultSettings ++ Seq(
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
 )
 
+lazy val macros = Project("macros", 
+  file("macros/"), 
+  settings = bldSettings
+)
+
 lazy val prism = Project("prism", 
   file("prism/"), 
-  settings = bldSettings
+  settings = bldSettings,
+  dependencies = Seq(macros % "compile->compile;test->test")
 )
 
 lazy val spade = Project("spade", 
@@ -79,4 +86,5 @@ addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 
 addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 
-addCommandAlias("test-prism", "; project prism; test")
+addCommandAlias("prism-test", "; project prism; test")
+addCommandAlias("macros-test", "; project macros; test")

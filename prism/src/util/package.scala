@@ -1,6 +1,7 @@
 package prism
 
 import prism.exceptions._
+import macros._
 
 import scala.language.implicitConversions
 import scala.collection.mutable.Stack

@@ -62,7 +62,7 @@ class DCGTraversalTest extends UnitTest with GraphCollector {
       }
     }
     var res = traversal.schedule(top)
-    println("BUTopo", res)
+    //println("BUTopo", res)
     //assert((top::top.descendents).forall(traversal.isVisited))
   }
 }
