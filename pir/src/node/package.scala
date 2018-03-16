@@ -1,11 +1,11 @@
 package pir
 
-import spade.SpadeEnums 
+import pir.util._
 
 import prism._
 import prism.util._
 
-package object node extends SpadeEnums {
+package object node extends PIREnums {
   private[node] type Design = PIRDesign
 
   def isFIFO(n:PIRNode) = n match {
@@ -71,6 +71,8 @@ package object node extends SpadeEnums {
       case Def(n, ReduceOp(op, input)) => parOf(input, logger).map { _ / 2 }
       case Def(n, AccumOp(op, input)) => parOf(input, logger)
       case x:ComputeNode => parOf(ctrlOf(x), logger)
+      case n:ComputeContext => pass.collectDown[Def](n).map { d => parOf(d) }.max
+      case n:GlobalContainer => pass.collectDown[ComputeContext](n).map { ctx => parOf(ctx) }.max
       case x => None
     }
   }
@@ -136,6 +138,10 @@ package object node extends SpadeEnums {
     }
   }
 
+  def isBit(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Bit
+  def isScalar(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Word 
+  def isVector(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Vector
+
   def isPMU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
     cuType(n) == Some("pmu")
   }
@@ -176,7 +182,7 @@ package object node extends SpadeEnums {
       case n:GlobalContainer if collectDown[Memory](n).filter(isRemoteMem).nonEmpty => Some("pmu")
       case n:GlobalContainer if collectOut[StreamOut](n, visitFunc=visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
       case n:GlobalContainer if collectDown[StageDef](n).size==0 => Some("ocu")
-      case n:GlobalContainer if collectDown[Def](n).forall { s => parOf(s)==Some(1) } => Some("scu")
+      case n:GlobalContainer if parOf(n) == Some(1) => Some("scu")
       case n:GlobalContainer => Some("pcu")
       case n => None
     }

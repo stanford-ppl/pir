@@ -3,7 +3,7 @@ package pir.codegen
 import pir._
 import pir.node._
 import pir.pass._
-import spade.node.{isMesh, isDynamic}
+import spade.node._
 import spade.params._
 import prism._
 import prism.util.Memorization
@@ -66,7 +66,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       }
     case n:FringeContainer if isStoreFringe(n) => 
       assert(false, s"TODO: add backend for storeFringe")
-    case n:ArgFringe =>
+    case n:pir.node.ArgFringe =>
       emitNodeBlock(s"node ${n}_out") {
         emitOutByGlobalOutput(n)
         emitln(s"start_at_tokens = 2")
@@ -113,8 +113,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   }
 
   def isStaticLink(mem:Memory, src:N, dst:N) = (mem, src, dst) match {
-    case (mem, src:ArgFringe, dst) => true
-    case (mem, src, dst:ArgFringe) => true
+    case (mem, src:pir.node.ArgFringe, dst) => true
+    case (mem, src, dst:pir.node.ArgFringe) => true
     case (mem, src:ComputeContext, dst:ComputeContext) if isPMU(globalOf(src).get) && isPMU(globalOf(dst).get) => true
     case _ => false
   }
@@ -125,7 +125,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
         case Vector => "vec"
         case Word => "scal"
         case Bit => "ctrl"
-        case _ => "impossible case"
       }
       emitln(s"tp = $tp")
       val src = linkSrc(n)

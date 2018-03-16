@@ -15,6 +15,7 @@ package object pir {
   type PIRPass = pir.pass.PIRPass
 
   /* mapper */
+  type PIRMap = pir.mapper.PIRMap
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

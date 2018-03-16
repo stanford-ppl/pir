@@ -31,13 +31,13 @@ trait PIRCollector extends GraphCollector {
     collectUp[ComputeContext](n).headOption
   }
 
-  def ctrlsOf(container:Container)(implicit compiler:PIR) = {
-    import compiler.pirmeta._
+  def ctrlsOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
     collectDown[ComputeNode](container).flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
   }
 
-  def innerCtrlOf(container:Container)(implicit compiler:PIR) = {
-    import compiler.pirmeta._
+  def innerCtrlOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
     ctrlsOf(container).maxBy { _.ancestors.size }
   }
 

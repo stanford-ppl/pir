@@ -44,9 +44,9 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
         dbg(s"from:$fromBundleType, to:$toBundleType")
         assert(fromBundleType == toBundleType)
         val style = fromBundleType match {
-          case _:Bit => attr.set("style", "dashed").set("color","red")
-          case _:Word => attr.set("style", "solid")
-          case _:Vector => attr.set("style", "bold").set("color","sienna")
+          case Bit => attr.set("style", "dashed").set("color","red")
+          case Word => attr.set("style", "solid")
+          case Vector => attr.set("style", "bold").set("color","sienna")
         }
       case _ =>
     }

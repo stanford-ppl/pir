@@ -64,5 +64,7 @@ class PIRMetadata extends Metadata {
   val boundOf = new OneToOneMap[PIRNode, Any] with MetadataMap
   boundOf.setName("boundOf")
 
+  var pirMap:Option[PIRMap] = None
+
 }
 

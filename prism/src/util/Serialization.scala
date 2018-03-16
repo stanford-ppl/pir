@@ -10,7 +10,7 @@ trait Serialization {
     oos.close
   }
 
-  def loadFromFile[T<:Serializable](path:String) = {
+  def loadFromFile[T](path:String) = {
     val ois = new ObjectInputStream(new FileInputStream(path)) {
       override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
         try { Class.forName(desc.getName, false, getClass.getClassLoader) }
