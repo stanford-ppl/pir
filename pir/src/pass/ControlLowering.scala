@@ -40,7 +40,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotEmpties(context:ComputeContext) = dbgblk(s"computeNotEmpties") {
-    val readMems = collectIn[Memory](context) // All read memories should be local to the context in the same GlobalContainer
+    val readMems = context.collectIn[Memory]() // All read memories should be local to the context in the same GlobalContainer
     dbg(s"readMems:${readMems.map(qtype)}")
     readMems.map { mem => 
       allocateWithFields[NotEmpty](mem)(context)
@@ -48,14 +48,14 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotFulls(context:ComputeContext) = dbgblk(s"computeNotFulls") {
-    var notFulls:List[Def] = collectDown[LocalStore](context).map {
+    var notFulls:List[Def] = context.collectDown[LocalStore]().map {
       case Def(writer, LocalStore(mem::Nil, _, _)) => 
         val notFull = allocateWithFields[NotFull](mem)(context)
         dbg(s"localMem: $mem, notFull:$notFull")
         notFull
     }
-    notFulls ++= collectDown[GlobalOutput](context).flatMap { gout =>
-      collectOut[LocalStore](gout, visitFunc=(n:N) => n match { case n:Memory => Nil; case n => super.visitGlobalOut(n)}).flatMap {
+    notFulls ++= context.collectDown[GlobalOutput]().flatMap { gout =>
+      gout.collect[LocalStore](visitFunc=(n:N) => n match { case n:Memory => Nil; case n => n.visitGlobalOut(n)}).flatMap {
         case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
         case Def(writer, LocalStore(mem::Nil, _, _)) => 
           val notFull:Def = if (compiler.arch.topParam.busWithReady) {

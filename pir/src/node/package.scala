@@ -71,8 +71,8 @@ package object node extends PIREnums {
       case Def(n, ReduceOp(op, input)) => parOf(input, logger).map { _ / 2 }
       case Def(n, AccumOp(op, input)) => parOf(input, logger)
       case x:ComputeNode => parOf(ctrlOf(x), logger)
-      case n:ComputeContext => pass.collectDown[Def](n).map { d => parOf(d) }.max
-      case n:GlobalContainer => pass.collectDown[ComputeContext](n).map { ctx => parOf(ctx) }.max
+      case n:ComputeContext => n.collectDown[Def]().map { d => parOf(d) }.max
+      case n:GlobalContainer => n.collectDown[Def]().map { d => parOf(d) }.max
       case x => None
     }
   }
@@ -86,8 +86,8 @@ package object node extends PIREnums {
   def memsOf(n:Any)(implicit pass:PIRPass) = {
     import pass._
     n match {
-      case n:LocalStore => collectOut[Memory](n, visitFunc=visitGlobalOut, depth=2)
-      case n:LocalLoad => collectIn[Memory](n, visitFunc=visitGlobalIn, depth=2)
+      case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
+      case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
     }
   }
 
@@ -101,7 +101,7 @@ package object node extends PIREnums {
 
   def writersOf(mem:Memory)(implicit pass:PIRPass):List[LocalStore] = {
     import pass._
-    collectIn[LocalStore](mem, visitFunc=visitGlobalIn)
+    mem.collect[LocalStore](visitFunc=mem.visitGlobalIn)
   }
 
   def readersOf(mem:Memory)(implicit pass:PIRPass):List[LocalLoad] = {
@@ -109,12 +109,34 @@ package object node extends PIREnums {
     def visitFunc(n:PIRNode):List[PIRNode] = n match {
       case n:NotEmpty => Nil
       case n:NotFull => Nil
-      case n => visitGlobalOut(n)
+      case n => n.visitGlobalOut(n)
     }
-    collectIn[LocalLoad](mem, visitFunc=visitGlobalOut)
+    mem.collect[LocalLoad](visitFunc=mem.visitGlobalOut)
   }
 
   def accessesOf(mem:Memory)(implicit pass:PIRPass):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
+
+  def globalOf(n:PIRNode) = {
+    n.collectUp[GlobalContainer]().headOption
+  }
+
+  def contextOf(n:PIRNode) = {
+    n.collectUp[ComputeContext]().headOption
+  }
+
+  def ctrlsOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
+  }
+
+  def innerCtrlOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    ctrlsOf(container).maxBy { _.ancestors.size }
+  }
+
+  def ctxEnOf(n:ComputeContext):Option[ContextEnable] = {
+    n.collectDown[ContextEnable]().headOption
+  }
 
   def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
     implicit val design = pass.design
@@ -175,23 +197,19 @@ package object node extends PIREnums {
   }
 
   def cuType(n:PIRNode)(implicit pass:PIRPass):Option[String] = {
-    import pass.{pass => _, _}
     n match {
       case n:ArgFringe => Some("afg")
       case n:FringeContainer => Some("dfg")
-      case n:GlobalContainer if collectDown[Memory](n).filter(isRemoteMem).nonEmpty => Some("pmu")
-      case n:GlobalContainer if collectOut[StreamOut](n, visitFunc=visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
-      case n:GlobalContainer if collectDown[StageDef](n).size==0 => Some("ocu")
+      case n:GlobalContainer if n.collectDown[Memory]().filter(isRemoteMem).nonEmpty => Some("pmu")
+      case n:GlobalContainer if n.collect[StreamOut](visitFunc=n.visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
+      case n:GlobalContainer if n.collectDown[StageDef]().size==0 => Some("ocu")
       case n:GlobalContainer if parOf(n) == Some(1) => Some("scu")
       case n:GlobalContainer => Some("pcu")
       case n => None
     }
   }
 
-  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = {
-    import pass._
-    collectDown[StreamOut](n).nonEmpty
-  }
+  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().nonEmpty
   def isStoreFringe(n:FringeContainer)(implicit pass:PIRPass) = !isLoadFringe(n)
 
 }

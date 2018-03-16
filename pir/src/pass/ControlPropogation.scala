@@ -26,7 +26,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](compiler.top)
+    val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach { cu =>
       checkCtrl(cu)
       checkStageCtrl(cu)
@@ -34,7 +34,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   }
 
   def checkCtrl(cu:GlobalContainer) = {
-    val computes = collectDown[ComputeNode](cu)
+    val computes = cu.collectDown[ComputeNode]()
     computes.foreach { comp =>
       assert(ctrlOf.contains(comp), s"${qtype(comp)} in $cu doesn't have ctrl defined")
       comp match {
@@ -47,7 +47,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   }
 
   def checkStageCtrl(cu:GlobalContainer) = {
-    val computes = collectDown[StageDef](cu)
+    val computes = cu.collectDown[StageDef]()
     computes.foreach { comp =>
       val ctrl = ctrlOf(comp)
       assert(ctrl.isInnerControl, s"${qtype(comp)}.ctrl.level = ${ctrl.level}. comp.ctrl=${ctrl}")

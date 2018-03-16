@@ -19,7 +19,7 @@ object DCG1 extends TestDesign {
   b.newIn.connect(d.out)
 }
 
-class DCGTraversalTest extends UnitTest with GraphCollector {
+class DCGTraversalTest extends UnitTest {
   import DCG1._
 
   type N = TestNode

@@ -21,7 +21,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
   //}
   
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](compiler.top)
+    val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
     val cuMap = cus.groupBy(cuType)
     dbg(s"number of cus=${cus.size}")
@@ -39,8 +39,8 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
   }
 
   def dump(cu:GlobalContainer) = {
-    val ins = collectDown[GlobalInput](cu).toList
-    val outs = collectDown[GlobalOutput](cu).toList
+    val ins = cu.collectDown[GlobalInput]().toList
+    val outs = cu.collectDown[GlobalOutput]().toList
     val ingrp = ins.groupBy(in => bundleTypeOf(in))
     val outgrp = outs.groupBy(in => bundleTypeOf(in))
     val cins = ingrp.getOrElse(Bit,Nil)
@@ -49,7 +49,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
     val couts = outgrp.getOrElse(Bit,Nil)
     val souts = outgrp.getOrElse(Word,Nil)
     val vouts = outgrp.getOrElse(Vector,Nil)
-    val stages = collectDown[StageDef](cu)
+    val stages = cu.collectDown[StageDef]()
     val reduction = stages.exists(isReduceOp)
     emitMap(cu){ implicit ms =>
       emitPair("tp", cuType(cu).get)

@@ -53,16 +53,12 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     super.emitSingleNode(n)
   }
 
-  val collector = new GraphCollector {
-    type N = PIRNode
-  }
-  
   override def runPass = {
     traverseNode(compiler.top.topController)
   }
 
   override def emitEdges = {
-    val mems = collectDown[Memory](compiler.top)
+    val mems = compiler.top.collectDown[Memory]()
     mems.foreach { 
       case mem:ArgIn =>
         readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }

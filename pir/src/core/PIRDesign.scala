@@ -7,4 +7,3 @@ case class PIRDesign() extends prism.node.Design {
 
   val top = Top()
 }
-

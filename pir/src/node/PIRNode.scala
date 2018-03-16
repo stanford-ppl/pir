@@ -28,4 +28,3 @@ abstract class PIRNode(implicit design:Design) extends ProductNode[PIRNode] with
     super.setParent(p)
   }
 }
-

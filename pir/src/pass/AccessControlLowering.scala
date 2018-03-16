@@ -27,7 +27,7 @@ class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with 
 
   def lowered(n:Def) = {
     n match {
-      case enOut:ContextEnableOut => collectPeer[ContextEnable](enOut, logger=Some(this)).head
+      case enOut:ContextEnableOut => enOut.collectPeer[ContextEnable]().head
       case n => n
     }
   }
@@ -44,7 +44,7 @@ class AccessControlLowering(implicit compiler:PIR) extends ControlAnalysis with 
         swapNode(n,EnabledStoreMem(mem, addr, gdata, lowered(accessDoneOf(n))).setParent(n.parent.get))
       case Def(n:Counter, Counter(min, max, step, par)) =>
         val context = contextOf(n).head
-        val cchain = collectUp[CounterChain](n).head
+        val cchain = n.collectUp[CounterChain]().head
         if (enableOf.isDefinedAt(cchain)) {
           val counters = cchain.counters
           val idx = counters.indexOf(n)

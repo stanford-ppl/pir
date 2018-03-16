@@ -21,11 +21,11 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
     }
   }
 
-  def allocate[T<:PIRNode:ClassTag](
+  def allocate[T<:PIRNode:ClassTag:TypeTag](
     container:Container, 
     filter:T => Boolean = (n:T) => true
   )(newNode: => T):T = dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
-    val nodes = collectDown[T](container).filter(filter)
+    val nodes = container.collectDown[T]().filter(filter)
     assert(nodes.size <= 1, s"more than 1 node in container: $nodes")
     nodes.headOption.getOrElse { 
       val node = newNode 
@@ -38,7 +38,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
     }
   }
 
-  def allocateWithFields[T<:PIRNode:ClassTag](fields:Any*)(container:Container):T = 
+  def allocateWithFields[T<:PIRNode:ClassTag:TypeTag](fields:Any*)(container:Container):T = 
     dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
     val args = fields :+ design
     def newNode = {
@@ -68,8 +68,8 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
       val cc = mirror(cchain, Some(context))
       ctrlOf(cc) = ctrl // cchain might be removed
       cc.counters.foreach { ctr => ctrlOf(ctr) = ctrl }
-      val readers = collectIn[LocalLoad](cc)
-      val mems = collectIn[Memory](cc)
+      val readers = cc.collectIn[LocalLoad]()
+      val mems = cc.collectIn[Memory]()
       mems.foreach { mem =>
         swapParent(mem, cu) // Move mem out of context
       }

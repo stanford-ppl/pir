@@ -22,15 +22,15 @@ class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass {
   override def runPass(runner:RunPass[_]) =  {
     val topP = compiler.top
     val topS = compiler.arch.top.asInstanceOf[DynamicMeshTop]
-    val rest1 = collectDown[GlobalContainer](topP)
+    val rest1 = topP.collectDown[GlobalContainer]()
     val (afgP, rest2) = rest1.partition { n => isAFG(n) }
     val (dfgP, rest3) = rest2.partition { n => isDFG(n) }
     val (pmuP, rest4) = rest3.partition { n => isPMU(n) }
     val pcuP = rest3
 
-    val dfgS = spadeCollector.collectDown[MC](topS)
-    val pmuS = spadeCollector.collectDown[PMU](topS)
-    val pcuS = spadeCollector.collectDown[PCU](topS)
+    val dfgS = topS.collectDown[MC]()
+    val pmuS = topS.collectDown[PMU]()
+    val pcuS = topS.collectDown[PCU]()
 
     mapNodes(dfgP, dfgS, mapping)
     mapNodes(pcuP, pcuS, mapping)

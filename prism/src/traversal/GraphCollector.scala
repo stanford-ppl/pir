@@ -6,9 +6,9 @@ import prism.node._
 
 import scala.collection.mutable
 
-trait GraphCollector extends GraphUtil {
+trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
 
-  class TypeCollector[ND<:Node[ND], M<:ND:ClassTag](logger:Option[Logging], vf:ND => List[ND]) extends BFSTraversal with GraphUtil {
+  class TypeCollector[M<:ND:ClassTag](logger:Option[Logging], vf:ND => List[ND]) extends BFSTraversal with GraphUtil {
     type T = List[M]
     type N = (ND, Int)
 
@@ -37,11 +37,27 @@ trait GraphCollector extends GraphUtil {
     }
   }
  
-  def collect[ND<:Node[ND], M<:ND:ClassTag](n:ND, depth:Int, visitFunc:ND => List[ND], logger:Option[Logging]):List[M] = {
-    new TypeCollector[ND, M](logger, visitFunc).traverse((n, depth), Nil)
+  def collect[M<:ND:ClassTag](visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[M] = {
+    new TypeCollector[M](logger, visitFunc).traverse((this, depth), Nil)
   }
 
-  def accum[ND<:Node[ND]](n:Node[ND] with ND, visitFunc:ND => List[ND], logger:Option[Logging]=None):List[ND] = {
+  def collectUp[M<:ND:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
+    collect[M](visitUp _, depth, logger)
+
+  def collectDown[M<:ND:ClassTag:TypeTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
+    collect[M](visitDown _, depth, logger)
+
+  def collectIn[M<:ND:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
+    collect[M](visitLocalIn _, depth, logger)
+
+  def collectOut[M<:ND:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
+    collect[M](visitLocalOut _, depth, logger)
+
+  def collectPeer[M<:ND:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =  {
+    collect[M](visitPeer _, depth, logger)
+  }
+
+  def accum(visitFunc:ND => List[ND], logger:Option[Logging]=None):List[ND] = {
     val vf = visitFunc
     new BFSTraversal with GraphUtil {
       type N = ND
@@ -54,11 +70,11 @@ trait GraphCollector extends GraphUtil {
         super.traverse(n, zero)
       }
       def visitFunc(n:N):List[ND] = vf(n)
-    }.traverse(n, Nil)
+    }.traverse(this, Nil)
   }
 
 
-  def canReach[ND<:Node[ND]](n:Node[ND] with ND, target:Node[ND] with ND, visitFunc:ND => List[ND], logger:Option[Logging]=None):Boolean = {
+  def canReach(target:Node[ND] with ND, visitFunc:ND => List[ND], logger:Option[Logging]=None):Boolean = {
     val vf = visitFunc
     new BFSTraversal with GraphUtil {
       type N = ND
@@ -70,12 +86,12 @@ trait GraphCollector extends GraphUtil {
         }
       }
       def visitFunc(n:N):List[ND] = vf(n)
-    }.traverse(n, false)
+    }.traverse(this, false)
   }
 
-  def areLinealInherited[ND<:Node[ND]](a:Node[ND], b:Node[ND], logger:Option[Logging]=None):Boolean = {
-    dbgblk(logger, s"areLinealInherited($a, $b)") {
-      a == b || a.ancestors.contains(b) || b.ancestors.contains(a)
+  def areLinealInherited(that:Node[ND], logger:Option[Logging]=None):Boolean = {
+    dbgblk(logger, s"areLinealInherited($this, $that)") {
+      this == that || this.ancestors.contains(that) || that.ancestors.contains(this)
     }
   }
 

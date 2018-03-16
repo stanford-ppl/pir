@@ -12,7 +12,7 @@ import scala.collection.mutable
 import scala.language.existentials
 import scala.math.max
 
-abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIRCollector {
+abstract class PIRPass(implicit override val compiler:PIR) extends Pass with prism.traversal.GraphUtil {
 
   implicit val design:PIRDesign = compiler.design
   lazy val pirmeta = compiler.pirmeta

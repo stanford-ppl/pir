@@ -16,7 +16,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   val forward = false
 
   override def runPass =  {
-    val cus = collectDown[GlobalContainer](compiler.top)
+    val cus = compiler.top.collectDown[GlobalContainer]()
     mergeContexts(cus)
   }
 
@@ -35,26 +35,26 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   def areLocallyConnected(ctx1:ComputeContext, ctx2:ComputeContext) = {
     def visitLocalIn(n:PIRNode) = n match {
       case n:Memory => Nil
-      case n => super.visitLocalIn(n)
+      case n => n.visitLocalIn(n)
     }
     def visitLocalOut(n:PIRNode) = n match {
       case n:Memory => Nil
-      case n => super.visitLocalOut(n)
+      case n => n.visitLocalOut(n)
     }
-    canReach(ctx1, ctx2, visitLocalIn) || canReach(ctx1, ctx2, visitLocalOut)
+    ctx1.canReach(ctx2, ctx1.visitLocalIn) || ctx1.canReach(ctx2, ctx1.visitLocalOut)
   }
 
   /* 
    * ctx1 and ctx2 are not data dependent 
    * */
   def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = {
-    !canReach(ctx1, ctx2, visitLocalIn[PIRNode]) && !canReach(ctx1, ctx2, visitLocalOut[PIRNode])
+    !ctx1.canReach(ctx2, ctx1.visitLocalIn[PIRNode]) && !ctx1.canReach(ctx2, ctx1.visitLocalOut[PIRNode])
   }
 
   def mergeContexts(cus:Iterable[GlobalContainer]) = {
     cus.foreach { cu =>
       dbgblk(s"Merge context in ${cu}") {
-        val contexts = collectDown[ComputeContext](cu)
+        val contexts = cu.collectDown[ComputeContext]()
         dbg(s"contexts=${contexts}")
         val merged = mutable.ListBuffer[ComputeContext]() 
         contexts.zipWithIndex.foreach { 
@@ -66,7 +66,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
             val ctxCtrlLeaf = innerCtrlOf(ctx) 
             others.foreach { other =>
               val otherCtrlLeaf = innerCtrlOf(other)
-              if ((areLocallyConnected(ctx, other) || areIndependent(ctx, other)) && areLinealInherited(ctxCtrlLeaf, otherCtrlLeaf)) {
+              if ((areLocallyConnected(ctx, other) || areIndependent(ctx, other)) && ctxCtrlLeaf.areLinealInherited(otherCtrlLeaf)) {
                 val from = other
                 val to = ctx
                 dbg(s"merge $from into $to")

@@ -67,7 +67,7 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(new TestTraversal)
 
-    // Data  path transformation and analysis
+    //// Data  path transformation and analysis
     addPass(new DramStoreRegInsertion())
     addPass(new PIRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
@@ -98,7 +98,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
-    // Control transformation and analysis
+    //// Control transformation and analysis
     addPass(contextInsertion)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
@@ -115,9 +115,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
-    // Mapping
+    //// Mapping
     addPass(dynamicCUPlacer)
-    addPass(cuPruning)
+    //addPass(cuPruning)
 
     // Post-mapping analysis
 

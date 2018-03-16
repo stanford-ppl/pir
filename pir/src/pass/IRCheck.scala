@@ -19,7 +19,7 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
     val prevRuns = runner.prevRuns
     prevRuns.foreach(_.pass.check(runner))
     val prePasses = prevRuns.map { _.pass }
-    val cus = collectDown[GlobalContainer](compiler.top)
+    val cus = compiler.top.collectDown[GlobalContainer]()
     val accessLowerHasRun = session.hasRun[AccessLowering]
     val ctrlAllocHasRun = session.hasRun[ControlAllocation] 
     val deadCodeHasAllRun = session.hasRunAll[DeadCodeElimination] 
@@ -59,8 +59,8 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
     }
   }
 
-  def checkLowering[T<:PIRNode:ClassTag](cu:GlobalContainer) = dbgblk(s"checkLowering($cu)") {
-    val unlowered = collectDown[T](cu)
+  def checkLowering[T<:PIRNode:ClassTag:TypeTag](cu:GlobalContainer) = dbgblk(s"checkLowering($cu)") {
+    val unlowered = cu.collectDown[T]()
     assert(unlowered.isEmpty, s"$cu still contains unlowered nodes: $unlowered")
   }
 
