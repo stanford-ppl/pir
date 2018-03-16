@@ -10,6 +10,7 @@ import prism.util.Memorization
 import prism.collection.mutable._
 
 class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with ConstantPropogator with Memorization {
+  import pirmeta._
   import spademeta._
 
   def shouldRun = Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
@@ -17,7 +18,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
 
   val fileName = s"${compiler}.psim"
 
-  val mapping = compiler.dynamicCUPlacer.mapping
+  lazy val mapping = cumap.usedMap
 
   val linkSrc = new OneToOneMap[LocalStore, N]()
   val linkDst = new OneToOneMap[LocalStore, N]()
@@ -129,8 +130,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       emitln(s"tp = $tp")
       val src = linkSrc(n)
       val dst = linkDst(n)
-      val srcCUP = globalOf(src).getOrElse(src)
-      val dstCUP = globalOf(dst).getOrElse(dst)
+      val srcCUP = globalOf(src).getOrElse(src).asInstanceOf[GlobalContainer]
+      val dstCUP = globalOf(dst).getOrElse(dst).asInstanceOf[GlobalContainer]
       val srcCUS = mapping.get(srcCUP)
       val dstCUS = mapping.get(dstCUP)
       emitlnc(s"src = ${src}", s"${globalOf(src)} $srcCUS")

@@ -66,5 +66,8 @@ class PIRMetadata extends Metadata {
 
   var pirMap:Option[PIRMap] = None
 
+  def pmap = pirMap.get
+  def cumap = pmap.cumap
+
 }
 

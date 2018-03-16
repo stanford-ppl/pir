@@ -15,7 +15,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   def reset = {}
 
   def initPass(runner:RunPass[_]):Unit = {
-    infor(s"Running ${runner.name} ...")
+    info(s"Running ${runner.name} ...")
   }
 
   def runPass(runner:RunPass[_]):Unit = runPass

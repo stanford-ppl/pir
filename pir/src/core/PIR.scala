@@ -116,8 +116,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     //// Mapping
-    addPass(dynamicCUPlacer)
     addPass(cuPruning)
+    addPass(dynamicCUPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
 

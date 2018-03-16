@@ -34,21 +34,34 @@ case class CUMap(freeMap:CUMap.FM, weights:CUMap.W, usedMap:CUMap.UM) extends Se
     newWeights += (k,v) -> (newWeights((k,v)) * factor)
     CUMap(freeMap, newWeights, usedMap)
   }
-  def topFree(k:K):Option[V] = {
-    val v = freeMap.fmap(k).maxBy { v => weights((k,v)) }
-    if (weights((k,v)) <= 0) None else Some(v)
-  }
-  def sortedFree(k:K) = freeMap.fmap(k).filterNot{ v => weights((k,v)) <= 0 }.toList.sortBy { v => -weights((k,v)) } // max to min
+  def freeKeys = freeMap.keys.filterNot { k => usedMap.contains(k) }
+  def free(k:K):Set[V] = freeMap.fmap(k).filterNot{ v => weights((k,v)) <= 0 }
   def free(v:V):Set[K] = freeMap.bmap(v).filterNot{ k => weights((k,v)) <= 0 }
-  def multiplyFactor(factorLambda: (K,V) => Float) = {
-    var newWeights = weights
+  def sortedFree(k:K) = free(k).toList.sortBy { v => -weights((k,v)) } // max to min
+  def topFree(k:K):Option[V] = {
+    val vv = free(k)
+    if (vv.isEmpty) None else Some(vv.maxBy { v => weights(k,v) })
+  }
+  def foreachFree(lambda:(K,V) => Unit) = {
     freeMap.foreach { case (k,vv) =>
       vv.foreach { 
-        case v if newWeights((k,v)) <= 0 => 
-        case v => newWeights += ((k,v) -> (newWeights((k,v)) * factorLambda(k,v)))
+        case v if weights((k,v)) <= 0 => 
+        case v => lambda(k,v)
       }
     }
+  }
+  def multiplyFactor(factorLambda: (K,V) => Float) = {
+    var newWeights = weights
+    foreachFree { case (k,v) => newWeights += ((k,v) -> (newWeights((k,v)) * factorLambda(k,v))) }
     CUMap(freeMap, newWeights, usedMap)
+  }
+  def map(k:K, v:V):CUMap = {
+    assert(weights.get((k,v)).map(_ > 0).getOrElse(false))
+    var newWeights = weights
+    freeMap.fmap.foreach { case (`k`, vv) => vv.foreach { v => newWeights += ((k,v) -> 0.0f) }; case _ => }
+    freeMap.bmap.foreach { case (`v`, kk) => kk.foreach { k => newWeights += ((k,v) -> 0.0f) }; case _ => }
+    val newUsedMap = usedMap + (k -> v)
+    CUMap(freeMap, newWeights, newUsedMap)
   }
 }
 object CUMap {

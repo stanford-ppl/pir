@@ -41,14 +41,14 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
       case n:Memory => Nil
       case n => n.visitLocalOut(n)
     }
-    ctx1.canReach(ctx2, ctx1.visitLocalIn) || ctx1.canReach(ctx2, ctx1.visitLocalOut)
+    ctx1.canReach(ctx2, visitLocalIn) || ctx1.canReach(ctx2, visitLocalOut)
   }
 
   /* 
    * ctx1 and ctx2 are not data dependent 
    * */
   def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = {
-    !ctx1.canReach(ctx2, ctx1.visitLocalIn[PIRNode]) && !ctx1.canReach(ctx2, ctx1.visitLocalOut[PIRNode])
+    !ctx1.canReach(ctx2, visitLocalIn) && !ctx1.canReach(ctx2, visitLocalOut)
   }
 
   def mergeContexts(cus:Iterable[GlobalContainer]) = {
