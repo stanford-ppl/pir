@@ -32,5 +32,6 @@ trait IR extends prism.node.IR {
     this
   }
 
+  def qtype(implicit design:Design) = name.map { name => s"${className}${id}[$name]" }.getOrElse(this.toString)
 }
 

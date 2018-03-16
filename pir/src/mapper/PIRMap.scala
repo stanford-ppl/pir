@@ -2,6 +2,7 @@ package pir.mapper
 
 import pir._
 import pir.node._
+import pir.pass._
 import spade.node._
 import spade.config._
 import prism.collection.immutable._
@@ -14,7 +15,7 @@ case class PIRMap (
   type S = PIRMap
 }
 object PIRMap {
-  def empty(pass:ResourcePruning):PIRMap = PIRMap(pass.initCUMap, FIMap.empty, ConfigMap.empty) 
+  def empty(pass:CUPruning):PIRMap = PIRMap(pass.initCUMap, FIMap.empty, ConfigMap.empty) 
 }
 
 case class CUMap(freeMap:CUMap.FM, weights:CUMap.W, usedMap:CUMap.UM) extends Serializable {
@@ -44,15 +45,15 @@ case class CUMap(freeMap:CUMap.FM, weights:CUMap.W, usedMap:CUMap.UM) extends Se
     freeMap.foreach { case (k,vv) =>
       vv.foreach { 
         case v if newWeights((k,v)) <= 0 => 
-        case v => newWeights + ((k,v) -> (newWeights((k,v)) * factorLambda(k,v)))
+        case v => newWeights += ((k,v) -> (newWeights((k,v)) * factorLambda(k,v)))
       }
     }
     CUMap(freeMap, newWeights, usedMap)
   }
 }
 object CUMap {
-  type K = PNode
-  type V = SNode
+  type K = GlobalContainer
+  type V = Routable
   type W = Map[(CUMap.K, CUMap.V), Float]
   type FM = BiManyToManyMap[CUMap.K, CUMap.V]
   type UM = OneToOneMap[CUMap.K, CUMap.V]

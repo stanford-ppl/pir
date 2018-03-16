@@ -27,4 +27,7 @@ abstract class PIRNode(implicit design:Design) extends ProductNode[PIRNode] with
     }
     super.setParent(p)
   }
+
+  def qdef(implicit design:Design) = s"${name.getOrElse(toString)} = ${productName}"
+
 }

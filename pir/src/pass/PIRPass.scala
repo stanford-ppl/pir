@@ -19,15 +19,18 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass with pri
   lazy val spademeta = compiler.spademeta
 
   def qdef(n:Any) = n match {
-    case n:PIRNode => s"${n.name.getOrElse(n.toString)} = ${n.productName}"
+    case n:PIRNode => n.qdef
     case n => n.toString
   }
 
   def qtype(n:Any) = n match {
-    case n:IR => n.name.map { name => s"${n.className}${n.id}[$name]" }.getOrElse(s"$n")
+    case n:IR => n.qtype
     case n => s"$n"
   }
 
-  override def quote(n:Any) = qtype(n)
+  override def quote(n:Any) = n match {
+    case n:SNode => n.qindex(compiler.arch.design)
+    case n => qtype(n)
+  }
 
 }
