@@ -41,11 +41,11 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
 
   override def runPass(runner:RunPass[_]) =  {
     import runner._
-    pirmeta.pirMap = Some(PIRMap.empty(this))
+    pirmeta.pirMap = Some(PIRMap.empty)
     val cumap = pirMap.get.cumap
     dbgblk(s"mapping") {
       cumap.freeMap.keys.foreach { pn =>
-        dbg(s"${quote(pn)} <- ${cumap.sortedFree(pn).map(quote)}")
+        dbg(s"${quote(pn)} <- ${cumap.sortedFreeValues(pn).map(quote)}")
       }
     }
   }
