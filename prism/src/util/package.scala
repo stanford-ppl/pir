@@ -32,6 +32,13 @@ package object util extends Printer with Serialization with FileManager with Ref
     println(s"$info elapsed time: ${f"$time%1.3f"}$unit")
   }
 
+  def timer[T](info:String, unit:String)(block: => T) = {
+    tic
+    val res = block
+    toc(info, unit)
+    res
+  }
+
   def getStackTrace:String = {
     getStackTrace(1, 5)
   }

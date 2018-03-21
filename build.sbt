@@ -88,3 +88,4 @@ addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 
 addCommandAlias("prism-test", "; project prism; test")
 addCommandAlias("macros-test", "; project macros; test")
+addCommandAlias("spade-test", "; project spade; test; project arch; test")
