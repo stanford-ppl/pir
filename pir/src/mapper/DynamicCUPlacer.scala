@@ -17,7 +17,7 @@ class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass {
   def shouldRun = isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.nonEmpty
 
   override def runPass(runner:RunPass[_]) =  {
-    val newCumap = cumap.freeKeys.foldLeft(cumap) { case (cumap, cuP) => cumap.map(cuP, cumap.topFree(cuP).get) }
+    val newCumap = cumap.freeKeys.foldLeft(cumap) { case (cumap, cuP) => cumap.map(cuP, cumap.topFreeValue(cuP).get) }
     pirmeta.pirMap = Some(pmap.set[CUMap](newCumap))
   }
 
