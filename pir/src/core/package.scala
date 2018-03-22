@@ -1,4 +1,3 @@
-
 import pir.mapper._
 import pir.node._
 import spade.node._
@@ -17,7 +16,7 @@ package object pir {
   /* mapper */
   type PIRMap = pir.mapper.PIRMap
   val PIRMap = pir.mapper.PIRMap
-  type MOption[T] = pir.mapper.MOption[T]
+  type EOption[T] = prism.traversal.EOption[T]
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

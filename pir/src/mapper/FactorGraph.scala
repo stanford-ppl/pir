@@ -7,6 +7,8 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
   type W = Map[(K, V), Float]
   type FM = BiManyToManyMap[K, V]
 
+  def name = getClass.getSimpleName
+
   val default:Float = 1.0f
 
   val freeMap:FM
@@ -24,6 +26,8 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     }
     newInstance(freeMap ++ pairs, wt)
   }
+  def keys = freeMap.keys
+  def values = freeMap.values
   def freeKeys = freeMap.keys.filter { k => freeValues(k).size > 1 }
   def freeValues(k:K):Set[V] = freeMap.fmap(k).filterNot{ v => weights((k,v)) <= 0 }
   def freeKeys(v:V):Set[K] = freeMap.bmap(v).filterNot{ k => weights((k,v)) <= 0 }
@@ -40,7 +44,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
       }
     }
   }
-  def multiplyFactor(factorLambda: (K,V) => Float):MOption[S with FactorGraph[K,V,S]] = {
+  def multiplyFactor(factorLambda: (K,V) => Float):EOption[S with FactorGraph[K,V,S]] = {
     flatFold(freeKeys, this) { case (fg, k) =>
       freeValues(k).foreach { v =>
         weights += ((k,v) -> (weights((k,v)) * factorLambda(k,v)))
@@ -49,7 +53,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     }
   }
   // Mapping with look ahead
-  def map(k:K, v:V):MOption[S with FactorGraph[K,V,S]] = {
+  def map(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
     assert(weights.get((k,v)).map(_ > 0).getOrElse(false))
     val fg = newInstance(freeMap, weights)
     val notUsed = freeValues(k).filterNot { _ == v }
@@ -58,12 +62,12 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     flatFold(neighbors, fg) { case (fg, neighbor) => fg.removeEdge(neighbor, v) }
   }
 
-  def removeEdge(k:K, v:V):MOption[S with FactorGraph[K,V,S]] = {
+  def removeEdge(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
     weights += ((k,v) -> 0.0f)
     check(k)
   }
 
-  def check(k:K):MOption[S with FactorGraph[K,V,S]] = if (freeValues(k).nonEmpty) Right(this) else Left(InvalidFactorGraph(this, k))
+  def check(k:K):EOption[S with FactorGraph[K,V,S]] = if (freeValues(k).nonEmpty) Right(this) else Left(InvalidFactorGraph(this, k))
 
   def get(k:K):Option[V] = {
     val vv = freeValues(k)

@@ -13,7 +13,7 @@ case class PIRMap (
   cfmap:ConfigMap
 ) extends SpadeMapLike {
   type S = PIRMap
-  def flatMap[F:ClassTag](lambda: F => MOption[F]):MOption[S] = {
+  def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {
     val field = productIterator.toSeq.collect { case field:F => field }.head
     lambda(field).map { newField =>
       val args = productIterator.toSeq.map {

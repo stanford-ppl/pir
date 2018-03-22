@@ -29,7 +29,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass with pri
   }
 
   override def quote(n:Any) = n match {
-    case n:SNode => n.qindex(compiler.arch.design)
+    case n:SNode => n.qindex
     case n => qtype(n)
   }
 

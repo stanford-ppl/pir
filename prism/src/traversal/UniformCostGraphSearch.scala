@@ -1,6 +1,7 @@
 package prism.traversal
 
 import prism._
+import prism.util._
 import prism.exceptions.SearchFailure
 
 import scala.util.{Try, Success, Failure}
@@ -26,7 +27,7 @@ trait UniformCostGraphSearch {
     quote:S => String,
     finPass:(List[(S,A)], C) => M,
     logger:Option[Logging]
-  ):Either[PIRException, M] = {
+  ):EOption[M] = {
 
     def terminate(minNode:S, explored:Explored[S],backPointers:BackPointer[S,A,C]):Option[M] = {
       if (isEnd(minNode)) {
@@ -39,9 +40,7 @@ trait UniformCostGraphSearch {
             //backPointers.clear
             //frontier.clear
             //frontier += State(start, zeroCost)
-            logger.foreach { l => 
-              l.dbg(s"$e")
-            }
+            dbg(logger, e)
             None
           case Failure(e) => throw e
         }
@@ -51,8 +50,8 @@ trait UniformCostGraphSearch {
       }
     }
 
-    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):Either[PIRException, M] = {
-      return Left(PIRException(s"No route from ${quote(start)}"))
+    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):EOption[M] = {
+      return Left(SearchFailure(s"No route from ${quote(start)}"))
     }
 
     uniformCostTraverse(
@@ -84,7 +83,7 @@ trait UniformCostGraphSearch {
       return None
     }
 
-    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):Either[PIRException, Seq[(S,C)]] = {
+    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):EOption[Seq[(S,C)]] = {
       assert(explored.toSet.size == explored.size)
       Right(explored.map { n => (n, extractHistory(start, n, backPointers, zeroCost, sumCost)._2) }.toList)
     }
@@ -108,9 +107,9 @@ trait UniformCostGraphSearch {
     advance:AdvanceFunc[S,A,C], 
     quote:S => String,
     terminate:(S, Explored[S], BackPointer[S,A,C]) => Option[M],
-    cleanUp:(Explored[S], BackPointer[S,A,C]) => Either[PIRException, M],
+    cleanUp:(Explored[S], BackPointer[S,A,C]) => EOption[M],
     logger:Option[Logging]
-  ):Either[PIRException, M] = {
+  ):EOption[M] = {
 
     case class State(n:S, var cost:C) extends Ordered[State] {
       override def toString = s"State(${quote(n)}, $cost)" 
@@ -126,11 +125,7 @@ trait UniformCostGraphSearch {
     frontier += State(start, zeroCost)
 
     while (!frontier.isEmpty) {
-      logger.foreach { l =>
-        l.dbg(s"frontier:")
-        l.dbg(s"- ${frontier}")
-        l.dbg("")
-      }
+      dbg(logger, s"frontier: ${frontier}")
 
       val State(minNode, pastCost) = frontier.dequeue()
 
@@ -164,10 +159,8 @@ trait UniformCostGraphSearch {
         groups.minBy { case (n, a, c) => c }
       }.toSeq
 
-      logger.foreach { l =>
-        l.dbg(s"neighbors minBy:")
-        l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      }
+      dbg(logger, s"neighbors minBy:")
+      dbg(logger, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = sumCost(pastCost, cost)

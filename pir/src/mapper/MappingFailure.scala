@@ -2,9 +2,10 @@ package pir.mapper
 
 import prism.exceptions._
 
-trait MappingFailure extends PIRException {
-}
-
 case class InvalidFactorGraph[K,FG<:FactorGraph[K,_,_]](fg:FG, k:K) extends MappingFailure {
-  val msg = s"InvalidFactorGraph $fg at key=$k"
+  var info = s"InvalidFactorGraph ${fg.name} at key=$k\n"
+  info += s"freeValues: \n"
+  info += fg.keys.map { k => s"$k -> ${fg.freeValues(k)}" }.mkString("\n") + "\n"
+  info += s"values: \n${fg.values.mkString(",")}\n"
+  val msg = info
 }

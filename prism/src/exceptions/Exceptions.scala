@@ -11,7 +11,10 @@ object PIRException {
 }
 
 // Continue search when exception is raised
-trait SearchFailure extends PIRException
+trait MappingFailure extends PIRException
+
+case class SearchFailure(msg:String) extends MappingFailure {
+}
 
 /* Compiler Error */
 case class TODOException(s:String) extends PIRException {
