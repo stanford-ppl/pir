@@ -14,12 +14,16 @@ import scala.collection.mutable
 class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass {
   import pirmeta._
 
-  def shouldRun = isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.nonEmpty
+  def shouldRun = isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
 
   override def runPass(runner:RunPass[_]) =  {
-    val newCumap = cumap.freeKeys.foldLeft(cumap) { case (cumap, cuP) => cumap.map(cuP, cumap.topFreeValue(cuP).get) }
-    pirmeta.pirMap = Some(pmap.set[CUMap](newCumap))
+    pirMap = pirMap.flatMap { pmap =>
+      pmap.flatMap[CUMap] { cumap =>
+        flatFold(cumap.freeKeys, cumap) { case (cumap, cuP) =>
+          cumap.map(cuP, cumap.topFreeValue(cuP).get)
+        }
+      }
+    }
   }
-
 
 }

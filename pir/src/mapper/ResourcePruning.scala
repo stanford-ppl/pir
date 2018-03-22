@@ -7,10 +7,11 @@ import prism._
 import prism.util._
 
 trait ResourcePruning { self:PIRPass =>
-
-  val constrains:List[Constrain]
-  def prune(cumap:CUMap):CUMap = {
-    constrains.foldLeft(cumap) { case (cumap, constrain) => constrain.prune(cumap) }
+  var constrains:List[Constrain] = Nil
+  def prune(pmap:PIRMap):MOption[PIRMap] = {
+    flatFold(constrains, pmap) { case (pmap, constrain) => constrain.prune(pmap) }
   }
+  
+
 }
 

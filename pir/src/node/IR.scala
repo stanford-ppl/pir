@@ -28,6 +28,7 @@ trait IR extends prism.node.IR {
       case (_, top:Top) =>
       case (self:Memory, _) =>
       case (self:PIRNode, ctrler:Controller) => ctrlOf(self) = ctrler 
+      case _ =>
     }
     this
   }

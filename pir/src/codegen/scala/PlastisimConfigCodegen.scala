@@ -18,10 +18,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
 
   val fileName = s"${compiler}.psim"
 
-  lazy val mapping = cumap.usedMap
-
   val linkSrc = new OneToOneMap[LocalStore, N]()
   val linkDst = new OneToOneMap[LocalStore, N]()
+
+  def cumap = pirMap.right.get.cumap
 
   override def reset = {
     resetAllCaches
@@ -132,8 +132,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       val dst = linkDst(n)
       val srcCUP = globalOf(src).getOrElse(src).asInstanceOf[GlobalContainer]
       val dstCUP = globalOf(dst).getOrElse(dst).asInstanceOf[GlobalContainer]
-      val srcCUS = mapping.get(srcCUP)
-      val dstCUS = mapping.get(dstCUP)
+      val srcCUS = cumap.get(srcCUP)
+      val dstCUS = cumap.get(dstCUP)
       emitlnc(s"src = ${src}", s"${globalOf(src)} $srcCUS")
       emitlnc(s"dst = ${dst}", s"${globalOf(dst)} $dstCUS")
       val mem = memsOf(n).head

@@ -15,19 +15,15 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   type N = PIRNode with Product
   def shouldRun = true
 
-  val constrains = {
-    var list:List[Constrain] = Nil
-    list :+= SwitchConstrain
-    list :+= AFGConstrain
-    list :+= DFGConstrain
-    list :+= SramConstrain
-    list :+= VectorFIFOConstrain
-    list :+= ScalarFIFOConstrain
-    list :+= ControlFIFOConstrain
-    list :+= StageConstrain
-    list :+= LaneConstrain
-    list
-  }
+  constrains :+= SwitchConstrain
+  constrains :+= AFGConstrain
+  constrains :+= DFGConstrain
+  constrains :+= SramConstrain
+  constrains :+= VectorFIFOConstrain
+  constrains :+= ScalarFIFOConstrain
+  constrains :+= ControlFIFOConstrain
+  constrains :+= StageConstrain
+  constrains :+= LaneConstrain
 
   def initCUMap:CUMap = {
     var cumap = CUMap.empty
@@ -36,16 +32,17 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
     val pnodes = topP.collectDown[CUMap.K]()
     val snodes = topS.collectDown[CUMap.V]()
     cumap ++= pnodes.toSet -> snodes.toSet
-    prune(cumap)
+    cumap
   }
 
   override def runPass(runner:RunPass[_]) =  {
     import runner._
-    pirmeta.pirMap = Some(PIRMap.empty)
-    val cumap = pirMap.get.cumap
-    dbgblk(s"mapping") {
-      cumap.freeMap.keys.foreach { pn =>
-        dbg(s"${quote(pn)} <- ${cumap.sortedFreeValues(pn).map(quote)}")
+    pirMap = pirMap.flatMap { pmap => prune(pmap.set[CUMap](initCUMap)) }
+    pirMap.foreach { pmap =>
+      dbgblk(s"mapping") {
+        pmap.cumap.freeMap.keys.foreach { pn =>
+          dbg(s"${quote(pn)} <- ${pmap.cumap.sortedFreeValues(pn).map(quote)}")
+        }
       }
     }
   }

@@ -16,6 +16,8 @@ package object pir {
 
   /* mapper */
   type PIRMap = pir.mapper.PIRMap
+  val PIRMap = pir.mapper.PIRMap
+  type MOption[T] = pir.mapper.MOption[T]
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

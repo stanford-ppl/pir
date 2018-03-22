@@ -9,67 +9,59 @@ import prism._
 import prism.util._
 
 trait Constrain {
+  type K
+  type V
+  type FG <: FactorGraph[K,V,FG]
+  implicit def fgct:ClassTag[FG]
   override def toString = this.getClass.getSimpleName.replace("$","")
-  def prune(cumap:CUMap)(implicit pass:PIRPass):CUMap
+  def prune(fg:FG)(implicit pass:PIRPass):MOption[FG]
+  def prune(pmap:PIRMap)(implicit pass:PIRPass):MOption[PIRMap] = {
+    pmap.flatMap[FG](field => prune(field))
+  }
 }
-abstract class PrefixConstrain extends Constrain {
-  def prefix(cuP:CUMap.K)(implicit pass:PIRPass):Boolean
-  def prefix(cuS:CUMap.V)(implicit pass:PIRPass):Boolean
-  def prune(cumap:CUMap)(implicit pass:PIRPass):CUMap = {
+trait PrefixConstrain extends Constrain {
+  def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean
+  def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean
+  def prune(fg:FG)(implicit pass:PIRPass):MOption[FG] = {
     import pass.{pass => _, _}
-    cumap.multiplyFactor { case (cuP,cuS) =>
-      val factor = if (prefix(cuP) == prefix(cuS)) 1 else 0
+    fg.multiplyFactor { case (cuP,cuS) =>
+      val factor = if (prefixKey(cuP) == prefixValue(cuS)) 1 else 0
       dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
       factor
     }
   }
 }
-object AFGConstrain extends PrefixConstrain {
-  def prefix(cuP:CUMap.K)(implicit pass:PIRPass):Boolean = isAFG(cuP)
-  def prefix(cuS:CUMap.V)(implicit pass:PIRPass):Boolean = cuS.isInstanceOf[spade.node.ArgFringe]
-}
-object DFGConstrain extends PrefixConstrain {
-  def prefix(cuP:CUMap.K)(implicit pass:PIRPass):Boolean = isDFG(cuP)
-  def prefix(cuS:CUMap.V)(implicit pass:PIRPass):Boolean = cuS.isInstanceOf[MC]
-}
-object SwitchConstrain extends PrefixConstrain {
-  def prefix(cuP:CUMap.K)(implicit pass:PIRPass):Boolean = false
-  def prefix(cuS:CUMap.V)(implicit pass:PIRPass):Boolean = cuS.isInstanceOf[SwitchBox]
-}
-abstract class QuantityConstrain extends Constrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int
-  def prune(cumap:CUMap)(implicit pass:PIRPass):CUMap = {
+trait QuantityConstrain extends Constrain {
+  def numPNodes(cuP:K)(implicit pass:PIRPass):Int
+  def numSnodes(cuS:V)(implicit pass:PIRPass):Int
+  def prune(fg:FG)(implicit pass:PIRPass):MOption[FG] = {
     import pass.{pass => _, _}
-    cumap.multiplyFactor { case (cuP,cuS) =>
-      val factor = if (numPNodes(cuP) > numSnodes(cuS)) 0 else 1
-      dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
+    fg.multiplyFactor { case (cuP,cuS) =>
+      val np = numPNodes(cuP)
+      val ns = numSnodes(cuS)
+      val factor = if (np > ns) 0 else 1
+      dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor pnodes=$np snodes=$ns")
       factor
     }
   }
 }
-object SramConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.SRAM]().size
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.SRAM]().size
+trait ArcConsistencyConstrain extends Constrain {
+  def prune(fg:FG)(implicit pass:PIRPass):MOption[FG] = {
+    import pass.{pass => _, _}
+    flatFold(fg.freeKeys,fg) { case (fg, key) => ac3[K,V,FG](fg, key) }
+  }
+  def ac3[K,V,FG<:FactorGraph[K,V,FG]](fg:FG, k:K):MOption[FG] = {
+    if (fg.freeValues(k).isEmpty) return Left(InvalidFactorGraph(fg,k))
+    flatFold(fg.freeValues(k),fg) { case (fg, v) =>
+      val neighbors = fg.freeKeys(v).filterNot { _ == k }
+      val nfg = fg.map(k,v)
+      nfg match {
+        case Left(_) => fg.removeEdge(k,v)
+        case Right(nfg) =>
+          flatFold(neighbors, fg) { case (fg, neighbor) => 
+            if (ac3[K,V,FG](nfg, neighbor).isLeft) fg.removeEdge(k,v) else Right(fg)
+          }
+      }
+    }
+  }
 }
-object ControlFIFOConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isBit(fifo) }.size
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Bit]).size
-}
-object ScalarFIFOConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isScalar(fifo) }.size
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Word]).size
-}
-object VectorFIFOConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isVector(fifo) }.size
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Vector]).size
-}
-object StageConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[StageDef]().size
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[Stage]().size
-}
-object LaneConstrain extends QuantityConstrain {
-  def numPNodes(cuP:CUMap.K)(implicit pass:PIRPass):Int = cuP.collectDown[StageDef]().map(s => parOf(s).get).reduceOption{ _ max _}.getOrElse(1)
-  def numSnodes(cuS:CUMap.V)(implicit pass:PIRPass):Int = cuS.collectDown[SIMDUnit]().headOption.map{_.param.numLanes}.getOrElse(1)
-}
-

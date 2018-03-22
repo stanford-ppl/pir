@@ -6,17 +6,15 @@ import prism.collection.immutable._
 trait FactorGraph[K,V,S] extends Serializable { self:S =>
   type W = Map[(K, V), Float]
   type FM = BiManyToManyMap[K, V]
-  type UM = OneToOneMap[K, V]
 
   val default:Float = 1.0f
 
   val freeMap:FM
-  val weights:W
-  val usedMap:UM
+  var weights:W
 
-  def newInstance(freeMap:FM, weights:W, usedMap:UM):S = {
-    val constructor = this.getClass.getConstructor(classOf[FM], classOf[W], classOf[UM])
-    constructor.newInstance(freeMap, weights, usedMap).asInstanceOf[S]
+  def newInstance(freeMap:FM, weights:W):S with FactorGraph[K,V,S] = {
+    val constructor = this.getClass.getConstructor(classOf[FM], classOf[W])
+    constructor.newInstance(freeMap, weights).asInstanceOf[S with FactorGraph[K,V,S]]
   }
 
   def ++ (pairs:(Set[K],Set[V])):S = { 
@@ -24,14 +22,9 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     val wt = kk.foldLeft(weights) { case (wt, k) => 
       vv.foldLeft(wt) { case (wt, v) => wt + ((k,v) -> wt.getOrElse((k,v), default)) }
     }
-    newInstance(freeMap ++ pairs, wt, usedMap)
+    newInstance(freeMap ++ pairs, wt)
   }
-  def * (k:K, v:V, factor:Float) = {
-    var newWeights = weights
-    newWeights += (k,v) -> (newWeights((k,v)) * factor)
-    newInstance(freeMap, newWeights, usedMap)
-  }
-  def freeKeys = freeMap.keys.filterNot { k => usedMap.contains(k) }
+  def freeKeys = freeMap.keys.filter { k => freeValues(k).size > 1 }
   def freeValues(k:K):Set[V] = freeMap.fmap(k).filterNot{ v => weights((k,v)) <= 0 }
   def freeKeys(v:V):Set[K] = freeMap.bmap(v).filterNot{ k => weights((k,v)) <= 0 }
   def sortedFreeValues(k:K) = freeValues(k).toList.sortBy { v => -weights((k,v)) } // max to min
@@ -47,17 +40,35 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
       }
     }
   }
-  def multiplyFactor(factorLambda: (K,V) => Float) = {
-    var newWeights = weights
-    foreachFree { case (k,v) => newWeights += ((k,v) -> (newWeights((k,v)) * factorLambda(k,v))) }
-    newInstance(freeMap, newWeights, usedMap)
+  def multiplyFactor(factorLambda: (K,V) => Float):MOption[S with FactorGraph[K,V,S]] = {
+    flatFold(freeKeys, this) { case (fg, k) =>
+      freeValues(k).foreach { v =>
+        weights += ((k,v) -> (weights((k,v)) * factorLambda(k,v)))
+      }
+      check(k)
+    }
   }
-  def map(k:K, v:V):S = {
+  // Mapping with look ahead
+  def map(k:K, v:V):MOption[S with FactorGraph[K,V,S]] = {
     assert(weights.get((k,v)).map(_ > 0).getOrElse(false))
-    var newWeights = weights
-    freeMap.fmap.foreach { case (`k`, vv) => vv.foreach { v => newWeights += ((k,v) -> 0.0f) }; case _ => }
-    freeMap.bmap.foreach { case (`v`, kk) => kk.foreach { k => newWeights += ((k,v) -> 0.0f) }; case _ => }
-    val newUsedMap = usedMap + (k -> v)
-    newInstance(freeMap, newWeights, newUsedMap)
+    val fg = newInstance(freeMap, weights)
+    val notUsed = freeValues(k).filterNot { _ == v }
+    val neighbors = freeKeys(v).filterNot { _ == k }
+    notUsed.foreach { v => fg.weights += ((k,v) -> 0.0f) }
+    flatFold(neighbors, fg) { case (fg, neighbor) => fg.removeEdge(neighbor, v) }
   }
+
+  def removeEdge(k:K, v:V):MOption[S with FactorGraph[K,V,S]] = {
+    weights += ((k,v) -> 0.0f)
+    check(k)
+  }
+
+  def check(k:K):MOption[S with FactorGraph[K,V,S]] = if (freeValues(k).nonEmpty) Right(this) else Left(InvalidFactorGraph(this, k))
+
+  def get(k:K):Option[V] = {
+    val vv = freeValues(k)
+    if (vv.size==1) Some(vv.head) else None
+  }
+
+  def apply(k:K):V = get(k).get
 }
