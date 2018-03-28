@@ -7,59 +7,47 @@ import prism.exceptions.SearchFailure
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable
 
-trait UniformCostGraphSearch {
-  // (S, A, C): (State, Action, Cost)
-  type BackPointer[S,A,C] = mutable.Map[S, (S,A,C)]
-  type Explored[S] = mutable.ListBuffer[S]
-  type AdvanceFunc[S,A,C] = (S,BackPointer[S,A,C],C) => Seq[(S, A, C)]
+abstract class UniformCostGraphSearch[N,A,C:Numeric] {
+  // (N, A, C): (Node, Action, Cost)
+  type BackPointer = mutable.Map[N, (N,A,C)]
+  type Explored = mutable.ListBuffer[N]
+  type Route = List[(N,A)]
+
+  val cnu = implicitly[Numeric[C]]
+
+  def quote(s:Any):String
+  
+  def advance(state:N, backPointers:BackPointer, cost:C):Seq[(N, A, C)]
+
+  case class State(n:N, var cost:C) extends Ordered[State] {
+    override def toString = s"State(${quote(n)}, $cost)" 
+    def compare(that:State):Int = -cnu.compare(cost, that.cost)
+  }
 
   /* Find the minimum path from start to end
-   * Call finPass when a route is found. If finPass is succeeded, return mapping from finPass. 
-   * If finPass fails, continue find routes. Throw exception when no route is found 
    * @return mapping 
    * */
-  def uniformCostSearch[S, A, C:Ordering,M](
-    start:S, 
-    isEnd:S => Boolean,
-    zeroCost:C,
-    sumCost:(C,C) => C,
-    advance:AdvanceFunc[S,A,C], 
-    quote:S => String,
-    finPass:(List[(S,A)], C) => M,
+  def uniformCostSearch(
+    start:N, 
+    isEnd:N => Boolean,
     logger:Option[Logging]
-  ):EOption[M] = {
+  ):EOption[Route] = {
 
-    def terminate(minNode:S, explored:Explored[S],backPointers:BackPointer[S,A,C]):Option[M] = {
+    def terminate(minNode:N, explored:Explored,backPointers:BackPointer):Option[Route] = {
       if (isEnd(minNode)) {
-        assert(explored.toSet.size == explored.size)
-        val (route, cost) = extractHistory(start, minNode, backPointers, zeroCost, sumCost)
-        Try(finPass(route, cost))  match {
-          case Success(m) => Some(m)
-          case Failure(e:SearchFailure) => // Continue
-            //explored.clear
-            //backPointers.clear
-            //frontier.clear
-            //frontier += State(start, zeroCost)
-            dbg(logger, e)
-            None
-          case Failure(e) => throw e
-        }
+        val (route, cost) = extractHistory(start, minNode, backPointers)
+        Some(route)
       } else {
-        explored += minNode 
         None
       }
     }
 
-    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):EOption[M] = {
+    def cleanUp(explored:Explored, backPointers:BackPointer):EOption[Route] = {
       return Left(SearchFailure(s"No route from ${quote(start)}"))
     }
 
-    uniformCostTraverse(
+    uniformCostTraverse[Route](
       start=start,
-      zeroCost=zeroCost,
-      sumCost=sumCost,
-      advance=advance,
-      quote=quote,
       terminate=terminate,
       cleanUp=cleanUp,
       logger=logger
@@ -69,92 +57,56 @@ trait UniformCostGraphSearch {
   /*
    * Find list of nodes reachable from start
    * */
-  def uniformCostSpan[S, A, C:Ordering](
-    start:S, 
-    zeroCost:C,
-    sumCost:(C,C) => C,
-    advance:AdvanceFunc[S,A,C], 
-    quote:S => String,
+  def uniformCostSpan(
+    start:N, 
     logger:Option[Logging]
-  ):Seq[(S,C)] = {
+  ):Seq[(N,C)] = {
 
-    def terminate(minNode:S, explored:mutable.ListBuffer[S],backPointers:BackPointer[S,A,C]):Option[Seq[(S,C)]] = { 
-      explored += minNode 
+    def terminate(minNode:N, explored:mutable.ListBuffer[N],backPointers:BackPointer):Option[Seq[(N,C)]] = { 
       return None
     }
 
-    def cleanUp(explored:Explored[S], backPointers:BackPointer[S,A,C]):EOption[Seq[(S,C)]] = {
-      assert(explored.toSet.size == explored.size)
-      Right(explored.map { n => (n, extractHistory(start, n, backPointers, zeroCost, sumCost)._2) }.toList)
+    def cleanUp(explored:Explored, backPointers:BackPointer):EOption[Seq[(N,C)]] = {
+      Right(explored.map { n => (n, extractHistory(start, n, backPointers)._2) }.toList)
     }
 
     uniformCostTraverse(
       start=start,
-      zeroCost=zeroCost,
-      sumCost=sumCost,
-      advance=advance,
-      quote=quote,
       terminate=terminate,
       cleanUp=cleanUp,
       logger=logger
     ).right.get
   }
 
-  def uniformCostTraverse[S, A, C:Ordering,M](
-    start:S, 
-    zeroCost:C,
-    sumCost:(C,C) => C,
-    advance:AdvanceFunc[S,A,C], 
-    quote:S => String,
-    terminate:(S, Explored[S], BackPointer[S,A,C]) => Option[M],
-    cleanUp:(Explored[S], BackPointer[S,A,C]) => EOption[M],
+  def uniformCostTraverse[M](
+    start:N, 
+    terminate:(N, Explored, BackPointer) => Option[M],
+    cleanUp:(Explored, BackPointer) => EOption[M],
     logger:Option[Logging]
   ):EOption[M] = {
 
-    case class State(n:S, var cost:C) extends Ordered[State] {
-      override def toString = s"State(${quote(n)}, $cost)" 
-      def compare(that:State):Int = -implicitly[Ordering[C]].compare(cost, that.cost)
-    }
+    val explored:Explored = mutable.ListBuffer[N]()
 
-    val explored:Explored[S] = mutable.ListBuffer[S]()
-
-    val backPointers:BackPointer[S,A,C] = mutable.Map[S, (S,A,C)]()
+    val backPointers:BackPointer = mutable.Map[N, (N,A,C)]()
 
     var frontier = mutable.PriorityQueue[State]()
 
-    frontier += State(start, zeroCost)
+    frontier += State(start, cnu.zero)
 
     while (!frontier.isEmpty) {
       dbg(logger, s"frontier: ${frontier}")
 
       val State(minNode, pastCost) = frontier.dequeue()
 
-      logger.foreach { l =>
-        l.dbsln(s"${quote(minNode)}, pastCost:$pastCost")
-      }
-
+      explored += minNode
       terminate(minNode, explored, backPointers).foreach { res => 
-        logger.foreach { l =>
-          l.dbeln
-          l.dbg("")
-        }
         return Right(res) // why is this cast necessary?
       }
 
-      var neighbors = advance(minNode, backPointers, pastCost)
+      var neighbors:Seq[(N, A, C)] = advance(minNode, backPointers, pastCost)
 
-      //logger.foreach { l =>
-        //l.dbg(s"neighbors:")
-        //l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      //}
-      
       neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
 
-      //logger.foreach { l =>
-        //l.dbg(s"neighbors not explored:")
-        //l.dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
-      //}
-      
       neighbors = neighbors.groupBy { case (n, a, c) => n }.map { case (n, groups) =>
         groups.minBy { case (n, a, c) => c }
       }.toSeq
@@ -163,40 +115,34 @@ trait UniformCostGraphSearch {
       dbg(logger, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
-        val newCost = sumCost(pastCost, cost)
+        val newCost = cnu.plus(pastCost, cost)
         frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit]{
           frontier += State(neighbor, newCost)
           backPointers += neighbor -> ((minNode, action, cost))
         } { node =>
-          if (implicitly[Ordering[C]].lt(newCost, node.cost)) {
+          if (cnu.lt(newCost, node.cost)) {
             node.cost = newCost
             backPointers += neighbor -> ((minNode, action, cost))
             frontier = frontier.clone() // Create a new copy to force reordering
           }
         }
       }
-      logger.foreach { l =>
-        l.dbeln
-        l.dbg("")
-      }
     }
 
     cleanUp(explored, backPointers)
   }
 
-  def extractHistory[S,A,C](
-    start:S, 
-    end:S, 
-    backPointers:BackPointer[S,A,C], 
-    zeroCost:C,
-    sumCost:(C,C) => C
-  ):(List[(S,A)], C) = {
-    var totalCost = zeroCost
-    val history = mutable.ListBuffer[(S, A)]()
+  def extractHistory(
+    start:N, 
+    end:N, 
+    backPointers:BackPointer, 
+  ):(Route, C) = {
+    var totalCost = cnu.zero
+    val history = mutable.ListBuffer[(N, A)]()
     var current = end
     while (current != start) {
       val (prevNode, action, cost) = backPointers(current)
-      totalCost = if (totalCost==null) cost else sumCost(totalCost, cost)
+      totalCost = if (totalCost==null) cost else cnu.plus(totalCost, cost)
       history += ((current, action))
       current = prevNode
     }
