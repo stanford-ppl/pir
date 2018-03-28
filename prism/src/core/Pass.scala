@@ -15,13 +15,17 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   def reset = {}
 
   def initPass(runner:RunPass[_]):Unit = {
-    info(s"Running ${runner.name} ...")
+    infor(s"Running ${runner.name} ...")
+    tic
   }
 
   def runPass(runner:RunPass[_]):Unit = runPass
   def runPass:Unit = {}
 
-  def finPass(runner:RunPass[_]):Unit = check
+  def finPass(runner:RunPass[_]):Unit = {
+    check
+    info(s"Finished ${runner.name} in ${toc("ms")}ms")
+  }
 
   def check(runner:RunPass[_]):Unit = check
   def check:Unit = {}

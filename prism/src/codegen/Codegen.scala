@@ -17,12 +17,12 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   override def initPass(runner:RunPass[_]) = {
     super.initPass(runner)
     openFile(dirName, fileName, append=append)
-    info(s"Running ${runner.name} to ${sw.getPath}")
   }
 
   override def finPass(runner:RunPass[_]) = {
-    super.finPass(runner)
+    info(s"Finished ${runner.name} to ${sw.getPath} in ${toc("ms")}ms")
     closeStream
+    check
   }
 
   override def quote(n:Any):String = n match {
