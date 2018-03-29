@@ -25,10 +25,6 @@ object DFGConstrain extends CUPrefixConstrain {
   def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean = isDFG(cuP)
   def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean = cuS.isInstanceOf[MC]
 }
-object SwitchConstrain extends CUPrefixConstrain {
-  def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean = false
-  def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean = cuS.isInstanceOf[SwitchBox]
-}
 object SramConstrain extends CUQuantityConstrain {
   def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.SRAM]().size
   def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.SRAM]().size

@@ -4,6 +4,8 @@ import pir.util._
 import pir.pass._
 import pir.node._
 
+import spade.node.{Edge => _, _}
+
 import prism._
 import prism.util._
 import prism.node._
@@ -39,14 +41,15 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
     (from.src, to.src) match {
       case (from:GlobalOutput, to:GlobalInput) =>
-        val fromBundleType = bundleTypeOf(from, logger=Some(this))
-        val toBundleType = bundleTypeOf(to, logger=Some(this))
-        dbg(s"from:$fromBundleType, to:$toBundleType")
-        assert(fromBundleType == toBundleType)
-        val style = fromBundleType match {
+        val fromPinType = bundleTypeOf(from, logger=Some(this))
+        val toPinType = bundleTypeOf(to, logger=Some(this))
+        dbg(s"from:$fromPinType, to:$toPinType")
+        assert(fromPinType == toPinType)
+        val style = fromPinType match {
           case Bit => attr.set("style", "dashed").set("color","red")
           case Word => attr.set("style", "solid")
           case Vector => attr.set("style", "bold").set("color","sienna")
+          case _ =>
         }
       case _ =>
     }

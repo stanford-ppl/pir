@@ -14,6 +14,5 @@ trait ResourcePruning { self:PIRPass =>
     flatFold(constrains, pmap) { case (pmap, constrain) => constrain.prune(pmap) }
   }
   
-
 }
 

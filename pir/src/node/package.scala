@@ -2,6 +2,8 @@ package pir
 
 import pir.util._
 
+import spade.node.{Edge => _, _}
+
 import prism._
 import prism.util._
 
@@ -138,7 +140,7 @@ package object node extends PIREnums {
     n.collectDown[ContextEnable]().headOption
   }
 
-  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
+  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):PinType = dbgblk(logger, s"bundleTypeOf($n)") {
     implicit val design = pass.design
     n match {
       case n:ControlNode => Bit
@@ -147,7 +149,7 @@ package object node extends PIREnums {
       case n:StreamIn if parOf(n).get > 1 => Vector
       case n:Memory => 
         val tps = writersOf(n).map(writer => bundleTypeOf(writer, logger))
-        assert(tps.size==1, s"$n.writers=${writersOf(n)} have different BundleType=$tps")
+        assert(tps.size==1, s"$n.writers=${writersOf(n)} have different PinType=$tps")
         tps.head
       case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
       case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)

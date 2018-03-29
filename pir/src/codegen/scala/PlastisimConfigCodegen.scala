@@ -126,6 +126,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
         case Vector => "vec"
         case Word => "scal"
         case Bit => "ctrl"
+        case _ => ""
       }
       emitln(s"tp = $tp")
       val src = linkSrc(n)

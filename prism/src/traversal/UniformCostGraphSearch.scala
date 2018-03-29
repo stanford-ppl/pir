@@ -17,8 +17,6 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
 
   def quote(s:Any):String
   
-  def advance(state:N, backPointers:BackPointer, cost:C):Seq[(N, A, C)]
-
   case class State(n:N, var cost:C) extends Ordered[State] {
     override def toString = s"State(${quote(n)}, $cost)" 
     def compare(that:State):Int = -cnu.compare(cost, that.cost)
@@ -30,6 +28,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
   def uniformCostSearch(
     start:N, 
     isEnd:N => Boolean,
+    advance:(N, BackPointer, C) => Seq[(N,A,C)],
     logger:Option[Logging]
   ):EOption[Route] = {
 
@@ -48,6 +47,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
 
     uniformCostTraverse[Route](
       start=start,
+      advance=advance,
       terminate=terminate,
       cleanUp=cleanUp,
       logger=logger
@@ -59,6 +59,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
    * */
   def uniformCostSpan(
     start:N, 
+    advance:(N, BackPointer, C) => Seq[(N,A,C)],
     logger:Option[Logging]
   ):Seq[(N,C)] = {
 
@@ -72,6 +73,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
 
     uniformCostTraverse(
       start=start,
+      advance=advance,
       terminate=terminate,
       cleanUp=cleanUp,
       logger=logger
@@ -80,6 +82,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
 
   def uniformCostTraverse[M](
     start:N, 
+    advance:(N, BackPointer, C) => Seq[(N,A,C)],
     terminate:(N, Explored, BackPointer) => Option[M],
     cleanUp:(Explored, BackPointer) => EOption[M],
     logger:Option[Logging]

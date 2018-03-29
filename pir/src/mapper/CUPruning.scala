@@ -1,8 +1,7 @@
-package pir.pass
+package pir.mapper
 
 import pir._
 import pir.node._
-import pir.mapper._
 import spade.node._
 import prism._
 import prism.util._
@@ -15,7 +14,6 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   type N = PIRNode with Product
   def shouldRun = true
 
-  constrains += SwitchConstrain
   constrains += AFGConstrain
   constrains += DFGConstrain
   constrains += SramConstrain
@@ -31,7 +29,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
     val topP = compiler.top
     val topS = compiler.arch.top
     val pnodes = topP.collectDown[CUMap.K]()
-    val snodes = topS.collectDown[CUMap.V]()
+    val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
     cumap ++= pnodes.toSet -> snodes.toSet
     cumap
   }

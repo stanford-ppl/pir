@@ -26,16 +26,20 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     }
     newInstance(freeMap ++ pairs, wt)
   }
+
   def keys = freeMap.keys
-  def values = freeMap.values
+  def values = freeMap.values.flatten.toSet
+  def keys(v:V) = freeMap.bmap(v)
+  def values(k:K) = freeMap.fmap(k)
   def freeKeys = freeMap.keys.filter { k => freeValues(k).size > 1 }
-  def freeValues(k:K):Set[V] = freeMap.fmap(k).filterNot{ v => weights((k,v)) <= 0 }
-  def freeKeys(v:V):Set[K] = freeMap.bmap(v).filterNot{ k => weights((k,v)) <= 0 }
+  def freeValues(k:K):Set[V] = values(k).filter{ v => !isMarked(k,v) && hasEdge(k,v) }
+  def freeKeys(v:V):Set[K] = keys(v).filter{ k => !isMarked(k,v) && hasEdge(k,v) }
   def sortedFreeValues(k:K) = freeValues(k).toList.sortBy { v => -weights((k,v)) } // max to min
   def topFreeValue(k:K):Option[V] = {
     val vv = freeValues(k)
     if (vv.isEmpty) None else Some(vv.maxBy { v => weights(k,v) })
   }
+
   def foreachFree(lambda:(K,V) => Unit) = {
     freeMap.foreach { case (k,vv) =>
       vv.foreach { 
@@ -44,6 +48,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
       }
     }
   }
+
   def multiplyFactor(factorLambda: (K,V) => Float):EOption[S with FactorGraph[K,V,S]] = {
     flatFold(freeKeys, this) { case (fg, k) =>
       freeValues(k).foreach { v =>
@@ -52,25 +57,44 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
       check(k)
     }
   }
+
+  /*
+   * List of interfering keys that cannot be mapped to the same value as key. Default all other keys
+   * */
+  def neighbors(k:K):List[K] = keys.toList.filterNot { _ == k }
+
   // Mapping with look ahead
   def map(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
-    assert(weights.get((k,v)).map(_ > 0).getOrElse(false))
     val fg = newInstance(freeMap, weights)
+    fg.markEdge(k,v)
     val notUsed = freeValues(k).filterNot { _ == v }
-    val neighbors = freeKeys(v).filterNot { _ == k }
-    notUsed.foreach { v => fg.weights += ((k,v) -> 0.0f) }
-    flatFold(neighbors, fg) { case (fg, neighbor) => fg.removeEdge(neighbor, v) }
+    notUsed.foreach { v => fg.dropEdge(k, v) }
+    flatFold(neighbors(k), fg) { case (fg, neighbor) => fg.removeEdge(neighbor, v) }
+  }
+
+  def dropEdge(k:K, v:V):Unit = {
+    weights += ((k,v) -> 0.0f)
   }
 
   def removeEdge(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
-    weights += ((k,v) -> 0.0f)
-    check(k)
+    if (hasEdge(k,v)) { dropEdge(k,v); check(k) } else Right(this)
   }
 
-  def check(k:K):EOption[S with FactorGraph[K,V,S]] = if (freeValues(k).nonEmpty) Right(this) else Left(InvalidFactorGraph(this, k))
+  def markEdge(k:K, v:V):Unit = {
+    assert(hasEdge(k,v))
+    weights += ((k,v) -> -1.0f)
+  }
+
+  def hasEdge(k:K, v:V) = weights((k,v)) > 0
+  def isMarked(k:K, v:V) = weights((k,v)) == -1.0f
+
+  def check(k:K):EOption[S with FactorGraph[K,V,S]] = {
+    val invalid = values(k).filter { v => hasEdge(k,v) || isMarked(k, v) }.isEmpty
+    if (invalid) Left(InvalidFactorGraph(this, k)) else Right(this)
+  }
 
   def get(k:K):Option[V] = {
-    val vv = freeValues(k)
+    val vv = values(k).filter { v => isMarked(k,v) }
     if (vv.size==1) Some(vv.head) else None
   }
 
