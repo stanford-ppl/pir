@@ -1,7 +1,5 @@
 package prism.codegen
 
-import prism._
-
 import java.io.FileOutputStream
 
 trait Logging {

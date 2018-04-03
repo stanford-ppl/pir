@@ -1,8 +1,5 @@
 package prism.codegen
 
-import prism._
-import prism.util._
-
 import java.nio.file._
 import java.io._
 import scala.collection.mutable.Stack

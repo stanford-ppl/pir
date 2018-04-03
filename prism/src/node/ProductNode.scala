@@ -1,10 +1,5 @@
 package prism.node
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node[N] with Product { self:N =>
   def this()(implicit design:Design, ev:ClassTag[N]) = this(Some(design))
 
@@ -73,6 +68,8 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
       }).asInstanceOf[T]
     }
   }
+
+  def addField[T](x:T):T = { connectFields(x, -1); x }
 
   def connectFields(x:Any, i:Int):Any = {
     x match {

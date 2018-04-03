@@ -1,10 +1,6 @@
 package prism.util
 
-import prism._
-import prism.util._
 import prism.collection.mutable._
-
-import scala.util.{Try, Success, Failure}
 
 trait Metadata extends Serializable {
 

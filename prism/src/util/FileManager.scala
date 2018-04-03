@@ -2,7 +2,6 @@ package prism.util
 
 import prism._
 
-import scala.collection.mutable.ListBuffer
 import java.io._
 
 trait FileManager { 

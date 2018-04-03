@@ -1,10 +1,8 @@
 package prism.collection.immutable
 
 import prism._
-import prism.exceptions._
 
 import scala.collection.immutable.Set
-import scala.language.existentials
 
 trait MapLike[K,V,VV,S<:MapLike[K,V,VV,S]] extends prism.collection.MapLike[K,V,VV] { self:S =>
   def + (pair:(K,V)):S

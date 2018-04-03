@@ -1,6 +1,5 @@
 package prism.collection.immutable
 
-import prism._
 import prism.mapper._
 
 trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>

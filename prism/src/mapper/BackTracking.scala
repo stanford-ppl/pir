@@ -2,8 +2,6 @@ package prism.mapper
 
 import prism._
 
-import scala.collection.mutable
-
 trait BackTracking { self:Logging => 
 
   def bind[P, S, M](

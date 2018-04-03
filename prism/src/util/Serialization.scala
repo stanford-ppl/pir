@@ -2,6 +2,7 @@ package prism.util
 
 import java.io._
 trait Serialization {
+
   def saveToFile(node:Serializable, path:String) = {
     mkdir(dirName(path))
     val oos = new ObjectOutputStream(new FileOutputStream(path))
@@ -11,6 +12,7 @@ trait Serialization {
   }
 
   def loadFromFile[T](path:String) = {
+    infor(s"Loading from $path")
     val ois = new ObjectInputStream(new FileInputStream(path)) {
       override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
         try { Class.forName(desc.getName, false, getClass.getClassLoader) }

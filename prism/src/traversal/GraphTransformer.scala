@@ -1,6 +1,5 @@
 package prism.traversal
 
-import prism._
 import prism.node._
 
 import scala.collection.mutable

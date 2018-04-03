@@ -3,7 +3,7 @@ package pir
 object PIRConfig extends prism.GlobalConfig {
   import Config._
 
-  var arch:String = register("arch", default="SMeshCB2x2", info="Default architecture for mapping") { arch = _ }
+  var arch:String = register("arch", default="SMeshCB4x4", info="Default architecture for mapping") { arch = _ }
   var saveDesign:Boolean = register("save-pir", default=true, info="Save IR into a file") { saveDesign = _ }
   var loadDesign:Boolean = register("load-pir", default=false, info="Load IR from a file") { loadDesign = _ }
 

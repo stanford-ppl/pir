@@ -1,7 +1,5 @@
 package prism.codegen
 
-import prism._
-
 class CollectionStatus {
   var firstPair = true 
   var inScope = true 

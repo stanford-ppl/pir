@@ -1,22 +1,21 @@
 
-val bldSettings = Defaults.defaultSettings ++ Seq(
+val bldSettings = Defaults.coreDefaultSettings ++ Seq(
 	organization := "stanford-ppl",
 	publishArtifact in (Compile, packageDoc) := false,
 	scalaVersion := "2.12.5",
-	scalaSource in Compile <<= baseDirectory(_ / "src"),
-	scalaSource in Test <<= baseDirectory(_ / "test"),
-  resourceDirectory in Compile <<= baseDirectory(_ / "resources"),
+	scalaSource in Compile := baseDirectory(_ / "src").value,
+	scalaSource in Test := baseDirectory(_ / "test").value,
+  resourceDirectory in Compile := baseDirectory(_ / "resources").value,
   logBuffered in Test := false,
   libraryDependencies += "org.scala-lang" % "scala-library" % "2.12.5", 
   libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.12.5",
   libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.12.5",
   libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.5" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
+  //libraryDependencies += "io.suzaku" %% "boopickle" % "1.3.0",
   retrieveManaged := true,
-  javaOptions in (Test) += "-Xdebug",
-  javaOptions in (Test) += "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005",
-  javaOptions += "-Xmx3G",
-  //scalacOptions += "-Yno-generic-signatures",
+  //javaOptions += "-Xmx1G", // java heap size ignored unless fork in run := true
+  //javaOptions += "-Xms1G", // java stack size
   scalacOptions += "-feature",
   scalacOptions += "-unchecked",
   scalacOptions += "-deprecation",
@@ -42,7 +41,8 @@ lazy val macros = Project("macros",
 lazy val prism = Project("prism", 
   file("prism/"), 
   settings = bldSettings,
-  dependencies = Seq(macros % "compile->compile;test->test")
+  //dependencies = Seq(macros % "compile->compile;test->test")
+  dependencies = Seq()
 )
 
 lazy val spade = Project("spade", 

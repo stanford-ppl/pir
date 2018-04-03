@@ -1,9 +1,5 @@
 package prism.codegen
 
-import prism._
-
-import prism.util._
-
 import prism.traversal._
 
 trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with UnitTraversal {

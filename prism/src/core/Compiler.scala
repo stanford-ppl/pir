@@ -1,9 +1,6 @@
 package prism
 
-import prism.util._
-
 import scala.collection.mutable
-import java.io._
 
 trait Compiler {
 
@@ -11,7 +8,7 @@ trait Compiler {
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
-  def outDir = Config.outDir + File.separator + name
+  def outDir = Config.outDir + separator + name
 
   var _session:Session = _
   lazy val session = _session
@@ -23,7 +20,7 @@ trait Compiler {
 
   def handle(e:Exception):Unit
 
-  val sessionPath = s"${outDir}${File.separator}${name}.sess"
+  val sessionPath = s"${outDir}${separator}${name}.sess"
 
   val configs:List[GlobalConfig]
 
@@ -71,7 +68,7 @@ trait Compiler {
       initDesign
       initSession
       runSession
-      if (save) saveDesign
+      if (save) { saveDesign; loadDesign }
       if (save) session.saveSession(sessionPath)
     } catch { 
       case e:Exception =>

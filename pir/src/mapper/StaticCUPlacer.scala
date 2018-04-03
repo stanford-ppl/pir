@@ -1,5 +1,6 @@
 package pir.mapper
 
+import pir.node._
 import spade.node._
 
 class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
@@ -18,51 +19,57 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
     //case n:GlobalContainer => n.cumap.contains(n)
   //}
 
-  //def snodes(p:P, m:PIRMap) = {
-    //val gins = p.collectDown[GlobalInput]()
-    //val gouts = p.collectDown[GlobalOutput]()
-    //val sources = (gins ++ gouts).flatMap { 
-      //case gin:GlobalInput => goutOf(gin)
-      //case gout:GlobalOutput => ginsOf(gout)
-    //}
-    //val mappedSources = sources.flatMap { gio =>
-      //if (isMapped(globalOf(gio))) Some(gio) else None
-    //}
-    //val reachedAndCosts = mappedSources.map { gio =>
-      //val router = gio match {
-        //case gio if isBit(gio) => controlRouter
-        //case gio if isScalar(gio) => scalarRouter
-        //case gio if isVector(gio) => vectorRouter
-      //}
-      //router.span(
-        //start=gio, 
-        //logger=Some(this)
-      //)
-    //}
-    //reachedAndCosts.flatten.groupBy { _._1 }.foreach { case (reached, list) =>
-      //if (list.size < mappedSources.size) { // Not reachable by everyone
-        //m.cumap.multiplyFactor(p, reached, 0)
-      //} else {
-        //val totalCost = list.map { case (reached, cost) => cost }.product
-        //m.cumap.multiplyFactor(p, reached, 1.0 / totalCost)
-      //}
-    //}
-    //m.cumap.sortedFreeValues(p)
-  //}
+  def bindLambda(p:P, s:S, m:PIRMap) = {
+    m.flatMap[CUMap] { cumap =>
+      cumap.set(p,s)
+    }
+  }
 
-  //def bindLambda(p:P, s:S, m:PIRMap) = {
-    //m.flatMap[CUMap]{ _.map(p, s) }
-  //}
+  def addIOs(pmap:PIRMap) = {
+    pmap.cumap.keys.foldLeft(pmap) { case (pmap, cu) =>
+      val ins = cu.collectDown[GlobalInput]().toList
+      val outs = cu.collectDown[GlobalOutput]().toList
+      val ingrp = ins.groupBy(in => bundleTypeOf(in))
+      val outgrp = outs.groupBy(in => bundleTypeOf(in))
+      val cinsP = ingrp.getOrElse(Bit,Nil).toSet
+      val sinsP = ingrp.getOrElse(Word,Nil).toSet
+      val vinsP = ingrp.getOrElse(Vector,Nil).toSet
+      val coutsP = outgrp.getOrElse(Bit,Nil).toSet
+      val soutsP = outgrp.getOrElse(Word,Nil).toSet
+      val voutsP = outgrp.getOrElse(Vector,Nil).toSet
+      val insS = pmap.cumap(cu).flatMap { _.collectDown[spade.node.Input[_]]() }.toSet
+      val outsS = pmap.cumap(cu).flatMap { _.collectDown[spade.node.Output[_]]() }.toSet
+      val cinsS = insS.filter { in => is[Bit](in) }
+      val sinsS = insS.filter { in => is[Word](in) }
+      val vinsS = insS.filter { in => is[Vector](in) }
+      val coutsS = outsS.filter { out => is[Bit](out) }
+      val soutsS = outsS.filter { out => is[Word](out) }
+      val voutsS = outsS.filter { out => is[Vector](out) }
+      pmap.map[InMap] { inmap =>
+        var inmp = inmap
+        inmp ++= (cinsP -> cinsS)
+        inmp ++= (sinsP -> sinsS)
+        inmp ++= (vinsP -> vinsS)
+        inmp
+      }.map[OutMap] { outmap =>
+        var outmp = outmap
+        outmp ++= (coutsP -> coutsS)
+        outmp ++= (soutsP -> soutsS)
+        outmp ++= (voutsP -> voutsS)
+        outmp
+      }
+    }
+  }
 
-  //override def runPass(runner:RunPass[_]) =  {
-    //pirMap = pirMap.flatMap { pmap =>
-      //bind[P, S, PIRMap](
-        //pnodes=pmap.cumap.freeKeys.toList, 
-        //snodes=snodes _,
-        //init=pmap, 
-        //bindLambda=bindLambda _
-      //)
-    //}
-  //}
+  override def runPass(runner:RunPass[_]) =  {
+    pirMap = pirMap.flatMap { pmap =>
+      bind[P, S, PIRMap](
+        pnodes=(m:PIRMap) => minOptionBy(m.cumap.freeKeys) { case k => m.cumap(k).size },
+        snodes=(p:P, m:PIRMap) => m.cumap(p).toList.sortBy { case v => -m.cumap.bmap(v).size},
+        init=addIOs(pmap),
+        bindLambda=bindLambda _
+      )
+    }
+  }
 
 }

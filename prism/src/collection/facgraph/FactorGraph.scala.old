@@ -1,6 +1,5 @@
 package prism.collection 
 
-import prism._
 import prism.mapper._
 import prism.collection.immutable._
 

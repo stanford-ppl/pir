@@ -43,6 +43,7 @@ trait PIR extends Compiler with PIRWorld {
   /* Mapping */
   lazy val cuPruning = new CUPruning()
   lazy val dynamicCUPlacer = new DynamicCUPlacer()
+  lazy val staticCUPlacer = new StaticCUPlacer()
 
   /* Codegen */
   lazy val cuStats = new CUStatistics()
@@ -111,6 +112,7 @@ trait PIR extends Compiler with PIRWorld {
     //// Mapping
     addPass(cuPruning)
     addPass(dynamicCUPlacer).dependsOn(cuPruning)
+    addPass(staticCUPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
 

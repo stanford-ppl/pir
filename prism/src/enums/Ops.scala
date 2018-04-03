@@ -1,7 +1,5 @@
 package prism.enums
 
-import prism._
-
 sealed trait Op extends Enum
 
 sealed trait Op1 extends Op

@@ -1,10 +1,6 @@
 package prism.traversal
 
-import prism._
-import prism.util._
 import prism.node._
-
-import scala.collection.mutable
 
 trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
 

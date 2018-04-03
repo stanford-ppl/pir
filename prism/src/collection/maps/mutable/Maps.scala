@@ -1,7 +1,6 @@
 package prism.collection.mutable
 
 import prism._
-import prism.exceptions._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map

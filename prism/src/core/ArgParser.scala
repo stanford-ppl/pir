@@ -1,7 +1,5 @@
 package prism
 
-import prism.util._
-
 import scala.collection.mutable
 
 trait ArgParser {

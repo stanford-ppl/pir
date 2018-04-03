@@ -1,8 +1,5 @@
 package prism.node
 
-import prism._
-import prism.util._
-
 import scala.collection.mutable
 
 @SerialVersionUID(123L)
