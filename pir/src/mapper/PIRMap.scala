@@ -32,7 +32,7 @@ object PIRMap {
 case class CUMap(
   fmap:OneToManyMap[CUMap.K,CUMap.V], 
   bmap:OneToManyMap[CUMap.V,CUMap.K]
-) extends FactorGraphLike[CUMap.K,CUMap.V,CUMap]
+) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap]
 object CUMap {
   type K = GlobalContainer
   type V = Routable
