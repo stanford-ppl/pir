@@ -1,13 +1,5 @@
 package pir.pass
 
-import pir._
-import pir.codegen._
-
-import spade._
-import spade.codegen._
-
-import prism._
-
 class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
 
   implicit val arch:Spade = compiler.arch

@@ -1,16 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import spade._
-import prism._
-import prism.enums._
-import prism.util._
-
-import scala.collection.mutable
-import scala.language.existentials
-import scala.math.max
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass with prism.traversal.GraphUtil {
 

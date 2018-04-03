@@ -18,7 +18,7 @@ trait PrefixConstrain extends Constrain {
     import pass.{pass => _, _}
     fg.filter { case (cuP,cuS) =>
       val factor = prefixKey(cuP) == prefixValue(cuS)
-      dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
+      pass.dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
       factor
     }
   }
@@ -32,7 +32,7 @@ trait QuantityConstrain extends Constrain {
       val np = numPNodes(cuP)
       val ns = numSnodes(cuS)
       val factor = np <= ns
-      dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor pnodes=$np snodes=$ns")
+      pass.dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor pnodes=$np snodes=$ns")
       factor
     }
   }

@@ -1,12 +1,8 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-
+import prism.traversal._
 import scala.collection.mutable
-import prism.util._
 
 class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

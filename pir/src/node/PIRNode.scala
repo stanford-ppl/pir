@@ -1,11 +1,6 @@
 package pir.node
 
-import pir._
-
-import prism._
-import prism.node._
-
-abstract class PIRNode(implicit design:Design) extends ProductNode[PIRNode] with IR { self =>
+abstract class PIRNode(implicit design:PIRDesign) extends prism.node.ProductNode[PIRNode] with IR { self =>
   type N = PIRNode
   type P = Container
   type A = Primitive
@@ -28,6 +23,6 @@ abstract class PIRNode(implicit design:Design) extends ProductNode[PIRNode] with
     super.setParent(p)
   }
 
-  def qdef(implicit design:Design) = s"${name.getOrElse(toString)} = ${productName}"
+  def qdef(implicit design:PIRDesign) = s"${name.getOrElse(toString)} = ${productName}"
 
 }

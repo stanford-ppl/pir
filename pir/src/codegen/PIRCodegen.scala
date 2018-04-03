@@ -1,10 +1,8 @@
 package pir.codegen
 
-import pir._
-import pir.pass._
-import prism.codegen._
+import prism.traversal._
 
-trait PIRCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with Codegen {
+trait PIRCodegen extends pir.pass.PIRTraversal with DFSTopDownTopologicalTraversal with Codegen {
 
   val forward = true
 

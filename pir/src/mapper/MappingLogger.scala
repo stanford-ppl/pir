@@ -1,7 +1,5 @@
 package pir.mapper
 
-import pir._
-
 trait MappingLogger {
 
   def logging[T](x:T)(implicit pass:PIRPass):T = {
@@ -24,30 +22,27 @@ trait MappingLogger {
   }
 
   def logging(x:CUMap)(implicit pass:PIRPass):CUMap = {
-    import pass._
-    dbgblk(x.getClass.getSimpleName) {
+    pass.dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, vs) =>
-        dbg(s"${quote(k)} -> ${vs.map(quote)}")
+        pass.dbg(s"${pass.quote(k)} -> ${vs.map(pass.quote)}")
       }
     }
     x
   }
 
   def logging(x:FIMap)(implicit pass:PIRPass):FIMap = {
-    import pass._
-    dbgblk(x.getClass.getSimpleName) {
+    pass.dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, v) =>
-        dbg(s"${quote(k)} -> ${quote(v)}")
+        pass.dbg(s"${pass.quote(k)} -> ${pass.quote(v)}")
       }
     }
     x
   }
 
   def logging(x:ConfigMap)(implicit pass:PIRPass):ConfigMap = {
-    import pass._
-    dbgblk(x.getClass.getSimpleName) {
+    pass.dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, v) =>
-        dbg(s"${quote(k)} -> ${quote(v)}")
+        pass.dbg(s"${pass.quote(k)} -> ${pass.quote(v)}")
       }
     }
     x

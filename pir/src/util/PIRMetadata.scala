@@ -1,8 +1,6 @@
 package pir.util
 
-import pir._
 import pir.node._
-import prism._
 import prism.util._
 import prism.collection.mutable._
 

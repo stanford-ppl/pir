@@ -1,12 +1,7 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
 import spade.network._
-
-import prism._
-import scala.collection.mutable
 
 abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

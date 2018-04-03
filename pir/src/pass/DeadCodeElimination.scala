@@ -1,10 +1,7 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
+import prism.traversal._
 import scala.collection.mutable
 
 class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {

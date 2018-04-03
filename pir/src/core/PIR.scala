@@ -5,8 +5,6 @@ import pir.pass._
 import pir.mapper._
 import pir.codegen._
 
-import spade._
-
 import prism._
 import prism.util._
 

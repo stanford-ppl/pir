@@ -1,12 +1,7 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
 import prism.enums._
-import prism.util._
-import scala.collection.mutable
 
 trait ConstantPropogator {
   def constOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[Any] = dbgblk(logger, s"constOf($n)") {

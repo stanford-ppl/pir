@@ -1,17 +1,15 @@
 package pir
 
-import pir.util._
+import spade.node._
 
-import spade.node.{Edge => _, _}
-
-import prism._
-import prism.util._
-
-package object node extends pir.util.PIREnums{
+package object node extends pir.util.SpadeAlias with pir.util.PrismAlias {
+  type PIR = pir.PIR
+  type PIRDesign = pir.PIRDesign
   type PIRPass = pir.pass.PIRPass
   type PIRMetadata = pir.util.PIRMetadata
-  type PinType = spade.node.PinType
-  private[node] type Design = pir.PIRDesign
+  type PIRMap = pir.mapper.PIRMap
+  type PIRApp = pir.PIRApp
+  val PIRMap = pir.mapper.PIRMap
 
   def isFIFO(n:PIRNode) = n match {
     case n:FIFO => true

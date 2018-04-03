@@ -1,39 +1,33 @@
 package pir.node
 
-import pir._
+abstract class Memory(implicit design:PIRDesign) extends Primitive 
 
-import prism._
-import prism.enums._
-import prism.util._
+case class SRAM(size:Int, banking:Banking)(implicit design:PIRDesign) extends Memory
+case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:PIRDesign) extends Memory
+case class FIFO(size:Int)(implicit design:PIRDesign) extends Memory
 
-abstract class Memory(implicit design:Design) extends Primitive 
-
-case class SRAM(size:Int, banking:Banking)(implicit design:Design) extends Memory
-case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:Design) extends Memory
-case class FIFO(size:Int)(implicit design:Design) extends Memory
-
-case class Reg(init:Option[AnyVal])(implicit design:Design) extends Memory
+case class Reg(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
 object Reg {
-  def apply(init:AnyVal)(implicit design:Design):Reg = Reg(Some(init))
-  def apply()(implicit design:Design):Reg = Reg(None)
+  def apply(init:AnyVal)(implicit design:PIRDesign):Reg = Reg(Some(init))
+  def apply()(implicit design:PIRDesign):Reg = Reg(None)
 }
 
-case class ArgIn(init:Option[AnyVal])(implicit design:Design) extends Memory
+case class ArgIn(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
 object ArgIn {
-  def apply(init:AnyVal)(implicit design:Design):ArgIn = ArgIn(Some(init))
-  def apply()(implicit design:Design):ArgIn = ArgIn(None)
+  def apply(init:AnyVal)(implicit design:PIRDesign):ArgIn = ArgIn(Some(init))
+  def apply()(implicit design:PIRDesign):ArgIn = ArgIn(None)
 }
 
-case class ArgOut(init:Option[AnyVal])(implicit design:Design) extends Memory
+case class ArgOut(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
 object ArgOut {
-  def apply(init:AnyVal)(implicit design:Design):ArgOut = ArgOut(Some(init))
-  def apply()(implicit design:Design):ArgOut = ArgOut(None)
+  def apply(init:AnyVal)(implicit design:PIRDesign):ArgOut = ArgOut(Some(init))
+  def apply()(implicit design:PIRDesign):ArgOut = ArgOut(None)
 }
 
-case class StreamIn(field:String)(implicit design:Design) extends Memory
-case class StreamOut(field:String)(implicit design:Design) extends Memory
+case class StreamIn(field:String)(implicit design:PIRDesign) extends Memory
+case class StreamOut(field:String)(implicit design:PIRDesign) extends Memory
 
-case class TokenOut()(implicit design:Design) extends Memory
+case class TokenOut()(implicit design:PIRDesign) extends Memory
 
-case class RetimingFIFO()(implicit design:Design) extends Memory
+case class RetimingFIFO()(implicit design:PIRDesign) extends Memory
 

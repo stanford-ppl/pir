@@ -1,17 +1,12 @@
 package pir.mapper
 
-import pir._
 import pir.node._
 
 import spade.node._
-import spade.util._
-
-import prism._
-import prism.util._
 
 import scala.collection.mutable
 
-class Router[B<:PinType:ClassTag:TypeTag](implicit pass:PIRPass) extends NetworkAStarSearch[B](pass.compiler.arch.design) {
+class Router[B<:PinType:ClassTag:TypeTag](implicit pass:PIRPass) extends spade.util.NetworkAStarSearch[B](pass.compiler.arch.design) {
 
   //def advance(forward:Boolean, end:Option[Routable])
               //(state:Bundle[B], backPointers:BackPointer, pastCost:C):Seq[(Bundle[B], Edge, C)] = {

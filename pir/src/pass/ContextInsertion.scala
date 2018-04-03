@@ -1,12 +1,7 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-
-import scala.collection.mutable
-import prism.util._
+import prism.traversal._
 
 class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
   import pirmeta._

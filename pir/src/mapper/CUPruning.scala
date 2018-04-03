@@ -1,10 +1,7 @@
 package pir.mapper
 
-import pir._
 import pir.node._
 import spade.node._
-import prism._
-import prism.util._
 
 import scala.collection.mutable
 

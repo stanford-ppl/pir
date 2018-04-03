@@ -1,14 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
-
-import prism.traversal._
-
-import scala.collection.mutable
 
 class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

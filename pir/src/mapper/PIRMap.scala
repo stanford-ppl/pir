@@ -1,9 +1,7 @@
 package pir.mapper
 
-import pir._
 import pir.node._
 import spade.node._
-import prism._
 
 case class PIRMap (
   cumap:CUMap,

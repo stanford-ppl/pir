@@ -1,12 +1,7 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
-
-import scala.collection.mutable
+import prism.traversal._
 
 class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

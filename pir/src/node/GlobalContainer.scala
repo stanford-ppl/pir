@@ -1,34 +1,28 @@
 package pir.node
 
-import pir._
-
-import prism._
-import prism.util._
-import scala.collection.mutable
-
 trait GlobalContainer extends Container { self => }
 
-case class CUContainer(contains:PIRNode*)(implicit design:Design) extends GlobalContainer
+case class CUContainer(contains:PIRNode*)(implicit design:PIRDesign) extends GlobalContainer
 
-case class FringeContainer(dram:DRAM, contains:PIRNode*)(implicit design:Design) extends GlobalContainer
+case class FringeContainer(dram:DRAM, contains:PIRNode*)(implicit design:PIRDesign) extends GlobalContainer
 
-case class ArgFringe(argController:ArgInController)(implicit design:Design) extends GlobalContainer {
+case class ArgFringe(argController:ArgInController)(implicit design:PIRDesign) extends GlobalContainer {
 
-  def argIn(init:AnyVal)(implicit design:Design) = {
+  def argIn(init:AnyVal)(implicit design:PIRDesign) = {
     val reg = ArgIn(init)
     val argInDef = ArgInDef().setParent(this).ctrl(argController)
     WriteMem(reg, argInDef).setParent(this).ctrl(argController)
     reg
   }
 
-  def argOut(init:AnyVal)(implicit design:Design) = {
+  def argOut(init:AnyVal)(implicit design:PIRDesign) = {
     ArgOut(init).setParent(this)
   }
-  def tokenOut()(implicit design:Design) = {
+  def tokenOut()(implicit design:PIRDesign) = {
     TokenOut().setParent(this)
   }
 
-  def dramAddress(dram:DRAM)(implicit design:Design) = {
+  def dramAddress(dram:DRAM)(implicit design:PIRDesign) = {
     val reg = ArgIn()
     reg.name(s"DramAddr${reg.id}")
     val argInDef = ArgInDef().setParent(this).ctrl(argController)
@@ -38,10 +32,10 @@ case class ArgFringe(argController:ArgInController)(implicit design:Design) exte
 
 }
 
-case class ArgInDef()(implicit design:Design) extends Def
-case class ArgInValid()(implicit design:Design) extends ControlNode
+case class ArgInDef()(implicit design:PIRDesign) extends Def
+case class ArgInValid()(implicit design:PIRDesign) extends ControlNode
 
-case class DRAM()(implicit design:Design) extends IR {
+case class DRAM()(implicit design:PIRDesign) extends IR {
   val id = design.nextId
 }
 

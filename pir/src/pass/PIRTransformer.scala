@@ -1,18 +1,9 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
-
-import prism.traversal._
-
 import scala.collection.mutable
-import scala.language.existentials
-import scala.math.max
 
-abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with GraphTransformer {
+abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with prism.traversal.GraphTransformer {
   import pirmeta._
 
   override def reset = {

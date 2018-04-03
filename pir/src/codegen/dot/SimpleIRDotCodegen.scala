@@ -1,20 +1,7 @@
 package pir.codegen
-import pir._
-import pir.util._
-import pir.pass._
+
 import pir.node._
-
-import spade.node.{Edge => _, _}
-
-import prism._
-import prism.util._
-import prism.node._
-import prism.traversal._
-import prism.codegen._
-
-import sys.process._
-import scala.language.postfixOps
-import scala.collection.mutable
+import spade.node._
 
 class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) extends PIRIRDotCodegen(fileName) {
   override val horizontal:Boolean = false
@@ -37,7 +24,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     }
   }
 
-  override def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:prism.node.Edge[N], to:prism.node.Edge[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
     (from.src, to.src) match {
       case (from:GlobalOutput, to:GlobalInput) =>
