@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import prism.traversal._
 
 class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

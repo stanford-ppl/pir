@@ -1,3 +1,14 @@
 package pir.pass
 
 trait PIRTraversal extends PIRPass with PIRWorld with prism.traversal.Traversal
+trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal 
+trait DFSTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopologicalTraversal
+trait BFSTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopologicalTraversal
+trait DFSTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSTopDownTopologicalTraversal
+trait BFSTopDownTopDownTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSTopDownTopDownTopologicalTraversal
+trait BFSBottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.BFSBottomUpTopologicalTraversal
+trait DFSBottomUpTopologicalTraversal extends TopologicalTraversal with prism.traversal.DFSBottomUpTopologicalTraversal
+
+trait UnitTraversal extends PIRTraversal with prism.traversal.UnitTraversal
+trait ChildFirstTraversal extends PIRTraversal with prism.traversal.ChildFirstTraversal
+trait SiblingFirstTraversal extends PIRTraversal with prism.traversal.SiblingFirstTraversal

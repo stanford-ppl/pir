@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import prism.traversal._
 
 class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
@@ -63,7 +62,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
     case n =>
   }
 
-  val controllerTraversal = new ControllerTraversal with UnitTraversal{
+  val controllerTraversal = new ControllerTraversal with prism.traversal.UnitTraversal {
     override def visitNode(n:N, prev:T):T = {
       n match {
         case n:LoopController => resetController(n.cchain, n)

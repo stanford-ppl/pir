@@ -9,7 +9,7 @@ class TestMetadata extends Metadata {
   val nameOf = new mutable.OneToOneMap[String, String] with MetadataMap
 }
 
-class SerializationTest extends UnitTest {
+class SerializationTest extends UnitTest with Serialization {
   "TestMapSerialization" should "success" in {
     var map = new mutable.OneToOneMap[Int,String]()
     saveToFile(map, "out/test")

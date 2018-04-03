@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import prism.traversal._
 
 class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
 

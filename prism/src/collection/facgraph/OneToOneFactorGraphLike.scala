@@ -13,6 +13,7 @@ trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends Fac
     nfg ---= ((kk, v))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
+  def freeKeys = keys.filter { k => fmap(k).size > 1 }
 }
 
 case class OneToOneFactorGraph[K:ClassTag,V:ClassTag](

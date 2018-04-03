@@ -1,9 +1,7 @@
 package pir.codegen
 import pir.node._
 
-import prism.traversal._
-
-class ControllerPrinter(implicit design:PIR) extends PIRPass with ChildFirstTraversal with Codegen {
+class ControllerPrinter(implicit design:PIR) extends PIRPass with prism.traversal.ChildFirstTraversal with Codegen {
   val fileName = "CtrlPrinter.txt"
 
   type N = Controller

@@ -6,7 +6,7 @@ import prism.util._
 
 import prism.exceptions._
 
-class MapTest extends UnitTest {
+class MapTest extends UnitTest with Serialization {
 
   "TestIOneToOne" should "success" in {
     var map = immutable.OneToOneMap.empty[Int,String]
@@ -178,7 +178,7 @@ class MapTest extends UnitTest {
   }
 
   "TestIBiManyToManySpeed" should "success" in {
-    var map = immutable.FactorGraph.empty[Int,String]
+    var map = immutable.OneToOneFactorGraph.empty[Int,String]
     val keys = List.tabulate(100){i => i}.toSet
     val values = List.tabulate(100){i => i.toString}.toSet
     //timer(s"addValues", "ms") {

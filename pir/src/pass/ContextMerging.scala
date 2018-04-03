@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import prism.traversal._
 
 class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

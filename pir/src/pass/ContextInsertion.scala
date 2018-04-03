@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import prism.traversal._
 
 class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal {
   import pirmeta._
