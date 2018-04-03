@@ -5,11 +5,6 @@ import pir.pass._
 import pir.mapper._
 import pir.codegen._
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable.ListBuffer
-
 trait PIR extends Compiler with PIRWorld {
 
   lazy val pirmeta:PIRMetadata = design.pirmeta

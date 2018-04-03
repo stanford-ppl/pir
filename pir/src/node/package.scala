@@ -2,9 +2,8 @@ package pir
 
 import spade.node._
 
-package object node extends pir.util.SpadeAlias with pir.util.PrismAlias {
+package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
   type PIR = pir.PIR
-  type PIRDesign = pir.PIRDesign
   type PIRPass = pir.pass.PIRPass
   type PIRMetadata = pir.util.PIRMetadata
   type PIRMap = pir.mapper.PIRMap

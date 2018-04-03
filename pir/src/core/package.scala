@@ -1,9 +1,10 @@
 import pir.mapper._
 
-package object pir extends pir.util.SpadeAlias with pir.util.PrismAlias {
+package object pir extends pir.util.SpadeAlias with spade.util.PrismAlias {
   /* ------------- Alias ------------- **/
 
   type PNode = pir.node.PIRNode
+  type PIRDesign = pir.node.PIRDesign
 
   /* pass */
   type PIRPass = pir.pass.PIRPass

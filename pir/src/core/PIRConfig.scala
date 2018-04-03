@@ -1,11 +1,6 @@
 package pir
 
-import prism._
-
-import scala.collection.mutable
-import java.io._
-
-object PIRConfig extends GlobalConfig {
+object PIRConfig extends prism.GlobalConfig {
   import Config._
 
   var arch:String = register("arch", default="SMeshCB2x2", info="Default architecture for mapping") { arch = _ }

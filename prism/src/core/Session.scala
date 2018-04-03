@@ -1,9 +1,6 @@
 package prism
 
-import prism.util._
-
 import scala.collection.mutable
-import scala.language.existentials
 
 @SerialVersionUID(123L)
 class Session extends Serializable {

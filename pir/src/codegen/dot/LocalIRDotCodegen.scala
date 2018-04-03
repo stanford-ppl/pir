@@ -1,13 +1,5 @@
 package pir.codegen
-import pir._
-import pir.util._
-import pir.pass._
 import pir.node._
-
-import prism._
-import prism.util._
-
-import scala.collection.mutable
 
 class LocalIRDotCodegen(filename:String)(implicit compiler:PIR) extends PIRIRDotCodegen(filename) {
   override def emitNode(n:N) = {

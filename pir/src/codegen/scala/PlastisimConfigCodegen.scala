@@ -1,15 +1,12 @@
 package pir.codegen
 
-import pir._
 import pir.node._
-import pir.pass._
 import spade.node._
-import spade.params._
-import prism._
+
 import prism.util.Memorization
 import prism.collection.mutable._
 
-class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with ConstantPropogator with Memorization {
+class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir.pass.ConstantPropogator with Memorization {
   import pirmeta._
   import spademeta._
 

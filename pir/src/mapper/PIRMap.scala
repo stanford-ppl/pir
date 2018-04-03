@@ -2,6 +2,7 @@ package pir.mapper
 
 import pir.node._
 import spade.node._
+import prism.collection.immutable._
 
 case class PIRMap (
   cumap:CUMap,

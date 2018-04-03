@@ -1,7 +1,6 @@
 package pir
 
 import scala.reflect.runtime.universe
-import java.io._
 
 trait PIRApp extends PIR {
   override def name:String = this.getClass().getSimpleName().replace("$","")
@@ -33,7 +32,7 @@ trait PIRApp extends PIR {
   def load = PIRConfig.loadDesign
   def save = PIRConfig.saveDesign
 
-  val designPath = s"${outDir}${File.separator}${name}.pir"
+  val designPath = s"${outDir}${separator}${name}.pir"
 
   override def loadDesign = {
     super.loadDesign

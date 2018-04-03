@@ -2,7 +2,6 @@ package pir.pass
 
 import pir.node._
 import prism.traversal._
-import scala.collection.mutable
 
 class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
@@ -52,7 +51,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
       dbgblk(s"Merge context in ${cu}") {
         val contexts = cu.collectDown[ComputeContext]()
         dbg(s"contexts=${contexts}")
-        val merged = mutable.ListBuffer[ComputeContext]() 
+        val merged = ListBuffer[ComputeContext]() 
         contexts.zipWithIndex.foreach { 
           case (ctx, i) if merged.contains(ctx) =>
           case (ctx, i) =>

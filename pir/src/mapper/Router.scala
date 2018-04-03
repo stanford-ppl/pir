@@ -1,10 +1,7 @@
 package pir.mapper
 
 import pir.node._
-
 import spade.node._
-
-import scala.collection.mutable
 
 class Router[B<:PinType:ClassTag:TypeTag](implicit pass:PIRPass) extends spade.util.NetworkAStarSearch[B](pass.compiler.arch.design) {
 

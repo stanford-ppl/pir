@@ -1,7 +1,6 @@
 package pir.pass
 
 import pir.node._
-import spade.network._
 
 abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._

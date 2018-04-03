@@ -3,10 +3,11 @@ package prism.util
 import prism._
 
 import scala.collection.mutable.ListBuffer
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io._
 
 trait FileManager { 
 
+  type File = java.io.File
   val separator = File.separator
 
   val logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")

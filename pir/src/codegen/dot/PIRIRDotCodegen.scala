@@ -1,11 +1,5 @@
 package pir.codegen
-import pir._
 import pir.node._
-
-import prism._
-import prism.codegen._
-
-import sys.process._
 
 class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodegen with IRDotCodegen {
 

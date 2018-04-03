@@ -1,14 +1,9 @@
 package pir.codegen
 
-import pir._
 import pir.node._
 import spade.node._
 
-import prism._
-import prism.util._
 import prism.codegen.JsonCodegen
-
-import scala.collection.mutable
 
 class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
 
