@@ -1,8 +1,7 @@
-package prism.traversal
+package prism.mapper
 
 import prism._
 import prism.util._
-import prism.exceptions.SearchFailure
 
 import scala.util.{Try, Success, Failure}
 import scala.collection.mutable

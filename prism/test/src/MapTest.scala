@@ -165,5 +165,34 @@ class MapTest extends UnitTest {
     val loaded = loadFromFile[mutable.BiManyToManyMap[Int,String]](path)
     assert(loaded.fmap.map == map.fmap.map, loaded.bmap.map == map.bmap.map)
   }
+
+  "TestIBiManyToManySub" should "success" in {
+    var map = immutable.BiManyToManyMap.empty[Int,String]
+    val keys = List.tabulate(3){i => i}.toSet
+    val values = List.tabulate(3){i => i.toString}.toSet
+    map ++= (keys -> values)
+    map -= (1 -> "2")
+    map -= (2 -> "2")
+    assert(map.fmap.map==Map(0 -> Set("0", "1", "2"), 1 -> Set("0", "1"), 2 -> Set("0", "1")))
+    assert(map.bmap.map==Map("0" -> Set(0, 1, 2), "1" -> Set(0, 1, 2), "2" -> Set(0)))
+  }
+
+  "TestIBiManyToManySpeed" should "success" in {
+    var map = immutable.FactorGraph.empty[Int,String]
+    val keys = List.tabulate(100){i => i}.toSet
+    val values = List.tabulate(100){i => i.toString}.toSet
+    //timer(s"addValues", "ms") {
+      map ++= (keys -> values)
+    //}
+    //println(map(0).size)
+    //timer(s"filterNot", "ms") {
+      map = map.filterNot { case (k,v) => v.toInt % 2 == 0 }.right.get
+    //}
+    //println(map(0).size)
+    //timer(s"set", "ms") {
+      map = map.set(0, "1").right.get
+    //}
+  }
+
 }
 

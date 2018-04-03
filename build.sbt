@@ -71,7 +71,8 @@ lazy val apps = Project("apps",
 )
 
 // sbt command alias
-addCommandAlias("make", ";project pir; compile")
+addCommandAlias("make", "compile")
+addCommandAlias("makepir", ";project pir; compile")
 
 addCommandAlias("makeapps", ";project apps; compile")
 

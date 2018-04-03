@@ -1,6 +1,7 @@
-package pir.mapper
+package prism.collection 
 
 import prism._
+import prism.mapper._
 import prism.collection.immutable._
 
 trait FactorGraph[K,V,S] extends Serializable { self:S =>
@@ -18,6 +19,8 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     val constructor = this.getClass.getConstructor(classOf[FM], classOf[W])
     constructor.newInstance(freeMap, weights).asInstanceOf[S with FactorGraph[K,V,S]]
   }
+
+  override def clone = newInstance(freeMap, weights)
 
   def ++ (pairs:(Set[K],Set[V])):S = { 
     val (kk,vv) = pairs
@@ -56,6 +59,11 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
       }
       check(k)
     }
+  }
+
+  def multiplyFactor(k:K, v:V, factor:Float):EOption[S with FactorGraph[K,V,S]] = {
+    weights += ((k,v) -> (weights(k,v) * factor))
+    check(k)
   }
 
   /*
@@ -100,3 +108,12 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
 
   def apply(k:K):V = get(k).get
 }
+
+case class InvalidFactorGraph[K,FG<:FactorGraph[K,_,_]](@transient fg:FG, k:K) extends MappingFailure {
+  var info = s"InvalidFactorGraph ${fg.name} at key=$k\n"
+  info += s"freeValues: \n"
+  info += fg.keys.map { k => s"$k -> ${fg.freeValues(k)}" }.mkString("\n") + "\n"
+  info += s"values: \n${fg.values.mkString(",")}\n"
+  val msg = info
+}
+

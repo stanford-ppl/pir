@@ -35,20 +35,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   }
 
   override def runPass(runner:RunPass[_]) =  {
-    import runner._
-    pirMap = pirMap.flatMap { pmap => prune(pmap.set[CUMap](initCUMap)) }
-    pirMap match {
-      case Left(f@InvalidFactorGraph(fg, k)) =>
-        dbg(s"$f")
-      case Left(f) =>
-        dbg(s"$f")
-      case Right(pmap) =>
-        dbgblk(s"mapping") {
-          pmap.cumap.freeMap.keys.foreach { pn =>
-            dbg(s"${quote(pn)} <- ${pmap.cumap.sortedFreeValues(pn).map(quote)}")
-          }
-        }
-    }
+    pirMap = pirMap.flatMap { pmap => logging(prune(pmap.set[CUMap](initCUMap))) }
   }
 
 }

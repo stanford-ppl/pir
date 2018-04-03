@@ -1,4 +1,4 @@
-package pir
+package pir.util
 
 import prism.enums._
 

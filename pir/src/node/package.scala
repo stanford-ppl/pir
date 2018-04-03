@@ -7,8 +7,11 @@ import spade.node.{Edge => _, _}
 import prism._
 import prism.util._
 
-package object node extends PIREnums {
-  private[node] type Design = PIRDesign
+package object node extends pir.util.PIREnums{
+  type PIRPass = pir.pass.PIRPass
+  type PIRMetadata = pir.util.PIRMetadata
+  type PinType = spade.node.PinType
+  private[node] type Design = pir.PIRDesign
 
   def isFIFO(n:PIRNode) = n match {
     case n:FIFO => true
@@ -140,6 +143,14 @@ package object node extends PIREnums {
     n.collectDown[ContextEnable]().headOption
   }
 
+  def goutOf(gin:GlobalOutput) = {
+    gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn).headOption
+  }
+
+  def ginsOf(gout:GlobalOutput) = {
+    gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut).toList
+  }
+
   def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):PinType = dbgblk(logger, s"bundleTypeOf($n)") {
     implicit val design = pass.design
     n match {
@@ -213,5 +224,4 @@ package object node extends PIREnums {
 
   def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().nonEmpty
   def isStoreFringe(n:FringeContainer)(implicit pass:PIRPass) = !isLoadFringe(n)
-
 }

@@ -133,8 +133,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       val dst = linkDst(n)
       val srcCUP = globalOf(src).getOrElse(src).asInstanceOf[GlobalContainer]
       val dstCUP = globalOf(dst).getOrElse(dst).asInstanceOf[GlobalContainer]
-      val srcCUS = cumap.get(srcCUP)
-      val dstCUS = cumap.get(dstCUP)
+      val srcCUS = cumap(srcCUP).head
+      val dstCUS = cumap(dstCUP).head
       emitlnc(s"src = ${src}", s"${globalOf(src)} $srcCUS")
       emitlnc(s"dst = ${dst}", s"${globalOf(dst)} $dstCUS")
       val mem = memsOf(n).head
@@ -143,8 +143,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
           emitln(s"lat = 1")
         case (mem, src, dst) => 
           emitln(s"net = ${tp}net")
-          emitln(s"srcAddr = ${addrOf(srcCUS.get)}")
-          emitln(s"dstAddr = ${addrOf(dstCUS.get)}")
+          emitln(s"srcAddr = ${addrOf(srcCUS)}")
+          emitln(s"dstAddr = ${addrOf(dstCUS)}")
       }
     }
   }

@@ -16,7 +16,7 @@ package object pir {
   /* mapper */
   type PIRMap = pir.mapper.PIRMap
   val PIRMap = pir.mapper.PIRMap
-  type EOption[T] = prism.traversal.EOption[T]
+  type EOption[T] = prism.mapper.EOption[T]
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

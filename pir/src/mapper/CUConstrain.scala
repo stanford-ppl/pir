@@ -1,12 +1,7 @@
 package pir.mapper
 
-import pir._
 import pir.node._
-
 import spade.node._
-
-import prism._
-import prism.util._
 
 abstract class CUConstrain extends Constrain {
   type K = CUMap.K

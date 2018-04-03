@@ -2,7 +2,6 @@ package pir.codegen
 
 import pir._
 import pir.node._
-
 import spade.node._
 
 import prism._

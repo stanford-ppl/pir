@@ -1,17 +1,9 @@
 package pir.mapper
 
-import pir._
-import pir.node._
-
-import spade.node._
-
-import prism._
-import prism.util._
-
 trait Constrain {
   type K
   type V
-  type FG <: FactorGraph[K,V,FG]
+  type FG <: FactorGraphLike[K,V,FG]
   implicit def fgct:ClassTag[FG]
   override def toString = this.getClass.getSimpleName.replace("$","")
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG]
@@ -24,8 +16,8 @@ trait PrefixConstrain extends Constrain {
   def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
     import pass.{pass => _, _}
-    fg.multiplyFactor { case (cuP,cuS) =>
-      val factor = if (prefixKey(cuP) == prefixValue(cuS)) 1 else 0
+    fg.filter { case (cuP,cuS) =>
+      val factor = prefixKey(cuP) == prefixValue(cuS)
       dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
       factor
     }
@@ -36,10 +28,10 @@ trait QuantityConstrain extends Constrain {
   def numSnodes(cuS:V)(implicit pass:PIRPass):Int
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
     import pass.{pass => _, _}
-    fg.multiplyFactor { case (cuP,cuS) =>
+    fg.filter { case (cuP,cuS) =>
       val np = numPNodes(cuP)
       val ns = numSnodes(cuS)
-      val factor = if (np > ns) 0 else 1
+      val factor = np <= ns
       dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor pnodes=$np snodes=$ns")
       factor
     }
@@ -48,18 +40,17 @@ trait QuantityConstrain extends Constrain {
 trait ArcConsistencyConstrain extends Constrain {
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
     import pass.{pass => _, _}
-    flatFold(fg.freeKeys,fg) { case (fg, key) => ac3[K,V,FG](fg, key) }
+    flatFold(fg.keys,fg) { case (fg, k) => ac3[K,V,FG](fg, k) }
   }
-  def ac3[K,V,FG<:FactorGraph[K,V,FG]](fg:FG, k:K):EOption[FG] = {
-    if (fg.freeValues(k).isEmpty) return Left(InvalidFactorGraph(fg,k))
-    flatFold(fg.freeValues(k),fg) { case (fg, v) =>
-      val neighbors = fg.freeKeys(v).filterNot { _ == k }
-      val nfg = fg.map(k,v)
+  def ac3[K,V,FG<:FactorGraphLike[K,V,FG]](fg:FG, k:K):EOption[FG] = {
+    flatFold(fg(k),fg) { case (fg, v) =>
+      val neighbors = fg.bmap(v).filterNot { _ == k }
+      val nfg = fg.set(k,v)
       nfg match {
-        case Left(_) => fg.removeEdge(k,v)
+        case Left(_) => fg -* (k,v)
         case Right(nfg) =>
           flatFold(neighbors, fg) { case (fg, neighbor) => 
-            if (ac3[K,V,FG](nfg, neighbor).isLeft) fg.removeEdge(k,v) else Right(fg)
+            if (ac3[K,V,FG](nfg, neighbor).isLeft) fg -* (k,v) else Right(fg)
           }
       }
     }

@@ -36,6 +36,7 @@ trait UniMap[K,V,VV] extends MapLike[K,V,VV] {
   def map:M
   def apply(n:K):VV = { map(n) }
   def foreach(lambda:((K,VV)) => Unit):Unit = map.foreach(lambda)
+  def map[B](lambda:((K,VV)) => B):Iterable[B] = map.map(lambda)
   def get(n:K):Option[VV] =  { val m = map; m.get(n) }
   def contains(k:K) = map.contains(k)
   def keys = map.keys

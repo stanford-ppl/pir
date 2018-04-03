@@ -10,12 +10,6 @@ object PIRException {
   def apply(s:String) = new {override val msg = s} with PIRException
 }
 
-// Continue search when exception is raised
-trait MappingFailure extends PIRException
-
-case class SearchFailure(msg:String) extends MappingFailure
-case object NotReachedEnd extends MappingFailure { def msg = toString }
-
 /* Compiler Error */
 case class TODOException(s:String) extends PIRException {
   override val msg = s"TODO: ${s}"
