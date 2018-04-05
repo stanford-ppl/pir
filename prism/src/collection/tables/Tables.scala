@@ -4,7 +4,7 @@ import prism._
 
 import scala.collection._
 
-trait Table[C, V, E] extends Serializable {
+trait Table[C, V, E] extends prism.util.Serializable {
   type K = scala.collection.immutable.Map[C,V]
   def values:scala.collection.immutable.Map[C, List[V]]
   def columns:Iterable[C] = values.keys

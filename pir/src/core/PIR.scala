@@ -110,6 +110,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     //// Mapping
+    session.rerun {
+
     addPass(cuPruning)
     addPass(dynamicCUPlacer).dependsOn(cuPruning)
     addPass(staticCUPlacer).dependsOn(cuPruning)
@@ -123,6 +125,7 @@ trait PIR extends Compiler with PIRWorld {
 
     // Statistics
 
+    }
   }
 
   def handle(e:Exception) = {

@@ -2,13 +2,13 @@ package prism.mapper
 
 import scala.collection.mutable
 
-abstract class UniformCostGraphSearch[N,A,C:Numeric] {
+trait UniformCostGraphSearch[N,A,C] {
   // (N, A, C): (Node, Action, Cost)
   type BackPointer = mutable.Map[N, (N,A,C)]
   type Explored = mutable.ListBuffer[N]
   type Route = List[(N,A)]
 
-  val cnu = implicitly[Numeric[C]]
+  implicit val cnu:Numeric[C]
 
   def quote(s:Any):String
   
@@ -22,13 +22,13 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
    * */
   def uniformCostSearch(
     start:N, 
-    isEnd:N => Boolean,
+    isEnd:(N, BackPointer) => Boolean,
     advance:(N, BackPointer, C) => Seq[(N,A,C)],
     logger:Option[Logging]
   ):EOption[Route] = {
 
     def terminate(minNode:N, explored:Explored,backPointers:BackPointer):Option[Route] = {
-      if (isEnd(minNode)) {
+      if (isEnd(minNode, backPointers)) {
         val (route, cost) = extractHistory(start, minNode, backPointers)
         Some(route)
       } else {
@@ -140,7 +140,7 @@ abstract class UniformCostGraphSearch[N,A,C:Numeric] {
     var current = end
     while (current != start) {
       val (prevNode, action, cost) = backPointers(current)
-      totalCost = if (totalCost==null) cost else cnu.plus(totalCost, cost)
+      totalCost = cnu.plus(totalCost, cost)
       history += ((current, action))
       current = prevNode
     }

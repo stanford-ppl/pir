@@ -10,4 +10,6 @@ package object node extends Misc with ScalaAlias {
   val Config = prism.Config
   type Logging = prism.codegen.Logging
   type Metadata = prism.util.Metadata
+
+  type Serializable = prism.util.Serializable
 }

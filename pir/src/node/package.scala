@@ -140,12 +140,27 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     n.collectDown[ContextEnable]().headOption
   }
 
-  def goutOf(gin:GlobalOutput) = {
+  def goutOf(gin:GlobalInput) = {
     gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn).headOption
   }
 
   def ginsOf(gout:GlobalOutput) = {
     gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut).toList
+  }
+
+  def connectedOf(gio:GlobalIO) = gio match {
+    case gio:GlobalInput => goutOf(gio).toList
+    case gio:GlobalOutput => ginsOf(gio)
+  }
+
+  def isInput(gin:GlobalIO) = gin match {
+    case gin:GlobalInput => true
+    case gout:GlobalOutput => false
+  }
+
+  def isOutput(gin:GlobalIO) = gin match {
+    case gin:GlobalInput => false
+    case gout:GlobalOutput => true
   }
 
   def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):PinType = dbgblk(logger, s"bundleTypeOf($n)") {

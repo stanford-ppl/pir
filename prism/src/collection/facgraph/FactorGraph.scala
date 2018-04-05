@@ -7,14 +7,19 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] extends BiManyToManyMapLike
     val (k,v) = pair
     (this - (k,v)).check(k)
   }
-  def --* (pair:(K,Set[V])) = {
+  def --* (pair:(Set[K],Set[V])) = { 
+    val (kk,vv) = pair
+    val nfg = -- (pair)
+    flatFold(kk, nfg) { case (prev, k) => nfg.check(k) }
+  }
+  def --\* (pair:(K,Set[V])) = {
     val (k,vv) = pair
-    val nfg = --(pair)
+    val nfg = --\ (pair)
     nfg.check(k)
   }
-  def ---* (pair:(Set[K],V))= {
+  def \--* (pair:(Set[K],V))= {
     val (kk,v) = pair
-    val nfg = --- (pair)
+    val nfg = \-- (pair)
     flatFold(kk, nfg) { case (prev, k) => nfg.check(k) }
   }
   def filter(lambda:(K,V) => Boolean):EOption[S] = {
@@ -25,7 +30,11 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] extends BiManyToManyMapLike
     val pairs = fmap.map.toSeq.map { case (k,vv) =>
       (k, vv.filter { v => lambda(k,v) })
     }
-    flatFold(pairs, this) { case (prev, (k, vv)) => prev --* (k,vv) }
+    flatFold(pairs, this) { case (prev, (k, vv)) => prev --\* (k,vv) }
+  }
+  def filterNot(k:K)(lambda:V => Boolean):EOption[S] = {
+    val vv = fmap(k).filter { v => lambda(v) }
+    --\* (k, vv)
   }
   def set(k:K, v:V):EOption[S]
   def check(k:K):EOption[S] = if (fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(this)

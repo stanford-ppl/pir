@@ -7,7 +7,7 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
     assert(fmap.get(k).fold(false) { vv => vv.contains(v) })
     val kk = bmap(v) - k
     var nfg = this
-    nfg ---= ((kk, v))
+    nfg \--= ((kk, v))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
 }

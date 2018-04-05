@@ -122,13 +122,19 @@ trait BiManyToManyMapLike[K,V,S<:BiManyToManyMapLike[K,V,S]] extends BiMap[K,V,S
     val bm = vv.foldLeft(bmap) { case (bm, v) => bm ++ ((v,kk)) }
     newInstance(fm, bm)
   }
-  def -- (pair:(K,Set[V])):S = { 
+  def -- (pair:(Set[K],Set[V])):S = { 
+    val (kk,vv) = pair
+    val fm = kk.foldLeft(fmap) { case (fm, k) => fm -- ((k,vv)) }
+    val bm = vv.foldLeft(bmap) { case (bm, v) => bm -- ((v,kk)) }
+    newInstance(fm, bm)
+  }
+  def --\ (pair:(K,Set[V])):S = { 
     val (k,vv) = pair
     val fm = fmap -- (k,vv)
     val bm = vv.foldLeft(bmap) { case (bm, v) => bm - ((v,k)) }
     newInstance(fm, bm)
   }
-  def --- (pair:(Set[K],V)):S = { // Annoying type erasure cause double defination with --
+  def \-- (pair:(Set[K],V)):S = {
     val (kk,v) = pair
     val fm = kk.foldLeft(fmap) { case (fm, k) => fm - ((k,v)) }
     val bm = bmap -- (v,kk)

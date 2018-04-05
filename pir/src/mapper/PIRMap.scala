@@ -9,7 +9,8 @@ case class PIRMap (
   fimap:FIMap,
   cfmap:ConfigMap,
   inmap:InMap,
-  outmap:OutMap
+  outmap:OutMap,
+  iomap:IOMap
 ) extends SpadeMapLike {
   type S = PIRMap
   def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {
@@ -33,7 +34,8 @@ object PIRMap {
     FIMap.empty, 
     ConfigMap.empty, 
     InMap.empty,
-    OutMap.empty
+    OutMap.empty,
+    IOMap.empty
   ) 
 }
 
@@ -65,4 +67,14 @@ object OutMap {
   type K = GlobalOutput
   type V = spade.node.Output[_]
   def empty = OutMap(OneToManyMap.empty, OneToManyMap.empty)
+}
+
+case class IOMap(
+  fmap:OneToManyMap[IOMap.K,IOMap.V], 
+  bmap:OneToManyMap[IOMap.V,IOMap.K]
+) extends OneToOneFactorGraphLike[IOMap.K,IOMap.V,IOMap]
+object IOMap {
+  type K = GlobalInput
+  type V = spade.node.Input[_]
+  def empty = IOMap(OneToManyMap.empty, OneToManyMap.empty)
 }

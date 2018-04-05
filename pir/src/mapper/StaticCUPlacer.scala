@@ -3,26 +3,79 @@ package pir.mapper
 import pir.node._
 import spade.node._
 
-class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
+class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing {
   import pirmeta._
-
-  val controlRouter = new Router[Bit]
-  val scalarRouter = new Router[Word]
-  val vectorRouter = new Router[Vector]
 
   def shouldRun = isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
 
   type P = CUMap.K
   type S = CUMap.V
 
-  //def isMapped(n:PNode, m:PIRMap) = n match {
-    //case n:GlobalContainer => n.cumap.contains(n)
+  //def bind(pmap:PIRMap, portP:GlobalIO, portS:PT) = {
+    //(portP, portS) match {
+      //case (portP:InMap.K, portS:InMap.V) => pmap.map[InMap] { _.set(portP, portS) }
+      //case (portP:OutMap.K, portS:OutMap.V) => pmap.map[OutMap] { _.set(portP, portS) }
+    //}
+  //}
+
+  //def bind(fimap:FIMap, tail:Edge, head:Edge) = {
+    //(tail, head) match {
+      //case (tail, head) if isInput(tail) & isOutput(head) =>
+        //fimap + (tail, head)
+      //case (tail, head) if isOutput(tail) & isInput(head) =>
+        //fimap + (head, tail)
+    //}
+  //}
+
+  //def bind(pmap:PIRMap, route:Route, headP:GlobalIO, tailP:GlobalIO):PIRMap = {
+     //var pm:PIRMap = pmap.map[FIMap] { fimap =>
+       //val fm = route.iterator.sliding(size=2,step=1).foldLeft(fimap) { 
+         //case (fimap, List((reached1S, (tail1S, head1S)), (reached2S, (tail2S, head2S)))) =>
+           //bind(bind(fimap, tail1S.external, head1S.external), head1S.internal, reached2S.internal)
+         //case (fimap, List((reached1S, (tail1S, head1S)))) => fimap // If only 1 element in route
+       //}
+       //val (_, (tailS, headS)) = route.last
+       //bind(fm, (tailS.external, headS.external))
+     //}
+     //val (_, (tailS,_)) = route.head
+     //val (_, (_,headS)) = route.last
+     //pm = bind(pm, tailP, tailS)
+     //pm = bind(pm, headP, headS)
+     //pm
   //}
 
   def bindLambda(p:P, s:S, m:PIRMap) = {
-    m.flatMap[CUMap] { cumap =>
-      cumap.set(p,s)
-    }
+    m.flatMap[CUMap] { cumap => cumap.set(p,s) }//.flatMap { pmap =>
+      //val iosP = p.collectDown[GlobalIO]().toList
+      //flatFold(iosP, pmap) { case (pmap, tailP) =>
+        //val headsP = connectedOf(tailP)
+        //flatFold(headsP, pmap) { case (pmap, headP) =>
+          //val neighborP = globalOf(head).head
+          //if (pmap.cumap.isMapped(neighborP)) {
+            //val route = search (
+              //start=tailP,
+              //end=headP,
+              //pmap=pmap,
+              //logger=None
+            //)
+            //route.map { route => bind(pmap, route, headP, tailP) }
+          //} else {
+            //val reached = span(
+              //start=tail,
+              //pmap=pmap,
+              //logger=None
+            //)
+            //pmap.flatMap[CUMap]{ cumap =>
+              //cumap.filterNot(neighbor) { cuS => !reached.contains(cuS) }
+            //}
+          //}
+        //}
+      //}
+    //}
+  }
+
+  def addIOs(pmap:PIRMap, cuP:P, cuS:S) = {
+    val iosP = p.collectDown[GlobalIO]().toList
   }
 
   def addIOs(pmap:PIRMap) = {
@@ -66,7 +119,7 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
       bind[P, S, PIRMap](
         pnodes=(m:PIRMap) => minOptionBy(m.cumap.freeKeys) { case k => m.cumap(k).size },
         snodes=(p:P, m:PIRMap) => m.cumap(p).toList.sortBy { case v => -m.cumap.bmap(v).size},
-        init=addIOs(pmap),
+        init=pmap,
         bindLambda=bindLambda _
       )
     }

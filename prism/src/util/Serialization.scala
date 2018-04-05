@@ -24,3 +24,5 @@ trait Serialization {
     obj
   }
 }
+
+trait Serializable extends scala.Serializable

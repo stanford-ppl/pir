@@ -6,4 +6,5 @@ package object prism extends ScalaAlias with Serialization with Misc with FileMa
 
   type PIRException = prism.exceptions.PIRException
   val PIRException = prism.exceptions.PIRException
+  type Serializable = prism.util.Serializable
 }

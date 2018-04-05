@@ -50,6 +50,11 @@ trait PIRApp extends PIR {
     info(s"Configuring spade $arch ...")
   }
 
+  override def saveDesign = {
+    design.pirmeta.pirMap = Right(PIRMap.empty) // Clear mapping before saving
+    super.saveDesign
+  }
+
   def getArch(name:String) = {
     val runtimeMirror = universe.runtimeMirror(getClass.getClassLoader)
     val module = runtimeMirror.staticModule("arch." + name)

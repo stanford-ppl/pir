@@ -6,7 +6,7 @@ import prism.exceptions._
 import scala.collection.Map
 import scala.collection.Set
 
-abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializable {
+abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends prism.util.Serializable {
   type K = TK
   type V = TV
   type VV = TVV
@@ -17,6 +17,25 @@ abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializabl
   def asK(k:Any) = k match { case k:TK => Some(k); case _ => None }
   def asV(v:Any) = v match { case v:TV => Some(v); case _ => None }
   def asVV(vv:Any) = vv match { case vv:TVV => Some(vv); case _ => None }
+
+  object AsK {
+    def unapply(x:Any) = x match {
+      case x:K => Some(x)
+      case _ => None
+    }
+  }
+  object AsV {
+    def unapply(x:Any) = x match {
+      case x:V => Some(x)
+      case _ => None
+    }
+  }
+  object AsVV {
+    def unapply(x:Any) = x match {
+      case x:VV => Some(x)
+      case _ => None
+    }
+  }
 }
 
 trait MapLike[K,V,VV] extends MapType[K,V,VV] {
@@ -43,18 +62,24 @@ trait UniMap[K,V,VV] extends MapLike[K,V,VV] {
   def values = map.values
 
   def check(k:K, v:V):Unit
-  def isMapped(v:V):Boolean
+  def isMapped(x:Any):Boolean
 }
 
 trait OneToOneMap[K,V] extends UniMap[K,V,V] {
-  def isMapped(v:V) = map.values.toList.contains(v)
+  def isMapped(x:Any) = x match {
+    case AsK(x) => map.contains(x)
+    case AsV(x) => map.values.toList.contains(x)
+  }
   def check(k:K, v:V):Unit = {
     if (map.contains(k) && map(k)!=v) throw RebindingException(this, k, v)
   }
 }
 
 trait OneToManyMap[K,V,VV<:Set[V]] extends UniMap[K,V,VV] {
-  def isMapped(v:V) = map.values.toList.flatten.contains(v)
+  def isMapped(x:Any) = x match {
+    case AsK(x) => map.contains(x)
+    case AsV(x) => map.values.toList.flatten.contains(x)
+  }
   def check(k:K, v:V):Unit = {}
 }
 
@@ -71,5 +96,8 @@ trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with UniMap[K,V,VV] with BiMapTyp
     fmap.check(k,v)
     bmap.check(v,k)
   }
-  def isMapped(v:V) = bmap.contains(v)
+  def isMapped(x:Any) = x match {
+    case AsK(x) => fmap.contains(x)
+    case AsV(x) => bmap.contains(x)
+  }
 }
