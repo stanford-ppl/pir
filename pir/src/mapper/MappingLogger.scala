@@ -8,7 +8,8 @@ trait MappingLogger {
       case x:CUMap => logging(x)
       case x:FIMap => logging(x)
       case x:ConfigMap => logging(x)
-      case x:Either[_,_] => x.map(x => logging(x))
+      case Right(x) => logging(x)
+      case Left(x) => logging(x)
       case x => pass.dbg(s"$x")
     }
     x

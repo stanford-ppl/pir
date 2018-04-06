@@ -177,20 +177,21 @@ class MapTest extends UnitTest with Serialization {
     assert(map.bmap.map==Map("0" -> Set(0, 1, 2), "1" -> Set(0, 1, 2), "2" -> Set(0)))
   }
 
-  "TestIBiManyToManySpeed" should "success" in {
-    var map = immutable.OneToOneFactorGraph.empty[Int,String]
+  "TestFactorGraphSpeed" should "success" in {
+    var fg = immutable.OneToOneFactorGraph.empty[Int,String]
     val keys = List.tabulate(100){i => i}.toSet
     val values = List.tabulate(100){i => i.toString}.toSet
     //timer(s"addValues", "ms") {
-      map ++= (keys -> values)
+      fg ++= (keys -> values)
     //}
-    //println(map(0).size)
+    //println(fg(0).size)
     //timer(s"filterNot", "ms") {
-      map = map.filterNot { case (k,v) => v.toInt % 2 == 0 }.right.get
+      val lambda:(Int, String) => Boolean = { case (k:Int,v:String) => v.toInt % 2 == 0 }
+      fg = fg.filterNot(lambda).right.get
     //}
-    //println(map(0).size)
+    //println(fg(0).size)
     //timer(s"set", "ms") {
-      map = map.set(0, "1").right.get
+      fg = fg.set(0, "1").right.get
     //}
   }
 

@@ -14,28 +14,29 @@ abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends prism.util.
   val vct = implicitly[ClassTag[V]]
   val vvct = implicitly[ClassTag[VV]]
 
-  def asK(k:Any) = k match { case k:TK => Some(k); case _ => None }
-  def asV(v:Any) = v match { case v:TV => Some(v); case _ => None }
-  def asVV(vv:Any) = vv match { case vv:TVV => Some(vv); case _ => None }
-
-  object AsK {
+  case object AsK {
     def unapply(x:Any) = x match {
       case x:K => Some(x)
       case _ => None
     }
   }
-  object AsV {
+  case object AsV {
     def unapply(x:Any) = x match {
       case x:V => Some(x)
       case _ => None
     }
   }
-  object AsVV {
+  case object AsVV {
     def unapply(x:Any) = x match {
       case x:VV => Some(x)
       case _ => None
     }
   }
+
+  def asK(k:Any) = k match { case AsK(k) => Some(k); case _ => None }
+  def asV(v:Any) = v match { case AsV(v) => Some(v); case _ => None }
+  def asVV(vv:Any) = vv match { case AsVV(vv) => Some(vv); case _ => None }
+
 }
 
 trait MapLike[K,V,VV] extends MapType[K,V,VV] {
@@ -85,10 +86,18 @@ trait OneToManyMap[K,V,VV<:Set[V]] extends UniMap[K,V,VV] {
 
 trait BiMapType[TK,TV,TKK, TVV] {
   type KK = TKK
+  implicit val kkct:ClassTag[KK]
+
+  case object AsKK {
+    def unapply(x:Any) = x match {
+      case x:KK => Some(x)
+      case _ => None
+    }
+  }
 }
 
-trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with UniMap[K,V,VV] with BiMapType[K,V,KK,VV] {
-  type TKK = KK
+abstract class BiMap[K:ClassTag,V:ClassTag,KK:ClassTag,VV:ClassTag] extends MapLike[K,V,VV] with UniMap[K,V,VV] with BiMapType[K,V,KK,VV] {
+  val kkct:ClassTag[KK] = implicitly[ClassTag[KK]]
   def fmap:UniMap[K,V,VV]
   def bmap:UniMap[V,K,KK]
   def map:M = fmap.map.asInstanceOf[M]

@@ -11,11 +11,6 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
 
   def shouldRun = true
 
-  //override def dbg(s:Any):Unit = {
-    //info(s"$s")
-    //super.dbg(s)
-  //}
-  
   override def runPass =  {
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
@@ -35,16 +30,14 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
   }
 
   def dump(cu:GlobalContainer) = {
-    val ins = cu.collectDown[GlobalInput]().toList
-    val outs = cu.collectDown[GlobalOutput]().toList
-    val ingrp = ins.groupBy(in => bundleTypeOf(in))
-    val outgrp = outs.groupBy(in => bundleTypeOf(in))
-    val cins = ingrp.getOrElse(Bit,Nil)
-    val sins = ingrp.getOrElse(Word,Nil)
-    val vins = ingrp.getOrElse(Vector,Nil)
-    val couts = outgrp.getOrElse(Bit,Nil)
-    val souts = outgrp.getOrElse(Word,Nil)
-    val vouts = outgrp.getOrElse(Vector,Nil)
+    val ios = cu.collectDown[GlobalIO]().toList
+    val (ins,outs) = ios.partition(_.isInstanceOf[GlobalInput])
+    val cins = ins.filter { io => isBit(io) }
+    val sins = ins.filter { io => isWord(io) }
+    val vins = ins.filter { io => isVector(io) }
+    val couts = outs.filter { io => isBit(io) }
+    val souts = outs.filter { io => isWord(io) }
+    val vouts = outs.filter { io => isVector(io) }
     val stages = cu.collectDown[StageDef]()
     val reduction = stages.exists(isReduceOp)
     emitMap(cu){ implicit ms =>

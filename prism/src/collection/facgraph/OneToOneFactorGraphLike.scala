@@ -8,8 +8,8 @@ trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends Fac
     val vv = fmap(k) - v
     val kk = bmap(v) - k
     var nfg = this
-    nfg --\= ((k, vv))
-    nfg \--= ((kk, v))
+    nfg --= ((k, vv))
+    nfg --= ((kk, v))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
   def freeKeys = keys.filter { k => fmap(k).size > 1 }

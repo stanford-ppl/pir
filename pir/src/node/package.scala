@@ -153,41 +153,39 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     case gio:GlobalOutput => ginsOf(gio)
   }
 
-  def isInput(gin:GlobalIO) = gin match {
+  def isGlobalInput(gin:GlobalIO) = gin match {
     case gin:GlobalInput => true
     case gout:GlobalOutput => false
   }
 
-  def isOutput(gin:GlobalIO) = gin match {
+  def isGlobalOutput(gin:GlobalIO) = gin match {
     case gin:GlobalInput => false
     case gout:GlobalOutput => true
   }
 
-  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):PinType = dbgblk(logger, s"bundleTypeOf($n)") {
+  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):ClassTag[_<:PinType] = dbgblk(logger, s"pinTypeOf($n)") {
     implicit val design = pass.design
     n match {
-      case n:ControlNode => Bit
-      case n:Memory if isControlMem(n) => Bit
-      case n:StreamIn if parOf(n).get == 1 => Word
-      case n:StreamIn if parOf(n).get > 1 => Vector
+      case n:ControlNode => classTag[Bit]
+      case n:Memory if isControlMem(n) => classTag[Bit]
+      case n:StreamIn if parOf(n).get == 1 => classTag[Word]
+      case n:StreamIn if parOf(n).get > 1 => classTag[Vector]
       case n:Memory => 
-        val tps = writersOf(n).map(writer => bundleTypeOf(writer, logger))
+        val tps = writersOf(n).map(writer => pinTypeOf(writer, logger))
         assert(tps.size==1, s"$n.writers=${writersOf(n)} have different PinType=$tps")
         tps.head
-      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
-      case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
-      case Def(n,ValidGlobalInput(gout)) => bundleTypeOf(gout, logger)
-      case Def(n,ReadyValidGlobalInput(gout, ready)) => bundleTypeOf(gout, logger)
-      case Def(n,GlobalOutput(data,valid)) => bundleTypeOf(data, logger)
-      case n if parOf(n, logger).get == 1 => Word
-      case n if parOf(n, logger).get > 1 => Vector
-      case n => throw PIRException(s"Don't know bundleTypeOf($n)")
+      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => classTag[Bit]
+      case Def(n,LocalStore(_,_,data)) => pinTypeOf(data, logger)
+      case Def(n,ValidGlobalInput(gout)) => pinTypeOf(gout, logger)
+      case Def(n,ReadyValidGlobalInput(gout, ready)) => pinTypeOf(gout, logger)
+      case Def(n,GlobalOutput(data,valid)) => pinTypeOf(data, logger)
+      case n if parOf(n, logger).get == 1 => classTag[Word]
+      case n if parOf(n, logger).get > 1 => classTag[Vector]
+      case n => throw PIRException(s"Don't know pinTypeOf($n)")
     }
   }
 
-  def isBit(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Bit
-  def isScalar(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Word 
-  def isVector(n:PIRNode)(implicit pass:PIRPass) = bundleTypeOf(n) == Vector
+  implicit def pnodeToBct(x:PIRNode)(implicit pass:PIRPass):ClassTag[_<:PinType] = pinTypeOf(x, None)
 
   def isPMU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
     cuType(n) == Some("pmu")

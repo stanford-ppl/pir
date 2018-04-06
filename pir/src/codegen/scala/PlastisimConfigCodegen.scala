@@ -119,11 +119,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
 
   def emitLink(n:LocalStore) = {
     emitNodeBlock(s"netlink $n") {
-      val tp = bundleTypeOf(n) match {
-        case Vector => "vec"
-        case Word => "scal"
-        case Bit => "ctrl"
-        case _ => ""
+      val tp = n match {
+        case n if isBit(n) => "ctrl"
+        case n if isWord(n) => "scal"
+        case n if isVector(n) => "vec"
       }
       emitln(s"tp = $tp")
       val src = linkSrc(n)

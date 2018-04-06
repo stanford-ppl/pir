@@ -7,6 +7,7 @@ class Session extends Serializable {
   var restore = false
 
   val runPasses = mutable.ListBuffer[RunPass[_]]()
+  val storedRunPasses = mutable.ListBuffer[RunPass[_]]()
 
   val passes = mutable.Map[Pass, mutable.ListBuffer[RunPass[_]]]()
 
@@ -17,18 +18,18 @@ class Session extends Serializable {
     (after diff before).foreach(_.rerun)
   }
 
+  var currInit = 0
   def addPass[P<:Pass:ClassTag](pass:P):RunPass[_] = {
     passes.getOrElseUpdate(pass, mutable.ListBuffer[RunPass[_]]())
-    val runPass = newRun(pass)
-    passes(pass) += runPass 
-    runPasses += runPass
-    runPass
-  }
-
-  var currInit = 0
-  def newRun[P<:Pass:ClassTag](pass:P) = {
-    val run = if (restore) runPasses(currInit) else RunPass[P](this, currInit)
+    val run = if (restore && currInit<storedRunPasses.size) {
+      storedRunPasses(currInit)
+    } else {
+      val newRun = RunPass[P](this, currInit)
+      newRun
+    }
+    runPasses += run
     run.setPass(pass)
+    passes(pass) += run
     currInit += 1
     run
   }
@@ -38,6 +39,8 @@ class Session extends Serializable {
     currInit = 0
     currRun = 0
     runPasses.foreach { _.clearPass }
+    storedRunPasses ++= runPasses
+    runPasses.clear
     passes.clear
     saveToFile(this, path)
   }

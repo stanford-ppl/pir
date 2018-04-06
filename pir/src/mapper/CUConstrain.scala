@@ -25,16 +25,16 @@ object SramConstrain extends CUQuantityConstrain {
   def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.SRAM]().size
 }
 object ControlFIFOConstrain extends CUQuantityConstrain {
-  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isBit(fifo) }.size
-  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Bit]).size
+  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter(n => isBit(n)).size
+  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(n => isBit(n)).size
 }
 object ScalarFIFOConstrain extends CUQuantityConstrain {
-  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isScalar(fifo) }.size
-  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Word]).size
+  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter(n => isWord(n)).size
+  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(n => isWord(n)).size
 }
 object VectorFIFOConstrain extends CUQuantityConstrain {
-  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter{ fifo => isVector(fifo) }.size
-  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(is[Vector]).size
+  def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[pir.node.FIFO]().filter(n => isVector(n)).size
+  def numSnodes(cuS:V)(implicit pass:PIRPass):Int = cuS.collectDown[spade.node.FIFO[_]]().filter(n => isVector(n)).size
 }
 object StageConstrain extends CUQuantityConstrain {
   def numPNodes(cuP:K)(implicit pass:PIRPass):Int = cuP.collectDown[StageDef]().size
