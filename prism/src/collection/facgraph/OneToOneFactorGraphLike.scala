@@ -12,7 +12,10 @@ trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends Fac
     nfg --= ((kk, v))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
-  def freeKeys = keys.filter { k => fmap(k).size > 1 }
+
+  def freeKeys = keys.filter { k => !isMapped(k) }
+  def mappedKeys = keys.filter { k => isMapped(k) }
+  def mapped = fmap.map.flatMap { case (k, vv) => if (isMapped(k)) Some((k,vv.head)) else None }
 
   override def isMapped(x:Any) = x match {
     case AsK(x) => fmap(x).size==1

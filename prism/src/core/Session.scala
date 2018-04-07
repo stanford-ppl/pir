@@ -11,17 +11,18 @@ class Session extends Serializable {
 
   val passes = mutable.Map[Pass, mutable.ListBuffer[RunPass[_]]]()
 
+  var rerunning = false
   def rerun(block: => Unit):Unit = {
-    val before = runPasses.clone
+    val saved = rerunning
+    rerunning = true
     block
-    val after = runPasses
-    (after diff before).foreach(_.rerun)
+    rerunning = saved
   }
 
   var currInit = 0
   def addPass[P<:Pass:ClassTag](pass:P):RunPass[_] = {
     passes.getOrElseUpdate(pass, mutable.ListBuffer[RunPass[_]]())
-    val run = if (restore && currInit<storedRunPasses.size) {
+    val run = if (restore && !rerunning) {
       storedRunPasses(currInit)
     } else {
       val newRun = RunPass[P](this, currInit)
@@ -39,6 +40,7 @@ class Session extends Serializable {
     currInit = 0
     currRun = 0
     runPasses.foreach { _.clearPass }
+    storedRunPasses.clear
     storedRunPasses ++= runPasses
     runPasses.clear
     passes.clear

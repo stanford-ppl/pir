@@ -31,10 +31,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] extends BiManyToManyMapLike
   def set(k:K, v:V):EOption[S]
   def check(k:K):EOption[S] = if (fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(this)
 }
-case class InvalidFactorGraph[K,FG<:FactorGraphLike[K,_,_]](@transient fg:FG, k:K) extends MappingFailure {
-  var info = s"InvalidFactorGraph ${fg.getClass.getSimpleName} at key=$k\n"
-  info += s"freeValues: \n"
-  info += ""; fg.fmap.map[String] { case (k, vs) => s"$k -> $vs" }.mkString("\n") + "\n"
-  val msg = info
+case class InvalidFactorGraph[K,FG<:FactorGraphLike[K,_,FG]](@transient fg:FG, k:K) extends MappingFailure {
+  val msg = s"InvalidFactorGraph ${fg.getClass.getSimpleName} at key=$k"
 }
 

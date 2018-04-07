@@ -4,7 +4,7 @@ import java.io.FileOutputStream
 
 trait Logging {
 
-  private val debug = Config.debug
+  def debug = Config.debug
   val logger = new Printer {
     override def emit(s:String):Unit = if (debug) { super.emit(s); flush }
     override def emitln(s:String):Unit = if (debug) { super.emitln(s); flush }
@@ -32,8 +32,9 @@ trait Logging {
 
   private def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
 
-  def dbgblk[T](header:Option[String], s:String)(block: =>T):T = logger.emitBlock(promp(header, s))(block)
-  def dbgblk[T](s:String)(block: =>T):T = dbgblk(None, s)(block)
+  def dbgblk[T](pred:Boolean, header:Option[String], s:String)(block: =>T):T = if (pred) logger.emitBlock(promp(header, s))(block) else block
+  def dbgblk[T](s:String)(block: =>T):T = dbgblk(debug, None, s)(block)
+  def dbgblk[T](pred:Boolean, s:String)(block: =>T):T = dbgblk(pred:Boolean, None, s)(block)
 
   def dbg(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) logger.emitln(promp(header, s))
   def dbg(pred:Boolean, header:String, s:Any):Unit = dbg(pred, Some(header), s) 

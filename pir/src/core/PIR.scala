@@ -4,6 +4,7 @@ import pir.node._
 import pir.pass._
 import pir.mapper._
 import pir.codegen._
+import spade.node.{Bit, Word, Vector}
 
 trait PIR extends Compiler with PIRWorld {
 
@@ -111,6 +112,11 @@ trait PIR extends Compiler with PIRWorld {
 
     //// Mapping
     session.rerun {
+    addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
+    addPass(new PIRIRDotCodegen(s"top.dot"))
+    addPass(new ControlDotCodegen(s"control.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(new PIRPrinter(s"IR.txt"))
 
     addPass(cuPruning)
     addPass(dynamicCUPlacer).dependsOn(cuPruning)

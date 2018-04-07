@@ -19,7 +19,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   constrains += ControlFIFOConstrain
   constrains += StageConstrain
   constrains += LaneConstrain
-  constrains += CUArcConsistencyConstrain
+  //constrains += CUArcConsistencyConstrain
 
   def initCUMap:CUMap = {
     var cumap = CUMap.empty

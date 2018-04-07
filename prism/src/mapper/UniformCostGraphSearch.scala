@@ -2,7 +2,11 @@ package prism.mapper
 
 import scala.collection.mutable
 
-trait UniformCostGraphSearch[N,A,C] {
+trait UniformCostGraphSearch[N,A,C] extends Logging {
+
+  def routingVerbosity:Int
+  private lazy val dpfx = debug && routingVerbosity > 2
+
   // (N, A, C): (Node, Action, Cost)
   type BackPointer = mutable.Map[N, (N,A,C)]
   type Explored = mutable.ListBuffer[N]
@@ -10,8 +14,6 @@ trait UniformCostGraphSearch[N,A,C] {
 
   implicit val cnu:Numeric[C]
 
-  def quote(s:Any):String
-  
   case class State(n:N, var cost:C) extends Ordered[State] {
     override def toString = s"State(${quote(n)}, $cost)" 
     def compare(that:State):Int = -cnu.compare(cost, that.cost)
@@ -23,12 +25,11 @@ trait UniformCostGraphSearch[N,A,C] {
   def uniformCostSearch(
     start:N, 
     isEnd:(N, BackPointer) => Boolean,
-    advance:(N, BackPointer, C) => Seq[(N,A,C)],
-    logger:Option[Logging]
+    advance:(N, BackPointer, C) => Seq[(N,A,C)]
   ):EOption[Route] = {
 
-    def terminate(minNode:N, explored:Explored,backPointers:BackPointer):Option[Route] = {
-      if (isEnd(minNode, backPointers)) {
+    def terminate(minNode:N, backPointers:BackPointer):Option[Route] = {
+      if (minNode != start && isEnd(minNode, backPointers)) {
         val (route, cost) = extractHistory(start, minNode, backPointers)
         Some(route)
       } else {
@@ -44,8 +45,7 @@ trait UniformCostGraphSearch[N,A,C] {
       start=start,
       advance=advance,
       terminate=terminate,
-      cleanUp=cleanUp,
-      logger=logger
+      cleanUp=cleanUp
     )
   }
 
@@ -54,11 +54,10 @@ trait UniformCostGraphSearch[N,A,C] {
    * */
   def uniformCostSpan(
     start:N, 
-    advance:(N, BackPointer, C) => Seq[(N,A,C)],
-    logger:Option[Logging]
+    advance:(N, BackPointer, C) => Seq[(N,A,C)]
   ):Seq[(N,C)] = {
 
-    def terminate(minNode:N, explored:mutable.ListBuffer[N],backPointers:BackPointer):Option[Seq[(N,C)]] = { 
+    def terminate(minNode:N, backPointers:BackPointer):Option[Seq[(N,C)]] = { 
       return None
     }
 
@@ -70,17 +69,15 @@ trait UniformCostGraphSearch[N,A,C] {
       start=start,
       advance=advance,
       terminate=terminate,
-      cleanUp=cleanUp,
-      logger=logger
+      cleanUp=cleanUp
     ).right.get
   }
 
   def uniformCostTraverse[M](
     start:N, 
     advance:(N, BackPointer, C) => Seq[(N,A,C)],
-    terminate:(N, Explored, BackPointer) => Option[M],
-    cleanUp:(Explored, BackPointer) => EOption[M],
-    logger:Option[Logging]
+    terminate:(N, BackPointer) => Option[M],
+    cleanUp:(Explored, BackPointer) => EOption[M]
   ):EOption[M] = {
 
     val explored:Explored = mutable.ListBuffer[N]()
@@ -92,12 +89,12 @@ trait UniformCostGraphSearch[N,A,C] {
     frontier += State(start, cnu.zero)
 
     while (!frontier.isEmpty) {
-      dbg(logger, s"frontier: ${frontier}")
+      dbg(dpfx, s"frontier: ${frontier}")
 
       val State(minNode, pastCost) = frontier.dequeue()
 
       explored += minNode
-      terminate(minNode, explored, backPointers).foreach { res => 
+      terminate(minNode, backPointers).foreach { res => 
         return Right(res) // why is this cast necessary?
       }
 
@@ -109,8 +106,8 @@ trait UniformCostGraphSearch[N,A,C] {
         groups.minBy { case (n, a, c) => c }
       }.toSeq
 
-      dbg(logger, s"neighbors minBy:")
-      dbg(logger, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      dbg(dpfx, s"neighbors minBy:")
+      dbg(dpfx, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = cnu.plus(pastCost, cost)

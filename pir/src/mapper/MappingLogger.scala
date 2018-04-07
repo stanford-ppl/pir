@@ -9,10 +9,16 @@ trait MappingLogger {
       case x:FIMap => logging(x)
       case x:ConfigMap => logging(x)
       case Right(x) => logging(x)
+      case Left(f@InvalidFactorGraph(fg, k)) => 
+        pass.dbg(s"$f")
+        logging(fg)
       case Left(x) => logging(x)
       case x => pass.dbg(s"$x")
     }
     x
+  }
+  def logging[T](pred:Boolean, x:T)(implicit pass:PIRPass):T = {
+    if (pred) logging(x) else x
   }
 
   def logging(x:PIRMap)(implicit pass:PIRPass):PIRMap = {

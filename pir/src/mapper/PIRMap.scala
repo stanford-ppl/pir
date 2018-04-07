@@ -4,6 +4,10 @@ import pir.node._
 import spade.node._
 import prism.collection.immutable._
 
+trait MappingCollection {
+  override def toString = this.getClass.getSimpleName
+}
+
 case class PIRMap (
   cumap:CUMap,
   fimap:FIMap,
@@ -11,7 +15,7 @@ case class PIRMap (
   inmap:InMap,
   outmap:OutMap,
   iomap:IOMap
-) extends SpadeMapLike {
+) extends SpadeMapLike with MappingCollection {
   type S = PIRMap
   def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {
     val field = productIterator.toSeq.collect { case field:F => field }.head
@@ -24,9 +28,6 @@ case class PIRMap (
       constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[S]
     }
   }
-  //def isMapped(n:PNode) = n match {
-    //case n:GlobalContainer => cumap.contains(n)
-  //}
 }
 object PIRMap {
   def empty:PIRMap = PIRMap(
@@ -42,7 +43,7 @@ object PIRMap {
 case class CUMap(
   fmap:OneToManyMap[CUMap.K,CUMap.V], 
   bmap:OneToManyMap[CUMap.V,CUMap.K]
-) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap]
+) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap] with MappingCollection 
 object CUMap {
   type K = GlobalContainer
   type V = Routable
@@ -52,7 +53,8 @@ object CUMap {
 case class InMap(
   fmap:OneToManyMap[InMap.K,InMap.V], 
   bmap:OneToManyMap[InMap.V,InMap.K]
-) extends OneToOneFactorGraphLike[InMap.K,InMap.V,InMap]
+) extends OneToOneFactorGraphLike[InMap.K,InMap.V,InMap] with MappingCollection 
+
 object InMap {
   type K = GlobalInput
   type V = spade.node.Input[_]
@@ -62,7 +64,8 @@ object InMap {
 case class OutMap(
   fmap:OneToManyMap[OutMap.K,OutMap.V], 
   bmap:OneToManyMap[OutMap.V,OutMap.K]
-) extends OneToManyFactorGraphLike[OutMap.K,OutMap.V,OutMap]
+) extends OneToManyFactorGraphLike[OutMap.K,OutMap.V,OutMap] with MappingCollection 
+
 object OutMap {
   type K = GlobalOutput
   type V = spade.node.Output[_]
@@ -72,7 +75,8 @@ object OutMap {
 case class IOMap(
   fmap:OneToManyMap[IOMap.K,IOMap.V], 
   bmap:OneToManyMap[IOMap.V,IOMap.K]
-) extends OneToOneFactorGraphLike[IOMap.K,IOMap.V,IOMap]
+) extends OneToOneFactorGraphLike[IOMap.K,IOMap.V,IOMap] with MappingCollection 
+
 object IOMap {
   type K = GlobalInput
   type V = spade.node.Input[_]
