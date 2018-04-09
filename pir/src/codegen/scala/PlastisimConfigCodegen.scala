@@ -51,6 +51,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
         emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
         emitOutByGlobalOutput(n)
         val size = n.collectDown[StreamOut]().filter { _.field == "size" }.head
+        val data = n.collectDown[StreamIn]().filter { _.field == "data" }.head
         val csize = getConstOf[Int](size)
         var idx = 0;
         dbg(s"csize = $csize")
@@ -58,7 +59,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
           dbgblk(qdef(mem)) {
             writersOf(mem).foreach { case (store) =>
               emitln(s"link_in[$idx] = $store")
-              emitln(s"scale_in[$idx] = ${csize / 4 / parOf(store).get}") // size in bytes to words
+              emitln(s"scale_in[$idx] = ${csize / 4 / parOf(data).get}") // size in bytes to words
               idx = idx+1
               linkDst(store) = n
             }
