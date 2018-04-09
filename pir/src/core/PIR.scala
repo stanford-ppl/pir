@@ -4,13 +4,7 @@ import pir.node._
 import pir.pass._
 import pir.mapper._
 import pir.codegen._
-
-import spade._
-
-import prism._
-import prism.util._
-
-import scala.collection.mutable.ListBuffer
+import spade.node.{Bit, Word, Vector}
 
 trait PIR extends Compiler with PIRWorld {
 
@@ -48,7 +42,9 @@ trait PIR extends Compiler with PIRWorld {
   lazy val controlLowering = new ControlLowering()
 
   /* Mapping */
+  lazy val cuPruning = new CUPruning()
   lazy val dynamicCUPlacer = new DynamicCUPlacer()
+  lazy val staticCUPlacer = new StaticCUPlacer()
 
   /* Codegen */
   lazy val cuStats = new CUStatistics()
@@ -66,7 +62,7 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(new TestTraversal)
 
-    // Data  path transformation and analysis
+    //// Data  path transformation and analysis
     addPass(new DramStoreRegInsertion())
     addPass(new PIRPrinter(s"IR1.txt"))
     addPass(new PIRIRDotCodegen(s"top1.dot"))
@@ -97,7 +93,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
-    // Control transformation and analysis
+    //// Control transformation and analysis
     addPass(contextInsertion)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
@@ -114,8 +110,17 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
-    // Mapping
-    addPass(dynamicCUPlacer)
+    //// Mapping
+    session.rerun {
+    addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
+    addPass(new PIRIRDotCodegen(s"top.dot"))
+    addPass(new ControlDotCodegen(s"control.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(new PIRPrinter(s"IR.txt"))
+
+    addPass(cuPruning)
+    addPass(dynamicCUPlacer).dependsOn(cuPruning)
+    addPass(staticCUPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
 
@@ -126,6 +131,7 @@ trait PIR extends Compiler with PIRWorld {
 
     // Statistics
 
+    }
   }
 
   def handle(e:Exception) = {

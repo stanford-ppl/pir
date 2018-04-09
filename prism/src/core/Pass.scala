@@ -1,10 +1,5 @@
 package prism
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   implicit val pass:this.type = this
@@ -16,12 +11,16 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def initPass(runner:RunPass[_]):Unit = {
     infor(s"Running ${runner.name} ...")
+    tic
   }
 
   def runPass(runner:RunPass[_]):Unit = runPass
   def runPass:Unit = {}
 
-  def finPass(runner:RunPass[_]):Unit = check
+  def finPass(runner:RunPass[_]):Unit = {
+    check
+    info(s"Finished ${runner.name} in ${toc("ms")}ms")
+  }
 
   def check(runner:RunPass[_]):Unit = check
   def check:Unit = {}

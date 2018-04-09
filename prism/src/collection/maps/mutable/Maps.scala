@@ -1,7 +1,6 @@
 package prism.collection.mutable
 
 import prism._
-import prism.exceptions._
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map
@@ -17,8 +16,11 @@ trait MapLike[K,V,VV] extends prism.collection.MapLike[K,V,VV] {
 
   def += (pair:(K,V)) = { val (k,v) = pair; update(k,v)}
   def removeAll(a:Any) = {
-    asK(a).foreach { k => removeKey(k) }
-    asV(a).foreach { v => removeValue(v) }
+    a match {
+      case AsK(a) => removeKey(a)
+      case AsV(a) => removeValue(a)
+      case _ =>
+    }
   }
 }
 trait UniMap[K,V,VV] extends MapLike[K,V,VV] with prism.collection.UniMap[K,V,VV] {
@@ -85,7 +87,7 @@ class OneToManyMap[K:ClassTag,V:ClassTag] extends UniMap[K,V,Set[V]] with prism.
   def update(k:K, vv:VV):Unit = vv.foreach(v => update(k,v))
 }
 
-trait BiMap[K,V,KK,VV] extends MapLike[K,V,VV] with prism.collection.BiMap[K,V,KK,VV] {
+trait BiMap[K,V,KK,VV] extends prism.collection.BiMap[K,V,KK,VV] with MapLike[K,V,VV] {
   def fmap:UniMap[K,V,VV]
   def bmap:UniMap[V,K,KK]
 

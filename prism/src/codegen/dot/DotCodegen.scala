@@ -1,8 +1,6 @@
 package prism.codegen
 
-import scala.language.implicitConversions
 import scala.collection.mutable.Map
-import prism._
 
 trait DotCodegen extends Printer {
 

@@ -1,30 +1,36 @@
 package prism
 
-import prism.util._
-
 import scala.collection.mutable
-import scala.language.existentials
 
 @SerialVersionUID(123L)
 class Session extends Serializable {
   var restore = false
 
   val runPasses = mutable.ListBuffer[RunPass[_]]()
+  val storedRunPasses = mutable.ListBuffer[RunPass[_]]()
 
   val passes = mutable.Map[Pass, mutable.ListBuffer[RunPass[_]]]()
 
-  def addPass[P<:Pass:ClassTag](pass:P):RunPass[_] = {
-    passes.getOrElseUpdate(pass, mutable.ListBuffer[RunPass[_]]())
-    val runPass = newRun(pass)
-    passes(pass) += runPass 
-    runPasses += runPass
-    runPass
+  var rerunning = false
+  def rerun(block: => Unit):Unit = {
+    val saved = rerunning
+    rerunning = true
+    block
+    rerunning = saved
   }
 
   var currInit = 0
-  def newRun[P<:Pass:ClassTag](pass:P) = {
-    val run = if (restore) runPasses(currInit) else RunPass[P](this, currInit)
+  def addPass[P<:Pass:ClassTag](pass:P):RunPass[_] = {
+    passes.getOrElseUpdate(pass, mutable.ListBuffer[RunPass[_]]())
+    val run = if (restore && !rerunning) {
+      storedRunPasses(currInit)
+    } else {
+      val newRun = RunPass[P](this, currInit)
+      newRun
+    }
+    runPasses += run
     run.setPass(pass)
+    passes(pass) += run
     currInit += 1
     run
   }
@@ -34,6 +40,9 @@ class Session extends Serializable {
     currInit = 0
     currRun = 0
     runPasses.foreach { _.clearPass }
+    storedRunPasses.clear
+    storedRunPasses ++= runPasses
+    runPasses.clear
     passes.clear
     saveToFile(this, path)
   }

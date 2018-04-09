@@ -1,13 +1,5 @@
 package pir.pass
 
-import pir._
-import pir.node._
-
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
 //class TestTraversal(implicit compiler:PIR) extends PIRTraversal with DFSTopDownTopologicalTraversal with UnitTraversal {
   import pirmeta._

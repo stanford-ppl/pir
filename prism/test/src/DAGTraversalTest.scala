@@ -1,10 +1,7 @@
 package prism.test
 
-import prism._
-import prism.util._
 import prism.node._
 import prism.traversal._
-import prism.codegen._
 
 object DAG1 extends TestDesign { self =>
   val a = TestAtom().name("a")
@@ -27,7 +24,7 @@ object DAG1 extends TestDesign { self =>
   val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
 }
 
-class DAGTraversalTest extends UnitTest with GraphCollector with Logging {
+class DAGTraversalTest extends UnitTest with Logging {
   import DAG1._
 
   type N = TestNode

@@ -2,11 +2,11 @@ package prism.util
 
 import prism._
 
-import scala.collection.mutable.ListBuffer
-import java.io.{File, FileInputStream, FileOutputStream}
+import java.io._
 
 trait FileManager { 
 
+  type File = java.io.File
   val separator = File.separator
 
   val logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")
@@ -77,12 +77,13 @@ trait FileManager {
     }
   }
 
-  def mkdir(dirName:String) = {
+  def mkdir(dirName:String):String = {
     val dir = new File(dirName)
     if (!dir.exists()) {
       println(s"[pir] creating output directory: $dirName");
-      dir.mkdir();
+      dir.mkdirs();
     }
+    dirName
   }
 
   def buildPath(dirName:String, fileName:String) = s"${dirName}${separator}${fileName}"

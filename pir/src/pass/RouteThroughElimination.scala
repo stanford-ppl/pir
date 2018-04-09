@@ -1,13 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-
-import prism.traversal._
-
-import scala.collection.mutable
 
 class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

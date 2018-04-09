@@ -1,18 +1,9 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
-
-import prism.traversal._
-
 import scala.collection.mutable
-import scala.language.existentials
-import scala.math.max
 
-abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with GraphTransformer {
+abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with prism.traversal.GraphTransformer {
   import pirmeta._
 
   override def reset = {
@@ -53,7 +44,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
           writers.foreach { writer => mirrorX(writer, mapping) }
         case (n:Counter, m:Counter) =>
           dbg(s"$m.parent = ${m.parent}")
-          collectUp[CounterChain](n).foreach { cc => mirrorX(cc, mapping) }
+          n.collectUp[CounterChain]().foreach { cc => mirrorX(cc, mapping) }
         case (n:CounterChain, m:CounterChain) =>
           dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
           n.counters.foreach { ctr => mirrorX(ctr, mapping) }
@@ -127,7 +118,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   }
 
   def retimerOf(x:Def, cu:GlobalContainer) = {
-    collectDown[RetimingFIFO](cu).filter {
+    cu.collectDown[RetimingFIFO]().filter {
       case WithWriter(Def(w,LocalStore(mem, _, `x`))) => true
       case _ => false
     }.headOption.map{ fifo => readersOf(fifo).head }

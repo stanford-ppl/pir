@@ -1,8 +1,5 @@
 package pir.codegen
 
-import pir._
-import prism.Config
-
 class PlastimaCodegen(implicit design: PIR) extends PIRPass {
   def shouldRun = false && Config.codegen
 

@@ -1,10 +1,5 @@
 package prism
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable {
   val pct = implicitly[ClassTag[P]]
   var _pass:Option[P] = None
@@ -27,12 +22,14 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     dependencies.clear
   }
 
+  def rerun:this.type = { status = RunPassNotRun; this }
+
   def hasRun = status != RunPassNotRun
   def succeeded = status == RunPassSucceeded
   def failed = status == RunPassFailed
 
-  val dependencies = mutable.ListBuffer[RunPass[_]]()
-  def dependsOn(deps:Pass*) = {
+  val dependencies = ListBuffer[RunPass[_]]()
+  def dependsOn(deps:Pass*):this.type = {
     deps.foreach { dep =>
       dependencies += session.passes(dep).last //TODO: If dependency is not added, session.passes does not contain dep yet.
     }

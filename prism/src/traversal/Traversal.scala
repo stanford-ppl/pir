@@ -1,9 +1,6 @@
 package prism.traversal
 
-import prism._
-import prism.util._
 import prism.node._
-import prism.codegen.Logging
 
 import scala.collection.mutable
 

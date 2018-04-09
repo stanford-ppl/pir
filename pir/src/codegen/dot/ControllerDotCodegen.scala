@@ -1,18 +1,7 @@
 package pir.codegen
-import pir._
-import pir.util._
-import pir.pass._
+
 import pir.node._
-
-import prism._
-import prism.util._
 import prism.traversal._
-import prism.codegen._
-
-import sys.process._
-import scala.language.postfixOps
-import scala.collection.mutable
-
 
 class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with ChildFirstTraversal with IRDotCodegen {
 
@@ -53,16 +42,12 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     super.emitSingleNode(n)
   }
 
-  val collector = new GraphCollector {
-    type N = PIRNode
-  }
-  
   override def runPass = {
     traverseNode(compiler.top.topController)
   }
 
   override def emitEdges = {
-    val mems = collectDown[Memory](compiler.top)
+    val mems = compiler.top.collectDown[Memory]()
     mems.foreach { 
       case mem:ArgIn =>
         readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }

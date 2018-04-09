@@ -1,11 +1,10 @@
 package prism.node
 
-import prism._
-import prism.util._
+import prism.traversal._
 
 import scala.collection.mutable
 
-abstract class Node[N<:Node[N]:ClassTag] extends IR { self:N =>
+abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { self:N =>
 
   val nct:ClassTag[N] = implicitly[ClassTag[N]]
 

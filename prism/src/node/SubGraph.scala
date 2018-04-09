@@ -1,13 +1,8 @@
 package prism.node
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>
   // Children
-  private lazy val _children = mutable.ListBuffer[N]()
+  private lazy val _children = ListBuffer[N]()
   def children = _children.toList
 
   def atoms = descendents.collect { case atom:Atom[N] => atom }

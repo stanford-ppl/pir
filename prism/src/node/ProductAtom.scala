@@ -1,10 +1,5 @@
 package prism.node
 
-import prism._
-import prism.util._
-
-import scala.collection.mutable
-
 trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with ProductAtom[N] =>
 
   //Make sure lazy val is evaluated so in swapOutput the IO patterns are the same

@@ -1,6 +1,4 @@
-import pir._
 import pir.node._
-import arch._
 import prism.enums._
 
 object Sort_Radix extends PIRApp {

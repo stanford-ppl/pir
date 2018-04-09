@@ -10,9 +10,6 @@ object PIRException {
   def apply(s:String) = new {override val msg = s} with PIRException
 }
 
-// Continue search when exception is raised
-trait SearchFailure extends PIRException
-
 /* Compiler Error */
 case class TODOException(s:String) extends PIRException {
   override val msg = s"TODO: ${s}"
@@ -23,5 +20,5 @@ case class AssertError(info:String) extends PIRException {
 }
 
 case class RebindingException[K,V](map:OneToOneMap[K,V], k:K, v:V) extends PIRException {
-  def msg = s"${map.name} already contains key $k -> ${map(k)} but try to rebind to $v"
+  def msg = s"${map} already contains key $k -> ${map(k)} but try to rebind to $v"
 }

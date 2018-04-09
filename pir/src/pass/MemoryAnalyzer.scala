@@ -1,10 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
 
 import scala.collection.mutable
 
@@ -63,7 +59,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   }
 
   override def runPass =  {
-    lazy val mems = collectDown[Memory](compiler.top)
+    lazy val mems = compiler.top.collectDown[Memory]()
     mems.foreach { mem =>
       setParentControl(mem)
     }

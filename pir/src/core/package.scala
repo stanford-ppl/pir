@@ -1,23 +1,21 @@
-
 import pir.mapper._
-import pir.node._
-import spade.node._
 
-import scala.language.implicitConversions
-
-package object pir {
+package object pir extends pir.util.SpadeAlias with spade.util.PrismAlias {
   /* ------------- Alias ------------- **/
 
-  type PNode = PIRNode
-  type SNode = SpadeNode
+  type PNode = pir.node.PIRNode
+  type PIRDesign = pir.node.PIRDesign
 
   /* pass */
   type PIRPass = pir.pass.PIRPass
 
   /* mapper */
+  type PIRMap = pir.mapper.PIRMap
+  val PIRMap = pir.mapper.PIRMap
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata
+
   /* ------------- Alias (END) ------- **/
 
 }

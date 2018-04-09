@@ -1,6 +1,4 @@
-import pir._
 import pir.node._
-import arch._
 import prism.enums._
 
 object TPCHQ6 extends PIRApp {

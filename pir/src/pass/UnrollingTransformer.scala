@@ -1,11 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-
-import scala.collection.mutable
 
 class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
   import pirmeta._

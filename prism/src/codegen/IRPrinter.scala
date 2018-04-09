@@ -1,9 +1,6 @@
 package prism.codegen
 
-import prism._
-import prism.util._
 import prism.node._
-import prism.codegen._
 
 trait IRPrinter extends Codegen {
 

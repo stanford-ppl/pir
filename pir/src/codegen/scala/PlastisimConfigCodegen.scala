@@ -1,28 +1,24 @@
 package pir.codegen
 
-import pir._
 import pir.node._
-import pir.pass._
-import spade.node.{isMesh, isDynamic}
-import spade.params._
-import prism._
+import spade.node._
+
 import prism.util.Memorization
 import prism.collection.mutable._
 
-class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with ConstantPropogator with Memorization {
+class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir.pass.ConstantPropogator with Memorization {
+  import pirmeta._
   import spademeta._
 
-  def shouldRun = Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
+  def shouldRun = Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.isRight
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
 
   val fileName = s"${compiler}.psim"
 
-  val mapping = compiler.dynamicCUPlacer.mapping
-
   val linkSrc = new OneToOneMap[LocalStore, N]()
   val linkDst = new OneToOneMap[LocalStore, N]()
 
-  var addrCl = new OneToOneMap[Int, Int]()
+  def cumap = pirMap.right.get.cumap
 
   override def reset = {
     resetAllCaches
@@ -43,7 +39,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   override def emitNode(n:N) = n match {
     case n:ComputeContext if ctxEnOf(n).nonEmpty =>
       emitNodeBlock(s"node $n # ${globalOf(n).get}") {
-        val stages = collectDown[StageDef](n)
+        val stages = n.collectDown[StageDef]()
         emitln(s"lat = ${Math.max(stages.size, 1)}")
         emitInByLocalLoad(n)
         emitOutByGlobalOutput(n)
@@ -54,11 +50,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
         emitln(s"trace = 0")
         emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
         emitOutByGlobalOutput(n)
-        val size = collectDown[StreamOut](n).filter { _.field == "size" }.head
+        val size = n.collectDown[StreamOut]().filter { _.field == "size" }.head
         val csize = getConstOf[Int](size)
         var idx = 0;
         dbg(s"csize = $csize")
-        collectDown[StreamOut](n).foreach { mem =>
+        n.collectDown[StreamOut]().foreach { mem =>
           dbgblk(qdef(mem)) {
             writersOf(mem).foreach { case (store) =>
               emitln(s"link_in[$idx] = $store")
@@ -71,13 +67,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       }
     case n:FringeContainer if isStoreFringe(n) => 
       assert(false, s"TODO: add backend for storeFringe")
-    case n:ArgFringe =>
+    case n:pir.node.ArgFringe =>
       emitNodeBlock(s"node ${n}_out") {
         emitOutByGlobalOutput(n)
         emitln(s"start_at_tokens = 1")
       }
       emitNodeBlock(s"node ${n}_in") {
-        collectDown[ArgOut](n).foreach { mem =>
+        n.collectDown[ArgOut]().foreach { mem =>
           dbgblk(qdef(mem)) {
             writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
               emitln(s"link_in[$idx] = $store")
@@ -118,8 +114,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   }
 
   def isStaticLink(mem:Memory, src:N, dst:N) = (mem, src, dst) match {
-    case (mem, src:ArgFringe, dst) => true
-    case (mem, src, dst:ArgFringe) => true
+    case (mem, src:pir.node.ArgFringe, dst) => true
+    case (mem, src, dst:pir.node.ArgFringe) => true
     case (mem, src:ComputeContext, dst:ComputeContext) if isPMU(globalOf(src).get) && isPMU(globalOf(dst).get) => true
     case _ => false
   }
@@ -127,10 +123,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   def emitLink(n:LocalStore) = {
     val src = linkSrc(n)
     val dst = linkDst(n)
-    val srcCUP = globalOf(src).getOrElse(src)
-    val dstCUP = globalOf(dst).getOrElse(dst)
-    val srcCUS = mapping.get(srcCUP)
-    val dstCUS = mapping.get(dstCUP)
+    val srcCUP = globalOf(src).getOrElse(src).asInstanceOf[GlobalContainer]
+    val dstCUP = globalOf(dst).getOrElse(dst).asInstanceOf[GlobalContainer]
+    val srcCUS = cumap(srcCUP).head
+    val dstCUS = cumap(dstCUP).head
     val mem = memsOf(n).head
 
     val linkstr = if (isStaticLink(mem, src, dst))
@@ -139,22 +135,21 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       "net"
 
     val srcSuffix = src match {
-      case x:ArgFringe => "_out"
+      case x:pir.node.ArgFringe => "_out"
       case _ => ""
     }
 
     val dstSuffix = dst match {
-      case x:ArgFringe => "_in"
+      case x:pir.node.ArgFringe => "_in"
       case _ => ""
     }
 
 
     emitNodeBlock(s"${linkstr}link $n") {
-      val tp = bundleTypeOf(n) match {
-        case Vector => "vec"
-        case Word => "scal"
-        case Bit => "ctrl"
-        case _ => "impossible case"
+      val tp = n match {
+        case n if isBit(n) => "ctrl"
+        case n if isWord(n) => "scal"
+        case n if isVector(n) => "vec"
       }
       emitln(s"type = $tp")
       emitlnc(s"src = ${src}${srcSuffix}", s"${globalOf(src)} $srcCUS")
@@ -164,8 +159,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
           emitln(s"lat = 1")
         case (mem, src, dst) => 
           emitln(s"net = ${tp}net")
-          emitln(s"saddr = ${addrOf(srcCUS.get)}")
-          emitln(s"daddr = ${addrOf(dstCUS.get)}")
+          emitln(s"saddr = ${addrOf(srcCUS)}")
+          emitln(s"daddr = ${addrOf(dstCUS)}")
       }
     }
   }
@@ -187,8 +182,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
 
   def emitOutByGlobalOutput(n:N) = {
     // PCU + PMU write
-    collectDown[GlobalOutput](n).flatMap { gout =>
-      val stores = collectOut[LocalStore](gout, visitFunc=visitGlobalOut)
+    n.collectDown[GlobalOutput]().flatMap { gout =>
+      val stores = gout.collect[LocalStore](visitFunc=visitGlobalOut)
       stores.map { store => (gout, store) }
     }.zipWithIndex.foreach { case ((Def(gout, GlobalOutput(data, valid)), store), idx) =>
       dbgblk(s"gout=$gout store=${qdef(store)}") {
@@ -202,7 +197,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
 
   def emitOutByLocalStore(n:N) = {
     // PMU read
-    collectDown[LocalStore](n).zipWithIndex.foreach { case (store, idx) =>
+    n.collectDown[LocalStore]().zipWithIndex.foreach { case (store, idx) =>
       dbgblk(s"${qdef(store)}") {
         emitln(s"link_out[$idx] = $store")
         val writeNext = accessNextOf(store)
@@ -216,7 +211,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   }
 
   def emitInByLocalLoad(n:N) = {
-    collectDown[LocalLoad](n).zipWithIndex.foreach { case (load, idx) =>
+    n.collectDown[LocalLoad]().zipWithIndex.foreach { case (load, idx) =>
       dbgblk(s"${qdef(load)}") {
         val mem = memsOf(load).head
         dbg(s"mem=${qtype(mem)}")

@@ -1,7 +1,5 @@
 package prism.test
 
-import prism._
-import prism.util._
 import prism.node._
 import prism.traversal._
 
@@ -19,7 +17,7 @@ object DCG1 extends TestDesign {
   b.newIn.connect(d.out)
 }
 
-class DCGTraversalTest extends UnitTest with GraphCollector {
+class DCGTraversalTest extends UnitTest {
   import DCG1._
 
   type N = TestNode
@@ -62,7 +60,7 @@ class DCGTraversalTest extends UnitTest with GraphCollector {
       }
     }
     var res = traversal.schedule(top)
-    println("BUTopo", res)
+    //println("BUTopo", res)
     //assert((top::top.descendents).forall(traversal.isVisited))
   }
 }

@@ -1,11 +1,5 @@
 package pir.codegen
-import pir._
 import pir.node._
-
-import prism._
-import prism.codegen._
-
-import sys.process._
 
 class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodegen with IRDotCodegen {
 
@@ -58,7 +52,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   }
 
   def usedByCounter(n:PIRNode) = {
-    collectOut[Primitive](n, visitFunc=visitGlobalOut, depth=2).filter(isCounter).nonEmpty
+    n.collect[Primitive](visitFunc=n.visitGlobalOut, depth=2).filter(isCounter).nonEmpty
   }
 
   override def emitNode(n:N) = {
@@ -72,8 +66,8 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   }
 
   def areLocal(a:N, b:N) = {
-    val cuA = collectUp[GlobalContainer](a).headOption
-    val cuB = collectUp[GlobalContainer](b).headOption
+    val cuA = a.collectUp[GlobalContainer]().headOption
+    val cuB = b.collectUp[GlobalContainer]().headOption
     cuA == cuB
   }
 

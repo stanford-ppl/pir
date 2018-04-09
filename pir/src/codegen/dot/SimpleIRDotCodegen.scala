@@ -1,18 +1,7 @@
 package pir.codegen
-import pir._
-import pir.util._
-import pir.pass._
+
 import pir.node._
-
-import prism._
-import prism.util._
-import prism.node._
-import prism.traversal._
-import prism.codegen._
-
-import sys.process._
-import scala.language.postfixOps
-import scala.collection.mutable
+import spade.node._
 
 class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) extends PIRIRDotCodegen(fileName) {
   override val horizontal:Boolean = false
@@ -35,18 +24,18 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     }
   }
 
-  override def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:prism.node.Edge[N], to:prism.node.Edge[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
     (from.src, to.src) match {
       case (from:GlobalOutput, to:GlobalInput) =>
-        val fromBundleType = bundleTypeOf(from, logger=Some(this))
-        val toBundleType = bundleTypeOf(to, logger=Some(this))
-        dbg(s"from:$fromBundleType, to:$toBundleType")
-        assert(fromBundleType == toBundleType)
-        val style = fromBundleType match {
-          case _:Bit => attr.set("style", "dashed").set("color","red")
-          case _:Word => attr.set("style", "solid")
-          case _:Vector => attr.set("style", "bold").set("color","sienna")
+        val fromPinType = pinTypeOf(from, logger=Some(this))
+        val toPinType = pinTypeOf(to, logger=Some(this))
+        dbg(s"from:$fromPinType, to:$toPinType")
+        assert(fromPinType == toPinType)
+        fromPinType match {
+          case tp if isBit(tp) => attr.set("style", "dashed").set("color","red")
+          case tp if isWord(tp) => attr.set("style", "solid")
+          case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna")
         }
       case _ =>
     }

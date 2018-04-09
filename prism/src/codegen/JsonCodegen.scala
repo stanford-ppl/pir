@@ -1,7 +1,5 @@
 package prism.codegen
 
-import prism._
-
 class CollectionStatus {
   var firstPair = true 
   var inScope = true 
@@ -63,13 +61,13 @@ trait JsonCodegen extends Codegen {
     { emitComma; emit(s""""$value"""") }
 
   def emitComment(label:String, str:String)(implicit ms:CollectionStatus):Unit = {
-    if (Config.debugCodegen) { emitPair(s"comment-$label", str) }
+    emitPair(s"comment-$label", str)
   }
   def emitComment(label:String, str:Int)(implicit ms:CollectionStatus):Unit = {
     emitComment(label, s"${str}")
   }
   def emitComment(str:String)(implicit ms:CollectionStatus):Unit = {
-    if (Config.debugCodegen) { emitPair(s"comment", str) }
+    emitPair(s"comment", str)
   }
 }
 

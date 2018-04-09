@@ -1,10 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-import prism.util._
 import scala.collection.mutable
 
 class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
@@ -73,7 +69,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     val live = n match {
       case n if isLive(n).nonEmpty => isLive(n).get
       case n:Counter =>
-        val CounterChain(counters) = collectUp[CounterChain](n).head
+        val CounterChain(counters) = n.collectUp[CounterChain]().head
         counters.exists(depedsExistsLive)
       case n => depedsExistsLive(n) 
     }
@@ -103,9 +99,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
   }
 
   override def check = {
-    val cus = collectDown[GlobalContainer](compiler.top)
+    val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach { cu =>
-      val mems = collectDown[Memory](cu)
+      val mems = cu.collectDown[Memory]()
       mems.foreach { mem =>
         mem match {
           case mem:ArgIn =>

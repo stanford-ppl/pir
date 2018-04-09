@@ -1,18 +1,6 @@
 package pir
 
-import pir.node._
-import pir.util._
-
-import spade._
-import arch._
-
-import prism._
-import prism.util._
-
-import scala.language.implicitConversions
-import scala.collection.mutable.ListBuffer
 import scala.reflect.runtime.universe
-import java.io._
 
 trait PIRApp extends PIR {
   override def name:String = this.getClass().getSimpleName().replace("$","")
@@ -44,7 +32,7 @@ trait PIRApp extends PIR {
   def load = PIRConfig.loadDesign
   def save = PIRConfig.saveDesign
 
-  val designPath = s"${outDir}${File.separator}${name}.pir"
+  val designPath = s"${outDir}${separator}${name}.pir"
 
   override def loadDesign = {
     super.loadDesign
@@ -60,6 +48,11 @@ trait PIRApp extends PIR {
     arch = getArch(PIRConfig.arch)
     arch.initDesign
     info(s"Configuring spade $arch ...")
+  }
+
+  override def saveDesign = {
+    design.pirmeta.pirMap = Right(PIRMap.empty) // Clear mapping before saving
+    super.saveDesign
   }
 
   def getArch(name:String) = {

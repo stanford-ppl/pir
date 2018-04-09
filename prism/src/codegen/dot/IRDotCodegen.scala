@@ -1,12 +1,9 @@
 package prism.codegen
 
-import prism._
-import prism.util._
 import prism.node._
 import prism.traversal.GraphUtil
 
 import sys.process._
-import scala.language.postfixOps
 import scala.collection.mutable
 
 trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {

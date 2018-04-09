@@ -1,7 +1,5 @@
 package prism.test
 
-import prism._
-import prism.util._
 import prism.node._
 import java.io._
 

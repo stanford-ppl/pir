@@ -1,8 +1,5 @@
 package prism.node
 
-import prism._
-import prism.util._
-
 import scala.collection.mutable
 
 abstract class Edge[N<:Node[N]:ClassTag]() extends IR {

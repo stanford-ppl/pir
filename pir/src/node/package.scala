@@ -1,12 +1,14 @@
 package pir
 
-import spade.SpadeEnums 
+import spade.node._
 
-import prism._
-import prism.util._
-
-package object node extends SpadeEnums {
-  private[node] type Design = PIRDesign
+package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
+  type PIR = pir.PIR
+  type PIRPass = pir.pass.PIRPass
+  type PIRMetadata = pir.util.PIRMetadata
+  type PIRMap = pir.mapper.PIRMap
+  type PIRApp = pir.PIRApp
+  val PIRMap = pir.mapper.PIRMap
 
   def isFIFO(n:PIRNode) = n match {
     case n:FIFO => true
@@ -71,6 +73,8 @@ package object node extends SpadeEnums {
       case Def(n, ReduceOp(op, input)) => parOf(input, logger).map { _ / 2 }
       case Def(n, AccumOp(op, input)) => parOf(input, logger)
       case x:ComputeNode => parOf(ctrlOf(x), logger)
+      case n:ComputeContext => n.collectDown[Def]().map { d => parOf(d) }.max
+      case n:GlobalContainer => n.collectDown[Def]().map { d => parOf(d) }.max
       case x => None
     }
   }
@@ -84,8 +88,8 @@ package object node extends SpadeEnums {
   def memsOf(n:Any)(implicit pass:PIRPass) = {
     import pass._
     n match {
-      case n:LocalStore => collectOut[Memory](n, visitFunc=visitGlobalOut, depth=2)
-      case n:LocalLoad => collectIn[Memory](n, visitFunc=visitGlobalIn, depth=2)
+      case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
+      case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
     }
   }
 
@@ -99,7 +103,7 @@ package object node extends SpadeEnums {
 
   def writersOf(mem:Memory)(implicit pass:PIRPass):List[LocalStore] = {
     import pass._
-    collectIn[LocalStore](mem, visitFunc=visitGlobalIn)
+    mem.collect[LocalStore](visitFunc=mem.visitGlobalIn)
   }
 
   def readersOf(mem:Memory)(implicit pass:PIRPass):List[LocalLoad] = {
@@ -107,34 +111,81 @@ package object node extends SpadeEnums {
     def visitFunc(n:PIRNode):List[PIRNode] = n match {
       case n:NotEmpty => Nil
       case n:NotFull => Nil
-      case n => visitGlobalOut(n)
+      case n => n.visitGlobalOut(n)
     }
-    collectIn[LocalLoad](mem, visitFunc=visitGlobalOut)
+    mem.collect[LocalLoad](visitFunc=mem.visitGlobalOut)
   }
 
   def accessesOf(mem:Memory)(implicit pass:PIRPass):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
 
-  def bundleTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):BundleType = dbgblk(logger, s"bundleTypeOf($n)") {
+  def globalOf(n:PIRNode) = {
+    n.collectUp[GlobalContainer]().headOption
+  }
+
+  def contextOf(n:PIRNode) = {
+    n.collectUp[ComputeContext]().headOption
+  }
+
+  def ctrlsOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
+  }
+
+  def innerCtrlOf(container:Container)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    ctrlsOf(container).maxBy { _.ancestors.size }
+  }
+
+  def ctxEnOf(n:ComputeContext):Option[ContextEnable] = {
+    n.collectDown[ContextEnable]().headOption
+  }
+
+  def goutOf(gin:GlobalInput) = {
+    gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn).headOption
+  }
+
+  def ginsOf(gout:GlobalOutput) = {
+    gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut).toList
+  }
+
+  def connectedOf(gio:GlobalIO) = gio match {
+    case gio:GlobalInput => goutOf(gio).toList
+    case gio:GlobalOutput => ginsOf(gio)
+  }
+
+  def isGlobalInput(gin:GlobalIO) = gin match {
+    case gin:GlobalInput => true
+    case gout:GlobalOutput => false
+  }
+
+  def isGlobalOutput(gin:GlobalIO) = gin match {
+    case gin:GlobalInput => false
+    case gout:GlobalOutput => true
+  }
+
+  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):ClassTag[_<:PinType] = dbgblk(logger, s"pinTypeOf($n)") {
     implicit val design = pass.design
     n match {
-      case n:ControlNode => Bit
-      case n:Memory if isControlMem(n) => Bit
-      case n:StreamIn if parOf(n).get == 1 => Word
-      case n:StreamIn if parOf(n).get > 1 => Vector
+      case n:ControlNode => classTag[Bit]
+      case n:Memory if isControlMem(n) => classTag[Bit]
+      case n:StreamIn if parOf(n).get == 1 => classTag[Word]
+      case n:StreamIn if parOf(n).get > 1 => classTag[Vector]
       case n:Memory => 
-        val tps = writersOf(n).map(writer => bundleTypeOf(writer, logger))
-        assert(tps.size==1, s"$n.writers=${writersOf(n)} have different BundleType=$tps")
+        val tps = writersOf(n).map(writer => pinTypeOf(writer, logger))
+        assert(tps.size==1, s"$n.writers=${writersOf(n)} have different PinType=$tps")
         tps.head
-      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => Bit
-      case Def(n,LocalStore(_,_,data)) => bundleTypeOf(data, logger)
-      case Def(n,ValidGlobalInput(gout)) => bundleTypeOf(gout, logger)
-      case Def(n,ReadyValidGlobalInput(gout, ready)) => bundleTypeOf(gout, logger)
-      case Def(n,GlobalOutput(data,valid)) => bundleTypeOf(data, logger)
-      case n if parOf(n, logger).get == 1 => Word
-      case n if parOf(n, logger).get > 1 => Vector
-      case n => throw PIRException(s"Don't know bundleTypeOf($n)")
+      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => classTag[Bit]
+      case Def(n,LocalStore(_,_,data)) => pinTypeOf(data, logger)
+      case Def(n,ValidGlobalInput(gout)) => pinTypeOf(gout, logger)
+      case Def(n,ReadyValidGlobalInput(gout, ready)) => pinTypeOf(gout, logger)
+      case Def(n,GlobalOutput(data,valid)) => pinTypeOf(data, logger)
+      case n if parOf(n, logger).get == 1 => classTag[Word]
+      case n if parOf(n, logger).get > 1 => classTag[Vector]
+      case n => throw PIRException(s"Don't know pinTypeOf($n)")
     }
   }
+
+  implicit def pnodeToBct(x:PIRNode)(implicit pass:PIRPass):ClassTag[_<:PinType] = pinTypeOf(x, None)
 
   def isPMU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
     cuType(n) == Some("pmu")
@@ -169,23 +220,18 @@ package object node extends SpadeEnums {
   }
 
   def cuType(n:PIRNode)(implicit pass:PIRPass):Option[String] = {
-    import pass.{pass => _, _}
     n match {
       case n:ArgFringe => Some("afg")
       case n:FringeContainer => Some("dfg")
-      case n:GlobalContainer if collectDown[Memory](n).filter(isRemoteMem).nonEmpty => Some("pmu")
-      case n:GlobalContainer if collectOut[StreamOut](n, visitFunc=visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
-      case n:GlobalContainer if collectDown[StageDef](n).size==0 => Some("ocu")
-      case n:GlobalContainer if collectDown[Def](n).forall { s => parOf(s)==Some(1) } => Some("scu")
+      case n:GlobalContainer if n.collectDown[Memory]().filter(isRemoteMem).nonEmpty => Some("pmu")
+      case n:GlobalContainer if n.collect[StreamOut](visitFunc=n.visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
+      case n:GlobalContainer if n.collectDown[StageDef]().size==0 => Some("ocu")
+      case n:GlobalContainer if parOf(n) == Some(1) => Some("scu")
       case n:GlobalContainer => Some("pcu")
       case n => None
     }
   }
 
-  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = {
-    import pass._
-    collectDown[StreamOut](n).nonEmpty
-  }
+  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().nonEmpty
   def isStoreFringe(n:FringeContainer)(implicit pass:PIRPass) = !isLoadFringe(n)
-
 }

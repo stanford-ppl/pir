@@ -1,14 +1,10 @@
 package prism.util
 
-import prism._
-import prism.util._
-
 import prism.collection.mutable._
-import scala.util.{Try, Success, Failure}
 
 trait Metadata extends Serializable {
 
-  lazy val maps = getDeclaredObjects(this).collect { case o:MetadataMap => o }
+  lazy val maps = scala.collection.mutable.ListBuffer[MetadataMap]()
 
   def reset = maps.foreach(_.clear)
 
@@ -25,7 +21,7 @@ trait Metadata extends Serializable {
     }
   }
 
-  def mirror(orig:Any, clone:Any, logger:Option[Logging]=None) = mirrorOnly(orig, clone, logger, maps)
+  def mirror(orig:Any, clone:Any, logger:Option[Logging]=None) = mirrorOnly(orig, clone, logger, maps.toList)
 
   def mirrorExcept(orig:Any, clone:Any, logger:Option[Logging]=None, excludes:List[MetadataMap]=Nil) = {
     val includes = (maps.toList diff excludes)
@@ -35,6 +31,7 @@ trait Metadata extends Serializable {
   def removeAll(node:Any) = maps.foreach { map => map.removeAll(node) }
 
   trait MetadataMap { 
+    maps += this
     type K
     type V
     type VV
@@ -42,17 +39,21 @@ trait Metadata extends Serializable {
     def asV(v:Any):Option[V]
     def toVs(vv:VV):scala.collection.Set[V]
   
-    def name:String
     def clear:Unit
     def get(k:K):Option[VV]
     def contains(k:K):Boolean
     def removeAll(a:Any):Unit
     def update(k:K, v:V):Unit
   
+    var nameOpt:Option[String] = None
+    def setName(s:String) = nameOpt = Some(s)
+    def name = nameOpt.getOrElse(super.toString)
+    override def toString = name
+
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
     def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {
-      logger.foreach { _.dbg(s"$name($clone)=$name($orig)=${get(orig)}") }
+      logger.foreach { _.dbg(s"$this($clone)=$name($orig)=${get(orig)}") }
       get(orig).foreach { vv => 
         toVs(vv).foreach { v => update(clone, v) }
       }

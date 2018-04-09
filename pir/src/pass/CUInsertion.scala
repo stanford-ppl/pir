@@ -1,11 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-
-import prism._
-
-import prism.traversal._
 
 import scala.collection.mutable
 
@@ -22,7 +17,7 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
   
   val ctMap = mutable.Map[Controller, Container]()
 
-  val controllerTraversal = new ControllerTraversal with UnitTraversal {
+  val controllerTraversal = new ControllerTraversal with prism.traversal.UnitTraversal {
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
         case n:TopController => compiler.top

@@ -8,7 +8,6 @@ object Config extends GlobalConfig {
   var codegen:Boolean = register("codegen", true) { codegen = _ }
 
   var debug:Boolean = register("debug", true) { debug = _ }
-  var debugCodegen:Boolean = debug && register("debug-codegen", true) { debugCodegen = _ }
   var outDir:String = register("out", "out") { outDir = _ }
   var verbose:Boolean = register("verbose", false) { verbose = _ }
 

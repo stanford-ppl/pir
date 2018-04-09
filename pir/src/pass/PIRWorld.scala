@@ -1,8 +1,6 @@
 package pir.pass
 
-import pir._
 import pir.node._
-import scala.reflect._
 
 trait PIRWorld {
   implicit val nct = classTag[N]
