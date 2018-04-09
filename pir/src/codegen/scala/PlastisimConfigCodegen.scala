@@ -22,6 +22,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   val linkSrc = new OneToOneMap[LocalStore, N]()
   val linkDst = new OneToOneMap[LocalStore, N]()
 
+  var addrCl = new OneToOneMap[Int, Int]()
+
   override def reset = {
     resetAllCaches
     linkSrc.clear
@@ -49,16 +51,19 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
       }
     case n:FringeContainer if isLoadFringe(n) =>
       emitNodeBlock(s"node $n") {
+        emitln(s"trace = 0")
         emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
         emitOutByGlobalOutput(n)
         val size = collectDown[StreamOut](n).filter { _.field == "size" }.head
         val csize = getConstOf[Int](size)
+        var idx = 0;
         dbg(s"csize = $csize")
         collectDown[StreamOut](n).foreach { mem =>
           dbgblk(qdef(mem)) {
-            writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
+            writersOf(mem).foreach { case (store) =>
               emitln(s"link_in[$idx] = $store")
-              emitln(s"scale_in[$idx] = ${csize / 4}") // size in bytes to words
+              emitln(s"scale_in[$idx] = ${csize / 4 / parOf(store).get}") // size in bytes to words
+              idx = idx+1
               linkDst(store) = n
             }
           }
@@ -69,7 +74,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
     case n:ArgFringe =>
       emitNodeBlock(s"node ${n}_out") {
         emitOutByGlobalOutput(n)
-        emitln(s"start_at_tokens = 2")
+        emitln(s"start_at_tokens = 1")
       }
       emitNodeBlock(s"node ${n}_in") {
         collectDown[ArgOut](n).foreach { mem =>
@@ -106,7 +111,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
     import topParam._
     val nr = numRows
     val nc = numCols + 2
-    emitNodeBlock(s"${nettp}net configs/mesh${nr}x${nc}.cfg") {
+    emitNodeBlock(s"net ${nettp}net configs/mesh${nr}x${nc}.cfg") {
       emitln(s"dim[0] = $nr")
       emitln(s"dim[1] = $nc")
     }
@@ -120,30 +125,47 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with Con
   }
 
   def emitLink(n:LocalStore) = {
-    emitNodeBlock(s"netlink $n") {
+    val src = linkSrc(n)
+    val dst = linkDst(n)
+    val srcCUP = globalOf(src).getOrElse(src)
+    val dstCUP = globalOf(dst).getOrElse(dst)
+    val srcCUS = mapping.get(srcCUP)
+    val dstCUS = mapping.get(dstCUP)
+    val mem = memsOf(n).head
+
+    val linkstr = if (isStaticLink(mem, src, dst))
+      ""
+    else
+      "net"
+
+    val srcSuffix = src match {
+      case x:ArgFringe => "_out"
+      case _ => ""
+    }
+
+    val dstSuffix = dst match {
+      case x:ArgFringe => "_in"
+      case _ => ""
+    }
+
+
+    emitNodeBlock(s"${linkstr}link $n") {
       val tp = bundleTypeOf(n) match {
         case Vector => "vec"
         case Word => "scal"
         case Bit => "ctrl"
         case _ => "impossible case"
       }
-      emitln(s"tp = $tp")
-      val src = linkSrc(n)
-      val dst = linkDst(n)
-      val srcCUP = globalOf(src).getOrElse(src)
-      val dstCUP = globalOf(dst).getOrElse(dst)
-      val srcCUS = mapping.get(srcCUP)
-      val dstCUS = mapping.get(dstCUP)
-      emitlnc(s"src = ${src}", s"${globalOf(src)} $srcCUS")
-      emitlnc(s"dst = ${dst}", s"${globalOf(dst)} $dstCUS")
-      val mem = memsOf(n).head
+      emitln(s"type = $tp")
+      emitlnc(s"src = ${src}${srcSuffix}", s"${globalOf(src)} $srcCUS")
+      emitlnc(s"dst = ${dst}${dstSuffix}", s"${globalOf(dst)} $dstCUS")
       (mem, src, dst) match {
         case (mem, src, dst) if isStaticLink(mem, src, dst) =>
           emitln(s"lat = 1")
         case (mem, src, dst) => 
           emitln(s"net = ${tp}net")
-          emitln(s"srcAddr = ${addrOf(srcCUS.get)}")
-          emitln(s"dstAddr = ${addrOf(dstCUS.get)}")
+          emitln(s"saddr = ${addrOf(srcCUS.get)}")
+          emitln(s"daddr = ${addrOf(dstCUS.get)}")
       }
     }
   }
