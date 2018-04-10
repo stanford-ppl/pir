@@ -1,8 +1,9 @@
 package prism.codegen
 
 import scala.collection.mutable.Map
+import sys.process._
 
-trait DotCodegen extends Printer {
+trait DotCodegen extends Printer { self:Codegen =>
 
   val regex = "\\[[0-9]*\\]".r
   def q(s:Any) = regex.replaceAllIn(s.toString, "")
@@ -121,5 +122,8 @@ trait DotCodegen extends Printer {
   
   implicit def field_to_string(f:DotField):String = f.field
 
+  def open = {
+    s"bin/dot -c ${outputPath} &".replace(".dot", "") !
+  }
 }
 

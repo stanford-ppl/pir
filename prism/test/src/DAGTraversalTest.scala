@@ -38,7 +38,7 @@ class DAGTraversalTest extends UnitTest with Logging {
     assert(g.localDeps == Set(g2, e))
     assert(g1.children.contains(b))
     assert(top.children.contains(g1))
-    new TestDotCodegen(s"test.dot").run(RunPass(null, 0))
+    new TestDotCodegen(s"test.dot").run
   }
 
   "DAGTestBFS" should "success" in {

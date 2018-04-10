@@ -11,11 +11,7 @@ trait BackTracking { self:Logging =>
     init:M, 
     bindLambda:(P,S,M) => EOption[M]
   ):EOption[M] = {
-    minOptionBy(pnodes) { case k => 
-      val ssize = snodes(k, init).size
-      dbg(s"${quote(k)} -> $ssize")
-      ssize
-    }.fold[EOption[M]](Right(init)) { pnode =>
+    minOptionBy(pnodes) { case k => snodes(k, init).size }.fold[EOption[M]](Right(init)) { pnode =>
       val sns = snodes(pnode, init)
       dbgblk(s"Mapping ${quote(pnode)} => ${sns.map(quote)}") {
         sns.foldLeft[Either[BindingTrace[P],M]](Left(BindingTrace(pnode))) {

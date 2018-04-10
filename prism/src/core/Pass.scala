@@ -25,11 +25,18 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   def check(runner:RunPass[_]):Unit = check
   def check:Unit = {}
 
-  def run(runner:RunPass[_]) = {
+  def run(runner:RunPass[_]):this.type = {
     initPass(runner)
     runPass(runner)
     finPass(runner)
     check(runner)
+    this
+  }
+
+  def run:this.type = {
+    val runner = RunPass[this.type](compiler.session, -1)
+    runner.setPass(this)
+    run(runner)
   }
 
   def quote(n:Any):String

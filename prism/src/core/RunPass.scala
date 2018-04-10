@@ -50,10 +50,7 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
 
     try {
       withLog(append=false) {
-        pass.initPass(this)
-        pass.runPass(this)
-        pass.finPass(this)
-        pass.check(this)
+        pass.run(this)
       }
       status = RunPassSucceeded
     } catch {

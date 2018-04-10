@@ -86,7 +86,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
-    addPass(new ControllerDotCodegen(s"ctrl.dot")).dependsOn(controlPropogator, memoryAnalyzer)
+    addPass(new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(new PIRIRDotCodegen(s"top9.dot"))
 
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
@@ -104,7 +104,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top13.dot"))
-    addPass(new ControlDotCodegen(s"control1.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
@@ -114,7 +113,7 @@ trait PIR extends Compiler with PIRWorld {
     session.rerun {
     addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(new PIRIRDotCodegen(s"top.dot"))
-    addPass(new ControlDotCodegen(s"control.dot"))
+    addPass(new ControlDotCodegen(s"top-ctrl.dot"))
     addPass(new SimpleIRDotCodegen(s"simple.dot"))
     addPass(new PIRPrinter(s"IR.txt"))
 
@@ -123,6 +122,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(staticCUPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
+    addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
     addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)

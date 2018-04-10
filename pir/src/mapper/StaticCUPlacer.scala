@@ -3,7 +3,7 @@ package pir.mapper
 import pir.node._
 import spade.node._
 
-class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing {
+class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing with Debugger {
   import pirmeta._
 
   private lazy val dpfx = debug && routingVerbosity > 0
@@ -12,10 +12,12 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
 
   def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     val unmapped = pmap.cumap.freeKeys.toSet
+    breakPoint(pmap) {
     pmap.flatMap[CUMap] { cumap => 
       dbgblk(dpfx, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
     }.flatMap { pmap =>
       route(cuP, addIOs(pmap,cuP))
+    }
     }
   }
 

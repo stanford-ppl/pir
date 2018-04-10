@@ -3,7 +3,6 @@ package prism.codegen
 import prism.node._
 import prism.traversal.GraphUtil
 
-import sys.process._
 import scala.collection.mutable
 
 trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
@@ -29,10 +28,6 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
   }
 
   def emitEdges = { nodes.foreach(emitEdge) }
-
-  def open = {
-    s"out/bin/run ${outputPath} &".replace(".dot", "") !
-  }
 
   def shape(attr:DotAttr, n:Any) = attr.shape(box)
 

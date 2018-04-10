@@ -14,5 +14,9 @@ case class BindingTrace[P](pnode:P) extends MappingFailure {
     case Right(m) => Right(m)
     case Left(f) => traces += f; Left(this)
   }
+  def last:Option[MappingFailure] = traces.lastOption.map {
+    case f:BindingTrace[_] => f.last.getOrElse(f)
+    case f => f
+  }
 }
 
