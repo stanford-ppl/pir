@@ -1,5 +1,6 @@
 package pir.mapper
 
+import prism.mapper._
 import prism.collection.immutable._
 
 trait MappingLogger {
@@ -18,11 +19,23 @@ trait MappingLogger {
       case x:FIMap => logging(x)
       case x:ConfigMap => logging(x)
       case Right(x) => logging(x)
-      case Left(f@InvalidFactorGraph(fg, k)) => 
-        pass.dbg(s"$f")
-        logging(fg)
       case Left(x) => logging(x)
+      case x:InvalidFactorGraph[_,_] => logging(x)
+      case x:BindingTrace[_] => logging(x)
       case x => pass.dbg(s"$x")
+    }
+  }
+
+  def logging(x:InvalidFactorGraph[_,_])(implicit pass:PIRPass):Unit = {
+    pass.dbg(s"$x")
+    logging(x.fg)
+  }
+
+  def logging(x:BindingTrace[_])(implicit pass:PIRPass):Unit = {
+    pass.dbgblk(s"$x") {
+      x.traces.foreach { trace =>
+        logging(trace)
+      }
     }
   }
 

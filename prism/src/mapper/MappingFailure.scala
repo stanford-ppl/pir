@@ -8,5 +8,11 @@ trait MappingFailure
 case class SearchFailure(msg:String) extends MappingFailure
 case object NotReachedEnd extends MappingFailure
 
-case class EmptyBinding[P](pnode:P) extends MappingFailure
+case class BindingTrace[P](pnode:P) extends MappingFailure {
+  val traces = ListBuffer[MappingFailure]()
+  def append[M](e:EOption[M]) = e match {
+    case Right(m) => Right(m)
+    case Left(f) => traces += f; Left(this)
+  }
+}
 

@@ -10,7 +10,7 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
 
   def shouldRun = isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
 
-  def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = dbgblk(dpfx, s"Mapping ${quote(cuP)} -> ${quote(cuS)}"){
+  def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     val unmapped = pmap.cumap.freeKeys.toSet
     pmap.flatMap[CUMap] { cumap => 
       dbgblk(dpfx, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
@@ -28,6 +28,11 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
         bindLambda=bindLambda _
       ))
     }
+  }
+
+  override def quote(n:Any) = n match {
+    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n => super.quote(n)
   }
 
 }

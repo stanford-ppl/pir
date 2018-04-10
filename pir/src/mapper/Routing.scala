@@ -97,11 +97,16 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = {
     val iosP = cuP.collectDown[GlobalIO]().toList
+    val maxCost = cuP match {
+      case cuP:pir.node.ArgFringe => 5
+      case cuP => 2
+    }
     flatFold(iosP, pmap) { case (pmap, tailP) =>
       val headsP = connectedOf(tailP)
       dbg(dpfx, s"tailP:${quote(tailP)}")
       dbg(dpfx, s"headsP:${headsP.map(quote)}")
-      val reached = if (headsP.exists { headP => !pmap.cumap.isMapped(globalOf(headP).head) }) dbgblk(dpfx, s"span(tailP=${quote(tailP)})") {
+      val existsUnplacedHeads = headsP.exists { headP => !pmap.cumap.isMapped(globalOf(headP).head) }
+      val reached = if (existsUnplacedHeads) dbgblk(dpfx, s"span(tailP=${quote(tailP)})") {
         span(
           start=tailP,
           pmap=pmap,
@@ -114,7 +119,6 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     }
   }
 
-  val maxCost = 2
   def route(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap, reached:Seq[Routable]):EOption[PIRMap] = {
     val neighborP = globalOf(headP).head
     if (pmap.cumap.isMapped(neighborP)) {
