@@ -5,6 +5,11 @@ import prism.collection.immutable._
 
 trait MappingLogger {
 
+  def log[T](verbosity:Int, x:T)(implicit logger:Logging):T = {
+    if (Config.debug && (PIRConfig.routingVerbosity >= verbosity)) logging(x) else x
+    x
+  }
+
   def log[T](pred:Boolean, x:T)(implicit logger:Logging):T = {
     if (pred) logging(x) else x
     x

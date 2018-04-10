@@ -8,9 +8,19 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   def routingVerbosity:Int = PIRConfig.routingVerbosity
 
-  private lazy val dpfx = debug && routingVerbosity > 0
+  def searchMaxCost(start:GlobalIO, end:GlobalIO) = -1
 
-  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(dpfx, s"addIOs(${quote(cuP)})") {
+  def spanMaxCost(start:GlobalIO) = {
+    val startCU = globalOf(start).get
+    (startCU, self.compiler.arch.topParam) match {
+      case (startCU:pir.node.ArgFringe, param:MeshTopParam) => param.numRows / 2 + 2
+      case (startCU:pir.node.FringeContainer, param:MeshTopParam) => param.numCols / 2 + 2
+      case (startCU, param:MeshTopParam) => 3
+      case _ => 3
+    }
+  }
+
+  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(1, s"addIOs(${quote(cuP)})") {
     val iosP = cuP.collectDown[GlobalIO]()
     val cuS = pmap.cumap.mappedValue(cuP)
     val insP = iosP.collect{ case io:InMap.K => io }.toSet[InMap.K]
@@ -51,13 +61,13 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   def span(
     start:GlobalIO, 
-    maxCost:Int,
     pmap:PIRMap
-  ):Seq[Routable] = {
+  ):Seq[Routable] = dbgblk(2, s"span(${quote(start)}, ${spanMaxCost(start)})") {
     val cuP = globalOf(start).get
     val cuS = pmap.cumap.mappedValue(cuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
+    val maxCost = spanMaxCost(start)
     uniformCostSpan(
       start=startBundle, 
       advance=advance(cuS, None, startTails, tailToHead(pmap) _, maxCost)_,
@@ -77,9 +87,8 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
   def search[M](
     start:GlobalIO, 
     end:GlobalIO,
-    maxCost:Int,
     pmap:PIRMap
-  ):EOption[Route] = {
+  ):EOption[Route] = dbgblk(2, s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}") {
     val startTails = portsS(start, pmap)
     val endTails = portsS(end, pmap)
     val scuP = globalOf(start).get
@@ -87,31 +96,22 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     val ecuP = globalOf(end).get
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
+    val maxCost = searchMaxCost(start, end)
     uniformCostSearch (
       start=startBundle, 
       isEnd=isEnd(endTails) _,
-      advance=advance(scuS, Some(ecuS), startTails, tailToHead(pmap) _, maxCost)_,
+      advance=advance(scuS, Some(ecuS), startTails, tailToHead(pmap) _, maxCost)_
     )
   }
 
   def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = {
     val iosP = cuP.collectDown[GlobalIO]().toList
-    val maxCost = cuP match {
-      case cuP:pir.node.ArgFringe => 5
-      case cuP => 2
-    }
     flatFold(iosP, pmap) { case (pmap, tailP) =>
       val headsP = connectedOf(tailP)
-      dbg(dpfx, s"tailP:${quote(tailP)}")
-      dbg(dpfx, s"headsP:${headsP.map(quote)}")
+      dbg(1, s"tailP:${quote(tailP)}")
+      dbg(1, s"headsP:${headsP.map(quote)}")
       val existsUnplacedHeads = headsP.exists { headP => !pmap.cumap.isMapped(globalOf(headP).head) }
-      val reached = if (existsUnplacedHeads) dbgblk(dpfx, s"span(tailP=${quote(tailP)})") {
-        span(
-          start=tailP,
-          pmap=pmap,
-          maxCost=maxCost
-        )
-      } else Nil
+      val reached = if (existsUnplacedHeads) span(start=tailP,pmap=pmap) else Nil
       flatFold(headsP, pmap) { case (pmap, headP) =>
         route(tailP, headP, pmap, reached)
       }
@@ -121,19 +121,11 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
   def route(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap, reached:Seq[Routable]):EOption[PIRMap] = {
     val neighborP = globalOf(headP).head
     if (pmap.cumap.isMapped(neighborP)) {
-      val route = dbgblk(dpfx, s"search(headP=${quote(headP)} tailP=${quote(tailP)} neighborP=${quote(neighborP)})") {
-        search (
-          start=tailP,
-          end=headP,
-          pmap=pmap,
-          maxCost= -1
-        )
-      }
-      route.flatMap { route => set(pmap, route, headP, tailP) }
+      search(start=tailP,end=headP,pmap=pmap).flatMap { route => set(pmap, route, headP, tailP) }
     } else {
       pmap.flatMap[CUMap]{ cumap =>
         val filtered = cumap.filterNot(neighborP) { cuS => !reached.contains(cuS) }
-        log(dpfx, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
+        log(1, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
         filtered
       }
     }
