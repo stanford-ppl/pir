@@ -4,7 +4,7 @@ import pir.codegen._
 import spade.node._
 
 trait Debugger { self:PIRPass =>
-  def breakPoint[M](m:M)(e: => EOption[M]):EOption[M] = if (debug) {
+  def breakPoint[M](m:M)(e: => EOption[M]):EOption[M] = if (PIRConfig.breakPoint) {
     e.left.map { f =>
       bp(s"$f")
       val answer = ask(s"Waiting for input ...")
@@ -24,6 +24,5 @@ trait Debugger { self:PIRPass =>
       f
     }
   } else e 
-
 }
 

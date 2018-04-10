@@ -32,6 +32,15 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
     }
   }
 
+  override def finPass(runner:RunPass[_]):Unit = {
+    super.finPass(runner)
+    pirMap.fold ({ failure =>
+      fail(s"Static place and route failed: ${failure}")
+    },{ mapping =>
+      succeed(s"Static place and route succeeded")
+    })
+  }
+
   override def quote(n:Any) = n match {
     case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
     case n => super.quote(n)

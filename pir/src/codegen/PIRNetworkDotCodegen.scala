@@ -18,7 +18,7 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
     (n, mapping) match {
       case (n, Left(mapping)) => isUsed(n, mapping) 
       case (n, Right(mapping)) => isUsed(n, mapping) 
-      case (n, mapping:BindingTrace[_]) => mapping.last.fold(false) { failure => isUsed(n, failure) }
+      case (n, bt@BindingTrace(pnode, mapping)) => bt.last.fold { isUsed(n, mapping) } { failure => isUsed(n, failure) }
 
       case (n:Routable, mapping:PIRMap) => isUsed(n, mapping.cumap)
       case (n:Routable, InvalidFactorGraph(fg:CUMap, k)) => isUsed(n, fg)
@@ -36,7 +36,7 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
     case n:Routable if !isUsed(n, mapping) => attr
     case (n:ArgFringe, "top") if !isUsed(n, mapping) => attr
     case (n:ArgFringe, "bottom") if !isUsed(n, mapping) => attr
-    case (from:Edge, to:Edge) if isUsed(n, mapping) => attr.color("indianred1").style("bold")
+    case (from:Edge, to:Edge) if isUsed(n, mapping) => attr.color("indianred1").style(bold)
     case (from:Edge, to:Edge) => attr
     case n => super.color(attr, n)
   }

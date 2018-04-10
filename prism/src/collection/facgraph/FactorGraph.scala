@@ -59,10 +59,7 @@ trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends Fac
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val vv = freeMap.fmap(k)
     val kk = freeMap.bmap(v)
-    var nfm = freeMap
-    nfm --= ((k, vv))
-    nfm --= ((kk, v))
-    val nfg = newInstance(nfm, usedMap + ((k,v)))
+    val nfg = newInstance(freeMap - k - v, usedMap + ((k,v)))
     flatFold(kk - k, nfg) { case (nfg, k) => nfg.check(k) }
   }
   def apply(x:K):Set[V] = x match {
@@ -86,9 +83,7 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
   def set(k:K, v:V):EOption[S] = {
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val kk = freeMap.bmap(v) - k
-    var nfm = freeMap
-    nfm --= ((kk, v))
-    val nfg = newInstance(nfm, usedMap + ((k,v)))
+    val nfg = newInstance(freeMap -- ((kk,v)), usedMap + ((k,v)))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
   def apply(x:K):Set[V] = x match {

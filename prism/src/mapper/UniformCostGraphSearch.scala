@@ -95,7 +95,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
 
       explored += minNode
       terminate(minNode, backPointers).foreach { res => 
-        return Right(res) // why is this cast necessary?
+        return Right(res)
       }
 
       var neighbors:Seq[(N, A, C)] = advance(minNode, backPointers, pastCost)

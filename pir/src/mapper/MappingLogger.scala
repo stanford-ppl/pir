@@ -21,23 +21,24 @@ trait MappingLogger {
       case Right(x) => logging(x)
       case Left(x) => logging(x)
       case x:InvalidFactorGraph[_,_] => logging(x)
-      case x:BindingTrace[_] => logging(x)
+      case x:BindingTrace[_,_] => logging(x)
       case x => logger.dbg(s"$x")
     }
   }
 
   def logging(x:InvalidFactorGraph[_,_])(implicit logger:Logging):Unit = {
-    logger.dbg(s"$x")
-    logging(x.fg)
+    logger.dbgblk(s"$x") {
+      logging(x.fg)
+    }
   }
 
-  def logging(x:BindingTrace[_])(implicit logger:Logging):Unit = {
+  def logging(x:BindingTrace[_,_])(implicit logger:Logging):Unit = {
     logger.dbgblk(s"$x") {
       x.traces.foreach { trace =>
         logging(trace)
       }
+      logging(x.mapping)
     }
-    logger.dbg(s"$x.last=${x.last}")
   }
 
   def logging(x:PIRMap)(implicit logger:Logging):Unit = {

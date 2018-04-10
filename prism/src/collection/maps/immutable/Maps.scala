@@ -13,6 +13,7 @@ trait UniMap[K,V,S<:UniMap[K,V,S]] extends MapLike[K,V,S] with prism.collection.
   override type UM = Map[K,VV]
   def ++ (pair:(K,VV)):S
   def -- (pair:(K,VV)):S
+  def - (k:K):S = newInstance(map - k)
   def newInstance(m:UM):S = {
     val constructor = this.getClass.getConstructors()(0)
     (constructor.getParameterTypes.toList match {
@@ -173,6 +174,17 @@ abstract class BiManyToManyMapLike[K:ClassTag,V:ClassTag,S<:BiManyToManyMapLike[
         val bm = bmap -- (v,kk)
         newInstance(fm, bm)
     }
+  }
+  override def - (pair:(K,V)):S = super.-(pair)
+  def - (x:Any):S = x match {
+    case k:K => 
+      val vv:VV = fmap(k)
+      val bm = vv.foldLeft(bmap) { case (bm, v) => bm - ((v,k)) }
+      newInstance(fmap - k, bm)
+    case v:V =>
+      val kk:KK = bmap(v)
+      val fm = kk.foldLeft(fmap) { case (fm, k) => fm - ((k,v)) }
+      newInstance(fm, bmap - v)
   }
 } 
 case class BiManyToManyMap[K:ClassTag,V:ClassTag](fmap:OneToManyMap[K,V], bmap:OneToManyMap[V,K]) extends BiManyToManyMapLike[K,V,BiManyToManyMap[K,V]]

@@ -19,6 +19,7 @@ object PIRConfig extends prism.GlobalConfig {
   var debugMapper:Boolean = debug && register("dbg-mapper", true) { debugMapper = _ }
   var debugRouting:Boolean = debugMapper && register("dbg-routing", true) { debugRouting = _ }
   var routingVerbosity:Int = register("verbosity-routing", 0) { routingVerbosity = _ }
+  var breakPoint:Boolean = debug && register("bp", false) { breakPoint = _ }
 
   var openDot:Boolean = register("open", false) { openDot = _ }
 
