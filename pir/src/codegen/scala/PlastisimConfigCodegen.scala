@@ -59,6 +59,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
           dbgblk(qdef(mem)) {
             writersOf(mem).foreach { case (store) =>
               emitln(s"link_in[$idx] = $store")
+              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               emitln(s"scale_in[$idx] = ${csize / 4 / parOf(data).get}") // size in bytes to words
               idx = idx+1
               linkDst(store) = n
@@ -78,6 +79,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
           dbgblk(qdef(mem)) {
             writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
               emitln(s"link_in[$idx] = $store")
+              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               emitln(s"scale_in[$idx] = 1")
               linkDst(store) = n
             }
@@ -119,6 +121,46 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
     case (mem, src, dst:pir.node.ArgFringe) => true
     case (mem, src:ComputeContext, dst:ComputeContext) if isPMU(globalOf(src).get) && isPMU(globalOf(dst).get) => true
     case _ => false
+  }
+
+  def bufferSizeOf(n:LocalStore) = {
+    val memP = memsOf(n).head
+    val cuP = globalOf(memP).get
+    val cuS = cumap(cuP).head
+    cuS match {
+      case cuS:MC =>
+        val isLoad = isLoadFringe(cuP)
+        val isStore = isStoreFringe(cuP)
+        memP match {
+          case memP:StreamOut if memP.field == "size" & isLoad =>
+            cuS.param.rSizeFifoParam.size
+          case memP:StreamOut if memP.field == "offset" & isLoad =>
+            cuS.param.rOffsetFifoParam.size
+          case memP:StreamOut if memP.field == "size" & isStore =>
+            cuS.param.wSizeFifoParam.size
+          case memP:StreamOut if memP.field == "offset" & isStore =>
+            cuS.param.wOffsetFifoParam.size
+          case memP:StreamOut if memP.field == "data" & isStore=>
+            if (isWord(n)) cuS.param.sDataFifoParam.size
+            else if (isVector(n)) cuS.param.vDataFifoParam.size
+            else throw PIRException(s"Unsupported dram data type ${pinTypeOf(n)}")
+        }
+      case cuS:CU =>
+        memP match {
+          case memP:pir.node.RetimingFIFO =>
+            n match {
+              case n if isBit(n) => cuS.param.controlFifoParam.size
+              case n if isWord(n) => cuS.param.scalarFifoParam.size
+              case n if isVector(n) => cuS.param.vectorFifoParam.size
+            }
+          case memP:pir.node.SRAM => cuS.param.sramParam.depth
+          case memP:pir.node.ArgIn => cuS.param.scalarFifoParam.size
+          case memP:pir.node.Reg => cuS.param.scalarFifoParam.size
+        }
+      case cuS:spade.node.ArgFringe =>
+        1
+    }
+
   }
 
   def emitLink(n:LocalStore) = {
@@ -221,6 +263,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
         val store = stores.head
         dbg(s"store=${qtype(store)}")
         emitln(s"link_in[$idx] = $store")
+        emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
         val loadCount = itersOf(accessNextOf(load))
         dbg(s"loadCount=$loadCount")
         emitln(s"scale_in[$idx] = $loadCount")

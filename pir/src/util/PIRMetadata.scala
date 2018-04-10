@@ -62,6 +62,9 @@ class PIRMetadata extends Metadata {
   val boundOf = new OneToOneMap[PIRNode, Any] with MetadataMap
   boundOf.setName("boundOf")
 
+  val bufferDepthOf = new OneToOneMap[Memory, Int] with MetadataMap
+  bufferDepthOf.setName("bufferDepthOf")
+
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
 
 }

@@ -232,6 +232,6 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     }
   }
 
-  def isLoadFringe(n:FringeContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().nonEmpty
-  def isStoreFringe(n:FringeContainer)(implicit pass:PIRPass) = !isLoadFringe(n)
+  def isLoadFringe(n:GlobalContainer)(implicit pass:PIRPass) = n.collectDown[StreamIn]().filter{ _.field == "data" }.nonEmpty
+  def isStoreFringe(n:GlobalContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().filter{ _.field == "data" }.nonEmpty
 }
