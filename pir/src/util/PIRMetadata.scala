@@ -44,7 +44,7 @@ class PIRMetadata extends Metadata {
    * Control signal indicating the last element of the access
    * */
   val accessDoneOf = new OneToOneMap[LocalAccess, Def] with MetadataMap {
-    override def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {}
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
   }
   accessDoneOf.setName("accessDoneOf")
 
@@ -52,7 +52,7 @@ class PIRMetadata extends Metadata {
    * Enable of CounterChain
    * */
   val enableOf = new OneToOneMap[PIRNode, Def] with MetadataMap {
-    override def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {}
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
   }
   enableOf.setName("enableOf")
 

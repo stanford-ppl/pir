@@ -32,7 +32,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   }
 
   override def runPass(runner:RunPass[_]) =  {
-    pirMap = pirMap.flatMap { pmap => logging(prune(pmap.set[CUMap](initCUMap))) }
+    pirMap = pirMap.flatMap { pmap => log(prune(pmap.set[CUMap](initCUMap))) }
   }
 
 }

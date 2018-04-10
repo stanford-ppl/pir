@@ -19,6 +19,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass with pri
   }
 
   override def quote(n:Any) = n match {
+    case n:Iterable[_] => n.map(quote).toString
     case n:SNode => n.qindex
     case n => qtype(n)
   }

@@ -13,12 +13,7 @@ trait Metadata extends Serializable {
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
   def mirrorOnly(orig:Any, clone:Any, logger:Option[Logging]=None, includes:List[MetadataMap]=Nil) = {
-    if (orig != clone) includes.foreach { map => 
-      (map.asK(orig), map.asK(clone)) match {
-        case (Some(orig), Some(clone)) => map.mirror(orig, clone, logger)
-        case _ =>
-      }
-    }
+    if (orig != clone) includes.foreach { map => map.mirror(orig, clone, logger) }
   }
 
   def mirror(orig:Any, clone:Any, logger:Option[Logging]=None) = mirrorOnly(orig, clone, logger, maps.toList)
@@ -34,9 +29,11 @@ trait Metadata extends Serializable {
     maps += this
     type K
     type V
+    implicit val kct:ClassTag[K]
+    implicit val vct:ClassTag[V]
     type VV
-    def asK(k:Any):Option[K]
-    def asV(v:Any):Option[V]
+
+    def asK(x:Any):Option[K]
     def toVs(vv:VV):scala.collection.Set[V]
   
     def clear:Unit
@@ -52,23 +49,25 @@ trait Metadata extends Serializable {
 
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
-    def mirror(orig:K, clone:K, logger:Option[Logging]=None):Unit = {
-      logger.foreach { _.dbg(s"$this($clone)=$name($orig)=${get(orig)}") }
-      get(orig).foreach { vv => 
-        toVs(vv).foreach { v => update(clone, v) }
+    def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {
+      (orig, clone) match {
+        case (orig:K, clone:K) =>
+          get(orig).foreach { vv => 
+            dbg(logger, s"$this($clone)=$name($orig)=$vv")
+            toVs(vv).foreach { v => update(clone, v) }
+          }
+        case _ =>
       }
     }
     def info(a:Any):Option[String] = { 
-      asK(a) match {
-        case Some(k) => get(k).map { vv => s"${name}($k)=$vv" }
-        case None =>
+      a match {
+        case k:K => get(k).map { vv => s"${name}($k)=$vv" }
+        case v:V =>
           this match {
-            case map:BiMap[_,_,_,_] => 
-              map.asV(a).flatMap { v => 
-                map.bmap.get(v).map( kk => s"${name}.bmap($v) = $kk" )
-              }
+            case map:BiMap[_,_] => map.asInstanceOf[BiMap[K,V]].bmap.get(v).map( kk => s"${name}.bmap($v) = $kk" )
             case _ => None
           }
+        case _ => None
       }
     }
   }

@@ -1,4 +1,4 @@
-package prism.collection1
+package prism.collection2
 
 import prism._
 import prism.exceptions._
@@ -30,13 +30,13 @@ trait ForwardMap[K,VV] {
 package object mutable {
   import scala.collection.mutable.Set
   import scala.collection.mutable.Map
-  trait MapLike[K,V,KK,VV] extends prism.collection1.MapLike[K,V,KK,VV] {
+  trait MapLike[K,V,KK,VV] extends collection2.MapLike[K,V,KK,VV] {
     def update(k:K, v:V) = check(k,v)
     def remove(k:K, v:V):Unit = {}
     def remove(k:K):Unit
   }
 
-  trait ForwardMap[K,VV] extends prism.collection1.ForwardMap[K,VV] {
+  trait ForwardMap[K,VV] extends collection2.ForwardMap[K,VV] {
     def fmap:Map[K,VV]
     def remove(k:K):Unit = fmap -= k
   }

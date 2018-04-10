@@ -1,28 +1,30 @@
-package prism.collection.immutable
+package prism.collection1.immutable
 
 import prism._
 
 import scala.collection.immutable.Set
 
-trait MapLike[K,V,S<:MapLike[K,V,S]] extends prism.collection.MapLike[K,V] { self:S =>
+trait MapLike[K,V,VV,S<:MapLike[K,V,VV,S]] extends prism.collection1.MapLike[K,V,VV] { self:S =>
   def + (pair:(K,V)):S
   def - (pair:(K,V)):S
+  def check (pair:(K,V)):Unit = { val (k,v) = pair; check(k,v) }
 }
 
-trait UniMap[K,V,S<:UniMap[K,V,S]] extends MapLike[K,V,S] with prism.collection.UniMap[K,V] { self:S =>
-  override type UM = Map[K,VV]
+trait UniMap[K,V,VV,S<:UniMap[K,V,VV,S]] extends MapLike[K,V,VV,S] with prism.collection1.UniMap[K,V,VV] { self:S =>
+  override type M = Map[K,VV]
+  val map:M
   def ++ (pair:(K,VV)):S
   def -- (pair:(K,VV)):S
-  def newInstance(m:UM):S = {
+  def newInstance(m:M):S = {
     val constructor = this.getClass.getConstructors()(0)
     (constructor.getParameterTypes.toList match {
-      case l if l == List(classOf[UM], classOf[ClassTag[K]], classOf[ClassTag[V]]) => constructor.newInstance(m, kct, vct)
-      case l if l == List(classOf[UM]) => constructor.newInstance(m)
+      case l if l == List(classOf[M], classOf[ClassTag[K]], classOf[ClassTag[V]]) => constructor.newInstance(m, kct, vct)
+      case l if l == List(classOf[M]) => constructor.newInstance(m)
     }).asInstanceOf[S]
   }
 }
 
-trait OneToOneMapLike[K,V,S<:OneToOneMapLike[K,V,S]] extends UniMap[K,V,S] with prism.collection.OneToOneMap[K,V] { self:S =>
+trait OneToOneMapLike[K,V,S<:OneToOneMapLike[K,V,S]] extends UniMap[K,V,V,S] with prism.collection1.OneToOneMap[K,V] { self:S =>
   def + (pair:(K,V)):S = { check(pair); newInstance(map + pair) }
   def ++ (pair:(K,VV)):S = this + pair
   def - (pair:(K,V)):S = { 
@@ -36,9 +38,7 @@ object OneToOneMap {
   def empty[K:ClassTag,V:ClassTag] = OneToOneMap[K,V](Map.empty)
 }
 
-trait OneToManyMapLike[K,V,S<:OneToManyMapLike[K,V,S]] extends UniMap[K,V,S] with prism.collection.OneToManyMap[K,V] { self:S =>
-  type VV = Set[V]
-  val vvct = classTag[VV]
+trait OneToManyMapLike[K,V,S<:OneToManyMapLike[K,V,S]] extends UniMap[K,V,Set[V],S] with prism.collection1.OneToManyMap[K,V,Set[V]] { self:S =>
   def + (pair:(K,V)): S = { 
     check(pair)
     val (k,v) = pair
@@ -63,12 +63,11 @@ object OneToManyMap {
   def empty[K:ClassTag,V:ClassTag] = OneToManyMap[K,V](Map.empty)
 }
 
-trait BiMap[K,V,S<:BiMap[K,V,S]] extends prism.collection.BiMap[K,V] with MapLike[K,V,S] { self:S =>
-  override type UM = Map[K,VV]
-  type FM <: UniMap[K,V,FM]
-  type BM <: UniMap[V,K,BM]
-  override val fmap:FM
-  override val bmap:BM
+trait BiMap[K,V,KK,VV,S<:BiMap[K,V,KK,VV,S]] extends prism.collection1.BiMap[K,V,KK,VV] with MapLike[K,V,VV,S] { self:S =>
+  type FM <: UniMap[K,V,VV,FM]
+  type BM <: UniMap[V,K,KK,BM]
+  override def fmap:FM
+  override def bmap:BM
   def newInstance(fm:FM, bm:BM):S = {
     val constructor = this.getClass.getConstructors()(0)
     (constructor.getParameterTypes.toList match {
@@ -90,9 +89,7 @@ trait BiMap[K,V,S<:BiMap[K,V,S]] extends prism.collection.BiMap[K,V] with MapLik
   }
 }
 
-trait BiOneToOneMapLike[K,V,S<:BiOneToOneMapLike[K,V,S]] extends BiMap[K,V,S] { self:S => 
-  override type KK = K
-  override type VV = V
+trait BiOneToOneMapLike[K,V,S<:BiOneToOneMapLike[K,V,S]] extends BiMap[K,V,K,V,S] { self:S => 
   type FM = OneToOneMap[K,V]
   type BM = OneToOneMap[V,K]
 }
@@ -101,9 +98,7 @@ object BiOneToOneMap {
   def empty[K:ClassTag,V:ClassTag] = BiOneToOneMap[K,V](OneToOneMap.empty, OneToOneMap.empty)
 }
 
-trait BiOneToManyMapLike[K,V,S<:BiOneToManyMapLike[K,V,S]] extends BiMap[K,V,S] { self:S => 
-  override type KK = K
-  override type VV = Set[V]
+trait BiOneToManyMapLike[K,V,S<:BiOneToManyMapLike[K,V,S]] extends BiMap[K,V,K,Set[V],S] { self:S => 
   type FM = OneToManyMap[K,V]
   type BM = OneToOneMap[V,K]
   def ++ (pair:(K,Set[V])):S = { 
@@ -118,9 +113,7 @@ object BiOneToManyMap {
   def empty[K:ClassTag, V:ClassTag] = BiOneToManyMap[K,V](OneToManyMap.empty, OneToOneMap.empty)
 }
 
-trait BiManyToOneMapLike[K,V,S<:BiManyToOneMapLike[K,V,S]] extends BiMap[K,V,S] { self:S => 
-  override type KK = Set[K]
-  override type VV = V
+trait BiManyToOneMapLike[K,V,S<:BiManyToOneMapLike[K,V,S]] extends BiMap[K,V,Set[K],V,S] { self:S => 
   type FM = OneToOneMap[K,V]
   type BM = OneToManyMap[V,K]
   def ++ (pair:(Set[K],V)):S = { 
@@ -135,24 +128,20 @@ object BiManyToOneMap {
   def empty[K:ClassTag, V:ClassTag] = BiManyToOneMap[K,V](OneToOneMap.empty, OneToManyMap.empty)
 }
 
-abstract class BiManyToManyMapLike[K:ClassTag,V:ClassTag,S<:BiManyToManyMapLike[K,V,S]] extends BiMap[K,V,S] { self:S => 
-  override type KK = Set[K]
-  override type VV = Set[V]
+trait BiManyToManyMapLike[K,V,S<:BiManyToManyMapLike[K,V,S]] extends BiMap[K,V,Set[K],Set[V],S] { self:S => 
   type FM = OneToManyMap[K,V]
   type BM = OneToManyMap[V,K]
-  override lazy val kkct:ClassTag[KK] = bmap.vvct
-  override lazy val vvct:ClassTag[VV] = fmap.vvct
   def ++ (pair:(Any,Any)):S = { 
     pair match {
-      case (kkct(kk), vvct(vv)) =>
+      case (AsKK(kk), AsVV(vv)) =>
         val fm = kk.foldLeft(fmap) { case (fm, k) => fm ++ ((k,vv)) }
         val bm = vv.foldLeft(bmap) { case (bm, v) => bm ++ ((v,kk)) }
         newInstance(fm, bm)
-      case (k:K, vvct(vv)) =>
+      case (AsK(k), AsVV(vv)) =>
         val fm = fmap ++ ((k,vv))
         val bm = vv.foldLeft(bmap) { case (bm, v) => bm + ((v,k)) }
         newInstance(fm, bm)
-      case (kkct(kk), v:V) =>
+      case (AsKK(kk), AsV(v)) =>
         val fm = kk.foldLeft(fmap) { case (fm, k) => fm + ((k,v)) }
         val bm = bmap ++ ((v,kk))
         newInstance(fm, bm)
@@ -160,15 +149,15 @@ abstract class BiManyToManyMapLike[K:ClassTag,V:ClassTag,S<:BiManyToManyMapLike[
   }
   def -- (pair:(Any,Any)):S = { 
     pair match {
-      case (kkct(kk), vvct(vv)) =>
+      case (AsKK(kk), AsVV(vv)) =>
         val fm = kk.foldLeft(fmap) { case (fm, k) => fm -- ((k,vv)) }
         val bm = vv.foldLeft(bmap) { case (bm, v) => bm -- ((v,kk)) }
         newInstance(fm, bm)
-      case (k:K, vvct(vv)) =>
+      case (AsK(k), AsVV(vv)) =>
         val fm = fmap -- ((k,vv))
         val bm = vv.foldLeft(bmap) { case (bm, v) => bm - ((v,k)) }
         newInstance(fm, bm)
-      case (kkct(kk), v:V) =>
+      case (AsKK(kk), AsV(v)) =>
         val fm = kk.foldLeft(fmap) { case (fm, k) => fm - ((k,v)) }
         val bm = bmap -- (v,kk)
         newInstance(fm, bm)

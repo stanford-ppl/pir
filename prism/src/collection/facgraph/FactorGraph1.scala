@@ -1,9 +1,9 @@
-package prism.collection 
+package prism.collection1
 
 import prism.mapper._
-import prism.collection.immutable._
+import prism.collection1.immutable._
 
-trait FactorGraph[K,V,S] extends Serializable { self:S =>
+trait FactorGraph1[K,V,S<:FactorGraph1[K,V,S]] extends Serializable { self:S =>
   type W = Map[(K, V), Float]
   type FM = BiManyToManyMap[K, V]
 
@@ -14,9 +14,9 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
   val freeMap:FM
   var weights:W
 
-  def newInstance(freeMap:FM, weights:W):S with FactorGraph[K,V,S] = {
+  def newInstance(freeMap:FM, weights:W):S = {
     val constructor = this.getClass.getConstructor(classOf[FM], classOf[W])
-    constructor.newInstance(freeMap, weights).asInstanceOf[S with FactorGraph[K,V,S]]
+    constructor.newInstance(freeMap, weights).asInstanceOf[S]
   }
 
   override def clone = newInstance(freeMap, weights)
@@ -51,7 +51,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     }
   }
 
-  def multiplyFactor(factorLambda: (K,V) => Float):EOption[S with FactorGraph[K,V,S]] = {
+  def multiplyFactor(factorLambda: (K,V) => Float):EOption[S] = {
     flatFold(freeKeys, this) { case (fg, k) =>
       freeValues(k).foreach { v =>
         weights += ((k,v) -> (weights((k,v)) * factorLambda(k,v)))
@@ -60,7 +60,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     }
   }
 
-  def multiplyFactor(k:K, v:V, factor:Float):EOption[S with FactorGraph[K,V,S]] = {
+  def multiplyFactor(k:K, v:V, factor:Float):EOption[S] = {
     weights += ((k,v) -> (weights(k,v) * factor))
     check(k)
   }
@@ -71,7 +71,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
   def neighbors(k:K):List[K] = keys.toList.filterNot { _ == k }
 
   // Mapping with look ahead
-  def map(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
+  def map(k:K, v:V):EOption[S] = {
     val fg = newInstance(freeMap, weights)
     fg.markEdge(k,v)
     val notUsed = freeValues(k).filterNot { _ == v }
@@ -83,7 +83,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
     weights += ((k,v) -> 0.0f)
   }
 
-  def removeEdge(k:K, v:V):EOption[S with FactorGraph[K,V,S]] = {
+  def removeEdge(k:K, v:V):EOption[S] = {
     if (hasEdge(k,v)) { dropEdge(k,v); check(k) } else Right(this)
   }
 
@@ -95,7 +95,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
   def hasEdge(k:K, v:V) = weights((k,v)) > 0
   def isMarked(k:K, v:V) = weights((k,v)) == -1.0f
 
-  def check(k:K):EOption[S with FactorGraph[K,V,S]] = {
+  def check(k:K):EOption[S] = {
     val invalid = values(k).filter { v => hasEdge(k,v) || isMarked(k, v) }.isEmpty
     if (invalid) Left(InvalidFactorGraph(this, k)) else Right(this)
   }
@@ -108,7 +108,7 @@ trait FactorGraph[K,V,S] extends Serializable { self:S =>
   def apply(k:K):V = get(k).get
 }
 
-case class InvalidFactorGraph[K,FG<:FactorGraph[K,_,_]](@transient fg:FG, k:K) extends MappingFailure {
+case class InvalidFactorGraph[K,FG<:FactorGraph1[K,_,FG]](@transient fg:FG, k:K) extends MappingFailure {
   var info = s"InvalidFactorGraph ${fg.name} at key=$k\n"
   info += s"freeValues: \n"
   info += fg.keys.map { k => s"$k -> ${fg.freeValues(k)}" }.mkString("\n") + "\n"

@@ -12,7 +12,7 @@ class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
   override def runPass(runner:RunPass[_]) =  {
     pirMap = pirMap.flatMap { pmap =>
       pmap.flatMap[CUMap] { cumap => 
-        logging(bind[CUMap.K, CUMap.V, CUMap](
+        log(bind[CUMap.K, CUMap.V, CUMap](
           init=cumap
         ))
       }

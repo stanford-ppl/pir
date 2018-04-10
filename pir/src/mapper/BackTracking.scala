@@ -7,8 +7,8 @@ trait BackTracking extends prism.mapper.BackTracking { self:Logging =>
     init:F,
   ):EOption[F] = {
     bind[P,S,F](
-      pnodes=init.keys.toSet,
-      snodes=(p:P, m:F) => m(p).toList.sortBy { case v => -m.bmap(v).size},
+      pnodes=init.freeKeys.toSet,
+      snodes=(p:P, m:F) => m(p).toList.sortBy { case v => -m.freeKeys(v).size},
       init=init,
       bindLambda=(p:P,s:S,m:F) => m.set(p,s)
     )

@@ -2,6 +2,7 @@ package pir.mapper
 
 import pir.node._
 import spade.node._
+import prism.collection.immutable._
 
 trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
@@ -10,9 +11,9 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   private lazy val dpfx = debug && routingVerbosity > 0
 
-  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(s"addIOs(${quote(cuP)})") {
+  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(dpfx, s"addIOs(${quote(cuP)})") {
     val iosP = cuP.collectDown[GlobalIO]()
-    val cuS = pmap.cumap.mappedValue(cuP).get
+    val cuS = pmap.cumap.mappedValue(cuP)
     val insP = iosP.collect{ case io:InMap.K => io }.toSet[InMap.K]
     val outsP = iosP.collect{ case io:OutMap.K => io }.toSet[OutMap.K]
     val iosS = cuS.collectDown[PT]()
@@ -55,7 +56,7 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     pmap:PIRMap
   ):Seq[Routable] = {
     val cuP = globalOf(start).get
-    val cuS = pmap.cumap.mappedValue(cuP).get
+    val cuS = pmap.cumap.mappedValue(cuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
     uniformCostSpan(
@@ -83,9 +84,9 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     val startTails = portsS(start, pmap)
     val endTails = portsS(end, pmap)
     val scuP = globalOf(start).get
-    val scuS = pmap.cumap.mappedValue(scuP).get
+    val scuS = pmap.cumap.mappedValue(scuP)
     val ecuP = globalOf(end).get
-    val ecuS = pmap.cumap.mappedValue(ecuP).get
+    val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
     uniformCostSearch (
       start=startBundle, 
@@ -129,12 +130,8 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     } else {
       pmap.flatMap[CUMap]{ cumap =>
         val filtered = cumap.filterNot(neighborP) { cuS => !reached.contains(cuS) }
-        logging(dpfx, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
+        log(dpfx, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
         filtered
-      }.map { filteredPmap =>
-        if (!pmap.cumap.isMapped(neighborP) && filteredPmap.cumap.isMapped(neighborP)) 
-          addIOs(filteredPmap, neighborP) 
-        else filteredPmap
       }
     }
   }

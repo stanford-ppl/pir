@@ -2,6 +2,7 @@ package prism.test
 
 import prism.collection.immutable
 import prism.collection.mutable
+import prism.collection.RebindingException
 import prism.util._
 
 import prism.exceptions._

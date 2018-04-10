@@ -34,7 +34,7 @@ trait Logging {
 
   def dbgblk[T](pred:Boolean, header:Option[String], s:String)(block: =>T):T = if (pred) logger.emitBlock(promp(header, s))(block) else block
   def dbgblk[T](s:String)(block: =>T):T = dbgblk(debug, None, s)(block)
-  def dbgblk[T](pred:Boolean, s:String)(block: =>T):T = dbgblk(pred:Boolean, None, s)(block)
+  def dbgblk[T](pred:Boolean, s:String)(block: =>T):T = dbgblk(pred, None, s)(block)
 
   def dbg(pred:Boolean, header:Option[String], s:Any):Unit = if (pred) logger.emitln(promp(header, s))
   def dbg(pred:Boolean, header:String, s:Any):Unit = dbg(pred, Some(header), s) 
