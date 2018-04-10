@@ -6,7 +6,6 @@ import prism.collection.immutable._
 
 trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
-  override def debug = PIRConfig.debugRouting
   def routingVerbosity:Int = PIRConfig.routingVerbosity
 
   private lazy val dpfx = debug && routingVerbosity > 0

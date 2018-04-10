@@ -3,6 +3,7 @@ package prism.util
 import prism._
 
 import java.io._
+import scala.io._
 
 trait FileManager { 
 
@@ -91,5 +92,11 @@ trait FileManager {
   def dirName(fullPath:String) = fullPath.split(separator).dropRight(1).mkString(separator)
 
   def baseName(fullPath:String) = fullPath.split(separator).last
+
+  def exists(path:String) = {
+    new File(path).exists
+  }
+
+  def getLines(path:String) = Source.fromFile(path).getLines.toArray
 
 }

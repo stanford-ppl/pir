@@ -24,7 +24,9 @@ trait Compiler {
 
   val configs:List[GlobalConfig]
 
-  def setArgs(args: Array[String]):Unit = {
+  def setArgs(inputArgs: Array[String]):Unit = {
+    val args = loadArgs(inputArgs)
+    info(s"args=[${args.mkString(", ")}]")
     if (args.contains("--help")) {
       configs.foreach(_.printUsage)
       System.exit(0)
@@ -61,7 +63,6 @@ trait Compiler {
   }
 
   def main(args: Array[String]): Unit = {
-    info(s"args=[${args.mkString(", ")}]")
     try {
       reset
       setArgs(args)

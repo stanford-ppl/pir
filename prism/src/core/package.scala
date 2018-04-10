@@ -1,6 +1,6 @@
 import prism.util._
 
-package object prism extends ScalaAlias with Serialization with Misc with FileManager {
+package object prism extends ScalaAlias with Serialization with Misc with ArgLoader with FileManager {
   type Design = prism.node.Design
   type Logging = prism.codegen.Logging
 

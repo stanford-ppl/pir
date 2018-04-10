@@ -52,3 +52,4 @@ tags
 .settings
 lib/
 *.!*
+.prismrc
