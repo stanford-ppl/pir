@@ -39,9 +39,4 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
     })
   }
 
-  override def quote(n:Any) = n match {
-    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
-    case n => super.quote(n)
-  }
-
 }

@@ -12,7 +12,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
   // (N, A, C): (Node, Action, Cost)
   type BackPointer = mutable.Map[N, (N,A,C)]
   type Explored = mutable.ListBuffer[N]
-  type Route = List[(N,A)]
+  type Route = List[A]
 
   implicit val cnu:Numeric[C]
 
@@ -112,12 +112,12 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
     backPointers:BackPointer, 
   ):(Route, C) = {
     var totalCost = cnu.zero
-    val history = mutable.ListBuffer[(N, A)]()
+    val history = mutable.ListBuffer[A]()
     var current = end
     while (current != start) {
       val (prevNode, action, cost) = backPointers(current)
       totalCost = cnu.plus(totalCost, cost)
-      history += ((current, action))
+      history += action
       current = prevNode
     }
     return (history.toList.reverse, totalCost)

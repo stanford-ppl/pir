@@ -56,7 +56,9 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   def tailToHead(pmap:PIRMap, scuS:Routable, endHeads:Option[List[PT]])(tail:Edge) = {
     val heads = (tail match {
-      case tail:FIMap.V => tail.connected
+      case tail:FIMap.V => tail.connected.filter { head =>
+        pmap.fimap.get(head).fold(true) { _ == tail }
+      }
       case tail:FIMap.K if pmap.fimap.contains(tail) => List(pmap.fimap(tail))
       case tail:FIMap.K => tail.connected
     }).toList.asInstanceOf[List[Edge]]
@@ -153,6 +155,7 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
   }
 
   def set(pmap:PIRMap, portP:GlobalIO, portS:PT) = {
+    dbg(2, s"setPort: ${quote(portP)} -> ${quote(portS)}")
     (portP, portS) match {
       case (portP:InMap.K, portS:InMap.V) => pmap.flatMap[InMap] { _.set(portP, portS) }
       case (portP:OutMap.K, portS:OutMap.V) => pmap.flatMap[OutMap] { _.set(portP, portS) }
@@ -161,6 +164,7 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
   }
 
   def set(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
+    dbg(2, s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")
     (tail, head) match {
       case (tail:FIMap.K, head:FIMap.V) =>
         fimap + (tail, head)
@@ -170,27 +174,39 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     }
   }
 
-  def set(pmap:PIRMap, route:Route, headP:GlobalIO, tailP:GlobalIO):EOption[PIRMap] = {
+  def set(
+    pmap:PIRMap, 
+    route:Route, 
+    headP:GlobalIO, 
+    tailP:GlobalIO
+  ):EOption[PIRMap] = dbgblk(2, s"set route from ${quote(headP)} to ${quote(tailP)}"){
+    dbg(2, s"route:")
+    dbg(2, quote(route))
     Right(pmap).flatMap { pmap =>
-      val (_, (tailS,_)) = route.head
+      val (tailS,_) = route.head
       set(pmap, tailP, tailS)
     }.flatMap { pmap =>
-      val (_, (_,headS)) = route.last
+      val (_,headS) = route.last
       set(pmap, headP, headS)
     }.map { pmap =>
       pmap.map[FIMap] { fimap =>
         var fm = fimap
         route.iterator.sliding(size=2,step=1).foreach {
-          case List((reached1S, (tail1S, head1S)), (reached2S, (tail2S, head2S))) =>
+          case List((tail1S, head1S), (tail2S, head2S)) =>
             fm = set(fm, tail1S.external, head1S.external)
             fm = set(fm, head1S.internal, tail2S.internal)
-          case List((reached1S, (tail1S, head1S))) =>  // If only 1 element in route
+          case List((tail1S, head1S)) =>  // If only 1 element in route
         }
-        val (_, (tailS, headS)) = route.last
+        val (tailS, headS) = route.last
         fm = set(fm, tailS.external, headS.external)
         fm
       }
     }
+  }
+
+  override def quote(n:Any) = n match {
+    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n => super.quote(n)
   }
 
 }
