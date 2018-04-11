@@ -6,14 +6,12 @@ import spade.node._
 class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing with Debugger {
   import pirmeta._
 
-  private lazy val dpfx = debug && routingVerbosity > 0
-
-  def shouldRun = isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
+  def shouldRun = PIRConfig.mapping && isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
 
   def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     val unmapped = pmap.cumap.freeKeys.toSet
     pmap.flatMap[CUMap] { cumap => 
-      dbgblk(dpfx, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
+      dbgblk(1, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
     }.flatMap { pmap =>
       breakPoint(pmap) {
         route(cuP, addIOs(pmap,cuP))

@@ -9,7 +9,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   import pirmeta._
 
   type N = PIRNode with Product
-  def shouldRun = true
+  def shouldRun = PIRConfig.mapping
 
   constrains += AFGConstrain
   constrains += DFGConstrain

@@ -7,7 +7,7 @@ import scala.collection.mutable
 class DynamicCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking {
   import pirmeta._
 
-  def shouldRun = isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
+  def shouldRun = PIRConfig.mapping && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top)
 
   override def runPass(runner:RunPass[_]) =  {
     pirMap = pirMap.flatMap { pmap =>

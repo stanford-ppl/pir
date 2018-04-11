@@ -10,7 +10,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
   import pirmeta._
   import spademeta._
 
-  def shouldRun = Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.isRight
+  def shouldRun = PIRConfig.mapping && Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.isRight
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
 
   val fileName = s"${compiler}.psim"

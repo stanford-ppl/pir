@@ -80,7 +80,7 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     val scuS = pmap.cumap.mappedValue(scuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuS=${quote(scuS)}")
+    dbg(2, s"scuS=${quote(scuS)}")
     uniformCostSpan(
       start=startBundle, 
       advance=advance(
@@ -110,9 +110,9 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
     val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuS=${quote(scuS)}")
-    dbg(s"ecuS=${quote(ecuS)}")
-    dbg(s"endHeads=${endHeads.map(quote)}")
+    dbg(2, s"scuS=${quote(scuS)}")
+    dbg(2, s"ecuS=${quote(ecuS)}")
+    dbg(2, s"endHeads=${endHeads.map(quote)}")
     uniformCostSearch (
       start=startBundle, 
       end=endBundle,

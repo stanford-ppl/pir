@@ -47,20 +47,22 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
         dbg(s"localMem: $mem, notFull:$notFull")
         notFull
     }
-    notFulls ++= context.collectDown[GlobalOutput]().flatMap { gout =>
-      gout.collect[LocalStore](visitFunc=(n:N) => n match { case n:Memory => Nil; case n => n.visitGlobalOut(n)}).flatMap {
-        case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
-        case Def(writer, LocalStore(mem::Nil, _, _)) => 
-          val notFull:Def = if (compiler.arch.topParam.busWithReady) {
-            allocateWithFields[DataReady](gout)(context)
-          } else {
-            val writerCtx = contextOf(writer).get
-            val notFull = allocateWithFields[NotFull](mem)(writerCtx)
-            insertGlobalIO(notFull, context)(allocateWithFields[High]()(writerCtx))(allocateWithFields[High]()(context))
-          }
-          dbg(s"removeMem: $mem, notFull:$notFull")
-          Some(notFull)
-      }
+    val remoteStores = context.collect[LocalStore](visitFunc=(n:N) => n match { case n:Memory => Nil; case n => n.visitGlobalOut(n)})
+    dbg(s"remoteStores=${quote(remoteStores)}")
+    notFulls = notFulls ++ remoteStores.flatMap {
+      case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
+      case Def(writer, LocalStore(mem::Nil, _, _)) => 
+        val notFull:Def = if (compiler.arch.topParam.busWithReady) {
+          val accessDone = accessDoneOf(writer).asInstanceOf[DataValid]
+          val gout = accessDone.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
+          allocateWithFields[DataReady](gout)(context)
+        } else {
+          val writerCtx = contextOf(writer).get
+          val notFull = allocateWithFields[NotFull](mem)(writerCtx)
+          insertGlobalIO(notFull, context)(allocateWithFields[High]()(writerCtx))(allocateWithFields[High]()(context))
+        }
+        dbg(s"remoteMem: $mem, notFull:$notFull")
+        Some(notFull)
     }
     notFulls
   }
