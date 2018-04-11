@@ -39,7 +39,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
   override def emitNode(n:N) = n match {
     case n:ComputeContext if ctxEnOf(n).nonEmpty =>
       emitNodeBlock(s"node $n # ${globalOf(n).get}") {
-        val stages = n.collectDown[StageDef]()
+        val cuP = globalOf(n).get
+        val cuS = cumap.mappedValue(cuP)
+        val stages = cuS.collectDown[Stage]()
         emitln(s"lat = ${Math.max(stages.size, 1)}")
         emitInByLocalLoad(n)
         emitOutByGlobalOutput(n)
@@ -59,8 +61,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
           dbgblk(qdef(mem)) {
             writersOf(mem).foreach { case (store) =>
               emitln(s"link_in[$idx] = $store")
-              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               emitln(s"scale_in[$idx] = ${csize / 4 / parOf(data).get}") // size in bytes to words
+              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               idx = idx+1
               linkDst(store) = n
             }
@@ -79,8 +81,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
           dbgblk(qdef(mem)) {
             writersOf(mem).zipWithIndex.foreach { case (store, idx) =>
               emitln(s"link_in[$idx] = $store")
-              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               emitln(s"scale_in[$idx] = 1")
+              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
               linkDst(store) = n
             }
           }
@@ -263,10 +265,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
         val store = stores.head
         dbg(s"store=${qtype(store)}")
         emitln(s"link_in[$idx] = $store")
-        emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
         val loadCount = itersOf(accessNextOf(load))
         dbg(s"loadCount=$loadCount")
         emitln(s"scale_in[$idx] = $loadCount")
+        emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
         linkDst(store) = n
       }
     }

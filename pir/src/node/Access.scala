@@ -40,6 +40,18 @@ object WithWriter {
     case _ => None
   }
 }
+object WithReaders {
+  def unapply(n:Any)(implicit pass:PIRPass):Option[List[LocalLoad]] = n match {
+    case n:Memory => Some(readersOf(n).toList)
+    case _ => None
+  }
+}
+object WithReader {
+  def unapply(n:Any)(implicit pass:PIRPass):Option[LocalLoad] = n match {
+    case n:Memory if readersOf(n).size == 1 => Some(readersOf(n).head)
+    case _ => None
+  }
+}
 
 // Write without address
 case class ReadMem(mem:Memory)(implicit design:PIRDesign) extends LocalLoad

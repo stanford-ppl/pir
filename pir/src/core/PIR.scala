@@ -26,6 +26,7 @@ trait PIR extends Compiler with PIRWorld {
   /* Analysis */
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
+  lazy val plastisimAnalyzer = new PlastisimAnalyzer()
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
@@ -49,6 +50,7 @@ trait PIR extends Compiler with PIRWorld {
   /* Codegen */
   lazy val cuStats = new CUStatistics()
   lazy val plastisimConfigCodegen = new PlastisimConfigCodegen()
+  lazy val plastisimConfigCodegenNew = new PlastisimConfigCodegenNew()
 
   /* Simulator */
 
@@ -109,8 +111,12 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
+
     //// Mapping
     session.rerun {
+    // Simulation analyzer
+    addPass(plastisimAnalyzer)
+
     addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(new PIRIRDotCodegen(s"top.dot"))
     addPass(new ControlDotCodegen(s"top-ctrl.dot"))
@@ -128,6 +134,7 @@ trait PIR extends Compiler with PIRWorld {
 
     // Codegen
     addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)
+    addPass(plastisimConfigCodegenNew).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
 
     // Simulation
 

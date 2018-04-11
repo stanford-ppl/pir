@@ -62,8 +62,16 @@ class PIRMetadata extends Metadata {
   val boundOf = new OneToOneMap[PIRNode, Any] with MetadataMap
   boundOf.setName("boundOf")
 
+  /*
+   * bufferDepth of on chip mem
+   * */
   val bufferDepthOf = new OneToOneMap[Memory, Int] with MetadataMap
   bufferDepthOf.setName("bufferDepthOf")
+
+  /* ------------- Plastsim metadata (start) ---------- */
+  val linkScaleInOf = new OneToOneMap[LocalStore, Int]()
+  val linkScaleOutOf = new OneToOneMap[LocalStore, Int]()
+  /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
 

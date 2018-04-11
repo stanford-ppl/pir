@@ -113,7 +113,11 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
       case n:NotFull => Nil
       case n => n.visitGlobalOut(n)
     }
-    mem.collect[LocalLoad](visitFunc=mem.visitGlobalOut)
+    mem.collect[LocalLoad](visitFunc={ 
+      case n:NotEmpty => Nil
+      case n:NotFull => Nil
+      case n => mem.visitGlobalOut(n) 
+    })
   }
 
   def accessesOf(mem:Memory)(implicit pass:PIRPass):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
@@ -136,7 +140,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     ctrlsOf(container).maxBy { _.ancestors.size }
   }
 
-  def ctxEnOf(n:ComputeContext):Option[ContextEnable] = {
+  def ctxEnOf(n:Container):Option[ContextEnable] = {
     n.collectDown[ContextEnable]().headOption
   }
 
