@@ -49,28 +49,46 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     }
   }
 
-  def portsS(start:GlobalIO, pmap:PIRMap) = start match {
-    case start:GlobalInput => pmap.inmap(start).toList.asInstanceOf[List[PT]]
-    case start:GlobalOutput => pmap.outmap(start).toList.asInstanceOf[List[PT]]
+  def portsS(port:GlobalIO, pmap:PIRMap) = port match {
+    case port:GlobalInput => pmap.inmap(port).toList.asInstanceOf[List[PT]]
+    case port:GlobalOutput => pmap.outmap(port).toList.asInstanceOf[List[PT]]
   }
-  def tailToHead(pmap:PIRMap)(tail:Edge) = (tail match {
-    case tail:FIMap.V => tail.connected
-    case tail:FIMap.K if pmap.fimap.contains(tail) => List(pmap.fimap(tail))
-    case tail:FIMap.K => tail.connected
-  }).toList.asInstanceOf[List[Edge]]
+
+  def tailToHead(pmap:PIRMap, scuS:Routable, endHeads:Option[List[PT]])(tail:Edge) = {
+    val heads = (tail match {
+      case tail:FIMap.V => tail.connected
+      case tail:FIMap.K if pmap.fimap.contains(tail) => List(pmap.fimap(tail))
+      case tail:FIMap.K => tail.connected
+    }).toList.asInstanceOf[List[Edge]]
+    endHeads.fold {
+      heads
+    } { endHeads =>
+      heads.filter { head =>
+        routableOf(head.src).get match {
+          case rt:SwitchBox => true
+          case rt:Routable => endHeads.contains(head.src)
+        }
+      }
+    }
+  }
 
   def span(
     start:GlobalIO, 
     pmap:PIRMap
   ):Seq[Routable] = dbgblk(2, s"span(${quote(start)}, ${spanMaxCost(start)})") {
-    val cuP = globalOf(start).get
-    val cuS = pmap.cumap.mappedValue(cuP)
+    val scuP = globalOf(start).get
+    val scuS = pmap.cumap.mappedValue(scuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    val maxCost = spanMaxCost(start)
+    dbg(s"scuS=${quote(scuS)}")
     uniformCostSpan(
       start=startBundle, 
-      advance=advance(cuS, None, startTails, tailToHead(pmap) _, maxCost)_,
+      advance=advance(
+        startTails=startTails,
+        tailToHead=tailToHead(pmap, scuS, None) _,
+        heuristic={ newState => 0 },
+        maxCost=spanMaxCost(start)
+      ) _,
     ).flatMap { case (bundle, cost) => 
       routableOf(bundle).get match {
         case sb:SwitchBox => None
@@ -79,28 +97,31 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     }
   }
 
-  def isEnd(endTails:List[PT])(n:Bundle[_], backPointers:BackPointer) = {
-    val (_, (tail, head), _) = backPointers(n)
-    endTails.contains(head)
-  }
-
   def search[M](
     start:GlobalIO, 
     end:GlobalIO,
     pmap:PIRMap
   ):EOption[Route] = dbgblk(2, s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}") {
     val startTails = portsS(start, pmap)
-    val endTails = portsS(end, pmap)
+    val endHeads = portsS(end, pmap)
     val scuP = globalOf(start).get
     val scuS = pmap.cumap.mappedValue(scuP)
     val ecuP = globalOf(end).get
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    val maxCost = searchMaxCost(start, end)
+    val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
+    dbg(s"scuS=${quote(scuS)}")
+    dbg(s"ecuS=${quote(ecuS)}")
+    dbg(s"endHeads=${endHeads.map(quote)}")
     uniformCostSearch (
       start=startBundle, 
-      isEnd=isEnd(endTails) _,
-      advance=advance(scuS, Some(ecuS), startTails, tailToHead(pmap) _, maxCost)_
+      end=endBundle,
+      advance=advance(
+        startTails=startTails,
+        tailToHead=tailToHead(pmap, scuS, Some(endHeads)) _,
+        heuristic=heuristic(ecuS) _,
+        maxCost=searchMaxCost(start, end)
+      ) _
     )
   }
 

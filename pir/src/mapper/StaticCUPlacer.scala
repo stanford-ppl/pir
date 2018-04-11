@@ -12,10 +12,10 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
 
   def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     val unmapped = pmap.cumap.freeKeys.toSet
-    breakPoint(pmap) {
-      pmap.flatMap[CUMap] { cumap => 
-        dbgblk(dpfx, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
-      }.flatMap { pmap =>
+    pmap.flatMap[CUMap] { cumap => 
+      dbgblk(dpfx, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
+    }.flatMap { pmap =>
+      breakPoint(pmap) {
         route(cuP, addIOs(pmap,cuP))
       }
     }

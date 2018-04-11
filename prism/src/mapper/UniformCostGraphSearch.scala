@@ -7,7 +7,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
   def routingVerbosity:Int
 
   def dbg(verbosity:Int, msg:Any):Unit = dbg(debug && routingVerbosity >= verbosity, msg)
-  def dbgblk[T](verbosity:Int, msg:Any)(block: => T):T = dbgblk(debug && routingVerbosity > verbosity, msg.toString)(block)
+  def dbgblk[T](verbosity:Int, msg:Any)(block: => T):T = dbgblk(debug && routingVerbosity >= verbosity, msg.toString)(block)
 
   // (N, A, C): (Node, Action, Cost)
   type BackPointer = mutable.Map[N, (N,A,C)]
@@ -26,29 +26,20 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
    * */
   def uniformCostSearch(
     start:N, 
-    isEnd:(N, BackPointer) => Boolean,
+    end:N,
     advance:(N, BackPointer, C) => Seq[(N,A,C)]
   ):EOption[Route] = {
-
-    def terminate(minNode:N, backPointers:BackPointer):Option[Route] = {
-      if (minNode != start && isEnd(minNode, backPointers)) {
-        val (route, cost) = extractHistory(start, minNode, backPointers)
-        Some(route)
-      } else {
-        None
-      }
-    }
-
-    def cleanUp(explored:Explored, backPointers:BackPointer):EOption[Route] = {
-      return Left(SearchFailure(s"No route from ${quote(start)}"))
-    }
-
-    uniformCostTraverse[Route](
+    val backPointers = uniformCostTraverse(
       start=start,
-      advance=advance,
-      terminate=terminate,
-      cleanUp=cleanUp
+      end=Some(end),
+      advance=advance
     )
+    if (backPointers.contains(end)) {
+      val (route, cost) = extractHistory(start, end, backPointers)
+      Right(route)
+    } else {
+      Left(SearchFailure(s"No route from ${quote(start)} to ${quote(end)}"))
+    }
   }
 
   /*
@@ -58,32 +49,21 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
     start:N, 
     advance:(N, BackPointer, C) => Seq[(N,A,C)]
   ):Seq[(N,C)] = {
-
-    def terminate(minNode:N, backPointers:BackPointer):Option[Seq[(N,C)]] = { 
-      return None
-    }
-
-    def cleanUp(explored:Explored, backPointers:BackPointer):EOption[Seq[(N,C)]] = {
-      Right(explored.map { n => (n, extractHistory(start, n, backPointers)._2) }.toList)
-    }
-
-    uniformCostTraverse(
+    val backPointers = uniformCostTraverse(
       start=start,
-      advance=advance,
-      terminate=terminate,
-      cleanUp=cleanUp
-    ).right.get
+      end=None,
+      advance=advance
+    )
+    backPointers.keys.toList.map { n => (n, extractHistory(start, n, backPointers)._2) }
   }
 
-  def uniformCostTraverse[M](
+  def uniformCostTraverse(
     start:N, 
-    advance:(N, BackPointer, C) => Seq[(N,A,C)],
-    terminate:(N, BackPointer) => Option[M],
-    cleanUp:(Explored, BackPointer) => EOption[M]
-  ):EOption[M] = {
+    end:Option[N],
+    advance:(N, BackPointer, C) => Seq[(N,A,C)]
+  ):BackPointer = {
 
-    val explored:Explored = mutable.ListBuffer[N]()
-
+    val explored:Explored = ListBuffer[N]()
     val backPointers:BackPointer = mutable.Map[N, (N,A,C)]()
 
     var frontier = mutable.PriorityQueue[State]()
@@ -91,31 +71,28 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
     frontier += State(start, cnu.zero)
 
     while (!frontier.isEmpty) {
-      dbg(2, s"frontier: ${frontier}")
+      dbg(3, s"frontier: ${frontier}")
 
       val State(minNode, pastCost) = frontier.dequeue()
-
       explored += minNode
-      terminate(minNode, backPointers).foreach { res => 
-        return Right(res)
-      }
 
       var neighbors:Seq[(N, A, C)] = advance(minNode, backPointers, pastCost)
-
-      neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
 
       neighbors = neighbors.groupBy { case (n, a, c) => n }.map { case (n, groups) =>
         groups.minBy { case (n, a, c) => c }
       }.toSeq
 
-      dbg(2, s"neighbors minBy:")
-      dbg(2, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
+
+      dbg(3, s"neighbors minBy:")
+      dbg(3, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = cnu.plus(pastCost, cost)
-        frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit]{
+        frontier.filter { case State(n,c) => n == neighbor }.headOption.fold [Unit] {
           frontier += State(neighbor, newCost)
           backPointers += neighbor -> ((minNode, action, cost))
+          if (end == Some(neighbor)) return backPointers
         } { node =>
           if (cnu.lt(newCost, node.cost)) {
             node.cost = newCost
@@ -126,7 +103,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
       }
     }
 
-    cleanUp(explored, backPointers)
+    backPointers
   }
 
   def extractHistory(
