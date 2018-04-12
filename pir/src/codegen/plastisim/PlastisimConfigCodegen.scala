@@ -48,7 +48,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
         emitOutByLocalStore(n)
       }
     case n:FringeContainer if isLoadFringe(n) =>
-      emitNodeBlock(s"node $n") {
+      emitNodeBlock(s"node $n # DRAM Load") {
         emitln(s"trace = 0")
         emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
         emitOutByGlobalOutput(n)
@@ -70,7 +70,27 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PIRCodegen with pir
         }
       }
     case n:FringeContainer if isStoreFringe(n) => 
-      assert(false, s"TODO: add backend for storeFringe")
+      emitNodeBlock(s"node $n # DRAM Store") {
+        emitln(s"trace = 0")
+        emitlnc(s"lat = 100", s"assume dram latency of 100 cycles")
+        emitOutByGlobalOutput(n)
+        val size = n.collectDown[StreamOut]().filter { _.field == "size" }.head
+        val data = n.collectDown[StreamIn]().filter { _.field == "data" }.head
+        val csize = getConstOf[Int](size)
+        var idx = 0;
+        dbg(s"csize = $csize")
+        n.collectDown[StreamOut]().foreach { mem =>
+          dbgblk(qdef(mem)) {
+            writersOf(mem).foreach { case (store) =>
+              emitln(s"link_in[$idx] = $store")
+              emitln(s"scale_in[$idx] = ${csize / 4 / parOf(data).get}") // size in bytes to words
+              emitln(s"buffer[$idx] = ${bufferSizeOf(store)}")
+              idx = idx+1
+              linkDst(store) = n
+            }
+          }
+        }
+      }
     case n:pir.node.ArgFringe =>
       emitNodeBlock(s"node ${n}_out") {
         emitOutByGlobalOutput(n)

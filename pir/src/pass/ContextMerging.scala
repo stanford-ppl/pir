@@ -42,7 +42,11 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
    * ctx1 and ctx2 are not data dependent 
    * */
   def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = {
-    !ctx1.canReach(ctx2, visitLocalIn) && !ctx1.canReach(ctx2, visitLocalOut)
+    def visitFunc(n:PIRNode) = n match {
+      case n:StreamIn => n.collectPeer[StreamOut]() // StreamIn depends on StreamOut in fringe
+      case n => visitLocalIn(n)
+    }
+    !ctx1.canReach(ctx2, visitFunc _) && !ctx2.canReach(ctx1, visitFunc _)
   }
 
   def mergeContexts(cus:Iterable[GlobalContainer]) = {

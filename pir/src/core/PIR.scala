@@ -99,13 +99,14 @@ trait PIR extends Compiler with PIRWorld {
     addPass(contextInsertion)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
-    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(new PIRIRDotCodegen(s"top11.dot"))
+    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(accessControlLowering).dependsOn(controlAllocator, controlLowering) // Lower access and counter to EnabledAccess and EnabledCounters
-    addPass(new PIRIRDotCodegen(s"top12.dot"))
-    addPass(deadCodeEliminator)
     addPass(new PIRIRDotCodegen(s"top13.dot"))
+    addPass(deadCodeEliminator)
+    addPass(new PIRIRDotCodegen(s"top14.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
