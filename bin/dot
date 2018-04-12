@@ -28,6 +28,11 @@ fi
 
 dot $FLAG -T$EXT -o $FILE.$EXT $FILE.dot
 
+# Do not open
+if [[ $OPT == "-"*"n"*  ]]; then
+  exit
+fi
+
 if [[ $EXT == "pdf"  ]]; then
 	if [ "$(uname)" == "Darwin" ]; then
 		# Do something under Mac OS X platform        

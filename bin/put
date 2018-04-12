@@ -1,0 +1,21 @@
+#!/bin/bash
+
+if [[ $1 == "-"*  ]]; then
+	OPT=$1
+	FILE=$2
+else
+	FILE=$1
+fi
+
+if [[ $OPT == "-"*"t"*  ]]; then
+	HOST=tucson
+elif [[ $OPT == "-"*"l"* ]]; then
+	HOST=london
+fi
+
+FLAG=""
+if [[ $OPT == "-"*"r"*  ]]; then
+	FLAG="$FLAG -r"
+fi
+
+scp $FLAG $FILE yaqiz@$HOST.stanford.edu:~/pir/out/$FILE 
