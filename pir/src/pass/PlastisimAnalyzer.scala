@@ -40,6 +40,8 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
         linkScaleInOf(store) = csize / 4 / parOf(data).get // size in bytes to words
       case mem:ArgOut =>
         linkScaleInOf(store) = 1
+      case mem:TokenOut =>
+        linkScaleInOf(store) = 1
       case WithReader(Def(reader, EnabledLoadMem(mem, addrs, readNext))) => // enabledMem should only have one reader
         linkScaleInOf(store) = itersOf(readNext)
     }

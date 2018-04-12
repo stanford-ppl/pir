@@ -147,7 +147,7 @@ class PlastisimConfigCodegenNew(implicit compiler: PIR) extends PIRCodegen {
     val dst = mem match {
       case mem:StreamOut => ctxEnOf(globalOf(mem).get).get
       case mem:ArgOut => globalOf(mem).get
-      case mem => mem.collectOutTillMem[ContextEnable]().head
+      case WithReader(load) => load.collectInTillMem[ContextEnable]().head
     }
     val srcCUP = globalOf(src).getOrElse(src).asInstanceOf[GlobalContainer]
     val dstCUP = globalOf(dst).getOrElse(dst).asInstanceOf[GlobalContainer]
