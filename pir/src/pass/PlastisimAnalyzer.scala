@@ -15,7 +15,7 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
     linkScaleOutOf.clear
   }
 
-  def shouldRun = spade.node.isMesh(compiler.arch.top) && spade.node.isDynamic(compiler.arch.top)
+  def shouldRun = spade.node.isMesh(compiler.arch.top)
 
   override def runPass =  {
     traverseNode(compiler.top)

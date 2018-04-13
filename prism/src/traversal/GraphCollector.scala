@@ -4,7 +4,7 @@ import prism.node._
 
 trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
 
-  class TypeCollector[M<:ND:ClassTag](logger:Option[Logging], vf:ND => List[ND]) extends BFSTraversal with GraphUtil {
+  class TypeCollector[M<:ND:ClassTag](logger:Option[Logging], vf:ND => List[ND]) extends DFSTraversal with GraphUtil {
     type T = List[M]
     type N = (ND, Int)
 
@@ -33,7 +33,7 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
     }
   }
  
-  def collect[M<:ND:ClassTag](visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[M] = {
+  def collect[M<:ND:ClassTag](visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[M] = dbgblk(logger, s"collect($this, depth=$depth)") {
     new TypeCollector[M](logger, visitFunc).traverse((this, depth), Nil)
   }
 

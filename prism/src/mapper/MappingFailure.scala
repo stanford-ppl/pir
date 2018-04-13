@@ -5,7 +5,7 @@ import prism.exceptions._
 // Continue search when exception is raised
 trait MappingFailure
 
-case class SearchFailure(msg:String) extends MappingFailure
+case class SearchFailure(from:Any, to:Any, msg:String) extends MappingFailure
 case object NotReachedEnd extends MappingFailure
 
 case class BindingTrace[P,M](pnode:P, mapping:M) extends MappingFailure {
@@ -16,4 +16,3 @@ case class BindingTrace[P,M](pnode:P, mapping:M) extends MappingFailure {
     case f => f
   }
 }
-

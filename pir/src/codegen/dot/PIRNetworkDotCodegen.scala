@@ -41,6 +41,12 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
     case n => super.color(attr, n)
   }
 
+  override def label(attr:DotAttr, n:Any) = (n, mapping) match {
+    case (n:Routable, mapping:CUMap) if isUsed(n, mapping) => attr.label(s"${quote(n)}\n(${quote(mapping.mappedKey(n))})")
+    case (n:Routable, mapping:PIRMap) if isUsed(n, mapping) => attr.label(s"${quote(n)}\n(${quote(mapping.cumap.mappedKey(n))})")
+    case (n, mapping) => super.label(attr,n)
+  }
+
   override def emitEdge(from:prism.node.Edge[N], to:prism.node.Edge[N], attr:DotAttr):Unit = {
     super.emitEdge(from, to, color(attr, (from, to)))
   }

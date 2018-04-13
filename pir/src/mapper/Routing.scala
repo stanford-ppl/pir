@@ -4,7 +4,7 @@ import pir.node._
 import spade.node._
 import prism.collection.immutable._
 
-trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
+trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass =>
 
   def routingVerbosity:Int = PIRConfig.routingVerbosity
 
@@ -114,17 +114,20 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
     val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
     dbg(2, s"scuS=${quote(scuS)}")
     dbg(2, s"ecuS=${quote(ecuS)}")
+    dbg(2, s"startTails=${startTails.map(quote)}")
     dbg(2, s"endHeads=${endHeads.map(quote)}")
-    uniformCostSearch (
-      start=startBundle, 
-      end=endBundle,
-      advance=advance(
-        startTails=startTails,
-        tailToHead=tailToHead(pmap, scuS, Some(endHeads)) _,
-        heuristic=heuristic(ecuS) _,
-        maxCost=searchMaxCost(start, end)
-      ) _
-    )
+    breakPoint(pmap) {
+      uniformCostSearch (
+        start=startBundle, 
+        end=endBundle,
+        advance=advance(
+          startTails=startTails,
+          tailToHead=tailToHead(pmap, scuS, Some(endHeads)) _,
+          heuristic=heuristic(ecuS) _,
+          maxCost=searchMaxCost(start, end)
+        ) _
+      )
+    }
   }
 
   def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = {
@@ -206,6 +209,7 @@ trait Routing extends spade.util.NetworkAStarSearch { self:PIRPass =>
 
   override def quote(n:Any) = n match {
     case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n:PT => s"${quote(n.src)}.${n}"
     case n => super.quote(n)
   }
 

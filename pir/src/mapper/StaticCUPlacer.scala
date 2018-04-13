@@ -3,7 +3,7 @@ package pir.mapper
 import pir.node._
 import spade.node._
 
-class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing with Debugger {
+class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking with Routing {
   import pirmeta._
 
   def shouldRun = PIRConfig.mapping && isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
@@ -13,9 +13,9 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
     pmap.flatMap[CUMap] { cumap => 
       dbgblk(1, s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
     }.flatMap { pmap =>
-      breakPoint(pmap) {
+      //breakPoint(pmap) {
         route(cuP, addIOs(pmap,cuP))
-      }
+      //}
     }
   }
 

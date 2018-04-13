@@ -17,7 +17,9 @@ trait BackTracking { self:Logging =>
         sns.foldLeft[Either[BindingTrace[P,M],M]](Left(BindingTrace(pnode, init))) { case (prev, snode) =>
           prev.left.flatMap { f =>
             dbgblk(s"Try ${quote(pnode)} -> ${quote(snode)}") {
-              f.append(bindLambda(pnode, snode, init).flatMap { m => bind(pnodes - pnode, snodes, m, bindLambda) })
+              val nextTry = bindLambda(pnode, snode, init).flatMap { m => bind(pnodes - pnode, snodes, m, bindLambda) }
+              nextTry.left.foreach { failure => dbg(s"${failure}") }
+              f.append(nextTry)
             }
           }
         }

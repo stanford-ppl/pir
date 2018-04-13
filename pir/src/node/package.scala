@@ -144,17 +144,17 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     n.collectDown[ContextEnable]().headOption
   }
 
-  def goutOf(gin:GlobalInput) = {
-    gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn).headOption
+  def goutOf(gin:GlobalInput, logger:Option[Logging]=None) = {
+    gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn, depth=2, logger=logger).headOption
   }
 
-  def ginsOf(gout:GlobalOutput) = {
-    gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut).toList
+  def ginsOf(gout:GlobalOutput, logger:Option[Logging]=None) = {
+    gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut, depth=2, logger=logger).toList
   }
 
-  def connectedOf(gio:GlobalIO) = gio match {
-    case gio:GlobalInput => goutOf(gio).toList
-    case gio:GlobalOutput => ginsOf(gio)
+  def connectedOf(gio:GlobalIO, logger:Option[Logging]=None) = gio match {
+    case gio:GlobalInput => goutOf(gio, logger).toList
+    case gio:GlobalOutput => ginsOf(gio, logger)
   }
 
   def isGlobalInput(gin:GlobalIO) = gin match {

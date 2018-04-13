@@ -38,7 +38,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
       val (route, cost) = extractHistory(start, end, backPointers)
       Right(route)
     } else {
-      Left(SearchFailure(s"No route from ${quote(start)} to ${quote(end)}"))
+      Left(SearchFailure(start, end, s"No route from ${quote(start)} to ${quote(end)}"))
     }
   }
 
