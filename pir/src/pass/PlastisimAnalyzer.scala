@@ -26,24 +26,35 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
     case n => super.visitNode(n)
   }
 
-  def analyzeLink(n:Link) = {
+  def analyzeLink(n:Link) = dbgblk(s"analyzeLink($n)") {
     // Analyze writer side
     val Def(store, EnabledStoreMem(mem, addrs, data, writeNext)) = n
     linkScaleOutOf(store) = itersOf(writeNext)
     // Analyze reader side
     mem match {
-      case mem:StreamOut =>
+      case mem:StreamOut if mem.field == "size" || mem.field == "offset" =>
         val cuP = globalOf(mem).get
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-        val data = cuP.collectDown[StreamIn]().filter { _.field == "data" }.head
+        val data = (cuP.collectDown[StreamIn]().filter { _.field == "data" } ++
+                    cuP.collectDown[StreamOut]().filter { _.field == "data" }).head
         val csize = getConstOf[Int](size)
         linkScaleInOf(store) = csize / 4 / parOf(data).get // size in bytes to words
+      case mem:StreamOut if mem.field == "data" =>
+        linkScaleInOf(store) = 1
       case mem:ArgOut =>
         linkScaleInOf(store) = 1
       case mem:TokenOut =>
         linkScaleInOf(store) = 1
-      case WithReader(Def(reader, EnabledLoadMem(mem, addrs, readNext))) => // enabledMem should only have one reader
-        linkScaleInOf(store) = itersOf(readNext)
+      case WithReaders(readers) =>
+        val readNexts = readers.map {
+          case Def(reader, EnabledLoadMem(mem, addrs, readNext)) =>
+            readNext
+        }.toSet
+        dbg(s"mem=${quote(mem)}")
+        dbg(s"readers=${quote(readers)}")
+        dbg(s"readNexts=${quote(readNexts)}")
+        assert(readNexts.size==1, s"readNext are different between readers of the same mem $mem")
+        linkScaleInOf(store) = itersOf(readNexts.head)
     }
   }
 

@@ -134,7 +134,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)
+    //addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)
+    addPass(new PlastisimDotCodegen(s"psim.dot"))
     addPass(plastisimConfigCodegenNew).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
 
     // Simulation
