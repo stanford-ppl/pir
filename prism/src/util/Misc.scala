@@ -43,7 +43,10 @@ trait Misc {
   def info(s:String) = emitln(s"[pir] ${s}")
   def infor(s:String) = emit(s"[pir] ${s}\r")
   def succeed(s:Any) = emitln(s"\n[${Console.GREEN}success${Console.RESET}] ${s}")
-  def fail(s:Any) = emitln(s"\n[${Console.RED}failed${Console.RESET}] ${s}")
+  def fail(s:Any) = {
+    emitln(s"\n[${Console.RED}failed${Console.RESET}] ${s}")
+    System.exit(-1)
+  }
   def warn(s:Any):Unit = emitln(s"\n[${Console.YELLOW}warning${Console.RESET}] ${s}\n${getStackTrace(3,5)}")
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
   def errmsg(s:Any):Unit = { emitln(s"\n[${Console.RED}error${Console.RESET}] ${s}") }

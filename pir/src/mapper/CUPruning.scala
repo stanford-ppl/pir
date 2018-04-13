@@ -2,6 +2,7 @@ package pir.mapper
 
 import pir.node._
 import spade.node._
+import prism.collection.immutable._
 
 import scala.collection.mutable
 
@@ -17,6 +18,12 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   constrains += VectorFIFOConstrain
   constrains += ScalarFIFOConstrain
   constrains += ControlFIFOConstrain
+  constrains += VectorInputConstrain
+  constrains += ScalarInputConstrain
+  constrains += ControlInputConstrain
+  constrains += VectorOutputConstrain
+  constrains += ScalarOutputConstrain
+  constrains += ControlOutputConstrain
   constrains += StageConstrain
   constrains += LaneConstrain
   //constrains += CUArcConsistencyConstrain
@@ -33,6 +40,10 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
 
   override def runPass(runner:RunPass[_]) =  {
     pirMap = pirMap.flatMap { pmap => log(prune(pmap.set[CUMap](initCUMap))) }
+    pirMap.left.map {
+      case f@InvalidFactorGraph(fg, k) =>
+        fail(s"CUPruning failed. ${f}")
+    }
   }
 
 }

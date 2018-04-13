@@ -13,31 +13,26 @@ trait Constrain {
     pmap.flatMap[FG](field => prune(field))
   }
 }
-trait PrefixConstrain extends Constrain {
-  def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean
-  def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean
+trait CostConstrain extends Constrain {
+  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
     import pass.{pass => _, _}
     fg.filter { case (cuP,cuS) =>
-      val factor = prefixKey(cuP) == prefixValue(cuS)
+      val factor = fit(cuP, cuS)
       pass.dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
       factor
     }
   }
 }
-trait QuantityConstrain extends Constrain {
+trait PrefixConstrain extends CostConstrain {
+  def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean
+  def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean
+  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean = prefixKey(cuP) == prefixValue(cuS)
+}
+trait QuantityConstrain extends CostConstrain {
   def numPNodes(cuP:K)(implicit pass:PIRPass):Int
   def numSnodes(cuS:V)(implicit pass:PIRPass):Int
-  def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
-    import pass.{pass => _, _}
-    fg.filter { case (cuP,cuS) =>
-      val np = numPNodes(cuP)
-      val ns = numSnodes(cuS)
-      val factor = np <= ns
-      pass.dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor pnodes=$np snodes=$ns")
-      factor
-    }
-  }
+  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean = numPNodes(cuP) <= numSnodes(cuS)
 }
 trait ArcConsistencyConstrain extends Constrain {
   def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {

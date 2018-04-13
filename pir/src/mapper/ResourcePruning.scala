@@ -5,6 +5,5 @@ trait ResourcePruning { self:PIRPass =>
   def prune(pmap:PIRMap):EOption[PIRMap] = {
     flatFold(constrains, pmap) { case (pmap, constrain) => constrain.prune(pmap) }
   }
-  
 }
 
