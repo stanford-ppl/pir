@@ -8,7 +8,7 @@ class PlastisimConfigCodegenNew(implicit compiler: PIR) extends PlastisimCodegen
   import pirmeta._
   import spademeta._
 
-  val fileName = s"${compiler}.psim.new"
+  val fileName = s"${compiler}.psim"
 
   // Execution of codegen
   override def runPass = {

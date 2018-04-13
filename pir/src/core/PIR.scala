@@ -50,7 +50,6 @@ trait PIR extends Compiler with PIRWorld {
   /* Codegen */
   lazy val cuStats = new CUStatistics()
   lazy val plastisimConfigCodegen = new PlastisimConfigCodegen()
-  lazy val plastisimConfigCodegenNew = new PlastisimConfigCodegenNew()
 
   /* Simulator */
 
@@ -134,9 +133,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    //addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer)
     addPass(new PlastisimDotCodegen(s"psim.dot"))
-    addPass(plastisimConfigCodegenNew).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
+    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
 
     // Simulation
 
