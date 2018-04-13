@@ -42,14 +42,14 @@ trait Misc {
 
   def info(s:String) = emitln(s"[pir] ${s}")
   def infor(s:String) = emit(s"[pir] ${s}\r")
-  def succeed(s:Any) = emitln(s"\n[${Console.GREEN}success${Console.RESET}] ${s}")
+  def succeed(s:Any) = emitln(s"[${Console.GREEN}success${Console.RESET}] ${s}")
   def fail(s:Any) = {
-    emitln(s"\n[${Console.RED}failed${Console.RESET}] ${s}")
+    emitln(s"[${Console.RED}failed${Console.RESET}] ${s}")
     System.exit(-1)
   }
-  def warn(s:Any):Unit = emitln(s"\n[${Console.YELLOW}warning${Console.RESET}] ${s}\n${getStackTrace(3,5)}")
+  def warn(s:Any):Unit = emitln(s"[${Console.YELLOW}warning${Console.RESET}] ${s}\n${getStackTrace(3,5)}")
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
-  def errmsg(s:Any):Unit = { emitln(s"\n[${Console.RED}error${Console.RESET}] ${s}") }
+  def errmsg(s:Any):Unit = { emitln(s"[${Console.RED}error${Console.RESET}] ${s}") }
   def errmsg(predicate:Boolean, s:Any):Unit = if (predicate) errmsg(s) 
   def bp(s:Any) = emitln(s"[${Console.RED}break${Console.RESET}]${s}")
   def err(s:Any):Unit = { errmsg(s); throw PIRException(s"$s") }
