@@ -4,11 +4,11 @@ import pir.node._
 
 import prism.collection.mutable._
 
-class PlastisimConfigCodegenNew(implicit compiler: PIR) extends PlastisimCodegen {
+class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import pirmeta._
-  import spademeta._
 
   val fileName = s"${compiler}.psim"
+  val tracePath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}${separator}traces"
 
   // Execution of codegen
   override def runPass = {
@@ -22,7 +22,7 @@ class PlastisimConfigCodegenNew(implicit compiler: PIR) extends PlastisimCodegen
     case n:ContextEnable => 
       val cuP = globalOf(n).get
       emitNodeBlock(s"node ${quote(n)} # ${quote(cuP)}") {
-        emitln(s"lat = ${latencyOf(n)}")
+        emitNodeLatency(n)
         emitInLinks(n)
         emitOutLinks(n)
       }
@@ -38,6 +38,23 @@ class PlastisimConfigCodegenNew(implicit compiler: PIR) extends PlastisimCodegen
       super.visitNode(n)
     case n:Link => emitLink(n)
     case n => super.visitNode(n)
+  }
+  
+  def emitNodeLatency(n:ContextEnable) = {
+    val cuP = globalOf(n).get
+    cuP match {
+      case cuP:FringeContainer if PIRConfig.loadTrace =>
+        val path = s"${tracePath}${separator}${nameOf(cuP)}.trace"
+        if (exists(path)) {
+          val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
+          emitln(s"offset_trace = ${path}")
+          emitln(s"size = ${boundOf(size)}")
+        } else {
+          err(s"trace file for ${cuP} at ${path} does not exist!")
+        }
+      case cuP =>
+        emitln(s"lat = ${latencyOf(n)}")
+    }
   }
 
   def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {

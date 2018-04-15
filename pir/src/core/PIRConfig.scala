@@ -11,6 +11,7 @@ object PIRConfig extends prism.GlobalConfig {
   var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var ctrl:Boolean = register("ctrl", default=true) { ctrl = _ }
   var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
+  var loadTrace:Boolean = register("trace", default=false) { loadTrace = _ }
 
   def codegen = Config.codegen
   def verbose = Config.verbose
