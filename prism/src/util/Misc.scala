@@ -47,7 +47,7 @@ trait Misc {
     emitln(s"[${Console.RED}failed${Console.RESET}] ${s}")
     System.exit(-1)
   }
-  def warn(s:Any):Unit = emitln(s"[${Console.YELLOW}warning${Console.RESET}] ${s}\n${getStackTrace(3,5)}")
+  def warn(s:Any):Unit = emitln(s"[${Console.YELLOW}warning${Console.RESET}] ${s}")
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
   def errmsg(s:Any):Unit = { emitln(s"[${Console.RED}error${Console.RESET}] ${s}") }
   def errmsg(predicate:Boolean, s:Any):Unit = if (predicate) errmsg(s) 

@@ -1,14 +1,15 @@
 package pir.codegen
 
 import pir.node._
-
 import prism.collection.mutable._
+import sys.process._
 
 class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import pirmeta._
 
   val fileName = s"${compiler}.psim"
-  val tracePath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}${separator}traces"
+  val appPath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
+  val tracePath = s"${appPath}${separator}traces"
 
   // Execution of codegen
   override def runPass = {
