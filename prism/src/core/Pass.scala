@@ -29,7 +29,6 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
     initPass(runner)
     runPass(runner)
     finPass(runner)
-    check(runner)
     this
   }
 

@@ -58,16 +58,19 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
     }
   }
 
-  val itersOf = Cache[Def, Int](computeIters)
-  def computeIters(n:Def):Int = dbgblk(s"computeIters($n)") {
+  val itersOf = Cache[Primitive, Int](computeIters)
+  def computeIters(n:Primitive):Int = dbgblk(s"computeIters($n)") {
     n match {
-      case Def(n, CounterDone(Def(ctr, EnabledCounter(min, max, step, par, en)))) =>
+      case Def(ctr:Counter, Counter(min, max, step, par)) =>
         val cmin = getConstOf[Int](min, logger=Some(this))
         val cmax = getConstOf[Int](max)
         val cstep = getConstOf[Int](step)
         dbg(s"ctr=$ctr cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
         val iters = (cmax - cmin) / (cstep * par)
+        val en = ctr.getEnable.get
         iters * itersOf(en)
+      case Def(n, CounterDone(ctr)) =>
+        itersOf(ctr)
       case Def(n,DataValid(gin)) => 
         val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
         itersOf(valid)

@@ -11,28 +11,18 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     mirrorMapping.clear
   }
 
-  override def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
-    implicit val pirdesign = design.asInstanceOf[PIRDesign]
-
-    if (mapping.contains(n)) return mapping(n).asInstanceOf[T]
-    // Nodes do not mirror
-    
-    n match {
-      case n:PIRNode =>
-        n match {
-          case Def(n,ValidGlobalInput(globalOutput)) => mapping += globalOutput -> globalOutput
-          case Def(n,ReadyValidGlobalInput(globalOutput, ready)) => mapping += globalOutput -> globalOutput
-          case n:Memory if isRemoteMem(n) => mapping += (n -> n)
-          case n => 
-        }
-      case n =>
-    }
-
-    dbgblk(s"mirrorX(${quote(n)})") {
-      val m = super.mirrorX(n, mapping)
-      dbg(s"${quote(n)} -> ${quote(m)}")
-      (n, m) match {
-        case (n:Memory, m:Memory) => 
+  override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
+    (getOrElseUpdate(mapping, x) { dbgblk(s"mirrorX(${quote(x)})") {
+      implicit val pirdata = design.asInstanceOf[PIRDesign]
+      x match {
+        case n:GlobalInput => 
+          goutOf(n).foreach { gout => mapping += gout -> gout }
+          super.mirrorX(x, mapping)
+        case n:Memory if isRemoteMem(n) => 
+          mapping += (n -> n)
+          super.mirrorX(x, mapping)
+        case n:Memory =>
+          val m = super.mirrorX(x, mapping)
           val writers = writersOf(n).map { 
             case Def(w,LocalStore(mems, addrs, data)) => 
               // prevent mirroring of addrs and data
@@ -42,16 +32,17 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
           }
           dbg(s"writers of $n = ${writers}")
           writers.foreach { writer => mirrorX(writer, mapping) }
-        case (n:Counter, m:Counter) =>
-          dbg(s"$m.parent = ${m.parent}")
+          m
+        case n:Counter =>
+          val m = super.mirrorX(x, mapping)
           n.collectUp[CounterChain]().foreach { cc => mirrorX(cc, mapping) }
-        case (n:CounterChain, m:CounterChain) =>
-          dbg(s"$m.counters=${m.counters.map { c => s"counter=$c"}}")
+          m
+        case n:CounterChain =>
           n.counters.foreach { ctr => mirrorX(ctr, mapping) }
-        case _ =>
+          super.mirrorX(x, mapping)
+        case n => super.mirrorX(x, mapping)
       }
-      m
-    }
+    }}).asInstanceOf[T]
   }
 
   trait MirrorRule {

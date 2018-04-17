@@ -20,6 +20,11 @@ trait GraphTransformer {
     node.parent.foreach { parent =>
       parent.removeChild(node)
       node.unsetParent
+      assert(!parent.children.contains(node), s"$parent still contains $node after removeNode")
+    }
+    neighbors.foreach { nb =>
+      assert(!nb.neighbors.asInstanceOf[Set[N]].contains(node), 
+        s"neighbor=$nb's neighbors still contains $node after removeNode $node")
     }
   }
 
@@ -78,7 +83,7 @@ trait GraphTransformer {
   }
 
   def mirrorX[T](n:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
-    mapping.getOrElseUpdate(n, {
+    (getOrElseUpdate(mapping, n) {
       n match {
         case n:N => 
           val args = n.values //n.productIterator.toList

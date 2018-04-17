@@ -1,5 +1,7 @@
 package prism.util
 
+import scala.collection.mutable
+
 trait ScalaAlias {
   type ClassTag[T] = scala.reflect.ClassTag[T]
   def classTag[T](implicit ctag: ClassTag[T]) = scala.reflect.classTag[T]
@@ -19,4 +21,12 @@ trait ScalaAlias {
   val Try = scala.util.Try
   val Success = scala.util.Success
   val Failure = scala.util.Failure
+
+  def getOrElseUpdate[K,V](map:mutable.Map[K,V], k:K)(vFunc: => V) = {
+    if (map.contains(k)) map(k) else {
+      val v = vFunc
+      map += k -> v
+      v
+    }
+  }
 }

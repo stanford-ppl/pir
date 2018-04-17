@@ -18,13 +18,9 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
     val ctrlAllocHasRun = session.hasRun[ControlAllocation] 
     val deadCodeHasAllRun = session.hasRunAll[DeadCodeElimination] 
     cus.foreach { cu => 
-      if (accessLowerHasRun) {
-        if (!ctrlAllocHasRun) {
-          checkCUIO[Input, LocalStore](cu)
-        } else {
-          checkCUIO[Input, GlobalInput](cu)
-          checkCUIO[Output, GlobalOutput](cu)
-        }
+      if (ctrlAllocHasRun) {
+        checkCUIO[Input, GlobalInput](cu)
+        checkCUIO[Output, GlobalOutput](cu)
       }
       if (deadCodeHasAllRun) {
         checkLowering[ContextEnableOut](cu)

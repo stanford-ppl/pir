@@ -26,12 +26,6 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     }
   }
 
-  def lowerContextEnable(ctxEnOut:ContextEnableOut):ContextEnable = dbgblk(s"lowerContextEnable($ctxEnOut)") {
-    val context = contextOf(ctxEnOut).get
-    val ctxEn = allocateContextEnable(context)
-    swapNode(ctxEnOut, ctxEn)
-  }
-
   def computeNotEmpties(context:ComputeContext) = dbgblk(s"computeNotEmpties") {
     val readMems = context.collectIn[Memory]() // All read memories should be local to the context in the same GlobalContainer
     dbg(s"readMems:${readMems.map(qtype)}")
@@ -50,11 +44,10 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     val remoteStores = context.collect[LocalStore](visitFunc=(n:N) => n match { case n:Memory => Nil; case n => n.visitGlobalOut(n)})
     dbg(s"remoteStores=${quote(remoteStores)}")
     notFulls = notFulls ++ remoteStores.flatMap {
-      case Def(writer, LocalStore((mem:ArgOut)::Nil, _, _)) => None
-      case Def(writer, LocalStore(mem::Nil, _, _)) => 
+      case Def(writer, EnabledStoreMem(mem:ArgOut, _, _, writeNext)) => None
+      case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 
         val notFull:Def = if (compiler.arch.topParam.busWithReady) {
-          val accessDone = accessDoneOf(writer).asInstanceOf[DataValid]
-          val gout = accessDone.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
+          val gout = writeNext.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
           allocateWithFields[DataReady](gout)(context)
         } else {
           val writerCtx = contextOf(writer).get
@@ -67,8 +60,9 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     notFulls
   }
 
-  def allocateContextEnable(context:ComputeContext):ContextEnable = dbgblk(s"allocateContextEnable($context)") {
-    allocate[ContextEnable](context) {
+  def lowerContextEnable(ctxEnOut:ContextEnableOut):ContextEnable = dbgblk(s"lowerContextEnable($ctxEnOut)") {
+    val context = contextOf(ctxEnOut).get
+    val ctxEn = allocate[ContextEnable](context) {
       var notEmpties = computeNotEmpties(context)
       if (notEmpties.isEmpty) dbgblk(s"No forward dependencies, duplicate all ancestor control's counter chains") {
         allocateControllerDone(context, compiler.top.topController)
@@ -78,6 +72,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
       val notFulls = computeNotFulls(context)
       ContextEnable(notEmpties ++ notFulls)
     }
+    swapNode(ctxEnOut, ctxEn)
   }
 }
 

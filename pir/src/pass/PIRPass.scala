@@ -10,7 +10,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass with pri
 
   def qdef(n:Any) = n match {
     case n:PIRNode => n.qdef
-    case n => n.toString
+    case n => s"$n"
   }
 
   def qtype(n:Any) = n match {

@@ -25,17 +25,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     // Remove dead code
     liveMap.foreach { 
       case (n, false) =>
-        val parent = n.parent
-        dbg(s"eliminate ${qdef(n)} from parent=${parent}")
-        val neighbors = n.neighbors
+        dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
         removeNode(n)
-        n.parent.foreach { parent =>
-          assert(!parent.children.contains(n), s"$parent still contains $n after removeNode")
-        }
-        neighbors.foreach { nb =>
-          dbg(s"neighbor=$nb, neighbor.neighbors=${nb.neighbors}")
-          assert(!nb.neighbors.asInstanceOf[Set[N]].contains(n))
-        }
         pirmeta.removeAll(n)
       case (n, true) => 
     }
@@ -60,21 +51,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     case n:ArgOut => Some(true)
     case n:StreamOut => Some(true)
     case n:TokenOut => Some(true)
-    case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[AccessControlLowering] => Some(true)
-    //case n:GlobalContainer if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
     case n => None
-  }
-
-  def markLive(n:N) = dbgblk(s"markLive:$n deped=${n.depeds.map { deped => s"$deped, liveness=${liveMap.get(deped)}"}}") {
-    val live = n match {
-      case n if isLive(n).nonEmpty => isLive(n).get
-      case n:Counter =>
-        val CounterChain(counters) = n.collectUp[CounterChain]().head
-        counters.exists(depedsExistsLive)
-      case n => depedsExistsLive(n) 
-    }
-    liveMap += (n -> live)
-    live
   }
 
   override def isDepFree(n:N) = 
@@ -93,8 +71,13 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     super.scheduleDepFree(nodes)
   }
 
-  override def visitNode(n:N):T = {
-    markLive(n)
+  override def visitNode(n:N):T = dbgblk(s"visitNode:$n deped=${n.depeds.map { deped => s"$deped, liveness=${isLive(deped)}"}}") {
+    val live = n match {
+      case n if isLive(n).nonEmpty => isLive(n).get
+      case n => depedsExistsLive(n) 
+    }
+    liveMap += (n -> live)
+    dbg(s"live(${n})=${live}")
     super.visitNode(n)
   }
 

@@ -35,7 +35,6 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
 
   def isCounter(n:PIRNode) = n match {
     case n:Counter => true
-    case n:EnabledCounter => true
     case _ => false
   }
 

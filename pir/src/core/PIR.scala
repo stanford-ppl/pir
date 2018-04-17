@@ -39,7 +39,6 @@ trait PIR extends Compiler with PIRWorld {
   lazy val contextInsertion = new ContextInsertion()
   lazy val contextMerging = new ContextMerging()
   lazy val controlAllocator = new ControlAllocation()
-  lazy val accessControlLowering = new AccessControlLowering()
   lazy val controlLowering = new ControlLowering()
 
   /* Mapping */
@@ -89,58 +88,60 @@ trait PIR extends Compiler with PIRWorld {
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
     addPass(new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(new PIRIRDotCodegen(s"top9.dot"))
-
     addPass(new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
-    //// Control transformation and analysis
     addPass(contextInsertion)
     addPass(new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
-    addPass(new PIRIRDotCodegen(s"top11.dot"))
-    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    addPass(new PIRIRDotCodegen(s"top12.dot"))
-    addPass(controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
-    addPass(accessControlLowering).dependsOn(controlAllocator, controlLowering) // Lower access and counter to EnabledAccess and EnabledCounters
-    addPass(new PIRIRDotCodegen(s"top13.dot"))
     addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top14.dot"))
+    addPass(new PIRIRDotCodegen(s"top11.dot"))
+
+    //// Control transformation and analysis
+    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
+    addPass(new PIRIRDotCodegen(s"top12.dot"))
     addPass(new SimpleIRDotCodegen(s"simple2.dot"))
+    addPass(irCheck)
+    addPass(controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(deadCodeEliminator)
+    addPass(new PIRIRDotCodegen(s"top13.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple3.dot"))
     addPass(new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
     addPass(cuStats)
 
 
     //// Mapping
-    session.rerun {
-    // Simulation analyzer
-    addPass(plastisimAnalyzer)
+    //session.rerun {
+    //// Simulation analyzer
+    //addPass(plastisimAnalyzer)
 
-    addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
-    addPass(new PIRIRDotCodegen(s"top.dot"))
-    addPass(new ControlDotCodegen(s"top-ctrl.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple.dot"))
-    addPass(new PIRPrinter(s"IR.txt"))
+    //addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
+    //addPass(new PIRIRDotCodegen(s"top.dot"))
+    //addPass(new ControlDotCodegen(s"top-ctrl.dot"))
+    //addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    //addPass(new PIRPrinter(s"IR.txt"))
 
-    addPass(cuPruning)
-    addPass(dynamicCUPlacer).dependsOn(cuPruning)
-    addPass(staticCUPlacer).dependsOn(cuPruning)
+    //addPass(cuPruning)
+    //addPass(dynamicCUPlacer).dependsOn(cuPruning)
+    //addPass(staticCUPlacer).dependsOn(cuPruning)
 
-    // Post-mapping analysis
-    addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    //// Post-mapping analysis
+    //addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    //addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    //addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
-    // Codegen
-    addPass(new PlastisimDotCodegen(s"psim.dot"))
-    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
+    //// Codegen
+    //addPass(new PlastisimDotCodegen(s"psim.dot"))
+    //addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
 
-    // Simulation
+    //// Simulation
 
-    // Statistics
+    //// Statistics
 
-    }
+    //}
   }
 
   def handle(e:Exception) = {
