@@ -113,35 +113,35 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
 
-    //// Mapping
-    //session.rerun {
-    //// Simulation analyzer
-    //addPass(plastisimAnalyzer)
+    // Mapping
+    session.rerun {
+    // Simulation analyzer
+    addPass(plastisimAnalyzer)
 
-    //addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
-    //addPass(new PIRIRDotCodegen(s"top.dot"))
-    //addPass(new ControlDotCodegen(s"top-ctrl.dot"))
-    //addPass(new SimpleIRDotCodegen(s"simple.dot"))
-    //addPass(new PIRPrinter(s"IR.txt"))
+    addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
+    addPass(new PIRIRDotCodegen(s"top.dot"))
+    addPass(new ControlDotCodegen(s"top-ctrl.dot"))
+    addPass(new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(new PIRPrinter(s"IR.txt"))
 
-    //addPass(cuPruning)
-    //addPass(dynamicCUPlacer).dependsOn(cuPruning)
-    //addPass(staticCUPlacer).dependsOn(cuPruning)
+    addPass(cuPruning)
+    addPass(dynamicCUPlacer).dependsOn(cuPruning)
+    addPass(staticCUPlacer).dependsOn(cuPruning)
 
-    //// Post-mapping analysis
-    //addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    //addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    //addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    // Post-mapping analysis
+    addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
-    //// Codegen
-    //addPass(new PlastisimDotCodegen(s"psim.dot"))
-    //addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
+    // Codegen
+    addPass(new PlastisimDotCodegen(s"psim.dot"))
+    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
 
-    //// Simulation
+    // Simulation
 
-    //// Statistics
+    // Statistics
 
-    //}
+    }
   }
 
   def handle(e:Exception) = {
