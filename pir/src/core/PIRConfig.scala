@@ -7,19 +7,18 @@ object PIRConfig extends prism.GlobalConfig {
   var saveDesign:Boolean = register("save-pir", default=true, info="Save IR into a file") { saveDesign = _ }
   var loadDesign:Boolean = register("load-pir", default=false, info="Load IR from a file") { loadDesign = _ }
 
-  var genDot:Boolean = register("dot", default=true) { genDot = _ }
-  var mapping:Boolean = register("mapping", default=true) { mapping = _ }
-  var ctrl:Boolean = register("ctrl", default=true) { ctrl = _ }
-  var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
-  var loadTrace:Boolean = register("trace", default=false) { loadTrace = _ }
-
   def codegen = Config.codegen
   def verbose = Config.verbose
 
-  def debug:Boolean = Config.debug
-  var routingVerbosity:Int = register("verbosity-routing", 0) { routingVerbosity = _ }
-  var breakPoint:Boolean = debug && register("bp", false) { breakPoint = _ }
+  var mapping:Boolean = register("mapping", default=true) { mapping = _ }
+  var genCtrl:Boolean = register("ctrl", default=true) { genCtrl = _ }
+  var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
+  var genPlastisim:Boolean = register("dot", default=true) { v => genPlastisim = v && codegen }
+  var loadTrace:Boolean = register("trace", default=false) { v => loadTrace = v && genPlastisim }
 
-  var openDot:Boolean = register("open", false) { openDot = _ }
+  def debug:Boolean = Config.debug
+  var routingVerbosity:Int = register("verbosity-routing", 0) { v => routingVerbosity = if (debug) v else 0 }
+  var breakPoint:Boolean = debug && register("bp", false) { v => breakPoint = v && debug }
+  var openDot:Boolean = register("open", false) { v => openDot = v && codegen }
 
 }

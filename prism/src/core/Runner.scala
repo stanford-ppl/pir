@@ -38,13 +38,20 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
 
   def run(implicit compiler:Compiler):Unit = {
     if (!shouldRun) return
-    if (!isDependencyFree) 
-      err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
+    if (hasRun) return
+    dependencies.foreach { dependency =>
+      if (!dependency.shouldRun) return
+      if (!dependency.succeeded) {
+        warn(s"Cannot run pass $name due to ${unfinishedDependencies.map(_.name).mkString(",")} not succeed")
+        return
+      }
+    }
 
     Try {
       pass.withLog(compiler.outDir, logFile, append=false) { pass.run }
     } match {
-      case Success(_) => setSucceed
+      case Success(_) if isPending => setSucceed
+      case Success(_) => 
       case Failure(e:Throwable) => setFailed; throw e
     }
   }
@@ -58,13 +65,15 @@ trait RunnerStatus {
   def rerun:this.type = { status = initStatus; this }
 
   def init = status = initStatus
-  def initDisabled = initStatus = RunDisabled
-  def initPending = initStatus = RunPending
+  def initDisabled = { initStatus = RunDisabled; init }
+  def initPending = { initStatus = RunPending; init }
   def setSucceed = status = RunSucceeded
   def setFailed = status = RunFailed
 
   def shouldRun = status match {
     case RunPending => true
+    case RunSucceeded => true
+    case RunFailed => true
     case _ => false
   }
 
@@ -83,6 +92,8 @@ trait RunnerStatus {
     case RunSucceeded => true
     case _ => false
   }
+
+  def isPending = status == RunPending
 
 }
 

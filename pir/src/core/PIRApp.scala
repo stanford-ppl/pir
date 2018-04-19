@@ -41,6 +41,11 @@ trait PIRApp extends PIR {
     info(s"Configuring spade $arch ...")
   }
 
+  override def initSession = {
+    super.initSession
+    arch.setSession(this.session)
+  }
+
   def newDesign = {
     design = new PIRDesign()
     main(design)

@@ -13,6 +13,8 @@ trait Compiler {
   var _session:Session = _
   lazy val session = _session
 
+  def setSession(sess:Session) = _session = sess
+
   def reset = { 
     _session = null
     clearLogs(outDir)
@@ -49,11 +51,12 @@ trait Compiler {
 
   def initSession = {
     try {
-      _session = if (load) loadFromFile[Session](sessionPath) else new Session() // Load session
+      val sess = if (load) loadFromFile[Session](sessionPath) else new Session() // Load session
+      setSession(sess)
     } catch {
       case e:SessionRestoreFailure =>
         warn(s"Restore session failed: ${e}. Creating a new session ...")
-        _session = new Session()
+        setSession(new Session())
       case e:Throwable => throw e
     }
   }

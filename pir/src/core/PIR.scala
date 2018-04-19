@@ -5,6 +5,7 @@ import pir.pass._
 import pir.mapper._
 import pir.codegen._
 import spade.node.{Bit, Word, Vector}
+import PIRConfig._
 
 trait PIR extends Compiler with PIRWorld {
 
@@ -30,6 +31,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
+  lazy val dramStoreRegInsertion = new DramStoreRegInsertion()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val unrollingTransformer = new UnrollingTransformer()
   lazy val cuInsertion = new CUInsertion()
@@ -43,8 +45,7 @@ trait PIR extends Compiler with PIRWorld {
 
   /* Mapping */
   lazy val cuPruning = new CUPruning()
-  lazy val dynamicCUPlacer = new DynamicCUPlacer()
-  lazy val staticCUPlacer = new StaticCUPlacer()
+  lazy val cuPlacer = new CUPlacer()
 
   /* Codegen */
   lazy val cuStats = new CUStatistics()
@@ -63,78 +64,77 @@ trait PIR extends Compiler with PIRWorld {
     addPass(new TestTraversal)
 
     //// Data  path transformation and analysis
-    addPass(new DramStoreRegInsertion())
-    addPass(new PIRPrinter(s"IR1.txt"))
-    addPass(new PIRIRDotCodegen(s"top1.dot"))
+    addPass(dramStoreRegInsertion)
+    addPass(debug, new PIRPrinter(s"IR1.txt"))
+    addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)
     addPass(irCheck)
-    addPass(new PIRIRDotCodegen(s"top2.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top2.dot"))
     addPass(controlPropogator)
     addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(cuInsertion)
     addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top3.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
     addPass(accessPuller).dependsOn(cuInsertion)
-    addPass(new PIRIRDotCodegen(s"top4.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top4.dot"))
     addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top5.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top5.dot"))
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top6.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top7.dot"))
-    addPass(new PIRIRDotCodegen(s"top8.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top7.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
-    addPass(new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
-    addPass(new PIRIRDotCodegen(s"top9.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple1.dot"))
-    addPass(new PIRPrinter(s"IR2.txt"))
+    addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
+    addPass(debug, new PIRIRDotCodegen(s"top9.dot"))
+    addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
+    addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
     addPass(contextInsertion)
-    addPass(new PIRIRDotCodegen(s"top10.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top10.dot"))
     addPass(contextMerging)
     addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top11.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top11.dot"))
 
     //// Control transformation and analysis
-    addPass(controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    addPass(deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
-    addPass(new PIRIRDotCodegen(s"top12.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple2.dot"))
-    addPass(irCheck)
-    addPass(controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
-    addPass(deadCodeEliminator)
-    addPass(new PIRIRDotCodegen(s"top13.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple3.dot"))
-    addPass(new PIRPrinter(s"IR3.txt"))
+    addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(genCtrl, deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
+    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple2.dot"))
+    addPass(genCtrl, irCheck)
+    addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(genCtrl, deadCodeEliminator)
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top13.dot"))
+    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple3.dot"))
+    addPass(genCtrl && debug, new PIRPrinter(s"IR3.txt"))
     addPass(irCheck)
     addPass(cuStats)
 
     // Mapping
     session.rerun {
     // Simulation analyzer
-    addPass(plastisimAnalyzer)
+    addPass(genPlastisim, plastisimAnalyzer)
 
-    addPass(new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
-    addPass(new PIRIRDotCodegen(s"top.dot"))
-    addPass(new ControlDotCodegen(s"top-ctrl.dot"))
-    addPass(new SimpleIRDotCodegen(s"simple.dot"))
-    addPass(new PIRPrinter(s"IR.txt"))
+    addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top.dot"))
+    addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
+    addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(debug, new PIRPrinter(s"IR.txt"))
 
     addPass(cuPruning)
-    addPass(dynamicCUPlacer).dependsOn(cuPruning)
-    addPass(staticCUPlacer).dependsOn(cuPruning)
+    addPass(mapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
-    addPass(new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    addPass(debug, new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(debug, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    addPass(new PlastisimDotCodegen(s"psim.dot"))
-    addPass(plastisimConfigCodegen).dependsOn(dynamicCUPlacer, plastisimAnalyzer)
+    addPass(genPlastisim, new PlastisimDotCodegen(s"psim.dot")).dependsOn(cuPlacer, plastisimAnalyzer)
+    addPass(genPlastisim, plastisimConfigCodegen).dependsOn(cuPlacer, plastisimAnalyzer)
 
     // Simulation
 

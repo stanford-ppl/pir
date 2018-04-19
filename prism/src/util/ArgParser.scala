@@ -33,17 +33,25 @@ trait ArgParser {
     (key, values, remains)
   }
 
+  val loadedOptions = mutable.Map[String, List[String]]()
   def setOption(args:List[String]):Unit = {
     args match {
       case arg::rest if isOption(arg) =>
         val (key, values, remain) = getValues(arg, rest)
         if (optMap.contains(key)) {
-          val (update, _, _) = optMap(key)
-          update(values)
+          loadedOptions += key -> values
         }
         setOption(remain)
       case _::args => setOption(args)
       case Nil => 
+        // Update twice to avoid any order with option
+        (0 until 2).foreach { _ => 
+          loadedOptions.foreach { case (key, values) =>
+            val (update, _, _) = optMap(key)
+            update(values)
+          }
+        }
+        loadedOptions.clear
     }
   }
 
