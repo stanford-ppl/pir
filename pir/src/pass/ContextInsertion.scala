@@ -76,7 +76,4 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
     super.visitNode(n, contextMap)
   }
 
-  override def check = {
-  }
-
 }

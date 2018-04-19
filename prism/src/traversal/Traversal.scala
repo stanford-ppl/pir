@@ -6,8 +6,8 @@ import scala.collection.mutable
 
 trait Traversal extends Pass with GraphTraversal {
   override def reset = { super.reset; resetTraversal }
-  override def initPass(runner:RunPass[_]) = { 
-    super.initPass(runner)
+  override def initPass = { 
+    super.initPass
     resetTraversal
   }
 }

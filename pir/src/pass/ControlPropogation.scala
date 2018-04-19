@@ -5,8 +5,8 @@ import pir.node._
 class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     controllerTraversal.resetTraversal
   }
 
@@ -17,7 +17,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
     traverseNode(compiler.top)
   }
 
-  override def check = {
+  override def finPass = {
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach { cu =>
       checkCtrl(cu)

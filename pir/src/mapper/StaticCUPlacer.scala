@@ -19,7 +19,7 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
     }
   }
 
-  override def runPass(runner:RunPass[_]) =  {
+  override def runPass =  {
     pirMap = pirMap.flatMap { pmap =>
       log(bind[CUMap.K, CUMap.V, PIRMap](
         pnodes=pmap.cumap.freeKeys.toSet,
@@ -30,8 +30,8 @@ class StaticCUPlacer(implicit compiler:PIR) extends PIRPass with BackTracking wi
     }
   }
 
-  override def finPass(runner:RunPass[_]):Unit = {
-    super.finPass(runner)
+  override def finPass:Unit = {
+    super.finPass
     pirMap.fold ({ failure =>
       fail(s"Static place and route failed: ${failure}")
     },{ mapping =>

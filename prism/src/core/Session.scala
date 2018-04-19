@@ -6,10 +6,10 @@ import scala.collection.mutable
 class Session extends Serializable {
   var restore = false
 
-  val runPasses = mutable.ListBuffer[RunPass[_]]()
-  val storedRunPasses = mutable.ListBuffer[RunPass[_]]()
+  val runners = mutable.ListBuffer[Runner[_]]()
+  val storedRunneres = mutable.ListBuffer[Runner[_]]()
 
-  val passes = mutable.Map[Pass, mutable.ListBuffer[RunPass[_]]]()
+  val passes = mutable.Map[Pass, mutable.ListBuffer[Runner[_]]]()
 
   var rerunning = false
   def rerun(block: => Unit):Unit = {
@@ -21,16 +21,16 @@ class Session extends Serializable {
 
   var currInit = 0
 
-  def addPass[P<:Pass:ClassTag](pass:P):RunPass[_] = addPass(true, pass)
-  def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):RunPass[_] = {
-    passes.getOrElseUpdate(pass, mutable.ListBuffer[RunPass[_]]())
+  def addPass[P<:Pass:ClassTag](pass:P):Runner[_] = addPass(true, pass)
+  def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner[_] = {
+    passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner[_]]())
     val runPass = if (restore && !rerunning) {
-      storedRunPasses(currInit)
+      storedRunneres(currInit)
     } else {
-      RunPass[P](this, currInit)
+      Runner[P](this, currInit)
     }
     if (shouldRun) runPass.initPending else runPass.initDisabled
-    runPasses += runPass
+    runners += runPass
     runPass.setPass(pass)
     passes(pass) += runPass
     currInit += 1
@@ -40,21 +40,21 @@ class Session extends Serializable {
   def saveSession(path:String) = {
     restore = true
     currInit = 0
-    currRun = 0
-    runPasses.foreach { _.clearPass }
-    storedRunPasses.clear
-    storedRunPasses ++= runPasses
-    runPasses.clear
+    currRun = null
+    runners.foreach { _.clearPass }
+    storedRunneres.clear
+    storedRunneres ++= runners
+    runners.clear
     passes.clear
     saveToFile(this, path)
   }
 
-  var currRun = 0
+  var currRun:Runner[_] = _
   def run(implicit compiler:Compiler) = {
     passes.foreach { case (pass, _) => pass.reset }
-    runPasses.foreach { rp =>
-      currRun = rp.id
-      rp.run
+    runners.foreach { runner =>
+      currRun = runner
+      runner.run
     }
   }
 
@@ -70,8 +70,8 @@ class Session extends Serializable {
   
   def runsOf[P<:Pass:ClassTag] = {
     passes.flatMap {
-      case (pass:P, runPasses) => runPasses
-      case (pass, runPasses) => Nil
+      case (pass:P, runners) => runners
+      case (pass, runners) => Nil
     }
   }
 }

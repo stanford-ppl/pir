@@ -10,15 +10,14 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
 
   lazy val outputPath = buildPath(dirName, fileName)
 
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     openFile(dirName, fileName, append=append)
   }
 
-  override def finPass(runner:RunPass[_]) = {
+  override def finPass = {
     info(s"Finished ${runner.name} to ${outputPath} in ${toc("ms")}ms")
     closeStream
-    check
   }
 
   override def quote(n:Any):String = n match {

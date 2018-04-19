@@ -8,8 +8,8 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
 
   import pirmeta._
 
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     controllerTraversal.resetTraversal
   }
   

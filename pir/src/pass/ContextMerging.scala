@@ -76,7 +76,4 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
     }
   }
 
-  override def check = {
-  }
-
 }

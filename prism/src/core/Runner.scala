@@ -1,6 +1,6 @@
 package prism
 
-case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable with RunPassStatus {
+case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable with RunnerStatus {
   val pct = implicitly[ClassTag[P]]
   var _pass:Option[P] = None
   def pass:Pass = _pass.get
@@ -10,10 +10,11 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
   def setPass(pass:Pass) = {
     pass match {
       case pass:P => this._pass = Some(pass)
-      case _ => throw SessionRestoreFailure(s"Restored RunPass[${pct}] cannot load $pass") 
+      case _ => throw SessionRestoreFailure(s"Restored Runner[${pct}] cannot load $pass") 
     }
     this.name = s"$pass-$id"
     dependencies.clear
+    this
   }
 
   def clearPass = {
@@ -21,7 +22,7 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     dependencies.clear
   }
 
-  val dependencies = ListBuffer[RunPass[_]]()
+  val dependencies = ListBuffer[Runner[_]]()
   def dependsOn(deps:Pass*):this.type = {
     deps.foreach { dep =>
       dependencies += session.passes(dep).last //TODO: If dependency is not added, session.passes does not contain dep yet.
@@ -31,8 +32,8 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
   def unfinishedDependencies = dependencies.filter { !_.succeeded }
   def isDependencyFree = unfinishedDependencies.isEmpty
 
-  def prevRuns:Iterable[RunPass[_]] = {
-    session.runPasses.slice(0, id)
+  def prevRuns:Iterable[Runner[_]] = {
+    session.runners.slice(0, id)
   }
 
   def run(implicit compiler:Compiler):Unit = {
@@ -41,22 +42,16 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
 
     Try {
-      withLog(append=false) {
-        pass.run(this)
-      }
+      pass.withLog(compiler.outDir, logFile, append=false) { pass.run }
     } match {
       case Success(_) => setSucceed
       case Failure(e:Throwable) => setFailed; throw e
     }
   }
 
-  def withLog(append:Boolean)(lambda: => Unit)(implicit compiler:Compiler) {
-    if (pass.logger.isOpen) lambda 
-    else pass.logger.withOpen(logFile, append) { lambda }
-  }
 }
 
-trait RunPassStatus {
+trait RunnerStatus {
   private var initStatus:RunStatus = _
   private var status:RunStatus = _
 

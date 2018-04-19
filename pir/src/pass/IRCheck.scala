@@ -8,15 +8,11 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
   type N = PIRNode with Product
   def shouldRun = true
 
-  override def runPass(runner:RunPass[_]) =  {
-    import runner._
-    val prevRuns = runner.prevRuns
-    prevRuns.foreach(_.pass.check(runner))
-    val prePasses = prevRuns.map { _.pass }
+  override def runPass =  {
     val cus = compiler.top.collectDown[GlobalContainer]()
-    val accessLowerHasRun = session.hasRun[AccessLowering]
-    val ctrlAllocHasRun = session.hasRun[ControlAllocation] 
-    val deadCodeHasAllRun = session.hasRunAll[DeadCodeElimination] 
+    val accessLowerHasRun = compiler.session.hasRun[AccessLowering]
+    val ctrlAllocHasRun = compiler.session.hasRun[ControlAllocation] 
+    val deadCodeHasAllRun = compiler.session.hasRunAll[DeadCodeElimination] 
     cus.foreach { cu => 
       if (ctrlAllocHasRun) {
         checkCUIO[Input, GlobalInput](cu)

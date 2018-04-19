@@ -79,7 +79,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     super.visitNode(n)
   }
 
-  override def check = {
+  override def finPass = {
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach { cu =>
       val mems = cu.collectDown[Memory]()

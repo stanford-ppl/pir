@@ -10,15 +10,15 @@ class CollectionStatus {
 }
 trait JsonCodegen extends Codegen {
   implicit val ms = new CollectionStatus()
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     emitBSln
   }
 
-  override def finPass(runner:RunPass[_]) = {
+  override def finPass = {
     emitln
     emitBE
-    super.finPass(runner)
+    super.finPass
   }
   def emitComma(implicit ms:CollectionStatus) = { 
     if (ms.inScope) { 

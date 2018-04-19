@@ -11,8 +11,8 @@ class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
     //simulator.reset
   }
 
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     compiler match {
       case compiler:PIRApp => compiler.parseArgIns
       case _ =>
@@ -29,8 +29,5 @@ class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
     //simulator.run
   }
 
-  override def finPass(runner:RunPass[_]) = {
-    super.finPass(runner)
-  }
 }
 

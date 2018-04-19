@@ -45,4 +45,8 @@ trait Logging {
   def dbeln(s:String):Unit = logger.emitBEln(s)
   def dbeln:Unit = logger.emitBEln("")
 
+  def withLog(outDir:String, logFile:String, append:Boolean=false)(lambda: => Unit) {
+    if (logger.isOpen) lambda 
+    else logger.withOpen(outDir, logFile, append) { lambda }
+  }
 }

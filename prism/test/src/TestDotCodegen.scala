@@ -14,6 +14,8 @@ class TestDotCodegen(val fileName:String)(implicit design:TestDesign) extends Pa
   def visitLocalIn(n:N):List[N] = n.localDeps.toList
   def visitLocalOut(n:N):List[N] = n.localDepeds.toList
 
+  override def runner = prism.Runner[TestDotCodegen](null, 0).setPass(this)
+
   override def visitNode(n:N,prev:T):T = {
     super.visitNode(n,prev)
   }

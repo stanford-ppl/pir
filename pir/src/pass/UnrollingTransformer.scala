@@ -11,9 +11,6 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DF
     traverseNode(compiler.top)
   }
 
-  override def check = {
-  }
-
   override def visitNode(n:N):Unit = {
     val node = transform(n)
     visited += node

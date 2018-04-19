@@ -4,8 +4,8 @@ import prism.util._
 
 package object node extends Misc with ScalaAlias {
   type Pass = prism.Pass
-  type RunPass[P<:Pass] = prism.RunPass[P]
-  val RunPass = prism.RunPass
+  type Runner[P<:Pass] = prism.Runner[P]
+  val Runner = prism.Runner
   type Compiler = prism.Compiler
   val Config = prism.Config
   type Logging = prism.codegen.Logging

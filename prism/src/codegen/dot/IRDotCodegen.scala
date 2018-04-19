@@ -15,16 +15,16 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
 
   val nodes = mutable.ListBuffer[N]()
 
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     emitBSln("digraph G")
     if (horizontal) emitln(s"rankdir=LR")
   }
 
-  override def finPass(runner:RunPass[_]) = {
+  override def finPass = {
     emitEdges
     emitBEln
-    super.finPass(runner)
+    super.finPass
   }
 
   def emitEdges = { nodes.foreach(emitEdge) }

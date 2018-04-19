@@ -11,13 +11,13 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   override def shouldRun = super[PIRIRDotCodegen].shouldRun && super[PlastisimCodegen].shouldRun
 
   val links = ListBuffer[Link]()
-  override def initPass(runner:RunPass[_]) = {
-    super.initPass(runner)
+  override def initPass = {
+    super.initPass
     links.clear
   }
-  override def finPass(runner:RunPass[_]) = {
+  override def finPass = {
     links.foreach(emitLink)
-    super.finPass(runner)
+    super.finPass
   }
 
   override def emitNode(n:N) = n match {

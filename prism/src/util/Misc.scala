@@ -32,7 +32,7 @@ trait Misc {
   }
 
   def getStackTrace:String = {
-    getStackTrace(1, 5)
+    getStackTrace(0, 20)
   }
   def getStackTrace(start:Int, end:Int):String = {
     val curThread = Thread.currentThread()
