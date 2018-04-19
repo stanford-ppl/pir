@@ -1,11 +1,10 @@
 package prism
 
-case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable {
+case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable with RunPassStatus {
   val pct = implicitly[ClassTag[P]]
   var _pass:Option[P] = None
   def pass:Pass = _pass.get
   var name:String = _
-  var status:RunStatus = RunPassNotRun
   def logFile = s"$name.log"
 
   def setPass(pass:Pass) = {
@@ -22,12 +21,6 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
     dependencies.clear
   }
 
-  def rerun:this.type = { status = RunPassNotRun; this }
-
-  def hasRun = status != RunPassNotRun
-  def succeeded = status == RunPassSucceeded
-  def failed = status == RunPassFailed
-
   val dependencies = ListBuffer[RunPass[_]]()
   def dependsOn(deps:Pass*):this.type = {
     deps.foreach { dep =>
@@ -43,20 +36,17 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
   }
 
   def run(implicit compiler:Compiler):Unit = {
-    if (!pass.shouldRun) return
-    if (hasRun) return
+    if (!shouldRun) return
     if (!isDependencyFree) 
       err(s"Cannot run pass $name due to dependencies=${unfinishedDependencies.map(_.name).mkString(",")} haven't run")
 
-    try {
+    Try {
       withLog(append=false) {
         pass.run(this)
       }
-      status = RunPassSucceeded
-    } catch {
-      case e:Exception =>
-        status = RunPassFailed
-        throw e
+    } match {
+      case Success(_) => setSucceed
+      case Failure(e:Throwable) => setFailed; throw e
     }
   }
 
@@ -66,9 +56,45 @@ case class RunPass[P<:Pass:ClassTag](session:Session, id:Int) extends Serializab
   }
 }
 
+trait RunPassStatus {
+  private var initStatus:RunStatus = _
+  private var status:RunStatus = _
+
+  def rerun:this.type = { status = initStatus; this }
+
+  def init = status = initStatus
+  def initDisabled = initStatus = RunDisabled
+  def initPending = initStatus = RunPending
+  def setSucceed = status = RunSucceeded
+  def setFailed = status = RunFailed
+
+  def shouldRun = status match {
+    case RunPending => true
+    case _ => false
+  }
+
+  def hasRun = status match {
+    case RunSucceeded => true
+    case RunFailed => true
+    case _ => false
+  }
+
+  def failed = status match {
+    case RunFailed => true
+    case _ => false
+  }
+
+  def succeeded = status match {
+    case RunSucceeded => true
+    case _ => false
+  }
+
+}
+
 sealed trait RunStatus extends Serializable
-case object RunPassNotRun extends RunStatus
-case object RunPassSucceeded extends RunStatus
-case object RunPassFailed extends RunStatus
+case object RunDisabled extends RunStatus
+case object RunPending extends RunStatus
+case object RunSucceeded extends RunStatus
+case object RunFailed extends RunStatus
 
 case class SessionRestoreFailure(msg:String) extends PIRException

@@ -112,7 +112,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
-
     // Mapping
     session.rerun {
     // Simulation analyzer

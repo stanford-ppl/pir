@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ctags --exclude=log --languages=scala,java -f .tags -R \
-  $PIR_HOME/pir/src \
-  $PIR_HOME/pir/apps/src \
-  $PIR_HOME/spade/src \
-  $PIR_HOME/spade/arch/src \
-  $PIR_HOME/prism/src
+  pir/src \
+  pir/apps/src \
+  spade/src \
+  spade/arch/src \
+  prism/src

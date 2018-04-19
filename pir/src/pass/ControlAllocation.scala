@@ -6,8 +6,6 @@ import scala.collection.mutable
 class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = true
 
   override def runPass =  {

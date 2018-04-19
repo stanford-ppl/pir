@@ -7,8 +7,6 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
 
   type T = Map[PIRNode, ComputeContext]
 
-  override def shouldRun = true
-
   val forward = false
 
   override def runPass =  {

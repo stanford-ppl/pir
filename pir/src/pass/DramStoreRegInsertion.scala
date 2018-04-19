@@ -5,8 +5,6 @@ import pir.node._
 class DramStoreRegInsertion(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
-  override def shouldRun = true
-
   override def runPass =  {
     val fringes = compiler.top.collectDown[FringeContainer]()
     val dataStreams = fringes.flatMap { fringe => fringe.collectDown[StreamOut]().filter { _.field == "data" } }

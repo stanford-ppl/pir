@@ -5,8 +5,6 @@ import pir.node._
 class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
-  override def shouldRun = true
-
   override def runPass =  {
     val accesses = compiler.top.collectDown[LocalAccess]()
     accesses.foreach(lowerAccess)

@@ -5,8 +5,6 @@ import pir.node._
 class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   override def initPass(runner:RunPass[_]) = {
     super.initPass(runner)
     controllerTraversal.resetTraversal

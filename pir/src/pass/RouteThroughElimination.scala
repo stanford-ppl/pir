@@ -5,8 +5,6 @@ import pir.node._
 class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = false
 
   override def runPass =  {

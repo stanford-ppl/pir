@@ -6,8 +6,6 @@ import scala.collection.mutable
 class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = false
 
   def aggressive = PIRConfig.aggressive_dce

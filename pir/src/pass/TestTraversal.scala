@@ -4,8 +4,6 @@ class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUp
 //class TestTraversal(implicit compiler:PIR) extends PIRTraversal with DFSTopDownTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = false
 
   override def runPass =  {

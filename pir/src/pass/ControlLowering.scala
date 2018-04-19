@@ -5,8 +5,6 @@ import pir.node._
 class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = true
 
   override def runPass =  {

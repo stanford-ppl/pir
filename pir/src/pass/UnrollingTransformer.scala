@@ -5,8 +5,6 @@ import pir.node._
 class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = true
 
   override def runPass =  {

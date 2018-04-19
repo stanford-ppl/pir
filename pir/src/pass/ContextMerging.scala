@@ -5,8 +5,6 @@ import pir.node._
 class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
-  override def shouldRun = true
-
   val forward = false
 
   override def runPass =  {

@@ -3,7 +3,6 @@ package prism
 abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   implicit val pass:this.type = this
-  def shouldRun:Boolean
   lazy val name = this.getClass.getSimpleName
   override def toString = name
   

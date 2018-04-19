@@ -4,8 +4,6 @@ import pir.node._
 
 class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
 
-  override def shouldRun = true
-
   val forward = false
 
   override def runPass =  {
