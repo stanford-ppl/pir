@@ -59,8 +59,8 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
 }
 
 trait RunnerStatus {
-  private var initStatus:RunStatus = _
-  private var status:RunStatus = _
+  protected var initStatus:RunStatus = _
+  protected var status:RunStatus = _
 
   def rerun:this.type = { status = initStatus; this }
 

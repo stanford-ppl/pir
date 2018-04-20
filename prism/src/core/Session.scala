@@ -24,17 +24,18 @@ class Session extends Serializable {
   def addPass[P<:Pass:ClassTag](pass:P):Runner[_] = addPass(true, pass)
   def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner[_] = {
     passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner[_]]())
-    val runPass = if (restore && !rerunning) {
+    val runner = if (restore && !rerunning) {
       storedRunneres(currInit)
     } else {
-      Runner[P](this, currInit)
+      val runner = Runner[P](this, currInit)
+      if (shouldRun) runner.initPending else runner.initDisabled
+      runner
     }
-    if (shouldRun) runPass.initPending else runPass.initDisabled
-    runners += runPass
-    runPass.setPass(pass)
-    passes(pass) += runPass
+    runners += runner
+    runner.setPass(pass)
+    passes(pass) += runner
     currInit += 1
-    runPass
+    runner
   }
 
   def saveSession(path:String) = {

@@ -25,6 +25,7 @@ trait PIR extends Compiler with PIRWorld {
   //lazy val mappers = ListBuffer[Mapper]()
 
   /* Analysis */
+  lazy val testTraversal = new TestTraversal()
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
   lazy val plastisimAnalyzer = new PlastisimAnalyzer()
@@ -61,9 +62,9 @@ trait PIR extends Compiler with PIRWorld {
     super.initSession
     import session._
 
-    addPass(new TestTraversal)
+    addPass(testTraversal)
 
-    //// Data  path transformation and analysis
+    // Data  path transformation and analysis
     addPass(dramStoreRegInsertion)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
