@@ -20,25 +20,31 @@ trait CostConstrain extends Constrain {
     fg.filter { case (cuP,cuS) => fit(cuP, cuS) }
   }
 }
-trait PrefixConstrain extends CostConstrain {
+trait PrefixConstrain extends CostConstrain with Memorization {
   import pass._
+  memorizing = true
   def prefixKey(cuP:K):Boolean
   def prefixValue(cuS:V):Boolean
+  val prefixKeyOf = memorize(prefixKey _)
+  val prefixValueOf = memorize(prefixValue _)
   def fit(cuP:K, cuS:V):Boolean = {
-    val key = prefixKey(cuP)
-    val value = prefixValue(cuS)
+    val key = prefixKeyOf(cuP)
+    val value = prefixValueOf(cuS)
     val factor = key == value
     pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
     factor
   }
 }
-trait QuantityConstrain extends CostConstrain {
+trait QuantityConstrain extends CostConstrain with Memorization {
   import pass._
+  memorizing = true
   def numPNodes(cuP:K):Int
   def numSnodes(cuS:V):Int
+  val numPNodesOf = memorize(numPNodes _)
+  val numSnodesOf = memorize(numSnodes _)
   def fit(cuP:K, cuS:V):Boolean = {
-    val key = numPNodes(cuP)
-    val value = numSnodes(cuS)
+    val key = numPNodesOf(cuP)
+    val value = numSnodesOf(cuS)
     val factor = key <= value
     pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
     factor
