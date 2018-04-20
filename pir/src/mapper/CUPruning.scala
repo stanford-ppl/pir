@@ -12,21 +12,21 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   type N = PIRNode with Product
   def shouldRun = PIRConfig.mapping
 
-  constrains += AFGConstrain
-  constrains += DFGConstrain
-  constrains += SramConstrain
-  constrains += VectorFIFOConstrain
-  constrains += ScalarFIFOConstrain
-  constrains += ControlFIFOConstrain
-  constrains += VectorInputConstrain
-  constrains += ScalarInputConstrain
-  constrains += ControlInputConstrain
-  constrains += VectorOutputConstrain
-  constrains += ScalarOutputConstrain
-  constrains += ControlOutputConstrain
-  constrains += StageConstrain
-  constrains += LaneConstrain
-  //constrains += CUArcConsistencyConstrain
+  constrains += new AFGConstrain
+  constrains += new DFGConstrain
+  constrains += new SramConstrain
+  constrains += new VectorFIFOConstrain
+  constrains += new ScalarFIFOConstrain
+  constrains += new ControlFIFOConstrain
+  constrains += new VectorInputConstrain
+  constrains += new ScalarInputConstrain
+  constrains += new ControlInputConstrain
+  constrains += new VectorOutputConstrain
+  constrains += new ScalarOutputConstrain
+  constrains += new ControlOutputConstrain
+  constrains += new StageConstrain
+  constrains += new LaneConstrain
+  //constrains += new CUArcConsistencyConstrain
 
   def initCUMap:CUMap = {
     var cumap = CUMap.empty

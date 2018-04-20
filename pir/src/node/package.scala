@@ -26,7 +26,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     case n => false
   }
 
-  def isRemoteMem(n:PIRNode)(implicit pass:PIRPass) = n match {
+  def isRemoteMem(n:PIRNode) = n match {
     case (_:SRAM | _:StreamIn | _:StreamOut)  => true
     case n:FIFO if writersOf(n).size > 1 => true
     case n:RegFile => true
@@ -50,7 +50,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
   }
 
-  def parOf(x:Controller, logger:Option[Logging])(implicit pass:PIRPass):Option[Int] = dbgblk(logger, s"parOf($x)") {
+  def parOf(x:Controller, logger:Option[Logging]):Option[Int] = dbgblk(logger, s"parOf($x)") {
     x match {
       case x:UnitController => Some(1)
       case x:TopController => Some(1)
@@ -59,9 +59,9 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     }
   }
 
-  def parOf(x:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[Int] = dbgblk(logger, s"parOf($x)") {
-    import pass.pirmeta._
-    implicit val design = pass.design
+  def parOf(x:PIRNode, logger:Option[Logging]=None):Option[Int] = dbgblk(logger, s"parOf($x)") {
+    implicit val design = x.design.asInstanceOf[PIRDesign]
+    import design.pirmeta._
     x match {
       case x:ArgIn => Some(1)
       case x:TokenOut => Some(1)
@@ -84,29 +84,25 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     case _ => false
   }
 
-  def memsOf(n:Any)(implicit pass:PIRPass) = {
-    import pass._
+  def memsOf(n:Any) = {
     n match {
       case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
       case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
     }
   }
 
-  def accessNextOf(n:PIRNode)(implicit pass:PIRPass) = {
-    import pass._
+  def accessNextOf(n:PIRNode) = {
     n match {
       case Def(n,EnabledLoadMem(mem, addrs, readNext)) => readNext
       case Def(n,EnabledStoreMem(mem, addrs, data, writeNext)) => writeNext
     }
   }
 
-  def writersOf(mem:Memory)(implicit pass:PIRPass):List[LocalStore] = {
-    import pass._
+  def writersOf(mem:Memory):List[LocalStore] = {
     mem.collect[LocalStore](visitFunc=mem.visitGlobalIn)
   }
 
-  def readersOf(mem:Memory)(implicit pass:PIRPass):List[LocalLoad] = {
-    import pass._
+  def readersOf(mem:Memory):List[LocalLoad] = {
     def visitFunc(n:PIRNode):List[PIRNode] = n match {
       case n:NotEmpty => Nil
       case n:NotFull => Nil
@@ -119,7 +115,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     })
   }
 
-  def accessesOf(mem:Memory)(implicit pass:PIRPass):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
+  def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
 
   def globalOf(n:PIRNode) = {
     n.collectUp[GlobalContainer]().headOption
@@ -129,13 +125,15 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     n.collectUp[ComputeContext]().headOption
   }
 
-  def ctrlsOf(container:Container)(implicit pass:PIRPass) = {
-    import pass.pirmeta._
+  def ctrlsOf(container:Container) = {
+    implicit val design = container.design.asInstanceOf[PIRDesign]
+    import design.pirmeta._
     container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
   }
 
-  def innerCtrlOf(container:Container)(implicit pass:PIRPass) = {
-    import pass.pirmeta._
+  def innerCtrlOf(container:Container) = {
+    implicit val design = container.design.asInstanceOf[PIRDesign]
+    import design.pirmeta._
     ctrlsOf(container).maxBy { _.ancestors.size }
   }
 
@@ -166,8 +164,8 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     case gout:GlobalOutput => true
   }
 
-  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):ClassTag[_<:PinType] = dbgblk(logger, s"pinTypeOf($n)") {
-    implicit val design = pass.design
+  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = dbgblk(logger, s"pinTypeOf($n)") {
+    implicit val design = n.design.asInstanceOf[PIRDesign]
     n match {
       case n:ControlNode => classTag[Bit]
       case n:Memory if isControlMem(n) => classTag[Bit]
@@ -188,41 +186,41 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     }
   }
 
-  implicit def pnodeToBct(x:PIRNode)(implicit pass:PIRPass):ClassTag[_<:PinType] = pinTypeOf(x, None)
+  implicit def pnodeToBct(x:PIRNode):ClassTag[_<:PinType] = pinTypeOf(x, None)
 
-  def isPMU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isPMU(n:GlobalContainer):Boolean = {
     cuType(n) == Some("pmu")
   }
 
-  def isSCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isSCU(n:GlobalContainer):Boolean = {
     cuType(n) == Some("scu")
   }
 
-  def isOCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isOCU(n:GlobalContainer):Boolean = {
     cuType(n) == Some("ocu")
   }
 
-  def isPCU(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isPCU(n:GlobalContainer):Boolean = {
     cuType(n) == Some("pcu")
   }
 
-  def isDAG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isDAG(n:GlobalContainer):Boolean = {
     cuType(n) == Some("dag")
   }
 
-  def isAFG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isAFG(n:GlobalContainer):Boolean = {
     cuType(n) == Some("afg")
   }
 
-  def isDFG(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isDFG(n:GlobalContainer):Boolean = {
     cuType(n) == Some("dfg")
   }
 
-  def isFringe(n:GlobalContainer)(implicit pass:PIRPass):Boolean = {
+  def isFringe(n:GlobalContainer):Boolean = {
     isAFG(n) || isDAG(n)
   }
 
-  def cuType(n:PIRNode)(implicit pass:PIRPass):Option[String] = {
+  def cuType(n:PIRNode):Option[String] = {
     n match {
       case n:ArgFringe => Some("afg")
       case n:FringeContainer => Some("dfg")
@@ -235,6 +233,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     }
   }
 
-  def isLoadFringe(n:GlobalContainer)(implicit pass:PIRPass) = n.collectDown[StreamIn]().filter{ _.field == "data" }.nonEmpty
-  def isStoreFringe(n:GlobalContainer)(implicit pass:PIRPass) = n.collectDown[StreamOut]().filter{ _.field == "data" }.nonEmpty
+  def isLoadFringe(n:GlobalContainer) = n.collectDown[StreamIn]().filter{ _.field == "data" }.nonEmpty
+  def isStoreFringe(n:GlobalContainer) = n.collectDown[StreamOut]().filter{ _.field == "data" }.nonEmpty
+
 }

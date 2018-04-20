@@ -7,9 +7,11 @@ abstract class Def(implicit design:PIRDesign) extends Primitive with ComputeNode
   def localDepedDefs = localDepeds.collect { case d:Def => d } 
 }
 object Def {
-  def unapply[T<:PIRNode:ClassTag](x:T)(implicit design:PIRDesign):Option[(T, T)] = {
+  def unapply[T:ClassTag](x:T):Option[(T, T)] = {
     x match {
-      case n:T => Some((x, n.newInstance(n.values, staging=false)))
+      case x:T => 
+        val n = x.asInstanceOf[PIRNode]
+        Some((x, n.newInstance(n.values, staging=false)))
       case _ => None
     }
   }

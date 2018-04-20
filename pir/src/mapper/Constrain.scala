@@ -1,41 +1,51 @@
 package pir.mapper
 
 import prism.collection.immutable._
+import prism.util.Memorization
 
-trait Constrain {
+abstract class Constrain(implicit val pass:PIRPass) {
   type K
   type V
   type FG <: FactorGraphLike[K,V,FG]
   implicit def fgct:ClassTag[FG]
   override def toString = this.getClass.getSimpleName.replace("$","")
-  def prune(fg:FG)(implicit pass:PIRPass):EOption[FG]
-  def prune(pmap:PIRMap)(implicit pass:PIRPass):EOption[PIRMap] = {
+  def prune(fg:FG):EOption[FG]
+  def prune(pmap:PIRMap):EOption[PIRMap] = {
     pmap.flatMap[FG](field => prune(field))
   }
 }
 trait CostConstrain extends Constrain {
-  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean
-  def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
-    import pass.{pass => _, _}
-    fg.filter { case (cuP,cuS) =>
-      val factor = fit(cuP, cuS)
-      pass.dbg(s"$this ${quote(cuP)} -> ${quote(cuS)} factor=$factor")
-      factor
-    }
+  def fit(cuP:K, cuS:V):Boolean
+  def prune(fg:FG):EOption[FG] = {
+    fg.filter { case (cuP,cuS) => fit(cuP, cuS) }
   }
 }
 trait PrefixConstrain extends CostConstrain {
-  def prefixKey(cuP:K)(implicit pass:PIRPass):Boolean
-  def prefixValue(cuS:V)(implicit pass:PIRPass):Boolean
-  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean = prefixKey(cuP) == prefixValue(cuS)
+  import pass._
+  def prefixKey(cuP:K):Boolean
+  def prefixValue(cuS:V):Boolean
+  def fit(cuP:K, cuS:V):Boolean = {
+    val key = prefixKey(cuP)
+    val value = prefixValue(cuS)
+    val factor = key == value
+    pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
+    factor
+  }
 }
 trait QuantityConstrain extends CostConstrain {
-  def numPNodes(cuP:K)(implicit pass:PIRPass):Int
-  def numSnodes(cuS:V)(implicit pass:PIRPass):Int
-  def fit(cuP:K, cuS:V)(implicit pass:PIRPass):Boolean = numPNodes(cuP) <= numSnodes(cuS)
+  import pass._
+  def numPNodes(cuP:K):Int
+  def numSnodes(cuS:V):Int
+  def fit(cuP:K, cuS:V):Boolean = {
+    val key = numPNodes(cuP)
+    val value = numSnodes(cuS)
+    val factor = key <= value
+    pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
+    factor
+  }
 }
 trait ArcConsistencyConstrain extends Constrain {
-  def prune(fg:FG)(implicit pass:PIRPass):EOption[FG] = {
+  def prune(fg:FG):EOption[FG] = {
     import pass.{pass => _, _}
     flatFold(fg.freeKeys,fg) { case (fg, k) => ac3[K,V,FG](fg, k) }
   }

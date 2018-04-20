@@ -2,6 +2,7 @@ package pir.pass
 
 import pir.node._
 
+import prism.util.Cache
 import prism.util.Memorization
 
 class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator with Memorization {
@@ -9,8 +10,10 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
 
   type Link = LocalStore
 
-  override def reset = {
+  override def initPass = {
+    super.initPass
     resetAllCaches
+    memorizing = true
     linkScaleInOf.clear
     linkScaleOutOf.clear
   }
@@ -58,24 +61,25 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
     }
   }
 
-  val itersOf = Cache[Primitive, Int](computeIters)
-  def computeIters(n:Primitive):Int = dbgblk(s"computeIters($n)") {
-    n match {
-      case Def(ctr:Counter, Counter(min, max, step, par)) =>
-        val cmin = getConstOf[Int](min, logger=Some(this))
-        val cmax = getConstOf[Int](max)
-        val cstep = getConstOf[Int](step)
-        dbg(s"ctr=$ctr cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
-        val iters = (cmax - cmin) / (cstep * par)
-        val en = ctr.getEnable.get
-        iters * itersOf(en)
-      case Def(n, CounterDone(ctr)) =>
-        itersOf(ctr)
-      case Def(n,DataValid(gin)) => 
-        val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
-        itersOf(valid)
-      case n:ContextEnable => 1
-      case n:ArgInValid => 1
+  val itersOf:Cache[Primitive, Int] = memorize { case (n:Primitive) =>
+    dbgblk(s"computeIters($n)") {
+      n match {
+        case Def(ctr:Counter, Counter(min, max, step, par)) =>
+          val cmin = getConstOf[Int](min, logger=Some(this))
+          val cmax = getConstOf[Int](max)
+          val cstep = getConstOf[Int](step)
+          dbg(s"ctr=$ctr cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
+          val iters = (cmax - cmin) / (cstep * par)
+          val en = ctr.getEnable.get
+          iters * itersOf(en)
+        case Def(n, CounterDone(ctr)) =>
+          itersOf(ctr)
+        case Def(n,DataValid(gin)) => 
+          val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
+          itersOf(valid)
+        case n:ContextEnable => 1
+        case n:ArgInValid => 1
+      }
     }
   }
 
