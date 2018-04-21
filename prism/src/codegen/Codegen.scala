@@ -16,7 +16,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   }
 
   override def finPass = {
-    info(s"Finished ${runner.name} to ${outputPath} in ${toc("ms")}ms")
+    info(s"Finished ${runner.name} to ${cstr(Console.CYAN,outputPath)} in ${toc("ms")}ms")
     closeStream
   }
 

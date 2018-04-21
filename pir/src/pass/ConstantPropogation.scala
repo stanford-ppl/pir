@@ -26,7 +26,7 @@ trait ConstantPropogator {
   }
 
   def getConstOf[T:ClassTag](n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):T = {
-    constOf(n).getOrElse{ throw PIRException(s"Could not constant propogate $n") } match {
+    constOf(n, logger).getOrElse{ throw PIRException(s"Could not constant propogate $n") } match {
       case c:T => c
       case c => throw PIRException(s"constOf($n) = $c but expect type ${implicitly[ClassTag[T]]}")
     }

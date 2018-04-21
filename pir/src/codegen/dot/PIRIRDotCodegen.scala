@@ -28,7 +28,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     }
     n match {
       case n:PIRNode => 
-        ctrlOf.get(n).foreach { ctrl => label += s"\n(${quote(ctrl)})" }
+        ctrlOf.get(n).foreach { ctrl => label += s"\n(ctrl=${quote(ctrl)})" }
         topCtrlOf.get(n).foreach { ctrl => label += s"\n(topCtrl=${quote(ctrl)})" }
         boundOf.get(n).foreach { bound => label += s"\n(bound=$bound)" }
       case _ =>

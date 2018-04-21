@@ -65,14 +65,21 @@ class Session extends Serializable {
 
   def runCount(pass:Pass) = passes(pass).filter(_.hasRun).size
 
-  def hasRun[P<:Pass:ClassTag] = runsOf[P].exists(_.hasRun)
+  def hasRun[P<:Pass:ClassTag] = runnersOf[P].exists(_.hasRun)
 
-  def hasRunAll[P<:Pass:ClassTag] = runsOf[P].forall(_.hasRun)
+  def hasRunAll[P<:Pass:ClassTag] = runnersOf[P].forall(_.hasRun)
   
-  def runsOf[P<:Pass:ClassTag] = {
+  def runnersOf[P<:Pass:ClassTag] = {
     passes.flatMap {
       case (pass:P, runners) => runners
       case (pass, runners) => Nil
+    }
+  }
+
+  def getCurrentRunner(pass:Pass) = {
+    val runner = if (!passes.contains(pass)) None else passes(pass).filter { _.isRunning }.headOption
+    runner.getOrElse {
+      Runner(this, -1)
     }
   }
 }

@@ -40,8 +40,9 @@ trait Misc {
     trace.slice(start,end).map("" + _).mkString("\n")
   }
 
+  def cstr(color:String, msg:String) = { s"$color$msg${Console.RESET}" }
   def info(color:String, header:String, msg:Any) = {
-    emitln(s"[$color$header${Console.RESET}] ${msg}")
+    emitln(s"[${cstr(color, header)}] ${msg}")
   }
   def info(msg:String) = emitln(s"[pir] ${msg}")
   def infor(msg:String) = emit(s"[pir] ${msg}\r")

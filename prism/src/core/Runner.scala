@@ -47,62 +47,70 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
       }
     }
 
-    Try {
-      pass.withLog(compiler.outDir, logFile, append=false) { pass.run }
-    } match {
-      case Success(_) if isPending => setSucceed
-      case Success(_) => 
-      case Failure(e:Throwable) => setFailed; 
-        pass.dbg(e.getStackTrace)
-        throw e
+    setRunning
+
+    pass.withLog(compiler.outDir, logFile, append=false) {
+      Try(pass.run) match {
+        case Success(_) if isRunning => setSucceed
+        case Success(_) => 
+        case Failure(e:Throwable) => 
+          setFailed
+          err(s"$name throw $e", exception=false)
+          pass.dbgblk(s"$e") {
+            e.getStackTrace.foreach(pass.dbg)
+          }
+      }
     }
   }
 
 }
 
 trait RunnerStatus {
-  protected var initStatus:RunStatus = _
-  protected var status:RunStatus = _
+  protected var initStatus:Status = _
+  protected var status:Status = _
 
   def rerun:this.type = { status = initStatus; this }
 
   def init = status = initStatus
-  def initDisabled = { initStatus = RunDisabled; init }
-  def initPending = { initStatus = RunPending; init }
-  def setSucceed = status = RunSucceeded
-  def setFailed = status = RunFailed
+  def initDisabled = { initStatus = Disabled; init }
+  def initPending = { initStatus = Pending; init }
+  def setSucceed = status = Succeeded
+  def setFailed = status = Failed
+  def setRunning = status = Running
 
   def shouldRun = status match {
-    case RunPending => true
-    case RunSucceeded => true
-    case RunFailed => true
+    case Pending => true
+    case Succeeded => true
+    case Failed => true
     case _ => false
   }
 
   def hasRun = status match {
-    case RunSucceeded => true
-    case RunFailed => true
+    case Succeeded => true
+    case Failed => true
     case _ => false
   }
 
   def failed = status match {
-    case RunFailed => true
+    case Failed => true
     case _ => false
   }
 
   def succeeded = status match {
-    case RunSucceeded => true
+    case Succeeded => true
     case _ => false
   }
 
-  def isPending = status == RunPending
+  def isPending = status == Pending
 
+  def isRunning = status == Running
+
+  sealed trait Status extends Serializable
+  case object Disabled extends Status
+  case object Running extends Status
+  case object Pending extends Status
+  case object Succeeded extends Status
+  case object Failed extends Status
 }
-
-sealed trait RunStatus extends Serializable
-case object RunDisabled extends RunStatus
-case object RunPending extends RunStatus
-case object RunSucceeded extends RunStatus
-case object RunFailed extends RunStatus
 
 case class SessionRestoreFailure(msg:String) extends PIRException

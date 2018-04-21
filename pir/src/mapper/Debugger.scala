@@ -38,7 +38,7 @@ trait Debugger { self:PIRPass =>
 
   def breakPoint[M](m:PIRMap)(e: => EOption[M]):EOption[M] = if (PIRConfig.breakPoint) {
     e.left.map { f =>
-      info(Console.RED, "breakpoint", f)
+      info(Console.RED, "break", f)
       val answer = ask(s"Waiting for input ...")
       act(m, f, answer)
       f

@@ -8,11 +8,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   
   def reset = {}
 
-  def runner = { 
-    val runner = compiler.session.currRun
-    assert(runner.pass == this)
-    runner
-  }
+  def runner = compiler.session.getCurrentRunner(this)
 
   def initPass:Unit = {
     infor(s"Running ${runner.name} ...")

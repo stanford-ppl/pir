@@ -19,7 +19,6 @@ class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticCUPlacer with D
   }
 
   override def finPass:Unit = {
-    super.finPass
     pirMap.fold ({ failure =>
       runner.setFailed
       fail(s"Place and route failed: ${failure}")
@@ -27,6 +26,7 @@ class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticCUPlacer with D
       runner.setSucceed
       succeed(s"Place and route succeeded")
     })
+    super.finPass
   }
 
 }

@@ -40,7 +40,7 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val data = (cuP.collectDown[StreamIn]().filter { _.field == "data" } ++
                     cuP.collectDown[StreamOut]().filter { _.field == "data" }).head
-        val csize = getConstOf[Int](size)
+        val csize = getConstOf[Int](size, logger=Some(this))
         linkScaleInOf(store) = csize / 4 / parOf(data).get // size in bytes to words
       case mem:StreamOut if mem.field == "data" =>
         linkScaleInOf(store) = 1
@@ -62,13 +62,15 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
   }
 
   val itersOf:Cache[Primitive, Int] = memorize { case (n:Primitive) =>
-    dbgblk(s"computeIters($n)") {
+    dbgblk(s"itersOf(${quote(n)})") {
       n match {
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
           val cmin = getConstOf[Int](min, logger=Some(this))
-          val cmax = getConstOf[Int](max)
-          val cstep = getConstOf[Int](step)
-          dbg(s"ctr=$ctr cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
+          val cmax = getConstOf[Int](max, logger=Some(this))
+          val cstep = getConstOf[Int](step, logger=Some(this))
+          dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
+          if ((cmax - cmin) % (cstep * par) != 0)
+            warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
           val iters = (cmax - cmin) / (cstep * par)
           val en = ctr.getEnable.get
           iters * itersOf(en)

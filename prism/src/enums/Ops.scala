@@ -141,8 +141,8 @@ trait Ops {
       case (op:Op2   , Some(a)::Some(b)::_)                     => Some(eval(op, List(a,b)))
       case (op:Op3   , Some(a)::Some(b)::Some(c)::_)            => Some(eval(op, List(a,b,c)))
       case (op:Op1   , a::_) if List(a).exists(_ == None)       => None
-      case (op:Op2   , a::b::_) if List(a).exists(_ == None)    => None
-      case (op:Op3   , a::b::c::_) if List(a).exists(_ == None) => None
+      case (op:Op2   , a::b::_) if List(a,b).exists(_ == None)    => None
+      case (op:Op3   , a::b::c::_) if List(a,b,c).exists(_ == None) => None
       case (op, ins) => throw PIRException(s"Don't know how to evaluate $op ins=$ins")
     }
   }
