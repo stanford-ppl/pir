@@ -10,7 +10,6 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
   type N <: prism.node.Node[N]
 
   val horizontal:Boolean = false
-  def shouldRun = Config.debug
   val fileName:String
 
   val nodes = mutable.ListBuffer[N]()

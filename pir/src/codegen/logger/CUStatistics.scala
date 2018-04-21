@@ -9,8 +9,6 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
 
   val fileName = "stat.json"
 
-  def shouldRun = true
-
   override def runPass =  {
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)

@@ -8,8 +8,6 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   import pirmeta._
   import spademeta._
 
-  override def shouldRun = super[PIRIRDotCodegen].shouldRun && super[PlastisimCodegen].shouldRun
-
   val links = ListBuffer[Link]()
   override def initPass = {
     super.initPass

@@ -11,8 +11,6 @@ trait PlastisimCodegen extends PIRCodegen {
 
   type Link = LocalStore
 
-  def shouldRun = PIRConfig.mapping && Config.codegen && isMesh(compiler.arch.top) && isDynamic(compiler.arch.top) && pirMap.isRight
-
   def cumap = pirMap.right.get.cumap
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
 

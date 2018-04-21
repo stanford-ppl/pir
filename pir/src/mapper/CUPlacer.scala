@@ -6,8 +6,6 @@ import spade.node._
 class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticCUPlacer with DynamicCUPlacer {
   import pirmeta._
 
-  def shouldRun = PIRConfig.mapping && isMesh(compiler.arch.top) && isStatic(compiler.arch.top)
-
   override def runPass =  {
     pirMap = pirMap.flatMap { pmap =>
       compiler.arch.top match {

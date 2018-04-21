@@ -4,7 +4,6 @@ class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
 
   implicit val arch:Spade = compiler.arch
 
-  def shouldRun = SpadeConfig.simulate //&& compiler.pirMapping.succeeded
   //implicit lazy val simulator = new Simulator()(arch, compiler)
   override def reset = {
     super.reset

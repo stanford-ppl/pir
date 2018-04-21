@@ -6,8 +6,6 @@ trait IRPrinter extends Codegen {
 
   type N <: Node[N]
 
-  def shouldRun = Config.debug
-
   def qdef(n:Any):String
 
   val metadata:Option[Metadata]

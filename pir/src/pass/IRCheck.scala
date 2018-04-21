@@ -6,7 +6,6 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
   import pirmeta._
 
   type N = PIRNode with Product
-  def shouldRun = true
 
   override def runPass =  {
     val cus = compiler.top.collectDown[GlobalContainer]()

@@ -7,8 +7,6 @@ import scala.collection.mutable
 class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
-  def shouldRun = true
-
   def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
     val accesses = accessesOf(mem)
     dbg(s"accesses: ${accesses}")

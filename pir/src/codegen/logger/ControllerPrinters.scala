@@ -5,7 +5,6 @@ class ControllerPrinter(implicit design:PIR) extends PIRPass with prism.traversa
   val fileName = "CtrlPrinter.txt"
 
   type N = Controller
-  def shouldRun = Config.debug
 
   override def quote(n:Any) = qdef(n)
 
