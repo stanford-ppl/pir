@@ -76,7 +76,7 @@ trait Compiler {
       if (save) session.saveSession(sessionPath)
     } catch { 
       case e:Exception =>
-        errmsg(e)
+        err(e, exception=false)
         handle(e)
     }
   }

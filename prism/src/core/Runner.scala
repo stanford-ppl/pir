@@ -52,7 +52,9 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     } match {
       case Success(_) if isPending => setSucceed
       case Success(_) => 
-      case Failure(e:Throwable) => setFailed; throw e
+      case Failure(e:Throwable) => setFailed; 
+        pass.dbg(e.getStackTrace)
+        throw e
     }
   }
 

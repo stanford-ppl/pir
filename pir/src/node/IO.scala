@@ -8,7 +8,8 @@ class Input(implicit val src:Primitive, design:Design) extends prism.node.Input[
   val id = design.nextId
   def from = connected.head
   override def connect(p:prism.node.Edge[PIRNode]):this.type = {
-    err(this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p), s"$this is already connected to ${connected}, reconnecting to $p")
+    if (this.isInstanceOf[Input] && this.isConnected && !this.isConnectedTo(p))
+      err(s"$this is already connected to ${connected}, reconnecting to $p")
     super.connect(p)
   }
 }

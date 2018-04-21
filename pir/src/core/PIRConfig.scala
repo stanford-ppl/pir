@@ -13,7 +13,7 @@ object PIRConfig extends prism.GlobalConfig {
   var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var genCtrl:Boolean = register("ctrl", default=true) { genCtrl = _ }
   var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
-  var genPlastisim:Boolean = register("dot", default=true) { v => genPlastisim = v && codegen }
+  var genPlastisim:Boolean = register("psim", default=true) { v => genPlastisim = v && codegen }
   var loadTrace:Boolean = register("trace", default=false) { v => loadTrace = v && genPlastisim }
 
   def debug:Boolean = Config.debug

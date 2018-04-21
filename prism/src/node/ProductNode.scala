@@ -53,15 +53,15 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
             constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*)
           } catch {
             case e:java.lang.IllegalArgumentException =>
-              errmsg(s"Error during newInstance of node $this, staging=$staging")
-              errmsg(s"Expected type: ${constructor.getParameterTypes().mkString(",")}")
-              errmsg(s"Got type: ${arguments.map(_.getClass).mkString(",")}")
+              err(s"Error during newInstance of node $this, staging=$staging", exception=false)
+              err(s"Expected type: ${constructor.getParameterTypes().mkString(",")}", exception=false)
+              err(s"Got type: ${arguments.map(_.getClass).mkString(",")}", exception=false)
               throw e
             case e:java.lang.reflect.InvocationTargetException =>
-              errmsg(s"InvocationTargetException during newInstance of node $this staging=$staging")
-              errmsg(s"arguments=$arguments")
-              errmsg(s"Cause:")
-              errmsg(s"${e.getCause}")
+              err(s"InvocationTargetException during newInstance of node $this staging=$staging", exception=false)
+              err(s"arguments=$arguments", exception=false)
+              err(s"Cause:", exception=false)
+              err(s"${e.getCause}", exception=false)
               throw e
             case e:Throwable => throw e
           }

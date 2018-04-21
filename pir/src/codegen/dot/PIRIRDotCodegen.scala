@@ -17,7 +17,8 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
           case _ => None
         }
         label += s"\n(${fields.mkString(",")})"
-      case n:OpDef => label += s"\n(${n.op})"
+      case n:OpDef => 
+        label += s"\n(${n.op})"
       case n:StreamIn => label += s"\n(${n.field})"
       case n:StreamOut => label +=s"\n(${n.field})"
       case n:GlobalInput => label += s"\n(from=${n.globalOutput})"
@@ -29,6 +30,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
       case n:PIRNode => 
         ctrlOf.get(n).foreach { ctrl => label += s"\n(${quote(ctrl)})" }
         topCtrlOf.get(n).foreach { ctrl => label += s"\n(topCtrl=${quote(ctrl)})" }
+        boundOf.get(n).foreach { bound => label += s"\n(bound=$bound)" }
       case _ =>
     }
     attr.label(label)

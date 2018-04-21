@@ -40,25 +40,17 @@ trait Misc {
     trace.slice(start,end).map("" + _).mkString("\n")
   }
 
-  def info(s:String) = emitln(s"[pir] ${s}")
-  def infor(s:String) = emit(s"[pir] ${s}\r")
-  def succeed(s:Any) = emitln(s"[${Console.GREEN}success${Console.RESET}] ${s}")
-  def fail(s:Any) = {
-    emitln(s"[${Console.RED}failed${Console.RESET}] ${s}")
+  def info(color:String, header:String, msg:Any) = {
+    emitln(s"[$color$header${Console.RESET}] ${msg}")
   }
-  def warn(s:Any):Unit = emitln(s"[${Console.YELLOW}warning${Console.RESET}] ${s}")
+  def info(msg:String) = emitln(s"[pir] ${msg}")
+  def infor(msg:String) = emit(s"[pir] ${msg}\r")
+  def succeed(msg:Any) = info(Console.GREEN, "success", msg)
+  def fail(msg:Any) = info(Console.RED, "fail", msg)
+  def warn(msg:Any) = info(Console.YELLOW, "warn", msg)
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
-  def errmsg(s:Any):Unit = { emitln(s"[${Console.RED}error${Console.RESET}] ${s}") }
-  def errmsg(predicate:Boolean, s:Any):Unit = if (predicate) errmsg(s) 
-  def bp(s:Any) = emitln(s"[${Console.RED}break${Console.RESET}]${s}")
-  def err(s:Any):Unit = { errmsg(s); throw PIRException(s"$s") }
-  def err(predicate:Boolean, s:Any):Unit = if (predicate) err(s) 
-  def assert(predicate:Boolean, info:Any):Unit = {
-    if (!predicate) throw AssertError(info.toString)
-  }
-  def assert(predicate:Boolean):Unit = {
-    if (!predicate) throw AssertError("")
-  }
+  def err(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "error", msg); if (exception) throw PIRException(s"$msg") }
+
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()

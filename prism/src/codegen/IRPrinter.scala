@@ -39,7 +39,7 @@ trait IRPrinter extends Codegen {
         block
       } catch {
         case e:Exception =>
-          errmsg(s"Exception $e during IRPrinter on. Stack trace printed in log")
+          err(s"Exception $e during IRPrinter on. Stack trace printed in log", exception=false)
           emitln(s"Exception $e during IRPrinter on. Stack trace printed in log")
           flush
           dbg(s"Exception:$e")
