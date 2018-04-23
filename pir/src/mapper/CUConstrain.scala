@@ -13,6 +13,7 @@ trait CUCostConstrain extends CUConstrain with CostConstrain
 trait CUPrefixConstrain extends CUCostConstrain with PrefixConstrain
 trait CUQuantityConstrain extends CUCostConstrain with QuantityConstrain
 class CUArcConsistencyConstrain(implicit pass:PIRPass) extends CUConstrain with ArcConsistencyConstrain
+class CUMatchingConstrain(implicit pass:PIRPass) extends CUConstrain with MatchingConstrain
 class AFGConstrain(implicit pass:PIRPass) extends CUPrefixConstrain  {
   def prefixKey(cuP:K):Boolean = isAFG(cuP)
   def prefixValue(cuS:V):Boolean = cuS.isInstanceOf[spade.node.ArgFringe]

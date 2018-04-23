@@ -2,6 +2,7 @@ package pir.mapper
 
 import prism.collection.immutable._
 import prism.util.Memorization
+import scala.collection.mutable
 
 abstract class Constrain(implicit val pass:PIRPass) {
   type K
@@ -17,7 +18,9 @@ abstract class Constrain(implicit val pass:PIRPass) {
 trait CostConstrain extends Constrain {
   def fit(cuP:K, cuS:V):Boolean
   def prune(fg:FG):EOption[FG] = {
-    fg.filter { case (cuP,cuS) => fit(cuP, cuS) }
+    fg.filter { case (cuP,cuS) => fit(cuP, cuS) }.left.map {
+      case InvalidFactorGraph(fg:FG, k) => CostConstrainFailure(this, fg, k)
+    }
   }
 }
 trait PrefixConstrain extends CostConstrain with Memorization {
@@ -51,8 +54,8 @@ trait QuantityConstrain extends CostConstrain with Memorization {
   }
 }
 trait ArcConsistencyConstrain extends Constrain {
+  import pass._
   def prune(fg:FG):EOption[FG] = {
-    import pass.{pass => _, _}
     flatFold(fg.freeKeys,fg) { case (fg, k) => ac3[K,V,FG](fg, k) }
   }
   def ac3[K,V,FG<:FactorGraphLike[K,V,FG]](fg:FG, k:K):EOption[FG] = {
@@ -68,4 +71,39 @@ trait ArcConsistencyConstrain extends Constrain {
       }
     }
   }
+}
+trait MatchingConstrain extends Constrain {
+  import pass._
+
+  def prune(fg:FG):EOption[FG] = {
+    val subgraphs = createCompleteBipartiteSubgraphs(fg)
+    flatFold(subgraphs, fg) { case (fg, (vs, ks)) =>
+      val keySize = ks.size
+      val valueSize = vs.size
+      val fit = keySize <= valueSize
+      pass.dbg(s"keySet=${ks.map(quote)}")
+      pass.dbg(s"$keySize <= $valueSize = $fit")
+      if (fit) Right(fg) else Left(MatchConstrainFailure(fg, ks.toSet))
+    }
+  }
+
+  def createCompleteBipartiteSubgraphs(fg:FG) = {
+    val subgraphs = mutable.Map[Set[V], mutable.Set[K]]()
+    fg.freeKeys.foreach { key =>
+      val values = fg.freeValues(key)
+      if (!subgraphs.contains(values)) {
+        subgraphs += (values -> mutable.Set[K]())
+      }
+      subgraphs.foreach { case (vs, ks) =>
+        if (vs.subsetOf(values)) ks += key
+      }
+    }
+    subgraphs
+  }
+
+}
+
+case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](constrain:CostConstrain, @transient fg:FG, key:Any) extends MappingFailure
+case class MatchConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, keys:Set[_]) extends MappingFailure {
+  override def toString = s"UnmatchableFactorGraph(${fg.getClass.getSimpleName}, $keys)"
 }

@@ -26,6 +26,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   constrains += new StageConstrain
   constrains += new LaneConstrain
   //constrains += new CUArcConsistencyConstrain
+  constrains += new CUMatchingConstrain
 
   def initCUMap:CUMap = {
     var cumap = CUMap.empty
@@ -40,7 +41,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
   override def runPass =  {
     pirMap = pirMap.flatMap { pmap => log(prune(pmap.set[CUMap](initCUMap))) }
     pirMap.left.map {
-      case f@InvalidFactorGraph(fg, k) =>
+      case f:MappingFailure =>
         fail(s"CUPruning failed. ${f}")
     }
   }
