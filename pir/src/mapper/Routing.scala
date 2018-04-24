@@ -14,7 +14,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     val startCU = globalOf(start).get
     (startCU, self.compiler.arch.topParam) match {
       case (startCU:pir.node.ArgFringe, param:MeshTopParam) => param.numRows / 2 + 2
-      case (startCU:pir.node.FringeContainer, param:MeshTopParam) => param.numCols / 2 + 2
+      case (startCU:pir.node.DramFringe, param:MeshTopParam) => param.numCols / 2 + 2
       case (startCU, param:MeshTopParam) => 3
       case _ => 3
     }

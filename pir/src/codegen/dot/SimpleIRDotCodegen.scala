@@ -7,7 +7,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
   override val horizontal:Boolean = false
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:FringeContainer => attr.fillcolor("lightseagreen").style(filled)
+    case n:DramFringe => attr.fillcolor("lightseagreen").style(filled)
     case n:CUContainer if isPMU(n) => attr.fillcolor(chartreuse).style(filled)
     case n:CUContainer if isDAG(n) => attr.fillcolor("deeppink").style(filled)
     case n:CUContainer if isSCU(n) => attr.fillcolor("gold").style(filled)

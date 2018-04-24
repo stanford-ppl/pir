@@ -223,7 +223,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
   def cuType(n:PIRNode):Option[String] = {
     n match {
       case n:ArgFringe => Some("afg")
-      case n:FringeContainer => Some("dfg")
+      case n:DramFringe => Some("dfg")
       case n:GlobalContainer if n.collectDown[Memory]().filter(isRemoteMem).nonEmpty => Some("pmu")
       case n:GlobalContainer if n.collect[StreamOut](visitFunc=n.visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
       case n:GlobalContainer if n.collectDown[StageDef]().size==0 => Some("ocu")
@@ -233,7 +233,16 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     }
   }
 
-  def isLoadFringe(n:GlobalContainer) = n.collectDown[StreamIn]().filter{ _.field == "data" }.nonEmpty
-  def isStoreFringe(n:GlobalContainer) = n.collectDown[StreamOut]().filter{ _.field == "data" }.nonEmpty
+  def isLoadFringe(n:GlobalContainer) = n match {
+    case n:FringeDenseLoad => true
+    case n:FringeSparseLoad => true
+    case n => false
+  }
+
+  def isStoreFringe(n:GlobalContainer) = n match {
+    case n:FringeDenseStore => true
+    case n:FringeSparseStore => true
+    case n => false
+  }
 
 }

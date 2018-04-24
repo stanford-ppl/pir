@@ -20,3 +20,7 @@ case class ArgInController()(implicit design:PIRDesign) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }
+case class ArgOutController()(implicit design:PIRDesign) extends Controller {
+  val style = InnerPipe
+  val level = InnerControl 
+}

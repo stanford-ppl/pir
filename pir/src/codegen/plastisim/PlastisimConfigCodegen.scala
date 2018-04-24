@@ -44,7 +44,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNodeLatency(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
-      case cuP:FringeContainer if PIRConfig.loadTrace =>
+      case cuP:DramFringe if PIRConfig.loadTrace =>
         val path = s"${tracePath}${separator}${nameOf(cuP)}.trace"
         if (exists(path)) {
           val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
@@ -107,7 +107,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       case n:ArgFringe => n.collectDown[ArgOut]()
       case n:ContextEnable => 
         globalOf(n).get match {
-          case cuP:FringeContainer => cuP.collectDown[StreamOut]()
+          case cuP:DramFringe => cuP.collectDown[StreamOut]()
           case cu => n.collectInTillMem[Memory]()
         }
     }

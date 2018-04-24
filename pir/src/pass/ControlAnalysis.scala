@@ -84,7 +84,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
   def allocateControllerDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerDone(ctx=$context, ctrl=$ctrl)") {
     val prevDone = prevControllerDone(context, ctrl)
     ctrl match {
-      case ctrl:ArgInController => allocate[ArgInValid](context)(ArgInValid())
+      case ctrl:ArgInController => allocateWithFields[ContextEnableOut]()(context)
       case ctrl:LoopController =>
         val cchain = duplicateCounterChain(context, ctrl) 
         cchain.inner.getEnable.getOrElse {

@@ -78,7 +78,6 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
           val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
           itersOf(valid)
         case n:ContextEnable => 1
-        case n:ArgInValid => 1
       }
     }
   }

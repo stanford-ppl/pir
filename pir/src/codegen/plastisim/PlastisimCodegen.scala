@@ -108,7 +108,7 @@ trait PlastisimCodegen extends PIRCodegen {
 
   def latencyOf(n:ContextEnable) = {
     globalOf(n).get match {
-      case cuP:FringeContainer => 100
+      case cuP:DramFringe => 100
       case cuP =>
         val cuS = cumap.mappedValue(cuP)
         val stages = cuS.collectDown[Stage]()

@@ -2,13 +2,20 @@ package pir.pass
 
 import pir.node._
 
-class DramStoreRegInsertion(implicit compiler:PIR) extends PIRTransformer {
+class DramStoreRegInsertion(implicit compiler:PIR) extends PIRTransformer with ChildFirstTraversal with UnitTraversal {
   import pirmeta._
 
   override def runPass =  {
-    val fringes = compiler.top.collectDown[FringeContainer]()
+    val fringes = compiler.top.collectDown[DramFringe]()
     val dataStreams = fringes.flatMap { fringe => fringe.collectDown[StreamOut]().filter { _.field == "data" } }
     dataStreams.foreach(insertReg)
+  }
+
+  override def visitNode(n:N) = n match {
+    case n:Top => super.visitNode(n)
+    case FringeDenseLoad(dram, cmdStream, dataStream)  =>
+    case FringeDenseLoad(dram, cmdStream, dataStream)  =>
+    case n:GlobalContainer =>
   }
 
   def insertReg(dataStream:StreamOut) = {

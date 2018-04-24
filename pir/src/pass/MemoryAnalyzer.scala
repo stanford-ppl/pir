@@ -15,7 +15,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
       ctrlOf(access)
     }
     mem match {
-      case (_:ArgOut | _:TokenOut) => accessCtrls :+= compiler.top.argController
+      case (_:ArgOut | _:TokenOut) => accessCtrls :+= compiler.top.argFringe.argOutController
       case _ =>
     }
     val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {

@@ -49,7 +49,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     case n:ComputeContext => attr.fillcolor(palevioletred).style(filled)
     case n:Primitive if isCounter(n) => attr.fillcolor(indianred).style(filled)
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
-    case n:FringeContainer => attr.fillcolor("lightseagreen").style(filled)
+    case n:DramFringe => attr.fillcolor("lightseagreen").style(filled)
     case n => super.color(attr, n)
   }
 
