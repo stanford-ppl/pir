@@ -39,7 +39,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
         dbg(s"localMem: $mem, notFull:$notFull")
         notFull
     }
-    val remoteStores = context.collect[LocalStore](visitFunc=(n:N) => n match { case n:Memory => Nil; case n => n.visitGlobalOut(n)})
+    val remoteStores = context.collectOutTillMem[LocalStore]()
     dbg(s"remoteStores=${quote(remoteStores)}")
     notFulls = notFulls ++ remoteStores.flatMap {
       case Def(writer, EnabledStoreMem(mem:ArgOut, _, _, writeNext)) => None
@@ -54,7 +54,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
         }
         dbg(s"remoteMem: $mem, notFull:$notFull")
         Some(notFull)
-    }
+    }.toSet
     notFulls
   }
 
