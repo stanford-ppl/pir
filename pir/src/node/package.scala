@@ -21,13 +21,14 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
   def isReg(n:PIRNode) = n match {
     case n:Reg => true
     case n:ArgIn => true
+    case n:DramAddress => true
     case n:ArgOut => true
     case n:TokenOut => true
     case n => false
   }
 
   def isRemoteMem(n:PIRNode) = n match {
-    case (_:SRAM | _:StreamIn | _:StreamOut)  => true
+    case (_:SRAM)  => true
     case n:FIFO if writersOf(n).size > 1 => true
     case n:RegFile => true
     case _ => false
@@ -56,6 +57,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
       case x:TopController => Some(1)
       case x:LoopController => parOf(x.cchain)
       case x:ArgInController => Some(1)
+      case DramController(par) => Some(par)
     }
   }
 
@@ -63,17 +65,14 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     implicit val design = x.design.asInstanceOf[PIRDesign]
     import design.pirmeta._
     x match {
-      case x:ArgIn => Some(1)
-      case x:TokenOut => Some(1)
       case x:Counter => Some(x.par)
       case x:CounterChain => parOf(x.counters.last)
-      case x:StreamIn => parOf(ctrlOf(x), logger)
-      case x:StreamOut => parOf(ctrlOf(x), logger)
       case Def(n, ReduceOp(op, input)) => parOf(input, logger).map { _ / 2 }
       case Def(n, AccumOp(op, input)) => parOf(input, logger)
       case x:ComputeNode => parOf(ctrlOf(x), logger)
       case n:ComputeContext => n.collectDown[Def]().map { d => parOf(d) }.max
       case n:GlobalContainer => n.collectDown[Def]().map { d => parOf(d) }.max
+      case x:Memory => throw PIRException(s"memory $x is not defined on parOf")
       case x => None
     }
   }
@@ -169,8 +168,6 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
     n match {
       case n:ControlNode => classTag[Bit]
       case n:Memory if isControlMem(n) => classTag[Bit]
-      case n:StreamIn if parOf(n).get == 1 => classTag[Word]
-      case n:StreamIn if parOf(n).get > 1 => classTag[Vector]
       case n:Memory => 
         val tps = writersOf(n).map(writer => pinTypeOf(writer, logger))
         assert(tps.size==1, s"$n.writers=${writersOf(n)} have different PinType=$tps")
@@ -225,7 +222,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias {
       case n:ArgFringe => Some("afg")
       case n:DramFringe => Some("dfg")
       case n:GlobalContainer if n.collectDown[Memory]().filter(isRemoteMem).nonEmpty => Some("pmu")
-      case n:GlobalContainer if n.collect[StreamOut](visitFunc=n.visitGlobalOut, depth=5).filter { stream => parOf(stream) == Some(1) }.nonEmpty => Some("dag")
+      case n:GlobalContainer if n.visitLocalOut[PIRNode](n).forall(_.isInstanceOf[DramFringe]) => Some("dag")
       case n:GlobalContainer if n.collectDown[StageDef]().size==0 => Some("ocu")
       case n:GlobalContainer if parOf(n) == Some(1) => Some("scu")
       case n:GlobalContainer => Some("pcu")

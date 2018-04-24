@@ -15,6 +15,7 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopolo
     (compiler.top.collectDown[Primitive]()).foreach { n =>
       assert(withinGlobal(n), s"$n is not contained by a CU")
     }
+    super.finPass
   }
 
   def pullNode(dep:A, deped:A, container:GlobalContainer) = dbgblk(s"pullNode(${qtype(dep)}, ${qtype(deped)}, ${qtype(container)})") {

@@ -17,4 +17,5 @@ trait PIRCollector extends prism.traversal.GraphCollector[PIRNode] { self:PIRNod
     }
     collect[M](visitFunc _, depth, logger)
   }
+
 }

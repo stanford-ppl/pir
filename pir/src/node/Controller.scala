@@ -1,4 +1,5 @@
 package pir.node
+import prism.enums._
 
 abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
@@ -24,3 +25,19 @@ case class ArgOutController()(implicit design:PIRDesign) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }
+case class DramController(par:Int)(implicit design:PIRDesign) extends Controller {
+  val style = InnerPipe
+  val level = InnerControl 
+}
+
+sealed trait ControlStyle extends Enum
+case object InnerPipe extends ControlStyle
+case object SeqPipe extends ControlStyle
+case object MetaPipe extends ControlStyle
+case object StreamPipe extends ControlStyle
+case object ForkSwitch extends ControlStyle
+
+sealed trait ControlLevel extends Enum
+case object InnerControl extends ControlLevel
+case object OuterControl extends ControlLevel
+

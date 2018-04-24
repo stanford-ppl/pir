@@ -6,13 +6,13 @@ import prism.enums._
 object DotProduct extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
-    val x1449 = top.argFringe.argIn(init=0).name("x1449").ctrl(top) // ArgInNew(Const(0))
+    val x1449 = ArgIn(init=0).name("x1449").ctrl(top) // ArgInNew(Const(0))
     boundOf(x1449) = 1024
     val x1452 = ReadMem(x1449).name("x1452").ctrl(top) // RegRead(x1449)
     val x1453 = DRAM().name("x1453").ctrl(top) // x1453 = DRAMNew(ArrayBuffer(x1452),Const(0))
     val x1454 = ReadMem(x1449).name("x1454").ctrl(top) // RegRead(x1449)
     val x1455 = DRAM().name("x1455").ctrl(top) // x1455 = DRAMNew(ArrayBuffer(x1454),Const(0))
-    val x1456 = top.argFringe.argOut(init=0).name("x1456").ctrl(top) // ArgOutNew(Const(0))
+    val x1456 = ArgOut(init=0).name("x1456").ctrl(top) // ArgOutNew(Const(0))
     val x1531 = UnitController(style=SeqPipe, level=OuterControl).name("x1531").ctrl(top) // Hwblock(Block(Const(())),false)
     val x1459_d0 = Reg(init=Some(0)).name("x1459_d0").ctrl(x1531) // x1459 = RegNew(Const(0))
     isAccum(x1459_d0) = false

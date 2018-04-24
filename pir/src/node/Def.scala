@@ -47,3 +47,4 @@ case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:PIRDesign) 
 case class DataReady(globalOutput:GlobalOutput)(implicit design:PIRDesign) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
 
 case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
+case class ProcessDramCommand(loads:List[LocalLoad])(implicit design:PIRDesign) extends Def

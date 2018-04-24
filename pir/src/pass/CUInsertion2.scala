@@ -3,6 +3,11 @@ package pir.pass
 import pir.node._
 import prism.collection.mutable
 
+/*
+ * Attempt to add CU and pull access by reverse topological traverse the graph. 
+ * Problem with loop and need merge cus based on control.
+ * Currently not used
+ * */
 class CUInsertion2(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 

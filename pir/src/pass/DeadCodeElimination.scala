@@ -101,6 +101,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
         }
       }
     }
+    super.finPass
   }
 
 }

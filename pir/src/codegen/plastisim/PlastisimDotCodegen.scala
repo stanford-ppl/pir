@@ -53,6 +53,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     val dstName = s"${dst}${dstSuffix(dstCUP)}"
     val isStatic = isStaticLink(mem, srcCUP, dstCUP)
     var label = s"${quote(n)}\n"
+    pinTypeOf(n, logger=Some(this))
     label += s"${linkTp(n)}_${if (isStatic) "static" else "dynamic"}\n"
     if (!isStatic) {
       label += s"saddr=${addrOf(srcCUS)} "

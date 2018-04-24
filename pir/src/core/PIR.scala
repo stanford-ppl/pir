@@ -32,7 +32,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
-  lazy val dramStoreRegInsertion = new DramStoreRegInsertion()
+  lazy val fringeElaboration = new FringeElaboration()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val unrollingTransformer = new UnrollingTransformer()
   lazy val cuInsertion = new CUInsertion()
@@ -65,7 +65,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(testTraversal)
 
     // Data  path transformation and analysis
-    addPass(dramStoreRegInsertion)
+    addPass(fringeElaboration)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator)
@@ -73,17 +73,17 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRIRDotCodegen(s"top2.dot"))
     addPass(controlPropogator)
     addPass(unrollingTransformer).dependsOn(controlPropogator)
+    addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
     addPass(cuInsertion)
     addPass(deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
-    addPass(accessPuller).dependsOn(cuInsertion)
     addPass(debug, new PIRIRDotCodegen(s"top4.dot"))
-    addPass(deadCodeEliminator)
+    addPass(accessPuller).dependsOn(cuInsertion)
     addPass(debug, new PIRIRDotCodegen(s"top5.dot"))
-    addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
+    addPass(debug, new PIRIRDotCodegen(s"top6.dot"))
+    addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(debug, new PIRIRDotCodegen(s"top7.dot"))
+    addPass(deadCodeEliminator)
     addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
@@ -137,9 +137,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim, new PlastisimDotCodegen(s"psim.dot")).dependsOn(cuPlacer, plastisimAnalyzer)
     addPass(genPlastisim, plastisimConfigCodegen).dependsOn(cuPlacer, plastisimAnalyzer)
 
-    // Simulation
+     // Simulation
 
-    // Statistics
+     // Statistics
 
     }
   }

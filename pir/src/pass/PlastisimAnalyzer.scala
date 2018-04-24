@@ -33,15 +33,6 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
     linkScaleOutOf(store) = itersOf(writeNext)
     // Analyze reader side
     mem match {
-      case mem:StreamOut if mem.field == "size" || mem.field == "offset" =>
-        val cuP = globalOf(mem).get
-        val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-        val data = (cuP.collectDown[StreamIn]().filter { _.field == "data" } ++
-                    cuP.collectDown[StreamOut]().filter { _.field == "data" }).head
-        val csize = getConstOf[Int](size, logger=Some(this))
-        linkScaleInOf(store) = csize / 4 / parOf(data).get // size in bytes to words
-      case mem:StreamOut if mem.field == "data" =>
-        linkScaleInOf(store) = 1
       case mem:ArgOut =>
         linkScaleInOf(store) = 1
       case mem:TokenOut =>
@@ -78,6 +69,11 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
           val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
           itersOf(valid)
         case n:ContextEnable => 1
+        case n:DramControllerDone =>
+          val cuP = globalOf(n).get
+          val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
+          val csize = getConstOf[Int](size, logger=Some(this))
+          csize / 4 / parOf(n).get
       }
     }
   }

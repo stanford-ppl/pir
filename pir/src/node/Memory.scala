@@ -24,8 +24,13 @@ object ArgOut {
   def apply()(implicit design:PIRDesign):ArgOut = ArgOut(None)
 }
 
-case class StreamIn(field:String)(implicit design:PIRDesign) extends Memory
-case class StreamOut(field:String)(implicit design:PIRDesign) extends Memory
+case class DramAddress(dram:DRAM)(implicit design:PIRDesign) extends Memory
+
+trait Stream extends Memory {
+  val field:String
+}
+case class StreamIn(field:String)(implicit design:PIRDesign) extends Stream
+case class StreamOut(field:String)(implicit design:PIRDesign) extends Stream
 
 case class TokenOut()(implicit design:PIRDesign) extends Memory
 

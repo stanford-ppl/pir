@@ -82,22 +82,26 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
   }
 
   def allocateControllerDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerDone(ctx=$context, ctrl=$ctrl)") {
-    val prevDone = prevControllerDone(context, ctrl)
     ctrl match {
-      case ctrl:ArgInController => allocateWithFields[ContextEnableOut]()(context)
       case ctrl:LoopController =>
         val cchain = duplicateCounterChain(context, ctrl) 
         cchain.inner.getEnable.getOrElse {
-          val en = prevDone.getOrElse { allocateWithFields[ContextEnableOut]()(context) }
+          val en = allocateControllerEnable(context, ctrl)
           cchain.inner.setEnable(en)
         }
         allocateCounterDone(cchain.outer)
-      case ctrl:UnitController =>
-        // If UnitControl is the inner most control, the enable is the done, otherwise it's previous
-        // control's done
-        prevDone.fold[ControlNode] { allocateWithFields[ContextEnableOut]()(context) } { prevDone => prevDone }
-      case top:TopController => prevDone.get
+      case ctrl:ArgInController => allocateControllerEnable(context, ctrl)
+      case ctrl:UnitController => allocateControllerEnable(context, ctrl)
+      case top:TopController => allocateControllerEnable(context, ctrl)
+      case top:DramController => 
+        val en = allocateControllerEnable(context, ctrl)
+        allocateWithFields[DramControllerDone](en)(context)
     }
+  }
+
+  def allocateControllerEnable(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerEnable(ctx=$context, ctrl=$ctrl)") {
+    val prevDone = prevControllerDone(context, ctrl)
+    prevDone.getOrElse { allocateWithFields[ContextEnableOut]()(context) }
   }
 
   def duplicateCounterChain(context:ComputeContext, ctrl:LoopController) = dbgblk(s"duplicateCounterChain($context, $ctrl)"){
@@ -157,7 +161,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
 
   def getAccessNext(n:LocalAccess, mem:Memory, ctx:ComputeContext) = {
     mem match {
-      case mem if isFIFO(mem) => allocateWithFields[ContextEnableOut]()(ctx)
+      case mem if isFIFO(mem) => allocateControllerEnable(ctx, ctrlOf(n))
       case mem => allocateControllerDone(ctx, topCtrlOf(n))
     }
   }
@@ -190,6 +194,5 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
     newAccess.setParent(contextOf(n).get)
     swapNode(n, newAccess)
   }
-
 
 }

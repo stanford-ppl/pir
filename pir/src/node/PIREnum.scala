@@ -33,18 +33,6 @@ case object TileStore extends MCType
 case object Scatter extends MCType 
 case object Gather extends MCType 
 
-sealed trait ControlStyle extends Enum
-case object InnerPipe extends ControlStyle
-case object SeqPipe extends ControlStyle
-case object MetaPipe extends ControlStyle
-case object StreamPipe extends ControlStyle
-case object ForkSwitch extends ControlStyle
-
-sealed trait ControlLevel extends Enum
-case object InnerControl extends ControlLevel
-case object OuterControl extends ControlLevel
-
-
 sealed trait MemMode extends Enum
 case object SramMode extends MemMode
 case object FifoMode extends MemMode

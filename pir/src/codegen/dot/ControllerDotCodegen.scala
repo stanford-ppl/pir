@@ -49,10 +49,6 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   override def emitEdges = {
     val mems = compiler.top.collectDown[Memory]()
     mems.foreach { 
-      case mem:ArgIn =>
-        readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }
-      case mem:ArgOut =>
-        writersOf(mem).foreach { writer => emitEdge(ctrlOf(writer), mem) }
       case mem:RetimingFIFO =>
       case mem =>
         readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }

@@ -52,6 +52,7 @@ trait PlastisimCodegen extends PIRCodegen {
             if (isWord(n)) cuS.param.sDataFifoParam.size
             else if (isVector(n)) cuS.param.vDataFifoParam.size
             else throw PIRException(s"Unsupported dram data type ${pinTypeOf(n)}")
+          case memP:StreamIn if memP.field == "data" & isLoad => 1
         }
       case cuS:CU =>
         memP match {
@@ -62,8 +63,7 @@ trait PlastisimCodegen extends PIRCodegen {
               case n if isVector(n) => cuS.param.vectorFifoParam.size
             }
           case memP:pir.node.SRAM => cuS.param.sramParam.depth
-          case memP:pir.node.ArgIn => cuS.param.scalarFifoParam.size
-          case memP:pir.node.Reg => cuS.param.scalarFifoParam.size
+          case memP if isReg(memP) => cuS.param.scalarFifoParam.size
         }
       case cuS:spade.node.ArgFringe =>
         1

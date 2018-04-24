@@ -1,6 +1,6 @@
 package pir.node
 
-trait DramFringe extends GlobalContainer {
+abstract class DramFringe(implicit design:PIRDesign) extends GlobalContainer {
   val dram:List[DRAM]
 }
 
@@ -32,3 +32,5 @@ case class FringeSparseStore(
 case class DRAM()(implicit design:PIRDesign) extends IR {
   val id = design.nextId
 }
+
+case class DramControllerDone(en:ControlNode)(implicit design:PIRDesign) extends ControlNode
