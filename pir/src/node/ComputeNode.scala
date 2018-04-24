@@ -41,3 +41,14 @@ case class ComputeContext()(implicit design:PIRDesign) extends Container
 // Place holder for ContextEnable. Lowered to ContextEnable
 case class ContextEnableOut()(implicit design:PIRDesign) extends ControlNode
 case class ContextEnable(enables:List[Def])(implicit design:PIRDesign) extends ControlNode
+
+trait PIRComputeNode {
+  def isCounter(n:PIRNode) = n match {
+    case n:Counter => true
+    case _ => false
+  }
+
+  def ctxEnOf(n:Container):Option[ContextEnable] = {
+    n.collectDown[ContextEnable]().headOption
+  }
+}

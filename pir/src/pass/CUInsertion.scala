@@ -48,7 +48,7 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
   override def visitNode(n:N):Unit = {
     dbg(s"visitNode ${qdef(n)}")
     n match {
-      case n if withinGlobal(n) =>
+      case n if within[GlobalContainer](n) =>
       case n:Memory if isRemoteMem(n) => swapParent(n, CUContainer().setParent(compiler.top).name(s"${qtype(n)}")) 
       case n:ComputeNode if !ctMap(ctrlOf(n)).isAncestorOf(n) => swapParent(n, ctMap(ctrlOf(n)))
       case _ => super.visitNode(n)

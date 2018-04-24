@@ -78,3 +78,52 @@ case class FIFONumel(mem:Memory)(implicit design:PIRDesign) extends Def
 case class NotEmpty(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 case class NotFull(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 
+trait PIRAccess {
+  def memsOf(n:Any) = {
+    n match {
+      case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
+      case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
+    }
+  }
+
+  def accessNextOf(n:PIRNode) = {
+    n match {
+      case Def(n,EnabledLoadMem(mem, addrs, readNext)) => readNext
+      case Def(n,EnabledStoreMem(mem, addrs, data, writeNext)) => writeNext
+    }
+  }
+
+  def writersOf(mem:Memory):List[LocalStore] = {
+    mem.collect[LocalStore](visitFunc=mem.visitGlobalIn)
+  }
+
+  def readersOf(mem:Memory):List[LocalLoad] = {
+    def visitFunc(n:PIRNode):List[PIRNode] = n match {
+      case n:NotEmpty => Nil
+      case n:NotFull => Nil
+      case n => n.visitGlobalOut(n)
+    }
+    mem.collect[LocalLoad](visitFunc={ 
+      case n:NotEmpty => Nil
+      case n:NotFull => Nil
+      case n => mem.visitGlobalOut(n) 
+    })
+  }
+
+  def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
+
+  def globalOf(n:PIRNode) = {
+    n.collectUp[GlobalContainer]().headOption
+  }
+
+  def contextOf(n:PIRNode) = {
+    n.collectUp[ComputeContext]().headOption
+  }
+
+  def ctrlsOf(container:Container) = {
+    implicit val design = container.design.asInstanceOf[PIRDesign]
+    import design.pirmeta._
+    container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
+  }
+
+}

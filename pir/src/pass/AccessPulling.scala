@@ -13,7 +13,7 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopolo
   override def finPass = {
     // Checking for escaped nodes
     (compiler.top.collectDown[Primitive]()).foreach { n =>
-      assert(withinGlobal(n), s"$n is not contained by a CU")
+      assert(within[GlobalContainer](n), s"$n is not contained by a CU")
     }
     super.finPass
   }

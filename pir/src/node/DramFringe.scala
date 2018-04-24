@@ -34,3 +34,17 @@ case class DRAM()(implicit design:PIRDesign) extends IR {
 }
 
 case class DramControllerDone(en:ControlNode)(implicit design:PIRDesign) extends ControlNode
+
+trait PIRDramFringe {
+  def isLoadFringe(n:GlobalContainer) = n match {
+    case n:FringeDenseLoad => true
+    case n:FringeSparseLoad => true
+    case n => false
+  }
+
+  def isStoreFringe(n:GlobalContainer) = n match {
+    case n:FringeDenseStore => true
+    case n:FringeSparseStore => true
+    case n => false
+  }
+}

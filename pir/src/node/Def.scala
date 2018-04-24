@@ -30,21 +30,13 @@ case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:PIRDesign) e
 case class DummyOp()(implicit design:PIRDesign) extends Def
 case class Const[T](value:T)(implicit design:PIRDesign) extends Def
 
-trait GlobalIO extends Def
-trait GlobalInput extends GlobalIO { val globalOutput:GlobalOutput }
-object GlobalInput {
-  def unapply(n:Any):Option[GlobalOutput] = n match {
-    case ValidGlobalInput(gout) => Some(gout)
-    case ReadyValidGlobalInput(gout, ready) => Some(gout)
-    case _ => None
-  }
-}
-case class ValidGlobalInput(globalOutput:GlobalOutput)(implicit design:PIRDesign) extends GlobalInput
-case class ReadyValidGlobalInput(globalOutput:GlobalOutput, ready:ControlNode)(implicit design:PIRDesign) extends GlobalInput
-case class DataValid(globalInput:GlobalInput)(implicit design:PIRDesign) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
-
-case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:PIRDesign) extends GlobalIO
-case class DataReady(globalOutput:GlobalOutput)(implicit design:PIRDesign) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
-
 case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
 case class ProcessDramCommand(loads:List[LocalLoad])(implicit design:PIRDesign) extends Def
+
+trait PIRDef {
+  def isReduceOp(n:PIRNode) = n match {
+    case n:ReduceAccumOp => true
+    case n:ReduceOp => true
+    case n => false
+  }
+}

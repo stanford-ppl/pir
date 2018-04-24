@@ -36,3 +36,35 @@ case class TokenOut()(implicit design:PIRDesign) extends Memory
 
 case class RetimingFIFO()(implicit design:PIRDesign) extends Memory
 
+trait PIRMemory {
+  def isFIFO(n:PIRNode) = n match {
+    case n:FIFO => true
+    case n:RetimingFIFO => true
+    case n:StreamIn => true
+    case n:StreamOut => true
+    case _ => false
+  }
+
+  def isReg(n:PIRNode) = n match {
+    case n:Reg => true
+    case n:ArgIn => true
+    case n:DramAddress => true
+    case n:ArgOut => true
+    case n:TokenOut => true
+    case n => false
+  }
+
+  def isRemoteMem(n:PIRNode) = n match {
+    case (_:SRAM)  => true
+    case n:FIFO if writersOf(n).size > 1 => true
+    case n:RegFile => true
+    case _ => false
+  }
+
+  def isControlMem(n:Memory) = n match {
+    case n:TokenOut => true
+    case StreamIn("ack") => true
+    case _ => false
+  }
+
+}
