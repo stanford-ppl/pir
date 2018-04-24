@@ -68,6 +68,12 @@ class PIRMetadata extends Metadata {
   val bufferDepthOf = new OneToOneMap[Memory, Int] with MetadataMap
   bufferDepthOf.setName("bufferDepthOf")
 
+  /*
+   * Number of iterations before the node is active/done again
+   * */
+  val itersOf =  new OneToOneMap[Primitive, Int] with MetadataMap
+  itersOf.setName("itersOf")
+
   /* ------------- Plastsim metadata (start) ---------- */
   val linkScaleInOf = new OneToOneMap[LocalStore, Int]()
   val linkScaleOutOf = new OneToOneMap[LocalStore, Int]()

@@ -30,9 +30,6 @@ case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:PIRDesign) e
 case class DummyOp()(implicit design:PIRDesign) extends Def
 case class Const[T](value:T)(implicit design:PIRDesign) extends Def
 
-case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
-case class ProcessDramCommand(loads:List[LocalLoad])(implicit design:PIRDesign) extends Def
-
 trait PIRDef {
   def isReduceOp(n:PIRNode) = n match {
     case n:ReduceAccumOp => true

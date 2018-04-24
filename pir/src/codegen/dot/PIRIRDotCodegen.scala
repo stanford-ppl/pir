@@ -28,9 +28,12 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     }
     n match {
       case n:PIRNode => 
-        ctrlOf.get(n).foreach { ctrl => label += s"\n(ctrl=${quote(ctrl)})" }
-        topCtrlOf.get(n).foreach { ctrl => label += s"\n(topCtrl=${quote(ctrl)})" }
-        boundOf.get(n).foreach { bound => label += s"\n(bound=$bound)" }
+        val metas = List(ctrlOf, topCtrlOf, boundOf, itersOf)
+        metas.foreach { meta =>
+          meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
+            label += s"\n(${meta.name}=$v)"
+          }
+        }
       case _ =>
     }
     attr.label(label)

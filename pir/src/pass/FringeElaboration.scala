@@ -18,7 +18,10 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       val writeMem = WriteMem(n.asInstanceOf[Memory], argInDef).setParent(argFringe).ctrl(argInCtrl)
     case n@(_:ArgOut | _:TokenOut) =>
       val argFringe = design.top.argFringe
+      val argOutCtrl = argFringe.argOutController
       n.setParent(argFringe)
+      val readMem = ReadMem(n.asInstanceOf[Memory]).setParent(argFringe).ctrl(argOutCtrl)
+      argFringe.hostRead.connect(readMem.out)
     case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
       transformDense(n, cmdStream, dataStream)
     case n@FringeSparseLoad(dram,addrStream,dataStream) =>
@@ -73,4 +76,3 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   }
 
 }
-

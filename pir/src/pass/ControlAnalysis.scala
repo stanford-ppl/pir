@@ -91,6 +91,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
         }
         allocateCounterDone(cchain.outer)
       case ctrl:ArgInController => allocateControllerEnable(context, ctrl)
+      case ctrl:ArgOutController => allocateControllerEnable(context, ctrl)
       case ctrl:UnitController => allocateControllerEnable(context, ctrl)
       case top:TopController => allocateControllerEnable(context, ctrl)
       case top:DramController => 

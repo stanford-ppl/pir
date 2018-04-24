@@ -46,9 +46,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
 
   def isLive(n:N):Option[Boolean] = n match {
     case n if liveMap.contains(n) => Some(liveMap(n))
-    case n:ArgOut => Some(true)
-    case n:StreamOut => Some(true)
-    case n:TokenOut => Some(true)
+    case n:HostRead => Some(true)
     case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
     case n => None
   }

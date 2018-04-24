@@ -29,6 +29,9 @@ case class FringeSparseStore(
   actStream:List[StreamIn]
 )(implicit design:PIRDesign) extends DramFringe
 
+case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
+case class ProcessDramCommand(loads:List[LocalLoad])(implicit design:PIRDesign) extends Def
+
 case class DRAM()(implicit design:PIRDesign) extends IR {
   val id = design.nextId
 }

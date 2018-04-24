@@ -114,10 +114,11 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
-    // Mapping
-    session.rerun {
     // Simulation analyzer
     addPass(genPlastisim, plastisimAnalyzer)
+
+    // Mapping
+    session.rerun {
 
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(debug, new PIRIRDotCodegen(s"top.dot"))
