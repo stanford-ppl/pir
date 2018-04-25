@@ -9,31 +9,109 @@ trait PlastisimCodegen extends PIRCodegen {
   import pirmeta._
   import spademeta._
 
-  type Link = LocalStore
+  type Node = ContextEnable
+  type Link = linkGroup.V
+  implicit val lct = classTag[Link]
 
   def cumap = pirMap.right.get.cumap
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
 
+  override def runPass = {
+    super.runPass // traverse dataflow graph and call emitNode on each node
+    linkGroup.values.foreach { link => emitLink(link) }
+  }
+
+  override def emitNode(n:N) = n match {
+    case n:Node => emitNetworkNode(n)
+    case n => super.visitNode(n)
+  }
+
+  def emitNetworkNode(n:ContextEnable):Unit
+  def emitLink(n:Link):Unit
+
+  def srcOf(mem:Memory) = dbgblk(s"srcOf(${quote(mem)})") {
+    def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
+      case n:Memory => true
+      case _ => false
+    }
+    mem.collect[Node](visitFunc=visitFunc _)
+  }
+
+  def srcsOf(n:Link) = {
+    n.flatMap { mem => srcOf(mem) }
+  }
+
+  def dstOf(mem:Memory) = dbgblk(s"dstOf(${quote(mem)})"){
+    def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
+      case n:Memory => true
+      case n:NotFull => true
+      case _ => false
+    }
+    mem.collect[Node](visitFunc=visitFunc _)
+  }
+
+  def dstsOf(n:Link) = {
+    n.flatMap { mem => dstOf(mem) }
+  }
+
+  def inlinksOf(n:Node) = {
+    val reads = n.collectPeer[LocalLoad]()
+    reads.map { read =>
+      val mem::Nil = memsOf(read)
+      val link = linkGroup(mem)
+      (link, itersOf(read), bufferSizeOf(mem))
+    }
+  }
+
+  def outlinksOf(n:Node) = {
+    val writes = n.collectOutTillMem[LocalStore]()
+    val links = writes.groupBy { write =>
+      val mems = memsOf(write)
+      linkGroup(mems.head) // All mems should belongs to the same linkGroup
+    }
+    links.toSeq.map { case (link, writers) =>
+      val iters = writers.map { writer => itersOf(writer) }
+      assert(iters.toSet.size==1, s"not all writers have the same iters on the same link, link=$link, iters=$iters")
+      (link, iters.head)
+    }
+  }
+
   // Convert coordinate to linear index
-  def addrOf(sn:SNode) = {
+  def addrOf(sn:SNode):Option[Int] = {
     import topParam._
-    var List(x,y) = indexOf(sn)
-    x += 1 // get ride of negative x coordinate
-    val idx = y * (numCols + 2) + x
-    dbg(s"$sn: coord = ($x, $y) idx = $idx")
-    idx
+    indexOf.get(sn).map { case List(xx,y) =>
+      val x = xx - 1 // get ride of negative x coordinate
+      val idx = y * (numCols + 2) + x
+      dbg(s"$sn: coord = ($x, $y) idx = $idx")
+      idx
+    }
   }
 
-  def isStaticLink(mem:Memory, srcCUP:GlobalContainer, dstCUP:GlobalContainer) = (mem, srcCUP, dstCUP) match {
-    case (mem, srcCUP:pir.node.ArgFringe, dstCUP) => true
-    case (mem, srcCUP, dstCUP:pir.node.ArgFringe) => true
-    case (mem, srcCUP, dstCUP) if isPMU(srcCUP) && isPMU(dstCUP) => true
-    case _ => false
+  def addrOf(node:Node):Option[Int] = {
+    val cuP = globalOf(node).get
+    val cuS = cumap.mappedValue(cuP)
+    addrOf(cuS)
   }
 
-  def bufferSizeOf(n:Link):Int = {
-    val memP = memsOf(n).head
-    bufferSizeOf(memP)
+  def isStaticLink(src:Node, dst:Node):Boolean = {
+    val srcCUP = globalOf(src).get
+    val dstCUP = globalOf(dst).get
+    val isStatic = (srcCUP, dstCUP) match {
+      case (srcCUP:pir.node.ArgFringe, dstCUP) => true
+      case (srcCUP, dstCUP:pir.node.ArgFringe) => true
+      case (srcCUP, dstCUP) if isPMU(srcCUP) && isPMU(dstCUP) => true
+      case _ => false
+    }
+    dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
+    isStatic
+  }
+
+  def isStaticLink(n:Link):Boolean = {
+    val srcs = srcsOf(n)
+    val dsts = dstsOf(n)
+    val isStatics = srcs.flatMap { src => dsts.map { dst => isStaticLink(src, dst) } }
+    assert(isStatics.size == 1, s"not all srcs and dsts conform on isStaticLink")
+    isStatics.head
   }
 
   def bufferSizeOf(memP:Memory):Int = {
@@ -75,42 +153,19 @@ trait PlastisimCodegen extends PIRCodegen {
 
   }
 
-  def linkTp(n:Link) = n match {
+  def linkTp(n:Memory):String = n match {
     case n if isBit(n) => "ctrl"
     case n if isWord(n) => "scal"
     case n if isVector(n) => "vec"
   }
 
-  def linkSrc(n:Link) = {
-    val mem = memsOf(n).head
-    mem match {
-      case mem:ArgIn => globalOf(n.collectInTillMem[ArgInDef]().head).get
-        // case mem:StreamIn => no store on StreamIn
-      case mem => n.collectInTillMem[ContextEnable]().head
-    }
+  def linkTp(n:Link):String = {
+    val tps = n.map(linkTp)
+    assert(tps.toSet.size==1, s"link $n has tps = $tps")
+    tps.head
   }
 
-  def linkDst(n:Link) = dbgblk(s"linkDst($n)") {
-    val mem = memsOf(n).head
-    mem match {
-      case mem:StreamOut => ctxEnOf(globalOf(mem).get).get
-      case mem:ArgOut => globalOf(mem).get
-      case mem:TokenOut => globalOf(mem).get
-      case WithReaders(readers) => readers.head.collectInTillMem[ContextEnable]().head
-    }
-  }
-
-  def srcSuffix(cuP:GlobalContainer) = cuP match {
-    case x:pir.node.ArgFringe => "_out"
-    case _ => ""
-  }
-
-  def dstSuffix(cuP:GlobalContainer) = cuP match {
-    case x:pir.node.ArgFringe => "_in"
-    case _ => ""
-  }
-
-  def latencyOf(n:ContextEnable) = {
+  def latencyOf(n:Node) = {
     globalOf(n).get match {
       case cuP:DramFringe => 100
       case cuP =>
@@ -118,6 +173,16 @@ trait PlastisimCodegen extends PIRCodegen {
         val stages = cuS.collectDown[Stage]()
         Math.max(stages.size, 1)
     }
+  }
+
+  def staticLatencyOf(src:Node, dst:Node) = {
+    1 //TODO: change for static network
+  }
+
+  override def quote(n:Any):String = n match {
+    case n:Set[_] if n.forall(_.isInstanceOf[Memory]) => n.mkString("_") // Link
+    case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
+    case n => super.quote(n)
   }
 
 }

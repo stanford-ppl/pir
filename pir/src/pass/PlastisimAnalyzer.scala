@@ -13,6 +13,9 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
 
   override def visitNode(n:N) = n match {
     case n:LocalAccess => getItersOf(n)
+    case n:Memory if !linkGroup.contains(n) =>
+      val group = writersOf(n).flatMap { writer => memsOf(writer) }.toSet
+      group.foreach { mem => linkGroup += mem -> group }
     case n => super.visitNode(n)
   }
 

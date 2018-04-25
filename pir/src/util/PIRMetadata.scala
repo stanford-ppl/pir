@@ -74,6 +74,11 @@ class PIRMetadata extends Metadata {
   val itersOf =  new OneToOneMap[Primitive, Int] with MetadataMap
   itersOf.setName("itersOf")
 
+  /* ------------- Plastsim metadata (start) ---------- */
+  val linkGroup = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
+  linkGroup.setName("linkGroup")
+  /* ------------- Plastsim metadata (start) ---------- */
+
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
 
 }
