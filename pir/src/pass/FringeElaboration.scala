@@ -9,30 +9,34 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     traverseNode(compiler.top)
   }
 
-  override def visitNode(n:N) = n match {
-    case n:Top => super.visitNode(n)
-    case n@(_:ArgIn | _:DramAddress) =>
-      val argFringe = design.top.argFringe
-      val argInCtrl = argFringe.argInController
-      val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
-      val writeMem = WriteMem(n.asInstanceOf[Memory], argInDef).setParent(argFringe).ctrl(argInCtrl)
-    case n@(_:ArgOut | _:TokenOut) =>
-      val argFringe = design.top.argFringe
-      val argOutCtrl = argFringe.argOutController
-      n.setParent(argFringe)
-      val readMem = ReadMem(n.asInstanceOf[Memory]).setParent(argFringe).ctrl(argOutCtrl)
-      argFringe.hostRead.connect(readMem.out)
-    case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
-      transformDense(n, cmdStream, dataStream)
-    case n@FringeSparseLoad(dram,addrStream,dataStream) =>
-      transformSparse(n, addrStream, dataStream)
-    case n@FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
-      transformDense(n, cmdStream ++ dataStream, ackStream)
-      insertCountAck(n, dataStream.head, ackStream.head)
-    case n@FringeSparseStore(dram,cmdStream,ackStream) =>
-      transformSparse(n, cmdStream, ackStream)
-      insertCountAck(n, cmdStream.head, ackStream.head)
-    case _ => super.visitNode(n)
+  override def visitNode(n:N) = dbgblk(s"visitNode($n)") { 
+    n match {
+      case n:Top =>
+        n.argFringe // create lazy value
+        super.visitNode(n)
+      case n@(_:ArgIn | _:DramAddress) =>
+        val argFringe = design.top.argFringe
+        val argInCtrl = argFringe.argInController
+        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
+        val writeMem = WriteMem(n.asInstanceOf[Memory], argInDef).setParent(argFringe).ctrl(argInCtrl)
+      case n@(_:ArgOut | _:TokenOut) =>
+        val argFringe = design.top.argFringe
+        val argOutCtrl = argFringe.argOutController
+        n.setParent(argFringe)
+        val readMem = ReadMem(n.asInstanceOf[Memory]).setParent(argFringe).ctrl(argOutCtrl)
+        argFringe.hostRead.connect(readMem.out)
+      case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
+        transformDense(n, cmdStream, dataStream)
+      case n@FringeSparseLoad(dram,addrStream,dataStream) =>
+        transformSparse(n, addrStream, dataStream)
+      case n@FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
+        transformDense(n, cmdStream ++ dataStream, ackStream)
+        insertCountAck(n, dataStream.head, ackStream.head)
+      case n@FringeSparseStore(dram,cmdStream,ackStream) =>
+        transformSparse(n, cmdStream, ackStream)
+        insertCountAck(n, cmdStream.head, ackStream.head)
+      case _ => super.visitNode(n)
+    }
   }
 
   def transformDense(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
@@ -69,10 +73,12 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
 
   def insertCountAck(fringe:DramFringe, dataStream:StreamOut, ackStream:StreamIn) = {
     val dataCtrl = ctrlOf(writersOf(dataStream).head)
-    val reader = ReadMem(ackStream).setParent(fringe).ctrl(dataCtrl)
-    val count = CountAck(reader).setParent(fringe).ctrl(dataCtrl)
-    val mem = TokenOut()
-    val writer = WriteMem(mem, count).setParent(fringe).ctrl(dataCtrl)
+    val cu = CUContainer().setParent(compiler.top)
+    val reader = ReadMem(ackStream).setParent(cu).ctrl(dataCtrl)
+    val count = CountAck(reader).setParent(cu).ctrl(dataCtrl)
+    val argFringe = design.top.argFringe
+    val mem = TokenOut().setParent(argFringe)
+    val writer = WriteMem(mem, count).setParent(cu).ctrl(dataCtrl)
   }
 
 }

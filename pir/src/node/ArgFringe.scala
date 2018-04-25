@@ -7,12 +7,13 @@ case class ArgFringe(topController:Controller)(implicit design:PIRDesign) extend
 
   lazy val hostRead = HostRead().setParent(this).ctrl(argOutController)
 
-  def dramAddress(dram:DRAM)(implicit design:PIRDesign) = {
-    val reg = DramAddress(dram)
-    ReadMem(reg)
-  }
-
 }
 
 case class ArgInDef()(implicit design:PIRDesign) extends Def
 case class HostRead()(implicit design:PIRDesign) extends Def
+
+trait PIRArgFringe {
+  implicit def dramAddress_to_access(dramAddr:DramAddress)(implicit design:PIRDesign) = {
+    ReadMem(dramAddr)
+  }
+}

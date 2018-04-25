@@ -20,13 +20,13 @@ case class FringeDenseStore(
   dram:List[DRAM], 
   cmdStream:List[StreamOut], 
   dataStream:List[StreamOut], 
-  actStream:List[StreamIn]
+  ackStream:List[StreamIn]
 )(implicit design:PIRDesign) extends DramFringe
 
 case class FringeSparseStore(
   dram:List[DRAM], 
   cmdStream:List[StreamOut], 
-  actStream:List[StreamIn]
+  ackStream:List[StreamIn]
 )(implicit design:PIRDesign) extends DramFringe
 
 case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
