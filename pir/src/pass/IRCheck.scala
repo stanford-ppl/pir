@@ -23,6 +23,7 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
         checkLowering[WriteMem](cu)
         checkLowering[LoadMem](cu)
         checkLowering[StoreMem](cu)
+        checkLowering[DummyOp](cu)
       }
     }
   }
