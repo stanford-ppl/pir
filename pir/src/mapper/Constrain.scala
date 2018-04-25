@@ -105,5 +105,5 @@ trait MatchingConstrain extends Constrain {
 
 case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](constrain:CostConstrain, @transient fg:FG, key:Any) extends MappingFailure
 case class MatchConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, keys:Set[_]) extends MappingFailure {
-  override def toString = s"UnmatchableFactorGraph(${fg.getClass.getSimpleName}, $keys)"
+  override def toString = s"MatchConstrainFailure(${fg.getClass.getSimpleName}, $keys)"
 }

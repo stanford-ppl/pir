@@ -24,7 +24,7 @@ class DFGConstrain(implicit pass:PIRPass) extends CUPrefixConstrain {
 }
 class SramConstrain(implicit pass:PIRPass) extends CUQuantityConstrain {
   def numPNodes(cuP:K):Int = cuP.collectDown[pir.node.SRAM]().size
-  def numSnodes(cuS:V):Int = cuS.collectDown[spade.node.SRAM]().size
+  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.numSrams; case _ => 0 }
 }
 class ControlFIFOConstrain(implicit pass:PIRPass) extends CUQuantityConstrain {
   def numPNodes(cuP:K):Int = (cuP.collectDown[pir.node.FIFO]() ++ cuP.collectDown[RetimingFIFO]()).filter(n => isBit(n)).size
