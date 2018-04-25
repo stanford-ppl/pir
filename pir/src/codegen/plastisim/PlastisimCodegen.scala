@@ -96,12 +96,7 @@ trait PlastisimCodegen extends PIRCodegen {
   def isStaticLink(src:Node, dst:Node):Boolean = {
     val srcCUP = globalOf(src).get
     val dstCUP = globalOf(dst).get
-    val isStatic = (srcCUP, dstCUP) match {
-      case (srcCUP:pir.node.ArgFringe, dstCUP) => true
-      case (srcCUP, dstCUP:pir.node.ArgFringe) => true
-      case (srcCUP, dstCUP) if isPMU(srcCUP) && isPMU(dstCUP) => true
-      case _ => false
-    }
+    val isStatic = srcCUP == dstCUP
     dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
     isStatic
   }
