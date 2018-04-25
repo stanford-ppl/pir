@@ -80,7 +80,7 @@ trait PlastisimCodegen extends PIRCodegen {
   def addrOf(sn:SNode):Option[Int] = {
     import topParam._
     indexOf.get(sn).map { case List(xx,y) =>
-      val x = xx - 1 // get ride of negative x coordinate
+      val x = xx + 1 // get ride of negative x coordinate
       val idx = y * (numCols + 2) + x
       dbg(s"$sn: coord = ($x, $y) idx = $idx")
       idx

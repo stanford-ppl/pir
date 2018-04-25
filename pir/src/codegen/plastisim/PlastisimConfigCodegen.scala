@@ -78,7 +78,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     val isStatic = isStaticLink(n)
     val linkstr = if (isStatic) "" else "net"
 
-    emitNodeBlock(s"${linkstr}link $n") {
+    emitNodeBlock(s"${linkstr}link ${quote(n)}") {
       val tp = linkTp(n)
       emitln(s"type = ${tp}")
       emitln(s"src = ${quote(srcs)}")
