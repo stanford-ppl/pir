@@ -23,25 +23,15 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     case n:ContextEnable => 
       val cuP = globalOf(n).get
       emitNodeBlock(s"node ${quote(n)} # ${quote(cuP)}") {
-        emitNodeLatency(n)
+        emitNodeSpecs(n)
         emitInLinks(n)
         emitOutLinks(n)
       }
-    case n:ArgFringe =>
-      emitNodeBlock(s"node ${quote(n)}_in # ${quote(n)}") {
-        emitln(s"stop_after_tokens = 1")
-        emitInLinks(n)
-      }
-      emitNodeBlock(s"node ${quote(n)}_out # ${quote(n)}") {
-        emitln(s"start_at_tokens = 1")
-        emitOutLinks(n)
-      }
-      super.visitNode(n)
     case n:Link => emitLink(n)
     case n => super.visitNode(n)
   }
   
-  def emitNodeLatency(n:ContextEnable) = {
+  def emitNodeSpecs(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
       case cuP:DramFringe if PIRConfig.loadTrace =>
@@ -52,6 +42,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           emitln(s"size = ${boundOf(size)}")
         } else {
           err(s"trace file for ${cuP} at ${path} does not exist!")
+        }
+      case cuP:ArgFringe =>
+        ctrlOf(n) match {
+          case _:ArgInController =>
+            emitln(s"start_at_tokens = 1")
+          case _:ArgOutController =>
+            emitln(s"stop_after_tokens = 1")
         }
       case cuP =>
         emitln(s"lat = ${latencyOf(n)}")
@@ -89,8 +86,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     emitNodeBlock(s"${linkstr}link $n") {
       val tp = linkTp(n)
       emitln(s"type = $tp")
-      emitlnc(s"src = ${src}${srcSuffix(srcCUP)}", s"${quote(srcCUP)} ${quote(srcCUS)}")
-      emitlnc(s"dst = ${dst}${dstSuffix(dstCUP)}", s"${quote(dstCUP)} ${quote(dstCUS)}")
+      emitlnc(s"src = ${src}", s"${quote(srcCUP)} ${quote(srcCUS)}")
+      emitlnc(s"dst = ${dst}", s"${quote(dstCUP)} ${quote(dstCUS)}")
       (mem, src, dst) match {
         case (mem, src, dst) if isStatic =>
           emitln(s"lat = 1")
@@ -118,8 +115,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         throw PIRException(s"TODO add support to multiple writers in PlastisimConfigCodegen. mem=$mem, writers=$writers")
     }
     links.zipWithIndex.foreach { case (link, idx) =>
+      val iters = memsOf(link).flatMap(mem => readersOf(mem)).map(reader => itersOf(reader))
+      assert(iters.toSet.size==1, s"readNext are different between readers of the same mem $mems")
+      val linkScaleIn = iters.head
       emitln(s"link_in[$idx] = $link")
-      emitln(s"scale_in[$idx] = ${linkScaleInOf(link)}")
+      emitln(s"scale_in[$idx] = ${linkScaleIn}")
       emitln(s"buffer[$idx]=${bufferSizeOf(link)}")
     }
   }
@@ -128,7 +128,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     val links = n.collectOutTillMem[LocalStore]()
     links.zipWithIndex.foreach { case (link, idx) =>
       emitln(s"link_out[$idx] = $link")
-      emitln(s"scale_out[$idx] = ${linkScaleOutOf(link)}")
+      emitln(s"scale_out[$idx] = ${itersOf(link)}")
     }
   }
 

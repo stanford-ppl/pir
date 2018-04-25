@@ -19,7 +19,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   }
 
   override def emitNode(n:N) = n match {
-    case n:ArgFringe => emitSingleNode(n); super.visitNode(n)
+    case n:ArgFringe => super.emitNode(n)
     case n:GlobalContainer => super.emitNode(n)
     case n:ContextEnable => super.emitNode(n)
     case n:Link => links += n
@@ -33,13 +33,6 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     case n => super.label(attr, n)
   }
 
-  override def emitSingleNode(n:N) = n match {
-    case n:ArgFringe =>
-      emitNode(s"${n}_in", setAttrs(DotAttr.empty,n).label(s"${n}_in"))
-      emitNode(s"${n}_out", setAttrs(DotAttr.empty,n).label(s"${n}_out"))
-    case n => super.emitSingleNode(n)
-  }
-
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val mem = memsOf(n).head
     val src = linkSrc(n)
@@ -49,8 +42,8 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     val srcCUS = cumap.mappedValue(srcCUP)
     val dstCUS = cumap.mappedValue(dstCUP)
 
-    val srcName = s"${src}${srcSuffix(srcCUP)}"
-    val dstName = s"${dst}${dstSuffix(dstCUP)}"
+    val srcName = s"${src}"
+    val dstName = s"${dst}"
     val isStatic = isStaticLink(mem, srcCUP, dstCUP)
     var label = s"${quote(n)}\n"
     pinTypeOf(n, logger=Some(this))
@@ -59,8 +52,10 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       label += s"saddr=${addrOf(srcCUS)} "
       label += s"daddr=${addrOf(dstCUS)}\n"
     }
-    label += s"scale_out=${linkScaleOutOf(n)}\n"
-    label += s"scale_in=${linkScaleInOf(n)}\n"
+    label += s"scale_out=${itersOf(n)}\n"
+    val linkScaleIns = memsOf(n).flatMap { mem => readersOf(mem).map { reader => itersOf(reader) } }
+    assert(linkScaleIns.toSet.size==1, s"readNext are different between readers of the same mem $mem")
+    label += s"scale_in=${linkScaleIns.head}\n"
     label += s"buffer_in=${bufferSizeOf(n)}\n"
     emitEdge(srcName, dstName, DotAttr.empty.label(label))
   }

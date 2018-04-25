@@ -31,8 +31,12 @@ trait PlastisimCodegen extends PIRCodegen {
     case _ => false
   }
 
-  def bufferSizeOf(n:Link) = {
+  def bufferSizeOf(n:Link):Int = {
     val memP = memsOf(n).head
+    bufferSizeOf(memP)
+  }
+
+  def bufferSizeOf(memP:Memory):Int = {
     val cuP = globalOf(memP).get
     val cuS = cumap(cuP).head
     cuS match {
@@ -49,18 +53,18 @@ trait PlastisimCodegen extends PIRCodegen {
           case memP:StreamOut if memP.field == "offset" & isStore =>
             cuS.param.wOffsetFifoParam.size
           case memP:StreamOut if memP.field == "data" & isStore=>
-            if (isWord(n)) cuS.param.sDataFifoParam.size
-            else if (isVector(n)) cuS.param.vDataFifoParam.size
-            else throw PIRException(s"Unsupported dram data type ${pinTypeOf(n)}")
+            if (isWord(memP)) cuS.param.sDataFifoParam.size
+            else if (isVector(memP)) cuS.param.vDataFifoParam.size
+            else throw PIRException(s"Unsupported dram data type ${pinTypeOf(memP)}")
           case memP:StreamIn if memP.field == "data" & isLoad => 1
         }
       case cuS:CU =>
         memP match {
           case memP:pir.node.RetimingFIFO =>
-            n match {
-              case n if isBit(n) => cuS.param.controlFifoParam.size
-              case n if isWord(n) => cuS.param.scalarFifoParam.size
-              case n if isVector(n) => cuS.param.vectorFifoParam.size
+            memP match {
+              case memP if isBit(memP) => cuS.param.controlFifoParam.size
+              case memP if isWord(memP) => cuS.param.scalarFifoParam.size
+              case memP if isVector(memP) => cuS.param.vectorFifoParam.size
             }
           case memP:pir.node.SRAM => cuS.param.sramParam.depth
           case memP if isReg(memP) => cuS.param.scalarFifoParam.size
