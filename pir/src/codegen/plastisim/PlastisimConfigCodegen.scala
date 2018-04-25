@@ -81,11 +81,18 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     emitNodeBlock(s"${linkstr}link ${quote(n)}") {
       val tp = linkTp(n)
       emitln(s"type = ${tp}")
-      emitln(s"src = ${quote(srcs)}")
-      emitln(s"dst = ${quote(dsts)}")
+      srcs.zipWithIndex.foreach { case (src,idx) =>
+        emitln(s"src[$idx] = ${quote(src)}")
+      }
+      dsts.zipWithIndex.foreach { case (dst,idx) =>
+        emitln(s"dst[$idx] = ${quote(dst)}")
+      }
       if (isStatic) {
-        val lats = srcs.map { src => dsts.map { dst => staticLatencyOf(src, dst) }}
-        emitlnc(s"lat = ${quote(lats)}", "src[dst[]]")
+        srcs.zipWithIndex.foreach { case (src, srcIdx) =>
+          dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
+            emitln(s"lat[$srcIdx, $dstIdx] = ${staticLatencyOf(src, dst)}")
+          }
+        }
       } else {
         emitln(s"net = ${tp}net")
         val saddrs = srcs.map(src => addrOf(src).get)

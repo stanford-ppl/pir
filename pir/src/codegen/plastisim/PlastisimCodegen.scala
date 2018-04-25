@@ -176,7 +176,6 @@ trait PlastisimCodegen extends PIRCodegen {
 
   override def quote(n:Any):String = n match {
     case n:Set[_] if n.forall(_.isInstanceOf[Memory]) => n.mkString("_") // Link
-    case n:Iterable[_] => s"[${n.map(quote).mkString(",")}]"
     case n => super.quote(n)
   }
 
