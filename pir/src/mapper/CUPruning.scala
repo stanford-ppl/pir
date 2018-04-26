@@ -43,6 +43,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
     pirMap.left.map {
       case f:MappingFailure =>
         fail(s"CUPruning failed. ${f}")
+        runner.setFailed
     }
   }
 
