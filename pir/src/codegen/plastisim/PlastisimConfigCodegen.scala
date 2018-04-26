@@ -7,7 +7,8 @@ import sys.process._
 class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import pirmeta._
 
-  val fileName = s"${compiler}.psim"
+  val fileName = s"$compiler.psim"
+  lazy val SPATIAL_HOME = Config.SPATIAL_HOME.getOrElse(s"Please set SPATIAL_HOME for using trace!")
   val appPath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
   val tracePath = s"${appPath}${separator}traces"
 
@@ -109,7 +110,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  def emitInLinks(n:Node) = dbgblk(s"emitInLinks($n)") { // ContextEnable or ArgFringe
+  def emitInLinks(n:Node) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, scaleIn, bufferSize), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
       emitln(s"scale_in[$idx] = $scaleIn")
@@ -117,7 +118,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  def emitOutLinks(n:Node) = dbgblk(s"emitOutLinks($n)") { // ContextEnable or ArgFringe
+  def emitOutLinks(n:Node) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, scaleOut), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
       emitln(s"scale_out[$idx] = $scaleOut")

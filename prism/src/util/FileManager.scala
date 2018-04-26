@@ -2,7 +2,7 @@ package prism.util
 
 import prism._
 
-import java.io._
+import java.io.{Console => _, _}
 import scala.io._
 
 trait FileManager { 
@@ -81,7 +81,7 @@ trait FileManager {
   def mkdir(dirName:String):String = {
     val dir = new File(dirName)
     if (!dir.exists()) {
-      println(s"[pir] creating output directory: $dirName");
+      info(cstr(Console.YELLOW, s"creating output directory: ${cstr(Console.CYAN,dirName)}"))
       dir.mkdirs();
     }
     dirName

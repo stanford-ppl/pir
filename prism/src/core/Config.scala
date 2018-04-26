@@ -12,8 +12,5 @@ object Config extends GlobalConfig {
   var outDir:String = register("out", "out") { outDir = _ }
   var verbose:Boolean = register("verbose", false) { verbose = _ }
 
-  lazy val SPATIAL_HOME:String = {
-    sys.env.get("SPATIAL_HOME").getOrElse(s"Please set SPATIAL_HOME enviroment variable!")
-  }
-
+  lazy val SPATIAL_HOME = sys.env.get("SPATIAL_HOME")
 }
