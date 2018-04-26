@@ -3,7 +3,7 @@ package pir.node
 trait LocalAccess extends Def
 trait LocalLoad extends LocalAccess
 object LocalLoad {
-  def unapply(n:Any)(implicit design:PIRDesign):Option[(List[Memory], Option[List[Def]])] = n match {
+  def unapply(n:Any):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
     case LoadBanks(banks, addrs) => Some((banks, Some(addrs)))
     case LoadMem(mem, addrs) => Some(List(mem), Some(addrs))
@@ -19,7 +19,7 @@ trait LocalStore extends LocalAccess {
   }
 }
 object LocalStore {
-  def unapply(n:Any)(implicit design:PIRDesign):Option[(List[Memory], Option[List[Def]], Def)] = n match {
+  def unapply(n:Any):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case WriteMem(mem, data) => Some((List(mem), None, data))
     case StoreBanks(banks, addrs, data) => Some((banks, Some(addrs), data))
     case StoreMem(mem, addrs, data) => Some((List(mem), Some(addrs), data))
@@ -71,19 +71,22 @@ case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeN
 case class FIFOEmpty(mem:Memory)(implicit design:PIRDesign) extends Def
 case class FIFOPeak(mem:Memory)(implicit design:PIRDesign) extends Def
 case class FIFONumel(mem:Memory)(implicit design:PIRDesign) extends Def
-//case class NotEmpty(mem:Memory) extends Def
-//case class NotFull(mem:Memory) extends Def
 
 // Memory Control Signals
 case class NotEmpty(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 case class NotFull(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 
 trait PIRAccess {
-  def memsOf(n:Any) = {
+  def memsOf(n:LocalAccess) = {
     n match {
       case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
       case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
     }
+  }
+
+  def dataOf(n:LocalStore) = {
+    val Def(writer, LocalStore(mems, addrs, data)) = n
+    data
   }
 
   def accessNextOf(n:PIRNode) = {
