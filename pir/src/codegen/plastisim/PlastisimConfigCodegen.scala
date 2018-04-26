@@ -66,9 +66,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     import topParam._
     val nr = numRows
     val nc = numCols + 2
-    emitNodeBlock(s"net ${nettp}net configs/mesh${nr}x${nc}.cfg") {
-      emitln(s"dim[0] = $nr")
-      emitln(s"dim[1] = $nc")
+    val sq = math.max(nr, nc)
+    emitNodeBlock(s"net ${nettp}net") {
+      emitln(s"cfg = mesh_generic.cfg")
+      emitln(s"dim[0] = $sq")
+      emitln(s"dim[1] = $sq")
     }
   }
 
