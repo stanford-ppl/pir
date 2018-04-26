@@ -21,8 +21,7 @@ trait MappingLogger {
     x match {
       case x:PIRMap => logging(x)
       case x:FactorGraphLike[_,_,_] => logging(x)
-      case x:FIMap => logging(x)
-      case x:ConfigMap => logging(x)
+      case x:prism.collection.MapLike[_,_] => logging(x)
       case Right(x) => logging(x)
       case Left(x) => logging(x)
       case x:InvalidFactorGraph[_,_] => logging(x)
@@ -67,7 +66,7 @@ trait MappingLogger {
     }
   }
 
-  def logging(x:MapLike[_,_,_])(implicit logger:Logging):Unit = {
+  def logging(x:prism.collection.MapLike[_,_])(implicit logger:Logging):Unit = {
     logger.dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, v) =>
         logger.dbg(s"${logger.quote(k)} -> ${logger.quote(v)}")

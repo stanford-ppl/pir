@@ -92,6 +92,30 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
   }
 }
 
+trait ManyToOneFactorGraphLike[K,V,S<:ManyToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
+  type M = BiManyToOneMap[K,V]
+  def set(k:K, v:V):EOption[S] = {
+    assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
+    val vv = freeMap.fmap(k) - v
+    val nfg = newInstance(freeMap -- ((k,vv)), usedMap + ((k,v)))
+    Right(nfg)
+  }
+  def apply(x:K):Set[V] = x match {
+    case x:K if isMapped(x) => Set(usedMap.fmap(x))
+    case x:K => freeMap.fmap(x)
+  }
+}
+case class ManyToOneFactorGraph[K:ClassTag,V:ClassTag](
+  freeMap:BiManyToManyMap[K,V],
+  usedMap:BiManyToOneMap[K,V]
+) extends ManyToOneFactorGraphLike[K,V,ManyToOneFactorGraph[K,V]]
+object ManyToOneFactorGraph {
+  def empty[K:ClassTag, V:ClassTag] = ManyToOneFactorGraph[K,V](
+    BiManyToManyMap.empty, 
+    BiManyToOneMap.empty
+  )
+}
+
 case class InvalidFactorGraph[K,FG<:FactorGraphLike[K,_,FG]](@transient fg:FG, k:K) extends MappingFailure {
   val msg = s"InvalidFactorGraph ${fg.getClass.getSimpleName} at key=$k"
 }

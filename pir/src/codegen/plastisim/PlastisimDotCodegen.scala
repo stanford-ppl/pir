@@ -25,11 +25,11 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       label += s"\n(${quote(cuP)})"
       label += s"\nlat=${latencyOf(n)}"
       addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
-      inlinksOf(n).foreach { case (link, scaleIn, bufferSize) =>
-        label += s"\n${quote(link)} [sin=$scaleIn, bs=$bufferSize]"
+      inlinksOf(n).foreach { case (link, reads) =>
+        label += s"\n${quote(link)} [sin=${getItersOf(reads)}, bs=${bufferSizeOf(reads)}]"
       }
-      outlinksOf(n).foreach { case (link, scaleOut) =>
-        label += s"\n${quote(link)} [sout=$scaleOut]"
+      outlinksOf(n).foreach { case (link, writes) =>
+        label += s"\n${quote(link)} [sout=${getItersOf(writes)}]"
       }
       attr.label(label)
     case n => super.label(attr, n)

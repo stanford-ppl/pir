@@ -28,7 +28,8 @@ trait PIR extends Compiler with PIRWorld {
   lazy val testTraversal = new TestTraversal()
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
-  lazy val plastisimAnalyzer = new PlastisimAnalyzer()
+  lazy val plastisimLinkAnalyzer = new PlastisimLinkAnalyzer()
+  lazy val plastisimVCAllocator = new PlastisimVCAllocation()
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
@@ -115,7 +116,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     // Simulation analyzer
-    addPass(genPlastisim, plastisimAnalyzer)
+    addPass(genPlastisim, plastisimLinkAnalyzer)
+    addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(debug, new PIRIRDotCodegen(s"top.dot"))
     addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
@@ -134,8 +136,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    addPass(genPlastisim, new PlastisimDotCodegen(s"psim.dot")).dependsOn(cuPlacer, plastisimAnalyzer)
-    addPass(genPlastisim, plastisimConfigCodegen).dependsOn(cuPlacer, plastisimAnalyzer)
+    addPass(genPlastisim, new PlastisimDotCodegen(s"psim.dot")).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, plastisimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 
      // Simulation
 

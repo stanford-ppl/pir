@@ -2,9 +2,7 @@ package pir.pass
 
 import pir.node._
 
-import prism.util.Cache
-
-class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator {
+class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator {
   import pirmeta._
 
   override def runPass =  {
@@ -13,7 +11,7 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
 
   override def visitNode(n:N) = n match {
     case n:LocalAccess => getItersOf(n)
-    case n:Memory if !linkGroup.contains(n) => computeLinkGroup(n)
+    case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n)
     case n => super.visitNode(n)
   }
 
@@ -33,7 +31,7 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
       dataSrc.collect[Memory](visitFunc=visitFunc _, logger=Some(this))
     }.toSet
     dbg(s"group=${group}")
-    group.foreach { mem => linkGroup += mem -> group }
+    group.foreach { mem => linkGroupOf += mem -> group }
   }
 
   def getItersOf(n:Primitive):Int = itersOf.getOrElseUpdate(n) {

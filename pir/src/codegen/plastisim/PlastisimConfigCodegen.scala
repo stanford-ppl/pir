@@ -111,19 +111,18 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   }
 
   def emitInLinks(n:Node) = dbgblk(s"emitInLinks($n)") {
-    inlinksOf(n).zipWithIndex.foreach { case ((link, scaleIn, bufferSize), idx) =>
+    inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      emitln(s"scale_in[$idx] = $scaleIn")
-      emitln(s"buffer[$idx]=$bufferSize")
+      emitln(s"scale_in[$idx] = ${getItersOf(reads)}")
+      emitln(s"buffer[$idx]=${bufferSizeOf(reads)}")
     }
   }
 
   def emitOutLinks(n:Node) = dbgblk(s"emitOutLinks($n)") {
-    outlinksOf(n).zipWithIndex.foreach { case ((link, scaleOut), idx) =>
+    outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
-      emitln(s"scale_out[$idx] = $scaleOut")
+      emitln(s"scale_out[$idx] = ${getItersOf(writes)}")
     }
   }
 
 }
-
