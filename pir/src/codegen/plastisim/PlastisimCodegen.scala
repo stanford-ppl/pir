@@ -18,7 +18,7 @@ trait PlastisimCodegen extends PIRCodegen {
 
   override def runPass = {
     super.runPass // traverse dataflow graph and call emitNode on each node
-    linkGroup.values.foreach { link => emitLink(link) }
+    linkGroup.values.toSet.foreach { link => emitLink(link) }
   }
 
   override def emitNode(n:N) = n match {
@@ -55,7 +55,7 @@ trait PlastisimCodegen extends PIRCodegen {
   }
 
   def inlinksOf(n:Node) = {
-    val reads = n.collectPeer[LocalLoad]()
+    val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
     reads.map { read =>
       val mem::Nil = memsOf(read)
       val link = linkGroup(mem)
@@ -64,7 +64,7 @@ trait PlastisimCodegen extends PIRCodegen {
   }
 
   def outlinksOf(n:Node) = {
-    val writes = n.collectOutTillMem[LocalStore]()
+    val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
     val links = writes.groupBy { write =>
       val mems = memsOf(write)
       linkGroup(mems.head) // All mems should belongs to the same linkGroup

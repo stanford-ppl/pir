@@ -13,10 +13,27 @@ class PlastisimAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildF
 
   override def visitNode(n:N) = n match {
     case n:LocalAccess => getItersOf(n)
-    case n:Memory if !linkGroup.contains(n) =>
-      val group = writersOf(n).flatMap { writer => memsOf(writer) }.toSet
-      group.foreach { mem => linkGroup += mem -> group }
+    case n:Memory if !linkGroup.contains(n) => computeLinkGroup(n)
     case n => super.visitNode(n)
+  }
+
+  def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){
+    val group = writersOf(n).flatMap { writer => 
+      def prefix(n:PIRNode) = {
+      }
+      def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
+        case n:DataReady => true // Remove back pressure
+        case _ => false
+      }
+      val dataSrc = dataOf(writer) match {
+        case gin:GlobalInput => goutOf(gin).get // written for outside cu
+        case dataSrc => dataSrc //writen inside cu
+      }
+      dbg(s"dataSrc=$dataSrc")
+      dataSrc.collect[Memory](visitFunc=visitFunc _, logger=Some(this))
+    }.toSet
+    dbg(s"group=${group}")
+    group.foreach { mem => linkGroup += mem -> group }
   }
 
   def getItersOf(n:Primitive):Int = itersOf.getOrElseUpdate(n) {

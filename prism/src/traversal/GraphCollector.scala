@@ -40,8 +40,8 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
     }
   }
 
-  def grab(prefix:ND => Boolean, visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[ND] = 
-    dbgblk(logger, s"grab($this, depth=$depth)") {
+  def filter(prefix:ND => Boolean, visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[ND] = 
+    dbgblk(logger, s"filter($this, depth=$depth)") {
       def accumulate(prev:List[ND], n:ND) = {
         if (!prev.contains(n) && prefix(n)) (prev :+ n) else prev
       }
