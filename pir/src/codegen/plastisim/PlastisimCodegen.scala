@@ -54,25 +54,34 @@ trait PlastisimCodegen extends PIRCodegen {
     n.flatMap { mem => dstOf(mem) }
   }
 
+  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):B = {
+    val res = list.map(lambda)
+    assert(res.toSet.size==1, s"$list doesnt have the same $info = $res")
+    res.head
+  }
+
   def inlinksOf(n:Node) = {
     val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
-    reads.map { read =>
-      val mem::Nil = memsOf(read)
-      val link = linkGroup(mem)
-      (link, itersOf(read), bufferSizeOf(mem))
+    val links = reads.groupBy { read =>
+      val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
+      linkGroup(mem)
+    }
+    links.map { case (link, reads) =>
+      val iter = assertUnify(reads, "iter") { read => itersOf(read) }
+      val bufferSize = assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
+      (link, iter, bufferSize)
     }
   }
 
   def outlinksOf(n:Node) = {
     val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
     val links = writes.groupBy { write =>
-      val mems = memsOf(write)
-      linkGroup(mems.head) // All mems should belongs to the same linkGroup
+      val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
+      linkGroup(mem)
     }
     links.toSeq.map { case (link, writers) =>
-      val iters = writers.map { writer => itersOf(writer) }
-      assert(iters.toSet.size==1, s"not all writers have the same iters on the same link, link=$link, iters=$iters")
-      (link, iters.head)
+      val iter = assertUnify(writers, "iter") { writer => itersOf(writer) }
+      (link, iter)
     }
   }
 
@@ -104,9 +113,8 @@ trait PlastisimCodegen extends PIRCodegen {
   def isStaticLink(n:Link):Boolean = {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
-    val isStatics = srcs.flatMap { src => dsts.map { dst => isStaticLink(src, dst) } }
-    assert(isStatics.size == 1, s"not all srcs and dsts conform on isStaticLink")
-    isStatics.head
+    val pairs = srcs.flatMap{ src => dsts.map { dst => (src, dst) } }
+    assertUnify(pairs, "isStatic"){ case (src, dst) => isStaticLink(src, dst) }
   }
 
   def bufferSizeOf(memP:Memory):Int = {
@@ -154,11 +162,7 @@ trait PlastisimCodegen extends PIRCodegen {
     case n if isVector(n) => "vec"
   }
 
-  def linkTp(n:Link):String = {
-    val tps = n.map(linkTp)
-    assert(tps.toSet.size==1, s"link $n has tps = $tps")
-    tps.head
-  }
+  def linkTp(n:Link):String = assertUnify(n, "linkTp")(linkTp)
 
   def latencyOf(n:Node) = {
     globalOf(n).get match {
