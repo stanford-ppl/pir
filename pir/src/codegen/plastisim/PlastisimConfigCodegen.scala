@@ -18,9 +18,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   override def runPass = {
     super.runPass
     if (spade.node.isDynamic(topS)) {
-      emitNetwork("vec")
-      emitNetwork("scal")
-      emitNetwork("ctrl")
+      emitNetwork
     }
   }
 
@@ -63,15 +61,21 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   override def emitComment(msg:String) = emitln(s"# $msg")
 
-  def emitNetwork(nettp:String) = {
+  def emitNetwork = {
     import topParam._
-    val nr = numRows
-    val nc = numCols + 2
-    val sq = math.max(nr, nc)
-    emitNodeBlock(s"net ${nettp}net") {
-      emitln(s"cfg = mesh_generic.cfg")
-      emitln(s"dim[0] = $sq")
-      emitln(s"dim[1] = $sq")
+    if (spade.node.isDynamic(topS)) {
+      topParam.networkParams.foreach { networkParam =>
+        val tp = networkParam.bct
+        val nr = numRows + 1
+        val nc = numCols + 2
+        val sq = math.max(nr, nc)
+        emitNodeBlock(s"net ${quote(tp)}net") {
+          emitln(s"cfg = mesh_generic.cfg")
+          emitln(s"dim[0] = $sq")
+          emitln(s"dim[1] = $sq")
+          emitln(s"num_classes = ${networkParam.numVirtualClasses}")
+        }
+      }
     }
   }
 
@@ -82,8 +86,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     val linkstr = if (isStatic) "" else "net"
 
     emitNodeBlock(s"${linkstr}link ${quote(n)}") {
-      val tp = linkTp(n)
-      emitln(s"type = ${tp}")
+      val tp = pinTypeOf(n)
+      emitln(s"type = ${quote(tp)}")
       srcs.zipWithIndex.foreach { case (src,idx) =>
         emitln(s"src[$idx] = ${quote(src)}")
       }
@@ -97,7 +101,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           }
         }
       } else {
-        emitln(s"net = ${tp}net")
+        emitln(s"net = ${quote(tp)}net")
+        val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
+        emitln(s"class = $vc")
         val saddrs = srcs.map(src => addrOf(src).get)
         val daddrs = dsts.map(dst => addrOf(dst).get)
         saddrs.zipWithIndex.foreach { case (saddr, idx) =>

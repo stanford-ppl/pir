@@ -150,7 +150,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
       search(start=tailP,end=headP,pmap=pmap).flatMap { route => set(pmap, route, headP, tailP) }
     } else {
       pmap.flatMap[CUMap]{ cumap =>
-        val filtered = cumap.filterNot(neighborP) { cuS => !reached.contains(cuS) }
+        val filtered = cumap.filterNotAt(neighborP) { cuS => !reached.contains(cuS) }
         log(1, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
         filtered
       }

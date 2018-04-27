@@ -13,6 +13,7 @@ trait PlastisimUtil extends PIRPass {
 
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
   def cumap = pirMap.right.get.cumap
+  def vcmap = pirMap.right.get.vcmap
 
   def srcOf(mem:Memory) = dbgblk(s"srcOf(${quote(mem)})") {
     def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
@@ -45,12 +46,22 @@ trait PlastisimUtil extends PIRPass {
     res.head
   }
 
+  def inMemsOf(n:Node) = {
+    val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
+    reads.flatMap { read => memsOf(read) }
+  }
+
   def inlinksOf(n:Node) = {
     val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
     reads.groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
+  }
+
+  def outMemsOf(n:Node) = {
+    val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+    writes.flatMap { write => memsOf(write) }
   }
 
   def outlinksOf(n:Node) = {
@@ -139,14 +150,6 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(accesses, "iter") { read => itersOf(read) }
   }
 
-  def linkTp(n:Memory):String = n match {
-    case n if isBit(n) => "ctrl"
-    case n if isWord(n) => "scal"
-    case n if isVector(n) => "vec"
-  }
-
-  def linkTp(n:Link):String = assertUnify(n, "linkTp")(linkTp)
-
   def pinTypeOf(mem:Memory):ClassTag[_<:PinType] = pir.node.pinTypeOf(mem)
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
@@ -166,6 +169,9 @@ trait PlastisimUtil extends PIRPass {
 
   override def quote(n:Any):String = n match {
     case n:Set[_] if n.forall(_.isInstanceOf[Memory]) => n.mkString("_") // Link
+    case n:ClassTag[_] if isBit(n.asInstanceOf[ClassTag[_<:PinType]]) => "ctrl"
+    case n:ClassTag[_] if isWord(n.asInstanceOf[ClassTag[_<:PinType]]) => "scal"
+    case n:ClassTag[_] if isVector(n.asInstanceOf[ClassTag[_<:PinType]]) => "vec"
     case n => super.quote(n)
   }
 }

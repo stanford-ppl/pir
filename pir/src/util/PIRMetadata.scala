@@ -77,6 +77,10 @@ class PIRMetadata extends Metadata {
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
   linkGroupOf.setName("linkGroupOf")
+  // Interference memories are memories that are read by the same compute context. They must be
+  // assigned to distinct virtual class to avoid head of line blocking
+  val infMemsOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
+  infMemsOf.setName("infMemsOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)

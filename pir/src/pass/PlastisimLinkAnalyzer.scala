@@ -2,7 +2,7 @@ package pir.pass
 
 import pir.node._
 
-class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator {
+class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator with PlastisimUtil {
   import pirmeta._
 
   override def runPass =  {
@@ -12,7 +12,21 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with Ch
   override def visitNode(n:N) = n match {
     case n:LocalAccess => getItersOf(n)
     case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n)
+    case n:Node => computeInterferenceMemory(n)
     case n => super.visitNode(n)
+  }
+
+  def computeInterferenceMemory(n:Node) = dbgblk(s"computeInterferenceMemory($n)"){
+    val mems = dbgblk(s"inMemsOf") { inMemsOf(n) }
+    mems.foreach { mem =>
+      val linkTp = pinTypeOf(mem)
+      val interfered = mems.filter {
+        case `mem` => false
+        case other if pinTypeOf(other) == linkTp => true
+        case other => false
+      }
+      infMemsOf(mem) = interfered.toSet
+    }
   }
 
   def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){

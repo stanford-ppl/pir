@@ -13,7 +13,8 @@ case class PIRMap (
   fimap:FIMap,
   cfmap:ConfigMap,
   inmap:InMap,
-  outmap:OutMap
+  outmap:OutMap,
+  vcmap:VCMap
 ) extends SpadeMapLike with MappingCollection {
   type S = PIRMap
   def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {
@@ -34,19 +35,11 @@ object PIRMap {
     FIMap.empty, 
     ConfigMap.empty, 
     InMap.empty,
-    OutMap.empty
+    OutMap.empty,
+    VCMap.empty
   ) 
 }
 
-//case class CUMap(
-  //fmap:OneToManyMap[CUMap.K,CUMap.V], 
-  //bmap:OneToManyMap[CUMap.V,CUMap.K]
-//) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap] with MappingCollection 
-//object CUMap {
-  //type K = GlobalContainer
-  //type V = Routable
-  //def empty = CUMap(OneToManyMap.empty, OneToManyMap.empty)
-//}
 case class CUMap (
   freeMap:BiManyToManyMap[CUMap.K,CUMap.V],
   usedMap:BiOneToOneMap[CUMap.K,CUMap.V]
@@ -57,15 +50,6 @@ object CUMap {
   def empty = CUMap(BiManyToManyMap.empty, BiOneToOneMap.empty)
 }
 
-//case class InMap(
-  //fmap:OneToManyMap[InMap.K,InMap.V], 
-  //bmap:OneToManyMap[InMap.V,InMap.K]
-//) extends OneToOneFactorGraphLike[InMap.K,InMap.V,InMap] with MappingCollection 
-//object InMap {
-  //type K = GlobalInput
-  //type V = spade.node.Input[_]
-  //def empty = InMap(OneToManyMap.empty, OneToManyMap.empty)
-//}
 case class InMap(
   freeMap:BiManyToManyMap[InMap.K,InMap.V],
   usedMap:BiOneToOneMap[InMap.K,InMap.V]
@@ -76,15 +60,6 @@ object InMap {
   def empty = InMap(BiManyToManyMap.empty, BiOneToOneMap.empty)
 }
 
-//case class OutMap(
-  //fmap:OneToManyMap[OutMap.K,OutMap.V], 
-  //bmap:OneToManyMap[OutMap.V,OutMap.K]
-//) extends OneToManyFactorGraphLike[OutMap.K,OutMap.V,OutMap] with MappingCollection 
-//object OutMap {
-  //type K = GlobalOutput
-  //type V = spade.node.Output[_]
-  //def empty = OutMap(OneToManyMap.empty, OneToManyMap.empty)
-//}
 case class OutMap(
   freeMap:BiManyToManyMap[OutMap.K,OutMap.V],
   usedMap:BiOneToManyMap[OutMap.K,OutMap.V]
@@ -95,3 +70,12 @@ object OutMap {
   def empty = OutMap(BiManyToManyMap.empty, BiOneToManyMap.empty)
 }
 
+case class VCMap(
+  freeMap:BiManyToManyMap[VCMap.K,VCMap.V],
+  usedMap:BiManyToOneMap[VCMap.K,VCMap.V]
+) extends ManyToOneFactorGraphLike[VCMap.K,VCMap.V,VCMap] with MappingCollection 
+object VCMap {
+  type K = Memory
+  type V = Int
+  def empty = VCMap(BiManyToManyMap.empty, BiManyToOneMap.empty)
+}
