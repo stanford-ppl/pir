@@ -24,6 +24,10 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
     def notLambda(k:K, v:V) = !lambda(k,v)
     filterNot(notLambda _)
   }
+  def filterAt(k:K)(lambda:V => Boolean):EOption[S] = {
+    def notLambda(v:V) = !lambda(v)
+    filterNotAt(k)(notLambda)
+  }
   def filterNot(lambda:(K,V) => Boolean):EOption[S] = {
     val pairs = freeMap.fmap.map.toSeq.map { case (k,vv) =>
       (k, vv.filter { v => lambda(k,v) })
@@ -33,7 +37,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
       prev.check(k)
     }
   }
-  def filterNot(k:K)(lambda:V => Boolean):EOption[S] = {
+  def filterNotAt(k:K)(lambda:V => Boolean):EOption[S] = {
     val vv = freeMap.fmap(k).filter { v => lambda(v) }
     newInstance(freeMap -- (k,vv), usedMap).check(k)
   }
@@ -56,6 +60,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
 trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
   type M = BiOneToOneMap[K,V]
   def set(k:K, v:V):EOption[S] = {
+    if (usedMap.get(k) == Some(v)) return Right(this)
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val vv = freeMap.fmap(k)
     val kk = freeMap.bmap(v)
@@ -81,9 +86,11 @@ object OneToOneFactorGraph {
 trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
   type M = BiOneToManyMap[K,V]
   def set(k:K, v:V):EOption[S] = {
+    if (usedMap.get(k).fold(false) { _.contains(v) }) return Right(this)
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val kk = freeMap.bmap(v) - k
-    val nfg = newInstance(freeMap -- ((kk,v)), usedMap + ((k,v)))
+    //val nfg = newInstance(freeMap -- ((kk,v)), usedMap + ((k,v)))
+    val nfg = newInstance(freeMap - v, usedMap + ((k,v)))
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
   def apply(x:K):Set[V] = x match {
@@ -95,9 +102,9 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
 trait ManyToOneFactorGraphLike[K,V,S<:ManyToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
   type M = BiManyToOneMap[K,V]
   def set(k:K, v:V):EOption[S] = {
+    if (usedMap.get(k) == Some(v)) return Right(this)
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
-    val vv = freeMap.fmap(k) - v
-    val nfg = newInstance(freeMap -- ((k,vv)), usedMap + ((k,v)))
+    val nfg = newInstance(freeMap - k, usedMap + ((k,v)))
     Right(nfg)
   }
   def apply(x:K):Set[V] = x match {
