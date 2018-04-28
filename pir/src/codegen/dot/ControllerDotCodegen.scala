@@ -49,10 +49,10 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   }
 
   override def emitSingleNode(n:N):Unit = {
-    ctrlOf.bmap(n).foreach {
-      case mem:RetimingFIFO =>
-      case mem:Memory => emitSingleNode(mem)
-      case _ =>
+    ctrlOf.foreach { 
+      case (mem:RetimingFIFO, `n`) =>
+      case (mem:Memory, `n`) => emitSingleNode(mem)
+      case _ => 
     }
     super.emitSingleNode(n)
   }

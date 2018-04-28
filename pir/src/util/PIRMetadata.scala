@@ -16,7 +16,7 @@ class PIRMetadata extends Metadata {
    * For memory, it's the lca controller of controller of all its
    * accesses 
    * */
-  val ctrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap 
+  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap 
   ctrlOf.setName("ctrlOf")
 
   /*
