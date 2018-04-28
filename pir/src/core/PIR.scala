@@ -54,6 +54,8 @@ trait PIR extends Compiler with PIRWorld {
   lazy val cuStats = new CUStatistics()
   lazy val psimConfigCodegen = new PlastisimConfigCodegen()
   lazy val psimDotCodegen = new PlastisimDotCodegen(s"psim.dot")
+  lazy val terminalCSVCodegen = new TerminalCSVCodegen()
+  lazy val linkCSVCodegen = new LinkCSVCodegen()
 
   /* Simulator */
 
@@ -126,6 +128,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
+    addPass(genPlastisim, terminalCSVCodegen)
+    addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
 
     // Mapping
 

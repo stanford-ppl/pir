@@ -4,16 +4,16 @@ import scala.collection.mutable._
 
 trait CSVCodegen extends Codegen {
 
-  val header = ListBuffer[String]()
+  val headers = ListBuffer[String]()
   val rows = ListBuffer[Row]()
 
   class Row {
-    val cell:Map[String, Any] = Map.empty
+    val cell:Map[String, String] = Map.empty
   
-    def += (e:(String, Any)) = {
-      val (k,v) = e
-      if (!header.contains(k)) header += k
-      cell += k -> v
+    def update(pair:(String, Any)) = {
+      val (header, value) = pair
+      if (!headers.contains(header)) headers +=  header
+      cell += header -> s"$value"
     }
   }
 
@@ -25,11 +25,12 @@ trait CSVCodegen extends Codegen {
   }
 
   def emit(row:Row) = {
-    emitln(s"${header.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
+    emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
   }
 
-  def emitFile = {
-    emitln(header.mkString(","))
+  override def finPass = {
+    emitln(headers.mkString(","))
     rows.foreach(emit)
+    super.finPass
   }
 }
