@@ -40,6 +40,10 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with ResourcePruning {
 
   override def runPass =  {
     pirMap = pirMap.flatMap { pmap => log(prune(pmap.set[CUMap](initCUMap))) }
+  }
+
+  override def finPass = {
+    super.finPass
     pirMap.left.map {
       case f:MappingFailure =>
         fail(s"CUPruning failed. ${f}")

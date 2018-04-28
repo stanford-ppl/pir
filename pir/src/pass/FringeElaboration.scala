@@ -2,7 +2,7 @@ package pir.pass
 
 import pir.node._
 
-class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal {
+class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal with ConstantPropogator {
   import pirmeta._
 
   override def runPass =  {
@@ -43,11 +43,13 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val outerCtrl = ctrlOf(fringe)
     val par = fringe match {
       case FringeDenseLoad(dram,cmdStream,dataStream) =>
-        parOf(readersOf(dataStream.head).head).get
+        getParOf(readersOf(dataStream.head).head)
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
-        parOf(writersOf(dataStream.head).head).get
+        getParOf(writersOf(dataStream.head).head)
     }
-    val innerCtrl = DramController(par).setParent(outerCtrl)
+    val size = fringe.collectDown[StreamOut]().filter { _.field == "size" }.head
+    val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
+    val innerCtrl = DramController(csize, par).setParent(outerCtrl)
     val loads = streamOuts.map { mem =>
       mem.field match {
         case "size" | "offset" => ReadMem(mem).setParent(fringe).ctrl(outerCtrl)

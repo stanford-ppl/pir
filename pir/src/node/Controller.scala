@@ -25,7 +25,10 @@ case class ArgOutController()(implicit design:PIRDesign) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }
-case class DramController(par:Int)(implicit design:PIRDesign) extends Controller {
+/*
+ * @size constant propogated size in bytes
+ * */
+case class DramController(size:Option[Int], par:Int)(implicit design:PIRDesign) extends Controller {
   val style = InnerPipe
   val level = InnerControl 
 }

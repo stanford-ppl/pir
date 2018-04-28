@@ -242,7 +242,7 @@ trait BFSTopDownTopDownTopologicalTraversal extends TopDownTopologicalTraversal 
 trait BottomUpTopologicalTraversal extends TopologicalTraversal with GraphUtil {
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
   override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
-  override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && super.depFunc(n).forall(isVisited)
+  override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && depFunc(n).forall(isVisited) // performance optimization no need to evaluate depFunc(n) until children are visited
 
   override def selectFrontier(unvisited:List[N]) = {
     var breakingPoints = unvisited

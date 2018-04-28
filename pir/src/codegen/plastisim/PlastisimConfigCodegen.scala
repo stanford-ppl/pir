@@ -17,6 +17,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   // Execution of codegen
   override def runPass = {
     super.runPass
+    linkGroupOf.values.toSet.foreach { link => emitLink(link) }
     if (spade.node.isDynamic(topS)) {
       emitNetwork
     }

@@ -41,22 +41,6 @@ class PIRMetadata extends Metadata {
   topCtrlOf.setName("topCtrlOf")
 
   /*
-   * Control signal indicating the last element of the access
-   * */
-  val accessDoneOf = new OneToOneMap[LocalAccess, Def] with MetadataMap {
-    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
-  }
-  accessDoneOf.setName("accessDoneOf")
-
-  /*
-   * Enable of CounterChain
-   * */
-  val enableOf = new OneToOneMap[PIRNode, Def] with MetadataMap {
-    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
-  }
-  enableOf.setName("enableOf")
-
-  /*
    * User annotation on variable value
    * */
   val boundOf = new OneToOneMap[PIRNode, Any] with MetadataMap
@@ -69,10 +53,27 @@ class PIRMetadata extends Metadata {
   bufferDepthOf.setName("bufferDepthOf")
 
   /*
-   * Number of iterations before the node is active/done again
+   * output parallelization of a node
    * */
-  val itersOf =  new OneToOneMap[Primitive, Int] with MetadataMap
+  val parOf =  new OneToOneMap[Any, Int] with MetadataMap
+  parOf.setName("parOf")
+
+  /*
+   * Number of iterations before the node is active/done again with respect to enable of the
+   * ContextEnable
+   * */
+  val itersOf =  new OneToOneMap[Any, Int] with MetadataMap {
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
+  }
   itersOf.setName("itersOf")
+
+  /*
+   * Number of iterations before the node is active through out the execution of the program
+   * */
+  val countsOf =  new OneToOneMap[Any, Int] with MetadataMap {
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
+  }
+  countsOf.setName("countsOf")
 
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap

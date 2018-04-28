@@ -2,18 +2,36 @@ package pir.pass
 
 import pir.node._
 
-class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with ChildFirstTraversal with UnitTraversal with ConstantPropogator with PlastisimUtil {
+class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DFSBottomUpTopologicalTraversal with UnitTraversal with PlastisimUtil {
   import pirmeta._
+
+  val forward = true
+
+  override def initPass = {
+    super.initPass
+    linkGroupOf.clear
+  }
 
   override def runPass =  {
     traverseNode(compiler.top)
   }
 
-  override def visitNode(n:N) = n match {
-    case n:LocalAccess => getItersOf(n)
-    case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n)
-    case n:Node => computeInterferenceMemory(n)
-    case n => super.visitNode(n)
+  // Break control dependency
+  override def depFunc(n:N) = n match {
+    case n:ControlNode => super.depFunc(n)
+    case n => super.depFunc(n).filterNot { _.isInstanceOf[ControlNode] }
+  }
+
+  override def visitNode(n:N) = {
+    dbgblk(s"visitNode($n)")  {
+      n match {
+        case n:LocalAccess => getItersOf(n);getCountsOf(n)
+        case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
+        case n:Node => computeInterferenceMemory(n); getItersOf(n);getCountsOf(n)
+        case n => 
+      }
+    }
+    super.visitNode(n)
   }
 
   def computeInterferenceMemory(n:Node) = dbgblk(s"computeInterferenceMemory($n)"){
@@ -46,35 +64,6 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with Ch
     }.toSet
     dbg(s"group=${group}")
     group.foreach { mem => linkGroupOf += mem -> group }
-  }
-
-  def getItersOf(n:Primitive):Int = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"computeItersOf(${quote(n)})") {
-      n match {
-        case Def(ctr:Counter, Counter(min, max, step, par)) =>
-          val cmin = getConstOf[Int](min, logger=Some(this))
-          val cmax = getConstOf[Int](max, logger=Some(this))
-          val cstep = getConstOf[Int](step, logger=Some(this))
-          dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
-          if ((cmax - cmin) % (cstep * par) != 0)
-            warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
-          val iters = (cmax - cmin) / (cstep * par)
-          val en = ctr.getEnable.get
-          iters * getItersOf(en)
-        case Def(n, CounterDone(ctr)) =>
-          getItersOf(ctr)
-        case Def(n,DataValid(gin)) => 
-          val Def(gout,GlobalOutput(data, valid)) = goutOf(gin).get
-          getItersOf(valid)
-        case n:ContextEnable => 1
-        case n:DramControllerDone =>
-          val cuP = globalOf(n).get
-          val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-          val csize = getConstOf[Int](size, logger=Some(this))
-          csize / 4 / parOf(n).get
-        case n:LocalAccess => getItersOf(accessNextOf(n))
-      }
-    }
   }
 
 }

@@ -42,5 +42,14 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     super.emitEdge(from, to, attr)
   }
 
+  override def label(attr:DotAttr, n:Any) = {
+    var label = quote(n) 
+    n match {
+      case n:GlobalContainer => label += s"\ncuType=${cuType(n).get}"
+      case n =>
+    }
+    attr.label(label)
+  }
+
 }
 

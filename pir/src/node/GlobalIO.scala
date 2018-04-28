@@ -25,6 +25,10 @@ trait PIRGlobalIO {
     gout.collect[GlobalInput](visitFunc=gout.visitGlobalOut, depth=2, logger=logger).toList
   }
 
+  def validOf(n:GlobalOutput) = n match {
+    case Def(n, GlobalOutput(data, valid)) => valid
+  }
+
   def connectedOf(gio:GlobalIO, logger:Option[Logging]=None) = gio match {
     case gio:GlobalInput => goutOf(gio, logger).toList
     case gio:GlobalOutput => ginsOf(gio, logger)

@@ -21,7 +21,7 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DF
     dbgs(s"transform ${qdef(n)}")
     n match {
       case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>
-        val numReduceStages = (Math.log(parOf(n).get) / Math.log(2)).toInt
+        val numReduceStages = (Math.log(getParOf(n)) / Math.log(2)).toInt
         dbg(s"numReduceStages=$numReduceStages")
         var reduceInput = input
         (0 until numReduceStages).foreach { i =>

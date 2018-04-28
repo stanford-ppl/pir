@@ -28,6 +28,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val testTraversal = new TestTraversal()
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
+  lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   lazy val plastisimLinkAnalyzer = new PlastisimLinkAnalyzer()
   lazy val plastisimVCAllocator = new PlastisimVCAllocation()
   lazy val irCheck = new IRCheck()
@@ -51,7 +52,8 @@ trait PIR extends Compiler with PIRWorld {
 
   /* Codegen */
   lazy val cuStats = new CUStatistics()
-  lazy val plastisimConfigCodegen = new PlastisimConfigCodegen()
+  lazy val psimConfigCodegen = new PlastisimConfigCodegen()
+  lazy val psimDotCodegen = new PlastisimDotCodegen(s"psim.dot")
 
   /* Simulator */
 
@@ -89,6 +91,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
+    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(debug, new PIRIRDotCodegen(s"top9.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
@@ -115,6 +118,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
     addPass(cuStats)
 
+    session.rerun {
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer)
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
@@ -124,9 +128,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
     // Mapping
-    session.rerun {
 
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
     addPass(cuPruning)
     addPass(mapping, cuPlacer).dependsOn(cuPruning)
 
@@ -136,8 +140,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    addPass(genPlastisim, new PlastisimDotCodegen(s"psim.dot")).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(genPlastisim, plastisimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 
      // Simulation
 

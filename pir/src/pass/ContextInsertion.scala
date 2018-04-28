@@ -44,8 +44,8 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
     var contextMap = prev
     val context = dbgblk(s"visitNode ${qdef(n)}") {
       n match {
-        case n:Memory if !isInnerAccum(n) => None
-        case n@(_:ComputeNode | _:Memory) =>
+        case n:Memory => None
+        case n:ComputeNode =>
           // Group of nodes that should shair context with current nodes
           val peers = n.localDepeds ++ n.children
           dbg(s"$n.localDepeds=${n.localDepeds} n.siblings=${n.siblings} peers=${peers}")

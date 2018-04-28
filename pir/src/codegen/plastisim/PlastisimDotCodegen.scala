@@ -1,6 +1,7 @@
 package pir.codegen
 
 import pir.node._
+import pir.mapper._
 
 import prism.collection.mutable._
 
@@ -8,29 +9,41 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   import pirmeta._
   import spademeta._
 
-  override def emitNode(n:N) = n match {
-    case n:ArgFringe => super.visitNode(n)
-    case n:GlobalContainer => emitSubGraph(n) { super.visitNode(n) }
-    case n:Node => emitNetworkNode(n)
-    case n => super.visitNode(n)
+  override def runPass = {
+    super.runPass // traverse dataflow graph and call emitNode on each node
+    linkGroupOf.values.toSet.foreach { link => emitLink(link) }
   }
 
-  def emitNetworkNode(n:Node) = emitSingleNode(n)
+  override def emitNode(n:N) = n match {
+    case n:Node => emitSingleNode(n)
+    case n:ArgFringe => super.visitNode(n)
+    case n:GlobalContainer => emitSubGraph(n) { super.visitNode(n) }
+    case n => super.visitNode(n)
+  }
 
   override def label(attr:DotAttr, n:Any) = n match {
     case n:ContextEnable =>
       val cuP = globalOf(n).get
       var label = ""
       label += s"${quote(n)}"
+      label += s"\n(${ctrlOf(n)})"
+      label += s"\n(counts=${countsOf(n)})"
       label += s"\n(${quote(cuP)})"
-      label += s"\nlat=${latencyOf(n)}"
-      addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
-      inlinksOf(n).foreach { case (link, reads) =>
-        label += s"\n${quote(link)} [sin=${getItersOf(reads)}, bs=${bufferSizeOf(reads)}]"
+      if (compiler.session.hasRun[CUPlacer]) {
+        label += s"\nlat=${latencyOf(n)}"
+        addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
+        inlinksOf(n).foreach { case (link, reads) =>
+          label += s"\n${quote(link)} [sin=${getItersOf(reads)}, bs=${bufferSizeOf(reads)}]"
+        }
+      } else {
+        inlinksOf(n).foreach { case (link, reads) =>
+          label += s"\n${quote(link)} [sin=${getItersOf(reads)}]"
+        }
       }
       outlinksOf(n).foreach { case (link, writes) =>
-        label += s"\n${quote(link)} [sout=${getItersOf(writes)}]"
+        label += s"\n${quote(link)} [sout=${getItersOf(writes)}, counts=${getCountsOf(writes)}]"
       }
+      //countsOf.get(n).foreach { count => label += s"\ncounts=$count" }
       attr.label(label)
     case n => super.label(attr, n)
   }
@@ -43,7 +56,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
         var label = s"${quote(n)}"
         val isStatic = isStaticLink(src, dst)
         label += s"\nisStatic=${isStatic}"
-        if (isStatic) {
+        if (isStatic && compiler.session.hasRun[CUPlacer]) {
           label += s"\nlat=${staticLatencyOf(src, dst)}"
         }
         emitEdge(src, dst, DotAttr.empty.label(label))

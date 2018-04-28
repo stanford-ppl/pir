@@ -40,27 +40,29 @@ trait PlastisimUtil extends PIRPass {
     n.flatMap { mem => dstOf(mem) }
   }
 
-  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):B = {
-    val res = list.map(lambda)
-    assert(res.toSet.size==1, s"$list doesnt have the same $info = $res")
-    res.head
+  def inAccessOf(n:Node) = {
+    n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
   }
 
   def inMemsOf(n:Node) = {
-    val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
+    val reads = inAccessOf(n)
     reads.flatMap { read => memsOf(read) }
   }
 
   def inlinksOf(n:Node) = {
-    val reads = n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
+    val reads = inAccessOf(n)
     reads.groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
   }
 
+  def outAccessOf(n:Node) = {
+    n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+  }
+
   def outMemsOf(n:Node) = {
-    val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+    val writes = outAccessOf(n)
     writes.flatMap { write => memsOf(write) }
   }
 
@@ -147,10 +149,14 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def getItersOf(accesses:List[LocalAccess]):Int = {
-    assertUnify(accesses, "iter") { read => itersOf(read) }
+    assertUnify(accesses, "iter") { access => getItersOf(access) }
   }
 
-  def pinTypeOf(mem:Memory):ClassTag[_<:PinType] = pir.node.pinTypeOf(mem)
+  def getCountsOf(accesses:List[LocalAccess]):Int = {
+    assertUnify(accesses, "counts") { access => getCountsOf(access) }
+  }
+
+
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
   def latencyOf(n:Node) = {

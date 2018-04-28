@@ -7,23 +7,18 @@ import scala.collection.mutable
 class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
-  def setParentControl(mem:Memory) = dbgblk(s"setParentControl($mem)") {
+  def setTopCtrl(mem:Memory) = dbgblk(s"setTopCtrl($mem)") {
     val accesses = accessesOf(mem)
     dbg(s"accesses: ${accesses}")
-    var accessCtrls:List[Controller] = accesses.map { access => 
+    val accessCtrls:List[Controller] = accesses.map { access => 
       dbg(s"access:$access ctrl=${ctrlOf(access)}")
       ctrlOf(access)
-    }
-    mem match {
-      case (_:ArgOut | _:TokenOut) => accessCtrls :+= compiler.top.argFringe.argOutController
-      case _ =>
     }
     val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {
       throw PIRException(s"${accessCtrls} do not share common ancestor")
     }
     ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
-    ctrlOf.info(lcaCtrl).foreach(dbg)
 
     val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
     accesses.foreach { access =>
@@ -50,16 +45,12 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
       topCtrlOf(newAccess) = topCtrl
       topCtrlOf.info(newAccess).foreach(dbg)
     }
-
-    val isLocalMem = accesses.map(a => ctrlOf(a)).toSet.size==1
-    isInnerAccum(mem) = isLocalMem && isAccum(mem)
-    isInnerAccum.info(mem).foreach(dbg)
   }
 
   override def runPass =  {
     lazy val mems = compiler.top.collectDown[Memory]()
     mems.foreach { mem =>
-      setParentControl(mem)
+      setTopCtrl(mem)
     }
   }
 

@@ -72,8 +72,6 @@ trait Compiler {
       initDesign
       initSession
       runSession
-      if (save) { saveDesign; loadDesign }
-      if (save) session.saveSession(sessionPath)
     } catch { 
       case e:Exception =>
         err(e, exception=false)

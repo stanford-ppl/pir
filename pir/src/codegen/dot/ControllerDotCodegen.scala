@@ -33,6 +33,21 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     }
   }
 
+  override def label(attr:DotAttr, n:Any) = {
+    var label = quote(n)
+    n match {
+      case n:Controller => getParOf(n)
+      case _ =>
+    }
+    val metas = List(parOf, itersOf, countsOf)
+    metas.foreach { meta =>
+      meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
+        label += s"\n(${meta.name}=$v)"
+      }
+    }
+    attr.label(label)
+  }
+
   override def emitSingleNode(n:N):Unit = {
     ctrlOf.bmap(n).foreach {
       case mem:RetimingFIFO =>
