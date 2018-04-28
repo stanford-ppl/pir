@@ -41,14 +41,14 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
 
   def transformDense(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
     val outerCtrl = ctrlOf(fringe)
+    val size = fringe.collectDown[StreamOut]().filter { _.field == "size" }.head
+    val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
     val par = fringe match {
       case FringeDenseLoad(dram,cmdStream,dataStream) =>
         getParOf(readersOf(dataStream.head).head)
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
         getParOf(writersOf(dataStream.head).head)
     }
-    val size = fringe.collectDown[StreamOut]().filter { _.field == "size" }.head
-    val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
     val innerCtrl = DramController(csize, par).setParent(outerCtrl)
     val loads = streamOuts.map { mem =>
       mem.field match {

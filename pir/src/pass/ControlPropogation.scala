@@ -18,11 +18,12 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   }
 
   override def finPass = {
-    val cus = compiler.top.collectDown[GlobalContainer]()
-    cus.foreach { cu =>
-      checkCtrl(cu)
-      checkStageCtrl(cu)
-    }
+    //val cus = compiler.top.collectDown[GlobalContainer]()
+    //cus.foreach { cu =>
+      //checkCtrl(cu)
+      //checkStageCtrl(cu)
+    //}
+    super.finPass
   }
 
   def checkCtrl(cu:GlobalContainer) = {
@@ -74,16 +75,13 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
     dbg(s"visitNode(${qtype(n)}, n.ctrl=${ctrlOf.get(n)})")
     n match {
       case n:ComputeNode =>
-        val deps = depFunc(n)
         if (!ctrlOf.isDefinedAt(n)) {
-          assert(deps.forall(ctrlOf.isDefinedAt), s"$ctrlOf is not defined at ${depFunc(n).filterNot(ctrlOf.isDefinedAt)}")
-          val ctrls = deps.map(ctrlOf.apply).toSet
-          assert(ctrls.size==1, s"deps have different controls ${depFunc(n).map(d => (d, ctrlOf(d)))}")
-          //tic
-          ctrlOf(n) = ctrls.head // TODO: this is very slow. Figure out why
-          //toc(s"map assign ${qtype(n)}", "ms")
+          val deps = depFunc(n).filter { dep => ctrlOf.isDefinedAt(dep) }
+          if (deps.nonEmpty) {
+            ctrlOf(n) = assertUnify(deps, "ctrl") { dep => ctrlOf(dep) }
+            dbg(ctrlOf.info(n).get)
+          }
         }
-        dbg(ctrlOf.info(n).get)
       case n => 
     }
     super.visitNode(n, prev) 
