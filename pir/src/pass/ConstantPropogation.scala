@@ -15,7 +15,7 @@ trait ConstantPropogator {
         case Def(n, LocalLoad(mem::Nil, None)) => getBoundOf(mem, logger)
         case Def(n, LocalStore(mems, None, data)) => getBoundOf(data, logger)
         case WithWriter(writer) => getBoundOf(writer, logger)
-        case Def(n, OpDef(op, inputs)) => eval(op, inputs.map { in => getBoundOf(in, logger) }:_*).asInstanceOf[Option[Any]]
+        case Def(n, OpDef(op, inputs)) => eval(op, inputs.map { in => getBoundOf(in, logger) }).asInstanceOf[Option[Any]]
         case Def(n, GlobalInput(gout)) => getBoundOf(gout, logger)
         case Def(n, GlobalOutput(data, valid)) => getBoundOf(data, logger)
         case n => None

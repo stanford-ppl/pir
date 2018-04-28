@@ -77,7 +77,7 @@ trait Ops {
     case (x, op) => x
   }
 
-  def eval(op:Op, ins:Any*):Any = {
+  def eval(op:Op, ins:List[Any]):Any = {
     (op, ins.toList.map(in => convert(in, op))) match {
       case (FixAdd   , (a:Int)::(b:Int)::_)                     => (a + b)
       case (FixSub   , (a:Int)::(b:Int)::_)                     => (a - b)
