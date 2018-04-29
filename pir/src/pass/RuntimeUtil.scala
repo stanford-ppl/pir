@@ -42,7 +42,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def getItersOf(n:Any):Int = itersOf.getOrElseUpdate(n) {
+  def getItersOf(n:Any):Long = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
         case x:UnitController => 1
@@ -64,7 +64,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
           if ((cmax - cmin) % (cstep * par) != 0)
             warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
           val iters = (cmax - cmin) / (cstep * par)
-          iters * ctr.getEnable.fold (1) { en => getItersOf(en) }
+          iters * ctr.getEnable.fold (1l) { en => getItersOf(en) }
         case Def(n, CounterDone(ctr)) => getItersOf(ctr)
         case n:DramControllerDone => getItersOf(ctrlOf(n))
         case n:ContextEnable => 1
@@ -78,7 +78,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def verifyCounts(n:Any)(computeCount: => Int) = {
+  def verifyCounts(n:Any)(computeCount: => Long) = {
     val count = computeCount
     n match {
       case n:ContextEnable =>
@@ -95,11 +95,11 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     count
   }
 
-  def getCountsOf(n:Any):Int = countsOf.getOrElseUpdate(n) {
+  def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf(${quote(n)})") { verifyCounts(n) {
       n match {
         case n:Controller =>
-          val parentCount = n.parent.fold(1) { parent => getCountsOf(parent) }
+          val parentCount = n.parent.fold(1l) { parent => getCountsOf(parent) }
           parentCount * itersOf(n)
         case n:LocalLoad => 
           val count = assertUnify(memsOf(n), "count") { mem => getCountsOf(mem) }

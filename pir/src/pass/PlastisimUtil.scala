@@ -148,11 +148,11 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
   }
 
-  def getItersOf(accesses:List[LocalAccess]):Int = {
+  def getItersOf(accesses:List[LocalAccess]):Long = {
     assertUnify(accesses, "iter") { access => getItersOf(access) }
   }
 
-  def getCountsOf(accesses:List[LocalAccess]):Int = {
+  def getCountsOf(accesses:List[LocalAccess]):Long = {
     assertUnify(accesses, "counts") { access => getCountsOf(access) }
   }
 
