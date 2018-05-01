@@ -19,7 +19,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
       row("src") = globalOf(n).get
       row("count") = count
       ginsOf(n).zipWithIndex.foreach{ case (gin, idx) =>
-        row(s"dst[$idx]") = gin
+        row(s"dst[$idx]") = globalOf(gin).get
       }
     case n => super.visitNode(n)
   }
