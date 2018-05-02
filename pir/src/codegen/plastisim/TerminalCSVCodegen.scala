@@ -15,14 +15,14 @@ class TerminalCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with C
     case "pmu" => 2 // pmu
     case "dag" => 3 // dram address generator
     case "scu" => 4 // scalar cu
-    case "pcu" => 5 // vector cu
-    case "ocu" => 6 // cu with only control logic
+    case "pcu" => 4 // vector cu
+    case "ocu" => 4 // cu with only control logic
   }
 
   override def emitNode(n:N) = n match {
     case n:GlobalContainer =>
       val row = newRow
-      row("node") = n
+      row("node") = n.id
       row("tp") = cuTypeToInt(cuType(n).get)
     case n => super.visitNode(n)
   }
