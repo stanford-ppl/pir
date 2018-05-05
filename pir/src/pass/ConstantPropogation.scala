@@ -25,10 +25,11 @@ trait ConstantPropogator {
     }
   }
 
-  def getConstOf[T:ClassTag](n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):T = {
-    getBoundOf(n, logger).getOrElse{ throw PIRException(s"Could not constant propogate $n") } match {
+  def getBoundAs[T:ClassTag](n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[T] = {
+    getBoundOf(n, logger).map {
       case c:T => c
       case c => throw PIRException(s"getBoundOf($n) = $c but expect type ${implicitly[ClassTag[T]]}")
     }
   }
+
 }

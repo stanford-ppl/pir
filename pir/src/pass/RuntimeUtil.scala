@@ -21,6 +21,14 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     res.head
   }
 
+  def zipMap[A,B,T](a:Option[A], b:Option[B])(lambda:(A,B) => T):Option[T] = {
+    (a,b).zipped.map { case (a,b) => lambda(a,b) }.headOption
+  }
+
+  def zipMap[A,B,C,T](a:Option[A], b:Option[B], c:Option[C])(lambda:(A,B,C) => T):Option[T] = {
+    (a,b,c).zipped.map { case (a,b,c) => lambda(a,b,c) }.headOption
+  }
+
   def getParOf(x:Any):Int = parOf.getOrElseUpdate(x) {
     dbgblk(s"getParOf($x)") {
       x match {
@@ -55,58 +63,62 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
    * For PIR nodes, itersOf is iteration interval between activation of the nodes with respect to
    * local contextEnable
    * */
-  def getItersOf(n:Any):Long = itersOf.getOrElseUpdate(n) {
+  def getItersOf(n:Any):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
-        case x:UnitController => 1
-        case x:TopController => 1
+        case x:UnitController => Some(1)
+        case x:TopController => Some(1)
         case x:LoopController => getItersOf(x.cchain)
-        case x:ArgInController => 1
-        case x:ArgOutController => 1
-        case DramController(size, par) if size.isEmpty => 
-          throw PIRException(s"cannot compute iter of $DramController due to size not constant")
+        case x:ArgInController => Some(1)
+        case x:ArgOutController => Some(1)
         case DramController(size, par) => 
-          val wordSize = size.get / 4
-          wordSize / par
+          size.map { size =>
+            val wordSize = size / 4
+            wordSize / par
+          }
 
         case cchain:CounterChain => getItersOf(cchain.outer)
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
-          val cmin = getConstOf[Int](min, logger=Some(this))
-          val cmax = getConstOf[Int](max, logger=Some(this))
-          val cstep = getConstOf[Int](step, logger=Some(this))
+          val cmin = getBoundAs[Int](min, logger=Some(this))
+          val cmax = getBoundAs[Int](max, logger=Some(this))
+          val cstep = getBoundAs[Int](step, logger=Some(this))
           dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
-          if ((cmax - cmin) % (cstep * par) != 0)
-            warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
-          val iters = (cmax - cmin) / (cstep * par)
-          iters * ctr.getEnable.fold (1l) { en => getItersOf(en) }
+          val iters = zipMap(cmin, cmax, cstep) { case (cmin, cmax, cstep) =>
+            if ((cmax - cmin) % (cstep * par) != 0)
+              warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
+            (cmax - cmin) / (cstep * par)
+          }
+          val enIters = ctr.getEnable.map { en => getItersOf(en) }.getOrElse(Some(1l))
+          dbg(s"iters=$iters, enIters=$enIters")
+          zipMap(iters, enIters) { case (iters, enIters) => iters * enIters }
         case Def(n, CounterDone(ctr)) => getItersOf(ctr)
         case n:DramControllerDone => getItersOf(ctrlOf(n))
-        case n:ContextEnable => 1
+        case n:ContextEnable => Some(1l)
         case n:LocalAccess => getItersOf(accessNextOf(n))
         case n:GlobalOutput => getItersOf(validOf(n))
         case n:Primitive => 
           val deps = n.deps.filterNot { dep => isBackPressure(dep) || dep.isInstanceOf[Memory] }
-          minByWithBound(deps, 1l) { dep => getItersOf(dep) }
+          minByWithBound[Primitive, Option[Long]](deps, Some(1l)) { dep => getItersOf(dep) }
       }
     }
   }
 
-  def verifyCounts(n:Any)(computeCount: => Long) = {
-    val count = computeCount
-    n match {
-      case n:ContextEnable =>
-        val ctrlCount = getCountsOf(ctrlOf(n))
-        assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
-      case n:Memory if isFIFO(n) =>
-        val ctrlCount = assertUnify(writersOf(n), "counts") { writer => getCountsOf(writer) }
-        assert(ctrlCount == count, s"$n's count=$count != ${writersOf(n)}.count=$ctrlCount")
-      case n:Memory =>
-        val ctrlCount = getCountsOf(ctrlOf(n))
-        assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
-      case _ =>
-    }
-    count
-  }
+  //def verifyCounts(n:Any)(computeCount: => Long) = {
+    //val count = computeCount
+    //n match {
+      //case n:ContextEnable =>
+        //val ctrlCount = getCountsOf(ctrlOf(n))
+        //assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
+      //case n:Memory if isFIFO(n) =>
+        //val ctrlCount = assertUnify(writersOf(n), "counts") { writer => getCountsOf(writer) }
+        //assert(ctrlCount == count, s"$n's count=$count != ${writersOf(n)}.count=$ctrlCount")
+      //case n:Memory =>
+        //val ctrlCount = getCountsOf(ctrlOf(n))
+        //assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
+      //case _ =>
+    //}
+    //count
+  //}
 
   //def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
     //dbgblk(s"getCountsOf(${quote(n)})") { verifyCounts(n) {
@@ -141,23 +153,30 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     //} }
   //}
 
-  def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
+  def getCountsOf(n:Any):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf(${quote(n)})") { 
       n match {
         case n:Controller =>
-          val parentCount = n.parent.fold(1l) { parent => getCountsOf(parent) }
-          parentCount * itersOf(n)
+          val parentCount = n.parent.map { parent => getCountsOf(parent) }.getOrElse(Some(1l))
+          val iters = getItersOf(n)
+          zipMap(parentCount, iters) { case (parentCount, iters) => parentCount * iters }
         case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:Primitive if within[ComputeContext](n) =>
-          getCountsOf(ctxEnOf(n).get) / getItersOf(n)
+          zipMap(getCountsOf(ctxEnOf(n).get), getItersOf(n)) { case (ctxEnCounts, iters) =>
+            ctxEnCounts / iters
+          }
         case n:Memory =>
           val count = assertUnify(writersOf(n), "writerCounts") { writer => getCountsOf(writer) }
           if (!isFIFO(n)) {
             val ctrlCount = getCountsOf(ctrlOf(n))
-            assert(ctrlCount == count, s"$n writerCounts($count) != ctrlCount($ctrlCount)")
+            zipMap(count, ctrlCount) { case (count, ctrlCount) =>
+              assert(ctrlCount == count, s"$n writerCounts($count) != ctrlCount($ctrlCount)")
+            }
           } else {
             val readerCounts = assertUnify(readersOf(n), "readerCounts") { reader => getCountsOf(reader) }
-            assert(readerCounts == count, s"$n writerCounts($count) != readerCounts($readerCounts)")
+            zipMap(count, readerCounts) { case (count, readerCounts) =>
+              assert(readerCounts == count, s"$n writerCounts($count) != readerCounts($readerCounts)")
+            }
           }
           count
       }

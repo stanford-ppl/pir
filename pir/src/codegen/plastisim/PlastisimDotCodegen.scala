@@ -26,9 +26,9 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       val cuP = globalOf(n).get
       var label = ""
       label += s"${quote(n)}"
-      label += s"\n(${ctrlOf(n)})"
-      label += s"\n(counts=${countsOf(n)})"
-      label += s"\n(${quote(cuP)})"
+      label += s"\ncu=${quote(cuP)}"
+      label += s"\nctrl=${ctrlOf(n)}"
+      label += s"\ncounts=${countsOf(n)}"
       if (compiler.session.hasRun[CUPlacer]) {
         label += s"\nlat=${latencyOf(n)}"
         addrOf(n).foreach { addr => label += s"\naddr=${addr}" }

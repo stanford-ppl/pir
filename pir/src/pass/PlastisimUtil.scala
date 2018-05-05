@@ -148,14 +148,29 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
   }
 
-  def getItersOf(accesses:List[LocalAccess]):Long = {
+  def constItersOf(x:Any):Long = {
+    getItersOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
+  }
+
+  def constCountsOf(x:Any):Long = {
+    getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
+  }
+
+  def constItersOf(accesses:List[LocalAccess]):Long = {
+    assertUnify(accesses, "iter") { access => constItersOf(access) }
+  }
+
+  def constCountsOf(accesses:List[LocalAccess]):Long = {
+    assertUnify(accesses, "counts") { access => constCountsOf(access) }
+  }
+
+  def getItersOf(accesses:List[LocalAccess]):Option[Long] = {
     assertUnify(accesses, "iter") { access => getItersOf(access) }
   }
 
-  def getCountsOf(accesses:List[LocalAccess]):Long = {
+  def getCountsOf(accesses:List[LocalAccess]):Option[Long] = {
     assertUnify(accesses, "counts") { access => getCountsOf(access) }
   }
-
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
