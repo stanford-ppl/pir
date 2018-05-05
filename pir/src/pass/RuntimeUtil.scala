@@ -7,6 +7,14 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   import pirmeta._
   import spademeta._
 
+  def minByWithBound[A,B:Ordering](list:Iterable[A], bound:B)(lambda:A => B):B = {
+    list.foldLeft[Option[B]](None) { 
+      case (Some(`bound`), x) => Some(bound)
+      case (Some(currMin), x) => Some(List(currMin, lambda(x)).min)
+      case (None, x) => Some(lambda(x))
+    }.getOrElse(bound)
+  }
+
   def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):B = {
     val res = list.map(lambda)
     assert(res.toSet.size==1, s"$list doesnt have the same $info = $res")
@@ -42,6 +50,11 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
+  /*
+   * For controller, itersOf is the number of iteration the current controller runs before saturate
+   * For PIR nodes, itersOf is iteration interval between activation of the nodes with respect to
+   * local contextEnable
+   * */
   def getItersOf(n:Any):Long = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
@@ -55,6 +68,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case DramController(size, par) => 
           val wordSize = size.get / 4
           wordSize / par
+
         case cchain:CounterChain => getItersOf(cchain.outer)
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
           val cmin = getConstOf[Int](min, logger=Some(this))
@@ -70,10 +84,9 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case n:ContextEnable => 1
         case n:LocalAccess => getItersOf(accessNextOf(n))
         case n:GlobalOutput => getItersOf(validOf(n))
-
         case n:Primitive => 
-          val deps = n.deps.filterNot(isBackPressure)
-          assertUnify(deps, s"itersOf") { dep => getItersOf(dep) }
+          val deps = n.deps.filterNot { dep => isBackPressure(dep) || dep.isInstanceOf[Memory] }
+          minByWithBound(deps, 1l) { dep => getItersOf(dep) }
       }
     }
   }
@@ -95,39 +108,61 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     count
   }
 
+  //def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
+    //dbgblk(s"getCountsOf(${quote(n)})") { verifyCounts(n) {
+      //n match {
+        //case n:Controller =>
+          //val parentCount = n.parent.fold(1l) { parent => getCountsOf(parent) }
+          //parentCount * itersOf(n)
+        //case n:LocalLoad => 
+          //val count = assertUnify(memsOf(n), "count") { mem => getCountsOf(mem) }
+          //count * getItersOf(n) // Scale up
+        //case n:LocalStore => getCountsOf(dataOf(n)) / getItersOf(n) // Scale down
+        //case n:Memory => 
+          //assertUnify(writersOf(n), "count") { writer => getCountsOf(writer) }
+        //case n:Primitive =>
+          //val deps = n.deps.filterNot(isBackPressure) 
+          //if (deps.isEmpty) {
+            //n match {
+              //case n:ContextEnable =>
+                //assert(ctrlOf(n).isInstanceOf[ArgInController]); 1
+              //case n =>
+                //val node = n.collectPeer[ContextEnable]().head
+                //getCountsOf(node)
+            //}
+          //} else assertUnify(deps, "count") {
+            //case dep:Memory =>
+              //// Get readers in the same context
+              //val readers = readersOf(dep).filter { reader => contextOf(reader) == contextOf(n) }
+              //assertUnify(readers, "count") { reader => getCountsOf(reader) }
+            //case dep => getCountsOf(dep)
+          //}
+      //}
+    //} }
+  //}
+
   def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { verifyCounts(n) {
+    dbgblk(s"getCountsOf(${quote(n)})") { 
       n match {
         case n:Controller =>
           val parentCount = n.parent.fold(1l) { parent => getCountsOf(parent) }
           parentCount * itersOf(n)
-        case n:LocalLoad => 
-          val count = assertUnify(memsOf(n), "count") { mem => getCountsOf(mem) }
-          count * getItersOf(n) // Scale up
-        case n:LocalStore => getCountsOf(dataOf(n)) / getItersOf(n) // Scale down
-        case n:Memory => 
-          assertUnify(writersOf(n), "count") { writer => getCountsOf(writer) }
-        case n:Primitive =>
-          val deps = n.deps.filterNot(isBackPressure) 
-          if (deps.isEmpty) {
-            n match {
-              case n:ContextEnable =>
-                assert(ctrlOf(n).isInstanceOf[ArgInController]); 1
-              case n =>
-                val node = n.collectPeer[ContextEnable]().head
-                getCountsOf(node)
-            }
-          } else assertUnify(deps, "count") {
-            case dep:Memory =>
-              // Get readers in the same context
-              val readers = readersOf(dep).filter { reader => contextOf(reader) == contextOf(n) }
-              assertUnify(readers, "count") { reader => getCountsOf(reader) }
-            case dep => getCountsOf(dep)
+        case n:ContextEnable => getCountsOf(ctrlOf(n))
+        case n:Primitive if within[ComputeContext](n) =>
+          getCountsOf(ctxEnOf(n).get) / getItersOf(n)
+        case n:Memory =>
+          val count = assertUnify(writersOf(n), "writerCounts") { writer => getCountsOf(writer) }
+          if (!isFIFO(n)) {
+            val ctrlCount = getCountsOf(ctrlOf(n))
+            assert(ctrlCount == count, s"$n writerCounts($count) != ctrlCount($ctrlCount)")
+          } else {
+            val readerCounts = assertUnify(readersOf(n), "readerCounts") { reader => getCountsOf(reader) }
+            assert(readerCounts == count, s"$n writerCounts($count) != readerCounts($readerCounts)")
           }
+          count
       }
-    } }
+    }
   }
-
 
   def isBackPressure(n:Primitive) = n match {
     case n:NotFull => true

@@ -11,8 +11,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
 
   override def emitNode(n:N) = n match {
     case n:GlobalOutput => 
-      val stores = n.collectOutTillMem[LocalStore]()
-      val count = assertUnify(stores, "count") { store => getCountsOf(store) }
+      val count = countsOf(n)
       val gins = ginsOf(n)
       val row = newRow
       row("link") = n

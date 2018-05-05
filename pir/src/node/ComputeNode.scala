@@ -51,4 +51,12 @@ trait PIRComputeNode {
   def ctxEnOf(n:Container):Option[ContextEnable] = {
     n.collectDown[ContextEnable]().headOption
   }
+
+  def ctxEnOf(n:Primitive):Option[ContextEnable] = {
+    if (within[ComputeContext](n)) {
+      Some(n.collectPeer[ContextEnable]().headOption.getOrElse {
+        n.collectInTillMem[ContextEnable]().head
+      })
+    } else None
+  }
 }

@@ -48,7 +48,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   }
 
   override def runPass =  {
-    lazy val mems = compiler.top.collectDown[Memory]()
+    val mems = compiler.top.collectDown[Memory]()
     mems.foreach { mem =>
       setTopCtrl(mem)
     }
