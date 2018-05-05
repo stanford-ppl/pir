@@ -98,7 +98,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
 
     session.rerun {
-    addPass(enableCodegen, new IgraphCodegen(s"graph.py"))
+    addPass(enableSplitting, new GlobalPartioner())
 
     addPass(genCtrl, contextInsertion)
     addPass(genCtrl && debug, new PIRIRDotCodegen(s"top9.dot"))

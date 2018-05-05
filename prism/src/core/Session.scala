@@ -84,7 +84,10 @@ class Session extends Serializable {
   def getCurrentRunner(pass:Pass) = {
     val runner = if (!passes.contains(pass)) None else passes(pass).filter { _.isRunning }.headOption
     runner.getOrElse {
-      Runner(this, -1)
+      val runner = Runner[pass.type](this, -1)
+      runner.setPass(pass)
+      runner.initPending
+      runner
     }
   }
 }
