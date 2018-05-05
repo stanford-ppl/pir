@@ -1,6 +1,6 @@
 package pir.codegen
 
-class PlastimaCodegen(implicit design: PIR) extends PIRPass {
+class PlasmaCodegen(implicit design: PIR) extends PIRPass {
 
   //val codegen = new spade.codegen.ConfigCodegen()(design.arch)
 
