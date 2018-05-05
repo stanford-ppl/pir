@@ -22,8 +22,6 @@ trait PIR extends Compiler with PIRWorld {
     arch = null
   }
 
-  //lazy val mappers = ListBuffer[Mapper]()
-
   /* Analysis */
   lazy val testTraversal = new TestTraversal()
   lazy val memoryAnalyzer = new MemoryAnalyzer()
@@ -77,7 +75,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
     addPass(unrollingTransformer).dependsOn(controlPropogator)
-    addPass(debug, new PIRIRDotCodegen(s"top2.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
     addPass(cuInsertion)
     addPass(deadCodeEliminator)
     addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
@@ -99,11 +97,14 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
-    addPass(contextInsertion)
-    addPass(debug, new PIRIRDotCodegen(s"top9.dot"))
-    addPass(contextMerging)
-    addPass(deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top10.dot"))
+    session.rerun {
+    addPass(enableCodegen, new IgraphCodegen(s"graph.py"))
+
+    addPass(genCtrl, contextInsertion)
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top9.dot"))
+    addPass(genCtrl, contextMerging)
+    addPass(genCtrl, deadCodeEliminator)
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top10.dot"))
 
     //// Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
@@ -116,12 +117,11 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple3.dot"))
     addPass(genCtrl && debug, new PIRPrinter(s"IR3.txt"))
-    addPass(irCheck)
+    addPass(genCtrl, irCheck)
     addPass(cuStats)
 
-    session.rerun {
     // Simulation analyzer
-    addPass(genPlastisim, plastisimLinkAnalyzer)
+    addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(debug, new PIRIRDotCodegen(s"top.dot"))
     addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
@@ -134,17 +134,17 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(cuPruning)
+    addPass(mapping, cuPruning)
     addPass(mapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-mapping analysis
-    addPass(debug, new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(debug, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    addPass(debug & mapping, new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(debug & mapping, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(debug & mapping, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
-    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim && mapping, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim && mapping, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 
      // Simulation
 

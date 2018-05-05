@@ -7,18 +7,19 @@ object PIRConfig extends prism.GlobalConfig {
   var saveDesign:Boolean = register("save-pir", default=false, info="Save IR into a file") { saveDesign = _ }
   var loadDesign:Boolean = register("load-pir", default=false, info="Load IR from a file") { loadDesign = _ }
 
-  def codegen = Config.codegen
+  def enableCodegen = Config.codegen
   def verbose = Config.verbose
 
-  var mapping:Boolean = register("mapping", default=true) { mapping = _ }
+  var enableSplitting:Boolean = register("splitting", default=true) { genCtrl = _ }
   var genCtrl:Boolean = register("ctrl", default=true) { genCtrl = _ }
+  var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }
-  var genPlastisim:Boolean = register("psim", default=true) { v => genPlastisim = v && codegen }
+  var genPlastisim:Boolean = register("psim", default=true) { v => genPlastisim = v && genCtrl && enableCodegen }
   var loadTrace:Boolean = register("trace", default=false) { v => loadTrace = v && genPlastisim }
 
   def debug:Boolean = Config.debug
   var routingVerbosity:Int = register("verbosity-routing", 0) { v => routingVerbosity = if (debug) v else 0 }
   var breakPoint:Boolean = debug && register("bp", false) { v => breakPoint = v && debug }
-  var openDot:Boolean = register("open", false) { v => openDot = v && codegen }
+  var openDot:Boolean = register("open", false) { v => openDot = v && enableCodegen }
 
 }
