@@ -10,7 +10,7 @@ object PIRConfig extends prism.GlobalConfig {
   def enableCodegen = Config.codegen
   def verbose = Config.verbose
 
-  var enableSplitting:Boolean = register("splitting", default=true) { genCtrl = _ }
+  var enableSplitting:Boolean = register("splitting", default=true) { enableSplitting = _ }
   var genCtrl:Boolean = register("ctrl", default=true) { genCtrl = _ }
   var mapping:Boolean = register("mapping", default=true) { mapping = _ }
   var aggressive_dce:Boolean = register("ag-dce", default=true) { aggressive_dce = _ }

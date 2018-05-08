@@ -176,6 +176,7 @@ abstract class BiManyToManyMapLike[K:ClassTag,V:ClassTag,S<:BiManyToManyMapLike[
     }
   }
   override def - (pair:(K,V)):S = super.-(pair)
+
   def - (x:Any):S = x match {
     case k:K => 
       val vv:VV = fmap(k)

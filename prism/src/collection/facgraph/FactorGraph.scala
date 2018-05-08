@@ -44,6 +44,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   def check(k:K):EOption[S] = if (freeMap.fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(this)
   def ++ (pairs:(Any,Any)):S = newInstance(freeMap ++ pairs, usedMap)
   def - (pair:(K,V)):EOption[S] = newInstance(freeMap - pair, usedMap).check(pair._1)
+  def - (x:Any):S = newInstance(freeMap - x, usedMap)
 
   /* ---------- usedMap ---------- */
   def mappedKeys = usedMap.keys

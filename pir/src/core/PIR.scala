@@ -98,7 +98,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(debug, new PIRPrinter(s"IR2.txt"))
-    addPass(enableSplitting, new GlobalPartioner())
+    addPass(enableSplitting, new IgraphPartioner())
 
     addPass(genCtrl, contextInsertion)
     addPass(genCtrl && debug, new PIRIRDotCodegen(s"top9.dot"))

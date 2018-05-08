@@ -4,13 +4,10 @@ import pir.node._
 import pir.mapper._
 import pir.codegen._
 
-class GlobalPartioner(implicit compiler:PIR) extends PIRTransformer {
+class IgraphPartioner(implicit compiler:PIR) extends PIRTransformer with GlobalPartioner {
   import pirmeta._
 
-  override def runPass =  {
-    val topP = compiler.top
-    val pnodes = topP.collectDown[CUMap.K]()
-    val cu = pnodes.filter { _.children.size > 20 }.head
+  def split(cu:GlobalContainer) = {
     val igraph = new IgraphCodegen(cu)
     compiler.session.getCurrentRunner(igraph).run
     val vertexMap = igraph.getResult
@@ -20,9 +17,14 @@ class GlobalPartioner(implicit compiler:PIR) extends PIRTransformer {
     val partitions = vertexMap.values.toSet
     val mcus = List.fill(partitions.size - 1) { mirrorMapping.clear; mirror(cu, Some(compiler.top)) }
     val partitionMap = partitions.zip(cu::mcus).toMap
+    dbgblk(s"partitionMap") {
+      partitionMap.foreach { case (p, cu) => dbg(s"$p -> $cu") }
+    }
     vertexMap.foreach { case (vertex, partition) =>
       val cu = partitionMap(partition)
       swapParent(vertex, cu)
     }
+    partitionMap.values.toSet
   }
+
 }

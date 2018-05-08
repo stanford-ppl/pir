@@ -4,7 +4,7 @@ import prism.collection.immutable._
 import prism.util.Memorization
 import scala.collection.mutable
 
-abstract class Constrain(implicit val pass:PIRPass) {
+abstract class Constrain(implicit val pass:PIRPass with Memorization) {
   type K
   type V
   type FG <: FactorGraphLike[K,V,FG]
@@ -23,9 +23,8 @@ trait CostConstrain extends Constrain {
     }
   }
 }
-trait PrefixConstrain extends CostConstrain with Memorization {
+trait PrefixConstrain extends CostConstrain {
   import pass._
-  memorizing = true
   def prefixKey(cuP:K):Boolean
   def prefixValue(cuS:V):Boolean
   val prefixKeyOf = memorize(prefixKey _)
@@ -38,9 +37,8 @@ trait PrefixConstrain extends CostConstrain with Memorization {
     factor
   }
 }
-trait QuantityConstrain extends CostConstrain with Memorization {
+trait QuantityConstrain extends CostConstrain {
   import pass._
-  memorizing = true
   def numPNodes(cuP:K):Int
   def numSnodes(cuS:V):Int
   val numPNodesOf = memorize(numPNodes _)
