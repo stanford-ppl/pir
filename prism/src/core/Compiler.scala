@@ -8,7 +8,8 @@ trait Compiler {
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
-  def outDir = Config.outDir + separator + name
+  def relativeOutDir = buildPath(Config.relativeOutDir,name)
+  def outDir = buildPath(Config.outDir, name)
 
   var _session:Session = _
   lazy val session = _session

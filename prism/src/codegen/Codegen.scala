@@ -8,6 +8,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   val fileName:String
   val append = false
 
+  lazy val relativeOutputPath = buildPath(compiler.relativeOutDir, fileName)
   lazy val outputPath = buildPath(dirName, fileName)
 
   override def initPass = {
@@ -16,7 +17,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   }
 
   override def finPass = {
-    info(s"Finished ${runner.name} to ${cstr(Console.CYAN,outputPath)} in ${toc("ms")}ms")
+    info(s"Finished ${runner.name} to ${cstr(Console.CYAN,relativeOutputPath)} in ${toc("ms")}ms")
     closeStream
   }
 
