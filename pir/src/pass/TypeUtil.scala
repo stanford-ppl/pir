@@ -63,14 +63,29 @@ trait TypeUtil extends ConstantPropogator { self:PIRPass =>
     isAFG(n) || isDAG(n)
   }
 
+  private def writesOnlyToDFG(n:GlobalContainer) = {
+    val targets = n.visitLocalOut[PIRNode](n)
+    targets.nonEmpty && targets.forall(_.isInstanceOf[DramFringe])
+  }
+
+  private def containsRemoteMem(n:GlobalContainer) = {
+    n.collectDown[Memory]().filter(isRemoteMem).nonEmpty
+  }
+
+  private def containsStageOp(n:GlobalContainer) = {
+    n.collectDown[StageDef]().size > 0
+  }
+
+  def nonVectorized(n:Any) = getParOf(n) == 1
+
   def cuType(n:PIRNode):Option[String] = {
     n match {
       case n:ArgFringe => Some("afg")
       case n:DramFringe => Some("dfg")
-      case n:GlobalContainer if n.collectDown[Memory]().filter(isRemoteMem).nonEmpty => Some("pmu")
-      case n:GlobalContainer if n.visitLocalOut[PIRNode](n).forall(_.isInstanceOf[DramFringe]) => Some("dag")
-      case n:GlobalContainer if n.collectDown[StageDef]().size==0 => Some("ocu")
-      case n:GlobalContainer if getParOf(n) == 1 => Some("scu")
+      case n:GlobalContainer if containsRemoteMem(n) => Some("pmu")
+      case n:GlobalContainer if writesOnlyToDFG(n) => Some("dag")
+      case n:GlobalContainer if !containsStageOp(n) => Some("ocu")
+      case n:GlobalContainer if nonVectorized(n) => Some("scu")
       case n:GlobalContainer => Some("pcu")
       case n => None
     }
