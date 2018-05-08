@@ -12,9 +12,12 @@ class Session extends Serializable {
   val passes = mutable.Map[Pass, mutable.ListBuffer[Runner[_]]]()
 
   var rerunning = false
+
+  var savingCheckPoint = -1
   def rerun(block: => Unit)(implicit compiler:Compiler):Unit = {
     val saved = rerunning
     rerunning = true
+    savingCheckPoint = currInit
     block
     rerunning = saved
   }
@@ -41,6 +44,7 @@ class Session extends Serializable {
   def saveSession(path:String) = {
     restore = true
     currInit = 0
+    savingCheckPoint = -1
     currRun = null
     runners.foreach { _.clearPass }
     storedRunneres.clear
@@ -54,12 +58,17 @@ class Session extends Serializable {
   def run(implicit compiler:Compiler) = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
+      if (compiler.save && runner.id==savingCheckPoint) {
+        compiler.saveDesign
+      }
       currRun = runner
       runner.run
     }
     if (compiler.save) {
-      compiler.saveDesign
-      compiler.loadDesign
+      if (savingCheckPoint == -1) {
+        compiler.saveDesign
+        compiler.loadDesign
+      }
       saveSession(compiler.sessionPath)
     }
   }

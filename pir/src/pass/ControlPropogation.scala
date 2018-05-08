@@ -72,7 +72,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   }
 
   override def visitNode(n:N, prev:T):T = {
-    dbg(s"visitNode(${qtype(n)}, n.ctrl=${ctrlOf.get(n)})")
+    dbg(s"visitNode(${qtype(n)}, $n.ctrl=${ctrlOf.get(n)})")
     n match {
       case n:ComputeNode =>
         if (!ctrlOf.isDefinedAt(n)) {

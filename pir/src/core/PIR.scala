@@ -9,9 +9,9 @@ import PIRConfig._
 
 trait PIR extends Compiler with PIRWorld {
 
-  lazy val pirmeta:PIRMetadata = design.pirmeta
-  lazy val spademeta:SpadeMetadata = arch.design.spademeta
   def top:Top = design.top
+  def pirmeta:PIRMetadata = design.pirmeta
+  def spademeta:SpadeMetadata = arch.design.spademeta
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 
@@ -59,7 +59,7 @@ trait PIR extends Compiler with PIRWorld {
 
   /* Debug */
 
-  //var mapping:Option[PIRMap] = None
+  //var mapping:Option[P$IRMap] = None
 
   override def initSession = {
     super.initSession
@@ -92,12 +92,12 @@ trait PIR extends Compiler with PIRWorld {
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
-    addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
-    addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
-    addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
     session.rerun {
+    addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
+    addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
+    addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(enableSplitting, new GlobalPartioner())
 
     addPass(genCtrl, contextInsertion)
