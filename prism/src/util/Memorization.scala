@@ -15,14 +15,15 @@ trait Memorization {
   def resetAllCaches = caches.foreach(_.resetAll)
 
   def memorize[I,O](lambda:I => O):Cache[I,O] = {
-    val cache = Cache[I,O](memorizing, lambda)
+    val cache = Cache[I,O](this, lambda)
     caches += cache
     cache
   }
 }
-case class Cache[I,O](memorizing:Boolean, lambda:I => O) {
+case class Cache[I,O](memorization:Memorization, lambda:I => O) {
   val memory = mutable.Map[Any,O]()
-  def apply(input:I) = if (memorizing) memory.getOrElseUpdate(input, lambda(input)) else lambda(input)
+  def apply(input:I) = if (memorization.memorizing) memory.getOrElseUpdate(input, lambda(input)) 
+                       else lambda(input)
   def resetCache(input:Any) = memory -= input
   def resetAll = memory.clear
 }
