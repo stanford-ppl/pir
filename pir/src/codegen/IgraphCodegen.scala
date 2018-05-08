@@ -39,7 +39,9 @@ class IgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends PIRCode
   def emitInput(node:N) = {
     node.localDeps.foreach { d =>
       val dep = lookup(d)
-      emitln(s"""g.add_edge("$dep", "$node")""")
+      if (dep != node) {
+        emitln(s"""g.add_edge("$dep", "$node")""")
+      }
     }
   }
 
@@ -65,6 +67,7 @@ class IgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends PIRCode
     emitln(s"""# plot(g)""")
     emitln(s"""dendrogram = g.community_walktrap(steps=4)""")
     emitln(s"""# dendrogram = g.community_fastgreedy()""")
+    emitln(s"""# dendrogram = g.community_edge_betweenness()""")
     emitln(s"""# print(dendrogram.optimal_count)""")
     emitln(s"""cluster = dendrogram.as_clustering()""")
     emitln(s"""# cluster = g.community_infomap()""")
