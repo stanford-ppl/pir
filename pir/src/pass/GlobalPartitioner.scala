@@ -17,9 +17,13 @@ trait GlobalPartioner extends PIRPass with CUPruner {
     }
   }
 
+  var splitCount = 100
   def pruneAndSplit(cumap:CUMap):EOption[CUMap] = {
+    if (splitCount < 0) assert(false)
+    splitCount -= 1
     prune(cumap) match {
-      case Left(CostConstrainFailure(constrain, fg:CUMap, key:CUMap.K)) =>
+      case Left(f@CostConstrainFailure(constrain, fg:CUMap, key:CUMap.K)) =>
+        dbg(s"$f")
         val vs = cumap(key)
         val ks = split(key)
         val newCUMap = (cumap - key) ++ (ks -> vs)

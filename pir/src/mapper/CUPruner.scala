@@ -44,5 +44,10 @@ trait CUPruner extends PIRPass with Memorization {
     flatFold(constrains, cumap) { case (cumap, constrain) => constrain.prune(cumap) }
   }
 
+  override def resetAllCaches = {
+    super.resetAllCaches
+    dbg(s"resetAllCaches")
+  }
+
 }
 

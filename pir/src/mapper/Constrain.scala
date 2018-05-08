@@ -79,8 +79,7 @@ trait MatchingConstrain extends Constrain {
       val keySize = ks.size
       val valueSize = vs.size
       val fit = keySize <= valueSize
-      pass.dbg(s"keySet=${ks.map(quote)}")
-      pass.dbg(s"$keySize <= $valueSize = $fit")
+      pass.dbg(s"MatchingConstrain: keySize=$keySize <= valueSize=$valueSize = $fit")
       if (fit) Right(fg) else Left(MatchConstrainFailure(fg, ks.toSet))
     }
   }
