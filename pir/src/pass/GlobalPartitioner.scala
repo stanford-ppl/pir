@@ -22,7 +22,7 @@ trait GlobalPartioner extends PIRPass with CUPruner {
     if (splitCount < 0) assert(false)
     splitCount -= 1
     prune(cumap) match {
-      case Left(f@CostConstrainFailure(constrain, fg:CUMap, key:CUMap.K)) =>
+      case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitableConstrain(constrain) =>
         dbg(s"$f")
         val vs = cumap(key)
         val ks = split(key)
@@ -31,6 +31,14 @@ trait GlobalPartioner extends PIRPass with CUPruner {
       case Left(f) => Left(f)
       case Right(map) => Right(map)
     }
+  }
+
+  def isSplitableConstrain(constrain:Constrain) = constrain match {
+    case constrain:CUPrefixConstrain => false
+    case constrain:SramConstrain => false
+    case constrain:LaneConstrain => false
+    case constrain:CUQuantityConstrain => true
+    case constrain => false
   }
 
   def split(cu:GlobalContainer):Set[GlobalContainer]
