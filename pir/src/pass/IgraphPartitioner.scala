@@ -8,7 +8,7 @@ class IgraphPartioner(implicit compiler:PIR) extends PIRTransformer with GlobalP
   import pirmeta._
 
   def split(cu:GlobalContainer) = dbgblk(s"split($cu)") {
-    val igraph = new IgraphCodegen(cu)
+    val igraph = new WeightedIgraphCodegen(cu)
     compiler.session.getCurrentRunner(igraph).run
     val vertexMap = igraph.getResult
     dbgblk(s"loadResult") {

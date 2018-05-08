@@ -6,14 +6,13 @@ import pir.node._
 import sys.process._
 import scala.collection.mutable
 
-class IgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends PIRCodegen with PythonCodegen {
+class AliasIgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends PIRCodegen with PythonCodegen {
   import pirmeta._
 
   val fileName = s"split_$global.py"
   lazy val resultPath = buildPath(dirName, s"$global.cluster") 
 
   val vertices = ListBuffer[N]()
-  val aliasVertices = mutable.Set[N]()
   val aliasMap = mutable.Map[N, N]()
 
   override def emitNode(n:N) = {
@@ -66,7 +65,7 @@ class IgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends PIRCode
   def emitFooter = {
     emitln(s"""# plot(g)""")
     emitln(s"""dendrogram = g.community_walktrap(steps=4)""")
-    emitln(s"""# dendrogram = g.community_fastgreedy()""")
+    emitln(s"""# dendrogram = g.community_fastgreedy()""") // only works for undirected graph
     emitln(s"""# dendrogram = g.community_edge_betweenness()""")
     emitln(s"""# print(dendrogram.optimal_count)""")
     emitln(s"""cluster = dendrogram.as_clustering()""")

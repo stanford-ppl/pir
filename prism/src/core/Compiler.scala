@@ -1,8 +1,10 @@
 package prism
 
+import prism.util.FileManager
+
 import scala.collection.mutable
 
-trait Compiler {
+trait Compiler extends FileManager {
 
   implicit val compiler:this.type = this
 

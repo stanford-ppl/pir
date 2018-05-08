@@ -10,7 +10,7 @@ trait FileManager {
   type File = java.io.File
   val separator = File.separator
 
-  val logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")
+  def logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")
 
   def isLog(file:File) = logExtensions.exists{ ext => file.getName().endsWith(ext) }
 

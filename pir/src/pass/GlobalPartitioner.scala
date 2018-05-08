@@ -17,7 +17,7 @@ trait GlobalPartioner extends PIRPass with CUPruner {
     }
   }
 
-  var splitCount = 100
+  var splitCount = 60
   def pruneAndSplit(cumap:CUMap):EOption[CUMap] = {
     if (splitCount < 0) assert(false)
     splitCount -= 1
