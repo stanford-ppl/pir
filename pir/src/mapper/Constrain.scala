@@ -33,7 +33,7 @@ trait PrefixConstrain extends CostConstrain {
     val key = prefixKeyOf(cuP)
     val value = prefixValueOf(cuS)
     val factor = key == value
-    pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
+    if (!factor) pass.dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
     factor
   }
 }
@@ -47,7 +47,7 @@ trait QuantityConstrain extends CostConstrain {
     val key = numPNodesOf(cuP)
     val value = numSnodesOf(cuS)
     val factor = key <= value
-    pass.dbg(s"$this ${quote(cuP)}:$key == ${quote(cuS)}:$value factor=$factor")
+    if (!factor) pass.dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
     factor
   }
 }

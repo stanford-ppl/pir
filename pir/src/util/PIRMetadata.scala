@@ -1,6 +1,7 @@
 package pir.util
 
 import pir.node._
+import pir.mapper.{PIRMap,EmptyMapping}
 import prism.util._
 import prism.collection.mutable._
 
@@ -84,7 +85,7 @@ class PIRMetadata extends Metadata {
   infMemsOf.setName("infMemsOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
-  var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
+  var pirMap:EOption[PIRMap] = Left(EmptyMapping)
 
 }
 

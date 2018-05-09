@@ -8,13 +8,15 @@ trait MappingCollection {
   override def toString = this.getClass.getSimpleName
 }
 
+case object EmptyMapping extends MappingFailure
+
 case class PIRMap (
-  cumap:CUMap,
-  fimap:FIMap,
-  cfmap:ConfigMap,
-  inmap:InMap,
-  outmap:OutMap,
-  vcmap:VCMap
+  cumap:CUMap=CUMap.empty,
+  fimap:FIMap=FIMap.empty,
+  cfmap:ConfigMap=ConfigMap.empty,
+  inmap:InMap=InMap.empty,
+  outmap:OutMap=OutMap.empty,
+  vcmap:VCMap=VCMap.empty
 ) extends SpadeMapLike with MappingCollection {
   type S = PIRMap
   def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {

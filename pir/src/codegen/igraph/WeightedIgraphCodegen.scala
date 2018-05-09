@@ -55,10 +55,16 @@ class WeightedIgraphCodegen(global:GlobalContainer)(implicit design:PIR) extends
     emitFooter
   }
 
+  override def initPass = {
+    tic
+    openFile(dirName, fileName, append=append)
+  }
+
   override def finPass = {
-    super.finPass
+    closeStream
     s"python $outputPath" !
 
+    infor(s"Split $global in ${toc("ms")}ms")
   }
 
   def emitHeader = {

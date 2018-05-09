@@ -96,8 +96,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(irCheck)
 
-    session.rerun {
-    addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
+    addPass(debug, new PIRIRDotCodegen(s"top9.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(enableSplitting, new IgraphPartioner())
@@ -129,11 +128,10 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
-    addPass(genPlastisim, terminalCSVCodegen)
-    addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
 
     // Mapping
 
+    session.rerun {
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
     addPass(mapping, cuPruning)
@@ -145,6 +143,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug & mapping, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
+    addPass(genPlastisim, terminalCSVCodegen)
+    addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim && mapping, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
     addPass(genPlastisim && mapping, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 

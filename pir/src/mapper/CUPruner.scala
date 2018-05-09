@@ -10,16 +10,6 @@ import scala.collection.mutable
 trait CUPruner extends PIRPass with Memorization {
   import pirmeta._
 
-  def initCUMap:CUMap = {
-    var cumap = CUMap.empty
-    val topP = compiler.top
-    val topS = compiler.arch.top
-    val pnodes = topP.collectDown[CUMap.K]()
-    val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
-    cumap ++= pnodes.toSet -> snodes.toSet
-    cumap
-  }
-
   val constrains = ListBuffer[CUConstrain]()
   constrains += new AFGConstrain
   constrains += new DFGConstrain
@@ -35,11 +25,24 @@ trait CUPruner extends PIRPass with Memorization {
   constrains += new ControlOutputConstrain
   constrains += new StageConstrain
   constrains += new LaneConstrain
-  //constrains += new CUArcConsistencyConstrain
-  constrains += new CUMatchingConstrain
+
+  def initCUMap:EOption[PIRMap] = dbgblk(s"initCUMap") {
+    dbg(pirMap)
+    pirMap.left.flatMap { 
+      case EmptyMapping => 
+        var cumap = CUMap.empty
+        val topP = compiler.top
+        val topS = compiler.arch.top
+        val pnodes = topP.collectDown[CUMap.K]()
+        val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
+        cumap ++= pnodes.toSet -> snodes.toSet
+        Right(PIRMap(cumap))
+      case f => Left(f)
+    }
+  }
 
   memorizing = true
-  def prune(cumap:CUMap):EOption[CUMap] = {
+  def prune(cumap:CUMap):EOption[CUMap] = dbgblk(s"prune") {
     resetAllCaches
     flatFold(constrains, cumap) { case (cumap, constrain) => constrain.prune(cumap) }
   }

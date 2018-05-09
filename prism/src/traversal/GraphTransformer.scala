@@ -59,15 +59,16 @@ trait GraphTransformer {
     node1.ios.exists { io1 => node2.ios.exists { io2 => io1.isConnectedTo(io2) } }
   }
 
-  def swapConnection[A1<:A](node:A, from:Edge[N], to:Edge[N]) = {
-    val connected = node.ios.filter { io =>
-      if (io.isConnectedTo(from)) {
-        io.disconnectFrom(from)
-        io.connect(to)
-        true
-      } else false
-    }
-    assert (connected.nonEmpty, s"$node is not connected to $from")
+  def swapConnection[A1<:A](target:Edge[N], from:Edge[N], to:Edge[N]):Unit = {
+    assert(target.isConnectedTo(from), s"${target.src}.$target is not connect to ${from.src}.$from")
+    target.disconnectFrom(from)
+    target.connect(to)
+  }
+
+  def swapConnection[A1<:A](node:A, from:Edge[N], to:Edge[N]):Unit = {
+    val connected = node.ios.filter { io => io.isConnectedTo(from) }
+    assert (connected.nonEmpty, s"$node is not connected to ${from.src}.$from")
+    connected.foreach { io => swapConnection(io, from, to) }
   }
 
   def disconnect(a:A, b:A) = {

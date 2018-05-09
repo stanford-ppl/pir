@@ -9,23 +9,18 @@ import scala.collection.mutable
 class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
   import pirmeta._
 
-  type N = PIRNode
+  //constrains += new CUArcConsistencyConstrain
+  constrains += new CUMatchingConstrain
 
   override def runPass =  {
-    pirMap = pirMap.map { pmap => log(pmap.set[CUMap](initCUMap)) }
-
-    pirMap = pirMap.flatMap { pmap =>
+    pirMap = initCUMap.flatMap { pmap =>
       pmap.flatMap[CUMap] { cumap => log(prune(cumap)) }
     }
   }
 
   override def finPass = {
     super.finPass
-    pirMap.left.map {
-      case f:MappingFailure =>
-        fail(s"CUPruning failed. ${f}")
-        runner.setFailed
-    }
+    pirMap.left.map { case f:MappingFailure => fail(f) }
   }
 
 }

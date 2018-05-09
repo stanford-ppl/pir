@@ -4,8 +4,13 @@ import pir.node._
 import pir.mapper._
 import pir.codegen._
 
-class IgraphPartioner(implicit compiler:PIR) extends PIRTransformer with GlobalPartioner {
+class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner {
   import pirmeta._
+
+  override def initPass = {
+    super.initPass
+    pirMap = Left(EmptyMapping)
+  }
 
   def split(cu:GlobalContainer) = dbgblk(s"split($cu)") {
     val igraph = new WeightedIgraphCodegen(cu)

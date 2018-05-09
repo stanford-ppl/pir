@@ -6,9 +6,7 @@ package object node extends pir.util.SpadeAlias with spade.util.PrismAlias with 
   type PIR = pir.PIR
   type PIRPass = pir.pass.PIRPass
   type PIRMetadata = pir.util.PIRMetadata
-  type PIRMap = pir.mapper.PIRMap
   type PIRApp = pir.PIRApp
-  val PIRMap = pir.mapper.PIRMap
 
   def within[T<:PIRNode:ClassTag](n:PIRNode) = {
     n.ancestors.collect { case cu:T => cu }.nonEmpty

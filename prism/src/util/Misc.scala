@@ -46,8 +46,6 @@ trait Misc {
   }
   def info(msg:String) = emitln(s"[pir] ${msg}")
   def infor(msg:String) = emit(s"[pir] ${msg}\r")
-  def succeed(msg:Any) = info(Console.GREEN, "success", msg)
-  def fail(msg:Any) = info(Console.RED, "fail", msg)
   def warn(msg:Any) = info(Console.YELLOW, "warn", msg)
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
   def err(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "error", msg); if (exception) throw PIRException(s"$msg") }

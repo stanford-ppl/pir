@@ -6,22 +6,36 @@ import pir.codegen._
 
 import spade.node._
 
-trait GlobalPartioner extends PIRPass with CUPruner {
+trait GlobalPartioner extends PIRTransformer with CUPruner {
   import pirmeta._
 
   override def runPass =  {
-    pirMap = pirMap.map { pmap => log(pmap.set[CUMap](initCUMap)) }
-
-    pirMap = pirMap.flatMap { pmap =>
+    pirMap = initCUMap.flatMap { pmap =>
       pmap.flatMap[CUMap] { cumap => pruneAndSplit(cumap) }
+    }
+    pirMap.fold (
+      { failure => fail(failure) },
+      { pmap => pmap.cumap.freeKeys.foreach(retimeGlobal) }
+    )
+  }
+
+  def retimeGlobal(cu:GlobalContainer) = dbgblk(s"retimeGlobal") {
+    cu.ins.filterNot { _.src.isInstanceOf[LocalStore] }.groupBy { in =>
+      in.from.src.asInstanceOf[Def]
+    }.foreach { case (fromsrc, ins) =>
+      dbg(s"retiming ${ins.map{ in => s"${in.src}.$in"}} from $fromsrc")
+      val load = retime(fromsrc, cu)
+      ins.foreach { in =>
+        swapConnection(in, fromsrc.out, load.out)
+      }
     }
   }
 
-  var splitCount = 60
+  var splitCount = 61
   def pruneAndSplit(cumap:CUMap):EOption[CUMap] = {
     if (splitCount < 0) assert(false)
     splitCount -= 1
-    prune(cumap) match {
+    log(prune(cumap)) match {
       case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitableConstrain(constrain) =>
         dbg(s"$f")
         val vs = cumap(key)
