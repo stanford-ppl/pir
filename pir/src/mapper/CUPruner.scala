@@ -28,17 +28,15 @@ trait CUPruner extends PIRPass with Memorization {
   constrains += new LaneConstrain
 
   def initCUMap:EOption[PIRMap] = dbgblk(s"initCUMap") {
-    pirMap.left.flatMap { 
-      case EmptyMapping => 
-        var cumap = CUMap.empty
-        val topP = compiler.top
-        val topS = compiler.arch.top
-        val pnodes = topP.collectDown[CUMap.K]()
-        val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
-        cumap ++= pnodes.toSet -> snodes.toSet
-        Right(PIRMap(cumap))
-      case f => Left(f)
-    }
+    pirMap.map { _.set[CUMap] { 
+      var cumap = CUMap.empty
+      val topP = compiler.top
+      val topS = compiler.arch.top
+      val pnodes = topP.collectDown[CUMap.K]()
+      val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
+      cumap ++= pnodes.toSet -> snodes.toSet
+      cumap
+    } }
   }
 
   memorizing = true

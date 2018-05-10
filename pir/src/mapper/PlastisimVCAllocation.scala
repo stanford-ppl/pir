@@ -12,6 +12,7 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
 
   override def runPass:Unit =  {
     if (!isDynamic(compiler.arch.top)) return
+    dbg(pirMap)
     pirMap = pirMap.flatMap { pmap =>
       pmap.flatMap[VCMap] { vcmap =>
         log(assignVCColor(VCMap.empty))

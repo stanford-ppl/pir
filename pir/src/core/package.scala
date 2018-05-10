@@ -15,7 +15,6 @@ package object pir extends spade.SpadeAlias with prism.PrismAlias with MappingLo
   /* mapper */
   type PIRMap = pir.mapper.PIRMap
   val PIRMap = pir.mapper.PIRMap
-  val EmptyMapping = pir.mapper.EmptyMapping
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

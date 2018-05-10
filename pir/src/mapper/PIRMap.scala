@@ -9,8 +9,6 @@ trait MappingCollection {
   override def toString = this.getClass.getSimpleName
 }
 
-case object EmptyMapping extends MappingFailure
-
 case class PIRMap (
   cumap:CUMap=CUMap.empty,
   fimap:FIMap=FIMap.empty,

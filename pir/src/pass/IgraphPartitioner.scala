@@ -10,7 +10,6 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner {
 
   override def initPass = {
     super.initPass
-    pirMap = Left(EmptyMapping)
   }
 
   def split(cu:GlobalContainer) = dbgblk(s"split($cu)") {

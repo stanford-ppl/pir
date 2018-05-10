@@ -84,7 +84,7 @@ class PIRMetadata extends Metadata {
   infMemsOf.setName("infMemsOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
-  var pirMap:EOption[PIRMap] = Left(EmptyMapping)
+  var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
 
 }
 
