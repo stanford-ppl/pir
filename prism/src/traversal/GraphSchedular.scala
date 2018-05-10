@@ -1,4 +1,5 @@
-package prism.traversal
+package prism
+package traversal
 
 trait GraphSchedular extends GraphTraversal { self =>
   type N

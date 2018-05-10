@@ -1,6 +1,5 @@
-package prism.collection1.mutable
-
-import prism._
+package prism
+package collection1.mutable
 
 import scala.collection.mutable.Set
 import scala.collection.mutable.Map

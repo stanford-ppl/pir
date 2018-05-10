@@ -1,13 +1,13 @@
-
-package pir.pass
+package pir
+package pass
 
 import pir.node._
-import spade.node.{Bit, Word, Vector}
+import spade.node.{Bit, Word, Vector, PinType}
 
 trait TypeUtil extends ConstantPropogator { self:PIRPass =>
   import pirmeta._
 
-  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = prism.util.dbgblk(logger, s"pinTypeOf($n)") {
+  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = pir.dbgblk(logger, s"pinTypeOf($n)") {
     implicit val design = n.design.asInstanceOf[PIRDesign]
     n match {
       case n:Memory if isControlMem(n) => classTag[Bit]

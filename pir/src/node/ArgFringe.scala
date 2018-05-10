@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 case class ArgFringe(topController:Controller)(implicit design:PIRDesign) extends GlobalContainer {
 

@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait PIRCollector extends prism.traversal.GraphCollector[PIRNode] { self:PIRNode =>
 

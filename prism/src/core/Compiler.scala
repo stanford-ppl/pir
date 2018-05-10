@@ -1,10 +1,11 @@
 package prism
 
-import prism.util.FileManager
+import prism.node._
+import prism.util.{FileManager, ArgLoader}
 
 import scala.collection.mutable
 
-trait Compiler extends FileManager {
+trait Compiler extends FileManager with ArgLoader {
 
   implicit val compiler:this.type = this
 

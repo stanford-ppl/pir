@@ -1,4 +1,5 @@
-package pir.mapper
+package pir
+package mapper
 
 import pir.node._
 import spade.node._

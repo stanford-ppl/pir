@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait GlobalIO extends Def
 trait GlobalInput extends GlobalIO { val globalOutput:GlobalOutput }

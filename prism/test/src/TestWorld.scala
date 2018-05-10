@@ -1,4 +1,5 @@
-package prism.test
+package prism
+package test
 
 import prism.node._
 import java.io._

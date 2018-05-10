@@ -56,7 +56,7 @@ trait PIRApp extends PIR {
   }
 
   override def saveDesign = {
-    design.pirmeta.pirMap = Right(PIRMap.empty) // Clear mapping before saving
+    design.pirmeta.pirMap = Left(EmptyMapping) // Clear mapping before saving
     super.saveDesign
   }
 

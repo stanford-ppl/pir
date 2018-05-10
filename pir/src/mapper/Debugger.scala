@@ -1,8 +1,9 @@
-package pir.mapper
+package pir
+package mapper
 
 import pir.codegen._
 import spade.node._
-import prism.mapper._
+import prism.mapper.SearchFailure
 
 trait Debugger { self:PIRPass =>
   def input = {

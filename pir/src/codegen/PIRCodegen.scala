@@ -1,4 +1,5 @@
-package pir.codegen
+package pir
+package codegen
 
 import pir.pass._
 

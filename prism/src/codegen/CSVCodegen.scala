@@ -1,6 +1,7 @@
-package prism.codegen
+package prism
+package codegen
 
-import scala.collection.mutable._
+import scala.collection.mutable
 
 trait CSVCodegen extends Codegen {
 
@@ -8,7 +9,7 @@ trait CSVCodegen extends Codegen {
   val rows = ListBuffer[Row]()
 
   class Row {
-    val cell:Map[String, String] = Map.empty
+    val cell:mutable.Map[String, String] = mutable.Map.empty
   
     def update(pair:(String, Any)) = {
       val (header, value) = pair

@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait IR extends prism.node.IR { 
   def name(n:String)(implicit design:PIRDesign):this.type = {

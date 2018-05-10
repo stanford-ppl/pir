@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 abstract class Def(implicit design:PIRDesign) extends Primitive with ComputeNode { self =>
   def depDefs:Set[Def] = deps.collect { case d:Def => d } 

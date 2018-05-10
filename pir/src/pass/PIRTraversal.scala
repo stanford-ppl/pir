@@ -1,4 +1,5 @@
-package pir.pass
+package pir
+package pass
 
 trait PIRTraversal extends PIRPass with PIRWorld with prism.traversal.Traversal
 trait TopologicalTraversal extends PIRTraversal with prism.traversal.TopologicalTraversal 

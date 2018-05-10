@@ -1,4 +1,5 @@
-package prism.codegen
+package prism
+package codegen
 
 import prism.node._
 import prism.traversal.GraphUtil

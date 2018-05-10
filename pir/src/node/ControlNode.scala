@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait ControlNode extends Def
 case class High()(implicit design:PIRDesign) extends ControlNode

@@ -1,4 +1,5 @@
-package prism.util
+package prism
+package util
 
 object ConsoleLogger extends Logging {
   override def toString = "ConsoleLogger"

@@ -1,4 +1,5 @@
-package prism.mapper
+package prism
+package mapper
 
 import scala.collection.mutable
 

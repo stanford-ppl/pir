@@ -1,6 +1,5 @@
-package prism.collection
-
-import prism._
+package prism
+package collection
 
 import scala.collection._
 

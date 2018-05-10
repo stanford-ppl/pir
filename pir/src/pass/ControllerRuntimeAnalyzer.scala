@@ -1,4 +1,6 @@
-package pir.pass
+package pir
+package pass
+
 import pir.node._
 
 class ControllerRuntimeAnalyzer(implicit design:PIR) extends PIRPass with ControllerTraversal with prism.traversal.UnitTraversal {

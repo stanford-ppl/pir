@@ -1,4 +1,5 @@
-package prism.util
+package prism
+package util
 
 trait ArgLoader extends FileManager {
   val configPath =".prismrc"

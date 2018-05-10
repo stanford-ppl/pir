@@ -1,4 +1,5 @@
-package pir.pass
+package pir
+package pass
 
 import pir.node._
 import pir.mapper._
@@ -17,6 +18,7 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
       { failure => fail(failure) },
       { pmap => pmap.cumap.freeKeys.foreach(retimeGlobal) }
     )
+    log(pirMap)
   }
 
   def retimeGlobal(cu:GlobalContainer) = dbgblk(s"retimeGlobal") {

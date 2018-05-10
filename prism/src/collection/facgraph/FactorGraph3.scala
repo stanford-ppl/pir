@@ -1,6 +1,6 @@
-package prism.collection3.immutable
+package prism
+package collection3.immutable
 
-import prism.mapper._
 import prism.collection1.immutable._
 
 trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] extends BiManyToManyMapLike[K,V,S] { self:S =>

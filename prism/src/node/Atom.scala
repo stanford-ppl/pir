@@ -1,4 +1,5 @@
-package prism.node
+package prism
+package node
 
 import scala.collection.mutable
 

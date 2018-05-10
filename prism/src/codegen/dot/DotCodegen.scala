@@ -1,4 +1,5 @@
-package prism.codegen
+package prism
+package codegen
 
 import scala.collection.mutable.Map
 import sys.process._

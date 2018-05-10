@@ -1,6 +1,9 @@
-import pir.mapper._
 
-package object pir extends pir.util.SpadeAlias with spade.util.PrismAlias {
+import pir.mapper._
+import pir.util._
+import prism.util._
+
+package object pir extends spade.SpadeAlias with prism.PrismAlias {
   /* ------------- Alias ------------- **/
 
   type PNode = pir.node.PIRNode
@@ -12,6 +15,7 @@ package object pir extends pir.util.SpadeAlias with spade.util.PrismAlias {
   /* mapper */
   type PIRMap = pir.mapper.PIRMap
   val PIRMap = pir.mapper.PIRMap
+  val EmptyMapping = pir.mapper.EmptyMapping
 
   /* util */
   type PIRMetadata = pir.util.PIRMetadata

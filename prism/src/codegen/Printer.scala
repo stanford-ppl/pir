@@ -1,4 +1,5 @@
-package prism.codegen
+package prism
+package codegen
 
 import java.nio.file._
 import java.io._

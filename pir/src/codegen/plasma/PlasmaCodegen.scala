@@ -1,6 +1,9 @@
-package pir.codegen
+package pir
+package codegen
 
-class PlasmaCodegen(implicit design: PIR) extends PIRPass {
+class PlasmaCodegen(implicit compiler: PIR) extends PIRCodegen {
+
+  lazy val fileName = s"$compiler.plasma"
 
   //val codegen = new spade.codegen.ConfigCodegen()(design.arch)
 

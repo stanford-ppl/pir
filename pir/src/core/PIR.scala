@@ -121,6 +121,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, irCheck)
     addPass(cuStats)
 
+    session.rerun {
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
@@ -131,7 +132,6 @@ trait PIR extends Compiler with PIRWorld {
 
     // Mapping
 
-    session.rerun {
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
     addPass(mapping, cuPruning)

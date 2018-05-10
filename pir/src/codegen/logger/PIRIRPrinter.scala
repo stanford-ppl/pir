@@ -1,4 +1,5 @@
-package pir.codegen
+package pir
+package codegen
 
 class PIRPrinter(val fileName:String)(implicit compiler:PIR) extends PIRCodegen with IRPrinter {
 

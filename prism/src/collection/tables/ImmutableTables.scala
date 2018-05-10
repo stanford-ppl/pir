@@ -1,4 +1,5 @@
-package prism.collection.immutable
+package prism
+package collection.immutable
 
 import prism.collection._
 

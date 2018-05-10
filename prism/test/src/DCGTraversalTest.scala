@@ -1,5 +1,6 @@
 package prism.test
 
+import prism._
 import prism.node._
 import prism.traversal._
 

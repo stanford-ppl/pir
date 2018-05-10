@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait LocalAccess extends Def
 trait LocalLoad extends LocalAccess

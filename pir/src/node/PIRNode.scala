@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 abstract class PIRNode(implicit design:PIRDesign) extends prism.node.ProductNode[PIRNode] with IR with PIRCollector { self =>
   type N = PIRNode

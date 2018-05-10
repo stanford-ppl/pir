@@ -1,4 +1,5 @@
-package prism.node
+package prism
+package node
 
 abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node[N] with Product { self:N =>
   def this()(implicit design:Design, ev:ClassTag[N]) = this(Some(design))

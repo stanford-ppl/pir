@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 abstract class DramFringe(implicit design:PIRDesign) extends GlobalContainer {
   val dram:List[DRAM]

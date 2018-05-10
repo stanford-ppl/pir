@@ -1,4 +1,5 @@
-package prism.enums
+package prism
+package enums
 
 sealed trait Op extends Enum
 

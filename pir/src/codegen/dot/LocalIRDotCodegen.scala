@@ -1,4 +1,6 @@
-package pir.codegen
+package pir
+package codegen
+
 import pir.node._
 
 class LocalIRDotCodegen(filename:String)(implicit compiler:PIR) extends PIRIRDotCodegen(filename) {

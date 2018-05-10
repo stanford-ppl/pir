@@ -1,4 +1,5 @@
-package prism.util
+package prism
+package util
 
 import scala.collection.mutable
 

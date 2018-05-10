@@ -1,4 +1,5 @@
-package prism.codegen
+package prism
+package codegen
 
 class CollectionStatus {
   var firstPair = true 

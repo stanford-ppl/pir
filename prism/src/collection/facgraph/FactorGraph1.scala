@@ -1,6 +1,6 @@
-package prism.collection1
+package prism
+package collection1
 
-import prism.mapper._
 import prism.collection1.immutable._
 
 trait FactorGraph1[K,V,S<:FactorGraph1[K,V,S]] extends Serializable { self:S =>

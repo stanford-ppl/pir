@@ -1,4 +1,5 @@
-package prism.node
+package prism
+package node
 
 trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>
   // Children

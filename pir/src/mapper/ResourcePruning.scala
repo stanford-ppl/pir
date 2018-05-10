@@ -1,4 +1,5 @@
-package pir.mapper
+package pir
+package mapper
 
 trait ResourcePruning { self:PIRPass =>
   val constrains = ListBuffer[Constrain]()

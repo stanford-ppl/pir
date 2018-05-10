@@ -1,6 +1,5 @@
-package prism.mapper
-
-import prism._
+package prism
+package mapper
 
 trait BackTracking { self:Logging => 
   def minOptionBy[A, B:Ordering](ks:Iterable[A])(lambda:A => B) = if (ks.isEmpty) None else Some(ks.minBy(lambda))

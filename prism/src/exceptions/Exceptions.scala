@@ -1,4 +1,5 @@
-package prism.exceptions
+package prism
+package exceptions
 
 import prism.collection._
 

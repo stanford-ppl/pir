@@ -1,4 +1,5 @@
-package prism.collection.mutable
+package prism
+package collection.mutable
 
 import prism.collection._
 

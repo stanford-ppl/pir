@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait IO extends prism.node.Edge[PIRNode]() {
   type A = Primitive

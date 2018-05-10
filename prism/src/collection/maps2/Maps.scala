@@ -1,7 +1,5 @@
-package prism.collection2
-
-import prism._
-import prism.exceptions._
+package prism
+package collection2
 
 import scala.collection.Map
 import scala.collection.Set

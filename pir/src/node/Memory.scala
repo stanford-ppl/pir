@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 abstract class Memory(implicit design:PIRDesign) extends Primitive 
 

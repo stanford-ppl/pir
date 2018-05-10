@@ -1,4 +1,6 @@
-package pir.codegen
+package pir
+package codegen
+
 import pir.node._
 
 class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodegen with IRDotCodegen {

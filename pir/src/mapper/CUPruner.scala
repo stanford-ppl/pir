@@ -1,4 +1,5 @@
-package pir.mapper
+package pir
+package mapper
 
 import pir.node._
 import spade.node._
@@ -27,7 +28,6 @@ trait CUPruner extends PIRPass with Memorization {
   constrains += new LaneConstrain
 
   def initCUMap:EOption[PIRMap] = dbgblk(s"initCUMap") {
-    dbg(pirMap)
     pirMap.left.flatMap { 
       case EmptyMapping => 
         var cumap = CUMap.empty

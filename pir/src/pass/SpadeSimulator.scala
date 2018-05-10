@@ -1,4 +1,5 @@
-package pir.pass
+package pir
+package pass
 
 class SpadeSimulator(implicit compiler:PIR) extends PIRPass {
 

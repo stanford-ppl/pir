@@ -1,4 +1,6 @@
-package pir.node
+package pir
+package node
+
 import prism.enums._
 
 abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph[Controller] with IR {

@@ -1,5 +1,5 @@
-
-package pir.pass
+package pir
+package pass
 
 import pir.node._
 

@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 trait GlobalContainer extends Container { self => }
 

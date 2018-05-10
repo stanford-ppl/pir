@@ -1,4 +1,6 @@
-package pir.codegen
+package pir
+package codegen
+
 import pir.node._
 
 class ControllerPrinter(implicit design:PIR) extends PIRPass with prism.traversal.ChildFirstTraversal with Codegen {

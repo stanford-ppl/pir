@@ -1,4 +1,5 @@
-package pir.codegen
+package pir
+package codegen
 
 import prism.codegen._
 import pir.node._

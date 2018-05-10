@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 abstract class Primitive(implicit design: PIRDesign) extends PIRNode with prism.node.ProductAtom[PIRNode] { self =>
   override def ins:List[Input] = super.ins.asInstanceOf[List[Input]]

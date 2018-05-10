@@ -1,4 +1,5 @@
-package prism.node
+package prism
+package node
 
 trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with ProductAtom[N] =>
 

@@ -1,6 +1,5 @@
-package prism.util
-
-import prism.exceptions._
+package prism
+package util
 
 trait Misc {
   def tic = {

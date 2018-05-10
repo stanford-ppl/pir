@@ -1,6 +1,6 @@
-package prism.util
+package prism
+package util
 
-import prism._
 import scala.collection.mutable
 
 trait Memorization {

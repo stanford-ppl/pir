@@ -1,4 +1,5 @@
-package prism.codegen
+package prism
+package codegen
 
 trait MultiFileCodegen extends Printer {
   var lineNumber:Int = 0

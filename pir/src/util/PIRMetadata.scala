@@ -1,8 +1,7 @@
-package pir.util
+package pir
+package util
 
 import pir.node._
-import pir.mapper.{PIRMap,EmptyMapping}
-import prism.util._
 import prism.collection.mutable._
 
 //TODO: use macro to set names

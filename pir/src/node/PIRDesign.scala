@@ -1,4 +1,5 @@
-package pir.node
+package pir
+package node
 
 case class PIRDesign() extends prism.node.Design { 
   val pirmeta = new PIRMetadata

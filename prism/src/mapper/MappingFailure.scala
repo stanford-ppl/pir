@@ -1,4 +1,5 @@
-package prism.mapper
+package prism
+package mapper
 
 import prism.exceptions._
 

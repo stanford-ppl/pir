@@ -1,4 +1,5 @@
-package prism.traversal
+package prism
+package traversal
 
 import prism.node._
 import prism.util._

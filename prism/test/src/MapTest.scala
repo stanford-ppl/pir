@@ -1,4 +1,5 @@
-package prism.test
+package prism
+package test
 
 import prism.collection.immutable
 import prism.collection.mutable

@@ -1,4 +1,5 @@
-package prism.mapper
+package prism
+package mapper
 
 trait MappingUtil {
   type EOption[T] = Either[MappingFailure, T]

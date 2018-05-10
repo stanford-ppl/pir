@@ -1,6 +1,5 @@
-package prism.collection.immutable
-
-import prism._
+package prism
+package collection.immutable
 
 import scala.collection.immutable.Set
 

@@ -1,13 +1,11 @@
-package prism.util
-
-import prism._
+package prism
+package util
 
 import java.io.{Console => _, _}
 import scala.io._
 
 trait FileManager { 
 
-  type File = java.io.File
   val separator = File.separator
 
   def logExtensions = List(".log", ".dot", ".svg", ".vcd", ".txt", ".csv", ".pdf")

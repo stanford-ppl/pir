@@ -1,4 +1,5 @@
-package prism.node
+package prism
+package node
 
 trait ProductSubGraph[N<:Node[N]] extends ProductNode[N] with SubGraph[N] { self:N with ProductSubGraph[N] =>
   override def connectFields(x:Any, i:Int):Any = {

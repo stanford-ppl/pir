@@ -1,4 +1,5 @@
-package pir.mapper
+package pir
+package mapper
 
 import prism.mapper._
 import prism.collection.immutable._

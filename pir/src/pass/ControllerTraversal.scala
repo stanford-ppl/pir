@@ -1,4 +1,5 @@
-package pir.pass
+package pir
+package pass
 
 import pir.node._
 trait ControllerTraversal extends prism.traversal.SiblingFirstTraversal {
