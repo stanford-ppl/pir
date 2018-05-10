@@ -80,22 +80,7 @@ trait Printer {
     stream
   }
 
-  def closeAndWriteNext:Unit = {
-    if (!isOpen) return
-    val stream = streamStack.pop
-    stream match {
-      case stream:ByteWriter =>
-        streamStack.headOption.foreach { nextStream =>
-          nextStream.outputStream.write(stream.outputStream.toByteArray())
-          nextStream.flush
-        }
-      case stream =>
-    }
-    stream.flush
-    stream.close
-  }
-
-  def closeAndWriteNextAll:Unit = while (isOpen) closeAndWriteNext
+  def isOpen = streamStack.nonEmpty
 
   def closeStream:Unit = {
     if (!isOpen) return
@@ -106,7 +91,32 @@ trait Printer {
 
   def closeAll:Unit = while (isOpen) closeStream
 
-  def isOpen = streamStack.nonEmpty
+  def inBuffer = {
+    streamStack.headOption.fold(false) {
+      case _:ByteWriter => true
+      case _ => false
+    }
+  }
+
+  def closeBufferAndWrite:Unit = {
+    if (!inBuffer) return
+    val stream = streamStack.pop.asInstanceOf[ByteWriter]
+    streamStack.headOption.foreach { nextStream =>
+      nextStream.outputStream.write(stream.outputStream.toByteArray())
+      nextStream.flush
+    }
+    stream.flush
+    stream.close
+  }
+
+  def closeAllBufferAndWrite:Unit = {
+    while (inBuffer) closeBufferAndWrite
+  }
+
+  def closeBuffer:Unit = {
+    if (!inBuffer) return
+    closeStream
+  }
 
   val tab = "  "
   var level = 0

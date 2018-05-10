@@ -6,11 +6,6 @@ import prism.collection.immutable._
 
 trait MappingLogger {
 
-  def log[T](verbosity:Int, x:T)(implicit logger:Logging):T = {
-    if (Config.debug && (PIRConfig.routingVerbosity >= verbosity)) logging(x) else x
-    x
-  }
-
   def log[T](pred:Boolean, x:T)(implicit logger:Logging):T = {
     if (pred) logging(x) else x
     x
@@ -25,17 +20,17 @@ trait MappingLogger {
       case x:prism.collection.MapLike[_,_] => logging(x)
       case Right(x) => logging(x)
       case Left(x) => logging(x)
-      case x:InvalidFactorGraph[_,_] => logging(x)
+      //case x:InvalidFactorGraph[_,_] => logging(x)
       case x:BindingTrace[_,_] => logging(x)
       case x => logger.dbg(s"$x")
     }
   }
 
-  def logging(x:InvalidFactorGraph[_,_])(implicit logger:Logging):Unit = {
-    logger.dbgblk(s"$x") {
-      logging(x.fg)
-    }
-  }
+  //def logging(x:InvalidFactorGraph[_,_])(implicit logger:Logging):Unit = {
+    //logger.dbgblk(s"$x") {
+      //logging(x.fg)
+    //}
+  //}
 
   def logging(x:BindingTrace[_,_])(implicit logger:Logging):Unit = {
     logger.dbgblk(s"$x") {

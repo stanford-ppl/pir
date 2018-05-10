@@ -1,0 +1,20 @@
+package prism
+package mapper
+
+trait MappingLogging extends Logging {
+  def dbgblk[T](s:String, buffer:Boolean=false)(block: => T):T = super.dbgblk(s) {
+    if (buffer) {
+      logger.openBuffer
+    }
+    val res = block
+    if (buffer) {
+      res match {
+        case Left(failure) => logger.closeBufferAndWrite
+        case _ => logger.closeBuffer
+      }
+    }
+    res
+  }
+
+}
+

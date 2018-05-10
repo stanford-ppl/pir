@@ -7,8 +7,6 @@ import prism.collection.immutable._
 
 trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass =>
 
-  def routingVerbosity:Int = PIRConfig.routingVerbosity
-
   def searchMaxCost(start:GlobalIO, end:GlobalIO) = -1
 
   def spanMaxCost(start:GlobalIO) = {
@@ -21,7 +19,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     }
   }
 
-  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(1, s"addIOs(${quote(cuP)})") {
+  def addIOs(pmap:PIRMap, cuP:CUMap.K):PIRMap = dbgblk(s"addIOs(${quote(cuP)})",buffer=true) {
     val iosP = cuP.collectDown[GlobalIO]()
     val cuS = pmap.cumap.mappedValue(cuP)
     val insP = iosP.collect{ case io:InMap.K => io }.toSet[InMap.K]
@@ -78,12 +76,12 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
   def span(
     start:GlobalIO, 
     pmap:PIRMap
-  ):Seq[Routable] = dbgblk(2, s"span(${quote(start)}, ${spanMaxCost(start)})") {
+  ):Seq[Routable] = dbgblk(s"span(${quote(start)}, ${spanMaxCost(start)})",buffer=true) {
     val scuP = globalOf(start).get
     val scuS = pmap.cumap.mappedValue(scuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    dbg(2, s"scuS=${quote(scuS)}")
+    dbg(s"scuS=${quote(scuS)}")
     uniformCostSpan(
       start=startBundle, 
       advance=advance(
@@ -104,7 +102,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     start:GlobalIO, 
     end:GlobalIO,
     pmap:PIRMap
-  ):EOption[Route] = dbgblk(2, s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}") {
+  ):EOption[Route] = dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=true) {
     val startTails = portsS(start, pmap)
     val endHeads = portsS(end, pmap)
     val scuP = globalOf(start).get
@@ -113,10 +111,10 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
     val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
-    dbg(2, s"scuS=${quote(scuS)}")
-    dbg(2, s"ecuS=${quote(ecuS)}")
-    dbg(2, s"startTails=${startTails.map(quote)}")
-    dbg(2, s"endHeads=${endHeads.map(quote)}")
+    dbg(s"scuS=${quote(scuS)}")
+    dbg(s"ecuS=${quote(ecuS)}")
+    dbg(s"startTails=${startTails.map(quote)}")
+    dbg(s"endHeads=${endHeads.map(quote)}")
     breakPoint(pmap) {
       uniformCostSearch (
         start=startBundle, 
@@ -131,12 +129,12 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     }
   }
 
-  def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = {
+  def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = dbgblk(s"route(${quote(cuP)})",buffer=true) {
     val iosP = cuP.collectDown[GlobalIO]().toList
     flatFold(iosP, pmap) { case (pmap, tailP) =>
       val headsP = connectedOf(tailP)
-      dbg(1, s"tailP:${quote(tailP)}")
-      dbg(1, s"headsP:${headsP.map(quote)}")
+      dbg(s"tailP:${quote(tailP)}")
+      dbg(s"headsP:${headsP.map(quote)}")
       val existsUnplacedHeads = headsP.exists { headP => !pmap.cumap.isMapped(globalOf(headP).head) }
       val reached = if (existsUnplacedHeads) span(start=tailP,pmap=pmap) else Nil
       flatFold(headsP, pmap) { case (pmap, headP) =>
@@ -145,21 +143,21 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     }
   }
 
-  def route(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap, reached:Seq[Routable]):EOption[PIRMap] = {
+  def route(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap, reached:Seq[Routable]):EOption[PIRMap] = dbgblk(s"route(${quote(tailP)}, ${quote(headP)})", buffer=true) {
     val neighborP = globalOf(headP).head
     if (pmap.cumap.isMapped(neighborP)) {
       search(start=tailP,end=headP,pmap=pmap).flatMap { route => set(pmap, route, headP, tailP) }
     } else {
       pmap.flatMap[CUMap]{ cumap =>
         val filtered = cumap.filterNotAt(neighborP) { cuS => !reached.contains(cuS) }
-        log(1, filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
+        log(filtered.map { cumap => s"neighborP=${quote(neighborP)}: ${cumap(neighborP).map(quote)}" })
         filtered
       }
     }
   }
 
   def set(pmap:PIRMap, portP:GlobalIO, portS:PT) = {
-    dbg(2, s"setPort: ${quote(portP)} -> ${quote(portS)}")
+    dbg(s"setPort: ${quote(portP)} -> ${quote(portS)}")
     (portP, portS) match {
       case (portP:InMap.K, portS:InMap.V) => pmap.flatMap[InMap] { _.set(portP, portS) }
       case (portP:OutMap.K, portS:OutMap.V) => pmap.flatMap[OutMap] { _.set(portP, portS) }
@@ -168,7 +166,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
   }
 
   def set(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
-    dbg(2, s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")
+    dbg(s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")
     (tail, head) match {
       case (tail:FIMap.K, head:FIMap.V) =>
         fimap + (tail, head)
@@ -183,9 +181,9 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = dbgblk(2, s"set route from ${quote(headP)} to ${quote(tailP)}"){
-    dbg(2, s"route:")
-    dbg(2, quote(route))
+  ):EOption[PIRMap] = dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=true){
+    dbg(s"route:")
+    dbg(quote(route))
     Right(pmap).flatMap { pmap =>
       val (tailS,_) = route.head
       set(pmap, tailP, tailS)

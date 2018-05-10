@@ -16,8 +16,8 @@ trait Logging {
       val resHeader = s"result${bs.fold("") { bs => s" [$bs]"}} ="
       res match {
         case res:Unit =>
-        case res:Iterable[_] if res.size < 8 =>
-          dbg(resHeader + s" ${res.map(quote)}")
+        //case res:Iterable[_] if res.size < 4 =>
+          //dbg(resHeader + s" ${res.map(quote)}")
         case res:Iterable[_] =>
           dbg(resHeader)
           res.foreach { res => dbg(s" - ${quote(res)}") }

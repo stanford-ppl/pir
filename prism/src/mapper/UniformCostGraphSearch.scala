@@ -3,12 +3,7 @@ package mapper
 
 import scala.collection.mutable
 
-trait UniformCostGraphSearch[N,A,C] extends Logging {
-
-  def routingVerbosity:Int
-
-  def dbg(verbosity:Int, msg:Any):Unit = dbg(debug && routingVerbosity >= verbosity, msg)
-  def dbgblk[T](verbosity:Int, msg:Any)(block: => T):T = dbgblk(debug && routingVerbosity >= verbosity, msg.toString)(block)
+trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
 
   // (N, A, C): (Node, Action, Cost)
   type BackPointer = mutable.Map[N, (N,A,C)]
@@ -72,7 +67,7 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
     frontier += State(start, cnu.zero)
 
     while (!frontier.isEmpty) {
-      dbg(3, s"frontier: ${frontier}")
+      dbg(s"frontier: ${frontier}")
 
       val State(minNode, pastCost) = frontier.dequeue()
       explored += minNode
@@ -85,8 +80,8 @@ trait UniformCostGraphSearch[N,A,C] extends Logging {
 
       neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
 
-      dbg(3, s"neighbors minBy:")
-      dbg(3, s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      dbg(s"neighbors minBy:")
+      dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = cnu.plus(pastCost, cost)
