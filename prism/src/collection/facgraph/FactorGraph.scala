@@ -94,9 +94,19 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
     flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
   }
   def apply(x:K):Set[V] = x match {
-    case x:K if isMapped(x) => usedMap.fmap(x)
+    case x:K if isMapped(x) => usedMap.fmap(x) ++ freeMap(x)
     case x:K => freeMap.fmap(x)
   }
+}
+case class OneToManyFactorGraph[K:ClassTag,V:ClassTag](
+  freeMap:BiManyToManyMap[K,V],
+  usedMap:BiOneToManyMap[K,V]
+) extends OneToManyFactorGraphLike[K,V,OneToManyFactorGraph[K,V]]
+object OneToManyFactorGraph {
+  def empty[K:ClassTag, V:ClassTag] = OneToManyFactorGraph[K,V](
+    BiManyToManyMap.empty, 
+    BiOneToManyMap.empty
+  )
 }
 
 trait ManyToOneFactorGraphLike[K,V,S<:ManyToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>

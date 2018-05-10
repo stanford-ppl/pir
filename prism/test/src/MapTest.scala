@@ -197,5 +197,21 @@ class MapTest extends UnitTest with Serialization {
     //}
   }
 
+  "TestOneToManyFactorGraph" should "success" in {
+    var fg = immutable.OneToManyFactorGraph.empty[Int,String]
+    fg = fg ++ (Set(1,2,3) -> Set("a","b","c"))
+    fg = fg.set(1,"a").right.get
+    assert(fg(1) == Set("a","b","c"))
+    assert(fg(2) == Set("b","c"))
+  }
+
+  "TestManyToOneFactorGraph" should "success" in {
+    var fg = immutable.ManyToOneFactorGraph.empty[Int,String]
+    fg = fg ++ (Set(1,2,3) -> Set("a","b","c"))
+    fg = fg.set(1,"a").right.get
+    assert(fg(1) == Set("a"))
+    assert(fg.freeValues(2) == Set("a","b","c"))
+  }
+
 }
 
