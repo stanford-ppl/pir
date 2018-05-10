@@ -4,7 +4,9 @@ trait ArgLoader extends FileManager {
   val configPath =".prismrc"
   def loadArgs(inputArgs:Array[String]) = {
     if (exists(configPath)) {
-      inputArgs ++ getLines(configPath).map(line => s"--" + line.trim)
+      var lines = getLines(configPath).map(_.trim)
+      lines = lines.filterNot { line => line.startsWith("#") || line.isEmpty }
+      inputArgs ++ lines.map(line => s"--" + line)
     } else inputArgs
   }
 }
