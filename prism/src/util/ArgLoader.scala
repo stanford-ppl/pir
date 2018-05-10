@@ -7,7 +7,7 @@ trait ArgLoader extends FileManager {
     if (exists(configPath)) {
       var lines = getLines(configPath).map(_.trim)
       lines = lines.filterNot { line => line.startsWith("#") || line.isEmpty }
-      inputArgs ++ lines.map(line => s"--" + line)
+      lines.map(line => s"--" + line) ++ inputArgs
     } else inputArgs
   }
 }
