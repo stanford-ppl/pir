@@ -4,7 +4,7 @@ package mapper
 import pir.node._
 import spade.node._
 
-class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticCUPlacer with DynamicCUPlacer {
+class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticPlacement with DynamicPlacement {
   import pirmeta._
 
   override def runPass =  {

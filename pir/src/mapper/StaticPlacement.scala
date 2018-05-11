@@ -4,7 +4,7 @@ package mapper
 import pir.node._
 import spade.node._
 
-trait StaticCUPlacer extends PIRPass with BackTrackingMatch with Routing {
+trait StaticPlacement extends BackTrackingMatch with StaticRouting { self:PIRPass =>
   import pirmeta._
 
   def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {

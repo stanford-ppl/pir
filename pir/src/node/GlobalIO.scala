@@ -44,5 +44,8 @@ trait PIRGlobalIO {
     case gin:GlobalInput => false
     case gout:GlobalOutput => true
   }
+
+  def degree(cuP:GlobalContainer) = cuP.collectDown[GlobalIO]().size
+
 }
 

@@ -55,6 +55,8 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   def mappedKey(v:V) = usedMap.bmap(v)
   def set(k:K, v:V):EOption[S]
   def apply(x:K):Set[V] 
+  /* ------------------------------- */
+  def keys = freeKeys ++ mappedKeys
 }
 
 trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
