@@ -59,6 +59,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
           pass.dbgblk(s"$e") {
             e.getStackTrace.foreach(pass.dbg)
           }
+          pass.logger.closeAllBufferAndWrite
       }
     }
   }
