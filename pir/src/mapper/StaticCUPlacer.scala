@@ -11,9 +11,7 @@ trait StaticCUPlacer extends PIRPass with BackTracking with Routing {
     pmap.flatMap[CUMap] { cumap => 
       dbgblk(s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
     }.flatMap { pmap =>
-      breakPoint(pmap) {
-        route(cuP, addIOs(pmap,cuP))
-      }
+      route(cuP, addIOs(pmap,cuP))
     }
   }
 

@@ -18,7 +18,7 @@ object PIRConfig extends prism.GlobalConfig {
   var loadTrace:Boolean = register("trace", default=false) { v => loadTrace = v && genPlastisim }
 
   def debug:Boolean = Config.debug
-  var breakPoint:Boolean = debug && register("bp", false) { v => breakPoint = v && debug }
+  var enableBreakPoint:Boolean = debug && register("bp", false) { v => enableBreakPoint = v && debug }
   var openDot:Boolean = register("open", false) { v => openDot = v && enableCodegen }
 
 }

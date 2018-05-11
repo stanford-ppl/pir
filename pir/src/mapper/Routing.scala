@@ -48,28 +48,41 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     }
   }
 
-  def portsS(port:GlobalIO, pmap:PIRMap) = port match {
-    case port:GlobalInput => pmap.inmap(port).toList.asInstanceOf[List[PT]]
-    case port:GlobalOutput => pmap.outmap(port).toList.asInstanceOf[List[PT]]
+  def markerOf(gio:GlobalIO) = gio match {
+    case gio:GlobalInput => goutOf(gio).get
+    case gio:GlobalOutput => gio
   }
 
-  def tailToHead(pmap:PIRMap, scuS:Routable, endHeads:Option[List[PT]])(tail:Edge) = {
+  def portsS(port:GlobalIO, pmap:PIRMap) = {
+    port match {
+      case port:GlobalInput => pmap.inmap(port).toList.asInstanceOf[List[PT]]
+      case port:GlobalOutput => pmap.outmap(port).toList.asInstanceOf[List[PT]]
+    }
+  }
+
+  def tailToHead(pmap:PIRMap, endHeads:Option[List[PT]], marker:GlobalOutput)(tail:Edge) = dbgblk(s"tailToHead(${quote(tail)})",buffer=false) {
+    dbg(s"endHeads=${quote(endHeads)}")
     val heads = (tail match {
-      case tail:FIMap.V => tail.connected.filter { head =>
-        pmap.fimap.get(head).fold(true) { _ == tail }
+      case out:FIMap.V => out.connected.filter { in =>
+        pmap.fimap.get(in).fold(true) { _ == out }
       }
-      case tail:FIMap.K if pmap.fimap.contains(tail) => List(pmap.fimap(tail))
-      case tail:FIMap.K => tail.connected
+      case in:FIMap.K if pmap.fimap.contains(in) => List(pmap.fimap(in))
+      case in:FIMap.K => in.connected.filter { out =>
+        pmap.mkmap.get(out.src.asInstanceOf[PT]).fold(true) { _ == marker }
+      }
     }).toList.asInstanceOf[List[Edge]]
+    dbg(s"validHeads=${quote(heads)}")
     endHeads.fold {
       heads
     } { endHeads =>
-      heads.filter { head =>
+      val filteredHeads = heads.filter { head =>
         routableOf(head.src).get match {
           case rt:SwitchBox => true
           case rt:Routable => endHeads.contains(head.src)
         }
       }
+      dbg(s"filteredByEndHeads=${quote(filteredHeads)}")
+      filteredHeads
     }
   }
 
@@ -81,12 +94,13 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     val scuS = pmap.cumap.mappedValue(scuP)
     val startTails = portsS(start, pmap)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuS=${quote(scuS)}")
+    val marker = markerOf(start)
+    dbg(s"scuP=${quote(scuP)}, scuS=${quote(scuS)}")
     uniformCostSpan(
       start=startBundle, 
       advance=advance(
         startTails=startTails,
-        tailToHead=tailToHead(pmap, scuS, None) _,
+        tailToHead=tailToHead(pmap, None, marker) _,
         heuristic={ newState => 0 },
         maxCost=spanMaxCost(start)
       ) _,
@@ -102,7 +116,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     start:GlobalIO, 
     end:GlobalIO,
     pmap:PIRMap
-  ):EOption[Route] = dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=true) {
+  ):EOption[Route] = breakPoint(pmap) { dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=true) {
     val startTails = portsS(start, pmap)
     val endHeads = portsS(end, pmap)
     val scuP = globalOf(start).get
@@ -111,25 +125,24 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
     val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuS=${quote(scuS)}")
-    dbg(s"ecuS=${quote(ecuS)}")
+    val marker = markerOf(start)
+    dbg(s"scuP=${quote(scuP)}, scuS=${quote(scuS)}")
+    dbg(s"ecuP=${quote(ecuP)}, ecuS=${quote(ecuS)}")
     dbg(s"startTails=${startTails.map(quote)}")
     dbg(s"endHeads=${endHeads.map(quote)}")
-    breakPoint(pmap) {
-      uniformCostSearch (
-        start=startBundle, 
-        end=endBundle,
-        advance=advance(
-          startTails=startTails,
-          tailToHead=tailToHead(pmap, scuS, Some(endHeads)) _,
-          heuristic=heuristic(ecuS) _,
-          maxCost=searchMaxCost(start, end)
-        ) _
-      )
-    }
-  }
+    uniformCostSearch (
+      start=startBundle, 
+      end=endBundle,
+      advance=advance(
+        startTails=startTails,
+        tailToHead=tailToHead(pmap, Some(endHeads), marker) _,
+        heuristic=heuristic(ecuS) _,
+        maxCost=searchMaxCost(start, end)
+      ) _
+    )
+  } }
 
-  def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = dbgblk(s"route(${quote(cuP)})",buffer=true) {
+  def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = breakPoint(pmap) { dbgblk(s"route(${quote(cuP)})",buffer=true) {
     val iosP = cuP.collectDown[GlobalIO]().toList
     flatFold(iosP, pmap) { case (pmap, tailP) =>
       val headsP = connectedOf(tailP)
@@ -141,7 +154,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
         route(tailP, headP, pmap, reached)
       }
     }
-  }
+  } }
 
   def route(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap, reached:Seq[Routable]):EOption[PIRMap] = dbgblk(s"route(${quote(tailP)}, ${quote(headP)})", buffer=true) {
     val neighborP = globalOf(headP).head
@@ -176,6 +189,11 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     }
   }
 
+  def set(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
+    dbg(s"setMKMap: ${quote(port.src)}.${quote(port)} - ${quote(marker)}")
+    mkmap + (port, marker)
+  }
+
   def set(
     pmap:PIRMap, 
     route:Route, 
@@ -202,6 +220,16 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
         val (tailS, headS) = route.last
         fm = set(fm, tailS.external, headS.external)
         fm
+      }
+    }.map { pmap =>
+      pmap.map[MKMap] { mkmap =>
+        var mk = mkmap
+        val marker = markerOf(headP)
+        route.foreach { case (tailS, headS) =>
+          mk = set(mk, tailS, marker)
+          mk = set(mk, headS, marker)
+        }
+        mk
       }
     }
   }

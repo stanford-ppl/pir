@@ -15,6 +15,7 @@ case class PIRMap (
   cfmap:ConfigMap=ConfigMap.empty,
   inmap:InMap=InMap.empty,
   outmap:OutMap=OutMap.empty,
+  mkmap:MKMap=MKMap.empty,
   vcmap:VCMap=VCMap.empty
 ) extends SpadeMapLike with MappingCollection {
   type S = PIRMap
@@ -37,6 +38,7 @@ object PIRMap {
     ConfigMap.empty, 
     InMap.empty,
     OutMap.empty,
+    MKMap.empty,
     VCMap.empty
   ) 
 }
@@ -69,6 +71,20 @@ object OutMap {
   type K = GlobalOutput
   type V = spade.node.Output[_]
   def empty = OutMap(BiManyToManyMap.empty, BiOneToManyMap.empty)
+}
+
+case class MKMap(
+  fmap:OneToOneMap[MKMap.K,MKMap.V], 
+  bmap:OneToManyMap[MKMap.V,MKMap.K]
+) extends BiManyToOneMapLike[MKMap.K,MKMap.V,MKMap] {
+  def apply(v:V):KK = bmap(v)
+  def get(v:V):Option[KK] = bmap.get(v)
+  def contains(v:V) = bmap.contains(v)
+}
+object MKMap {
+  type K = spade.node.Port[_]
+  type V = GlobalOutput 
+  def empty = MKMap(OneToOneMap.empty, OneToManyMap.empty)
 }
 
 case class VCMap(

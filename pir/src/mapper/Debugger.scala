@@ -28,7 +28,7 @@ trait Debugger { self:PIRPass =>
         val answer = ask(s"Waiting for input ...")
         act(m, f, answer)
       case "q" =>
-        info(s"Stop debugging routing and exiting...")
+        info(s"Stop debugging and exiting...")
         System.exit(-1)
       case "n" =>
       case _ =>
@@ -37,7 +37,7 @@ trait Debugger { self:PIRPass =>
     }
   }
 
-  def breakPoint[M](m:PIRMap)(e: => EOption[M]):EOption[M] = if (PIRConfig.breakPoint) {
+  def breakPoint[M](m:PIRMap)(e: => EOption[M]):EOption[M] = if (PIRConfig.enableBreakPoint) {
     e.left.map { f =>
       logger.closeAllBufferAndWrite
       info(Console.RED, "break", f)
