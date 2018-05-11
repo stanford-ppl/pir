@@ -14,11 +14,14 @@ trait StaticCUPlacer extends PIRPass with BackTrackingMatch with Routing {
   }
 
   def staticPlace(pmap:PIRMap) = log {
-    bind[CUMap.K, CUMap.V, PIRMap](
+    bind(
       pnodes=pmap.cumap.freeKeys.toSeq,
-      snodes=(cuP:CUMap.K, m:PIRMap) => m.cumap.freeValues(cuP).toList.sortBy { v => -m.cumap.freeKeys(v).size },
+      snodes=(cuP:CUMap.K, m:PIRMap) => m.cumap.freeValues(cuP).toList,
       init=pmap,
       bindLambda=bindLambda _
+    )(
+      rankP = { case (cuP, m) => (-m.cumap.freeValues(cuP).size, cuP.collectDown[GlobalIO]().size) },
+      rankS = { case (cuS,m) => m.cumap.freeKeys(cuS).size }
     )
   }
 

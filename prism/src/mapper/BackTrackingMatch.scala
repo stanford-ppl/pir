@@ -2,21 +2,24 @@ package prism
 package mapper
 
 trait BackTrackingMatch extends MappingLogging {
-  def minOptionBy[A, B:Ordering](ks:Iterable[A])(lambda:A => B) = if (ks.isEmpty) None else Some(ks.minBy(lambda))
+  def maxOptionBy[A, B:Ordering](ks:Iterable[A])(lambda:A => B) = if (ks.isEmpty) None else Some(ks.maxBy(lambda))
 
-  def bind[P, S, M](
+  def bind[P, S, M, SR:Ordering, PR:Ordering](
     pnodes:Seq[P], 
-    snodes:(P,M) => List[S],
+    snodes:(P,M) => Seq[S],
     init:M, 
     bindLambda:(P,S,M) => EOption[M]
+  )(
+    rankS:(S,M) => SR, // higher rank gets used first
+    rankP:(P,M) => PR = (p:P, m:M) => -snodes(p, m).size // higher rank gets mapped first
   ):EOption[M] = {
-    minOptionBy(pnodes) { case k => snodes(k, init).size }.fold[EOption[M]](Right(init)) { pnode =>
-      val sns = snodes(pnode, init)
+    maxOptionBy(pnodes) { p => rankP(p, init) }.fold[EOption[M]](Right(init)) { pnode =>
+      val sns = snodes(pnode, init).sortBy(s => rankS(s,init))(implicitly[Ordering[SR]].reverse)
       dbgblk(s"Mapping ${quote(pnode)} => ${sns.map(quote)} (remain:${pnodes.size-1})",buffer=false) {
         sns.foldLeft[Either[BindingTrace[P,M],M]](Left(BindingTrace(pnode, init))) { case (prev, snode) =>
           prev.left.flatMap { f =>
             dbgblk(s"Try ${quote(pnode)} -> ${quote(snode)} (remain:${pnodes.size-1})",buffer=false) {
-              val nextTry = bindLambda(pnode, snode, init).flatMap { m => bind(pnodes.filterNot { _ == pnode }, snodes, m, bindLambda) }
+              val nextTry = bindLambda(pnode, snode, init).flatMap { m => bind(pnodes.filterNot { _ == pnode }, snodes, m, bindLambda)(rankS,rankP) }
               nextTry.left.foreach { failure => dbg(s"${failure}") }
               f.append(nextTry)
             }

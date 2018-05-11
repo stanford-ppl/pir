@@ -31,11 +31,13 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
     log(vcmap)
     // Color the link with most interference first
     val sortedLinks = infMemsOf.keys.toSeq.sortBy { key => -infMemsOf(key).size }
-    bind[Memory,Int,VCMap](
+    bind(
       pnodes=sortedLinks,
-      snodes=(k:Memory, m:VCMap) => m(k).toList.sortBy { case v => -m.freeKeys(v).size }, // use the most flexable color
+      snodes=(k:Memory, m:VCMap) => m(k).toList,
       init=vcmap,
       bindLambda=assignColor _
+    )(
+      rankS = { case (s, m) => m.freeKeys(s).size } // use the most flexable color
     )
   }
 
