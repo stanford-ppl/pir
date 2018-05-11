@@ -1,7 +1,7 @@
 package prism
 package mapper
 
-trait BackTracking extends MappingLogging {
+trait BackTrackingMatch extends MappingLogging {
   def minOptionBy[A, B:Ordering](ks:Iterable[A])(lambda:A => B) = if (ks.isEmpty) None else Some(ks.minBy(lambda))
 
   def bind[P, S, M](

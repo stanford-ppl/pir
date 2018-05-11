@@ -5,7 +5,7 @@ import spade.node._
 
 import scala.collection.mutable
 
-trait DynamicCUPlacer extends PIRPass with BackTracking {
+trait DynamicCUPlacer extends PIRPass with BackTrackingMatch {
   import pirmeta._
 
   def dynamicPlace(pmap:PIRMap) = log {

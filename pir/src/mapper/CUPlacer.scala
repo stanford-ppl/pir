@@ -12,6 +12,7 @@ class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticCUPlacer with D
       compiler.arch.top match {
         case top if isMesh(top) && isStatic(top) => staticPlace(pmap)
         case top if isMesh(top) && isDynamic(top) => dynamicPlace(pmap)
+        case top if isAsic(top) => Right(pmap)
       }
     }
 

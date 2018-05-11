@@ -3,7 +3,7 @@ package mapper
 
 import prism.collection.immutable._
 
-trait BackTracking extends prism.mapper.BackTracking { self:Logging =>
+trait BackTrackingMatch extends prism.mapper.BackTrackingMatch { self:Logging =>
   def bind[P, S, F<:OneToOneFactorGraphLike[P,S,F]](
     init:F,
   ):EOption[F] = {

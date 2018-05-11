@@ -7,7 +7,7 @@ import spade.node._
 import prism.collection.mutable
 import prism.collection.immutable
 
-class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with PlastisimUtil with MappingLogger with BackTracking {
+class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with PlastisimUtil with MappingLogger with BackTrackingMatch {
   import pirmeta._
 
   override def runPass:Unit =  {
