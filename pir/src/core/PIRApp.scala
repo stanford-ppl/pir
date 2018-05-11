@@ -37,8 +37,8 @@ trait PIRApp extends PIR {
   override def loadDesign = {
     super.loadDesign
     arch = getArch(PIRConfig.arch)
-    arch.initDesign
     info(s"Configuring spade $arch ...")
+    arch.initDesign
   }
 
   override def initSession = {

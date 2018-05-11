@@ -9,16 +9,6 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
 
   def searchMaxCost(start:GlobalIO, end:GlobalIO) = -1
 
-  def spanMaxCost(start:GlobalIO) = {
-    val startCU = globalOf(start).get
-    (startCU, self.compiler.arch.topParam) match {
-      case (startCU:pir.node.ArgFringe, param:MeshTopParam) => param.numRows / 2 + 2
-      case (startCU:pir.node.DramFringe, param:MeshTopParam) => param.numCols / 2 + 2
-      case (startCU, param:MeshTopParam) => 3
-      case _ => 3
-    }
-  }
-
   def markerOf(gio:GlobalIO) = gio match {
     case gio:GlobalInput => goutOf(gio).get
     case gio:GlobalOutput => gio
@@ -106,8 +96,42 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     )
   } }
 
+  def degree(cuP:GlobalContainer) = cuP.collectDown[GlobalIO]().size
+
+  def spanMaxCost(start:GlobalIO) = {
+    val startCU = globalOf(start).get
+    (startCU, self.compiler.arch.topParam) match {
+      case (startCU:pir.node.ArgFringe, param:MeshTopParam) => param.numRows / 2 + 2
+      case (startCU:pir.node.DramFringe, param:MeshTopParam) => param.numCols / 2 + 2
+      case (startCU, param:MeshTopParam) => 6 //TODO
+      case _ => 3
+    }
+  }
+
+  def spanMaxCost(tailP:GlobalIO, headP:GlobalIO) = {
+    type ArgFringe = pir.node.ArgFringe
+    type DramFringe = pir.node.DramFringe
+    val scuP = globalOf(tailP).get
+    val ecuP = globalOf(headP).get
+    (scuP, ecuP, self.compiler.arch.topParam) match {
+      case (scuP:ArgFringe  , ecuP            , param:MeshTopParam) => param.numRows / 2 + 2
+      case (scuP            , ecuP:ArgFringe  , param:MeshTopParam) => param.numRows / 2 + 2
+      case (scuP:DramFringe , ecuP            , param:MeshTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP:DramFringe , param:MeshTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP            , param:MeshTopParam) => 3
+      case _ => throw PIRException(s"Don't know what is spanMaxCost")
+    }
+  }
+
   def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = breakPoint(pmap) { dbgblk(s"route(${quote(cuP)})",buffer=true) {
     val iosP = cuP.collectDown[GlobalIO]().toList
+    //val edgesP = iosP.flatMap { case (pmap, tailP) => connectedOf(tailP).map { headP => (tailP, headP) } }
+    //val (placed, unplaced) = edgesP.partition { case (tailP, headP) =>
+      //pmap.cuMap.isMapped(globalOf(headP).head)
+    //}
+    //if (unplaced.nonEmpty) {
+    //}
+
     flatFold(iosP, pmap) { case (pmap, tailP) =>
       val headsP = connectedOf(tailP)
       dbg(s"tailP:${quote(tailP)}")
