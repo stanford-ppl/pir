@@ -84,7 +84,6 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
       case (scuP:DramFringe , ecuP            , param:MeshTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP:DramFringe , param:MeshTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP            , param:MeshTopParam) => 
-        //TODO: scale to amount of remaining cuS
         val minCost = 3
         val maxCost = param.numRows / 2 + param.numCols / 2
         val sdegree = degree(scuP)
@@ -94,7 +93,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
         val cost = minCost + (Math.max(0, (maxCost - minCost)) * scale).toInt
         assert(cost >= minCost, s"cost=$cost < minCost=$minCost")
         assert(cost <= maxCost, s"cost=$cost > maxCost=$maxCost")
-        println(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
+        //println(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
         cost
       case _ => throw PIRException(s"Don't know what is spanMaxCost")
     }
