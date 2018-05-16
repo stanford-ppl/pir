@@ -6,15 +6,17 @@ import scala.collection.mutable
 trait GlobalConfig extends ArgParser
 
 object Config extends GlobalConfig {
-  var codegen:Boolean = register("codegen", true) { codegen = _ }
+  register("codegen", true, "Enable codegen")
+  register("debug", true, "Enable debug")
+  register("out", "out", "Relative output directory")
+  register("verbose", false, "Enter verbose mode")
 
-  var debug:Boolean = register("debug", true) { debug = _ }
-  var relativeOutDir:String = register("out", "out") { relativeOutDir = _ }
+  def relativeOutDir:String = option("out")
+  def debug:Boolean = option[Boolean]("debug")
   def outDir = {
     val pir_home = PIR_HOME.getOrElse(throw PIRException(s"Please define PIR_HOME"))
     s"$pir_home$separator$relativeOutDir"
   }
-  var verbose:Boolean = register("verbose", false) { verbose = _ }
 
   lazy val PIR_HOME = sys.env.get("PIR_HOME")
   lazy val SPATIAL_HOME = sys.env.get("SPATIAL_HOME")
