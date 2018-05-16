@@ -10,7 +10,7 @@ trait Debugger { self:PIRPass =>
     val answer = ask(s"Waiting for input ...")
   }
 
-  def act[M](m:M, f:MappingFailure, answer:String):Unit = {
+  def act[M](m:M, f:Any, answer:String):Unit = {
     answer match {
       case "o" =>
         f match {
@@ -37,14 +37,19 @@ trait Debugger { self:PIRPass =>
     }
   }
 
-  def breakPoint[M](m:PIRMap)(e: => EOption[M]):EOption[M] = if (PIRConfig.enableBreakPoint) {
-    e.left.map { f =>
-      logger.closeAllBufferAndWrite
-      info(Console.RED, "break", f)
-      val answer = ask(s"Waiting for input ...")
-      act(m, f, answer)
-      f
+  def handle(m:PIRMap, error:Any) = {
+    logger.closeAllBufferAndWrite
+    info(Console.RED, "break", error)
+    val answer = ask(s"Waiting for input ...")
+    act(m, error, answer)
+  }
+
+  def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enableBreakPoint) {
+    Try(block) match {
+      case Failure(e) => handle(m, e); throw e
+      case Success(Left(f)) => handle(m, f); Left(f)
+      case Success(res) => res
     }
-  } else e 
+  } else block 
 }
 

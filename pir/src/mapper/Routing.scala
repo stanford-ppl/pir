@@ -46,7 +46,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     start:GlobalIO, 
     end:GlobalIO,
     pmap:PIRMap
-  ):EOption[Route] = breakPoint(pmap) { dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=true) {
+  ):EOption[Route] = dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=false) {
     val scuP = globalOf(start).get
     val scuS = pmap.cumap.mappedValue(scuP)
     val ecuP = globalOf(end).get
@@ -69,11 +69,11 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
         maxCost=searchMaxCost(start, end)
       ) _
     )
-  } }
+  }
 
   lazy val maxDegree = pirMap.right.get.cumap.keys.map { cuP => degree(cuP) }.max
 
-  def spanMaxCost(tailP:GlobalIO, headP:GlobalIO) = dbgblk(s"spanMaxCost(${quote(tailP)}, ${quote(headP)})", buffer=false) {
+  def spanMaxCost(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap) = dbgblk(s"spanMaxCost(${quote(tailP)}, ${quote(headP)})", buffer=false) {
     type ArgFringe = pir.node.ArgFringe
     type DramFringe = pir.node.DramFringe
     val scuP = globalOf(tailP).get
@@ -88,9 +88,13 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
         val maxCost = param.numRows / 2 + param.numCols / 2
         val sdegree = degree(scuP)
         val edegree = degree(ecuP)
-        val scale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
-        dbg(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
+        val degreeScale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
+        val usageScale = pmap.cumap.mappedValues.size * 1.0 / pmap.cumap.values.size
+        val scale = Math.max(degreeScale, usageScale)
         val cost = minCost + (Math.max(0, (maxCost - minCost)) * scale).toInt
+        dbg(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
+        dbg(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
+        //println(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
         assert(cost >= minCost, s"cost=$cost < minCost=$minCost")
         assert(cost <= maxCost, s"cost=$cost > maxCost=$maxCost")
         //println(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
@@ -102,7 +106,7 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
   def refineUnplacedNeighbors(unplaced:List[(GlobalIO, GlobalIO)], pmap:PIRMap) = dbgblk(s"refineUnplacedNeighbors", buffer=true){
     val groups = unplaced.groupBy { case (tailP, headP) => tailP }
     flatFold(groups, pmap) { case (pmap, (tailP, edgesP)) =>
-      val costMap = edgesP.map { case (tailP, headP) => (headP, spanMaxCost(tailP, headP)) }
+      val costMap = edgesP.map { case (tailP, headP) => (headP, spanMaxCost(tailP, headP, pmap)) }
       val maxCost = costMap.map { _._2 }.max
       val reached = span(tailP, pmap, maxCost)
       pmap.flatMap[CUMap]{ cumap =>
@@ -123,7 +127,9 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
 
   def routePlacedNeighbors(placed:List[(GlobalIO, GlobalIO)], pmap:PIRMap) = dbgblk(s"routePlacedNeighbors"){
     flatFold(placed, pmap) { case (pmap, (tailP, headP)) =>
-      search(start=tailP,end=headP,pmap=pmap).flatMap { route => set(pmap, route, headP, tailP) }
+      search(start=tailP,end=headP,pmap=pmap).flatMap { route => 
+        set(pmap, route, headP, tailP)
+      }
     }
   }
 

@@ -47,6 +47,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
 
   /* ---------- usedMap ---------- */
   def mappedKeys = usedMap.keys
+  def mappedValues = usedMap.values
   def isMapped(x:Any) = x match {
     case x:K => usedMap.fmap.contains(x)
     case x:V => usedMap.bmap.contains(x)
@@ -56,7 +57,8 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   def set(k:K, v:V):EOption[S]
   def apply(x:K):Set[V] 
   /* ------------------------------- */
-  def keys = freeKeys ++ mappedKeys
+  def keys = (freeKeys ++ mappedKeys).toSet
+  def values = (freeValues ++ mappedValues).toSet
 }
 
 trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
