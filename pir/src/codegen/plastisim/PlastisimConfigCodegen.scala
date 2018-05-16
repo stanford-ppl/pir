@@ -111,13 +111,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"net = ${quote(tp)}net")
         val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
         emitln(s"class = $vc")
-        val saddrs = srcs.map(src => addrOf(src).get)
-        val daddrs = dsts.map(dst => addrOf(dst).get)
+        val saddrs = srcs.map(src => globalOf(src).get.id)
+        val daddrs = dsts.map(dst => globalOf(dst).get.id)
         saddrs.zipWithIndex.foreach { case (saddr, idx) =>
-          emitln(s"saddr[$idx] = $saddr")
+          emitln(s"src_id[$idx] = $saddr")
         }
         daddrs.zipWithIndex.foreach { case (daddr, idx) =>
-          emitln(s"daddr[$idx] = $daddr")
+          emitln(s"dst_id[$idx] = $daddr")
         }
       }
     }
