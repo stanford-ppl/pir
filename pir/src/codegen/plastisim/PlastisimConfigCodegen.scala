@@ -13,8 +13,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   val appPath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
   val tracePath = s"${appPath}${separator}traces"
 
-  lazy val topS = compiler.arch.design.top
-
   // Execution of codegen
   override def runPass = {
     super.runPass
