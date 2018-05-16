@@ -11,6 +11,8 @@ trait PlastisimUtil extends PIRPass {
   type Node = ContextEnable
   type Link = linkGroupOf.V
 
+  lazy val topS = compiler.arch.design.top
+
   lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
   def cumap = pirMap.right.get.cumap
   def vcmap = pirMap.right.get.vcmap
@@ -94,7 +96,7 @@ trait PlastisimUtil extends PIRPass {
   def isStaticLink(src:Node, dst:Node):Boolean = {
     val srcCUP = globalOf(src).get
     val dstCUP = globalOf(dst).get
-    val isStatic = srcCUP == dstCUP
+    val isStatic = srcCUP == dstCUP || isAsic(topS)
     dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
     isStatic
   }
@@ -108,7 +110,15 @@ trait PlastisimUtil extends PIRPass {
 
   def bufferSizeOf(memP:Memory):Int = {
     val cuP = globalOf(memP).get
-    val cuS = cumap(cuP).head
+    topS match {
+      case topS if isAsic(topS) => 10 // as large as possible
+      case topS =>
+        val cuS = cumap(cuP).head
+        bufferSizeOf(memP, cuP, cuS)
+    }
+  }
+
+  def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {
       case cuS:MC =>
         val isLoad = isLoadFringe(cuP)
@@ -175,12 +185,14 @@ trait PlastisimUtil extends PIRPass {
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
   def latencyOf(n:Node) = {
-    globalOf(n).get match {
-      case cuP:DramFringe => 100
-      case cuP =>
-        val cuS = cumap.mappedValue(cuP)
-        val stages = cuS.collectDown[Stage]()
-        Math.max(stages.size, 1)
+    val cuP = globalOf(n).get
+    topS match {
+      case topS if isAsic(topS) => cuP.collectDown[StageDef]().size
+      case topS =>
+        cumap.mappedValue(cuP) match {
+          case cuS:MC => 100
+          case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
+        }
     }
   }
 

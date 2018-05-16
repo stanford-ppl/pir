@@ -31,6 +31,9 @@ trait StaticRouting extends Routing { self:PIRPass =>
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       val (marked, unmarked) = tail.connected.partition { head => pmap.mkmap.contains(head.src.asInstanceOf[PT]) }
       val markedAndMatched = marked.filter { head => pmap.mkmap(head.src.asInstanceOf[PT]) == marker }
+      dbg(s"marked=${quote(marked)}")
+      dbg(s"unmarked=${quote(unmarked)}")
+      dbg(s"markedAndMatched=${quote(markedAndMatched)}")
       (tail match {
         case out:OutputEdge[_] => markedAndMatched ++ unmarked // one to many
         case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched // one to one
@@ -60,9 +63,7 @@ trait StaticRouting extends Routing { self:PIRPass =>
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=true){
-    dbg(s"route:")
-    dbg(quote(route))
+  ):EOption[PIRMap] = dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
     Right(pmap).map { pmap =>
       pmap.map[FIMap] { fimap =>
         var fm = fimap

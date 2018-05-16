@@ -61,8 +61,6 @@ trait PIR extends Compiler with PIRWorld {
 
   /* Debug */
 
-  //var mapping:Option[P$IRMap] = None
-
   override def initSession = {
     super.initSession
     import session._
@@ -134,19 +132,19 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(mapping, cuPruning)
-    addPass(mapping, cuPlacer).dependsOn(cuPruning)
+    addPass(enableMapping, cuPruning)
+    addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
-    // Post-mapping analysis
-    addPass(debug & mapping, new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(debug & mapping, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(debug & mapping, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    // Post-enableMapping analysis
+    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)
     addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim && mapping, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(genPlastisim && mapping, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 
      // Simulation
 

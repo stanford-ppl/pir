@@ -29,8 +29,6 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     }
     this
   }
-  def unfinishedDependencies = dependencies.filter { !_.succeeded }
-  def isDependencyFree = unfinishedDependencies.isEmpty
 
   def prevRuns:Iterable[Runner[_]] = {
     session.runners.slice(0, id)
@@ -40,9 +38,8 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     if (!shouldRun) return
     if (hasRun) return
     dependencies.foreach { dependency =>
-      if (!dependency.shouldRun) return
-      if (!dependency.succeeded) {
-        warn(s"$name not run due to depended ${unfinishedDependencies.map(_.name).mkString(",")} not success")
+      if (dependency.shouldRun && !dependency.succeeded) {
+        warn(s"$name not run due to dependency ${dependency} not success")
         return
       }
     }
