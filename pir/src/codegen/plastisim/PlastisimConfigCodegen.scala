@@ -71,8 +71,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     if (spade.node.isDynamic(topS)) {
       topParam.networkParams.foreach { networkParam =>
         val tp = networkParam.bct
-        val nr = numRows + 1
-        val nc = numCols + 2
+        val nr = numTotalRows
+        val nc = numTotalCols
         val sq = math.max(nr, nc)
         emitNodeBlock(s"net ${quote(tp)}net") {
           emitln(s"cfg = mesh_generic.cfg")
