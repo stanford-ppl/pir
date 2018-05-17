@@ -29,22 +29,23 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       label += s"${quote(n)}"
       label += s"\ncu=${quote(cuP)}"
       label += s"\nctrl=${ctrlOf(n)}"
-      label += s"\ncounts=${countsOf(n)}"
-      if (compiler.session.hasRun[CUPlacer]) {
-        label += s"\nlat=${latencyOf(n)}"
-        addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
-        inlinksOf(n).foreach { case (link, reads) =>
-          label += s"\n${quote(link)} [sin=${getItersOf(reads)}, bs=${bufferSizeOf(reads)}]"
-        }
-      } else {
-        inlinksOf(n).foreach { case (link, reads) =>
-          label += s"\n${quote(link)} [sin=${getItersOf(reads)}]"
-        }
+      countsOf(n).foreach { counts => label += s"\ncounts=$counts" }
+      cuP match {
+        case cuP:DramFringe if PIRConfig.loadTrace =>
+        case cuP:ArgFringe =>
+        case cuP =>
+          latencyOf(n).foreach { lat => label += s"\nlat = $lat" }
+      }
+      addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
+      inlinksOf(n).foreach { case (link, reads) =>
+        label += s"\n${quote(link)}"
+        getItersOf(reads).foreach { sin => label += s"\n[sin=$sin]" }
+        bufferSizeOf(reads).foreach { bs => label += s"\n[bs=$bs]" }
       }
       outlinksOf(n).foreach { case (link, writes) =>
-        label += s"\n${quote(link)} [sout=${getItersOf(writes)}, counts=${getCountsOf(writes)}]"
+        label += s"\n${quote(link)}"
+        getItersOf(writes).foreach { sout => label += s"\n[sout=$sout]" }
       }
-      //countsOf.get(n).foreach { count => label += s"\ncounts=$count" }
       attr.label(label)
     case n => super.label(attr, n)
   }
@@ -52,14 +53,12 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
+    val counts = assertUnify(n, "counts") { mem => getCountsOf(mem) }
     srcs.foreach { src =>
       dsts.foreach { dst =>
         var label = s"${quote(n)}"
-        val isStatic = isStaticLink(src, dst)
-        label += s"\nisStatic=${isStatic}"
-        if (isStatic && compiler.session.hasRun[CUPlacer]) {
-          label += s"\nlat=${staticLatencyOf(src, dst)}"
-        }
+        staticLatencyOf(src, dst).foreach { lat => label += s"\nlat=$lat" }
+        counts.foreach { counts => label += s"\n[counts=$counts]" }
         emitEdge(src, dst, DotAttr.empty.label(label))
       }
     }

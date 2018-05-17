@@ -56,7 +56,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
             emitln(s"stop_after_tokens = 1")
         }
       case cuP =>
-        emitln(s"lat = ${latencyOf(n)}")
+        emitln(s"lat = ${latencyOf(n).get}")
     }
   }
 
@@ -102,7 +102,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       if (isStatic) {
         srcs.zipWithIndex.foreach { case (src, srcIdx) =>
           dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
-            emitln(s"lat[$srcIdx, $dstIdx] = ${staticLatencyOf(src, dst)}")
+            emitln(s"lat[$srcIdx, $dstIdx] = ${staticLatencyOf(src, dst).get}")
           }
         }
       } else {
@@ -125,7 +125,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
       emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
-      emitln(s"buffer[$idx]=${bufferSizeOf(reads)}")
+      emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
     }
   }
 

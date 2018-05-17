@@ -79,9 +79,8 @@ trait PlastisimUtil extends PIRPass {
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
     import topParam._
-    indexOf.get(sn).map { case List(xx,y) =>
-      val x = xx + 1 // get ride of negative x coordinate
-      val idx = y * (numCols + 2) + x
+    indexOf.get(sn).map { case List(x,y) =>
+      val idx = y * numTotalCols + x
       dbg(s"$sn: coord = ($x, $y) idx = $idx")
       idx
     }
@@ -89,8 +88,7 @@ trait PlastisimUtil extends PIRPass {
 
   def addrOf(node:Node):Option[Int] = {
     val cuP = globalOf(node).get
-    val cuS = cumap.mappedValue(cuP)
-    addrOf(cuS)
+    cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
   }
 
   def isStaticLink(src:Node, dst:Node):Boolean = {
@@ -108,16 +106,7 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(pairs, "isStatic"){ case (src, dst) => isStaticLink(src, dst) }
   }
 
-  def bufferSizeOf(memP:Memory):Int = {
-    val cuP = globalOf(memP).get
-    topS match {
-      case topS if isAsic(topS) => 10 // as large as possible
-      case topS =>
-        val cuS = cumap(cuP).head
-        bufferSizeOf(memP, cuP, cuS)
-    }
-  }
-
+  
   def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {
       case cuS:MC =>
@@ -153,8 +142,19 @@ trait PlastisimUtil extends PIRPass {
       case cuS:spade.node.ArgFringe => 1
     }
   }
-  
-  def bufferSizeOf(reads:List[LocalLoad]):Int = {
+
+  def bufferSizeOf(memP:Memory):Option[Int] = {
+    val cuP = globalOf(memP).get
+    topS match {
+      case topS if isAsic(topS) => Some(10) // as large as possible
+      case topS if cumap.isMapped(cuP) =>
+        val cuS = cumap(cuP).head
+        Some(bufferSizeOf(memP, cuP, cuS))
+      case topS => None
+    }
+  }
+
+  def bufferSizeOf(reads:List[LocalLoad]):Option[Int] = {
     assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
   }
 
@@ -184,20 +184,22 @@ trait PlastisimUtil extends PIRPass {
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
-  def latencyOf(n:Node) = {
+  def latencyOf(n:Node):Option[Int] = {
     val cuP = globalOf(n).get
     topS match {
-      case topS if isAsic(topS) => cuP.collectDown[StageDef]().size
-      case topS =>
+      case topS if isAsic(topS) => Some(Math.max(1, cuP.collectDown[StageDef]().size))
+      case topS if cumap.isMapped(cuP) =>
         cumap.mappedValue(cuP) match {
-          case cuS:MC => 100
-          case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
+          case cuS:MC => Some(100)
+          case cuS:CU => Some(cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1))
         }
+      case topS => None
     }
   }
 
-  def staticLatencyOf(src:Node, dst:Node) = {
-    1 //TODO: change for static network
+  def staticLatencyOf(src:Node, dst:Node):Option[Int] = {
+    if (!isStaticLink(src:Node, dst:Node)) None
+    Some(1) //TODO: change for static network
   }
 
   override def quote(n:Any):String = n match {
