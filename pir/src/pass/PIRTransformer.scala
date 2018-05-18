@@ -82,9 +82,10 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       mirrorMapping.getOrElseUpdate(container, mutable.Map[Any,Any]())
     }
     mapping ++= init
+    val origValues = mapping.values.toSet
     val m = mirrorX(node, mapping)
     // Moving newly created nodes into container
-    val newNodes = (mapping.values.toSet diff mapping.keys.toSet).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
+    val newNodes = (mapping.values.toSet diff mapping.keys.toSet diff origValues).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
     container.foreach { container =>
       newNodes.foreach { m => 
         m.setParent(container)
@@ -93,6 +94,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }
     // Mirror metadata
     mapping.foreach { 
+      case (n, m) if origValues.contains(m) =>
       case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
       case (n, m) => pirmeta.mirror(n, m)
     }

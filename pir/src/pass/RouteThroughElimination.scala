@@ -23,13 +23,15 @@ class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with
           dbg(s"data:${qdef(data)}")
           dbg(s"write:${qdef(write)}")
           dbg(s"rmem:${qdef(rmem)}")
-          dbg(s"rread:${qdef(rread)}")
+          dbg(s"rread:${qdef(rread)}") //TODO rread might connect to multiple rwrite
           dbg(s"rwrite:${qdef(rwrite)}")
           dbg(s"mem:${qdef(mem)}")
           val memCU = globalOf(mem).get
-          disconnect(write, rmem)
-          swapConnection(mem, rwrite.out, write.out)
-          swapParent(write, memCU)
+          //disconnect(write, rmem)
+          disconnect(mem, rwrite)
+          val mwrite = mirror(write, container=Some(memCU), init=mutable.Map(rmem -> mem, data -> data))
+          //swapConnection(mem, rwrite.out, write.out)
+          //swapParent(write, memCU)
         }
       // Pattern if write is inside writer CU
       //case Def(rwrite:LocalStore, LocalStore(mems,None,Def(rread, LocalLoad(WithWriter(Def(write, LocalStore(rmem::Nil, None, data)))::Nil,None)))) =>
