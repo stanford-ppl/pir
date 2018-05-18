@@ -2,6 +2,7 @@ package pir
 package codegen
 
 import pir.node._
+import spade.node._
 import prism.collection.mutable._
 import sys.process._
 
@@ -17,9 +18,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   override def runPass = {
     super.runPass
     linkGroupOf.values.toSet.foreach { link => emitLink(link) }
-    if (spade.node.isDynamic(topS)) {
-      emitNetwork
-    }
+    emitNetwork
   }
 
   override def emitNode(n:N) = n match {
@@ -48,7 +47,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         } else {
           err(s"trace file for ${cuP} at ${path} does not exist!")
         }
-      case cuP:ArgFringe =>
+      case cuP:pir.node.ArgFringe =>
         ctrlOf(n) match {
           case _:ArgInController =>
             emitln(s"start_at_tokens = 1")
@@ -67,8 +66,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   override def emitComment(msg:String) = emitln(s"# $msg")
 
   def emitNetwork = {
-    import topParam._
-    if (spade.node.isDynamic(topS)) {
+    if (isDynamic(topS)) {
+      val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
+      import topParam._
       topParam.networkParams.foreach { networkParam =>
         val tp = networkParam.bct
         val nr = numTotalRows

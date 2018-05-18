@@ -36,7 +36,9 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
         case cuP =>
           latencyOf(n).foreach { lat => label += s"\nlat = $lat" }
       }
-      addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
+      if (spade.node.isDynamic(topS)) {
+        addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
+      }
       inlinksOf(n).foreach { case (link, reads) =>
         label += s"\n${quote(link)}"
         getItersOf(reads).foreach { sin => label += s"\n[sin=$sin]" }

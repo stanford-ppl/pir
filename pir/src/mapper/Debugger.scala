@@ -6,6 +6,7 @@ import spade.node._
 import prism.mapper.SearchFailure
 
 trait Debugger { self:PIRPass =>
+
   def input = {
     val answer = ask(s"Waiting for input ...")
   }

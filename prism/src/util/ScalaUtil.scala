@@ -3,7 +3,7 @@ package util
 
 import scala.collection.mutable
 
-trait ScalaAlias {
+trait ScalaUtil {
   type ClassTag[T] = scala.reflect.ClassTag[T]
   def classTag[T](implicit ctag: ClassTag[T]) = scala.reflect.classTag[T]
   type TypeTag[T] = scala.reflect.runtime.universe.TypeTag[T]
@@ -30,4 +30,19 @@ trait ScalaAlias {
       v
     }
   }
+
+  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):B = {
+    val res = list.map(lambda)
+    assert(res.toSet.size==1, s"$list doesnt have the same $info = $res")
+    res.head
+  }
+
+  def zipMap[A,B,T](a:Option[A], b:Option[B])(lambda:(A,B) => T):Option[T] = {
+    (a,b).zipped.map { case (a,b) => lambda(a,b) }.headOption
+  }
+
+  def zipMap[A,B,C,T](a:Option[A], b:Option[B], c:Option[C])(lambda:(A,B,C) => T):Option[T] = {
+    (a,b,c).zipped.map { case (a,b,c) => lambda(a,b,c) }.headOption
+  }
+
 }

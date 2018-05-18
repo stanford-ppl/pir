@@ -13,7 +13,6 @@ trait PlastisimUtil extends PIRPass {
 
   lazy val topS = compiler.arch.design.top
 
-  lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
   def cumap = pirMap.right.get.cumap
   def vcmap = pirMap.right.get.vcmap
 
@@ -78,6 +77,7 @@ trait PlastisimUtil extends PIRPass {
 
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
+    val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
     import topParam._
     indexOf.get(sn).map { case List(x,y) =>
       val idx = y * numTotalCols + x
@@ -92,11 +92,16 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def isStaticLink(src:Node, dst:Node):Boolean = {
-    val srcCUP = globalOf(src).get
-    val dstCUP = globalOf(dst).get
-    val isStatic = srcCUP == dstCUP || isAsic(topS)
-    dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
-    isStatic
+    topS match {
+      case topS if isDynamic(topS) =>
+        val srcCUP = globalOf(src).get
+        val dstCUP = globalOf(dst).get
+        val isStatic = srcCUP == dstCUP
+        dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
+        isStatic
+      case topS if isStatic(topS) => true
+      case topS if isAsic(topS) => true
+    }
   }
 
   def isStaticLink(n:Link):Boolean = {
@@ -198,8 +203,16 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def staticLatencyOf(src:Node, dst:Node):Option[Int] = {
-    if (!isStaticLink(src:Node, dst:Node)) None
-    Some(1) //TODO: change for static network
+    topS match {
+      case topS if isAsic(topS) => Some(1)
+      case topS if isDynamic(topS) && isStaticLink(src, dst)=> Some(1) //TODO
+      case topS if isDynamic(topS) => None
+      //case topS if isStatic(topS) => //TODO
+        //val scuP = globalOf(src).get
+        //val dcuP = globalOf(dst).get
+        //val mem = link.filter { mem => globalOf(mem).get == dcuP }.head
+        //mem.collectInTillMem[GlobalInput]().headOption
+    }
   }
 
   override def quote(n:Any):String = n match {
