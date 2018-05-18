@@ -34,9 +34,9 @@ trait PIRApp extends PIR {
 
   val designPath = s"${outDir}${separator}${name}.pir"
 
-  override def initSession = {
-    super.initSession
+  override def initSession   = {
     arch.setSession(this.session)
+    super.initSession
   }
 
   override def loadDesign = {

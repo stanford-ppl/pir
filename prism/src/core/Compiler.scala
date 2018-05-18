@@ -14,13 +14,12 @@ trait Compiler extends FileManager with ArgLoader {
   def relativeOutDir = buildPath(Config.relativeOutDir,name)
   def outDir = buildPath(Config.outDir, name)
 
-  var _session:Session = _
-  lazy val session = _session
+  var session:Session = _
 
-  def setSession(sess:Session) = _session = sess
+  def setSession(sess:Session) = session = sess
 
   def reset = { 
-    _session = null
+    session = null
     clearLogs(outDir)
   } 
 
@@ -47,41 +46,32 @@ trait Compiler extends FileManager with ArgLoader {
   def save:Boolean
 
   val designPath:String
-  def loadDesign = {
-    try {
-      design = loadFromFile[D](designPath)
-    } catch {
-      case e:java.io.InvalidClassException =>
-        warn(s"Load design $designPath failed. Start a new design")
-        newDesign
-      case e:Throwable => throw e
-    }
-  }
+  def loadDesign = design = loadFromFile[D](designPath)
   def newDesign:Unit
   def saveDesign:Unit = saveToFile(design, designPath)
 
   def loadSession:Unit = {
     loadDesign
     setSession(loadFromFile[Session](sessionPath))
+    initSession
   }
 
   def newSession:Unit = {
     newDesign
     setSession(new Session())
+    initSession
   }
 
-  def initSession = {
-    if (load) {
-      try {
-        loadSession 
-      } catch {
-        case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException) =>
-          warn(s"Restore session failed: ${e}. Creating a new session ...")
-          newSession
-        case e:Throwable => throw e
-      }
-    } else {
-      newSession
+  def initSession:Unit = {}
+
+  def startSession = {
+    try {
+      if (load) loadSession else newSession
+    } catch {
+      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException) if load =>
+        warn(s"Restore session failed: ${e}. Creating a new session ...")
+        newSession
+      case e:Throwable => throw e
     }
   }
 
@@ -93,7 +83,7 @@ trait Compiler extends FileManager with ArgLoader {
     try {
       reset
       setArgs(args)
-      initSession
+      startSession
       runSession
     } catch { 
       case e:Exception =>

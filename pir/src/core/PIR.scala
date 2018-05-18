@@ -62,8 +62,8 @@ trait PIR extends Compiler with PIRWorld {
   /* Debug */
 
   override def initSession = {
-    super.initSession
-    import session._
+    val sess = session
+    import sess._
 
     addPass(testTraversal)
 
@@ -98,23 +98,24 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new SimpleIRDotCodegen(s"simple1.dot"))
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(enableSplitting, new IgraphPartioner())
+    addPass(enableSplitting && debug, new PIRIRDotCodegen(s"top10.dot"))
+    addPass(enableSplitting && debug, new SimpleIRDotCodegen(s"simple2.dot"))
 
     addPass(genCtrl, contextInsertion)
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top9.dot"))
     addPass(genCtrl, contextMerging)
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top10.dot"))
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top11.dot"))
 
     //// Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top11.dot"))
-    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple2.dot"))
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
+    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple3.dot"))
     addPass(genCtrl, irCheck)
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
-    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple3.dot"))
+    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top13.dot"))
+    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple4.dot"))
     addPass(genCtrl && debug, new PIRPrinter(s"IR3.txt"))
     addPass(genCtrl, irCheck)
     addPass(cuStats)

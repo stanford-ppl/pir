@@ -39,7 +39,6 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     splitCount -= 1
     log(prune(cumap)) match {
       case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitableConstrain(constrain) =>
-        dbg(s"$f")
         val vs = cumap(key)
         val ks = split(key)
         val newCUMap = (cumap - key) ++ (ks -> vs)

@@ -39,7 +39,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     if (hasRun) return
     dependencies.foreach { dependency =>
       if (dependency.shouldRun && !dependency.succeeded) {
-        warn(s"$name not run due to dependency ${dependency} not success")
+        warn(s"$name not run due to dependency ${dependency.pass} not success")
         return
       }
     }
