@@ -34,16 +34,16 @@ trait PIRApp extends PIR {
 
   val designPath = s"${outDir}${separator}${name}.pir"
 
+  override def initSession = {
+    super.initSession
+    arch.setSession(this.session)
+  }
+
   override def loadDesign = {
     super.loadDesign
     arch = getArch(PIRConfig.arch)
     info(s"Configuring spade $arch ...")
-    arch.initDesign
-  }
-
-  override def initSession = {
-    super.initSession
-    arch.setSession(this.session)
+    arch.newDesign
   }
 
   def newDesign = {
@@ -52,7 +52,7 @@ trait PIRApp extends PIR {
     info(s"Finishing graph construction for ${this}")
     arch = getArch(PIRConfig.arch)
     info(s"Configuring spade $arch ...")
-    arch.initDesign
+    arch.newDesign
   }
 
   override def saveDesign = {

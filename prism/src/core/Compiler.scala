@@ -60,18 +60,28 @@ trait Compiler extends FileManager with ArgLoader {
   def newDesign:Unit
   def saveDesign:Unit = saveToFile(design, designPath)
 
-  def initDesign = if (load) loadDesign else newDesign
+  def loadSession:Unit = {
+    loadDesign
+    setSession(loadFromFile[Session](sessionPath))
+  }
+
+  def newSession:Unit = {
+    newDesign
+    setSession(new Session())
+  }
 
   def initSession = {
-    try {
-      val sess = if (load) loadFromFile[Session](sessionPath) else new Session() // Load session
-      setSession(sess)
-    } catch {
-      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException) =>
-        warn(s"Restore session failed: ${e}. Creating a new session ...")
-        setSession(new Session())
-        newDesign
-      case e:Throwable => throw e
+    if (load) {
+      try {
+        loadSession 
+      } catch {
+        case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException) =>
+          warn(s"Restore session failed: ${e}. Creating a new session ...")
+          newSession
+        case e:Throwable => throw e
+      }
+    } else {
+      newSession
     }
   }
 
@@ -83,7 +93,6 @@ trait Compiler extends FileManager with ArgLoader {
     try {
       reset
       setArgs(args)
-      initDesign
       initSession
       runSession
     } catch { 
