@@ -50,7 +50,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       case cuP:FringeStreamIn =>
         emitln(s"start_at_tokens = 1024 # number of stream inputs")
       case cuP:FringeStreamOut =>
-        emitln(s"start_at_tokens = 1024 # number of stream outputs")
+        emitln(s"stop_after_tokens = 1024 # number of stream outputs")
       case cuP:pir.node.ArgFringe =>
         ctrlOf(n) match {
           case _:ArgInController =>
