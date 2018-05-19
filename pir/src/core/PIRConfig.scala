@@ -12,6 +12,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("trace", default=false, info="Enable trace generation")
   register("bp", default=false, info="Enable break point")
   register("open", default=false, info="Open dot graph after codegen")
+  register("stat", default=false, info="Printing CU statistics")
 
   def arch = option[String]("arch")
   def saveDesign = option[Boolean]("save-pir")
@@ -23,6 +24,7 @@ object PIRConfig extends prism.GlobalConfig {
   def aggressive_dce = option[Boolean]("ag-dce")
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen
   def loadTrace = option[Boolean]("trace")
+  def printStat = option[Boolean]("stat")
 
   //// Debugging
   def verbose = Config.option[Boolean]("verbose")

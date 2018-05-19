@@ -10,12 +10,21 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
 
   val fileName = "stat.json"
 
+  override def dbg(s:Any) = {
+    super.dbg(s)
+    if (PIRConfig.printStat) {
+      info(s"$s")
+    }
+  }
+
   override def runPass =  {
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
     val cuMap = cus.groupBy(cuType)
+    dbg(s"")
     dbg(s"number of cus=${cus.size}")
-    cuMap.foreach { case (key, cus) =>
+    cuMap.foreach { case (cuType, cus) =>
+      val key = cuType.getOrElse("cu")
       dbg(s"")
       dbg(s"number of $key = ${cus.size}")
       //dbg(s"$key = ${cus.map(qtype)}")
