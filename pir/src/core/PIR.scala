@@ -139,9 +139,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-enableMapping analysis
-    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(debug & enableMapping, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)

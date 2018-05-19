@@ -11,8 +11,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   val fileName = s"$compiler.psim"
   lazy val SPATIAL_HOME = Config.SPATIAL_HOME.getOrElse(s"Please set SPATIAL_HOME for using trace!")
-  val appPath = s"${Config.SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
-  val tracePath = s"${appPath}${separator}traces"
+  lazy val appPath = s"${SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
+  lazy val tracePath = s"${appPath}${separator}traces"
 
   // Execution of codegen
   override def runPass = {
