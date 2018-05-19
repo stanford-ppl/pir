@@ -14,11 +14,15 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     pirMap = initCUMap.flatMap { pmap =>
       pmap.flatMap[CUMap] { cumap => pruneAndSplit(cumap) }
     }
+    log(pirMap)
+  }
+
+  override def finPass = {
+    super.finPass
     pirMap.fold (
       { failure => fail(failure) },
       { pmap => pmap.cumap.freeKeys.foreach(retimeGlobal) }
     )
-    log(pirMap)
   }
 
   def retimeGlobal(cu:GlobalContainer) = dbgblk(s"retimeGlobal") {

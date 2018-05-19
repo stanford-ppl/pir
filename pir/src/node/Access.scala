@@ -2,6 +2,13 @@ package pir
 package node
 
 trait LocalAccess extends Def
+object LocalAccess {
+  def unapply(n:Any):Option[(List[Memory], Option[List[Def]])] = n match {
+    case LocalLoad(mems, addrs) => Some(mems, addrs)
+    case LocalStore(mems, addrs, data) => Some(mems, addrs)
+    case _ => None
+  }
+}
 trait LocalLoad extends LocalAccess
 object LocalLoad {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]])] = n match {
@@ -115,19 +122,5 @@ trait PIRAccess {
   }
 
   def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem)
-
-  def globalOf(n:PIRNode) = {
-    n.collectUp[GlobalContainer]().headOption
-  }
-
-  def contextOf(n:PIRNode) = {
-    n.collectUp[ComputeContext]().headOption
-  }
-
-  def ctrlsOf(container:Container) = {
-    implicit val design = container.design.asInstanceOf[PIRDesign]
-    import design.pirmeta._
-    container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
-  }
 
 }

@@ -5,6 +5,7 @@ abstract class Memory(implicit design:PIRDesign) extends Primitive
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIRDesign) extends Memory
 case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:PIRDesign) extends Memory
+case class LUT(inits:List[Any], banking:Banking)(implicit design:PIRDesign) extends Memory
 case class FIFO(size:Int)(implicit design:PIRDesign) extends Memory
 
 case class Reg(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
@@ -59,6 +60,7 @@ trait PIRMemory {
     case (_:SRAM)  => true
     case n:FIFO if writersOf(n).size > 1 => true
     case n:RegFile => true
+    case n:LUT => true
     case _ => false
   }
 

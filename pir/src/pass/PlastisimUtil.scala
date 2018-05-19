@@ -46,12 +46,14 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def inMemsOf(n:Node) = {
-    val reads = inAccessOf(n)
+    var reads = inAccessOf(n)
+    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
     reads.flatMap { read => memsOf(read) }
   }
 
   def inlinksOf(n:Node) = {
-    val reads = inAccessOf(n)
+    var reads = inAccessOf(n)
+    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
     reads.groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
@@ -117,6 +119,7 @@ trait PlastisimUtil extends PIRPass {
       case cuS:MC =>
         val isLoad = isLoadFringe(cuP)
         val isStore = isStoreFringe(cuP)
+        val isStream = isStreamFringe(cuP)
         memP match {
           case memP:StreamOut if memP.field == "size" & isLoad =>
             cuS.param.rSizeFifoParam.size
@@ -132,6 +135,8 @@ trait PlastisimUtil extends PIRPass {
             else throw PIRException(s"Unsupported dram data type ${pinTypeOf(memP)}")
           case memP:StreamIn if memP.field == "data" & isLoad => 1
           case memP:StreamIn if memP.field == "data" & isStore => 1
+          case memP:StreamOut if memP.field == "data" & isStream =>
+            cuS.param.sDataFifoParam.size
         }
       case cuS:CU =>
         memP match {

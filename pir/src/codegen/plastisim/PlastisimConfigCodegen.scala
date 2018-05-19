@@ -47,6 +47,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         } else {
           err(s"trace file for ${cuP} at ${path} does not exist!")
         }
+      case cuP:FringeStreamIn =>
+        emitln(s"start_at_tokens = 1024 # number of stream inputs")
+      case cuP:FringeStreamOut =>
+        emitln(s"start_at_tokens = 1024 # number of stream outputs")
       case cuP:pir.node.ArgFringe =>
         ctrlOf(n) match {
           case _:ArgInController =>
@@ -109,13 +113,21 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"net = ${quote(tp)}net")
         val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
         emitln(s"class = $vc")
-        val saddrs = srcs.map(src => globalOf(src).get.id)
-        val daddrs = dsts.map(dst => globalOf(dst).get.id)
+        val sids = srcs.map(src => globalOf(src).get.id)
+        val dids = dsts.map(dst => globalOf(dst).get.id)
+        sids.zipWithIndex.foreach { case (sid, idx) =>
+          emitln(s"src_id[$idx] = $sid")
+        }
+        dids.zipWithIndex.foreach { case (did, idx) =>
+          emitln(s"dst_id[$idx] = $did")
+        }
+        val saddrs = srcs.map(src => addrOf(src).get)
+        val daddrs = dsts.map(dst => addrOf(dst).get)
         saddrs.zipWithIndex.foreach { case (saddr, idx) =>
-          emitln(s"src_id[$idx] = $saddr")
+          emitln(s"saddr[$idx] = $saddr")
         }
         daddrs.zipWithIndex.foreach { case (daddr, idx) =>
-          emitln(s"dst_id[$idx] = $daddr")
+          emitln(s"daddr[$idx] = $daddr")
         }
       }
     }

@@ -51,8 +51,6 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
 
   def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){
     val group = writersOf(n).flatMap { writer => 
-      def prefix(n:PIRNode) = {
-      }
       def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
         case n:DataReady => true // Remove back pressure
         case _ => false

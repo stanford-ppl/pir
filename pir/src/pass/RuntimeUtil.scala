@@ -24,6 +24,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case x:ArgInController => 1
         case x:ArgOutController => 1
         case DramController(size, par) => par
+        case x:StreamController => 1
 
         case x:ControlNode => 1
         case x:Counter => x.par
@@ -62,6 +63,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
             val wordSize = size / 4
             wordSize / par
           }
+        case x:StreamController => None
 
         case cchain:CounterChain => getItersOf(cchain.outer)
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
@@ -89,56 +91,6 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  //def verifyCounts(n:Any)(computeCount: => Long) = {
-    //val count = computeCount
-    //n match {
-      //case n:ContextEnable =>
-        //val ctrlCount = getCountsOf(ctrlOf(n))
-        //assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
-      //case n:Memory if isFIFO(n) =>
-        //val ctrlCount = assertUnify(writersOf(n), "counts") { writer => getCountsOf(writer) }
-        //assert(ctrlCount == count, s"$n's count=$count != ${writersOf(n)}.count=$ctrlCount")
-      //case n:Memory =>
-        //val ctrlCount = getCountsOf(ctrlOf(n))
-        //assert(ctrlCount == count, s"$n's count=$count != ${ctrlOf(n)}.count=$ctrlCount")
-      //case _ =>
-    //}
-    //count
-  //}
-
-  //def getCountsOf(n:Any):Long = countsOf.getOrElseUpdate(n) {
-    //dbgblk(s"getCountsOf(${quote(n)})") { verifyCounts(n) {
-      //n match {
-        //case n:Controller =>
-          //val parentCount = n.parent.fold(1l) { parent => getCountsOf(parent) }
-          //parentCount * itersOf(n)
-        //case n:LocalLoad => 
-          //val count = assertUnify(memsOf(n), "count") { mem => getCountsOf(mem) }
-          //count * getItersOf(n) // Scale up
-        //case n:LocalStore => getCountsOf(dataOf(n)) / getItersOf(n) // Scale down
-        //case n:Memory => 
-          //assertUnify(writersOf(n), "count") { writer => getCountsOf(writer) }
-        //case n:Primitive =>
-          //val deps = n.deps.filterNot(isBackPressure) 
-          //if (deps.isEmpty) {
-            //n match {
-              //case n:ContextEnable =>
-                //assert(ctrlOf(n).isInstanceOf[ArgInController]); 1
-              //case n =>
-                //val node = n.collectPeer[ContextEnable]().head
-                //getCountsOf(node)
-            //}
-          //} else assertUnify(deps, "count") {
-            //case dep:Memory =>
-              //// Get readers in the same context
-              //val readers = readersOf(dep).filter { reader => contextOf(reader) == contextOf(n) }
-              //assertUnify(readers, "count") { reader => getCountsOf(reader) }
-            //case dep => getCountsOf(dep)
-          //}
-      //}
-    //} }
-  //}
-
   def getCountsOf(n:Any):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf(${quote(n)})") { 
       n match {
@@ -151,6 +103,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
           zipMap(getCountsOf(ctxEnOf(n).get), getItersOf(n)) { case (ctxEnCounts, iters) =>
             ctxEnCounts / iters
           }
+        case n:LUT => Some(1l)
         case n:Memory =>
           val count = assertUnify(writersOf(n), "writerCounts") { writer => getCountsOf(writer) }
           if (!isFIFO(n)) {

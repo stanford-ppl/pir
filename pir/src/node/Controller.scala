@@ -34,6 +34,10 @@ case class DramController(size:Option[Int], par:Int)(implicit design:PIRDesign) 
   val style = InnerPipe
   val level = InnerControl 
 }
+case class StreamController()(implicit design:PIRDesign) extends Controller {
+  val style = InnerPipe
+  val level = InnerControl 
+}
 
 sealed trait ControlStyle extends Enum
 case object InnerPipe extends ControlStyle

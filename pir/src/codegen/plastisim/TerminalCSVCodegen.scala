@@ -13,6 +13,7 @@ class TerminalCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with C
   def cuTypeToInt(tp:String) = tp match {
     case "afg" => 0 // arg fringe
     case "dfg" => 1 // dram fringe
+    case "sfg" => 1 // strea fringe
     case "pmu" => 2 // pmu
     case "dag" => 3 // dram address generator
     case "scu" => 4 // scalar cu

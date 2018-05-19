@@ -48,6 +48,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
   def isLive(n:N):Option[Boolean] = n match {
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:HostRead => Some(true)
+    case n:ProcessStreamOut => Some(true)
     case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
     case n => None
   }
@@ -86,6 +87,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
         mem match {
           case mem:ArgIn =>
           case mem:StreamIn =>
+          case mem:LUT =>
+            assert(writersOf(mem).isEmpty, s"LUT=$mem has non-empty writers=${writersOf(mem)}")
           case mem if writersOf(mem).isEmpty =>
             warn(s"${qtype(mem)} in $cu does not have writer")
           case _ =>

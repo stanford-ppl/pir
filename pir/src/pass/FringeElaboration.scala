@@ -36,6 +36,8 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       case n@FringeSparseStore(dram,cmdStream,ackStream) =>
         transformSparse(n, cmdStream, ackStream)
         insertCountAck(n, cmdStream.head, ackStream.head)
+      case n:StreamIn => transformStreamIn(n)
+      case n:StreamOut => transformStreamOut(n)
       case _ => super.visitNode(n)
     }
   }
@@ -82,6 +84,23 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val argFringe = design.top.argFringe
     val mem = TokenOut().setParent(argFringe)
     val writer = WriteMem(mem, count).setParent(cu).ctrl(dataCtrl)
+  }
+
+  def transformStreamIn(streamIn:StreamIn) = {
+    val outerCtrl = compiler.top.topController
+    val innerCtrl = StreamController().setParent(outerCtrl)
+    val streamInDef = StreamInDef().ctrl(innerCtrl)
+    val fringe = FringeStreamIn(streamIn, streamInDef)
+    WriteMem(streamIn, streamInDef).setParent(fringe).ctrl(innerCtrl)
+  }
+
+  def transformStreamOut(streamOut:StreamOut) = {
+    val outerCtrl = compiler.top.topController
+    val innerCtrl = StreamController().setParent(outerCtrl)
+    val load = ReadMem(streamOut).ctrl(innerCtrl)
+    val processStreamOut = ProcessStreamOut(load).ctrl(innerCtrl)
+    val fringe = FringeStreamOut(streamOut, processStreamOut)
+    load.setParent(fringe)
   }
 
 }

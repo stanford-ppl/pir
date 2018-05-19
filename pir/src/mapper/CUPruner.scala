@@ -13,7 +13,7 @@ trait CUPruner extends PIRPass with Memorization {
 
   val constrains = ListBuffer[CUConstrain]()
   constrains += new AFGConstrain
-  constrains += new DFGConstrain
+  constrains += new MCConstrain
   constrains += new SramConstrain
   constrains += new VectorFIFOConstrain
   constrains += new ScalarFIFOConstrain

@@ -11,19 +11,21 @@ trait TypeUtil extends ConstantPropogator { self:PIRPass =>
     implicit val design = n.design.asInstanceOf[PIRDesign]
     n match {
       case n:Memory if isControlMem(n) => classTag[Bit]
+      case n:Memory if isReg(n) => classTag[Word]
       case n:Memory => 
-        val maxWriter = writersOf(n).maxBy(writer => getParOf(writer))
-        pinTypeOf(maxWriter)
-
+        val maxAccess = accessesOf(n).maxBy(access => getParOf(access))
+        pinTypeOf(maxAccess)
       case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => classTag[Bit]
-      case Def(n,LocalStore(_,_,data)) => pinTypeOf(data, logger)
+      case Def(n,LocalLoad(mems,_)) if isReg(mems.head) => classTag[Word]
+      case Def(n,LocalLoad(mems,_)) if getParOf(n) == 1 => classTag[Word]
+      case Def(n,LocalLoad(mems,_)) if getParOf(n) > 1 => classTag[Vector]
 
       case n:GlobalInput => pinTypeOf(goutOf(n).get, logger)
       case Def(n, GlobalOutput(data, valid)) => pinTypeOf(data, logger)
 
-      case n:Primitive if getParOf(n) > 1 => classTag[Vector]
       case n:ControlNode => classTag[Bit]
       case n:Primitive if getParOf(n) == 1 => classTag[Word]
+      case n:Primitive if getParOf(n) > 1 => classTag[Vector]
 
       case n => throw PIRException(s"Don't know pinTypeOf($n)")
     }
@@ -59,8 +61,12 @@ trait TypeUtil extends ConstantPropogator { self:PIRPass =>
     cuType(n) == Some("dfg")
   }
 
+  def isSFG(n:GlobalContainer):Boolean = {
+    cuType(n) == Some("sfg")
+  }
+
   def isFringe(n:GlobalContainer):Boolean = {
-    isAFG(n) || isDAG(n)
+    isAFG(n) || isDAG(n) || isSFG(n)
   }
 
   private def writesOnlyToDFG(n:GlobalContainer) = {
@@ -82,6 +88,7 @@ trait TypeUtil extends ConstantPropogator { self:PIRPass =>
     n match {
       case n:ArgFringe => Some("afg")
       case n:DramFringe => Some("dfg")
+      case n:StreamFringe => Some("sfg")
       case n:GlobalContainer if containsRemoteMem(n) => Some("pmu")
       case n:GlobalContainer if writesOnlyToDFG(n) => Some("dag")
       case n:GlobalContainer if !containsStageOp(n) => Some("ocu")

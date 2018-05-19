@@ -63,9 +63,11 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     val context = contextOf(ctxEnOut).get
     val ctxEn = allocate[ContextEnable](context) {
       var notEmpties = computeNotEmpties(context)
-      if (notEmpties.isEmpty) dbgblk(s"No forward dependencies, duplicate all ancestor control's counter chains") {
-        allocateControllerDone(context, compiler.top.topController)
-        notEmpties = computeNotEmpties(context)
+      if (notEmpties.isEmpty && !ctrlOf(ctxEnOut).isInstanceOf[StreamController]) {
+        dbgblk(s"No forward dependencies, duplicate all ancestor control's counter chains") {
+          allocateControllerDone(context, compiler.top.topController)
+          notEmpties = computeNotEmpties(context)
+        }
       }
       //if (notEmpties.isEmpty) // If still has no data dependencies, add a tokenIn from the top
       val notFulls = computeNotFulls(context)

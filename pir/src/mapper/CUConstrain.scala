@@ -42,9 +42,9 @@ class AFGConstrain(implicit pass:CUPruner) extends CUPrefixConstrain  {
   def prefixKey(cuP:K):Boolean = isAFG(cuP)
   def prefixValue(cuS:V):Boolean = cuS.isInstanceOf[spade.node.ArgFringe]
 }
-class DFGConstrain(implicit pass:CUPruner) extends CUPrefixConstrain {
+class MCConstrain(implicit pass:CUPruner) extends CUPrefixConstrain {
   import pass._
-  def prefixKey(cuP:K):Boolean = isDFG(cuP)
+  def prefixKey(cuP:K):Boolean = isDFG(cuP) || isSFG(cuP)
   def prefixValue(cuS:V):Boolean = cuS.isInstanceOf[MC]
 }
 class SramConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
