@@ -25,7 +25,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     }
   }
 
-  override def emitEdge(from:prism.node.Edge[N], to:prism.node.Edge[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:prism.node.Output[N], to:prism.node.Input[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
     (from.src, to.src) match {
       case (from:GlobalOutput, to:GlobalInput) =>

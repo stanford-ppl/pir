@@ -2,8 +2,10 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 
-abstract class PIRPass(implicit override val compiler:PIR) extends Pass with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil {
+abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
+  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil {
 
   implicit val design:PIRDesign = compiler.design
   lazy val pirmeta = compiler.pirmeta

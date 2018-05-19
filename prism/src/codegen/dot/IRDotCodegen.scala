@@ -70,7 +70,7 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
     }
   }
 
-  def emitEdge(from:Edge[N], to:Edge[N], attr:DotAttr):Unit = {
+  def emitEdge(from:Output[N], to:Input[N], attr:DotAttr):Unit = {
     emitEdgeMatched(from.src.asInstanceOf[N], to.src, attr) 
   }
 
