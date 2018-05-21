@@ -60,4 +60,24 @@ trait PIRComputeNode {
       })
     } else None
   }
+
+  def loadAccessesOf(n:ContextEnable) = {
+    n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
+  }
+
+  def inMemsOf(n:ContextEnable) = {
+    var reads = loadAccessesOf(n)
+    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
+    reads.flatMap { read => memsOf(read) }
+  }
+
+  def storeAccessesOf(n:ContextEnable) = {
+    n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+  }
+
+  def outMemsOf(n:ContextEnable) = {
+    val writes = storeAccessesOf(n)
+    writes.flatMap { write => memsOf(write) }
+  }
+
 }

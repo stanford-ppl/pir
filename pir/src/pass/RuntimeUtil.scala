@@ -24,7 +24,6 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case x:ArgInController => 1
         case x:ArgOutController => 1
         case DramController(size, par) => par
-        case x:StreamController => 1
       }
     }
   }
@@ -45,16 +44,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
             val wordSize = size / 4
             wordSize / par
           }
-        case x:StreamController => None
       }
-    }
-  }
-
-  def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { 
-      val parentCount = n.parent.map { parent => getCountsOf(parent) }.getOrElse(Some(1l))
-      val iters = getItersOf(n)
-      zipMap(parentCount, iters) { case (parentCount, iters) => parentCount * iters }
     }
   }
 
@@ -107,6 +97,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case n:ContextEnable => Some(1l)
         case n:LocalAccess => getItersOf(accessNextOf(n))
         case n:GlobalOutput => getItersOf(validOf(n))
+        case n:ProcessDramCommand => Some(1l)
         case n:Primitive => 
           val deps = n.deps.filterNot { dep => isBackPressure(dep) || dep.isInstanceOf[Memory] }
           minByWithBound[Primitive, Option[Long]](deps, Some(1l)) { dep => getItersOf(dep) }
@@ -114,37 +105,50 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { 
-      n match {
-        case n:ContextEnable => getCountsOf(ctrlOf(n))
-        case n:Primitive if within[ComputeContext](n) =>
-          zipMap(getCountsOf(ctxEnOf(n).get), getItersOf(n)) { case (ctxEnCounts, iters) =>
-            ctxEnCounts / iters
-          }
-        case n:LUT => Some(1l)
-        case n:Memory =>
-          val count = assertUnify(writersOf(n), "writerCounts") { writer => getCountsOf(writer) }
-          if (!isFIFO(n)) {
-            val ctrlCount = getCountsOf(ctrlOf(n))
-            zipMap(count, ctrlCount) { case (count, ctrlCount) =>
-              assert(ctrlCount == count, s"$n writerCounts($count) != ctrlCount($ctrlCount)")
-            }
-          } else {
-            val readerCounts = assertUnify(readersOf(n), "readerCounts") { reader => getCountsOf(reader) }
-            zipMap(count, readerCounts) { case (count, readerCounts) =>
-              assert(readerCounts == count, s"$n writerCounts($count) != readerCounts($readerCounts)")
-            }
-          }
-          count
+  // CtxEn.counts = R.count * R.iters / CtxEn.iters
+  // R.counts = M.counts
+  // M.counts = W.counts
+  // W.counts = Input.counts * Input.iters / W.iters
+  // Input.counts = Output.counts * Output.iters / Input.iters
+  // Output.counts = Def.counts * Def.iters / Output.iters
+  // Def.counts = CtxEn.counts
+  // Def.iters = 1
+  //
+  // CtxEn.counts = R.count * R.iters / CtxEn.iters
+  // CtxEn.counts = M.count * R.iters / 1 
+  // CtxEn.counts = W.count * R.iters
+  // CtxEn.counts = Output.counts * Output.iters / W.iters * R.iters
+  // CtxEn.counts = Def.counts * Def.iters / W.iters * R.iters
+  // CtxEn.counts = CtxEn.counts / W.iters * R.iters
+  
+  def computeCount(curr:Def, deps:List[Def]) = {
+    val currIter = getItersOf(curr)
+    assertUnify(deps, s"counts for ${quote(curr)}") { dep => 
+      zipMap(getCountsOf(dep), getItersOf(dep), currIter) { case (depCount, depIter, currIter) =>
+        depCount * depIter / currIter
       }
     }
   }
 
-  def isBackPressure(n:Primitive) = n match {
-    case n:NotFull => true
-    case n:DataReady => true
-    case _ => false
+  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
+    dbgblk(s"getCountsOf(${quote(n)})") { 
+      n match {
+        case n:ContextEnable => 
+          ctrlOf(n) match {
+            case ctrl if ctrl.style==StreamPipe => getCountsOf(n.collectPeer[StreamInDef]().head)
+            case ctrl:ArgInController => Some(1l)
+            case ctrl => computeCount(n, loadAccessesOf(n))
+          }
+        case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }
+        case n:Memory if writersOf(n).isEmpty => Some(1)
+        case n:Memory => assertUnify(writersOf(n), "writeCounts") { writer => getCountsOf(writer) }
+        case n:LocalStore => computeCount(n, List(dataOf(n)))
+        case n:GlobalInput => computeCount(n, List(goutOf(n).get))
+        case n:GlobalOutput => computeCount(n, List(gdataOf(n)))
+        case n:StreamInDef => countsOf.get(n).getOrElse(None)
+        case n:Primitive => getCountsOf(ctxEnOf(n).get)
+      }
+    }
   }
 
 }

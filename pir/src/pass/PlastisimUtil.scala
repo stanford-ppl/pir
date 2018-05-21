@@ -41,18 +41,8 @@ trait PlastisimUtil extends PIRPass {
     n.flatMap { mem => dstOf(mem) }
   }
 
-  def inAccessOf(n:Node) = {
-    n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
-  }
-
-  def inMemsOf(n:Node) = {
-    var reads = inAccessOf(n)
-    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
-    reads.flatMap { read => memsOf(read) }
-  }
-
   def inlinksOf(n:Node) = {
-    var reads = inAccessOf(n)
+    var reads = loadAccessesOf(n)
     reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
     reads.groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
@@ -60,17 +50,8 @@ trait PlastisimUtil extends PIRPass {
     }.toSeq
   }
 
-  def outAccessOf(n:Node) = {
-    n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
-  }
-
-  def outMemsOf(n:Node) = {
-    val writes = outAccessOf(n)
-    writes.flatMap { write => memsOf(write) }
-  }
-
   def outlinksOf(n:Node) = {
-    val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+    val writes = storeAccessesOf(n) // writes enabled by this contextEnable
     writes.groupBy { write =>
       val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
@@ -168,19 +149,11 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
   }
 
-  def constItersOf(x:Controller):Long = {
-    getItersOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
-  }
-
   def constItersOf(x:PIRNode):Long = {
     getItersOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
   }
 
   def constCountsOf(x:PIRNode):Long = {
-    getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
-  }
-
-  def constCountsOf(x:Controller):Long = {
     getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
   }
 

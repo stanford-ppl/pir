@@ -70,4 +70,11 @@ trait PIRMemory {
     case _ => false
   }
 
+  def isBackPressure(n:Primitive) = n match {
+    case n:NotFull => true
+    case n:DataReady => true
+    case _ => false
+  }
+
+
 }

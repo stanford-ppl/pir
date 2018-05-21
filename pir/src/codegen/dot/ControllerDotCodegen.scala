@@ -32,7 +32,10 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n)
     n match {
-      case n:Controller => getParOf(n)
+      case n:Controller => 
+        getParOf(n)
+        label += s"\nlevel=${n.level}"
+        label += s"\nstyle=${n.style}"
       case _ =>
     }
     val metas = List(parOf, itersOf, countsOf)
