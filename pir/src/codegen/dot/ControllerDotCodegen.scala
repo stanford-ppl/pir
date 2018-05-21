@@ -13,14 +13,9 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:SRAM => attr.fillcolor(orange).style(filled)
-    case n:RetimingFIFO => attr.fillcolor(gold).style(filled)
-    case n:FIFO => attr.fillcolor(gold).style(filled)
-    case n:StreamIn => attr.fillcolor(gold).style(filled)
-    case n:StreamOut => attr.fillcolor(gold).style(filled)
-    case n:Reg => attr.fillcolor(limegreen).style(filled)
-    case n:ArgIn => attr.fillcolor(limegreen).style(filled)
-    case n:ArgOut => attr.fillcolor(limegreen).style(filled)
+    case n:Memory if isRemoteMem(n) => attr.fillcolor(orange).style(filled)
+    case n:Memory if isFIFO(n) => attr.fillcolor(gold).style(filled)
+    case n:Memory if isReg(n) => attr.fillcolor(limegreen).style(filled)
     case n:Controller if n.children.nonEmpty => attr.style(dashed)
     case n => super.color(attr, n)
   }
