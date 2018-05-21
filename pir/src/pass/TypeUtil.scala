@@ -82,7 +82,7 @@ trait TypeUtil extends ConstantPropogator { self:PIRPass =>
     n.collectDown[StageDef]().size > 0
   }
 
-  def nonVectorized(n:Any) = getParOf(n) == 1
+  def nonVectorized(n:PIRNode) = getParOf(n) == 1
 
   def cuType(n:PIRNode):Option[String] = {
     n match {

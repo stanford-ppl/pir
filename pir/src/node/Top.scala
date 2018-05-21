@@ -3,6 +3,6 @@ package node
 
 case class Top()(implicit design:PIRDesign) extends Container { 
   lazy val topController:TopController = TopController()
-  lazy val argFringe = ArgFringe(topController).setParent(this)
+  lazy val argFringe = ArgFringe().setParent(this)
 }
 

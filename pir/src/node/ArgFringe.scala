@@ -1,8 +1,9 @@
 package pir
 package node
 
-case class ArgFringe(topController:Controller)(implicit design:PIRDesign) extends GlobalContainer {
+case class ArgFringe()(implicit design:PIRDesign) extends GlobalContainer {
 
+  lazy val topController = design.top.topController
   lazy val argInController = ArgInController().setParent(topController)
   lazy val argOutController = ArgOutController().setParent(topController)
 

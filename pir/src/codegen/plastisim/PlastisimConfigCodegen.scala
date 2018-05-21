@@ -47,10 +47,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         } else {
           err(s"trace file for ${cuP} at ${path} does not exist!")
         }
-      case cuP:FringeStreamIn =>
-        emitln(s"start_at_tokens = 1024 # number of stream inputs")
-      case cuP:FringeStreamOut =>
-        emitln(s"stop_after_tokens = 1024 # number of stream outputs")
+      case FringeStreamIn(streamIn, streamInDef) =>
+        val counts = countsOf.get(streamIn).getOrElse(-1)
+        emitln(s"start_at_tokens = ${counts} # number of stream inputs")
+      case FringeStreamOut(streamOut, processStreamOut) =>
+        val counts = countsOf.get(streamOut).getOrElse(-1)
+        emitln(s"stop_after_tokens = ${counts} # number of stream outputs")
       case cuP:pir.node.ArgFringe =>
         ctrlOf(n) match {
           case _:ArgInController =>

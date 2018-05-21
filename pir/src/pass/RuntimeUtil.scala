@@ -15,7 +15,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }.getOrElse(bound)
   }
 
-  def getParOf(x:Any):Int = parOf.getOrElseUpdate(x) {
+  def getParOf(x:Controller):Int = parOf.getOrElseUpdate(x) {
     dbgblk(s"getParOf($x)") {
       x match {
         case x:UnitController => 1
@@ -25,7 +25,42 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
         case x:ArgOutController => 1
         case DramController(size, par) => par
         case x:StreamController => 1
+      }
+    }
+  }
 
+  /*
+   * For controller, itersOf is the number of iteration the current controller runs before saturate
+   * */
+  def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
+    dbgblk(s"getItersOf(${quote(n)})") {
+      n match {
+        case x:UnitController => Some(1)
+        case x:TopController => Some(1)
+        case x:LoopController => getItersOf(x.cchain)
+        case x:ArgInController => Some(1)
+        case x:ArgOutController => Some(1)
+        case DramController(size, par) => 
+          size.map { size =>
+            val wordSize = size / 4
+            wordSize / par
+          }
+        case x:StreamController => None
+      }
+    }
+  }
+
+  def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
+    dbgblk(s"getCountsOf(${quote(n)})") { 
+      val parentCount = n.parent.map { parent => getCountsOf(parent) }.getOrElse(Some(1l))
+      val iters = getItersOf(n)
+      zipMap(parentCount, iters) { case (parentCount, iters) => parentCount * iters }
+    }
+  }
+
+  def getParOf(x:PIRNode):Int = parOf.getOrElseUpdate(x) {
+    dbgblk(s"getParOf($x)") {
+      x match {
         case x:ControlNode => 1
         case x:Counter => x.par
         case x:CounterChain => getParOf(x.counters.last)
@@ -45,26 +80,14 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
+
   /*
-   * For controller, itersOf is the number of iteration the current controller runs before saturate
    * For PIR nodes, itersOf is iteration interval between activation of the nodes with respect to
    * local contextEnable
    * */
-  def getItersOf(n:Any):Option[Long] = itersOf.getOrElseUpdate(n) {
+  def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
-        case x:UnitController => Some(1)
-        case x:TopController => Some(1)
-        case x:LoopController => getItersOf(x.cchain)
-        case x:ArgInController => Some(1)
-        case x:ArgOutController => Some(1)
-        case DramController(size, par) => 
-          size.map { size =>
-            val wordSize = size / 4
-            wordSize / par
-          }
-        case x:StreamController => None
-
         case cchain:CounterChain => getItersOf(cchain.outer)
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
           val cmin = getBoundAs[Int](min, logger=Some(this))
@@ -91,13 +114,9 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def getCountsOf(n:Any):Option[Long] = countsOf.getOrElseUpdate(n) {
+  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf(${quote(n)})") { 
       n match {
-        case n:Controller =>
-          val parentCount = n.parent.map { parent => getCountsOf(parent) }.getOrElse(Some(1l))
-          val iters = getItersOf(n)
-          zipMap(parentCount, iters) { case (parentCount, iters) => parentCount * iters }
         case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:Primitive if within[ComputeContext](n) =>
           zipMap(getCountsOf(ctxEnOf(n).get), getItersOf(n)) { case (ctxEnCounts, iters) =>
