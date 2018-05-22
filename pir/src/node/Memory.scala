@@ -39,7 +39,7 @@ case class TokenOut()(implicit design:PIRDesign) extends Memory
 
 case class RetimingFIFO()(implicit design:PIRDesign) extends Memory
 
-trait PIRMemory {
+trait MemoryUtil {
   def isFIFO(n:PIRNode) = n match {
     case n:FIFO => true
     case n:RetimingFIFO => true
@@ -78,6 +78,5 @@ trait PIRMemory {
     case n:DataReady => true
     case _ => false
   }
-
 
 }

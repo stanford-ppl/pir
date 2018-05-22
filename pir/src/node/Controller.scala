@@ -47,7 +47,7 @@ sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
 
-trait PIRController {
+trait ControllerUtil {
 
   def loadAccessesOf(n:Controller)(implicit pass:PIRPass) = {
     import pass.pirmeta._

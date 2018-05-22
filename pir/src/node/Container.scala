@@ -6,7 +6,7 @@ trait Container extends PIRNode with prism.node.ProductSubGraph[PIRNode] { self 
   override def outs:List[Output] = super.outs.asInstanceOf[List[Output]]
 }
 
-trait PIRContainer {
+trait ContainerUtil {
   def innerCtrlOf(container:Container) = {
     import container.pirmeta._
     ctrlsOf(container).maxBy { _.ancestors.size }

@@ -111,7 +111,7 @@ case class FIFONumel(mem:Memory)(implicit design:PIRDesign) extends Def
 case class NotEmpty(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 case class NotFull(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 
-trait PIRAccess {
+trait AccessUtil {
   def memsOf(n:LocalAccess) = {
     n match {
       case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
