@@ -61,23 +61,38 @@ trait PIRComputeNode {
     } else None
   }
 
-  def loadAccessesOf(n:ContextEnable) = {
-    n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
+  def contextOf(n:PIRNode):Option[ComputeContext] = n.collectUp[ComputeContext]().headOption
+
+  def loadAccessesOf(n:PIRNode):List[LocalLoad] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => loadAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectDown[LocalLoad]()
   }
 
-  def inMemsOf(n:ContextEnable) = {
-    var reads = loadAccessesOf(n)
-    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
+  def inMemsOf(n:PIRNode) = {
+    val reads = loadAccessesOf(n)
     reads.flatMap { read => memsOf(read) }
   }
 
-  def storeAccessesOf(n:ContextEnable) = {
-    n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
+  def localStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => localStoreAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectDown[LocalStore]()
   }
 
-  def outMemsOf(n:ContextEnable) = {
-    val writes = storeAccessesOf(n)
-    writes.flatMap { write => memsOf(write) }
+  def remoteStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => remoteStoreAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectOutTillMem[LocalStore]()
+  }
+
+  def storeAccessesOf(n:PIRNode):List[LocalStore] = localStoreAccessesOf(n) ++ remoteStoreAccessesOf(n)
+
+  def resetAccessesOf(n:PIRNode):List[LocalReset] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => resetAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectOutTillMem[LocalReset]()
+  }
+
+  def outMemsOf(n:PIRNode) = {
+    val outAccesses = storeAccessesOf(n) ++ resetAccessesOf(n)
+    outAccesses.flatMap { write => memsOf(write) }
   }
 
 }

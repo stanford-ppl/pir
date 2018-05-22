@@ -61,18 +61,9 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
     }
   }
 
-  // Return the control chain of context up until max controller. exclusively
-  // If max is none, return all ancesstors
-  def ctrlChainOf(context:ComputeContext, max:Option[Controller]) = {
-    val inner = innerCtrlOf(context)
-    val ctrlChain = inner :: inner.ancestors
-    val idx = max.map { max => ctrlChain.indexOf(max) }.getOrElse(ctrlChain.size)
-    assert(idx != -1, s"$max is not ancestor of the inner most control $inner in $context")
-    ctrlChain.slice(0, idx)
-  }
-
   def prevCtrl(context:ComputeContext, ctrl:Controller) = {
-    val chain = ctrlChainOf(context, max=Some(ctrl))
+    val inner = innerCtrlOf(context)
+    val chain = inner.ancestorSlice(ctrl).dropRight(1)
     if (chain.isEmpty) None else Some(chain.last)
   }
 
@@ -84,6 +75,12 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
 
   def allocateControllerDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerDone(ctx=$context, ctrl=$ctrl)") {
     ctrl match {
+      case ctrl if ctrl.style==StreamPipe => 
+        allocate[StreamControllerDone](context, x => ctrlOf(x) == ctrl){
+          val done = StreamControllerDone()
+          ctrlOf(done) = ctrl
+          done
+        }
       case ctrl:LoopController =>
         val cchain = duplicateCounterChain(context, ctrl) 
         cchain.inner.getEnable.getOrElse {
@@ -192,6 +189,19 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
             getAccessNext(n, mem, context)
         }
         EnabledStoreMem(mem, addr, gdata, writeNext)
+      case Def(n:LocalReset, LocalReset(mem::Nil, reset)) =>
+        val context = contextOf(n).get
+        val greset = insertGlobalIO(reset, context) {
+          val resetCtx = contextOf(reset).get
+          dbg(s"resetCtx=$resetCtx")
+          getAccessNext(n, mem, resetCtx)
+        }{
+          allocateWithFields[Low]()(context)
+        }
+        val writeNext = greset match {
+          case greset:GlobalInput => allocateWithFields[DataValid](greset)(context)
+        }
+        EnabledResetMem(mem, greset, writeNext)
     }
     newAccess.setParent(contextOf(n).get)
     swapNode(n, newAccess)

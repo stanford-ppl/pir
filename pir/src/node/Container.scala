@@ -8,8 +8,7 @@ trait Container extends PIRNode with prism.node.ProductSubGraph[PIRNode] { self 
 
 trait PIRContainer {
   def innerCtrlOf(container:Container) = {
-    implicit val design = container.design.asInstanceOf[PIRDesign]
-    import design.pirmeta._
+    import container.pirmeta._
     ctrlsOf(container).maxBy { _.ancestors.size }
   }
 }

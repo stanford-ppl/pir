@@ -96,7 +96,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
-    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(debug, new PIRIRDotCodegen(s"top10.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple2.dot"))
@@ -112,13 +111,11 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
     addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
-    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple3.dot"))
     addPass(genCtrl, irCheck)
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
+    addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controllerRuntimeAnalyzer)
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top13.dot"))
-    addPass(genCtrl && debug, new SimpleIRDotCodegen(s"simple4.dot"))
-    addPass(genCtrl && debug, new PIRPrinter(s"IR3.txt"))
     addPass(genCtrl, irCheck)
     addPass(cuStats)
 

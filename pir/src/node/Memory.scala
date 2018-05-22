@@ -34,6 +34,7 @@ trait Stream extends Memory {
 case class StreamIn(field:String)(implicit design:PIRDesign) extends Stream
 case class StreamOut(field:String)(implicit design:PIRDesign) extends Stream
 
+case class TokenIn()(implicit design:PIRDesign) extends Memory
 case class TokenOut()(implicit design:PIRDesign) extends Memory
 
 case class RetimingFIFO()(implicit design:PIRDesign) extends Memory
@@ -52,6 +53,7 @@ trait PIRMemory {
     case n:ArgIn => true
     case n:DramAddress => true
     case n:ArgOut => true
+    case n:TokenIn => true
     case n:TokenOut => true
     case n => false
   }
@@ -65,6 +67,7 @@ trait PIRMemory {
   }
 
   def isControlMem(n:Memory) = n match {
+    case n:TokenIn => true
     case n:TokenOut => true
     case StreamIn("ack") => true
     case _ => false

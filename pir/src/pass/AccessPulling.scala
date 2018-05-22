@@ -47,7 +47,9 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopolo
         val localDeps = n.deps.flatMap {
           case n:Memory if isRemoteMem(n) => None
           case n:LocalStore => None
+          case n:LocalReset => None
           case n:ArgInDef => None
+          case n:TokenInDef => None
           case n => Some(n)
         }
         dbg(s"${n}.parent=${n.parent}")

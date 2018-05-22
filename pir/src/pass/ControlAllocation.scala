@@ -15,8 +15,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with BFST
 
   override def visitNode(n:N):Unit = dbgblk(s"visitNode ${qdef(n)}") {
     n match {
-      case n:EnabledLoadMem => 
-      case n:EnabledStoreMem => 
+      case n:EnabledAccess =>
       case n:LocalAccess => transformAccess(n)
       case n =>
     }

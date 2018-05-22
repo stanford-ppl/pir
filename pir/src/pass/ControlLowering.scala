@@ -26,7 +26,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotEmpties(context:ComputeContext) = dbgblk(s"computeNotEmpties") {
-    val readMems = context.collectIn[Memory]() // All read memories should be local to the context in the same GlobalContainer
+    val readMems = inMemsOf(context)// All read memories should be local to the context in the same GlobalContainer
     dbg(s"readMems:${readMems.map(qtype)}")
     readMems.map { mem => 
       allocateWithFields[NotEmpty](mem)(context)
@@ -34,13 +34,13 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotFulls(context:ComputeContext) = dbgblk(s"computeNotFulls") {
-    var notFulls:List[Def] = context.collectDown[LocalStore]().map {
+    var notFulls:List[Def] = localStoreAccessesOf(context).map {
       case Def(writer, LocalStore(mem::Nil, _, _)) => 
         val notFull = allocateWithFields[NotFull](mem)(context)
         dbg(s"localMem: $mem, notFull:$notFull")
         notFull
     }
-    val remoteStores = context.collectOutTillMem[LocalStore]()
+    val remoteStores = remoteStoreAccessesOf(context)
     dbg(s"remoteStores=${quote(remoteStores)}")
     notFulls = notFulls ++ remoteStores.flatMap {
       case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 

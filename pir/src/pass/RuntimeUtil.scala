@@ -15,6 +15,9 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }.getOrElse(bound)
   }
 
+  def fifoLoadAccessOf(n:PIRNode) = loadAccessesOf(n).filter { read => memsOf(read).forall(isFIFO) }
+  def fifoLoadAccessOf(n:Controller) = loadAccessesOf(n).filter { read => memsOf(read).forall(isFIFO) }
+
   def getParOf(x:Controller):Int = parOf.getOrElseUpdate(x) {
     dbgblk(s"getParOf($x)") {
       x match {
@@ -34,6 +37,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
+        case x if x.isStream => None
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
         case x:LoopController => getItersOf(x.cchain)
@@ -43,6 +47,32 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
           size.map { size =>
             val wordSize = size / 4
             wordSize / par
+          }
+      }
+    }
+  }
+
+  def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
+    dbgblk(s"getCountsOf(${quote(n)})") { 
+      n match {
+        case n if n.isStream => 
+          val reads = fifoLoadAccessOf(n)
+          if (reads.isEmpty) None // set in fringe elaboration if annotated
+          else {
+            getCountsOf(ctxEnOf(reads.head).get)
+          }
+        case n =>
+          val ancestors = n.ancestors
+          ancestors.find { _.isStream }.fold {
+            (n::ancestors).map { n => getItersOf(n) }.reduce[Option[Long]]{
+              case (Some(iter1), Some(iter2)) => Some(iter1 * iter2)
+              case _ => None
+            }
+          } { stream => 
+            if (n.isInnerControl) getCountsOf(stream)
+            else assertUnify(n.children, s"counts for $n") { child => 
+              zipMap(getCountsOf(child), getItersOf(child)) { (count, iter) => count / iter }
+            }
           }
       }
     }
@@ -70,7 +100,6 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-
   /*
    * For PIR nodes, itersOf is iteration interval between activation of the nodes with respect to
    * local contextEnable
@@ -94,8 +123,11 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
           zipMap(iters, enIters) { case (iters, enIters) => iters * enIters }
         case Def(n, CounterDone(ctr)) => getItersOf(ctr)
         case n:DramControllerDone => getItersOf(ctrlOf(n))
+        case n:StreamControllerDone => 
+          val ctxCtrl = ctrlOf(ctxEnOf(n).get)
+          getCountsOf(ctxCtrl)
         case n:ContextEnable => Some(1l)
-        case n:LocalAccess => getItersOf(accessNextOf(n))
+        case n:EnabledAccess => getItersOf(accessNextOf(n))
         case n:GlobalOutput => getItersOf(validOf(n))
         case n:ProcessDramCommand => Some(1l)
         case n:Primitive => 
@@ -121,6 +153,29 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   // CtxEn.counts = Def.counts * Def.iters / W.iters * R.iters
   // CtxEn.counts = CtxEn.counts / W.iters * R.iters
   
+  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
+    dbgblk(s"getCountsOf(${quote(n)})") { 
+      n match {
+        case n:ContextEnable => 
+          ctrlOf(n) match {
+            case ctrl if ctrl.isStream & fifoLoadAccessOf(n).isEmpty => None
+            case ctrl if ctrl.isStream => computeCount(n, fifoLoadAccessOf(n))
+            case ctrl:ArgInController => Some(1l)
+            case ctrl => computeCount(n, loadAccessesOf(n))
+          }
+        case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }
+        case n:Memory if writersOf(n).isEmpty => Some(1)
+        case n:Memory => assertUnify(writersOf(n), "writeCounts") { writer => getCountsOf(writer) }
+        case n:LocalStore => computeCount(n, List(dataOf(n)))
+        case Def(n:LocalReset, LocalReset(mems, reset)) => computeCount(n, List(reset))
+        case n:GlobalInput => computeCount(n, List(goutOf(n).get))
+        case n:GlobalOutput => computeCount(n, List(gdataOf(n)))
+        case n:StreamInDef => countsOf.get(n).getOrElse(None)
+        case n:Primitive => getCountsOf(ctxEnOf(n).get)
+      }
+    }
+  }
+
   def computeCount(curr:Def, deps:List[Def]) = {
     val currIter = getItersOf(curr)
     assertUnify(deps, s"counts for ${quote(curr)}") { dep => 
@@ -130,25 +185,5 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { 
-      n match {
-        case n:ContextEnable => 
-          ctrlOf(n) match {
-            case ctrl if ctrl.style==StreamPipe => getCountsOf(n.collectPeer[StreamInDef]().head)
-            case ctrl:ArgInController => Some(1l)
-            case ctrl => computeCount(n, loadAccessesOf(n))
-          }
-        case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }
-        case n:Memory if writersOf(n).isEmpty => Some(1)
-        case n:Memory => assertUnify(writersOf(n), "writeCounts") { writer => getCountsOf(writer) }
-        case n:LocalStore => computeCount(n, List(dataOf(n)))
-        case n:GlobalInput => computeCount(n, List(goutOf(n).get))
-        case n:GlobalOutput => computeCount(n, List(gdataOf(n)))
-        case n:StreamInDef => countsOf.get(n).getOrElse(None)
-        case n:Primitive => getCountsOf(ctxEnOf(n).get)
-      }
-    }
-  }
 
 }

@@ -1,7 +1,10 @@
 package pir
 package node
 
-abstract class PIRNode(implicit design:PIRDesign) extends prism.node.ProductNode[PIRNode] with IR with PIRCollector { self =>
+abstract class PIRNode(implicit override val design:PIRDesign) extends prism.node.ProductNode[PIRNode] with IR with PIRCollector { self =>
+
+  lazy val pirmeta = design.pirmeta
+
   type N = PIRNode
   type P = Container
   type A = Primitive

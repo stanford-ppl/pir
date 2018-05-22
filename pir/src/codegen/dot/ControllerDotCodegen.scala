@@ -65,8 +65,8 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     mems.foreach { 
       case mem:RetimingFIFO =>
       case mem =>
-        readersOf(mem).foreach { reader => emitEdge(mem, ctrlOf(reader)) }
-        writersOf(mem).foreach { writer => emitEdge(ctrlOf(writer), mem) }
+        readersOf(mem).foreach { access => emitEdge(mem, ctrlOf(access)) }
+        (writersOf(mem) ++ resetersOf(mem)).foreach { access => emitEdge(ctrlOf(access), mem) }
     }
   }
 

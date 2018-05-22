@@ -2,7 +2,7 @@ package pir
 package node
 
 trait PIRNodeUtil extends PIRContainer with PIRMemory with PIRDramFringe with PIRStreamFringe
-  with PIRGlobalIO with PIRDef with PIRAccess with PIRComputeNode with PIRArgFringe {
+  with PIRGlobalIO with PIRDef with PIRAccess with PIRComputeNode with PIRArgFringe with PIRController {
 
   def within[T<:PIRNode:ClassTag](n:PIRNode) = {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
@@ -10,10 +10,6 @@ trait PIRNodeUtil extends PIRContainer with PIRMemory with PIRDramFringe with PI
 
   def globalOf(n:PIRNode) = {
     n.collectUp[GlobalContainer]().headOption
-  }
-
-  def contextOf(n:PIRNode) = {
-    n.collectUp[ComputeContext]().headOption
   }
 
   def ctrlsOf(container:Container) = {

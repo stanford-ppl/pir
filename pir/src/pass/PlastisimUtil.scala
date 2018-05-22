@@ -42,17 +42,14 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def inlinksOf(n:Node) = {
-    var reads = loadAccessesOf(n)
-    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
-    reads.groupBy { read =>
+    loadAccessesOf(n).groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
   }
 
   def outlinksOf(n:Node) = {
-    val writes = storeAccessesOf(n) // writes enabled by this contextEnable
-    writes.groupBy { write =>
+    (storeAccessesOf(n) ++ resetAccessesOf(n)).groupBy { write =>
       val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
@@ -127,7 +124,7 @@ trait PlastisimUtil extends PIRPass {
               case memP if isWord(memP) => cuS.param.scalarFifoParam.size
               case memP if isVector(memP) => cuS.param.vectorFifoParam.size
             }
-          case memP:pir.node.SRAM => cuS.param.sramParam.depth
+          case memP if isRemoteMem(memP) => cuS.param.sramParam.depth
           case memP if isReg(memP) => cuS.param.scalarFifoParam.size
         }
       case cuS:spade.node.ArgFringe => 1

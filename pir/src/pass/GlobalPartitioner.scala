@@ -26,7 +26,13 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
   }
 
   def retimeGlobal(cu:GlobalContainer) = dbgblk(s"retimeGlobal") {
-    cu.ins.filterNot { _.src.isInstanceOf[LocalStore] }.groupBy { in =>
+    cu.ins.filter { in => 
+      in.src match {
+        case src:LocalStore => false
+        case src:LocalReset => false
+        case src => true
+      }
+    }.groupBy { in =>
       in.from.src.asInstanceOf[Def]
     }.foreach { case (fromsrc, ins) =>
       dbg(s"retiming ${ins.map{ in => s"${in.src}.$in"}} from $fromsrc")
@@ -42,7 +48,7 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     if (splitCount < 0) assert(false)
     splitCount -= 1
     log(prune(cumap)) match {
-      case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitableConstrain(constrain) =>
+      case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitable(constrain, key) =>
         val vs = cumap(key)
         val ks = split(key)
         val newCUMap = (cumap - key) ++ (ks -> vs)
@@ -52,12 +58,13 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     }
   }
 
-  def isSplitableConstrain(constrain:Constrain) = constrain match {
-    case constrain:CUPrefixConstrain => false
-    case constrain:SramConstrain => false
-    case constrain:LaneConstrain => false
-    case constrain:CUQuantityConstrain => true
-    case constrain => false
+  def isSplitable(constrain:Constrain, key:CUMap.K) = (constrain, key) match {
+    case (c, g) if isFringe(g) => false
+    case (c:CUPrefixConstrain, _) => false
+    case (c:SramConstrain,_) => false
+    case (c:LaneConstrain,_) => false
+    case (c:CUQuantityConstrain,_) => true
+    case (c,_) => false
   }
 
   def split(cu:GlobalContainer):Set[GlobalContainer]

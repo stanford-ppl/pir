@@ -37,7 +37,7 @@ class PIRMetadata extends Metadata {
    * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if
    * ctrlOf(mem) != ctrlOf(access). Otherwise it's the ctrlOf(access) 
    * */
-  val topCtrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap
+  val topCtrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
   topCtrlOf.setName("topCtrlOf")
 
   /*

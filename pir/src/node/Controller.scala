@@ -9,6 +9,7 @@ abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph
   val level:ControlLevel
   def isInnerControl = level==InnerControl 
   def isOuterControl = level==OuterControl
+  def isStream = style==StreamPipe
   val id = design.nextId
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIRDesign) extends Controller {
@@ -46,3 +47,19 @@ sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
 
+trait PIRController {
+
+  def loadAccessesOf(n:Controller)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    topCtrlOf.bmap(n).collect { case n:LocalLoad => n }
+  }
+  def storeAccessesOf(n:Controller)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    topCtrlOf.bmap(n).collect { case n:LocalStore => n }
+  }
+  def resetAccessesOf(n:Controller)(implicit pass:PIRPass) = {
+    import pass.pirmeta._
+    topCtrlOf.bmap(n).collect { case n:LocalReset => n }
+  }
+
+}

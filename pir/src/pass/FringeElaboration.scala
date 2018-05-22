@@ -13,19 +13,13 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   override def visitNode(n:N) = dbgblk(s"visitNode($n)") { 
     n match {
       case n:Top =>
-        n.argFringe // create lazy value
+        n.argFringe // HACK: create lazy value
         super.visitNode(n)
-      case n@(_:ArgIn | _:DramAddress) =>
-        val argFringe = design.top.argFringe
-        val argInCtrl = argFringe.argInController
-        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
-        val writeMem = WriteMem(n.asInstanceOf[Memory], argInDef).setParent(argFringe).ctrl(argInCtrl)
-      case n@(_:ArgOut | _:TokenOut) =>
-        val argFringe = design.top.argFringe
-        val argOutCtrl = argFringe.argOutController
-        n.setParent(argFringe)
-        val readMem = ReadMem(n.asInstanceOf[Memory]).setParent(argFringe).ctrl(argOutCtrl)
-        argFringe.hostRead.connect(readMem.out)
+      case n:ArgIn => transformInMem(n)
+      case n:DramAddress => transformInMem(n)
+      case n:LUT => transformInMem(n)
+      case n:ArgOut => transformOutMem(n)
+      case n:TokenOut => transformOutMem(n)
       case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
         transformDense(n, cmdStream, dataStream)
       case n@FringeSparseLoad(dram,addrStream,dataStream) =>
@@ -40,6 +34,29 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       case n:StreamOut => transformStreamOut(n)
       case _ => super.visitNode(n)
     }
+  }
+
+  def transformInMem(n:Memory) = {
+    val argFringe = design.top.argFringe
+    val argInCtrl = argFringe.argInController
+    n match {
+      case n:ArgIn =>
+        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
+        WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+      case n:DramAddress => 
+        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
+        WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+      case n:LUT =>
+        ResetMem(n, argFringe.tokenInDef).setParent(argFringe).ctrl(argInCtrl)
+    }
+  }
+
+  def transformOutMem(n:Memory) = {
+    val argFringe = design.top.argFringe
+    val argOutCtrl = argFringe.argOutController
+    n.setParent(argFringe)
+    val readMem = ReadMem(n).setParent(argFringe).ctrl(argOutCtrl)
+    argFringe.hostRead.connect(readMem.out)
   }
 
   def transformDense(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
@@ -90,7 +107,10 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val outerCtrl = compiler.top.topController
     val innerCtrl = UnitController(style=StreamPipe,level=InnerControl).setParent(outerCtrl)
     val streamInDef = StreamInDef().ctrl(innerCtrl)
-    countsOf.get(streamIn).foreach { counts => countsOf(streamInDef) = counts }
+    countsOf.get(streamIn).foreach { counts => 
+      countsOf(innerCtrl) = counts
+      countsOf(streamInDef) = counts
+    }
     val fringe = FringeStreamIn(streamIn, streamInDef)
     WriteMem(streamIn, streamInDef).setParent(fringe).ctrl(innerCtrl)
   }

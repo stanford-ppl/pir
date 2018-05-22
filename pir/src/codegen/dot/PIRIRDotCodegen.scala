@@ -82,7 +82,9 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   override def emitEdge(from:N, to:N, attr:DotAttr) = {
     (from, to) match {
       case (from:ArgInDef, to) if !areLocal(from, to) =>
+      case (from:TokenInDef, to) if !areLocal(from, to) =>
       case (from, to:ArgIn) if !areLocal(from, to) =>
+      case (from, to:TokenIn) if !areLocal(from, to) =>
       case (from:GlobalOutput, to:GlobalInput) =>
       case (from, to) => super.emitEdge(from, to, attr)
     }
