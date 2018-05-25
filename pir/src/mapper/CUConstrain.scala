@@ -5,7 +5,7 @@ import pir.node._
 import pir.pass._
 import spade.node._
 
-trait CUConstrain extends Constrain {
+trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil {
   type K = CUMap.K
   type V = CUMap.V
   type FG = CUMap

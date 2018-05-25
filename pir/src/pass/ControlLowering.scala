@@ -44,7 +44,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     dbg(s"remoteStores=${quote(remoteStores)}")
     notFulls = notFulls ++ remoteStores.flatMap {
       case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 
-        val notFull:Def = if (compiler.arch.topParam.busWithReady) {
+        val notFull:Def = if (compiler.arch.designParam.topParam.busWithReady) {
           val gout = writeNext.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
           allocateWithFields[DataReady](gout)(context)
         } else {

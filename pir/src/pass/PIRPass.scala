@@ -5,7 +5,8 @@ import pir.node._
 import pir.mapper._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
-  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil with PIRNodeUtil {
+  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil with PIRNodeUtil 
+with spade.SpadeAlias with MappingLogger {
 
   implicit val design:PIRDesign = compiler.design
   lazy val pirmeta = compiler.pirmeta

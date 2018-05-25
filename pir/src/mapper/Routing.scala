@@ -2,6 +2,7 @@ package pir
 package mapper
 
 import pir.node._
+import spade.param._
 import spade.node._
 import prism.collection.immutable._
 
@@ -78,9 +79,9 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     type DramFringe = pir.node.DramFringe
     val scuP = globalOf(tailP).get
     val ecuP = globalOf(headP).get
-    (scuP, ecuP, self.compiler.arch.topParam) match {
-      case (scuP:ArgFringe  , ecuP            , param:MeshTopParam) => param.numRows / 2 + 2
-      case (scuP            , ecuP:ArgFringe  , param:MeshTopParam) => param.numRows / 2 + 2
+    (scuP, ecuP, self.compiler.arch.designParam.topParam) match {
+      case (scuP:ArgFringe  , ecuP            , param:MeshTopParam) => param.numRows + 2
+      case (scuP            , ecuP:ArgFringe  , param:MeshTopParam) => param.numRows + 2
       case (scuP:DramFringe , ecuP            , param:MeshTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP:DramFringe , param:MeshTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP            , param:MeshTopParam) => 

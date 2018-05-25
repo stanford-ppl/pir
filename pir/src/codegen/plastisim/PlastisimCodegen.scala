@@ -3,7 +3,6 @@ package codegen
 
 import pir.node._
 import pir.pass._
-import spade.node._
 import prism.util._
 
 trait PlastisimCodegen extends PIRCodegen with FileManager with PlastisimUtil {

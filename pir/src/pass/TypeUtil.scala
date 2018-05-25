@@ -2,7 +2,6 @@ package pir
 package pass
 
 import pir.node._
-import spade.node.{Bit, Word, Vector, PinType}
 
 trait TypeUtil extends ConstantPropogator { self:PIRPass =>
   import pirmeta._

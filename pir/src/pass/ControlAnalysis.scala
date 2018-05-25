@@ -53,7 +53,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
     val toCU = globalOf(toCtx).get
     if (fromCU == toCU) from else {
       val gout = allocateWithFields[GlobalOutput](from,validFunc)(fromCtx)
-      if (compiler.arch.topParam.busWithReady) {
+      if (compiler.arch.designParam.topParam.busWithReady) {
         allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)(toCtx)
       } else {
         allocateWithFields[ValidGlobalInput](gout)(toCtx)

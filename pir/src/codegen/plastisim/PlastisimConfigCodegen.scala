@@ -2,7 +2,7 @@ package pir
 package codegen
 
 import pir.node._
-import spade.node._
+import spade.param._
 import prism.collection.mutable._
 import sys.process._
 
@@ -73,7 +73,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetwork = {
     if (isDynamic(topS)) {
-      val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
+      val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicMeshTopParam]
       import topParam._
       topParam.networkParams.foreach { networkParam =>
         val tp = networkParam.bct

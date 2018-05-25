@@ -1,8 +1,6 @@
 package pir
 package mapper
 
-import spade.node._
-
 import scala.collection.mutable
 
 trait DynamicPlacement extends BackTrackingMatch { self:PIRPass =>

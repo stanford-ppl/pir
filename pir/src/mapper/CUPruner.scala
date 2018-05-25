@@ -2,7 +2,6 @@ package pir
 package mapper
 
 import pir.node._
-import spade.node._
 import prism.collection.immutable._
 import prism.util.Memorization
 
@@ -33,7 +32,7 @@ trait CUPruner extends PIRPass with Memorization {
       val topP = compiler.top
       val topS = compiler.arch.top
       val pnodes = topP.collectDown[CUMap.K]()
-      val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[SwitchBox] }
+      val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[spade.node.SwitchBox] }
       cumap ++= pnodes.toSet -> snodes.toSet
       cumap
     } }

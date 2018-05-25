@@ -2,7 +2,6 @@ package pir
 package mapper
 
 import pir.node._
-import spade.node._
 
 trait StaticPlacement extends BackTrackingMatch with StaticRouting { self:PIRPass =>
   import pirmeta._

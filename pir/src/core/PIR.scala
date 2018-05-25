@@ -4,7 +4,6 @@ import pir.node._
 import pir.pass._
 import pir.mapper._
 import pir.codegen._
-import spade.node.{Bit, Word, Vector}
 import PIRConfig._
 
 trait PIR extends Compiler with PIRWorld {

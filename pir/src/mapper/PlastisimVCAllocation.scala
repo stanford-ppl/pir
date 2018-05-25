@@ -3,14 +3,14 @@ package mapper
 
 import pir.node._
 import pir.pass._
-import spade.node._
+import spade.param._
 import prism.collection.mutable
 import prism.collection.immutable
 
 class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with PlastisimUtil with MappingLogger with BackTrackingMatch {
   import pirmeta._
   
-  lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
+  lazy val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicMeshTopParam]
 
   override def runPass:Unit =  {
     if (!isDynamic(compiler.arch.top)) return

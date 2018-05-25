@@ -3,6 +3,7 @@ package pass
 
 import pir.node._
 import spade.node._
+import spade.param._
 
 trait PlastisimUtil extends PIRPass {
   import pirmeta._
@@ -57,7 +58,7 @@ trait PlastisimUtil extends PIRPass {
 
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
-    val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
+    val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicMeshTopParam]
     import topParam._
     indexOf.get(sn).map { case List(x,y) =>
       val idx = y * numTotalCols + x

@@ -2,7 +2,6 @@ package pir
 package mapper
 
 import pir.node._
-import spade.node._
 
 class CUPlacer(implicit compiler:PIR) extends PIRPass with StaticPlacement with DynamicPlacement {
   import pirmeta._

@@ -3,7 +3,7 @@ import pir.mapper._
 import pir.util._
 import prism.util._
 
-package object pir extends spade.SpadeAlias with prism.PrismAlias with MappingLogger {
+package object pir extends prism.PrismAlias with spade.SpadeAlias {
   /* ------------- Alias ------------- **/
 
   type PNode = pir.node.PIRNode

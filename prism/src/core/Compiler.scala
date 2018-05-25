@@ -57,7 +57,9 @@ trait Compiler extends FileManager with ArgLoader {
   }
 
   def newSession:Unit = {
+    tic
     newDesign
+    toc("New design","ms")
     setSession(new Session())
     initSession
   }
@@ -75,11 +77,10 @@ trait Compiler extends FileManager with ArgLoader {
     }
   }
 
-  def runSession = {
-    session.run
-  }
+  def runSession = session.run
 
   def main(args: Array[String]): Unit = {
+    tic
     try {
       reset
       setArgs(args)
@@ -90,5 +91,6 @@ trait Compiler extends FileManager with ArgLoader {
         err(e, exception=false)
         handle(e)
     }
+    toc(s"compilation", "s")
   }
 }
