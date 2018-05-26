@@ -57,6 +57,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
       n match {
         case n if n.isStream => 
           val reads = fifoLoadAccessOf(n)
+          dbg(s"reads=$reads")
           if (reads.isEmpty) None // set in fringe elaboration if annotated
           else {
             getCountsOf(ctxEnOf(reads.head).get)

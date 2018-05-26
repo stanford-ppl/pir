@@ -80,11 +80,11 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
     val scuP = globalOf(tailP).get
     val ecuP = globalOf(headP).get
     (scuP, ecuP, self.compiler.arch.designParam.topParam) match {
-      case (scuP:ArgFringe  , ecuP            , param:MeshTopParam) => param.numRows + 2
-      case (scuP            , ecuP:ArgFringe  , param:MeshTopParam) => param.numRows + 2
-      case (scuP:DramFringe , ecuP            , param:MeshTopParam) => param.numCols / 2 + 2
-      case (scuP            , ecuP:DramFringe , param:MeshTopParam) => param.numCols / 2 + 2
-      case (scuP            , ecuP            , param:MeshTopParam) => 
+      case (scuP:ArgFringe  , ecuP            , param:GridTopParam) => param.numRows + 2
+      case (scuP            , ecuP:ArgFringe  , param:GridTopParam) => param.numRows + 2
+      case (scuP:DramFringe , ecuP            , param:GridTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP:DramFringe , param:GridTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP            , param:GridTopParam) => 
         val minCost = 3
         val maxCost = param.numRows / 2 + param.numCols / 2
         val sdegree = degree(scuP)

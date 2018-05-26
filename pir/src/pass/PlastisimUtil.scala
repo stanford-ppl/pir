@@ -58,7 +58,7 @@ trait PlastisimUtil extends PIRPass {
 
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
-    val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicMeshTopParam]
+    val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
     import topParam._
     indexOf.get(sn).map { case List(x,y) =>
       val idx = y * numTotalCols + x

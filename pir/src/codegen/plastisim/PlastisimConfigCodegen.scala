@@ -73,7 +73,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetwork = {
     if (isDynamic(topS)) {
-      val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicMeshTopParam]
+      val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
       import topParam._
       topParam.networkParams.foreach { networkParam =>
         val tp = networkParam.bct
