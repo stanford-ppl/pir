@@ -11,14 +11,6 @@ class PIRMetadata extends Metadata {
   val nameOf = new OneToOneMap[IR, String] with MetadataMap
   nameOf.setName("nameOf")
 
-  /* 
-   * For ComputeNode: Controller associated with a node. 
-   * For memory, it's the lca controller of controller of all its
-   * accesses 
-   * */
-  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap 
-  ctrlOf.setName("ctrlOf")
-
   /*
    * Whether a memory is a accumulator. Set by spatial
    * */
@@ -32,6 +24,14 @@ class PIRMetadata extends Metadata {
    * */
   val isInnerAccum = new OneToOneMap[Memory, Boolean] with MetadataMap
   isInnerAccum.setName("isInnerAccum")
+
+  /* 
+   * For ComputeNode: Controller associated with a node. 
+   * For memory, it's the lca controller of controller of all its
+   * accesses 
+   * */
+  val ctrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap 
+  ctrlOf.setName("ctrlOf")
 
   /*
    * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if

@@ -87,6 +87,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRIRDotCodegen(s"top7.dot"))
     addPass(deadCodeEliminator)
     addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
+    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
 
     addPass(enableSplitting, new IgraphPartioner())
     addPass(enableSplitting && debug, new PIRIRDotCodegen(s"top9.dot"))
@@ -112,8 +113,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl, irCheck)
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
-    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
-    addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controllerRuntimeAnalyzer)
     addPass(genCtrl, deadCodeEliminator)
     addPass(genCtrl, irCheck)
     addPass(cuStats)
@@ -121,9 +120,9 @@ trait PIR extends Compiler with PIRWorld {
     session.rerun {
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
+    addPass(debug, new ControllerDotCodegen(s"controller.dot"))
     addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(debug, new PIRIRDotCodegen(s"top.dot"))
-    addPass(debug, new ControlDotCodegen(s"top-ctrl.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
 

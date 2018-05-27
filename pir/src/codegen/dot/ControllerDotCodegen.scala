@@ -31,29 +31,40 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
 
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n)
+    val metas = List(parOf, itersOf, countsOf, boundOf, ctrlOf)
+    metas.foreach { meta =>
+      meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
+        label += s"\n(${meta.name}=$v)"
+      }
+    }
     n match {
       case n:Controller => 
         getParOf(n)
         label += s"\nlevel=${n.level}"
         label += s"\nstyle=${n.style}"
-      case _ =>
-    }
-    val metas = List(parOf, itersOf, countsOf)
-    metas.foreach { meta =>
-      meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
-        label += s"\n(${meta.name}=$v)"
-      }
+      case n:Memory =>
+        (writersOf(n) ++ resetersOf(n) ++ readersOf(n)).foreach { access =>
+          label += s"\n$access"
+          topCtrlOf.get(access).foreach { m => label += s"\n(topCtrl=$m)" }
+          itersOf.get(access).foreach { m => label += s"\n(iters=$m)" }
+        }
     }
     attr.label(label)
   }
 
   override def emitSingleNode(n:N):Unit = {
     ctrlOf.foreach { 
-      case (mem:RetimingFIFO, `n`) =>
+      case (mem:Memory, `n`) if memWithSameWriteAndReadCtrl(mem) =>
       case (mem:Memory, `n`) => emitSingleNode(mem)
       case _ => 
     }
     super.emitSingleNode(n)
+  }
+
+  def memWithSameWriteAndReadCtrl(mem:Memory) = {
+    val readCtrl = readersOf(mem).map { read => ctrlOf(read) }.toSet
+    val writeCtrl = (writersOf(mem)++resetersOf(mem)).map { write => ctrlOf(write) }.toSet
+    readCtrl.size==1 && readCtrl == writeCtrl
   }
 
   override def runPass = {
@@ -63,7 +74,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   override def emitEdges = {
     val mems = compiler.top.collectDown[Memory]()
     mems.foreach { 
-      case mem:RetimingFIFO =>
+      case mem if memWithSameWriteAndReadCtrl(mem) =>
       case mem =>
         readersOf(mem).foreach { access => emitEdge(mem, ctrlOf(access)) }
         (writersOf(mem) ++ resetersOf(mem)).foreach { access => emitEdge(ctrlOf(access), mem) }

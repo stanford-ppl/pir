@@ -156,7 +156,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def constItersOf(accesses:List[LocalAccess]):Long = {
-    assertUnify(accesses, "iter") { access => constItersOf(access) }
+    assertUnify(accesses, "iters") { access => constItersOf(access) }
   }
 
   def constCountsOf(accesses:List[LocalAccess]):Long = {

@@ -7,10 +7,14 @@ abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph
   type P = Controller
   val style:ControlStyle
   val level:ControlLevel
-  def isInnerControl = level==InnerControl 
-  def isOuterControl = level==OuterControl
+  def isInnerControl = children.isEmpty
+  def isOuterControl = !isInnerControl
   def isStream = style==StreamPipe
   val id = design.nextId
+}
+case class ForeverController()(implicit design:PIRDesign) extends Controller {
+  val style = StreamPipe
+  val level = OuterControl
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIRDesign) extends Controller {
   override def className = s"$style"
@@ -49,17 +53,9 @@ case object OuterControl extends ControlLevel
 
 trait ControllerUtil {
 
-  def loadAccessesOf(n:Controller)(implicit pass:PIRPass) = {
-    import pass.pirmeta._
-    topCtrlOf.bmap(n).collect { case n:LocalLoad => n }
-  }
-  def storeAccessesOf(n:Controller)(implicit pass:PIRPass) = {
-    import pass.pirmeta._
-    topCtrlOf.bmap(n).collect { case n:LocalStore => n }
-  }
-  def resetAccessesOf(n:Controller)(implicit pass:PIRPass) = {
-    import pass.pirmeta._
-    topCtrlOf.bmap(n).collect { case n:LocalReset => n }
+  def isForever(n:Controller) = n match {
+    case n:ForeverController => true
+    case n => false
   }
 
 }

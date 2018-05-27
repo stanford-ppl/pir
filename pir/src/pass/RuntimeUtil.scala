@@ -15,12 +15,10 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }.getOrElse(bound)
   }
 
-  def fifoLoadAccessOf(n:PIRNode) = loadAccessesOf(n).filter { read => memsOf(read).forall(isFIFO) }
-  def fifoLoadAccessOf(n:Controller) = loadAccessesOf(n).filter { read => memsOf(read).forall(isFIFO) }
-
   def getParOf(x:Controller):Int = parOf.getOrElseUpdate(x) {
     dbgblk(s"getParOf($x)") {
       x match {
+        case n:ForeverController => 1
         case x:UnitController => 1
         case x:TopController => 1
         case x:LoopController => getParOf(x.cchain)
@@ -37,7 +35,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf(${quote(n)})") {
       n match {
-        case x if x.isStream => None
+        case x:ForeverController => getCountsOf(x)
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
         case x:LoopController => getItersOf(x.cchain)
@@ -55,29 +53,64 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf(${quote(n)})") { 
       n match {
-        case n if n.isStream => 
-          val reads = fifoLoadAccessOf(n)
-          dbg(s"reads=$reads")
-          if (reads.isEmpty) None // set in fringe elaboration if annotated
-          else {
-            getCountsOf(ctxEnOf(reads.head).get)
+        case ctrl:ArgInController => Some(1l)
+        case ctrl:ForeverController => 
+          assertUnify(n.children.filter(c => foreverLoadsOf(c).nonEmpty), s"counts for $n") { c => 
+            zipMap(getCountsOf(c), itersOf(c)) { case (c, i) => c / i }
           }
-        case n =>
-          val ancestors = n.ancestors
-          ancestors.find { _.isStream }.fold {
-            (n::ancestors).map { n => getItersOf(n) }.reduce[Option[Long]]{
-              case (Some(iter1), Some(iter2)) => Some(iter1 * iter2)
-              case _ => None
+        case n:Controller if n.ancestors.exists(isForever) =>
+          val reads = foreverLoadsOf(n).toList
+          if (reads.nonEmpty) {
+            val ctxEn = ctxEnOf(reads.head).get
+            computeCount(ctxEn, reads)
+          } else if (n.children.nonEmpty) {
+            assertUnify(n.children, s"counts for $n") { c => 
+              zipMap(getCountsOf(c), itersOf(c)) { case (c, i) => c / i }
             }
-          } { stream => 
-            if (n.isInnerControl) getCountsOf(stream)
-            else assertUnify(n.children, s"counts for $n") { child => 
-              zipMap(getCountsOf(child), getItersOf(child)) { (count, iter) => count / iter }
-            }
+          } else {
+            throw PIRException(s"don't know how to compute getCountsOf($n)")
+          }
+        case n:Controller =>
+          (n::n.ancestors).map { n => getItersOf(n) }.reduce[Option[Long]]{
+            case (Some(iter1), Some(iter2)) => Some(iter1 * iter2)
+            case _ => None
           }
       }
     }
   }
+
+  def foreverLoadsOf(n:Controller) = fifoLoadsOf(n) ++ loadsUnderForever(n)
+
+  def fifoLoadsOf(n:Controller) = dbgblk(s"remoteStoreAccessesOf($n)"){
+    val descendents = (n :: n.descendents)
+    val reads = ctrlOf.bmap(n).collect { case n:LocalLoad => n }.toList
+    dbg(s"reads=${reads.map { read => (read, memsOf(read))}}")
+    dbg(s"descendents=$descendents")
+    reads.filter { read => 
+      memsOf(read).forall { mem => 
+        isFIFO(mem) && writersOf(mem).forall { writer => 
+          val writerCtrl = ctrlOf(writer)
+          dbg(s"mem=$mem writerCtrl=$writerCtrl")
+          !descendents.contains(writerCtrl)
+        }
+      } 
+    }
+  }
+
+  def loadsUnderForever(n:Controller) = dbgblk(s"loadAccessesUnderForever($n)"){
+    val forever = n.ancestors.filter(isForever).head
+    val fdescendents = forever::forever.descendents
+    val descendents = n :: n.descendents
+    val reads = ctrlOf.bmap(n).collect { case n:LocalLoad => n }.toList
+    dbg(s"reads=${reads.map { read => (read, memsOf(read))}}")
+    reads.filter { read => memsOf(read).forall { mem => 
+      writersOf(mem).forall { writer =>
+        val writerCtrl = ctrlOf(writer)
+        !descendents.contains(writerCtrl)
+      } && fdescendents.contains(ctrlOf(mem)) 
+    } }
+  }
+
 
   def getParOf(x:PIRNode):Int = parOf.getOrElseUpdate(x) {
     dbgblk(s"getParOf($x)") {
@@ -124,9 +157,7 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
           zipMap(iters, enIters) { case (iters, enIters) => iters * enIters }
         case Def(n, CounterDone(ctr)) => getItersOf(ctr)
         case n:DramControllerDone => getItersOf(ctrlOf(n))
-        case n:StreamControllerDone => 
-          val ctxCtrl = ctrlOf(ctxEnOf(n).get)
-          getCountsOf(ctxCtrl)
+        case n:ForeverControllerDone => getItersOf(ctrlOf(n))
         case n:ContextEnable => Some(1l)
         case n:EnabledAccess => getItersOf(accessNextOf(n))
         case n:GlobalOutput => getItersOf(validOf(n))
@@ -155,15 +186,9 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
   // CtxEn.counts = CtxEn.counts / W.iters * R.iters
   
   def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { 
+    dbgblk(s"getCountsOf(${quote(n)}, ctrl=${ctrlOf(n)})") { 
       n match {
-        case n:ContextEnable => 
-          ctrlOf(n) match {
-            case ctrl if ctrl.isStream & fifoLoadAccessOf(n).isEmpty => None
-            case ctrl if ctrl.isStream => computeCount(n, fifoLoadAccessOf(n))
-            case ctrl:ArgInController => Some(1l)
-            case ctrl => computeCount(n, loadAccessesOf(n))
-          }
+        case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }
         case n:Memory if writersOf(n).isEmpty => Some(1)
         case n:Memory => assertUnify(writersOf(n), "writeCounts") { writer => getCountsOf(writer) }
@@ -177,10 +202,21 @@ trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
     }
   }
 
-  def computeCount(curr:Def, deps:List[Def]) = {
+  def getItersOf(n:Any):Option[Long] = n match {
+    case n:PIRNode => getItersOf(n)
+    case n:Controller => getItersOf(n)
+  }
+
+  def getCountsOf(n:Any):Option[Long] = n match {
+    case n:PIRNode => getCountsOf(n)
+    case n:Controller => getCountsOf(n)
+  }
+
+  def computeCount(curr:Any, deps:List[Any]) = dbgblk(s"computeCount(${quote(curr)}, ${deps.map(quote)})"){
     val currIter = getItersOf(curr)
     assertUnify(deps, s"counts for ${quote(curr)}") { dep => 
       zipMap(getCountsOf(dep), getItersOf(dep), currIter) { case (depCount, depIter, currIter) =>
+        dbg(s"depCount=$depCount * depIter=$depIter / currIter=$currIter")
         depCount * depIter / currIter
       }
     }

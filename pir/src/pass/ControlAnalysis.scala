@@ -75,9 +75,9 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
 
   def allocateControllerDone(context:ComputeContext, ctrl:Controller):ControlNode = dbgblk(s"allocateControllerDone(ctx=$context, ctrl=$ctrl)") {
     ctrl match {
-      case ctrl if ctrl.style==StreamPipe => 
-        allocate[StreamControllerDone](context, x => ctrlOf(x) == ctrl){
-          val done = StreamControllerDone()
+      case ctrl:ForeverController => 
+        allocate[ForeverControllerDone](context, x => ctrlOf(x) == ctrl){
+          val done = ForeverControllerDone()
           ctrlOf(done) = ctrl
           done
         }

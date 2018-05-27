@@ -70,7 +70,7 @@ trait Compiler extends FileManager with ArgLoader {
     try {
       if (load) loadSession else newSession
     } catch {
-      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException) if load =>
+      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) if load =>
         warn(s"Restore session failed: ${e}. Creating a new session ...")
         newSession
       case e:Throwable => throw e

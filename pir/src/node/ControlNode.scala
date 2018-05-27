@@ -6,4 +6,4 @@ case class High()(implicit design:PIRDesign) extends ControlNode
 case class Low()(implicit design:PIRDesign) extends ControlNode
 
 // Equivalent to Low
-case class StreamControllerDone()(implicit design:PIRDesign) extends ControlNode
+case class ForeverControllerDone()(implicit design:PIRDesign) extends ControlNode

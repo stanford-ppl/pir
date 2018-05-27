@@ -22,6 +22,10 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
     }
   }
 
+  override def finPass:Unit = {
+    pirMap.fold ({ failure => fail(failure) },{ mapping => succeed })
+  }
+
   def assignVCColor(init:VCMap) = {
     var vcmap = init
     infMemsOf.keys.foreach { mem =>

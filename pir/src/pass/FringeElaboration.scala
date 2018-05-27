@@ -107,10 +107,9 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val outerCtrl = compiler.top.topController
     val innerCtrl = UnitController(style=StreamPipe,level=InnerControl).setParent(outerCtrl)
     val streamInDef = StreamInDef().ctrl(innerCtrl)
-    countsOf.get(streamIn).foreach { counts => 
-      countsOf(innerCtrl) = counts
-      countsOf(streamInDef) = counts
-    }
+    val counts = countsOf.get(streamIn).getOrElse(None)
+    countsOf(innerCtrl) = counts
+    countsOf(streamInDef) = counts
     val fringe = FringeStreamIn(streamIn, streamInDef)
     WriteMem(streamIn, streamInDef).setParent(fringe).ctrl(innerCtrl)
   }
