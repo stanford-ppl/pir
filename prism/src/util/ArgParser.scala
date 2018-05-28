@@ -17,7 +17,6 @@ case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
 }
 
 trait ArgParser {
-  // Map[Key, (value, default, info)]
   val optionMap = mutable.ListMap[String, ArgOption[_]]()
 
   def register[T:ClassTag](key:String, default:Option[T], info:String):Unit = {
@@ -31,12 +30,6 @@ trait ArgParser {
   def getOption[T](key:String) = optionMap(key).getValue.asInstanceOf[Option[T]]
   def option[T](key:String):T = getOption[T](key).get
 
-  def printUsage = {
-    optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
-      info(s"--$key $msg [default=$default]")
-    }
-  }
-
   def setOption(args:List[String]):Unit = {
     args match {
       case arg::rest if isOption(arg) =>
@@ -45,6 +38,12 @@ trait ArgParser {
         setOption(remain)
       case _::args => setOption(args)
       case Nil => 
+    }
+  }
+
+  def printUsage = {
+    optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
+      info(s"--$key $msg [default=$default]")
     }
   }
 
