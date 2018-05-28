@@ -8,7 +8,7 @@ trait IR extends Serializable {
   val id:Int
 
   override def equals(that: Any) = that match {
-    case n: IR => id == n.id && super.equals(that)
+    case n: IR => id == n.id
     case _ => super.equals(that)
   }
 
