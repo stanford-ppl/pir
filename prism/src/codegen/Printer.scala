@@ -109,7 +109,7 @@ trait Printer {
     stream.close
   }
 
-  def closeAllBufferAndWrite:Unit = {
+  def closeAllBuffersAndWrite:Unit = {
     while (inBuffer) closeBufferAndWrite
   }
 

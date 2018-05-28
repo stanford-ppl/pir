@@ -85,20 +85,40 @@ trait Routing extends spade.util.NetworkAStarSearch with Debugger { self:PIRPass
       case (scuP:DramFringe , ecuP            , param:GridTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP:DramFringe , param:GridTopParam) => param.numCols / 2 + 2
       case (scuP            , ecuP            , param:GridTopParam) => 
-        val minCost = 3
-        val maxCost = param.numRows / 2 + param.numCols / 2
+        val lowerBound = 3
+        val upperBound = param.numRows / 2 + param.numCols / 2
         val sdegree = degree(scuP)
         val edegree = degree(ecuP)
         val degreeScale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
         val usageScale = pmap.cumap.mappedValues.size * 1.0 / pmap.cumap.values.size
         val scale = Math.max(degreeScale, usageScale)
-        val cost = minCost + (Math.max(0, (maxCost - minCost)) * scale).toInt
-        dbg(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
+        val cost = lowerBound + (Math.max(0, (upperBound - lowerBound)) * scale).toInt
+        dbg(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
         dbg(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
         //println(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
-        assert(cost >= minCost, s"cost=$cost < minCost=$minCost")
-        assert(cost <= maxCost, s"cost=$cost > maxCost=$maxCost")
-        //println(s"minCost=$minCost, maxCost=$maxCost, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
+        assert(cost >= lowerBound, s"cost=$cost < lowerBound=$lowerBound")
+        assert(cost <= upperBound, s"cost=$cost > upperBound=$upperBound")
+        //println(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
+        cost
+      case (scuP:ArgFringe  , ecuP            , param:CMeshTopParam) => param.numRows + 2
+      case (scuP            , ecuP:ArgFringe  , param:CMeshTopParam) => param.numRows + 2
+      case (scuP:DramFringe , ecuP            , param:CMeshTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP:DramFringe , param:CMeshTopParam) => param.numCols / 2 + 2
+      case (scuP            , ecuP            , param:CMeshTopParam) => 
+        val lowerBound = 3
+        val upperBound = param.numRows / 2 + param.numCols / 2
+        val sdegree = degree(scuP)
+        val edegree = degree(ecuP)
+        val degreeScale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
+        val usageScale = pmap.cumap.mappedValues.size * 1.0 / pmap.cumap.values.size
+        val scale = Math.max(degreeScale, usageScale)
+        val cost = lowerBound + (Math.max(0, (upperBound - lowerBound)) * scale).toInt
+        dbg(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
+        dbg(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
+        //println(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
+        assert(cost >= lowerBound, s"cost=$cost < lowerBound=$lowerBound")
+        assert(cost <= upperBound, s"cost=$cost > upperBound=$upperBound")
+        //println(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
         cost
       case _ => throw PIRException(s"Don't know what is spanMaxCost")
     }

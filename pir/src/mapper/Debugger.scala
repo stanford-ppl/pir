@@ -39,7 +39,7 @@ trait Debugger { self:PIRPass =>
   }
 
   def handle(m:PIRMap, error:Any) = {
-    logger.closeAllBufferAndWrite
+    logger.closeAllBuffersAndWrite
     info(Console.RED, "break", error)
     val answer = ask(s"Waiting for input ...")
     act(m, error, answer)

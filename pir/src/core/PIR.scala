@@ -123,7 +123,6 @@ trait PIR extends Compiler with PIRWorld {
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
     addPass(debug, new ControllerDotCodegen(s"controller.dot"))
-    addPass(debug, new PIRNetworkDotCodegen[Bit](s"archCtrl.dot"))
     addPass(debug, new PIRIRDotCodegen(s"top.dot"))
     addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
