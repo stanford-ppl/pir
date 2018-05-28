@@ -71,79 +71,78 @@ trait Ops {
   def fixCompOps = fixOps.collect {case op:CompOp => op}
   def fltCompOps = fltOps.collect {case op:CompOp => op}
 
-  def convert(x:Any, op:Op):Any = (x,op) match {
-    case (x:Int, op:FltOp) => x.toFloat
-    case (x:Int, op:BitOp) => x > 0 
-    case (x:Float, op:FixOp) => java.lang.Float.floatToIntBits(x)
-    case (x, op) => x
+  object ToInt {
+    def unapply(x:Any):Option[Int] = x match {
+      case x:Int => Some(x)
+      case x:Float => Some(java.lang.Float.floatToIntBits(x))
+      case _ => None
+    }
+  }
+  object ToFloat {
+    def unapply(x:Any):Option[Float] = x match {
+      case x:Float => Some(x)
+      case x:Int => Some(x.toFloat)
+      case _ => None
+    }
+  }
+  object ToBool {
+    def unapply(x:Any):Option[Boolean] = x match {
+      case x:Boolean => Some(x)
+      case x:Int => Some(x > 0)
+      case _ => None
+    }
   }
 
   def eval(op:Op, ins:List[Any]):Any = {
-    (op, ins.toList.map(in => convert(in, op))) match {
-      case (FixAdd   , (a:Int)::(b:Int)::_)                     => (a + b)
-      case (FixSub   , (a:Int)::(b:Int)::_)                     => (a - b)
-      case (FixMul   , (a:Int)::(b:Int)::_)                     => (a * b)
-      case (FixDiv   , (a:Int)::(b:Int)::_)                     => (a / b)
-      case (FixMin   , (a:Int)::(b:Int)::_)                     => (Math.min(a, b))
-      case (FixMax   , (a:Int)::(b:Int)::_)                     => (Math.max(a, b))
-      case (FixLt    , (a:Int)::(b:Int)::_)                     => (a < b)
-      case (FixLeq   , (a:Int)::(b:Int)::_)                     => (a <= b)
-      case (FixGt    , (a:Int)::(b:Int)::_)                     => (a > b)
-      case (FixGeq   , (a:Int)::(b:Int)::_)                     => (a >= b)
-      case (FixEql   , (a:Int)::(b:Int)::_)                     => (a == b)
-      case (FixNeq   , (a:Int)::(b:Int)::_)                     => (a != b)
-      case (FixMod   , (a:Int)::(b:Int)::_)                     => (a % b)
-      case (FixSra   , (a:Int)::(b:Int)::_)                     => (a >> b)
-      case (FixSla   , (a:Int)::(b:Int)::_)                     => (a << b)
-      case (FixUsla  , (a:Int)::(b:Int)::_)                     => (a << b)
-      case (FixNeg   , (a:Int)::_)                              => (-a)
-      case (FixRandom, (a:Int)::_)                              => (0) //TODO
-      case (FixUnif  , (a:Int)::_)                              => (0) //TODO
+    (op, ins) match {
+      case (FixAdd   , ToInt(a)::ToInt(b)::_)     => (a + b)
+      case (FixSub   , ToInt(a)::ToInt(b)::_)     => (a - b)
+      case (FixMul   , ToInt(a)::ToInt(b)::_)     => (a * b)
+      case (FixDiv   , ToInt(a)::ToInt(b)::_)     => (a / b)
+      case (FixMin   , ToInt(a)::ToInt(b)::_)     => (Math.min(a, b))
+      case (FixMax   , ToInt(a)::ToInt(b)::_)     => (Math.max(a, b))
+      case (FixLt    , ToInt(a)::ToInt(b)::_)     => (a < b)
+      case (FixLeq   , ToInt(a)::ToInt(b)::_)     => (a <= b)
+      case (FixGt    , ToInt(a)::ToInt(b)::_)     => (a > b)
+      case (FixGeq   , ToInt(a)::ToInt(b)::_)     => (a >= b)
+      case (FixEql   , ToInt(a)::ToInt(b)::_)     => (a == b)
+      case (FixNeq   , ToInt(a)::ToInt(b)::_)     => (a != b)
+      case (FixMod   , ToInt(a)::ToInt(b)::_)     => (a % b)
+      case (FixSra   , ToInt(a)::ToInt(b)::_)     => (a >> b)
+      case (FixSla   , ToInt(a)::ToInt(b)::_)     => (a << b)
+      case (FixUsla  , ToInt(a)::ToInt(b)::_)     => (a << b)
+      case (FixNeg   , ToInt(a)::_)               => (-a)
+      case (FixRandom, ToInt(a)::_)               => (0) //TODO
+      case (FixUnif  , ToInt(a)::_)               => (0) //TODO
 
-      case (FltAdd   , (a:Float)::(b:Float)::_)                 => (a + b)
-      case (FltSub   , (a:Float)::(b:Float)::_)                 => (a - b)
-      case (FltMul   , (a:Float)::(b:Float)::_)                 => (a * b)
-      case (FltDiv   , (a:Float)::(b:Float)::_)                 => (a / b)
-      case (FltMin   , (a:Float)::(b:Float)::_)                 => (Math.min(a , b))
-      case (FltMax   , (a:Float)::(b:Float)::_)                 => (Math.max(a , b))
-      case (FltLt    , (a:Float)::(b:Float)::_)                 => (a < b)
-      case (FltLeq   , (a:Float)::(b:Float)::_)                 => (a <= b)
-      case (FltGt    , (a:Float)::(b:Float)::_)                 => (a > b)
-      case (FltGeq   , (a:Float)::(b:Float)::_)                 => (a >= b)
-      case (FltEql   , (a:Float)::(b:Float)::_)                 => (a == b)
-      case (FltNeq   , (a:Float)::(b:Float)::_)                 => (a != b)
-      case (FltExp   , (a:Float)::(b:Float)::_)                 => (Math.exp(a))
-      case (FltAbs   , (a:Float)::(b:Float)::_)                 => (Math.abs(a))
-      case (FltLog   , (a:Float)::(b:Float)::_)                 => (Math.log(a))
-      case (FltSqr   , (a:Float)::(b:Float)::_)                 => (Math.sqrt(a))
-      case (FltNeg   , (a:Float)::(b:Float)::_)                 => (-a)
+      case (FltAdd   , ToFloat(a)::ToFloat(b)::_) => (a + b)
+      case (FltSub   , ToFloat(a)::ToFloat(b)::_) => (a - b)
+      case (FltMul   , ToFloat(a)::ToFloat(b)::_) => (a * b)
+      case (FltDiv   , ToFloat(a)::ToFloat(b)::_) => (a / b)
+      case (FltMin   , ToFloat(a)::ToFloat(b)::_) => (Math.min(a , b))
+      case (FltMax   , ToFloat(a)::ToFloat(b)::_) => (Math.max(a , b))
+      case (FltLt    , ToFloat(a)::ToFloat(b)::_) => (a < b)
+      case (FltLeq   , ToFloat(a)::ToFloat(b)::_) => (a <= b)
+      case (FltGt    , ToFloat(a)::ToFloat(b)::_) => (a > b)
+      case (FltGeq   , ToFloat(a)::ToFloat(b)::_) => (a >= b)
+      case (FltEql   , ToFloat(a)::ToFloat(b)::_) => (a == b)
+      case (FltNeq   , ToFloat(a)::ToFloat(b)::_) => (a != b)
+      case (FltExp   , ToFloat(a)::ToFloat(b)::_) => (Math.exp(a))
+      case (FltAbs   , ToFloat(a)::ToFloat(b)::_) => (Math.abs(a))
+      case (FltLog   , ToFloat(a)::ToFloat(b)::_) => (Math.log(a))
+      case (FltSqr   , ToFloat(a)::ToFloat(b)::_) => (Math.sqrt(a))
+      case (FltNeg   , ToFloat(a)::ToFloat(b)::_) => (-a)
 
-      case (BitAnd   , (a:Boolean)::(b:Boolean)::_)             => (a && b)
-      case (BitAnd   , Some(false)::b::_)                       => Some(false)
-      case (BitAnd   , a::Some(false)::_)                       => Some(false)
-      case (BitOr    , (a:Boolean)::(b:Boolean)::_)             => (a || b)
-      case (BitOr    , Some(true)::b::_)                        => Some(true)
-      case (BitOr    , a::Some(true)::_)                        => Some(true)
-      case (BitNot   , (a:Boolean)::(b:Boolean)::_)             => (!a)
-      case (BitXnor  , (a:Boolean)::(b:Boolean)::_)             => (a == b)
-      case (BitXor   , (a:Boolean)::(b:Boolean)::_)             => (a != b)
+      case (BitAnd   , ToBool(a)::ToBool(b)::_)   => (a && b)
+      case (BitOr    , ToBool(a)::ToBool(b)::_)   => (a || b)
+      case (BitNot   , ToBool(a)::ToBool(b)::_)   => (!a)
+      case (BitXnor  , ToBool(a)::ToBool(b)::_)   => (a == b)
+      case (BitXor   , ToBool(a)::ToBool(b)::_)   => (a != b)
 
-      case (Bypass   , a::_)                                    => a
-      case (MuxOp    , true::a::b::_)                           => a
-      case (MuxOp    , false::a::b::_)                          => b
-      case (MuxOp    , Some(true)::a::b::_)                     => a
-      case (MuxOp    , Some(false)::a::b::_)                    => b
-      case (MuxOp    , (s:Int)::a::b::_) if s==0                => a
-      case (MuxOp    , (s:Int)::a::b::_) if s>0                 => b
-      case (MuxOp    , Some(s:Int)::a::b::_) if s==0            => a
-      case (MuxOp    , Some(s:Int)::a::b::_) if s>0             => b
+      case (Bypass   , a::_)                      => a
+      case (MuxOp    , ToBool(true)::a::b::_)     => a
+      case (MuxOp    , ToBool(false)::a::b::_)    => b
 
-      case (op:Op1   , Some(a)::_)                              => Some(eval(op, List(a)))
-      case (op:Op2   , Some(a)::Some(b)::_)                     => Some(eval(op, List(a,b)))
-      case (op:Op3   , Some(a)::Some(b)::Some(c)::_)            => Some(eval(op, List(a,b,c)))
-      case (op:Op1   , a::_) if List(a).exists(_ == None)       => None
-      case (op:Op2   , a::b::_) if List(a,b).exists(_ == None)    => None
-      case (op:Op3   , a::b::c::_) if List(a,b,c).exists(_ == None) => None
       case (op, ins) => throw PIRException(s"Don't know how to evaluate $op ins=$ins")
     }
   }

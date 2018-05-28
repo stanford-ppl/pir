@@ -34,6 +34,7 @@ trait PIR extends Compiler with PIRWorld {
 
   /* Transformation */
   lazy val fringeElaboration = new FringeElaboration()
+  lazy val constantExpressionEvaluator = new ConstantExpressionEvaluation()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val unrollingTransformer = new UnrollingTransformer()
   lazy val cuInsertion = new CUInsertion()
@@ -71,6 +72,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(fringeElaboration).dependsOn(controlPropogator)
     addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator).dependsOn(fringeElaboration)
+    addPass(constantExpressionEvaluator)
     addPass(irCheck).dependsOn(deadCodeEliminator)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(debug, new PIRIRDotCodegen(s"top2.dot"))

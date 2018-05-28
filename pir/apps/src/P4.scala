@@ -8,8 +8,6 @@ object P4 extends PIRApp {
     import design.pirmeta._
     val x1271 = StreamIn(field="data").name("x1271").ctrl(top) // x1271 = StreamInNew(GPInput1)
     val x1272 = StreamIn(field="data").name("x1272").ctrl(top) // x1272 = StreamInNew(GPInput2)
-    countsOf(x1271) = Some(1024l)
-    countsOf(x1272) = Some(1024l)
     val x1273 = StreamOut(field="data").name("x1273").ctrl(top) // x1273 = StreamOutNew(GPOutput1)
     val x1274 = StreamOut(field="data").name("x1274").ctrl(top) // x1274 = StreamOutNew(GPOutput2)
     // x1275 = Forever() TODO: Unmatched Node

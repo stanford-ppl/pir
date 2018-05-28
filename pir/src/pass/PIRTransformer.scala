@@ -142,9 +142,9 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }).asInstanceOf[Def]
   }
 
-  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
+  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil, mirrorMeta:Boolean=true):T = {
     if (from == to) return to
-    pirmeta.mirror(from, to)
+    if (mirrorMeta) pirmeta.mirror(from, to)
     val depeds = at.getOrElse(from.depeds).filterNot{ d => excludes.contains(d) }
     dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)} depeds=${depeds}")
     depeds.foreach { deped => 
