@@ -3,7 +3,9 @@ package pass
 
 import pir.node._
 
-trait TypeUtil extends ConstantPropogator { self:PIRPass =>
+trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
+
+  val pirmeta:PIRMetadata
   import pirmeta._
 
   def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = pir.dbgblk(logger, s"pinTypeOf($n)") {

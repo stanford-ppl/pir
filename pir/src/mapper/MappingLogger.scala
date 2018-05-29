@@ -4,16 +4,16 @@ package mapper
 import prism.mapper._
 import prism.collection.immutable._
 
-trait MappingLogger {
+trait MappingLogger { self:Logging =>
 
-  def log[T](pred:Boolean, x:T)(implicit logger:Logging):T = {
+  def log[T](pred:Boolean, x:T):T = {
     if (pred) logging(x) else x
     x
   }
 
-  def log[T](x:T)(implicit logger:Logging):T = log(true, x)
+  def log[T](x:T):T = log(true, x)
 
-  def logging(x:Any)(implicit logger:Logging):Unit = {
+  def logging(x:Any):Unit = {
     x match {
       case x:PIRMap => logging(x)
       case x:FactorGraphLike[_,_,_] => logging(x)
@@ -22,18 +22,12 @@ trait MappingLogger {
       case Left(x) => logging(x)
       //case x:InvalidFactorGraph[_,_] => logging(x)
       case x:BindingTrace[_,_] => logging(x)
-      case x => logger.dbg(s"$x")
+      case x => dbg(s"$x")
     }
   }
 
-  //def logging(x:InvalidFactorGraph[_,_])(implicit logger:Logging):Unit = {
-    //logger.dbgblk(s"$x") {
-      //logging(x.fg)
-    //}
-  //}
-
-  def logging(x:BindingTrace[_,_])(implicit logger:Logging):Unit = {
-    logger.dbgblk(s"$x") {
+  def logging(x:BindingTrace[_,_]):Unit = {
+    dbgblk(s"$x") {
       x.traces.foreach { trace =>
         logging(trace)
       }
@@ -41,31 +35,31 @@ trait MappingLogger {
     }
   }
 
-  def logging(x:PIRMap)(implicit logger:Logging):Unit = {
-    logger.dbgblk(s"pmap") {
+  def logging(x:PIRMap):Unit = {
+    dbgblk(s"pmap") {
       x.productIterator.foreach { field => logging(field) }
     }
   }
 
-  def logging(x:FactorGraphLike[_,_,_])(implicit logger:Logging):Unit = {
-    logger.dbgblk(x.getClass.getSimpleName) {
-      logger.dbgblk(s"freeMap") {
+  def logging(x:FactorGraphLike[_,_,_]):Unit = {
+    dbgblk(x.getClass.getSimpleName) {
+      dbgblk(s"freeMap") {
         x.freeMap.foreach { case (k, vs) =>
-          logger.dbg(s"${logger.quote(k)} -> ${logger.quote(vs)}")
+          dbg(s"${quote(k)} -> ${quote(vs)}")
         }
       }
-      logger.dbgblk(s"usedMap") {
+      dbgblk(s"usedMap") {
         x.usedMap.foreach { case (k, vv) =>
-          logger.dbg(s"${logger.quote(k)} -> ${logger.quote(vv)}")
+          dbg(s"${quote(k)} -> ${quote(vv)}")
         }
       }
     }
   }
 
-  def logging(x:prism.collection.MapLike[_,_])(implicit logger:Logging):Unit = {
-    logger.dbgblk(x.getClass.getSimpleName) {
+  def logging(x:prism.collection.MapLike[_,_]):Unit = {
+    dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, v) =>
-        logger.dbg(s"${logger.quote(k)} -> ${logger.quote(v)}")
+        dbg(s"${quote(k)} -> ${quote(v)}")
       }
     }
   }

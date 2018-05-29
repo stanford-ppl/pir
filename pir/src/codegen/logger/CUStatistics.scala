@@ -2,6 +2,7 @@ package pir
 package codegen
 
 import pir.node._
+import pir.pass._
 import spade.node._
 
 import prism.codegen.JsonCodegen
@@ -18,6 +19,11 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
   }
 
   override def runPass =  {
+    if (compiler.session.hasRunAll[IgraphPartioner]) {
+      dbg(s"=========== Post-splitting CU Statistics ==================")
+    } else {
+      dbg(s"=========== Pre-splitting CU Statistics ==================")
+    }
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
     val cuMap = cus.groupBy(cuType)

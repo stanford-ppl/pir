@@ -6,7 +6,7 @@ import spade.node._
 import prism.collection.immutable._
 
 class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any)(implicit compiler:PIR) 
-  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with MappingUtil {
+  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with MappingUtil with pir.pass.TypeUtil {
 
   val pirmeta = compiler.pirmeta
 
@@ -28,10 +28,12 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
 
   override def label(attr:DotAttr, n:Any) = n match {
     case n:Routable => 
-      mappedTo[Any](n).fold {
+      mappedTo[pir.node.GlobalContainer](n).fold {
         super.label(attr, n)
       } { cuP =>
-        attr.label(s"${quote(n)}\n(${quote(cuP)})")
+        var label = s"${quote(n)}"
+        label += s"\n(${quote(cuP)}[${cuType(cuP).get}])"
+        attr.label(label)
       }
     case n => super.label(attr,n)
   }

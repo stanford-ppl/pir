@@ -40,6 +40,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val cuInsertion = new CUInsertion()
   lazy val accessPuller = new AccessPulling()
   lazy val accessLowering = new AccessLowering()
+  lazy val igraphPartioner = new IgraphPartioner()
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextInsertion = new ContextInsertion()
   lazy val contextMerging = new ContextMerging()
@@ -90,8 +91,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(deadCodeEliminator)
     addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
+    addPass(cuStats)
 
-    addPass(enableSplitting, new IgraphPartioner())
+    addPass(enableSplitting, igraphPartioner)
     addPass(enableSplitting && debug, new PIRIRDotCodegen(s"top9.dot"))
     addPass(enableSplitting && debug, new SimpleIRDotCodegen(s"simple1.dot"))
 
@@ -117,9 +119,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, deadCodeEliminator)
     addPass(genCtrl, irCheck)
-    addPass(cuStats)
 
     session.rerun {
+    addPass(cuStats)
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
     addPass(debug, new ControllerDotCodegen(s"controller.dot"))
@@ -128,10 +130,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
     // Mapping
-
     addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(enableMapping, cuPruning)
+    addPass(cuPruning)
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-enableMapping analysis
@@ -146,8 +147,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
 
      // Simulation
-
-     // Statistics
 
     }
   }

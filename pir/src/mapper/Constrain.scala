@@ -5,12 +5,15 @@ import prism.collection.immutable._
 import prism.util.Memorization
 import scala.collection.mutable
 
-abstract class Constrain(implicit val pass:PIRPass with Memorization) {
+abstract class Constrain(implicit val pass:PIRPass) extends Logging with Memorization with MappingLogger {
   type K
   type V
   type FG <: FactorGraphLike[K,V,FG]
   implicit def fgct:ClassTag[FG]
+  override lazy val logger = pass.logger
   override def toString = this.getClass.getSimpleName.replace("$","")
+  override def quote(n:Any) = pass.quote(n)
+  memorizing = true // TODO: is this actually memorizing?
   def prune(fg:FG):EOption[FG]
   def prune(pmap:PIRMap):EOption[PIRMap] = {
     pmap.flatMap[FG](field => prune(field))
@@ -25,7 +28,6 @@ trait CostConstrain extends Constrain {
   }
 }
 trait PrefixConstrain extends CostConstrain {
-  import pass._
   def prefixKey(cuP:K):Boolean
   def prefixValue(cuS:V):Boolean
   val prefixKeyOf = memorize(prefixKey _)
@@ -34,12 +36,11 @@ trait PrefixConstrain extends CostConstrain {
     val key = prefixKeyOf(cuP)
     val value = prefixValueOf(cuS)
     val factor = key == value
-    if (!factor) pass.dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
+    if (!factor) dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
     factor
   }
 }
 trait QuantityConstrain extends CostConstrain {
-  import pass._
   def numPNodes(cuP:K):Int
   def numSnodes(cuS:V):Int
   val numPNodesOf = memorize(numPNodes _)
@@ -48,12 +49,11 @@ trait QuantityConstrain extends CostConstrain {
     val key = numPNodesOf(cuP)
     val value = numSnodesOf(cuS)
     val factor = key <= value
-    if (!factor) pass.dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
+    if (!factor) dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
     factor
   }
 }
 trait ArcConsistencyConstrain extends Constrain {
-  import pass._
   def prune(fg:FG):EOption[FG] = {
     flatFold(fg.freeKeys,fg) { case (fg, k) => ac3[K,V,FG](fg, k) }
   }
@@ -72,31 +72,43 @@ trait ArcConsistencyConstrain extends Constrain {
   }
 }
 trait MatchingConstrain extends Constrain {
-  import pass._
 
-  def prune(fg:FG):EOption[FG] = {
-    val subgraphs = createCompleteBipartiteSubgraphs(fg)
-    flatFold(subgraphs, fg) { case (fg, (vs, ks)) =>
-      val keySize = ks.size
-      val valueSize = vs.size
-      val fit = keySize <= valueSize
-      pass.dbg(s"MatchingConstrain: keySize=$keySize <= valueSize=$valueSize = $fit")
-      if (fit) Right(fg) else Left(MatchConstrainFailure(fg, ks.toSet))
+  //def createCompleteBipartiteSubgraphs(fg:FG) = {
+    //val subgraphs = mutable.Map[Set[V], mutable.Set[K]]()
+    //fg.freeKeys.foreach { key =>
+      //val values = fg.freeValues(key)
+      //if (!subgraphs.contains(values)) {
+        //subgraphs += (values -> mutable.Set[K]())
+      //}
+      //subgraphs.foreach { case (vs, ks) =>
+        //if (vs.subsetOf(values)) ks += key
+      //}
+    //}
+    //subgraphs
+  //}
+
+  def check(fg:FG, ks:Set[K], vs:Set[V]) = {
+    val keySize = ks.size
+    val valueSize = vs.size
+    val fit = keySize <= valueSize
+    dbgblk(s"MatchingConstrain: keySize=$keySize <= valueSize=$valueSize = $fit") {
+      dbg(s"keys=${quote(ks)}")
+      dbg(s"values=${quote(vs)}")
     }
+    if (fit) Right(fg) else Left(MatchConstrainFailure(fg, ks.toSet))
   }
-
-  def createCompleteBipartiteSubgraphs(fg:FG) = {
-    val subgraphs = mutable.Map[Set[V], mutable.Set[K]]()
-    fg.freeKeys.foreach { key =>
-      val values = fg.freeValues(key)
-      if (!subgraphs.contains(values)) {
-        subgraphs += (values -> mutable.Set[K]())
-      }
-      subgraphs.foreach { case (vs, ks) =>
-        if (vs.subsetOf(values)) ks += key
-      }
+  
+  def prune(fg:FG):EOption[FG] = {
+    log(fg)
+    val sets = fg.freeKeys.groupBy { key => fg.freeValues(key) }.map { case (values, keys) =>
+      (keys.head, values)
     }
-    subgraphs
+    flatFold(sets, fg) { case (fg, (key, values)) =>
+      val keys = values.flatMap { value => fg.freeKeys(value) }.filter { key => 
+        fg.freeValues(key).subsetOf(values)
+      }
+      check(fg, keys, values)
+    }
   }
 
 }

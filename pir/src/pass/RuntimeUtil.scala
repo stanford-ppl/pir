@@ -3,7 +3,9 @@ package pass
 
 import pir.node._
 
-trait RuntimeUtil extends ConstantPropogator { self:PIRPass =>
+trait RuntimeUtil extends ConstantPropogator { self:Logging =>
+  val pirmeta:PIRMetadata
+  val spademeta:SpadeMetadata
   import pirmeta._
   import spademeta._
 

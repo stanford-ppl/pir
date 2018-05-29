@@ -4,10 +4,11 @@ package pass
 import pir.node._
 import prism.enums.{Op => _,_}
 
-trait ConstantPropogator extends Ops {
-  def getBoundOf(n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[Any] = dbgblk(logger, s"getBoundOf($n)") {
-    import pass.pirmeta._
-    implicit val design = pass.design
+trait ConstantPropogator extends Ops { self:Logging =>
+  val pirmeta:PIRMetadata
+  import pirmeta._
+
+  def getBoundOf(n:PIRNode, logger:Option[Logging]=None):Option[Any] = pir.dbgblk(logger, s"getBoundOf($n)") {
     boundOf.get(n).orElse {
       val bound = n match {
         case Def(n, Const(value)) => Some(value)
@@ -26,7 +27,7 @@ trait ConstantPropogator extends Ops {
     }
   }
 
-  def getBoundAs[T:ClassTag](n:PIRNode, logger:Option[Logging]=None)(implicit pass:PIRPass):Option[T] = {
+  def getBoundAs[T:ClassTag](n:PIRNode, logger:Option[Logging]=None):Option[T] = {
     getBoundOf(n, logger).map {
       case c:T => c
       case c => throw PIRException(s"getBoundOf($n) = $c but expect type ${implicitly[ClassTag[T]]}")

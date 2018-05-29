@@ -62,25 +62,25 @@ object EnabledAccess {
 }
 
 object WithWriters {
-  def unapply(n:Any)(implicit pass:PIRPass):Option[List[LocalStore]] = n match {
+  def unapply(n:Any):Option[List[LocalStore]] = n match {
     case n:Memory => Some(writersOf(n).toList)
     case _ => None
   }
 }
 object WithWriter {
-  def unapply(n:Any)(implicit pass:PIRPass):Option[LocalStore] = n match {
+  def unapply(n:Any):Option[LocalStore] = n match {
     case n:Memory if writersOf(n).size == 1 => Some(writersOf(n).head)
     case _ => None
   }
 }
 object WithReaders {
-  def unapply(n:Any)(implicit pass:PIRPass):Option[List[LocalLoad]] = n match {
+  def unapply(n:Any):Option[List[LocalLoad]] = n match {
     case n:Memory => Some(readersOf(n).toList)
     case _ => None
   }
 }
 object WithReader {
-  def unapply(n:Any)(implicit pass:PIRPass):Option[LocalLoad] = n match {
+  def unapply(n:Any):Option[LocalLoad] = n match {
     case n:Memory if readersOf(n).size == 1 => Some(readersOf(n).head)
     case _ => None
   }
