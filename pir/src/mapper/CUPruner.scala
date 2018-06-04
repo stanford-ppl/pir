@@ -11,20 +11,22 @@ trait CUPruner extends PIRPass with Memorization {
   import pirmeta._
 
   val constrains = ListBuffer[CUConstrain]()
-  constrains += new AFGConstrain
-  constrains += new MCConstrain
-  constrains += new SramConstrain
-  constrains += new VectorFIFOConstrain
-  constrains += new ScalarFIFOConstrain
-  constrains += new ControlFIFOConstrain
-  constrains += new VectorInputConstrain
-  constrains += new ScalarInputConstrain
-  constrains += new ControlInputConstrain
-  constrains += new VectorOutputConstrain
-  constrains += new ScalarOutputConstrain
-  constrains += new ControlOutputConstrain
-  constrains += new StageConstrain
-  constrains += new LaneConstrain
+  if (isStatic(designS) || isDynamic(designS)) {
+    constrains += new AFGConstrain
+    constrains += new MCConstrain
+    constrains += new SramConstrain
+    constrains += new VectorFIFOConstrain
+    constrains += new ScalarFIFOConstrain
+    constrains += new ControlFIFOConstrain
+    constrains += new VectorInputConstrain
+    constrains += new ScalarInputConstrain
+    constrains += new ControlInputConstrain
+    constrains += new VectorOutputConstrain
+    constrains += new ScalarOutputConstrain
+    constrains += new ControlOutputConstrain
+    constrains += new StageConstrain
+    constrains += new LaneConstrain
+  }
 
   def initCUMap:EOption[PIRMap] = dbgblk(s"initCUMap") {
     pirMap.map { _.set[CUMap] { 

@@ -49,9 +49,9 @@ trait Debugger extends PIRPass {
     if (PIRConfig.enableSnapshot) {
       if (snapshotCount % snapshotInterval == 0) {
         val idx = snapshotCount / snapshotInterval
-        new PIRNetworkDotCodegen[Bit](s"control$idx.dot", m).run
-        new PIRNetworkDotCodegen[Word](s"scalar$idx.dot", m).run
-        new PIRNetworkDotCodegen[Vector](s"vector$idx.dot", m).run
+        new PIRNetworkDotCodegen[Bit](s"control$idx.dot", m, false).run
+        new PIRNetworkDotCodegen[Word](s"scalar$idx.dot", m, false).run
+        new PIRNetworkDotCodegen[Vector](s"vector$idx.dot", m, false).run
       }
       snapshotCount += 1
     }

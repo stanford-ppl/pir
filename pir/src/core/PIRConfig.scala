@@ -23,8 +23,8 @@ object PIRConfig extends prism.GlobalConfig {
   def saveDesign = option[Boolean]("save-pir")
   def loadDesign = option[Boolean]("load-pir")
   def genCtrl = option[Boolean]("ctrl")
-  def enableSplitting = option[Boolean]("splitting") && arch != "Asic"
-  def enableMapping = option[Boolean]("mapping") && arch != "Asic"
+  def enableSplitting = option[Boolean]("splitting")
+  def enableMapping = option[Boolean]("mapping")
   def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen

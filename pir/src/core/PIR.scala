@@ -74,6 +74,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator).dependsOn(fringeElaboration)
     addPass(constantExpressionEvaluator)
+    addPass(controlPropogator) // re
     addPass(irCheck).dependsOn(deadCodeEliminator)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(debug, new PIRIRDotCodegen(s"top2.dot"))

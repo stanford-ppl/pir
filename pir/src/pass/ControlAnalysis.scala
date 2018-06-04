@@ -36,7 +36,7 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
 
   def allocateWithFields[T<:PIRNode:ClassTag:TypeTag](fields:Any*)(container:Container):T = 
     dbgblk(s"allocate(container=$container, T=${implicitly[ClassTag[T]]})"){
-    val args = fields :+ design
+    val args = fields :+ designP
     def newNode = {
       val constructor = implicitly[ClassTag[T]].runtimeClass.getConstructors()(0)
       constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
@@ -130,7 +130,6 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
   }
 
   override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
-    implicit val pirdata = design.asInstanceOf[PIRDesign]
     (getOrElseUpdate(mapping, x) {
       x match {
         case x:PIRNode =>

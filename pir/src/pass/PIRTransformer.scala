@@ -14,7 +14,6 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
 
   override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
     (getOrElseUpdate(mapping, x) { dbgblk(s"mirrorX(${quote(x)})") {
-      implicit val pirdata = design.asInstanceOf[PIRDesign]
       x match {
         case n:GlobalInput => 
           goutOf(n).foreach { gout => mapping += gout -> gout }

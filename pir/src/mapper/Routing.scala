@@ -10,14 +10,27 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
 
   import pirmeta._
 
-  lazy val arch = compiler.arch
+  def portsS(
+    gio:GlobalIO, 
+    cuS:Routable, 
+    pmap:PIRMap
+  ) (implicit 
+    portTp:PT => ClassTag[_<:PinType], 
+    gioTp:GlobalIO => ClassTag[_<:PinType]
+  ):List[PT] = {
+    throw PIRException(s"UnsupportedTarget")
+  }
 
-  def searchMaxCost(start:GlobalIO, end:GlobalIO) = -1
+  def tailToHead(pmap:PIRMap, start:GlobalIO)(tail:Edge):List[Edge] = {
+    throw PIRException(s"UnsupportedTarget")
+  }
 
-  def portsS(gio:GlobalIO, cuS:Routable, pmap:PIRMap)
-            (implicit portTp:PT => ClassTag[_<:PinType], gioTp:GlobalIO => ClassTag[_<:PinType]):List[PT]
-
-  def tailToHead(pmap:PIRMap, start:GlobalIO)(tail:Edge):List[Edge]
+  def set(
+    pmap:PIRMap, 
+    route:Route, 
+    headP:GlobalIO, 
+    tailP:GlobalIO
+  ):EOption[PIRMap] = Left(UnsupportedTarget())
 
   def span(
     start:GlobalIO, 
@@ -44,6 +57,8 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
       }
     }
   }
+
+  def searchMaxCost(start:GlobalIO, end:GlobalIO) = -1
 
   def search[M](
     start:GlobalIO, 
@@ -85,12 +100,12 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
     type DramFringe = pir.node.DramFringe
     val scuP = globalOf(tailP).get
     val ecuP = globalOf(headP).get
-    (scuP, ecuP, compiler.arch.top) match {
-      case (scuP:ArgFringe  , ecuP            , topS) if isMesh(topS) | isCMesh(topS) => numRows + 2
-      case (scuP            , ecuP:ArgFringe  , topS) if isMesh(topS) | isCMesh(topS) => numRows + 2
-      case (scuP:DramFringe , ecuP            , topS) => numCols / 2 + 2
-      case (scuP            , ecuP:DramFringe , topS) => numCols / 2 + 2
-      case (scuP            , ecuP            , topS) => 
+    (scuP, ecuP, designS) match {
+      case (scuP:ArgFringe  , ecuP            , designS) if isMesh(designS) | isCMesh(designS) => numRows + 2
+      case (scuP            , ecuP:ArgFringe  , designS) if isMesh(designS) | isCMesh(designS) => numRows + 2
+      case (scuP:DramFringe , ecuP            , designS) => numCols / 2 + 2
+      case (scuP            , ecuP:DramFringe , designS) => numCols / 2 + 2
+      case (scuP            , ecuP            , designS) => 
         val lowerBound = 3
         val upperBound = numRows / 2 + numCols / 2
         val sdegree = degree(scuP)
@@ -152,13 +167,6 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
       }
     } 
   }
-
-  def set(
-    pmap:PIRMap, 
-    route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
-  ):EOption[PIRMap]
 
   override def quote(n:Any) = n match {
     case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"

@@ -37,7 +37,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   }
 
   def transformInMem(n:Memory) = {
-    val argFringe = design.top.argFringe
+    val argFringe = designP.top.argFringe
     val argInCtrl = argFringe.argInController
     n match {
       case n:ArgIn =>
@@ -52,7 +52,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   }
 
   def transformOutMem(n:Memory) = {
-    val argFringe = design.top.argFringe
+    val argFringe = designP.top.argFringe
     val argOutCtrl = argFringe.argOutController
     n.setParent(argFringe)
     val readMem = ReadMem(n).setParent(argFringe).ctrl(argOutCtrl)
@@ -98,7 +98,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val cu = CUContainer().setParent(compiler.top)
     val reader = ReadMem(ackStream).setParent(cu).ctrl(dataCtrl)
     val count = CountAck(reader).setParent(cu).ctrl(dataCtrl)
-    val argFringe = design.top.argFringe
+    val argFringe = designP.top.argFringe
     val mem = TokenOut().setParent(argFringe)
     val writer = WriteMem(mem, count).setParent(cu).ctrl(dataCtrl)
   }

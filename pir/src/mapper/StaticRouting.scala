@@ -4,15 +4,21 @@ package mapper
 import pir.node._
 import spade.node._
 
-trait StaticRouting extends Routing { self:PIRPass =>
+trait StaticRouting extends Routing {
 
-  def markerOf(gio:GlobalIO) = gio match {
+  private def markerOf(gio:GlobalIO) = gio match {
     case gio:GlobalInput => goutOf(gio).get
     case gio:GlobalOutput => gio
   }
 
-  def portsS(gio:GlobalIO, cuS:Routable, pmap:PIRMap)
-            (implicit portTp:PT => ClassTag[_<:PinType], gioTp:GlobalIO => ClassTag[_<:PinType]):List[PT] = {
+  override def portsS(
+    gio:GlobalIO, 
+    cuS:Routable, 
+    pmap:PIRMap
+  ) (implicit 
+    portTp:PT => ClassTag[_<:PinType], 
+    gioTp:GlobalIO => ClassTag[_<:PinType]
+  ):List[PT] = if (isStatic(designS)) {
     val marker = markerOf(gio)
     val markerTp = (gioTp(marker), isGlobalInput(gio))
     val ports = cuS.collectDown[PT]().filter { port => (portTp(port), isInput(port)) == markerTp }
@@ -24,9 +30,14 @@ trait StaticRouting extends Routing { self:PIRPass =>
       case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
       case gio:GlobalInput => unmarked // one to one
     }
-  }
+  } else super.portsS(gio, cuS, pmap)
 
-  def tailToHead(pmap:PIRMap, start:GlobalIO)(tail:Edge):List[Edge] = {
+  override def tailToHead(
+    pmap:PIRMap, 
+    start:GlobalIO
+  )(
+    tail:Edge
+  ):List[Edge] = if (isStatic(designS)) {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       val (marked, unmarked) = tail.connected.partition { head => pmap.mkmap.contains(head.src.asInstanceOf[PT]) }
@@ -40,9 +51,9 @@ trait StaticRouting extends Routing { self:PIRPass =>
         case in:InputEdge[_] => unmarked // one to one
       }).toList.asInstanceOf[List[Edge]]
     }
-  }
+  } else super.tailToHead(pmap, start)(tail)
 
-  def set(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
+  private def set(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
     dbg(s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")
     (tail, head) match {
       case (tail:FIMap.K, head:FIMap.V) =>
@@ -53,17 +64,17 @@ trait StaticRouting extends Routing { self:PIRPass =>
     }
   }
 
-  def set(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
+  private def set(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
     dbg(s"setMKMap: ${quote(port.src)}.${quote(port)} - ${quote(marker)}")
     mkmap + (port, marker)
   }
 
-  def set(
+  override def set(
     pmap:PIRMap, 
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
+  ):EOption[PIRMap] = if (isStatic(designS)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
     Right(pmap).map { pmap =>
       pmap.map[FIMap] { fimap =>
         var fm = fimap
@@ -88,6 +99,6 @@ trait StaticRouting extends Routing { self:PIRPass =>
         mk
       }
     }
-  }
+  } else super.set(pmap, route, headP, tailP)
 
 }
