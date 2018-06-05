@@ -12,7 +12,7 @@ object PIRConfig extends prism.GlobalConfig {
 
   // --- Routing ----
   register("routing-algo", default="planed", info="If arch is dynamic, algo can be [dor, planed]") 
-  register("routing-cost", default="hop", info="When computing routing cost, using only hop count [hop] or traffic balanced cost [balanced]") 
+  register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
 
   // --- debug -----
   register("save-pir", default=false, info="Save IR into a file") 
@@ -35,7 +35,22 @@ object PIRConfig extends prism.GlobalConfig {
   def loadTrace = option[Boolean]("trace")
   def printStat = option[Boolean]("stat")
 
-  //// Debugging
+  // ---- Routing ----
+  def enableBalancedCost = option[String]("routing-cost") match {
+    case "hop" => false
+    case "balanced" => true
+    case "H-hop" => false
+    case "H-balanced" => true
+  }
+
+  def enableHeuristicCost = option[String]("routing-cost") match {
+    case "hop" => false
+    case "balanced" => false
+    case "H-hop" => true
+    case "H-balanced" => true
+  }
+
+  // Debugging
   def verbose = Config.option[Boolean]("verbose")
   def debug:Boolean = Config.option[Boolean]("debug")
   def enableBreakPoint = debug && option[Boolean]("bp")

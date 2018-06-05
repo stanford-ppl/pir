@@ -20,14 +20,17 @@ trait StaticDynamicPlacer extends Placer with StaticDynamicRouter with BackTrack
       bindLambda=bindLambda _
     )(
       rankP = { case (cuP, m) => (-m.cumap.freeValues(cuP).size, cuP.collectDown[GlobalIO]().size) },
-      rankS = { case (cuS,m) => -m.cumap.freeKeys(cuS).size }
+      rankS = { case (cuP, cuS, m) => -m.cumap.freeKeys(cuS).size }
     )
   } else super.place(pmap)
 
 }
 
-trait StaticDynamicRouter extends Routing 
-  with StaticRouting 
-  with DynamicRouting 
-    with DimensionOrderRouting with StaticPlanedRouting 
+trait StaticDynamicRouter 
+  extends Routing 
+    with StaticRouting 
+    with DynamicRouting 
+      with DimensionOrderRouting with StaticPlanedRouting 
+  with CostScheme
     with HopCountCost with TrafficBalancedCost
+    with HeuristicCost with MeshHeuristicCost with TorusHeuristicCost

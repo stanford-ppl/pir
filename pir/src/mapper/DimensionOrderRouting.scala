@@ -5,16 +5,18 @@ import pir.node._
 import spade.node._
 
 trait DimensionOrderRouting extends DynamicRouting {
+  // TODO:
 
-  override protected def tailToHeadEdges (
+  override def tailToHead(
     pmap:PIRMap, 
-    marker:MKMap.V
+    start:GlobalIO
   )(
     tail:Edge
-  ):List[Edge] = if (routingAlgo=="dor" || routingAlgo=="DOR") {
+  ):List[Edge] = if (isDynamic(tail) && (routingAlgo=="dor" || routingAlgo=="DOR")) {
+    val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       tail.connected.map { _.asInstanceOf[Edge] }
     }
-  } else super.tailToHeadEdges(pmap, marker)(tail)
+  } else super.tailToHead(pmap, start)(tail)
 
 }

@@ -6,7 +6,7 @@ import spade.param._
 import spade.node._
 import prism.collection.immutable._
 
-trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
+trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger {
 
   import pirmeta._
 
@@ -24,7 +24,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
     start:GlobalIO
   )(
     tail:Edge
-  ):List[(Edge, C)] = throw PIRException(s"UnsupportedTarget")
+  ):List[Edge] = throw PIRException(s"UnsupportedTarget")
 
   def set(
     pmap:PIRMap, 
@@ -46,7 +46,6 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
   def isStatic(from:Edge, to:Edge):Boolean = !isDynamic(from, to)
   def isStatic(edge:Edge):Boolean = !isDynamic(edge)
   def isStatic(route:Route):Boolean = !isDynamic(route)
-  def isInternal(from:Edge, to:Edge) = routableOf(from.src).get == routableOf(to.src).get
   def markerOf(gio:GlobalIO) = gio match {
     case gio:GlobalInput => goutOf(gio).get
     case gio:GlobalOutput => gio
@@ -67,7 +66,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
         advance=advance(
           startTails=startTails,
           tailToHead=tailToHead(pmap, start) _,
-          heuristicCost={ newState => 0 },
+          linkCost=linkCost(pmap, start, None) _,
           maxCost=maxCost
         ) _,
       ).flatMap { case (bundle, cost) => 
@@ -107,7 +106,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
         advance=advance(
           startTails=startTails,
           tailToHead=tailToHead(pmap, start) _,
-          heuristicCost=heuristicCost(ecuS),
+          linkCost=linkCost(pmap, start, Some(end)) _,
           maxCost=searchMaxCost(start, end)
         ) _
       )

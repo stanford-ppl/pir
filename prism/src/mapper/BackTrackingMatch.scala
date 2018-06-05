@@ -10,11 +10,11 @@ trait BackTrackingMatch extends MappingLogging {
     init:M, 
     bindLambda:(P,S,M) => EOption[M]
   )(
-    rankS:(S,M) => SR, // higher rank gets used first
+    rankS:(P,S,M) => SR, // higher rank gets used first
     rankP:(P,M) => PR = (p:P, m:M) => -snodes(p, m).size // higher rank gets mapped first
   ):EOption[M] = {
     maxOptionBy(pnodes) { p => rankP(p, init) }.fold[EOption[M]](Right(init)) { pnode =>
-      val sns = snodes(pnode, init).sortBy(s => rankS(s,init))(implicitly[Ordering[SR]].reverse)
+      val sns = snodes(pnode, init).sortBy(s => rankS(pnode,s,init))(implicitly[Ordering[SR]].reverse)
       dbgblk(s"Mapping ${quote(pnode)} => ${sns.map(quote)} (remain:${pnodes.size-1})",buffer=false) {
         sns.foldLeft[Either[BindingTrace[P,M],M]](Left(BindingTrace(pnode, init))) { case (prev, snode) =>
           prev.left.flatMap { f =>

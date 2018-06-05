@@ -43,7 +43,7 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
       init=vcmap,
       bindLambda=assignColor _
     )(
-      rankS = { case (s, m) => m.freeKeys(s).size } // use the most flexable color
+      rankS = { case (p, s, m) => m.freeKeys(s).size } // use the most flexable color
     )
   }
 

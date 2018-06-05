@@ -45,7 +45,7 @@ trait StaticRouting extends Routing {
     start:GlobalIO
   )(
     tail:Edge
-  ):List[(Edge, C)] = if (isStatic(tail)) {
+  ):List[Edge] = if (isStatic(tail)) {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false, flush=false) {
       val (marked, unmarked) = tail.connected.partition { head => getMarkerOf(pmap, head).nonEmpty }
@@ -53,13 +53,11 @@ trait StaticRouting extends Routing {
       dbg(s"marked=${quote(marked)}")
       dbg(s"unmarked=${quote(unmarked)}")
       dbg(s"markedAndMatched=${quote(markedAndMatched)}")
-      val heads = (tail match {
+      (tail match {
         case out:OutputEdge[_] => markedAndMatched ++ unmarked // one to many
         case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched // one to one
         case in:InputEdge[_] => unmarked // one to one
       }).toList.asInstanceOf[List[Edge]]
-      // Cost is just the hop counts
-      heads.map { head => (head, if (isInternal(tail, head)) 0 else 1) }
     }
   } else super.tailToHead(pmap, start)(tail)
 
