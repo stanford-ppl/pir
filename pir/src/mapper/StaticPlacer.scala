@@ -3,7 +3,7 @@ package mapper
 
 import pir.node._
 
-trait StaticPlacer extends Placer with Routing with StaticRouting with BackTrackingMatch {
+trait StaticDynamicPlacer extends Placer with StaticDynamicRouter with BackTrackingMatch {
   import pirmeta._
 
   private def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
@@ -12,7 +12,7 @@ trait StaticPlacer extends Placer with Routing with StaticRouting with BackTrack
     }.flatMap { pmap => route(cuP, pmap) }.map { pmap => snapshot(pmap) }
   }
 
-  override def place(pmap:PIRMap) = if (isStatic(designS)) {
+  override def place(pmap:PIRMap) = if (isStatic(designS) || isDynamic(designS)) {
     bind(
       pnodes=pmap.cumap.freeKeys.toSeq,
       snodes=(cuP:CUMap.K, m:PIRMap) => m.cumap.freeValues(cuP).toList,
@@ -25,3 +25,9 @@ trait StaticPlacer extends Placer with Routing with StaticRouting with BackTrack
   } else super.place(pmap)
 
 }
+
+trait StaticDynamicRouter extends Routing 
+  with StaticRouting 
+  with DynamicRouting 
+    with DimensionOrderRouting with StaticPlanedRouting 
+    with HopCountCost with TrafficBalancedCost

@@ -17,43 +17,65 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
   ) (implicit 
     portTp:PT => ClassTag[_<:PinType], 
     gioTp:GlobalIO => ClassTag[_<:PinType]
-  ):List[PT] = {
-    throw PIRException(s"UnsupportedTarget")
-  }
+  ):List[PT] = throw PIRException(s"UnsupportedTarget")
 
-  def tailToHead(pmap:PIRMap, start:GlobalIO)(tail:Edge):List[Edge] = {
-    throw PIRException(s"UnsupportedTarget")
-  }
+  def tailToHead(
+    pmap:PIRMap, 
+    start:GlobalIO
+  )(
+    tail:Edge
+  ):List[(Edge, C)] = throw PIRException(s"UnsupportedTarget")
 
   def set(
     pmap:PIRMap, 
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = Left(UnsupportedTarget())
+  ):EOption[PIRMap] = throw PIRException(s"UnsupportedTarget")
+
+  def underRouter(x:SpadeNode) = {
+    routableOf(x).get.isInstanceOf[Router]
+  }
+  def isDynamic(from:Edge, to:Edge):Boolean = {
+    underRouter(from.src) && underRouter(to.src)
+  }
+  def isDynamic(edge:Edge):Boolean = {
+    underRouter(edge.src) && edge.connected.forall { edge => underRouter(edge.src) }
+  }
+  def isDynamic(route:Route):Boolean = route.map { _._1 }.exists { port => underRouter(port) }
+  def isStatic(from:Edge, to:Edge):Boolean = !isDynamic(from, to)
+  def isStatic(edge:Edge):Boolean = !isDynamic(edge)
+  def isStatic(route:Route):Boolean = !isDynamic(route)
+  def isInternal(from:Edge, to:Edge) = routableOf(from.src).get == routableOf(to.src).get
+  def markerOf(gio:GlobalIO) = gio match {
+    case gio:GlobalInput => goutOf(gio).get
+    case gio:GlobalOutput => gio
+  }
 
   def span(
     start:GlobalIO, 
     pmap:PIRMap,
     maxCost:C
-  ):Seq[(Routable,C)] = dbgblk(s"span(${quote(start)},maxCost=$maxCost)",buffer=true) {
+  ):Seq[(Routable,C)] =  {
     val scuP = globalOf(start).get
     val scuS = pmap.cumap.mappedValue(scuP)
-    val startTails = portsS(start, scuS, pmap)
-    val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuP=${quote(scuP)}, scuS=${quote(scuS)}")
-    uniformCostSpan(
-      start=startBundle, 
-      advance=advance(
-        startTails=startTails,
-        tailToHead=tailToHead(pmap, start) _,
-        heuristicCost={ newState => 0 },
-        maxCost=maxCost
-      ) _,
-    ).flatMap { case (bundle, cost) => 
-      routableOf(bundle).get match {
-        case sb:SwitchBox => None
-        case routable => Some((routable, cost))
+    dbgblk(s"span(${quote(start)} scuS=${quote(scuS)} maxCost=$maxCost)",buffer=true) {
+      val startTails = portsS(start, scuS, pmap)
+      val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
+      uniformCostSpan(
+        start=startBundle, 
+        advance=advance(
+          startTails=startTails,
+          tailToHead=tailToHead(pmap, start) _,
+          heuristicCost={ newState => 0 },
+          maxCost=maxCost
+        ) _,
+      ).flatMap { case (bundle, cost) => 
+        routableOf(bundle).get match {
+          case sb:SwitchBox => None
+          case rt:Router => None
+          case routable => Some((routable, cost))
+        }
       }
     }
   }
@@ -64,48 +86,56 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
     start:GlobalIO, 
     end:GlobalIO,
     pmap:PIRMap
-  ):EOption[Route] = dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} maxCost=${searchMaxCost(start, end)}",buffer=false) {
+  ):EOption[Route] = {
     val scuP = globalOf(start).get
     val scuS = pmap.cumap.mappedValue(scuP)
     val ecuP = globalOf(end).get
     val ecuS = pmap.cumap.mappedValue(ecuP)
-    val startTails = portsS(start, scuS, pmap)
-    val endHeads = portsS(end, ecuS, pmap)
-    val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
-    val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
-    dbg(s"scuP=${quote(scuP)}, scuS=${quote(scuS)}")
-    dbg(s"ecuP=${quote(ecuP)}, ecuS=${quote(ecuS)}")
-    dbg(s"startTails=${startTails.map(quote)}")
-    dbg(s"endHeads=${endHeads.map(quote)}")
-    uniformCostSearch (
-      start=startBundle, 
-      end=endBundle,
-      advance=advance(
-        startTails=startTails,
-        tailToHead=tailToHead(pmap, start) _,
-        heuristicCost=heuristicCost(ecuS),
-        maxCost=searchMaxCost(start, end)
-      ) _
-    )
+    val maxCost = searchMaxCost(start, end)
+    dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} scuS=${quote(scuS)} ecuS=${quote(ecuS)} maxCost=$maxCost",buffer=false) {
+      val startTails = portsS(start, scuS, pmap)
+      val endHeads = portsS(end, ecuS, pmap)
+      val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
+      val endBundle = endHeads.head.src.asInstanceOf[Bundle[_]]
+      dbg(s"scuP=${quote(scuP)}, scuS=${quote(scuS)}")
+      dbg(s"ecuP=${quote(ecuP)}, ecuS=${quote(ecuS)}")
+      dbg(s"startTails=${startTails.map(quote)}")
+      dbg(s"endHeads=${endHeads.map(quote)}")
+      uniformCostSearch (
+        start=startBundle, 
+        end=endBundle,
+        advance=advance(
+          startTails=startTails,
+          tailToHead=tailToHead(pmap, start) _,
+          heuristicCost=heuristicCost(ecuS),
+          maxCost=searchMaxCost(start, end)
+        ) _
+      )
+    }
   }
 
   lazy val maxDegree = pirMap.right.get.cumap.keys.map { cuP => degree(cuP) }.max
 
   lazy val (numRows, numCols) = compiler.arch.designParam.topParam match {
-    case param:GridTopParam => (param.numRows, param.numCols)
-    case param:CMeshTopParam => (param.numRows, param.numCols)
+    case param:StaticGridTopParam => (param.numRows, param.numCols)
+    case param:DynamicGridTopParam => (param.numTotalRows, param.numTotalCols)
+    case param:StaticCMeshTopParam => (param.numRows, param.numCols)
+    case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
   }
+
   def spanMaxCost(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap) = dbgblk(s"spanMaxCost(${quote(tailP)}, ${quote(headP)})", buffer=false) {
     type ArgFringe = pir.node.ArgFringe
     type DramFringe = pir.node.DramFringe
     val scuP = globalOf(tailP).get
     val ecuP = globalOf(headP).get
-    (scuP, ecuP, designS) match {
-      case (scuP:ArgFringe  , ecuP            , designS) if isMesh(designS) | isCMesh(designS) => numRows + 2
-      case (scuP            , ecuP:ArgFringe  , designS) if isMesh(designS) | isCMesh(designS) => numRows + 2
-      case (scuP:DramFringe , ecuP            , designS) => numCols / 2 + 2
-      case (scuP            , ecuP:DramFringe , designS) => numCols / 2 + 2
-      case (scuP            , ecuP            , designS) => 
+    (scuP, ecuP) match {
+      case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
+      case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
+      case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
+      case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
+      case (scuP:DramFringe , ecuP           ) => numCols / 2 + 2
+      case (scuP            , ecuP:DramFringe) => numCols / 2 + 2
+      case (scuP            , ecuP           ) => 
         val lowerBound = 3
         val upperBound = numRows / 2 + numCols / 2
         val sdegree = degree(scuP)
@@ -139,7 +169,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
           dbg(s"canReach=$canReach")
           dbg(s"cumap($neighborP)=${cumap(neighborP)}")
           cumap.filterAt(neighborP) { cuS => canReach.contains(cuS) }.map { filtered =>
-            dbg(s"filtered=$filtered")
+            dbg(s"filtered=${filtered(neighborP)}")
             filtered
           }
         }
@@ -169,8 +199,9 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with Debugger {
   }
 
   override def quote(n:Any) = n match {
-    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
     case n:PT => s"${quote(n.src)}.${n}"
+    case n:Edge => s"${quote(n.src)}.$n"
+    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
     case n => super.quote(n)
   }
 

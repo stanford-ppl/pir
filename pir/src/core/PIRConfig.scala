@@ -10,6 +10,10 @@ object PIRConfig extends prism.GlobalConfig {
   register("psim", default=true, info="Enable generation to plastisim")
   register("trace", default=false, info="Enable trace generation")
 
+  // --- Routing ----
+  register("routing-algo", default="planed", info="If arch is dynamic, algo can be [dor, planed]") 
+  register("routing-cost", default="hop", info="When computing routing cost, using only hop count [hop] or traffic balanced cost [balanced]") 
+
   // --- debug -----
   register("save-pir", default=false, info="Save IR into a file") 
   register("load-pir", default=false, info="Load IR from a file")

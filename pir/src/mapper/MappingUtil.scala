@@ -15,15 +15,22 @@ trait MappingUtil { self:Logging =>
     ((n, mapping) match {
       case (n, Left(mapping)) => mappedTo(n, mapping) 
       case (n, Right(mapping)) => mappedTo(n, mapping) 
-      case (n, bt@BindingTrace(pnode, mapping)) => 
-        bt.last.fold { mappedTo(n, mapping) } { failure => mappedTo(n, failure) }
-      case (n, InvalidFactorGraph(fg, k)) => mappedTo(n, fg)
+      case (n, bt@BindingTrace(pnode, mapping)) => mappedTo(n, mapping)
 
-      case (n:Routable, mapping:PIRMap) => mappedTo(n, mapping.cumap)
-      case (n:Routable, mapping:CUMap) => mapping.usedMap.bmap.get(n)
+      case (n:CUMap.V, mapping:PIRMap) => mappedTo(n, mapping.cumap)
+      case (n:CUMap.V, mapping:CUMap) => mapping.usedMap.bmap.get(n)
+      case (n:CUMap.K, mapping:PIRMap) => mappedTo(n, mapping.cumap)
+      case (n:CUMap.K, mapping:CUMap) => mapping.usedMap.get(n)
 
-      case (edge:prism.node.Input[_], mapping:PIRMap) => mappedTo(n, mapping.fimap)
-      case (edge:prism.node.Input[_], mapping:FIMap) => mapping.get(edge.asInstanceOf[FIMap.K])
+      case (edge:prism.node.Edge[_], mapping:PIRMap) => mappedTo(n, mapping.mkmap)
+      case (edge:prism.node.Edge[_], mapping:MKMap) => mapping.get(edge.src.asInstanceOf[MKMap.K])
+
+      case ((from:Edge, to:Edge), mapping) => 
+        zipMap(mappedTo[Set[MKMap.V]](from, mapping), mappedTo[Set[MKMap.V]](to, mapping)) { 
+          case (tmk, fmk) if tmk == fmk => Some(tmk)
+          case _ => None
+        }.flatten.asInstanceOf[Option[T]]
+
       case (n, mapping) => err(s"don't know how to lookup mappedTo(${quote(n)}, $mapping)")
     }).asInstanceOf[Option[T]]
   }

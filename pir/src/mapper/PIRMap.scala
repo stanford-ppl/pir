@@ -50,9 +50,9 @@ object CUMap {
 }
 
 case class MKMap(
-  fmap:OneToOneMap[MKMap.K,MKMap.V], 
+  fmap:OneToManyMap[MKMap.K,MKMap.V], 
   bmap:OneToManyMap[MKMap.V,MKMap.K]
-) extends BiManyToOneMapLike[MKMap.K,MKMap.V,MKMap] {
+) extends BiManyToManyMapLike[MKMap.K,MKMap.V,MKMap] {
   def apply(v:V):KK = bmap(v)
   def get(v:V):Option[KK] = bmap.get(v)
   def contains(v:V) = bmap.contains(v)
@@ -60,7 +60,7 @@ case class MKMap(
 object MKMap {
   type K = spade.node.Port[_]
   type V = GlobalOutput 
-  def empty = MKMap(OneToOneMap.empty, OneToManyMap.empty)
+  def empty = MKMap(OneToManyMap.empty, OneToManyMap.empty)
 }
 
 case class VCMap(

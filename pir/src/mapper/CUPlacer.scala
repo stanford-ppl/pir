@@ -3,7 +3,7 @@ package mapper
 
 import pir.node._
 
-class CUPlacer(implicit compiler:PIR) extends PIRPass with Placer with StaticPlacer with DynamicPlacer with AsicPlacer {
+class CUPlacer(implicit compiler:PIR) extends PIRPass with Placer with StaticDynamicPlacer with AsicPlacer {
   import pirmeta._
 
   override def runPass =  {
@@ -16,9 +16,9 @@ class CUPlacer(implicit compiler:PIR) extends PIRPass with Placer with StaticPla
   }
 
 }
-case class UnsupportedTarget() extends MappingFailure
 
 trait Placer extends PIRPass {
-  def place(pmap:PIRMap):EOption[PIRMap] = Left(UnsupportedTarget())
+  def place(pmap:PIRMap):EOption[PIRMap] = throw PIRException(s"UnsupportedTarget")
 }
+
 

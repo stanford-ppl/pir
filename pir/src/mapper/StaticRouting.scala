@@ -6,10 +6,18 @@ import spade.node._
 
 trait StaticRouting extends Routing {
 
-  private def markerOf(gio:GlobalIO) = gio match {
-    case gio:GlobalInput => goutOf(gio).get
-    case gio:GlobalOutput => gio
+  private def getMarkerOf(mkmap:MKMap, port:PT):Option[MKMap.V] = {
+    val mks = mkmap.get(port)
+    mks.flatMap { mks =>
+      assert(mks.size<=1)
+      mks.headOption
+    }
   }
+
+  private def getMarkerOf(pmap:PIRMap, port:PT):Option[MKMap.V] = getMarkerOf(pmap.mkmap, port)
+  private def getMarkerOf(pmap:PIRMap, edge:prism.node.Edge[_]):Option[MKMap.V] = getMarkerOf(pmap, edge.src.asInstanceOf[PT])
+  private def markerOf(pmap:PIRMap, port:PT):MKMap.V = getMarkerOf(pmap, port).get
+  private def markerOf(pmap:PIRMap, edge:prism.node.Edge[_]):MKMap.V = getMarkerOf(pmap, edge).get
 
   override def portsS(
     gio:GlobalIO, 
@@ -18,38 +26,40 @@ trait StaticRouting extends Routing {
   ) (implicit 
     portTp:PT => ClassTag[_<:PinType], 
     gioTp:GlobalIO => ClassTag[_<:PinType]
-  ):List[PT] = if (isStatic(designS)) {
+  ):List[PT] = {
     val marker = markerOf(gio)
     val markerTp = (gioTp(marker), isGlobalInput(gio))
     val ports = cuS.collectDown[PT]().filter { port => (portTp(port), isInput(port)) == markerTp }
 
-    val (marked, unmarked) = ports.partition { port => pmap.mkmap.contains(port) }
-    val markedAndMatched = marked.filter { port => pmap.mkmap(port) == marker }
+    val (marked, unmarked) = ports.partition { port => getMarkerOf(pmap, port).nonEmpty }
+    val markedAndMatched = marked.filter { port => markerOf(pmap, port) == marker }
     gio match {
       case gio:GlobalOutput => markedAndMatched ++ unmarked // one to many
       case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
       case gio:GlobalInput => unmarked // one to one
     }
-  } else super.portsS(gio, cuS, pmap)
+  }
 
   override def tailToHead(
     pmap:PIRMap, 
     start:GlobalIO
   )(
     tail:Edge
-  ):List[Edge] = if (isStatic(designS)) {
+  ):List[(Edge, C)] = if (isStatic(tail)) {
     val marker = markerOf(start)
-    dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
-      val (marked, unmarked) = tail.connected.partition { head => pmap.mkmap.contains(head.src.asInstanceOf[PT]) }
-      val markedAndMatched = marked.filter { head => pmap.mkmap(head.src.asInstanceOf[PT]) == marker }
+    dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false, flush=false) {
+      val (marked, unmarked) = tail.connected.partition { head => getMarkerOf(pmap, head).nonEmpty }
+      val markedAndMatched = marked.filter { head => markerOf(pmap, head) == marker }
       dbg(s"marked=${quote(marked)}")
       dbg(s"unmarked=${quote(unmarked)}")
       dbg(s"markedAndMatched=${quote(markedAndMatched)}")
-      (tail match {
+      val heads = (tail match {
         case out:OutputEdge[_] => markedAndMatched ++ unmarked // one to many
         case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched // one to one
         case in:InputEdge[_] => unmarked // one to one
       }).toList.asInstanceOf[List[Edge]]
+      // Cost is just the hop counts
+      heads.map { head => (head, if (isInternal(tail, head)) 0 else 1) }
     }
   } else super.tailToHead(pmap, start)(tail)
 
@@ -66,6 +76,7 @@ trait StaticRouting extends Routing {
 
   private def set(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
     dbg(s"setMKMap: ${quote(port.src)}.${quote(port)} - ${quote(marker)}")
+    getMarkerOf(mkmap, port).foreach { mk => assert(mk == marker, s"$mk != marker") }
     mkmap + (port, marker)
   }
 
@@ -74,7 +85,7 @@ trait StaticRouting extends Routing {
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = if (isStatic(designS)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
+  ):EOption[PIRMap] = if (isStatic(route)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
     Right(pmap).map { pmap =>
       pmap.map[FIMap] { fimap =>
         var fm = fimap

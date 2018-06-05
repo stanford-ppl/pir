@@ -9,5 +9,3 @@ trait AsicPlacer extends Placer {
   override def place(pmap:PIRMap) = if (isAsic(designS)) Right(pmap) else super.place(pmap)
 
 }
-
-
