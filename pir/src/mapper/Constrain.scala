@@ -13,10 +13,7 @@ abstract class Constrain(implicit val pass:PIRPass) extends Logging with Memoriz
   override lazy val logger = pass.logger
   override def toString = this.getClass.getSimpleName.replace("$","")
   override def quote(n:Any) = pass.quote(n)
-  memorizing = pass match {
-    case pass:GlobalPartioner => false
-    case pass => true
-  }
+  memorizing = true
   def prune(fg:FG):EOption[FG]
   def prune(pmap:PIRMap):EOption[PIRMap] = {
     pmap.flatMap[FG](field => prune(field))
