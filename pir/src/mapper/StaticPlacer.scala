@@ -20,7 +20,7 @@ trait StaticDynamicPlacer extends Placer with StaticDynamicRouter with BackTrack
       bindLambda=bindLambda _
     )(
       rankP = { case (cuP, m) => (-m.cumap.freeValues(cuP).size, cuP.collectDown[GlobalIO]().size) },
-      rankS = { case (cuP, cuS, m) => -m.cumap.freeKeys(cuS).size }
+      rankS = { case (cuP, cuS, m) => -m.cumap.weight(cuP, cuS) }
     )
   } else super.place(pmap)
 

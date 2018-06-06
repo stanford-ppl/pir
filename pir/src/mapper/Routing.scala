@@ -163,12 +163,16 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
       pmap.flatMap[CUMap]{ cumap =>
         flatFold(costMap, cumap) { case (cumap, (headP, maxCost)) =>
           val neighborP = globalOf(headP).get
-          val canReach = reached.filter { case (cuS, cost) => cost <= maxCost }.map { _._1 }
+          val canReach = reached.filter { case (cuS, cost) => cost <= maxCost }.toMap
           dbg(s"neighborP=$neighborP, maxCost=$maxCost, canReach=$canReach")
           dbg(s"canReach=$canReach")
           dbg(s"cumap($neighborP)=${cumap(neighborP)}")
-          cumap.filterAt(neighborP) { cuS => canReach.contains(cuS) }.map { filtered =>
-            dbg(s"filtered=${filtered(neighborP)}")
+          cumap.weightedFilterAt(neighborP) { cuS => 
+            canReach.get(cuS).map { cost =>
+              cumap.weight(neighborP, cuS) + cost
+            }
+          }.map { filtered =>
+            dbg(s"filtered=${filtered.freeWeightedValues(neighborP)}")
             filtered
           }
         }

@@ -41,12 +41,13 @@ object PIRMap {
 
 case class CUMap (
   freeMap:BiManyToManyMap[CUMap.K,CUMap.V],
+  weights:Map[(CUMap.K,CUMap.V),Int],
   usedMap:BiOneToOneMap[CUMap.K,CUMap.V]
 ) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap] with MappingCollection
 object CUMap {
   type K = GlobalContainer
   type V = Routable
-  def empty = CUMap(BiManyToManyMap.empty, BiOneToOneMap.empty)
+  def empty = CUMap(BiManyToManyMap.empty, Map.empty, BiOneToOneMap.empty)
 }
 
 case class MKMap(
@@ -65,10 +66,11 @@ object MKMap {
 
 case class VCMap(
   freeMap:BiManyToManyMap[VCMap.K,VCMap.V],
+  weights:Map[(VCMap.K,VCMap.V),Int],
   usedMap:BiManyToOneMap[VCMap.K,VCMap.V]
 ) extends ManyToOneFactorGraphLike[VCMap.K,VCMap.V,VCMap] with MappingCollection 
 object VCMap {
   type K = Memory
   type V = Int
-  def empty = VCMap(BiManyToManyMap.empty, BiManyToOneMap.empty)
+  def empty = VCMap(BiManyToManyMap.empty, Map.empty, BiManyToOneMap.empty)
 }

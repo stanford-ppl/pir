@@ -34,7 +34,9 @@ trait CUPruner extends PIRPass with Memorization {
       val topP = compiler.top
       val topS = compiler.arch.top
       val pnodes = topP.collectDown[CUMap.K]()
-      val snodes = topS.collectDown[CUMap.V]().filterNot { _.isInstanceOf[spade.node.SwitchBox] }
+      val snodes = topS.collectDown[CUMap.V]().filterNot { rt =>
+        rt.isInstanceOf[spade.node.SwitchBox] || rt.isInstanceOf[spade.node.Router]
+      }
       cumap ++= pnodes.toSet -> snodes.toSet
       cumap
     } }
