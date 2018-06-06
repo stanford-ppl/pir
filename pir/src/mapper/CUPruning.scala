@@ -9,8 +9,10 @@ import scala.collection.mutable
 class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
   import pirmeta._
 
-  //constrains += new CUArcConsistencyConstrain
-  constrains += new CUMatchingConstrain
+  if (isStatic(designS) || isDynamic(designS)) {
+    //constrains += new CUArcConsistencyConstrain
+    constrains += new CUMatchingConstrain
+  }
 
   override def runPass =  {
     pirMap = initCUMap.flatMap { pmap =>
