@@ -137,10 +137,10 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       VectorFifoCost(cuS match { case cuS:CU => cuS.param.numVectorFifos; case _ => 0 }),
       ControlInputCost(cuS.bundle[Bit].fold(0) { _.inputs.size }),
       ScalarInputCost(cuS.bundle[Word].fold(0) { _.inputs.size }),
-      VectorInputCost(cuS.bundle[Vector].get.inputs.size),
-      ControlOutputCost(cuS.bundle[Bit].get.outputs.size),
-      ScalarOutputCost(cuS.bundle[Word].get.outputs.size),
-      VectorOutputCost(cuS.bundle[Vector].get.outputs.size),
+      VectorInputCost(cuS.bundle[Vector].fold(0) { _.inputs.size }),
+      ControlOutputCost(cuS.bundle[Bit].fold(0) { _.outputs.size }),
+      ScalarOutputCost(cuS.bundle[Word].fold(0) { _.outputs.size }),
+      VectorOutputCost(cuS.bundle[Vector].fold(0) { _.outputs.size }),
       StageCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
       LaneCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(1) { _.numLanes }; case _ => 1 })
     )
