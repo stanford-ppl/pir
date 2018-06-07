@@ -41,64 +41,94 @@ trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil with Typ
     fifos ++ rfifos
   }
 }
-trait CUCostConstrain extends CUConstrain with CostConstrain 
-trait CUPrefixConstrain extends CUCostConstrain with PrefixConstrain
-trait CUQuantityConstrain extends CUCostConstrain with QuantityConstrain
+
+case class CUCost(costs:Cost[_]*) extends Cost[CUCost]{
+  override def toString = s"CUCost(${costs.mkString(",")})"
+  val isSplittable = true
+  def fits(that:Any) = {
+    val fits = costs.zip(that.asInstanceOf[CUCost].costs).map { case (cost, tcost) =>
+      cost.fits(tcost)
+    }
+    (fits.forall(_._1), fits.filter(!_._1).forall(_._2))
+  }
+  def compare(that:CUCost) = {
+    val comps = costs.zip(that.costs).map { case (cost, tcost) =>
+      cost.compareAsC(tcost)
+    }
+    if (comps.exists { _ > 0 }) 1 
+    else if (comps.forall { _ == 0 }) 0
+    else -1
+  }
+}
+trait PrefixCost[C<:PrefixCost[C]] extends Cost[C] {
+  val isSplittable = false 
+  val prefix:Boolean
+  def fits(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def compare(that:C) = if (prefix == that.prefix) 0 else 1
+}
+trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] {
+  val quantity:Int
+  def fits(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def compare(that:C) = quantity.compare(that.quantity)
+}
+case class AFGCost(prefix:Boolean) extends PrefixCost[AFGCost]
+case class MCCost(prefix:Boolean) extends PrefixCost[MCCost]
+case class SramCost(quantity:Int) extends QuantityCost[SramCost] { val isSplittable = false }
+case class ControlFifoCost(quantity:Int) extends QuantityCost[ControlFifoCost] { val isSplittable = true }
+case class ScalarFifoCost(quantity:Int) extends QuantityCost[ScalarFifoCost] { val isSplittable = true }
+case class VectorFifoCost(quantity:Int) extends QuantityCost[VectorFifoCost] { val isSplittable = true }
+case class ControlInputCost(quantity:Int) extends QuantityCost[ControlInputCost] { val isSplittable = true }
+case class ScalarInputCost(quantity:Int) extends QuantityCost[ScalarInputCost] { val isSplittable = true }
+case class VectorInputCost(quantity:Int) extends QuantityCost[VectorInputCost] { val isSplittable = true }
+case class ControlOutputCost(quantity:Int) extends QuantityCost[ControlOutputCost] { val isSplittable = true }
+case class ScalarOutputCost(quantity:Int) extends QuantityCost[ScalarOutputCost] { val isSplittable = true }
+case class VectorOutputCost(quantity:Int) extends QuantityCost[VectorOutputCost] { val isSplittable = true }
+case class StageCost(quantity:Int) extends QuantityCost[StageCost] { val isSplittable = true }
+case class LaneCost(quantity:Int) extends QuantityCost[LaneCost] { val isSplittable = false }
+class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {
+  def getKeyCost(cuP:K):CUCost = dbgblk(s"getKeyCost(${quote(cuP)})"){
+    val fifos = fifosP(cuP)
+    val ins = inputsP(cuP)
+    val outs = outputsP(cuP)
+    val stages = cuP.collectDown[StageDef]()
+    val numLanes:Int = stages.map(s => pass.getParOf(s)).reduceOption{ _ max _}.getOrElse(1)
+    CUCost(
+      AFGCost(isAFG(cuP)),
+      MCCost(isDFG(cuP) || isSFG(cuP)),
+      SramCost(cuP.collectDown[pir.node.SRAM]().size),
+      ControlFifoCost(fifos.filter(n => isBit(n)).size),
+      ScalarFifoCost(fifos.filter(n => isWord(n)).size),
+      VectorFifoCost(fifos.filter(n => isVector(n)).size),
+      ControlInputCost(ins.filter(n => isBit(n)).size),
+      ScalarInputCost(ins.filter(n => isWord(n)).size),
+      VectorInputCost(ins.filter(n => isVector(n)).size),
+      ControlOutputCost(outs.filter(n => isBit(n)).size),
+      ScalarOutputCost(outs.filter(n => isWord(n)).size),
+      VectorOutputCost(outs.filter(n => isVector(n)).size),
+      StageCost(stages.size),
+      LaneCost(numLanes)
+    )
+  }
+  def getValueCost(cuS:V):CUCost = dbgblk(s"getValueCost(${quote(cuS)})"){
+    CUCost(
+      AFGCost(cuS.isInstanceOf[spade.node.ArgFringe]),
+      MCCost(cuS.isInstanceOf[MC]),
+      SramCost(cuS match { case cuS:CU => cuS.param.numSrams; case _ => 0 }),
+      ControlFifoCost(cuS match { case cuS:CU => cuS.param.numControlFifos; case _ => 0 }),
+      ScalarFifoCost(cuS match { case cuS:CU => cuS.param.numScalarFifos; case _ => 0 }),
+      VectorFifoCost(cuS match { case cuS:CU => cuS.param.numVectorFifos; case _ => 0 }),
+      ControlInputCost(cuS.bundle[Bit].fold(0) { _.inputs.size }),
+      ScalarInputCost(cuS.bundle[Word].fold(0) { _.inputs.size }),
+      VectorInputCost(cuS.bundle[Vector].get.inputs.size),
+      ControlOutputCost(cuS.bundle[Bit].get.outputs.size),
+      ScalarOutputCost(cuS.bundle[Word].get.outputs.size),
+      VectorOutputCost(cuS.bundle[Vector].get.outputs.size),
+      StageCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
+      LaneCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(1) { _.numLanes }; case _ => 1 })
+    )
+  }
+}
+
 class CUArcConsistencyConstrain(implicit pass:CUPruner) extends CUConstrain with ArcConsistencyConstrain
 class CUMatchingConstrain(implicit pass:CUPruner) extends CUConstrain with MatchingConstrain
-class AFGConstrain(implicit pass:CUPruner) extends CUPrefixConstrain  {
-  def prefixKey(cuP:K):Boolean = isAFG(cuP)
-  def prefixValue(cuS:V):Boolean = cuS.isInstanceOf[spade.node.ArgFringe]
-}
-class MCConstrain(implicit pass:CUPruner) extends CUPrefixConstrain {
-  def prefixKey(cuP:K):Boolean = isDFG(cuP) || isSFG(cuP)
-  def prefixValue(cuS:V):Boolean = cuS.isInstanceOf[MC]
-}
-class SramConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = cuP.collectDown[pir.node.SRAM]().size
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.numSrams; case _ => 0 }
-}
-class ControlFIFOConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = fifosP(cuP).filter(n => isBit(n)).size
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.numControlFifos; case _ => 0 }
-}
-class ScalarFIFOConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = fifosP(cuP).filter(n => isWord(n)).size
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.numScalarFifos; case _ => 0 }
-}
-class VectorFIFOConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = fifosP(cuP).filter(n => isVector(n)).size
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.numVectorFifos; case _ => 0 }
-}
-class VectorInputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = inputsP(cuP).filter(n => isVector(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isVector(n)).head.inputs.size
-}
-class ScalarInputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = inputsP(cuP).filter(n => isWord(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isWord(n)).head.inputs.size
-}
-class ControlInputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = inputsP(cuP).filter(n => isBit(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isBit(n)).head.inputs.size
-}
-class VectorOutputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = outputsP(cuP).filter(n => isVector(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isVector(n)).head.outputs.size
-}
-class ScalarOutputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = outputsP(cuP).filter(n => isWord(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isWord(n)).head.outputs.size
-}
-class ControlOutputConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = outputsP(cuP).filter(n => isBit(n)).size
-  def numSnodes(cuS:V):Int = cuS.collectDown[Bundle[_]]().filter(n => isBit(n)).head.outputs.size
-}
-class StageConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = cuP.collectDown[StageDef]().size
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }
-}
-class LaneConstrain(implicit pass:CUPruner) extends CUQuantityConstrain {
-  def numPNodes(cuP:K):Int = cuP.collectDown[StageDef]().map(s => pass.getParOf(s)).reduceOption{ _ max _}.getOrElse(1)
-  def numSnodes(cuS:V):Int = cuS match { case cuS:CU => cuS.param.simdParam.fold(1) { _.numLanes }; case _ => 1 }
-}
+

@@ -3,29 +3,15 @@ package mapper
 
 import pir.node._
 import prism.collection.immutable._
-import prism.util.Memorization
 
 import scala.collection.mutable
 
-trait CUPruner extends PIRPass with Memorization {
+trait CUPruner extends PIRPass {
   import pirmeta._
 
   val constrains = ListBuffer[CUConstrain]()
   if (isStatic(designS) || isDynamic(designS)) {
-    constrains += new AFGConstrain
-    constrains += new MCConstrain
-    constrains += new SramConstrain
-    constrains += new VectorFIFOConstrain
-    constrains += new ScalarFIFOConstrain
-    constrains += new ControlFIFOConstrain
-    constrains += new VectorInputConstrain
-    constrains += new ScalarInputConstrain
-    constrains += new ControlInputConstrain
-    constrains += new VectorOutputConstrain
-    constrains += new ScalarOutputConstrain
-    constrains += new ControlOutputConstrain
-    constrains += new StageConstrain
-    constrains += new LaneConstrain
+    constrains += new CUCostConstrain
   }
 
   def initCUMap:EOption[PIRMap] = dbgblk(s"initCUMap") {
@@ -42,15 +28,8 @@ trait CUPruner extends PIRPass with Memorization {
     } }
   }
 
-  memorizing = true
   def prune(cumap:CUMap):EOption[CUMap] = dbgblk(s"prune") {
-    resetAllCaches
     flatFold(constrains, cumap) { case (cumap, constrain) => constrain.prune(cumap) }
-  }
-
-  override def resetAllCaches = {
-    super.resetAllCaches
-    dbg(s"resetAllCaches")
   }
 
 }

@@ -45,23 +45,15 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
 
   def pruneAndSplit(cumap:CUMap):EOption[CUMap] = {
     log(prune(cumap)) match {
-      case Left(f@CostConstrainFailure(constrain, fg, key:CUMap.K)) if isSplitable(constrain, key) =>
+      case Left(f@CostConstrainFailure(fg, key:CUMap.K, isSplittable)) if isSplittable =>
         val vs = cumap(key)
         val ks = split(key)
+        constrains.foreach { _.resetCache(key) }
         val newCUMap = (cumap - key) ++ (ks -> vs)
         pruneAndSplit(newCUMap)
       case Left(f) => Left(f)
       case Right(map) => Right(map)
     }
-  }
-
-  def isSplitable(constrain:Constrain, key:CUMap.K) = (constrain, key) match {
-    case (c, g) if isFringe(g) => false
-    case (c:CUPrefixConstrain, _) => false
-    case (c:SramConstrain,_) => false
-    case (c:LaneConstrain,_) => false
-    case (c:CUQuantityConstrain,_) => true
-    case (c,_) => false
   }
 
   def split(cu:GlobalContainer):Set[GlobalContainer]

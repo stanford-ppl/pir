@@ -18,6 +18,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("save-pir", default=false, info="Save IR into a file") 
   register("load-pir", default=false, info="Load IR from a file")
   register("bp", default=false, info="Enable break point")
+  register("dot", default=true, info="Enable dot codegen")
   register("open", default=false, info="Open dot graph after codegen")
   register("stat", default=false, info="Printing CU statistics")
   register("snapshot", default=false, info="Enable placement snapshot")
@@ -55,5 +56,6 @@ object PIRConfig extends prism.GlobalConfig {
   def debug:Boolean = Config.option[Boolean]("debug")
   def enableBreakPoint = debug && option[Boolean]("bp")
   def enableSnapshot = debug && option[Boolean]("snapshot")
-  def openDot:Boolean = enableCodegen && option[Boolean]("open")
+  def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
+  def openDot:Boolean = enableDot && option[Boolean]("open")
 }

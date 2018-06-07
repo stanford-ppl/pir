@@ -19,38 +19,38 @@ abstract class Constrain(implicit val pass:PIRPass) extends Logging with Memoriz
     pmap.flatMap[FG](field => prune(field))
   }
 }
-trait CostConstrain extends Constrain {
-  def fit(cuP:K, cuS:V):Boolean
+trait Cost[C] extends Ordered[C] {
+  val isSplittable:Boolean
+  def compareAsC(x:Any) = compare(x.asInstanceOf[C])
+  def fits(x:Any):(Boolean, Boolean) // (fit, splittable)
+}
+trait CostConstrain[C<:Cost[C]] extends Constrain {
+  def getKeyCost(cuP:K):C
+  def getValueCost(cuS:V):C
+  val keyCost = memorize(getKeyCost)
+  val valueCost = memorize(getValueCost)
   def prune(fg:FG):EOption[FG] = {
-    fg.filter { case (cuP,cuS) => fit(cuP, cuS) }.left.map {
-      case InvalidFactorGraph(fg:FG, k) => CostConstrainFailure(this, fg, k)
+    flatFold(fg.freeKeys, fg) { case (fg, key) =>
+      val kc = keyCost(key)
+      val values = fg.freeValues(key).map { value =>
+        val vc = valueCost(value)
+        val (fit, splitable) = kc.fits(vc)
+        (value, fit, splitable)
+      }
+      val (fits, nonFits) = values.partition { _._2 }
+      if (fits.isEmpty) { // not fit
+        val (splitables, nonSplitables) = nonFits.partition { _._3 }
+        val nonSplitableValues = nonSplitables.map { _._1 }
+        dbg(s"${quote(key)} not fit. Cost:${kc}")
+        fg.filterNotAt(key) { v => nonSplitableValues.contains(v) } match {
+          case Left(InvalidFactorGraph(fg:FG, key)) => Left(CostConstrainFailure(fg , key, false))
+          case Right(fg) => Left(CostConstrainFailure(fg , key, splitables.nonEmpty))
+        }
+      } else {
+        val nonFitValues = nonFits.map { _._1 }
+        fg.filterNotAt(key) { v => nonFitValues.contains(v) }
+      }
     }
-  }
-}
-trait PrefixConstrain extends CostConstrain {
-  def prefixKey(cuP:K):Boolean
-  def prefixValue(cuS:V):Boolean
-  val prefixKeyOf = memorize(prefixKey _)
-  val prefixValueOf = memorize(prefixValue _)
-  def fit(cuP:K, cuS:V):Boolean = {
-    val key = prefixKeyOf(cuP)
-    val value = prefixValueOf(cuS)
-    val factor = key == value
-    if (!factor) dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
-    factor
-  }
-}
-trait QuantityConstrain extends CostConstrain {
-  def numPNodes(cuP:K):Int
-  def numSnodes(cuS:V):Int
-  val numPNodesOf = memorize(numPNodes _)
-  val numSnodesOf = memorize(numSnodes _)
-  def fit(cuP:K, cuS:V):Boolean = {
-    val key = numPNodesOf(cuP)
-    val value = numSnodesOf(cuS)
-    val factor = key <= value
-    if (!factor) dbg(s"$this ${quote(cuP)}:$key != ${quote(cuS)}:$value")
-    factor
   }
 }
 trait ArcConsistencyConstrain extends Constrain {
@@ -113,7 +113,7 @@ trait MatchingConstrain extends Constrain {
 
 }
 
-case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](constrain:CostConstrain, @transient fg:FG, key:Any) extends MappingFailure
+case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, key:Any, isSplittable:Boolean) extends MappingFailure
 case class MatchConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, keys:Set[_]) extends MappingFailure {
   override def toString = s"MatchConstrainFailure(${fg.getClass.getSimpleName}, $keys)"
 }

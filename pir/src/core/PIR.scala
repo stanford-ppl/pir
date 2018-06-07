@@ -71,51 +71,51 @@ trait PIR extends Compiler with PIRWorld {
     // Data  path transformation and analysis
     addPass(controlPropogator)
     addPass(fringeElaboration).dependsOn(controlPropogator)
-    addPass(debug, new PIRIRDotCodegen(s"top1.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator).dependsOn(fringeElaboration)
     addPass(constantExpressionEvaluator)
     addPass(controlPropogator) // re
     addPass(irCheck).dependsOn(deadCodeEliminator)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
-    addPass(debug, new PIRIRDotCodegen(s"top2.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top2.dot"))
     addPass(unrollingTransformer).dependsOn(controlPropogator)
-    addPass(debug, new PIRIRDotCodegen(s"top3.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top3.dot"))
     addPass(cuInsertion)
     addPass(deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top4.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top4.dot"))
     addPass(accessPuller).dependsOn(cuInsertion)
-    addPass(debug, new PIRIRDotCodegen(s"top5.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top5.dot"))
     addPass(deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top6.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top7.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(deadCodeEliminator)
-    addPass(debug, new PIRIRDotCodegen(s"top8.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top8.dot"))
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
 
     addPass(enableSplitting, igraphPartioner)
-    addPass(enableSplitting && debug, new PIRIRDotCodegen(s"top9.dot"))
-    addPass(enableSplitting && debug, new SimpleIRDotCodegen(s"simple1.dot"))
+    addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top9.dot"))
+    addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
 
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
-    addPass(debug, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
-    addPass(debug, new PIRIRDotCodegen(s"top10.dot"))
-    addPass(debug, new SimpleIRDotCodegen(s"simple2.dot"))
+    addPass(enableDot, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
+    addPass(enableDot, new PIRIRDotCodegen(s"top10.dot"))
+    addPass(enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
     addPass(genCtrl, contextInsertion)
     addPass(genCtrl, contextMerging)
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top11.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
     //// Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
-    addPass(genCtrl && debug, new PIRIRDotCodegen(s"top12.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl, irCheck)
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, deadCodeEliminator)
@@ -125,9 +125,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
-    addPass(debug, new ControllerDotCodegen(s"controller.dot"))
-    addPass(debug, new PIRIRDotCodegen(s"top.dot"))
-    addPass(debug, new SimpleIRDotCodegen(s"simple.dot"))
+    addPass(enableDot, new ControllerDotCodegen(s"controller.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top.dot"))
+    addPass(enableDot, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
     // Mapping
@@ -137,9 +137,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-enableMapping analysis
-    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(enableMapping && debug, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Bit](s"control.dot"))
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
 
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)
