@@ -9,6 +9,8 @@ trait Container extends PIRNode with prism.node.ProductSubGraph[PIRNode] { self 
 trait ContainerUtil {
   def innerCtrlOf(container:Container) = {
     import container.pirmeta._
-    ctrlsOf(container).maxBy { _.ancestors.size }
+    val primitives = container.collectDown[Primitive]()
+    val ctrls = primitives.flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
+    ctrls.minBy { _.descendents.size }
   }
 }

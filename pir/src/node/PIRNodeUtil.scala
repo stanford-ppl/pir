@@ -13,10 +13,5 @@ trait PIRNodeUtil extends ContainerUtil with MemoryUtil with DramFringeUtil with
     n.collectUp[GlobalContainer]().headOption
   }
 
-  def ctrlsOf(container:Container) = {
-    implicit val design = container.design.asInstanceOf[PIRDesign]
-    import design.pirmeta._
-    container.collectDown[ComputeNode]().flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
-  }
 }
 

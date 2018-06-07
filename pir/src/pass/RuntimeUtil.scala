@@ -121,10 +121,11 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
         case x:Counter => x.par
         case x:CounterChain => getParOf(x.counters.last)
         case Def(n, ReduceOp(op, input)) => getParOf(input) / 2 
-        case Def(n, AccumOp(op, input)) => getParOf(input)
         case n:ReduceAccumOp => 1
-        case n:Container => n.collectDown[Primitive]().map { d => getParOf(d) }.max
+        case n:Container => n.children.map { d => getParOf(d) }.max
         case x:LocalLoad => getParOf(ctrlOf(x))
+        case x:CounterIter if ctrlOf(x).isInnerControl => getParOf(ctrlOf(x))
+        case x:CounterIter => 1
         case x:ProcessDramCommand => getParOf(ctrlOf(x))
         case x:Primitive => 
           if (x.deps.isEmpty) {

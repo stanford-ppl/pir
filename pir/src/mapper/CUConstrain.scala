@@ -99,6 +99,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     (key, value) match {
       case (key, value:DramAG) if isDAG(key) & !fits._1 => 
         warn(s"${quote(key)}(dag) not fit ${quote(value)} overCosts=${kc.overCosts(vc).mkString(",")}")
+        warn(s"${outputsP(key)} ${outputsP(key).filter { n => isVector(n)}}")
       case _ =>
     }
     fits

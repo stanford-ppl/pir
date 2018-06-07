@@ -14,7 +14,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   }
 
   def checkControl(context:ComputeContext) = {
-    val ctrls = ctrlsOf(context)
+    val ctrls = context.descendents.flatMap { x => ctrlOf.get(x) }
     val inner = innerCtrlOf(context)
     val ancestorBranch = (inner :: inner.ancestors)
     ctrls.foreach { ctrl =>

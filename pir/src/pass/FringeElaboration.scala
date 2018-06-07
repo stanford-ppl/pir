@@ -65,9 +65,9 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
     val par = fringe match {
       case FringeDenseLoad(dram,cmdStream,dataStream) =>
-        getParOf(readersOf(dataStream.head).head)
+        getParOf(ctrlOf(readersOf(dataStream.head).head))
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
-        getParOf(writersOf(dataStream.head).head)
+        getParOf(ctrlOf(writersOf(dataStream.head).head))
     }
     val innerCtrl = DramController(csize, par).setParent(outerCtrl)
     val loads = streamOuts.map { mem =>
