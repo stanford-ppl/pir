@@ -31,7 +31,8 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
       advance=advance
     )
     if (backPointers.contains(end)) {
-      val (nodes, route, cost) = extractHistory(start, end, backPointers)
+      val (nodes, route, cost) = extractHistory(end, backPointers)
+      assert(nodes.head == start, s"the head of nodes=$nodes is not start=$start")
       Right(route)
     } else {
       Left(SearchFailure(start, end, s"No route from ${quote(start)} to ${quote(end)}"))
@@ -51,7 +52,8 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
       advance=advance
     )
     backPointers.keys.toList.map { n => 
-      val (nodes, route, cost) = extractHistory(start, n, backPointers)
+      val (nodes, route, cost) = extractHistory(n, backPointers)
+      assert(nodes.head == start, s"the head of nodes=$nodes is not start=$start")
       (n, cost)
     }
   }
@@ -106,7 +108,6 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
   }
 
   def extractHistory(
-    start:N, 
     end:N, 
     backPointers:BackPointer, 
   ):(List[N], Route, C) = {
@@ -114,7 +115,7 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
     val nodes = mutable.ListBuffer[N]()
     val actions = mutable.ListBuffer[A]()
     var current = end
-    while (current != start) {
+    while (backPointers.contains(current)) {
       val (prevNode, action, cost) = backPointers(current)
       totalCost = cnu.plus(totalCost, cost)
       nodes += prevNode
