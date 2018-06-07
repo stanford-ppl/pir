@@ -45,9 +45,14 @@ trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil with Typ
 case class CUCost(costs:Cost[_]*) extends Cost[CUCost]{
   override def toString = s"CUCost(${costs.mkString(",")})"
   val isSplittable = true
-  def fits(that:Any) = {
+  def overCosts(that:CUCost) = {
+    costs.zip(that.costs).filter { case (cost, tcost) =>
+      cost.compareAsC(tcost) > 0
+    }
+  }
+  def fit(that:Any) = {
     val fits = costs.zip(that.asInstanceOf[CUCost].costs).map { case (cost, tcost) =>
-      cost.fits(tcost)
+      cost.fit(tcost)
     }
     (fits.forall(_._1), fits.filter(!_._1).forall(_._2))
   }
@@ -63,12 +68,12 @@ case class CUCost(costs:Cost[_]*) extends Cost[CUCost]{
 trait PrefixCost[C<:PrefixCost[C]] extends Cost[C] {
   val isSplittable = false 
   val prefix:Boolean
-  def fits(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def fit(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
   def compare(that:C) = if (prefix == that.prefix) 0 else 1
 }
 trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] {
   val quantity:Int
-  def fits(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def fit(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
   def compare(that:C) = quantity.compare(that.quantity)
 }
 case class AFGCost(prefix:Boolean) extends PrefixCost[AFGCost]
@@ -85,7 +90,19 @@ case class ScalarOutputCost(quantity:Int) extends QuantityCost[ScalarOutputCost]
 case class VectorOutputCost(quantity:Int) extends QuantityCost[VectorOutputCost] { val isSplittable = true }
 case class StageCost(quantity:Int) extends QuantityCost[StageCost] { val isSplittable = true }
 case class LaneCost(quantity:Int) extends QuantityCost[LaneCost] { val isSplittable = false }
+
 class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {
+  def fit(key:K, value:V):(Boolean, Boolean) = {
+    val kc = keyCost(key)
+    val vc = valueCost(value)
+    val fits = kc.fit(vc)
+    (key, value) match {
+      case (key, value:DramAG) if isDAG(key) & !fits._1 => 
+        warn(s"${quote(key)}(dag) not fit ${quote(value)} overCosts=${kc.overCosts(vc).mkString(",")}")
+      case _ =>
+    }
+    fits
+  }
   def getKeyCost(cuP:K):CUCost = dbgblk(s"getKeyCost(${quote(cuP)})"){
     val fifos = fifosP(cuP)
     val ins = inputsP(cuP)
