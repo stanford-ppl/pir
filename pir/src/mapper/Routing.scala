@@ -23,7 +23,8 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     pmap:PIRMap, 
     start:GlobalIO
   )(
-    tail:Edge
+    tail:Edge,
+    backPointers:BackPointer
   ):List[Edge] = throw PIRException(s"UnsupportedTarget")
 
   def set(

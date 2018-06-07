@@ -44,7 +44,8 @@ trait StaticRouting extends Routing {
     pmap:PIRMap, 
     start:GlobalIO
   )(
-    tail:Edge
+    tail:Edge,
+    backPointers:BackPointer
   ):List[Edge] = if (isStatic(tail)) {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false, flush=false) {
@@ -59,7 +60,7 @@ trait StaticRouting extends Routing {
         case in:InputEdge[_] => unmarked // one to one
       }).toList.asInstanceOf[List[Edge]]
     }
-  } else super.tailToHead(pmap, start)(tail)
+  } else super.tailToHead(pmap, start)(tail, backPointers)
 
   private def set(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
     dbg(s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")

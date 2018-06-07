@@ -10,12 +10,13 @@ trait StaticPlanedRouting extends DynamicRouting {
     pmap:PIRMap, 
     start:GlobalIO
   )(
-    tail:Edge
+    tail:Edge,
+    backPointers:BackPointer
   ):List[Edge] = if (isDynamic(tail) && routingAlgo=="planed") {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       tail.connected.map { _.asInstanceOf[Edge] }
     }
-  } else super.tailToHead(pmap, start)(tail)
+  } else super.tailToHead(pmap, start)(tail, backPointers)
 
 }
