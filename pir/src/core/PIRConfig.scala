@@ -50,6 +50,8 @@ object PIRConfig extends prism.GlobalConfig {
     case "H-hop" => true
     case "H-balanced" => true
   }
+  def routingAlgo = option[String]("routing-algo")
+
 
   // Debugging
   def verbose = Config.option[Boolean]("verbose")

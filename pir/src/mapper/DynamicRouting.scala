@@ -8,8 +8,6 @@ trait DynamicRouting extends Routing {
 
   import PIRConfig._
   
-  lazy val routingAlgo = option[String]("routing-algo")
-
   private def set(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
     dbg(s"setMKMap: ${quote(port.src)}.${quote(port)} - ${quote(marker)}")
     mkmap + (port, marker)

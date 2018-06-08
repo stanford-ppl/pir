@@ -5,6 +5,7 @@ import pir.node._
 import spade.node._
 
 trait StaticPlanedRouting extends DynamicRouting {
+  import PIRConfig._
 
   override def tailToHead(
     pmap:PIRMap, 
