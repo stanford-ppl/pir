@@ -48,7 +48,7 @@ trait StaticRouting extends Routing {
     backPointers:BackPointer
   ):List[Edge] = if (isStatic(tail)) {
     val marker = markerOf(start)
-    dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false, flush=false) {
+    dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})") {
       val (marked, unmarked) = tail.connected.partition { head => getMarkerOf(pmap, head).nonEmpty }
       val markedAndMatched = marked.filter { head => markerOf(pmap, head) == marker }
       dbg(s"marked=${quote(marked)}")

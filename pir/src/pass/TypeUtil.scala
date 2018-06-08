@@ -70,9 +70,14 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
     isAFG(n) || isDAG(n) || isSFG(n)
   }
 
-  private def writesOnlyToDFG(n:GlobalContainer) = {
-    val targets = n.visitLocalOut[PIRNode](n)
-    targets.nonEmpty && targets.forall(_.isInstanceOf[DramFringe])
+  private def writersToCommandStreams(n:GlobalContainer) = {
+    val targets = n.depeds
+    targets.nonEmpty && targets.forall { in => 
+      globalOf(in).get.isInstanceOf[DramFringe] && {
+        val streamOuts = in.collect[StreamOut](visitFunc=n.visitLocalOut)
+        streamOuts.forall { so => so.field == "size" || so.field == "offset" }
+      }
+    }
   }
 
   private def containsRemoteMem(n:GlobalContainer) = {
@@ -91,7 +96,7 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
       case n:DramFringe => Some("dfg")
       case n:StreamFringe => Some("sfg")
       case n:GlobalContainer if containsRemoteMem(n) => Some("pmu")
-      case n:GlobalContainer if writesOnlyToDFG(n) => Some("dag")
+      case n:GlobalContainer if writersToCommandStreams(n) => Some("dag")
       case n:GlobalContainer if !containsStageOp(n) => Some("ocu")
       case n:GlobalContainer if nonVectorized(n) => Some("scu")
       case n:GlobalContainer => Some("pcu")
