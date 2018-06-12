@@ -157,4 +157,3 @@ trait PIR extends Compiler with PIRWorld {
   }
 
 }
-

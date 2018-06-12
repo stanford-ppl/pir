@@ -6,6 +6,7 @@ import spade.node._
 
 trait TrafficBalancedCost extends CostScheme { self:Routing =>
 
+  import PIRConfig._
   //TODO:
   override def linkCost(
     pmap:PIRMap,
@@ -15,7 +16,7 @@ trait TrafficBalancedCost extends CostScheme { self:Routing =>
     from:PT,
     to:PT
   )  = {
-    val cost = if (PIRConfig.enableBalancedCost) 0 else 0
+    val cost = if (enableBalancedCost) 0 else 0
     cost + super.linkCost(pmap, start, end)(from, to) 
   }
 

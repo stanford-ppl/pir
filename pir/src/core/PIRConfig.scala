@@ -37,6 +37,13 @@ object PIRConfig extends prism.GlobalConfig {
   def printStat = option[Boolean]("stat")
 
   // ---- Routing ----
+  def enableHopCountCost = option[String]("routing-cost") match {
+    case "hop" => true
+    case "balanced" => false
+    case "H-hop" => true
+    case "H-balanced" => false
+  }
+
   def enableBalancedCost = option[String]("routing-cost") match {
     case "hop" => false
     case "balanced" => true
