@@ -34,24 +34,6 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     tailP:GlobalIO
   ):EOption[PIRMap] = throw PIRException(s"UnsupportedTarget")
 
-  def underRouter(x:SpadeNode) = {
-    routableOf(x).get.isInstanceOf[Router]
-  }
-  def isDynamic(from:Edge, to:Edge):Boolean = {
-    underRouter(from.src) && underRouter(to.src)
-  }
-  def isDynamic(edge:Edge):Boolean = {
-    underRouter(edge.src) && edge.connected.forall { edge => underRouter(edge.src) }
-  }
-  def isDynamic(route:Route):Boolean = route.map { _._1 }.exists { port => underRouter(port) }
-  def isStatic(from:Edge, to:Edge):Boolean = !isDynamic(from, to)
-  def isStatic(edge:Edge):Boolean = !isDynamic(edge)
-  def isStatic(route:Route):Boolean = !isDynamic(route)
-  def markerOf(gio:GlobalIO) = gio match {
-    case gio:GlobalInput => goutOf(gio).get
-    case gio:GlobalOutput => gio
-  }
-
   def span(
     start:GlobalIO, 
     pmap:PIRMap,

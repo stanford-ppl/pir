@@ -28,6 +28,6 @@ trait HeuristicCost extends CostScheme { self:Routing =>
   def heuristicCost(
     next:Routable,
     end:Routable
-  ):C = throw PIRException(s"Unsupported Target")
+  ):C = throw PIRException(s"Unsupported Target isMesh=${isMesh(designS)} isTorus=${isTorus(designS)} isCMesh=${isCMesh(designS)}")
 
 }
