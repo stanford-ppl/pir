@@ -9,7 +9,7 @@ trait PlastisimUtil extends PIRPass {
   import pirmeta._
   import spademeta._
 
-  type Node = ContextEnable
+  type NetworkNode = ContextEnable
   type Link = linkGroupOf.V
 
   lazy val topS = compiler.arch.design.top
@@ -22,7 +22,7 @@ trait PlastisimUtil extends PIRPass {
       case n:Memory => true
       case _ => false
     }
-    mem.collect[Node](visitFunc=visitFunc _)
+    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
   def srcsOf(n:Link) = {
@@ -35,21 +35,21 @@ trait PlastisimUtil extends PIRPass {
       case n:NotFull => true
       case _ => false
     }
-    mem.collect[Node](visitFunc=visitFunc _)
+    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
   def dstsOf(n:Link) = {
     n.flatMap { mem => dstOf(mem) }
   }
 
-  def inlinksOf(n:Node) = {
+  def inlinksOf(n:NetworkNode) = {
     loadAccessesOf(n).groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
   }
 
-  def outlinksOf(n:Node) = {
+  def outlinksOf(n:NetworkNode) = {
     (storeAccessesOf(n) ++ resetAccessesOf(n)).groupBy { write =>
       val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
@@ -67,12 +67,12 @@ trait PlastisimUtil extends PIRPass {
     }
   }
 
-  def addrOf(node:Node):Option[Int] = {
+  def addrOf(node:NetworkNode):Option[Int] = {
     val cuP = globalOf(node).get
     cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
   }
 
-  def isStaticLink(src:Node, dst:Node):Boolean = {
+  def isStaticLink(src:NetworkNode, dst:NetworkNode):Boolean = {
     topS match {
       case topS if isDynamic(topS) =>
         val srcCUP = globalOf(src).get
@@ -173,7 +173,7 @@ trait PlastisimUtil extends PIRPass {
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
-  def latencyOf(n:Node):Option[Int] = {
+  def latencyOf(n:NetworkNode):Option[Int] = {
     val cuP = globalOf(n).get
     topS match {
       case topS if isAsic(topS) => Some(Math.max(1, cuP.collectDown[StageDef]().size))
@@ -186,7 +186,7 @@ trait PlastisimUtil extends PIRPass {
     }
   }
 
-  def staticLatencyOf(src:Node, dst:Node):Option[Int] = {
+  def staticLatencyOf(src:NetworkNode, dst:NetworkNode):Option[Int] = {
     topS match {
       case topS if isAsic(topS) => Some(1)
       case topS if isDynamic(topS) && isStaticLink(src, dst)=> Some(1) //TODO

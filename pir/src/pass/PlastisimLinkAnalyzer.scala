@@ -28,7 +28,7 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
       n match {
         case n:LocalAccess => getCountsOf(n)
         case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
-        case n:Node => computeInterferenceMemory(n); getCountsOf(n)
+        case n:NetworkNode => computeInterferenceMemory(n); getCountsOf(n)
         case n:GlobalIO => getCountsOf(n)
         case n => 
       }
@@ -36,7 +36,7 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
     super.visitNode(n)
   }
 
-  def computeInterferenceMemory(n:Node) = dbgblk(s"computeInterferenceMemory($n)"){
+  def computeInterferenceMemory(n:NetworkNode) = dbgblk(s"computeInterferenceMemory($n)"){
     val mems = dbgblk(s"inMemsOf") { inMemsOf(n) }
     mems.foreach { mem =>
       val linkTp = pinTypeOf(mem)
