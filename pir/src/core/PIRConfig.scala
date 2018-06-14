@@ -11,7 +11,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("trace", default=false, info="Enable trace generation")
 
   // --- Routing ----
-  register("routing-algo", default="planed", info="If arch is dynamic, algo can be [dor, planed]") 
+  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed]") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
 
   // --- debug -----
