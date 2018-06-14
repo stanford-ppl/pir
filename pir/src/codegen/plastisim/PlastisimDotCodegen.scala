@@ -56,12 +56,22 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
     val counts = assertUnify(n, "counts") { mem => getCountsOf(mem) }
-    srcs.foreach { src =>
-      dsts.foreach { dst =>
-        var label = s"${quote(n)}"
-        staticLatencyOf(src, dst).foreach { lat => label += s"\nlat=$lat" }
-        counts.foreach { counts => label += s"\n[counts=$counts]" }
-        emitEdge(src, dst, DotAttr.empty.label(label))
+    n.foreach { mem =>
+      val memSrcs = srcsOf(mem)
+      val memDsts = dstsOf(mem)
+      memSrcs.foreach { src =>
+        val lat = staticLatencyOf(src, mem)
+        val gin = ginFrom(src, mem)
+        memDsts.foreach { dst =>
+          var label = s"${quote(n)}"
+          gin.foreach { gin =>
+            label += s"\nfrom=${quote(goutOf(gin).get)}"
+            label += s"\nto=${quote(gin)}"
+          }
+          lat.foreach { lat => label += s"\nlat=$lat" }
+          counts.foreach { counts => label += s"\n[counts=$counts]" }
+          emitEdge(src, dst, DotAttr.empty.label(label))
+        }
       }
     }
   }

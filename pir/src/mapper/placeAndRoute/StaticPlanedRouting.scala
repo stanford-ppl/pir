@@ -13,7 +13,7 @@ trait StaticPlanedRouting extends DynamicRouting {
   )(
     tail:Edge,
     backPointers:BackPointer
-  ):List[Edge] = if (isDynamic(tail) && routingAlgo=="planed") {
+  ):List[Edge] = if (isDynamicLink(tail) && routingAlgo=="planed") {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       tail.connected.map { _.asInstanceOf[Edge] }

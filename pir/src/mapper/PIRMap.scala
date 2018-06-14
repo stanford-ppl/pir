@@ -59,7 +59,7 @@ case class MKMap(
   def contains(v:V) = bmap.contains(v)
 }
 object MKMap {
-  type K = spade.node.Port[_]
+  type K = spade.node.Port[_<:PinType]
   type V = GlobalOutput 
   def empty = MKMap(OneToManyMap.empty, OneToManyMap.empty)
 }

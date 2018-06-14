@@ -2,6 +2,7 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 import spade.node._
 import spade.param._
 
@@ -14,10 +15,17 @@ trait PlastisimUtil extends PIRPass {
 
   lazy val topS = compiler.arch.design.top
 
+  lazy val (numRows, numCols) = compiler.arch.designParam.topParam match {
+    case param:StaticGridTopParam => (param.numRows, param.numCols)
+    case param:DynamicGridTopParam => (param.numTotalRows, param.numTotalCols)
+    case param:StaticCMeshTopParam => (param.numRows, param.numCols)
+    case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
+  }
+
   def cumap = pirMap.right.get.cumap
   def vcmap = pirMap.right.get.vcmap
 
-  def srcOf(mem:Memory) = dbgblk(s"srcOf(${quote(mem)})") {
+  def srcsOf(mem:Memory):List[NetworkNode] = dbgblk(s"srcsOf(${quote(mem)})") {
     def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
       case n:Memory => true
       case _ => false
@@ -25,11 +33,11 @@ trait PlastisimUtil extends PIRPass {
     mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def srcsOf(n:Link) = {
-    n.flatMap { mem => srcOf(mem) }
+  def srcsOf(n:Link):List[NetworkNode] = {
+    n.toList.flatMap { mem => srcsOf(mem) }
   }
 
-  def dstOf(mem:Memory) = dbgblk(s"dstOf(${quote(mem)})"){
+  def dstsOf(mem:Memory):List[NetworkNode] = dbgblk(s"dstsOf(${quote(mem)})"){
     def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
       case n:Memory => true
       case n:NotFull => true
@@ -38,8 +46,8 @@ trait PlastisimUtil extends PIRPass {
     mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def dstsOf(n:Link) = {
-    n.flatMap { mem => dstOf(mem) }
+  def dstsOf(n:Link):List[NetworkNode] = {
+    n.toList.flatMap { mem => dstsOf(mem) }
   }
 
   def inlinksOf(n:NetworkNode) = {
@@ -58,10 +66,8 @@ trait PlastisimUtil extends PIRPass {
 
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
-    val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
-    import topParam._
     indexOf.get(sn).map { case List(x,y) =>
-      val idx = y * numTotalCols + x
+      val idx = y * numCols + x
       dbg(s"$sn: coord = ($x, $y) idx = $idx")
       idx
     }
@@ -72,27 +78,24 @@ trait PlastisimUtil extends PIRPass {
     cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
   }
 
-  def isStaticLink(src:NetworkNode, dst:NetworkNode):Boolean = {
-    topS match {
-      case topS if isDynamic(topS) =>
-        val srcCUP = globalOf(src).get
-        val dstCUP = globalOf(dst).get
-        val isStatic = srcCUP == dstCUP
-        dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
-        isStatic
-      case topS if isStatic(topS) => true
-      case topS if isAsic(topS) => true
+  def isStaticLink(mem:Memory):Boolean = {
+    assertUnify(writersOf(mem), "isStaticLink"){
+      case Def(n, LocalStore(_, _, data:GlobalInput)) => 
+        val port = mappedTo[MKMap.K](data).get
+        isStaticLink(port)
+      case Def(n, LocalStore(_, _, data)) => true // Local edge
     }
   }
 
   def isStaticLink(n:Link):Boolean = {
-    val srcs = srcsOf(n)
-    val dsts = dstsOf(n)
-    val pairs = srcs.flatMap{ src => dsts.map { dst => (src, dst) } }
-    assertUnify(pairs, "isStatic"){ case (src, dst) => isStaticLink(src, dst) }
+    topS match {
+      case topS if isAsic(topS) => true
+      case topS if isStatic(topS) => true
+      case topS if isDynamic(topS) =>
+        assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }
+    }
   }
 
-  
   def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {
       case cuS:MC =>
@@ -186,16 +189,41 @@ trait PlastisimUtil extends PIRPass {
     }
   }
 
-  def staticLatencyOf(src:NetworkNode, dst:NetworkNode):Option[Int] = {
+  def ginFrom(src:NetworkNode, mem:Memory):Option[GlobalInput] = {
+    val writers = writersOf(mem)
+    val (globalWriters, localWriters) = writers.partition { writer => 
+      dataOf(writer).isInstanceOf[GlobalInput] 
+    }
+    if (localWriters.nonEmpty && globalWriters.isEmpty) {
+      None
+    } else if (localWriters.isEmpty && globalWriters.nonEmpty) {
+      val gins = globalWriters.map {
+        case Def(n, LocalStore(_, _, data:GlobalInput)) => data
+      }.filter { gin => goutOf(gin).get.collectPeer[NetworkNode]().contains(src) }
+      Some(assertUnify(gins, s"$mem's GlobalInput from $src") { gin => gin })
+    } else {
+      throw PIRException(s"mem=$mem globalWriters=$globalWriters, localWriters=$localWriters")
+    }
+  }
+
+  def staticLatencyOf(src:NetworkNode, mem:Memory):Option[Int] = {
     topS match {
       case topS if isAsic(topS) => Some(1)
-      case topS if isDynamic(topS) && isStaticLink(src, dst)=> Some(1) //TODO
-      case topS if isDynamic(topS) => None
-      //case topS if isStatic(topS) => //TODO
-        //val scuP = globalOf(src).get
-        //val dcuP = globalOf(dst).get
-        //val mem = link.filter { mem => globalOf(mem).get == dcuP }.head
-        //mem.collectInTillMem[GlobalInput]().headOption
+      case topS => 
+        ginFrom(src, mem) match {
+          case Some(gin) => staticLatencyOf(gin)
+          case None => Some(1) // Local Link
+        }
+    }
+  }
+
+  def staticLatencyOf(gin:GlobalInput):Option[Int] = {
+    mappedTo[MKMap.K](gin).flatMap { port =>
+      if (isStaticLink(port)) {
+        val gout = goutOf(gin).get
+        val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
+        Some(routes.size)
+      } else None
     }
   }
 

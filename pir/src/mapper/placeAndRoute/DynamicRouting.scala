@@ -13,7 +13,7 @@ trait DynamicRouting extends Routing {
     route:Route, 
     headP:GlobalIO, 
     tailP:GlobalIO
-  ):EOption[PIRMap] = if (isDynamic(route)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
+  ):EOption[PIRMap] = if (isDynamicLink(route)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
     Right(setMarker(pmap, route, headP, tailP))
   } else super.set(pmap, route, headP, tailP)
 

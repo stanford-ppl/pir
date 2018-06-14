@@ -13,18 +13,18 @@ trait RoutingUtil extends SpadeNodeUtil { self:Logging =>
   private def underRouter(x:SpadeNode) = {
     routableOf(x).get.isInstanceOf[Router]
   }
-  def isDynamic(from:Edge, to:Edge):Boolean = {
+  def isDynamicLink(from:Edge, to:Edge):Boolean = {
     underRouter(from.src) && underRouter(to.src)
   }
-  def isDynamic(edge:Edge):Boolean = {
+  def isDynamicLink(edge:Edge):Boolean = {
     underRouter(edge.src) && edge.connected.forall { edge => underRouter(edge.src) }
   }
-  def isDynamic(port:PT):Boolean = underRouter(port)
-  def isDynamic(route:Route):Boolean = route.map { _._1 }.exists { port => underRouter(port) }
-  def isStatic(from:Edge, to:Edge):Boolean = !isDynamic(from, to)
-  def isStatic(edge:Edge):Boolean = !isDynamic(edge)
-  def isStatic(route:Route):Boolean = !isDynamic(route)
-  def isStatic(port:PT):Boolean = !isDynamic(port)
+  def isDynamicLink(port:PT):Boolean = isDynamicLink(port.external)
+  def isDynamicLink(route:Route):Boolean = route.map { _._1 }.exists { port => underRouter(port) }
+  def isStaticLink(from:Edge, to:Edge):Boolean = !isDynamicLink(from, to)
+  def isStaticLink(edge:Edge):Boolean = !isDynamicLink(edge)
+  def isStaticLink(route:Route):Boolean = !isDynamicLink(route)
+  def isStaticLink(port:PT):Boolean = !isDynamicLink(port)
 
   def markerOf(gio:GlobalIO) = gio match {
     case gio:GlobalInput => goutOf(gio).get

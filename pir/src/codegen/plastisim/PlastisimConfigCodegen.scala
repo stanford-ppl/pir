@@ -73,18 +73,28 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetwork = {
     if (isDynamic(topS)) {
-      val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
-      import topParam._
-      topParam.networkParams.foreach { networkParam =>
+      val topParam = compiler.arch.designParam.topParam
+      val networkParams = topParam match {
+        case topParam:DynamicGridTopParam => topParam.networkParams
+        case topParam:DynamicCMeshTopParam => topParam.networkParams
+      }
+      networkParams.foreach { networkParam =>
         val tp = networkParam.bct
-        val nr = numTotalRows
-        val nc = numTotalCols
-        val sq = math.max(nr, nc)
+        val numVC = networkParam match {
+          case networkParam:DynamicGridNetworkParam[_] => networkParam.numVirtualClasses
+          case networkParam:DynamicCMeshNetworkParam[_] => networkParam.numVirtualClasses
+        }
+        val topo = networkParam match {
+          case networkParam:DynamicGridNetworkParam[_] if !networkParam.isTorus => "mesh"
+          case networkParam:DynamicGridNetworkParam[_] => "torus"
+          case networkParam:DynamicCMeshNetworkParam[_] => "cmesh"
+        }
+        val sq = math.max(numRows, numCols)
         emitNodeBlock(s"net ${quote(tp)}net") {
-          emitln(s"cfg = mesh_generic.cfg")
+          emitln(s"cfg = ${topo}_generic.cfg")
           emitln(s"dim[0] = $sq")
           emitln(s"dim[1] = $sq")
-          emitln(s"num_classes = ${networkParam.numVirtualClasses}")
+          emitln(s"num_classes = ${numVC}")
         }
       }
     }
@@ -106,9 +116,16 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
       if (isStatic) {
-        srcs.zipWithIndex.foreach { case (src, srcIdx) =>
-          dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
-            emitln(s"lat[$srcIdx, $dstIdx] = ${staticLatencyOf(src, dst).get}")
+        n.foreach { mem =>
+          val memSrcs = srcsOf(mem)
+          val memDsts = dstsOf(mem)
+          memSrcs.foreach { src =>
+            val srcIdx = srcs.indexOf(src)
+            val lat = staticLatencyOf(src, mem).get
+            memDsts.foreach { dst =>
+              val dstIdx = dsts.indexOf(dst)
+              emitln(s"lat[$srcIdx, $dstIdx] = $lat")
+            }
           }
         }
       } else {

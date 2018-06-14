@@ -37,6 +37,11 @@ trait ScalaUtil {
     res.head
   }
 
+  def assertOneOrLess[A](list:Iterable[A], info:String):Option[A] = {
+    assert(list.size<=1, s"More than one element in $list for $info")
+    list.headOption
+  }
+
   def zipMap[A,B,T](a:Option[A], b:Option[B])(lambda:(A,B) => T):Option[T] = {
     (a,b).zipped.map { case (a,b) => lambda(a,b) }.headOption
   }
