@@ -34,7 +34,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def srcsOf(n:Link):List[NetworkNode] = {
-    n.toList.flatMap { mem => srcsOf(mem) }
+    n.flatMap { mem => srcsOf(mem) }.toList
   }
 
   def dstsOf(mem:Memory):List[NetworkNode] = dbgblk(s"dstsOf(${quote(mem)})"){
@@ -47,7 +47,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def dstsOf(n:Link):List[NetworkNode] = {
-    n.toList.flatMap { mem => dstsOf(mem) }
+    n.flatMap { mem => dstsOf(mem) }.toList
   }
 
   def inlinksOf(n:NetworkNode) = {
