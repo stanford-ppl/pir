@@ -197,7 +197,7 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     } else depFree
   }
 
-  def visitScope(n:N):List[N] = (n::n.descendents).filter { _.children.isEmpty }
+  def visitScope(n:N):List[N] = (n::n.descendents)
 
   def traverseScope(n:N, zero:T) = {
     traverse(scheduleDepFree(visitScope(n)), zero)
