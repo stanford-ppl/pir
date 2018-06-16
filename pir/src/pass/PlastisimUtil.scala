@@ -190,15 +190,18 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def ginFrom(src:NetworkNode, mem:Memory):Option[GlobalInput] = {
-    val writers = writersOf(mem)
-    val (globalWriters, localWriters) = writers.partition { writer => 
-      dataOf(writer).isInstanceOf[GlobalInput] 
+    val writers = (writersOf(mem) ++ resetersOf(mem))
+    val (globalWriters, localWriters) = writers.partition {
+      case Def(_,LocalStore(_, _, data:GlobalInput)) => true
+      case Def(_,LocalReset(_, reset:GlobalInput)) => true
+      case _ => false
     }
     if (localWriters.nonEmpty && globalWriters.isEmpty) {
       None
     } else if (localWriters.isEmpty && globalWriters.nonEmpty) {
       val gins = globalWriters.map {
-        case Def(n, LocalStore(_, _, data:GlobalInput)) => data
+        case Def(_,LocalStore(_, _, data:GlobalInput)) => data
+        case Def(_,LocalReset(_, reset:GlobalInput)) => reset
       }.filter { gin => goutOf(gin).get.collectPeer[NetworkNode]().contains(src) }
       Some(assertUnify(gins, s"$mem's GlobalInput from $src") { gin => gin })
     } else {
