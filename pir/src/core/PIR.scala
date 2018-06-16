@@ -44,6 +44,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextInsertion = new ContextInsertion()
   lazy val contextMerging = new ContextMerging()
+  lazy val controlRegInsertion = new ControlRegInsertion()
   lazy val controlAllocator = new ControlAllocation()
   lazy val controlLowering = new ControlLowering()
 
@@ -74,7 +75,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new PIRIRDotCodegen(s"top1.dot"))
     addPass(deadCodeEliminator).dependsOn(fringeElaboration)
     addPass(constantExpressionEvaluator)
-    addPass(controlPropogator) // re
+    addPass(controlPropogator)
     addPass(irCheck).dependsOn(deadCodeEliminator)
     addPass(debug, new PIRPrinter(s"IR1.txt"))
     addPass(enableDot, new PIRIRDotCodegen(s"top2.dot"))
@@ -108,20 +109,23 @@ trait PIR extends Compiler with PIRWorld {
     addPass(irCheck)
 
     addPass(genCtrl, contextInsertion)
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
     addPass(genCtrl, contextMerging)
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
-
-    //// Control transformation and analysis
-    addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    addPass(genCtrl, deadCodeEliminator) // TODO cannot dce counters yet since more duplicated in controlLowering
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
-    addPass(genCtrl, irCheck)
-    addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
-    addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl, irCheck)
 
     session.rerun {
+    //// Control transformation and analysis
+    addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(genCtrl, controlRegInsertion) // insert reg for no forward depended contextEn
+    addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top13.dot"))
+    addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top14.dot"))
+    addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(genCtrl, irCheck)
+
     addPass(cuStats)
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)

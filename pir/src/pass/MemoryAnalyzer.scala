@@ -5,7 +5,7 @@ import pir.node._
 
 import scala.collection.mutable
 
-class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
+class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
   def setTopCtrl(mem:Memory) = dbgblk(s"setTopCtrl($mem)") {
@@ -50,9 +50,13 @@ class MemoryAnalyzer(implicit compiler:PIR) extends PIRTransformer {
   }
 
   override def runPass =  {
-    val mems = compiler.top.collectDown[Memory]()
-    mems.foreach { mem =>
-      setTopCtrl(mem)
+    traverseNode(compiler.top)
+  }
+
+  override def visitNode(n:N) = { 
+    n match {
+      case n:Memory if !ctrlOf.contains(n) => setTopCtrl(n)
+      case n => super.visitNode(n)
     }
   }
 

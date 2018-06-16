@@ -20,4 +20,5 @@ trait ArgFringeUtil {
   implicit def dramAddress_to_access(dramAddr:DramAddress)(implicit design:PIRDesign) = {
     ReadMem(dramAddr)
   }
+
 }

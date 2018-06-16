@@ -18,7 +18,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     super.visitNode(node)
   }
 
-  def transform(n:N):N = dbgblk(s"transform($n)") {
+  def transform(n:N):N = {
     n match {
       case Def(n:ContextEnableOut, ContextEnableOut()) => lowerContextEnable(n)
       case n => n
@@ -59,24 +59,19 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def lowerContextEnable(ctxEnOut:ContextEnableOut):ContextEnable = dbgblk(s"lowerContextEnable($ctxEnOut)") {
-    val context = contextOf(ctxEnOut).get
-    val ctxEn = allocate[ContextEnable](context) {
+    lowerNode(ctxEnOut) {
+      val context = contextOf(ctxEnOut).get
       var notEmpties = computeNotEmpties(context)
       // If still has no data dependencies, add a tokenIn from the top
       globalOf(ctxEnOut).get match {
         case _:ArgFringe =>
         case _:FringeStreamIn =>
-        case _ if notEmpties.isEmpty =>
-          dbgblk(s"No forward dependencies, duplicate all ancestor control's counter chains") {
-            allocateControllerDone(context, compiler.top.topController)
-            notEmpties = computeNotEmpties(context)
-          }
+        case _ if notEmpties.isEmpty => err(s"$context does not have forward dependencies")
         case _ =>
       }
       val notFulls = computeNotFulls(context)
       ContextEnable(notEmpties ++ notFulls)
     }
-    swapNode(ctxEnOut, ctxEn)
   }
 }
 

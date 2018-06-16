@@ -156,6 +156,28 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     to
   }
 
+  def lowerNode[T<:Primitive](from:Primitive)(to:T):T = {
+    if (from == to) return to
+    swapNode(from, to)
+    from.parent.foreach { parent =>
+      to.setParent(parent)
+      dbg(s"add ${quote(to)} in ${quote(parent)}")
+    }
+    removeNode(from)
+    to
+  }
+
+  def allocate[T<:PIRNode:ClassTag:TypeTag](
+    container:Container, 
+    filter:T => Boolean = (n:T) => true
+  )(newNode: => T):T = dbgblk(s"allocate(T=${implicitly[ClassTag[T]]}, container=$container)"){
+    val nodes = container.collectDown[T]().filter(filter)
+    assert(nodes.size <= 1, s"more than 1 node in container: $nodes")
+    nodes.headOption.getOrElse { 
+      newNode.setParent(container)
+    }
+  }
+
   override def disconnect(a:A, b:A) = {
     dbg(s"disconnect ${quote(a)} ${quote(b)}")
     super.disconnect(a,b)

@@ -13,4 +13,5 @@ trait ContainerUtil {
     val ctrls = primitives.flatMap { comp => ctrlOf.get(comp) }.toSet[Controller]
     ctrls.minBy { _.descendents.size }
   }
+
 }

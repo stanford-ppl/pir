@@ -11,6 +11,7 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
   val forward = false
 
   override def runPass =  {
+    designP.top.argFringe.tokenInDef //HACK: enforce lazy value instantiation
     // Mark context
     val contextMap = traverseNode(compiler.top, Map[PIRNode, ComputeContext]()) //TODO traverse is slow 5285.663ms for GDA
     // Transform nodes into their contexts
@@ -29,7 +30,7 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
             if (contextCU==cu) {
               if (n.parent.get == cu) swapParent(n, context)
             } else {
-              dbg(s"this shouldn't happen n=${qdef(n)}")
+              err(s"this shouldn't happen ${qdef(n)} contextCU=$contextCU != cu=$cu")
               dbg(s"node cu:${qtype(cu)} contextCU:${qtype(contextCU)}")
             }
           }.getOrElse {
@@ -48,8 +49,8 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with DFSBot
         case n:Memory => None
         case n:ComputeNode =>
           // Group of nodes that should shair context with current nodes
-          val peers = n.localDepeds ++ n.children
-          dbg(s"$n.localDepeds=${n.localDepeds} n.siblings=${n.siblings} peers=${peers}")
+          val peers = depFunc(n).filter { dep => globalOf(dep) == globalOf(n) } // local
+          dbg(s"$n.localDepeds=${n.localDepeds} peers=${peers}")
           val sharedContexts = peers.flatMap { deped => contextMap.get(deped) }.toSet.toList
           dbg(s"sharedContexts=$sharedContexts")
           val context = if (sharedContexts.size == 0) {

@@ -33,7 +33,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
         val metas = List(ctrlOf, topCtrlOf, boundOf, parOf, itersOf, countsOf)
         metas.foreach { meta =>
           meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
-            label += s"\n(${meta.name}=$v)"
+            label += s"\n(${meta.name}=${quote(v)})"
           }
         }
       case _ =>
@@ -65,7 +65,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   override def emitNode(n:N) = {
     n match {
-      case n:Const[_] if usedByCounter(n) => super.visitNode(n)
+      //case n:Const[_] if usedByCounter(n) => super.visitNode(n)
       case n:High =>
       case n:Low =>
       case n:Primitive => emitSingleNode(n); super.visitNode(n)

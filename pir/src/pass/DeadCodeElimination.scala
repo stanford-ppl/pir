@@ -31,16 +31,26 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     }
   }
 
+  override def depFunc(n:N) = n match {
+    case n:Counter => List(cchainOf(n))
+    case n:CounterChain => n.children.flatMap { c => super.depFunc(c) }.toSet.toList
+    case n => super.depFunc(n)
+  }
+
   def depedsExistsLive(n:N):Boolean = {
-    val (analyzedDepeds, unanalyzedDepeds) = depFunc(n).partition { deped => isLive(deped).nonEmpty }
+    val depeds = depFunc(n)
+    dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
+    val (analyzedDepeds, unanalyzedDepeds) = depeds.partition { deped => isLive(deped).nonEmpty }
     val live = analyzedDepeds.exists { deped => isLive(deped).get }
     if (live) return true
     if (unanalyzedDepeds.isEmpty) return false
     if (aggressive) {
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
+      //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
       return false
     } else {
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
+      //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
       return true
     }
   }
@@ -49,7 +59,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:HostRead => Some(true)
     case n:ProcessStreamOut => Some(true)
-    case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    case n:ProcessControlToken => Some(true)
+    case n:CounterChain if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    case n:TokenInDef if !compiler.session.hasRunAll[ControlAllocation] => Some(true) 
     case n => None
   }
 
@@ -69,7 +81,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     super.scheduleDepFree(nodes)
   }
 
-  override def visitNode(n:N):T = dbgblk(s"visitNode:$n deped=${n.depeds.map { deped => s"$deped, liveness=${isLive(deped)}"}}") {
+  override def visitNode(n:N):T = dbgblk(s"visitNode:${qdef(n)}") {
     val live = n match {
       case n if isLive(n).nonEmpty => isLive(n).get
       case n => depedsExistsLive(n) 

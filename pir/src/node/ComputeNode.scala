@@ -49,9 +49,7 @@ trait ComputeNodeUtil {
     case _ => false
   }
 
-  def ctxEnOf(n:Container):Option[ContextEnable] = {
-    n.collectDown[ContextEnable]().headOption
-  }
+  def ctxEnOf(n:Container):Option[ContextEnable] = n.collectDown[ContextEnable]().headOption
 
   def ctxEnOf(n:Primitive):Option[ContextEnable] = {
     if (within[ComputeContext](n)) {
@@ -62,6 +60,8 @@ trait ComputeNodeUtil {
   }
 
   def contextOf(n:PIRNode):Option[ComputeContext] = n.collectUp[ComputeContext]().headOption
+
+  def cchainOf(n:Counter):CounterChain = n.collectUp[CounterChain]().head
 
   def loadAccessesOf(n:PIRNode):List[LocalLoad] = n match {
     case (_:ContextEnable | _:ContextEnableOut) => loadAccessesOf(contextOf(n).get)
