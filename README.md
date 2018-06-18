@@ -15,18 +15,6 @@ git submodule update --init
 ```
 Set `SPATIAL_HOME` and `PIR_HOME` environmental variables.
 
-Optionally add config file .prismrc under $PIR_HOME
-```
-load-pir=false
-save-pir=true
-load-spade=false
-save-spade=false
-arch=DMeshCB4x4
-verbosity-routing=1
-bp=false
-mapping=true
-```
-
 To generate app from spatial
 ```
 $SPATIAL_HOME/bin/spatial <App> --cgra+
@@ -35,6 +23,27 @@ Run pir compiler
 ```
 $PIR_HOME/bin/pir <App> [args] [--options]
 ```
+
+To see all possible options, run
+```
+$PIR_HOME/bin/pir --help
+```
+Optionally all options can also been set from a config file .prismrc under $PIR_HOME.
+Commend line option will override config file option. Example config
+```
+mapping=true
+stat=true # print out CU statistics
+
+# routing algo
+routing-algo=dor # dimentional order routing
+
+# architectural configs
+topo=mesh
+net=dynamic
+row=4
+col=4
+```
+
 To visualize the top level data flow graph
 ```
 $PIR_HOME/bin/dot out/<App>/simple
