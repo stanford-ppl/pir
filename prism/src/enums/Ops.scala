@@ -30,6 +30,7 @@ case object FixUsla extends FixOp            with Op2
 case object FixNeg extends FixOp             with Op1
 case object FixRandom extends FixOp          with Op1
 case object FixUnif extends FixOp            with Op1
+case object FixAbs extends FixOp             with Op1
 
 sealed trait FltOp extends Op
 case object FltAdd extends FltOp             with Op2

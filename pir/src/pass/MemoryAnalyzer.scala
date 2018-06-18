@@ -41,6 +41,5 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     }
   }
 
-
 }
 
