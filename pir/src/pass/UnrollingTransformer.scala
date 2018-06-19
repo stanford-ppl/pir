@@ -26,10 +26,11 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
           reduceInput = ReduceOp(op=op, input=reduceInput)
           ctrlOf(reduceInput) = ctrlOf(n)
         }
-        val accum = AccumOp(op=op, input=reduceInput)
-        ctrlOf(accum) = ctrlOf(n)
-        swapNode(n, accum)
-        accum
+        lowerNode(n) {
+          val accum = AccumOp(op=op, input=reduceInput)
+          ctrlOf(accum) = ctrlOf(n)
+          accum
+        }
       case n => n
     }
   }

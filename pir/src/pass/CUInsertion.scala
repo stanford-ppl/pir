@@ -41,12 +41,6 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
     controllerTraversal.traverseNode(compiler.top.topController, ())
   }
 
-  override def swapParent(node:N, newParent:N) = {
-    dbg(s"swapParent ${qtype(node)} newParent=${qtype(newParent)}")
-    super.swapParent(node, newParent)
-    dbg(s"node=${node.parent}")
-  }
-
   override def visitNode(n:N):Unit = {
     dbg(s"visitNode ${qdef(n)}")
     n match {

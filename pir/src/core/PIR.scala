@@ -82,47 +82,45 @@ trait PIR extends Compiler with PIRWorld {
     addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotCodegen(s"top3.dot"))
     addPass(cuInsertion)
-    addPass(deadCodeEliminator)
-    addPass(enableDot, new PIRIRDotCodegen(s"top4.dot"))
     addPass(accessPuller).dependsOn(cuInsertion)
+    addPass(enableDot, new PIRIRDotCodegen(s"top4.dot"))
+    addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotCodegen(s"top5.dot"))
-    addPass(deadCodeEliminator)
-    addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
-    addPass(enableDot, new PIRIRDotCodegen(s"top8.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
 
     addPass(enableSplitting, igraphPartioner)
-    addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top9.dot"))
+    addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top8.dot"))
     addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
 
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
-    addPass(enableDot, new PIRIRDotCodegen(s"top10.dot"))
+    addPass(enableDot, new PIRIRDotCodegen(s"top9.dot"))
     addPass(enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
     addPass(genCtrl, contextInsertion)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot"))
     addPass(genCtrl, contextMerging)
     addPass(genCtrl, deadCodeEliminator)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
     session.rerun {
     //// Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top13.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top14.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top13.dot"))
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, irCheck)
 

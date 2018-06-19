@@ -24,7 +24,6 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     // Remove dead code
     liveMap.foreach { 
       case (n, false) =>
-        dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
         removeNode(n)
         pirmeta.removeAll(n)
       case (n, true) => 
@@ -72,10 +71,22 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     super.isDepFree(n)
 
   override def selectFrontier(unvisited:List[N]) = {
-    dbgblk(s"unvisited") {
-      unvisited.foreach { n => dbg(s"$n, deps=${depFunc(n)}") }
+    if (aggressive) {
+      dbgblk(s"Aggressive DCE: unvisited all dead") {
+        unvisited.foreach { n => 
+          liveMap += (n -> false)
+          dbg(s"$n, deps=${depFunc(n)}")
+        }
+      }
+    } else {
+      dbgblk(s"Conservative DCE: unvisited all live") {
+        unvisited.foreach { n => 
+          liveMap += (n -> true)
+          dbg(s"$n, deps=${depFunc(n)}")
+        }
+      }
     }
-    unvisited
+    Nil
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${qdef(n)}") */{
