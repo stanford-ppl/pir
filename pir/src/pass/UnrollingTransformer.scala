@@ -3,10 +3,8 @@ package pass
 
 import pir.node._
 
-class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
+class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
-
-  val forward = true
 
   override def runPass =  {
     traverseNode(compiler.top)
