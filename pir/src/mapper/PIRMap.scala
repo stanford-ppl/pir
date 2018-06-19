@@ -41,34 +41,36 @@ object PIRMap {
 
 case class CUMap (
   freeMap:BiManyToManyMap[CUMap.K,CUMap.V],
+  weights:Map[(CUMap.K,CUMap.V),Int],
   usedMap:BiOneToOneMap[CUMap.K,CUMap.V]
 ) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap] with MappingCollection
 object CUMap {
   type K = GlobalContainer
   type V = Routable
-  def empty = CUMap(BiManyToManyMap.empty, BiOneToOneMap.empty)
+  def empty = CUMap(BiManyToManyMap.empty, Map.empty, BiOneToOneMap.empty)
 }
 
 case class MKMap(
-  fmap:OneToOneMap[MKMap.K,MKMap.V], 
+  fmap:OneToManyMap[MKMap.K,MKMap.V], 
   bmap:OneToManyMap[MKMap.V,MKMap.K]
-) extends BiManyToOneMapLike[MKMap.K,MKMap.V,MKMap] {
+) extends BiManyToManyMapLike[MKMap.K,MKMap.V,MKMap] {
   def apply(v:V):KK = bmap(v)
   def get(v:V):Option[KK] = bmap.get(v)
   def contains(v:V) = bmap.contains(v)
 }
 object MKMap {
-  type K = spade.node.Port[_]
+  type K = spade.node.Port[_<:PinType]
   type V = GlobalOutput 
-  def empty = MKMap(OneToOneMap.empty, OneToManyMap.empty)
+  def empty = MKMap(OneToManyMap.empty, OneToManyMap.empty)
 }
 
 case class VCMap(
   freeMap:BiManyToManyMap[VCMap.K,VCMap.V],
+  weights:Map[(VCMap.K,VCMap.V),Int],
   usedMap:BiManyToOneMap[VCMap.K,VCMap.V]
 ) extends ManyToOneFactorGraphLike[VCMap.K,VCMap.V,VCMap] with MappingCollection 
 object VCMap {
   type K = Memory
   type V = Int
-  def empty = VCMap(BiManyToManyMap.empty, BiManyToOneMap.empty)
+  def empty = VCMap(BiManyToManyMap.empty, Map.empty, BiManyToOneMap.empty)
 }

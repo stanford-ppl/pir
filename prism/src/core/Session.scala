@@ -58,9 +58,7 @@ class Session extends Serializable {
   def run(implicit compiler:Compiler) = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
-      if (compiler.save && runner.id==savingCheckPoint) {
-        compiler.saveDesign
-      }
+      if (compiler.save && runner.id==savingCheckPoint) compiler.saveDesign
       currRun = runner
       runner.run
     }

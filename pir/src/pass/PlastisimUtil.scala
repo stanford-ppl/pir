@@ -2,76 +2,63 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 import spade.node._
+import spade.param._
 
 trait PlastisimUtil extends PIRPass {
   import pirmeta._
   import spademeta._
 
-  type Node = ContextEnable
+  type NetworkNode = ContextEnable
   type Link = linkGroupOf.V
 
   lazy val topS = compiler.arch.design.top
 
+  lazy val (numRows, numCols) = compiler.arch.designParam.topParam match {
+    case param:StaticGridTopParam => (param.numRows, param.numCols)
+    case param:DynamicGridTopParam => (param.numTotalRows, param.numTotalCols)
+    case param:StaticCMeshTopParam => (param.numRows, param.numCols)
+    case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
+  }
+
   def cumap = pirMap.right.get.cumap
   def vcmap = pirMap.right.get.vcmap
 
-  def srcOf(mem:Memory) = dbgblk(s"srcOf(${quote(mem)})") {
+  def srcsOf(mem:Memory):List[NetworkNode] = dbgblk(s"srcsOf(${quote(mem)})") {
     def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
       case n:Memory => true
       case _ => false
     }
-    mem.collect[Node](visitFunc=visitFunc _)
+    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def srcsOf(n:Link) = {
-    n.flatMap { mem => srcOf(mem) }
+  def srcsOf(n:Link):List[NetworkNode] = {
+    n.flatMap { mem => srcsOf(mem) }.toList
   }
 
-  def dstOf(mem:Memory) = dbgblk(s"dstOf(${quote(mem)})"){
+  def dstsOf(mem:Memory):List[NetworkNode] = dbgblk(s"dstsOf(${quote(mem)})"){
     def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
       case n:Memory => true
       case n:NotFull => true
       case _ => false
     }
-    mem.collect[Node](visitFunc=visitFunc _)
+    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def dstsOf(n:Link) = {
-    n.flatMap { mem => dstOf(mem) }
+  def dstsOf(n:Link):List[NetworkNode] = {
+    n.flatMap { mem => dstsOf(mem) }.toList
   }
 
-  def inAccessOf(n:Node) = {
-    n.collectOutTillMem[LocalLoad]() //reads enabled by this contextEnable
-  }
-
-  def inMemsOf(n:Node) = {
-    var reads = inAccessOf(n)
-    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
-    reads.flatMap { read => memsOf(read) }
-  }
-
-  def inlinksOf(n:Node) = {
-    var reads = inAccessOf(n)
-    reads = reads.filter { read => memsOf(read).forall { mem => writersOf(mem).nonEmpty } }
-    reads.groupBy { read =>
+  def inlinksOf(n:NetworkNode) = {
+    loadAccessesOf(n).groupBy { read =>
       val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
   }
 
-  def outAccessOf(n:Node) = {
-    n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
-  }
-
-  def outMemsOf(n:Node) = {
-    val writes = outAccessOf(n)
-    writes.flatMap { write => memsOf(write) }
-  }
-
-  def outlinksOf(n:Node) = {
-    val writes = n.collectOutTillMem[LocalStore]() // writes enabled by this contextEnable
-    writes.groupBy { write =>
+  def outlinksOf(n:NetworkNode) = {
+    (storeAccessesOf(n) ++ resetAccessesOf(n)).groupBy { write =>
       val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
       linkGroupOf(mem)
     }.toSeq
@@ -79,41 +66,36 @@ trait PlastisimUtil extends PIRPass {
 
   // Convert coordinate to linear index
   def addrOf(sn:SNode):Option[Int] = {
-    val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
-    import topParam._
     indexOf.get(sn).map { case List(x,y) =>
-      val idx = y * numTotalCols + x
+      val idx = y * numCols + x
       dbg(s"$sn: coord = ($x, $y) idx = $idx")
       idx
     }
   }
 
-  def addrOf(node:Node):Option[Int] = {
+  def addrOf(node:NetworkNode):Option[Int] = {
     val cuP = globalOf(node).get
     cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
   }
 
-  def isStaticLink(src:Node, dst:Node):Boolean = {
-    topS match {
-      case topS if isDynamic(topS) =>
-        val srcCUP = globalOf(src).get
-        val dstCUP = globalOf(dst).get
-        val isStatic = srcCUP == dstCUP
-        dbg(s"isStatic($src($srcCUP), $dst($dstCUP)) = $isStatic")
-        isStatic
-      case topS if isStatic(topS) => true
-      case topS if isAsic(topS) => true
+  def isStaticLink(mem:Memory):Boolean = {
+    assertUnify(writersOf(mem), "isStaticLink"){
+      case Def(n, LocalStore(_, _, data:GlobalInput)) => 
+        val port = mappedTo[MKMap.K](data).get
+        isStaticLink(port)
+      case Def(n, LocalStore(_, _, data)) => true // Local edge
     }
   }
 
   def isStaticLink(n:Link):Boolean = {
-    val srcs = srcsOf(n)
-    val dsts = dstsOf(n)
-    val pairs = srcs.flatMap{ src => dsts.map { dst => (src, dst) } }
-    assertUnify(pairs, "isStatic"){ case (src, dst) => isStaticLink(src, dst) }
+    topS match {
+      case topS if isAsic(topS) => true
+      case topS if isStatic(topS) => true
+      case topS if isDynamic(topS) =>
+        assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }
+    }
   }
 
-  
   def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {
       case cuS:MC =>
@@ -146,7 +128,7 @@ trait PlastisimUtil extends PIRPass {
               case memP if isWord(memP) => cuS.param.scalarFifoParam.size
               case memP if isVector(memP) => cuS.param.vectorFifoParam.size
             }
-          case memP:pir.node.SRAM => cuS.param.sramParam.depth
+          case memP if isRemoteMem(memP) => cuS.param.sramParam.depth
           case memP if isReg(memP) => cuS.param.scalarFifoParam.size
         }
       case cuS:spade.node.ArgFringe => 1
@@ -168,10 +150,6 @@ trait PlastisimUtil extends PIRPass {
     assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
   }
 
-  def constItersOf(x:Controller):Long = {
-    getItersOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
-  }
-
   def constItersOf(x:PIRNode):Long = {
     getItersOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
   }
@@ -180,12 +158,8 @@ trait PlastisimUtil extends PIRPass {
     getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
   }
 
-  def constCountsOf(x:Controller):Long = {
-    getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
-  }
-
   def constItersOf(accesses:List[LocalAccess]):Long = {
-    assertUnify(accesses, "iter") { access => constItersOf(access) }
+    assertUnify(accesses, "iters") { access => constItersOf(access) }
   }
 
   def constCountsOf(accesses:List[LocalAccess]):Long = {
@@ -202,7 +176,7 @@ trait PlastisimUtil extends PIRPass {
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
 
-  def latencyOf(n:Node):Option[Int] = {
+  def latencyOf(n:NetworkNode):Option[Int] = {
     val cuP = globalOf(n).get
     topS match {
       case topS if isAsic(topS) => Some(Math.max(1, cuP.collectDown[StageDef]().size))
@@ -215,16 +189,44 @@ trait PlastisimUtil extends PIRPass {
     }
   }
 
-  def staticLatencyOf(src:Node, dst:Node):Option[Int] = {
+  def ginFrom(src:NetworkNode, mem:Memory):Option[GlobalInput] = {
+    val writers = (writersOf(mem) ++ resetersOf(mem))
+    val (globalWriters, localWriters) = writers.partition {
+      case Def(_,LocalStore(_, _, data:GlobalInput)) => true
+      case Def(_,LocalReset(_, reset:GlobalInput)) => true
+      case _ => false
+    }
+    if (localWriters.nonEmpty && globalWriters.isEmpty) {
+      None
+    } else if (localWriters.isEmpty && globalWriters.nonEmpty) {
+      val gins = globalWriters.map {
+        case Def(_,LocalStore(_, _, data:GlobalInput)) => data
+        case Def(_,LocalReset(_, reset:GlobalInput)) => reset
+      }.filter { gin => goutOf(gin).get.collectPeer[NetworkNode]().contains(src) }
+      Some(assertUnify(gins, s"$mem's GlobalInput from $src") { gin => gin })
+    } else {
+      throw PIRException(s"mem=$mem globalWriters=$globalWriters, localWriters=$localWriters")
+    }
+  }
+
+  def staticLatencyOf(src:NetworkNode, mem:Memory):Option[Int] = {
     topS match {
       case topS if isAsic(topS) => Some(1)
-      case topS if isDynamic(topS) && isStaticLink(src, dst)=> Some(1) //TODO
-      case topS if isDynamic(topS) => None
-      //case topS if isStatic(topS) => //TODO
-        //val scuP = globalOf(src).get
-        //val dcuP = globalOf(dst).get
-        //val mem = link.filter { mem => globalOf(mem).get == dcuP }.head
-        //mem.collectInTillMem[GlobalInput]().headOption
+      case topS => 
+        ginFrom(src, mem) match {
+          case Some(gin) => staticLatencyOf(gin)
+          case None => Some(1) // Local Link
+        }
+    }
+  }
+
+  def staticLatencyOf(gin:GlobalInput):Option[Int] = {
+    mappedTo[MKMap.K](gin).flatMap { port =>
+      if (isStaticLink(port)) {
+        val gout = goutOf(gin).get
+        val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
+        Some(routes.size)
+      } else None
     }
   }
 

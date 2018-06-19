@@ -6,7 +6,7 @@ import java.io.FileOutputStream
 trait Logging {
 
   def debug = Config.debug
-  val logger = new Printer {
+  lazy val logger = new Printer {
     override def emit(s:String):Unit = if (debug) { super.emit(s); flush }
     override def emitln(s:String):Unit = if (debug) { super.emitln(s); flush }
 

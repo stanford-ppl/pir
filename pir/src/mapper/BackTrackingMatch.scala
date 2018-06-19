@@ -13,7 +13,7 @@ trait BackTrackingMatch extends prism.mapper.BackTrackingMatch { self:Logging =>
       init=init,
       bindLambda=(p:P,s:S,m:F) => m.set(p,s)
     )(
-      rankS = (s:S, m:F) => m.freeKeys(s).size
+      rankS = (p:P, s:S, m:F) => m.freeKeys(s).size
     )
   }
 

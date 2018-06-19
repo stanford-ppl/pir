@@ -18,7 +18,7 @@ case class ProcessStreamOut(
   stream:Def
 )(implicit design:PIRDesign) extends Def
 
-trait PIRStreamFringe {
+trait StreamFringeUtil {
   def isStreamFringe(n:GlobalContainer) = n match {
     case n:StreamFringe => true
     case n => false

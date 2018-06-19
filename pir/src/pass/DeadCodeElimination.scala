@@ -24,23 +24,33 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     // Remove dead code
     liveMap.foreach { 
       case (n, false) =>
-        dbg(s"eliminate ${qdef(n)} from parent=${n.parent}")
         removeNode(n)
         pirmeta.removeAll(n)
       case (n, true) => 
     }
   }
 
+  override def depFunc(n:N) = n match {
+    case n:Counter => List(cchainOf(n))
+    case n:CounterChain => n.children.flatMap { c => super.depFunc(c) }.toSet.toList
+    case n => super.depFunc(n)
+  }
+
   def depedsExistsLive(n:N):Boolean = {
-    val (analyzedDepeds, unanalyzedDepeds) = depFunc(n).partition { deped => isLive(deped).nonEmpty }
+    val depeds = depFunc(n)
+    val (analyzedDepeds, unanalyzedDepeds) = depeds.partition { deped => isLive(deped).nonEmpty }
     val live = analyzedDepeds.exists { deped => isLive(deped).get }
     if (live) return true
     if (unanalyzedDepeds.isEmpty) return false
     if (aggressive) {
+      dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
+      //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
       return false
     } else {
+      dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
+      //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
       return true
     }
   }
@@ -49,7 +59,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:HostRead => Some(true)
     case n:ProcessStreamOut => Some(true)
-    case n:Primitive if isCounter(n) && !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    case n:ProcessControlToken => Some(true)
+    case n:CounterChain if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
+    case n:TokenInDef if !compiler.session.hasRunAll[ControlAllocation] => Some(true) 
     case n => None
   }
 
@@ -58,24 +70,32 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     (depFunc(n).exists { deped => isLive(deped) == Some(true)}) ||
     super.isDepFree(n)
 
-  override def scheduleDepFree(nodes:List[N]):List[N] = {
-    val unvisited = nodes.filterNot(isVisited) 
-    var depFree = unvisited.filter(isDepFree) 
-    if (unvisited.nonEmpty && depFree.isEmpty) {
-      dbgblk(s"unvisited") {
-        unvisited.foreach { n => dbg(s"$n, deps=${depFunc(n)}") }
+  override def selectFrontier(unvisited:List[N]) = {
+    if (aggressive) {
+      dbgblk(s"Aggressive DCE: unvisited all dead") {
+        unvisited.foreach { n => 
+          liveMap += (n -> false)
+          dbg(s"$n, deps=${depFunc(n)}")
+        }
+      }
+    } else {
+      dbgblk(s"Conservative DCE: unvisited all live") {
+        unvisited.foreach { n => 
+          liveMap += (n -> true)
+          dbg(s"$n, deps=${depFunc(n)}")
+        }
       }
     }
-    super.scheduleDepFree(nodes)
+    Nil
   }
 
-  override def visitNode(n:N):T = dbgblk(s"visitNode:$n deped=${n.depeds.map { deped => s"$deped, liveness=${isLive(deped)}"}}") {
+  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${qdef(n)}") */{
     val live = n match {
       case n if isLive(n).nonEmpty => isLive(n).get
       case n => depedsExistsLive(n) 
     }
     liveMap += (n -> live)
-    dbg(s"live(${n})=${live}")
+    if (!live) dbg(s"live(${n})=${live}")
     super.visitNode(n)
   }
 
@@ -85,18 +105,11 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
       val mems = cu.collectDown[Memory]()
       mems.foreach { mem =>
         mem match {
-          case mem:ArgIn =>
-          case mem:StreamIn =>
-          case mem:LUT =>
-            assert(writersOf(mem).isEmpty, s"LUT=$mem has non-empty writers=${writersOf(mem)}")
-          case mem if writersOf(mem).isEmpty =>
+          case mem if (writersOf(mem) ++ resetersOf(mem)).isEmpty =>
             warn(s"${qtype(mem)} in $cu does not have writer")
           case _ =>
         }
         mem match {
-          case mem:TokenOut =>
-          case mem:ArgOut =>
-          case mem:StreamOut =>
           case mem if readersOf(mem).isEmpty =>
             warn(s"${qtype(mem)} in $cu does not have reader")
           case _ =>

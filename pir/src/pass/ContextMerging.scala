@@ -14,7 +14,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   }
 
   def checkControl(context:ComputeContext) = {
-    val ctrls = ctrlsOf(context)
+    val ctrls = context.descendents.flatMap { x => ctrlOf.get(x) }
     val inner = innerCtrlOf(context)
     val ancestorBranch = (inner :: inner.ancestors)
     ctrls.foreach { ctrl =>
@@ -25,7 +25,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   /* 
    * ctx1 and ctx2 are connected in data flow graph without saperated by memory
    * */
-  def areLocallyConnected(ctx1:ComputeContext, ctx2:ComputeContext) = {
+  def areLocallyConnected(ctx1:ComputeContext, ctx2:ComputeContext) = dbgblk(s"areLocallyConnected($ctx1, $ctx2)"){
     def visitLocalIn(n:PIRNode) = n match {
       case n:Memory => Nil
       case n => n.visitLocalIn(n)
@@ -40,12 +40,8 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
   /* 
    * ctx1 and ctx2 are not data dependent 
    * */
-  def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = {
-    def visitFunc(n:PIRNode) = n match {
-      case n:StreamIn => n.collectPeer[StreamOut]() // StreamIn depends on StreamOut in fringe
-      case n => visitLocalIn(n)
-    }
-    !ctx1.canReach(ctx2, visitFunc _) && !ctx2.canReach(ctx1, visitFunc _)
+  def areIndependent(ctx1:ComputeContext, ctx2:ComputeContext) = dbgblk(s"areIndependent($ctx1, $ctx2)"){
+    !ctx1.canReach(ctx2, visitLocalIn _) && !ctx2.canReach(ctx1, visitLocalIn _)
   }
 
   def mergeContexts(cus:Iterable[GlobalContainer]) = {
@@ -66,10 +62,11 @@ class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
               if ((areLocallyConnected(ctx, other) || areIndependent(ctx, other)) && ctxCtrlLeaf.areLinealInherited(otherCtrlLeaf)) {
                 val from = other
                 val to = ctx
-                dbg(s"merge $from into $to")
-                merged += from
-                from.children.foreach { child => swapParent(child, to) }
-                removeNode(from)
+                dbgblk(s"merge $from into $to") {
+                  merged += from
+                  from.children.foreach { child => swapParent(child, to) }
+                  removeNode(from)
+                }
               }
             }
         }

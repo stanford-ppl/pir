@@ -5,39 +5,51 @@ import pir.mapper._
 import spade.node._
 import prism.collection.immutable._
 
-class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any)(implicit compiler:PIR) 
-  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with MappingUtil {
+class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any, override val openDot:Boolean)(implicit compiler:PIR) 
+  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with MappingUtil with pir.pass.TypeUtil {
 
-  val pirmeta = compiler.pirmeta
+  def this(fileName:String, mapping: => Any)(implicit compiler:PIR) = this(fileName, mapping, SpadeConfig.openDot)
 
   def this(fileName:String)(implicit compiler:PIR) = {
     this(fileName, compiler.pirmeta.pirMap)
   }
 
+  val pirmeta = compiler.pirmeta
+  import pirmeta._
+
   override val dirName = compiler.outDir
+  override val relativeOutDir = compiler.relativeOutDir
 
   override def color(attr:DotAttr, n:Any) = n match {
-    case n:Routable if !isMapped(n, mapping) => attr
-    case n:Routable => super.color(attr, n)
-    case (n:ArgFringe, "top") if !isMapped(n, mapping) => attr
-    case (n:ArgFringe, "bottom") if !isMapped(n, mapping) => attr
-    case (from:Edge, to:Edge) if mappedTo[Edge](to, mapping) == Some(from) => 
-      attr.color("indianred1").style(bold)
+    case n:Routable if isMapped(n, mapping) => super.color(attr, n)
+    case (from:Edge, to:Edge) if isMapped((from, to), mapping) => attr.color("indianred1").style(bold)
     case n => attr
   }
 
   override def label(attr:DotAttr, n:Any) = n match {
     case n:Routable => 
-      mappedTo[Any](n).fold {
+      mappedTo[pir.node.GlobalContainer](n).fold {
         super.label(attr, n)
       } { cuP =>
-        attr.label(s"${quote(n)}\n(${quote(cuP)})")
+        var label = s"${quote(n)}"
+        label += s"\n(${quote(cuP)}[${cuType(cuP).get}])"
+        attr.label(label)
+      }
+    case (from:Edge, to:Edge) => 
+      mappedTo[Set[MKMap.V]]((from, to), mapping).fold {
+        attr
+      }{ mks =>
+        attr.label(s"[${mks.map{_.id}.mkString(",")}]")
       }
     case n => super.label(attr,n)
   }
 
   override def emitEdge(from:prism.node.Output[N], to:prism.node.Input[N], attr:DotAttr):Unit = {
-    super.emitEdge(from, to, color(attr, (from, to)))
+    val edge = (from, to)
+    var at = attr
+    at = color(at, edge)
+    at = label(at, edge)
+    super.emitEdge(from, to, at)
   }
 
 }

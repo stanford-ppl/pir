@@ -14,7 +14,6 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
 
   override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
     (getOrElseUpdate(mapping, x) { dbgblk(s"mirrorX(${quote(x)})") {
-      implicit val pirdata = design.asInstanceOf[PIRDesign]
       x match {
         case n:GlobalInput => 
           goutOf(n).foreach { gout => mapping += gout -> gout }
@@ -142,9 +141,9 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }).asInstanceOf[Def]
   }
 
-  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil):T = {
+  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil, mirrorMeta:Boolean=true):T = {
     if (from == to) return to
-    pirmeta.mirror(from, to)
+    if (mirrorMeta) pirmeta.mirror(from, to)
     val depeds = at.getOrElse(from.depeds).filterNot{ d => excludes.contains(d) }
     dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)} depeds=${depeds}")
     depeds.foreach { deped => 
@@ -155,6 +154,30 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       }
     }
     to
+  }
+
+  def lowerNode[T<:Primitive](from:Primitive)(to:T):T = {
+    if (from == to) return to
+    swapNode(from, to)
+    from.parent.foreach { parent =>
+      to.setParent(parent)
+      dbg(s"add ${quote(to)} in ${quote(parent)}")
+    }
+    removeNode(from)
+    to
+  }
+
+  def allocate[T<:PIRNode:ClassTag:TypeTag](
+    container:Container, 
+    filter:T => Boolean = (n:T) => true
+  )(newNode: => T):T = {
+    val nodes = container.collectDown[T]().filter(filter)
+    assert(nodes.size <= 1, s"more than 1 node in container: $nodes")
+    nodes.headOption.getOrElse { 
+      val node = newNode.setParent(container)
+      dbg(s"allocate[${implicitly[ClassTag[T]]}](container=$container) = ${quote(node)}")
+      node
+    }
   }
 
   override def disconnect(a:A, b:A) = {

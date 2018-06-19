@@ -43,15 +43,13 @@ case class ComputeContext()(implicit design:PIRDesign) extends Container
 case class ContextEnableOut()(implicit design:PIRDesign) extends ControlNode
 case class ContextEnable(enables:List[Def])(implicit design:PIRDesign) extends ControlNode
 
-trait PIRComputeNode {
+trait ComputeNodeUtil {
   def isCounter(n:PIRNode) = n match {
     case n:Counter => true
     case _ => false
   }
 
-  def ctxEnOf(n:Container):Option[ContextEnable] = {
-    n.collectDown[ContextEnable]().headOption
-  }
+  def ctxEnOf(n:Container):Option[ContextEnable] = n.collectDown[ContextEnable]().headOption
 
   def ctxEnOf(n:Primitive):Option[ContextEnable] = {
     if (within[ComputeContext](n)) {
@@ -60,4 +58,41 @@ trait PIRComputeNode {
       })
     } else None
   }
+
+  def contextOf(n:PIRNode):Option[ComputeContext] = n.collectUp[ComputeContext]().headOption
+
+  def cchainOf(n:Counter):CounterChain = n.collectUp[CounterChain]().head
+
+  def loadAccessesOf(n:PIRNode):List[LocalLoad] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => loadAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectDown[LocalLoad]()
+  }
+
+  def inMemsOf(n:PIRNode) = {
+    val reads = loadAccessesOf(n)
+    reads.flatMap { read => memsOf(read) }
+  }
+
+  def localStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => localStoreAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectDown[LocalStore]()
+  }
+
+  def remoteStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => remoteStoreAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectOutTillMem[LocalStore]()
+  }
+
+  def storeAccessesOf(n:PIRNode):List[LocalStore] = localStoreAccessesOf(n) ++ remoteStoreAccessesOf(n)
+
+  def resetAccessesOf(n:PIRNode):List[LocalReset] = n match {
+    case (_:ContextEnable | _:ContextEnableOut) => resetAccessesOf(contextOf(n).get)
+    case n:ComputeContext => n.collectOutTillMem[LocalReset]()
+  }
+
+  def outMemsOf(n:PIRNode) = {
+    val outAccesses = storeAccessesOf(n) ++ resetAccessesOf(n)
+    outAccesses.flatMap { write => memsOf(write) }
+  }
+
 }

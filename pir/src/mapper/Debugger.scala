@@ -5,13 +5,18 @@ import pir.codegen._
 import spade.node._
 import prism.mapper.SearchFailure
 
-trait Debugger { self:PIRPass =>
+trait Debugger extends PIRPass {
+
+  override def initPass = {
+    super.initPass
+    snapshotCount = 0
+  }
 
   def input = {
     val answer = ask(s"Waiting for input ...")
   }
 
-  def act[M](m:M, f:Any, answer:String):Unit = {
+  def act(m:Any, f:Any, answer:String):Unit = {
     answer match {
       case "o" =>
         f match {
@@ -38,8 +43,23 @@ trait Debugger { self:PIRPass =>
     }
   }
 
+  var snapshotCount = 0
+  lazy val snapshotInterval = PIRConfig.option[Int]("snapint")
+  def snapshot[M](m:M):M = {
+    if (PIRConfig.enableSnapshot) {
+      if (snapshotCount % snapshotInterval == 0 && snapshotCount != 0) {
+        val idx = snapshotCount / snapshotInterval
+        new PIRNetworkDotCodegen[Bit](s"control$idx.dot", m, false).run
+        new PIRNetworkDotCodegen[Word](s"scalar$idx.dot", m, false).run
+        new PIRNetworkDotCodegen[Vector](s"vector$idx.dot", m, false).run
+      }
+      snapshotCount += 1
+    }
+    m
+  }
+
   def handle(m:PIRMap, error:Any) = {
-    logger.closeAllBufferAndWrite
+    logger.closeAllBuffersAndWrite
     info(Console.RED, "break", error)
     val answer = ask(s"Waiting for input ...")
     act(m, error, answer)

@@ -16,6 +16,12 @@ trait IR extends prism.node.IR {
     nameOf.get(this)
   }
 
+  def srcCtx(n:String)(implicit design:PIRDesign):this.type = {
+    import design.pirmeta._
+    srcCtxOf(this) = n
+    this
+  } 
+
   def ctrl(ctrler:Any)(implicit design:PIRDesign):this.type = {
     import design.pirmeta._
     (this, ctrler) match {

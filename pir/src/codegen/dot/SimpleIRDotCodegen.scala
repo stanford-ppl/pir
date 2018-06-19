@@ -19,8 +19,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
 
   override def emitNode(n:N) = {
     n match {
-      case g:Design => emitSubGraph(n)(super.visitNode(n))
-      case g:GlobalContainer => emitSingleNode(n); super.visitNode(n)
+      case g:GlobalContainer => emitSingleNode(n)
       case _ => super.visitNode(n)
     }
   }
@@ -44,7 +43,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
   }
 
   override def label(attr:DotAttr, n:Any) = {
-    var label = quote(n) 
+    var label = super.label(attr, n).label.get
     n match {
       case n:GlobalContainer => label += s"\ncuType=${cuType(n).get}"
       case n =>

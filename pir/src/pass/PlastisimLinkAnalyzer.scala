@@ -24,19 +24,19 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
   }
 
   override def visitNode(n:N) = {
-    dbgblk(s"visitNode($n)")  {
+    //dbgblk(s"visitNode($n)")  {
       n match {
         case n:LocalAccess => getCountsOf(n)
         case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
-        case n:Node => computeInterferenceMemory(n); getCountsOf(n)
+        case n:NetworkNode => computeInterferenceMemory(n); getCountsOf(n)
         case n:GlobalIO => getCountsOf(n)
         case n => 
       }
-    }
+    //}
     super.visitNode(n)
   }
 
-  def computeInterferenceMemory(n:Node) = dbgblk(s"computeInterferenceMemory($n)"){
+  def computeInterferenceMemory(n:NetworkNode) = dbgblk(s"computeInterferenceMemory($n)"){
     val mems = dbgblk(s"inMemsOf") { inMemsOf(n) }
     mems.foreach { mem =>
       val linkTp = pinTypeOf(mem)
@@ -50,17 +50,18 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
   }
 
   def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){
-    val group = writersOf(n).flatMap { writer => 
+    val group = (writersOf(n) ++ resetersOf(n)).flatMap { access => 
       def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
         case n:DataReady => true // Remove back pressure
         case _ => false
       }
-      val dataSrc = dataOf(writer) match {
-        case gin:GlobalInput => goutOf(gin).get // written for outside cu
-        case dataSrc => dataSrc //writen inside cu
+      val src = access match {
+        case Def(n, LocalStore(mems, addr, data:GlobalInput)) => goutOf(data).get
+        case Def(n, LocalStore(mems, addr, data)) => data
+        case Def(n, LocalReset(mems, reset:GlobalInput)) => goutOf(reset).get
       }
-      dbg(s"dataSrc=$dataSrc")
-      dataSrc.collect[Memory](visitFunc=visitFunc _, logger=Some(this))
+      dbg(s"src=$src")
+      src.collect[Memory](visitFunc=visitFunc _, logger=Some(this))
     }.toSet
     dbg(s"group=${group}")
     group.foreach { mem => linkGroupOf += mem -> group }

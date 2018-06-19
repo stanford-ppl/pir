@@ -31,7 +31,7 @@ case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:PIRDesign) e
 case class DummyOp()(implicit design:PIRDesign) extends Def
 case class Const[T](value:T)(implicit design:PIRDesign) extends Def
 
-trait PIRDef {
+trait DefUtil {
   def isReduceOp(n:PIRNode) = n match {
     case n:ReduceAccumOp => true
     case n:ReduceOp => true

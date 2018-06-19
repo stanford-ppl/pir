@@ -5,11 +5,14 @@ import pir.node._
 import pir.mapper._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
-  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil {
+  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil 
+  with PIRNodeUtil with RoutingUtil
+with spade.SpadeAlias with MappingLogger {
 
-  implicit val design:PIRDesign = compiler.design
+  implicit val designP:PIRDesign = compiler.design
   lazy val pirmeta = compiler.pirmeta
   lazy val spademeta = compiler.spademeta
+  lazy val designS:SpadeDesign = compiler.arch.design
 
   def qdef(n:Any) = n match {
     case n:PIRNode => n.qdef

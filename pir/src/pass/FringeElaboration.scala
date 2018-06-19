@@ -13,19 +13,13 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   override def visitNode(n:N) = dbgblk(s"visitNode($n)") { 
     n match {
       case n:Top =>
-        n.argFringe // create lazy value
+        n.argFringe // HACK: create lazy value
         super.visitNode(n)
-      case n@(_:ArgIn | _:DramAddress) =>
-        val argFringe = design.top.argFringe
-        val argInCtrl = argFringe.argInController
-        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
-        val writeMem = WriteMem(n.asInstanceOf[Memory], argInDef).setParent(argFringe).ctrl(argInCtrl)
-      case n@(_:ArgOut | _:TokenOut) =>
-        val argFringe = design.top.argFringe
-        val argOutCtrl = argFringe.argOutController
-        n.setParent(argFringe)
-        val readMem = ReadMem(n.asInstanceOf[Memory]).setParent(argFringe).ctrl(argOutCtrl)
-        argFringe.hostRead.connect(readMem.out)
+      case n:ArgIn => transformInMem(n)
+      case n:DramAddress => transformInMem(n)
+      case n:LUT => transformInMem(n)
+      case n:ArgOut => transformOutMem(n)
+      case n:TokenOut => transformOutMem(n)
       case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
         transformDense(n, cmdStream, dataStream)
       case n@FringeSparseLoad(dram,addrStream,dataStream) =>
@@ -42,15 +36,38 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     }
   }
 
+  def transformInMem(n:Memory) = {
+    val argFringe = designP.top.argFringe
+    val argInCtrl = argFringe.argInController
+    n match {
+      case n:ArgIn =>
+        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
+        WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+      case n:DramAddress => 
+        val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
+        WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+      case n:LUT =>
+        ResetMem(n, argFringe.tokenInDef).setParent(argFringe).ctrl(argInCtrl)
+    }
+  }
+
+  def transformOutMem(n:Memory) = {
+    val argFringe = designP.top.argFringe
+    val argOutCtrl = argFringe.argOutController
+    n.setParent(argFringe)
+    val readMem = ReadMem(n).setParent(argFringe).ctrl(argOutCtrl)
+    argFringe.hostRead.connect(readMem.out)
+  }
+
   def transformDense(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
     val outerCtrl = ctrlOf(fringe)
     val size = fringe.collectDown[StreamOut]().filter { _.field == "size" }.head
     val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
     val par = fringe match {
       case FringeDenseLoad(dram,cmdStream,dataStream) =>
-        getParOf(readersOf(dataStream.head).head)
+        getParOf(ctrlOf(readersOf(dataStream.head).head))
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
-        getParOf(writersOf(dataStream.head).head)
+        getParOf(ctrlOf(writersOf(dataStream.head).head))
     }
     val innerCtrl = DramController(csize, par).setParent(outerCtrl)
     val loads = streamOuts.map { mem =>
@@ -81,23 +98,25 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     val cu = CUContainer().setParent(compiler.top)
     val reader = ReadMem(ackStream).setParent(cu).ctrl(dataCtrl)
     val count = CountAck(reader).setParent(cu).ctrl(dataCtrl)
-    val argFringe = design.top.argFringe
+    val argFringe = designP.top.argFringe
     val mem = TokenOut().setParent(argFringe)
     val writer = WriteMem(mem, count).setParent(cu).ctrl(dataCtrl)
   }
 
   def transformStreamIn(streamIn:StreamIn) = {
     val outerCtrl = compiler.top.topController
-    val innerCtrl = StreamController().setParent(outerCtrl)
-    countsOf.get(streamIn).foreach { counts => itersOf(innerCtrl) = counts }
+    val innerCtrl = UnitController(style=StreamPipe,level=InnerControl).setParent(outerCtrl)
     val streamInDef = StreamInDef().ctrl(innerCtrl)
+    val counts = countsOf.get(streamIn).getOrElse(None)
+    countsOf(innerCtrl) = counts
+    countsOf(streamInDef) = counts
     val fringe = FringeStreamIn(streamIn, streamInDef)
     WriteMem(streamIn, streamInDef).setParent(fringe).ctrl(innerCtrl)
   }
 
   def transformStreamOut(streamOut:StreamOut) = {
     val outerCtrl = compiler.top.topController
-    val innerCtrl = StreamController().setParent(outerCtrl)
+    val innerCtrl = UnitController(style=StreamPipe,level=InnerControl).setParent(outerCtrl)
     val load = ReadMem(streamOut).ctrl(innerCtrl)
     val processStreamOut = ProcessStreamOut(load).ctrl(innerCtrl)
     val fringe = FringeStreamOut(streamOut, processStreamOut)

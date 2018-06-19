@@ -69,6 +69,11 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
           val memCU = globalOf(mem).get
           swapParent(n, memCU)
         }
+      case Def(n:LocalReset, LocalReset(mem::Nil, reset)) =>
+        dbgblk(s"Lowering ${qdef(n)}") {
+          val memCU = globalOf(mem).get
+          swapParent(n, memCU)
+        }
       case n =>
     }
   }

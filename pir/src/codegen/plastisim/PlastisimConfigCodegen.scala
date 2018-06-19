@@ -2,7 +2,7 @@ package pir
 package codegen
 
 import pir.node._
-import spade.node._
+import spade.param._
 import prism.collection.mutable._
 import sys.process._
 
@@ -22,11 +22,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   }
 
   override def emitNode(n:N) = n match {
-    case n:Node => emitNetworkNode(n)
+    case n:NetworkNode => emitNetworkNode(n)
     case n => super.visitNode(n)
   }
 
-  def emitNetworkNode(n:Node) = {
+  def emitNetworkNode(n:NetworkNode) = {
     val cuP = globalOf(n).get
     emitNodeBlock(s"node ${quote(n)} # ${quote(cuP)}") {
       emitNodeSpecs(n)
@@ -73,19 +73,33 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetwork = {
     if (isDynamic(topS)) {
-      val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
-      import topParam._
-      topParam.networkParams.foreach { networkParam =>
+      val topParam = compiler.arch.designParam.topParam
+      val networkParams = topParam match {
+        case topParam:DynamicGridTopParam => topParam.networkParams
+        case topParam:DynamicCMeshTopParam => topParam.networkParams
+      }
+      networkParams.foreach { networkParam =>
         val tp = networkParam.bct
-        val nr = numTotalRows
-        val nc = numTotalCols
-        val sq = math.max(nr, nc)+1
+        //val nr = numTotalRows
+        //val nc = numTotalCols
+        //val sq = math.max(nr, nc)+1
+        val numVC = networkParam match {
+          case networkParam:DynamicGridNetworkParam[_] => networkParam.numVirtualClasses
+          case networkParam:DynamicCMeshNetworkParam[_] => networkParam.numVirtualClasses
+        }
+        val topo = networkParam match {
+          case networkParam:DynamicGridNetworkParam[_] if !networkParam.isTorus => "mesh"
+          case networkParam:DynamicGridNetworkParam[_] => "torus"
+          case networkParam:DynamicCMeshNetworkParam[_] => "cmesh"
+        }
+        val sq = math.max(numRows, numCols)
         emitNodeBlock(s"net ${quote(tp)}net") {
-          emitln(s"cfg = mesh_generic.cfg")
+          emitln(s"cfg = ${topo}_generic.cfg")
           emitln(s"dim[0] = $sq")
           emitln(s"dim[1] = $sq")
           //emitln(s"num_classes = ${networkParam.numVirtualClasses}")
           emitln(s"num_classes = 64")
+          //emitln(s"num_classes = ${numVC}")
         }
       }
     }
@@ -107,9 +121,16 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
       if (isStatic) {
-        srcs.zipWithIndex.foreach { case (src, srcIdx) =>
-          dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
-            emitln(s"lat[$srcIdx, $dstIdx] = ${staticLatencyOf(src, dst).get}")
+        n.foreach { mem =>
+          val memSrcs = srcsOf(mem)
+          val memDsts = dstsOf(mem)
+          memSrcs.foreach { src =>
+            val srcIdx = srcs.indexOf(src)
+            val lat = staticLatencyOf(src, mem).get
+            memDsts.foreach { dst =>
+              val dstIdx = dsts.indexOf(dst)
+              emitln(s"lat[$srcIdx, $dstIdx] = $lat")
+            }
           }
         }
       } else {
@@ -148,7 +169,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  def emitInLinks(n:Node) = dbgblk(s"emitInLinks($n)") {
+  def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
       emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
@@ -156,7 +177,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  def emitOutLinks(n:Node) = dbgblk(s"emitOutLinks($n)") {
+  def emitOutLinks(n:NetworkNode) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
       emitln(s"scale_out[$idx] = ${constItersOf(writes)}")

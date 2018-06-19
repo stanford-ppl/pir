@@ -41,6 +41,13 @@ abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { sel
   def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
   def ancestors:List[P] = parent.toList.flatMap { parent => parent :: parent.ancestors.asInstanceOf[List[P]] }
   def isAncestorOf(n:N) = n.ancestors.contains(this) 
+  // Inclusive
+  def ancestorSlice(top:N) = {
+    val chain = this :: this.ancestors
+    val idx = chain.indexOf(top)
+    assert(idx != -1, s"$top is not ancestor of the $this")
+    chain.slice(0, idx+1)
+  }
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
   def isDescendentOf(p:P) = p.descendents.contains(this)
 

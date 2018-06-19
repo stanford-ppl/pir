@@ -11,13 +11,24 @@ class PIRMetadata extends Metadata {
   val nameOf = new OneToOneMap[IR, String] with MetadataMap
   nameOf.setName("nameOf")
 
-  /* 
-   * For ComputeNode: Controller associated with a node. 
-   * For memory, it's the lca controller of controller of all its
-   * accesses 
-   * */
-  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap 
-  ctrlOf.setName("ctrlOf")
+  /* Source context of the IR from upper compiler */
+  val srcCtxOf = new OneToOneMap[IR, String] with MetadataMap {
+    override def get(k:K):Option[V] = k match {
+      case k:ContextEnable => get(ctrlOf(k))
+      case k:ComputeContext => ctxEnOf(k).flatMap { ctxEn => get(ctxEn) }
+      case k:GlobalContainer => 
+        super.get(k).orElse {
+          ctrlOf.get(k).flatMap { ctrl => get(ctrl) }.orElse {
+            val remoteMems = k.collectDown[Memory]().filter { m => isRemoteMem(m) }
+            val ctxs = k.collectDown[ComputeContext]()
+            val scs = (remoteMems ++ ctxs).flatMap { n => get(n) }
+            if (scs.isEmpty) None else Some(scs.mkString("\n"))
+          }
+        }
+      case k => super.get(k)
+    }
+  }
+  srcCtxOf.setName("srcCtxOf")
 
   /*
    * Whether a memory is a accumulator. Set by spatial
@@ -33,11 +44,22 @@ class PIRMetadata extends Metadata {
   val isInnerAccum = new OneToOneMap[Memory, Boolean] with MetadataMap
   isInnerAccum.setName("isInnerAccum")
 
+  /* 
+   * For ComputeNode: Controller associated with a node. 
+   * For memory, it's the lca controller of controller of all its
+   * accesses 
+   * */
+  //val ctrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
+  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap {
+    def bmap(v:V) = map.flatMap { case (k, `v`) => Some(k); case _ => None }.toSet
+  }
+  ctrlOf.setName("ctrlOf")
+
   /*
    * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if
    * ctrlOf(mem) != ctrlOf(access). Otherwise it's the ctrlOf(access) 
    * */
-  val topCtrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap
+  val topCtrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
   topCtrlOf.setName("topCtrlOf")
 
   /*

@@ -30,10 +30,10 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     }
     n match {
       case n:PIRNode => 
-        val metas = List(ctrlOf, topCtrlOf, boundOf, parOf, itersOf, countsOf)
+        val metas = List(ctrlOf, topCtrlOf, boundOf, parOf, itersOf, countsOf, srcCtxOf)
         metas.foreach { meta =>
           meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
-            label += s"\n(${meta.name}=$v)"
+            label += s"\n(${meta.name}=${quote(v)})"
           }
         }
       case _ =>
@@ -56,6 +56,8 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
     case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DramFringe => attr.fillcolor("lightseagreen").style(filled)
     case n:StreamFringe => attr.fillcolor("lightseagreen").style(filled)
+
+    case n:StageDef => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
   }
 
@@ -65,7 +67,7 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
 
   override def emitNode(n:N) = {
     n match {
-      case n:Const[_] if usedByCounter(n) => super.visitNode(n)
+      //case n:Const[_] if usedByCounter(n) => super.visitNode(n)
       case n:High =>
       case n:Low =>
       case n:Primitive => emitSingleNode(n); super.visitNode(n)
@@ -82,7 +84,9 @@ class PIRIRDotCodegen(val fileName:String)(implicit design:PIR) extends PIRCodeg
   override def emitEdge(from:N, to:N, attr:DotAttr) = {
     (from, to) match {
       case (from:ArgInDef, to) if !areLocal(from, to) =>
+      case (from:TokenInDef, to) if !areLocal(from, to) =>
       case (from, to:ArgIn) if !areLocal(from, to) =>
+      case (from, to:TokenIn) if !areLocal(from, to) =>
       case (from:GlobalOutput, to:GlobalInput) =>
       case (from, to) => super.emitEdge(from, to, attr)
     }

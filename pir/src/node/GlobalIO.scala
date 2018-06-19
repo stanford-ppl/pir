@@ -17,7 +17,7 @@ case class DataValid(globalInput:GlobalInput)(implicit design:PIRDesign) extends
 case class GlobalOutput(data:Def, valid:ControlNode)(implicit design:PIRDesign) extends GlobalIO
 case class DataReady(globalOutput:GlobalOutput)(implicit design:PIRDesign) extends ControlNode // If DataValid is enqEn of EnabledStoreMem, the valid goes along with data
 
-trait PIRGlobalIO {
+trait GlobalIOUtil {
   def goutOf(gin:GlobalInput, logger:Option[Logging]=None) = {
     gin.collect[GlobalOutput](visitFunc=gin.visitGlobalIn, depth=2, logger=logger).headOption
   }
@@ -28,6 +28,10 @@ trait PIRGlobalIO {
 
   def validOf(n:GlobalOutput) = n match {
     case Def(n, GlobalOutput(data, valid)) => valid
+  }
+
+  def gdataOf(n:GlobalOutput) = n match {
+    case Def(n, GlobalOutput(data, valid)) => data
   }
 
   def connectedOf(gio:GlobalIO, logger:Option[Logging]=None) = gio match {

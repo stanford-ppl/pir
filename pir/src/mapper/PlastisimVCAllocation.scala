@@ -3,14 +3,14 @@ package mapper
 
 import pir.node._
 import pir.pass._
-import spade.node._
+import spade.param._
 import prism.collection.mutable
 import prism.collection.immutable
 
 class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with PlastisimUtil with MappingLogger with BackTrackingMatch {
   import pirmeta._
   
-  lazy val topParam = compiler.arch.topParam.asInstanceOf[DynamicMeshTopParam]
+  lazy val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
 
   override def runPass:Unit =  {
     if (!isDynamic(compiler.arch.top)) return
@@ -20,6 +20,10 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
         log(assignVCColor(VCMap.empty))
       }
     }
+  }
+
+  override def finPass:Unit = {
+    pirMap.fold ({ failure => fail(failure) },{ mapping => succeed })
   }
 
   def assignVCColor(init:VCMap) = {
@@ -39,7 +43,7 @@ class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with Plastis
       init=vcmap,
       bindLambda=assignColor _
     )(
-      rankS = { case (s, m) => m.freeKeys(s).size } // use the most flexable color
+      rankS = { case (p, s, m) => m.freeKeys(s).size } // use the most flexable color
     )
   }
 

@@ -57,7 +57,9 @@ trait Compiler extends FileManager with ArgLoader {
   }
 
   def newSession:Unit = {
+    tic
     newDesign
+    toc("New design","ms")
     setSession(new Session())
     initSession
   }
@@ -68,18 +70,17 @@ trait Compiler extends FileManager with ArgLoader {
     try {
       if (load) loadSession else newSession
     } catch {
-      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException) if load =>
+      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) if load =>
         warn(s"Restore session failed: ${e}. Creating a new session ...")
         newSession
       case e:Throwable => throw e
     }
   }
 
-  def runSession = {
-    session.run
-  }
+  def runSession = session.run
 
   def main(args: Array[String]): Unit = {
+    tic
     try {
       reset
       setArgs(args)
@@ -90,5 +91,6 @@ trait Compiler extends FileManager with ArgLoader {
         err(e, exception=false)
         handle(e)
     }
+    toc(s"compilation", "s")
   }
 }

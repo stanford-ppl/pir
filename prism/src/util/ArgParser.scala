@@ -3,34 +3,32 @@ package util
 
 import scala.collection.mutable
 
-case class ArgOption[T](key:String, default:T, info:String) {
+case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
   var value:Option[T]=None
-  def getValue = value.getOrElse(default)
+  def getValue = value.orElse(default)
   def updateValue(values:List[String]) = value = Some(parse(values))
   def parse[T:ClassTag](values:List[String]):T = {
-    (default match {
-      case default:Int => values.head.toInt
-      case default:String => values.head
-      case default:Boolean => values.head == "true"
+    (implicitly[ClassTag[T]] match {
+      case ct if ct == classTag[Int] => values.head.toInt
+      case ct if ct == classTag[String] => values.head
+      case ct if ct == classTag[Boolean] => values.head == "true"
     }).asInstanceOf[T]
   }
 }
 
 trait ArgParser {
-  // Map[Key, (value, default, info)]
   val optionMap = mutable.ListMap[String, ArgOption[_]]()
 
-  def register[T](key:String, default:T, info:String=""):Unit = {
+  def register[T:ClassTag](key:String, default:Option[T], info:String):Unit = {
     optionMap += key -> ArgOption(key, default, info)
   }
+  def register[T:ClassTag](key:String, default:T, info:String):Unit = register(key, Some(default), info)
+  def register[T:ClassTag](key:String, default:T):Unit = register(key, Some(default), "")
+  def register[T:ClassTag](key:String, info:String):Unit = register(key, None, info)
+  def register[T:ClassTag](key:String):Unit = register(key, None, "")
 
-  def option[T](key:String) = optionMap(key).getValue.asInstanceOf[T]
-
-  def printUsage = {
-    optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
-      info(s"--$key $msg [default=$default]")
-    }
-  }
+  def getOption[T](key:String) = optionMap(key).getValue.asInstanceOf[Option[T]]
+  def option[T](key:String):T = getOption[T](key).get
 
   def setOption(args:List[String]):Unit = {
     args match {
@@ -40,6 +38,12 @@ trait ArgParser {
         setOption(remain)
       case _::args => setOption(args)
       case Nil => 
+    }
+  }
+
+  def printUsage = {
+    optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
+      info(s"--$key $msg [default=$default]")
     }
   }
 

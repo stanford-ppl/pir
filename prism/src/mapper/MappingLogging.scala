@@ -2,7 +2,7 @@ package prism
 package mapper
 
 trait MappingLogging extends Logging {
-  def dbgblk[T](s:String, buffer:Boolean=false)(block: => T):T = super.dbgblk(s) {
+  def dbgblk[T](s:String, buffer:Boolean=false, flush:Boolean=false)(block: => T):T = super.dbgblk(s) {
     if (buffer) {
       logger.openBuffer
     }
@@ -13,6 +13,7 @@ trait MappingLogging extends Logging {
         case _ => logger.closeBuffer
       }
     }
+    if (flush) logger.closeAllBuffersAndWrite
     res
   }
 

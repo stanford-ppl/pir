@@ -18,7 +18,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
     super.visitNode(node)
   }
 
-  def transform(n:N):N = dbgblk(s"transform($n)") {
+  def transform(n:N):N = {
     n match {
       case Def(n:ContextEnableOut, ContextEnableOut()) => lowerContextEnable(n)
       case n => n
@@ -26,7 +26,7 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotEmpties(context:ComputeContext) = dbgblk(s"computeNotEmpties") {
-    val readMems = context.collectIn[Memory]() // All read memories should be local to the context in the same GlobalContainer
+    val readMems = inMemsOf(context)// All read memories should be local to the context in the same GlobalContainer
     dbg(s"readMems:${readMems.map(qtype)}")
     readMems.map { mem => 
       allocateWithFields[NotEmpty](mem)(context)
@@ -34,18 +34,17 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def computeNotFulls(context:ComputeContext) = dbgblk(s"computeNotFulls") {
-    var notFulls:List[Def] = context.collectDown[LocalStore]().map {
+    var notFulls:List[Def] = localStoreAccessesOf(context).map {
       case Def(writer, LocalStore(mem::Nil, _, _)) => 
         val notFull = allocateWithFields[NotFull](mem)(context)
         dbg(s"localMem: $mem, notFull:$notFull")
         notFull
     }
-    val remoteStores = context.collectOutTillMem[LocalStore]()
+    val remoteStores = remoteStoreAccessesOf(context)
     dbg(s"remoteStores=${quote(remoteStores)}")
     notFulls = notFulls ++ remoteStores.flatMap {
-      case Def(writer, EnabledStoreMem(mem:ArgOut, _, _, writeNext)) => None
       case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 
-        val notFull:Def = if (compiler.arch.topParam.busWithReady) {
+        val notFull:Def = if (compiler.arch.designParam.topParam.busWithReady) {
           val gout = writeNext.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
           allocateWithFields[DataReady](gout)(context)
         } else {
@@ -60,20 +59,19 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
   }
 
   def lowerContextEnable(ctxEnOut:ContextEnableOut):ContextEnable = dbgblk(s"lowerContextEnable($ctxEnOut)") {
-    val context = contextOf(ctxEnOut).get
-    val ctxEn = allocate[ContextEnable](context) {
+    lowerNode(ctxEnOut) {
+      val context = contextOf(ctxEnOut).get
       var notEmpties = computeNotEmpties(context)
-      if (notEmpties.isEmpty && !ctrlOf(ctxEnOut).isInstanceOf[StreamController]) {
-        dbgblk(s"No forward dependencies, duplicate all ancestor control's counter chains") {
-          allocateControllerDone(context, compiler.top.topController)
-          notEmpties = computeNotEmpties(context)
-        }
+      // If still has no data dependencies, add a tokenIn from the top
+      globalOf(ctxEnOut).get match {
+        case _:ArgFringe =>
+        case _:FringeStreamIn =>
+        case _ if notEmpties.isEmpty => err(s"$context does not have forward dependencies")
+        case _ =>
       }
-      //if (notEmpties.isEmpty) // If still has no data dependencies, add a tokenIn from the top
       val notFulls = computeNotFulls(context)
       ContextEnable(notEmpties ++ notFulls)
     }
-    swapNode(ctxEnOut, ctxEn)
   }
 }
 
