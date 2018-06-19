@@ -39,16 +39,17 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
 
   def depedsExistsLive(n:N):Boolean = {
     val depeds = depFunc(n)
-    dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
     val (analyzedDepeds, unanalyzedDepeds) = depeds.partition { deped => isLive(deped).nonEmpty }
     val live = analyzedDepeds.exists { deped => isLive(deped).get }
     if (live) return true
     if (unanalyzedDepeds.isEmpty) return false
     if (aggressive) {
+      dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
       //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
       return false
     } else {
+      dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
       //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
       return true
@@ -70,24 +71,20 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     (depFunc(n).exists { deped => isLive(deped) == Some(true)}) ||
     super.isDepFree(n)
 
-  override def scheduleDepFree(nodes:List[N]):List[N] = {
-    val unvisited = nodes.filterNot(isVisited) 
-    var depFree = unvisited.filter(isDepFree) 
-    if (unvisited.nonEmpty && depFree.isEmpty) {
-      dbgblk(s"unvisited") {
-        unvisited.foreach { n => dbg(s"$n, deps=${depFunc(n)}") }
-      }
+  override def selectFrontier(unvisited:List[N]) = {
+    dbgblk(s"unvisited") {
+      unvisited.foreach { n => dbg(s"$n, deps=${depFunc(n)}") }
     }
-    super.scheduleDepFree(nodes)
+    unvisited
   }
 
-  override def visitNode(n:N):T = dbgblk(s"visitNode:${qdef(n)}") {
+  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${qdef(n)}") */{
     val live = n match {
       case n if isLive(n).nonEmpty => isLive(n).get
       case n => depedsExistsLive(n) 
     }
     liveMap += (n -> live)
-    dbg(s"live(${n})=${live}")
+    if (!live) dbg(s"live(${n})=${live}")
     super.visitNode(n)
   }
 

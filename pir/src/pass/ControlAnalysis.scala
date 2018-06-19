@@ -7,15 +7,6 @@ import scala.collection.mutable
 abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { self:PIRTraversal =>
   import pirmeta._
 
-  def allocateWithFields[T<:PIRNode:ClassTag:TypeTag](fields:Any*)(container:Container):T = {
-    val args = fields :+ designP
-    def newNode = {
-      val constructor = implicitly[ClassTag[T]].runtimeClass.getConstructors()(0)
-      constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
-    }
-    allocate(container, (n:T) => n.values == fields)(newNode)
-  }
-
   override def allocate[T<:PIRNode:ClassTag:TypeTag](
     container:Container, 
     filter:T => Boolean = (n:T) => true
@@ -27,6 +18,15 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
       case node => 
     }
     node
+  }
+
+  def allocateWithFields[T<:PIRNode:ClassTag:TypeTag](fields:Any*)(container:Container):T = {
+    val args = fields :+ designP
+    def newNode = {
+      val constructor = implicitly[ClassTag[T]].runtimeClass.getConstructors()(0)
+      constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
+    }
+    allocate(container, (n:T) => n.values == fields)(newNode)
   }
 
   def insertGlobalIO(

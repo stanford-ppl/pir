@@ -170,11 +170,13 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   def allocate[T<:PIRNode:ClassTag:TypeTag](
     container:Container, 
     filter:T => Boolean = (n:T) => true
-  )(newNode: => T):T = dbgblk(s"allocate(T=${implicitly[ClassTag[T]]}, container=$container)"){
+  )(newNode: => T):T = {
     val nodes = container.collectDown[T]().filter(filter)
     assert(nodes.size <= 1, s"more than 1 node in container: $nodes")
     nodes.headOption.getOrElse { 
-      newNode.setParent(container)
+      val node = newNode.setParent(container)
+      dbg(s"allocate[${implicitly[ClassTag[T]]}](container=$container) = ${quote(node)}")
+      node
     }
   }
 

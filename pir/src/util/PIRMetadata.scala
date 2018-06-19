@@ -17,11 +17,14 @@ class PIRMetadata extends Metadata {
       case k:ContextEnable => get(ctrlOf(k))
       case k:ComputeContext => ctxEnOf(k).flatMap { ctxEn => get(ctxEn) }
       case k:GlobalContainer => 
-        var srcCtxs = k.collectDown[ComputeContext]().flatMap {
-          ctx => get(ctx)
+        super.get(k).orElse {
+          ctrlOf.get(k).flatMap { ctrl => get(ctrl) }.orElse {
+            val remoteMems = k.collectDown[Memory]().filter { m => isRemoteMem(m) }
+            val ctxs = k.collectDown[ComputeContext]()
+            val scs = (remoteMems ++ ctxs).flatMap { n => get(n) }
+            if (scs.isEmpty) None else Some(scs.mkString("\n"))
+          }
         }
-        srcCtxs ++= super.get(k)
-        if (srcCtxs.isEmpty) None else Some(srcCtxs.mkString(","))
       case k => super.get(k)
     }
   }
