@@ -15,7 +15,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
       val count = constCountsOf(n)
       val gins = ginsOf(n)
       val row = newRow
-      //row("link") = n
+      row("link") = n.id
       row("src") = globalOf(n).get.id
       row("count") = count
       ginsOf(n).zipWithIndex.foreach{ case (gin, idx) =>

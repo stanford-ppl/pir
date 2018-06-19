@@ -79,12 +79,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         val tp = networkParam.bct
         val nr = numTotalRows
         val nc = numTotalCols
-        val sq = math.max(nr, nc)
+        val sq = math.max(nr, nc)+1
         emitNodeBlock(s"net ${quote(tp)}net") {
           emitln(s"cfg = mesh_generic.cfg")
           emitln(s"dim[0] = $sq")
           emitln(s"dim[1] = $sq")
-          emitln(s"num_classes = ${networkParam.numVirtualClasses}")
+          //emitln(s"num_classes = ${networkParam.numVirtualClasses}")
+          emitln(s"num_classes = 64")
         }
       }
     }
@@ -112,9 +113,21 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           }
         }
       } else {
-        emitln(s"net = ${quote(tp)}net")
-        val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
-        emitln(s"class = $vc")
+        //emitln(s"net = ${quote(tp)}net")
+        //HACK: everything onto vecnet
+        emitln(s"net = vecnet")
+        //val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
+        // HACK: get global output of link
+        val data = assertUnify(n.flatMap { mem =>
+          writersOf(mem).map { store =>
+            dataOf(store) match {
+              case gin:GlobalInput => goutOf(gin).get
+            }
+          }
+        }, s"write data of $n") { d => d }
+        //println(gout)
+        val vc_id = data.id
+        emitln(s"vc_id = $vc_id")
         val sids = srcs.map(src => globalOf(src).get.id)
         val dids = dsts.map(dst => globalOf(dst).get.id)
         sids.zipWithIndex.foreach { case (sid, idx) =>
@@ -123,14 +136,14 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         dids.zipWithIndex.foreach { case (did, idx) =>
           emitln(s"dst_id[$idx] = $did")
         }
-        val saddrs = srcs.map(src => addrOf(src).get)
+        /*val saddrs = srcs.map(src => addrOf(src).get)
         val daddrs = dsts.map(dst => addrOf(dst).get)
         saddrs.zipWithIndex.foreach { case (saddr, idx) =>
           emitln(s"saddr[$idx] = $saddr")
         }
         daddrs.zipWithIndex.foreach { case (daddr, idx) =>
           emitln(s"daddr[$idx] = $daddr")
-        }
+        }*/
       }
     }
   }
