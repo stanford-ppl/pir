@@ -11,6 +11,22 @@ class PIRMetadata extends Metadata {
   val nameOf = new OneToOneMap[IR, String] with MetadataMap
   nameOf.setName("nameOf")
 
+  /* Source context of the IR from upper compiler */
+  val srcCtxOf = new OneToOneMap[IR, String] with MetadataMap {
+    override def get(k:K):Option[V] = k match {
+      case k:ContextEnable => get(ctrlOf(k))
+      case k:ComputeContext => ctxEnOf(k).flatMap { ctxEn => get(ctxEn) }
+      case k:GlobalContainer => 
+        var srcCtxs = k.collectDown[ComputeContext]().flatMap {
+          ctx => get(ctx)
+        }
+        srcCtxs ++= super.get(k)
+        if (srcCtxs.isEmpty) None else Some(srcCtxs.mkString(","))
+      case k => super.get(k)
+    }
+  }
+  srcCtxOf.setName("srcCtxOf")
+
   /*
    * Whether a memory is a accumulator. Set by spatial
    * */

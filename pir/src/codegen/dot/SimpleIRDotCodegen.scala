@@ -44,7 +44,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
   }
 
   override def label(attr:DotAttr, n:Any) = {
-    var label = quote(n) 
+    var label = super.label(attr, n).label.get
     n match {
       case n:GlobalContainer => label += s"\ncuType=${cuType(n).get}"
       case n =>
