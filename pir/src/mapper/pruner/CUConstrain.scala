@@ -20,6 +20,11 @@ trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil with Typ
     case n => super.quote(n)
   }
 
+  def qdef(n:Any) = n match {
+    case n:PNode => n.qdef
+    case n => s"$n"
+  }
+
 }
 
 class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {

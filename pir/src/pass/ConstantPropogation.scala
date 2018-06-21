@@ -8,8 +8,8 @@ trait ConstantPropogator extends Ops { self:Logging =>
   val pirmeta:PIRMetadata
   import pirmeta._
 
-  def getBoundOf(n:PIRNode, logger:Option[Logging]=None):Option[Any] = pir.dbgblk(logger, s"getBoundOf($n)") {
-    boundOf.get(n).orElse {
+  def getBoundOf(n:PIRNode, logger:Option[Logging]=None):Option[Any] = {
+    boundOf.get(n).orElse { pir.dbgblk(logger, s"getBoundOf($n)") {
       val bound = n match {
         case Def(n, Const(value)) => Some(value)
         case Def(n, High()) => Some(true)
@@ -24,7 +24,7 @@ trait ConstantPropogator extends Ops { self:Logging =>
       }
       bound.foreach { boundOf(n) = _ }
       bound
-    }
+    } }
   }
 
   def getBoundAs[T:ClassTag](n:PIRNode, logger:Option[Logging]=None):Option[T] = {

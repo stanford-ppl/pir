@@ -27,6 +27,6 @@ abstract class PIRNode(implicit override val design:PIRDesign) extends prism.nod
     super.setParent(p)
   }
 
-  def qdef(implicit design:PIRDesign) = s"${name.getOrElse(toString)} = ${productName}"
+  def qdef = s"${name.getOrElse(toString)} = ${productName}"
 
 }

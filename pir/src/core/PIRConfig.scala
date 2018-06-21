@@ -32,7 +32,7 @@ object PIRConfig extends prism.GlobalConfig {
   def enableMapping = option[Boolean]("mapping")
   def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
-  def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen
+  def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
   def loadTrace = option[Boolean]("trace")
   def printStat = option[Boolean]("stat")
 

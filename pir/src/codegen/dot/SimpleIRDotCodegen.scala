@@ -2,7 +2,6 @@ package pir
 package codegen
 
 import pir.node._
-import spade.node._
 
 class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) extends PIRIRDotCodegen(fileName) {
   override val horizontal:Boolean = false
@@ -19,6 +18,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
 
   override def emitNode(n:N) = {
     n match {
+      case g:ArgFringe => super.visitNode(n)
       case g:GlobalContainer => emitSingleNode(n)
       case _ => super.visitNode(n)
     }

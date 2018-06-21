@@ -9,6 +9,8 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
   import pirmeta._
   import spademeta._
 
+  def qdef(n:Any):String
+
   def minByWithBound[A,B:Ordering](list:Iterable[A], bound:B)(lambda:A => B):B = {
     list.foldLeft[Option[B]](None) { 
       case (Some(`bound`), x) => Some(bound)
@@ -35,7 +37,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
    * For controller, itersOf is the number of iteration the current controller runs before saturate
    * */
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"getItersOf(${quote(n)})") {
+    dbgblk(s"getItersOf(${qdef(n)})") {
       n match {
         case x:ForeverController => getCountsOf(x)
         case x:UnitController => Some(1)
@@ -53,7 +55,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
   }
 
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)})") { 
+    dbgblk(s"getCountsOf(${qdef(n)})") { 
       n match {
         case ctrl:ArgInController => Some(1l)
         case ctrl:ForeverController => 
@@ -143,7 +145,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
    * local contextEnable
    * */
   def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"getItersOf(${quote(n)})") {
+    dbgblk(s"getItersOf(${qdef(n)})") {
       n match {
         case cchain:CounterChain => getItersOf(cchain.outer)
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
@@ -190,7 +192,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
   // CtxEn.counts = CtxEn.counts / W.iters * R.iters
   
   def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf(${quote(n)}, ctrl=${ctrlOf(n)})") { 
+    dbgblk(s"getCountsOf(${qdef(n)}, ctrl=${ctrlOf(n)})") { 
       n match {
         case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }
@@ -216,7 +218,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
     case n:Controller => getCountsOf(n)
   }
 
-  def computeCount(curr:Any, deps:List[Any]) = dbgblk(s"computeCount(${quote(curr)}, ${deps.map(quote)})"){
+  def computeCount(curr:Any, deps:List[Any]) = dbgblk(s"computeCount(${qdef(curr)})"){
     val currIter = getItersOf(curr)
     assertUnify(deps, s"counts for ${quote(curr)}") { dep => 
       zipMap(getCountsOf(dep), getItersOf(dep), currIter) { case (depCount, depIter, currIter) =>

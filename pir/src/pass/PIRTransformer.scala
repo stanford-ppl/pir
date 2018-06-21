@@ -12,37 +12,46 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     mirrorMapping.clear
   }
 
-  override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
-    (getOrElseUpdate(mapping, x) { dbgblk(s"mirrorX(${quote(x)})") {
-      x match {
-        case n:GlobalInput => 
-          goutOf(n).foreach { gout => mapping += gout -> gout }
-          super.mirrorX(x, mapping)
-        case n:Memory if isRemoteMem(n) => 
-          mapping += (n -> n)
-          super.mirrorX(x, mapping)
-        case n:Memory =>
-          val m = super.mirrorX(x, mapping)
-          val writers = writersOf(n).map { 
-            case Def(w,LocalStore(mems, addrs, data)) => 
-              // prevent mirroring of addrs and data
-              addrs.foreach { addr => mapping += addr -> addr }
-              mapping += data -> data
-              w
+  override def mirrorX[T](x:T, mapping:mutable.Map[N,N]=mutable.Map.empty)(implicit design:Design):T = {
+    x match {
+      case x:PIRNode =>
+        (getOrElseUpdate(mapping, x) { dbgblk(s"mirrorX(${quote(x)})") {
+          val m = x match {
+            case n:GlobalInput => 
+              goutOf(n).foreach { gout => mapping += gout -> gout }
+              super.mirrorX(x, mapping)
+            case n:Memory if isRemoteMem(n) => 
+              mapping += (n -> n)
+              super.mirrorX(x, mapping)
+            case n:Memory =>
+              val m = super.mirrorX(x, mapping)
+              val writers = writersOf(n).map { 
+                case Def(w,LocalStore(mems, addrs, data)) => 
+                  // prevent mirroring of addrs and data
+                  addrs.foreach { 
+                    _.foreach { addr => mapping += addr -> addr }
+                  }
+                  mapping += data -> data
+                  w
+              }
+              dbg(s"writers of $n = ${writers}")
+              writers.foreach { writer => mirrorX(writer, mapping) }
+              m
+            case n:Counter =>
+              val m = super.mirrorX(x, mapping)
+              n.collectUp[CounterChain]().foreach { cc => mirrorX(cc, mapping) }
+              m
+            case n:CounterChain =>
+              n.counters.foreach { ctr => mirrorX(ctr, mapping) }
+              super.mirrorX(x, mapping)
+            case n => super.mirrorX(x, mapping)
           }
-          dbg(s"writers of $n = ${writers}")
-          writers.foreach { writer => mirrorX(writer, mapping) }
+          dbg(s"mirror ${qdef(x)}")
+          dbg(s"to ${qdef(m)}")
           m
-        case n:Counter =>
-          val m = super.mirrorX(x, mapping)
-          n.collectUp[CounterChain]().foreach { cc => mirrorX(cc, mapping) }
-          m
-        case n:CounterChain =>
-          n.counters.foreach { ctr => mirrorX(ctr, mapping) }
-          super.mirrorX(x, mapping)
-        case n => super.mirrorX(x, mapping)
-      }
-    }}).asInstanceOf[T]
+        }}).asInstanceOf[T]
+      case x => super.mirrorX(x, mapping)
+    }
   }
 
   trait MirrorRule {
@@ -67,18 +76,18 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }
   }
 
-  val mirrorMapping = mutable.Map[Container, mutable.Map[Any,Any]]()
+  val mirrorMapping = mutable.Map[Container, mutable.Map[N,N]]()
 
   def mirrored[T<:N](
     node:T, 
     container:Option[Container]=None, 
-    init:mutable.Map[Any,Any]=mutable.Map.empty,
+    init:mutable.Map[N,N]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
   ):(T, Set[N]) = {
     val mapping = container.fold {
-      mutable.Map[Any,Any]()
+      mutable.Map[N,N]()
     } { container =>
-      mirrorMapping.getOrElseUpdate(container, mutable.Map[Any,Any]())
+      mirrorMapping.getOrElseUpdate(container, mutable.Map[N,N]())
     }
     mapping ++= init
     val origValues = mapping.values.toSet
@@ -104,7 +113,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   def mirror[T<:N](
     node:T, 
     container:Option[Container]=None, 
-    init:mutable.Map[Any,Any]=mutable.Map.empty,
+    init:mutable.Map[N,N]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
   ):T = {
     mirrored(node, container, init, mirrorRule)._1

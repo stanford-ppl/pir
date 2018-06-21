@@ -98,10 +98,10 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with Sibl
     }
   }
 
-  override def mirrorX[T](x:T, mapping:mutable.Map[Any,Any]=mutable.Map.empty)(implicit design:Design):T = {
-    (getOrElseUpdate(mapping, x) {
-      x match {
-        case x:PIRNode =>
+  override def mirrorX[T](x:T, mapping:mutable.Map[N,N]=mutable.Map.empty)(implicit design:Design):T = {
+    x match {
+      case x:PIRNode =>
+        (getOrElseUpdate(mapping, x) {
           x match {
             case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
               dbgblk(s"mirrorX(${quote(x)})") { 
@@ -121,9 +121,9 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with Sibl
               }
             case n => super.mirrorX(x, mapping)
           }
-        case n => super.mirrorX(x, mapping)
-      }
-    }).asInstanceOf[T]
+        }).asInstanceOf[T]
+      case n => super.mirrorX(x, mapping)
+    }
   }
 
   def getAccessNext(n:LocalAccess, mem:Memory, ctx:ComputeContext) = {

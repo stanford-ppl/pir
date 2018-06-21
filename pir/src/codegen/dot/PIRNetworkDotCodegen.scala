@@ -17,6 +17,11 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
   val pirmeta = compiler.pirmeta
   import pirmeta._
 
+  def qdef(n:Any) = n match {
+    case n:PNode => n.qdef
+    case n => s"$n"
+  }
+
   override val dirName = compiler.outDir
   override val relativeOutDir = compiler.relativeOutDir
 
