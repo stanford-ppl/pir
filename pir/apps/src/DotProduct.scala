@@ -6,15 +6,15 @@ import prism.enums._
 object DotProduct extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
-    val x1369 = ArgIn(init=0).name("x1369").ctrl(top).srcCtx("DotProduct.scala:24:21") // ArgInNew(Const(0))
+    val x1369 = ArgIn(init=0).name("x1369").ctrl(top).srcCtx("DotProduct.scala:24:21:size") // ArgInNew(Const(0))
     isAccum(x1369) = false
     bufferDepthOf(x1369) = 1
     boundOf(x1369) = 1024
     val x1372 = ReadMem(x1369).name("x1372").ctrl(top).srcCtx("DotProduct.scala:27:21") // RegRead(x1369)
-    val x1373 = DRAM().name("x1373").ctrl(top).srcCtx("DotProduct.scala:27:20") // x1373 = DRAMNew(ArrayBuffer(x1372),Const(0))
+    val x1373 = DRAM().name("x1373").ctrl(top).srcCtx("DotProduct.scala:27:20:a") // x1373 = DRAMNew(ArrayBuffer(x1372),Const(0))
     val x1374 = ReadMem(x1369).name("x1374").ctrl(top).srcCtx("DotProduct.scala:28:21") // RegRead(x1369)
-    val x1375 = DRAM().name("x1375").ctrl(top).srcCtx("DotProduct.scala:28:20") // x1375 = DRAMNew(ArrayBuffer(x1374),Const(0))
-    val x1376 = ArgOut(init=0).name("x1376").ctrl(top).srcCtx("DotProduct.scala:29:21") // ArgOutNew(Const(0))
+    val x1375 = DRAM().name("x1375").ctrl(top).srcCtx("DotProduct.scala:28:20:b") // x1375 = DRAMNew(ArrayBuffer(x1374),Const(0))
+    val x1376 = ArgOut(init=0).name("x1376").ctrl(top).srcCtx("DotProduct.scala:29:21:out") // ArgOutNew(Const(0))
     isAccum(x1376) = false
     bufferDepthOf(x1376) = 1
     val x1449 = UnitController(style=SeqPipe, level=OuterControl).name("x1449").ctrl(top).srcCtx("DotProduct.scala:33:11") // Hwblock(Block(Const(())),false)
@@ -30,10 +30,10 @@ object DotProduct extends PIRApp {
     val x1445 = LoopController(style=MetaPipe, level=OuterControl, cchain=x1382).name("x1445").ctrl(x1449).srcCtx("DotProduct.scala:46:8") // UnrolledReduce(List(Const(true)),x1382,x1379,Block((x1379) => Const(())),List(List(b856)),List(List(b857)))
     val b856 = CounterIter(x1381, Some(0)).name("b856").ctrl(x1445) // b856
     val b857 = Const(true).name("b857").ctrl(x1445) // b857
-    val x1383_d0_b0 = SRAM(size=2, banking=Strided(banks=16, stride=1)).name("x1383_d0_b0").ctrl(x1445).srcCtx("DotProduct.scala:37:27") // x1383 = SRAMNew(ArrayBuffer(Const(32)))
+    val x1383_d0_b0 = SRAM(size=2, banking=Strided(banks=16, stride=1)).name("x1383_d0_b0").ctrl(x1445).srcCtx("DotProduct.scala:37:27:aBlk") // x1383 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x1383_d0_b0) = false
     bufferDepthOf(x1383_d0_b0) = 2
-    val x1384_d0_b0 = SRAM(size=2, banking=Strided(banks=16, stride=1)).name("x1384_d0_b0").ctrl(x1445).srcCtx("DotProduct.scala:38:27") // x1384 = SRAMNew(ArrayBuffer(Const(32)))
+    val x1384_d0_b0 = SRAM(size=2, banking=Strided(banks=16, stride=1)).name("x1384_d0_b0").ctrl(x1445).srcCtx("DotProduct.scala:38:27:bBlk") // x1384 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x1384_d0_b0) = false
     bufferDepthOf(x1384_d0_b0) = 2
     val x1386 = UnitController(style=SeqPipe, level=InnerControl).name("x1386").ctrl(x1445).srcCtx("DotProduct.scala:39:18") // UnitPipe(List(b857),Block(Const(())))

@@ -16,6 +16,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     case n:Memory if isRemoteMem(n) => attr.fillcolor(orange).style(filled)
     case n:Memory if isFIFO(n) => attr.fillcolor(gold).style(filled)
     case n:Memory if isReg(n) => attr.fillcolor(limegreen).style(filled)
+    case n:DramController => attr.fillcolor("lightseagreen").style(filled)
     case n:Controller if n.children.nonEmpty => attr.style(dashed)
     case n => super.color(attr, n)
   }

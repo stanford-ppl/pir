@@ -4,7 +4,7 @@ package node
 abstract class Memory(implicit design:PIRDesign) extends Primitive 
 
 case class SRAM(size:Int, banking:Banking)(implicit design:PIRDesign) extends Memory
-case class RegFile(sizes:List[Int], inits:Option[List[AnyVal]])(implicit design:PIRDesign) extends Memory
+case class RegFile(size:Int, inits:Option[List[AnyVal]])(implicit design:PIRDesign) extends Memory
 case class LUT(inits:List[Any], banking:Banking)(implicit design:PIRDesign) extends Memory
 case class FIFO(size:Int)(implicit design:PIRDesign) extends Memory
 

@@ -41,6 +41,7 @@ trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] {
 }
 case class AFGCost(prefix:Boolean) extends PrefixCost[AFGCost]
 case class MCCost(prefix:Boolean) extends PrefixCost[MCCost]
+case class SramSizeCost(quantity:Int) extends QuantityCost[SramSizeCost] { val isSplittable = false }
 case class SramCost(quantity:Int) extends QuantityCost[SramCost] { val isSplittable = false }
 case class ControlFifoCost(quantity:Int) extends QuantityCost[ControlFifoCost] { val isSplittable = true }
 case class ScalarFifoCost(quantity:Int) extends QuantityCost[ScalarFifoCost] { val isSplittable = true }

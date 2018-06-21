@@ -63,6 +63,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     CUCost(
       AFGCost(isAFG(cuP)),
       MCCost(isDFG(cuP) || isSFG(cuP)),
+      SramSizeCost(maxOption(cuP.collectDown[pir.node.SRAM]().map { _.size}).getOrElse(0)),
       SramCost(cuP.collectDown[pir.node.SRAM]().size),
       ControlFifoCost(fifos.filter(n => isBit(n)).size),
       ScalarFifoCost(fifos.filter(n => isWord(n)).size),
@@ -81,6 +82,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     CUCost(
       AFGCost(cuS.isInstanceOf[spade.node.ArgFringe]),
       MCCost(cuS.isInstanceOf[MC]),
+      SramSizeCost(cuS match { case cuS:CU => cuS.param.sramParam.size; case _ => 0 }),
       SramCost(cuS match { case cuS:CU => cuS.param.numSrams; case _ => 0 }),
       ControlFifoCost(cuS match { case cuS:CU => cuS.param.numControlFifos; case _ => 0 }),
       ScalarFifoCost(cuS match { case cuS:CU => cuS.param.numScalarFifos; case _ => 0 }),

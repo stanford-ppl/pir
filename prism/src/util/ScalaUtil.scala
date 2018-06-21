@@ -50,4 +50,8 @@ trait ScalaUtil {
     (a,b,c).zipped.map { case (a,b,c) => lambda(a,b,c) }.headOption
   }
 
+  def maxOption[T:Ordering](list:Iterable[T]) = {
+    if (list.isEmpty) None else Some(list.max)
+  }
+
 }
