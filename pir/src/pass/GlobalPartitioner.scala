@@ -43,14 +43,21 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     }
   }
 
-  def pruneAndSplit(cumap:CUMap):EOption[CUMap] = {
-    log(prune(cumap)) match {
+  def pruneAndSplit(cumap:CUMap, key:Option[CUMap.K]=None):EOption[CUMap] = {
+    val result = key match {
+      case None => prune(cumap)
+      case Some(key) => prune(cumap, key)
+    }
+    result match {
       case Left(f@CostConstrainFailure(fg, key:CUMap.K, isSplittable)) if isSplittable =>
-        val vs = cumap(key)
-        val ks = split(key)
-        constrains.foreach { _.resetCache(key) }
-        val newCUMap = (cumap - key) ++ (ks -> vs)
-        pruneAndSplit(newCUMap)
+        dbgblk(s"split(${quote(key)})") {
+          dbg(s"$f")
+          val vs = cumap(key)
+          val ks = split(key)
+          constrains.foreach { _.resetCache(key) }
+          val newCUMap = (cumap - key) ++ (ks -> vs)
+          pruneAndSplit(newCUMap, Some(key))
+        }.flatMap { cumap => pruneAndSplit(cumap) }
       case Left(f) => Left(f)
       case Right(map) => Right(map)
     }

@@ -12,24 +12,28 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner {
     super.initPass
   }
 
-  def split(cu:GlobalContainer) = dbgblk(s"split($cu)") {
-    val igraph = new WeightedIgraphCodegen(cu)
-    compiler.session.getCurrentRunner(igraph).run
-    val vertexMap = igraph.getResult
-    dbgblk(s"loadResult") {
-      vertexMap.foreach { case (k,v) => dbg(s"$k -> $v") }
+  def newIgraphCodegen(cu:GlobalContainer) = PIRConfig.option[String]("splitting-algo") match {
+    case "weighted_igraph" => new IgraphCodegen(cu) with WeightedIgraphCodegen
+    case "alias_igraph" => new IgraphCodegen(cu) with AliasIgraphCodegen
+    case "alias_weighted_igraph" => new IgraphCodegen(cu) with AliasWeightedIgraphCodegen
+  }
+
+  def split(cu:GlobalContainer) = {
+    val codegen = newIgraphCodegen(cu)
+    compiler.session.getCurrentRunner(codegen).run
+    val vertexMap = codegen.getResult // Node -> Partition
+    val partitionMap = revertMap(vertexMap) // Partition -> Node
+    val mcus = List.fill(partitionMap.keys.size - 1) { mirrorMapping.clear; mirror(cu, Some(compiler.top)) }
+    val partitions = cu :: mcus
+    dbgblk(s"partitionResult") {
+      partitionMap.foreach { case (p, vertices) =>
+        val cu = partitions(p)
+        dbgblk(s"cu=${cu}") {
+          vertices.foreach { v => swapParent(v, cu) }
+        }
+      }
     }
-    val partitions = vertexMap.values.toSet
-    val mcus = List.fill(partitions.size - 1) { mirrorMapping.clear; mirror(cu, Some(compiler.top)) }
-    val partitionMap = partitions.zip(cu::mcus).toMap
-    dbgblk(s"partitionMap") {
-      partitionMap.foreach { case (p, cu) => dbg(s"$p -> $cu") }
-    }
-    vertexMap.foreach { case (vertex, partition) =>
-      val cu = partitionMap(partition)
-      swapParent(vertex, cu)
-    }
-    partitionMap.values.toSet
+    partitions.toSet
   }
 
 }

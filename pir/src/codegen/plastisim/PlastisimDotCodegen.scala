@@ -16,6 +16,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   }
 
   override def emitNode(n:N) = n match {
+    case n:NetworkNode if within[ArgFringe](n) => super.visitNode(n)
     case n:NetworkNode => emitSingleNode(n)
     case n:ArgFringe => super.visitNode(n)
     case n:GlobalContainer => emitSubGraph(n) { super.visitNode(n) }
@@ -70,7 +71,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
           }
           lat.foreach { lat => label += s"\nlat=$lat" }
           counts.foreach { counts => label += s"\n[counts=$counts]" }
-          emitEdge(src, dst, DotAttr.empty.label(label))
+          emitEdgeMatched(src, dst, DotAttr.empty.label(label))
         }
       }
     }

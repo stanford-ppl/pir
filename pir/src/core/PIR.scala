@@ -92,17 +92,18 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
+    addPass(enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
 
     addPass(enableSplitting, igraphPartioner)
     addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top8.dot"))
-    addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
+    addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
 
     addPass(routeThroughEliminator).dependsOn(accessLowering)
     addPass(deadCodeEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(enableDot, new PIRIRDotCodegen(s"top9.dot"))
-    addPass(enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
+    addPass(enableDot, new SimpleIRDotCodegen(s"simple3.dot")).dependsOn(routeThroughEliminator)
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck)
 
@@ -139,9 +140,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
     // Post-enableMapping analysis
-    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Bit](s"control.dot"))
-    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Word](s"scalar.dot"))
-    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Vector](s"vector.dot"))
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Bit](s"control.dot")).dependsOn(cuPlacer)
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Word](s"scalar.dot")).dependsOn(cuPlacer)
+    addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Vector](s"vector.dot")).dependsOn(cuPlacer)
 
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)

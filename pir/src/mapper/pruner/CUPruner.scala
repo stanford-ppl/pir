@@ -32,5 +32,10 @@ trait CUPruner extends PIRPass {
     flatFold(constrains, cumap) { case (cumap, constrain) => constrain.prune(cumap) }
   }
 
+  def prune(cumap:CUMap, key:CUMap.K) = {
+    val costConstrains = constrains.collect { case c:CUCostConstrain => c }
+    flatFold(costConstrains, cumap) { case (cumap, constrain) => constrain.prune(cumap, key) }
+  }
+
 }
 

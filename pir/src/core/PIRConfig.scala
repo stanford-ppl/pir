@@ -2,31 +2,17 @@ package pir
 
 object PIRConfig extends prism.GlobalConfig {
 
+  /* ------------------- Compiler --------------------  */
   register("arch", default="SMeshCB4x4", info="Default architecture for mapping")
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
+  register("splitting-algo", default="weighted_igraph", info="splitting algorithm. options: [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
   register("mapping", default=true, info="Enable mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("psim", default=true, info="Enable generation to plastisim")
   register("trace", default=false, info="Enable trace generation")
 
-  // --- Routing ----
-  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed]") 
-  register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
-
-  // --- debug -----
-  register("save-pir", default=false, info="Save IR into a file") 
-  register("load-pir", default=false, info="Load IR from a file")
-  register("bp", default=false, info="Enable break point")
-  register("dot", default=true, info="Enable dot codegen")
-  register("open", default=false, info="Open dot graph after codegen")
-  register("stat", default=false, info="Printing CU statistics")
-  register("snapshot", default=false, info="Enable placement snapshot")
-  register("snapint", default=10, info="Placement snapshot interval")
-
   def arch = option[String]("arch")
-  def saveDesign = option[Boolean]("save-pir")
-  def loadDesign = option[Boolean]("load-pir")
   def genCtrl = option[Boolean]("ctrl")
   def enableSplitting = option[Boolean]("splitting")
   def enableMapping = option[Boolean]("mapping")
@@ -36,7 +22,10 @@ object PIRConfig extends prism.GlobalConfig {
   def loadTrace = option[Boolean]("trace")
   def printStat = option[Boolean]("stat")
 
-  // ---- Routing ----
+  /* ------------------- Routing --------------------  */
+  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed]") 
+  register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
+
   def enableHopCountCost = option[String]("routing-cost") match {
     case "hop" => true
     case "balanced" => false
@@ -60,7 +49,18 @@ object PIRConfig extends prism.GlobalConfig {
   def routingAlgo = option[String]("routing-algo")
 
 
-  // Debugging
+  /* ------------------- Debugging --------------------  */
+  register("save-pir", default=false, info="Save IR into a file") 
+  register("load-pir", default=false, info="Load IR from a file")
+  register("bp", default=false, info="Enable break point")
+  register("dot", default=true, info="Enable dot codegen")
+  register("open", default=false, info="Open dot graph after codegen")
+  register("stat", default=false, info="Printing CU statistics")
+  register("snapshot", default=false, info="Enable placement snapshot")
+  register("snapint", default=10, info="Placement snapshot interval")
+
+  def saveDesign = option[Boolean]("save-pir")
+  def loadDesign = option[Boolean]("load-pir")
   def verbose = Config.option[Boolean]("verbose")
   def debug:Boolean = Config.option[Boolean]("debug")
   def enableBreakPoint = debug && option[Boolean]("bp")

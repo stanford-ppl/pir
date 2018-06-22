@@ -46,6 +46,7 @@ case object SeqPipe extends ControlStyle
 case object MetaPipe extends ControlStyle
 case object StreamPipe extends ControlStyle
 case object ForkSwitch extends ControlStyle
+case object ForkJoin extends ControlStyle
 
 sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel

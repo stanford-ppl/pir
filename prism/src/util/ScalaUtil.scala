@@ -54,4 +54,8 @@ trait ScalaUtil {
     if (list.isEmpty) None else Some(list.max)
   }
 
+  def revertMap[K,V](map:Map[K,V]):Map[V,Set[K]] = {
+    map.groupBy(_._2).mapValues(_.keys.toSet)
+  }
+
 }

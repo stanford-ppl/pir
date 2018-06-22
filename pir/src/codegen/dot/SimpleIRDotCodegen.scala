@@ -18,7 +18,7 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
 
   override def emitNode(n:N) = {
     n match {
-      case g:ArgFringe => super.visitNode(n)
+      //case g:ArgFringe => super.visitNode(n)
       case g:GlobalContainer => emitSingleNode(n)
       case _ => super.visitNode(n)
     }
@@ -37,9 +37,16 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
           case tp if isWord(tp) => attr.set("style", "solid")
           case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna")
         }
-      case _ =>
+      case _ => 
     }
     super.emitEdge(from, to, attr)
+  }
+
+  override def emitEdgeMatched(from:N, to:N, attr:DotAttr):Unit = {
+    (lift(from), lift(to)) match {
+      case (Some(from:ArgFringe), _) =>
+      case (_, _) => super.emitEdgeMatched(from, to, attr)
+    }
   }
 
   override def label(attr:DotAttr, n:Any) = {
