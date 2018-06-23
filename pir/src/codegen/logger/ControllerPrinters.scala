@@ -1,12 +1,11 @@
 package pir
 package codegen
 
+import pir.pass._
 import pir.node._
 
-class ControllerPrinter(implicit design:PIR) extends PIRPass with prism.traversal.ChildFirstTraversal with Codegen {
+class ControllerPrinter(implicit design:PIR) extends PIRPass with ControllerChildFirstTraversal with Codegen {
   val fileName = "CtrlPrinter.txt"
-
-  type N = Controller
 
   override def quote(n:Any) = qdef(n)
 
@@ -14,7 +13,4 @@ class ControllerPrinter(implicit design:PIR) extends PIRPass with prism.traversa
     emitBlock(qdef(n)) { traverse(n) }
   }
 
-  override def runPass = {
-    traverseNode(design.design.top.topController)
-  }
 }

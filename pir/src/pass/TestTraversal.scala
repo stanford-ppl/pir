@@ -9,7 +9,7 @@ class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUp
 
   override def runPass =  {
     tic
-    traverseNode(compiler.top)
+    traverseTop
     toc("TestPass", "ms")
 
     val top = compiler.top

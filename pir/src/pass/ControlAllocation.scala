@@ -9,10 +9,6 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with Sibl
 
   val forward = true
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N):Unit = {
     n match {
       case n:EnabledAccess => super.visitNode(n)

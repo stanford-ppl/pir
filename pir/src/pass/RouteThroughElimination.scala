@@ -4,14 +4,10 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal {
+class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   val forward = false
-
-  override def runPass =  {
-    traverseNode(compiler.top, ())
-  }
 
   override def visitNode(n:N, prev:T):T = {
     n match {

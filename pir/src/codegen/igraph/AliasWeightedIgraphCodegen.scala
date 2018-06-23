@@ -12,7 +12,7 @@ trait AliasWeightedIgraphCodegen extends IgraphCodegen with WeightedIgraphCodege
 
   override def emitInput(node:N) = {
     node.localDeps.foreach { dep =>
-      val adep = lookup(dep)
+      val adep = alias(dep)
       if (adep != node) {
         addWeights(dep, node)
         emitln(s"""g.add_edge("$adep", "$node")""")

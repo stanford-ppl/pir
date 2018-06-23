@@ -20,7 +20,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
 
   override def runPass =  {
     // Mark dead code
-    traverseNode(compiler.top)
+    traverseTop
     // Remove dead code
     liveMap.foreach { 
       case (n, false) =>

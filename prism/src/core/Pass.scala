@@ -28,8 +28,6 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
     this
   }
 
-  def quote(n:Any):String
-
   def succeed:Unit = {
     info(Console.GREEN, "success", s"$name succeeded")
     runner.setSucceed

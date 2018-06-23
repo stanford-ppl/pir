@@ -6,10 +6,6 @@ import pir.node._
 class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal with ConstantPropogator {
   import pirmeta._
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N) = dbgblk(s"visitNode($n)") { 
     n match {
       case n:Top =>

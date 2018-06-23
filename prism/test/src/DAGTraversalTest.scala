@@ -47,9 +47,9 @@ class DAGTraversalTest extends UnitTest with Logging {
       type N = TestNode
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
-    var res = traversal.schedule(e)
+    var res = traversal.scheduleNode(e)
     assert(res==List(e, g1))
-    res = traversal.schedule(g3)
+    res = traversal.scheduleNode(g3)
     assert(res == List(g3, f, g, e, g2, g1))
   }
 
@@ -58,15 +58,16 @@ class DAGTraversalTest extends UnitTest with Logging {
       type N = TestNode
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
-    var res = traversal.schedule(e)
+    var res = traversal.scheduleNode(e)
     assert(res==List(e, g1))
-    res = traversal.schedule(g3)
+    res = traversal.scheduleNode(g3)
     assert(res == List(g3, f, g, e, g1, g2))
   }
 
   "DAGTestChildFirst" should "success" in {
-    val traversal = new ChildFirstTraversal with GraphSchedular {
+    val traversal = new ChildFirstTraversal with ScopeSchedular {
       type N = TestNode
+      val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
         val res = super.visitNode(n, prev)
@@ -74,13 +75,14 @@ class DAGTraversalTest extends UnitTest with Logging {
         res
       }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     //println(s"testChildFirst", res)
   }
 
   "DAGTestSiblingFirst" should "success" in {
-    val traversal = new SiblingFirstTraversal with GraphSchedular {
+    val traversal = new SiblingFirstTraversal with ScopeSchedular {
       type N = TestNode
+      val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
         n.parent.foreach { parent =>
@@ -91,13 +93,14 @@ class DAGTraversalTest extends UnitTest with Logging {
         super.visitNode(n, prev)
       }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     //println(s"testSiblingFirst", res)
   }
 
   "DAGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
+    val traversal = new DFSTopDownTopologicalTraversal with ScopeSchedular {
       type N = TestNode
+      val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
       def visitLocalIn(n:N):List[N] = n.localDeps.toList
@@ -110,13 +113,14 @@ class DAGTraversalTest extends UnitTest with Logging {
         res
       }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     //println(s"CFTopo", res)
   }
 
   "DAGTestBUTopo" should "success" in {
-    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
+    val traversal = new BottomUpTopologicalTraversal with ScopeSchedular with DFSTraversal {
       type N = TestNode
+      val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
       def visitGlobalIn(n:N):List[N] = n.deps.toList
@@ -125,16 +129,10 @@ class DAGTraversalTest extends UnitTest with Logging {
         assert(depFunc(n).forall(isVisited), s"depFunc()")
         super.visitNode(n, prev)
       }
-      override def schedule(n:N) = {
-        resetTraversal
-        traverseScope(n, Nil)
-      }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     assert((top::top.descendents).forall(traversal.isVisited))
     //println("BUTopo", res)
   }
 
 }
-
-

@@ -17,21 +17,19 @@ trait AliasIgraphCodegen extends IgraphCodegen {
     if (a == n) super.emitVertex(n)
   }
 
-  def lookup(node:N) = aliasMap.getOrElse(node, node)
-
   def alias(node:N):N = aliasMap.getOrElseUpdate(node, 
     node match {
       case node:Const[_] if node.localDeps.size==1 => node.localDeps.head
       case node:LocalLoad => memsOf(node).head
       case node:LocalStore => memsOf(node).head
-      case Def(n, CounterIter(counter, offset)) => alias(counter)
+      case Def(n, CounterIter(counter, offset)) => cchainOf(counter)
       case node => node
     }
   )
 
   def emitInput(node:N) = {
     node.localDeps.foreach { d =>
-      val dep = lookup(d)
+      val dep = alias(d)
       if (dep != node) {
         emitln(s"""g.add_edge("$dep", "$node")""")
       }

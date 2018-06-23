@@ -20,7 +20,7 @@ object Def {
 
 trait StageDef extends Def
 
-case class CounterIter(counter:Primitive, offset:Option[Int])(implicit design:PIRDesign) extends Def 
+case class CounterIter(counter:Counter, offset:Option[Int])(implicit design:PIRDesign) extends Def 
 case class OpDef(op:Op, inputs:List[Def])(implicit design:PIRDesign) extends StageDef
 case class ReduceAccumOp(op:Op, input:Def, accum:Def)(implicit design:PIRDesign) extends StageDef
 // Lowered

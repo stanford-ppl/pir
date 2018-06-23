@@ -12,7 +12,10 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
 
   override def runPass =  {
     pirMap = initCUMap.flatMap { pmap =>
-      pmap.flatMap[CUMap] { cumap => pruneAndSplit(cumap) }
+      pmap.flatMap[CUMap] { cumap => 
+        val cus = cumap.keys
+        pruneAndSplit(cumap).map { case (cumap, splitMap) => cumap }
+      }
     }
     log(pirMap)
   }
@@ -43,23 +46,55 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     }
   }
 
-  def pruneAndSplit(cumap:CUMap, key:Option[CUMap.K]=None):EOption[CUMap] = {
-    val result = key match {
-      case None => prune(cumap)
-      case Some(key) => prune(cumap, key)
+  type SplitMap = Map[CUMap.K, Set[CUMap.K]]
+  object SplitMap {
+    def empty:SplitMap = Map.empty
+  }
+
+  def printResult(splitMap:SplitMap, origKeys:Iterable[CUMap.K]) = {
+    def printKey(k:CUMap.K):Unit = {
+      if (splitMap.contains(k)) {
+        dbgblk(s"$k ->") {
+          val (kk, vs) = splitMap(k).partition { _ == k }
+          kk.foreach { k => dbg(s"$k") }
+          vs.foreach(printKey)
+        }
+      } else {
+        dbg(s"$k")
+      }
     }
-    result match {
+    dbgblk(s"Splitting Results") {
+      origKeys.filter { key => splitMap.contains(key) }.foreach { k => printKey(k) }
+    }
+  }
+
+  def pruneAndSplit(cumap:CUMap):EOption[(CUMap, SplitMap)] = {
+    val keys = cumap.keys
+    pruneAndSplit(cumap, SplitMap.empty, keys).map { case (cumap, splitMap) =>
+      printResult(splitMap, keys)
+      (cumap, splitMap)
+    }
+  }
+
+  def pruneAndSplit(cumap:CUMap, splitMap:SplitMap, keys:Iterable[CUMap.K]):EOption[(CUMap, SplitMap)] = {
+    flatFold(keys, (cumap, splitMap)) { case ((cumap, sm), key) =>
+      pruneAndSplit(cumap, sm, key)
+    }
+  }
+
+  def pruneAndSplit(cumap:CUMap, splitMap:SplitMap, key:CUMap.K):EOption[(CUMap, SplitMap)] = {
+    prune(cumap, key) match {
       case Left(f@CostConstrainFailure(fg, key:CUMap.K, isSplittable)) if isSplittable =>
         dbgblk(s"split(${quote(key)})") {
           dbg(s"$f")
           val vs = cumap(key)
           val ks = split(key)
-          constrains.foreach { _.resetCache(key) }
           val newCUMap = (cumap - key) ++ (ks -> vs)
-          pruneAndSplit(newCUMap, Some(key))
-        }.flatMap { cumap => pruneAndSplit(cumap) }
+          val newSplitMap = splitMap + (key -> ks)
+          pruneAndSplit(newCUMap, newSplitMap, ks)
+        }
       case Left(f) => Left(f)
-      case Right(map) => Right(map)
+      case Right(map) => Right((map, splitMap))
     }
   }
 

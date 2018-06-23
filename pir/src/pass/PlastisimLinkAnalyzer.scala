@@ -13,10 +13,6 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
     linkGroupOf.clear
   }
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   // Break control dependency
   override def depFunc(n:N) = n match {
     case n:ControlNode => super.depFunc(n)

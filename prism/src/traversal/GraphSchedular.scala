@@ -5,17 +5,23 @@ trait GraphSchedular extends GraphTraversal { self =>
   type N
   type T = List[N]
 
+  def zero = Nil
+
   def visitFunc(n:N):List[N]
 
   override def visitNode(n:N, prev:T):T = super.visitNode(n, prev:+n)
 
-  def schedule(n:N) = {
+  def scheduleNode(n:N) = {
     resetTraversal
-    traverseNode(n, Nil)
+    traverseNode(n, zero)
   }
 
-  final def schedule(ns: => List[N]) = {
+}
+
+trait ScopeSchedular extends GraphSchedular { self:HierarchicalTraversal => 
+
+  def scheduleScope(n:N) = {
     resetTraversal
-    traverse(ns, Nil)
+    traverseScope(n, zero)
   }
 }

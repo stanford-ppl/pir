@@ -16,14 +16,15 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
   
   val ctMap = mutable.Map[Controller, Container]()
 
-  val controllerTraversal = new ControllerTraversal with prism.traversal.UnitTraversal {
+  val controllerTraversal = new ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal with Logging {
+    override lazy val logger = CUInsertion.this.logger
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
         case n:TopController => 
         case n@(_:ArgInController | _:ArgOutController) => 
         case n:DramController => 
         case n => 
-          val cu = CUContainer().setParent(compiler.top).ctrl(n)
+          val cu = CUContainer().setParent(CUInsertion.this.compiler.top).ctrl(n)
           n.name.foreach { name => cu.name(name) }
           dbg(s"${qtype(n)} -> ${qtype(cu)}")
           ctMap += n -> cu
@@ -34,15 +35,15 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
 
   override def runPass =  {
     createCUForController
-    traverseNode(compiler.top)
+    super.runPass
   }
 
   def createCUForController = {
-    controllerTraversal.traverseNode(compiler.top.topController, ())
+    controllerTraversal.traverseTop
   }
 
   override def visitNode(n:N):Unit = {
-    dbg(s"visitNode ${qdef(n)}")
+    dbg(s"visitNode ${qdef(n)} ${ctrlOf.get(n)}")
     n match {
       case n if within[GlobalContainer](n) =>
       case n:Memory if isRemoteMem(n) => swapParent(n, CUContainer().setParent(compiler.top).name(s"${qtype(n)}")) 

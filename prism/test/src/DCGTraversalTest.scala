@@ -28,8 +28,9 @@ class DCGTraversalTest extends UnitTest {
   }
 
   "DCGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
+    val traversal = new DFSTopDownTopologicalTraversal with ScopeSchedular {
       type N = TestNode
+      val top = DCG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
       def visitLocalIn(n:N):List[N] = n.localDeps.toList
@@ -41,13 +42,14 @@ class DCGTraversalTest extends UnitTest {
         res
       }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     //println(s"CFTopo", res)
   }
 
   "DCGTestBUTopo" should "success" in {
-    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
+    val traversal = new BottomUpTopologicalTraversal with ScopeSchedular with DFSTraversal {
       type N = TestNode
+      val top = DCG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
       def visitGlobalIn(n:N):List[N] = n.deps.toList
@@ -55,12 +57,8 @@ class DCGTraversalTest extends UnitTest {
       override def visitNode(n:N, prev:T):T = {
         super.visitNode(n, prev)
       }
-      override def schedule(n:N) = {
-        resetTraversal
-        traverseScope(n, Nil)
-      }
     }
-    var res = traversal.schedule(top)
+    var res = traversal.scheduleScope(top)
     //println("BUTopo", res)
     //assert((top::top.descendents).forall(traversal.isVisited))
   }

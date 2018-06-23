@@ -3,13 +3,9 @@ package pass
 
 import pir.node._
 
-class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSTopologicalTraversal with UnitTraversal {
+class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
 
   val forward = false
-
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
 
   override def finPass = {
     // Checking for escaped nodes

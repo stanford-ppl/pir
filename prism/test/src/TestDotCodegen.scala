@@ -20,9 +20,7 @@ class TestDotCodegen(val fileName:String)(implicit design:TestDesign) extends Pa
     super.visitNode(n,prev)
   }
 
-  override def runPass = {
-    traverseNode(design.top, ())
-  }
+  val top = design.top
 
 }
 

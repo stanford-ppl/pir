@@ -3,7 +3,7 @@ package pass
 
 import pir.node._
 
-class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTopologicalTraversal with UnitTraversal {
+class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal {
   import pirmeta._
 
   override def initPass = {
@@ -14,8 +14,8 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
   val forward = false
 
   override def runPass =  {
-    controllerTraversal.traverseNode(compiler.top.topController, ())
-    traverseNode(compiler.top)
+    controllerTraversal.traverseTop
+    traverseTop
   }
 
   override def finPass = {
@@ -62,7 +62,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
     case n =>
   }
 
-  val controllerTraversal = new ControllerTraversal with prism.traversal.UnitTraversal {
+  val controllerTraversal = new ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal {
     override def visitNode(n:N, prev:T):T = {
       n match {
         case n:LoopController => resetController(n.cchain, n)
@@ -72,7 +72,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSTop
     }
   }
 
-  override def visitNode(n:N, prev:T):T = {
+  override def visitNode(n:N, prev:T):T = dbgblk(s"visitNode ${qdef(n)}") {
     n match {
       case n:ComputeNode =>
         if (!ctrlOf.isDefinedAt(n)) {

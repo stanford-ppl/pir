@@ -13,7 +13,7 @@ trait WeightedIgraphCodegen extends IgraphCodegen {
   val edgeWeights = ListBuffer[Float]()
 
   def addWeights(src:N, dst:N) = {
-    val weight = 1.0f / src.depeds.size
+    var weight = 1.0f / (src.depeds.size*2)
     edgeWeights += weight
   }
 

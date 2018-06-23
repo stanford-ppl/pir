@@ -29,9 +29,9 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
     case n => n.toString
   }
 
-  override def traverseNode(n:N):T = {
+  override def run:this.type = {
     try {
-      super.traverseNode(n)
+      super.run
     } catch {
       case e:Exception =>
         closeStream

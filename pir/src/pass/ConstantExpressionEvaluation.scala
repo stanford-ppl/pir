@@ -4,14 +4,10 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-class ConstantExpressionEvaluation(implicit compiler:PIR) extends PIRTransformer with BFSTopologicalTraversal with UnitTraversal with ConstantPropogator {
+class ConstantExpressionEvaluation(implicit compiler:PIR) extends PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal with ConstantPropogator {
   import pirmeta._
 
   val forward = true
-
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
 
   override def visitNode(n:N, prev:T):T = dbgblk(s"visit ${qdef(n)}") {
     n match {

@@ -8,10 +8,6 @@ class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with Siblin
 
   val forward = true
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N):Unit = {
     val node = transform(n)
     visited += node

@@ -6,10 +6,6 @@ import pir.node._
 class ControlRegInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N) = { 
     n match {
       case n:ContextEnableOut =>

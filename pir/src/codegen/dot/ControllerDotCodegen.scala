@@ -1,14 +1,13 @@
 package pir
 package codegen
 
+import pir.pass._
 import pir.node._
 import prism.traversal._
 
-class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with ChildFirstTraversal with IRDotCodegen {
+class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with ControllerChildFirstTraversal with IRDotCodegen {
 
   import pirmeta._
-
-  type N = Controller
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
@@ -66,10 +65,6 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     val readCtrl = readersOf(mem).map { read => ctrlOf(read) }.toSet
     val writeCtrl = (writersOf(mem)++resetersOf(mem)).map { write => ctrlOf(write) }.toSet
     readCtrl.size==1 && readCtrl == writeCtrl
-  }
-
-  override def runPass = {
-    traverseNode(compiler.top.topController)
   }
 
   override def emitEdges = {

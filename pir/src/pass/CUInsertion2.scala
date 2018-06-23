@@ -14,10 +14,6 @@ class CUInsertion2(implicit compiler:PIR) extends PIRTransformer with BFSBottomU
 
   val forward = false
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N):Unit = {
     insertCU(n)
     super.visitNode(n)

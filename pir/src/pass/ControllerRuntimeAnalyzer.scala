@@ -3,12 +3,8 @@ package pass
 
 import pir.node._
 
-class ControllerRuntimeAnalyzer(implicit design:PIR) extends PIRPass with ControllerTraversal with prism.traversal.UnitTraversal {
+class ControllerRuntimeAnalyzer(implicit design:PIR) extends PIRPass with ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal {
   import pirmeta._
-
-  override def runPass = {
-    traverseNode(design.design.top.topController)
-  }
 
   override def visitNode(n:N) = dbgblk(s"visitNode($n)") {
     n match {

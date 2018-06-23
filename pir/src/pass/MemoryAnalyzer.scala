@@ -8,10 +8,6 @@ import scala.collection.mutable
 class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
-  override def runPass =  {
-    traverseNode(compiler.top)
-  }
-
   override def visitNode(n:N) = { 
     n match {
       case n:Memory if !ctrlOf.contains(n) => setTopCtrl(n)
