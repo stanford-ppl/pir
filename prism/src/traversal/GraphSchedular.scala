@@ -16,6 +16,10 @@ trait GraphSchedular extends GraphTraversal { self =>
     traverseNode(n, zero)
   }
 
+  def schedueNodes(ns: Iterable[N]) = {
+    resetTraversal
+  }
+
 }
 
 trait ScopeSchedular extends GraphSchedular { self:HierarchicalTraversal => 

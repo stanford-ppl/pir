@@ -10,7 +10,7 @@ class ControllerPrinter(implicit design:PIR) extends PIRPass with ControllerChil
   override def quote(n:Any) = qdef(n)
 
   override def emitNode(n:N) = {
-    emitBlock(qdef(n)) { traverse(n) }
+    emitBlock(qdef(n)) { super.visitNode(n) }
   }
 
 }

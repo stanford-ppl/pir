@@ -15,8 +15,6 @@ trait UnitTraversal extends GraphTraversal {
 
   final def traverseNode(n:N):T = traverseNode(n, ()) 
 
-  def traverse(n:N):T = traverse(n,())
-
 }
 
 trait GraphTraversal {
@@ -43,10 +41,8 @@ trait GraphTraversal {
 
   def visitNode(n:N, prev:T):T = prev
 
-  def traverseNode(n:N, prev:T):T
-
-  def traverse(n:N, zero:T):T
-  def traverse(ns: => List[N], zero:T):T
+  final def traverseNode(n:N, zero:T):T = traverseNodes(List(n), zero)
+  def traverseNodes(ns: => List[N], zero:T):T
 
   def dbgs(s:String) = {
     this match {
@@ -57,11 +53,8 @@ trait GraphTraversal {
 }
 
 trait DFSTraversal extends GraphTraversal {
-  override def traverse(n:N, zero:T):T = {
-    traverse(visitFunc(n), zero)
-  }
 
-  override def traverse(ns: => List[N], zero:T):T = {
+  final def traverseNodes(ns: => List[N], zero:T):T = {
     var prev = zero 
     var nexts = ns.filterNot(isVisited)
     // Cannot use fold left because graph might be changing while traversing
@@ -73,10 +66,9 @@ trait DFSTraversal extends GraphTraversal {
     prev
   }
 
-  final def traverseNode(n:N, prev:T):T = markVisitNode(n, prev)
 
   override def visitNode(n:N, prev:T):T = {
-    traverse(n, super.visitNode(n, prev))
+    traverseNodes(visitFunc(n), super.visitNode(n, prev))
   }
 
 }
@@ -90,16 +82,16 @@ trait BFSTraversal extends GraphTraversal {
     queue.clear
   }
 
-  def traverse(n:N, zero:T):T = {
-    traverse(visitFunc(n), zero)
-  }
-
-  def traverse(ns: => List[N], zero:T):T = {
+  final def traverseNodes(ns: => List[N], zero:T):T = {
     queue ++= ns.filterNot(isScheduled)
     var prev = zero
     while (queue.nonEmpty) {
-      prev = traverse(prev)
-      queue ++= ns.filterNot(isScheduled)
+      val next = queue.dequeue()
+      prev = markVisitNode(next, prev)
+    }
+    val nns = ns.filterNot(isScheduled)
+    if (nns.nonEmpty) {
+      prev = traverseNodes(ns, prev)
     }
     prev
   }
@@ -108,22 +100,11 @@ trait BFSTraversal extends GraphTraversal {
     isVisited(n) || queue.contains(n)
   }
 
-  def traverse(zero:T):T = {
-    var prev = zero
-    while (queue.nonEmpty) {
-      val next = queue.dequeue()
-      prev = markVisitNode(next, prev)
-    }
-    return prev
-  }
-
   // no recursive call to traverse(n, zero) to avoid StackOverFlow
   override def visitNode(n:N, prev:T):T = {
     queue ++= visitFunc(n).filterNot(isScheduled)
     prev
   }
-
-  final def traverseNode(n:N, prev:T):T = traverse(markVisitNode(n, prev))
 
 }
 
@@ -277,7 +258,7 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
   override def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)
     _scope = Some(scope)
-    val res = traverse(scheduleDepFree(scope), zero)
+    val res = traverseNodes(scheduleDepFree(scope), zero)
     _scope = None
     res
   }

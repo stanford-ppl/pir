@@ -36,11 +36,6 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
       }
     }
 
-    override def traverse(n:N, zero:T):T = {
-      val (node, depth) = n
-      super.traverse(n, zero)
-    }
-
     def visitFunc(n:N):List[N] = {
       val (node, depth) = n
       vf(node).map { next => (next, depth-1) }
@@ -52,16 +47,16 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
       def accumulate(prev:List[ND], n:ND) = {
         if (!prev.contains(n) && prefix(n)) (prev :+ n) else prev
       }
-      new PrefixTraversal[List[ND]](prefix, visitFunc, accumulate _, Nil, logger).traverse((this, depth), Nil)
+      new PrefixTraversal[List[ND]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((this, depth), Nil)
     }
  
   def collect[M<:ND:ClassTag](visitFunc:ND => List[ND], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
     dbgblk(logger, s"collect($this, depth=$depth)") {
-      def prefix(n:ND) = n match { case n:M => true; case _ => false }
+      def prefix(n:ND) = n match { case `self` => false; case n:M => true; case _ => false }
       def accumulate(prev:List[M], n:ND) = {
         if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
       }
-      new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverse((this, depth), Nil)
+      new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((this, depth), Nil)
     }
 
   def collectUp[M<:ND:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
@@ -85,14 +80,14 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
       def accumulate(prev:List[ND], n:ND) = {
         if (!prev.contains(n)) (prev :+ n) else prev
       }
-      new PrefixTraversal[List[ND]](prefix, visitFunc, accumulate _, Nil, logger).traverse((this, depth), Nil)
+      new PrefixTraversal[List[ND]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((this, depth), Nil)
     }
 
   def canReach(target:Node[ND], visitFunc:ND => List[ND], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
     dbgblk(logger, s"canReach($target, depth=$depth)"){
       def prefix(n:ND) = n == target
       def accumulate(prev:Boolean, n:ND) = prefix(n) || prev
-      new PrefixTraversal[Boolean](prefix, visitFunc, accumulate _, false, logger).traverse((this, depth), false)
+      new PrefixTraversal[Boolean](prefix, visitFunc, accumulate _, false, logger).traverseNode((this, depth), false)
     }
 
   def areLinealInherited(that:Node[ND], logger:Option[Logging]=None):Boolean = 
