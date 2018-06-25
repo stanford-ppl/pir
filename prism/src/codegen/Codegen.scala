@@ -19,8 +19,11 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   }
 
   override def finPass = {
-    info(s"Finished ${runner.name} to ${cstr(Console.CYAN,buildPath(relativeOutDir, fileName))} in ${toc("ms")}ms")
     closeStream
+  }
+
+  override def epilogue(name:String, time:String) = {
+    info(s"Finished ${name} to ${cstr(Console.CYAN,buildPath(relativeOutDir, fileName))} in ${time}")
   }
 
   override def quote(n:Any):String = n match {

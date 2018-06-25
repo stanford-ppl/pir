@@ -113,7 +113,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, deadCodeEliminator)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
-    //// Control transformation and analysis
+    // Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
@@ -125,7 +125,9 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, irCheck)
 
     session.rerun {
+
     addPass(cuStats)
+
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot"))

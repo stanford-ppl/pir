@@ -9,11 +9,7 @@ class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUp
 
   override def runPass =  {
     val scope = top :: top.descendents
-    val depFree = scheduleDepFree(scope)
-    tic
     traverseTop
-    toc("TestPass", "ms")
-
     val unvisited = scope.filterNot(isVisited)
 
     dbg(s" ============ unvisited ============== ")

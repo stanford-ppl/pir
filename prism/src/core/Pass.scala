@@ -10,22 +10,25 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def runner = compiler.session.getCurrentRunner(this)
 
-  def initPass:Unit = {
-    infor(s"Running ${runner.name} ...")
-    tic
-  }
+  def initPass:Unit = {}
 
   def runPass:Unit = {}
 
-  def finPass:Unit = {
-    info(s"Finished ${runner.name} in ${toc("ms")}ms")
-  }
+  def finPass:Unit = {}
 
   def run:this.type = {
     initPass
     runPass
     finPass
     this
+  }
+
+  def prologue(name:String) = {
+    infor(s"Running ${name} ...")
+  }
+
+  def epilogue(name:String, time:String) = {
+    info(s"Finished ${name} in ${time}")
   }
 
   def succeed:Unit = {
