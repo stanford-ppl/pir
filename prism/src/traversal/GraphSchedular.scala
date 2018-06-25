@@ -16,8 +16,9 @@ trait GraphSchedular extends GraphTraversal { self =>
     traverseNode(n, zero)
   }
 
-  def schedueNodes(ns: Iterable[N]) = {
+  def scheduleNodes(ns: Iterable[N]) = {
     resetTraversal
+    traverseNodes(ns.toList, zero)
   }
 
 }

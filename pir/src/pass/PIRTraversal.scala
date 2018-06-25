@@ -1,7 +1,7 @@
 package pir
 package pass
 
-trait PIRTraversal extends PIRPass with PIRWorld with prism.traversal.Traversal { self:prism.traversal.HierarchicalTraversal =>
+trait PIRTraversal extends PIRPass with PIRWorld with prism.traversal.Traversal {
   def top = compiler.top
 }
 trait DFSTopDownTopologicalTraversal extends PIRTraversal with prism.traversal.DFSTopDownTopologicalTraversal

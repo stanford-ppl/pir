@@ -18,6 +18,12 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
     }
   }
 
+  def stat[T](list:Iterable[T])(lambda:T => Int ) = {
+    val clist = list.map { e => lambda(e) }
+    val avg = clist.sum.toFloat / list.size
+    (clist.min, avg, clist.max)
+  }
+
   override def runPass =  {
     if (compiler.session.hasRunAll[IgraphPartioner]) {
       dbg(s"=========== Post-splitting CU Statistics ==================")
@@ -31,15 +37,10 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
     dbg(s"number of cus=${cus.size}")
     cuMap.foreach { case (cuType, cus) =>
       val key = cuType.getOrElse("cu")
-      dbg(s"")
       dbg(s"number of $key = ${cus.size}")
-      //dbg(s"$key = ${cus.map(qtype)}")
-      val fanIns = cus.map { cu => cu.ins.size }
-      dbg(s"max fanIn of $key = ${fanIns.max}")
-      dbg(s"average fanIn of $key = ${fanIns.sum.toFloat / fanIns.size}")
-      val fanOuts = cus.map { cu => cu.outs.size }
-      dbg(s"max fanOut of $key = ${fanOuts.max}")
-      dbg(s"average fanOut of $key = ${fanOuts.sum.toFloat / fanOuts.size}")
+      dbg(s"- fanIn = ${stat(cus) { _.ins.size }}")
+      dbg(s"- fanOut = ${stat(cus) { _.outs.size }}")
+      dbg(s"- stages = ${stat(cus) { _.collectDown[StageDef]().size }}")
     }
   }
 

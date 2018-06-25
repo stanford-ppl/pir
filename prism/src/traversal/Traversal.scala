@@ -5,7 +5,7 @@ import prism.node._
 
 import scala.collection.mutable
 
-trait Traversal extends Pass { self:HierarchicalTraversal =>
+trait Traversal extends Pass with GraphTraversal {
   override def reset = { super.reset; resetTraversal }
   override def initPass = { 
     super.initPass
@@ -13,7 +13,10 @@ trait Traversal extends Pass { self:HierarchicalTraversal =>
   }
 
   def traverseTop:T = {
-    traverseScope(top, zero)
+    this match {
+      case self:HierarchicalTraversal => self.traverseScope(self.top, self.zero).asInstanceOf[T]
+      case self => throw PIRException(s"traverseTop is not defined for $this")
+    }
   }
 
   override def runPass = {

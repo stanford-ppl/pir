@@ -94,6 +94,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
     addPass(enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
 
+    session.rerun {
     addPass(enableSplitting, igraphPartioner)
     addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top8.dot"))
     addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
@@ -113,7 +114,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, deadCodeEliminator)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
-    session.rerun {
     //// Control transformation and analysis
     addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion) // insert reg for no forward depended contextEn

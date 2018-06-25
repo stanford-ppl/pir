@@ -124,7 +124,7 @@ trait DotCodegen extends Printer { self:Codegen =>
   implicit def field_to_string(f:DotField):String = f.field
 
   def open = {
-    s"bin/dot -c ${outputPath} &".replace(".dot", "") !
+    s"bin/dot ${outputPath} &".replace(".dot", "") !
   }
 }
 

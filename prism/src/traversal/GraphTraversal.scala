@@ -46,7 +46,7 @@ trait GraphTraversal {
 
   def dbgs(s:String) = {
     this match {
-      case self:Logging => self.dbg(s)
+      case self:Logging if self.logger.isOpen => self.dbg(s)
       case _ =>
     }
   }
@@ -57,15 +57,14 @@ trait DFSTraversal extends GraphTraversal {
   final def traverseNodes(ns: => List[N], zero:T):T = {
     var prev = zero 
     var nexts = ns.filterNot(isVisited)
-    // Cannot use fold left because graph might be changing while traversing
     while (nexts.nonEmpty) {
       prev = markVisitNode(nexts.head, prev)
       nexts = nexts.filterNot(isVisited)
-      if (nexts.isEmpty) nexts = ns.filterNot(isVisited)
+      if (nexts.isEmpty) // Allow mutable graph
+        nexts = ns.filterNot(isVisited)
     }
     prev
   }
-
 
   override def visitNode(n:N, prev:T):T = {
     traverseNodes(visitFunc(n), super.visitNode(n, prev))
@@ -88,10 +87,8 @@ trait BFSTraversal extends GraphTraversal {
     while (queue.nonEmpty) {
       val next = queue.dequeue()
       prev = markVisitNode(next, prev)
-    }
-    val nns = ns.filterNot(isScheduled)
-    if (nns.nonEmpty) {
-      prev = traverseNodes(ns, prev)
+      if (queue.isEmpty) // Allow mutable graph
+        queue ++= ns.filterNot(isScheduled)
     }
     prev
   }
@@ -181,7 +178,7 @@ trait BFSTopologicalTraversal extends BFSTraversal with TopologicalTraversal
 
 trait HierarchicalTraversal extends GraphTraversal {
   def top:N
-  def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
+  def traverseScope(n:N, zero:T):T
 }
 
 trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal {
@@ -205,6 +202,7 @@ trait TopDownTraversal extends HierarchicalTraversal {
     case n:SubGraph[_] => n.children.asInstanceOf[List[N]]
     case n:Atom[_] => Nil
   }
+  def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
 }
 trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal {
   override def visitNode(n:N, zero:T):T = {
@@ -255,7 +253,7 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
 
   def visitScope(n:N):List[N] = n::n.descendents
 
-  override def traverseScope(n:N, zero:T) = {
+  def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)
     _scope = Some(scope)
     val res = traverseNodes(scheduleDepFree(scope), zero)
