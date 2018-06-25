@@ -94,7 +94,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
     addPass(enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
 
-    session.rerun {
     addPass(enableSplitting, igraphPartioner)
     addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top8.dot"))
     addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
@@ -125,6 +124,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, irCheck)
 
+    session.rerun {
     addPass(cuStats)
     // Simulation analyzer
     addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
