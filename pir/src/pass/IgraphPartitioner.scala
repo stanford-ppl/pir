@@ -38,6 +38,8 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
   }
 
 
+  // TODO: this might run into infinite loop if nodes get moved to cu1 and then moved to cu2.
+  // Example P4 on DMeshCB4x4
   // Fixing cycle by continuously moving nodes needed by the large cu in to the large cu
   def fixCycle(partitions:List[GlobalContainer]):List[GlobalContainer] = {
     assert(partitions.size==2) // For now assume always 2 partitions
@@ -73,12 +75,12 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
         }.getOrElse(throw PIRException(s"This shouldn't happen. The original dataflow is not a dag!"))
         val tree = schedular.scheduleNode(dep)
         val other = otherCU(dep)
-        //breakPoint(partitions) {
+        breakPoint(partitions) {
           tree.foreach { n =>
             swapParent(n, other)
           }
-          //partitions
-        //}
+          partitions
+        }
         fixCycle(partitions)
       }
     } else partitions
