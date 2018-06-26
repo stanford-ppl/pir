@@ -51,7 +51,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
   def fit(key:K, value:V):(Boolean, Boolean) = {
     val kc = keyCost(key)
     val vc = valueCost(value)
-    val fits = kc.fit(vc)
+    val fits = kc.fit(key, vc)
     (key, value) match {
       case (key, value:DramAG) if isDAG(key) & !fits._1 => 
         warn(s"${quote(key)}(dag) not fit ${quote(value)} overCosts=${kc.overCosts(vc).mkString(",")}")

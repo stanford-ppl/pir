@@ -136,8 +136,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
     // Mapping
-    addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer, plastisimVCAllocator)
+    //addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer)
     addPass(cuPruning)
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
@@ -149,8 +149,8 @@ trait PIR extends Compiler with PIRWorld {
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)
     addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
-    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer, plastisimVCAllocator)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
+    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
 
      // Simulation
 

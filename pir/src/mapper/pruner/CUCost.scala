@@ -6,16 +6,16 @@ import pir.pass._
 import spade.node._
 
 case class CUCost(costs:Cost[_]*) extends Cost[CUCost]{
+  type K = CUMap.K
   override def toString = s"CUCost(${costs.mkString(",")})"
-  val isSplittable = true
   def overCosts(that:CUCost) = {
     costs.zip(that.costs).filter { case (cost, tcost) =>
       cost.compareAsC(tcost) > 0
     }
   }
-  def fit(that:Any) = {
+  override def fit(key:K, that:Any) = {
     val fits = costs.zip(that.asInstanceOf[CUCost].costs).map { case (cost, tcost) =>
-      cost.fit(tcost)
+      cost.fit(key.asInstanceOf[cost.K], tcost)
     }
     (fits.forall(_._1), fits.filter(!_._1).forall(_._2))
   }
@@ -29,28 +29,30 @@ case class CUCost(costs:Cost[_]*) extends Cost[CUCost]{
   }
 }
 trait PrefixCost[C<:PrefixCost[C]] extends Cost[C] {
-  val isSplittable = false 
+  type K = CUMap.K
   val prefix:Boolean
-  def fit(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def fit(key:K, that:Any) = (this <= that.asInstanceOf[C], false)
   def compare(that:C) = if (prefix == that.prefix) 0 else 1
 }
 trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] {
+  type K = CUMap.K
   val quantity:Int
-  def fit(that:Any) = (this <= that.asInstanceOf[C], isSplittable)
+  def isSplittable(key:K):Boolean
+  def fit(key:K, that:Any) = (this <= that.asInstanceOf[C], isSplittable(key))
   def compare(that:C) = quantity.compare(that.quantity)
 }
-case class AFGCost(prefix:Boolean) extends PrefixCost[AFGCost]
-case class MCCost(prefix:Boolean) extends PrefixCost[MCCost]
-case class SramSizeCost(quantity:Int) extends QuantityCost[SramSizeCost] { val isSplittable = false }
-case class SramCost(quantity:Int) extends QuantityCost[SramCost] { val isSplittable = false }
-case class ControlFifoCost(quantity:Int) extends QuantityCost[ControlFifoCost] { val isSplittable = true }
-case class ScalarFifoCost(quantity:Int) extends QuantityCost[ScalarFifoCost] { val isSplittable = true }
-case class VectorFifoCost(quantity:Int) extends QuantityCost[VectorFifoCost] { val isSplittable = true }
-case class ControlInputCost(quantity:Int) extends QuantityCost[ControlInputCost] { val isSplittable = true }
-case class ScalarInputCost(quantity:Int) extends QuantityCost[ScalarInputCost] { val isSplittable = true }
-case class VectorInputCost(quantity:Int) extends QuantityCost[VectorInputCost] { val isSplittable = true }
-case class ControlOutputCost(quantity:Int) extends QuantityCost[ControlOutputCost] { val isSplittable = true }
-case class ScalarOutputCost(quantity:Int) extends QuantityCost[ScalarOutputCost] { val isSplittable = true }
-case class VectorOutputCost(quantity:Int) extends QuantityCost[VectorOutputCost] { val isSplittable = true }
-case class StageCost(quantity:Int) extends QuantityCost[StageCost] { val isSplittable = true }
-case class LaneCost(quantity:Int) extends QuantityCost[LaneCost] { val isSplittable = false }
+case class AFGCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[AFGCost]
+case class MCCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[MCCost]
+case class SramSizeCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[SramSizeCost] { def isSplittable(key:K) = false }
+case class SramCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[SramCost] { def isSplittable(key:K) = false }
+case class ControlFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ControlFifoCost] { def isSplittable(key:K) = true }
+case class ScalarFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ScalarFifoCost] { def isSplittable(key:K) = true }
+case class VectorFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorFifoCost] { def isSplittable(key:K) = true }
+case class ControlInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ControlInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class ScalarInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ScalarInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class VectorInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class ControlOutputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ControlOutputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class ScalarOutputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ScalarOutputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class VectorOutputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorOutputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
+case class StageCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[StageCost] { def isSplittable(key:K) = true }
+case class LaneCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[LaneCost] { def isSplittable(key:K) = false }

@@ -1,19 +1,21 @@
 package pir
 package mapper
 
+import pir.node._
+import pir.pass._
 import prism.collection.immutable._
 
 trait Cost[C] extends Ordered[C] {
-  val isSplittable:Boolean
+  type K
   def compareAsC(x:Any) = compare(x.asInstanceOf[C])
-  def fit(x:Any):(Boolean, Boolean) // (fit, splittable)
+  def fit(key:K,x:Any):(Boolean, Boolean) // (fit, splittable)
 }
 trait CostConstrain[C<:Cost[C]] extends Constrain {
   def getKeyCost(cuP:K):C
   def getValueCost(cuS:V):C
   val keyCost = memorize(getKeyCost)
   val valueCost = memorize(getValueCost)
-  def fit(key:K, value:V):(Boolean, Boolean)
+  def fit(key:K, value:V):(Boolean, Boolean) // (fit, splitable)
   def prune(fg:FG, key:K):EOption[FG] = {
     val values:Set[(V, Boolean, Boolean)] = fg.freeValues(key).map { value =>
       val (fits, splitable) = fit(key, value)

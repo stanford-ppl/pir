@@ -12,6 +12,12 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     mirrorMapping.clear
   }
 
+  override def removeNode(node:N) = {
+    super.removeNode(node)
+    pirmeta.removeAll(node)
+    dbg(s"removeNode($node)")
+  }
+
   override def mirrorX[T](x:T, mapping:mutable.Map[N,N]=mutable.Map.empty)(implicit design:Design):T = {
     x match {
       case x:PIRNode =>

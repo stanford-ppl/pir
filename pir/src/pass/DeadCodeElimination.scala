@@ -23,9 +23,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     traverseTop
     // Remove dead code
     liveMap.foreach { 
-      case (n, false) =>
-        removeNode(n)
-        pirmeta.removeAll(n)
+      case (n, false) => removeNode(n)
       case (n, true) => 
     }
   }
