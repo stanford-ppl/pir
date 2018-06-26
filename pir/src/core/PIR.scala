@@ -12,7 +12,7 @@ trait PIR extends Compiler with PIRWorld {
   def pirmeta:PIRMetadata = design.pirmeta
   def spademeta:SpadeMetadata = arch.design.spademeta
 
-  override def logExtensions = super.logExtensions ++ List(".py", ".cluster")
+  override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
 
   val configs = List(Config, SpadeConfig, PIRConfig)
 

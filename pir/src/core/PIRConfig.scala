@@ -6,7 +6,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("arch", default="SMeshCB4x4", info="Default architecture for mapping")
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("splitting-algo", default="weighted_igraph", info="splitting algorithm. options: [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
+  register("splitting-algo", default="alias_weighted_igraph", info="splitting algorithm. options: [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
   register("mapping", default=true, info="Enable mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("psim", default=true, info="Enable generation to plastisim")
