@@ -79,11 +79,14 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def isStaticLink(mem:Memory):Boolean = {
-    assertUnify(writersOf(mem), "isStaticLink"){
+    assertUnify((writersOf(mem) ++ resetersOf(mem)), "isStaticLink"){
       case Def(n, LocalStore(_, _, data:GlobalInput)) => 
         val port = mappedTo[MKMap.K](data).get
         isStaticLink(port)
       case Def(n, LocalStore(_, _, data)) => true // Local edge
+      case Def(n, LocalReset(_, reset:GlobalInput)) =>
+        val port = mappedTo[MKMap.K](reset).get
+        isStaticLink(port)
     }
   }
 
